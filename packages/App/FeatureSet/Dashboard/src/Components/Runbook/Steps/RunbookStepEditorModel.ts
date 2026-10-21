@@ -505,9 +505,10 @@ export function setStepRequiresApproval(
 
 /*
  * Whether a step was written before runbook variables - an SSH or
- * Kubernetes step that names a credential (only through the API since the
- * data migration rewrote every stored one). The editor shows such a step as
- * it is, with a button that turns it into a script step.
+ * Kubernetes step that names a runbook credential (the data migrations
+ * rewrote every stored one). Runbook credentials were removed, so such a
+ * step no longer runs: the editor shows it as it is, with a button that
+ * turns it into a script step.
  */
 export function isLegacyCredentialStep(step: RunbookStep): boolean {
   if (step.type === RunbookStepType.SSH) {
@@ -587,13 +588,14 @@ function isChanged(
 /*
  * A step with `patch` written over its config, as the editor changes it.
  *
- * A kubectl step the data migration moved from a Kubernetes action keeps
- * that action and its credential beside its script, so a Runner older than
- * kubectl scripts still runs it (RunbookLegacySteps) - only while its
- * script and kubeconfig are the ones it was moved with. A change to either
- * drops them here, as every save does on the server (RunbookService): the
- * step then needs a Runner that runs kubectl scripts, as every new one
- * does. Its Runner, timeouts and notes change nothing it does.
+ * A kubectl step the 14.0.79 data migration moved from a Kubernetes action
+ * kept that action and its credential beside its script, for Runners older
+ * than kubectl scripts. Runbook credentials are gone, so nothing reads them
+ * now, and the data migration that removed the credentials dropped them
+ * (RemoveRunbookCredentials). A step opened before that migration ran may
+ * still hold them: a change to its script or kubeconfig drops them here,
+ * so the save names no runbook credential. Its Runner, timeouts and notes
+ * change nothing it does.
  */
 export function applyStepConfigChange(
   step: RunbookStep,

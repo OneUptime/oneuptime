@@ -1305,9 +1305,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
-   * An SSH or Kubernetes step written with a credential, through the API
-   * (every stored one was rewritten when variables came in): shown as it
-   * is - it still runs - with one button that turns it into a script step.
+   * An SSH or Kubernetes step written with a runbook credential, through
+   * the API (the data migrations rewrote every stored one): shown as it is
+   * - it no longer runs, as runbook credentials were removed - with one
+   * button that turns it into a script step.
    */
   const renderLegacyCredentialStep: (
     step: RunbookStep,
@@ -1322,8 +1323,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <p>
             {translator.translateText(
               step.type === RunbookStepType.SSH
-                ? "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead."
-                : "This step restarts or scales one workload with a runbook credential. It still runs as it is. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+                ? "This step signs in with a runbook credential and runs one command. Runbook credentials were removed, so it no longer runs. Turn it into a script step to sign in with a variable instead."
+                : "This step restarts or scales one workload with a runbook credential. Runbook credentials were removed, so it no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
             )}
           </p>
           <div className="mt-3">
