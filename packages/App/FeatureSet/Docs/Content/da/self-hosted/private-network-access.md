@@ -208,4 +208,5 @@ At åbne for dette ændrer reelt, hvad din OneUptime-instans kan bringes til at 
 - [Workflow-konfiguration](/docs/workflows/configuration): Hvad workflow-trin kan nå og gøre.
 - [LLM-udbydere](/docs/ai/llm-provider): Forbind OneUptime AI med en model på dit netværk.
 - [Arkitektur](/docs/self-hosted/architecture): Hvilken del af en selvhostet installation der laver hvilken forbindelse.
+- [Bag en VPN eller firewall](/docs/self-hosted/behind-a-firewall): Den anden vej rundt: Hvad der når din server udefra.
 :::

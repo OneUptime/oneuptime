@@ -208,4 +208,5 @@ probes:
 - [پیکربندی گردش کاری](/docs/workflows/configuration): گام‌های گردش کاری به چه چیزهایی می‌رسند و چه می‌کنند.
 - [ارائه‌دهندگان LLM](/docs/ai/llm-provider): هوش مصنوعی OneUptime را به مدلی در شبکه خودتان وصل کنید.
 - [معماری](/docs/self-hosted/architecture): کدام بخش از نصب خودمیزبان هر اتصال را برقرار می‌کند.
+- [پشت VPN یا فایروال](/docs/self-hosted/behind-a-firewall): در جهت عکس: چه چیزهایی از بیرون به سرور شما می‌رسد.
 :::

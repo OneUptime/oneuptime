@@ -208,4 +208,5 @@ Att öppna för detta ändrar på riktigt vad din OneUptime-instans kan förmås
 - [Konfiguration av arbetsflöden](/docs/workflows/configuration): Vad arbetsflödessteg kan nå och göra.
 - [LLM-leverantörer](/docs/ai/llm-provider): Anslut OneUptime AI till en modell i ditt nätverk.
 - [Arkitektur](/docs/self-hosted/architecture): Vilken del av en egeninstallation som gör vilken anslutning.
+- [Bakom VPN eller brandvägg](/docs/self-hosted/behind-a-firewall): Åt andra hållet: vad som når din server utifrån.
 :::
