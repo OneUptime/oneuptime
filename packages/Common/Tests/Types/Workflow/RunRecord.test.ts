@@ -324,10 +324,23 @@ describe("the columns a record is looked up in, for every model", () => {
   });
 
   /*
+   * The decisions: numeric columns called "...Number" that count something
+   * within one record rather than number a project's records, so no
+   * "...WithPrefix" belongs beside them.
+   */
+  const NOT_RECORD_NUMBERS: Record<string, Record<string, string>> = {
+    OnCallDutyPolicyExecutionLog: {
+      pageAgainNumber:
+        "Which page again a run is, 1 to 5 (#5173): a count within one record's paging, not a number the project's runs are named by.",
+    },
+  };
+
+  /*
    * Generic, so it holds for a model added later: a numeric column called
    * "...Number" on a model a workflow can watch has its "...WithPrefix"
    * beside it, so its records can be named by number. A numbered model
-   * without one fails here, and gets the column or a decision.
+   * without one fails here, and gets the column or a decision
+   * (NOT_RECORD_NUMBERS).
    */
   test("every model a workflow can watch that numbers its records can be run by number", () => {
     const numbered: Array<string> = [];
@@ -345,7 +358,8 @@ describe("the columns a record is looked up in, for every model", () => {
         (columnId: string): boolean => {
           return (
             columnId.endsWith("Number") &&
-            columns[columnId]?.type === TableColumnType.Number
+            columns[columnId]?.type === TableColumnType.Number &&
+            !NOT_RECORD_NUMBERS[model.tableName || ""]?.[columnId]
           );
         },
       );
