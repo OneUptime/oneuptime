@@ -1506,13 +1506,13 @@ describe("somebody who may not: told why, mentioning them, and no card", () => {
     expect(removals(delivery)).toEqual([]);
   });
 
-  test("an incident Simon may not read - its labels, its owners - is one that is not there", async () => {
+  test("an incident Simon may not read - its labels, its owners - is refused with that, never as one that is not there", async () => {
     isIncidentReadable = false;
 
     const delivery: Delivery = await deliver(press("ViewAssignIncidentRole"));
 
     expect(answerOf(posted(delivery)[0])).toBe(
-      "You do not have permission to assign a role on this incident: the incident was not found in this project, or you do not have access to it.",
+      "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
     );
   });
 

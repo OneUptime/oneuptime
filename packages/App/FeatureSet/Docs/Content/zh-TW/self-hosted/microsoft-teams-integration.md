@@ -369,7 +369,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-兩個或更多 OneUptime 專案連接了同一個 Microsoft 租用戶。機器人訊息只帶有租用戶 ID，因此 OneUptime 無法知道你指的是哪個專案，於是選擇拒絕而不是猜測。請從除了一個專案以外的所有專案中中斷 Microsoft Teams 的連接。
+兩個或更多 OneUptime 專案連接了同一個 Microsoft 365 組織，而訊息中沒有任何內容能區分它們。卡片上的按鈕會在卡片所涉及紀錄的專案中執行，訊息會在其傳送所在頻道的專案中執行，否則會在傳送者的 Microsoft Teams 帳戶所連接的唯一專案中執行。請從目標專案的頻道（例如其某個事件頻道）中再次傳送。如果傳送者的帳戶在任何一個專案中都未連接，會先請其連接帳戶。
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

@@ -369,7 +369,7 @@ Weichen sie ab, ist der Benutzer, der dem Bot schreibt, bei einem anderen Micros
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Zwei oder mehr OneUptime-Projekte haben denselben Microsoft-Tenant verbunden. Eine Bot-Nachricht trägt nur eine Tenant-ID, daher kann OneUptime nicht erkennen, welches Projekt Sie meinen, und lehnt ab, statt zu raten. Trennen Sie Microsoft Teams von allen Projekten bis auf eines.
+Zwei oder mehr OneUptime-Projekte sind mit derselben Microsoft-365-Organisation verbunden, und nichts in der Nachricht hat sie unterschieden. Eine Schaltfläche auf einer Karte handelt im Projekt des Datensatzes, um den es geht, und eine Nachricht im Projekt des Kanals, in dem sie gesendet wird, sonst in dem einen Projekt, in dem das Microsoft-Teams-Konto der sendenden Person verbunden ist. Senden Sie sie erneut aus einem Kanal des gemeinten Projekts, etwa aus einem seiner Vorfallkanäle. Wessen Konto in keinem der Projekte verbunden ist, wird zuerst gebeten, es zu verbinden.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

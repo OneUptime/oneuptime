@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import Project from "../../../../../Models/DatabaseModels/Project";
+import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import { WorkspaceAmbiguousRetryKind } from "../../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
@@ -693,6 +698,152 @@ describe("SlackConnectPrompt.prompt", () => {
  * written there - a button press or a command still gets its answer every
  * time (prompt, above).
  */
+describe("SlackConnectPrompt.prompt, in a Slack workspace connected to more than one project", () => {
+  let answered: jest.SpyInstance;
+  let connectionReads: jest.SpyInstance;
+
+  function connectionOf(projectId: ObjectID): WorkspaceProjectAuthToken {
+    const connection: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    connection.projectId = projectId;
+    connection.workspaceProjectId = "T0TEAM";
+    connection.workspaceType = WorkspaceType.Slack;
+    return connection;
+  }
+
+  function promptToAcknowledge(): Promise<SlackAnswerDelivery> {
+    return SlackConnectPrompt.prompt({
+      projectId: PROJECT_ID,
+      place: {
+        projectAuthToken: "xoxb-project-token",
+        slackUserId: "U0NITIN",
+        slackChannelId: "C0INC2",
+        responseUrl: "https://hooks.slack.com/actions/T0TEAM/1/abc",
+      },
+      slackTeamId: "T0TEAM",
+      description: SlackConnectPrompt.describe({
+        actionType: SlackActionType.AcknowledgeIncident,
+        actionValue: RECORD_ID,
+      }),
+    });
+  }
+
+  function theAnswer(): WorkspaceAnswer {
+    expect(answered).toHaveBeenCalledTimes(1);
+    return (answered.mock.calls[0]![0] as { answer: WorkspaceAnswer }).answer;
+  }
+
+  beforeEach(() => {
+    (GlobalCache as unknown as { store: Map<string, unknown> }).store.clear();
+    jest
+      .spyOn(DatabaseConfig, "getDashboardUrl")
+      .mockResolvedValue(URL.fromString(DASHBOARD_URL));
+    answered = jest
+      .spyOn(SlackActionAnswer, "answer")
+      .mockResolvedValue(SlackAnswerDelivery.ResponseUrl);
+    connectionReads = jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([
+        connectionOf(new ObjectID("a1000000-0000-4000-8000-000000000001")),
+        connectionOf(PROJECT_ID),
+      ] as never);
+    jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+      const project: Project = new Project();
+      project.id = PROJECT_ID;
+      project.name = "IRM Non-Prod";
+      return [project];
+    }) as never);
+  });
+
+  test("names the project the account is asked to connect in - in the ask and its notification - with the one-click button", async () => {
+    await promptToAcknowledge();
+
+    expect(theAnswer()).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account in IRM Non-Prod to acknowledge this incident.** It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+      text: "Connect your Slack account in IRM Non-Prod to acknowledge this incident",
+    });
+    expect(
+      (answered.mock.calls[0]![0] as { connectUrl?: URL }).connectUrl,
+    ).toBeDefined();
+    // The workspace's connections, read by its team id.
+    expect(
+      (connectionReads.mock.calls[0]![0] as { query: unknown }).query,
+    ).toEqual({
+      workspaceType: WorkspaceType.Slack,
+      workspaceProjectId: "T0TEAM",
+    });
+  });
+
+  test("a workspace connected to one project: no project named, as before", async () => {
+    connectionReads.mockResolvedValue([connectionOf(PROJECT_ID)] as never);
+
+    await promptToAcknowledge();
+
+    expect(theAnswer().text).toBe(
+      "Connect your Slack account to acknowledge this incident",
+    );
+  });
+
+  test("connections that cannot be read: asked as before - the prompt never fails for the name", async () => {
+    connectionReads.mockRejectedValue(new Error("database is away"));
+
+    expect(await promptToAcknowledge()).toBe(SlackAnswerDelivery.ResponseUrl);
+    expect(theAnswer().text).toBe(
+      "Connect your Slack account to acknowledge this incident",
+    );
+  });
+});
+
+/*
+ * A press that could be about more than one of the workspace's projects is
+ * answered with how to make it again where it can be told apart
+ * (WorkspaceProjectResolution.getAmbiguousAnswer): in a channel of the
+ * project meant. A shortcut from Slack's shortcuts menu never says where it
+ * was used - trying it again anywhere is ambiguous again - so it is pointed
+ * to the command that does the same.
+ */
+describe("SlackAuthAction.getAmbiguousRetry", () => {
+  test("the shortcuts point to their commands", () => {
+    expect(
+      SlackAuthAction.getAmbiguousRetry({
+        payloadType: "shortcut",
+        actionType: SlackActionType.NewIncident,
+      }),
+    ).toEqual({
+      kind: WorkspaceAmbiguousRetryKind.Command,
+      command: "/oneuptime incident",
+    });
+    expect(
+      SlackAuthAction.getAmbiguousRetry({
+        payloadType: "shortcut",
+        actionType: SlackActionType.NewScheduledMaintenance,
+      }),
+    ).toEqual({
+      kind: WorkspaceAmbiguousRetryKind.Command,
+      command: "/oneuptime maintenance",
+    });
+  });
+
+  test("a button, a form or a command is tried again", () => {
+    for (const request of [
+      { payloadType: "block_actions", actionType: SlackActionType.ShowOnCall },
+      {
+        payloadType: "view_submission",
+        actionType: SlackActionType.SubmitNewIncident,
+      },
+      // A slash command: no payload type; /oneuptime incident itself.
+      { payloadType: undefined, actionType: SlackActionType.NewIncident },
+      // A shortcut the app does not have.
+      { payloadType: "shortcut", actionType: "SomethingElse" },
+    ]) {
+      expect(SlackAuthAction.getAmbiguousRetry(request)).toEqual({
+        kind: WorkspaceAmbiguousRetryKind.Again,
+      });
+    }
+  });
+});
+
 describe("SlackConnectPrompt.promptOnce", () => {
   let answered: jest.SpyInstance;
 

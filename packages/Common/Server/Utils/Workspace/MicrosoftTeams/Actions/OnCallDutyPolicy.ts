@@ -9,6 +9,7 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventRecord,
@@ -145,12 +146,20 @@ export default class MicrosoftTeamsOnCallDutyActions {
           props: databaseProps,
         });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!onCallDutyPolicy) {
-        logger.error("OnCallDutyPolicy not found", {
+        logger.debug("On-call policy not readable to the member", {
           onCallDutyPolicyId: onCallDutyPolicyId.toString(),
         });
-        await turnContext.sendActivity("OnCallDutyPolicy not found");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action:
+            actionType === MicrosoftTeamsOnCallDutyActionType.EscalateOnCall
+              ? "execute this on-call policy"
+              : "see this on-call policy",
+          service: OnCallDutyPolicyService,
+          id: onCallDutyPolicyId,
+          props: databaseProps,
+        });
       }
 
       switch (actionType) {

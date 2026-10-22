@@ -587,17 +587,28 @@ const LATE_PRESS_EXAMPLE: string =
  * What a server or a chat bot answers in English, whatever the reader's
  * language, which the pages quote as it is sent.
  */
+/*
+ * How a chat's button on a record the person may not act on says why
+ * (WorkspaceActionAuthorization.getUnreadableRefusal), as the pages quote it
+ * for an incident.
+ */
+const UNREADABLE_RECORD_REASONS: Array<string> = [
+  WorkspaceActionAuthorization.getNotIncludedReason("incident"),
+  WorkspaceActionAuthorization.getPrivateReason("incident"),
+  WorkspaceActionAuthorization.getNotFoundReason("incident"),
+];
+
 const SERVER_MESSAGES: Record<string, Array<string>> = {
   [SLACK]: [
     TEST_NOTIFICATION_PERMISSION_MESSAGE,
-    WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
+    ...UNREADABLE_RECORD_REASONS,
     SlackIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
     LATE_PRESS_EXAMPLE,
   ],
   [TEAMS]: [
     TEST_NOTIFICATION_PERMISSION_MESSAGE,
-    WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
+    ...UNREADABLE_RECORD_REASONS,
     MicrosoftTeamsIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
     LATE_PRESS_EXAMPLE,

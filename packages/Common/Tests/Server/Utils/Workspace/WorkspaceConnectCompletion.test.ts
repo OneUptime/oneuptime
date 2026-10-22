@@ -35,7 +35,6 @@ import WorkspaceReactionNote, {
 import { WorkspaceNoteType } from "../../../../Types/Workspace/WorkspaceNoteReaction";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import { ConnectRequestOutcome } from "../../../../Types/Workspace/ConnectCallback";
@@ -334,8 +333,15 @@ describe("a press OneUptime finishes", () => {
     [
       "the incident is outside what the member may read",
       "authorize",
-      new BadDataException(
-        "Could not acknowledge this incident: the incident was not found in this project, or you do not have access to it.",
+      new NotAuthorizedException(
+        `You do not have permission to acknowledge this incident: ${WorkspaceActionAuthorization.getNotIncludedReason("incident")}`,
+      ),
+    ],
+    [
+      "the incident was deleted since the button was posted",
+      "authorize",
+      new NotAuthorizedException(
+        `Could not acknowledge this incident: ${WorkspaceActionAuthorization.getNotFoundReason("incident")}`,
       ),
     ],
   ])(
