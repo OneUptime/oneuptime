@@ -493,7 +493,7 @@ describe("who joins the channel a rule creates", () => {
     ).toBeVisible();
     expect(
       screen.getByText(
-        "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.",
+        "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
       ),
     ).toBeVisible();
     // Slack adds the people on call: there is nothing to mention.

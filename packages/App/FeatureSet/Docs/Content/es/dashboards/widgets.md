@@ -54,7 +54,7 @@ Una serie temporal de una o varias consultas de métricas a lo largo del interva
 
 ### Valor
 
-Un número grande con un minigráfico: el valor de la consulta en todo el intervalo de tiempo, sumado para una suma o un recuento, el más alto para un máximo, el más bajo para un mínimo, y la media en los demás casos. Una flecha compara la segunda mitad del intervalo con la primera, coloreada según **Trend Direction**: si un valor más alto es mejor o peor, o deducido del nombre de la métrica. **Umbral de advertencia** pone el fondo amarillo y **Umbral crítico** rojo en cuanto el valor los alcanza.
+Un número grande con un minigráfico: el valor de la consulta en todo el intervalo de tiempo, sumado para una suma o un recuento, el más alto para un máximo, el más bajo para un mínimo, y la media en los demás casos. Una flecha compara la segunda mitad del intervalo con la primera, cada mitad calculada del mismo modo, coloreada según **Trend Direction**: si un valor más alto es mejor o peor, o deducido del nombre de la métrica. Señala la flecha para ver el valor de cada mitad, y el minigráfico para leer el valor y la hora de cualquier punto. **Umbral de advertencia** pone el fondo amarillo y **Umbral crítico** rojo en cuanto el valor los alcanza.
 
 Úsalo cuando un número responde a la pregunta: la tasa de errores, la latencia P95 o las peticiones atendidas hoy.
 

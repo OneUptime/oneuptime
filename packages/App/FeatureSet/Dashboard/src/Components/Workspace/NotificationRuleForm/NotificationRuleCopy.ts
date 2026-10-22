@@ -446,7 +446,7 @@ export const OWNERS_TITLE: string = translationKey("Owners, as they are added");
 export const ALSO_INVITE_TITLE: string = translationKey("Also invite");
 
 export const ALSO_INVITE_DESCRIPTION: string = translationKey(
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
 );
 
 export const ALSO_INVITE_BUTTON_TEXT: string = translationKey(

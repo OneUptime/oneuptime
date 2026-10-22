@@ -33314,6 +33314,17 @@
   "No people, teams or schedules available.": "沒有可用的人員、團隊或待命排程。",
   "Search on-call schedules...": "搜尋待命排程...",
   "Search people, teams or schedules...": "搜尋人員、團隊或待命排程...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "這些人員和團隊會加入此規則建立的每個頻道，建立頻道時這些待命排程中正在待命的人也會加入。不會呼叫任何人。",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "建立頻道時，這些待命排程中正在待命的人會在頻道中被 @提及，因此 Microsoft Teams 會通知他們。不會呼叫任何人。"
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "這些人員和團隊會加入此規則建立的每個頻道，建立頻道時這些待命排程中正在待命的人也會加入。不會呼叫任何人。",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "建立頻道時，這些待命排程中正在待命的人會在頻道中被 @提及，因此 Microsoft Teams 會通知他們。不會呼叫任何人。",
+  "About the same as in the first half of the time range": "與時間範圍前半段大致相同",
+  "Click to configure metric": "點擊以設定指標",
+  "Data Source Value": "資料來源值",
+  "Down from 0 in the first half of the time range": "從時間範圍前半段的 0 下降",
+  "Down {{percent}} from the first half of the time range": "比時間範圍前半段下降 {{percent}}",
+  "First half": "前半段",
+  "Second half": "後半段",
+  "Up from 0 in the first half of the time range": "從時間範圍前半段的 0 上升",
+  "Up {{percent}} from the first half of the time range": "比時間範圍前半段上升 {{percent}}",
+  "Value Widget": "數值小工具",
+  "from 0": "從 0 起"
 }

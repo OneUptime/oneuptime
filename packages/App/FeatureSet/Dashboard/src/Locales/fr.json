@@ -33314,6 +33314,17 @@
   "No people, teams or schedules available.": "Aucune personne, équipe ni planning disponible.",
   "Search on-call schedules...": "Rechercher des plannings d'astreinte...",
   "Search people, teams or schedules...": "Rechercher des personnes, des équipes ou des plannings...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Ces personnes et équipes rejoignent chaque canal créé par la règle, tout comme les personnes d'astreinte dans ces plannings à la création du canal. Personne n'est alerté.",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Les personnes d'astreinte dans ces plannings à la création du canal y sont @mentionnées, pour que Microsoft Teams les notifie. Personne n'est alerté."
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Ces personnes et équipes rejoignent chaque canal créé par la règle, tout comme les personnes d'astreinte dans ces plannings à la création du canal. Personne n'est alerté.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Les personnes d'astreinte dans ces plannings à la création du canal y sont @mentionnées, pour que Microsoft Teams les notifie. Personne n'est alerté.",
+  "About the same as in the first half of the time range": "À peu près comme dans la première moitié de la période",
+  "Click to configure metric": "Cliquez pour configurer une métrique",
+  "Data Source Value": "Valeur de source de données",
+  "Down from 0 in the first half of the time range": "En baisse depuis 0 dans la première moitié de la période",
+  "Down {{percent}} from the first half of the time range": "En baisse de {{percent}} par rapport à la première moitié de la période",
+  "First half": "Première moitié",
+  "Second half": "Seconde moitié",
+  "Up from 0 in the first half of the time range": "En hausse depuis 0 dans la première moitié de la période",
+  "Up {{percent}} from the first half of the time range": "En hausse de {{percent}} par rapport à la première moitié de la période",
+  "Value Widget": "Widget de valeur",
+  "from 0": "depuis 0"
 }

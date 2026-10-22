@@ -33314,6 +33314,17 @@
   "No people, teams or schedules available.": "Нет доступных людей, команд или расписаний.",
   "Search on-call schedules...": "Поиск расписаний дежурств...",
   "Search people, teams or schedules...": "Поиск людей, команд или расписаний...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Эти люди и команды присоединяются к каждому каналу, который создаёт правило, как и те, кто дежурит по этим расписаниям на момент создания канала. Никого не вызывают.",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Тех, кто дежурит по этим расписаниям на момент создания канала, @упоминают в нём, чтобы Microsoft Teams их уведомил. Никого не вызывают."
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Эти люди и команды присоединяются к каждому каналу, который создаёт правило, как и те, кто дежурит по этим расписаниям на момент создания канала. Никого не вызывают.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Тех, кто дежурит по этим расписаниям на момент создания канала, @упоминают в нём, чтобы Microsoft Teams их уведомил. Никого не вызывают.",
+  "About the same as in the first half of the time range": "Примерно как в первой половине периода",
+  "Click to configure metric": "Нажмите, чтобы настроить метрику",
+  "Data Source Value": "Значение из источника данных",
+  "Down from 0 in the first half of the time range": "Снижение с 0 в первой половине периода",
+  "Down {{percent}} from the first half of the time range": "На {{percent}} меньше, чем в первой половине периода",
+  "First half": "Первая половина",
+  "Second half": "Вторая половина",
+  "Up from 0 in the first half of the time range": "Рост с 0 в первой половине периода",
+  "Up {{percent}} from the first half of the time range": "На {{percent}} больше, чем в первой половине периода",
+  "Value Widget": "Виджет значения",
+  "from 0": "с 0"
 }

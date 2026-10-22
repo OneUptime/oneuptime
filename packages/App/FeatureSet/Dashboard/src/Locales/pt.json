@@ -33314,6 +33314,17 @@
   "No people, teams or schedules available.": "Nenhuma pessoa, equipe ou agendamento disponível.",
   "Search on-call schedules...": "Pesquisar agendamentos de plantão...",
   "Search people, teams or schedules...": "Pesquisar pessoas, equipes ou agendamentos...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Essas pessoas e equipes entram em cada canal que a regra cria, assim como quem está de plantão nesses agendamentos quando o canal é criado. Ninguém é acionado.",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Quem está de plantão nesses agendamentos quando o canal é criado é @mencionado nele, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado."
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Essas pessoas e equipes entram em cada canal que a regra cria, assim como quem está de plantão nesses agendamentos quando o canal é criado. Ninguém é acionado.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Quem está de plantão nesses agendamentos quando o canal é criado é @mencionado nele, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado.",
+  "About the same as in the first half of the time range": "Praticamente igual à primeira metade do período",
+  "Click to configure metric": "Clique para configurar uma métrica",
+  "Data Source Value": "Valor da fonte de dados",
+  "Down from 0 in the first half of the time range": "Em queda desde 0 na primeira metade do período",
+  "Down {{percent}} from the first half of the time range": "{{percent}} a menos que na primeira metade do período",
+  "First half": "Primeira metade",
+  "Second half": "Segunda metade",
+  "Up from 0 in the first half of the time range": "Em alta desde 0 na primeira metade do período",
+  "Up {{percent}} from the first half of the time range": "{{percent}} a mais que na primeira metade do período",
+  "Value Widget": "Widget de valor",
+  "from 0": "desde 0"
 }
