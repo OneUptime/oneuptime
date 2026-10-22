@@ -333,6 +333,8 @@ describe("Dropdown picked value", () => {
     expect(label).toHaveClass("truncate");
     expect(label.parentElement).toHaveClass("min-w-0", "max-w-full");
     expect(label.parentElement?.parentElement).toHaveClass("min-w-0");
+    // Cut at its end whichever way the page reads (a Persian page, too).
+    expect(label).toHaveAttribute("dir", "auto");
   });
 
   test("each picked chip of a multi select truncates its name the same way", () => {
