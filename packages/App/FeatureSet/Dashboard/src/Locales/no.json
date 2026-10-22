@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Eskalere varselet?",
   "Escalate Episode?": "Eskalere episoden?",
   "Escalate Incident?": "Eskalere hendelsen?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Hver hendelse har en etteranalyse som skal skrives. Så snart en hendelse er erklært, vises etteranalysen her.",
+  "When an incident is declared, its postmortem shows up here.": "Så snart en hendelse er erklært, vises etteranalysen her.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Etteranalysen for hver hendelse: hvor langt den har kommet og hvem som eier den. Filtrer etter eier, alvorlighetsgrad eller status for å se hvilke som fortsatt mangler.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Hvor langt en etteranalyse har kommet. Dra en status for å endre plasseringen. En ny status legges til rett over den fullførte statusen, og en status under den teller som ferdig.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Hvis ingen bekrefter innen {{time}}, varsler policyen deretter {{level}}.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (nivå {{order}} av {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} har allerede bekreftet, så det er ingenting å eskalere.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktiver for å vise bare disse etteranalysene nedenfor.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerer etteranalysene nedenfor - aktiver for å fjerne dette filteret."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerer etteranalysene nedenfor - aktiver for å fjerne dette filteret.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv hva som skjedde, konsekvensene, løsningen og oppfølgingen."
 }

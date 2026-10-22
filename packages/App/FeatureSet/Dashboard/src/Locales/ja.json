@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "アラートをエスカレーションしますか？",
   "Escalate Episode?": "エピソードをエスカレーションしますか？",
   "Escalate Incident?": "インシデントをエスカレーションしますか？",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "すべてのインシデントには書くべきポストモーテムがあります。インシデントが宣言されると、そのポストモーテムがここに表示されます。",
+  "When an incident is declared, its postmortem shows up here.": "インシデントが宣言されると、そのポストモーテムがここに表示されます。",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "各インシデントのポストモーテム: どこまで進んでいるか、誰が所有しているか。所有者、重大度、ステータスで絞り込むと、まだ書かれていないものがわかります。",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "ポストモーテムの進み具合です。ステータスをドラッグして位置を変更します。新しいステータスは完了ステータスのすぐ上に追加され、その下のステータスは完了として扱われます。",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "{{time}} までに誰も確認しない場合、ポリシーは次に {{level}} を呼び出します。",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}}（レベル {{order}}/{{count}}）",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} がすでに確認したため、エスカレーションするものはありません。",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}。有効にすると、下にこれらのポストモーテムだけを表示します。",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}。下のポストモーテムを絞り込み中です。有効にするとこのフィルターを解除します。"
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}。下のポストモーテムを絞り込み中です。有効にするとこのフィルターを解除します。",
+  "Capture what happened, impact, resolution, and follow-up actions.": "何が起きたか、影響、解決方法、フォローアップのアクションを記録します。"
 }

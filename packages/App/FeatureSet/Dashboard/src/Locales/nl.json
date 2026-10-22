@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Waarschuwing escaleren?",
   "Escalate Episode?": "Episode escaleren?",
   "Escalate Incident?": "Incident escaleren?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Elk incident heeft een postmortem om te schrijven. Zodra een incident is gemeld, staat de postmortem hier.",
+  "When an incident is declared, its postmortem shows up here.": "Zodra een incident is gemeld, staat de postmortem hier.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "De postmortem van elk incident: hoe ver die is en wie de eigenaar is. Filter op eigenaar, ernst of status om te zien welke nog openstaan.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Hoe ver een postmortem is. Sleep een status om de plaats ervan te wijzigen. Een nieuwe status wordt direct boven de voltooide status toegevoegd, en een status daaronder telt als klaar.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Als niemand vóór {{time}} bevestigt, roept het beleid daarna {{level}} op.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (niveau {{order}} van {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} heeft het al bevestigd, dus er is niets te escaleren.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Activeer om hieronder alleen deze postmortems te tonen.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtert de postmortems hieronder - activeer om dit filter te verwijderen."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtert de postmortems hieronder - activeer om dit filter te verwijderen.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beschrijf wat er is gebeurd, de impact, de oplossing en de vervolgacties."
 }

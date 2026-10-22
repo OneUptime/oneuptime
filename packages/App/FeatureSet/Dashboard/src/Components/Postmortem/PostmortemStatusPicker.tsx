@@ -217,8 +217,15 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
       )}
 
       {error ? (
+        /*
+         * In a row it wraps at the width of a short sentence: a table cell
+         * keeps its text on one line, and the reason on one line pushed the
+         * Postmortem Status column ~200px wider, under the sticky View.
+         */
         <p
-          className="text-xs text-red-700"
+          className={`text-xs leading-5 text-red-700 ${
+            props.isInTable ? "w-max max-w-[13rem] whitespace-normal" : ""
+          }`}
           role="alert"
           data-testid={`${testId}-error`}
         >

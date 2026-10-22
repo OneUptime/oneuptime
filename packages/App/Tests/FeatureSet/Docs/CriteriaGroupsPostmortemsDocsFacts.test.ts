@@ -2489,7 +2489,9 @@ describe("where a postmortem is written", () => {
       "WRITE_POSTMORTEM",
       "Write Postmortem",
     );
-    expect(POSTMORTEM_EMPTY_STATE).toContain("title={WRITE_POSTMORTEM}");
+    expect(POSTMORTEM_EMPTY_STATE).toContain(
+      "title: WRITE_POSTMORTEM,\n      icon: IconProp.Edit,\n      buttonStyle: ButtonStyleType.PRIMARY,",
+    );
     expect(writeDialog).toContain('title="Write Postmortem"');
     expect(writeDialog).toContain("steps: INCIDENT_POSTMORTEM_FORM_STEPS,");
     // Written: the card's Edit button, with the same steps.
@@ -2627,11 +2629,15 @@ describe("starting a postmortem from a template or an AI draft", () => {
       "GENERATE_WITH_AI",
       "Generate with AI",
     );
+    /*
+     * Beside it for someone who may write the postmortem: a viewer, who may
+     * not, finds Write Postmortem alone, locked, with why under it.
+     */
     expect(POSTMORTEM_EMPTY_STATE).toContain(
-      "{props.hasTemplates ? (\n        <Button\n          title={START_FROM_TEMPLATE}",
+      "if (!isLocked && props.hasTemplates) {\n    actions.push({\n      title: START_FROM_TEMPLATE,",
     );
     expect(POSTMORTEM_EMPTY_STATE).toContain(
-      "{props.isAiOffered ? (\n        <Button\n          title={GENERATE_WITH_AI}",
+      "if (!isLocked && props.isAiOffered) {\n    actions.push({\n      title: GENERATE_WITH_AI,",
     );
     // Written: the ⋯ beside Edit Postmortem Note.
     expect(POSTMORTEM_PAGE).toContain(

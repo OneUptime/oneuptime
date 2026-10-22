@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "경고를 에스컬레이션할까요?",
   "Escalate Episode?": "에피소드를 에스컬레이션할까요?",
   "Escalate Incident?": "인시던트를 에스컬레이션할까요?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "모든 인시던트에는 작성할 포스트모템이 있습니다. 인시던트가 선언되면 해당 포스트모템이 여기에 표시됩니다.",
+  "When an incident is declared, its postmortem shows up here.": "인시던트가 선언되면 해당 포스트모템이 여기에 표시됩니다.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "모든 인시던트의 포스트모템이 어디까지 진행되었고 누가 소유하는지 보여 줍니다. 소유자, 심각도 또는 상태로 필터링하면 아직 남은 포스트모템을 볼 수 있습니다.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "포스트모템이 얼마나 진행되었는지 나타냅니다. 상태를 드래그하여 위치를 바꾸세요. 새 상태는 완료 상태 바로 위에 추가되며, 그 아래의 상태는 완료로 간주됩니다.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "{{time}}까지 아무도 확인하지 않으면 정책이 다음으로 {{level}}에 알림을 보냅니다.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}}(레벨 {{order}}/{{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}}님이 이미 확인했으므로 에스컬레이션할 것이 없습니다.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. 활성화하면 아래에 이 포스트모템만 표시합니다.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. 아래 포스트모템을 필터링하는 중입니다. 활성화하면 이 필터를 제거합니다."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. 아래 포스트모템을 필터링하는 중입니다. 활성화하면 이 필터를 제거합니다.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "무슨 일이 있었는지, 영향, 해결 방법, 후속 조치를 기록하세요."
 }

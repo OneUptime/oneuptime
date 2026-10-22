@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Escalader l'alerte ?",
   "Escalate Episode?": "Escalader l'épisode ?",
   "Escalate Incident?": "Escalader l'incident ?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Chaque incident a un post-mortem à rédiger. Dès qu'un incident est déclaré, son post-mortem apparaît ici.",
+  "When an incident is declared, its postmortem shows up here.": "Dès qu'un incident est déclaré, son post-mortem apparaît ici.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Le post-mortem de chaque incident : où il en est et à qui il appartient. Filtrez par propriétaire, gravité ou statut pour voir ceux qui restent à faire.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Où en est un post-mortem. Faites glisser un statut pour changer sa position. Un nouveau statut est ajouté juste au-dessus du statut achevé, et un statut placé en dessous compte comme terminé.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Si personne ne prend en compte d'ici {{time}}, la politique alertera ensuite {{level}}.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (niveau {{order}} sur {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} l'a déjà pris en compte, il n'y a donc rien à escalader.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}} : {{count}}. Activez pour n'afficher que ces post-mortems ci-dessous.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}} : {{count}}. Filtre les post-mortems ci-dessous - activez pour retirer ce filtre."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}} : {{count}}. Filtre les post-mortems ci-dessous - activez pour retirer ce filtre.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Décrivez ce qui s'est passé, l'impact, la résolution et les actions de suivi."
 }

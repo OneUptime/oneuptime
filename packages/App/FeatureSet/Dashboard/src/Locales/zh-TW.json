@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "要升級此警示嗎？",
   "Escalate Episode?": "要升級此片段嗎？",
   "Escalate Incident?": "要升級此事件嗎？",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "每個事件都有一份待寫的事後分析。事件一經宣告，其事後分析就會列在這裡。",
+  "When an incident is declared, its postmortem shows up here.": "事件一經宣告，其事後分析就會列在這裡。",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "每個事件的事後分析：進展到哪一步、由誰負責。依擁有者、嚴重程度或狀態篩選，即可查看哪些仍待完成。",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "事後分析的進展程度。拖曳狀態即可變更其位置。新狀態會新增在已完成狀態的正上方，位於其下方的狀態視為完成。",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "如果到 {{time}} 仍無人確認，策略接下來將通知 {{level}}。",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}}（級別 {{order}}/{{count}}）",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} 已確認，因此無需升級。",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}：{{count}}。啟用後，下方僅顯示這些事後分析。",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}：{{count}}。正在篩選下方的事後分析，啟用即可移除此篩選。"
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}：{{count}}。正在篩選下方的事後分析，啟用即可移除此篩選。",
+  "Capture what happened, impact, resolution, and follow-up actions.": "記錄發生了什麼、影響、解決方式以及後續行動。"
 }

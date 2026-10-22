@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "要升级此警报吗？",
   "Escalate Episode?": "要升级此片段吗？",
   "Escalate Incident?": "要升级此事件吗？",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "每个事件都有一份待写的事后分析。事件一经声明，其事后分析就会列在这里。",
+  "When an incident is declared, its postmortem shows up here.": "事件一经声明，其事后分析就会列在这里。",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "每个事件的事后分析：进展到哪一步、由谁负责。按所有者、严重程度或状态筛选，即可查看哪些仍待完成。",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "事后分析的进展程度。拖动状态即可更改其位置。新状态会添加在已完成状态的正上方，位于其下方的状态视为完成。",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "如果到 {{time}} 仍无人确认，策略接下来将通知 {{level}}。",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}}（级别 {{order}}/{{count}}）",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} 已确认，因此无需升级。",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}：{{count}}。激活后，下方仅显示这些事后分析。",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}：{{count}}。正在筛选下方的事后分析，激活即可移除此筛选。"
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}：{{count}}。正在筛选下方的事后分析，激活即可移除此筛选。",
+  "Capture what happened, impact, resolution, and follow-up actions.": "记录发生了什么、影响、解决方式以及后续行动。"
 }

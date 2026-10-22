@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Eskalér advarslen?",
   "Escalate Episode?": "Eskalér episoden?",
   "Escalate Incident?": "Eskalér hændelsen?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Hver hændelse har en postmortem, der skal skrives. Så snart en hændelse er erklæret, vises dens postmortem her.",
+  "When an incident is declared, its postmortem shows up here.": "Så snart en hændelse er erklæret, vises dens postmortem her.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Hver hændelses postmortem: hvor langt den er, og hvem der ejer den. Filtrér efter ejer, alvorlighed eller status for at se, hvilke der stadig mangler.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Hvor langt en postmortem er nået. Træk en status for at ændre dens placering. En ny status tilføjes lige over den fuldførte status, og en status under den tæller som færdig.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Hvis ingen kvitterer inden {{time}}, tilkalder politikken derefter {{level}}.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (niveau {{order}} af {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} har allerede kvitteret, så der er intet at eskalere.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktivér for kun at vise disse postmortems nedenfor.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerer postmortems nedenfor - aktivér for at fjerne dette filter."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerer postmortems nedenfor - aktivér for at fjerne dette filter.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv, hvad der skete, konsekvenserne, løsningen og opfølgningen."
 }

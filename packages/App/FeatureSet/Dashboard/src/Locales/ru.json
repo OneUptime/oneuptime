@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Эскалировать оповещение?",
   "Escalate Episode?": "Эскалировать эпизод?",
   "Escalate Incident?": "Эскалировать инцидент?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Для каждого инцидента нужно написать постмортем. Как только инцидент объявлен, его постмортем появляется здесь.",
+  "When an incident is declared, its postmortem shows up here.": "Как только инцидент объявлен, его постмортем появляется здесь.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Постмортем каждого инцидента: на каком он этапе и кто его владелец. Отфильтруйте по владельцу, серьёзности или статусу, чтобы увидеть, какие ещё не готовы.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Насколько продвинулся постмортем. Перетащите статус, чтобы изменить его положение. Новый статус добавляется прямо над завершённым статусом, а статус ниже него считается готовым.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Если никто не подтвердит до {{time}}, политика затем оповестит {{level}}.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (уровень {{order}} из {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "Уже подтверждено пользователем {{name}}, поэтому эскалировать нечего.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Активируйте, чтобы показать ниже только эти постмортемы.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Фильтрует постмортемы ниже - активируйте, чтобы снять этот фильтр."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Фильтрует постмортемы ниже - активируйте, чтобы снять этот фильтр.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Опишите, что произошло, последствия, решение и дальнейшие действия."
 }

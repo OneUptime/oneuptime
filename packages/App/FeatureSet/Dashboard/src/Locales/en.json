@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Escalate Alert?",
   "Escalate Episode?": "Escalate Episode?",
   "Escalate Incident?": "Escalate Incident?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.",
+  "When an incident is declared, its postmortem shows up here.": "When an incident is declared, its postmortem shows up here.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "If nobody acknowledges by {{time}}, the policy pages {{level}} next.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (Level {{order}} of {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} acknowledged it already, so there is nothing to escalate.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Activate to show only these postmortems below.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Capture what happened, impact, resolution, and follow-up actions."
 }

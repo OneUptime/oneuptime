@@ -163,6 +163,14 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
           props.facetOperators,
         );
 
+        /*
+         * The status's own description: the four a project starts with are
+         * read in the reader's language, a project's own as written.
+         */
+        const caption: string = (
+          translator.translateText(tile.description) || tile.description
+        ).trim();
+
         return (
           <InfoCard
             key={tile.statusId}
@@ -199,7 +207,7 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
               isLoading ? (
                 <div className="mt-1 space-y-2">
                   <div className="h-7 w-10 animate-pulse rounded bg-gray-100"></div>
-                  <div className="h-3 w-24 animate-pulse rounded bg-gray-100"></div>
+                  <div className="h-3 w-24 animate-pulse rounded bg-gray-100 max-sm:hidden"></div>
                 </div>
               ) : (
                 <div className="mt-1">
@@ -212,19 +220,31 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
                   >
                     {translator.formatNumber(count)}
                   </div>
-                  <div className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-gray-500">
-                    <span
-                      aria-hidden="true"
-                      className="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full"
-                      style={{ backgroundColor: tile.color }}
-                    ></span>
-                    {/*
-                     * The status's own description: the four a project
-                     * starts with are read in the reader's language, a
-                     * project's own as written.
-                     */}
-                    <span>{translator.translateText(tile.description)}</span>
-                  </div>
+                  {/*
+                   * At most three lines - the four a project starts with
+                   * fit whole from a tablet up - so a project's own long
+                   * description keeps the tiles level (the whole of it on
+                   * hover). Left out on a phone, where the name and the
+                   * count say enough and four captions pushed the list
+                   * below the fold.
+                   */}
+                  {caption ? (
+                    <div
+                      className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-gray-500 max-sm:hidden"
+                      data-testid={`postmortem-status-caption-${tile.statusId}`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="mt-1.5 inline-block h-2 w-2 flex-shrink-0 rounded-full"
+                        style={{ backgroundColor: tile.color }}
+                      ></span>
+                      <span className="line-clamp-3 min-w-0" title={caption}>
+                        {caption}
+                      </span>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               )
             }

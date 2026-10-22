@@ -159,11 +159,13 @@ export const getPostmortemStatusTileCountClassName: (
 };
 
 /*
- * The tiles' grid: two to a line on a phone, and one line on a wide screen
- * for up to six statuses - the four a project starts with share one line
- * from md up, and a project's own fifth or sixth joins them from xl up
- * rather than wrapping alone. Class names are written out whole, as
- * Tailwind finds them.
+ * The tiles' grid: two to a line on a phone and on a tablet, and one line on
+ * a wide screen for up to six statuses - the four a project starts with
+ * share one line from lg up, and a project's own fifth or sixth joins them
+ * from xl up rather than wrapping alone. Not from md: the side menu takes a
+ * third of a tablet's width there, and four tiles in the ~480px left over
+ * were ~105px each, too narrow for "Not Started" and its caption. Class
+ * names are written out whole, as Tailwind finds them.
  */
 export const getPostmortemStatusTilesGridClassName: (
   tileCount: number,
@@ -173,16 +175,16 @@ export const getPostmortemStatusTilesGridClassName: (
   }
 
   if (tileCount === 3) {
-    return "grid grid-cols-2 gap-4 md:grid-cols-3";
+    return "grid grid-cols-2 gap-4 lg:grid-cols-3";
   }
 
   if (tileCount === 4) {
-    return "grid grid-cols-2 gap-4 md:grid-cols-4";
+    return "grid grid-cols-2 gap-4 lg:grid-cols-4";
   }
 
   if (tileCount === 5) {
-    return "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5";
+    return "grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5";
   }
 
-  return "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6";
+  return "grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6";
 };

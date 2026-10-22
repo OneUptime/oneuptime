@@ -312,8 +312,15 @@ import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
+import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import FieldType from "../../../UI/Components/Types/FieldType";
+import {
+  hasMinWidthClassName,
+  hasMaxWidthClassName,
+} from "../../../UI/Components/Table/TableLayout";
+import { isFillingNameColumn } from "../../../UI/Components/Table/CellClassName";
 import {
   BulkActionFailed,
   BulkActionOnClickProps,
@@ -582,6 +589,13 @@ describe("the Postmortems list", () => {
     expect(columns[0]!["isNotCustomizable"]).toBe(true);
     expect(columns[6]!["isHiddenByDefault"]).toBe(true);
 
+    /*
+     * The day an incident was declared, not the minute: what a list of
+     * postmortems is read by, and what leaves the columns their room beside
+     * the side menu in German (57px past the card at 1280px with the time).
+     */
+    expect(columns[5]!["type"]).toBe(FieldType.Date);
+
     // The status column is read with the status's name and colour.
     expect(columns[2]!["field"]).toEqual({
       postmortemStatus: { _id: true, name: true, color: true },
@@ -637,15 +651,50 @@ describe("the Postmortems list", () => {
     expect(options["extraFacets"]).toBe(POSTMORTEM_LIST_FACETS);
   });
 
-  test("with no incidents yet it says what will be listed, and offers nothing to create", async () => {
+  test("with no incidents yet it says what will be listed, under a write-up's icon, and offers nothing to create", async () => {
     await renderPage();
 
     expect(lastTable()["emptyState"]).toEqual({
       title: "No postmortems yet",
       description:
-        "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.",
+        "When an incident is declared, its postmortem shows up here.",
+      // The side menu's icon for Postmortems, not the incident's warning sign.
+      icon: IconProp.DocumentText,
       hideCreateButton: true,
     });
+  });
+
+  test("the incident's number names its own floor, so the spare room of a table that fits goes to the title", async () => {
+    await renderPage();
+
+    const columns: Array<Record<string, unknown>> = lastTable()[
+      "columns"
+    ] as Array<Record<string, unknown>>;
+
+    const incidentColumn: Record<string, unknown> = columns[0]!;
+    const contentClassName: string = String(
+      incidentColumn["contentClassName"] || "",
+    );
+
+    /*
+     * Left to the table, the first column is the row's name and takes a
+     * fitting table's spare room with a 10rem floor: 184px around
+     * "INC-101" while the titles wrapped to three lines at 1280px.
+     */
+    expect(hasMinWidthClassName(contentClassName)).toBe(true);
+    expect(
+      isFillingNameColumn(
+        incidentColumn as unknown as Parameters<typeof isFillingNameColumn>[0],
+        true,
+      ),
+    ).toBe(false);
+
+    // A floor, never a cap: a cap on a line that cannot wrap is #3585.
+    expect(hasMaxWidthClassName(contentClassName)).toBe(false);
+
+    // The title wraps, under a cap of its own (TableWrapContentInvariants).
+    expect(columns[1]!["wrapContent"]).toBe(true);
+    expect(String(columns[1]!["wrapMaxWidthClassName"])).toContain("max-w-");
   });
 });
 
@@ -676,6 +725,38 @@ describe("the tiles above it", () => {
 
     expect(within(strip).queryByText("Old Process")).toBeNull();
     expect(within(strip).getByText("In Review: what it means.")).toBeTruthy();
+  });
+
+  test("a status's description is a caption of at most three lines, whole on hover, and left out on a phone", async () => {
+    await renderPage();
+
+    const strip: HTMLElement = await waitForTiles();
+
+    const caption: HTMLElement = within(strip).getByTestId(
+      `postmortem-status-caption-${IN_REVIEW}`,
+    );
+    const text: HTMLElement = within(caption).getByText(
+      "In Review: what it means.",
+    );
+
+    // Long descriptions of a project's own keep the tiles level.
+    expect(text.className).toContain("line-clamp-3");
+    expect(text).toHaveAttribute("title", "In Review: what it means.");
+
+    // Below sm the name and the count say enough.
+    expect(caption.className.split(" ")).toContain("max-sm:hidden");
+    // Never the bare class a foreign stylesheet hides at every width.
+    expect(caption.className.split(" ")).not.toContain("hidden");
+  });
+
+  test("two tiles to a line on a tablet: the four share one line from lg up only", async () => {
+    await renderPage();
+
+    const strip: HTMLElement = await waitForTiles();
+
+    expect(strip.className).toContain("grid-cols-2");
+    expect(strip.className).toContain("lg:grid-cols-");
+    expect(strip.className).not.toContain("md:grid-cols-");
   });
 
   test("a tile filters the list to its status and lights; a second click shows them all again", async () => {

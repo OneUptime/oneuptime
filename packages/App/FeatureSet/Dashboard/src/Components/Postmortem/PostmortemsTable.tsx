@@ -4,6 +4,7 @@ import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import Route from "Common/Types/API/Route";
 import Query from "Common/Types/BaseDatabase/Query";
 import { Black } from "Common/Types/BrandColors";
+import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import LabelsElement from "Common/UI/Components/Label/Labels";
@@ -40,8 +41,17 @@ export const POSTMORTEMS_CARD_DESCRIPTION: string = translationKey(
 export const POSTMORTEMS_EMPTY_TITLE: string =
   translationKey("No postmortems yet");
 export const POSTMORTEMS_EMPTY_DESCRIPTION: string = translationKey(
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.",
+  "When an incident is declared, its postmortem shows up here.",
 );
+
+/*
+ * The Incident column holds a number ("INC-101"): it names its own floor, so
+ * it is not the row's name that takes a fitting table's spare room
+ * (TableLayout's first-column fill, with a 10rem floor). Left to fill, it
+ * stood 184px wide around "INC-101" while the titles beside it wrapped to
+ * three lines at 1280px; the room is the title's now.
+ */
+export const INCIDENT_NUMBER_COLUMN_CLASS_NAME: string = "min-w-[4rem]";
 
 // An incident's Postmortem page, where its postmortem is written.
 export const getIncidentPostmortemRoute: (incidentId: ObjectID) => Route = (
@@ -187,6 +197,8 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
         emptyState={{
           title: POSTMORTEMS_EMPTY_TITLE,
           description: POSTMORTEMS_EMPTY_DESCRIPTION,
+          // A write-up, as in the side menu - not the incident's warning sign.
+          icon: IconProp.DocumentText,
           hideCreateButton: true,
           ...facetEmptyState,
         }}
@@ -242,6 +254,7 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Text,
             // The row's name: always shown, so a list never loses which incident a row is.
             isNotCustomizable: true,
+            contentClassName: INCIDENT_NUMBER_COLUMN_CLASS_NAME,
             getElement: (item: Incident): ReactElement => {
               const numberLabel: string =
                 item.incidentNumberWithPrefix ||
@@ -376,7 +389,14 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
               declaredAt: true,
             },
             title: "Declared",
-            type: FieldType.DateTime,
+            /*
+             * The day is what a list of postmortems is read by ("owed for
+             * last week's incidents"); the time is on the incident. A date
+             * alone also leaves the columns their room beside the side menu
+             * in longer languages: with the time, German ran 57px past the
+             * card at 1280px, under the sticky View.
+             */
+            type: FieldType.Date,
             hideOnMobile: true,
           },
           {

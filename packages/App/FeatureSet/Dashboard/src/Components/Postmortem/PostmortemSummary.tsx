@@ -21,6 +21,12 @@ export interface ComponentProps {
   hasLoadedOwners: boolean;
   // The incident's Owners page, where its owners are added and removed.
   ownersRoute: Route;
+  /*
+   * Whether the reader may add an owner to the incident. Without it there is
+   * no Change owners link: it would promise a change the Owners page then
+   * refuses them.
+   */
+  canChangeOwners: boolean;
 }
 
 /*
@@ -28,7 +34,7 @@ export interface ComponentProps {
  * by side (one under the other on a phone), each named the way every detail
  * card names a field. The status is a pill that moves the postmortem; the
  * owners are the incident's, changed on its Owners page - the link beside
- * their name.
+ * their name, for those who may change them.
  */
 const PostmortemSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -57,13 +63,17 @@ const PostmortemSummary: FunctionComponent<ComponentProps> = (
       <div className="min-w-0 space-y-1.5">
         <DetailFieldLabel
           title="Owners"
-          sideLink={{
-            text:
-              props.hasLoadedOwners && props.owners.length === 0
-                ? POSTMORTEM_ADD_OWNERS
-                : POSTMORTEM_CHANGE_OWNERS,
-            url: props.ownersRoute,
-          }}
+          sideLink={
+            props.canChangeOwners
+              ? {
+                  text:
+                    props.hasLoadedOwners && props.owners.length === 0
+                      ? POSTMORTEM_ADD_OWNERS
+                      : POSTMORTEM_CHANGE_OWNERS,
+                  url: props.ownersRoute,
+                }
+              : undefined
+          }
         />
         <PostmortemOwners
           owners={props.owners}

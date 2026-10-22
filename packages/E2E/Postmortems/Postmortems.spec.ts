@@ -136,6 +136,30 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/*
+ * How far the list's rows reach past their card: the table scrolls inside
+ * its box, under the sticky View, when its columns need more room.
+ */
+async function tableOverflow(page: Page): Promise<number> {
+  return await page.evaluate((): number => {
+    const table: HTMLTableElement | null = document.querySelector("table");
+    const box: HTMLElement | null = table?.parentElement || null;
+
+    return box ? box.scrollWidth - box.clientWidth : 0;
+  });
+}
+
+// A header cell's width, by its text.
+async function columnWidth(page: Page, title: string): Promise<number> {
+  const box: { width: number } | null = await page
+    .locator("thead th")
+    .filter({ hasText: title })
+    .first()
+    .boundingBox();
+
+  return box?.width || 0;
+}
+
 test.describe("Incidents -> Postmortems", () => {
   test("lists every incident's postmortem, newest first, with a tile counting each status", async ({
     page,
@@ -266,6 +290,20 @@ test.describe("Incidents -> Postmortems", () => {
       /Not Started/,
     );
     await expect(count(page, COMPLETED)).toHaveText("1");
+
+    /*
+     * The reason wraps inside its cell: on one line it pushed the column
+     * ~200px wider, the rows under the sticky View.
+     */
+    const alertBox: { width: number } | null = await row(
+      page,
+      "Payments webhook delays",
+    )
+      .getByRole("alert")
+      .boundingBox();
+
+    expect(alertBox?.width || 0).toBeLessThanOrEqual(13 * 16 + 1);
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
   });
 
   test("Change Postmortem Status moves the selected postmortems to one status, archived ones never offered", async ({
@@ -358,7 +396,7 @@ test.describe("Incidents -> Postmortems", () => {
     await expect(page.getByText("No postmortems yet")).toBeVisible();
     await expect(
       page.getByText(
-        "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.",
+        "When an incident is declared, its postmortem shows up here.",
       ),
     ).toBeVisible();
     await expect(
@@ -394,8 +432,74 @@ test.describe("Incidents -> Postmortems", () => {
     expect(Math.abs((first?.y || 0) - (second?.y || 0))).toBeLessThan(2);
     expect((third?.y || 0) - (first?.y || 0)).toBeGreaterThan(20);
 
+    /*
+     * The name and the count say enough on a phone: four captions pushed
+     * the list below the fold.
+     */
+    await expect(
+      page.getByTestId(`postmortem-status-caption-${NOT_STARTED}`),
+    ).toBeHidden();
+
     await expectNoSidewaysScroll(page);
     await screenshot(page, "list-phone");
+  });
+
+  test("on a tablet the tiles sit two to a line, each caption inside its tile", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The side menu is open from md: four tiles in a row were ~105px each.
+    await page.setViewportSize({ width: 768, height: 1000 });
+    await openList(page);
+    await expect(count(page, NOT_STARTED)).toHaveText("3");
+
+    const first: { x: number; y: number } | null = await tile(
+      page,
+      "Not Started",
+    ).boundingBox();
+    const second: { x: number; y: number } | null = await tile(
+      page,
+      "Draft",
+    ).boundingBox();
+    const third: { x: number; y: number } | null = await tile(
+      page,
+      "Completed",
+    ).boundingBox();
+
+    expect(Math.abs((first?.y || 0) - (second?.y || 0))).toBeLessThan(2);
+    expect((third?.y || 0) - (first?.y || 0)).toBeGreaterThan(20);
+
+    // No caption runs past its tile, and each of the four is whole.
+    const captions: Array<{ overflow: number; clipped: boolean }> =
+      await page.evaluate((): Array<{ overflow: number; clipped: boolean }> => {
+        return Array.from(
+          document.querySelectorAll(
+            '[data-testid^="postmortem-status-caption-"]',
+          ),
+        ).map((caption: Element): { overflow: number; clipped: boolean } => {
+          const text: HTMLElement = caption.lastElementChild as HTMLElement;
+          const tileBox: DOMRect = (
+            caption.closest('[role="button"]') as HTMLElement
+          ).getBoundingClientRect();
+
+          return {
+            overflow:
+              caption.getBoundingClientRect().right - (tileBox.right - 20),
+            clipped:
+              text.scrollHeight > text.clientHeight + 1 ||
+              text.scrollWidth > text.clientWidth + 1,
+          };
+        });
+      });
+
+    expect(captions).toHaveLength(4);
+    for (const caption of captions) {
+      expect(caption.overflow).toBeLessThanOrEqual(1);
+      expect(caption.clipped).toBe(false);
+    }
+
+    await expectNoSidewaysScroll(page);
   });
 
   test("in dark mode", async ({ page }: { page: Page }) => {
@@ -421,7 +525,44 @@ test.describe("Incidents -> Postmortems", () => {
     );
 
     await expectNoSidewaysScroll(page);
+
+    /*
+     * The rows fit the card beside the side menu: with the time in Declared,
+     * German ran 57px past it, the dates under the sticky Ansehen.
+     */
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
+    await expect(
+      row(page, "Payments webhook delays").locator("td").nth(6),
+    ).toHaveText(/^\S+ \d{1,2},? \d{4}$/);
+
     await screenshot(page, "list-german");
+  });
+
+  test("the title takes the room a fitting table has, not the incident's number", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openList(page);
+
+    expect(await tableOverflow(page)).toBeLessThanOrEqual(0);
+
+    // "INC-101" needs ~60px; the titles need every pixel they can get.
+    const incident: number = await columnWidth(page, "Incident");
+    const title: number = await columnWidth(page, "Title");
+
+    expect(incident).toBeLessThan(120);
+    expect(title).toBeGreaterThan(incident * 2);
+
+    // So a title of a few words keeps to one line at 1280px.
+    const titleCell: { height: number } | null = await row(
+      page,
+      "Payments webhook delays",
+    )
+      .getByText("Payments webhook delays", { exact: true })
+      .boundingBox();
+
+    expect(titleCell?.height || 0).toBeLessThan(30);
   });
 });
 
@@ -493,6 +634,43 @@ test.describe("an incident's Postmortem page", () => {
       page.getByRole("button", { name: "More postmortem options" }),
     ).toHaveCount(0);
 
+    /*
+     * Start from Template and Generate with AI are white, bordered buttons
+     * beside the primary one, on its line - not bare words with an icon.
+     */
+    const write: { y: number; height: number } | null = await page
+      .getByTestId("postmortem-write-button")
+      .boundingBox();
+
+    for (const testId of [
+      "postmortem-start-from-template-button",
+      "postmortem-generate-with-ai-button",
+    ]) {
+      const button: Locator = page.getByTestId(testId);
+      const look: { border: string; background: string } =
+        await button.evaluate(
+          (element: Element): { border: string; background: string } => {
+            const style: CSSStyleDeclaration = window.getComputedStyle(element);
+
+            return {
+              border: style.borderTopWidth,
+              background: style.backgroundColor,
+            };
+          },
+        );
+
+      expect(look.border).toBe("1px");
+      expect(look.background).toBe("rgb(255, 255, 255)");
+
+      const box: { y: number; height: number } | null =
+        await button.boundingBox();
+
+      expect(Math.abs((box?.y || 0) - (write?.y || 0))).toBeLessThan(2);
+      expect(Math.abs((box?.height || 0) - (write?.height || 0))).toBeLessThan(
+        2,
+      );
+    }
+
     await screenshot(page, "tab-empty");
 
     await page.getByTestId("postmortem-write-button").click();
@@ -502,6 +680,56 @@ test.describe("an incident's Postmortem page", () => {
     await expect(dialog(page)).toContainText("Postmortem Note");
 
     await screenshot(page, "tab-write-dialog", false);
+  });
+
+  test("a viewer finds Write Postmortem alone, locked, with why under it, and no Change owners", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openTab(page, "&incident=2&role=viewer");
+
+    await expect(page.getByTestId("postmortem-write-button")).toBeDisabled();
+    await expect(
+      page.getByTestId("postmortem-start-from-template-button"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("postmortem-generate-with-ai-button"),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("postmortem-empty-state-note")).toContainText(
+      "You do not have permission",
+    );
+    await expect(
+      page.getByTestId("postmortem-summary").getByRole("link"),
+    ).toHaveCount(0);
+  });
+
+  test("on a phone the three buttons stack, each the card's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openTab(page, "&incident=2");
+
+    const boxes: Array<{ x: number; y: number; width: number } | null> = [];
+
+    for (const testId of [
+      "postmortem-write-button",
+      "postmortem-start-from-template-button",
+      "postmortem-generate-with-ai-button",
+    ]) {
+      boxes.push(await page.getByTestId(testId).boundingBox());
+    }
+
+    for (let index: number = 1; index < boxes.length; index++) {
+      expect(boxes[index]!.y).toBeGreaterThan(boxes[index - 1]!.y + 20);
+      expect(Math.abs(boxes[index]!.x - boxes[0]!.x)).toBeLessThan(2);
+      expect(Math.abs(boxes[index]!.width - boxes[0]!.width)).toBeLessThan(2);
+    }
+
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "tab-empty-phone");
   });
 
   test("with no template and AI off, Write Postmortem is the one button", async ({
@@ -559,6 +787,33 @@ test.describe("an incident's Postmortem page", () => {
   });
 });
 
+/*
+ * Each Built-in tag keeps its name's line in a table row, so a page's
+ * built-in rows are one height whatever the name.
+ */
+async function expectBuiltInTagsOnTheirNamesLine(page: Page): Promise<void> {
+  const offsets: Array<number> = await page.evaluate((): Array<number> => {
+    return Array.from(
+      document.querySelectorAll('[data-testid="state-settings-built-in"]'),
+    ).map((tag: Element): number => {
+      const pill: Element | null = tag.parentElement!.querySelector(
+        '[data-testid="pill"]',
+      );
+      const tagBox: DOMRect = tag.getBoundingClientRect();
+      const pillBox: DOMRect = pill!.getBoundingClientRect();
+
+      return Math.abs(
+        tagBox.top + tagBox.height / 2 - (pillBox.top + pillBox.height / 2),
+      );
+    });
+  });
+
+  expect(offsets).toHaveLength(3);
+  for (const offset of offsets) {
+    expect(offset).toBeLessThan(3);
+  }
+}
+
 test.describe("Incidents -> Settings -> Postmortem Statuses", () => {
   async function openSettings(page: Page, query: string = ""): Promise<void> {
     await page.goto(`${PROJECT}/incidents/postmortems?page=settings${query}`);
@@ -585,6 +840,7 @@ test.describe("Incidents -> Settings -> Postmortem Statuses", () => {
       "Done",
     ]);
     await expect(page.getByTestId("state-settings-built-in")).toHaveCount(3);
+    await expectBuiltInTagsOnTheirNamesLine(page);
 
     await screenshot(page, "settings");
   });
@@ -613,6 +869,13 @@ test.describe("Incidents -> Settings -> Postmortem Statuses", () => {
     await expect(page.getByTestId("archived-values-section")).toContainText(
       "Archived Postmortem Statuses",
     );
+
+    /*
+     * With a status of the project's own its description is the longest, the
+     * Name column the narrowest: here the tags wrapped under "Not Started"
+     * and "Completed" but not "Draft".
+     */
+    await expectBuiltInTagsOnTheirNamesLine(page);
 
     await screenshot(page, "settings-custom");
   });

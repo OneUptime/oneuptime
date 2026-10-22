@@ -16,6 +16,8 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -142,6 +144,11 @@ const IncidentPostmortem: FunctionComponent<
     incidentModel,
     ModelAction.Update,
   );
+  // Adding a person or a team as an owner, as the Owners page does.
+  const canChangeOwners: boolean =
+    PermissionGate.check(new IncidentOwnerUser(), ModelAction.Create)
+      .isAllowed ||
+    PermissionGate.check(new IncidentOwnerTeam(), ModelAction.Create).isAllowed;
 
   const refresh: () => void = (): void => {
     setRefreshToggle((previous: boolean) => {
@@ -326,6 +333,7 @@ const IncidentPostmortem: FunctionComponent<
                     owners={incidentOwners.owners}
                     hasLoadedOwners={incidentOwners.hasLoaded}
                     ownersRoute={ownersRoute}
+                    canChangeOwners={canChangeOwners}
                   />
                 );
               },

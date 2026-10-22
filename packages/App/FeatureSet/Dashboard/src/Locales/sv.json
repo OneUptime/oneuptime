@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "Eskalera larmet?",
   "Escalate Episode?": "Eskalera episoden?",
   "Escalate Incident?": "Eskalera incidenten?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "Varje incident har en efteranalys att skriva. Så snart en incident har deklarerats visas dess efteranalys här.",
+  "When an incident is declared, its postmortem shows up here.": "Så snart en incident har deklarerats visas dess efteranalys här.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "Varje incidents efteranalys: hur långt den har kommit och vem som äger den. Filtrera på ägare, allvarlighetsgrad eller status för att se vilka som fortfarande saknas.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "Hur långt en efteranalys har kommit. Dra en status för att ändra var den står. En ny status läggs till precis ovanför den slutförda statusen, och en status under den räknas som klar.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "Om ingen kvitterar före {{time}} larmar policyn sedan {{level}}.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (nivå {{order}} av {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} har redan kvitterat, så det finns inget att eskalera.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktivera för att bara visa de här efteranalyserna nedan.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerar efteranalyserna nedan - aktivera för att ta bort filtret."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerar efteranalyserna nedan - aktivera för att ta bort filtret.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv vad som hände, påverkan, lösningen och uppföljningen."
 }

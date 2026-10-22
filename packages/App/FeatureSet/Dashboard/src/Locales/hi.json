@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "अलर्ट एस्केलेट करें?",
   "Escalate Episode?": "एपिसोड एस्केलेट करें?",
   "Escalate Incident?": "घटना एस्केलेट करें?",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "हर घटना का एक पोस्टमॉर्टम लिखना होता है। जैसे ही कोई घटना घोषित होती है, उसका पोस्टमॉर्टम यहां दिखता है।",
+  "When an incident is declared, its postmortem shows up here.": "जैसे ही कोई घटना घोषित होती है, उसका पोस्टमॉर्टम यहां दिखता है।",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "हर घटना का पोस्टमॉर्टम: वह कहां तक पहुंचा है और उसका मालिक कौन है। मालिक, गंभीरता या स्थिति से फ़िल्टर करके देखें कि कौन-से अभी बाकी हैं।",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "पोस्टमॉर्टम कहां तक पहुंचा है। किसी स्थिति का स्थान बदलने के लिए उसे खींचें। नई स्थिति पूर्ण स्थिति के ठीक ऊपर जोड़ी जाती है, और उसके नीचे की स्थिति को पूरा माना जाता है।",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "यदि {{time}} तक कोई स्वीकार नहीं करता है, तो नीति इसके बाद {{level}} को सूचित करेगी।",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (स्तर {{count}} में से {{order}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} ने इसे पहले ही स्वीकार कर लिया है, इसलिए एस्केलेट करने के लिए कुछ नहीं है।",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}। नीचे केवल ये पोस्टमॉर्टम दिखाने के लिए सक्रिय करें।",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}। नीचे के पोस्टमॉर्टम फ़िल्टर हो रहे हैं - यह फ़िल्टर हटाने के लिए सक्रिय करें।"
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}। नीचे के पोस्टमॉर्टम फ़िल्टर हो रहे हैं - यह फ़िल्टर हटाने के लिए सक्रिय करें।",
+  "Capture what happened, impact, resolution, and follow-up actions.": "लिखें कि क्या हुआ, उसका असर, समाधान और आगे की कार्रवाइयां।"
 }

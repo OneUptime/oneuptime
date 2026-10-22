@@ -1246,6 +1246,28 @@ describe("where the postmortem stands, and who owns it", () => {
     ).toBe(INCIDENT_ID);
   });
 
+  test("someone who may not change the incident's owners sees them, with no Change owners link", async () => {
+    owners = { users: ["Alice Smith"], teams: [] };
+    permissionsForTest = VIEWER;
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-owners")).toHaveTextContent(
+        "Alice Smith",
+      );
+    }, WAIT);
+
+    const summary: HTMLElement = screen.getByTestId("postmortem-summary");
+
+    expect(
+      within(summary).queryByRole("link", { name: "Change owners" }),
+    ).toBeNull();
+    expect(
+      within(summary).queryByRole("link", { name: "Add owners" }),
+    ).toBeNull();
+  });
+
   test("with no owners it says so, and offers to add them", async () => {
     owners = { users: [], teams: [] };
 
@@ -1347,6 +1369,19 @@ describe("nothing written yet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Write Postmortem" }));
 
     await screen.findByText("Write Postmortem", { selector: "h3" }, WAIT);
+
+    /*
+     * What to write, said once, ending in one full stop: the Markdown
+     * helper it came through added a second ("follow-up actions..") and
+     * left it untranslated.
+     */
+    const hint: HTMLElement = await within(dialog()).findByText(
+      "Capture what happened, impact, resolution, and follow-up actions.",
+      {},
+      WAIT,
+    );
+
+    expect(hint.textContent).not.toContain("..");
     await goToStatusPageStep();
 
     // Nothing published by writing it.
@@ -1379,7 +1414,7 @@ describe("nothing written yet", () => {
     expect(saved["postmortemNote"]).toBe("## From the template");
   });
 
-  test("for a viewer the three are locked, saying why", async () => {
+  test("for a viewer, Write Postmortem alone, locked, with why under it - not three locked buttons", async () => {
     stored = EMPTY;
     permissionsForTest = VIEWER;
     templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
@@ -1391,8 +1426,65 @@ describe("nothing written yet", () => {
     expect(
       within(empty).getByRole("button", { name: "Write Postmortem" }),
     ).toBeDisabled();
+
+    // The other two are only other ways to do what they cannot.
     expect(
-      within(empty).getByRole("button", { name: "Start from Template" }),
-    ).toBeDisabled();
+      within(empty).queryByRole("button", { name: "Start from Template" }),
+    ).toBeNull();
+    expect(
+      within(empty).queryByRole("button", { name: "Generate with AI" }),
+    ).toBeNull();
+
+    // Why, in words under the button, as a list's locked Create says it.
+    expect(
+      within(empty).getByTestId("postmortem-empty-state-note"),
+    ).toHaveTextContent("permission");
+  });
+
+  test("the ways to start from something are buttons beside Write Postmortem, never bare words", async () => {
+    stored = EMPTY;
+    templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
+
+    await renderPage();
+
+    const empty: HTMLElement = screen.getByTestId("postmortem-empty-state");
+    const write: HTMLElement = within(empty).getByRole("button", {
+      name: "Write Postmortem",
+    });
+
+    // The one obvious next step is the primary button.
+    expect(write.className).toContain("bg-indigo-600");
+
+    for (const name of ["Start from Template", "Generate with AI"]) {
+      const button: HTMLElement = within(empty).getByRole("button", {
+        name: name,
+      });
+
+      /*
+       * A white, bordered button: the outline style drew them as plain
+       * words with an icon, which read as text beside the primary button.
+       */
+      expect(button.className).toContain("border-gray-300");
+      expect(button.className).toContain("bg-white");
+      expect(button.className).not.toContain("btn-outline-secondary");
+    }
+
+    // Nothing locked, so nothing to explain.
+    expect(
+      within(empty).queryByTestId("postmortem-empty-state-note"),
+    ).toBeNull();
+
+    /*
+     * A column of full-width buttons on a phone, a row from sm up: the
+     * buttons' own left margin (a dialog footer's) is cleared, so the gap
+     * alone spaces them.
+     */
+    const actions: HTMLElement = within(empty).getByTestId(
+      "postmortem-empty-state-actions",
+    );
+
+    expect(actions.className).toContain("flex-col");
+    expect(actions.className).toContain("sm:flex-row");
+    expect(actions.className).toContain("[&>div>button]:md:ml-0");
   });
 });

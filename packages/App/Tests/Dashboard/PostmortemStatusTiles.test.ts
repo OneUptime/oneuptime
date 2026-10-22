@@ -72,6 +72,9 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "6c000000-0000-4000-8000-0000000000aa",
 );
 
+// A column count from md up: a tablet, where the side menu takes a third.
+const MD_GRID_COLUMNS: RegExp = /(^|\s)md:grid-cols-/;
+
 const NOT_STARTED: string = "6c000000-0000-4000-8000-000000000001";
 const DRAFT: string = "6c000000-0000-4000-8000-000000000002";
 const IN_REVIEW: string = "6c000000-0000-4000-8000-000000000003";
@@ -572,7 +575,7 @@ describe("how a tile draws its count", () => {
     }
   });
 
-  test("two to a line on a phone; the four a project starts with share one line from md up, six from xl up", () => {
+  test("two to a line on a phone and a tablet; the four a project starts with share one line from lg up, six from xl up", () => {
     expect(getPostmortemStatusTilesGridClassName(1)).toBe(
       "grid grid-cols-2 gap-4",
     );
@@ -580,20 +583,30 @@ describe("how a tile draws its count", () => {
       "grid grid-cols-2 gap-4",
     );
     expect(getPostmortemStatusTilesGridClassName(3)).toBe(
-      "grid grid-cols-2 gap-4 md:grid-cols-3",
+      "grid grid-cols-2 gap-4 lg:grid-cols-3",
     );
     expect(getPostmortemStatusTilesGridClassName(4)).toBe(
-      "grid grid-cols-2 gap-4 md:grid-cols-4",
+      "grid grid-cols-2 gap-4 lg:grid-cols-4",
     );
     expect(getPostmortemStatusTilesGridClassName(5)).toBe(
-      "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5",
+      "grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5",
     );
     expect(getPostmortemStatusTilesGridClassName(6)).toBe(
-      "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6",
+      "grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6",
     );
     // More wrap onto a second line rather than squeezing.
     expect(getPostmortemStatusTilesGridClassName(8)).toBe(
-      "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6",
+      "grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6",
     );
+  });
+
+  test("never more than two to a line below lg: beside a tablet's side menu, four tiles were ~105px each", () => {
+    for (let count: number = 1; count <= 8; count++) {
+      const className: string = getPostmortemStatusTilesGridClassName(count);
+
+      // No md: column count at all - md is a tablet with the side menu open.
+      expect(className).not.toMatch(MD_GRID_COLUMNS);
+      expect(className).toContain("grid-cols-2");
+    }
   });
 });

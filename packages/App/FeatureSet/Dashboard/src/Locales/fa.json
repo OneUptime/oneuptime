@@ -33002,7 +33002,7 @@
   "Escalate Alert?": "هشدار تشدید شود؟",
   "Escalate Episode?": "اپیزود تشدید شود؟",
   "Escalate Incident?": "حادثه تشدید شود؟",
-  "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.": "هر حادثه یک گزارش پس از حادثه دارد که باید نوشته شود. به محض اعلام یک حادثه، گزارش آن اینجا فهرست می‌شود.",
+  "When an incident is declared, its postmortem shows up here.": "به محض اعلام یک حادثه، گزارش آن اینجا فهرست می‌شود.",
   "Every incident's postmortem: where it stands and who owns it. Filter by owner, severity or status to see which are still owed.": "گزارش پس از حادثهٔ هر حادثه: به کجا رسیده و مالکش کیست. بر اساس مالک، شدت یا وضعیت فیلتر کنید تا ببینید کدام‌ها هنوز مانده‌اند.",
   "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.": "گزارش پس از حادثه تا کجا پیش رفته است. برای تغییر جای یک وضعیت، آن را بکشید. وضعیت جدید درست بالای وضعیت تکمیل‌شده اضافه می‌شود و وضعیتی که زیر آن باشد انجام‌شده محسوب می‌شود.",
   "If nobody acknowledges by {{time}}, the policy pages {{level}} next.": "اگر تا {{time}} کسی تأیید نکند، سیاست پس از آن به {{level}} خبر می‌دهد.",
@@ -33065,5 +33065,6 @@
   "{{name}} (Level {{order}} of {{count}})": "{{name}} (سطح {{order}} از {{count}})",
   "{{name}} acknowledged it already, so there is nothing to escalate.": "{{name}} پیش‌تر آن را تأیید کرده است، بنابراین چیزی برای تشدید نیست.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. فعالش کنید تا در پایین فقط همین گزارش‌های پس از حادثه نشان داده شوند.",
-  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. گزارش‌های پس از حادثهٔ پایین فیلتر شده‌اند - برای برداشتن این فیلتر فعالش کنید."
+  "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. گزارش‌های پس از حادثهٔ پایین فیلتر شده‌اند - برای برداشتن این فیلتر فعالش کنید.",
+  "Capture what happened, impact, resolution, and follow-up actions.": "بنویسید چه اتفاقی افتاد، تأثیر آن، راه‌حل و اقدامات بعدی."
 }
