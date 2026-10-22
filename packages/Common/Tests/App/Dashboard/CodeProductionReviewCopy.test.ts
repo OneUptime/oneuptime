@@ -51,8 +51,10 @@ import {
   getRecipeLabel,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskCopy";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
-import { getProfileCategoryNoun } from "../../../Utils/Profiles/ProfileTypes";
-import { ProfileCategory } from "../../../Utils/Profiles/ProfileTypes";
+import {
+  ProfileCategory,
+  getProfileCategoryNoun,
+} from "../../../Utils/Profiles/ProfileTypes";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 
