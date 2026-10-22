@@ -488,3 +488,68 @@ describe("MemberRoleAssignment header layout", () => {
     expect(screen.getByText("Could not load.")).toBeInTheDocument();
   });
 });
+
+/*
+ * An archived role (Common/Utils/ArchivableValues): the people who hold it
+ * keep it, and can be taken off, but nobody new is given it.
+ */
+describe("an archived role", () => {
+  const ARCHIVED_SCRIBE: MemberRole = { ...SCRIBE, isArchived: true };
+
+  const KAI: AssignedMember = {
+    id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+    memberId: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+    userId: new ObjectID("cccccccc-cccc-4ccc-8ccc-ccccccccccc3"),
+    userName: "Kai Morgan",
+    userEmail: "kai.morgan@acme-commerce.example",
+    roleId: SCRIBE.id,
+    roleName: SCRIBE.name,
+    roleColor: SCRIBE.color,
+  };
+
+  test("is tagged Archived, and offers neither Assign nor Add More", () => {
+    renderAssignment({
+      roles: [COMMANDER, COMMUNICATIONS, ARCHIVED_SCRIBE],
+      assignedMembers: [MAYA, JORDAN, KAI],
+    });
+
+    const header: HTMLElement = headerFor("Scribe");
+
+    expect(
+      within(header).getByTestId("member-role-archived-tag"),
+    ).toHaveTextContent("Archived");
+    expect(
+      within(header).queryByRole("button", { name: "Add More" }),
+    ).toBeNull();
+    expect(within(header).queryByRole("button", { name: "Assign" })).toBeNull();
+  });
+
+  test("keeps the person who holds it, who can still be taken off", () => {
+    renderAssignment({
+      roles: [COMMANDER, COMMUNICATIONS, ARCHIVED_SCRIBE],
+      assignedMembers: [MAYA, JORDAN, KAI],
+    });
+
+    expect(rowFor("Kai Morgan")).toBeInTheDocument();
+    expect(
+      within(rowFor("Kai Morgan")).getAllByRole("button").length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("an empty archived role is not offered to anyone", () => {
+    renderAssignment({
+      roles: [COMMANDER, COMMUNICATIONS, ARCHIVED_SCRIBE],
+      assignedMembers: [MAYA, JORDAN],
+    });
+
+    expect(
+      within(headerFor("Scribe")).queryByRole("button", { name: "Assign" }),
+    ).toBeNull();
+  });
+
+  test("a live role carries no tag", () => {
+    renderAssignment();
+
+    expect(screen.queryByTestId("member-role-archived-tag")).toBeNull();
+  });
+});

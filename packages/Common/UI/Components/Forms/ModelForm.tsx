@@ -78,6 +78,7 @@ import useAsyncEffect from "use-async-effect";
 import Query from "../../../Types/BaseDatabase/Query";
 import Select from "../../../Types/BaseDatabase/Select";
 import Sort from "../../../Types/BaseDatabase/Sort";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 
 /*
  * Whether a dropdown's list request was refused because the person may not
@@ -1028,9 +1029,15 @@ const ModelForm: <TBaseModel extends BaseModel>(
           const listResult: ListResult<BaseModel> =
             await modelAPI.getList<BaseModel>({
               modelType: field.dropdownModal.type,
-              query: {
-                ...(field.dropdownModal.query || {}),
-              } as Query<BaseModel>,
+              /*
+               * The values that are not archived, for a model whose values
+               * can be (ArchivedValuePicker): a value a record already has
+               * is still shown, read by its id in the dropdown.
+               */
+              query: ArchivedValuePicker.getPickerQuery(
+                field.dropdownModal.type,
+                field.dropdownModal.query,
+              ) as Query<BaseModel>,
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: select,

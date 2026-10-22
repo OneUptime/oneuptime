@@ -171,6 +171,15 @@ Ogni cambio di stato resta nella **Cronologia di stato** del monitor: quando è 
 
 Un cambio di stato avvisa i proprietari del monitor solo se hanno attivato **Stato del monitor modificato** nelle loro impostazioni di notifica: all'inizio è disattivato. Un monitor che torna al suo **Stato predefinito del monitor** perché nessun criterio ha corrisposto non avvisa nessuno. Vedere [Cosa è attivo per un nuovo membro](/docs/notifications/notification-settings#cosa-è-attivo-per-un-nuovo-membro).
 
+## Archiviare uno stato del monitor
+
+Archivia uno stato che il tuo team non deve più usare, invece di eliminarlo. L'archiviazione non modifica alcun monitor: un monitor in quello stato vi resta finché il suo stato non cambia, e la sua cronologia degli stati lo mostra ancora.
+
+- **Archivia** si trova nel menu **⋯** della riga. Chiede prima conferma ed elenca i criteri dei monitor, i modelli e le pagine di stato configurati per usare lo stato: continuano a usarlo finché non li modifichi.
+- **Nessuno può più sceglierlo.** Un criterio, il menu di stato di un monitor, lo stato del monitor di un incidente o di un evento di manutenzione e gli stati di inattività di una pagina di stato lo escludono. L'API, Terraform e MCP lo rifiutano.
+- **Gli stati archiviati sono elencati a parte**, nella sezione compressa **Stati del monitor archiviati** sotto la tabella. **Annulla archiviazione** ne ripristina uno com'era.
+- **Gli stati predefiniti non possono essere archiviati.** I nuovi monitor iniziano nello stato operativo, e OneUptime considera inattivo un monitor nello stato offline. Il loro **Archivia** è bloccato, con il motivo.
+
 ## Risoluzione dei problemi
 
 :::details Il sito è fuori servizio, ma il monitor resta Operativo

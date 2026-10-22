@@ -130,6 +130,15 @@ Hold tilstandene dine under **Planlagt**: hver ny hendelse starter der, og en he
 > [!NOTE]
 > På OneUptime Cloud krever det abonnementet **Growth** eller høyere å legge til eller endre vedlikeholdstilstander. Alle abonnementer kan lese dem, bruke dem og slette en tilstand du har lagt til.
 
+## Arkivere en status
+
+Arkiver en status du selv har laget som teamet ditt ikke lenger skal bruke, i stedet for å slette den. Arkivering endrer ingen hendelse: En hendelse i statusen blir i den og går videre som vanlig, og statustidslinjen viser den fortsatt.
+
+- **Arkiver** ligger i radens meny **⋯**. Den spør først og viser målingene og arbeidsflytene som er satt opp til å bruke statusen.
+- **Ingen kan velge den igjen.** Hendelsens topptekst, **Endre tilstand**, Slack og Microsoft Teams utelater den, og API-et, Terraform og MCP avviser den. Du kan fortsatt filtrere hendelser på den.
+- **Arkiverte statuser vises for seg**, i den sammenslåtte delen **Arkiverte statuser for planlagt vedlikehold** under tabellen. **Fjern fra arkiv** setter en tilbake slik den var.
+- **De fire innebygde statusene kan ikke arkiveres**: OneUptime flytter hendelser inn i dem. Deres **Arkiver** er låst, med begrunnelsen.
+
 ## Tilstandstidslinjen
 
 Siden **Tilstandstidslinje** for hendelsen er registeret over hver tilstand den har vært i. Kortet, **Statustidslinje**, tegner dem som en tidslinje: et bånd med hver tilstand så lang som den varte, og under det hver endring, den nyeste først. **Tabell**, i overskriften på kortet, viser dem som rader i stedet, med **Status for planlagt vedlikehold**, **Begynner den**, **Slutter den**, **Varighet**, om abonnentene skulle varsles, og hvordan varselet gikk.

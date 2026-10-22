@@ -3,6 +3,11 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveMonitorRuleService from "./ServiceLevelObjectiveMonitorRuleService";
 import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
@@ -40,6 +45,13 @@ export class Service extends DatabaseService<Model> {
     if (!projectId) {
       throw new BadDataException("Project ID is required to create a label.");
     }
+
+    // A name an archived label has: where to unarchive it. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.Label],
+      createBy: createBy,
+    });
 
     let existingProjectWithSameNameCount: number = 0;
 

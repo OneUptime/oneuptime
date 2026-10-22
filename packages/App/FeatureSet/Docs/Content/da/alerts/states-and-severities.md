@@ -112,6 +112,18 @@ Rangen afgør, hvilken alvorsgrad der vinder, hvor OneUptime sammenligner dem: E
 
 En alvorsgrad tilkalder ingen af sig selv. For at tilkalde efter alvorsgrad tilføjer du en vagtregel, hvis **Advarsel Alvorligheder** matcher den: se [Advarselsregler og indstillinger](/docs/alerts/settings). Ændrer du en advarsels alvorsgrad, skrives en post i dens feed, og dens påmindelsesregel matches igen.
 
+## Arkivér en status eller alvorsgrad
+
+Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen advarsel. Sletning af en status fjerner dens rækker fra hver advarsels historik, og en alvorsgrad kan ikke slettes, så længe advarsler har den.
+
+- **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de regler, målinger, monitorkriterier og arbejdsgange, der er sat op til at bruge værdien: De bliver ved med at bruge den, indtil du ændrer dem.
+- **Ingen kan vælge den igen.** **Skift tilstand**, advarslens overskrift, Slack, Microsoft Teams, regler og monitorkriterier udelader den. API'et, Terraform og MCP afviser den og nævner værdien og hvor den kan fjernes fra arkivet.
+- **Advarsler beholder den.** En advarsel, der har den, beholder den ved enhver senere redigering, dens tidslinje over statusser viser den stadig, og du kan stadig filtrere efter den.
+- **Arkiverede værdier vises for sig**, i den sammenfoldede sektion **Arkiverede advarselsstatusser** eller **Arkiverede advarselsalvorsgrader** under tabellen, med hvem der arkiverede hver enkelt og hvornår. **Fjern fra arkiv** sætter en tilbage, som den var.
+- **Nogle kan ikke arkiveres.** Den oprettede, den kvitterede og den løste status samt projektets sidste alvorsgrad, der ikke er arkiveret. Deres **Arkiver** er låst, med begrundelsen.
+
+**Slet** fortæller først, hvad den ville gøre. Så længe advarsler eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkivér i stedet**.
+
 ## Flyt en advarsel gennem dens tilstande
 
 | Måde                 | Hvor                                                                                      | Hvad den spørger om                                                                                                                  |

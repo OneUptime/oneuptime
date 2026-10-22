@@ -112,6 +112,18 @@ Rangen avgör vilken allvarlighetsgrad som vinner där OneUptime jämför dem: E
 
 En allvarlighetsgrad larmar ingen på egen hand. För att larma efter allvarlighetsgrad lägger du till en jourregel vars **Larm Allvarligheter** matchar den: se [Larmregler och inställningar](/docs/alerts/settings). Att ändra ett larms allvarlighetsgrad skriver en post i dess flöde och matchar dess påminnelseregel på nytt.
 
+## Arkivera en status eller allvarlighetsgrad
+
+Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar ingen varning. Att ta bort en status tar bort dess rader ur varje varnings historik, och en allvarlighetsgrad kan inte tas bort så länge varningar har den.
+
+- **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de regler, mätningar, monitorkriterier och arbetsflöden som är inställda på att använda värdet: De fortsätter att använda det tills du ändrar dem.
+- **Ingen kan välja den igen.** **Ändra tillstånd**, varningens sidhuvud, Slack, Microsoft Teams, regler och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.
+- **Varningar behåller den.** En varning som har den behåller den vid varje senare redigering, dess statustidslinje visar den fortfarande, och du kan fortfarande filtrera på den.
+- **Arkiverade värden listas för sig**, i det hopfällda avsnittet **Arkiverade varningsstatusar** eller **Arkiverade allvarlighetsgrader för varningar** under tabellen, med vem som arkiverade varje värde och när. **Avarkivera** återställer ett som det var.
+- **Vissa kan inte arkiveras.** Den skapade, den kvitterade och den lösta statusen, och projektets sista allvarlighetsgrad som inte är arkiverad. Deras **Arkivera** är låst, med skälet.
+
+**Ta bort** talar först om vad den skulle göra. Så länge varningar eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**.
+
 ## Flytta ett larm genom dess tillstånd
 
 | Sätt                 | Var                                                                                       | Vad det frågar efter                                                                                                                 |

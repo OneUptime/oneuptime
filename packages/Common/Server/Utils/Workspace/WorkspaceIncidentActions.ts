@@ -738,6 +738,8 @@ export default class WorkspaceIncidentActions {
         props: data.props,
         query: {
           projectId: data.projectId,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           _id: true,
@@ -865,6 +867,8 @@ export default class WorkspaceIncidentActions {
         props: data.props,
         query: {
           projectId: projectId,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           _id: true,

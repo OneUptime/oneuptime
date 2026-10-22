@@ -1,4 +1,9 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../ArchivableValue/ArchivedValueFacetOptions";
 import ResolvedStateUtil from "Common/Utils/ResolvedState";
 import { StateListType } from "Common/Utils/StateOrder";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
@@ -224,15 +229,25 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { order: SortOrder.Ascending },
           });
-        return result.data.map((s: IncidentState) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived states too - old incidents are in them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (s: IncidentState): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (
@@ -293,15 +308,25 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, order: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              order: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { order: SortOrder.Ascending },
           });
-        return result.data.map((s: IncidentSeverity) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived severities too - old incidents have them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (s: IncidentSeverity): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (
@@ -401,6 +426,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 color: true,
                 order: true,
+                isArchived: true,
                 isResolvedState: true,
                 isAcknowledgedState: true,
                 isCreatedState: true,
@@ -1169,7 +1195,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
           description="Select the state to change incidents to. Incidents already at or past the selected state will be skipped."
           stateFieldKey="incidentStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: incidentStates,
+            // Archived states are never offered as one to move to.
+            array: ArchivedValuePicker.getLiveValues(incidentStates),
             labelField: "name",
             valueField: "_id",
           })}

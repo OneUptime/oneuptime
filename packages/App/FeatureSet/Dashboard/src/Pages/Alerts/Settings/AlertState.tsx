@@ -15,6 +15,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, {
   Fragment,
   FunctionComponent,
@@ -34,6 +38,14 @@ const DEFINITION: StateListDefinition = STATE_LISTS[StateListType.AlertState];
 const AlertStatesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<AlertState> = useArchivableValues<AlertState>(
+    {
+      modelType: AlertState,
+      type: ArchivableValueType.AlertState,
+    },
+  );
+
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<AlertState>>([]);
 
@@ -41,6 +53,10 @@ const AlertStatesPage: FunctionComponent<
     <Fragment>
       <ModelTable<AlertState>
         modelType={AlertState}
+        query={archive.query}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         id="alert-state-table"
         userPreferencesKey="alert-state-table"
         name="Settings > Alert State"
@@ -87,6 +103,7 @@ const AlertStatesPage: FunctionComponent<
         )}
         showRefreshButton={true}
       />
+      {archive.element}
     </Fragment>
   );
 };

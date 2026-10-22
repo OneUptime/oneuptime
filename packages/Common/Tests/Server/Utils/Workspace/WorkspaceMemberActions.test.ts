@@ -1641,8 +1641,10 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
       expect(readSpy.mock.calls[0]![0].props).toBe(memberProps);
       expect(findSpy).toHaveBeenCalledTimes(1);
       expect(findSpy.mock.calls[0]![0].props).toBe(memberProps);
+      // Never an archived state: nobody may move a record into one.
       expect(findSpy.mock.calls[0]![0].query).toEqual({
         projectId: projectId,
+        isArchived: false,
       });
       expect(findSpy.mock.calls[0]![0].sort).toEqual({
         order: SortOrder.Ascending,

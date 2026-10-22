@@ -153,6 +153,18 @@ Onde a severidade faz mais do que descrever: em **Incidentes → Regras → Regr
 
 **Alterar a severidade de um incidente** — em **Editar** no cartão **Detalhes do incidente** do incidente, pela API ou pelo Terraform (`incidentSeverityId`), com um workflow ou com as ferramentas de IA — faz as mesmas quatro coisas, seja como for enviada: o feed do incidente recebe uma entrada **Incident updated** que nomeia a nova severidade, os prazos de SLA do incidente são recalculados, sua regra de lembrete é reavaliada, e as métricas de incidentes contam uma mudança de severidade. Salvar a severidade que o incidente já tem não faz nada disso, então editar só o título de um incidente deixa seus prazos de SLA, seus lembretes e sua contagem de mudanças de severidade como estavam. A severidade de um alerta funciona do mesmo jeito para a entrada de feed e os lembretes dele.
 
+## Arquivar um estado ou uma severidade
+
+Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez de excluí-lo. Arquivar não altera nenhum incidente. Excluir um estado remove suas linhas do histórico de cada incidente, e uma severidade não pode ser excluída enquanto houver incidentes com ela.
+
+- **Arquivar** fica no menu **⋯** da linha. Ele pede confirmação primeiro e lista as regras, modelos, medições, critérios de monitor e fluxos de trabalho configurados para usar o valor: eles continuam usando-o até que você os altere.
+- **Ninguém pode escolhê-lo novamente.** O formulário de declaração, **Alterar estado**, o cabeçalho do incidente, Slack, Microsoft Teams, regras, modelos e critérios de monitor o deixam de fora. A API, o Terraform e o MCP o recusam, indicando o valor e onde desarquivá-lo.
+- **Os incidentes o mantêm.** Um incidente que o tem o mantém em toda edição posterior, sua linha do tempo de estados ainda o mostra e você ainda pode filtrar por ele.
+- **Os valores arquivados são listados à parte**, na seção recolhida **Estados de incidente arquivados** ou **Severidades de incidente arquivadas** abaixo da tabela, com quem arquivou cada um e quando. **Desarquivar** devolve um como era.
+- **Alguns não podem ser arquivados.** Os estados criado, reconhecido e resolvido, e a última severidade não arquivada do projeto. O **Arquivar** deles fica bloqueado, com o motivo.
+
+**Excluir** diz primeiro o que faria. Enquanto incidentes ou episódios tiverem o valor, a exclusão é recusada e a caixa de diálogo os lista. Caso contrário, ela lista o que a exclusão mudaria e oferece **Arquivar em vez disso**.
+
 ## Mover um incidente pelos seus estados
 
 Um incidente muda de estado de quatro formas:

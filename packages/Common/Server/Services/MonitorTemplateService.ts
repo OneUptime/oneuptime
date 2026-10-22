@@ -140,6 +140,7 @@ export class Service extends ProjectReferencesService<Model> {
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId || createBy.data.projectId,
+      props: createBy.props,
     });
 
     /*
@@ -268,6 +269,7 @@ export class Service extends ProjectReferencesService<Model> {
           template.projectId,
         ),
         alreadyStoredMonitorSteps: template.monitorSteps,
+        props: updateBy.props,
       });
     }
 
