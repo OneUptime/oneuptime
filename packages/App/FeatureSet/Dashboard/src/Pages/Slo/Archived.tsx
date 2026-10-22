@@ -10,14 +10,16 @@ import useSloBulkActions, {
 } from "../../Components/Slo/useSloBulkActions";
 import UserElement from "../../Components/User/User";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
-import Label from "Common/Models/DatabaseModels/Label";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -50,14 +52,44 @@ const SlosArchived: FunctionComponent<
   const { unarchiveBulkActions, modals }: SloBulkActionsResult =
     useSloBulkActions();
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<ServiceLevelObjective>({
+    persistKey: SLOS_ARCHIVED_TABLE_ID,
+    ownerUserModelType: ServiceLevelObjectiveOwnerUser,
+    ownerTeamModelType: ServiceLevelObjectiveOwnerTeam,
+    resourceIdField: "serviceLevelObjectiveId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
         id={SLOS_ARCHIVED_TABLE_ID}
         userPreferencesKey={SLOS_ARCHIVED_TABLE_ID}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -90,24 +122,6 @@ const SlosArchived: FunctionComponent<
           },
           {
             field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
               archivedAt: true,
             },
             title: "Archived At",
@@ -136,6 +150,22 @@ const SlosArchived: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: ServiceLevelObjective): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ServiceLevelObjective): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {
