@@ -1,5 +1,6 @@
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import IncidentService from "../../../Services/IncidentService";
+import IncidentStateService from "../../../Services/IncidentStateService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import { CodeAgentScopedService } from "../../AI/CodeFix/CodeAgentTelemetryScope";
@@ -1080,8 +1081,20 @@ export default class ProductionReviewFindings {
     now: Date;
   }): Promise<ProductionReviewIncidentsJSON | null> {
     let incidents: Array<Incident>;
+    /*
+     * The project's states that count as resolved (Common/Utils/
+     * ResolvedState): one rule for whether an incident is open, a state
+     * placed after Resolved included.
+     */
+    let resolvedStateIds: Array<string>;
 
     try {
+      resolvedStateIds = (
+        await IncidentStateService.getResolvedIncidentStateIds(data.projectId)
+      ).map((id: ObjectID): string => {
+        return id.toString();
+      });
+
       incidents = await IncidentService.findBy({
         query: {
           projectId: data.projectId,
@@ -1102,7 +1115,8 @@ export default class ProductionReviewFindings {
           rootCause: true,
           remediationNotes: true,
           postmortemNote: true,
-          currentIncidentState: { name: true, isResolvedState: true },
+          currentIncidentStateId: true,
+          currentIncidentState: { name: true },
           incidentSeverity: { name: true },
         } as never,
         sort: { createdAt: SortOrder.Descending },
@@ -1120,8 +1134,9 @@ export default class ProductionReviewFindings {
         return Boolean(incident._id);
       })
       .map((incident: Incident): ProductionReviewIncidentJSON => {
-        const isOpen: boolean =
-          incident.currentIncidentState?.isResolvedState !== true;
+        const isOpen: boolean = !resolvedStateIds.includes(
+          incident.currentIncidentStateId?.toString() || "",
+        );
 
         const item: ProductionReviewIncidentJSON = {
           incidentId: incident._id!.toString(),

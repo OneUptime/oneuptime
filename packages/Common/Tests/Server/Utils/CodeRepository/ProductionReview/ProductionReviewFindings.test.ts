@@ -16,6 +16,7 @@ import { RepositoryProductionProfile } from "../../../../../Server/Utils/CodeRep
 import { CodeAgentScopedService } from "../../../../../Server/Utils/AI/CodeFix/CodeAgentTelemetryScope";
 import ExceptionInstanceService from "../../../../../Server/Services/ExceptionInstanceService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
+import IncidentStateService from "../../../../../Server/Services/IncidentStateService";
 import TelemetryExceptionService from "../../../../../Server/Services/TelemetryExceptionService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
@@ -46,6 +47,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
   "1a2b3c4d-1111-4222-8333-444455556666",
 );
 const CHECKOUT: string = "1a2b3c4d-aaaa-4222-8333-444455556666";
+
+// The project's incident states: one counts as resolved, one does not.
+const RESOLVED_STATE_ID: string = "5e6f7a8b-0000-4000-8000-0000000000aa";
+const INVESTIGATING_STATE_ID: string = "5e6f7a8b-0000-4000-8000-0000000000bb";
 const WORKER: string = "1a2b3c4d-bbbb-4222-8333-444455556666";
 const NOW: Date = new Date("2026-10-22T10:00:00.000Z");
 
@@ -789,8 +794,10 @@ describe("ProductionReviewFindings reads", () => {
 
     const state: IncidentState = new IncidentState();
     state.name = change.isResolved ? "Resolved" : "Investigating";
-    state.isResolvedState = change.isResolved;
     record.currentIncidentState = state;
+    record.currentIncidentStateId = new ObjectID(
+      change.isResolved ? RESOLVED_STATE_ID : INVESTIGATING_STATE_ID,
+    );
 
     const severity: IncidentSeverity = new IncidentSeverity();
     severity.name = "Critical";
@@ -800,6 +807,10 @@ describe("ProductionReviewFindings reads", () => {
   }
 
   test("incidents: on the services the change runs in, never private, open ones and those that name the change kept - never their text", async () => {
+    // Resolved by the project's states, as every part of OneUptime reads it.
+    jest
+      .spyOn(IncidentStateService, "getResolvedIncidentStateIds")
+      .mockResolvedValue([new ObjectID(RESOLVED_STATE_ID)]);
     const findBy: jest.SpyInstance = jest
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([
@@ -864,6 +875,56 @@ describe("ProductionReviewFindings reads", () => {
     expect(query["isPrivate"]).toBeDefined();
     expect(JSON.stringify(incidents)).not.toContain("Acme Corp");
     expect(JSON.stringify(incidents)).not.toContain("null card");
+  });
+
+  /*
+   * Whether an incident is open is the project's one rule (Common/Utils/
+   * ResolvedState): a state of the project's own placed after Resolved -
+   * "Closed" - counts as resolved, though it carries no resolved flag.
+   */
+  test("incidents: a state placed after Resolved counts as resolved, and the project's states that cannot be read leave incidents unread", async () => {
+    const closed: Incident = incident({
+      id: "3c4d5e6f-0000-4000-8000-000000000004",
+      number: 50,
+      isResolved: false,
+    });
+    closed.currentIncidentState!.name = "Closed";
+    closed.currentIncidentStateId = new ObjectID(
+      "5e6f7a8b-0000-4000-8000-0000000000cc",
+    );
+
+    jest
+      .spyOn(IncidentStateService, "getResolvedIncidentStateIds")
+      .mockResolvedValue([
+        new ObjectID(RESOLVED_STATE_ID),
+        new ObjectID("5e6f7a8b-0000-4000-8000-0000000000cc"),
+      ]);
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue([closed] as never);
+
+    expect(
+      await ProductionReviewFindings.readIncidents({
+        projectId: PROJECT_ID,
+        serviceIds: [CHECKOUT],
+        changed: changed(),
+        now: NOW,
+      }),
+    ).toEqual({ total: 1, open: 0, items: [] });
+
+    jest.restoreAllMocks();
+    jest
+      .spyOn(IncidentStateService, "getResolvedIncidentStateIds")
+      .mockRejectedValue(new Error("Postgres is down"));
+    const findBy: jest.SpyInstance = jest.spyOn(IncidentService, "findBy");
+
+    expect(
+      await ProductionReviewFindings.readIncidents({
+        projectId: PROJECT_ID,
+        serviceIds: [CHECKOUT],
+        changed: changed(),
+        now: NOW,
+      }),
+    ).toBeNull();
+    expect(findBy).not.toHaveBeenCalled();
   });
 
   test("find: everything together, the services from the files and the findings, the unread parts said", async () => {
