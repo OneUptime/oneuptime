@@ -114,8 +114,7 @@ export function getRuleLlmProviderId(rule: {
   llmProvider?: unknown;
 }): string {
   return (
-    readLlmProviderId(rule.llmProviderId) ||
-    readLlmProviderId(rule.llmProvider)
+    readLlmProviderId(rule.llmProviderId) || readLlmProviderId(rule.llmProvider)
   );
 }
 

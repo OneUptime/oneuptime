@@ -136,11 +136,12 @@ describe("a new incident's investigation records the provider its rules pick", (
   });
 
   test("the project has no provider of its own, but the rules' pick can run it: it is queued", async () => {
-    const disabled: SpyInstance<typeof AIInvestigationEngine.getDisabledReason> =
-      jest
-        .spyOn(AIInvestigationEngine, "getDisabledReason")
-        .mockResolvedValueOnce("provider_missing")
-        .mockResolvedValueOnce(null);
+    const disabled: SpyInstance<
+      typeof AIInvestigationEngine.getDisabledReason
+    > = jest
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValueOnce("provider_missing")
+      .mockResolvedValueOnce(null);
     const subjectPick: SpyInstance<
       typeof InvestigationRules.getSubjectLlmProviderId
     > = jest
@@ -362,11 +363,12 @@ describe("Investigate now on a waiting record uses the rules' pick", () => {
     jest
       .spyOn(InvestigationRules, "getSubjectLlmProviderId")
       .mockResolvedValue(OPUS);
-    const disabled: SpyInstance<typeof AIInvestigationEngine.getDisabledReason> =
-      jest
-        .spyOn(AIInvestigationEngine, "getDisabledReason")
-        .mockResolvedValueOnce("provider_missing")
-        .mockResolvedValueOnce(null);
+    const disabled: SpyInstance<
+      typeof AIInvestigationEngine.getDisabledReason
+    > = jest
+      .spyOn(AIInvestigationEngine, "getDisabledReason")
+      .mockResolvedValueOnce("provider_missing")
+      .mockResolvedValueOnce(null);
     jest.spyOn(AIInvestigationQueue, "enqueue").mockResolvedValue(RUN_ID);
 
     expect(
@@ -422,7 +424,9 @@ describe("the queue records the pick on the run", () => {
   test("a pick is written on the run", async () => {
     const create: SpyInstance<typeof AIRunService.create> = jest
       .spyOn(AIRunService, "create")
-      .mockResolvedValue(Object.assign(new AIRun(), { _id: RUN_ID.toString() }));
+      .mockResolvedValue(
+        Object.assign(new AIRun(), { _id: RUN_ID.toString() }),
+      );
 
     await AIInvestigationQueue.enqueue({
       projectId: PROJECT_ID,
@@ -430,15 +434,17 @@ describe("the queue records the pick on the run", () => {
       llmProviderId: OPUS,
     });
 
-    expect((create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId).toEqual(
-      OPUS,
-    );
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toEqual(OPUS);
   });
 
   test("no pick: the run has none", async () => {
     const create: SpyInstance<typeof AIRunService.create> = jest
       .spyOn(AIRunService, "create")
-      .mockResolvedValue(Object.assign(new AIRun(), { _id: RUN_ID.toString() }));
+      .mockResolvedValue(
+        Object.assign(new AIRun(), { _id: RUN_ID.toString() }),
+      );
 
     await AIInvestigationQueue.enqueue({
       projectId: PROJECT_ID,

@@ -1757,30 +1757,33 @@ class AutoRemediationRuleEngineServiceClass {
      */
     const aiAvailableByPick: Map<string, boolean> = new Map<string, boolean>();
 
-    const isAiAvailableFor: (pickedProviderId: string) => Promise<boolean> =
-      async (pickedProviderId: string): Promise<boolean> => {
-        const known: boolean | undefined =
-          aiAvailableByPick.get(pickedProviderId);
+    const isAiAvailableFor: (
+      pickedProviderId: string,
+    ) => Promise<boolean> = async (
+      pickedProviderId: string,
+    ): Promise<boolean> => {
+      const known: boolean | undefined =
+        aiAvailableByPick.get(pickedProviderId);
 
-        if (known !== undefined) {
-          return known;
-        }
+      if (known !== undefined) {
+        return known;
+      }
 
-        const isAvailable: boolean = pickedProviderId
-          ? (
-              await LlmProviderChoice.decide({
-                projectId: data.projectId,
-                pickedProviderId,
-              })
-            ).provider !== null
-          : (await LlmProviderService.getLLMProviderForProject(
-              data.projectId,
-            )) !== null;
+      const isAvailable: boolean = pickedProviderId
+        ? (
+            await LlmProviderChoice.decide({
+              projectId: data.projectId,
+              pickedProviderId,
+            })
+          ).provider !== null
+        : (await LlmProviderService.getLLMProviderForProject(
+            data.projectId,
+          )) !== null;
 
-        aiAvailableByPick.set(pickedProviderId, isAvailable);
+      aiAvailableByPick.set(pickedProviderId, isAvailable);
 
-        return isAvailable;
-      };
+      return isAvailable;
+    };
 
     // With no rule: the project's default, else the global provider.
     const isAiAvailable: () => Promise<boolean> =

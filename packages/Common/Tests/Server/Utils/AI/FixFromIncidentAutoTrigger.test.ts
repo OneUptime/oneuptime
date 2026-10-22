@@ -930,7 +930,9 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
   test("the run it enqueues records the pick", async () => {
     jest
       .spyOn(RemediationRulePullRequests, "getRulesForSignal")
-      .mockResolvedValue(matchingRules({ name: "Checkout", llmProviderId: PICK }));
+      .mockResolvedValue(
+        matchingRules({ name: "Checkout", llmProviderId: PICK }),
+      );
     const enqueue: jest.SpyInstance = jest
       .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
       .mockResolvedValue(fakeRun());
@@ -943,8 +945,7 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
     });
 
     expect(
-      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId,
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
     ).toEqual(new ObjectID(PICK));
   });
 
@@ -964,8 +965,7 @@ describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () =>
     });
 
     expect(
-      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId,
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
     ).toBeUndefined();
   });
 

@@ -438,8 +438,7 @@ export default class AIIncidentPostmortemRunner {
     const why: string =
       choice.fallbackReason === LlmProviderFallbackReason.CreditsUsedUp
         ? "uses AI credits, and they are used up"
-        : choice.fallbackReason ===
-            LlmProviderFallbackReason.SpendLimitReached
+        : choice.fallbackReason === LlmProviderFallbackReason.SpendLimitReached
           ? "is stopped by the project's daily AI spend limit"
           : "is no longer available";
 

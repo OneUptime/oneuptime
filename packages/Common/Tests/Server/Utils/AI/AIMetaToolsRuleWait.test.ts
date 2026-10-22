@@ -380,8 +380,7 @@ describe("start_investigation and the LLM provider the rules pick", () => {
       alertId: undefined,
     });
     expect(
-      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId,
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
     ).toEqual(OPUS);
   });
 
@@ -397,10 +396,7 @@ describe("start_investigation and the LLM provider the rules pick", () => {
       .spyOn(AIInvestigationQueue, "enqueue")
       .mockResolvedValue(RUN_ID as never);
 
-    await StartInvestigationTool.execute(
-      { alertId: ALERT_ID.toString() },
-      ctx,
-    );
+    await StartInvestigationTool.execute({ alertId: ALERT_ID.toString() }, ctx);
 
     expect(pick).toHaveBeenCalledWith({
       projectId: ctx.projectId,
@@ -408,8 +404,7 @@ describe("start_investigation and the LLM provider the rules pick", () => {
       alertId: ALERT_ID,
     });
     expect(
-      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId,
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
     ).toBeUndefined();
   });
 });

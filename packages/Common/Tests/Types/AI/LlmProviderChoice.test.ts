@@ -690,9 +690,9 @@ describe("what a run says about its provider", () => {
     }
 
     // Every template is a different line.
-    expect(
-      new Set(Object.values(LLM_PROVIDER_ACTIVITY_TEMPLATES)).size,
-    ).toBe(Object.keys(LLM_PROVIDER_ACTIVITY_TEMPLATES).length);
+    expect(new Set(Object.values(LLM_PROVIDER_ACTIVITY_TEMPLATES)).size).toBe(
+      Object.keys(LLM_PROVIDER_ACTIVITY_TEMPLATES).length,
+    );
   });
 
   test("with no provider to use at all, a Warning", () => {
@@ -720,8 +720,10 @@ describe("the rule models", () => {
       AutoRemediationRule,
       AIPostmortemRule,
     ]) {
-      const model: AIInvestigationRule | AutoRemediationRule | AIPostmortemRule =
-        new RuleType();
+      const model:
+        | AIInvestigationRule
+        | AutoRemediationRule
+        | AIPostmortemRule = new RuleType();
 
       expect(model.getTableColumnMetadata("llmProviderId")?.title).toBe(
         "LLM Provider ID",

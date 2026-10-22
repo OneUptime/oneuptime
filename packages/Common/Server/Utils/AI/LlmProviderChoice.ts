@@ -139,8 +139,9 @@ export default class LlmProviderChoice {
       });
     }
 
-    const projectProvider: LlmProvider | null =
-      await this.readProjectProvider(data.projectId);
+    const projectProvider: LlmProvider | null = await this.readProjectProvider(
+      data.projectId,
+    );
 
     const projectCandidate: LlmProviderCandidate | null = projectProvider
       ? this.toCandidate(projectProvider)
@@ -403,7 +404,9 @@ export default class LlmProviderChoice {
     const providerRow: LlmProvider | null =
       data.rows.find((row: LlmProvider | null): boolean => {
         return Boolean(
-          row && providerId && readLlmProviderId(row._id ?? row.id) === providerId,
+          row &&
+            providerId &&
+            readLlmProviderId(row._id ?? row.id) === providerId,
         );
       }) || null;
 

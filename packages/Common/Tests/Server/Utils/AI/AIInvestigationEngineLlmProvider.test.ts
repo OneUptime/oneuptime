@@ -213,16 +213,19 @@ describe("AIInvestigationEngine.executeRun: the run's LLM provider", () => {
     });
 
     expect(
-      (answer.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId?.toString(),
+      (
+        answer.mock.calls[0]![0] as { llmProviderId?: ObjectID }
+      ).llmProviderId?.toString(),
     ).toBe(OPUS_ID);
     expect(
-      (confidence.mock.calls[0]![0] as { llmProviderId?: ObjectID })
-        .llmProviderId?.toString(),
+      (
+        confidence.mock.calls[0]![0] as { llmProviderId?: ObjectID }
+      ).llmProviderId?.toString(),
     ).toBe(OPUS_ID);
     expect(
-      (tldr.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId
-        ?.toString(),
+      (
+        tldr.mock.calls[0]![0] as { llmProviderId?: ObjectID }
+      ).llmProviderId?.toString(),
     ).toBe(OPUS_ID);
   });
 
@@ -326,9 +329,7 @@ describe("AIInvestigationEngine: the gates ask about the provider the run would 
 
   test("getProviderOrBalanceReason with a pick the credits cannot pay for: insufficient_ai_balance", async () => {
     jest.spyOn(LlmProviderChoice, "decide").mockResolvedValue(PICK_USED);
-    jest
-      .spyOn(AIService, "getAiBalanceBlocker")
-      .mockResolvedValue("used up");
+    jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue("used up");
 
     expect(
       await AIInvestigationEngine.getProviderOrBalanceReason(
@@ -489,7 +490,9 @@ describe("AIInvestigationEngine: the gates ask about the provider the run would 
     > = jest
       .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
       .mockResolvedValue(null);
-    jest.spyOn(AIService, "getReachedProjectDailyLimit").mockResolvedValue(null);
+    jest
+      .spyOn(AIService, "getReachedProjectDailyLimit")
+      .mockResolvedValue(null);
 
     expect(
       await AIInvestigationEngine.getDisabledReason(PROJECT_ID, "Incident", {

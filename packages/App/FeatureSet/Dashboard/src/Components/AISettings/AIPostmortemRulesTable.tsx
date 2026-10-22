@@ -125,14 +125,12 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
     useRef<RuleLlmProviderChoices | null>(llmProviderChoices);
   llmProviderChoicesRef.current = llmProviderChoices;
 
-  const moreFields: FormFieldCollapsibleSection<AIPostmortemRule> = useMemo(
-    () => {
+  const moreFields: FormFieldCollapsibleSection<AIPostmortemRule> =
+    useMemo(() => {
       return getPostmortemRuleMoreFields((): RuleLlmProviderChoices | null => {
         return llmProviderChoicesRef.current;
       });
-    },
-    [],
-  );
+    }, []);
 
   return (
     <ModelTable<AIPostmortemRule>

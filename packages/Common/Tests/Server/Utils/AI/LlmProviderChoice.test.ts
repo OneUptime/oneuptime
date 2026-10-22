@@ -516,9 +516,11 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
   test("no pick: nothing read, nothing to say", async () => {
     const mocks: Mocks = mockProviders({ projectProvider: AZURE_DEFAULT });
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideIfPicked(
-      { projectId: PROJECT_ID, pickedProviderId: undefined },
-    );
+    const choice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideIfPicked({
+        projectId: PROJECT_ID,
+        pickedProviderId: undefined,
+      });
 
     expect(choice).toMatchObject({
       provider: null,
@@ -534,9 +536,11 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
   test("a pick: decided", async () => {
     mockProviders({ rows: [OPUS] });
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideIfPicked(
-      { projectId: PROJECT_ID, pickedProviderId: OPUS_ID },
-    );
+    const choice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideIfPicked({
+        projectId: PROJECT_ID,
+        pickedProviderId: OPUS_ID,
+      });
 
     expect(choice.llmProviderId?.toString()).toBe(OPUS_ID);
   });
@@ -549,9 +553,10 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
         Object.assign(new AIRun(), { llmProviderId: new ObjectID(OPUS_ID) }),
       );
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun(
-      { projectId: PROJECT_ID, aiRunId: RUN_ID },
-    );
+    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+    });
 
     expect(choice.source).toBe(LlmProviderSource.RulePick);
     expect(findRun).toHaveBeenCalledWith({
@@ -563,13 +568,12 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
 
   test("a run no rule picked a provider for: nothing more is read", async () => {
     const mocks: Mocks = mockProviders({ projectProvider: AZURE_DEFAULT });
-    jest
-      .spyOn(AIRunService, "findOneById")
-      .mockResolvedValue(new AIRun());
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(new AIRun());
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun(
-      { projectId: PROJECT_ID, aiRunId: RUN_ID },
-    );
+    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+    });
 
     expect(choice.activity).toBeNull();
     expect(choice.llmProviderId).toBeUndefined();
@@ -582,9 +586,10 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
       .spyOn(AIRunService, "findOneById")
       .mockRejectedValue(new Error("gone"));
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun(
-      { projectId: PROJECT_ID, aiRunId: RUN_ID },
-    );
+    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+    });
 
     expect(choice.activity).toBeNull();
     expect(logger.error).toHaveBeenCalled();
@@ -598,9 +603,10 @@ describe("LlmProviderChoice.decideIfPicked and decideForRun", () => {
         Object.assign(new AIRun(), { llmProviderId: new ObjectID(OPUS_ID) }),
       );
 
-    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun(
-      { projectId: PROJECT_ID, aiRunId: RUN_ID },
-    );
+    const choice: RuleLlmProviderChoice = await LlmProviderChoice.decideForRun({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+    });
 
     expect(LlmProviderChoice.getEventSummary(choice)).toEqual({
       message:

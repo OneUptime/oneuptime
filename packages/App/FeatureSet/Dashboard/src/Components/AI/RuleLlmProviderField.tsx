@@ -290,7 +290,9 @@ export const RuleLlmProviderPicker: FunctionComponent<
  *     opened with, so they are read through a function);
  *   - open, RuleLlmProviderPicker, and the line to LLM Providers under it.
  */
-export function getRuleLlmProviderFormField<TBaseModel extends BaseModel>(data: {
+export function getRuleLlmProviderFormField<
+  TBaseModel extends BaseModel,
+>(data: {
   work: RuleLlmProviderWork;
   stepId: string;
   collapsibleSection: FormFieldCollapsibleSection<TBaseModel>;
@@ -299,7 +301,9 @@ export function getRuleLlmProviderFormField<TBaseModel extends BaseModel>(data: 
   showIf?: ((values: FormValues<TBaseModel>) => boolean) | undefined;
 }): ModelField<TBaseModel> {
   const field: ModelField<TBaseModel> = {
-    field: { llmProviderId: true } as unknown as ModelField<TBaseModel>["field"],
+    field: {
+      llmProviderId: true,
+    } as unknown as ModelField<TBaseModel>["field"],
     title: RULE_LLM_PROVIDER_FIELD_COPY.title,
     description: RULE_LLM_PROVIDER_FIELD_COPY.descriptions[data.work],
     stepId: data.stepId,
@@ -347,34 +351,33 @@ export function getRuleLlmProviderFormField<TBaseModel extends BaseModel>(data: 
  * are. In a new tab: the rule being edited stays, and the picker reads the
  * providers again when the person comes back.
  */
-export const RuleLlmProviderFieldHint: FunctionComponent =
-  (): ReactElement => {
-    const translator: Translator = useTranslator();
+export const RuleLlmProviderFieldHint: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
 
-    return (
-      <p
-        className="mt-1.5 mb-2 text-xs text-gray-500"
-        data-testid={RULE_LLM_PROVIDER_HINT_TEST_ID}
-      >
-        <TranslatedSentence
-          template={RULE_LLM_PROVIDER_FIELD_COPY.manageHint}
-          slots={{
-            llmProvidersLink: (
-              <Link
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
-                )}
-                openInNewTab={true}
-                className="underline"
-                dataTestId="rule-llm-provider-link"
-              >
-                {translator.translateText(
-                  RULE_LLM_PROVIDER_FIELD_COPY.llmProvidersPage,
-                )}
-              </Link>
-            ),
-          }}
-        />
-      </p>
-    );
-  };
+  return (
+    <p
+      className="mt-1.5 mb-2 text-xs text-gray-500"
+      data-testid={RULE_LLM_PROVIDER_HINT_TEST_ID}
+    >
+      <TranslatedSentence
+        template={RULE_LLM_PROVIDER_FIELD_COPY.manageHint}
+        slots={{
+          llmProvidersLink: (
+            <Link
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDERS] as Route,
+              )}
+              openInNewTab={true}
+              className="underline"
+              dataTestId="rule-llm-provider-link"
+            >
+              {translator.translateText(
+                RULE_LLM_PROVIDER_FIELD_COPY.llmProvidersPage,
+              )}
+            </Link>
+          ),
+        }}
+      />
+    </p>
+  );
+};

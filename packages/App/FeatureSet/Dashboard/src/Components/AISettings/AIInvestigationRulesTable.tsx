@@ -173,16 +173,14 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
     useRef<RuleLlmProviderChoices | null>(llmProviderChoices);
   llmProviderChoicesRef.current = llmProviderChoices;
 
-  const moreFields: FormFieldCollapsibleSection<AIInvestigationRule> = useMemo(
-    () => {
+  const moreFields: FormFieldCollapsibleSection<AIInvestigationRule> =
+    useMemo(() => {
       return getInvestigationRuleMoreFields(
         (): RuleLlmProviderChoices | null => {
           return llmProviderChoicesRef.current;
         },
       );
-    },
-    [],
-  );
+    }, []);
 
   return (
     <ModelTable<AIInvestigationRule>

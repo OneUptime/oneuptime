@@ -514,11 +514,9 @@ describe("CodeFixAgentCompletion.execute: the LLM provider the rule picked", () 
     spy: jest.SpiedFunction<typeof AIRunEventService.appendEventToRun>,
   ): Array<AIRunEventResultSummary | undefined> {
     return spy.mock.calls
-      .filter(
-        (call: Parameters<typeof AIRunEventService.appendEventToRun>) => {
-          return call[0].eventType === AIRunEventType.ProgressLog;
-        },
-      )
+      .filter((call: Parameters<typeof AIRunEventService.appendEventToRun>) => {
+        return call[0].eventType === AIRunEventType.ProgressLog;
+      })
       .map((call: Parameters<typeof AIRunEventService.appendEventToRun>) => {
         return call[0].resultSummary;
       });
