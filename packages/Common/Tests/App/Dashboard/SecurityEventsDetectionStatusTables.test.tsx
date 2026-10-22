@@ -46,7 +46,12 @@ import FieldType from "../../../UI/Components/Types/FieldType";
  * sees before customizing them, and the dialog is the page's own.
  */
 
-type AnyRow = GenericObject & { _id?: string };
+// A feed, a rule or an indicator: each row is found by its name or value.
+type AnyRow = GenericObject & {
+  _id?: string | undefined;
+  name?: string | undefined;
+  indicatorValue?: string | undefined;
+};
 
 type CapturedColumn = {
   title: string;
@@ -111,7 +116,7 @@ function mockTable(name: string, props: CapturedTable): ReactElement {
           return (
             <tbody
               key={row._id || String(index)}
-              data-testid={String(row["name"] || row["indicatorValue"])}
+              data-testid={row.name || row.indicatorValue}
             >
               <TableRow<AnyRow>
                 item={row}

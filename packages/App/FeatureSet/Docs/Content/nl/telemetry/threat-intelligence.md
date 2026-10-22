@@ -195,7 +195,7 @@ Lees **Last Poll Summary**. Geen objecten opgehaald: de collectie is leeg of pub
 :::
 
 :::details Er zijn indicatoren, maar niets matcht
-Matchen vergelijkt de waarde van een indicator met de observables van een gebeurtenis, niet met elk veld: open in **Gebeurtenissen** een gebeurtenis waarvan je een match verwachtte en controleer of haar observables de waarde bevatten. Alleen indicatoren met de status **Actief** matchen. Controleer **Last Match Error** op de feed.
+Matchen vergelijkt de waarde van een indicator met de observables van een gebeurtenis, niet met elk veld: open in **Gebeurtenissen** een gebeurtenis waarvan je een match verwachtte en controleer of haar observables de waarde bevatten. Alleen indicatoren met de status **Actief** matchen. Staat bij de **Status** van de feed **Vergelijken mislukt**, dan toont **Fout bekijken** in zijn rij waarom.
 :::
 
 :::details Een match opende geen waarschuwing

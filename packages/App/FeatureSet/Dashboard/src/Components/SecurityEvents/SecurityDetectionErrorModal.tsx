@@ -56,7 +56,8 @@ const SecurityDetectionErrorModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-5" data-testid="security-detection-messages">
         {props.messages.map((item: SecurityDetectionMessage): ReactElement => {
-          const label: string = translator.translateText(item.label);
+          const label: string =
+            translator.translateText(item.label) || item.label;
 
           return (
             <section key={item.label} className="space-y-2" aria-label={label}>
