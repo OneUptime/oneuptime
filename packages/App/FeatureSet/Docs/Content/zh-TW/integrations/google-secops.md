@@ -108,6 +108,7 @@ OneUptime 按間隔輪詢你租用戶的偵測和警示，無需任何 SOAR 設�
 | --- | --- | --- |
 | **地區** | 與執行個體資源名稱中的位置相符合的 Google SecOps 地區端點（`us`、`europe`、`asia-southeast1`……）。它沒有預設值，所以美國以外的租用戶不會意外儲存錯誤的端點。 | 是 |
 | **執行個體資源名稱** | Google SecOps **SIEM Settings → Profile**：`projects/{project}/locations/{location}/instances/{instance}`。 | 是 |
+| **案例關閉時關閉其警示** | 在表單的最後一步，在你開啟之前一直關閉。開啟後，關閉案件會關閉它的 Google SecOps 警示：請參閱 [案例關閉時關閉其警示](#案例關閉時關閉其警示)。 | 否 |
 | **服務帳戶 JSON** | Google Cloud 中服務帳號的 **Keys** 索引標籤。貼上整個 JSON 金鑰檔案。只寫：靜態加密儲存，API 從不傳回，頁面上也從不回顯。在連線上使用 **Update credentials** 來輪換它。 | 是 |
 | **Data to import** | **警示** 總會被匯入，因為 Google 的警示 API 總會傳回它們。選擇 **Detections** 可以同時匯入沒有生成警示的規則符合。這不會轉發原始 UDM 事件：請按上文自行轉發。 | 警示總是匯入 |
 
@@ -119,7 +120,7 @@ OneUptime 按間隔輪詢你租用戶的偵測和警示，無需任何 SOAR 設�
 
 連線清單顯示 **名稱**、**提供者**（下方顯示連線的 Data to import 選擇）、**狀態**（已啟用或已停用）、**Health**、**Interval (Minutes)**、**Last Polled**、**Last Successful Poll** 和 **Last Event Imported**。連線出錯時，它的 **操作** 欄中會出現 **檢視錯誤**，位於 **測試連線**、**Run now**、**Diagnostics**、**編輯** 和 **Update credentials** 旁邊。已啟用表示已設定自動輪詢。Last Polled 記錄的是一次嘗試；一個成功的空時間窗並不能說明某個特定的偵測已被匯入。
 
-**Health** 只有在匯入過事件之後才會顯示 **Last poll succeeded**。在此之前，一個成功輪詢的連線會顯示 **Polling, no events imported yet**，這正是需要用測試連線來排查的狀態。其他狀態有 **No records returned**、**Partial import**、**Catching up**、**Last poll failed**、**Poll overdue**、**Schedule paused** 和 **Waiting for first poll**；把滑鼠懸停在某個狀態上即可檢視它的含義。
+**Health** 只有在匯入過事件之後才會顯示 **Last poll succeeded**。在此之前，一個成功輪詢的連線會顯示 **Polling, no events imported yet**，這正是需要用測試連線來排查的狀態。其他狀態有 **No records returned**、**Partial import**、**Catching up**、**Last poll failed**、**Poll overdue**、**Schedule paused** 和 **等待首次輪詢**；把滑鼠懸停在某個狀態上即可檢視它的含義。
 
 > [!NOTE]
 > 連接器使用 Chronicle 的 `v1alpha` 舊版偵測和警示 API，Google 將其作為正式發布前（pre-GA）的版本提供。輪詢失敗時，連線的 **最近的錯誤** 欄位會儲存完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首，包括 Chronicle 傳回 `200` 卻在內文中給出拒絕的情況。在連線的 **操作** 欄中選擇 **檢視錯誤** 來閱讀訊息，然後在對話方塊中用 **複製錯誤** 複製它以提供給支援人員。
@@ -213,6 +214,17 @@ Google SecOps 會根據規則的編寫者，把偵測的嚴重程度儲存在不
 
 以上都無法分級的偵測會顯示為 Unknown。要為自訂規則分級，請在 Google SecOps 中為它的 `meta` 部分新增嚴重程度，例如 `severity = "High"`，或在它的 `outcome` 部分設定 `$risk_score`。此後該規則建立的偵測會以該嚴重程度匯入。
 
+## 案例關閉時關閉其警示
+
+開啟 **案例關閉時關閉其警示** 後，關閉一個 [安全案件](/docs/telemetry/security-cases#關閉案件) 會關閉它所來自的 Google SecOps 警示。每個警示都會依案件的結論標示為已關閉：True Positive 標為惡意，False Positive 或 Benign Positive 標為非惡意，並附上案件的關閉說明和返回案件的連結。案件的時間軸會說明關閉了多少個警示。
+
+- 服務帳戶需要 `chronicle.legacies.legacyUpdateAlert`，`roles/chronicle.editor` 角色具有此權限。`roles/chronicle.viewer` 角色可以讀取警示但無法關閉它們，此時案件上會顯示 `403`。
+- Google SecOps 中已不存在的警示會被略過。無法連線到 Google SecOps 時，OneUptime 會重試大約一小時，然後在案件上寫明哪些沒能關閉。
+
+## 在其他事件中監看它的指標
+
+**來源** 為 **Google SecOps** 的 [威脅情資來源](/docs/telemetry/threat-intelligence#如何讀取-google-secops) 會透過此連線讀取 Google SecOps 的威脅情資在其事件中找到的指標，並在你專案的其餘事件中監看這些指標：那些 Google SecOps 從未見過的登入、網路流量和端點事件。
+
 ## 將安全性事件傳送到 Google SecOps
 
 OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊所用的 SIEM 在自身偵測結果旁邊看到 OneUptime 的偵測結果。每個安全性事件都會以 UDM 事件匯入：登入為 `USER_LOGIN`，程序啟動為 `PROCESS_LAUNCH`，網路連線為 `NETWORK_CONNECTION`，其他一切為 `GENERIC_EVENT`，並附上其嚴重性、MITRE ATT&CK 標籤，以及找到它的規則。
@@ -224,7 +236,7 @@ OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊�
 
 ### 新增目標
 
-開啟 **產品 → Security Events → Connections**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**。選擇 **地區**，像上方的連接器一樣填寫 **執行個體資源名稱**，並把金鑰貼到 **服務帳戶 JSON** 中。
+開啟 **產品 → Security Events → Connections**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Google SecOps，然後按一下 **下一步**。選擇 **地區**，像上方的連接器一樣填寫 **執行個體資源名稱**，並把金鑰貼到 **服務帳戶 JSON** 中。
 
 ### 傳送測試事件
 

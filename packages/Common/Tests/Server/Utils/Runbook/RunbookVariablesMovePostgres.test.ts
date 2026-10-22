@@ -4,18 +4,22 @@ import Encryption from "../../../../Server/Utils/Encryption";
 import logger from "../../../../Server/Utils/Logger";
 import RunbookVariableService from "../../../../Server/Services/RunbookVariableService";
 import RunbookVariablesMove, {
+  LEGACY_KUBERNETES_CREDENTIAL_TYPE,
+  LEGACY_SSH_CREDENTIAL_TYPE,
   LegacyQuery,
   RunbookVariablesMoveSummary,
 } from "../../../../Server/Utils/Runbook/RunbookVariablesMove";
+import RunbookCredentialsRemoval, {
+  RunbookCredentialsRemovalSummary,
+} from "../../../../Server/Utils/Runbook/RunbookCredentialsRemoval";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import RunbookCredentialType from "../../../../Types/Runbook/RunbookCredentialType";
 import {
   KubernetesAction,
   KubernetesWorkloadKind,
 } from "../../../../Types/Runbook/RunbookStep";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
-import { getLegacyKubernetesStepForOlderRunner } from "../../../../Types/Runbook/RunbookLegacySteps";
+import { LEGACY_KUBERNETES_STEP_FIELDS } from "../../../../Types/Runbook/RunbookLegacySteps";
 import { DataSource } from "typeorm";
 
 /*
@@ -25,6 +29,13 @@ import { DataSource } from "typeorm";
  * variables are written through the real service - encrypted, with their
  * Runners in "RunbookVariableRunner" - and each runbook's steps are written
  * back in one statement. Run twice, the second run changes nothing.
+ *
+ * THEN RUNBOOK CREDENTIALS ARE REMOVED (RunbookCredentialsRemoval, run by
+ * the Workers' data migration RemoveRunbookCredentials): the steps that
+ * still name one are moved, a Kubernetes cluster bound to a Runner outside
+ * it has the binding cleared ("KubernetesCluster" joined to "Runner"), and
+ * every credential is deleted with its Runners. Run twice, the second run
+ * finds nothing.
  *
  * Opt in with RUN_POSTGRES_RUNBOOK_VARIABLES_TESTS=true against a Postgres
  * migrated to the current head - the Postgres Schema Drift workflow's
@@ -58,6 +69,7 @@ describePostgres(
       "RunbookCredentialRunner",
       "RunbookVariable",
       "RunbookVariableRunner",
+      "KubernetesCluster",
     ];
 
     const PROJECT_ID: string = ObjectID.generate().toString();
@@ -178,7 +190,7 @@ describePostgres(
         [
           SSH_CREDENTIAL_ID,
           PROJECT_ID,
-          RunbookCredentialType.SSH,
+          LEGACY_SSH_CREDENTIAL_TYPE,
           await Encryption.encrypt(PRIVATE_KEY),
           await Encryption.encrypt("open sesame"),
         ],
@@ -188,7 +200,7 @@ describePostgres(
         [
           K8S_CREDENTIAL_ID,
           PROJECT_ID,
-          RunbookCredentialType.Kubernetes,
+          LEGACY_KUBERNETES_CREDENTIAL_TYPE,
           await Encryption.encrypt("sa-token"),
         ],
       );
@@ -365,16 +377,16 @@ describePostgres(
       expect(
         String((written.steps[2]!["config"] as JSONObject)["script"]),
       ).toContain("kubectl patch deployment api --namespace web --patch");
-      // ... and keeps its credential and action, for a Runner older than kubectl scripts.
-      expect(
-        getLegacyKubernetesStepForOlderRunner(written.steps[2]!["config"]),
-      ).toEqual({
-        credentialId: K8S_CREDENTIAL_ID,
-        action: KubernetesAction.RestartWorkload,
-        workloadKind: KubernetesWorkloadKind.Deployment,
-        namespace: "web",
-        workloadName: "api",
-      });
+      /*
+       * ... and keeps no credential or action beside it: runbook credentials
+       * are gone, and the older Runner that would have run those with them.
+       */
+      for (const field of LEGACY_KUBERNETES_STEP_FIELDS) {
+        expect({
+          field,
+          value: (written.steps[2]!["config"] as JSONObject)[field],
+        }).toEqual({ field, value: undefined });
+      }
       // Titles and order are as they were.
       expect(
         written.steps.map((step: JSONObject): unknown => {
@@ -393,13 +405,202 @@ describePostgres(
       expect(summary).toMatchObject({
         secretsMoved: 0,
         secretsAlreadyMoved: 1,
-        // The moved Kubernetes step still names its credential: it is not read again.
+        // No moved step names a credential: none is read again.
         credentialsMoved: 0,
         stepsMoved: 0,
         runbooksRewritten: 0,
       });
       expect(await variables()).toEqual(first);
       expect((await steps()).version).toBe(2);
+    });
+
+    describe("then runbook credentials are removed", () => {
+      const OUTSIDE_CLUSTER_ID: string = ObjectID.generate().toString();
+      const AGENT_CLUSTER_ID: string = ObjectID.generate().toString();
+      const UNBOUND_CLUSTER_ID: string = ObjectID.generate().toString();
+      const LATER_RUNBOOK_ID: string = ObjectID.generate().toString();
+
+      async function count(table: string): Promise<number> {
+        const rows: Array<{ count: number }> = await database.query(
+          `SELECT count(*)::int AS "count" FROM "${table}"`,
+        );
+
+        return rows[0]!.count;
+      }
+
+      async function stepsOf(runbookId: string): Promise<Array<JSONObject>> {
+        const rows: Array<{ steps: Array<JSONObject> }> = await database.query(
+          `SELECT "steps" FROM "Runbook" WHERE "_id" = $1`,
+          [runbookId],
+        );
+
+        return rows[0]!.steps;
+      }
+
+      async function bindings(): Promise<Record<string, string | null>> {
+        const rows: Array<{ _id: string; aiAccessRunnerId: string | null }> =
+          await database.query(
+            `SELECT "_id", "aiAccessRunnerId" FROM "KubernetesCluster" WHERE "projectId" = $1`,
+            [PROJECT_ID],
+          );
+        const byCluster: Record<string, string | null> = {};
+
+        for (const row of rows) {
+          byCluster[String(row._id)] = row.aiAccessRunnerId
+            ? String(row.aiAccessRunnerId)
+            : null;
+        }
+
+        return byCluster;
+      }
+
+      /*
+       * What the removal finds: the first move ran (14.0.79, which kept the
+       * Kubernetes step's credential and action beside its script for an
+       * older Runner), a runbook was written through the API since with a
+       * step that names a credential, and three clusters - one bound to a
+       * Runner outside it (reached with a Kubernetes credential), one to its
+       * own in-cluster Runner, one to nothing.
+       */
+      async function afterTheFirstMove(): Promise<void> {
+        await RunbookVariablesMove.moveAll(query);
+
+        const moved: Array<JSONObject> = (await steps()).steps;
+        const kubernetes: JSONObject = moved[2]!;
+
+        await database.query(
+          `UPDATE "Runbook" SET "steps" = $1::jsonb WHERE "_id" = $2`,
+          [
+            JSON.stringify([
+              moved[0],
+              moved[1],
+              {
+                ...kubernetes,
+                config: {
+                  ...(kubernetes["config"] as JSONObject),
+                  credentialId: K8S_CREDENTIAL_ID,
+                  action: KubernetesAction.RestartWorkload,
+                  workloadKind: KubernetesWorkloadKind.Deployment,
+                  namespace: "web",
+                  workloadName: "api",
+                },
+              },
+            ]),
+            RUNBOOK_ID,
+          ],
+        );
+
+        await database.query(
+          `INSERT INTO "Runbook" ("_id", "projectId", "name", "slug", "steps", "version") VALUES ($1, $2, 'Restart nginx again', 'restart-nginx-again', $3::jsonb, 1)`,
+          [
+            LATER_RUNBOOK_ID,
+            PROJECT_ID,
+            JSON.stringify([
+              {
+                id: "d",
+                order: 0,
+                type: RunbookStepType.SSH,
+                title: "Restart nginx",
+                config: {
+                  credentialId: SSH_CREDENTIAL_ID,
+                  command: "sudo systemctl restart nginx",
+                  agentId: RUNNER_ID,
+                },
+              },
+            ]),
+          ],
+        );
+
+        await database.query(
+          `INSERT INTO "KubernetesCluster" ("_id", "projectId", "name", "aiAccessRunnerId", "version") VALUES ($1, $4, 'prod-us', $5, 1), ($2, $4, 'prod-eu', $6, 1), ($3, $4, 'staging', NULL, 1)`,
+          [
+            OUTSIDE_CLUSTER_ID,
+            AGENT_CLUSTER_ID,
+            UNBOUND_CLUSTER_ID,
+            PROJECT_ID,
+            RUNNER_ID,
+            AGENT_RUNNER_ID,
+          ],
+        );
+      }
+
+      test("moves what still names a credential, clears the binding a Runner outside the cluster held, and deletes every credential", async () => {
+        await afterTheFirstMove();
+        const variablesBefore: Awaited<ReturnType<typeof variables>> =
+          await variables();
+
+        const summary: RunbookCredentialsRemovalSummary =
+          await RunbookCredentialsRemoval.removeAll(query);
+
+        expect(summary.failedSteps).toEqual([]);
+        expect(summary.clusterBindingsCleared).toBe(1);
+        expect(summary.credentialsDeleted).toBe(2);
+        // The secrets moved the first time are never made again.
+        expect(summary.move).toMatchObject({
+          secretsMoved: 0,
+          stepsMoved: 2,
+          runbooksRewritten: 2,
+          projectsFailed: 0,
+        });
+
+        // No credential is kept anywhere, nor whom it was assigned to.
+        expect(await count("RunbookCredential")).toBe(0);
+        expect(await count("RunbookCredentialRunner")).toBe(0);
+
+        // Only the Runner outside its cluster lost its binding.
+        expect(await bindings()).toEqual({
+          [OUTSIDE_CLUSTER_ID]: null,
+          [AGENT_CLUSTER_ID]: AGENT_RUNNER_ID,
+          [UNBOUND_CLUSTER_ID]: null,
+        });
+
+        // The Kubernetes step keeps its script and kubeconfig, and nothing else.
+        const kubernetes: JSONObject = (await stepsOf(RUNBOOK_ID))[2]![
+          "config"
+        ] as JSONObject;
+        expect(kubernetes["kubeconfig"]).toBe(
+          "{{global.variables.prod_cluster-kubeconfig}}",
+        );
+        for (const field of LEGACY_KUBERNETES_STEP_FIELDS) {
+          expect({ field, value: kubernetes[field] }).toEqual({
+            field,
+            value: undefined,
+          });
+        }
+
+        // The later SSH step signs in with the variables the first move made.
+        expect((await stepsOf(LATER_RUNBOOK_ID))[0]!["config"]).toEqual({
+          host: "10.0.4.21",
+          username: "deploy",
+          port: 2222,
+          signIn: "{{global.variables.prod_hosts-ssh-key}}",
+          passphrase: "{{global.variables.prod_hosts-ssh-key-passphrase}}",
+          script: "sudo systemctl restart nginx",
+          agentId: RUNNER_ID,
+        });
+        expect(await variables()).toEqual(variablesBefore);
+      });
+
+      test("run twice, the second run finds nothing to move, clear or delete", async () => {
+        await afterTheFirstMove();
+        await RunbookCredentialsRemoval.removeAll(query);
+        const first: Array<JSONObject> = await stepsOf(RUNBOOK_ID);
+        const later: Array<JSONObject> = await stepsOf(LATER_RUNBOOK_ID);
+
+        const summary: RunbookCredentialsRemovalSummary =
+          await RunbookCredentialsRemoval.removeAll(query);
+
+        expect(summary.failedSteps).toEqual([]);
+        expect(summary.clusterBindingsCleared).toBe(0);
+        expect(summary.credentialsDeleted).toBe(0);
+        expect(summary.move).toMatchObject({
+          credentialsMoved: 0,
+          stepsMoved: 0,
+          runbooksRewritten: 0,
+        });
+        expect(await stepsOf(RUNBOOK_ID)).toEqual(first);
+        expect(await stepsOf(LATER_RUNBOOK_ID)).toEqual(later);
+      });
     });
   },
 );

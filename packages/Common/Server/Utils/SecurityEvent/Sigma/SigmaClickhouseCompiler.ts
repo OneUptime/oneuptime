@@ -39,6 +39,12 @@ const TEXT_COLUMNS: Set<string> = new Set<string>([
   "principalHost",
   "principalIp",
   "principalProcess",
+  "processName",
+  "processPath",
+  "processCommandLine",
+  "parentProcessName",
+  "parentProcessPath",
+  "parentProcessCommandLine",
   "targetUser",
   "targetHost",
   "targetIp",
@@ -63,6 +69,12 @@ const ARRAY_COLUMNS: Set<string> = new Set<string>([
  * Anything that resolves to none of these becomes an attributes[] lookup
  * under its original spelling — which is exactly the flattened source
  * payload key, so rules written against raw UDM/OCSF field paths work.
+ *
+ * Image and CommandLine are the process the event is about - the one that
+ * was started, in a process creation event - and ParentImage and
+ * ParentCommandLine the process that started it, as Sysmon, ECS and UDM
+ * all define them. principalProcess, the acting process, is never one of
+ * them: in a process creation event the actor is the parent.
  */
 export const FIELD_ALIASES: Record<string, string> = {
   user: "principalUser",
@@ -92,12 +104,17 @@ export const FIELD_ALIASES: Record<string, string> = {
   destination_port: "targetPort",
   destinationport: "targetPort",
   target_port: "targetPort",
-  commandline: "principalProcess",
-  command_line: "principalProcess",
-  cmdline: "principalProcess",
-  processcommandline: "principalProcess",
-  "process.command_line": "principalProcess",
-  image: "principalProcess",
+  commandline: "processCommandLine",
+  command_line: "processCommandLine",
+  cmdline: "processCommandLine",
+  processcommandline: "processCommandLine",
+  "process.command_line": "processCommandLine",
+  image: "processPath",
+  "process.executable": "processPath",
+  parentimage: "parentProcessPath",
+  "process.parent.executable": "parentProcessPath",
+  parentcommandline: "parentProcessCommandLine",
+  "process.parent.command_line": "parentProcessCommandLine",
   msg: "message",
 };
 

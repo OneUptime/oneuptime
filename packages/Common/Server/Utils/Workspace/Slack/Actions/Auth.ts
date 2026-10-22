@@ -8,7 +8,6 @@ import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAut
 import { ExpressRequest } from "../../../Express";
 import SlackUtil from "../Slack";
 import SlackActionType from "./ActionTypes";
-import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
@@ -29,12 +28,29 @@ import SlackOverflowMenu, {
   SLACK_OVERFLOW_MENU_ACTION_ID,
   SlackOverflowChoice,
 } from "../SlackOverflowMenu";
+import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetry,
+  WorkspaceAmbiguousRetryKind,
+  WorkspaceProjectResolution,
+} from "../../WorkspaceProjectResolution";
+import { WorkspaceAnswer } from "../../WorkspaceActionAnswers";
+import WorkspaceCommands, {
+  WorkspaceCommandName,
+} from "../../WorkspaceCommands";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
   SlackActionType.SubmitNewIncident,
   SlackActionType.SubmitNewScheduledMaintenance,
 ];
+
+// The app's shortcuts (its manifest), and the commands that do the same.
+const SHORTCUT_COMMANDS: Partial<
+  Record<SlackActionType, WorkspaceCommandName>
+> = {
+  [SlackActionType.NewIncident]: WorkspaceCommandName.Incident,
+  [SlackActionType.NewScheduledMaintenance]: WorkspaceCommandName.Maintenance,
+};
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -60,13 +76,24 @@ export enum SlackAuthRefusalReason {
   NotConnected = "NotConnected",
   // It is, but that user is no longer a member of the project.
   NotAMember = "NotAMember",
+  /*
+   * The workspace is connected to more than one project, and nothing the
+   * press carries tells which one it is about (WorkspaceProjectResolution).
+   */
+  AmbiguousProject = "AmbiguousProject",
 }
 
 export interface SlackAuthRefusal {
   reason: SlackAuthRefusalReason;
+  /*
+   * The project the press was read in: where a Connect button connects the
+   * account. For an ambiguous press, the workspace's first connection's.
+   */
   projectId: ObjectID;
   // The press that was refused: what the answer is about.
   action: SlackAction;
+  // An ambiguous press: what was read of the projects and the person.
+  resolution?: WorkspaceProjectResolution | undefined;
 }
 
 export interface SlackRequest {
@@ -173,6 +200,35 @@ export default class SlackAuthAction {
         actionType!,
       )
     );
+  }
+
+  /*
+   * How somebody makes a press that could be about more than one project
+   * again where it can be told apart (WorkspaceProjectResolution): from a
+   * channel of the project they mean - except a shortcut from Slack's
+   * shortcuts menu, which never says where it was used: it is pointed to
+   * the command that does the same, "/oneuptime incident".
+   */
+  public static getAmbiguousRetry(data: {
+    payloadType: string | undefined;
+    actionType: string | undefined;
+  }): WorkspaceAmbiguousRetry {
+    const command: WorkspaceCommandName | undefined =
+      data.payloadType === "shortcut"
+        ? SHORTCUT_COMMANDS[data.actionType as SlackActionType]
+        : undefined;
+
+    if (!command) {
+      return { kind: WorkspaceAmbiguousRetryKind.Again };
+    }
+
+    return {
+      kind: WorkspaceAmbiguousRetryKind.Command,
+      command: WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.Slack,
+        command: command,
+      }),
+    };
   }
 
   /*
@@ -304,20 +360,179 @@ export default class SlackAuthAction {
 
     const triggerId: string | undefined = payload?.["trigger_id"] as string;
 
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: slackTeamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-          miscData: true,
-        },
-        props: {
-          isRoot: true,
+    const view: JSONObject | undefined =
+      (payload["view"] as JSONObject) || undefined;
+
+    let viewValues: Dictionary<
+      string | number | Array<string | number> | Date
+    > = {};
+
+    /*
+     * The project a form, or the app's Home, was drawn for, which it
+     * carries (SlackModalMetadata): what a press in it is about.
+     */
+    let drawnForProjectId: string | undefined = undefined;
+
+    if (view) {
+      viewValues = SlackUtil.getValuesFromView({
+        view: view,
+      });
+
+      /*
+       * The view's private metadata: the value its form carries (the
+       * record's id), and where the form was opened, so its submission is
+       * answered there (SlackModalMetadata).
+       */
+      const metadata: SlackModalMetadataValue = SlackModalMetadata.read(
+        view["private_metadata"],
+      );
+
+      if (!slackChannelId && metadata.origin.channelId) {
+        slackChannelId = metadata.origin.channelId;
+      }
+
+      if (!slackThreadTs && metadata.origin.threadTs) {
+        slackThreadTs = metadata.origin.threadTs;
+      }
+
+      if (metadata.origin.isFromPrivateMessage) {
+        isFromPrivateMessage = true;
+      }
+
+      drawnForProjectId = metadata.origin.projectId;
+
+      /*
+       * The New Incident and New Scheduled Maintenance forms carry the
+       * channel they were opened in as their value - bare, in a form opened
+       * before forms carried where they were opened.
+       */
+      if (
+        !slackChannelId &&
+        NEW_RECORD_FORMS.includes(view["callback_id"] as SlackActionType) &&
+        metadata.value &&
+        SLACK_ID_PATTERN.test(metadata.value)
+      ) {
+        slackChannelId = metadata.value;
+      }
+
+      // add actionId and actionValue
+
+      const action: SlackAction = {
+        // view callbackId
+        actionType: view["callback_id"] as SlackActionType,
+        // private metadata
+        actionValue: metadata.value,
+      };
+
+      actions.push(action);
+    }
+
+    if (payload["callback_id"]) {
+      const action: SlackAction = {
+        actionType: payload["callback_id"] as SlackActionType,
+      };
+
+      actions.push(action);
+    }
+
+    /*
+     * A slash command: /oneuptime and its words, or an older app's
+     * /incident or /maintenance (SlackCommandParser), as the action it asks
+     * for - the New Incident form with its title, say.
+     */
+    if (payload["command"]) {
+      actions.push(
+        SlackCommandParser.getAction(
+          SlackCommandParser.read({
+            command: payload["command"],
+            text: payload["text"],
+          }),
+        ),
+      );
+    }
+
+    // The first press that reads or writes the project's records, if any.
+    const memberAction: SlackAction | undefined = actions.find(
+      (action: SlackAction): boolean => {
+        return SlackAuthAction.requiresConnectedAccount(action.actionType);
+      },
+    );
+
+    /*
+     * The project the press is about. A Slack workspace can be connected to
+     * more than one project, and Slack names only the workspace: the
+     * project is told from what the press carries - the record a button or
+     * a form is about, the project a form was drawn for, the channel, the
+     * person (WorkspaceProjectResolution) - and never from whichever of the
+     * workspace's connections a lookup returns first, which read an
+     * incident's buttons, in its own channel, in another project.
+     */
+    const resolution: WorkspaceProjectResolution =
+      await WorkspaceProjectResolver.resolve({
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: slackTeamId || "",
+        clues: {
+          recordIds: actions.map((action: SlackAction): string | undefined => {
+            return action.actionValue;
+          }),
+          drawnForProjectId: drawnForProjectId,
+          channelId: slackChannelId,
+          workspaceUserId: slackUserId,
         },
       });
+
+    if (resolution.isAmbiguous && memberAction && resolution.connections[0]) {
+      const firstConnection: WorkspaceProjectAuthToken =
+        resolution.connections[0];
+
+      logger.debug(
+        "Slack press could be about more than one connected project; asking which.",
+        {
+          projectId: firstConnection.projectId?.toString(),
+        },
+      );
+
+      /*
+       * Answered where they pressed (answerRefusal), by the workspace's
+       * app - every connection's token is the same app's - and read in no
+       * project.
+       */
+      return {
+        isAuthorized: false,
+        slackUserId: slackUserId,
+        payloadType: payload["type"] as string,
+        slackViewType:
+          typeof view?.["type"] === "string"
+            ? (view["type"] as string)
+            : undefined,
+        projectAuthToken: firstConnection.authToken || undefined,
+        slackTeamId: slackTeamId,
+        slackChannelId: slackChannelId,
+        slackThreadTs: slackThreadTs,
+        slackUsername: slackUsername,
+        slackMessageId: slackMessageId,
+        slackUserFullName: slackUserFullName,
+        responseUrl: responseUrl,
+        actions: actions,
+        triggerId: triggerId,
+        view: view,
+        viewValues: viewValues,
+        ...(isFromPrivateMessage ? { isFromPrivateMessage: true } : {}),
+        refusal: {
+          reason: SlackAuthRefusalReason.AmbiguousProject,
+          projectId: firstConnection.projectId!,
+          action: memberAction,
+          resolution: resolution,
+        },
+      };
+    }
+
+    /*
+     * A link - View Incident, Join call - reads and writes nothing: any of
+     * the workspace's connections acknowledges it.
+     */
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      resolution.projectAuth || resolution.connections[0] || null;
 
     if (!projectAuth) {
       return {
@@ -384,89 +599,6 @@ export default class SlackAuthAction {
       );
       userId = undefined;
       isRemovedFromProject = true;
-    }
-
-    const view: JSONObject | undefined =
-      (payload["view"] as JSONObject) || undefined;
-
-    let viewValues: Dictionary<
-      string | number | Array<string | number> | Date
-    > = {};
-
-    if (view) {
-      viewValues = SlackUtil.getValuesFromView({
-        view: view,
-      });
-
-      /*
-       * The view's private metadata: the value its form carries (the
-       * record's id), and where the form was opened, so its submission is
-       * answered there (SlackModalMetadata).
-       */
-      const metadata: SlackModalMetadataValue = SlackModalMetadata.read(
-        view["private_metadata"],
-      );
-
-      if (!slackChannelId && metadata.origin.channelId) {
-        slackChannelId = metadata.origin.channelId;
-      }
-
-      if (!slackThreadTs && metadata.origin.threadTs) {
-        slackThreadTs = metadata.origin.threadTs;
-      }
-
-      if (metadata.origin.isFromPrivateMessage) {
-        isFromPrivateMessage = true;
-      }
-
-      /*
-       * The New Incident and New Scheduled Maintenance forms carry the
-       * channel they were opened in as their value - bare, in a form opened
-       * before forms carried where they were opened.
-       */
-      if (
-        !slackChannelId &&
-        NEW_RECORD_FORMS.includes(view["callback_id"] as SlackActionType) &&
-        metadata.value &&
-        SLACK_ID_PATTERN.test(metadata.value)
-      ) {
-        slackChannelId = metadata.value;
-      }
-
-      // add actionId and actionValue
-
-      const action: SlackAction = {
-        // view callbackId
-        actionType: view["callback_id"] as SlackActionType,
-        // private metadata
-        actionValue: metadata.value,
-      };
-
-      actions.push(action);
-    }
-
-    if (payload["callback_id"]) {
-      const action: SlackAction = {
-        actionType: payload["callback_id"] as SlackActionType,
-      };
-
-      actions.push(action);
-    }
-
-    /*
-     * A slash command: /oneuptime and its words, or an older app's
-     * /incident or /maintenance (SlackCommandParser), as the action it asks
-     * for - the New Incident form with its title, say.
-     */
-    if (payload["command"]) {
-      actions.push(
-        SlackCommandParser.getAction(
-          SlackCommandParser.read({
-            command: payload["command"],
-            text: payload["text"],
-          }),
-        ),
-      );
     }
 
     const slackRequest: SlackRequest = {
@@ -536,7 +668,11 @@ export default class SlackAuthAction {
    *     button that connects it and then finishes the press for them
    *     (SlackConnectPrompt);
    *   - one connected to somebody who has left the project: that their
-   *     account is not a member, and to ask an admin.
+   *     account is not a member, and to ask an admin;
+   *   - a press that could be about more than one of the projects the
+   *     workspace is connected to: which projects they are in, and to press
+   *     or run it where it can be told apart - or, connected in none, how
+   *     to connect (WorkspaceProjectResolution.getAmbiguousAnswer).
    *
    * Called once Slack has been answered. Never throws.
    */
@@ -554,6 +690,26 @@ export default class SlackAuthAction {
     }
 
     try {
+      if (
+        refusal.reason === SlackAuthRefusalReason.AmbiguousProject &&
+        refusal.resolution
+      ) {
+        const answer: WorkspaceAnswer =
+          await WorkspaceProjectResolver.getAmbiguousAnswer({
+            workspaceType: WorkspaceType.Slack,
+            resolution: refusal.resolution,
+            retry: SlackAuthAction.getAmbiguousRetry({
+              payloadType: slackRequest.payloadType,
+              actionType: refusal.action.actionType,
+            }),
+          });
+
+        return await SlackActionAnswer.answer({
+          place: place,
+          answer: answer,
+        });
+      }
+
       if (refusal.reason === SlackAuthRefusalReason.NotAMember) {
         return await SlackActionAnswer.answer({
           place: place,

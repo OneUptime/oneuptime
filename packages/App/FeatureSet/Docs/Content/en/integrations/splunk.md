@@ -147,6 +147,28 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 
 Every request in a test has a 20 second deadline. A test never imports anything or moves the cursor, and each failed check says what to change.
 
+## Send security events to Splunk
+
+OneUptime can also send what it finds to Splunk, through its HTTP Event Collector (HEC), so your searches and dashboards see OneUptime's detections next to your own. Each security event is one HEC event with the sourcetype `oneuptime:security`, its fields named as Splunk's Common Information Model names them: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` and `severity`.
+
+:::steps
+### Create an HEC token
+
+In Splunk Web, open **Settings → Data inputs → HTTP Event Collector** and click **New Token**. Name it, choose the indexes it may write and its default index, and copy the token value. On Splunk Cloud, HEC listens on `https://http-inputs-<stack>.splunkcloud.com`; on Splunk Enterprise, on port `8088` once **Global Settings** turns tokens on.
+
+### Add the destination
+
+Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**, choose Splunk under **SIEM** and click **Next**. Fill in the **HEC URL** and paste the token into **HEC token**. **Index** and **Source type** are optional: left empty, events go to the token's default index with the sourcetype `oneuptime:security`.
+
+### Send a test event and start sending
+
+Click **Send a test event**: one informational event goes to Splunk with the settings on the form, and nothing is saved. Search for it with `sourcetype="oneuptime:security"`. Then under **What to send** keep **Detections only** or choose **All security events**, and click **Start sending**.
+:::
+
+- The **HEC URL** must use `https`, with a certificate OneUptime trusts: certificate checks are never skipped.
+- Events go in batches of up to 500. An event Splunk refuses is left out and named in **View Error**, a busy collector (`503`) is tried again, and a refused token or index stops sending until you fix it.
+- Notable events OneUptime imported from Splunk are never sent back to it.
+
 ## Troubleshooting
 
 The connection's **Last Error** keeps the complete error message, with credentials redacted, behind a prefix that names the step that failed. When a connection has an error, select **View Error** in its **Actions** column to read it, and **Copy Error** in the dialog to copy it. Read the prefix first.

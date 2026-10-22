@@ -411,4 +411,84 @@ describe("backup code recovery experience", () => {
       expect(screen.getAllByTestId("backup-code")).toHaveLength(CODES.length);
     },
   );
+
+  /*
+   * Issue #5132: a page served over plain http has no navigator.clipboard.
+   * Copy codes gave up there before trying, and sent the reader to the
+   * download - while the browser's older copy command, which such a page
+   * still has, would have copied them. It is tried now.
+   */
+  test("a page with no clipboard API copies the codes through the browser's copy command", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    const execCommandDescriptor: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(document, "execCommand");
+    let copied: string = "";
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      writable: true,
+      value: (command: string): boolean => {
+        const field: HTMLTextAreaElement | null = document.querySelector(
+          "textarea[aria-hidden='true']",
+        );
+        copied = command === "copy" ? field?.value || "" : "";
+        return true;
+      },
+    });
+
+    try {
+      render(<BackupCodes hideCard={true} codesFromEnrolment={CODES} />);
+      await screen.findByRole("dialog", { name: "Your backup codes" });
+      fireEvent.click(screen.getByRole("button", { name: "Copy codes" }));
+
+      expect(
+        await screen.findByText("Backup codes copied to clipboard."),
+      ).toBeInTheDocument();
+      expect(copied).toBe(CODES.join("\n"));
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    } finally {
+      if (execCommandDescriptor) {
+        Object.defineProperty(document, "execCommand", execCommandDescriptor);
+      } else {
+        Reflect.deleteProperty(document, "execCommand");
+      }
+    }
+  });
+
+  test("a copy command that refuses still sends the reader to the download", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+    const execCommandDescriptor: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(document, "execCommand");
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      writable: true,
+      value: (): boolean => {
+        return false;
+      },
+    });
+
+    try {
+      render(<BackupCodes hideCard={true} codesFromEnrolment={CODES} />);
+      await screen.findByRole("dialog", { name: "Your backup codes" });
+      fireEvent.click(screen.getByRole("button", { name: "Copy codes" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Could not copy the codes. Download them instead.",
+      );
+      expect(
+        screen.queryByText("Backup codes copied to clipboard."),
+      ).not.toBeInTheDocument();
+    } finally {
+      if (execCommandDescriptor) {
+        Object.defineProperty(document, "execCommand", execCommandDescriptor);
+      } else {
+        Reflect.deleteProperty(document, "execCommand");
+      }
+    }
+  });
 });

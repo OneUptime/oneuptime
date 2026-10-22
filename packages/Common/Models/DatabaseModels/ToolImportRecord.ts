@@ -209,6 +209,7 @@ export default class ToolImportRecord extends BaseModel {
     description:
       "False while the record's parts (layers, levels) are still being created.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

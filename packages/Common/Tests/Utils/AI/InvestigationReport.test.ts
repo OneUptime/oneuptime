@@ -2878,7 +2878,15 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
   test.each([
     [
       "the brand heading",
-      "mdText`## 🧠 AI — Automated Root Cause Analysis\\n\\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();",
+      "mdText`## 🧠 AI — ${heading}\\n\\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();",
+    ],
+    [
+      "the root cause heading, unless a runner names its own",
+      'export const AI_ROOT_CAUSE_REPORT_HEADING: string =\n  "Automated Root Cause Analysis";',
+    ],
+    [
+      "a runner's own heading in place of it",
+      ": AI_ROOT_CAUSE_REPORT_HEADING;",
     ],
     ["the Evidence checked label", "markdown += `\\n\\n**Evidence checked**`;"],
     [

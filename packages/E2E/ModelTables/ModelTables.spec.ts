@@ -148,6 +148,38 @@ async function open(
     await document.fonts.ready;
   });
   await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
+  await finishFirstPaintTransitions(page);
+}
+
+/*
+ * The fixture's Tailwind is written in the page as elements appear
+ * (tailwind.js), so an element whose classes carry a transition animates
+ * into its styles on first paint: the table's search box (transition-all)
+ * grows its padding in over 200 ms, and a box read meanwhile is short.
+ * Boxes are read once every finite animation has run its course. The
+ * product's stylesheet is built ahead of time, so nothing animates there on
+ * first paint.
+ */
+async function finishFirstPaintTransitions(page: Page): Promise<void> {
+  await page.evaluate(async (): Promise<void> => {
+    await new Promise((resolve: (value: unknown) => void) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation: Animation): boolean => {
+          return animation.effect?.getTiming().iterations !== Infinity;
+        })
+        .map((animation: Animation): Promise<unknown> => {
+          return animation.finished.catch(() => {
+            return undefined;
+          });
+        }),
+    );
+  });
 }
 
 function bodyRows(page: Page, tableId: string): Locator {
@@ -1985,9 +2017,13 @@ test.describe("the header's search, opened on a wide screen", () => {
 
     /*
      * Squeezed to no width, "Create Monitor" broke over two lines and the
-     * opened search dropped 10px below the title.
+     * opened search dropped 10px below the title. The header's controls
+     * are centred on the title (CardHeaders.spec.ts), so the opened search
+     * is too.
      */
-    expect(Math.abs(search.y - title.y)).toBeLessThanOrEqual(2);
+    expect(
+      Math.abs(search.y + search.height / 2 - (title.y + title.height / 2)),
+    ).toBeLessThanOrEqual(2);
     expect(Math.round((await box(header)).height)).toBe(
       Math.round(before.height),
     );

@@ -14,6 +14,7 @@ OneUptime GitHub App은 코드와의 단순한 연결 그 이상입니다. 저�
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ flowchart TB
 | 명령 | 동작 | 함께 인식되는 표현 |
 | --- | --- | --- |
 | `@oneuptime review` | 브랜치를 복제하고, 변경된 코드와 그 주변 코드를 읽고, 그 코드에 대해 프로덕션이 알려 주는 것을 확인한 뒤, 리뷰를 댓글로 게시합니다. 아무것도 바꾸지 않습니다. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | 누가 열었든 지금 바로 풀 리퀘스트를 프로덕션 기준으로 리뷰합니다. 변경된 코드 주변의 예외, 작업, 인시던트, 배포를 그 자리에서 수정되는 댓글 하나에 담습니다([풀 리퀘스트의 프로덕션 리뷰](/docs/ai/ai-agent#풀-리퀘스트의-프로덕션-리뷰) 참조). 아무것도 복제하지 않고 아무것도 실행하지 않습니다. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | 풀 리퀘스트 자체의 브랜치를 복제하고, 변경을 만든 뒤 그 브랜치에 새 커밋을 푸시합니다. 두 번째 풀 리퀘스트는 절대 열지 않습니다. | `revise`, `please revise`, `rework`, `redo` |
 
 멘션 뒤에 쓴 내용 중 알려진 명령이 아닌 것은 수정 요청으로 읽힙니다. 거의 항상 실제로 그렇기 때문입니다:
@@ -100,6 +102,8 @@ OneUptime에는 리뷰하는 코드의 텔레메트리가 있으므로, diff만 
 
 따로 설정할 것은 없습니다. 서비스는 수정 때와 마찬가지로 OneUptime이 이 저장소에 해당한다고 찾은 서비스입니다([수정에 쓰이는 프로덕션 텔레메트리](/docs/ai/ai-agent#수정에-쓰이는-프로덕션-텔레메트리) 참조). 쿼리는 읽기 전용이고 OneUptime 서버에서 실행되며, 다른 서비스, 프로젝트, 비공개 인시던트의 내용은 전혀 읽지 않습니다. 서비스가 프로젝트에 텔레메트리를 보내지 않는 저장소는 코드만으로 리뷰됩니다.
 
+모든 풀 리퀘스트를 스스로 프로덕션 기준으로 리뷰하게 하려면 저장소 설정에서 **프로덕션 기준으로 풀 리퀘스트 검토** 를 켜세요. [풀 리퀘스트의 프로덕션 리뷰](/docs/ai/ai-agent#풀-리퀘스트의-프로덕션-리뷰) 를 참조하세요.
+
 ## 명령할 수 있는 사람
 
 **저장소에 write, maintain 또는 admin 권한이 있는 사람만 가능합니다.** OneUptime은 매번 GitHub에 해당 저장소에서 댓글 작성자의 권한을 묻습니다. GitHub가 댓글 옆에 보여 주는 "contributor" 배지는 현재 권한이 아니라 과거 활동을 나타내므로 믿지 않습니다.
@@ -118,11 +122,11 @@ OneUptime에는 리뷰하는 코드의 텔레메트리가 있으므로, diff만 
 
 ## 비용과 상한을 두는 방법
 
-작업을 시작하는 모든 명령은 완전한 에이전트 실행입니다. 복제 한 번, 최대 40번의 LLM 호출과 100,000개의 출력 토큰, 그리고 설정한 경우 저장소의 빌드와 테스트 명령을 사용합니다. 리뷰의 프로덕션 쿼리는 최대 12번이며, 같은 40번의 호출에 포함됩니다.
+작업을 시작하는 모든 명령은 완전한 에이전트 실행입니다. 복제 한 번, 최대 40번의 LLM 호출과 100,000개의 출력 토큰, 그리고 자체 Runner에서는 저장소의 `AGENTS.md` 가 설명하는 빌드와 테스트 검사를 사용합니다. 리뷰의 프로덕션 쿼리는 최대 12번이며, 같은 40번의 호출에 포함됩니다.
 
 GitHub 명령은 인시던트와 경고 밖에서 하는 AI 작업이므로 일일 수정 작업 한도가 적용되지 않습니다. 프로젝트가 설정한 경우 프로젝트 자체의 일일 AI 한도는 적용됩니다. 그 밖의 한도는 이미 [코드](/docs/ai/ai-agent)의 작업에 적용되는 것 하나뿐입니다:
 
-- **열린 풀 리퀘스트 상한**(저장소의 **설정** 페이지에 있는 **Max Open Fix Pull Requests**). **AI 수정 풀 리퀘스트** 는 **제한** 를 고르기 전까지 **제한 없음** 이며, **없음** 를 고르면 그 저장소의 AI 수정 풀 리퀘스트를 막습니다. 리뷰와 수정은 예외입니다. 둘 다 리뷰 대기열에 풀 리퀘스트를 추가하지 않기 때문입니다.
+- **열린 풀 리퀘스트 상한**(저장소의 **설정** 페이지의 **추가 설정** 아래에 있는 **Max Open Fix Pull Requests**). **AI 수정 풀 리퀘스트** 는 **제한** 를 고르기 전까지 **제한 없음** 이며, **없음** 를 고르면 그 저장소의 AI 수정 풀 리퀘스트를 막습니다. 리뷰와 수정은 예외입니다. 둘 다 리뷰 대기열에 풀 리퀘스트를 추가하지 않기 때문입니다.
 
 이슈나 풀 리퀘스트마다 한 번에 종류별로 하나의 실행만 진행됩니다. 두 번 요청하면 이미 작업 중이라고 알려 주고, 수정이 진행되는 동안 리뷰를 요청하면 서로 다른 요청이므로 둘 다 시작됩니다.
 
@@ -130,9 +134,9 @@ GitHub 명령은 인시던트와 경고 밖에서 하는 AI 작업이므로 일�
 
 ## 끄기
 
-각 저장소에는 스위치가 있습니다. 저장소의 **설정** 페이지에 있는 **Respond to GitHub Commands** 입니다. 끄면 앱은 그 저장소의 멘션, 할당, 트리거 레이블을 무시하고, 묻는 사람에게 스위치 위치를 알려 줍니다.
+각 저장소에는 스위치가 있습니다. 저장소의 **설정** 페이지에 있는 **Respond to GitHub Commands** 입니다. 모든 저장소에서 켜져 있으며, 전환하는 즉시 저장됩니다. 끄면 앱은 그 저장소의 멘션, 할당, 트리거 레이블을 무시하고, 묻는 사람에게 스위치 위치를 알려 줍니다.
 
-`oneuptime` 이 아닌 다른 레이블을 원하면 같은 페이지의 **GitHub Trigger Label** 에서 정합니다.
+`oneuptime` 이 아닌 다른 레이블을 원하면 같은 페이지의 **추가 설정** 아래 **GitHub Trigger Label** 에서 정합니다.
 
 ## 구독할 이벤트
 
@@ -142,7 +146,7 @@ GitHub App의 **Permissions & events** 설정에서 다음을 구독하세요:
 | --- | --- |
 | **Issue comment** | 이슈와 풀 리퀘스트의 `@mention` 명령 |
 | **Issues** | 이슈를 앱에 할당하는 것과 트리거 레이블 |
-| **Pull request** | 앱에 요청한 리뷰 |
+| **Pull request** | 앱에 요청한 리뷰, 그리고 풀 리퀘스트가 열리고 바뀔 때의 프로덕션 리뷰 |
 | **Pull request review** | 제출된 리뷰 본문 안의 멘션 |
 | **Pull request review comment** | diff에 단 인라인 댓글 안의 멘션 |
 

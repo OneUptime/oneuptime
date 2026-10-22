@@ -412,6 +412,54 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
+     * Backward-compat: Runbooks had an AI Access page
+     * (/docs/runbooks/credentials), on the runbook credentials OneUptime AI's
+     * own commands reached a host or a cluster with through a Runner.
+     * Runbook credentials were removed: hosts and Kubernetes clusters have
+     * AI agents of their own. Permanently redirect the old URL in every
+     * shape it was reachable to the AI agents' page, so inbound links,
+     * bookmarks and search-indexed results keep working instead of 404ing.
+     */
+    app.get(
+      "/docs/as-markdown/:lang/runbooks/credentials",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(
+          301,
+          `/docs/as-markdown/${lang}/ai/infrastructure-ai-agents`,
+        );
+      },
+    );
+    app.get(
+      "/docs/as-markdown/runbooks/credentials",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(
+          301,
+          "/docs/as-markdown/ai/infrastructure-ai-agents",
+        );
+      },
+    );
+    app.get(
+      "/docs/:lang/runbooks/credentials",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/${lang}/ai/infrastructure-ai-agents`);
+      },
+    );
+    app.get(
+      "/docs/runbooks/credentials",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/en/ai/infrastructure-ai-agents");
+      },
+    );
+
+    /*
      * Backward-compat: incident forms had a page in the Incidents section
      * (/docs/incidents/forms). Forms are now a product of their own, with a
      * docs section of their own (/docs/forms/...). Permanently redirect the

@@ -139,6 +139,12 @@ import {
  */
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
+import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetry,
+  WorkspaceAmbiguousRetryKind,
+  WorkspaceProjectClues,
+  WorkspaceProjectResolution,
+} from "../WorkspaceProjectResolution";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import AIService, {
   AI_DISABLED_MESSAGE,
@@ -234,6 +240,12 @@ export interface MicrosoftTeamsTenantResolution {
   projectAuth: WorkspaceProjectAuthToken | null;
   isAmbiguous: boolean;
   candidateProjectIds: Array<ObjectID>;
+  /*
+   * For a tenant connected to several projects, what the activity's own
+   * clues told (WorkspaceProjectResolution): which project, or, still
+   * ambiguous, which projects the person is in.
+   */
+  resolution?: WorkspaceProjectResolution | undefined;
 }
 
 /*
@@ -3851,19 +3863,59 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      // Get project auth by tenant ID
+      /*
+       * The project, by the tenant - and, for a tenant connected to several,
+       * by the channel the message was sent in and the sender's own
+       * connections.
+       */
       const tenantResolution: MicrosoftTeamsTenantResolution =
         await this.resolveProjectByTenantId({
           tenantId: tenantId,
+          clues: this.getProjectClues({ activity: data.activity }),
         });
 
       if (
         !tenantResolution.projectAuth ||
         !tenantResolution.projectAuth.projectId
       ) {
-        await data.turnContext.sendActivity(
-          this.getTenantResolutionFailureMessage(tenantResolution),
-        );
+        /*
+         * The help, and the answer to a misspelt command, read nothing in
+         * any project: an organization connected to several projects, with
+         * nothing to tell which, still gets them - as Slack answers
+         * /oneuptime help at once.
+         */
+        if (tenantResolution.isAmbiguous && !listCommand) {
+          if (input.command === WorkspaceCommandName.Help) {
+            await MicrosoftTeamsCommands.replyHelp({
+              turnContext: data.turnContext,
+            });
+            return;
+          }
+
+          if (!input.command && input.misspelt) {
+            await MicrosoftTeamsCommands.replyMisspelling({
+              turnContext: data.turnContext,
+              misspelt: input.misspelt,
+            });
+            return;
+          }
+        }
+
+        // A question for OneUptime AI is asked again; a command run again.
+        const isQuestion: boolean =
+          !listCommand &&
+          !MicrosoftTeamsHome.isHomeCommand(cleanText) &&
+          (!input.command || input.command === WorkspaceCommandName.Ask);
+
+        await this.answerTenantResolutionFailure({
+          turnContext: data.turnContext,
+          resolution: tenantResolution,
+          retry: {
+            kind: isQuestion
+              ? WorkspaceAmbiguousRetryKind.Question
+              : WorkspaceAmbiguousRetryKind.Again,
+          },
+        });
         return;
       }
 
@@ -4674,18 +4726,28 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
+      /*
+       * The project, by the tenant - and, for a tenant connected to several,
+       * by the record the card's button is about, the channel, and the
+       * sender's own connections.
+       */
       const tenantResolution: MicrosoftTeamsTenantResolution =
         await this.resolveProjectByTenantId({
           tenantId: tenantId,
+          clues: this.getProjectClues({
+            activity: data.activity,
+            actionValue: actionValue,
+          }),
         });
 
       if (
         !tenantResolution.projectAuth ||
         !tenantResolution.projectAuth.projectId
       ) {
-        await data.turnContext.sendActivity(
-          this.getTenantResolutionFailureMessage(tenantResolution),
-        );
+        await this.answerTenantResolutionFailure({
+          turnContext: data.turnContext,
+          resolution: tenantResolution,
+        });
         return;
       }
 
@@ -5089,12 +5151,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * Previously this was a bare findOneBy, which silently returned whichever
    * row sorted first and served that project's incidents, alerts and AI
    * assistant answers to anyone in the tenant — including users with no access
-   * to it. The bot's message path performs no per-user authorization, so
-   * picking arbitrarily is a cross-project disclosure. Refuse instead.
+   * to it. Picking arbitrarily is never right: so a tenant connected to
+   * several projects is told apart by what the activity itself carries
+   * (`clues`, WorkspaceProjectResolution) - the record a card's button is
+   * about, the channel it was sent in, the projects the sender's Microsoft
+   * Teams account is connected in - and refused only when none of those
+   * tells (isAmbiguous). Whatever the activity then does, it does as the
+   * member the sender's account is connected to in that project, with their
+   * own permissions. Without clues, several projects are refused as before.
    */
   @CaptureSpan()
   public static async resolveProjectByTenantId(data: {
     tenantId: string;
+    clues?: WorkspaceProjectClues | undefined;
   }): Promise<MicrosoftTeamsTenantResolution> {
     const projectAuths: Array<WorkspaceProjectAuthToken> =
       await WorkspaceProjectAuthTokenService.findBy({
@@ -5156,6 +5225,32 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         },
       );
 
+      // Told apart by what the activity carries, when it carries anything.
+      const resolution: WorkspaceProjectResolution | undefined = data.clues
+        ? await WorkspaceProjectResolver.resolveAmong({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            connections: usableProjectAuths,
+            clues: data.clues,
+          })
+        : undefined;
+
+      if (resolution?.projectAuth) {
+        logger.debug(
+          `Microsoft tenant ${data.tenantId} is connected to ${usableProjectAuths.length} OneUptime projects; the activity is about one of them (${resolution.decidedBy}).`,
+          {
+            tenantId: data.tenantId,
+            projectId: resolution.projectAuth.projectId?.toString(),
+          },
+        );
+
+        return {
+          projectAuth: resolution.projectAuth,
+          isAmbiguous: false,
+          candidateProjectIds: candidateProjectIds,
+          resolution: resolution,
+        };
+      }
+
       logger.error(
         `Microsoft tenant ${data.tenantId} is connected to ${usableProjectAuths.length} OneUptime projects. Refusing to guess which one this bot activity belongs to.`,
         {
@@ -5172,6 +5267,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         projectAuth: null,
         isAmbiguous: true,
         candidateProjectIds: candidateProjectIds,
+        ...(resolution ? { resolution: resolution } : {}),
       };
     }
 
@@ -5184,16 +5280,82 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
   /*
    * User-facing text for a failed tenant resolution. The two cases need
-   * different remedies, so they must not share a message.
+   * different remedies, so they must not share a message. An organization
+   * connected to several projects is not a mistake to undo: the person says
+   * which project from a channel of it. The ambiguous sentence starts with
+   * WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD, word for word
+   * (MicrosoftTeamsTenantResolution.test.ts): the troubleshooting entry in
+   * the docs is headed with it.
    */
   public static getTenantResolutionFailureMessage(
     resolution: MicrosoftTeamsTenantResolution,
   ): string {
     if (resolution.isAmbiguous) {
-      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean. Please ask your OneUptime admin to disconnect Microsoft Teams from all but one project.";
+      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean here. Try it again in a channel of the project you mean, such as one of its incident channels.";
     }
 
     return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings.";
+  }
+
+  /*
+   * Tells the sender why their activity was not acted on
+   * (getTenantResolutionFailureMessage) - saying more when its clues were
+   * read: the projects they are in, by name, or that their account is
+   * connected in none of them (WorkspaceProjectResolution), in a reply that
+   * mentions them, as every refusal is (MicrosoftTeamsActionAnswer). `retry`
+   * says how they make it again there: a question is asked again.
+   */
+  @CaptureSpan()
+  public static async answerTenantResolutionFailure(data: {
+    turnContext: TurnContext;
+    resolution: MicrosoftTeamsTenantResolution;
+    retry?: WorkspaceAmbiguousRetry | undefined;
+  }): Promise<void> {
+    if (data.resolution.isAmbiguous && data.resolution.resolution) {
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: data.turnContext,
+        answer: await WorkspaceProjectResolver.getAmbiguousAnswer({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          resolution: data.resolution.resolution,
+          retry: data.retry,
+        }),
+      });
+      return;
+    }
+
+    await data.turnContext.sendActivity(
+      this.getTenantResolutionFailureMessage(data.resolution),
+    );
+  }
+
+  /*
+   * What an activity carries that can tell its project apart, for a tenant
+   * connected to several (resolveProjectByTenantId): the channel it was
+   * sent in, the sender, and the record a card's button names.
+   */
+  public static getProjectClues(data: {
+    activity: JSONObject;
+    actionValue?: string | undefined;
+  }): WorkspaceProjectClues {
+    const channelData: JSONObject =
+      (data.activity["channelData"] as JSONObject | undefined) || {};
+    const channel: JSONObject | undefined = channelData["channel"] as
+      | JSONObject
+      | undefined;
+    const from: JSONObject =
+      (data.activity["from"] as JSONObject | undefined) || {};
+
+    return {
+      recordIds: data.actionValue ? [data.actionValue] : [],
+      channelId:
+        typeof channel?.["id"] === "string"
+          ? (channel["id"] as string)
+          : undefined,
+      workspaceUserId:
+        typeof from["aadObjectId"] === "string"
+          ? (from["aadObjectId"] as string)
+          : undefined,
+    };
   }
 
   /*
@@ -6940,7 +7102,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         "";
 
       const resolution: MicrosoftTeamsTenantResolution | null = tenantId
-        ? await this.resolveProjectByTenantId({ tenantId: tenantId })
+        ? await this.resolveProjectByTenantId({
+            tenantId: tenantId,
+            clues: this.getProjectClues({ activity: activity }),
+          })
         : null;
       const projectId: ObjectID | null =
         resolution?.projectAuth?.projectId || null;

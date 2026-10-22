@@ -87,12 +87,14 @@ export const CodeRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: `repositories/${RouteParams.ModelID}/production-reviews`,
   [PageMap.CODE_TASK_VIEW]: `tasks/${RouteParams.ModelID}`,
   [PageMap.CODE_TASK_VIEW_LOG]: `tasks/${RouteParams.ModelID}/log`,
 };
 
 export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACES]: `${RouteParams.ModelID}/namespaces`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_NAMESPACE_DETAIL]: `${RouteParams.ModelID}/namespaces/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_PODS]: `${RouteParams.ModelID}/pods`,
@@ -231,6 +233,7 @@ export const NetworkSiteRoutePath: Dictionary<string> = {
 
 export const DockerRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DOCKER_HOST_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.DOCKER_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -260,6 +263,7 @@ export const DockerRoutePath: Dictionary<string> = {
 
 export const PodmanRoutePath: Dictionary<string> = {
   [PageMap.PODMAN_HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PODMAN_HOST_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: `${RouteParams.ModelID}/containers`,
   [PageMap.PODMAN_HOST_VIEW_CONTAINER_DETAIL]: `${RouteParams.ModelID}/containers/${RouteParams.SubModelID}`,
   [PageMap.PODMAN_HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
@@ -289,6 +293,7 @@ export const PodmanRoutePath: Dictionary<string> = {
 
 export const ProxmoxRoutePath: Dictionary<string> = {
   [PageMap.PROXMOX_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.PROXMOX_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
   [PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
   [PageMap.PROXMOX_CLUSTER_VIEW_GUESTS]: `${RouteParams.ModelID}/guests`,
@@ -321,6 +326,7 @@ export const ProxmoxRoutePath: Dictionary<string> = {
 
 export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_VCENTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.VMWARE_VCENTER_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
   [PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL]: `${RouteParams.ModelID}/hosts/${RouteParams.SubModelID}`,
   [PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINES]: `${RouteParams.ModelID}/virtual-machines`,
@@ -380,6 +386,7 @@ export const IoTRoutePath: Dictionary<string> = {
 
 export const DockerSwarmRoutePath: Dictionary<string> = {
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: `${RouteParams.ModelID}/nodes`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODE_DETAIL]: `${RouteParams.ModelID}/nodes/${RouteParams.SubModelID}`,
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
@@ -417,6 +424,7 @@ export const DockerSwarmRoutePath: Dictionary<string> = {
 
 export const CephRoutePath: Dictionary<string> = {
   [PageMap.CEPH_CLUSTER_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.CEPH_CLUSTER_VIEW_OSDS]: `${RouteParams.ModelID}/osds`,
   [PageMap.CEPH_CLUSTER_VIEW_OSD_DETAIL]: `${RouteParams.ModelID}/osds/${RouteParams.SubModelID}`,
   [PageMap.CEPH_CLUSTER_VIEW_POOLS]: `${RouteParams.ModelID}/pools`,
@@ -455,6 +463,7 @@ export const CephRoutePath: Dictionary<string> = {
  */
 export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.STORAGE_ARRAY_VIEW_VOLUMES]: `${RouteParams.ModelID}/volumes`,
   [PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL]: `${RouteParams.ModelID}/volumes/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
@@ -489,6 +498,7 @@ export const StorageArrayRoutePath: Dictionary<string> = {
 
 export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.HOST_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
   [PageMap.HOST_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.HOST_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
   [PageMap.HOST_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
@@ -693,7 +703,6 @@ export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_VARIABLES]: "settings/variables",
   [PageMap.RUNBOOKS_RUNNERS]: "runners",
   [PageMap.RUNBOOKS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
-  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
   [PageMap.RUNBOOK_VIEW_EXECUTIONS]: `${RouteParams.ModelID}/executions`,
@@ -787,6 +796,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
+  // AI, at the address Incidents' and Alerts' AI settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
 };
 
 // Metrics product routes
@@ -957,6 +968,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
 
 export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.UNRESOLVED_INCIDENTS]: "unresolved",
+  [PageMap.INCIDENT_POSTMORTEMS]: "postmortems",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: "workspace-connection-slack",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
@@ -992,6 +1004,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES]:
     "settings/postmortem-templates",
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: `settings/postmortem-templates/${RouteParams.ModelID}`,
+  [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES]:
+    "settings/postmortem-statuses",
   [PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.INCIDENTS_SETTINGS_GROUPING_RULES]: "settings/grouping-rules",
   [PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES]: "settings/on-call-rules",
@@ -1959,6 +1973,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.INCIDENT_POSTMORTEMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_POSTMORTEMS]
+    }`,
+  ),
+
   [PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK]
@@ -2284,6 +2304,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES]
     }`,
   ),
 
@@ -2872,6 +2898,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]
+    }`,
+  ),
+
   [PageMap.CODE_TASK_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${
       CodeRoutePath[PageMap.CODE_TASK_VIEW]
@@ -2912,6 +2944,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_TOPOLOGY]
     }`,
   ),
 
@@ -3666,6 +3704,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_HOST_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker/${
+      DockerRoutePath[PageMap.DOCKER_HOST_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.DOCKER_HOST_VIEW_CONTAINERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker/${
       DockerRoutePath[PageMap.DOCKER_HOST_VIEW_CONTAINERS]
@@ -3831,6 +3875,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.PODMAN_HOST_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/podman/${
+      PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.PODMAN_HOST_VIEW_CONTAINERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/podman/${
       PodmanRoutePath[PageMap.PODMAN_HOST_VIEW_CONTAINERS]
@@ -3993,6 +4043,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.PROXMOX_CLUSTER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/proxmox/${
       ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/proxmox/${
+      ProxmoxRoutePath[PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY]
     }`,
   ),
 
@@ -4176,6 +4232,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.VMWARE_VCENTER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/vmware/${
       VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW]
+    }`,
+  ),
+
+  [PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/vmware/${
+      VMwareRoutePath[PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY]
     }`,
   ),
 
@@ -4512,6 +4574,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
+      DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/docker-swarm/${
       DockerSwarmRoutePath[PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES]
@@ -4725,6 +4793,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/ceph/${
+      CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY]
+    }`,
+  ),
+
   [PageMap.CEPH_CLUSTER_VIEW_OSDS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/ceph/${
       CephRoutePath[PageMap.CEPH_CLUSTER_VIEW_OSDS]
@@ -4905,6 +4979,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAY_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_TOPOLOGY]
     }`,
   ),
 
@@ -5097,6 +5177,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_TOPOLOGY]
     }`,
   ),
 
@@ -6785,6 +6871,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_AI]
+    }`,
+  ),
+
   // Metrics Product Routes
   [PageMap.METRICS_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/metrics/*`,
@@ -7499,11 +7591,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_RUNNER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]
-    }`,
-  ),
-  [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/runbooks/${
-      RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]
     }`,
   ),
   [PageMap.RUNBOOK_VIEW]: new Route(

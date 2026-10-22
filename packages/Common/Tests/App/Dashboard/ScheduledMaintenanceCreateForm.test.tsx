@@ -138,6 +138,7 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import Route from "../../../Types/API/Route";
+import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import Timezone from "../../../Types/Timezone";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -794,6 +795,64 @@ describe("Create Scheduled Maintenance Event", () => {
     expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
       "Subscribers of the event's status pages are notified when it starts and when it ends.",
     );
+  });
+
+  /*
+   * Nobody can pick an archived label or monitor status for a new event
+   * (Common/Utils/ArchivableValues), and the server refuses a create that
+   * names one: a template that still has one starts the event without it,
+   * instead of a form that cannot be saved. The template keeps it.
+   */
+  test("a template's archived label and monitor status stay with the template: the event starts with the rest", async () => {
+    templateIdInUrl = TEMPLATE_ID;
+
+    const liveLabel: Label = makeLabel();
+    liveLabel.isArchived = false;
+
+    const archivedLabel: Label = new Label();
+    archivedLabel._id = "66666666-6666-4666-8666-666666666666";
+    archivedLabel.name = "legacy-db";
+    archivedLabel.isArchived = true;
+
+    const archivedStatus: MonitorStatus = makeMonitorStatus();
+    archivedStatus.isArchived = true;
+
+    getItemMock.mockImplementation(async (): Promise<BaseModel | null> => {
+      const template: ScheduledMaintenanceTemplate = makeTemplate();
+      template.labels = [liveLabel, archivedLabel];
+      template.changeMonitorStatusTo = archivedStatus;
+      template.changeMonitorStatusToId = new ObjectID(archivedStatus._id!);
+      return template;
+    });
+
+    await renderPage();
+
+    // Read with the archive switch, to tell the archived ones apart.
+    expect(getItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modelType: ScheduledMaintenanceTemplate,
+        select: expect.objectContaining({
+          labels: { _id: true, isArchived: true },
+          changeMonitorStatusTo: { _id: true, isArchived: true },
+        }),
+      }),
+    );
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const model: ScheduledMaintenance = createdModel();
+
+    expect(
+      (model.labels || []).map((label: Label): string => {
+        return label._id?.toString() || "";
+      }),
+    ).toEqual([liveLabel._id]);
+    expect(model.changeMonitorStatusTo).toBeFalsy();
+    expect(model.changeMonitorStatusToId).toBeFalsy();
   });
 
   test("reads in the reader's language", async () => {

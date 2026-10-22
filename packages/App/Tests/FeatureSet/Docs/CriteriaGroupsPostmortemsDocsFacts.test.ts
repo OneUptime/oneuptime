@@ -23,6 +23,7 @@ import CriteriaFilterUiUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/M
 import { MonitorMoreFieldsTitles } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorMoreFields";
 import {
   STATE_SETTINGS_COPY,
+  StateSettingsCountsAsCopy,
   StateSettingsSharedCopy,
 } from "../../../FeatureSet/Dashboard/src/Components/StateSettings/StateSettingsCopy";
 import MonitorGroupsSwitchCopy, {
@@ -42,6 +43,7 @@ import SubscriberNotificationResendCopy from "../../../FeatureSet/Dashboard/src/
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentPostmortemStatus from "Common/Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentPostmortemTemplate from "Common/Models/DatabaseModels/IncidentPostmortemTemplate";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import MonitorGroupResource from "Common/Models/DatabaseModels/MonitorGroupResource";
@@ -95,6 +97,11 @@ import {
 import MonitorDependencyRule, {
   ParentMonitorStatusRef,
 } from "Common/Utils/Monitor/MonitorDependencyRule";
+import PostmortemStatusUtil, {
+  DEFAULT_POSTMORTEM_STATUSES,
+  DefaultPostmortemStatus,
+  PostmortemProgress,
+} from "Common/Utils/Incident/PostmortemStatus";
 import ArchivedMonitorResources from "Common/Utils/StatusPage/ArchivedMonitorResources";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import {
@@ -137,6 +144,25 @@ import path from "path";
 
 function english(page: string): string {
   return readPage("en", page);
+}
+
+// The postmortem statuses a new project starts with, as the API returns them.
+function defaultStatusRows(): Array<Record<string, unknown>> {
+  return DEFAULT_POSTMORTEM_STATUSES.map(
+    (
+      status: DefaultPostmortemStatus,
+      index: number,
+    ): Record<string, unknown> => {
+      return {
+        _id: `status-${index + 1}`,
+        name: status.name,
+        order: status.order,
+        isNotStartedStatus: status.flag === "isNotStartedStatus",
+        isDraftStatus: status.flag === "isDraftStatus",
+        isCompletedStatus: status.flag === "isCompletedStatus",
+      };
+    },
+  );
 }
 
 // A file of any package, as text.
@@ -280,6 +306,30 @@ function between(source: string, start: string, end: string): string {
   expect({ marker: end, found: to >= 0 }).toEqual({ marker: end, found: true });
 
   return source.slice(from, to);
+}
+
+/*
+ * Code with its white space and its trailing commas taken out: what a label
+ * declaration says whichever way Prettier wraps it.
+ */
+function compact(code: string): string {
+  return code.split(/\s+/).join("").split(",)").join(")");
+}
+
+/*
+ * Whether `source` declares the label `constant` as the Dashboard key `text`
+ * (translationKey), however the line is wrapped.
+ */
+function expectLabelDeclared(
+  source: string,
+  constant: string,
+  text: string,
+): void {
+  expect(compact(source)).toContain(
+    compact(
+      `export const ${constant}: string = translationKey(${JSON.stringify(text)});`,
+    ),
+  );
 }
 
 /*
@@ -528,6 +578,36 @@ const POSTMORTEM_TEMPLATE_MODAL: string = readDashboardSource(
 );
 const POSTMORTEM_TEMPLATES_MODULE: string = readDashboardSource(
   "Components/Postmortem/PostmortemTemplates.ts",
+);
+const POSTMORTEM_EMPTY_STATE: string = readDashboardSource(
+  "Components/Postmortem/PostmortemEmptyState.tsx",
+);
+const POSTMORTEM_MORE_MENU: string = readDashboardSource(
+  "Components/Postmortem/PostmortemMoreMenu.tsx",
+);
+const POSTMORTEM_SUMMARY: string = readDashboardSource(
+  "Components/Postmortem/PostmortemSummary.tsx",
+);
+const POSTMORTEM_STATUS_PICKER: string = readDashboardSource(
+  "Components/Postmortem/PostmortemStatusPicker.tsx",
+);
+const POSTMORTEMS_TABLE: string = readDashboardSource(
+  "Components/Postmortem/PostmortemsTable.tsx",
+);
+const POSTMORTEM_LIST_FACETS_SOURCE: string = readDashboardSource(
+  "Components/Postmortem/PostmortemListFacets.ts",
+);
+const POSTMORTEM_STATUS_TILES: string = readDashboardSource(
+  "Components/Postmortem/PostmortemStatusTiles.ts",
+);
+const BULK_POSTMORTEM_STATUS: string = readDashboardSource(
+  "Components/Postmortem/BulkPostmortemStatusAction.tsx",
+);
+const RESOURCE_OWNERS_HOOK: string = readDashboardSource(
+  "Components/ResourceOwners/useResourceOwners.tsx",
+);
+const ARCHIVABLE_VALUE_COPY_SOURCE: string = readDashboardSource(
+  "Components/ArchivableValue/ArchivableValueCopy.ts",
 );
 const GENERATE_FROM_AI_MODAL: string = readCommonSource(
   "UI/Components/AI/GenerateFromAIModal.tsx",
@@ -2375,26 +2455,52 @@ describe("where a postmortem is written", () => {
     );
   });
 
-  it("is the Postmortem Note card: the note, its attachments and whether it is on the status page", () => {
-    expect(POSTMORTEM_PAGE).toContain('title: "Postmortem Note",');
+  it("is the Postmortem card: its status and owners, the note, its attachments and whether it is on the status page", () => {
+    expect(POSTMORTEM_PAGE).toContain(
+      'cardProps={{\n          title: "Postmortem",',
+    );
+    expect(POSTMORTEM_PAGE).toContain("<PostmortemSummary");
+    expect(POSTMORTEM_SUMMARY).toContain('<DetailFieldLabel title="Status" />');
+    expect(POSTMORTEM_SUMMARY).toContain('title="Owners"');
     expect(POSTMORTEM_PAGE).toContain('title: "Postmortem Attachments",');
     expect(POSTMORTEM_PAGE).toContain(
       'title: "Postmortem visible on Status Page?",',
     );
     expect(writing).toContain(
-      "The **Postmortem Note** card shows the note, the attachments and whether the postmortem is on the status page.",
+      "The **Postmortem** card shows the postmortem's **Status** and **Owners**, the note, the attachments and whether the postmortem is on the status page.",
     );
   });
 
-  it("opens the Edit Postmortem Note dialog on its Postmortem step, then Status Page", () => {
+  it("opens the Write Postmortem dialog on its Postmortem step, then Status Page; written, Edit Postmortem Note opens the same steps", () => {
     const formSteps: string = between(
       POSTMORTEM_FORM,
       "export const INCIDENT_POSTMORTEM_FORM_STEPS",
       "];",
     );
+    const writeDialog: string = between(
+      POSTMORTEM_PAGE,
+      "{isWriting ? (",
+      "</>",
+    );
 
+    // Nothing written: Write Postmortem, the empty card's one button.
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "WRITE_POSTMORTEM",
+      "Write Postmortem",
+    );
+    expect(POSTMORTEM_EMPTY_STATE).toContain(
+      "title: WRITE_POSTMORTEM,\n      icon: IconProp.Edit,\n      buttonStyle: ButtonStyleType.PRIMARY,",
+    );
+    expect(writeDialog).toContain('title="Write Postmortem"');
+    expect(writeDialog).toContain("steps: INCIDENT_POSTMORTEM_FORM_STEPS,");
+    // Written: the card's Edit button, with the same steps.
+    expect(POSTMORTEM_PAGE).toContain("isEditable={hasNote === true}");
     expect(POSTMORTEM_PAGE).toContain('editButtonText="Edit Postmortem Note"');
     expect(POSTMORTEM_PAGE).toContain('editModalTitle="Edit Postmortem Note"');
+    expect(POSTMORTEM_PAGE).toContain(
+      "formSteps={INCIDENT_POSTMORTEM_FORM_STEPS}",
+    );
     expect(
       Array.from(formSteps.matchAll(/title: "([^"]+)"/g)).map(
         (match: RegExpMatchArray): string => {
@@ -2402,8 +2508,9 @@ describe("where a postmortem is written", () => {
         },
       ),
     ).toEqual(["Postmortem", "Status Page"]);
+    expect(writing).toContain("\n### Click Write Postmortem\n");
     expect(writing).toContain(
-      "The **Edit Postmortem Note** dialog opens on its first step, **Postmortem**.",
+      "The **Write Postmortem** dialog opens on its first step, **Postmortem**. Once the postmortem is written, the card's button is **Edit Postmortem Note**, which opens the same steps.",
     );
   });
 
@@ -2438,6 +2545,24 @@ describe("where a postmortem is written", () => {
     expect(publish).toContain("defaultValue: false,");
     expect(writing).toContain(
       "Click **Next**. On the **Status Page** step, **Publish on Status Page** starts off, so the postmortem stays with your team.",
+    );
+  });
+
+  it("moves a postmortem not started to Draft once its note is saved", () => {
+    const statuses: Array<Record<string, unknown>> = defaultStatusRows();
+
+    expect(
+      (
+        PostmortemStatusUtil.getAutomaticMove({
+          statuses: statuses,
+          stored: { postmortemNote: "", showPostmortemOnStatusPage: false },
+          written: { postmortemNote: "## What happened" },
+          statusIdBefore: "status-1",
+        }) as Record<string, unknown> | null
+      )?.["name"],
+    ).toBe("Draft");
+    expect(writing).toContain(
+      "Click **Save Changes**. The card shows the note and the attachments. The postmortem's status moves from **Not Started** to **Draft**: see [How a postmortem moves](#how-a-postmortem-moves).",
     );
   });
 
@@ -2489,16 +2614,45 @@ describe("starting a postmortem from a template or an AI draft", () => {
     "## Start from a template or an AI draft",
   );
 
-  it("offers Generate with AI, and Apply Template once the project has a template", () => {
-    expect(POSTMORTEM_CARD_BUTTONS).toContain('title: "Generate with AI",');
-    expect(POSTMORTEM_CARD_BUTTONS).toContain(
-      'if (options.hasTemplates) {\n    buttons.push({\n      title: "Apply Template",',
-    );
+  it("offers Start from Template and Generate with AI beside Write Postmortem, and Apply Template and Generate with AI in the ⋯ once written", () => {
     expect(POSTMORTEM_PAGE).toContain(
-      "hasTemplates: postmortemTemplates.templates.length > 0,",
+      "const hasTemplates: boolean = postmortemTemplates.templates.length > 0;",
     );
+    // Nothing written: beside Write Postmortem.
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "START_FROM_TEMPLATE",
+      "Start from Template",
+    );
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "GENERATE_WITH_AI",
+      "Generate with AI",
+    );
+    /*
+     * Beside it for someone who may write the postmortem: a viewer, who may
+     * not, finds Write Postmortem alone, locked, with why under it.
+     */
+    expect(POSTMORTEM_EMPTY_STATE).toContain(
+      "if (!isLocked && props.hasTemplates) {\n    actions.push({\n      title: START_FROM_TEMPLATE,",
+    );
+    expect(POSTMORTEM_EMPTY_STATE).toContain(
+      "if (!isLocked && props.isAiOffered) {\n    actions.push({\n      title: GENERATE_WITH_AI,",
+    );
+    // Written: the ⋯ beside Edit Postmortem Note.
+    expect(POSTMORTEM_PAGE).toContain(
+      "buttons:\n            hasNote &&\n            hasPostmortemMoreMenuItems({",
+    );
+    expectLabelDeclared(
+      POSTMORTEM_MORE_MENU,
+      "APPLY_TEMPLATE",
+      "Apply Template",
+    );
+    expect(POSTMORTEM_MORE_MENU).toContain("text={APPLY_TEMPLATE}");
+    expect(POSTMORTEM_MORE_MENU).toContain("text={GENERATE_WITH_AI}");
+    expect(POSTMORTEM_MORE_MENU).toContain("<CardMoreMenu");
     expect(starting).toContain(
-      "Two buttons on the card fill the note in for you: **Generate with AI**, and **Apply Template** once the project has a postmortem template.",
+      "Two buttons fill the note in for you. While nothing is written, they are beside **Write Postmortem**: **Start from Template**, once the project has a postmortem template, and **Generate with AI**. Once the postmortem is written, they are in the **⋯** menu beside **Edit Postmortem Note**, as **Apply Template** and **Generate with AI**.",
     );
   });
 
@@ -2516,7 +2670,7 @@ describe("starting a postmortem from a template or an AI draft", () => {
       "draftValues: {\n              postmortemNote: draftNote,\n            },",
     );
     expect(starting).toContain(
-      "Both open the same editor as **Edit Postmortem Note**, with the note filled in and the rest of the postmortem as it was. Nothing is saved until you click **Save Changes**, so read the note and change it first.",
+      "Both open the same editor, with the note filled in and the rest of the postmortem as it was. Nothing is saved until you click **Save Changes**, so read the note and change it first.",
     );
   });
 
@@ -2557,8 +2711,12 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(POSTMORTEM_TEMPLATE_MODAL).toContain(
       "initialValues: getPostmortemTemplatePickerInitialValues(",
     );
+    // Start from Template and Apply Template open the same picker.
+    expect(POSTMORTEM_PAGE).toContain(
+      "onApplyTemplate={() => {\n                      setShowTemplateModal(true);",
+    );
     expect(starting).toContain(
-      "Click **Apply Template**, pick one under **Select Template** in the **Apply Postmortem Template** dialog, and click **Apply Template**. A project with one template has it picked already.",
+      "Click **Start from Template**, or **Apply Template** in the **⋯** menu, pick one under **Select Template** in the **Apply Postmortem Template** dialog, and click **Apply Template**. A project with one template has it picked already.",
     );
   });
 
@@ -2707,12 +2865,23 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(draft).toContain(
       "incidentFeedEventType: IncidentFeedEventType.PostmortemNote,",
     );
-    expect(enabled).toContain("project.enableAi === false ||");
-    expect(enabled).toContain(
-      "project.enableAutomaticPostmortemDraft !== true",
+    // The two switches, asked first: AI on, and drafting on.
+    const drafting: string = between(
+      POSTMORTEM_RUNNER,
+      "private static isDraftingOn(",
+      "\n  }\n",
     );
+
     expect(enabled).toContain(
-      "await AIService.getReachedProjectDailyLimit({ projectId, project })",
+      "if (!AIIncidentPostmortemRunner.isDraftingOn(project)) {",
+    );
+    expect(drafting).toContain("project.enableAi !== false &&");
+    expect(drafting).toContain(
+      "project.enableAutomaticPostmortemDraft === true",
+    );
+    // The daily limits, for the provider the draft would use.
+    expect(enabled).toMatch(
+      /await AIService\.getReachedProjectDailyLimit\(\{\s*projectId,\s*project,/,
     );
     expect(starting).toContain(
       "- It never replaces a note that is already written.",
@@ -3213,6 +3382,7 @@ describe("a postmortem through the API", () => {
       "showPostmortemOnStatusPage",
       "notifySubscribersOnPostmortemPublished",
       "postmortemPostedAt",
+      "postmortemStatusId",
     ]);
 
     for (const column of firstColumn(api)) {
@@ -3267,6 +3437,462 @@ describe("a postmortem through the API", () => {
     ).toBe(false);
     expect(api).toContain(
       "Writing `showPostmortemOnStatusPage` as `true` over a written `postmortemNote` publishes the postmortem, as the dialog does.",
+    );
+  });
+
+  it("names the postmortem's status, one of the project's statuses at /api/incident-postmortem-status, which publishing moves unless the write names one", () => {
+    expect(incident.getTableColumnMetadata("postmortemStatus").modelType).toBe(
+      IncidentPostmortemStatus,
+    );
+    expect(
+      incident.getTableColumnMetadata("postmortemStatus")
+        .manyToOneRelationColumn,
+    ).toBe("postmortemStatusId");
+    expect(new IncidentPostmortemStatus().crudApiPath?.toString()).toBe(
+      "/incident-postmortem-status",
+    );
+    expect(api).toContain(
+      "| `postmortemStatusId` | The postmortem's status: one of the project's statuses, at `/api/incident-postmortem-status`. |",
+    );
+
+    const statuses: Array<Record<string, unknown>> = defaultStatusRows();
+    const publishing: {
+      stored: { postmortemNote: string; showPostmortemOnStatusPage: boolean };
+      statusIdBefore: string;
+    } = {
+      stored: {
+        postmortemNote: "What happened",
+        showPostmortemOnStatusPage: false,
+      },
+      statusIdBefore: "status-2",
+    };
+
+    expect(
+      (
+        PostmortemStatusUtil.getAutomaticMove({
+          statuses: statuses,
+          ...publishing,
+          written: { showPostmortemOnStatusPage: true },
+        }) as Record<string, unknown> | null
+      )?.["name"],
+    ).toBe("Completed");
+    expect(
+      PostmortemStatusUtil.getAutomaticMove({
+        statuses: statuses,
+        ...publishing,
+        written: {
+          showPostmortemOnStatusPage: true,
+          postmortemStatusId: "status-2",
+        },
+      }),
+    ).toBeNull();
+    expect(api).toContain(
+      "publishes the postmortem, as the dialog does. It moves the postmortem to **Completed** as well, unless the same write sets `postmortemStatusId`.",
+    );
+  });
+});
+
+describe("where each postmortem stands", () => {
+  const postmortems: string = english(POSTMORTEMS);
+  const standing: string = section(
+    postmortems,
+    "## Track where each postmortem stands",
+  );
+  const moving: string = section(postmortems, "### How a postmortem moves");
+  const yourself: string = section(postmortems, "### Move it yourself");
+  const ownStatuses: string = section(
+    postmortems,
+    "### Make the statuses your own",
+  );
+  const statuses: Array<Record<string, unknown>> = defaultStatusRows();
+
+  function progressOf(name: string): PostmortemProgress | null {
+    const status: Record<string, unknown> | undefined = statuses.find(
+      (candidate: Record<string, unknown>): boolean => {
+        return candidate["name"] === name;
+      },
+    );
+
+    return PostmortemStatusUtil.getProgress({
+      statuses: statuses,
+      statusId: status?.["_id"] as string,
+    });
+  }
+
+  function nameOf(status: unknown): string | null {
+    return status
+      ? ((status as Record<string, unknown>)["name"] as string)
+      : null;
+  }
+
+  it("is shown under Status at the top of the Postmortem card", () => {
+    expect(POSTMORTEM_SUMMARY).toContain('<DetailFieldLabel title="Status" />');
+    expect(POSTMORTEM_SUMMARY).toContain("<PostmortemStatusPicker");
+    expect(standing).toContain(
+      "Every incident's postmortem is in one of the project's postmortem statuses, shown under **Status** at the top of its **Postmortem** card.",
+    );
+  });
+
+  it("lists a new project's four statuses, each with what it means and whether it is still owed", () => {
+    expect(PROJECT_SERVICE).toContain(
+      "this.addDefaultIncidentPostmortemStatuses(createdItem),",
+    );
+    expect(firstColumn(standing)).toEqual(
+      DEFAULT_POSTMORTEM_STATUSES.map(
+        (status: DefaultPostmortemStatus): string => {
+          return `**${status.name}**`;
+        },
+      ),
+    );
+
+    for (const status of DEFAULT_POSTMORTEM_STATUSES) {
+      const owed: boolean = progressOf(status.name) !== PostmortemProgress.Done;
+
+      expect(standing).toContain(
+        `| **${status.name}** | ${status.description} | ${owed ? "Yes" : "No"} |`,
+      );
+    }
+
+    expect(standing).toContain(
+      "A new project has four. A postmortem in **Not Started** or **Draft** is still owed; one in **Completed** or **Not Needed** is not:",
+    );
+  });
+
+  it("starts by its fields, moves forward on its first note and on publishing, and never back or over a pick", () => {
+    const starting: (postmortem: Record<string, unknown>) => string | null = (
+      postmortem: Record<string, unknown>,
+    ): string | null => {
+      return nameOf(
+        PostmortemStatusUtil.getStartingStatus({
+          statuses: statuses,
+          postmortem: postmortem,
+        }),
+      );
+    };
+
+    expect(starting({ postmortemNote: "" })).toBe("Not Started");
+    expect(starting({ postmortemNote: "## What happened" })).toBe("Draft");
+    expect(
+      starting({
+        postmortemNote: "## What happened",
+        showPostmortemOnStatusPage: true,
+      }),
+    ).toBe("Completed");
+
+    const move: (data: {
+      before: string;
+      stored: Record<string, unknown>;
+      written: Record<string, unknown>;
+    }) => string | null = (data: {
+      before: string;
+      stored: Record<string, unknown>;
+      written: Record<string, unknown>;
+    }): string | null => {
+      const before: Record<string, unknown> | undefined = statuses.find(
+        (status: Record<string, unknown>): boolean => {
+          return status["name"] === data.before;
+        },
+      );
+
+      return nameOf(
+        PostmortemStatusUtil.getAutomaticMove({
+          statuses: statuses,
+          stored: data.stored,
+          written: data.written,
+          statusIdBefore: before?.["_id"] as string,
+        }),
+      );
+    };
+
+    // The first note: Not Started to Draft, and nothing else moves.
+    expect(
+      move({
+        before: "Not Started",
+        stored: { postmortemNote: "" },
+        written: { postmortemNote: "## Impact" },
+      }),
+    ).toBe("Draft");
+    expect(
+      move({
+        before: "Completed",
+        stored: { postmortemNote: "" },
+        written: { postmortemNote: "## Impact" },
+      }),
+    ).toBeNull();
+    // Publishing: to Completed, unless done already.
+    expect(
+      move({
+        before: "Draft",
+        stored: { postmortemNote: "## Impact" },
+        written: { showPostmortemOnStatusPage: true },
+      }),
+    ).toBe("Completed");
+    expect(
+      move({
+        before: "Not Needed",
+        stored: { postmortemNote: "## Impact" },
+        written: { showPostmortemOnStatusPage: true },
+      }),
+    ).toBeNull();
+    // Never back: clearing the note, taking it off the status page.
+    expect(
+      move({
+        before: "Draft",
+        stored: { postmortemNote: "## Impact" },
+        written: { postmortemNote: "" },
+      }),
+    ).toBeNull();
+    expect(
+      move({
+        before: "Completed",
+        stored: {
+          postmortemNote: "## Impact",
+          showPostmortemOnStatusPage: true,
+        },
+        written: { showPostmortemOnStatusPage: false },
+      }),
+    ).toBeNull();
+    // A status picked in the same save stands.
+    expect(
+      move({
+        before: "Not Started",
+        stored: { postmortemNote: "" },
+        written: { postmortemNote: "## Impact", postmortemStatusId: "x" },
+      }),
+    ).toBeNull();
+
+    for (const line of [
+      "- A new incident's postmortem starts in **Not Started**, or in **Draft** when the incident is declared with a note, or in **Completed** when that note is published with it.",
+      "- The first note of a postmortem in **Not Started** moves it to **Draft**, whether someone writes it, applies a template or OneUptime AI drafts it.",
+      "- Publishing it on the status page moves it to **Completed**, unless it is done already.",
+      "It never moves back: clearing the note, or taking the postmortem off the status page, leaves its status where it is. A status someone picks in the same save always stands.",
+    ]) {
+      expect(moving).toContain(line);
+    }
+  });
+
+  it("moves from its status under Move postmortem to, by the roles that write it", () => {
+    const incident: Incident = new Incident();
+
+    expectLabelDeclared(
+      POSTMORTEM_STATUS_PICKER,
+      "POSTMORTEM_STATUS_MENU_TITLE",
+      "Move postmortem to",
+    );
+    expect(POSTMORTEMS_TABLE).toContain("<PostmortemStatusPicker");
+    expect(
+      [
+        ...(incident.getColumnAccessControlFor("postmortemStatusId")?.update ||
+          []),
+      ].sort(),
+    ).toEqual(
+      [
+        ...(incident.getColumnAccessControlFor("postmortemNote")?.update || []),
+      ].sort(),
+    );
+    expect(yourself).toContain(
+      "Click the status, on the incident's **Postmortem** page or on its row of the postmortems list, and pick one under **Move postmortem to**. The postmortem moves at once. Moving a postmortem takes the roles that write one, and anyone who can read the incident sees where its postmortem stands.",
+    );
+  });
+
+  it("is the project's own list under Incidents → Settings → Postmortem Statuses, a new status just above Completed", () => {
+    const incidents: Array<MenuSection> = menuSections(INCIDENTS_MENU);
+    const status: IncidentPostmortemStatus = new IncidentPostmortemStatus();
+
+    expect(sectionByTitle(incidents, "Settings").items).toContain(
+      "Postmortem Statuses",
+    );
+    expect(status.singularName).toBe("Postmortem Status");
+    expect(
+      STATE_SETTINGS_COPY[StateListType.IncidentPostmortemStatus]
+        .namePlaceholder,
+    ).toBe("In Review");
+    expect(
+      STATE_LISTS[StateListType.IncidentPostmortemStatus].insertAboveFlag,
+    ).toBe("isCompletedStatus");
+    expect(ownStatuses).toContain(
+      "Open **Incidents → Settings → Postmortem Statuses**, click **Create Postmortem Status**, and give it a name, such as **In Review**, a color and a description. A new status goes just above **Completed**; drag a status to change where it sits.",
+    );
+  });
+
+  it("counts a status by where it sits, as Counts as shows it", () => {
+    const countsAs: StateSettingsCountsAsCopy | undefined =
+      STATE_SETTINGS_COPY[StateListType.IncidentPostmortemStatus].countsAs;
+
+    expect(countsAs?.title).toBe("Counts as");
+    expect(countsAs?.aboveAll).toBe("Not started");
+    expect(countsAs?.byBuiltIn).toEqual({
+      isNotStartedStatus: "Not started",
+      isDraftStatus: "In progress",
+      isCompletedStatus: "Done",
+    });
+
+    // A project's own In Review, between Draft and Completed, is still owed.
+    const withReview: Array<Record<string, unknown>> = [
+      ...statuses.slice(0, 2),
+      { _id: "status-review", name: "In Review", order: 3 },
+      ...statuses
+        .slice(2)
+        .map((row: Record<string, unknown>): Record<string, unknown> => {
+          return { ...row, order: (row["order"] as number) + 1 };
+        }),
+    ];
+
+    expect(
+      PostmortemStatusUtil.getProgress({
+        statuses: withReview,
+        statusId: "status-review",
+      }),
+    ).toBe(PostmortemProgress.InProgress);
+    expect(ownStatuses).toContain(
+      "Where a status sits decides what it counts as, shown under **Counts as**: above **Draft**, **Not started**; from **Draft** down, **In progress**; from **Completed** down, **Done**, and no longer owed. **In Review**, between them, is still owed; **Not Needed**, below **Completed**, is not.",
+    );
+  });
+
+  it("keeps the three built in, archives the rest, and is edited by the roles that manage incidents", () => {
+    const status: IncidentPostmortemStatus = new IncidentPostmortemStatus();
+
+    expect(
+      STATE_LISTS[StateListType.IncidentPostmortemStatus].builtIns.map(
+        (builtIn: { flag: string }): string => {
+          return builtIn.flag;
+        },
+      ),
+    ).toEqual(["isNotStartedStatus", "isDraftStatus", "isCompletedStatus"]);
+    expect(ARCHIVABLE_VALUE_COPY_SOURCE).toContain(
+      'archivedTitle: translationKey("Archived Postmortem Statuses"),',
+    );
+
+    for (const permissions of [
+      status.getCreatePermissions(),
+      status.getUpdatePermissions(),
+      status.getDeletePermissions(),
+    ]) {
+      expect(rolesOf(permissions)).toEqual([
+        "Project Owner",
+        "Project Admin",
+        "Incident Admin",
+      ]);
+    }
+
+    expect(ownStatuses).toContain(
+      "**Not Started**, **Draft** and **Completed** are built in, since OneUptime moves postmortems into them: you can rename and recolor them, but not delete or archive them, and they keep their order.",
+    );
+    expect(ownStatuses).toContain(
+      "**Archived Postmortem Statuses**, folded under the table, lists them, with **Unarchive** to bring one back. Creating, editing and deleting statuses takes the Project Owner, Project Admin or Incident Admin role, or a custom role with the matching Postmortem Status permission.",
+    );
+  });
+});
+
+describe("every postmortem in one list", () => {
+  const postmortems: string = english(POSTMORTEMS);
+  const list: string = section(postmortems, "## See every postmortem");
+
+  it("is Incidents → Postmortems, with the incident, its title, status, severity, owners and when it was declared", () => {
+    const incidents: Array<MenuSection> = menuSections(INCIDENTS_MENU);
+
+    expect(sectionByTitle(incidents, "Overview").items).toContain(
+      "Postmortems",
+    );
+    expect(
+      Array.from(
+        POSTMORTEMS_TABLE.slice(
+          POSTMORTEMS_TABLE.indexOf("columns={["),
+        ).matchAll(/\n {12}title: "([^"]+)",/g),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      }),
+    ).toEqual([
+      "Incident",
+      "Title",
+      "Postmortem Status",
+      "Severity",
+      "Owners",
+      "Declared",
+      "Labels",
+    ]);
+    // Labels is there for those who want it, from Columns.
+    expect(
+      POSTMORTEMS_TABLE.slice(POSTMORTEMS_TABLE.indexOf('title: "Labels",')),
+    ).toContain("isHiddenByDefault: true,");
+    expect(POSTMORTEMS_TABLE).toContain('viewButtonText="View"');
+    expect(POSTMORTEMS_TABLE).toContain(
+      "RouteMap[PageMap.INCIDENT_VIEW_POSTMORTEM] as Route",
+    );
+    expect(list).toContain(
+      "**Incidents → Postmortems** lists the postmortem of every incident in the project, newest first, with the columns **Incident**, **Title**, **Postmortem Status**, **Severity**, **Owners** and **Declared**. **View** on a row opens the incident's **Postmortem** page.",
+    );
+  });
+
+  it("counts each status in a tile that lists only those, and a second click lists them all", () => {
+    expect(POSTMORTEM_STATUS_TILES).toContain(
+      'data.setFacetSelection(POSTMORTEM_STATUS_FACET_KEY, [], "is");',
+    );
+    expect(POSTMORTEMS_TABLE).toContain("<PostmortemStatusSummaryCards");
+    expect(list).toContain(
+      "Above the list, a tile per status counts the postmortems in it. Click a tile to list only those, and click it again to list them all.",
+    );
+  });
+
+  it("filters by owner, severity, status, incident state, labels and what the incident affects", () => {
+    expect(RESOURCE_OWNERS_HOOK).toContain('label="Owner"');
+    expect(RESOURCE_OWNERS_HOOK).toContain('label="Labels"');
+    expect(POSTMORTEMS_TABLE).toContain("showLabelsFacet: true,");
+    expect(
+      Array.from(
+        POSTMORTEM_LIST_FACETS_SOURCE.matchAll(
+          /label: translationKey\("([^"]+)"\)/g,
+        ),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1] as string;
+      }),
+    ).toEqual(["Severity", "Incident State"]);
+    expect(POSTMORTEM_LIST_FACETS_SOURCE).toContain(
+      "label: POSTMORTEM_STATUS_FACET_LABEL,",
+    );
+    expect(POSTMORTEM_LIST_FACETS_SOURCE).toContain(
+      "buildAffectedResourcesFacet<Incident>({",
+    );
+    expect(POSTMORTEMS_TABLE).toContain("urlStateKey={POSTMORTEMS_TABLE_ID}");
+    expect(list).toContain(
+      "Filter the list with the chips above it: **Owner**, a person or a team; **Severity**; **Postmortem Status**; **Incident State**; **Labels**; and **Affected Resources**.",
+    );
+    expect(list).toContain(
+      "The filters are kept in the page's address, so you can bookmark the list or share it.",
+    );
+  });
+
+  it("changes many at once: Change Postmortem Status, Add Owner and Remove Owner", () => {
+    expectLabelDeclared(
+      BULK_POSTMORTEM_STATUS,
+      "CHANGE_POSTMORTEM_STATUS",
+      "Change Postmortem Status",
+    );
+    expect(POSTMORTEMS_TABLE).toContain(
+      "buttons: [statusBulkAction, ...ownerBulkActions],",
+    );
+    expect(list).toContain(
+      "To change many at once, select them and open **Bulk Actions**: **Change Postmortem Status** moves them all to one status, such as **Not Needed** for incidents that need none, and **Add Owner** and **Remove Owner** change who owns them.",
+    );
+  });
+
+  it("leaves out episodes, whose postmortem has no status and keeps the card's own buttons", () => {
+    const episodes: string = section(postmortems, "## Postmortems of episodes");
+
+    expect(EPISODE_POSTMORTEM_PAGE).not.toContain("postmortemStatus");
+    // An episode's card still offers Apply Template and Generate with AI as buttons.
+    expect(EPISODE_POSTMORTEM_PAGE).toContain(
+      "buttons: getPostmortemCardButtons({",
+    );
+    expect(POSTMORTEM_CARD_BUTTONS).toContain('title: "Generate with AI",');
+    expect(POSTMORTEM_CARD_BUTTONS).toContain(
+      'if (options.hasTemplates) {\n    buttons.push({\n      title: "Apply Template",',
+    );
+    expect(episodes).toContain(
+      "**Apply Template** and **Generate with AI** work as on an incident",
+    );
+    expect(episodes).toContain(
+      "It has no status either, and the postmortems list leaves it out.",
     );
   });
 });

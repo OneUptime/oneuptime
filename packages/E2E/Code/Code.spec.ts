@@ -15,9 +15,12 @@ import path from "path";
  * picked in it, every task under it - Repositories, a repository's page
  * where AI is asked with context, a task's conversation filling in as the
  * AI works, replying in it, stopping it and trying again, whatever stops AI
- * working said once at the top of the box with what fixes it, the Runner a
- * repository's settings pick for AI's work, read-only members, the old
- * Tasks and Code Repositories addresses, a phone, dark mode and German.
+ * working said once at the top of the box with what fixes it, a
+ * repository's settings - the GitHub Commands switch, the Runner AI works
+ * on, More settings and commands an operator set - read-only members, the
+ * old Tasks and Code Repositories addresses, a repository's pull requests
+ * reviewed against production (their page, a review's page, Review again
+ * and the setting), a phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -88,6 +91,10 @@ interface Recorded {
   navigations: Array<string>;
   branchReads: Array<{ repositoryId: string; search: string }>;
   lists: Array<string>;
+  // Each production reviews list read, by its repository.
+  reviewLists: Array<string>;
+  // Each Review again, by its task.
+  reviewAgains: Array<string>;
   reads: { task: number; list: number; repositories: number };
 }
 
@@ -807,6 +814,14 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
   });
 });
 
+/*
+ * The maintainer (2026-10-21): "why do I see 'not connected repos' and not
+ * see the connected repo visible? The connected repo is towards the end of
+ * the list, and 'not connected repos' is scattered everywhere ... Make it
+ * look like it belongs to the existing UI of oneuptime." The repositories AI
+ * can work in are now the list - the shared table every product draws -
+ * and those GitHub no longer reaches are folded apart, below it.
+ */
 test.describe("Code's Repositories", () => {
   async function openRepositories(
     page: Page,
@@ -815,7 +830,30 @@ test.describe("Code's Repositories", () => {
     await page.goto(`${CODE}/repositories${search ? `?${search}` : ""}`);
   }
 
-  test("a list - what needs someone first, then the quieter facts - and each opens its repository", async ({
+  function connectedCard(page: Page): Locator {
+    return page.getByTestId("code-repositories-card");
+  }
+
+  function notConnected(page: Page): Locator {
+    return page.getByTestId("code-repositories-not-connected");
+  }
+
+  async function openNotConnected(page: Page): Promise<void> {
+    await notConnected(page)
+      .getByRole("button", { name: "Not connected" })
+      .click();
+    await expect(
+      notConnected(page).getByRole("button", { name: "Not connected" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
+
+  function names(list: Locator): Locator {
+    return list
+      .getByTestId("code-repository-row")
+      .getByTestId("code-repository-name");
+  }
+
+  test("the repositories AI can work in are the list - a OneUptime table, most recently active first - and the one it cannot is folded apart", async ({
     page,
   }: {
     page: Page;
@@ -825,130 +863,207 @@ test.describe("Code's Repositories", () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Repositories",
     );
-    const rows: Locator = page.getByTestId("code-repository-row");
-    await expect(rows).toHaveCount(3);
-    await expect(page.getByTestId("code-repositories-count")).toHaveText(
-      "3 repositories",
-    );
-
-    // The most recently active repository first.
-    const checkout: Locator = rows.first();
-    await expect(checkout.getByTestId("code-repository-name")).toHaveText(
+    await expect(names(connectedCard(page))).toHaveText([
       "checkout-api",
-    );
-    // GitHub's own name beside it, where there is room for it.
+      "storefront-web",
+    ]);
+    // No "Not connected" among them.
+    await expect(connectedCard(page)).not.toContainText("Not connected");
+
     if (!isPhone(testInfo)) {
-      await expect(checkout).toContainText("acme/checkout-api");
+      // The table's own header row, as every list in OneUptime has.
+      await expect(connectedCard(page).getByRole("columnheader")).toHaveText([
+        "Repository",
+        "Tasks",
+        "Last Activity",
+      ]);
+      await expect(connectedCard(page)).toContainText(
+        "Open a repository to ask AI to work in it, read its tasks or change its settings.",
+      );
+      await expect(connectedCard(page)).toContainText("acme/checkout-api");
     }
+
+    const checkout: Locator = connectedCard(page)
+      .getByTestId("code-repository-row")
+      .first();
     await expect(checkout.getByTestId("code-repository-working")).toHaveText(
       "1 working",
     );
     await expect(checkout.getByTestId("code-repository-waiting")).toHaveText(
       "1 waiting for you",
     );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
+    await expect(checkout.getByTestId("code-repository-task-count")).toHaveText(
       "6 tasks",
     );
-    await expect(checkout.getByTestId("code-repository-stats")).toContainText(
-      "1 open pull request",
-    );
-
-    // A repository AI cannot reach says so, and keeps its whole name.
-    const payments: Locator = rows.filter({ hasText: "payments-worker" });
     await expect(
-      payments.getByTestId("code-repository-not-connected"),
-    ).toHaveText("Not connected");
-    const nameIsWhole: boolean = await payments
-      .getByTestId("code-repository-name")
-      .evaluate((element: Element): boolean => {
-        return element.scrollWidth <= element.clientWidth;
-      });
-    expect(nameIsWhole).toBe(true);
-
-    const quiet: Locator = rows.filter({ hasText: "storefront-web" });
-    await expect(quiet.getByTestId("code-repository-stats")).toHaveText(
-      "No tasks yet",
+      checkout.getByTestId("code-repository-pull-requests"),
+    ).toHaveText("1 open pull request");
+    await expect(connectedCard(page)).toContainText(
+      "Showing 1-2 of 2 repositories",
     );
-    await expect(quiet.getByTestId("code-repository-attention")).toHaveCount(0);
+
+    // The one GitHub does not reach: folded below, counted.
+    const header: Locator = notConnected(page).getByRole("button", {
+      name: "Not connected",
+    });
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+    await expect(notConnected(page)).toContainText("1 repository");
+    await expect(notConnected(page)).toContainText(
+      "GitHub does not give OneUptime access to these repositories any more, so AI cannot work in them.",
+    );
+    // It sits below the list, never among its rows.
+    const cardBox: { y: number; height: number } | null =
+      await connectedCard(page).boundingBox();
+    const foldBox: { y: number } | null =
+      await notConnected(page).boundingBox();
+    expect(foldBox!.y).toBeGreaterThanOrEqual(cardBox!.y + cardBox!.height);
 
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repositories");
 
-    await checkout.getByTestId("code-repository-link").click();
+    await openNotConnected(page);
+    await expect(names(notConnected(page))).toHaveText(["payments-worker"]);
+    await expect(page.getByTestId("code-not-connected-explanation")).toHaveText(
+      "Their tasks stay readable. Connect GitHub with access to them to use them again, or open one to delete it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-not-connected-open");
+
+    // A click on the name opens the repository.
+    await connectedCard(page)
+      .getByTestId("code-repository-name")
+      .first()
+      .click();
     await expect(page).toHaveURL(repositoryPath(REPOSITORY.checkout));
     await expect(page.getByTestId("code-ask")).toBeVisible();
   });
 
   /*
-   * The UI review: from sm up a row's chips and facts sat beside its name
-   * and took its room - in German "checkout-api" was cut to "checkout-…".
-   * The name now has its line, its facts under it, and what needs someone
-   * sits at the row's end (on a phone, between the name and the facts).
+   * A repository's description is a line that does not wrap: it held the
+   * Repository column at its full length, so beside the side menu the table
+   * outgrew its card and Last Activity had to be scrolled to. The column now
+   * gives way, its words cut short, down to a floor.
    */
-  test("in German a repository keeps its whole name, its facts under it and what needs someone at the row's end", async ({
+  test("beside the side menu, 900 and 1024 wide, both tables fit their cards - Last Activity in sight, a long name cut short", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await openRepositories(page, "lang=de");
+    test.skip(isPhone(testInfo), "The desktop table, beside the side menu.");
 
-    const checkout: Locator = page.getByTestId("code-repository-row").first();
-    const name: Locator = checkout.getByTestId("code-repository-name");
-    await expect(name).toHaveText("checkout-api");
-    expect(
-      await name.evaluate((element: Element): boolean => {
-        return element.scrollWidth <= element.clientWidth;
-      }),
-    ).toBe(true);
+    for (const width of [900, 1024]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openRepositories(page, "names=long");
+      await expect(names(connectedCard(page)).first()).toHaveText(
+        "checkout-and-payments-platform-api-service",
+      );
+      await openNotConnected(page);
 
-    const nameBox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null = await name.boundingBox();
-    const statsBox: { y: number } | null = await checkout
-      .getByTestId("code-repository-stats")
-      .boundingBox();
-    const chipsBox: { x: number; y: number } | null = await checkout
-      .getByTestId("code-repository-attention")
-      .boundingBox();
-    // The facts sit under the name.
-    expect(statsBox!.y).toBeGreaterThanOrEqual(nameBox!.y + nameBox!.height);
-    if (isPhone(testInfo)) {
-      // What needs someone first: between the name and the facts.
-      expect(chipsBox!.y).toBeGreaterThan(nameBox!.y);
-      expect(chipsBox!.y).toBeLessThan(statsBox!.y);
-    } else {
-      // At the row's end, past the name - and the description reads whole.
-      expect(chipsBox!.x).toBeGreaterThan(nameBox!.x + nameBox!.width);
+      for (const list of [connectedCard(page), notConnected(page)]) {
+        await expect(list.getByTestId("table-scroll")).toHaveAttribute(
+          "data-overflowing",
+          "false",
+        );
+
+        const lastActivity: { x: number; width: number } | null = await list
+          .getByRole("columnheader", { name: "Last Activity" })
+          .boundingBox();
+        const listBox: { x: number; width: number } | null =
+          await list.boundingBox();
+        expect(lastActivity!.x + lastActivity!.width).toBeLessThanOrEqual(
+          listBox!.x + listBox!.width + 1,
+        );
+      }
+
+      // The long name ends in "..." within its column, whole on hover.
       expect(
-        await checkout
-          .getByTestId("code-repository-row-description")
+        await names(connectedCard(page))
+          .first()
           .evaluate((element: Element): boolean => {
-            return element.scrollWidth <= element.clientWidth;
+            return element.scrollWidth > element.clientWidth;
           }),
       ).toBe(true);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, testInfo, `code-repositories-${width}`);
     }
-    // Its open pull requests beside the pull request mark.
-    await expect(
-      checkout
-        .getByTestId("code-repository-stats")
-        .getByTestId("code-pull-request-mark"),
-    ).toBeVisible();
-
-    await expectNoSidewaysScroll(page);
-    await screenshot(page, testInfo, "code-repositories-german");
   });
 
-  test("Connect repositories starts GitHub's install", async ({
+  test("a click anywhere on a row opens its repository, as every table's rows do", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openRepositories(page);
 
-    await page.getByTestId("code-connect-more").click();
+    await connectedCard(page)
+      .getByTestId("code-repository-row")
+      .nth(1)
+      .getByTestId("code-repository-task-count")
+      .click();
+    await expect(page).toHaveURL(repositoryPath(REPOSITORY.web));
+  });
+
+  test("the maintainer's project: the one connected repository is the list, the fourteen others folded and paged", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "repos=stale");
+
+    await expect(names(connectedCard(page))).toHaveText(["oneuptime"]);
+    await expect(notConnected(page)).toContainText("14 repositories");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-stale");
+
+    await openNotConnected(page);
+    await expect(names(notConnected(page))).toHaveCount(10);
+    await expect(names(notConnected(page)).first()).toHaveText("ads");
+    await expect(notConnected(page)).toContainText(
+      "Showing 1-10 of 14 repositories",
+    );
+    await notConnected(page).getByTestId("pagination-next-button").click();
+    await expect(names(notConnected(page))).toHaveText([
+      "marketing-site",
+      "mobile",
+      "status-page-templates",
+      "terraform-provider",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-stale-open");
+  });
+
+  test("in German, a repository keeps its whole name and the list reads in German", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "lang=de");
+
+    const name: Locator = names(connectedCard(page)).first();
+    await expect(name).toHaveText("checkout-api");
+    expect(
+      await name.evaluate((element: Element): boolean => {
+        return element.scrollWidth <= element.clientWidth;
+      }),
+    ).toBe(true);
+    await expect(notConnected(page)).toContainText("Nicht verbunden");
+    await expect(
+      connectedCard(page).getByTestId("code-repository-task-count").first(),
+    ).toHaveText("6 Aufgaben");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-german");
+  });
+
+  test("Connect repositories, the list's main button, starts GitHub's install", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepositories(page);
+
+    await connectedCard(page)
+      .getByRole("button", { name: "Connect repositories" })
+      .click();
     await expect
       .poll(async () => {
         return (await recorded(page)).navigations;
@@ -958,47 +1073,87 @@ test.describe("Code's Repositories", () => {
       ]);
   });
 
-  test("with many repositories, a search box finds one by name", async ({
+  test("the folded list's Connect GitHub starts GitHub's install too", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await openRepositories(page, "repos=many");
+    await openRepositories(page);
+    await openNotConnected(page);
 
-    const rows: Locator = page.getByTestId("code-repository-row");
-    await expect(rows).toHaveCount(8);
-    const search: Locator = page.getByTestId("code-repository-search");
-    await search.fill("index");
-    await expect(rows).toHaveCount(1);
-    await expect(rows).toContainText("search-indexer");
-
-    await search.fill("nothing like it");
-    await expect(rows).toHaveCount(0);
-    await expect(page.getByTestId("code-repository-search-empty")).toHaveText(
-      "No repository matches your search.",
-    );
+    await page
+      .getByTestId("code-not-connected-reconnect")
+      .getByRole("button", { name: "Connect GitHub" })
+      .click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).navigations;
+      })
+      .toEqual([
+        "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
+      ]);
   });
 
-  test("GitHub reaches none of them: said once over the list, with Connect GitHub - not on every row", async ({
+  test("with many repositories, a search finds one by name - and opens Not connected when only a folded one matches", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openRepositories(page, "repos=many");
+
+    await expect(names(connectedCard(page))).toHaveCount(7);
+    await page.getByTestId("code-repository-search-slot").click();
+    const search: Locator = page.getByTestId("code-repository-search");
+    await expect(search).toBeFocused();
+    await search.fill("index");
+    await expect(names(connectedCard(page))).toHaveText(["search-indexer"]);
+    // Found among the connected ones: Not connected stays folded.
+    const header: Locator = notConnected(page).getByRole("button", {
+      name: "Not connected",
+    });
+    await expect(header).toHaveAttribute("aria-expanded", "false");
+
+    await search.fill("payments");
+    await expect(names(connectedCard(page))).toHaveCount(0);
+    const empty: Locator = page.getByTestId("code-repository-search-empty");
+    await expect(empty).toContainText("No repository matches your search");
+    await expect(empty).toContainText(
+      "1 repository under Not connected matches it.",
+    );
+    // Found only there: Not connected opens, the repository in sight.
+    await expect(header).toHaveAttribute("aria-expanded", "true");
+    await expect(names(notConnected(page))).toHaveText(["payments-worker"]);
+    await expect(names(notConnected(page))).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repositories-search-not-connected");
+
+    await empty.getByRole("button", { name: "Clear Search" }).click();
+    await expect(names(connectedCard(page))).toHaveCount(7);
+  });
+
+  test("GitHub reaches none of them: the list says so, with Connect GitHub - once", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await openRepositories(page, "connected=none");
 
-    const banner: Locator = page.getByTestId("code-github-disconnected");
-    await expect(banner).toContainText(
-      "GitHub is not connected to this project, so AI cannot work in these repositories.",
+    const empty: Locator = page.getByTestId("code-github-disconnected");
+    await expect(empty).toContainText("No connected repositories");
+    // Its repositories are folded below the empty list: "its", not "these".
+    await expect(empty).toContainText(
+      "GitHub is not connected to this project, so AI cannot work in its repositories.",
     );
-    await expect(page.getByTestId("code-repository-row")).toHaveCount(3);
-    await expect(page.getByTestId("code-repository-not-connected")).toHaveCount(
-      0,
-    );
-    await expect(page.getByTestId("code-connect-more")).toHaveCount(0);
+    await expect(names(connectedCard(page))).toHaveCount(0);
+    // One way to connect: no second button in the list's header.
+    await expect(
+      connectedCard(page).getByRole("button", { name: "Connect repositories" }),
+    ).toHaveCount(0);
+    await expect(notConnected(page)).toContainText("3 repositories");
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repositories-disconnected");
 
-    await banner.getByTestId("code-github-reconnect").click();
+    await empty.getByTestId("code-github-reconnect").click();
     await expect
       .poll(async () => {
         return (await recorded(page)).navigations;
@@ -1006,6 +1161,198 @@ test.describe("Code's Repositories", () => {
       .toEqual([
         "https://github.com/apps/oneuptime-app/installations/new?state=fixture",
       ]);
+  });
+});
+
+/*
+ * The maintainer (2026-10-21): "This toggle should be turned on by default"
+ * - Respond to GitHub Commands - and of the dialog's Build & Test step: "We
+ * don't need this step at all because repos have an agents.md file in
+ * them". A repository's settings are cards now, its GitHub commands one
+ * switch, and what most people never change folded under More settings.
+ */
+test.describe("a repository's settings", () => {
+  const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  function commandsSwitch(page: Page): Locator {
+    return page.getByRole("switch", { name: "Respond to GitHub Commands" });
+  }
+
+  function moreSettings(page: Page): Locator {
+    return page.getByTestId("code-repository-more-settings");
+  }
+
+  async function openMoreSettings(page: Page): Promise<void> {
+    await moreSettings(page)
+      .getByRole("button", { name: "More settings" })
+      .click();
+    await expect(
+      moreSettings(page).getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  }
+
+  test("cards, not a four-step dialog: GitHub Commands is on, and a flip saves at once", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByRole("button", { name: "Edit Settings" }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Build & Test")).toHaveCount(0);
+    await expect(
+      moreSettings(page).getByRole("button", { name: "More settings" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings");
+
+    await commandsSwitch(page).click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isGitHubCommandsEnabled: false }]);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+  });
+
+  test("a repository that never set it reads as on, and one turned off as off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?ghcommands=unset`);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "true");
+
+    await page.goto(`${SETTINGS}?ghcommands=off`);
+    await expect(commandsSwitch(page)).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("More settings: where pull requests open and how many, and the trigger label - each with its Edit, on one page", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    await expect(moreSettings(page)).toContainText("Pull Requests");
+    await expect(moreSettings(page)).toContainText("GitHub Trigger Label");
+
+    await openMoreSettings(page);
+    await screenshot(page, testInfo, "code-repository-more-settings");
+
+    /*
+     * The trigger label card: what the label does, and the label that
+     * applies, named - not a stray value under the card's words.
+     */
+    const triggerLabel: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("GitHub Trigger Label", { exact: true }),
+    });
+    await expect(triggerLabel).toContainText(
+      "Adding this label to a GitHub issue hands the issue to the app, as a mention does.",
+    );
+    await expect(triggerLabel.getByTestId("detail-label")).toHaveText("Label");
+    await expect(triggerLabel.getByTestId("detail-value")).toHaveText(
+      "oneuptime",
+    );
+
+    const pullRequests: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Pull Requests", { exact: true }),
+    });
+    await pullRequests.getByRole("button", { name: "Edit" }).click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    // One page: no steps, the action right there.
+    await expect(
+      modal.getByRole("navigation", { name: "Progress" }),
+    ).toHaveCount(0);
+    await modal.getByText("A limit", { exact: true }).click();
+    await modal.getByPlaceholder("3").fill("2");
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(modal).toBeHidden();
+    await expect
+      .poll(async () => {
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
+      })
+      .toMatchObject({ maxOpenFixPullRequests: 2 });
+    await expect(pullRequests).toContainText("Up to 2 open at once");
+  });
+
+  test("build and test commands an operator set are shown read-only, and Remove Commands asks first, then clears all three", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${SETTINGS}?commands=1`);
+    // Folded, More settings says they are there.
+    await expect(moreSettings(page)).toContainText(
+      "Build and Test Commands: Configured",
+    );
+
+    await openMoreSettings(page);
+    const commands: Locator = page.getByTestId("code-repository-commands");
+    await expect(commands).toContainText("npm ci");
+    await expect(commands).toContainText("npm run build");
+    await expect(commands).toContainText("npm test");
+    await expect(commands.getByRole("textbox")).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-commands");
+
+    await page.getByRole("button", { name: "Remove Commands" }).click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText("Remove these commands?");
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).toBeHidden();
+    expect((await recorded(page)).settings).toEqual([]);
+
+    await page.getByRole("button", { name: "Remove Commands" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Remove Commands" })
+      .click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ setupCommand: null, buildCommand: null, testCommand: null }]);
+    await expect(page.getByTestId("code-repository-commands")).toHaveCount(0);
+  });
+
+  test("a repository with no commands shows nothing of them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(SETTINGS);
+    await openMoreSettings(page);
+    await expect(page.getByTestId("code-repository-commands")).toHaveCount(0);
+    await expect(page.getByText("Build and Test Commands")).toHaveCount(0);
+  });
+
+  test("Connection says what Repositories says: GitHub App where GitHub reaches it, Not connected where it does not", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    const status: Locator = page.getByTestId("repository-connection-status");
+    await expect(status).toHaveAttribute("data-connection", "github-app");
+    await expect(status).toHaveText("GitHub App");
+
+    // payments-worker: folded under Not connected on Repositories.
+    await page.goto(`${repositoryPath(REPOSITORY.payments)}/settings`);
+    await expect(status).toHaveAttribute("data-connection", "not-connected");
+    await expect(status).toHaveText("Not connected");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-repository-settings-not-connected");
   });
 });
 
@@ -1500,7 +1847,12 @@ test.describe("a repository's page: ask AI", () => {
     );
     await notice.getByTestId("code-blocker-fix").click();
     await expect(page).toHaveURL(`${CODE}/repositories`);
-    await expect(page.getByTestId("code-connect-more")).toBeVisible();
+    // Connect repositories: the list header's main button.
+    await expect(
+      page
+        .getByTestId("code-repositories-toolbar")
+        .getByRole("button", { name: "Connect repositories" }),
+    ).toBeVisible();
   });
 
   test("a member who may only read reads every task, and is told why they cannot ask", async ({
@@ -1563,11 +1915,12 @@ test.describe("a repository's page: ask AI", () => {
 test.describe("a repository's Runner", () => {
   const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
 
+  // The Runner card of the repository's settings.
   function settingsCard(page: Page): Locator {
     return page.getByTestId("card").filter({
       has: page
         .getByTestId("card-details-heading")
-        .getByText("Repository Settings", { exact: true }),
+        .getByText("Runner", { exact: true }),
     });
   }
 
@@ -1575,17 +1928,18 @@ test.describe("a repository's Runner", () => {
     return page.getByTestId("code-repository-runner-picker");
   }
 
-  // Opens Edit Settings and walks to its Runner step.
+  /*
+   * Opens the Runner card's Edit: one field on one page - the dialog's four
+   * steps (Pull Requests, GitHub Commands, Runner, Build & Test) are gone.
+   */
   async function openRunnerStep(page: Page): Promise<Locator> {
-    await settingsCard(page)
-      .getByRole("button", { name: "Edit Settings" })
-      .click();
+    await settingsCard(page).getByRole("button", { name: "Edit" }).click();
     const modal: Locator = page.getByTestId("modal");
     await expect(modal).toBeVisible();
-    for (let step: number = 0; step < 2; step++) {
-      await modal.getByRole("button", { name: "Next", exact: true }).click();
-    }
     await expect(runnerPicker(page)).toBeVisible();
+    await expect(
+      modal.getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
     return modal;
   }
 
@@ -1612,8 +1966,7 @@ test.describe("a repository's Runner", () => {
     modal: Locator,
   ): Promise<Record<string, unknown>> {
     const before: number = (await recorded(page)).settings.length;
-    // Build & Test, the last step, saves.
-    await modal.getByRole("button", { name: "Next", exact: true }).click();
+    // One page: its Save Changes saves.
     await modal.getByTestId("modal-footer-submit-button").click();
     await expect
       .poll(async (): Promise<number> => {
@@ -1640,12 +1993,9 @@ test.describe("a repository's Runner", () => {
     );
     // Global Runner is no page of the project's to link to.
     await expect(value.getByRole("link")).toHaveCount(0);
-    /*
-     * The repository has setup, build and test commands, which Global
-     * Runner never runs: said under it, above the commands the card lists.
-     */
+    // It runs no command: AI's change is not built or tested before the PR.
     await expect(value.getByTestId("code-repository-runner-skips")).toHaveText(
-      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+      "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
     );
     await expect(settingsCard(page)).toContainText(
       "Where AI works in this repository.",
@@ -1654,7 +2004,7 @@ test.describe("a repository's Runner", () => {
     await screenshot(page, testInfo, "code-repository-runner-global");
   });
 
-  test("Edit Settings offers Global Runner first, then the project's own Runners - never the Kubernetes agent's - and saves the one picked", async ({
+  test("the Runner card's Edit offers Global Runner first, then the project's own Runners - never the Kubernetes agent's - and saves the one picked", async ({
     page,
   }: {
     page: Page;
@@ -1663,9 +2013,9 @@ test.describe("a repository's Runner", () => {
     const modal: Locator = await openRunnerStep(page);
 
     /*
-     * A field like the dialog's others: the form's title and the card's
-     * own description above the menu, which the title names, and no
-     * "(Optional)" - empty is Global Runner, an answer of its own.
+     * A field like any other: the form's title and its description above
+     * the menu, which the title names, and no "(Optional)" - empty is
+     * Global Runner, an answer of its own.
      */
     await expect(modal).toContainText("Where AI works in this repository.");
     await expect(modal).not.toContainText("(Optional)");
@@ -1677,7 +2027,7 @@ test.describe("a repository's Runner", () => {
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
     ).toHaveText(
-      "AI works on a Runner OneUptime runs for every project, which skips your setup, build and test commands. Pick one of your Runners to have them run.",
+      "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
     );
 
     await runnerPicker(page).getByRole("combobox").click();
@@ -1685,7 +2035,7 @@ test.describe("a repository's Runner", () => {
     await expect(options).toHaveCount(3);
     await expect(options.nth(0)).toContainText("Global Runner · Connected");
     await expect(options.nth(0)).toContainText(
-      "Run by OneUptime for every project. It skips your setup, build and test commands.",
+      "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
     );
     await expect(options.nth(1)).toHaveText("office-runner · Disconnected");
     await expect(options.nth(2)).toHaveText("prod-eu-west-1 · Connected");
@@ -1699,7 +2049,7 @@ test.describe("a repository's Runner", () => {
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
     ).toHaveText(
-      "AI clones the repository on this Runner, runs your setup, build and test commands there, and opens the pull request.",
+      "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
     );
 
     const saved: Record<string, unknown> = await save(page, modal);
@@ -1712,7 +2062,7 @@ test.describe("a repository's Runner", () => {
       "Connected",
     );
     await expect(value.getByRole("link")).toHaveText("prod-eu-west-1");
-    // Its own Runner runs the commands: nothing is said about skipping them.
+    // Its own Runner builds and tests: nothing is said about not doing so.
     await expect(value.getByTestId("code-repository-runner-skips")).toHaveCount(
       0,
     );
@@ -1774,7 +2124,7 @@ test.describe("a repository's Runner", () => {
     await expect(page.getByTestId("code-repository-runner")).toHaveText(
       "None: this server runs no global Runner",
     );
-    // Nothing is picked: the step says what to do, not what a pick does.
+    // Nothing is picked: the field says what to do, not what a pick does.
     await openRunnerStep(page);
     await expect(
       page.getByTestId("code-repository-runner-picker-help"),
@@ -2271,6 +2621,560 @@ test.describe("the old addresses forward to Code", () => {
     test.skip(isPhone(testInfo), "width-independent");
     await page.goto(`${DASHBOARD}/ai/agents/${TASK.retries}?from=email#reply`);
     await expect(page).toHaveURL(`${taskPath(TASK.retries)}?from=email#reply`);
+  });
+});
+
+/*
+ * The maintainer's ask (task doc, block 54): "If I want to do a production
+ * review of every PR because oneuptime has a lot of context in terms of
+ * performance / traces / exceptions, how do I configure it in the Code
+ * product? ... we basically create a setting which says, 'Do a production
+ * review'". A repository's pull requests are reviewed against what
+ * production shows of the code they change: one switch in its settings,
+ * a page of their own in Code, and each review's page.
+ */
+test.describe("a repository's pull requests, reviewed against production", () => {
+  const REVIEWS: string = `${repositoryPath(REPOSITORY.checkout)}/production-reviews`;
+  const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  // checkout-api's reviews (Code/Fixture): #42 found something, #57 nothing, #61 waits.
+  const REVIEW: Record<"found" | "nothing" | "waiting", string> = {
+    found: "40000000-0000-4000-8000-0000000000f1",
+    nothing: "40000000-0000-4000-8000-0000000000f2",
+    waiting: "40000000-0000-4000-8000-0000000000f3",
+  };
+
+  async function openReview(
+    page: Page,
+    id: string,
+    search: string = "",
+  ): Promise<void> {
+    await page.goto(`${taskPath(id)}${search ? `?${search}` : ""}`);
+    await expect(page.getByTestId("code-task-header")).toBeVisible();
+  }
+
+  function reviewSwitch(page: Page): Locator {
+    return page.getByRole("switch", {
+      name: "Review Pull Requests Against Production",
+    });
+  }
+
+  test("Production Reviews: whether reviews are on, the way to Settings, and each pull request with what its latest review found", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(REVIEWS);
+
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute("data-production-review", "on");
+    await expect(status).toContainText(
+      "A pull request from someone with write access is reviewed when it opens and each time it changes.",
+    );
+    // Anyone else's waits for someone with write access to ask.
+    await expect(
+      page.getByTestId("code-production-reviews-status-others"),
+    ).toContainText(
+      "A pull request from anyone else is reviewed when someone with write access comments @oneuptime-app production review on it.",
+    );
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveText("Change in Settings");
+    // The list is of pull requests.
+    await expect(
+      page.getByTestId("code-production-reviews-list").getByRole("heading"),
+    ).toContainText("Pull Requests");
+
+    // Newest first, each its pull request: its title, its number, what was found.
+    const rows: Locator = page
+      .getByTestId("code-production-review-list")
+      .getByTestId("code-task-row");
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText(
+      "Cache coupon lookups for a minute",
+    );
+    await expect(rows.nth(0)).toContainText("Queued");
+    await expect(rows.nth(0)).toContainText("PR #61");
+    await expect(rows.nth(1)).toContainText(
+      "Retry charges when the gateway times out",
+    );
+    await expect(rows.nth(1)).toContainText("PR #42");
+    await expect(rows.nth(1)).toContainText("2 exceptions");
+    await expect(rows.nth(1)).toContainText("1 suspect deploy");
+    await expect(rows.nth(2)).toContainText("PR #57");
+    await expect(rows.nth(2)).toContainText("Nothing found");
+    await expect(page.getByTestId("code-production-reviews-count")).toHaveText(
+      "3",
+    );
+
+    // Read as a list of their own, not as the repository's tasks.
+    expect((await recorded(page)).reviewLists).toContain(REPOSITORY.checkout);
+    expect((await recorded(page)).lists).not.toContain(REPOSITORY.checkout);
+
+    // The trail runs through Repositories and the repository, as its other pages do.
+    await expect(
+      page
+        .locator("nav[aria-label='Breadcrumb']")
+        .locator("li.breadcrumb-item"),
+    ).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+      "Production Reviews",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-reviews");
+
+    await page.getByTestId("code-production-reviews-settings").click();
+    await expect(page).toHaveURL(SETTINGS);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a row opens its review; the repository's own tasks leave the reviews out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepository(page, REPOSITORY.checkout);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    await expect(page.getByTestId("code-task-row")).not.toContainText([
+      "Retry charges when the gateway times out",
+    ]);
+    for (const title of [
+      "Cache coupon lookups for a minute",
+      "Update the README's setup steps",
+    ]) {
+      await expect(
+        page.getByTestId("code-task-row").filter({ hasText: title }),
+      ).toHaveCount(0);
+    }
+
+    await page.goto(REVIEWS);
+    await page
+      .getByTestId("code-task-row")
+      .filter({ hasText: "PR #42" })
+      .getByRole("link")
+      .click();
+    await expect(page).toHaveURL(taskPath(REVIEW.found));
+    await expect(page.getByTestId("production-review")).toBeVisible();
+  });
+
+  test("off, with none yet: the GitHub command that asks for a review, drawn as code, once - and Turn on in Settings", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${REVIEWS}?review=off&reviews=none`);
+
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute("data-production-review", "off");
+    await expect(status).toContainText(
+      "A pull request is reviewed only when someone with write access comments @oneuptime-app production review on it.",
+    );
+    await expect(
+      status.locator("code", { hasText: "@oneuptime-app production review" }),
+    ).toBeVisible();
+
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveText("Turn on in Settings");
+
+    // The list says what it will hold; how a review comes is said once, above it.
+    const empty: Locator = page.getByTestId("code-production-reviews-empty");
+    await expect(empty).toContainText("No pull request reviewed yet");
+    await expect(empty).toContainText(
+      "Each pull request's latest review shows up here.",
+    );
+    await expect(
+      page.locator("code", { hasText: "production review" }),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("code-production-reviews-count")).toHaveCount(
+      0,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-reviews-off");
+
+    // A repository whose GitHub App answers no command is never offered one.
+    await page.goto(`${REVIEWS}?review=off&ghcommands=off&reviews=none`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toContainText("Pull requests are not reviewed against production.");
+    await expect(
+      page.locator("code", { hasText: "production review" }),
+    ).toHaveCount(0);
+
+    // One GitHub no longer reaches reviews nothing, switch on or not: connect it.
+    await page.goto(`${REVIEWS}?connected=none&review=on`);
+    const notConnected: Locator = page.getByTestId(
+      "code-production-reviews-status",
+    );
+    await expect(notConnected).toHaveAttribute(
+      "data-production-review",
+      "not-connected",
+    );
+    await expect(notConnected).toContainText(
+      "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
+    );
+    await page.getByTestId("code-production-reviews-connect").click();
+    await expect(page).toHaveURL(`${DASHBOARD}/code/repositories`);
+  });
+
+  test("a review: the pull request, the commit, what production shows of the changed code - each linked into OneUptime - and what never leaves OneUptime", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openReview(page, REVIEW.found);
+
+    const header: Locator = page.getByTestId("code-task-header");
+    await expect(header).toContainText("Production Review");
+    await expect(page.getByTestId("code-task-title")).toHaveText(
+      "Retry charges when the gateway times out",
+    );
+    await expect(
+      page.getByTestId("production-review-pull-request"),
+    ).toHaveAttribute("href", "https://github.com/acme/checkout-api/pull/42");
+    await expect(page.getByTestId("production-review-commit")).toHaveText(
+      "Commit 4f2a9c1",
+    );
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "Posted on the pull request.",
+    );
+    await expect(page.getByTestId("production-review-comment")).toHaveAttribute(
+      "href",
+      "https://github.com/acme/checkout-api/pull/42#issuecomment-1001",
+    );
+
+    // OneUptime AI's points first, the names of code in them as code.
+    const points: Locator = page.getByTestId("production-review-points");
+    await expect(points).toContainText("What to watch");
+    await expect(
+      points.locator("code", { hasText: "chargeCard()" }),
+    ).toBeVisible();
+
+    // Every part production showed, each with its rows.
+    await expect(page.getByTestId("production-review-exception")).toHaveCount(
+      2,
+    );
+    await expect(page.getByTestId("production-review-operation")).toHaveCount(
+      2,
+    );
+    await expect(
+      page.getByTestId("production-review-hot-function"),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("production-review-incident")).toHaveCount(2);
+    await expect(page.getByTestId("production-review-deploy")).toHaveCount(1);
+    await expect(
+      page.getByTestId("production-review-aggregates"),
+    ).toContainText(
+      "Only counts, durations and the names of code are posted on GitHub",
+    );
+
+    // No reply box: a review is not a conversation.
+    await expect(page.getByTestId("code-task-composer")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review");
+
+    // An exception opens where it lives in OneUptime.
+    await page
+      .getByTestId("production-review-exception")
+      .first()
+      .getByRole("link")
+      .click();
+    await expect(page.getByTestId("fixture-elsewhere")).toHaveText(
+      `${DASHBOARD}/exceptions/50000000-0000-4000-8000-0000000000e3`,
+    );
+  });
+
+  test("Review again: the review runs again in place - the last one stays on screen until the new one is in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReview(page, REVIEW.found);
+
+    await page.getByTestId("production-review-again").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).reviewAgains;
+      })
+      .toEqual([REVIEW.found]);
+
+    // Asked: it waits, then runs - the last review still drawn below.
+    await expect(page.getByTestId("production-review-working")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toBeDisabled();
+    await expect(page.getByTestId("production-review")).toBeVisible();
+
+    // In: the new commit, and Review again back.
+    await expect(page.getByTestId("production-review-commit")).toHaveText(
+      "Commit 9b8a7c6",
+      { timeout: 30000 },
+    );
+    await expect(page.getByTestId("production-review-working")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+  });
+
+  test("waiting to start, and a review that found nothing and posted nothing, say so - once each", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openReview(page, REVIEW.waiting);
+    await expect(page.getByTestId("production-review-working")).toContainText(
+      "Starting in a minute or so.",
+    );
+
+    await openReview(page, REVIEW.nothing);
+    await expect(page.getByTestId("production-review-posting")).toHaveText(
+      "Nothing was posted on the pull request.",
+    );
+    await expect(page.getByTestId("production-review-comment")).toHaveCount(0);
+    // Nothing was posted, so nothing is said about what a comment holds.
+    await expect(page.getByTestId("production-review-aggregates")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId("production-review-nothing-found"),
+    ).toContainText(
+      "This pull request changes no code production runs, so production has nothing to say about it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-nothing");
+  });
+
+  test("a review that failed, one of a public repository, one whose author cannot write, and one with parts not read", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // Failed: the one sentence, then the review before it.
+    await openReview(page, REVIEW.found, "reviewcase=failed");
+    await expect(page.getByTestId("production-review-failed")).toHaveText(
+      "OneUptime could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.",
+    );
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+
+    // A public repository's pull request only links here: nothing of production was posted.
+    await openReview(page, REVIEW.found, "reviewcase=public");
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "This repository is public, so the pull request only links to this review.",
+    );
+    await expect(page.getByTestId("production-review-aggregates")).toHaveCount(
+      0,
+    );
+
+    // Its author cannot write to the repository: reviewed again only when asked.
+    await openReview(page, REVIEW.found, "reviewcase=outside");
+    await expect(page.getByTestId("production-review-updates")).toHaveText(
+      "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+    );
+
+    // Parts not read are said before the findings.
+    await openReview(page, REVIEW.found, "reviewcase=unread");
+    const unread: Locator = page.getByTestId("production-review-unread");
+    await expect(unread).toContainText("Not read this time");
+    await expect(
+      unread.getByTestId("production-review-unread-section"),
+    ).toHaveText(["Traces", "Profiles"]);
+    const unreadBox: { y: number } | null = await unread.boundingBox();
+    const findingsBox: { y: number } | null = await page
+      .getByTestId("production-review-exceptions")
+      .boundingBox();
+    expect(unreadBox!.y).toBeLessThan(findingsBox!.y);
+
+    // Long names of code wrap between their parts, and nothing scrolls sideways.
+    await openReview(page, REVIEW.found, "reviewcase=long");
+    await expect(page.getByTestId("production-review-operation")).toHaveCount(
+      3,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-long");
+  });
+
+  test("a member who may only read reads the review, and is told why they cannot review it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReview(page, REVIEW.found, "role=viewer");
+
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-read-only")).toContainText(
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+    );
+
+    // No way to Settings from the reviews page either.
+    await page.goto(`${REVIEWS}?role=viewer`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveCount(0);
+  });
+
+  test("the setting: one switch, on for this repository and saved the moment it is flipped - and what a review posts, under More settings", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByText(
+        "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.",
+      ),
+    ).toBeVisible();
+
+    await reviewSwitch(page).click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isProductionReviewEnabled: false }]);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
+
+    // Folded, More settings names the choice; open, its card says what it is set to.
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings).toContainText("Production Review Comment");
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+
+    const comment: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Production Review Comment", { exact: true }),
+    });
+    await expect(comment).toContainText(
+      "What a production review posts on a pull request.",
+    );
+    await expect(
+      comment.getByTestId("production-review-content-value"),
+    ).toHaveText("The review, or a link on a public repository");
+
+    await comment.getByRole("button", { name: "Edit" }).click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(
+      "Private repositories show the review. Public ones only link to it in OneUptime, since anyone on the internet can read them.",
+    );
+    await screenshot(page, testInfo, "code-production-review-comment-edit");
+    await modal.getByText("Only a link to the review", { exact: true }).click();
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(modal).toBeHidden();
+    await expect
+      .poll(async () => {
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
+      })
+      .toMatchObject({ productionReviewPullRequestContent: "Link" });
+    await expect(
+      comment.getByTestId("production-review-content-value"),
+    ).toHaveText("Only a link to the review");
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("a repository connected before production review existed reads as off; the reviews page then says how to ask", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?review=unset`);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
+
+    await page.goto(`${REVIEWS}?review=unset`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toHaveAttribute("data-production-review", "off");
+  });
+
+  test("dark mode: the reviews and a review draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const lightSurfaces: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return await page.evaluate((channelPattern: string): Array<string> => {
+        const found: Array<string> = [];
+        for (const element of Array.from(
+          document.querySelectorAll(
+            "[data-testid='code-production-reviews-status'], [data-testid='code-task-row'], [data-testid='production-review-exceptions'], [data-testid='production-review-operations'], [data-testid='production-review-incidents'], [data-testid='production-review-footer-bar']",
+          ),
+        )) {
+          const background: string =
+            window.getComputedStyle(element).backgroundColor;
+          const channels: Array<number> = (
+            background.match(new RegExp(channelPattern, "g")) || []
+          )
+            .slice(0, 3)
+            .map(Number);
+          if (
+            channels.length === 3 &&
+            channels.every((value: number) => {
+              return value > 200;
+            })
+          ) {
+            found.push(element.getAttribute("data-testid") || "");
+          }
+        }
+        return found;
+      }, COLOUR_CHANNELS.source);
+    };
+
+    await page.goto(`${REVIEWS}?theme=dark`);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-production-reviews-dark");
+
+    await openReview(page, REVIEW.found, "theme=dark");
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-production-review-dark");
+  });
+
+  test("German: the reviews, a review and the setting speak the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+
+    await page.goto(`${REVIEWS}?lang=de`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toContainText(
+      "Ein Pull Request von jemandem mit Schreibzugriff wird geprüft, wenn er geöffnet wird und jedes Mal, wenn er sich ändert.",
+    );
+    await expect(
+      page.getByTestId("code-task-row").filter({ hasText: "PR #42" }),
+    ).toContainText("2 Ausnahmen");
+
+    await openReview(page, REVIEW.found, "lang=de");
+    await expect(page.getByTestId("production-review-points")).toContainText(
+      "Worauf zu achten ist",
+    );
+    await expect(
+      page.getByTestId("production-review-exceptions"),
+    ).toContainText("Ausnahmen im geänderten Code");
+    await expect(page.getByTestId("production-review-again")).toHaveText(
+      "Erneut prüfen",
+    );
+
+    await page.goto(`${SETTINGS}?lang=de`);
+    await expect(
+      page.getByRole("switch", {
+        name: "Pull Requests gegen die Produktion prüfen",
+      }),
+    ).toBeVisible();
   });
 });
 

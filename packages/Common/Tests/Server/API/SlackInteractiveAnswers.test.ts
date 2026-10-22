@@ -123,6 +123,17 @@ describe("POST /slack/interactive: a press is answered where it was made", () =>
         projectAuth.miscData = { botUserId: "B0BOT" } as never;
         return projectAuth;
       }) as never);
+    // The workspace's connections, as WorkspaceProjectResolution reads them.
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockImplementation((async (...args: Array<unknown>) => {
+        const projectAuth: unknown = await (
+          WorkspaceProjectAuthTokenService.findOneBy as unknown as (
+            ...args: Array<unknown>
+          ) => Promise<unknown>
+        )(...args);
+        return projectAuth ? [projectAuth] : [];
+      }) as never);
     jest
       .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
       .mockImplementation((async () => {

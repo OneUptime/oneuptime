@@ -805,9 +805,15 @@ describe("the Home of somebody not connected, or not a member", () => {
         connectUrl: null,
       });
 
-    expect(textOf(blocks[1]!)).toContain(
-      "**Connect your Microsoft Teams account**",
+    /*
+     * No button, so no "one click": connecting is the steps below, in
+     * OneUptime (a workspace connected to several projects, none of which
+     * the person is connected in, is drawn this way too).
+     */
+    expect(textOf(blocks[1]!)).toBe(
+      "🔗 **Connect your Microsoft Teams account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from Microsoft Teams.",
     );
+    expect(blocks).toHaveLength(3);
     // The path and the button the Dashboard draws, as the Connect prompts say them.
     expect(textOf(blocks[2]!)).toBe(
       "In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**.",

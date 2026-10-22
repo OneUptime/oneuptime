@@ -88,13 +88,19 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | Team | `Team` |
 | Anpassade roller, och de team som får en | `Custom Role`, `Team Custom Role` |
 | Etiketter | `Label` |
+| Incidentstatusar och allvarlighetsgrader | `Incident State`, `Incident Severity` |
+| Varningsstatusar och allvarlighetsgrader | `Alert State`, `Alert Severity` |
+| Monitorstatusar | `Monitor Status` |
+| Statusar för schemalagt underhåll | `Scheduled Maintenance State` |
+| Incidentroller | `Incident Role` |
+| Efteranalysstatusar | `Postmortem Status` |
 | API-nycklar | `API Key` |
 | MCP-klienter som personer ansluter | `MCP Client Authorization` |
 | Inventarieobjekt | `Inventory Item` |
 | Insamlarkonfigurationer | `Collector Config` |
 | vCenter-servrar | `vCenter` |
 | Paketinspelningar och nedladdningarna av dem | `Packet Capture` |
-| Säkerhetsärenden och playbooks | `Security Case`, `Security Playbook` |
+| Säkerhetsärenden, playbooks och deras körningar samt skyddade entiteter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 

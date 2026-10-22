@@ -629,3 +629,27 @@ describe("AwsSecurityHubNormalizer", () => {
     });
   });
 });
+
+/*
+ * ASFF's Process names the process a finding is about by name and path; it
+ * has no command line and names no parent but by pid.
+ */
+describe("AwsSecurityHubNormalizer: the process the finding is about", () => {
+  test("Process.Name and Process.Path", () => {
+    const event: NormalizedSecurityEvent =
+      AwsSecurityHubNormalizer.normalize(partnerFinding());
+
+    expect(event.processName).toBe("curl");
+    expect(event.processPath).toBe("/usr/bin/curl");
+    expect(event.processCommandLine).toBe("");
+    expect(event.parentProcessName).toBe("");
+  });
+
+  test("a finding with no Process names none", () => {
+    const event: NormalizedSecurityEvent =
+      AwsSecurityHubNormalizer.normalize(controlFinding());
+
+    expect(event.processName).toBe("");
+    expect(event.processPath).toBe("");
+  });
+});

@@ -419,6 +419,18 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getCodeBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/code/repositories/:id/production-reviews",
+    titles: [
+      "Project",
+      "Code",
+      "Repositories",
+      "Repository",
+      "Production Reviews",
+    ],
+  },
+  {
+    getter: "getCodeBreadcrumbs",
     pagePattern: "/dashboard/:projectId/code/tasks/:id",
     titles: ["Project", "Code", "Task"],
   },

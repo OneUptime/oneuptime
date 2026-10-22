@@ -305,6 +305,11 @@ export default class AIConfidenceSignal {
   public static async computeConfidenceSignal(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
+    /*
+     * The LLM provider the run uses, when its rule picked one
+     * (Server/Utils/AI/LlmProviderChoice); else the project's provider.
+     */
+    llmProviderId?: ObjectID | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     analysisMarkdown: string;
@@ -342,6 +347,7 @@ export default class AIConfidenceSignal {
           projectId: data.projectId,
           feature: CONFIDENCE_CLASSIFICATION_FEATURE,
           aiRunId: data.aiRunId,
+          llmProviderId: data.llmProviderId,
           incidentId: data.incidentId,
           alertId: data.alertId,
           // The verdict drives control flow; no prompt previews in LlmLog.

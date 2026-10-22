@@ -13,7 +13,22 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { Green, Red } from "Common/Types/BrandColors";
-import React, { FunctionComponent, ReactElement } from "react";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useMemo,
+  useRef,
+} from "react";
+import {
+  RuleLlmProviderChoices,
+  withRuleLlmProviderSummary,
+} from "../AI/RuleLlmProviderCopy";
+import {
+  getRuleLlmProviderFormField,
+  useRuleLlmProviderChoices,
+} from "../AI/RuleLlmProviderField";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_POSTMORTEM_RULES_TABLE_ID,
@@ -52,10 +67,25 @@ export interface ComponentProps {
 
 /*
  * What most rules leave alone, folded under More fields on the Draft step:
- * the description. Built once, so the form folds it the same way each time.
+ * the LLM provider OneUptime AI drafts with (none picked: the default
+ * provider, which the folded line names) and the description. Built once
+ * per table, so the form folds it the same way each time.
  */
-const POSTMORTEM_RULE_MORE_FIELDS: FormFieldCollapsibleSection<AIPostmortemRule> =
-  getAdvancedFormSection<AIPostmortemRule>();
+export function getPostmortemRuleMoreFields(
+  getLlmProviderChoices: () => RuleLlmProviderChoices | null,
+): FormFieldCollapsibleSection<AIPostmortemRule> {
+  return getAdvancedFormSection<AIPostmortemRule>({
+    getSummary: (
+      values: FormValues<AIPostmortemRule>,
+    ): Array<string> | undefined => {
+      return withRuleLlmProviderSummary(
+        undefined,
+        values,
+        getLlmProviderChoices(),
+      );
+    },
+  });
+}
 
 /*
  * Incidents → AI → Settings → More settings → Postmortem rules: which
@@ -82,6 +112,24 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
    * outline (the server holds the same rule).
    */
   const offersTemplates: boolean = canPickPostmortemTemplates();
+
+  /*
+   * The project's LLM providers, for the folded More fields line to name a
+   * rule's provider - or the default one - by. Read through a ref: a form
+   * may hold on to the fields it was opened with.
+   */
+  const llmProviderChoices: RuleLlmProviderChoices | null =
+    useRuleLlmProviderChoices();
+  const llmProviderChoicesRef: MutableRefObject<RuleLlmProviderChoices | null> =
+    useRef<RuleLlmProviderChoices | null>(llmProviderChoices);
+  llmProviderChoicesRef.current = llmProviderChoices;
+
+  const moreFields: FormFieldCollapsibleSection<AIPostmortemRule> =
+    useMemo(() => {
+      return getPostmortemRuleMoreFields((): RuleLlmProviderChoices | null => {
+        return llmProviderChoicesRef.current;
+      });
+    }, []);
 
   return (
     <ModelTable<AIPostmortemRule>
@@ -312,13 +360,22 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
           doNotShowWhenCreating: true,
           required: false,
         },
+        // The LLM provider OneUptime AI drafts with: none is the default.
+        getRuleLlmProviderFormField<AIPostmortemRule>({
+          stepId: "postmortem-draft",
+          collapsibleSection: moreFields,
+          dataTestId: "ai-postmortem-rule-llm-provider-field",
+          getChoices: (): RuleLlmProviderChoices | null => {
+            return llmProviderChoicesRef.current;
+          },
+        }),
         {
           field: { description: true },
           title: "Description",
           stepId: "postmortem-draft",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
-          collapsibleSection: POSTMORTEM_RULE_MORE_FIELDS,
+          collapsibleSection: moreFields,
         },
       ]}
       showRefreshButton={true}

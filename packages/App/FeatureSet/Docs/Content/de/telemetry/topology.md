@@ -6,6 +6,7 @@ Die Topologie zeichnet, wie Ihre Systeme zusammenhängen: welche Dienste welche 
 - [Die Topologie öffnen](#die-topologie-öffnen): Drei Ansichten auf einer Seite.
 - [Die Dienstkarte lesen](#die-dienstkarte-lesen): Wer wen aufruft, und wie gesund die Aufrufe sind.
 - [Ihre Infrastruktur erkunden](#ihre-infrastruktur-erkunden): Wo jeder Dienst läuft.
+- [Die eigene Karte einer Ressource öffnen](#die-eigene-karte-einer-ressource-öffnen): Ein vCenter, Cluster oder Host im Detail.
 - [Ihr Netzwerk sehen](#ihr-netzwerk-sehen): Geräte und ihre Verbindungen, live.
 :::
 
@@ -80,6 +81,14 @@ Klicken Sie auf einen Pfeil, um seine Anfragerate, Fehlerrate und durchschnittli
 - **Durchsuchen Sie sie, wie Sie wollen.** Zeigen Sie sie als **Liste** oder **Karte**, von Ihrer gesamten Infrastruktur bis zu einem einzelnen Pod. Die Zahlen darüber sagen, wie viele Ressourcen und Workloads sie zeichnet, wie viele Dienste sie zuordnen kann und wie viele stille Ressourcen sie weglässt.
 - **Eine Ressource finden.** Suchen Sie sie nach Namen und klicken Sie auf **Details anzeigen**, um ihre Seite zu öffnen.
 - **Zwischen den Ansichten wechseln.** Ein Dienst, der bei einer Ressource aufgeführt ist, öffnet sich auf der **Service Map**, und die Ressourcen, auf denen ein Dienst läuft, öffnen sich in **Infrastruktur**.
+
+## Die eigene Karte einer Ressource öffnen
+
+Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Alarm an dem Teil, den er betrifft.
+
+- **Finden, was Aufmerksamkeit erfordert.** **Erfordert Aufmerksamkeit** behält nur die Teile mit Problemen und den Weg zu jedem, und die Suche findet einen Teil überall in der Ressource.
+- **Genauer hinsehen.** Klicken Sie auf einen Teil, um zu sehen, was er ist, mit einem Link zu seiner eigenen Seite, und auf **Darauf fokussieren**, um nur diesen Teil zu zeichnen, was darin liegt und womit er in Beziehung steht.
+- **In beide Richtungen.** **In der Topologie öffnen** öffnet die Ressource in **Infrastruktur**, und ihre Schaltfläche **vCenter-Topologie öffnen**, **Cluster-Topologie öffnen**, **Host-Topologie öffnen** oder **Storage-Array-Topologie öffnen** führt zurück.
 
 ## Ihr Netzwerk sehen
 

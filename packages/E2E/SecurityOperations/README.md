@@ -12,12 +12,15 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                              | the same                                                                                   |
 | A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`                              | `Pages/SecurityEvents/CaseView`, `SecurityCase/*`, `EventNotes`, `SecurityPlaybookRunCard` |
 | Entities             | `SECURITY_EVENTS_ENTITIES` `.../security-events/entities`                         | `Pages/SecurityEvents/Entities`                                                            |
+| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`           | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                              |
 | Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                 | `Pages/SecurityEvents/RuleLibrary`                                                         |
+| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                 | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                          |
 | ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`           | `Pages/SecurityEvents/AttackCoverage`                                                      |
 | Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                              | `Pages/SecurityEvents/Playbooks`                                                           |
 | A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                      | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                         |
 | Waiting for Approval | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs` | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it     |
 | Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                  | the same                                                                                   |
+| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                   | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`   |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -34,7 +37,8 @@ the overview's numbers: the fixture answers `POST /security-case/overview` with 
 Stubbed:
 
 - The data boundary: `ModelAPI` and `API` answer from in-memory tables, filtered by the queries the
-  pages send (`Includes`, `IsNull`, equality) and sorted. `POST /security-case/top-entities`,
+  pages send (`Includes`, `IsNull`, equality) and sorted. `AnalyticsModelAPI` answers Threat Intel's
+  Indicators table, and only it. `POST /security-case/top-entities`,
   `/security-case/entity-activity` and `/security-playbook-run/:id/approve|reject` answer as the
   server would; approving the held step runs the rest of its playbook at once. The Overview's set-up
   routes answer as `SecuritySetup` does, on the fixture's own tables: `/security-case/setup/status`
@@ -42,25 +46,39 @@ Stubbed:
   `/security-case/setup/turn-on-recommended` turns your logs on and adds the recommended rules and
   Enrich New Cases; `/security-case/setup/test` opens CASE-150, the brute force case a test attack
   opens.
+- OneUptime AI's routes answer as the server would on the fixture's own triages: CASE-142 (the
+  spray, Likely Malicious, suggesting Contain Compromised Okta Users, whose run on it waits for
+  an approval), CASE-138 (Likely Malicious, suggesting Critical over its High and Enrich New
+  Cases, whose run on it failed), CASE-139 (Inconclusive) and CASE-137 (Likely Benign) carry the
+  read on their `ai*` columns, as the runner writes it.
+  `POST /security-case/:id/ai-triage` answers each one's finished run and the checks its report
+  cites; `/ai-triage/evidence` answers a cited check's rows, pinned to when the triage read them;
+  `/ai-triage/start` on CASE-141 (not read yet) starts a run the fixture walks one status read at a
+  time - queued, two checks, done - and, done, writes the read onto the case.
+  `POST /detection-rule/draft-with-ai` answers a counting correlation for any description of a
+  sentence or more, and `POST /ai-chat/providers` OneUptime Cloud's provider.
 - The signed-in user ("Maya Chen" of a generic "Acme Commerce" workspace), her teammates and her
   permissions. Profile pictures are drawn as initials. The fixture header says the data is
   synthetic ("Preview workspace · Synthetic data"). Every name, domain and address is made up
   (`*.example` domains, documentation IP ranges).
 - Realtime: nothing pushes changes.
-- The menu's other pages (Events, Correlate, Detection Rules, Threat Intel, Connections, Setup
-  Guide) render a small stub page, inside the real layout and its side menu.
+- The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
+  inside the real layout and its side menu.
 
 The clock is pinned: the spec fixes the browser clock to `2026-10-14T12:00:00Z`, and the month of
 history is laid out from it with a seeded generator, so every run draws the same pages.
 
 ## Scenarios
 
-| Parameter | Values                                                                                                                                            |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?theme=` | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                             |
-| `?empty=` | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                 |
-| `?quiet=` | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs |
-| `?role=`  | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                    |
+| Parameter  | Values                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
+| `?empty=`  | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
+| `?quiet=`  | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
+| `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
+| `?lists=`  | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
+| `?ai=`     | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
+| `?triage=` | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
 
@@ -96,9 +114,44 @@ that list is not empty.
   its card; the rule library marks the rules the project has and the recommended ones, filters to
   them and adds the missing ones in one click, its description running under its two buttons the
   card's whole width, and narrows by one select beside its search; Detections is a section of
-  pages, each its own address and entry; the side menu is six sections of pages, the ones set up
-  once folded, and on a phone it names the section and the page; entities ranks what the findings
-  name.
+  pages, each its own address and entry; the side menu is eight sections of pages, the ones set up
+  once folded, its Workspace section listing only the connected Slack, and on a phone it names the
+  section and the page; entities ranks what the findings name.
+- **Detection rules and threat intel**: Detection Rules names each rule's kind (Single event,
+  Sequence, First seen) and says what it means on hover; a single rule pasted into the form counts
+  by Group By Field, Distinct Count Field and Match Count Threshold, while a correlation is said in
+  a sentence under its YAML - the rules it reads by their titles, its fields as code - named after
+  its own title, and leaves those three out. Threat Intel's Free Lists offer each free list with
+  its publisher, schedule and terms on one line, end every tile alike, mark the one the project
+  reads as Added, and add another in one click as a list feed the feeds table lists by its source;
+  a project that reads every list (`?lists=all`) has no Free Lists card; a Security Viewer cannot
+  add one; the feeds table leaves the interval and Last Evaluated to Customize Columns, each row a
+  line or two; a new feed asks its source first, then only that source's settings (a list's
+  confidence under More fields; Google SecOps with nowhere to connect from says where). Both pages
+  in dark and on a phone.
+- **OneUptime AI**: a triaged case leads with the AI card - its read, the playbook it suggests and
+  a cited report, above the detections; a citation opens the check behind it and re-runs it on the
+  case's own route with the triage's run; a suggested playbook whose run on the case is still
+  going shows that run's status in place of Run playbook; Run playbook (its last run failed) opens
+  the run dialog on the suggested playbook and runs nothing; Triage with AI on a case nobody has
+  read shows each check as it runs,
+  then the read, and Set priority sets the suggested priority; the case lists show each case's read
+  beside its title; Draft with AI writes a Sigma correlation into the detection rule form from a
+  sentence, names the rule after it and saves nothing; Security Events → AI → Settings is one
+  switch, Triage new cases, that saves as it flips; the card in the dark theme and on a phone (the
+  suggested playbook named in full); with the project's AI off (`?ai=off`) none of it is drawn and
+  nothing asks.
+- **OneUptime AI when a triage cannot run, or was steered** (`?triage=`): the card's buttons sit
+  on the content's edge in both themes; a project out of AI credits, at its daily AI limit or
+  with no LLM provider says so in place of Triage again, with the fix for who may make it and who
+  can for a Security Viewer; a triage that stopped says why and Try again reads the case; text
+  written to steer an AI is said first, once (the report leaves out the runner's own heads-up),
+  and the read keeps no suggestion; a later triage that stopped keeps the read before it and says
+  why it stopped; a Security Viewer sees Triage with AI greyed with who can beside it, and no
+  Triage again or Set priority on a read; with new cases not triaged on their own the card links
+  to the switch; Close Case names the AI read over
+  the verdict it starts on, and nothing of it with AI off; the timeline has the triage; Draft
+  with AI's box has one action and an x beside its question.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the fixture
@@ -123,7 +176,16 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 `cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, `case-dark`,
 `case-mobile`, `playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,
 `playbook-runs-desktop`, `playbook-runs-empty`, `attack-coverage-desktop`, `rule-library-desktop`,
-`rule-library-category-*` and `entities-desktop`.
+`rule-library-category-*`, `entities-desktop`, `detection-rules-desktop`,
+`detection-rule-correlation-form-desktop`, `detection-rules-dark`, `detection-rules-phone`,
+`threat-intel-desktop`, `threat-intel-feed-source-desktop`, `threat-intel-dark`,
+`threat-intel-phone`, and OneUptime AI's: `case-ai-desktop`, `case-ai-evidence-desktop`,
+`case-ai-not-triaged-desktop`, `case-ai-triaging-desktop`, `case-ai-triaged-desktop`,
+`case-ai-dark`, `case-ai-phone`, `case-ai-phone-dark`, `cases-ai-desktop`,
+`detection-rule-ai-draft-desktop`, `detection-rule-ai-drafted-desktop`, `ai-settings-desktop`,
+`ai-settings-dark`, `ai-settings-phone`, `ai-settings-ai-off-desktop`, `case-ai-limit-desktop`,
+`case-ai-provider-desktop`, `case-ai-failed-desktop`, `case-ai-injection-desktop`,
+`case-ai-injection-phone-dark` and `case-close-ai-read-desktop`.
 
 ## Poke at it by hand
 

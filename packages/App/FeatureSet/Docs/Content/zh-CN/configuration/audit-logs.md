@@ -88,13 +88,19 @@ flowchart TB
 | 团队 | `Team` |
 | 自定义角色，以及获得角色的团队 | `Custom Role`、`Team Custom Role` |
 | 标签 | `Label` |
+| 事件状态和严重性 | `Incident State`、`Incident Severity` |
+| 警报状态和严重性 | `Alert State`、`Alert Severity` |
+| 监视器状态 | `Monitor Status` |
+| 计划维护状态 | `Scheduled Maintenance State` |
+| 事件角色 | `Incident Role` |
+| 事后分析状态 | `Postmortem Status` |
 | API 密钥 | `API Key` |
 | 人们连接的 MCP 客户端 | `MCP Client Authorization` |
 | 资产清单项 | `Inventory Item` |
 | 收集器配置 | `Collector Config` |
 | vCenter 服务器 | `vCenter` |
 | 抓包及其下载 | `Packet Capture` |
-| 安全案例与剧本 | `Security Case`、`Security Playbook` |
+| 安全案例、剧本及其运行，以及受保护的实体 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。
 

@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到集群
 
-打开 **产品 → 基础设施 → Proxmox → 所有集群**。在第一次抓取后大约一分钟，集群会以其 `PROXMOX_CLUSTER_NAME` 出现，并带有其节点、客户机和存储。
+打开 **产品 → 基础设施 → Proxmox → 所有集群**。在第一次抓取后大约一分钟，集群会以其 `PROXMOX_CLUSTER_NAME` 出现，并带有其节点、客户机和存储。它的 **拓扑** 页面将这些绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量

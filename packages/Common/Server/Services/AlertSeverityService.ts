@@ -1,9 +1,15 @@
 import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import TeamComplianceSettingService from "./TeamComplianceSettingService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
@@ -49,10 +55,34 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
     });
 
+    // A project keeps one severity that is not archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.AlertSeverity],
+      createBy: createBy,
+    });
+
     return {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Archiving retires a value without touching the records that have it
+   * (Common/Utils/ArchivableValues). A project keeps one severity that is not archived.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await ArchivableValueGuard.beforeUpdate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.AlertSeverity],
+      updateBy: updateBy,
+    });
+
+    return { updateBy, carryForward: null };
   }
 
   /**

@@ -736,6 +736,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Alert,
             keywords: ["open incidents", "ongoing incidents", "unresolved"],
           },
+          {
+            page: PageMap.INCIDENT_POSTMORTEMS,
+            title: "Postmortems",
+            icon: IconProp.DocumentText,
+            keywords: [
+              "post mortem",
+              "post-incident review",
+              "retrospective",
+              "rca",
+              "postmortem reports",
+              "postmortems owed",
+            ],
+          },
         ],
       },
       {
@@ -830,6 +843,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Postmortem Templates",
             icon: IconProp.Book,
             keywords: ["post mortem", "retrospective", "rca"],
+          },
+          {
+            page: PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES,
+            title: "Postmortem Statuses",
+            icon: IconProp.ClipboardDocumentCheck,
+            keywords: [
+              "post mortem status",
+              "custom postmortem statuses",
+              "in review",
+              "not needed",
+            ],
           },
           customFields(PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS),
           {
@@ -1769,6 +1793,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "AI",
+        pages: [
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_AI,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "ai triage",
+              "triage new cases",
+              "oneuptime ai security",
+              "automatic triage",
+            ],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:
@@ -2599,22 +2639,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Play,
             keywords: ["runbook runs"],
           },
-        ],
-      },
-      {
-        title: "Runners",
-        pages: [
           {
             page: PageMap.RUNBOOKS_RUNNERS,
             title: "Runners",
             icon: IconProp.Terminal,
             keywords: ["runbook runners", "agents"],
-          },
-          {
-            page: PageMap.RUNBOOKS_RUNNER_CREDENTIALS,
-            title: "AI Access",
-            icon: IconProp.Key,
-            keywords: ["runner credentials", "ssh hosts for ai"],
           },
         ],
       },

@@ -107,6 +107,9 @@ import type { SpyInstance } from "jest-mock";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
+import Project from "../../../../../Models/DatabaseModels/Project";
+import ProjectService from "../../../../../Server/Services/ProjectService";
+import WorkspaceProjectAuthTokenService from "../../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import AIService from "../../../../../Server/Services/AIService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import ScheduledMaintenanceService from "../../../../../Server/Services/ScheduledMaintenanceService";
@@ -758,6 +761,59 @@ describe("what a Teams user without a linked account is told (the real lookup; o
         expect(errorLog).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * An organization connected to more than one project: an account is
+     * connected in each project on its own, so the prompt names the project
+     * it asks them to connect in - somebody connected in the other one sees
+     * why they are asked again.
+     */
+    test("an organization connected to two projects: the prompt names the project to connect in, and still takes one click", async (): Promise<void> => {
+      stubLinkTable(null);
+
+      const otherProject: WorkspaceProjectAuthToken =
+        new WorkspaceProjectAuthToken();
+      otherProject.projectId = new ObjectID(
+        "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+      );
+      const thisProject: WorkspaceProjectAuthToken =
+        new WorkspaceProjectAuthToken();
+      thisProject.projectId = PROJECT_ID;
+
+      const connectionReads: SpyInstance<
+        typeof WorkspaceProjectAuthTokenService.findBy
+      > = jest
+        .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+        .mockResolvedValue([otherProject, thisProject]);
+      jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+        const project: Project = new Project();
+        project.id = PROJECT_ID;
+        project.name = "Payments";
+        return [project];
+      }) as never);
+
+      const turn: FakeTurn = await pressAcknowledge();
+
+      expect(turn.replies).toHaveLength(1);
+      const reply: CardReply = readCardReply(turn.replies[0]);
+
+      expect(reply.text).toBe(
+        `${MENTION} 🔗 **Connect your Microsoft Teams account in Payments to ${ACKNOWLEDGE_PROMPT.purpose}.** ${ACKNOWLEDGE_PROMPT.next}`,
+      );
+      expect(reply.summary).toBe(
+        `Connect your Microsoft Teams account in Payments to ${ACKNOWLEDGE_PROMPT.purpose}`,
+      );
+      expect(reply.actions).toHaveLength(1);
+      // The organization's connections, read by its tenant.
+      expect(
+        (connectionReads.mock.calls[0]![0] as { query: JSONObject }).query,
+      ).toEqual({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        workspaceProjectId: TENANT_ID,
+      });
+      expect(acknowledgeSpy).not.toHaveBeenCalled();
+      expect(errorLog).not.toHaveBeenCalled();
+    });
 
     test("without a dashboard URL the reply still says where to connect the account, and to press again", async (): Promise<void> => {
       stubLinkTable(null);

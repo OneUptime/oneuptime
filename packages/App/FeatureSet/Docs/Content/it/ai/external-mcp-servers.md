@@ -81,7 +81,7 @@ Per far smettere OneUptime AI di usare un server, disattiva **Consenti a OneUpti
 
 ## Scegliere i server che una regola può usare
 
-Le regole di indagine e le regole di rimedio automatico possono ciascuna indicare i server MCP che OneUptime AI può usare per ciò che corrisponde alla regola. Il campo è **Server MCP**, in **Altri campi**. Finché non ne scegli alcuni, la sezione chiusa dice **OneUptime AI può usare tutti i tuoi server MCP.**
+Le regole di indagine e le regole di rimedio automatico possono ciascuna indicare i server MCP che OneUptime AI può usare per ciò che corrisponde alla regola. Il campo è **Server MCP**, in **Altri campi**. Finché non ne scegli alcuni, OneUptime AI può usarli tutti, e la sezione chiusa lo dice.
 
 - **Nessuno scelto** — tutti i server attivi del progetto.
 - **Alcuni scelti** — solo quelli. Su una regola di rimedio automatico che corregge senza chiedere, indicare i suoi server è anche ciò che consente a OneUptime AI di farne le modifiche senza chiedere.

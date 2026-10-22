@@ -50,6 +50,14 @@ import {
   SearchSecurityEventsTool,
   SecurityEventSummaryTool,
 } from "./SecurityEventTools";
+import {
+  AddSecurityCaseNoteTool,
+  LookupThreatIntelTool,
+  QuerySecurityCasesTool,
+  QuerySecurityPlaybooksTool,
+  RunSecurityPlaybookTool,
+  SecurityEntityActivityTool,
+} from "./SecurityCaseTools";
 import { RecentChangesTool } from "./RecentChangesTools";
 import { GetChangeDetailsTool } from "./ChangeTools";
 import { BaselineAnomalyTool, QueryMetricsTool } from "./MetricTools";
@@ -151,6 +159,15 @@ export default class AIToolbox {
     SearchLogsTool,
     SearchSecurityEventsTool,
     SecurityEventSummaryTool,
+    /*
+     * Security cases and what a case is judged by: the project's threat
+     * intel, how unusual an entity's activity is, and the playbooks a case
+     * can be handed to (SecurityCaseTools).
+     */
+    QuerySecurityCasesTool,
+    LookupThreatIntelTool,
+    SecurityEntityActivityTool,
+    QuerySecurityPlaybooksTool,
     LogHistogramTool,
     QueryMetricsTool,
     BaselineAnomalyTool,
@@ -189,6 +206,13 @@ export default class AIToolbox {
     CreateIncidentNoteTool,
     CreateAlertNoteTool,
     StartInvestigationTool,
+    /*
+     * Security case writes: a note on a case, and a playbook started on
+     * one, as the person - whose containment steps still wait for their own
+     * approval in the playbook engine.
+     */
+    AddSecurityCaseNoteTool,
+    RunSecurityPlaybookTool,
     /*
      * Code writes (mutations). These never touch the default or a protected
      * branch — every chat-authored commit lands somewhere a human must still

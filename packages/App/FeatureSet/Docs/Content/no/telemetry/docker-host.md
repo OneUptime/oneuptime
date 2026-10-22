@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn verten i OneUptime
 
-Åpne **Produkter → Infrastruktur → Docker → Alle verter**. Verten vises under sitt `DOCKER_HOST_NAME` innen et minutt eller så, med containerne, metrikkene og loggene sine. AI-agenten vises som tilkoblet på vertens side **AI-agent**, og nederst på **Oversikt**.
+Åpne **Produkter → Infrastruktur → Docker → Alle verter**. Verten vises under sitt `DOCKER_HOST_NAME` innen et minutt eller så, med containerne, metrikkene og loggene sine. AI-agenten vises som tilkoblet på vertens side **AI-agent**, og nederst på **Oversikt**. Vertens side **Topologi** tegner Compose-prosjektene, containerne, imagene, nettverkene og volumene på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler

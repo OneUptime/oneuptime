@@ -10,16 +10,16 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test — RunnerJobService.enqueueAiCommand, the chokepoint
- * every AI-composed Bash or SSH command passes (FullAuto inline execution,
+ * every AI-composed Bash command passes (FullAuto inline execution,
  * approved plans, rollbacks), refuses a kubernetes-agent Runner as the
  * target:
  *
  * - that Runner exists to run policy-tiered kubectl with its own
- *   ServiceAccount; the claim path serves it kubectl only, so a Bash or SSH
- *   job aimed at it would sit unclaimed until its deadline after a human
+ *   ServiceAccount; the claim path serves it kubectl only, so a Bash job
+ *   aimed at it would sit unclaimed until its deadline after a human
  *   approved it;
  * - its identity is minted with the project's telemetry ingestion key, so
- *   it must never be handed AI-composed shell work or an SSH credential;
+ *   it must never be handed AI-composed shell work;
  * - the decision is the one "is an agent row" rule
  *   (RunnerService.isKubernetesAgentRunnerRow), failing closed on either
  *   fact: the server-owned NAME marker (compared case-insensitively; a
@@ -30,6 +30,9 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *
  * Refusing here (not only in the tool that lists hosts) also stops a plan
  * that was stored before the fix.
+ *
+ * And no Runner gets an SSH job: it reached its host with a runbook
+ * credential, and runbook credentials were removed.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -42,7 +45,6 @@ const SUGGESTION_ID: ObjectID = new ObjectID(
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
 );
-const CREDENTIAL_ID: string = "55555555-5555-4555-8555-555555555555";
 
 type EnqueueArgs = Parameters<typeof RunnerJobService.enqueueAiCommand>[0];
 
@@ -111,19 +113,20 @@ describe("RunnerJobService.enqueueAiCommand never targets a kubernetes-agent Run
     expect(countBy).not.toHaveBeenCalled();
   });
 
-  it("refuses an SSH job for an agent Runner too", async () => {
-    runnerLookup.mockResolvedValue(
+  it("refuses an SSH job for any Runner, before looking one up", async () => {
+    for (const row of [
+      runner(),
       runner({ name: "kubernetes-agent/prod-us" }),
-    );
+    ]) {
+      runnerLookup.mockResolvedValue(row);
 
-    await expect(
-      RunnerJobService.enqueueAiCommand(
-        args({
-          stepType: RunbookStepType.SSH,
-          credentialId: CREDENTIAL_ID,
-        }),
-      ),
-    ).rejects.toThrow(/never SSH commands/);
+      await expect(
+        RunnerJobService.enqueueAiCommand(
+          args({ stepType: RunbookStepType.SSH }),
+        ),
+      ).rejects.toThrow('AI remediation does not execute step type "SSH".');
+    }
+    expect(runnerLookup).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -141,7 +144,7 @@ describe("RunnerJobService.enqueueAiCommand never targets a kubernetes-agent Run
   /*
    * Round one keyed this refusal on the case-sensitive name alone, so an
    * agent row renamed out of the marker (or to a case variant of it) was
-   * accepted as a Bash/SSH host.
+   * accepted as a Bash host.
    */
   it.each([
     [
@@ -204,16 +207,16 @@ describe("RunnerJobService.enqueueAiCommand never targets a kubernetes-agent Run
     expect(job.script).toBe("systemctl restart nginx");
   });
 
-  it("negative control: an ordinary Runner gets its SSH job with the credential reference", async () => {
-    const job: RunnerJob = await RunnerJobService.enqueueAiCommand(
-      args({ stepType: RunbookStepType.SSH, credentialId: CREDENTIAL_ID }),
-    );
+  it("negative control: an ordinary Runner gets its Bash job, its command the script, naming no credential", async () => {
+    const job: RunnerJob = await RunnerJobService.enqueueAiCommand({
+      ...args(),
+      credentialId: "55555555-5555-4555-8555-555555555555",
+    } as unknown as EnqueueArgs);
 
     expect(create).toHaveBeenCalledTimes(1);
-    expect(job.payload).toEqual({
-      credentialId: CREDENTIAL_ID,
-      command: "systemctl restart nginx",
-    });
+    expect(job.stepType).toBe(RunbookStepType.Bash);
+    expect(job.script).toBe("systemctl restart nginx");
+    expect(job.payload).toBeUndefined();
   });
 
   it("a Kubectl job is still turned away first, towards its own chokepoint", async () => {

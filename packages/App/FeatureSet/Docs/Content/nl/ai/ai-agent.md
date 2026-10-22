@@ -8,6 +8,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 - [Hoe een herstelrun verloopt](#hoe-een-herstelrun-verloopt): Van een klik tot een pull request, stap voor stap.
 - [Waar hersteltaken starten](#waar-hersteltaken-starten): De taken die OneUptime start, en wat elke pull request doet.
 - [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel): Wat een herstel uit productie leest terwijl het de wijziging schrijft.
+- [Productiebeoordeling van pull requests](#productiebeoordeling-van-pull-requests): Wat productie zegt over de code die elke pull request wijzigt.
 - [Voordat je begint](#voordat-je-begint): Een model, een gekoppelde repository en een Runner.
 - [Als een herstel mislukt](#als-een-herstel-mislukt): Wat er gebeurt met een run die een fout geeft, vastloopt of wacht.
 :::
@@ -20,7 +21,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 :::steps
 ### Open Code
 
-Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de gekoppelde repository's, en de pagina van elke repository heeft hetzelfde vak voor die repository.
+Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die de GitHub App niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository.
 
 ### Kies de repository en de branch
 
@@ -89,7 +90,7 @@ flowchart TB
 3. De Runner haalt de context van de taak op. Bij een verzoek zijn dat de woorden, de toegevoegde context en het gesprek tot dan toe; bij een uitzondering het type, het bericht en de stack trace.
 4. Hij kloont de repository naar een eigen werkruimte en maakt een branch. Een herstel van een uitzondering heet `oneuptime-fix-exception-` gevolgd door de eerste tekens van de id van de run. Een vraag gaat uit van de branch die gekozen was toen die gesteld werd, en de pull request opent daarnaartoe. Een antwoord werkt in plaats daarvan op de branch van de open pull request van de taak.
 5. Een code-agent, aangedreven door de LLM-provider van je project, leest de code en schrijft de wijziging. De OneUptime-server doet de LLM-aanroepen, zodat de Runner nooit de API-sleutel van je provider heeft, en elke aanroep wordt gemeten en staat in de AI-logs. Een herstel van een uitzondering, een trage trace of een incident leest tijdens het werk ook uit productie: de uitzonderingen, traces, logs en metrieken van de services van de repository (zie [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel)).
-6. Heeft de repository controleopdrachten, dan bouwt en test een eigen Runner de wijziging voordat hij iets commit, en geeft hij een fout terug aan de code-agent om te herstellen (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
+6. Op een eigen Runner bouwt en test de code-agent zijn wijziging zoals de `AGENTS.md` van de repository zegt, voordat er iets wordt gecommit, en herstelt hij wat faalt (zie [Controle vóór de pull request](#controle-vóór-de-pull-request)).
 7. De Runner commit, pusht de branch, opent de pull request (bij een verzoek alleen als er code is gewijzigd) en verwijdert de werkruimte.
 
 De pagina waarop de taak is gestart, toont live de status. Elke taak staat in zijn repository onder **Producten → Code**: zijn pagina is zijn gesprek, en het **Logboek** van elke beurt heeft een regel voor elk bestand dat de Runner las of schreef en elke opdracht die hij uitvoerde.
@@ -146,17 +147,41 @@ Wat de agent kan lezen, bepaalt de OneUptime-server op basis van de taak zelf:
 
 Als er geen service bij de repository hoort, draait de taak zonder productietelemetrie, zoals voorheen.
 
+## Productiebeoordeling van pull requests
+
+OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
+
+| Hij leest | Van de code die de pull request wijzigt |
+| --- | --- |
+| **Uitzonderingen** | De uitzonderingen die in de afgelopen 7 dagen in de gewijzigde regels, functies en bestanden zijn gegooid, nieuwe en niet-afgehandelde gemarkeerd. |
+| **Operaties** | De getracete operaties die de gewijzigde code in het afgelopen uur uitvoeren: hun spans, fouten en p95. |
+| **Zware functies** | De functies van de gewijzigde code die in het afgelopen uur een deel van de profielen van de services innemen. |
+| **Incidenten** | De incidenten van de services uit de afgelopen 30 dagen die nog open zijn, of waarvan de hoofdoorzaak of postmortem de gewijzigde code noemt. Nooit een privé-incident. |
+| **Deploys** | De deploys van de services uit de afgelopen 7 dagen die OneUptime verdenkt van een regressie. |
+
+Als productie iets laat zien, leest OneUptime AI het naast de diff en voegt **Aandachtspunten** toe: een paar korte punten, elk gebaseerd op de feiten. Dit draait alleen zolang AI voor het project aan staat, hooguit 10 keer per dag voor een pull request en 100 keer voor een repository, en wordt gemeten zoals elke AI-aanroep; de feiten worden elke keer zonder AI gelezen. Als productie niets over de wijziging laat zien, plaatst OneUptime niets.
+
+- **Alleen totalen.** De opmerking bevat aantallen, duren en namen van code: nooit het bericht van een uitzondering, een logregel, de titel van een incident of persoonsgegevens.
+- **Openbare repository's krijgen een link.** Iedereen kan de pull requests van een openbare repository lezen, dus daar linkt de opmerking alleen naar de beoordeling in OneUptime, die alleen leden van het project kunnen openen. **Opmerking bij productiebeoordeling**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, kan overal **Alleen een link naar de beoordeling** plaatsen, of **De beoordeling, ook in een openbare repository**.
+- **Externe bijdragers kunnen er geen starten.** Een pull request wordt alleen vanzelf beoordeeld als de auteur, en wie er ook naar pushte, naar de repository mag schrijven. Een van iemand anders - een externe bijdrager, een fork, een bot - wordt beoordeeld als iemand met schrijfrechten er `@oneuptime production review` op reageert, of in Code op **Opnieuw beoordelen** klikt.
+- **Alleen lezen.** Een beoordeling kloont niets en voert niets van de pull request uit. De diff en de titel zijn gegevens voor OneUptime AI, nooit instructies: de AI heeft geen tools, en wat hij schrijft, wordt als tekst in de opmerking gezet.
+
+De schakelaar staat aan voor de repository's die de GitHub App vanaf nu verbindt. Een repository die werd verbonden voordat hij bestond, houdt hem uit tot je hem aanzet.
+
 ## Controle vóór de pull request
 
-Een repository kan tot drie controleopdrachten hebben op zijn pagina **Instellingen** in Code:
+Een repository zegt in een `AGENTS.md` in de hoofdmap, het bestand dat codeeragents lezen, hoe hij wordt gebouwd en getest. Voordat de code-agent iets wijzigt, leest hij de `AGENTS.md` van de repository (of zijn `CLAUDE.md`, als hij geen `AGENTS.md` heeft) uit de branch waar de taak van uitgaat, en werkt hij zoals die zegt. Zonder een van beide haalt hij het uit de `CONTRIBUTING.md` van de repository, de README, de pakketscripts, de `Makefile` of de CI-workflows. Er is niets in te stellen in OneUptime.
 
-| Opdracht | Voorbeeld | Wanneer die draait |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Eerst, om afhankelijkheden te installeren. |
-| **Build Command** | `npm run build` | Na de setup. |
-| **Test Command** | `npm test` | Als laatste. |
+| Waar AI werkt | Wat het met de build en tests van de repository doet |
+| --- | --- |
+| Een van je Runners | Bouwt en test zijn wijziging voordat de pull request opent, herstelt wat faalt en controleert opnieuw, en zegt in zijn samenvatting welke controles hij heeft gedraaid. Elke opdracht die hij draait, krijgt tot 2 minuten, zonder de eigen inloggegevens van de Runner in zijn omgeving. |
+| **Globale Runner** | Draait geen opdracht: hij schrijft de wijziging en opent de pull request, en de eigen CI van je repository controleert die. |
 
-Is er een ingesteld, dan controleert elke herstelrun zijn wijziging voordat de pull request opent:
+Niets uit een pull request die uit een fork komt, wordt ooit gelezen als de instructies van de repository: een herziening weigert zo'n pull request, en een review leest de basisbranch.
+
+### Opdrachten die op een repository zijn ingesteld
+
+Code vraagt niet meer om setup-, build- en testopdrachten, maar een repository die ze heeft, eerder ingesteld of via de API of Terraform, houdt ze. Ze staan alleen-lezen op de kaart **Build- en testopdrachten**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, en **Opdrachten verwijderen** verwijdert alle drie. Zolang er een is ingesteld, controleert elke herstelrun op een eigen Runner zijn wijziging er ook mee voordat de pull request opent:
 
 1. Als de code-agent klaar is, draaien de opdrachten op volgorde in de root van de repository, op de Runner, in de gekloonde werkruimte. Elke opdracht krijgt tot 15 minuten en draait met `CI=true`, zodat niets op invoer wacht; de eerste fout stopt de ronde.
 2. Bij een fout gaat het einde van de uitvoer van de mislukte opdracht terug naar dezelfde code-agent als hersteltaak, met de instructie zijn eigen wijziging te verbeteren in plaats van tests af te zwakken of over te slaan, en de opdrachten draaien opnieuw. Hij doet hoogstens **2** herstelpogingen. Die delen het LLM-budget van de run, en hun wijzigingen komen in dezelfde commit als het herstel.
@@ -205,12 +230,12 @@ Je koppelt repositories niet aan services. Als een taak start, vindt OneUptime d
 
 ### De Runner van de repository kiezen
 
-Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Instellingen bewerken** en kies er een bij de stap **Runner**. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
+Elke repository kiest de Runner waarop AI erin werkt: klik op zijn pagina **Instellingen** in Code op **Bewerken** op de kaart **Runner** en kies er een. Een repository die de GitHub App importeert, begint op de [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) van het project, als het er een heeft. Een repository die er geen kiest, werkt op **Globale Runner**, die OneUptime voor elk project draait.
 
 | Runner | Wat hij met een taak doet |
 | --- | --- |
-| **Globale Runner** | Schrijft de wijziging en opent de pull request, zonder je setup-, build- en testopdrachten: de eigen CI van je repository controleert de wijziging. |
-| Een van je Runners | Voert ook je setup-, build- en testopdrachten uit, op een host die jij beheert. |
+| **Globale Runner** | Schrijft de wijziging en opent de pull request zonder die te bouwen of te testen: de eigen CI van je repository controleert de wijziging. |
+| Een van je Runners | Bouwt en test de wijziging ook zoals de `AGENTS.md` van de repository zegt, op een host die jij beheert. |
 
 Alleen de Runner die een repository kiest, krijgt zijn taken en een token ervoor. In een project dat **Globale Runners gebruiken** uitzet onder **Runbooks → Runbook-agenten**, heeft elke repository een van de eigen Runners van het project nodig. De pagina van een Runner toont de repositories die hem kiezen.
 
@@ -233,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Kies hem voor de repository
 
-Klik op de pagina **Instellingen** van de repository in Code op **Instellingen bewerken** en kies de Runner bij de stap **Runner**. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
+Klik op de pagina **Instellingen** van de repository in Code op **Bewerken** op de kaart **Runner** en kies de Runner. De Runner neemt de wijziging over bij zijn volgende heartbeat, binnen ongeveer een minuut; er hoeft niets opnieuw te starten.
 
 ### Controleer of hij verbinding maakt
 
@@ -253,13 +278,13 @@ Elke manier om de container te draaien werkt (Docker Compose, Kubernetes enzovoo
 
 ## Automatische codeherstellingen uit onderzoeken
 
-Als een [AI-onderzoek](/docs/ai/ai-sre) een analyse van de hoofdoorzaak plaatst bij een incident of een waarschuwing, en de zorgvuldige classificatie ervan een wijziging in de code aanbeveelt, biedt de onderzoekskaart **Open Fix PR from this analysis** aan: een hersteltaak waarvan de hele context de geplaatste analyse is. De knop is verborgen als de oplossing operationeel is, alleen de infrastructuur betreft, extern is, een verwachte weigering, een gebruikersfout of zonder conclusie. Geschikte herstellingen gebeuren zonder de klik zolang de schakelaar **Een pull request met een fix openen wanneer een onderzoek een codewijziging vindt** aan staat. Hij hoort bij het herstellen: hij staat onder **Nieuwe incidenten automatisch herstellen** op **Incidenten → AI → Instellingen** (en onder **Nieuwe waarschuwingen automatisch herstellen** op **Waarschuwingen → AI → Instellingen**), gaat aan als herstellen aangaat, en opent alleen pull requests zolang herstellen aan staat. Beide beginnen uit, ook voor nieuwe projecten.
+Als een [AI-onderzoek](/docs/ai/ai-sre) een analyse van de hoofdoorzaak plaatst bij een incident of een waarschuwing, en de zorgvuldige classificatie ervan een wijziging in de code aanbeveelt, biedt de onderzoekskaart **Open Fix PR from this analysis** aan: een hersteltaak waarvan de hele context de geplaatste analyse is. De knop is verborgen als de oplossing operationeel is, alleen de infrastructuur betreft, extern is, een verwachte weigering, een gebruikersfout of zonder conclusie. Geschikte herstellingen gebeuren zonder de klik zolang **Nieuwe incidenten automatisch herstellen** aan staat op **Incidenten → AI → Instellingen** (en **Nieuwe waarschuwingen automatisch herstellen** op **Waarschuwingen → AI → Instellingen**). Herstellen begint uit, ook voor nieuwe projecten. Zonder regel voor automatisch herstel wordt elke geschikte fix geopend; met regels alleen een voor wat een regel matcht, wanneer de regel **Pull requests met oplossing** aan heeft staan (een nieuwe regel heeft dat), in de code-repository's die hij noemt.
 
-Zolang hij aan staat, zet een onderzoek dat eindigt met een zekere, onderbouwde hoofdoorzaak die een codewijziging kan herstellen, dezelfde hersteltaak in de wachtrij die de knop aanmaakt. De beslissing is een begrensde classificatie die de server controleert, nooit een patroon dat op de tekst van de analyse wordt toegepast: alleen een positief oordeel voor een codeherstel opent een pull request. Ontbrekend bewijs, een oplossing buiten de code en een mislukte classificatie eindigen allemaal in niets doen.
+Zolang herstellen aan staat, zet een onderzoek dat eindigt met een zekere, onderbouwde hoofdoorzaak die een codewijziging kan herstellen, dezelfde hersteltaak in de wachtrij die de knop aanmaakt. De beslissing is een begrensde classificatie die de server controleert, nooit een patroon dat op de tekst van de analyse wordt toegepast: alleen een positief oordeel voor een codeherstel opent een pull request. Ontbrekend bewijs, een oplossing buiten de code en een mislukte classificatie eindigen allemaal in niets doen.
 
 Al het andere is gelijk aan de knop:
 
-- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een repository nodig die via de GitHub App is gekoppeld en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
+- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een repository nodig die via de GitHub App is gekoppeld, een die de matchende regels noemen als ze er noemen, en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
 - Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Daily Incident AI Fix Task Limit** of **Daily Alert AI Fix Task Limit**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
 - Elke trigger zoekt eerst naar een hersteltaak die al in de wachtrij staat of draait voor hetzelfde incident of dezelfde waarschuwing, zodat een automatische trigger en een klik normaal één taak worden, niet twee pull requests. De controle is een lezing vóór het schrijven, geen vergrendeling, dus twee triggers op precies hetzelfde moment kunnen er nog allebei door komen.
 - De run wordt door het systeem geschreven, aan niemand toegeschreven, en niets wordt vanzelf gemerged.

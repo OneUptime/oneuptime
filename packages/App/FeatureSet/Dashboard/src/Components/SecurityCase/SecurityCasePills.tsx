@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { getSecurityCaseAiVerdictColor } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { getSecurityCasePriorityColor } from "Common/Types/SecurityCase/SecurityCasePriority";
 import { getSecurityCaseStatusColor } from "Common/Types/SecurityCase/SecurityCaseStatus";
 import { getSecurityCaseVerdictColor } from "Common/Types/SecurityCase/SecurityCaseVerdict";
@@ -22,6 +23,12 @@ interface ValuePillProps {
   value: string | undefined | null;
   size?: PillSize | undefined;
   isMinimal?: boolean | undefined;
+}
+
+// A pill that says more on hover: OneUptime AI's read, a run's status.
+interface TooltipPillProps extends ValuePillProps {
+  // Already in the reader's language.
+  tooltip?: string | undefined;
 }
 
 const NoValue: FunctionComponent = (): ReactElement => {
@@ -62,6 +69,30 @@ export const SecurityCaseStatusPill: FunctionComponent<ValuePillProps> = (
   );
 };
 
+/*
+ * OneUptime AI's read of a case (SecurityCaseAiVerdict), in the colors of
+ * the verdicts each read suggests, with the AI mark in front so it is never
+ * taken for the verdict a person set.
+ */
+export const SecurityCaseAiVerdictPill: FunctionComponent<TooltipPillProps> = (
+  props: TooltipPillProps,
+): ReactElement => {
+  if (!props.value) {
+    return <NoValue />;
+  }
+
+  return (
+    <Pill
+      text={props.value}
+      icon={IconProp.Sparkles}
+      color={getSecurityCaseAiVerdictColor(props.value)}
+      size={props.size}
+      isMinimal={props.isMinimal}
+      tooltip={props.tooltip}
+    />
+  );
+};
+
 export const SecurityCaseVerdictPill: FunctionComponent<ValuePillProps> = (
   props: ValuePillProps,
 ): ReactElement => {
@@ -80,8 +111,8 @@ export const SecurityCaseVerdictPill: FunctionComponent<ValuePillProps> = (
 };
 
 export const SecurityPlaybookRunStatusPill: FunctionComponent<
-  ValuePillProps
-> = (props: ValuePillProps): ReactElement => {
+  TooltipPillProps
+> = (props: TooltipPillProps): ReactElement => {
   if (!props.value) {
     return <NoValue />;
   }
@@ -92,6 +123,7 @@ export const SecurityPlaybookRunStatusPill: FunctionComponent<
       color={getSecurityPlaybookRunStatusColor(props.value)}
       size={props.size}
       isMinimal={props.isMinimal}
+      tooltip={props.tooltip}
     />
   );
 };

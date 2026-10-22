@@ -39,7 +39,7 @@ Der Server ist zustandslos: Er vergibt keine Sitzungs-IDs, und jede Anfrage steh
 - **Geplante Wartung**: Wartungsereignisse anlegen und verwalten.
 - **Telemetrie**: Logs, Metriken, Traces, Ausnahmen, Monitor-Logs, Sicherheitsereignisse und mehr abfragen, nur lesend.
 
-Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 27 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
+Es gibt Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für 28 Arten von Datensätzen, Tools zum Auflisten und Zählen für 9 Arten von Telemetrie und Tools speziell für die Vorfallreaktion. Nur lesende Tools tragen `readOnlyHint`, jedes Tool, das etwas ändert, trägt `destructiveHint`, und nur die Tools für öffentliche Statusseiten tragen `openWorldHint`, sodass ein Client nur lesende Aufrufe selbstständig ausführen und Sie vor jeder Änderung fragen kann. Ein fehlgeschlagener Tool-Aufruf kommt als Tool-Ergebnis zurück (`isError: true`) mit einem `statusCode`, den Details und einem Vorschlag, nicht als MCP-Protokollfehler, sodass der Agent den Fehler lesen und sich selbst korrigieren kann.
 
 ## Bevor Sie beginnen
 
@@ -471,7 +471,7 @@ Der MCP-Server ist zustandslos: Er vergibt und verfolgt keine Sitzungs-IDs, soda
 | Bereich | Datensätze mit Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen |
 | --- | --- |
 | Überwachung | Monitor, Monitor Status, Monitor Status Event |
-| Vorfälle | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| Vorfälle | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Warnungen | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statusseiten | Status Page, Status Page Announcement |
 | Geplante Wartung | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

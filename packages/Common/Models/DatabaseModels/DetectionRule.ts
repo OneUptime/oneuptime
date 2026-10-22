@@ -215,6 +215,7 @@ export default class DetectionRule extends BaseModel {
     title: "Enabled",
     description: "Whether this detection rule is evaluated.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -236,6 +237,7 @@ export default class DetectionRule extends BaseModel {
     description:
       "How often this rule is evaluated, in minutes. The evaluation window covers the time since the previous evaluation.",
     defaultValue: 1,
+    isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -331,6 +333,7 @@ export default class DetectionRule extends BaseModel {
     title: "Create Alerts",
     description: "Whether matches open OneUptime alerts.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -352,6 +355,7 @@ export default class DetectionRule extends BaseModel {
     description:
       "Whether matches also write a Detection Finding security event back into the events table.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

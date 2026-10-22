@@ -81,7 +81,7 @@ Om OneUptime AI een server niet meer te laten gebruiken, zet je **OneUptime AI d
 
 ## De servers kiezen die een regel mag gebruiken
 
-Onderzoeksregels en regels voor automatisch herstel kunnen elk de MCP-servers noemen die OneUptime AI mag gebruiken voor wat ze matchen. Het veld is **MCP-servers**, onder **Meer velden**. Totdat je er een paar kiest, zegt de ingeklapte sectie **OneUptime AI mag al je MCP-servers gebruiken.**
+Onderzoeksregels en regels voor automatisch herstel kunnen elk de MCP-servers noemen die OneUptime AI mag gebruiken voor wat ze matchen. Het veld is **MCP-servers**, onder **Meer velden**. Totdat je er een paar kiest, mag OneUptime AI ze allemaal gebruiken, en de ingeklapte sectie zegt dat.
 
 - **Geen gekozen** – alle ingeschakelde servers van het project.
 - **Een paar gekozen** – alleen die. Bij een regel voor automatisch herstel die herstelt zonder te vragen, is het noemen van zijn servers ook wat OneUptime AI hun wijzigingen laat maken zonder te vragen.

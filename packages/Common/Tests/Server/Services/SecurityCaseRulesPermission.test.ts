@@ -30,6 +30,12 @@ import {
  * it names, so it takes a role that may set up security playbooks. A Project
  * Member may set up every other kind of rule, but reads no security case:
  * without this, they could post every case to a channel of their own.
+ *
+ * An update or a delete is judged by the rules it changes, read with
+ * findRowsAndHoldUpdateToThem / findRowsAndHoldDeleteToThem - the rules the
+ * caller may write that the write names, the write held to them - never by
+ * a read of its own over the write's query (UpdateChecksReadHeldRows,
+ * DeleteChecksReadHeldRows).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -81,16 +87,39 @@ function create(
   return { data: rule, props: caller } as CreateBy<WorkspaceNotificationRule>;
 }
 
-let securityCaseRules: number;
+// The events of the rules a write changes, as the held-rows helpers read them.
+let rulesWritten: Array<NotificationRuleEventType>;
+
+function rulesRead(): Array<WorkspaceNotificationRule> {
+  return rulesWritten.map(
+    (eventType: NotificationRuleEventType): WorkspaceNotificationRule => {
+      const rule: WorkspaceNotificationRule = new WorkspaceNotificationRule();
+      rule._id = RULE_ID.toString();
+      rule.eventType = eventType;
+      return rule;
+    },
+  );
+}
 
 beforeEach(() => {
-  securityCaseRules = 0;
+  rulesWritten = [NotificationRuleEventType.Incident];
 
   jest
+    .spyOn(WorkspaceNotificationRuleService, "findRowsAndHoldUpdateToThem")
+    .mockImplementation(async (): Promise<Array<WorkspaceNotificationRule>> => {
+      return rulesRead();
+    });
+
+  jest
+    .spyOn(WorkspaceNotificationRuleService, "findRowsAndHoldDeleteToThem")
+    .mockImplementation(async (): Promise<Array<WorkspaceNotificationRule>> => {
+      return rulesRead();
+    });
+
+  // A count over the write's own query finds no Security Case rule.
+  jest
     .spyOn(WorkspaceNotificationRuleService, "countBy")
-    .mockImplementation((async (): Promise<PositiveNumber> => {
-      return new PositiveNumber(securityCaseRules);
-    }) as never);
+    .mockResolvedValue(new PositiveNumber(0));
 });
 
 afterEach(() => {
@@ -153,7 +182,7 @@ describe("who may set up a Security Case rule", () => {
       Permission.ProjectMember,
     ]);
 
-    securityCaseRules = 1;
+    rulesWritten = [NotificationRuleEventType.SecurityCase];
     await expect(
       service.onBeforeUpdate({
         query: { _id: RULE_ID },
@@ -168,7 +197,7 @@ describe("who may set up a Security Case rule", () => {
       } as unknown as DeleteBy<WorkspaceNotificationRule>),
     ).rejects.toThrow(NotAuthorizedException);
 
-    securityCaseRules = 0;
+    rulesWritten = [NotificationRuleEventType.Incident];
     await expect(
       service.onBeforeUpdate({
         query: { _id: RULE_ID },
@@ -187,8 +216,93 @@ describe("who may set up a Security Case rule", () => {
     ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
   });
 
+  test("a write over several rules takes the role when one of them is a Security Case rule", async () => {
+    const member: DatabaseCommonInteractionProps = props([
+      Permission.ProjectMember,
+    ]);
+
+    rulesWritten = [
+      NotificationRuleEventType.Incident,
+      NotificationRuleEventType.SecurityCase,
+      NotificationRuleEventType.Alert,
+    ];
+
+    await expect(
+      service.onBeforeUpdate({
+        query: { projectId: PROJECT_ID },
+        data: { isEnabled: false },
+        props: member,
+      } as unknown as UpdateBy<WorkspaceNotificationRule>),
+    ).rejects.toThrow(NotAuthorizedException);
+    await expect(
+      service.onBeforeDelete({
+        query: { projectId: PROJECT_ID },
+        props: member,
+      } as unknown as DeleteBy<WorkspaceNotificationRule>),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  test("a Security Admin changes and deletes one", async () => {
+    const securityAdmin: DatabaseCommonInteractionProps = props([
+      Permission.SecurityAdmin,
+    ]);
+
+    rulesWritten = [NotificationRuleEventType.SecurityCase];
+
+    await expect(
+      service.onBeforeUpdate({
+        query: { _id: RULE_ID },
+        data: { name: "Cases to #security" },
+        props: securityAdmin,
+      } as unknown as UpdateBy<WorkspaceNotificationRule>),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+    await expect(
+      service.onBeforeDelete({
+        query: { _id: RULE_ID },
+        props: securityAdmin,
+      } as unknown as DeleteBy<WorkspaceNotificationRule>),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
+  });
+
+  test("judges the rules the write changes: the update and the delete themselves are handed to the held-rows reads", async () => {
+    const member: DatabaseCommonInteractionProps = props([
+      Permission.ProjectMember,
+    ]);
+
+    const update: UpdateBy<WorkspaceNotificationRule> = {
+      query: { _id: RULE_ID },
+      data: { name: "Incidents to #ops" },
+      props: member,
+    } as unknown as UpdateBy<WorkspaceNotificationRule>;
+
+    const remove: DeleteBy<WorkspaceNotificationRule> = {
+      query: { _id: RULE_ID },
+      props: member,
+    } as unknown as DeleteBy<WorkspaceNotificationRule>;
+
+    await service.onBeforeUpdate(update);
+    await service.onBeforeDelete(remove);
+
+    const updateReads: Array<Array<unknown>> = jest.mocked(
+      WorkspaceNotificationRuleService.findRowsAndHoldUpdateToThem,
+    ).mock.calls;
+    const deleteReads: Array<Array<unknown>> = jest.mocked(
+      WorkspaceNotificationRuleService.findRowsAndHoldDeleteToThem,
+    ).mock.calls;
+
+    // The writes themselves, so each is held to the rules read.
+    expect(updateReads).toHaveLength(1);
+    expect(updateReads[0]![0]).toBe(update);
+    expect(updateReads[0]![1]).toEqual({ eventType: true });
+    expect(deleteReads).toHaveLength(1);
+    expect(deleteReads[0]![0]).toBe(remove);
+    expect(deleteReads[0]![1]).toEqual({ eventType: true });
+    // No count of its own over the write's query.
+    expect(WorkspaceNotificationRuleService.countBy).not.toHaveBeenCalled();
+  });
+
   test("OneUptime itself is never asked", async () => {
-    securityCaseRules = 1;
+    rulesWritten = [NotificationRuleEventType.SecurityCase];
 
     await expect(
       service.onBeforeUpdate({
@@ -197,6 +311,18 @@ describe("who may set up a Security Case rule", () => {
         props: { isRoot: true },
       } as unknown as UpdateBy<WorkspaceNotificationRule>),
     ).resolves.toBeDefined();
+    await expect(
+      service.onBeforeDelete({
+        query: { _id: RULE_ID },
+        props: { isRoot: true },
+      } as unknown as DeleteBy<WorkspaceNotificationRule>),
+    ).resolves.toBeDefined();
+    expect(
+      WorkspaceNotificationRuleService.findRowsAndHoldUpdateToThem,
+    ).not.toHaveBeenCalled();
+    expect(
+      WorkspaceNotificationRuleService.findRowsAndHoldDeleteToThem,
+    ).not.toHaveBeenCalled();
     expect(WorkspaceNotificationRuleService.countBy).not.toHaveBeenCalled();
   });
 });

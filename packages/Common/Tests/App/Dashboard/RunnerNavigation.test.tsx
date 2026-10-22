@@ -7,13 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter, matchRoutes } from "react-router-dom";
 
@@ -88,7 +82,6 @@ import {
   routeFor,
   sectionBody,
   sectionTitlesInOrder,
-  sectionToggle,
   setViewportWidth,
 } from "./SideMenuHarness";
 
@@ -106,7 +99,8 @@ const RUNNER_ID: string = "5d9e2c11-7a3b-4c1d-9e8f-00000000a0b1";
 const RUNBOOKS: string = `/dashboard/${PROJECT_ID}/runbooks`;
 const RUNNERS_PATH: string = `${RUNBOOKS}/runners`;
 const RUNNER_VIEW_PATH: string = `${RUNBOOKS}/runners/${RUNNER_ID}`;
-const CREDENTIALS_PATH: string = `${RUNBOOKS}/runner-credentials`;
+// Runbooks > Runners > AI Access, gone with runbook credentials.
+const OLD_CREDENTIALS_PATH: string = `${RUNBOOKS}/runner-credentials`;
 
 const realRoutes: Array<{ path: string }> = Object.values(RouteMap)
   .map((route: Route): { path: string } => {
@@ -136,55 +130,51 @@ afterEach(() => {
 });
 
 describe("the Runbooks side menu lists the Runner pages", () => {
-  test("Runners is its own section, between the runbooks and their Settings", async () => {
+  /*
+   * Runners had a section of their own while AI Access stood beside them
+   * (the runbook credentials OneUptime AI's commands reached a host or a
+   * cluster with). AI Access went with runbook credentials, and a section
+   * holding one row named like itself is a fold to open for nothing: the
+   * row joined the Runbooks section.
+   */
+  test("Runners is a row of the Runbooks section: no section of its own any more", async () => {
     await renderMenu(<RunbookSideMenu />);
 
     expect(sectionTitlesInOrder()).toEqual([
       "Runbooks",
-      "Runners",
       "Settings",
       "Developer",
     ]);
   });
 
-  test("the section holds Runners and AI Access, at their Runbooks URLs", async () => {
-    /*
-     * AI Access is the page Runner Credentials was: what OneUptime AI's
-     * commands reach through a Runner. Runbook steps use variables now.
-     */
-    await renderMenu(<RunbookSideMenu />);
-
-    expect(linksIn("Runners")).toEqual([
-      { title: "Runners", href: RUNNERS_PATH },
-      { title: "AI Access", href: CREDENTIALS_PATH },
-    ]);
-  });
-
-  test("its links come from the route table, not from spelled-out paths", async () => {
-    await renderMenu(<RunbookSideMenu />);
-
-    expect(linksIn("Runners")).toEqual([
-      { title: "Runners", href: routeFor(PageMap.RUNBOOKS_RUNNERS) },
-      {
-        title: "AI Access",
-        href: routeFor(PageMap.RUNBOOKS_RUNNER_CREDENTIALS),
-      },
-    ]);
-  });
-
-  test("both entries carry an icon", async () => {
-    await renderMenu(<RunbookSideMenu />);
-
-    expect(iconCountIn("Runners")).toBe(2);
-  });
-
-  test("the rest of the menu is where it was", async () => {
+  test("the Runbooks section holds Runners after the runbooks and their runs, at its Runbooks URL", async () => {
     await renderMenu(<RunbookSideMenu />);
 
     expect(linksIn("Runbooks")).toEqual([
       { title: "Runbooks", href: RUNBOOKS },
       { title: "Executions", href: `${RUNBOOKS}/executions` },
+      { title: "Runners", href: RUNNERS_PATH },
     ]);
+  });
+
+  test("its link comes from the route table, not from a spelled-out path", async () => {
+    await renderMenu(<RunbookSideMenu />);
+
+    expect(linksIn("Runbooks")[2]).toEqual({
+      title: "Runners",
+      href: routeFor(PageMap.RUNBOOKS_RUNNERS),
+    });
+  });
+
+  test("every entry of the section carries an icon", async () => {
+    await renderMenu(<RunbookSideMenu />);
+
+    expect(iconCountIn("Runbooks")).toBe(3);
+  });
+
+  test("the rest of the menu is where it was", async () => {
+    await renderMenu(<RunbookSideMenu />);
+
     expect(linksIn("Settings")).toEqual([
       { title: "Global Variables", href: `${RUNBOOKS}/settings/variables` },
       { title: "Owner Rules", href: `${RUNBOOKS}/settings/owner-rules` },
@@ -192,82 +182,69 @@ describe("the Runbooks side menu lists the Runner pages", () => {
     ]);
   });
 
-  test("Runners is folded down to its title on the Runbooks landing page, like Settings", async () => {
-    /*
-     * "Collapsing things in the side menu that are not used frequently"
-     * (the maintainer, for every side menu): a Runner is installed once and
-     * checked now and then, so its section shows only its title, between the
-     * runbooks and Settings, until it is opened.
-     */
+  test("Runners is in sight on the Runbooks landing page, with Settings folded", async () => {
     await renderMenu(<RunbookSideMenu />);
 
     expect(isExpanded("Runbooks")).toBe(true);
-    expect(isExpanded("Runners")).toBe(false);
-    expect(sectionBody("Runners")).toHaveClass(
-      "max-h-0",
-      "opacity-0",
-      "invisible",
-    );
+    expect(sectionBody("Runbooks")).not.toHaveClass("invisible");
     expect(isExpanded("Settings")).toBe(false);
   });
 
-  test("a click opens Runners to show both entries", async () => {
-    await renderMenu(<RunbookSideMenu />);
+  test("AI Access is in no section, and nothing in the menu leads to its old address", async () => {
+    for (const pagePath of [RUNBOOKS, RUNNERS_PATH, OLD_CREDENTIALS_PATH]) {
+      goTo(pagePath);
+      await renderMenu(<RunbookSideMenu />);
 
-    fireEvent.click(sectionToggle("Runners"));
-
-    expect(isExpanded("Runners")).toBe(true);
-    expect(sectionBody("Runners")).not.toHaveClass("invisible");
-    expect(linksIn("Runners")).toHaveLength(2);
+      expect(hrefsInMenu()).not.toContain(OLD_CREDENTIALS_PATH);
+      expect(
+        allLinks().map((link: MenuLink): string => {
+          return link.title;
+        }),
+      ).not.toContain("AI Access");
+      cleanup();
+    }
   });
 
   test.each([
     ["the Runners list", RUNNERS_PATH],
     ["a Runner's page", RUNNER_VIEW_PATH],
-    ["AI Access", CREDENTIALS_PATH],
   ])(
-    "Runners opens by itself on %s",
+    "the Runbooks section is open on %s",
     async (_name: string, pagePath: string) => {
       goTo(pagePath);
       await renderMenu(<RunbookSideMenu />);
 
-      expect(isExpanded("Runners")).toBe(true);
-      expect(sectionBody("Runners")).not.toHaveClass("invisible");
+      expect(isExpanded("Runbooks")).toBe(true);
+      expect(sectionBody("Runbooks")).not.toHaveClass("invisible");
     },
   );
 
-  test.each([
-    ["Runners", RUNNERS_PATH],
-    ["AI Access", CREDENTIALS_PATH],
-  ])(
-    "%s is the highlighted entry on its own page, and the only one",
-    async (title: string, pagePath: string) => {
-      goTo(pagePath);
-      await renderMenu(<RunbookSideMenu />);
+  test("Runners is the highlighted entry on its own page, and the only one", async () => {
+    goTo(RUNNERS_PATH);
+    await renderMenu(<RunbookSideMenu />);
 
-      const highlighted: Array<string> = Array.from(
-        document.querySelectorAll("nav a"),
-      )
-        .filter((anchor: Element): boolean => {
-          return anchor.className.includes("bg-indigo-50");
-        })
-        .map((anchor: Element): string => {
-          return (
-            anchor.querySelector("span.truncate")?.textContent ?? ""
-          ).trim();
-        });
+    const highlighted: Array<string> = Array.from(
+      document.querySelectorAll("nav a"),
+    )
+      .filter((anchor: Element): boolean => {
+        return anchor.className.includes("bg-indigo-50");
+      })
+      .map((anchor: Element): string => {
+        return (
+          anchor.querySelector("span.truncate")?.textContent ?? ""
+        ).trim();
+      });
 
-      expect(highlighted).toEqual([title]);
-    },
-  );
+    expect(highlighted).toEqual(["Runners"]);
+  });
 
   test("every entry in the menu opens a page the router has", async () => {
     await renderMenu(<RunbookSideMenu />);
 
     const hrefs: Array<string> = hrefsInMenu();
 
-    // Seven Runbooks pages, then the Developer section's three.
-    expect(hrefs).toHaveLength(10);
+    // Six Runbooks pages, then the Developer section's three.
+    expect(hrefs).toHaveLength(9);
     for (const href of hrefs) {
       expect(href).not.toMatch(/[:*]/);
       expect(matchRoutes(realRoutes, href)).not.toBeNull();
@@ -276,11 +253,11 @@ describe("the Runbooks side menu lists the Runner pages", () => {
 
   test("on a phone the menu names the section and the page", async () => {
     setViewportWidth(MOBILE_WIDTH);
-    goTo(CREDENTIALS_PATH);
+    goTo(RUNNERS_PATH);
     await renderMenu(<RunbookSideMenu />);
 
+    expect(mobileSummaryText()).toContain("Runbooks");
     expect(mobileSummaryText()).toContain("Runners");
-    expect(mobileSummaryText()).toContain("AI Access");
   });
 });
 
@@ -350,7 +327,6 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
       "Runners",
       "View Runner",
     ],
-    [PageMap.RUNBOOKS_RUNNER_CREDENTIALS]: ["Project", "Runbooks", "AI Access"],
   };
 
   const RUNNER_PAGES: Array<string> = Object.keys(RunbookRoutePath).filter(
@@ -446,13 +422,22 @@ describe("the Runner pages' breadcrumbs lead back through Runbooks", () => {
     for (const pattern of [
       RouteUtil.getRouteString(PageMap.RUNBOOKS_RUNNERS),
       RouteUtil.getRouteString(PageMap.RUNBOOKS_RUNNER_VIEW),
-      RouteUtil.getRouteString(PageMap.RUNBOOKS_RUNNER_CREDENTIALS),
+      "/dashboard/:projectId/runbooks/runner-credentials",
       "/dashboard/:projectId/settings/runners",
       "/dashboard/:projectId/settings/runners/:id",
       "/dashboard/:projectId/settings/runner-credentials",
     ]) {
       expect(getSettingsBreadcrumbs(pattern)).toBeUndefined();
     }
+  });
+
+  // AI Access went with runbook credentials: no trail is kept for it.
+  test("Runbooks has no trail for AI Access, which forwards to Runners", () => {
+    expect(
+      getRunbooksBreadcrumbs(
+        "/dashboard/:projectId/runbooks/runner-credentials",
+      ),
+    ).toBeUndefined();
   });
 
   test("the barrel exports the trails the layouts read", () => {

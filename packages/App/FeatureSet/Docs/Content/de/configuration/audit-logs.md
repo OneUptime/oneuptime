@@ -88,13 +88,19 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Teams | `Team` |
 | Benutzerdefinierte Rollen, und die Teams, die eine erhalten | `Custom Role`, `Team Custom Role` |
 | Beschriftungen | `Label` |
+| Vorfallsstatus und -schweregrade | `Incident State`, `Incident Severity` |
+| Warnungsstatus und -schweregrade | `Alert State`, `Alert Severity` |
+| Monitor-Status | `Monitor Status` |
+| Status geplanter Wartungen | `Scheduled Maintenance State` |
+| Vorfallsrollen | `Incident Role` |
+| Postmortem-Status | `Postmortem Status` |
 | API-Schlüssel | `API Key` |
 | MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
 | Inventareinträge | `Inventory Item` |
 | Collector-Konfigurationen | `Collector Config` |
 | vCenter | `vCenter` |
 | Paketmitschnitte, und ihre Downloads | `Packet Capture` |
-| Sicherheitsfälle und Playbooks | `Security Case`, `Security Playbook` |
+| Sicherheitsfälle, Playbooks und ihre Ausführungen sowie geschützte Entitäten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Fügt ein Administrator eine Benachrichtigungsmethode oder eine persönliche Bereitschaftsregel zum Konto einer anderen Person hinzu oder entfernt sie, wird das ebenfalls erfasst, ohne die Adresse oder Nummer selbst.
 

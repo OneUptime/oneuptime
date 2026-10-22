@@ -456,9 +456,35 @@ describe("declaring an incident from alerts", () => {
           monitor: { _id: true, name: true },
           hosts: { _id: true, name: true },
           services: { _id: true, name: true },
-          labels: { _id: true },
+          // With the archive switch: an archived label is not carried over.
+          labels: { _id: true, isArchived: true },
         }),
       );
+    });
+
+    /*
+     * Nobody can pick an archived label for a new incident
+     * (Common/Utils/ArchivableValues), and the server would refuse the
+     * incident for one: an alert's archived label stays on the alert.
+     */
+    test("leaves an alert's archived label on the alert: the incident takes the others", async () => {
+      const archived: Label = makeLabel("label-retired");
+      archived.isArchived = true;
+
+      const live: Label = makeLabel("label-api");
+      live.isArchived = false;
+
+      fixture.alerts[0]!.labels = [makeLabel("label-shared"), archived, live];
+      fixture.alerts[1]!.labels = [archived];
+
+      await openPage();
+
+      for (const form of capturedForms) {
+        expect(form.initialValues["labels"]).toEqual([
+          "label-shared",
+          "label-api",
+        ]);
+      }
     });
 
     test("prefills the form from the alerts before it first renders", async () => {

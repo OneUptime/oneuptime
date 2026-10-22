@@ -57,6 +57,7 @@ import {
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import { fromStoredCodeRepositoryIds } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import GitHubUtil, {
   GitHubInstallationToken,
 } from "../Utils/CodeRepository/GitHub/GitHub";
@@ -1102,14 +1103,20 @@ export default class AIAgentDataAPI {
           /*
            * Resolve the repository WITHOUT a stack trace — these tasks have
            * no exception, so only the name-match (against the subject's
-           * monitor/service name) and only-repository fallbacks apply. When
-           * nothing resolves the worker fails the run with this guidance.
+           * monitor/service name) and only-repository fallbacks apply - among
+           * the repositories the auto remediation rules that opened the run
+           * allow (every connected one when they named none, as when it was
+           * queued: CodeFixRunRepository). When nothing resolves the worker
+           * fails the run with this guidance.
            */
           const resolution: RepoResolution | null =
             await CodeRepositoryService.resolveRepositoryForException({
               projectId: run.projectId,
               stackTrace: null,
               serviceName,
+              allowance: fromStoredCodeRepositoryIds(
+                run.taskContext?.allowedCodeRepositoryIds,
+              ),
             });
 
           const repository: CodeRepository | null = resolution

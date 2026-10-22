@@ -88,13 +88,19 @@ Les moniteurs, les incidents, les alertes, les pages de statut, les SLO et bien 
 | Équipes | `Team` |
 | Rôles personnalisés, et les équipes qui en reçoivent un | `Custom Role`, `Team Custom Role` |
 | Étiquettes | `Label` |
+| États et gravités d'incident | `Incident State`, `Incident Severity` |
+| États et gravités d'alerte | `Alert State`, `Alert Severity` |
+| Statuts de moniteur | `Monitor Status` |
+| États de maintenance planifiée | `Scheduled Maintenance State` |
+| Rôles d'incident | `Incident Role` |
+| Statuts de post-mortem | `Postmortem Status` |
 | Clés API | `API Key` |
 | Clients MCP que les personnes connectent | `MCP Client Authorization` |
 | Éléments d'inventaire | `Inventory Item` |
 | Configurations du collecteur | `Collector Config` |
 | vCenter | `vCenter` |
 | Captures de paquets, et leurs téléchargements | `Packet Capture` |
-| Dossiers de sécurité et playbooks | `Security Case`, `Security Playbook` |
+| Dossiers de sécurité, playbooks et leurs exécutions, et entités protégées | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Un administrateur qui ajoute ou retire une méthode de notification ou une règle d'astreinte personnelle sur le compte de quelqu'un d'autre est aussi enregistré, sans l'adresse ni le numéro lui-même.
 

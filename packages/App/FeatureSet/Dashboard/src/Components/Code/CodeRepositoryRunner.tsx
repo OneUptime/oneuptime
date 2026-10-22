@@ -59,7 +59,7 @@ export const CODE_REPOSITORY_RUNNER_PICKER_TEST_ID: string =
 export const CODE_REPOSITORY_RUNNER_VALUE_TEST_ID: string =
   "code-repository-runner";
 
-// The line under Global Runner when the repository has commands it skips.
+// The line under Global Runner: it does not build or test AI's change.
 export const CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID: string =
   "code-repository-runner-skips";
 
@@ -186,12 +186,6 @@ export const CodeRepositoryRunnerPicker: FunctionComponent<
 
 export interface CodeRepositoryRunnerValueProps {
   runnerId: unknown;
-  /*
-   * Whether the repository has a setup, build or test command: on Global
-   * Runner, which never runs them, the card says so under the Runner, next
-   * to the commands it lists.
-   */
-  hasCommands?: boolean | undefined;
 }
 
 /*
@@ -199,9 +193,9 @@ export interface CodeRepositoryRunnerValueProps {
  * the Runner's name - a link to its page - and how it is doing, as the
  * Runners page draws it (a green dot for Connected, red for Disconnected,
  * grey for Never connected). It stays still: a settings value, not a live
- * view. On Global Runner, a repository with commands is told under it that
- * they are skipped - the card lists them right below, and nothing else
- * there would say they never run.
+ * view. On Global Runner the line under it says that Runner does not build
+ * or test AI's change before the pull request opens - what a Runner of the
+ * project's own does, the way the repository's AGENTS.md says.
  */
 export const CodeRepositoryRunnerValue: FunctionComponent<
   CodeRepositoryRunnerValueProps
@@ -315,6 +309,6 @@ export const CodeRepositoryRunnerValue: FunctionComponent<
 
   return withStatus(
     <span>{translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)}</span>,
-    props.hasCommands ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION : undefined,
+    CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
   );
 };

@@ -20,6 +20,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
 | **Postmortem-mallar**        | Återanvändbara strukturer för efteranalyser.                                                 |
+| **Efteranalysstatusar** | De statusar en efteranalys går igenom, från Inte påbörjad till Slutförd. |
 | **Anpassade fält**           | Definiera extra fält som visas på varje incident.                                            |
 | **Incidentroller**           | Definiera rollerna som du tilldelar de som ingriper, som Incidentansvarig.                   |
 | **Mätningar**                | Mäta hur lång tid saker tar, som tiden till bekräftelse eller till lösning, på varje incident. |
@@ -27,7 +28,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Medlemskap i episoder**    | Välja om en incident bara kan ingå i en episod. Avslaget som standard. |
 | **Numrering**                | Texten före incident- och episodnummer, som `INC-` i `INC-42`, och numret som nästa får. |
 
-Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget avsnitt, **Incidenter → AI**, på vägar som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår av eller på utredning av nya incidenter, automatisk åtgärd av dem (avstängd tills du slår på den), med pull requests för åtgärder och för saknad telemetri, som hör till åtgärden, grupperade under den, och utkast till efteranalyser, och var och en sparas så snart du slår om den; utredningsreglerna och reglerna för automatisk åtgärd som snävar in vilka incidenter som utreds och åtgärdas, postmortem-reglerna som väljer vilka lösta incidenter som får ett utkast och vilka mallar det följer, och de valfria gränserna som AI arbetar under, är hopfällda under **Fler inställningar**, och ingen av dem gäller förrän du sätter den. **Insikter** och **Loggar** finns bredvid: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Det som OneUptime AI gör på egen hand ställs inte in här: det har ett eget avsnitt, **Incidenter → AI**, på vägar som börjar med `/dashboard/{projectId}/incidents/ai/`. Dess sida **Inställningar** slår av eller på utredning av nya incidenter, automatisk åtgärd av dem (avstängd tills du slår på den), och utkast till efteranalyser, och var och en sparas så snart du slår om den; utredningsreglerna och reglerna för automatisk åtgärd som snävar in vilka incidenter som utreds och åtgärdas, och med vilka kodrepositorier och pull requests, postmortem-reglerna som väljer vilka lösta incidenter som får ett utkast och vilka mallar det följer, och de valfria gränserna som AI arbetar under, är hopfällda under **Fler inställningar**, och ingen av dem gäller förrän du sätter den. **Insikter** och **Loggar** finns bredvid: vad AI har lärt sig av dina incidenter, och allt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Incidentstatus** och **Incidentallvar** beskrivs ingående i [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities) — resten av den här sidan fortsätter från **Incidentmallar**. Formulär som låter folk utanför ditt team rapportera incidenter är en egen produkt: se [Formulär](/docs/forms/index). Verktyg som själva öppnar incidenter, som [Huntress](/docs/integrations/huntress), konfigureras som arbetsflöden.
 
@@ -169,10 +170,16 @@ En mall för efteranalys är skelettet till rapporten som du tar fram efter en i
 :::steps
 1. Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**.
 2. Klicka på **Skapa Incident Postmortem Mall** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
-3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**.
+3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**. Så länge inget är skrivet heter knappen **Börja från mall**; när efteranalysen är skriven finns **Tillämpa mall** i kortets meny **⋯**.
 :::
 
 Du tillämpar en från incidenten, inte från inställningarna. Öppna en incident, välj **Efteranalys** i dess sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), och använd **Tillämpa mall**. Det öppnar en dialog **Tillämpa mall för efteranalys** med en rullgardinsmeny **Välj mall**; väljer du en läses mallens text in i redigeraren **Anteckning för efteranalys**, där du redigerar den innan du sparar. Incidentepisoder har samma sida **Efteranalys** och hämtar från samma mallbibliotek. **Tillämpa mall** visas bara när projektet har en mall för efteranalys; finns det bara en är den redan vald. Redigeraren öppnas på incidentens efteranalys som den är, med mallen som anteckning, så om den finns på statussidan, när den publicerades och dess bilagor förblir som de var.
+
+## Efteranalysstatusar
+
+Varje incidents efteranalys har en av projektets efteranalysstatusar, så att **Incidenter → Efteranalyser** kan visa vilka efteranalyser som fortfarande saknas. Redigera dem under **Incidenter → Inställningar → Efteranalysstatusar** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): ett nytt projekt har **Inte påbörjad**, **Utkast**, **Slutförd** och **Behövs inte**, och du lägger till egna, till exempel **Under granskning**, med **Skapa Efteranalysstatus**.
+
+**Inte påbörjad**, **Utkast** och **Slutförd** är inbyggda: OneUptime flyttar efteranalyser till dem allteftersom de skrivs och publiceras, så de kan byta namn men inte tas bort eller arkiveras. Var en status står avgör om en efteranalys i den fortfarande saknas, vilket visas under **Räknas som**. Se [Efteranalyser](/docs/incidents/postmortems#följ-hur-långt-varje-efteranalys-har-kommit).
 
 ## Anpassade fält
 
@@ -431,7 +438,7 @@ Det är just poängen. `Declared At` registrerar när OneUptime fick veta det, v
 
 **Tid till bekräftelse** räknas från att incidenten deklareras, så en incident som ingen larmas om förrän på morgonen visar timmar av väntan som ingen som hade jour såg. **Tid till bekräftelse efter utlarmning** räknas i stället från **Någon larmas för första gången**: första gången en jourpolicy eller en direkt utlarmning aviserade någon om incidenten. Den slutar när incidenten bekräftas, enligt samma regel som tid till bekräftelse.
 
-OneUptime registrerar det ögonblicket på incidenten, och på larmet, som `First Paged At`, en gång, och flyttar det aldrig. Bara en utlarmning som verkligen gick ut räknas: i **Tidslinje för körningen** för en jourpolicy eller en direkt utlarmning, en person vars utlarmning skickades, bekräftades eller skickades vidare. Ett steg med statusen **Hoppade över** eller som slutade med **Fel** räknas inte, och inte heller en policy som startade men inte larmade någon, till exempel en med ett schema där ingen hade jour. Incidenter som larmades innan `First Paged At` fanns får sitt värde från körningarna av sina jourpolicyer.
+OneUptime registrerar det ögonblicket på incidenten, och på larmet, som `First Paged At`, en gång, och flyttar det aldrig. Bara en utlarmning som verkligen gick ut räknas: i **Tidslinje för körningen** för en jourpolicy eller en direkt utlarmning, en person vars utlarmning skickades, bekräftades eller eskalerades. Ett steg med statusen **Hoppade över** eller som slutade med **Fel** räknas inte, och inte heller en policy som startade men inte larmade någon, till exempel en med ett schema där ingen hade jour. Incidenter som larmades innan `First Paged At` fanns får sitt värde från körningarna av sina jourpolicyer.
 
 En incident som ingen larmades om har inget värde: **Inte startad än** medan den är öppen, och **Inte nådd** när den är löst. Diagrammet kan delas upp efter allvarlighetsgrad, så att du ser hur snabbt varje allvarlighetsgrad besvaras när någon väl har larmats. Incidentens sida visar det också: under dess tid till bekräftelse lägger den till hur lång tid efter den första utlarmningen den bekräftades, till exempel **4 minuter efter utlarmning**. Måttet för tid till bekräftelse och MTTA i sammanfattningarna i Slack och Microsoft Teams räknas fortfarande från när incidenten deklarerades.
 
@@ -476,6 +483,10 @@ Ett nytt projekt börjar med en roll, **Incidentansvarig**, personen som leder i
 Lägg till de andra rollerna som ditt team använder, som Responder, Communications Lead eller Scribe, med **Skapa Incident Roll**. Formuläret är en sida: ett namn och en beskrivning, och sedan **Fler fält**, hopfällt, med **Tillåt flera användare**, rollens ikon och dess färg. En ny rolls färg är redan vald, en som rollerna i listan inte använder än, och ikonen är valfri, så du öppnar bara **Fler fält** för att ändra dem. En roll innehas av en person per incident om du inte slår på **Tillåt flera användare**. Projekt som skapades av tidigare versioner av OneUptime började också med Responder, Communications Lead och Observer. De behåller dem tills du tar bort dem.
 
 Roller är bara definitioner. Du tilldelar personer till dem per incident — deklarationsguiden frågar i sitt steg **Jour och roller**, med ett fält **Tilldela incidentroller**, och varje incident har en sida **Roller** i sin sidomeny. En monitors kriterier och en grupperingsregel för incidenter kan välja personer till dem i förväg. Vart och ett av de formulären frågar med samma kort, ett per roll: en roll med märket **Primär** är Incidentansvarig eller en annan primär roll, och en roll för en person tar bort sin väljare när den har en. På en incidents kort **Roller** erbjuder en roll för flera personer **Add More**.
+
+### Arkivera en roll
+
+Arkivera en roll som ditt team inte längre använder från radens meny **⋯**, i stället för att ta bort den. De som har den på en incident behåller den, men ingen kan få den igen: Rollväljarna utelämnar den eller visar den bara med de personer som har den, och API:et avvisar den. Den primära rollen, och alla roller som inte kan tas bort, kan inte arkiveras. Arkiverade roller listas för sig, i det hopfällda avsnittet **Arkiverade incidentroller**, där **Avarkivera** återställer en.
 
 ## Nummerprefix
 

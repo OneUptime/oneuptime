@@ -161,6 +161,30 @@ export interface SerializedResult {
   bytes: number;
 }
 
+/*
+ * The rules a security result keeps out of redaction: the observables
+ * security work is about. A triage cannot judge "a sign-in from
+ * 203.0.113.7" when it reads "a sign-in from [redacted-ip]", nor look a
+ * file's SHA-256 up in threat intel when the digest reads [redacted-hex].
+ * Secrets - tokens, keys, private keys, card numbers, "password=..." -
+ * are redacted in a security result as in every other.
+ */
+export const SECURITY_OBSERVABLE_RULE_NAMES: ReadonlyArray<string> = [
+  "email",
+  "ipv4",
+  "hex-secret",
+];
+
+export interface RedactionOptions {
+  /*
+   * Keep IP addresses, email addresses and long hex digests (file hashes):
+   * for the security tools, whose results are those observables
+   * (SecurityEventTools, SecurityCaseTools) and the security case triage's
+   * context.
+   */
+  keepSecurityObservables?: boolean | undefined;
+}
+
 export default class ToolResultSerializer {
   // Single pass per rule: count and substitute ($1/$2 groups) together.
   private static applyRedactionRule(
@@ -189,11 +213,21 @@ export default class ToolResultSerializer {
     return { text: result, count };
   }
 
-  public static redact(text: string): { text: string; count: number } {
+  public static redact(
+    text: string,
+    options?: RedactionOptions,
+  ): { text: string; count: number } {
     let redacted: string = text;
     let count: number = 0;
 
     for (const rule of REDACTION_RULES) {
+      if (
+        options?.keepSecurityObservables &&
+        SECURITY_OBSERVABLE_RULE_NAMES.includes(rule.name)
+      ) {
+        continue;
+      }
+
       const applied: { text: string; count: number } = this.applyRedactionRule(
         redacted,
         rule,
@@ -213,12 +247,16 @@ export default class ToolResultSerializer {
    * otherwise lose its first part, and with it the shape a rule knows it by.
    * Every caller that redacts text for a model goes through here.
    */
-  public static redactAndOmitEmbeddedData(text: string): {
+  public static redactAndOmitEmbeddedData(
+    text: string,
+    options?: RedactionOptions,
+  ): {
     text: string;
     count: number;
   } {
     const redacted: { text: string; count: number } = this.redact(
       PromptText.omitDataUrls(text).text,
+      options,
     );
 
     return {
@@ -268,6 +306,7 @@ export default class ToolResultSerializer {
   public static serializeRows(
     rows: Array<JSONObject>,
     totalRowCount?: number,
+    options?: RedactionOptions,
   ): SerializedResult {
     let isTruncated: boolean = false;
     let redactionCount: number = 0;
@@ -290,7 +329,7 @@ export default class ToolResultSerializer {
         }
 
         const redacted: { text: string; count: number } =
-          this.redactAndOmitEmbeddedData(rawValue);
+          this.redactAndOmitEmbeddedData(rawValue, options);
         redactionCount += redacted.count;
 
         const truncated: { value: string; truncated: boolean } =

@@ -36,6 +36,7 @@
     "or": "of",
     "copy": "Kopiëren",
     "copied": "Gekopieerd!",
+    "copyFailed": "Kopiëren mislukt",
     "copyCode": "Code kopiëren",
     "copyRequest": "Verzoek kopiëren",
     "headers": "Kopteksten",

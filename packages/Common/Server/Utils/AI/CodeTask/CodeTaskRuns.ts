@@ -44,6 +44,13 @@ import ObjectID from "../../../../Types/ObjectID";
 export const CODE_TASK_BUSY_MESSAGE: string =
   "AI is still working on this task. Wait for it to finish, or stop it, before you reply.";
 
+/*
+ * A pull request's production review is OneUptime's, reviewed again when
+ * the pull request changes or someone asks: it takes no reply.
+ */
+export const CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE: string =
+  "A production review is not a conversation: it is updated when its pull request changes, or when you press Review again. To change code, ask AI in the repository.";
+
 const REPLY_LOCK_NAMESPACE: string = "CodeTaskRuns.turn";
 
 /*
@@ -303,6 +310,10 @@ export default class CodeTaskRuns {
       throw new BadDataException(
         "This task is not linked to a repository, so AI cannot continue it. Start a new task from a repository in Code.",
       );
+    }
+
+    if (CodeFixTaskTypeHelper.isProductionReview(data.task.codeFixTaskType)) {
+      throw new BadDataException(CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE);
     }
 
     const mutex: SemaphoreMutex | null = await CodeTaskRuns.lockTask(

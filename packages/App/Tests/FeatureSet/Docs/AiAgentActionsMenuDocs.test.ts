@@ -10,9 +10,11 @@ import path from "path";
  * the other resources in the project."
  *
  * Every AI agent page - a Kubernetes cluster's and every other resource's -
- * keeps the agent's status in its card's header and puts Test connection,
- * Reset agent and (on a cluster bound to a Runner outside the chart) Switch
- * to the AI agent in one ⋯ beside it (Components/AiAccess/AiAgentActions.ts).
+ * keeps the agent's status in its card's header and puts Test connection
+ * and Reset agent in one ⋯ beside it (Components/AiAccess/AiAgentActions.ts).
+ * Switch to the AI agent, which moved a cluster bound to a Runner outside it
+ * over to its agent, went with runbook credentials, which such a Runner
+ * reached the cluster with: no page names it.
  * A page that still says "the Test connection button", or puts an action
  * "on the AI agent page" without the menu, sends the reader looking for a
  * button that is not there.
@@ -34,11 +36,10 @@ const PAGES: Array<string> = [
   "telemetry/kubernetes-agent.md",
 ];
 
-const ACTIONS: Array<string> = [
-  "**Test connection**",
-  "**Reset agent**",
-  "**Switch to the AI agent**",
-];
+const ACTIONS: Array<string> = ["**Test connection**", "**Reset agent**"];
+
+// The action that went with runbook credentials.
+const REMOVED_ACTION: string = "**Switch to the AI agent**";
 
 // How the docs name the menu: the ⋯ beside the agent's status.
 const MENU: string = "**⋯** menu";
@@ -133,7 +134,7 @@ describe("the docs put an AI agent's actions in the ⋯ next to its status", () 
     expect(text).toContain("| Test connection runs");
   });
 
-  it("the AI SRE page puts the cluster's test, reset and switch in the ⋯", () => {
+  it("the AI SRE page puts the cluster's test and reset in the ⋯, and names no switch to the agent", () => {
     const text: string = read(path.join(CONTENT_DIR, "en", "ai/ai-sre.md"));
 
     expect(text).toContain(
@@ -142,11 +143,31 @@ describe("the docs put an AI agent's actions in the ⋯ next to its status", () 
     expect(text).toContain(
       "**Reset agent**, in the same menu, makes the server forget the agent's key once you confirm it;",
     );
-    expect(text).toContain(
-      "offers **Switch to the AI agent** in the **⋯** menu next to the agent's status.",
-    );
     // Who may reset is unchanged.
     expect(text).toContain("**Reset agent** takes the same people");
+  });
+
+  it("no English page names the switch to the agent, which the ⋯ no longer offers", () => {
+    const actions: string = read(
+      path.join(
+        CONTENT_DIR,
+        "../../Dashboard/src/Components/AiAccess/AiAgentActions.ts",
+      ),
+    );
+
+    expect(actions).toContain(
+      'export type AiAgentActionId = "test_connection" | "reset_agent";',
+    );
+    expect(actions).not.toContain('text: "Switch to the AI agent"');
+
+    for (const page of PAGES) {
+      expect({
+        page,
+        named: read(path.join(CONTENT_DIR, "en", page)).includes(
+          REMOVED_ACTION,
+        ),
+      }).toEqual({ page, named: false });
+    }
   });
 
   it("the Kubernetes agent page puts the test and the reset in the ⋯", () => {

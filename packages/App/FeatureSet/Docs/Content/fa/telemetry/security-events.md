@@ -46,10 +46,11 @@ flowchart TB
 | **در انتظار تأیید** | Playbooks | گام‌های پلی‌بوک که منتظرند کسی آن‌ها را تأیید یا رد کند |
 | **اجراهای پلی‌بوک** | Playbooks | آنچه هر پلی‌بوک گام به گام انجام داد |
 | **Protected Entities** | Playbooks | کاربران و میزبان‌هایی که هیچ پلی‌بوکی آن‌ها را مهار نمی‌کند |
+| **تنظیمات** | هوش مصنوعی | اینکه آیا OneUptime AI هر پروندهٔ تازه را بررسی اولیه می‌کند |
 | **Connections** | Connections | لاگ‌های شما، محصولات امنیتی‌ای که OneUptime از آن‌ها دریافت می‌کند، و SIEM‌هایی که به آن‌ها می‌فرستد |
 | **راهنمای راه‌اندازی** | Connections | قطعه‌کدهایی برای ارسال رویدادها، با کلید دریافت دادهٔ شما پرشده |
 
-**Detections** و **Connections** که یک بار راه‌اندازی می‌شوند، تا وقتی بازشان نکنید جمع‌شده می‌مانند. تازه با امنیت آشنا شده‌اید؟ [شروع کار با امنیت](/docs/telemetry/security-getting-started) آن را با دو کلیک راه‌اندازی می‌کند.
+**Detections**، **هوش مصنوعی** و **Connections** که یک بار راه‌اندازی می‌شوند، تا وقتی بازشان نکنید جمع‌شده می‌مانند. تازه با امنیت آشنا شده‌اید؟ [شروع کار با امنیت](/docs/telemetry/security-getting-started) آن را با دو کلیک راه‌اندازی می‌کند.
 
 ## پیش از شروع
 
@@ -135,6 +136,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`، `category`، `type`، `action` |
 | `ruleName` | `rule`، `rule_name`، `signature`، `detection` |
 | `productName` | `product`، `product_name`، `source`، `log_source` |
+| `processName` | `process_name`، `process.name`، `proc.name`، `comm` |
+| `processPath` | `process_path`، `Image`، `NewProcessName`، `exe`، `process.executable` |
+| `processCommandLine` | `command_line`، `CommandLine`، `cmdline`، `process.command_line`، `proc.cmdline`، `process` |
+| `parentProcessName` | `parent_process_name`، `process.parent.name`، `proc.pname` |
+| `parentProcessPath` | `parent_process_path`، `ParentImage`، `ParentProcessName`، `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`، `ParentCommandLine`، `process.parent.command_line`، `proc.pcmdline` |
 
 واژه‌ای که شدت را بیان می‌کند به یک سطح OCSF تبدیل می‌شود: `info` به‌صورت Informational، `warning` به‌صورت Low، `error` به‌صورت Medium، `alert` به‌صورت Critical و `emergency` به‌صورت Fatal خوانده می‌شود.
 
@@ -194,6 +201,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | شدت | `severityName` ، یکی از Unknown، Informational، Low، Medium، High، Critical، Fatal یا Other، و `severityId` |
 | چه کسی انجامش داد | `principalUser` ، `principalHost` ، `principalIp` ، `principalProcess` |
 | به چه چیزی دست زد | `targetUser` ، `targetHost` ، `targetIp` ، `targetPort` ، `targetResource` |
+| فرایند | `processName` ، `processPath` و `processCommandLine` : در اجرای یک فرایند، فرایندی که اجرا شد، و در غیر این صورت فرایندی که عمل کرد. `parentProcessName` ، `parentProcessPath` و `parentProcessCommandLine` : فرایندی که آن را اجرا کرد |
 | منبع | `productName` ، `vendorName` ، `ruleId` ، `ruleName` ، `eventUid` |
 | محتوا | `message` ، `mitreTactics` ، `mitreTechniques` و `observables` : هر کاربر، میزبان، نشانی IP، دامنه و هشی که از رویداد برداشته شده |
 | ویژگی‌ها | کل محتوای منبع، که به کلیدهای نقطه‌دار تخت شده است |
@@ -218,11 +226,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | ویژگی وجود دارد | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | ویژگی آن متن را دارد | `@finding_info.title:~ransom` |
 
-یک فیلد یا نامی کوتاه است (`severity` ، `class` ، `category` ، `activity` ، `status` ، `vendor` ، `product` ، `rule` ، `user` ، `host` ، `ip` ، `targetuser` ، `targethost` ، `targetip` ، `observable` ، `tactic` ، `technique`) یا نام خود فیلد، مانند `severityName` یا `principalHost` . هر نام دیگری به‌صورت یک ویژگی منبع خوانده می‌شود. `observable:<value>` هر رویدادی را که از یک مقدار نام می‌برد پیدا می‌کند، در هر سویی از فعالیت که بوده باشد.
+یک فیلد یا نامی کوتاه است (`severity` ، `class` ، `category` ، `activity` ، `status` ، `vendor` ، `product` ، `rule` ، `user` ، `host` ، `ip` ، `targetuser` ، `targethost` ، `targetip` ، `processname` ، `commandline` ، `parentprocessname` ، `observable` ، `tactic` ، `technique`) یا نام خود فیلد، مانند `severityName` یا `principalHost` . هر نام دیگری به‌صورت یک ویژگی منبع خوانده می‌شود. `observable:<value>` هر رویدادی را که از یک مقدار نام می‌برد پیدا می‌کند، در هر سویی از فعالیت که بوده باشد.
 
 ### وجه‌ها
 
-نوار کناری رویدادهای پنجره را بر پایهٔ **منبع** ، **شدت** ، **کلاس رویداد** ، **Category** ، **فعالیت** ، **وضعیت** ، **فروشنده** ، **محصول** ، **Detection Rule** ، **کاربر مبدأ** و **میزبان مبدأ** می‌شمارد. روی یک مقدار کلیک کنید تا فقط رویدادهای آن بمانند، یا روی علامت منفی کنارش تا کنار گذاشته شوند. برای برگرداندن، دوباره کلیک کنید. نمودار و هر شمارش دقیقاً رویدادهای فهرست را توصیف می‌کنند.
+نوار کناری رویدادهای پنجره را بر پایهٔ **منبع** ، **شدت** ، **کلاس رویداد** ، **Category** ، **فعالیت** ، **وضعیت** ، **فروشنده** ، **محصول** ، **Detection Rule** ، **کاربر مبدأ** ، **میزبان مبدأ** ، **فرایند** و **فرایند والد** می‌شمارد. روی یک مقدار کلیک کنید تا فقط رویدادهای آن بمانند، یا روی علامت منفی کنارش تا کنار گذاشته شوند. برای برگرداندن، دوباره کلیک کنید. نمودار و هر شمارش دقیقاً رویدادهای فهرست را توصیف می‌کنند.
 
 ### هم‌بسته‌سازی
 
@@ -278,9 +286,67 @@ OneUptime هستهٔ بولی Sigma را اجرا می‌کند:
 - شرط‌ها گزینش‌ها را با `and` ، `or` ، `not` و پرانتزها، یا با `1 of selection_*` ، `all of selection_*` ، `any of them` و `all of them` ترکیب می‌کنند.
 - پیراینده‌های فیلد: `contains` ، `startswith` ، `endswith` ، `all` ، `re` ، `cased` ، `gt` ، `gte` ، `lt` ، `lte` ، `cidr` ، `exists` و `windash` . متن بدون توجه به بزرگی و کوچکی حروف مقایسه می‌شود، مگر اینکه `cased` را اضافه کنید.
 - یک فیلد یا فیلدی نوع‌دار است (`principalUser`)، یا نگارش رایج آن در Sigma (`CommandLine` ، `src_ip` ، `Hostname`)، یا هر کلید ویژگی، به همان شکلی که در رویداد نوشته شده (`threat.matched`).
+- `Image` و `CommandLine` فرایندی را می‌خوانند که رویداد دربارهٔ آن است، یعنی در اجرای یک فرایند همان فرایندی که اجرا شد (`processPath` ، `processCommandLine`)، و `ParentImage` و `ParentCommandLine` فرایندی را که آن را اجرا کرد (`parentProcessPath` ، `parentProcessCommandLine`). `principalProcess` فرایندی است که عمل کرد، که در یک اجرا همان فرایند والد است.
 - `level` شدت را تعیین می‌کند: `informational` ، `low` ، `medium` ، `high` یا `critical` ، و اگر نباشد `medium` . شناسه‌های ATT&CK در `tags` (`attack.t1110` ، `attack.ta0006`) فیلدهای MITRE یافته را پر می‌کنند.
 
-تجمیع‌هایی مانند `| count() by principalIp > 5` هنگام ذخیره رد می‌شوند: به‌جای آن‌ها **Group By Field** و **Match Count Threshold** را به کار ببرید. `logsource` فقط جنبهٔ اطلاعاتی دارد و چیزی را محدود نمی‌کند: آن فیلتر را در یک گزینش بگذارید، مانند `className: Authentication` . یک `timeframe` نادیده گرفته می‌شود، چون بازهٔ قاعده پنجرهٔ آن را تعیین می‌کند.
+تجمیع‌هایی مانند `| count() by principalIp > 5` هنگام ذخیره رد می‌شوند: به‌جای آن‌ها یک [قاعدهٔ همبستگی](#قاعدههای-همبستگی) ، یا **Group By Field** و **Match Count Threshold** را به کار ببرید. `logsource` فقط جنبهٔ اطلاعاتی دارد و چیزی را محدود نمی‌کند: آن فیلتر را در یک گزینش بگذارید، مانند `className: Authentication` . یک `timeframe` نادیده گرفته می‌شود، چون بازهٔ قاعده پنجرهٔ آن را تعیین می‌کند.
+
+### قاعده‌های همبستگی
+
+یک [همبستگی Sigma](https://sigmahq.io/docs/meta/correlations.html) با چند رویداد با هم فعال می‌شود، نه با یکی. آن را همراه با قاعده‌هایی که می‌خواند، به‌صورت سندهای YAML جداشده با `---` ، در **Sigma Rule (YAML)** بچسبانید، یا قاعده‌هایی را که پروژه از پیش دارد با `name` یا `id` آن‌ها در Sigma نام ببرید. **Rule Library** نمونه‌های آماده دارد، مانند ورودهای ناموفقی که یک ورود موفق پس از آن‌ها می‌آید.
+
+| نوع | کی فعال می‌شود | نمایش با نام |
+| --- | --- | --- |
+| `event_count` | یک گروه در `timespan` به شمار معینی از رویدادها می‌رسد | تعداد رویداد |
+| `value_count` | یک گروه در `timespan` شمار معینی از مقدارهای متفاوت یک فیلد را نشان می‌دهد | مقادیر متمایز |
+| `temporal` | هر قاعده برای همان گروه در `timespan` تطابق دارد، به هر ترتیبی | رویدادهای هم‌زمان |
+| `temporal_ordered` | قاعده‌ها به ترتیب خودشان برای همان گروه در `timespan` تطابق دارند | Sequence |
+| `new_value` | یک گروه مقداری از یک فیلد را نشان می‌دهد که در `timespan` نشان نداده بود | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- یک گروه مقدار فیلدهای `group-by` است، مانند یک نشانی. شمارش‌ها غلتان‌اند: انفجاری که دو اجرا میانشان تقسیم کنند باز هم در `timespan` خودش کامل شمرده می‌شود، که حداکثر ۲۴ ساعت است.
+- `new_value` نوعی از خود OneUptime است، چون Sigma همبستگی «نخستین بار دیده‌شده» ندارد: آن را با تا ۳۰ روز تاریخچه مقایسه می‌کند. `value_sum` ، `value_avg` ، `value_percentile` و `value_median` هنگام ذخیره رد می‌شوند.
+- ستون **نوع** در **Detection Rules** گونهٔ هر قاعده را نام می‌برد، و فرم در یک جمله می‌گوید قاعده دنبال چه می‌گردد.
 
 ### تنظیمات ارزیابی
 
@@ -379,7 +445,7 @@ OneUptime هر دقیقه قاعده‌های فعالی را بررسی می‌
 :::
 
 :::details یک قاعده هرگز تطابق پیدا نمی‌کند
-بررسی کنید که **فعال** باشد، و **Last Evaluated** و **آخرین خطا** را در ردیفش بخوانید. رویدادی را که انتظار داشتید تطابق داشته باشد باز کنید و فیلد به فیلد با قاعده مقایسه کنید: یک مقدار ساده باید با کل فیلد برابر باشد، پس برای بخشی از آن `contains` یا `*` را به کار ببرید. یک ویژگی به همان نامی نوشته می‌شود که در رویداد دارد (`threat.matched` ، نه `attributes.threat.matched`). با آستانهٔ بیش از ۱، تطابق‌ها باید در یک اجرا بیفتند.
+**وضعیت** آن را بررسی کنید: قاعدهٔ **غیرفعال** اجرا نمی‌شود، و وقتی **اجرا ناموفق بود** نشان داده شود، **مشاهده خطا** در ردیفش علت را نشان می‌دهد. رویدادی را که انتظار داشتید تطابق داشته باشد باز کنید و فیلد به فیلد با قاعده مقایسه کنید: یک مقدار ساده باید با کل فیلد برابر باشد، پس برای بخشی از آن `contains` یا `*` را به کار ببرید. یک ویژگی به همان نامی نوشته می‌شود که در رویداد دارد (`threat.matched` ، نه `attributes.threat.matched`). با آستانهٔ بیش از ۱، تطابق‌ها باید در یک اجرا بیفتند.
 :::
 
 :::details قاعده تطابق یافت، اما هشداری باز نشد

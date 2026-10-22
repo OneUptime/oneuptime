@@ -24,6 +24,10 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import {
   ExpressRequest,
@@ -73,7 +77,8 @@ import {
  *   id where a Runner id would be. The agent is not a Runner row, so for an
  *   id the cluster's status resolves to the agent the Runner table is not
  *   re-read (it would refuse every agent plan); the agent must be online
- *   instead, and Bash/SSH steps aimed at it are refused.
+ *   instead, and Bash steps aimed at it are refused (an SSH step is
+ *   refused before anything is read: OneUptime AI no longer runs SSH).
  * - Only the cluster's CURRENT status makes an id the agent: a Runner is
  *   never mistaken for it, and an agent that is no longer the cluster's
  *   target falls back to the Runner re-read, which refuses it.
@@ -669,40 +674,44 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       },
     );
 
-    test("a cluster round reached through an advanced Runner is held back by the cluster's own gap once Enable AI is on", async () => {
+    /*
+     * A cluster round could reach a cluster through an advanced Runner with
+     * the cluster's Kubernetes runbook credential. Runbook credentials were
+     * removed; the one Runner row a cluster round still reaches is the
+     * chart's previous in-cluster Runner.
+     */
+    test("a cluster round reached through the previous in-cluster Runner is held back by the cluster's own gap once Enable AI is on", async () => {
       const gap: KubernetesAiAccessGap = {
         code: "remediation_write_access_missing",
-        title: "The Runner is read-only",
+        title: "The previous in-cluster Runner is read-only",
         description:
-          'Runner "ops-runner" reports that it may not change the cluster, so kubectl changes would be refused.',
+          "The Kubernetes agent was installed without write access, so kubectl changes would be refused by the cluster.",
         nextStep:
-          "Set ONEUPTIME_KUBECTL_ALLOW_WRITES=true on the Runner's host and restart it (ONEUPTIME_KUBECTL_WRITE_NAMESPACES limits the namespaces it may change).",
+          "Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over.",
         blocks: "remediation",
       };
       mockRow(
         clusterRoundRow([
           agentKubectlCommandJson({
             runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            runnerNameSnapshot: "kubernetes-agent/prod-us",
           }),
         ]),
       );
       runnerFindSpy.mockResolvedValue({
         _id: RUNNER_ID.toString(),
-        name: "ops-runner",
+        name: "kubernetes-agent/prod-us",
       } as unknown as Runner);
       statusSpy.mockResolvedValue(
         agentStatus({
           runner: {
             id: RUNNER_ID.toString(),
-            name: "ops-runner",
+            name: "kubernetes-agent/prod-us",
             kind: "runner",
             isOnline: true,
             canRunAiCommands: true,
           },
-          accessMethod: "credential",
-          credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          accessMethod: "in_cluster",
           isRemediationReady: false,
           gaps: [gap],
         }),
@@ -724,26 +733,24 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
         clusterRoundRow([
           agentKubectlCommandJson({
             runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            runnerNameSnapshot: "kubernetes-agent/prod-us",
           }),
         ]),
       );
       runnerFindSpy.mockResolvedValue({
         _id: RUNNER_ID.toString(),
-        name: "ops-runner",
+        name: "kubernetes-agent/prod-us",
       } as unknown as Runner);
       statusSpy.mockResolvedValue(
         agentStatus({
           runner: {
             id: RUNNER_ID.toString(),
-            name: "ops-runner",
+            name: "kubernetes-agent/prod-us",
             kind: "runner",
             isOnline: true,
             canRunAiCommands: true,
           },
-          accessMethod: "credential",
-          credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          accessMethod: "in_cluster",
         }),
       );
 
@@ -820,45 +827,59 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       expect(error.message).toContain("is offline, so this plan cannot be run");
     });
 
-    test.each([RunbookStepType.Bash, RunbookStepType.SSH])(
-      "a %s step aimed at the AI agent is refused — it runs only Kubectl steps",
-      async (stepType: RunbookStepType) => {
-        /*
-         * An approver who may read runbook credentials, so what refuses is
-         * the step itself rather than the credential an SSH step runs with.
-         */
-        jest
-          .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-          .mockResolvedValue(
-            buildUserProps([Permission.ReadRunbookCredential]),
-          );
+    test("a Bash step aimed at the AI agent is refused — it runs only Kubectl steps", async () => {
+      mockRow(
+        clusterRoundRow([
+          agentKubectlCommandJson({ sequence: 1 }),
+          bashCommandJson({
+            sequence: 2,
+            runnerId: AGENT_ID.toString(),
+            runnerNameSnapshot: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+          }),
+        ]),
+      );
 
-        mockRow(
-          clusterRoundRow([
-            agentKubectlCommandJson({ sequence: 1 }),
-            bashCommandJson({
-              sequence: 2,
-              stepType,
-              runnerId: AGENT_ID.toString(),
-              runnerNameSnapshot: KUBERNETES_AI_AGENT_DISPLAY_NAME,
-              // An SSH step only parses with the credential it logs in with.
-              ...(stepType === RunbookStepType.SSH
-                ? { credentialId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc" }
-                : {}),
-            }),
-          ]),
-        );
+      const error: BadDataException = expectRefusedBeforeClaim(
+        await callApprove(),
+      );
 
-        const error: BadDataException = expectRefusedBeforeClaim(
-          await callApprove(),
-        );
+      expect(error.message).toContain(
+        `Command 2 is a ${RunbookStepType.Bash} step`,
+      );
+      expect(error.message).toContain("Kubernetes AI agent");
+      expect(error.message).toContain("runs only Kubectl steps");
+      expect(runnerFindSpy).not.toHaveBeenCalled();
+    });
 
-        expect(error.message).toContain(`Command 2 is a ${stepType} step`);
-        expect(error.message).toContain("Kubernetes AI agent");
-        expect(error.message).toContain("runs only Kubectl steps");
-        expect(runnerFindSpy).not.toHaveBeenCalled();
-      },
-    );
+    /*
+     * An SSH step reached its host with a runbook credential. Runbook
+     * credentials were removed: a stored plan that still holds one is
+     * refused for that, whatever it is aimed at, before anything is read.
+     */
+    test("an SSH step is refused before anything is read: OneUptime AI no longer runs SSH", async () => {
+      mockRow(
+        clusterRoundRow([
+          agentKubectlCommandJson({ sequence: 1 }),
+          bashCommandJson({
+            sequence: 2,
+            stepType: RunbookStepType.SSH,
+            runnerId: AGENT_ID.toString(),
+            runnerNameSnapshot: KUBERNETES_AI_AGENT_DISPLAY_NAME,
+            credentialId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          }),
+        ]),
+      );
+
+      const error: BadDataException = expectRefusedBeforeClaim(
+        await callApprove(),
+      );
+
+      expect(error.message).toBe(
+        `Command 2 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
+      );
+      expect(statusSpy).not.toHaveBeenCalled();
+      expect(runnerFindSpy).not.toHaveBeenCalled();
+    });
 
     test("a mixed plan: the agent is recognised from the status, the ordinary Runner is still re-read", async () => {
       mockRow(
@@ -954,7 +975,7 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
         agentStatus({
           runner: {
             id: RUNNER_ID.toString(),
-            name: "ops-runner",
+            name: "kubernetes-agent/prod-us",
             kind: "runner",
             isOnline: true,
             canRunAiCommands: true,
@@ -1064,10 +1085,13 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
   });
 
   /*
-   * Where a write-scope refusal sends the approver, three ways by who runs
+   * Where a write-scope refusal sends the approver, two ways by who runs
    * kubectl for the cluster (§5.3) — the same split as the refusal's own
    * wording (RemediationCommandToolkit.getRunnerScopeSettings), so one
-   * message never names two different places. The agent case is above.
+   * message never names two different places. The agent case is above. A
+   * third way - a Runner outside the cluster, whose scope was set on its
+   * own host - went with runbook credentials, which it reached the cluster
+   * with.
    */
   describe("a write-scope refusal names where that target's scope is set", () => {
     // A cluster reached through a Runner row, as the plan was composed for it.
@@ -1154,127 +1178,25 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       );
     });
 
-    test("a credential Runner points at its own host, never at the Kubernetes agent chart", async () => {
-      mockRow(
-        clusterRoundRow([
-          agentKubectlCommandJson({
-            runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          }),
-        ]),
-      );
-      runnerFindSpy.mockResolvedValue({
-        _id: RUNNER_ID.toString(),
-        name: "ops-runner",
-      } as unknown as Runner);
-      statusSpy.mockResolvedValue(
-        runnerTargetStatus(
-          {
-            name: "ops-runner",
-            posture: {
-              inCluster: false,
-              allowWrites: true,
-              writeNamespaces: ["api"],
-            },
-          },
-          {
-            accessMethod: "credential",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          },
-        ),
-      );
-
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
-
-      expect(error.message).toContain(
-        'Command 1 cannot run on cluster "prod-us"',
-      );
-      // The refusal and the next step name the same place.
-      expect(error.message).toContain(
-        "ONEUPTIME_KUBECTL_WRITE_NAMESPACES on the Runner's host",
-      );
-      expect(error.message).toContain(
-        "Nothing ran. Dismiss the suggestion and let a new plan be composed, or change the Runner's write scope on the Runner's host and approve again.",
-      );
-      expect(error.message).not.toContain("Kubernetes agent chart");
-      expect(error.message).not.toContain("aiAgent.remediation");
-    });
-
-    test("a Runner that merely lives in a pod, with no cluster identity, is treated as a credential Runner", async () => {
-      mockRow(
-        clusterRoundRow([
-          agentKubectlCommandJson({
-            runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          }),
-        ]),
-      );
-      runnerFindSpy.mockResolvedValue({
-        _id: RUNNER_ID.toString(),
-        name: "ops-runner",
-      } as unknown as Runner);
-      statusSpy.mockResolvedValue(
-        runnerTargetStatus(
-          {
-            name: "ops-runner",
-            posture: {
-              inCluster: true,
-              allowWrites: true,
-              writeNamespaces: ["api"],
-            },
-          },
-          {
-            accessMethod: "credential",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          },
-        ),
-      );
-
-      const error: BadDataException = expectRefusedBeforeClaim(
-        await callApprove(),
-      );
-
-      expect(error.message).toContain(
-        "change the Runner's write scope on the Runner's host and approve again.",
-      );
-      expect(error.message).not.toContain("upgrade the Kubernetes agent chart");
-    });
-
     test("a rollback outside the scope gets the same next step as the command", async () => {
       mockRow(
         clusterRoundRow([
           agentKubectlCommandJson({
             runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            runnerNameSnapshot: "kubernetes-agent/prod-us",
             command: "kubectl rollout restart deployment/web -n api",
             rollbackCommand: "kubectl rollout undo deployment/web -n web",
           }),
         ]),
       );
-      runnerFindSpy.mockResolvedValue({
-        _id: RUNNER_ID.toString(),
-        name: "ops-runner",
-      } as unknown as Runner);
       statusSpy.mockResolvedValue(
-        runnerTargetStatus(
-          {
-            name: "ops-runner",
-            posture: {
-              inCluster: false,
-              allowWrites: true,
-              writeNamespaces: ["api"],
-            },
+        runnerTargetStatus({
+          posture: {
+            inCluster: true,
+            allowWrites: true,
+            writeNamespaces: ["api"],
           },
-          {
-            accessMethod: "credential",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          },
-        ),
+        }),
       );
 
       const error: BadDataException = expectRefusedBeforeClaim(
@@ -1283,40 +1205,29 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
 
       expect(error.message).toContain("Command 1's rollback cannot run");
       expect(error.message).toContain(
-        "change the Runner's write scope on the Runner's host and approve again.",
+        "upgrade the Kubernetes agent chart to the AI agent and set aiAgent.remediation.*.",
       );
+      expect(error.message).not.toContain("Runner's host");
     });
 
-    test("negative control: a command inside a credential Runner's scope is approved", async () => {
+    test("negative control: a command inside the previous in-cluster Runner's scope is approved", async () => {
       mockRow(
         clusterRoundRow([
           agentKubectlCommandJson({
             runnerId: RUNNER_ID.toString(),
-            runnerNameSnapshot: "ops-runner",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            runnerNameSnapshot: "kubernetes-agent/prod-us",
             command: "kubectl rollout restart deployment/web -n api",
           }),
         ]),
       );
-      runnerFindSpy.mockResolvedValue({
-        _id: RUNNER_ID.toString(),
-        name: "ops-runner",
-      } as unknown as Runner);
       statusSpy.mockResolvedValue(
-        runnerTargetStatus(
-          {
-            name: "ops-runner",
-            posture: {
-              inCluster: false,
-              allowWrites: true,
-              writeNamespaces: ["api"],
-            },
+        runnerTargetStatus({
+          posture: {
+            inCluster: true,
+            allowWrites: true,
+            writeNamespaces: ["api"],
           },
-          {
-            accessMethod: "credential",
-            credentialId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          },
-        ),
+        }),
       );
 
       expectClaimedAndExecuted(await callApprove());
@@ -1376,27 +1287,46 @@ describe("POST /auto-remediation/approve — cluster rounds and the Kubernetes A
       ).toContain("upgrade the Kubernetes agent chart to the AI agent");
     });
 
-    test("a summary with no kind is a Runner, as the field is documented", () => {
+    test("a summary with no kind is a Runner, as the field is documented: the previous in-cluster one", () => {
       expect(
         getScopeRefusalNextStep(
           summary({ kind: undefined, name: "ops-runner" }),
         ),
       ).toBe(
-        "Dismiss the suggestion and let a new plan be composed, or change the Runner's write scope on the Runner's host and approve again.",
+        "Dismiss the suggestion and let a new plan be composed. To allow changes like this, upgrade the Kubernetes agent chart to the AI agent and set aiAgent.remediation.*.",
       );
     });
 
-    test("a credential Runner in a pod but with no cluster identity keeps the host wording", () => {
-      expect(
-        getScopeRefusalNextStep(
-          summary({ posture: { inCluster: true, clusterIdentifier: "  " } }),
-        ),
-      ).toContain("the Runner's write scope on the Runner's host");
-    });
+    /*
+     * A Runner outside the cluster had its write scope set on its own host
+     * ("the Runner's write scope on the Runner's host"). Runbook
+     * credentials, which it reached the cluster with, were removed: no
+     * refusal sends anyone to a Runner's host any more.
+     */
+    test.each([
+      [
+        "a Runner in a pod with no cluster identity",
+        { posture: { inCluster: true, clusterIdentifier: "  " } },
+      ],
+      [
+        "a Runner on a host",
+        { name: "ops-runner", posture: { inCluster: false } },
+      ],
+    ] as Array<[string, Partial<KubernetesAiAccessRunnerSummary>]>)(
+      "%s gets the upgrade wording, never its host",
+      (_label: string, overrides: Partial<KubernetesAiAccessRunnerSummary>) => {
+        const nextStep: string = getScopeRefusalNextStep(summary(overrides));
 
-    test("no target at all falls back to the Runner wording instead of throwing", () => {
+        expect(nextStep).toContain(
+          "upgrade the Kubernetes agent chart to the AI agent",
+        );
+        expect(nextStep).not.toContain("Runner's host");
+      },
+    );
+
+    test("no target at all falls back to the upgrade wording instead of throwing", () => {
       expect(getScopeRefusalNextStep(null)).toContain(
-        "the Runner's write scope on the Runner's host",
+        "upgrade the Kubernetes agent chart to the AI agent",
       );
     });
   });

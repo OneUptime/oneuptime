@@ -167,7 +167,24 @@ describe("ThreatIntelFeedService.onBeforeCreate", () => {
   });
 });
 
+// The TAXII feed an update writes, as ThreatIntelFeedService reads it before checking the update.
+function stubStoredTaxiiFeed(): ReturnType<typeof getJestSpyOn> {
+  const stored: ThreatIntelFeed = new ThreatIntelFeed();
+  stored._id = new ObjectID("66666666-6666-4666-8666-666666666666").toString();
+  stored.projectId = PROJECT_ID;
+  stored.apiRootUrl = "https://taxii.example.com/api1/";
+  stored.collectionId = "col-1";
+
+  return getJestSpyOn(ThreatIntelFeedService, "findBy").mockResolvedValue([
+    stored,
+  ] as never);
+}
+
 describe("ThreatIntelFeedService.onBeforeUpdate", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("validates only the fields present in the update", async () => {
     // No validated fields at all: passes.
     await expect(
@@ -185,6 +202,9 @@ describe("ThreatIntelFeedService.onBeforeUpdate", () => {
     await expect(
       service.onBeforeUpdate(updateBy({ minimumConfidence: 500 })),
     ).rejects.toThrow(BadDataException);
+
+    // A new address is checked against the feed it is written to.
+    stubStoredTaxiiFeed();
 
     await expect(
       service.onBeforeUpdate(
@@ -290,11 +310,25 @@ describe("ThreatIntelFeedService — repointing resets the poll position", () =>
   });
 
   test("onBeforeUpdate flags apiRootUrl/collectionId changes; unrelated updates are not flagged", async () => {
+    stubStoredTaxiiFeed();
+
     const repointed: OnUpdate<ThreatIntelFeed> = await service.onBeforeUpdate(
       updateBy({ collectionId: "col-2" }),
     );
     expect((repointed.carryForward as { repointed: boolean }).repointed).toBe(
       true,
+    );
+
+    // An Edit form sends the address back as it is with every rename: no repoint.
+    const sentBack: OnUpdate<ThreatIntelFeed> = await service.onBeforeUpdate(
+      updateBy({
+        name: "renamed",
+        apiRootUrl: "https://taxii.example.com/api1/",
+        collectionId: "col-1",
+      }),
+    );
+    expect((sentBack.carryForward as { repointed: boolean }).repointed).toBe(
+      false,
     );
 
     const unrelated: OnUpdate<ThreatIntelFeed> = await service.onBeforeUpdate(

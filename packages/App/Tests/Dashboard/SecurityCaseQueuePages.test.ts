@@ -14,6 +14,7 @@ import {
   SECURITY_CASE_QUEUE_VIEW_KEYS,
   SecurityCaseQueueView,
   getSecurityCaseAssigneeForMe,
+  getSecurityCaseQueueFilters,
   getSecurityCaseQueueQuery,
   getSecurityCaseQueueStatusOptions,
   getSecurityCaseQueueView,
@@ -124,7 +125,14 @@ describe("the case queue's pages", () => {
           "lastDetection",
         ],
         hiddenColumns: ["labels"],
-        filters: ["title", "priority", "status", "labels", "opened"],
+        filters: [
+          "title",
+          "priority",
+          "status",
+          "aiVerdict",
+          "labels",
+          "opened",
+        ],
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: true,
         canOpenCase: true,
@@ -137,7 +145,14 @@ describe("the case queue's pages", () => {
         title: "Assigned to Me",
         columns: ["case", "priority", "status", "labels", "lastDetection"],
         hiddenColumns: ["labels"],
-        filters: ["title", "priority", "status", "labels", "opened"],
+        filters: [
+          "title",
+          "priority",
+          "status",
+          "aiVerdict",
+          "labels",
+          "opened",
+        ],
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: false,
         canOpenCase: false,
@@ -161,7 +176,14 @@ describe("the case queue's pages", () => {
           "lastDetection",
         ],
         hiddenColumns: ["labels"],
-        filters: ["title", "priority", "status", "labels", "opened"],
+        filters: [
+          "title",
+          "priority",
+          "status",
+          "aiVerdict",
+          "labels",
+          "opened",
+        ],
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: true,
         canOpenCase: false,
@@ -184,7 +206,15 @@ describe("the case queue's pages", () => {
           "closed",
         ],
         hiddenColumns: ["labels"],
-        filters: ["title", "priority", "verdict", "labels", "opened", "closed"],
+        filters: [
+          "title",
+          "priority",
+          "verdict",
+          "aiVerdict",
+          "labels",
+          "opened",
+          "closed",
+        ],
         sortBy: "closedAt",
         isEmptyGoodNews: false,
         canOpenCase: false,
@@ -204,13 +234,36 @@ describe("the case queue's pages", () => {
           "lastDetection",
         ],
         hiddenColumns: ["verdict", "labels"],
-        filters: ["title", "priority", "status", "verdict", "labels", "opened"],
+        filters: [
+          "title",
+          "priority",
+          "status",
+          "verdict",
+          "aiVerdict",
+          "labels",
+          "opened",
+        ],
         sortBy: "lastDetectedAt",
         isEmptyGoodNews: false,
         canOpenCase: true,
         canAssignToMe: true,
       },
     ]);
+  });
+
+  test("every list filters by what OneUptime AI read a case as, and none does with the project's AI off", () => {
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      expect([view.key, getSecurityCaseQueueFilters(view, true)]).toEqual([
+        view.key,
+        [...view.filters],
+      ]);
+      expect(getSecurityCaseQueueFilters(view, true)).toContain("aiVerdict");
+      expect(getSecurityCaseQueueFilters(view, false)).toEqual(
+        view.filters.filter((filter: string): boolean => {
+          return filter !== "aiVerdict";
+        }),
+      );
+    }
   });
 
   test("an open list never offers a verdict, and the closed list never a status", () => {

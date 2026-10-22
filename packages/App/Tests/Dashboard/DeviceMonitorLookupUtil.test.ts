@@ -4,6 +4,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
 
 /*
  * DeviceMonitorLookupUtil.monitorWatchesDevice is pure, but the module also
@@ -30,6 +31,44 @@ import DeviceMonitorLookupUtil from "../../FeatureSet/Dashboard/src/Components/N
 
 const getListMock: jest.Mock = ModelAPI.getList as unknown as jest.Mock;
 const getItemMock: jest.Mock = ModelAPI.getItem as unknown as jest.Mock;
+
+/*
+ * The two lists the lookup reads: the project's Network Device monitors
+ * (filtered by their steps), and the monitors a discovery import made for
+ * this device from a Ping, IP, Port or NTP template (issue #5145), found by
+ * their provenance. A test sets the first; the second is madeForDevice.
+ */
+let madeForDevice: Array<Monitor> = [];
+
+function isMadeForDeviceQuery(request: {
+  query?: Record<string, unknown>;
+}): boolean {
+  return Boolean(
+    request.query && "autoProvisionedNetworkDeviceId" in request.query,
+  );
+}
+
+function answerNetworkDeviceMonitors(result: {
+  data: Array<Monitor>;
+  count: number;
+  skip: number;
+  limit: number;
+}): void {
+  getListMock.mockImplementation(
+    async (request: { query?: Record<string, unknown> }) => {
+      if (isMadeForDeviceQuery(request)) {
+        return {
+          data: madeForDevice,
+          count: madeForDevice.length,
+          skip: 0,
+          limit: 100,
+        };
+      }
+
+      return result;
+    },
+  );
+}
 
 const DEVICE_ID: ObjectID = new ObjectID(
   "3f1b6b0e-0000-4000-8000-0000000000aa",
@@ -207,6 +246,7 @@ describe("DeviceMonitorLookupUtil.monitorWatchesDevice", () => {
 describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
   beforeEach(() => {
     getListMock.mockReset();
+    madeForDevice = [];
     getItemMock.mockReset();
     // Default: the device has nothing bound, which is the pre-#3447 world.
     getItemMock.mockResolvedValue(deviceRow({}));
@@ -221,7 +261,7 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
     ]);
     const malformed: Monitor = monitorWithSteps([malformedStep()]);
 
-    getListMock.mockResolvedValue({
+    answerNetworkDeviceMonitors({
       data: [watching, other, malformed],
       count: 3,
       skip: 0,
@@ -235,19 +275,45 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
     expect(result[0]).toBe(watching);
   });
 
-  test("queries only Network Device monitors", async () => {
-    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
+  test("reads the Network Device monitors, and the ones made for this device, nothing else", async () => {
+    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
 
     await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
-    const callArg: { query?: { monitorType?: MonitorType } } = getListMock.mock
-      .calls[0]![0] as { query?: { monitorType?: MonitorType } };
-    expect(callArg.query?.monitorType).toBe(MonitorType.NetworkDevice);
+    expect(getListMock).toHaveBeenCalledTimes(2);
+
+    const queries: Array<Record<string, unknown>> = getListMock.mock.calls.map(
+      (call: Array<unknown>): Record<string, unknown> => {
+        return (call[0] as { query: Record<string, unknown> }).query;
+      },
+    );
+
+    const watchers: Record<string, unknown> | undefined = queries.find(
+      (query: Record<string, unknown>): boolean => {
+        return !("autoProvisionedNetworkDeviceId" in query);
+      },
+    );
+    expect(watchers).toEqual({ monitorType: MonitorType.NetworkDevice });
+
+    const madeFor: Record<string, unknown> | undefined = queries.find(
+      (query: Record<string, unknown>): boolean => {
+        return "autoProvisionedNetworkDeviceId" in query;
+      },
+    );
+    expect(String(madeFor!["autoProvisionedNetworkDeviceId"])).toBe(
+      DEVICE_ID.toString(),
+    );
+    expect(madeFor!["monitorType"]).toBeInstanceOf(Includes);
+    expect((madeFor!["monitorType"] as Includes).values).toEqual([
+      MonitorType.Ping,
+      MonitorType.IP,
+      MonitorType.Port,
+      MonitorType.NTP,
+    ]);
   });
 
   test("returns an empty array when nothing in the project watches the device", async () => {
-    getListMock.mockResolvedValue({
+    answerNetworkDeviceMonitors({
       data: [monitorWithSteps([stepWatching(OTHER_DEVICE_ID.toString())])],
       count: 1,
       skip: 0,
@@ -275,6 +341,7 @@ describe("DeviceMonitorLookupUtil.getMonitorsWatchingDevice", () => {
 describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
   beforeEach(() => {
     getListMock.mockReset();
+    madeForDevice = [];
     getItemMock.mockReset();
   });
 
@@ -351,8 +418,9 @@ describe("DeviceMonitorLookupUtil.getDeviceBinding", () => {
 describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
   beforeEach(() => {
     getListMock.mockReset();
+    madeForDevice = [];
     getItemMock.mockReset();
-    getListMock.mockResolvedValue({ data: [], count: 0, skip: 0, limit: 100 });
+    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
     getItemMock.mockResolvedValue(deviceRow({}));
   });
 
@@ -391,7 +459,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
         monitor: bound,
       }),
     );
-    getListMock.mockResolvedValue({
+    answerNetworkDeviceMonitors({
       data: [watching],
       count: 1,
       skip: 0,
@@ -422,7 +490,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
         monitor: bound,
       }),
     );
-    getListMock.mockResolvedValue({
+    answerNetworkDeviceMonitors({
       data: [watching],
       count: 1,
       skip: 0,
@@ -448,7 +516,7 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
       stepWatching(OTHER_DEVICE_ID.toString()),
     ]);
 
-    getListMock.mockResolvedValue({
+    answerNetworkDeviceMonitors({
       data: [watching, other],
       count: 2,
       skip: 0,
@@ -485,5 +553,114 @@ describe("DeviceMonitorLookupUtil - the bound monitor joins the list", () => {
      * and a second round trip for a boolean already on the row is waste.
      */
     expect(getItemMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * Issue #5145: a discovery import can give each device a monitor from a
+ * Ping, IP, Port or NTP template. That monitor checks the device's address,
+ * so neither its type nor its steps name the device - its provenance does.
+ * Without it on the device's page, the page would say nothing alerts on a
+ * device the import just gave a paging monitor.
+ */
+describe("DeviceMonitorLookupUtil - the monitors a discovery import made for the device", () => {
+  function addressMonitor(
+    id: string,
+    name: string,
+    monitorType: MonitorType,
+  ): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor._id = id;
+    monitor.name = name;
+    monitor.monitorType = monitorType;
+    return monitor;
+  }
+
+  beforeEach(() => {
+    getListMock.mockReset();
+    getItemMock.mockReset();
+    madeForDevice = [];
+    getItemMock.mockResolvedValue(deviceRow({}));
+    answerNetworkDeviceMonitors({ data: [], count: 0, skip: 0, limit: 100 });
+  });
+
+  test("a Ping monitor made for the device is listed, though nothing names the device in its steps", async () => {
+    const kds: Monitor = addressMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce11",
+      "WB0024KDS03",
+      MonitorType.Ping,
+    );
+    madeForDevice = [kds];
+
+    await expect(
+      DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID),
+    ).resolves.toEqual([kds]);
+  });
+
+  test("the bound monitor leads, the Network Device monitors follow, then the ones made for it", async () => {
+    const bound: Monitor = boundPingMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce12",
+      "ping-core-ap",
+    );
+    const watching: Monitor = monitorWithSteps([
+      stepWatching(DEVICE_ID.toString()),
+    ]);
+    watching._id = "9f1b6b0e-0000-4000-8000-00000000ce13";
+    const port: Monitor = addressMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce14",
+      "WB0024KDS03 - Printer port",
+      MonitorType.Port,
+    );
+
+    getItemMock.mockResolvedValue(
+      deviceRow({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitor: bound,
+      }),
+    );
+    answerNetworkDeviceMonitors({
+      data: [watching],
+      count: 1,
+      skip: 0,
+      limit: 100,
+    });
+    madeForDevice = [port];
+
+    const result: Array<Monitor> =
+      await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
+
+    expect(result).toEqual([bound, watching, port]);
+  });
+
+  test("a monitor that is both bound to the device and made for it is listed once", async () => {
+    const sharedId: string = "9f1b6b0e-0000-4000-8000-00000000ce15";
+    const bound: Monitor = boundPingMonitor(sharedId, "WB0024KDS03");
+
+    getItemMock.mockResolvedValue(
+      deviceRow({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitor: bound,
+      }),
+    );
+    madeForDevice = [addressMonitor(sharedId, "WB0024KDS03", MonitorType.Ping)];
+
+    const result: Array<Monitor> =
+      await DeviceMonitorLookupUtil.getMonitorsWatchingDevice(DEVICE_ID);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(bound);
+  });
+
+  test("the device's page context carries them too", async () => {
+    const ntp: Monitor = addressMonitor(
+      "9f1b6b0e-0000-4000-8000-00000000ce16",
+      "core-01 - Time",
+      MonitorType.NTP,
+    );
+    madeForDevice = [ntp];
+
+    await expect(
+      DeviceMonitorLookupUtil.getDeviceMonitorContext(DEVICE_ID),
+    ).resolves.toEqual({ monitors: [ntp], isMonitorBacked: false });
   });
 });

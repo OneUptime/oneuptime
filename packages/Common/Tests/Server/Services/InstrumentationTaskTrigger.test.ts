@@ -1,4 +1,5 @@
 import InstrumentationTaskTrigger from "../../../Server/Utils/AI/SRE/InstrumentationTaskTrigger";
+import RemediationRulePullRequests from "../../../Server/Utils/AI/SRE/RemediationRulePullRequests";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../Server/Services/ProjectService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
@@ -8,33 +9,61 @@ import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunType from "../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import {
+  AutomaticFixPullRequestRules,
+  RemediationRulePullRequestFacts,
+} from "../../../Types/AI/AutomaticFixPullRequests";
+import { EVERY_CODE_REPOSITORY } from "../../../Types/CodeRepository/CodeRepositoryAllowance";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The ImproveInstrumentation trigger: an INCONCLUSIVE AI investigation
- * enqueues a CodeFix AIRun that opens an instrumentation PR — but ONLY for
- * projects with the setting on for the investigation's incident or alert
- * lane AND that lane's fixing switch on ("Fix new incidents automatically"
- * or alerts): the pull request is part of fixing
- * (Types/AI/AutomaticFixSwitches). All four columns default FALSE, and new
- * projects start with them off. Only when a GitHub-App repo exists to open
- * the PR
- * against, and at most one non-terminal run per incident/alert. The trigger
- * runs inside postAnalysis, so it must NEVER throw.
+ * enqueues a CodeFix AIRun that opens an instrumentation PR - but only while
+ * the investigation's lane has "Fix new incidents automatically" (or
+ * alerts) on, and the lane's auto remediation rules let it: with none,
+ * every inconclusive investigation opens one; with some, only one a rule
+ * with "Telemetry pull requests" on (its default) matches, in the
+ * repositories those rules name (Types/AI/AutomaticFixPullRequests). Only
+ * when a GitHub-App repo the rules allow exists to open the PR against,
+ * and at most one non-terminal run per incident/alert. The trigger runs
+ * inside postAnalysis, so it must NEVER throw.
  */
 
 const projectId: ObjectID = ObjectID.generate();
 const incidentId: ObjectID = ObjectID.generate();
 const alertId: ObjectID = ObjectID.generate();
+const API_REPOSITORY: string = "c1111111-1111-4111-8111-111111111111";
+
+const NO_RULES: AutomaticFixPullRequestRules = {
+  rulesSetUp: false,
+  matchingRules: [],
+};
+
+function matchingRules(
+  ...rules: Array<Partial<RemediationRulePullRequestFacts>>
+): AutomaticFixPullRequestRules {
+  return {
+    rulesSetUp: true,
+    matchingRules: rules.map(
+      (
+        facts: Partial<RemediationRulePullRequestFacts>,
+      ): RemediationRulePullRequestFacts => {
+        return {
+          openCodeFixPullRequests: true,
+          openTelemetryPullRequests: true,
+          ...facts,
+        };
+      },
+    ),
+  };
+}
 
 function fakeProject(data?: {
   enableAi?: boolean;
   enableAutomaticIncidentRemediation?: boolean;
   enableAutomaticAlertRemediation?: boolean;
-  enableIncidentInstrumentationFixTasks?: boolean;
-  enableAlertInstrumentationFixTasks?: boolean;
 }): Project {
   return {
     id: projectId,
@@ -44,12 +73,12 @@ function fakeProject(data?: {
       data?.enableAutomaticIncidentRemediation ?? true,
     enableAutomaticAlertRemediation:
       data?.enableAutomaticAlertRemediation ?? true,
-    enableIncidentInstrumentationFixTasks:
-      data?.enableIncidentInstrumentationFixTasks ?? true,
-    enableAlertInstrumentationFixTasks:
-      data?.enableAlertInstrumentationFixTasks ?? true,
   } as unknown as Project;
 }
+
+type GateDecision = ReturnType<
+  typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
+>;
 
 describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
   test("does not enqueue when the project is missing", () => {
@@ -57,6 +86,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project: null,
         incidentId,
+        rules: NO_RULES,
         hasConnectedRepository: true,
         existingRun: null,
       }).enqueue,
@@ -68,49 +98,28 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project: fakeProject({ enableAi: false }),
         incidentId,
+        rules: NO_RULES,
         hasConnectedRepository: true,
         existingRun: null,
       }).enqueue,
     ).toBe(false);
   });
 
-  test("opt-in is strict: an unset flag (legacy row) never enqueues — the column default is FALSE", () => {
-    const project: Project = {
-      id: projectId,
-      enableAi: true,
-      enableAutomaticIncidentRemediation: true,
-      // enableIncidentInstrumentationFixTasks deliberately absent.
-    } as unknown as Project;
-
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project,
-      incidentId,
-      hasConnectedRepository: true,
-      existingRun: null,
-    });
-
-    expect(decision.enqueue).toBe(false);
-    expect(decision.reason).toMatch(/not opted in/);
-  });
-
-  test("the fixing switch is strict too: unset (a row read without it) never enqueues", () => {
+  test("the fixing switch is strict: unset (a row read without it) never enqueues", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,
       // enableAutomaticIncidentRemediation deliberately absent.
-      enableIncidentInstrumentationFixTasks: true,
     } as unknown as Project;
 
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project,
-      incidentId,
-      hasConnectedRepository: true,
-      existingRun: null,
-    });
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project,
+        incidentId,
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/fixing new incidents automatically off/);
@@ -126,25 +135,27 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
       Record<string, boolean>,
     ]
   >)(
-    "%s: fixing off means no telemetry pull request, though its own switch is on",
+    "%s: fixing off means no telemetry pull request, whatever the rules say",
     (
       label: string,
       subject: { incidentId?: ObjectID; alertId?: ObjectID },
       fixOff: Record<string, boolean>,
     ) => {
-      const decision: ReturnType<
-        typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-      > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project: fakeProject(fixOff),
-        ...subject,
-        hasConnectedRepository: true,
-        existingRun: null,
-      });
+      for (const rules of [NO_RULES, matchingRules({})]) {
+        const decision: GateDecision =
+          InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+            project: fakeProject(fixOff),
+            ...subject,
+            rules,
+            hasConnectedRepository: true,
+            existingRun: null,
+          });
 
-      expect(decision.enqueue).toBe(false);
-      expect(decision.reason).toBe(
-        `project has fixing new ${label}s automatically off, and its telemetry pull requests open only while it is on`,
-      );
+        expect(decision.enqueue).toBe(false);
+        expect(decision.reason).toBe(
+          `project has fixing new ${label}s automatically off, and its telemetry pull requests open only while it is on`,
+        );
+      }
     },
   );
 
@@ -158,6 +169,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project,
         incidentId,
+        rules: NO_RULES,
         hasConnectedRepository: true,
         existingRun: null,
       }).enqueue,
@@ -166,129 +178,146 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project,
         alertId,
+        rules: NO_RULES,
         hasConnectedRepository: true,
         existingRun: null,
       }).enqueue,
     ).toBe(true);
   });
 
-  test("incident and alert opt-ins are independent: incident enabled does not enable alerts", () => {
-    const project: Project = fakeProject({
-      enableIncidentInstrumentationFixTasks: true,
-      enableAlertInstrumentationFixTasks: false,
-    });
-
-    expect(
+  test("with no auto remediation rule it enqueues, in any connected repository", () => {
+    const decision: GateDecision =
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project,
+        project: fakeProject(),
         incidentId,
+        rules: NO_RULES,
         hasConnectedRepository: true,
         existingRun: null,
-      }).enqueue,
-    ).toBe(true);
-    expect(
-      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project,
-        alertId,
-        hasConnectedRepository: true,
-        existingRun: null,
-      }).enqueue,
-    ).toBe(false);
+      });
+
+    expect(decision.enqueue).toBe(true);
+    expect(decision.repositories).toEqual(EVERY_CODE_REPOSITORY);
   });
 
-  test("incident and alert opt-ins are independent: alert enabled does not enable incidents", () => {
-    const project: Project = fakeProject({
-      enableIncidentInstrumentationFixTasks: false,
-      enableAlertInstrumentationFixTasks: true,
-    });
-
+  test("rules that could not be read, or that do not match: nothing enqueued", () => {
     expect(
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project,
+        project: fakeProject(),
         incidentId,
+        rules: null,
         hasConnectedRepository: true,
         existingRun: null,
-      }).enqueue,
-    ).toBe(false);
+      }).reason,
+    ).toContain("could not be read");
     expect(
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project,
-        alertId,
+        project: fakeProject(),
+        incidentId,
+        rules: { rulesSetUp: true, matchingRules: [] },
         hasConnectedRepository: true,
         existingRun: null,
-      }).enqueue,
-    ).toBe(true);
+      }).reason,
+    ).toBe(
+      "no auto remediation rule matches this incident, so it is not fixed",
+    );
   });
 
-  test("a subjectless gate decision is rejected instead of borrowing either opt-in", () => {
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project: fakeProject(),
-      hasConnectedRepository: true,
-      existingRun: null,
+  test("matching rules with telemetry pull requests off: nothing, though fix pull requests are on", () => {
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: matchingRules({
+          openCodeFixPullRequests: true,
+          openTelemetryPullRequests: false,
+        }),
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toBe(
+      "the auto remediation rules that match this incident have telemetry pull requests off",
+    );
+  });
+
+  test("a matching rule naming repositories: it enqueues for those only", () => {
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        alertId,
+        rules: matchingRules({ codeRepositories: [{ _id: API_REPOSITORY }] }),
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+    expect(decision.enqueue).toBe(true);
+    expect(decision.repositories).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [API_REPOSITORY],
     });
+  });
+
+  test("a subjectless gate decision is rejected instead of borrowing either lane", () => {
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/subject/);
   });
 
-  test("a gate carrying both subject types is rejected instead of borrowing the incident opt-in", () => {
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project: fakeProject(),
-      incidentId,
-      alertId,
-      hasConnectedRepository: true,
-      existingRun: null,
-    });
+  test("a gate carrying both subject types is rejected instead of borrowing the incident lane", () => {
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        alertId,
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/exactly one/);
   });
 
-  test("does not enqueue without a GitHub-App-connected repository", () => {
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project: fakeProject(),
-      incidentId,
-      hasConnectedRepository: false,
-      existingRun: null,
-    });
+  test("does not enqueue without a GitHub-App-connected repository the rules allow", () => {
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: NO_RULES,
+        hasConnectedRepository: false,
+        existingRun: null,
+      });
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/repository/);
   });
 
   test("dedupe: an existing non-terminal run for the subject blocks a second one", () => {
-    const decision: ReturnType<
-      typeof InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask
-    > = InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-      project: fakeProject(),
-      incidentId,
-      hasConnectedRepository: true,
-      existingRun: { id: ObjectID.generate() } as unknown as AIRun,
-    });
+    const decision: GateDecision =
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: { id: ObjectID.generate() } as unknown as AIRun,
+      });
 
     expect(decision.enqueue).toBe(false);
     expect(decision.reason).toMatch(/already exists/);
   });
-
-  test("enqueues when opted in, a repository exists, and no run is live for the subject", () => {
-    expect(
-      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
-        project: fakeProject(),
-        incidentId,
-        hasConnectedRepository: true,
-        existingRun: null,
-      }).enqueue,
-    ).toBe(true);
-  });
 });
 
 describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () => {
+  let getRules: jest.SpyInstance;
+
   beforeEach(() => {
     /*
      * The daily fix-run budget defaults to allowed; its own decision matrix
@@ -301,13 +330,17 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       paused: false,
       runsToday: 0,
     });
+    // No auto remediation rule by default: every subject's PR may open.
+    getRules = jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(NO_RULES);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  test("over the daily fix-run budget: a logged SKIP — no run created, nothing thrown into the investigation", async () => {
+  test("over the daily fix-run budget: a logged SKIP — no rule read, no run created, nothing thrown into the investigation", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
     const getBudgetStatus: jest.SpyInstance = jest
       .spyOn(FixRunBudget, "getBudgetStatus")
@@ -330,36 +363,14 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       }),
     ).resolves.toBeUndefined();
 
-    // Skipped before the repo/dedupe queries, and no run was created.
+    // Skipped before the rules, the repo and the dedupe queries.
+    expect(getRules).not.toHaveBeenCalled();
     expect(countBy).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
     expect(getBudgetStatus).toHaveBeenCalledWith(projectId, {
       incidentId,
       alertId: undefined,
     });
-  });
-
-  test("a not-opted-in project skips cheaply: no repo count, no dedupe query, no run created", async () => {
-    jest
-      .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(
-        fakeProject({ enableIncidentInstrumentationFixTasks: false }),
-      );
-    const countBy: jest.SpyInstance = jest.spyOn(
-      CodeRepositoryService,
-      "countBy",
-    );
-    const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
-
-    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
-      projectId,
-      incidentId,
-    });
-
-    expect(countBy).not.toHaveBeenCalled();
-    expect(findOneBy).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -372,7 +383,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       Record<string, boolean>,
     ]
   >)(
-    "%s: a project with fixing off skips cheaply — no budget, repository or dedupe read, no run created",
+    "%s: a project with fixing off skips cheaply — no rule, budget, repository or dedupe read, no run created",
     async (
       _label: string,
       subject: { incidentId?: ObjectID; alertId?: ObjectID },
@@ -393,6 +404,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
         ...subject,
       });
 
+      expect(getRules).not.toHaveBeenCalled();
       expect(FixRunBudget.getBudgetStatus).not.toHaveBeenCalled();
       expect(countBy).not.toHaveBeenCalled();
       expect(findOneBy).not.toHaveBeenCalled();
@@ -400,31 +412,46 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     },
   );
 
-  test("the alert opt-in cannot enable an incident instrumentation task", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
-      fakeProject({
-        enableIncidentInstrumentationFixTasks: false,
-        enableAlertInstrumentationFixTasks: true,
-      }),
-    );
-    const countBy: jest.SpyInstance = jest.spyOn(
-      CodeRepositoryService,
-      "countBy",
-    );
+  test.each([
+    ["rules that could not be read", null],
+    ["rules none of which matches", { rulesSetUp: true, matchingRules: [] }],
+    [
+      "matching rules with telemetry pull requests off",
+      matchingRules({ openTelemetryPullRequests: false }),
+    ],
+  ] as Array<[string, AutomaticFixPullRequestRules | null]>)(
+    "%s: no repository counted, no run created",
+    async (_label: string, rules: AutomaticFixPullRequestRules | null) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(fakeProject());
+      getRules.mockResolvedValue(rules);
+      const countBy: jest.SpyInstance = jest.spyOn(
+        CodeRepositoryService,
+        "countBy",
+      );
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
-    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
-      projectId,
-      incidentId,
-    });
+      await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+        projectId,
+        incidentId,
+      });
 
-    expect(countBy).not.toHaveBeenCalled();
-  });
+      expect(getRules).toHaveBeenCalledWith({
+        projectId,
+        incidentId,
+        alertId: undefined,
+      });
+      expect(countBy).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
 
   test("records a Queued ImproveInstrumentation CodeFix run carrying the incident subject", async () => {
     const findProject: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(fakeProject());
-    jest
+    const countBy: jest.SpyInstance = jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
     const findOneBy: jest.SpyInstance = jest
@@ -439,13 +466,12 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       incidentId,
     });
 
-    // Enable AI, the incident fixing switch and its instrumentation switch.
+    // Enable AI and the incident fixing switch - no pull request column.
     expect(findProject).toHaveBeenCalledWith(
       expect.objectContaining({
         select: {
           enableAi: true,
           enableAutomaticIncidentRemediation: true,
-          enableIncidentInstrumentationFixTasks: true,
         },
       }),
     );
@@ -453,6 +479,9 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       incidentId,
       alertId: undefined,
     });
+
+    // With no rule, any connected repository counts.
+    expect(countBy.mock.calls[0]![0]).not.toHaveProperty("query._id");
 
     // The dedupe guard queries per (subject, ImproveInstrumentation).
     expect(findOneBy).toHaveBeenCalledWith(
@@ -477,13 +506,20 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
         props: expect.objectContaining({ isRoot: true }),
       }),
     );
+    // Every repository: the run names none.
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.taskContext,
+    ).toBeUndefined();
   });
 
-  test("an alert-subject investigation enqueues with triggeredByAlertId", async () => {
+  test("an alert-subject investigation matched by a rule naming a repository enqueues for that repository", async () => {
     const findProject: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(fakeProject());
-    jest
+    getRules.mockResolvedValue(
+      matchingRules({ codeRepositories: [{ _id: API_REPOSITORY }] }),
+    );
+    const countBy: jest.SpyInstance = jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
@@ -501,7 +537,6 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
         select: {
           enableAi: true,
           enableAutomaticAlertRemediation: true,
-          enableAlertInstrumentationFixTasks: true,
         },
       }),
     );
@@ -510,11 +545,15 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
       alertId,
     });
 
+    // Only the rule's repository is counted.
+    expect(countBy.mock.calls[0]![0]).toHaveProperty("query._id");
+
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           codeFixTaskType: CodeFixTaskType.ImproveInstrumentation,
           triggeredByAlertId: alertId,
+          taskContext: { allowedCodeRepositoryIds: [API_REPOSITORY] },
         }),
       }),
     );
@@ -554,7 +593,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("never throws — a failed enqueue must not fail the investigation's postAnalysis", async () => {
+  test("never throws — a failed rule read or enqueue must not fail the investigation's postAnalysis", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
     jest
       .spyOn(CodeRepositoryService, "countBy")
@@ -563,6 +602,15 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     jest
       .spyOn(AIRunService, "create")
       .mockRejectedValue(new Error("database is down"));
+
+    await expect(
+      InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+        projectId,
+        incidentId,
+      }),
+    ).resolves.toBeUndefined();
+
+    getRules.mockRejectedValue(new Error("rules table is gone"));
 
     await expect(
       InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
@@ -583,6 +631,7 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     });
 
     expect(findProject).not.toHaveBeenCalled();
+    expect(getRules).not.toHaveBeenCalled();
   });
 
   test("a call carrying both subject types is a no-op", async () => {
@@ -598,5 +647,102 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     });
 
     expect(findProject).not.toHaveBeenCalled();
+    expect(getRules).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The telemetry pull request is written with the LLM provider the rules
+ * that open it pick - the first of them by name that picks one
+ * (Types/AI/AutomaticFixPullRequests, Types/AI/LlmProviderChoice) - which
+ * the run records (AIRun.llmProviderId) for its completions to use.
+ */
+describe("InstrumentationTaskTrigger and the LLM provider the rules pick", () => {
+  const PICK: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the gate's decision carries the opening rule's pick", () => {
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: matchingRules({ name: "Checkout", llmProviderId: PICK }),
+        hasConnectedRepository: true,
+        existingRun: null,
+      }),
+    ).toMatchObject({ enqueue: true, llmProviderId: PICK });
+
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).llmProviderId,
+    ).toBe("");
+  });
+
+  test("the run it records carries the pick", async () => {
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(
+        matchingRules({ name: "Checkout", llmProviderId: PICK }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+      projectId,
+      incidentId,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toEqual(new ObjectID(PICK));
+  });
+
+  test("no rule picks one: the run picks none", async () => {
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(NO_RULES);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+      projectId,
+      incidentId,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toBeUndefined();
   });
 });

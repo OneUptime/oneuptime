@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { LlmProviderActivity } from "./LlmProviderChoice";
 
 /*
  * Shared types for the AI observability chat feature. These shapes are
@@ -37,6 +38,12 @@ export enum AIChatCitationTargetType {
   Probes = "Probes",
   Teams = "Teams",
   SecurityEvents = "SecurityEvents",
+  // The security case queue, and one case; params: { securityCaseId }.
+  SecurityCases = "SecurityCases",
+  SecurityCaseView = "SecurityCaseView",
+  // Threat Intel: the feeds and the indicators they hold.
+  ThreatIntel = "ThreatIntel",
+  SecurityPlaybooks = "SecurityPlaybooks",
   RumApplications = "RumApplications",
   RumApplicationView = "RumApplicationView",
   TelemetryResources = "TelemetryResources",
@@ -256,6 +263,13 @@ export interface AIRunEventResultSummary {
    * language by the run's activity; `message` is the English.
    */
   recentChanges?: RecentChangesActivity | undefined;
+  /*
+   * The LLM provider a run a rule picked one for used, or why it used
+   * another (ProgressLog events; see Common/Types/AI/LlmProviderChoice and
+   * Server/Utils/AI/LlmProviderChoice). Worded in the reader's language by
+   * the run's activity; `message` is the English.
+   */
+  llmProvider?: LlmProviderActivity | undefined;
 }
 
 // What an investigation read about the changes recorded before its subject.

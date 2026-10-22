@@ -171,6 +171,15 @@ Hver statusændring gemmes på monitorens **Statustidslinje**: hvornår den star
 
 En statusændring giver kun monitorens ejere besked, hvis de har slået **Overvågningsstatus ændret** til i deres notifikationsindstillinger: den er slået fra fra start. En monitor, der går tilbage til sin **Standardstatus for overvågning**, fordi intet kriterium matchede, giver ingen besked. Se [Hvad der er slået til for et nyt medlem](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
+## Arkivér en monitorstatus
+
+Arkivér en status, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen monitor: En monitor i statussen bliver i den, indtil dens status ændres, og dens tidslinje over statusser viser den stadig.
+
+- **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de monitorkriterier, skabeloner og statussider, der er sat op til at bruge statussen: De bliver ved med at bruge den, indtil du ændrer dem.
+- **Ingen kan vælge den igen.** Et kriterium, en monitors statusmenu, monitorstatus for en hændelse eller en vedligeholdelsesbegivenhed og en statussides nedetidsstatusser udelader den. API'et, Terraform og MCP afviser den.
+- **Arkiverede statusser vises for sig**, i den sammenfoldede sektion **Arkiverede monitorstatusser** under tabellen. **Fjern fra arkiv** sætter en tilbage, som den var.
+- **De indbyggede statusser kan ikke arkiveres.** Nye monitorer starter i driftsstatussen, og OneUptime betragter en monitor i offlinestatussen som nede. Deres **Arkiver** er låst, med begrundelsen.
+
 ## Fejlfinding
 
 :::details Webstedet er nede, men monitoren bliver ved med at være I drift

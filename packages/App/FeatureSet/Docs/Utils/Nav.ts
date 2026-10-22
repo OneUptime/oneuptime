@@ -911,6 +911,10 @@ const DocsNav: NavGroup[] = [
         title: "Threat Intelligence (STIX/TAXII)",
         url: "/docs/telemetry/threat-intelligence",
       },
+      {
+        title: "OneUptime AI in Security",
+        url: "/docs/telemetry/security-ai",
+      },
     ],
   },
   /*
@@ -1042,10 +1046,6 @@ const DocsNav: NavGroup[] = [
       {
         title: "Runbook Agents",
         url: "/docs/runbooks/agents",
-      },
-      {
-        title: "AI Access",
-        url: "/docs/runbooks/credentials",
       },
       {
         title: "Runbook Configuration & Safety",
@@ -1528,6 +1528,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Private Network Access",
         url: "/docs/self-hosted/private-network-access",
+      },
+      {
+        title: "Behind a VPN or Firewall",
+        url: "/docs/self-hosted/behind-a-firewall",
       },
       {
         title: "Architecture",

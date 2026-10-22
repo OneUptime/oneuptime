@@ -60,17 +60,25 @@ export interface CheckedRelationList {
 const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
   Probe: { isGlobalProbe: true },
   AIAgent: { isGlobalAIAgent: true },
+  /*
+   * A global LLM provider serves every project: an AI rule may pick one
+   * (Types/AI/LlmProviderChoice), though no project reads its row.
+   */
+  LlmProvider: { isGlobalLlm: true },
 };
 
 /*
  * The settings that hold credentials OneUptime uses for the record that
  * names them: the SMTP server a status page sends its email through, the
  * call and SMS provider a status page or an incoming call policy uses, the
- * credential the AI reaches a cluster with, the SNMP credentials a network
- * device or site is polled with, the video call provider a meeting is
+ * SNMP credentials a network device or site is polled with, the video call
+ * provider a meeting is
  * started with, the API key a permission is granted to, and the outside MCP
  * servers whose tools OneUptime AI uses for an investigation or an auto
- * remediation rule, signed in with what the server holds.
+ * remediation rule, signed in with what the server holds, the security
+ * tool connection a threat-intel feed reads Google SecOps's indicators
+ * through, with the connection's key, and the LLM provider an AI rule picks
+ * for what it starts, with the provider's API key.
  *
  * Their records are read as a whole table - no label or owner narrows a
  * read of them - so a write that names one is held to its caller's
@@ -86,10 +94,11 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
 const CREDENTIAL_SETTINGS: Array<string> = [
   "ApiKey",
   "ExternalMcpServer",
+  "LlmProvider",
   "NetworkSnmpCredentialProfile",
   "ProjectCallSMSConfig",
   "ProjectSMTPConfig",
-  "RunbookCredential",
+  "SecurityEventConnection",
   "VideoCallConnection",
 ];
 
@@ -130,8 +139,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * monitor statuses, files - are not held to a read here: every member reads
  * them, and the reference check answers a record that is not the project's.
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
- * credentials, video call providers, API keys, outside MCP servers) are
- * read as a whole table
+ * credentials, video call providers, API keys, outside MCP servers,
+ * security tool connections, LLM providers) are read as a whole table
  * too, and a write names one only when its caller may read that table
  * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's
  * step, which holds no read of them.
@@ -339,9 +348,7 @@ export default class RelationListPermission {
    * holds one of the table's read permissions, or its read wildcard, and no
    * block with no labels takes any of them away. Asked in the props' own
    * project (tenantId). For a service that reads such a reference from a
-   * column no metadata describes (a runbook's steps name the credentials
-   * they run with), and for the read of runbook credentials that lets
-   * OneUptime AI's commands use them (RunbookCredentialReaders).
+   * column no metadata describes.
    */
   public static mayReadTable(
     modelType: DatabaseBaseModelType,
@@ -397,9 +404,8 @@ export default class RelationListPermission {
    * step is not lent the read of one. A step acts as a Project Admin
    * (WorkflowPrincipal), who may read them, but whoever may edit a workflow
    * decides what its steps do, so a step reads none: getTableRead answers it
-   * no reader, a write that names one is refused saying a person has to
-   * make the change (checkNamedLists), and a refusal of the read of runbook
-   * credentials says so too (RunbookCredentialReaders.getWorkflowNote).
+   * no reader, and a write that names one is refused saying a person has
+   * to make the change (checkNamedLists).
    */
   public static isReadWithheldFromWorkflow(
     modelType: DatabaseBaseModelType,

@@ -27,6 +27,10 @@ import { resolveFlex } from "../../ResponsiveFlexLayout";
 import { resolveSpacing } from "../../ResponsiveSpacing";
 import { isVisibleAtWidth } from "../../ResponsiveVisibility";
 import { WIDTHS_IN_PX } from "../../RenderedMarkup";
+import {
+  DrawnCardHeaders,
+  drawCardHeaders,
+} from "../../Helpers/CardHeaderDrawing";
 
 /*
  * The rule every card header keeps, whatever its layout, its width or what
@@ -39,10 +43,14 @@ import { WIDTHS_IN_PX } from "../../RenderedMarkup";
  *      wraps onto a line of its own.
  *   3. Nothing from the box out to the card lays it out in a column or
  *      centres it.
- *   4. A description on screen never sits between the title and the
- *      actions: where the row can wrap, the description is not in it (or
- *      not on screen at that width), so the actions can only wrap under the
- *      title, never under the description.
+ *   4. A description on screen never pushes the actions off the title's
+ *      line: where the row can wrap, the description is not in it (or not
+ *      on screen at that width), so it never squeezes the title's share.
+ *      Only once the actions went to a line of their own (Card reads where
+ *      the browser put them) does the description join the title's block,
+ *      right under the title, and the actions follow it - still the row's
+ *      last box, at the right edge ("There's a lot of gap between the title
+ *      of the card and the description of the card").
  *
  * It runs over every layout Card has (CARD_HEADER_LAYOUTS is built from the
  * CardHeaderLayout type, so a new layout is checked here the moment it
@@ -207,7 +215,7 @@ describe.each([...CARD_HEADER_LAYOUTS] as Array<CardHeaderLayout>)(
             node = node.parentElement;
           }
 
-          // 4. Never under the description.
+          // 4. The description never pushes the actions off the title's line.
           const description: HTMLElement | null =
             screen.queryByTestId("card-description");
 
@@ -222,6 +230,66 @@ describe.each([...CARD_HEADER_LAYOUTS] as Array<CardHeaderLayout>)(
           }
         },
       );
+
+      /*
+       * Drawn with the actions on a line of their own (too wide to sit
+       * beside the title): the stacked and toolbar headers put the
+       * description right under the title and the actions after it - still
+       * one box, the row's last, at the right edge, never a column or
+       * centred.
+       */
+      if (headerLayout !== "default") {
+        test.each(WIDTHS_IN_PX)(
+          "at %ipx, with the actions under the title, keeps them at the right edge after the title and its description",
+          (width: number) => {
+            const drawn: DrawnCardHeaders = drawCardHeaders("under");
+
+            try {
+              render(<Card {...shape.props} headerLayout={headerLayout} />);
+            } finally {
+              drawn.restore();
+            }
+
+            const card: HTMLElement = screen.getByTestId("card");
+            const actions: HTMLElement = screen.getByTestId(
+              "card-header-actions",
+            );
+            const title: HTMLElement = screen.getByTestId(
+              "card-details-heading",
+            );
+            const titleBlock: HTMLElement = screen.getByTestId(
+              "card-header-title-block",
+            );
+            const description: HTMLElement =
+              screen.getByTestId("card-description");
+            const row: HTMLElement = actions.parentElement!;
+
+            expect(titleBlock.parentElement).toBe(row);
+            expect(title.nextElementSibling).toBe(description);
+            expect(titleBlock).toContainElement(description);
+            expect(row.lastElementChild).toBe(actions);
+            expect(
+              Number.isNaN(
+                resolveSpacing(classOf(actions), width, "margin").left,
+              ),
+            ).toBe(true);
+            expect(
+              resolveFlex(classOf(actions), width, "justify-content"),
+            ).toBe("flex-end");
+
+            let node: HTMLElement | null = actions;
+            while (node && node !== card.parentElement) {
+              expect(
+                resolveFlex(classOf(node), width, "flex-direction"),
+              ).not.toBe("column");
+              expect(
+                resolveFlex(classOf(node), width, "justify-content"),
+              ).not.toBe("center");
+              node = node.parentElement;
+            }
+          },
+        );
+      }
     });
 
     test("every action has a box of its own that clears the button's own left margin", () => {
@@ -516,7 +584,7 @@ describe("hand-built card headers", () => {
     "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard.tsx":
       'className="flex flex-shrink-0 items-center gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer.tsx":
-      "flex-shrink-0 self-end border border-gray-200 text-gray-600 hover:bg-gray-50 sm:self-auto",
+      'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:self-auto"',
     "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance.tsx":
       'className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2"',
   };

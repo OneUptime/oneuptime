@@ -147,6 +147,28 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 
+## Envoyer des événements de sécurité à Splunk
+
+OneUptime peut aussi envoyer ce qu'il trouve à Splunk, par son HTTP Event Collector (HEC), pour que vos recherches et vos tableaux de bord voient les détections de OneUptime à côté des vôtres. Chaque événement de sécurité est un événement HEC de sourcetype `oneuptime:security`, ses champs nommés comme le Common Information Model de Splunk les nomme : `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` et `severity`.
+
+:::steps
+### Créer un jeton HEC
+
+Dans Splunk Web, ouvrez **Settings → Data inputs → HTTP Event Collector** et cliquez sur **New Token**. Nommez-le, choisissez les index où il peut écrire et son index par défaut, puis copiez la valeur du jeton. Sur Splunk Cloud, HEC écoute sur `https://http-inputs-<stack>.splunkcloud.com` ; sur Splunk Enterprise, sur le port `8088` une fois que **Global Settings** active les jetons.
+
+### Ajouter la destination
+
+Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**, choisissez Splunk sous **SIEM** et cliquez sur **Suivant**. Renseignez l'**URL HEC** et collez le jeton dans **Jeton HEC**. **Index** et **Type de source** sont facultatifs : vides, les événements vont dans l'index par défaut du jeton avec le sourcetype `oneuptime:security`.
+
+### Envoyer un événement de test et commencer l'envoi
+
+Cliquez sur **Envoyer un événement de test** : un événement informatif part vers Splunk avec les paramètres du formulaire, et rien n'est enregistré. Recherchez-le avec `sourcetype="oneuptime:security"`. Puis, sous **Ce qu'il faut envoyer**, gardez **Détections uniquement** ou choisissez **Tous les événements de sécurité**, et cliquez sur **Commencer l'envoi**.
+:::
+
+- L'**URL HEC** doit utiliser `https`, avec un certificat auquel OneUptime fait confiance : les vérifications de certificat ne sont jamais ignorées.
+- Les événements partent par lots de 500 au plus. Un événement que Splunk refuse est laissé de côté et nommé dans **Voir l'erreur**, un collecteur occupé (`503`) est réessayé, et un jeton ou un index refusé arrête l'envoi jusqu'à ce que vous le corrigiez.
+- Les notable events que OneUptime a importés de Splunk ne lui sont jamais renvoyés.
+
 ## Dépannage
 
 La **Dernière erreur** de la connexion conserve le message d'erreur complet, identifiants masqués, derrière un préfixe qui nomme l'étape en échec. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Lisez d'abord le préfixe.

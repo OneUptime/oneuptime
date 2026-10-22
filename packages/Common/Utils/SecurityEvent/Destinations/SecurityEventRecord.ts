@@ -30,6 +30,12 @@ export interface SecurityEventRecord {
   principalHost: string;
   principalIp: string;
   principalProcess: string;
+  processName: string;
+  processPath: string;
+  processCommandLine: string;
+  parentProcessName: string;
+  parentProcessPath: string;
+  parentProcessCommandLine: string;
   targetUser: string;
   targetHost: string;
   targetIp: string;
@@ -64,6 +70,12 @@ export const SECURITY_EVENT_RECORD_COLUMNS: ReadonlyArray<string> = [
   "principalHost",
   "principalIp",
   "principalProcess",
+  "processName",
+  "processPath",
+  "processCommandLine",
+  "parentProcessName",
+  "parentProcessPath",
+  "parentProcessCommandLine",
   "targetUser",
   "targetHost",
   "targetIp",
@@ -163,6 +175,12 @@ export function readSecurityEventRecord(row: JSONObject): SecurityEventRecord {
     principalHost: readText(row["principalHost"]),
     principalIp: readText(row["principalIp"]),
     principalProcess: readText(row["principalProcess"]),
+    processName: readText(row["processName"]),
+    processPath: readText(row["processPath"]),
+    processCommandLine: readText(row["processCommandLine"]),
+    parentProcessName: readText(row["parentProcessName"]),
+    parentProcessPath: readText(row["parentProcessPath"]),
+    parentProcessCommandLine: readText(row["parentProcessCommandLine"]),
     targetUser: readText(row["targetUser"]),
     targetHost: readText(row["targetHost"]),
     targetIp: readText(row["targetIp"]),

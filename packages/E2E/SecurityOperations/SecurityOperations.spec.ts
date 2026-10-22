@@ -5,6 +5,12 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import {
+  DETECTION_RULE_LIBRARY,
+  getRecommendedDetectionRules,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -12,13 +18,14 @@ import path from "path";
  * The Security Events SOC pages - the overview, the case queue's pages, a
  * case, entities, the rule library, ATT&CK coverage, playbooks, a playbook
  * and the runs - on the fixture's synthetic month (Fixture/Fixture.js), with
- * the side menu that holds them: six sections, every page an entry of its
+ * the side menu that holds them: eight sections, every page an entry of its
  * own (the tabs and views that used to sit along the tops of pages are
  * pages now). What the unit tests cannot see: that the pages fit beside the
  * side menu at every size, read right in both themes, agree with each other
  * on the numbers, that every page is reached from the menu and named the
- * same in its breadcrumbs, and that approving a held playbook step runs the
- * rest of it.
+ * same in its breadcrumbs, that approving a held playbook step runs the
+ * rest of it, and that OneUptime AI's triage reads on the case, re-runs
+ * what it cites and walks a new triage through to its read.
  *
  * Every test pins the clock and puts up a network fence that aborts anything
  * leaving the fixture server. afterEach fails a test on an uncaught page
@@ -29,6 +36,12 @@ import path from "path";
 const PORT: string = process.env["SECURITY_OPERATIONS_FIXTURE_PORT"] || "4234";
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-10-14T12:00:00.000Z");
+/*
+ * The Rule Library's recommended rules, which the fixture's API counts and
+ * turns on from the same catalog. The fixture's project has three of them.
+ */
+const RECOMMENDED_RULES: number = getRecommendedDetectionRules().length;
+const RECOMMENDED_RULES_ON: number = 3;
 
 const PRODUCT: string = `/dashboard/${PROJECT_ID}/security-events`;
 const OVERVIEW_PATH: string = `${PRODUCT}/overview`;
@@ -48,6 +61,76 @@ const CONTAIN_PLAYBOOK_PATH: string = `${PRODUCT}/playbooks/24000000-0000-4000-8
 const RUNS_PATH: string = `${PRODUCT}/playbook-runs`;
 const ALL_RUNS_PATH: string = `${PRODUCT}/playbook-runs/all`;
 const DETECTION_RULES_PATH: string = `${PRODUCT}/detection-rules`;
+const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
+// The known-bad domain case nobody has picked up, and OneUptime AI has not read.
+const DOMAIN_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000141`;
+const AI_SETTINGS_PATH: string = `${PRODUCT}/ai/settings`;
+// The admin API key case OneUptime AI read as Likely Benign.
+const API_KEY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000137`;
+// The web shell case, whose suggested playbook's run on it failed.
+const POWERSHELL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000138`;
+// The spray case's triage run, whose cited checks re-run.
+const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
+
+// The fixture's two correlation rules, beside its six library rules.
+const SEQUENCE_RULE: string = "Spray, then a success";
+const FIRST_SEEN_RULE: string = "Admin console from a new address";
+
+// What a single rule counts by, which a correlation says in its YAML instead.
+const COUNTING_FIELDS: ReadonlyArray<RegExp> = [
+  /^Group By Field/,
+  /^Distinct Count Field/,
+  /^Match Count Threshold/,
+];
+
+const SINGLE_RULE_YAML: string = `title: Failed sign-in burst
+level: high
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+`;
+
+const CORRELATION_RULE_YAML: string = `title: Brute force, then a success
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_burst
+    - succeeded
+  group-by:
+    - principalIp
+  timespan: 15m
+---
+title: Ten failed sign-ins
+name: failed_burst
+correlation:
+  type: event_count
+  rules:
+    - failed
+  group-by:
+    - principalIp
+  timespan: 15m
+  condition:
+    gte: 10
+---
+title: Failed sign-in
+name: failed
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: succeeded
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+`;
 
 const WAITING_RUN_ID: string = "25000000-0000-4000-8000-000000000001";
 
@@ -59,6 +142,7 @@ const SCREENSHOTS: string = path.resolve(
 interface FixtureState {
   apiRequests: Array<{ method: string; url: string; body: unknown }>;
   listRequests: Array<{ modelName: string; query: unknown }>;
+  creates: Array<{ modelName: string; data: Record<string, unknown> }>;
   unhandled: Array<unknown>;
 }
 
@@ -70,6 +154,19 @@ interface OpenOptions {
   empty?: boolean;
   quiet?: boolean;
   role?: "viewer";
+  // "all": the project reads every free list already.
+  lists?: "all";
+  // "off": the project's Enable AI is off.
+  ai?: "off";
+  // The case AI card's other states (the fixture's TRIAGE_SCENARIOS).
+  triage?:
+    | "failed"
+    | "provider"
+    | "credits"
+    | "limit"
+    | "injection"
+    | "retry"
+    | "auto-off";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -152,6 +249,15 @@ async function open(
   }
   if (options.role) {
     params.set("role", options.role);
+  }
+  if (options.lists) {
+    params.set("lists", options.lists);
+  }
+  if (options.ai) {
+    params.set("ai", options.ai);
+  }
+  if (options.triage) {
+    params.set("triage", options.triage);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -362,9 +468,10 @@ test.describe("the overview", () => {
     await expect(stage(page, "sources")).toContainText(
       "18,432 events in 24 hours",
     );
-    await expect(stage(page, "detections")).toContainText("6 rules on");
+    // The six library rules and the team's two correlations.
+    await expect(stage(page, "detections")).toContainText("8 rules on");
     await expect(stage(page, "detections")).toContainText(
-      "3 of 19 recommended",
+      `${RECOMMENDED_RULES_ON} of ${RECOMMENDED_RULES} recommended`,
     );
     await expect(stage(page, "cases")).toContainText("6 open cases");
     // What the open cases are, which the figures below no longer repeat.
@@ -484,7 +591,7 @@ test.describe("the overview", () => {
 
     await page.getByTestId("security-turn-on-recommended").click();
     await expect(page.getByTestId("security-turned-on")).toContainText(
-      "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
+      `Done. ${RECOMMENDED_RULES} detection rules are on, your logs are checked for security events and every new case is enriched.`,
     );
     await expect(gettingStarted(page)).toContainText("3 of 4 done");
     // Nothing left to turn on: the test attack is the next step, and the main button.
@@ -551,7 +658,9 @@ test.describe("the overview", () => {
     await page.getByTestId("security-getting-started-done").click();
     await expect(gettingStarted(page)).toHaveCount(0);
     await expect(stage(page, "sources")).toContainText("1 source");
-    await expect(stage(page, "detections")).toContainText("19 rules on");
+    await expect(stage(page, "detections")).toContainText(
+      `${RECOMMENDED_RULES} rules on`,
+    );
     await expect(stage(page, "cases")).toContainText("1 open case");
     await expect(stage(page, "playbooks")).toContainText("1 playbook on");
 
@@ -1365,18 +1474,22 @@ test.describe("detections", () => {
     });
     await expect(
       page.locator('[data-testid^="rule-library-recommended-"]'),
-    ).toHaveCount(19);
+    ).toHaveCount(RECOMMENDED_RULES);
 
     await page.getByTestId("rule-library-category").selectOption("recommended");
     await expect(
       page.locator('[data-testid^="rule-library-entry-"]'),
-    ).toHaveCount(19);
+    ).toHaveCount(RECOMMENDED_RULES);
 
     await page
-      .getByRole("button", { name: "Add 16 Recommended Rules" })
+      .getByRole("button", {
+        name: `Add ${RECOMMENDED_RULES - RECOMMENDED_RULES_ON} Recommended Rules`,
+      })
       .click();
-    // All nineteen are the project's now: the three it had and sixteen more.
-    await expect(page.getByText("Added", { exact: true })).toHaveCount(19);
+    // Every recommended rule is the project's now: the three it had and the rest.
+    await expect(page.getByText("Added", { exact: true })).toHaveCount(
+      RECOMMENDED_RULES,
+    );
     await expect(
       page.getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
@@ -1486,7 +1599,7 @@ test.describe("detections", () => {
       .toBe(DETECTION_RULES_PATH);
   });
 
-  test("the side menu is six sections of pages; the ones set up once are folded", async ({
+  test("the side menu is eight sections of pages; the ones set up once are folded", async ({
     page,
   }: {
     page: Page;
@@ -1507,6 +1620,8 @@ test.describe("detections", () => {
       "events",
       "detections",
       "playbooks",
+      "ai",
+      "workspace",
       "connections",
     ]);
 
@@ -1516,6 +1631,8 @@ test.describe("detections", () => {
       ["Events", "true"],
       ["Detections", "false"],
       ["Playbooks", "true"],
+      ["AI", "false"],
+      ["Workspace", "false"],
       ["Connections", "false"],
     ]) {
       await expect(menuSection(page, section!)).toHaveAttribute(
@@ -1541,7 +1658,7 @@ test.describe("detections", () => {
       await expect(menuEntry(page, title)).toBeVisible();
     }
     // Folded: there, one click away, but not one more row on every visit.
-    for (const title of ["Rule Library", "Setup Guide"]) {
+    for (const title of ["Rule Library", "Settings", "Setup Guide"]) {
       await expect(menuEntry(page, title)).toBeHidden();
     }
     await expect(menuEntry(page, "Monitors")).toHaveCount(0);
@@ -1555,6 +1672,15 @@ test.describe("detections", () => {
 
     await menuSection(page, "Detections").click();
     await expect(menuEntry(page, "Rule Library")).toBeVisible();
+
+    /*
+     * Workspace lists the chat workspaces the project has connected - Slack
+     * here - and nothing for the one it has not.
+     */
+    await menuSection(page, "Workspace").click();
+    await expect(menuEntry(page, "Slack")).toBeVisible();
+    await expect(menuEntry(page, "Microsoft Teams")).toHaveCount(0);
+    await expect(menuEntry(page, "Connect Slack or Teams")).toHaveCount(0);
 
     await open(page, OVERVIEW_PATH, { theme: "dark", width: 1280 });
     await expect(page.getByText("Riskiest Entities")).toBeVisible({
@@ -1612,6 +1738,1383 @@ test.describe("detections", () => {
  * ---------------------------------------------------------------------------
  */
 
+/*
+ * ---------------------------------------------------------------------------
+ * Detection rules and threat intel
+ * ---------------------------------------------------------------------------
+ */
+test.describe("detection rules and threat intel", () => {
+  // A detection rule's or a feed's row, by the name it shows.
+  function rowNamed(page: Page, name: string): Locator {
+    return page.locator("table tbody tr").filter({ hasText: name });
+  }
+
+  function dialog(page: Page): Locator {
+    return page.getByRole("dialog");
+  }
+
+  async function openFreeLists(
+    page: Page,
+    options: OpenOptions = {},
+  ): Promise<Locator> {
+    await open(page, THREAT_INTEL_PATH, options);
+    const lists: Locator = page.getByTestId("threat-intel-recommended-lists");
+    // The tiles wait for the project's feeds before they offer Add.
+    await expect(lists).toHaveAttribute("data-loaded", "true", {
+      timeout: 30000,
+    });
+    return lists;
+  }
+
+  test("Detection Rules names each rule's kind: one event, a sequence, a first-seen rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(rowNamed(page, SEQUENCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    await expect(
+      rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
+    ).toHaveText("Sequence");
+    await expect(
+      rowNamed(page, FIRST_SEEN_RULE).getByTestId("detection-rule-type"),
+    ).toHaveText("First seen");
+    await expect(
+      rowNamed(page, DETECTION_RULE_LIBRARY[0]!.title).getByTestId(
+        "detection-rule-type",
+      ),
+    ).toHaveText("Single event");
+    // Every rule's row names its kind.
+    await expect(page.getByTestId("detection-rule-type")).toHaveCount(
+      await page.locator("table tbody tr").count(),
+    );
+    // Hovering a kind says what it means.
+    await expect(
+      rowNamed(page, SEQUENCE_RULE).getByTestId("detection-rule-type"),
+    ).toHaveAttribute("title", /match in order/);
+
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "detection-rules-desktop", { fullPage: false });
+  });
+
+  test("a correlation pasted into the form is said in a sentence, and the single rule's counting fields leave", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(rowNamed(page, SEQUENCE_RULE)).toBeVisible({
+      timeout: 30000,
+    });
+
+    // A single rule counts by the form's fields, under More fields.
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(SINGLE_RULE_YAML);
+    await expect(
+      dialog(page).getByTestId("detection-rule-summary"),
+    ).toHaveCount(0);
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+      "On Match",
+    );
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    for (const field of COUNTING_FIELDS) {
+      await expect(dialog(page).getByText(field).first()).toBeVisible();
+    }
+    await dialog(page)
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // A correlation says how it counts in its YAML, and the form says what it looks for.
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(CORRELATION_RULE_YAML);
+    const summary: Locator = dialog(page).getByTestId("detection-rule-summary");
+    await expect(summary).toContainText("Sequence");
+    await expect(summary).toContainText(
+      "Ten failed sign-ins → Successful sign-in happen in this order for the same principalIp within 15 minutes.",
+    );
+    // The rules it reads stand apart by their titles, the field as a column name.
+    await expect(summary.getByTestId("detection-rule-summary-rule")).toHaveText(
+      ["Ten failed sign-ins", "Successful sign-in"],
+    );
+    const field: Locator = summary.getByTestId("detection-rule-summary-field");
+    await expect(field).toHaveText(["principalIp"]);
+    expect(
+      await field.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontFamily;
+      }),
+    ).toContain("monospace");
+    // The rule is named after the correlation's own title.
+    await expect(
+      dialog(page).getByRole("textbox", { name: /^Name/ }),
+    ).toHaveValue("Brute force, then a success");
+    await screenshot(page, "detection-rule-correlation-form-desktop", {
+      fullPage: false,
+    });
+
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+    await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+      "On Match",
+    );
+    await dialog(page)
+      .getByRole("button", { name: /More fields/ })
+      .click();
+    await expect(
+      dialog(page)
+        .getByText(/^Evaluation Interval \(Minutes\)/)
+        .first(),
+    ).toBeVisible();
+    for (const field of COUNTING_FIELDS) {
+      await expect(dialog(page).getByText(field)).toHaveCount(0);
+    }
+    await dialog(page)
+      .getByRole("button", { name: "Cancel", exact: true })
+      .click();
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("Free Lists offer each free blocklist with its publisher, schedule and terms; one the project reads says Added", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const tile: Locator = page.getByTestId(`threat-intel-list-${list.id}`);
+      // Who publishes it, how often it is read and its terms: one line under its name.
+      const about: Locator = page.getByTestId(
+        `threat-intel-list-about-${list.id}`,
+      );
+      await expect(tile).toContainText(list.title);
+      await expect(about).toContainText(list.provider);
+      await expect(tile).not.toContainText("Confidence");
+      const terms: Locator = about.getByRole("link", { name: /Terms/ });
+      await expect(terms).toHaveAttribute("target", "_blank");
+      expect(new URL((await terms.getAttribute("href")) || "").href).toBe(
+        new URL(list.termsUrl).href,
+      );
+    }
+    await expect(
+      page.getByTestId("threat-intel-list-feodo-tracker"),
+    ).toContainText("Read every hour");
+    await expect(
+      page.getByTestId("threat-intel-list-emerging-threats-compromised"),
+    ).toContainText("Read every day");
+
+    // The project reads Feodo Tracker already: Added, and no Add List.
+    await expect(
+      page.getByTestId("threat-intel-list-added-feodo-tracker"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("threat-intel-list-add-feodo-tracker"),
+    ).toHaveCount(0);
+
+    // Three tiles a row beside the side menu, none wider than the card.
+    const tiles: Array<Box> = [];
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      tiles.push(await boxOf(page.getByTestId(`threat-intel-list-${list.id}`)));
+    }
+    expect(
+      new Set(
+        tiles.map((tile: Box): number => {
+          return Math.round(tile.y);
+        }),
+      ).size,
+    ).toBe(1);
+
+    /*
+     * Every tile ends alike: Added and Add List on one line across the row,
+     * whichever a tile says (Added once sat beside the terms while Add List
+     * dropped a line below them).
+     */
+    const ends: Array<number> = [];
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const action: Locator = page
+        .getByTestId(`threat-intel-list-added-${list.id}`)
+        .or(page.getByTestId(`threat-intel-list-add-${list.id}`));
+      const box: Box = await boxOf(action);
+      ends.push(box.y + box.height / 2);
+    }
+    expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(2);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "threat-intel-desktop", { fullPage: false });
+  });
+
+  test("Add List adds the list as a feed in one click, and the feeds table lists it with its source", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+    const list: (typeof RECOMMENDED_THREAT_INTEL_LISTS)[number] =
+      RECOMMENDED_THREAT_INTEL_LISTS.find(
+        (item: (typeof RECOMMENDED_THREAT_INTEL_LISTS)[number]): boolean => {
+          return item.id === "emerging-threats-compromised";
+        },
+      )!;
+
+    await page.getByTestId(`threat-intel-list-add-${list.id}`).click();
+    await expect(
+      page.getByTestId(`threat-intel-list-added-${list.id}`),
+    ).toBeVisible();
+
+    const created: Array<{ modelName: string; data: Record<string, unknown> }> =
+      (await fixture(page)).creates.filter(
+        (create: { modelName: string }): boolean => {
+          return create.modelName === "ThreatIntelFeed";
+        },
+      );
+    expect(created).toHaveLength(1);
+    expect(created[0]!.data).toMatchObject({
+      name: list.title,
+      feedType: "list",
+      listUrl: list.url,
+      indicatorConfidence: list.indicatorConfidence,
+      pollIntervalInMinutes: list.pollIntervalInMinutes,
+      isEnabled: true,
+      shouldCreateCase: true,
+      shouldCreateAlert: list.raisesAlerts,
+      shouldCreateIncident: false,
+    });
+
+    // The table reads the feeds again: the new list, named by its source.
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(rowNamed(page, list.title)).toBeVisible();
+    await expect(
+      rowNamed(page, list.title).getByTestId("threat-intel-feed-source-cell"),
+    ).toHaveText("List of indicators");
+    await expect(
+      rowNamed(page, "Corporate MISP").getByTestId(
+        "threat-intel-feed-source-cell",
+      ),
+    ).toHaveText("TAXII collection");
+    await expect(feeds.locator("tbody tr")).toHaveCount(3);
+
+    // The indicators the feeds hold, under them.
+    await expect(cardTitled(page, "Indicators")).toContainText(
+      "update-check.example",
+    );
+  });
+
+  test("with every free list a feed already, Free Lists is gone and the feeds lead the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, THREAT_INTEL_PATH, { lists: "all" });
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(feeds.locator("tbody tr")).toHaveCount(
+      RECOMMENDED_THREAT_INTEL_LISTS.length + 1,
+      { timeout: 30000 },
+    );
+    // The card read the feeds, found nothing left to offer, and drew nothing.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await fixture(page)).listRequests.filter(
+          (request: { modelName: string }): boolean => {
+            return request.modelName === "ThreatIntelFeed";
+          },
+        ).length;
+      })
+      .toBeGreaterThanOrEqual(2);
+    await expect(
+      page.getByTestId("threat-intel-recommended-lists"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Free Lists", exact: true }),
+    ).toHaveCount(0);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+  });
+
+  /*
+   * Ten columns stood every feed's row five lines tall. The interval, Last
+   * Evaluated and the two messages wait in Customize Columns (the Status
+   * and View Error say when there is something to read); what a poll did
+   * is one line, whole on hover.
+   */
+  test("the feeds table shows what most people read, each healthy row one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(
+      feeds.locator("tbody tr").filter({ hasText: "Corporate MISP" }),
+    ).toBeVisible();
+
+    const headers: Array<string> = (
+      await feeds.locator("thead th").allTextContents()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter(Boolean);
+    for (const shown of [
+      "Name",
+      "Source",
+      "Status",
+      "Last Polled",
+      "Last Match",
+      "Last Poll Summary",
+    ]) {
+      expect(headers.join(" | ")).toContain(shown);
+    }
+    for (const hidden of [
+      "Interval (Minutes)",
+      "Last Error",
+      "Last Evaluated",
+      "Last Match Error",
+    ]) {
+      expect(headers.join(" | ")).not.toContain(hidden);
+    }
+
+    // A healthy feed's row is one line: what its poll did, cut short, whole on hover.
+    for (const row of await feeds.locator("tbody tr").all()) {
+      const box: Box = await boxOf(row);
+      expect(box.height).toBeLessThanOrEqual(64);
+    }
+  });
+
+  test("a Security Viewer reads the lists but cannot add one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page, { role: "viewer" });
+    await expect(
+      page.getByTestId("threat-intel-list-add-tor-exit-nodes"),
+    ).toBeDisabled();
+    await expect(
+      page.getByTestId("threat-intel-list-added-feodo-tracker"),
+    ).toBeVisible();
+  });
+
+  test("a new feed asks where its indicators come from first, then only that source's settings", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+
+    const SOURCES: ReadonlyArray<{
+      title: string;
+      step: string;
+      settings: Array<RegExp>;
+      folded?: Array<string>;
+    }> = [
+      {
+        title: "List of indicators",
+        step: "List",
+        settings: [/^List URL/],
+        // How sure the list is, empty for Medium: folded.
+        folded: ["Confidence"],
+      },
+      {
+        title: "TAXII collection",
+        step: "TAXII Server",
+        settings: [/^TAXII API Root URL/, /^Collection ID/],
+      },
+      {
+        title: "Google SecOps",
+        step: "Google SecOps",
+        settings: [/^Google SecOps Connection/],
+      },
+    ];
+
+    for (const source of SOURCES) {
+      await page
+        .getByRole("button", { name: "Create Threat Intel Feed", exact: true })
+        .click();
+      await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+        "Source",
+      );
+      await expect(dialog(page).getByRole("radio")).toHaveCount(SOURCES.length);
+      if (source.title === SOURCES[0]!.title) {
+        await screenshot(page, "threat-intel-feed-source-desktop", {
+          fullPage: false,
+        });
+      }
+
+      await dialog(page)
+        .getByRole("radio", { name: source.title, exact: true })
+        .click();
+      await dialog(page)
+        .getByRole("textbox", { name: /^Name/ })
+        .fill("Partner blocklist");
+      await dialog(page)
+        .getByRole("button", { name: "Next", exact: true })
+        .click();
+      await expect(dialog(page).locator("[aria-current='step']")).toHaveText(
+        source.step,
+      );
+
+      // That source's settings, and none of another's.
+      for (const other of SOURCES) {
+        for (const setting of other.settings) {
+          if (other.title === source.title) {
+            await expect(dialog(page).getByText(setting).first()).toBeVisible();
+          } else {
+            await expect(dialog(page).getByText(setting)).toHaveCount(0);
+          }
+        }
+      }
+      if (source.folded) {
+        const more: Locator = dialog(page).getByRole("button", {
+          name: /More fields/,
+        });
+        await expect(more).toBeVisible();
+        for (const title of source.folded) {
+          await expect(
+            dialog(page).getByText(title, { exact: true }).first(),
+          ).toBeVisible();
+          await expect(
+            dialog(page).getByRole("spinbutton", {
+              name: new RegExp(`^${escapeRegExp(title)}`),
+            }),
+          ).toHaveCount(0);
+        }
+        await more.click();
+        for (const title of source.folded) {
+          await expect(
+            dialog(page).getByRole("spinbutton", {
+              name: new RegExp(`^${escapeRegExp(title)}`),
+            }),
+          ).toBeVisible();
+        }
+      }
+      if (source.title === "Google SecOps") {
+        // No Google SecOps connection yet: the step says where to make one.
+        await expect(
+          dialog(page).getByRole("link", { name: /Connect Google SecOps/ }),
+        ).toBeVisible();
+      }
+
+      await dialog(page)
+        .getByRole("button", { name: "Cancel", exact: true })
+        .click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("both pages in the dark theme, and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const PAGES: ReadonlyArray<[string, string, string]> = [
+      ["detection-rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
+      ["threat-intel", THREAT_INTEL_PATH, "Corporate MISP"],
+    ];
+
+    for (const [name, pathname, text] of PAGES) {
+      await open(page, pathname, { theme: "dark" });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+      await screenshot(page, `${name}-dark`, { fullPage: false });
+
+      await open(page, pathname, { width: 390 });
+      await expect(page.getByText(text).first()).toBeVisible({
+        timeout: 30000,
+      });
+      expect(await pageOverflow(page), `${name} at 390`).toBeLessThanOrEqual(1);
+      await screenshot(page, `${name}-phone`);
+    }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI on the Security pages
+ * ---------------------------------------------------------------------------
+ *
+ * The case's one AI card (SecurityCaseAiCard), on the fixture's triages: the
+ * spray case read Likely Malicious with a cited report, and CASE-141 not
+ * read yet, which Triage with AI walks through - queued, two checks, done.
+ * The read in the case lists, Draft with AI under the Sigma rule, the AI
+ * settings page's one switch, and nothing of it with the project's AI off.
+ */
+test.describe("OneUptime AI on the Security pages", () => {
+  function aiCard(page: Page): Locator {
+    return page.getByTestId("security-case-ai-card");
+  }
+
+  test("a triaged case leads with OneUptime AI's read: the verdict, the playbook it suggests, a cited report", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    const card: Locator = aiCard(page);
+    const triaged: Locator = card.getByTestId("security-case-ai-triaged");
+
+    await expect(triaged).toBeVisible({ timeout: 30000 });
+    await expect(card).toContainText("Likely Malicious");
+    await expect(card).toContainText(
+      "The evidence points at malicious or unauthorized activity.",
+    );
+    // The case is Critical already, so there is no priority to set.
+    await expect(card.getByTestId("security-case-ai-set-priority")).toHaveCount(
+      0,
+    );
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook"),
+    ).toContainText("Contain Compromised Okta Users");
+    /*
+     * That playbook's run on the case waits for an approval already: the
+     * card says so where Run playbook would be, rather than start a second
+     * run asking for the same approval.
+     */
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveText("Waiting for Approval");
+    await expect(card.getByTestId("security-case-ai-run-playbook")).toHaveCount(
+      0,
+    );
+    // The report, as the people reading it see it.
+    await expect(card).toContainText(
+      "This is a password spray that most likely succeeded.",
+    );
+    await expect(
+      card.getByTestId("security-case-ai-triaged-when"),
+    ).toBeVisible();
+
+    // The card comes first, above the detections.
+    const cardBox: Box = await boxOf(card);
+    const detections: Box = await boxOf(
+      page.getByText("Okta password spray").first(),
+    );
+    expect(cardBox.y).toBeLessThan(detections.y);
+
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-ai-desktop");
+  });
+
+  test("a citation opens the check behind it, re-run on the case's own route over the time the triage read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+
+    // [C1] is cited in the summary and again under Evidence.
+    await card
+      .getByRole("button", { name: /^Citation C1/ })
+      .first()
+      .click();
+
+    await expect(
+      card.getByTestId("investigation-details-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      card.getByText(
+        "11:51:02  user.session.start SUCCESS k.morgan@acme-commerce.example",
+        { exact: false },
+      ),
+    ).toBeVisible({ timeout: 15000 });
+
+    const evidence: Array<{ url: string; body: unknown }> = (
+      await fixture(page)
+    ).apiRequests.filter((request: { url: string }): boolean => {
+      return request.url.endsWith("/ai-triage/evidence");
+    });
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.url).toContain(
+      "/security-case/20000000-0000-4000-8000-000000000142/ai-triage/evidence",
+    );
+    expect(evidence[0]!.body).toEqual({
+      runId: SPRAY_TRIAGE_RUN_ID,
+      citationId: "C1",
+    });
+
+    await screenshot(page, "case-ai-evidence-desktop");
+  });
+
+  test("Run playbook opens the run dialog on the playbook OneUptime AI suggested", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The web shell: OneUptime AI suggests Enrich New Cases, whose run failed.
+    await open(page, POWERSHELL_CASE_PATH);
+    const card: Locator = aiCard(page);
+
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook"),
+    ).toContainText("Enrich New Cases", { timeout: 30000 });
+    // A finished run leaves Run playbook one click away.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveCount(0);
+    await card.getByTestId("security-case-ai-run-playbook").click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("Enrich New Cases");
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // Nothing ran: a person starts the playbook.
+    expect((await fixture(page)).creates).toEqual([]);
+  });
+
+  test("Triage with AI on a case nobody has read: each check as it runs, then the read, and Set priority", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH);
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-not-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("Not triaged yet");
+    await screenshot(page, "case-ai-not-triaged-desktop", { fullPage: false });
+
+    await card.getByTestId("security-case-ai-triage-button").click();
+
+    await expect(card.getByTestId("security-case-ai-triaging")).toBeVisible();
+    await expect(card.getByTestId("security-case-ai-steps")).toContainText(
+      "Checked threat intel",
+      { timeout: 15000 },
+    );
+    await screenshot(page, "case-ai-triaging-desktop", { fullPage: false });
+
+    // Done: the read the runner wrote on the case, which the page read again.
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("Likely Malicious");
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook"),
+    ).toContainText("Escalate Known-Bad Indicators");
+    // Its run on this case is going already: said, rather than run twice.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveText("Running");
+
+    // The case is High; OneUptime AI suggests Critical. One click sets it.
+    await card.getByTestId("security-case-ai-set-priority").click();
+    await expect
+      .poll(async (): Promise<unknown> => {
+        return (
+          (await fixture(page)) as unknown as {
+            updates: Array<{
+              modelName: string;
+              data: Record<string, unknown>;
+            }>;
+          }
+        ).updates.find(
+          (update: { modelName: string; data: Record<string, unknown> }) => {
+            return (
+              update.modelName === "SecurityCase" && "priority" in update.data
+            );
+          },
+        )?.data["priority"];
+      })
+      .toBe("Critical");
+
+    const asked: Array<string> = (await fixture(page)).apiRequests
+      .map((request: { url: string }): string => {
+        return new URL(request.url).pathname;
+      })
+      .filter((pathname: string): boolean => {
+        return pathname.includes("/ai-triage");
+      });
+    expect(asked).toContain(
+      "/api/security-case/20000000-0000-4000-8000-000000000141/ai-triage/start",
+    );
+    await screenshot(page, "case-ai-triaged-desktop", { fullPage: false });
+  });
+
+  test("the case lists show each case's read beside its title", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH);
+    const spray: Locator = page
+      .locator("table tbody tr")
+      .filter({ hasText: "CASE-142" });
+
+    await expect(spray.getByTestId("security-case-row-ai-verdict")).toHaveText(
+      "Likely Malicious",
+      { timeout: 30000 },
+    );
+    await expect(
+      page
+        .locator("table tbody tr")
+        .filter({ hasText: "CASE-137" })
+        .getByTestId("security-case-row-ai-verdict"),
+    ).toHaveText("Likely Benign");
+    // Not read yet: no pill.
+    await expect(
+      page
+        .locator("table tbody tr")
+        .filter({ hasText: "CASE-141" })
+        .getByTestId("security-case-row-ai-verdict"),
+    ).toHaveCount(0);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "cases-ai-desktop", { fullPage: false });
+  });
+
+  test("Draft with AI writes a Sigma rule into the form from a sentence, and the rule is named after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click({ timeout: 30000 });
+    const dialog: Locator = page.getByRole("dialog");
+
+    await dialog.getByTestId("detection-rule-ai-draft-open").click();
+    await dialog
+      .getByRole("textbox", { name: "What should this rule catch?" })
+      .fill("Ten failed sign-ins from one IP address within five minutes");
+    await screenshot(page, "detection-rule-ai-draft-desktop", {
+      fullPage: false,
+    });
+    await dialog.getByTestId("detection-rule-ai-draft-submit").click();
+
+    await expect(dialog.getByTestId("detection-rule-ai-draft-done")).toHaveText(
+      "OneUptime AI wrote this rule. Read it before you save.",
+    );
+    await expect(
+      dialog.getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ }),
+    ).toHaveValue(
+      /^title: Ten failed sign-ins from one address in five minutes/,
+    );
+    await expect(dialog.getByRole("textbox", { name: /^Name/ })).toHaveValue(
+      "Ten failed sign-ins from one address in five minutes",
+    );
+    await expect(dialog.getByTestId("detection-rule-summary")).toContainText(
+      "principalIp",
+    );
+    await expect(dialog.getByTestId("detection-rule-ai-draft-open")).toHaveText(
+      "Redraft with AI",
+    );
+
+    const drafts: Array<{ url: string; body: unknown }> = (
+      await fixture(page)
+    ).apiRequests.filter((request: { url: string }): boolean => {
+      return request.url.endsWith("/detection-rule/draft-with-ai");
+    });
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0]!.body).toEqual({
+      description:
+        "Ten failed sign-ins from one IP address within five minutes",
+    });
+    // Nothing is saved by drafting.
+    expect((await fixture(page)).creates).toEqual([]);
+    await screenshot(page, "detection-rule-ai-drafted-desktop", {
+      fullPage: false,
+    });
+  });
+
+  test("Security Events → AI → Settings is one switch, Triage new cases, that saves as it flips", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, AI_SETTINGS_PATH);
+    const toggle: Locator = page.getByTestId(
+      "ai-switch-enableAutomaticSecurityCaseTriage",
+    );
+
+    await expect(toggle).toHaveAttribute("aria-checked", "true", {
+      timeout: 30000,
+    });
+    await expect(
+      page.getByText("Triage new cases", { exact: true }),
+    ).toBeVisible();
+    expect(await litEntries(page)).toEqual(["Settings"]);
+    await expect(menuSection(page, "AI")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await screenshot(page, "ai-settings-desktop", { fullPage: false });
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await expect
+      .poll(async (): Promise<unknown> => {
+        return (
+          (await fixture(page)) as unknown as {
+            updates: Array<{
+              modelName: string;
+              data: Record<string, unknown>;
+            }>;
+          }
+        ).updates.map(
+          (update: { modelName: string; data: Record<string, unknown> }) => {
+            return [update.modelName, update.data];
+          },
+        );
+      })
+      .toEqual([["Project", { enableAutomaticSecurityCaseTriage: false }]]);
+
+    for (const theme of ["dark", undefined] as const) {
+      await open(page, AI_SETTINGS_PATH, {
+        theme,
+        width: theme ? 1280 : 390,
+        height: theme ? 1000 : 844,
+      });
+      await expect(
+        page.getByTestId("ai-switch-enableAutomaticSecurityCaseTriage"),
+      ).toBeVisible({ timeout: 30000 });
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(page, theme ? "ai-settings-dark" : "ai-settings-phone");
+    }
+  });
+
+  test("the AI card in the dark theme and on a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { theme: "dark", width: 1280 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    await screenshot(page, "case-ai-dark", { fullPage: false });
+
+    await open(page, SPRAY_CASE_PATH, { width: 390, height: 844 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await overflowOf(aiCard(page))).toBeLessThanOrEqual(1);
+    // The suggested playbook is named in full, beside or above its run's status.
+    const playbookName: Locator = aiCard(page)
+      .getByTestId("security-case-ai-suggested-playbook")
+      .getByText("Contain Compromised Okta Users", { exact: true });
+    await expect(playbookName).toBeVisible();
+    expect(
+      await overflowOf(playbookName),
+      "the suggested playbook's name is cut short",
+    ).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-ai-phone");
+
+    await open(page, SPRAY_CASE_PATH, {
+      theme: "dark",
+      width: 390,
+      height: 844,
+    });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-ai-phone-dark");
+  });
+
+  test("with the project's AI off, none of it is drawn and nothing asks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // What a page asked OneUptime AI for: nothing, with AI off.
+    async function askedAi(): Promise<Array<string>> {
+      return (await fixture(page)).apiRequests
+        .map((request: { url: string }): string => {
+          return request.url;
+        })
+        .filter((url: string): boolean => {
+          return url.includes("/ai-triage") || url.includes("/draft-with-ai");
+        });
+    }
+
+    await open(page, SPRAY_CASE_PATH, { ai: "off" });
+    await expect(page.getByText("475 events")).toBeVisible({ timeout: 30000 });
+    await expect(aiCard(page)).toHaveCount(0);
+    expect(await askedAi()).toEqual([]);
+
+    await open(page, CASES_PATH, { ai: "off" });
+    await expect(
+      page.locator("table tbody tr").filter({ hasText: "CASE-142" }),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("security-case-row-ai-verdict")).toHaveCount(
+      0,
+    );
+
+    await open(page, DETECTION_RULES_PATH, { ai: "off" });
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click({ timeout: 30000 });
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByTestId("detection-rule-ai-draft-open")).toHaveCount(
+      0,
+    );
+    expect(await askedAi()).toEqual([]);
+
+    // The settings page says AI is off, with Enable AI's own switch.
+    await open(page, AI_SETTINGS_PATH, { ai: "off" });
+    await expect(page.getByTestId("project-ai-off-notice")).toBeVisible({
+      timeout: 30000,
+    });
+    await screenshot(page, "ai-settings-ai-off-desktop", { fullPage: false });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI: what the case's card says when a triage cannot run, stopped,
+ * or read text written to steer it (the fixture's ?triage= scenarios)
+ * ---------------------------------------------------------------------------
+ */
+test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
+  function aiCard(page: Page): Locator {
+    return page.getByTestId("security-case-ai-card");
+  }
+
+  /*
+   * Every button in the card starts on the content's left edge: Button
+   * carries md:ml-3 for dialog footers, which pushed the first button of a
+   * row 12px in from the text above it.
+   */
+  async function expectOnTheContentEdge(
+    page: Page,
+    button: Locator,
+  ): Promise<void> {
+    const content: Box = await boxOf(
+      aiCard(page).locator("[data-testid='card-header-title-block']").first(),
+    );
+    const drawn: Box = await boxOf(button);
+    expect(Math.abs(drawn.x - content.x)).toBeLessThanOrEqual(1);
+  }
+
+  test("the card's buttons sit on the content's edge, in light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark"] as const) {
+      await open(page, SPRAY_CASE_PATH, { theme, width: 1280 });
+      await expect(
+        aiCard(page).getByTestId("security-case-ai-triaged"),
+      ).toBeVisible({ timeout: 30000 });
+      await expectOnTheContentEdge(
+        page,
+        aiCard(page).getByTestId("security-case-ai-ask"),
+      );
+    }
+
+    await open(page, DOMAIN_CASE_PATH, { width: 1280 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-not-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    await expectOnTheContentEdge(
+      page,
+      aiCard(page).getByTestId("security-case-ai-triage-button"),
+    );
+  });
+
+  test("a project that cannot triage now says why in place of Triage again, and where to fix it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { triage: "limit", width: 1280 });
+    const card: Locator = aiCard(page);
+    const reason: Locator = card.getByTestId("security-case-ai-reason");
+
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(reason).toContainText(
+      "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+    );
+    await expect(reason.getByRole("link")).toHaveText(
+      "Go to Project Settings → AI → AI Features",
+    );
+    // No Triage again that could not start; asking about the read still works.
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
+    await expect(card.getByTestId("security-case-ai-ask")).toBeEnabled();
+    await screenshot(page, "case-ai-limit-desktop", { fullPage: false });
+
+    await open(page, SPRAY_CASE_PATH, {
+      triage: "limit",
+      width: 390,
+      height: 844,
+    });
+    await expect(card.getByTestId("security-case-ai-reason")).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await overflowOf(card)).toBeLessThanOrEqual(1);
+  });
+
+  test("with no LLM provider, the fix goes to who may set one up; a Security Viewer is told who can", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "provider", width: 1280 });
+    const card: Locator = aiCard(page);
+    const reason: Locator = card.getByTestId("security-case-ai-reason");
+
+    await expect(reason).toContainText(
+      "OneUptime AI has no LLM provider to use in this project.",
+      { timeout: 30000 },
+    );
+    await expect(reason.getByRole("link")).toHaveText("Set up an LLM provider");
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
+    await screenshot(page, "case-ai-provider-desktop", { fullPage: false });
+
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "provider",
+      role: "viewer",
+      width: 1280,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-reason-who-can"),
+    ).toHaveText("A project administrator can review these settings.", {
+      timeout: 30000,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-reason").getByRole("link"),
+    ).toHaveCount(0);
+  });
+
+  test("out of AI credits: Add AI credits for an owner, who can for a Security Viewer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "credits", width: 1280 });
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-reason")).toContainText(
+      "The project is out of AI credits.",
+      { timeout: 30000 },
+    );
+    await expect(
+      card.getByTestId("security-case-ai-reason").getByRole("link"),
+    ).toHaveText("Add AI credits");
+
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "credits",
+      role: "viewer",
+      width: 1280,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-reason-who-can"),
+    ).toHaveText(
+      "A project owner or someone with Manage Billing can add AI credits.",
+      { timeout: 30000 },
+    );
+  });
+
+  test("a triage that stopped says why, and Try again reads the case", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "failed", width: 1280 });
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-failed")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("The triage did not finish");
+    // Why it stopped, as the run recorded it.
+    await expect(
+      card.getByTestId("security-case-ai-failed-notice"),
+    ).toContainText("The LLM provider did not answer in time.");
+    const tryAgain: Locator = card.getByTestId(
+      "security-case-ai-triage-button",
+    );
+    await expect(tryAgain).toHaveText("Try again");
+    await expectOnTheContentEdge(page, tryAgain);
+    await screenshot(page, "case-ai-failed-desktop", { fullPage: false });
+
+    await tryAgain.click();
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("Likely Malicious");
+  });
+
+  test("text written to steer an AI is said first, once, and the read keeps no suggestion", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, API_KEY_CASE_PATH, { triage: "injection", width: 1280 });
+    const card: Locator = aiCard(page);
+    const notice: Locator = card.getByTestId(
+      "security-case-ai-prompt-injection",
+    );
+
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    await expect(notice).toContainText(
+      "Text in this case reads like instructions to an AI",
+    );
+    await expect(notice).toContainText(
+      "OneUptime AI treated it as data and leaves the call to you.",
+    );
+    await expect(card).toContainText("Inconclusive");
+    // The runner's own heads-up is left out of the report the card draws.
+    await expect(card).not.toContainText("Heads up:");
+    await expect(
+      card.getByText(/reads like instructions to an AI/),
+    ).toHaveCount(1);
+    // The notice comes before the report.
+    expect((await boxOf(notice)).y).toBeLessThan(
+      (await boxOf(card.getByText("Summary", { exact: true }))).y,
+    );
+    // Nothing the steered answer suggested is offered.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-priority"),
+    ).toHaveCount(0);
+    await screenshot(page, "case-ai-injection-desktop", { fullPage: false });
+
+    await open(page, API_KEY_CASE_PATH, {
+      triage: "injection",
+      theme: "dark",
+      width: 390,
+      height: 844,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-prompt-injection"),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-ai-injection-phone-dark");
+  });
+
+  test("a later triage that stopped keeps the read before it, and says so under the read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { triage: "retry", width: 1280 });
+    const card: Locator = aiCard(page);
+    const notice: Locator = card.getByTestId(
+      "security-case-ai-last-run-failed",
+    );
+
+    await expect(notice).toContainText(
+      "The latest triage did not finish. This is the one before it.",
+      { timeout: 30000 },
+    );
+    // Why it stopped, as the run recorded it - as a failed triage says it.
+    await expect(
+      notice.getByTestId("security-case-ai-last-run-failed-why"),
+    ).toHaveText("The LLM provider did not answer in time.");
+    await expect(card).toContainText("Likely Malicious");
+    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveText(
+      "Triage again",
+    );
+  });
+
+  test("a Security Viewer is told who can triage, and offered nothing it cannot press", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A case nobody has read: Triage with AI greyed, who can beside it.
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "auto-off",
+      role: "viewer",
+      width: 1280,
+    });
+    const card: Locator = aiCard(page);
+
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toBeDisabled({ timeout: 30000 });
+    await expect(
+      card.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveText("Someone who can edit this case can start a triage.");
+    // Where the switch is, is for who may triage.
+    await expect(
+      card.getByTestId("security-case-ai-automatic-off"),
+    ).toHaveCount(0);
+
+    /*
+     * A triaged case whose suggested priority an owner could set (Low over
+     * its Medium): the read and Ask, no Triage again or Set priority.
+     */
+    await open(page, API_KEY_CASE_PATH, { role: "viewer", width: 1280 });
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-suggested-priority"),
+    ).toBeVisible();
+    await expect(card.getByTestId("security-case-ai-ask")).toBeEnabled();
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
+    await expect(card.getByTestId("security-case-ai-set-priority")).toHaveCount(
+      0,
+    );
+    await expect(
+      card.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveCount(0);
+    await screenshot(page, "case-ai-viewer-desktop", { fullPage: false });
+  });
+
+  test("with new cases not triaged on their own, the card says where to turn it on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "auto-off", width: 1280 });
+    const note: Locator = aiCard(page).getByTestId(
+      "security-case-ai-automatic-off",
+    );
+
+    await expect(note).toContainText(
+      "New cases are not triaged automatically.",
+      { timeout: 30000 },
+    );
+    await note.getByRole("link").click();
+    await expect
+      .poll((): string => {
+        return new URL(page.url()).pathname;
+      })
+      .toBe(AI_SETTINGS_PATH);
+    await expect(
+      page.getByTestId("ai-switch-enableAutomaticSecurityCaseTriage"),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("Close Case names OneUptime AI's read over the verdict it starts on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, API_KEY_CASE_PATH, { width: 1280 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    await page.getByTestId("security-case-close").click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(
+      "OneUptime AI read this case as Likely Benign. Pick what you found.",
+    );
+    // The closing note says what it is for once; its label says Optional.
+    await expect(dialog).toContainText(
+      "What was found and what was done, for whoever reads this case next.",
+    );
+    await expect(dialog).not.toContainText("Optional. What was found");
+    await screenshot(page, "case-close-ai-read-desktop", { fullPage: false });
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    // With AI off, nothing of it: the dialog starts on True Positive.
+    await open(page, API_KEY_CASE_PATH, { ai: "off", width: 1280 });
+    await expect(page.getByTestId("security-case-close")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByTestId("security-case-close").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog")).not.toContainText("OneUptime AI");
+  });
+
+  test("the timeline has the triage, with its report behind Show details", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { width: 1280 });
+    const entry: Locator = page
+      .getByTestId("feed-entry")
+      .filter({ hasText: "OneUptime AI triaged this case: Likely Malicious." });
+
+    await expect(entry).toBeVisible({ timeout: 30000 });
+    await expect(entry).toContainText(
+      "It suggests priority Critical and a playbook.",
+    );
+    // The report itself waits behind the entry's details.
+    await expect(entry).not.toContainText(
+      "This is a password spray that most likely succeeded.",
+    );
+    await entry.getByTestId("feed-entry-details-toggle").click();
+    await expect(entry).toContainText(
+      "This is a password spray that most likely succeeded.",
+    );
+  });
+
+  test("Draft with AI's box has one action and an x beside its question", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH, { width: 1280 });
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click({ timeout: 30000 });
+    const dialog: Locator = page.getByRole("dialog");
+    const draft: Locator = dialog.getByTestId("detection-rule-ai-draft");
+
+    // The quiet button's mark sits on the field's edge, under its label.
+    const openButton: Locator = dialog.getByTestId(
+      "detection-rule-ai-draft-open",
+    );
+    const label: Box = await boxOf(
+      dialog.getByText("Sigma Rule (YAML)", { exact: true }),
+    );
+    const mark: Box = await boxOf(openButton.locator("svg").first());
+    expect(Math.abs(mark.x - label.x)).toBeLessThanOrEqual(2);
+
+    await openButton.click();
+    await expect(draft.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+    const close: Locator = draft.getByRole("button", {
+      name: "Close Draft with AI",
+    });
+    await expect(close).toBeVisible();
+    const submit: Locator = draft.getByTestId("detection-rule-ai-draft-submit");
+    // Draft rule starts on the box's left edge.
+    expect(
+      Math.abs(
+        (await boxOf(submit)).x - (await boxOf(draft.getByRole("textbox"))).x,
+      ),
+    ).toBeLessThanOrEqual(1);
+
+    await close.click();
+    await expect(
+      dialog.getByTestId("detection-rule-ai-draft-description"),
+    ).toHaveCount(0);
+    await expect(dialog.getByTestId("detection-rule-ai-draft-open")).toHaveText(
+      "Draft with AI",
+    );
+  });
+});
+
 test.describe("every page fits the screen", () => {
   const PAGES: ReadonlyArray<[string, string, string]> = [
     ["overview", OVERVIEW_PATH, "Riskiest Entities"],
@@ -1624,12 +3127,15 @@ test.describe("every page fits the screen", () => {
     ["all cases", ALL_CASES_PATH, "CASE-142"],
     ["case", SPRAY_CASE_PATH, "475 events"],
     ["entities", ENTITIES_PATH, "203.0.113.47"],
+    ["detection rules", DETECTION_RULES_PATH, SEQUENCE_RULE],
     ["rule library", RULE_LIBRARY_PATH, "Added"],
+    ["threat intel", THREAT_INTEL_PATH, "Corporate MISP"],
     ["attack coverage", ATTACK_COVERAGE_PATH, "2 / 227"],
     ["playbooks", PLAYBOOKS_PATH, "Enrich New Cases"],
     ["playbook", CONTAIN_PLAYBOOK_PATH, "Latest Runs"],
     ["runs", RUNS_PATH, "CASE-142"],
     ["all runs", ALL_RUNS_PATH, "The events store did not answer"],
+    ["ai settings", AI_SETTINGS_PATH, "Triage new cases"],
   ];
 
   for (const width of [1280, 1024, 768, 390]) {

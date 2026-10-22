@@ -189,7 +189,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 영역 | 명령 |
 | --- | --- |
 | 모니터링 | `monitor`, `monitor-status`, `monitor-status-event` |
-| 인시던트 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| 인시던트 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | 알림 | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | 상태 페이지 | `status-page`, `status-page-announcement` |
 | 예약된 유지 관리 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

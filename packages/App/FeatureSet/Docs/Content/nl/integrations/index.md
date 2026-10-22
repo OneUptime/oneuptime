@@ -50,12 +50,12 @@ Begin bovenaan de tabel: hoe hoger een manier staat, hoe minder er te onderhoude
 | Tool | Richting | Wat hij doet |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Inkomend | Roept de dienst op voor incidentrapporten van Huntress en lost het incident op wanneer het rapport sluit. |
-| [Google SecOps](/docs/integrations/google-secops) | Inkomend | Brengt detecties van Google SecOps naar Beveiligingsgebeurtenissen. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Inkomend | Brengt incidenten van Microsoft Sentinel naar Beveiligingsgebeurtenissen. |
+| [Google SecOps](/docs/integrations/google-secops) | Beide | Brengt detecties en indicatoren van Google SecOps naar Beveiligingsgebeurtenissen, en stuurt er wat OneUptime vindt naartoe. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Beide | Brengt incidenten van Microsoft Sentinel naar Beveiligingsgebeurtenissen, en stuurt er wat OneUptime vindt naartoe. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Inkomend | Brengt alerts van Microsoft Defender XDR naar Beveiligingsgebeurtenissen. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Inkomend | Brengt alerts van CrowdStrike Falcon naar Beveiligingsgebeurtenissen. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Inkomend | Brengt notable events van Splunk naar Beveiligingsgebeurtenissen. |
-| [Elastic Security](/docs/integrations/elastic-security) | Inkomend | Brengt detectie-alerts van Elastic Security naar Beveiligingsgebeurtenissen. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Beide | Brengt notable events van Splunk naar Beveiligingsgebeurtenissen, en stuurt er wat OneUptime vindt naartoe. |
+| [Elastic Security](/docs/integrations/elastic-security) | Beide | Brengt detectie-alerts van Elastic Security naar Beveiligingsgebeurtenissen, en stuurt er wat OneUptime vindt naartoe. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkomend | Brengt bevindingen van AWS Security Hub naar Beveiligingsgebeurtenissen. |
 | [Okta System Log](/docs/integrations/okta) | Inkomend | Brengt aanmeldingen, accountwijzigingen en dreigingsdetecties van Okta naar Beveiligingsgebeurtenissen. |
 

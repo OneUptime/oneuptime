@@ -12,21 +12,23 @@ import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * "PASSED ON" IN THE ON-CALL LOGS.
+ * "ESCALATED" IN THE ON-CALL LOGS.
  *
- * When somebody passes a page on, three lists say so:
+ * When somebody escalates a page, three lists say so:
  *
  *   - the run's Execution Timeline (ExecutionLogsTimelineTable): the line
- *     of the person who passed it on;
+ *     of the person who escalated it;
  *   - User Settings > Notification Logs (Pages/UserSettings/OnCallLogs):
  *     the person's own page, which stopped there;
  *   - its Timeline (Pages/UserSettings/OnCallLogsTimeline): the
- *     notification they passed it on from.
+ *     notification they escalated it from.
  *
  * Each list draws a status it knows as a coloured pill and anything else as
- * a red Error - so a page passed on read as an error until the lists knew
- * the status. They draw "Passed On" in yellow now: nothing went wrong, and
- * the page is somebody else's to take. The status filters list it too.
+ * a red Error. An escalated page is stored with the status "Passed On" -
+ * the action's first name, kept so old logs, the API and saved filters keep
+ * working - and the lists draw it as "Escalated", in yellow: nothing went
+ * wrong, and the page is somebody else's to take. The status filters offer
+ * it as "Escalated" too, while filtering by the stored value.
  *
  * The tables are replaced by a recorder so the columns each list builds can
  * be read and run; the pill is a span that carries its colour.
@@ -143,18 +145,37 @@ function statusPill(
   };
 }
 
-function statusFilterOptions(table: RecordedTable): Array<string> {
+function statusFilterOptions(table: RecordedTable): Array<DropdownOption> {
   const filter: RecordedFilter | undefined = (table.filters || []).find(
     (candidate: RecordedFilter): boolean => {
       return candidate.title === "Status";
     },
   );
 
-  return (filter?.filterDropdownOptions || []).map(
-    (option: DropdownOption): string => {
-      return String(option.value);
+  return filter?.filterDropdownOptions || [];
+}
+
+// The filter's option for the stored "Passed On", as a reader sees it.
+function escalatedOption(table: RecordedTable): {
+  label: string;
+  value: string;
+} {
+  const option: DropdownOption | undefined = statusFilterOptions(table).find(
+    (candidate: DropdownOption): boolean => {
+      return candidate.value === "Passed On";
     },
   );
+
+  expect(option).toBeDefined();
+
+  return { label: String(option!.label), value: String(option!.value) };
+}
+
+// No option is labelled with the old words.
+function labels(table: RecordedTable): Array<string> {
+  return statusFilterOptions(table).map((option: DropdownOption): string => {
+    return String(option.label);
+  });
 }
 
 beforeEach(() => {
@@ -189,10 +210,10 @@ describe("a run's Execution Timeline", () => {
     return timeline;
   }
 
-  test("the line of whoever passed the page on says Passed On, in yellow", () => {
+  test("the line of whoever escalated the page says Escalated, in yellow", () => {
     expect(
       statusPill(table(), line(OnCallDutyExecutionLogTimelineStatus.PassedOn)),
-    ).toEqual({ text: "Passed On", color: Yellow.toString() });
+    ).toEqual({ text: "Escalated", color: Yellow.toString() });
   });
 
   test("the lines around it are as they were", () => {
@@ -204,8 +225,17 @@ describe("a run's Execution Timeline", () => {
     ).toEqual({ text: "Error", color: Red.toString() });
   });
 
-  test("the status filter offers Passed On", () => {
-    expect(statusFilterOptions(table())).toContain("Passed On");
+  test("the status filter offers it as Escalated, filtering by the stored Passed On", () => {
+    const recordedTable: RecordedTable = table();
+
+    expect(escalatedOption(recordedTable)).toEqual({
+      label: "Escalated",
+      value: "Passed On",
+    });
+    expect(labels(recordedTable)).not.toContain("Passed On");
+    // The other statuses read as they are stored.
+    expect(labels(recordedTable)).toContain("Skipped");
+    expect(labels(recordedTable)).toContain("Notification Sent");
   });
 });
 
@@ -232,10 +262,17 @@ describe("User Settings > Notification Logs", () => {
     return log;
   }
 
-  test("a page you passed on says Passed On, in yellow - not Error", () => {
+  test("a page you escalated says Escalated, in yellow - not Error", () => {
     expect(
       statusPill(table(), page(UserNotificationExecutionStatus.PassedOn)),
-    ).toEqual({ text: "Passed On", color: Yellow.toString() });
+    ).toEqual({ text: "Escalated", color: Yellow.toString() });
+  });
+
+  test("its status filter offers it as Escalated", () => {
+    expect(escalatedOption(table())).toEqual({
+      label: "Escalated",
+      value: "Passed On",
+    });
   });
 
   test("a page that went wrong is still an error", () => {
@@ -268,10 +305,20 @@ describe("User Settings > Notification Logs > Timeline", () => {
     return timeline;
   }
 
-  test("the notification you passed it on from says Passed On, in yellow - not Error", () => {
+  test("the notification you escalated it from says Escalated, in yellow - not Error", () => {
     expect(
       statusPill(table(), notification(UserNotificationStatus.PassedOn)),
-    ).toEqual({ text: "Passed On", color: Yellow.toString() });
+    ).toEqual({ text: "Escalated", color: Yellow.toString() });
+  });
+
+  test("its status filter offers it as Escalated", () => {
+    const recordedTable: RecordedTable = table();
+
+    expect(escalatedOption(recordedTable)).toEqual({
+      label: "Escalated",
+      value: "Passed On",
+    });
+    expect(labels(recordedTable)).toContain("Acknowledged");
   });
 
   test("the notifications around it are as they were", () => {

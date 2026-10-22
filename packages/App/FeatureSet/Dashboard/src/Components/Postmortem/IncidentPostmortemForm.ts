@@ -4,7 +4,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import MarkdownUtil from "Common/UI/Utils/Markdown";
 
 /*
  * The incident postmortem's form: what the postmortem says, then whether it
@@ -101,9 +100,13 @@ export const INCIDENT_POSTMORTEM_FORM_FIELDS: Fields<Incident> = [
     fieldType: FormFieldSchemaType.Markdown,
     required: false,
     placeholder: "Postmortem Note",
-    description: MarkdownUtil.getMarkdownCheatsheet(
+    /*
+     * Plain words, so the reader's language has them. The Markdown
+     * cheatsheet helper added a full stop of its own after this one
+     * ("follow-up actions..") and could not be translated.
+     */
+    description:
       "Capture what happened, impact, resolution, and follow-up actions.",
-    ),
   },
   {
     field: {

@@ -1,4 +1,3 @@
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
@@ -7,12 +6,9 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import {
   stubGenericReferenceCheck,
@@ -33,13 +29,14 @@ beforeEach(() => {
  * ingestion key can mint and, while it is offline, re-key) is never a
  * holder of anything an operator would not hand to whoever holds that key:
  *
- * - it is never offered to AI remediation as a Bash/SSH host
+ * - it is never offered to AI remediation as a Bash host
  *   (RunnerService.getOnlineAiCommandRunnersForProject leaves it out, in
  *   the query so it cannot crowd real hosts out of the limit, and on the
  *   rows);
- * - no RunbookCredential and no secret RunbookVariable can be assigned to it, on
- *   create or on any later write of the Runner list — whatever shape the
- *   Runner list arrives in (models, serialised relations, ids);
+ * - no secret RunbookVariable can be assigned to it, on create or on any
+ *   later write of the Runner list — whatever shape the Runner list
+ *   arrives in (models, serialised relations, ids). (Runbook credentials,
+ *   held to the same rule, were removed.);
  * - ordinary Runners, including ones that live in a pod, are unaffected.
  *
  * "Agent" is one rule (RunnerService.isKubernetesAgentRunnerRow), failing
@@ -129,17 +126,6 @@ interface UpdateHookAccess<T extends DatabaseBaseModel> {
   onBeforeUpdate(updateBy: UpdateBy<T>): Promise<OnUpdate<T>>;
 }
 
-function kubernetesCredential(runners: unknown): RunbookCredential {
-  const credential: RunbookCredential = new RunbookCredential();
-  credential.name = "prod-us kubeconfig";
-  credential.projectId = PROJECT_ID;
-  credential.credentialType = RunbookCredentialType.Kubernetes;
-  credential.kubernetesApiServerUrl = "https://10.0.0.1:6443";
-  credential.kubernetesServiceAccountToken = "token";
-  (credential as unknown as Record<string, unknown>)["runners"] = runners;
-  return credential;
-}
-
 function secret(runners: unknown): RunbookVariable {
   const model: RunbookVariable = new RunbookVariable();
   model.name = "PROD_PASSWORD";
@@ -150,7 +136,7 @@ function secret(runners: unknown): RunbookVariable {
   return model;
 }
 
-describe("kubernetes-agent Runners never hold credentials or run shell work", () => {
+describe("kubernetes-agent Runners never hold secrets or run shell work", () => {
   let runnerFind: jest.SpyInstance;
 
   beforeEach(() => {
@@ -256,96 +242,6 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
     });
   });
 
-  describe("RunbookCredentialService", () => {
-    const createHook: CreateHookAccess<RunbookCredential> =
-      RunbookCredentialService as unknown as CreateHookAccess<RunbookCredential>;
-    const updateHook: UpdateHookAccess<RunbookCredential> =
-      RunbookCredentialService as unknown as UpdateHookAccess<RunbookCredential>;
-
-    it("refuses to create a credential assigned to an agent Runner", async () => {
-      let thrown: unknown = null;
-
-      try {
-        await createHook.onBeforeCreate({
-          data: kubernetesCredential([hostRunner(), agentRunner()]),
-          props: { isRoot: true },
-        } as CreateBy<RunbookCredential>);
-      } catch (error) {
-        thrown = error;
-      }
-
-      expect(thrown).toBeInstanceOf(BadDataException);
-      expect((thrown as Error).message).toContain(
-        'Runner "kubernetes-agent/prod-us"',
-      );
-      expect((thrown as Error).message).toContain("never given a credential");
-      expect((thrown as Error).message).toContain("Runbooks → Runners");
-    });
-
-    it("refuses to assign an existing credential to an agent Runner, whatever shape the list arrives in", async () => {
-      for (const runners of [
-        [{ _id: AGENT_RUNNER_ID.toString() }],
-        [AGENT_RUNNER_ID],
-        [AGENT_RUNNER_ID.toString()],
-      ]) {
-        await expect(
-          updateHook.onBeforeUpdate({
-            query: { _id: ObjectID.generate().toString() },
-            data: { runners } as never,
-            props: { isRoot: true },
-          } as unknown as UpdateBy<RunbookCredential>),
-        ).rejects.toThrow(BadDataException);
-      }
-    });
-
-    it("refuses an agent row recognised by its posture only, or by a case variant of the marker", async () => {
-      for (const runner of [renamedAgentRunner(), caseVariantAgentRunner()]) {
-        await expect(
-          createHook.onBeforeCreate({
-            data: kubernetesCredential([runner]),
-            props: { isRoot: true },
-          } as CreateBy<RunbookCredential>),
-        ).rejects.toThrow(/never given a credential/);
-      }
-    });
-
-    it("negative control: ordinary Runners — including one in a pod — are assigned as before", async () => {
-      await expect(
-        createHook.onBeforeCreate({
-          data: kubernetesCredential([hostRunner()]),
-          props: { isRoot: true },
-        } as CreateBy<RunbookCredential>),
-      ).resolves.toBeDefined();
-
-      await expect(
-        updateHook.onBeforeUpdate({
-          query: { _id: ObjectID.generate().toString() },
-          data: { runners: [{ _id: HOST_RUNNER_ID.toString() }] } as never,
-          props: { isRoot: true },
-        } as unknown as UpdateBy<RunbookCredential>),
-      ).resolves.toBeDefined();
-    });
-
-    it("negative control: a write that does not touch the Runner list reads nothing", async () => {
-      await expect(
-        updateHook.onBeforeUpdate({
-          query: { _id: ObjectID.generate().toString() },
-          data: { name: "renamed" } as never,
-          props: { isRoot: true },
-        } as unknown as UpdateBy<RunbookCredential>),
-      ).resolves.toBeDefined();
-
-      await expect(
-        createHook.onBeforeCreate({
-          data: kubernetesCredential(undefined),
-          props: { isRoot: true },
-        } as CreateBy<RunbookCredential>),
-      ).resolves.toBeDefined();
-
-      expect(runnerFind).not.toHaveBeenCalled();
-    });
-  });
-
   describe("RunbookVariableService", () => {
     const createHook: CreateHookAccess<RunbookVariable> =
       RunbookVariableService as unknown as CreateHookAccess<RunbookVariable>;
@@ -377,6 +273,31 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           props: { isRoot: true },
         } as unknown as UpdateBy<RunbookVariable>),
       ).rejects.toThrow(/never given a secret/);
+    });
+
+    it("refuses an agent row recognised by its posture only, or by a case variant of the marker, whatever shape the list arrives in", async () => {
+      for (const runner of [renamedAgentRunner(), caseVariantAgentRunner()]) {
+        await expect(
+          createHook.onBeforeCreate({
+            data: secret([runner]),
+            props: { isRoot: true },
+          } as CreateBy<RunbookVariable>),
+        ).rejects.toThrow(/never given a secret/);
+      }
+
+      for (const runners of [
+        [{ _id: AGENT_RUNNER_ID.toString() }],
+        [AGENT_RUNNER_ID],
+        [AGENT_RUNNER_ID.toString()],
+      ]) {
+        await expect(
+          updateHook.onBeforeUpdate({
+            query: { _id: ObjectID.generate().toString() },
+            data: { runners } as never,
+            props: { isRoot: true },
+          } as unknown as UpdateBy<RunbookVariable>),
+        ).rejects.toThrow(/never given a secret/);
+      }
     });
 
     it("negative control: an ordinary Runner gets the secret", async () => {

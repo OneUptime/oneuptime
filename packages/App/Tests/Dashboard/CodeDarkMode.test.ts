@@ -182,7 +182,7 @@ function tokensIn(code: string): Array<string> {
 }
 
 describe("Code in the dark theme", () => {
-  test("reads every page and component of Code, the new request box among them", () => {
+  test("reads every page and component of Code, the new request box and the Repositories table among them", () => {
     expect(MODULES).toEqual(
       expect.arrayContaining([
         "Components/Code/CodeAskBox.tsx",
@@ -191,7 +191,8 @@ describe("Code in the dark theme", () => {
         "Components/Code/CodeDiffStat.tsx",
         "Components/Code/CodePicker.tsx",
         "Components/Code/CodeRepositoryPicker.tsx",
-        "Components/Code/CodeRepositoryRow.tsx",
+        "Components/Code/CodeRepositoriesTable.tsx",
+        "Components/Code/CodeRepositoryCommandsCard.tsx",
         "Components/Code/CodeTaskCopy.ts",
         "Components/Code/CodeTaskList.tsx",
         "Components/Code/CodeTaskStateMark.tsx",

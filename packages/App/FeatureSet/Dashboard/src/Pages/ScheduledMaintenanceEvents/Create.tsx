@@ -42,6 +42,7 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../Components/AffectedResources/AffectedResourcesPicker";
 import Label from "Common/Models/DatabaseModels/Label";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { JSONObject } from "Common/Types/JSON";
@@ -228,7 +229,13 @@ const ScheduledMaintenanceCreate: FunctionComponent<
             podmanHosts: { _id: true, name: true },
             services: { _id: true, name: true },
             statusPages: true,
-            labels: true,
+            /*
+             * Whether the label and the monitor status the template names
+             * are archived: an archived one is not prefilled - nobody can
+             * pick it for a new event, and the server would refuse it.
+             */
+            labels: { _id: true, isArchived: true },
+            changeMonitorStatusTo: { _id: true, isArchived: true },
             changeMonitorStatusToId: true,
             shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
             shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
@@ -331,11 +338,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
               return statusPage.id!.toString();
             },
           ),
-          labels: scheduledMaintenanceTemplate.labels?.map((label: Label) => {
+          labels: ArchivedValuePicker.getLiveValues(
+            scheduledMaintenanceTemplate.labels || [],
+          ).map((label: Label) => {
             return label.id!.toString();
           }),
-          changeMonitorStatusTo:
-            scheduledMaintenanceTemplate.changeMonitorStatusToId?.toString(),
+          changeMonitorStatusTo: ArchivedValuePicker.isArchived(
+            scheduledMaintenanceTemplate.changeMonitorStatusTo,
+          )
+            ? undefined
+            : scheduledMaintenanceTemplate.changeMonitorStatusToId?.toString(),
           ownerUsers: usersListResult.data.map(
             (user: ScheduledMaintenanceTemplateOwnerUser): string => {
               return user.userId!.toString() || "";

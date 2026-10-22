@@ -14,6 +14,7 @@ A GitHub App do OneUptime é mais do que uma conexão com o seu código: você p
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Todo comando começa com uma menção à app. A menção pode estar em qualquer 
 | Comando | O que acontece | Também entende |
 | --- | --- | --- |
 | `@oneuptime review` | Clona o branch, lê o código alterado e o código ao redor, verifica o que a produção diz sobre ele, e publica uma avaliação como comentário. Não muda nada. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Revisa o pull request com base na produção agora, seja quem for que o abriu: as exceções, operações, incidentes e implantações em torno do código alterado, em um só comentário editado no lugar (veja [Revisão de produção de pull requests](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests)). Não clona nada e não executa nada. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Clona o branch do próprio pull request, faz a alteração e envia novos commits para esse branch. Nunca abre um segundo pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Tudo o que você escrever depois da menção e que não for um comando conhecido é lido como um pedido de revisão, porque é quase sempre isso:
@@ -100,6 +102,8 @@ O que ele encontra vai sob um título **Production context** da avaliação, cad
 
 Não é preciso configurar nada: os serviços são aqueles para os quais o OneUptime encontra este repositório, como faz para uma correção (veja [Telemetria de produção em uma correção](/docs/ai/ai-agent#telemetria-de-produção-em-uma-correção)). As consultas são somente leitura, rodam no servidor do OneUptime e não leem nada de outro serviço, projeto ou incidente privado. Um repositório cujos serviços não enviam telemetria ao projeto é avaliado apenas pelo código.
 
+Para que todo pull request seja revisado sozinho com base na produção, ative **Revisar pull requests com base na produção** nas configurações do repositório: veja [Revisão de produção de pull requests](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests).
+
 ## Quem pode dar comandos a ela
 
 **Apenas pessoas com acesso write, maintain ou admin ao repositório.** O OneUptime pergunta ao GitHub, toda vez, a permissão de quem comentou nesse repositório; ele não confia no selo "contributor" que o GitHub mostra ao lado de um comentário, que descreve a atividade passada e não o acesso atual.
@@ -118,11 +122,11 @@ Ela também ignora todo comentário escrito por um bot, inclusive os próprios, 
 
 ## Quanto custa e como limitar
 
-Todo comando que inicia trabalho é uma execução completa do agente: um clone, até 40 chamadas ao LLM e 100.000 tokens de saída, e os comandos de build e de teste do seu repositório quando você os definiu. As consultas de produção de uma avaliação, no máximo 12, são descontadas das mesmas 40 chamadas.
+Todo comando que inicia trabalho é uma execução completa do agente: um clone, até 40 chamadas ao LLM e 100.000 tokens de saída, e, em um Runner próprio, as verificações de build e de teste que o `AGENTS.md` do seu repositório descreve. As consultas de produção de uma avaliação, no máximo 12, são descontadas das mesmas 40 chamadas.
 
 Comandos do GitHub são trabalho de IA fora de incidentes e alertas, então nenhum limite diário de tarefas de correção se aplica a eles; os limites diários de IA do próprio projeto se aplicam, quando o projeto os define. O único outro limite é o que já rege as tarefas de [Código](/docs/ai/ai-agent):
 
-- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
+- **O teto de pull requests abertos** (**Max Open Fix Pull Requests**, em **Mais configurações** na página **Configurações** do repositório). **Pull requests de correção de IA** fica em **Sem limite** até você escolher **Um limite**, ou **Nenhum**, que bloqueia os pull requests de correção de IA nesse repositório. Avaliações e revisões ficam isentas: nenhuma delas adiciona um pull request à sua fila de revisão.
 
 Só uma execução de cada tipo fica ativa por vez em cada issue ou pull request. Pedir duas vezes informa que ela já está trabalhando; pedir uma avaliação enquanto uma revisão roda inicia as duas, já que são pedidos diferentes.
 
@@ -130,9 +134,9 @@ Se uma execução não puder começar, a app diz por quê na conversa: ela nunca
 
 ## Desligando
 
-Cada repositório tem uma chave: **Respond to GitHub Commands**, na página **Configurações** do repositório. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
+Cada repositório tem uma chave: **Respond to GitHub Commands**, na página **Configurações** do repositório. Ela vem ligada em todos os repositórios e salva assim que você a muda. Com ela desligada, a app ignora menções, atribuições e o rótulo de gatilho nesse repositório, e diz a quem perguntar onde fica a chave.
 
-A mesma página tem o **GitHub Trigger Label**, se você quiser um rótulo diferente de `oneuptime`.
+A mesma página tem o **GitHub Trigger Label**, em **Mais configurações**, se você quiser um rótulo diferente de `oneuptime`.
 
 ## Em que se inscrever
 
@@ -142,7 +146,7 @@ Nas configurações **Permissions & events** da sua GitHub App, inscreva-se em:
 | --- | --- |
 | **Issue comment** | comandos com `@mention` em issues e pull requests |
 | **Issues** | atribuir uma issue à app, e o rótulo de gatilho |
-| **Pull request** | uma avaliação solicitada à app |
+| **Pull request** | uma avaliação solicitada à app, e as revisões de produção dos pull requests quando abrem e mudam |
 | **Pull request review** | uma menção no corpo de uma avaliação enviada |
 | **Pull request review comment** | uma menção em um comentário em linha no diff |
 

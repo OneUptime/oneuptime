@@ -7,6 +7,7 @@ import MonitorService from "../../../../Services/MonitorService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 import FeedMarkdown, {
   mdText,
 } from "../../../../../Utils/Markdown/FeedMarkdown";
@@ -65,9 +66,14 @@ export default class MicrosoftTeamsMonitorActions {
         props: databaseProps,
       });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!monitor) {
-        await turnContext.sendActivity("Monitor not found.");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: "see this monitor",
+          service: MonitorService,
+          id: new ObjectID(actionValue),
+          props: databaseProps,
+        });
       }
 
       const message: string =
@@ -156,10 +162,14 @@ export default class MicrosoftTeamsMonitorActions {
       throw err;
     }
 
+    // Changed nothing: why - a monitor gone, or one their access does not include.
     if (updatedCount === 0) {
-      throw new NotAuthorizedException(
-        `You do not have permission to ${data.action}: the monitor was not found in this project, or you do not have access to it.`,
-      );
+      throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+        action: data.action,
+        service: MonitorService,
+        id: data.monitorId,
+        props: data.props,
+      });
     }
   }
 }

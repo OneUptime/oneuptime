@@ -200,6 +200,11 @@
     .terminal-window:hover .copy-btn {
         opacity: 1;
     }
+    /* A failed copy stays in view, in red, while it is read. */
+    .copy-btn.copy-failed {
+        opacity: 1;
+        color: #fca5a5;
+    }
 </style>
         <%- include('../Partials/tailwind-stylesheet') -%>
 </head>
@@ -1193,6 +1198,61 @@ span.<span class="text-cyan-400">end</span>()`
       });
     };
 
+    /*
+     * Text onto the clipboard, resolving whether it got there (the website's
+     * copy of Common/UI/Utils/Clipboard.ts, issue #5132): the async
+     * clipboard, then - when that is missing or refuses - the older copy
+     * command. Copied only when this resolves true; Copy failed otherwise.
+     */
+    function copyWithCommand(text) {
+      if (typeof document.execCommand !== 'function' || !document.body) {
+        return false;
+      }
+      const focused = document.activeElement;
+      const scratch = document.createElement('textarea');
+      scratch.value = text;
+      scratch.setAttribute('readonly', '');
+      scratch.setAttribute('aria-hidden', 'true');
+      scratch.setAttribute('tabindex', '-1');
+      scratch.style.position = 'fixed';
+      scratch.style.top = '0';
+      scratch.style.left = '-9999px';
+      scratch.style.opacity = '0';
+      scratch.style.fontSize = '16px';
+      document.body.appendChild(scratch);
+      try {
+        scratch.select();
+        scratch.setSelectionRange(0, text.length);
+        return document.execCommand('copy') === true;
+      } catch (error) {
+        return false;
+      } finally {
+        document.body.removeChild(scratch);
+        if (focused && focused !== document.body && typeof focused.focus === 'function') {
+          focused.focus();
+        }
+      }
+    }
+
+    function copyText(text) {
+      const useCommand = function() {
+        return copyWithCommand(text);
+      };
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+          return navigator.clipboard.writeText(text).then(function() {
+            return true;
+          }, useCommand);
+        }
+      } catch (error) {
+        /* Refused outright: the older command may still copy. */
+      }
+      return Promise.resolve(useCommand());
+    }
+
+    let copyResetTimer = null;
+    let copyButtonIdleMarkup = null;
+
     window.copyCode = function() {
       const codeContent = document.getElementById('code-content');
       if (!codeContent) return;
@@ -1202,16 +1262,34 @@ span.<span class="text-cyan-400">end</span>()`
       tempDiv.innerHTML = codeContent.innerHTML;
       const plainText = tempDiv.textContent || tempDiv.innerText;
 
-      navigator.clipboard.writeText(plainText).then(function() {
-        // Show copied feedback
+      copyText(plainText).then(function(copied) {
         const copyBtn = document.querySelector('.copy-btn');
-        if (copyBtn) {
-          const originalText = copyBtn.innerHTML;
-          copyBtn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!';
-          setTimeout(function() {
-            copyBtn.innerHTML = originalText;
-          }, 2000);
+        if (!copyBtn) return;
+
+        if (copyButtonIdleMarkup === null) {
+          copyButtonIdleMarkup = copyBtn.innerHTML;
         }
+        clearTimeout(copyResetTimer);
+
+        // Says what happened - "Copied!" only when it did - and is read out too.
+        copyBtn.setAttribute('aria-live', 'polite');
+        copyBtn.classList.toggle('copy-failed', !copied);
+        copyBtn.innerHTML = copied
+          ? '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!'
+          : '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /></svg> Copy failed';
+
+        if (!copied) {
+          // The code, selected where it is, to copy by hand.
+          const selection = window.getSelection && window.getSelection();
+          if (selection) {
+            selection.selectAllChildren(codeContent);
+          }
+        }
+
+        copyResetTimer = setTimeout(function() {
+          copyBtn.classList.remove('copy-failed');
+          copyBtn.innerHTML = copyButtonIdleMarkup;
+        }, copied ? 2000 : 4000);
       });
     };
 

@@ -75,7 +75,7 @@ Chaque instance de OneUptime sert ses propres programmes d'installation, si bien
 
 ### Attendre l'hôte
 
-La dernière étape de la boîte de dialogue indique quand l'hôte se connecte, avec un lien vers lui. Dans la liste, il apparaît en **Démarrage** jusqu'à l'arrivée de ses premières métriques, en général dans la minute, puis comme connecté, avec son collecteur **En cours d'exécution**.
+La dernière étape de la boîte de dialogue indique quand l'hôte se connecte, avec un lien vers lui. Dans la liste, il apparaît en **Démarrage** jusqu'à l'arrivée de ses premières métriques, en général dans la minute, puis comme connecté, avec son collecteur **En cours d'exécution**. La page **Topologie** de l'hôte dessine sur une seule carte ce qui tourne dessus, ce qui l'appelle et ce qu'il appelle : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
 
 ## Étiqueter les hôtes

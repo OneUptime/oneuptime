@@ -7,6 +7,7 @@ import {
   REQUIRE_APPROVAL_DESCRIPTION,
   REQUIRE_APPROVAL_FOLDED_TITLE,
   REQUIRE_APPROVAL_TITLE,
+  RUNNER_FIELD_TITLE,
   applyStepConfigChange,
   convertLegacyCredentialStep,
   formatSshTarget,
@@ -400,6 +401,81 @@ describe("a step's More fields", () => {
           { description: "Check it.", requireApprovalBeforeRunning: true },
         ),
       ),
+    ).toEqual([]);
+  });
+});
+
+/*
+ * The maintainer: "have this runner drop down, hidden in More". A step that
+ * runs on a Runner folds it first, and its line names where the step runs
+ * whatever it is - "More fields · Runner: Global Runner, Require approval,
+ * ..." - so nobody opens the fold to learn it.
+ */
+describe("a step's Runner, folded under its More fields", () => {
+  test("comes first, named with what it runs on, as a value set - whatever it is", () => {
+    for (const type of [
+      RunbookStepType.JavaScript,
+      RunbookStepType.Bash,
+      RunbookStepType.SSH,
+      RunbookStepType.Kubernetes,
+    ]) {
+      const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+        step(type, {}),
+        { runner: "Global Runner" },
+      );
+
+      expect({ type, first: items[0] }).toEqual({
+        type,
+        first: {
+          key: "runner",
+          title: "Runner",
+          isSet: true,
+          value: "Global Runner",
+        },
+      });
+      expect(keys(items).slice(1, 3)).toEqual([
+        "requireApprovalBeforeRunning",
+        "continueOnFailure",
+      ]);
+    }
+
+    expect(RUNNER_FIELD_TITLE).toBe("Runner");
+  });
+
+  test("the value is drawn as handed - a Runner's name is never looked up as a translation", () => {
+    const runner: FoldedSectionItem = getStepMoreFieldsItems(
+      step(RunbookStepType.Bash, {}),
+      { runner: "office-runner · Disconnected" },
+    )[0]!;
+
+    expect(runner.value).toBe("office-runner · Disconnected");
+    expect(runner.translateValue).toBeUndefined();
+  });
+
+  test("the four the line has room for are the Runner, the two switches and the next: nothing in force is hidden", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(RunbookStepType.JavaScript, {}, { continueOnFailure: true }),
+      { runner: "prod-eu-west-1" },
+    );
+
+    expect(setKeys(items)).toEqual(["runner", "continueOnFailure"]);
+  });
+
+  test("a step with no Runner to name, or a step that runs on none, folds no Runner", () => {
+    expect(
+      keys(getStepMoreFieldsItems(step(RunbookStepType.Bash, {}))),
+    ).not.toContain("runner");
+    expect(
+      keys(
+        getStepMoreFieldsItems(step(RunbookStepType.Bash, {}), {
+          runner: "",
+        }),
+      ),
+    ).not.toContain("runner");
+    expect(
+      getStepMoreFieldsItems(step(RunbookStepType.Manual, {}), {
+        runner: "Global Runner",
+      }),
     ).toEqual([]);
   });
 });

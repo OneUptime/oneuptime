@@ -84,6 +84,7 @@ Ein Fall durchläuft vier Status. Er kann einen davon überspringen, etwa wenn e
 Die Seite des Falls bietet alles, um ihn zu bearbeiten:
 
 - Oben: **Assign to Me**, **Run Playbook**, **Vorfall melden** und **Close Case**, die Statusschritte und die Priorität im Menü daneben.
+- **OneUptime AI**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **MITRE ATT&CK**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
@@ -104,6 +105,8 @@ Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie in der Warteschlange
 | Undetermined | Es gab nicht genug Informationen für eine Entscheidung |
 
 Die Bewertungen werden in der Übersicht gezählt. Eine Regel, deren Fälle immer wieder als False Positive geschlossen werden, sollte nachgeschärft werden.
+
+Ein Fall, der aus Google SecOps-Warnungen eröffnet wurde, schließt sie auch in Google SecOps, mit dem Urteil und der Abschlussnotiz, wenn an seiner Verbindung **Warnungen schließen, wenn ihr Fall geschlossen wird** eingeschaltet ist: siehe [Google SecOps](/docs/integrations/google-secops#warnungen-schließen-wenn-ihr-fall-geschlossen-wird).
 
 ### Einen Vorfall melden
 
@@ -164,6 +167,7 @@ Ein Playbook ist eine Liste von Schritten, die auf einem Fall laufen. Erstellen 
 | --- | --- |
 | Case Opened | Einmal, wenn ein Fall eröffnet wird |
 | Detection Added | Jedes Mal, wenn eine neue Erkennung einem offenen Fall zugeordnet wird |
+| Als wahrscheinlich bösartig triagiert | Einmal, wenn die Triage von OneUptime AI den Fall als Wahrscheinlich bösartig liest |
 | Manuell | Nur, wenn jemand es aus einem Fall heraus ausführt |
 
 Jedes aktivierte Playbook lässt sich auch per Hand ausführen, mit **Run Playbook** an einem Fall. Ein Playbook, das von selbst läuft, lässt sich eingrenzen:
@@ -319,5 +323,6 @@ Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, od
 :::cards
 - [Sicherheitsereignisse](/docs/telemetry/security-events): Ereignisse senden, Erkennungsregeln schreiben und Sicherheitsprodukte verbinden.
 - [Threat Intelligence](/docs/telemetry/threat-intelligence): Ihre Ereignisse mit STIX/TAXII-Feeds abgleichen.
+- [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai): Fälle triagieren, Erkennungsregeln entwerfen und mit KI Fragen zur Sicherheit stellen.
 - [Berechtigungsreferenz](/docs/permissions/reference): Die Security-Rollen und was jede darf.
 :::

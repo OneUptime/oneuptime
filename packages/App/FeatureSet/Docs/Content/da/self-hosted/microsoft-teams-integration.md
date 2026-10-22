@@ -369,7 +369,7 @@ Hvis de ikke matcher, er den bruger, der skriver til botten, logget ind i en and
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-To eller flere OneUptime-projekter har forbundet den samme Microsoft-tenant. En botbesked indeholder kun et tenant-id, så OneUptime kan ikke vide, hvilket projekt du mener, og afviser i stedet for at gætte. Afbryd Microsoft Teams fra alle projekter undtagen ét.
+To eller flere OneUptime-projekter er forbundet til den samme Microsoft 365-organisation, og intet i beskeden skilte dem ad. Et korts knap handler i projektet for den post, kortet handler om, og en besked i projektet for den kanal, den sendes i, ellers i det ene projekt, afsenderens Microsoft Teams-konto er forbundet i. Send den igen fra en kanal i det projekt, du mener, for eksempel en af dets hændelseskanaler. En afsender, hvis konto ikke er forbundet i nogen af projekterne, bliver først bedt om at forbinde den.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

@@ -16,6 +16,10 @@ import Incident from "../../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import CodeFixTaskContext from "../../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../../../Types/AI/CodeFixTaskType";
+import {
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
@@ -199,7 +203,48 @@ describe("CodeFixRunRepository.resolveForNewRun", () => {
       projectId: PROJECT_ID,
       stackTrace: null,
       serviceName: "checkout-api",
+      // No rule narrowed it: every connected repository is a candidate.
+      allowance: EVERY_CODE_REPOSITORY,
     });
+  });
+
+  /*
+   * A run the auto remediation rules opened carries the repositories they
+   * allow (allowedCodeRepositoryIds): it is queued on one of those, or on
+   * none - never on a repository the rules leave out.
+   */
+  test("a run the rules opened resolves among the repositories they allow", async () => {
+    const resolve: jest.SpyInstance = resolvesTo(REPOSITORY_ID);
+
+    await CodeFixRunRepository.resolveForNewRun({
+      projectId: PROJECT_ID,
+      taskType: CodeFixTaskType.ImproveLogging,
+      taskContext: {
+        serviceName: "checkout-api",
+        allowedCodeRepositoryIds: [REPOSITORY_ID.toUpperCase()],
+      } as unknown as CodeFixTaskContext,
+    });
+
+    expect(resolve.mock.calls[0]![0].allowance).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [REPOSITORY_ID],
+    });
+  });
+
+  test("an empty list allows none, and is never read as every repository", async () => {
+    const resolve: jest.SpyInstance = resolvesTo(null);
+
+    expect(
+      await CodeFixRunRepository.resolveForNewRun({
+        projectId: PROJECT_ID,
+        taskType: CodeFixTaskType.ImproveLogging,
+        taskContext: {
+          serviceName: "checkout-api",
+          allowedCodeRepositoryIds: [],
+        } as unknown as CodeFixTaskContext,
+      }),
+    ).toBeNull();
+    expect(resolve.mock.calls[0]![0].allowance).toEqual(NO_CODE_REPOSITORY);
   });
 
   test("none resolves: the run is queued without one", async () => {

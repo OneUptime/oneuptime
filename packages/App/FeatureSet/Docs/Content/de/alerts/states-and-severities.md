@@ -112,6 +112,18 @@ Der Rang entscheidet, welcher Schweregrad gewinnt, wo OneUptime sie vergleicht: 
 
 Ein Schweregrad alarmiert für sich niemanden. Um nach Schweregrad zu alarmieren, legen Sie eine Bereitschaftsregel an, deren **Warnungsschweregrade** auf ihn zutreffen: siehe [Warnungsregeln & Einstellungen](/docs/alerts/settings). Eine Änderung des Schweregrads einer Warnung schreibt einen Eintrag in ihren Feed und gleicht ihre Erinnerungsregel neu ab.
 
+## Einen Status oder Schweregrad archivieren
+
+Archivieren Sie einen Status oder Schweregrad, den Ihr Team nicht mehr verwenden soll, statt ihn zu löschen. Das Archivieren ändert keine Warnung. Das Löschen eines Status nimmt seine Zeilen aus dem Verlauf jeder Warnung, und ein Schweregrad lässt sich nicht löschen, solange Warnungen ihn haben.
+
+- **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Regeln, Messungen, Monitorkriterien und Workflows auf, die so eingerichtet sind, dass sie den Wert verwenden: Sie verwenden ihn weiter, bis Sie sie ändern.
+- **Niemand kann ihn erneut auswählen.** **Status ändern**, die Kopfzeile der Warnung, Slack, Microsoft Teams, Regeln und Monitorkriterien lassen ihn weg. Die API, Terraform und MCP lehnen ihn ab und nennen den Wert und den Ort, an dem er sich wieder aus dem Archiv holen lässt.
+- **Warnungen behalten ihn.** Eine Warnung, die ihn hat, behält ihn bei jeder späteren Bearbeitung, ihre Statuszeitachse zeigt ihn weiterhin, und Sie können weiterhin danach filtern.
+- **Archivierte Werte werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Warnungsstatus** oder **Archivierte Warnungsschweregrade** unter der Tabelle, mit Angabe, wer jeden archiviert hat und wann. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Manche lassen sich nicht archivieren.** Der Erstellungs-, der bestätigte und der behobene Status sowie der letzte nicht archivierte Schweregrad des Projekts. Ihr **Archivieren** ist gesperrt, mit Begründung.
+
+**Löschen** sagt zuerst, was es bewirken würde. Solange Warnungen oder Episoden den Wert haben, wird das Löschen abgelehnt, und der Dialog listet sie auf. Andernfalls listet er auf, was das Löschen ändern würde, und bietet **Stattdessen archivieren** an.
+
 ## Eine Warnung durch ihre Status bewegen
 
 | Weg                  | Wo                                                                                        | Was abgefragt wird                                                                                                                   |

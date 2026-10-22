@@ -25,10 +25,25 @@ import SecurityProjectWork, {
 } from "../SecurityProjectWork";
 import TaxiiClient, { TaxiiObjectsPage } from "./TaxiiClient";
 import ThreatIntelEnricher from "./ThreatIntelEnricher";
+import ThreatIntelListSource, {
+  ListFeedPollResult,
+  ListFetchLike,
+} from "./ThreatIntelListSource";
+import GoogleSecOpsIndicatorSource, {
+  GoogleSecOpsFeedPollResult,
+  GoogleSecOpsIocReaderFactory,
+} from "./GoogleSecOpsIndicatorSource";
+import ThreatIntelFeedType, {
+  readThreatIntelFeedType,
+} from "../../../../Types/SecurityEvent/ThreatIntelFeedType";
 
 /*
- * The TAXII feed poller: every enabled feed that is due (per-feed poll
- * interval) fetches new STIX objects from its collection, parses the
+ * The threat-intel feed poller: every enabled feed that is due (per-feed
+ * poll interval) reads its source (pollFeedFromSource): a list at an https
+ * address (ThreatIntelListSource), Google SecOps's IOC matches
+ * (GoogleSecOpsIndicatorSource) or, as below, a TAXII collection.
+ *
+ * A TAXII feed fetches new STIX objects from its collection, parses the
  * indicator patterns this platform supports into normalized IOC rows,
  * and upserts them into the ThreatIntelIndicator ClickHouse table.
  *
@@ -137,8 +152,12 @@ const THREAT_INTEL_POLL_FEED_SELECT: Select<ThreatIntelFeed> = {
   _id: true,
   projectId: true,
   name: true,
+  feedType: true,
   apiRootUrl: true,
   collectionId: true,
+  listUrl: true,
+  indicatorConfidence: true,
+  securityEventConnectionId: true,
   apiToken: true,
   basicAuthUsername: true,
   basicAuthPassword: true,
@@ -258,12 +277,12 @@ export default class ThreatIntelFeedPoller {
     }
   }
 
-  // pollFeed, with a failure recorded on the feed rather than thrown.
+  // pollFeedFromSource, with a failure recorded on the feed rather than thrown.
   private static async pollFeedRecordingFailure(
     feed: ThreatIntelFeed,
   ): Promise<void> {
     try {
-      await this.pollFeed(feed);
+      await this.pollFeedFromSource(feed);
     } catch (error) {
       logger.error(
         `ThreatIntelFeedPoller: error polling feed ${feed.id?.toString()}:`,
@@ -297,6 +316,74 @@ export default class ThreatIntelFeedPoller {
           },
         });
       }
+    }
+  }
+
+  /*
+   * One feed's poll, from its source. A list or Google SecOps poll records
+   * what it did on the feed here; a TAXII poll records it itself (pollFeed).
+   */
+  @CaptureSpan()
+  public static async pollFeedFromSource(
+    feed: ThreatIntelFeed,
+    sources: {
+      listFetch?: ListFetchLike | undefined;
+      googleSecOpsReaderFactory?: GoogleSecOpsIocReaderFactory | undefined;
+    } = {},
+  ): Promise<void> {
+    const feedType: ThreatIntelFeedType = readThreatIntelFeedType(
+      feed.feedType,
+    );
+
+    if (feedType === ThreatIntelFeedType.Taxii) {
+      await this.pollFeed(feed);
+      return;
+    }
+
+    if (!feed.id || !feed.projectId) {
+      throw new Error("Threat intel feed is missing id or projectId.");
+    }
+
+    let summary: string;
+    let cursor: string | undefined;
+    let wroteIndicators: boolean;
+
+    if (feedType === ThreatIntelFeedType.List) {
+      const result: ListFeedPollResult = await ThreatIntelListSource.poll(
+        feed,
+        { fetchImplementation: sources.listFetch },
+      );
+
+      summary = ThreatIntelListSource.describeResult(result);
+      cursor = result.cursor;
+      wroteIndicators = !result.unchanged;
+    } else {
+      const result: GoogleSecOpsFeedPollResult =
+        await GoogleSecOpsIndicatorSource.poll(feed, {
+          readerFactory: sources.googleSecOpsReaderFactory,
+        });
+
+      summary = GoogleSecOpsIndicatorSource.describeResult(result);
+      cursor = result.cursor;
+      wroteIndicators = result.indicators > 0 || result.muted > 0;
+    }
+
+    await ThreatIntelFeedService.updateOneById({
+      id: feed.id,
+      data: {
+        lastPolledAt: OneUptimeDate.getCurrentDate(),
+        ...(cursor ? { cursor } : {}),
+        lastError: null as unknown as string,
+        lastPollSummary: summary,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (wroteIndicators) {
+      // What the ingest-time enricher matches changed; the next batch sees it.
+      ThreatIntelEnricher.invalidateProjectCache(feed.projectId);
     }
   }
 

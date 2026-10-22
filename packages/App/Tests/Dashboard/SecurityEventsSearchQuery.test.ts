@@ -277,6 +277,41 @@ describe("field filters", () => {
     }
   });
 
+  /*
+   * A process is found by its name exactly, and by a part of its path or
+   * command line - with Sigma's names for them, as a detection rule writes
+   * them. `process:` stays the acting process the searches written before
+   * this read.
+   */
+  test("the process fields: a name exactly, a path or command line by a part", () => {
+    expect(compiled("processname:powershell.exe")["processName"]).toBe(
+      "powershell.exe",
+    );
+    expect(compiled("parentprocessname:winword.exe")["parentProcessName"]).toBe(
+      "winword.exe",
+    );
+
+    for (const [token, column] of [
+      ["commandline:mimikatz", "processCommandLine"],
+      ["cmdline:mimikatz", "processCommandLine"],
+      ["commandline:-enc", "processCommandLine"],
+      ["image:powershell.exe", "processPath"],
+      ["processpath:System32", "processPath"],
+      ["parentimage:winword.exe", "parentProcessPath"],
+      ["parentcommandline:docm", "parentProcessCommandLine"],
+      ["process:/usr/bin/ssh", "principalProcess"],
+    ] as Array<[string, string]>) {
+      expect({ token, value: compiled(token)[column] }).toEqual({
+        token,
+        value: expect.any(Search),
+      });
+    }
+
+    expect(compiled("commandline:-enc")["processCommandLine"]).toStrictEqual(
+      new Search("-enc"),
+    );
+  });
+
   test("an explicit operator always beats the contains default", () => {
     expect(compiled("-observable:10.0.0.4")["observables"]).toBeInstanceOf(
       NotEqual,

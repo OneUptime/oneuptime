@@ -36,7 +36,7 @@ flowchart TB
 
 Hver kørsel er en **udførelse**. Når den starter, kopieres runbookets trin over på den, og OneUptime arbejder sig igennem dem i rækkefølge. Et Manual-trin, eller et trin der kræver godkendelse, sætter kørslen på pause, indtil nogen handler.
 
-HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og kubectl-trin kører på en [Runner](/docs/runbooks/agents), som du installerer i din egen infrastruktur, så de scripts aldrig kører på OneUptimes servere. Et JavaScript-trin kører også på en af dine Runnere eller, hvis det ikke vælger nogen, på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse, der kun når internettet. Hvert trins status, output og fejlmeddelelse registreres på udførelsen, som bliver ved den hændelse, advarsel eller begivenhed, den kørte for.
+HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og kubectl-trin kører på en [Runner](/docs/runbooks/agents), som du installerer i din egen infrastruktur, så de scripts aldrig kører på OneUptimes servere. Et JavaScript-trin kører også på en af dine Runnere eller, hvis det ikke vælger nogen, og projektet ikke har nogen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse, der kun når internettet. Hvert trins status, output og fejlmeddelelse registreres på udførelsen, som bliver ved den hændelse, advarsel eller begivenhed, den kørte for.
 
 ## Centrale begreber
 
@@ -47,7 +47,7 @@ HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og kubectl-trin kører
 | **Runbook-regel** | En regel, der automatisk knytter et eller flere runbooks til hændelser, advarsler eller planlagte vedligeholdelsesbegivenheder, der opfylder dens betingelser: deres monitorer, alvorlighed, etiketter, monitoretiketter, titel eller beskrivelse. |
 | **Udførelse** | Én kørsel af et runbook. Oprettes, når en regel udløses, når nogen klikker på **Kør runbook** på en begivenhed, eller når nogen klikker på **Run Now** på selve runbooket. Den rummer et øjebliksbillede af trinnene og hvert trins status og output. |
 | **Øjebliksbillede** | Den fastfrosne kopi af runbookets trin, der ligger på hver udførelse. Du kan redigere runbooket senere uden at omskrive historikken for tidligere kørsler. |
-| **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og kubectl-trin, der nævner den. Kaldes også en runbook-agent. En global Runner, en af dem, OneUptime kører for alle projekter, kører de JavaScript-trin, der ikke nævner nogen. |
+| **Runner** | En lille agent, du kører på en vært i din egen infrastruktur. Den kører de JavaScript-, Bash-, SSH- og kubectl-trin, der nævner den. Kaldes også en runbook-agent. En global Runner, en af dem, OneUptime kører for alle projekter, kører de JavaScript-trin, der ikke nævner nogen, medmindre projektet har en standard-Runner. |
 | **Variabel** | En værdi, som trin bruger ved navn, f.eks. en vært eller en URL: `{{global.variables.NAME}}` for en af projektets, som alle runbooks kan bruge, eller `{{local.variables.NAME}}` for en af runbookets egne. |
 | **Hemmelighed** | En variabel, hvis værdi er krypteret i hvile, aldrig vises igen og skjules i det, trin udskriver, f.eks. en SSH-nøgle, en adgangskode, en kubeconfig eller et API-token. Kun udleveret til de Runnere, du lader bruge den; globale Runnere får den kun, hvis du giver dem lov. |
 
@@ -95,7 +95,7 @@ Runbooks ligger under **Produkter**, i gruppen **Dashboards og automatisering**.
 | Et runbooks **Ejere** | Tilføj de personer og teams, der er ansvarlige for det. |
 | Et runbooks **Indstillinger** | Slå **Kør dette runbook** fra uden at slette runbooket. |
 | **Runbooks → Udførelser** | Alle kørsler af alle runbooks i projektet. |
-| **Runbooks → Runbook-agenter** og **Runbooks → Runbook-agenter → AI-adgang** | Installer [Runners](/docs/runbooks/agents), og administrer den [adgang](/docs/runbooks/credentials), som OneUptime AI's kommandoer har gennem dem. |
+| **Runbooks → Runbook-agenter** | Installer de [Runners](/docs/runbooks/agents), som dine runbook-trin kører på. |
 | **Runbooks → Indstillinger** | Administrer under **Globale variabler** de variabler, som alle runbooks kan [bruge](/docs/runbooks/variables), samt de **Ejerregler** og **Etiketregler**, der tilføjer ejere og etiketter til nye runbooks. |
 | **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Opret de regler, der starter runbooks automatisk. |
 | En hændelse, advarsel eller vedligeholdelsesbegivenhed → **Runbooks** | Se de kørsler, der er knyttet til den, og klik på **Kør runbook** for at starte en. |
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 En monitor åbner hændelsen `INC-4821 · db-primary connection timeout`. Reglen matcher, og en udførelse starter:
 
-- Trin 1 (JavaScript) kører på den Runner, du valgte til det. Returværdien, f.eks. `{ lagMs: 412 }`, registreres. Et trin, der ikke vælger nogen Runner, kører på en global Runner.
+- Trin 1 (JavaScript) kører på den Runner, du valgte til det. Returværdien, f.eks. `{ lagMs: 412 }`, registreres. Et trin, der ikke vælger nogen Runner, kører på projektets standard-Runner eller, hvis der ikke er angivet en, på en global Runner.
 - Trin 2 (Manual) sætter kørslen på pause, som viser **Venter på dig**. Den vagthavende tjekker dashboardet og klikker på **Marker som færdig**.
 - Trin 3 (HTTP request) kører, og svaret på `POST` registreres.
 - Trin 4 (Manual) sætter kørslen på pause igen, indtil nogen fuldfører det.

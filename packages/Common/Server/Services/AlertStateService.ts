@@ -4,6 +4,11 @@ import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
@@ -34,6 +39,13 @@ export class Service extends DatabaseService<AlertState> {
     await StateOrderGuard.beforeCreate({
       service: this,
       definition: STATE_LISTS[StateListType.AlertState],
+      createBy: createBy,
+    });
+
+    // Never created archived if it is a built-in one. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.AlertState],
       createBy: createBy,
     });
 
@@ -77,6 +89,13 @@ export class Service extends DatabaseService<AlertState> {
     await StateOrderGuard.beforeUpdate({
       service: this,
       definition: STATE_LISTS[StateListType.AlertState],
+      updateBy: updateBy,
+    });
+
+    // A built-in state is never archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeUpdate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.AlertState],
       updateBy: updateBy,
     });
 

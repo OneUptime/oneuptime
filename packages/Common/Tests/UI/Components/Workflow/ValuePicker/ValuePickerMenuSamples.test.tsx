@@ -472,7 +472,12 @@ describe("a webhook nothing has called yet", () => {
     expect(rendered.onPick).not.toHaveBeenCalled();
   });
 
-  test("a refused clipboard does not claim to have copied", async () => {
+  /*
+   * Issue #5132: a refused copy used to say nothing - a button that seemed
+   * to do nothing. It says Copy failed, never Copied!, and then offers the
+   * copy again.
+   */
+  test("a refused clipboard does not claim to have copied: it says Copy failed", async () => {
     jest.spyOn(Clipboard, "copyToClipboard").mockResolvedValue(false as never);
     const rendered: Rendered = renderMenu({
       load: loadReturning([]),
@@ -487,9 +492,19 @@ describe("a webhook nothing has called yet", () => {
       within(note).getByTestId("value-picker-note-copy"),
     );
 
+    await waitFor(() => {
+      expect(
+        within(note).getByTestId("value-picker-note-copy"),
+      ).toHaveTextContent("Copy failed");
+    });
     expect(
       within(note).getByTestId("value-picker-note-copy"),
-    ).toHaveTextContent("Copy test request");
+    ).not.toHaveTextContent("Copied!");
+    expect(within(note).getByTestId("value-picker-note-copy")).toHaveAttribute(
+      "data-copy-state",
+      "failed",
+    );
+    expect(rendered.onPick).not.toHaveBeenCalled();
   });
 
   test("for someone who may not see the URL there is nothing to copy", async () => {

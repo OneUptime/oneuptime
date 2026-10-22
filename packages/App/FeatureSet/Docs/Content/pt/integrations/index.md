@@ -50,12 +50,12 @@ Comece pelo topo da tabela: quanto mais alta uma forma, menos há para manter.
 | Ferramenta | Sentido | O que faz |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | De entrada | Chama o plantão para os relatórios de incidente do Huntress e resolve o incidente quando o relatório é fechado. |
-| [Google SecOps](/docs/integrations/google-secops) | De entrada | Traz as detecções do Google SecOps para Eventos de segurança. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | De entrada | Traz os incidentes do Microsoft Sentinel para Eventos de segurança. |
+| [Google SecOps](/docs/integrations/google-secops) | Ambos | Traz as detecções e os indicadores do Google SecOps para Eventos de segurança, e envia para ele o que o OneUptime encontra. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Ambos | Traz os incidentes do Microsoft Sentinel para Eventos de segurança, e envia para ele o que o OneUptime encontra. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | De entrada | Traz os alertas do Microsoft Defender XDR para Eventos de segurança. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | De entrada | Traz os alertas do CrowdStrike Falcon para Eventos de segurança. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | De entrada | Traz os eventos notáveis do Splunk para Eventos de segurança. |
-| [Elastic Security](/docs/integrations/elastic-security) | De entrada | Traz os alertas de detecção do Elastic Security para Eventos de segurança. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Ambos | Traz os eventos notáveis do Splunk para Eventos de segurança, e envia para ele o que o OneUptime encontra. |
+| [Elastic Security](/docs/integrations/elastic-security) | Ambos | Traz os alertas de detecção do Elastic Security para Eventos de segurança, e envia para ele o que o OneUptime encontra. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | De entrada | Traz as descobertas do AWS Security Hub para Eventos de segurança. |
 | [Okta System Log](/docs/integrations/okta) | De entrada | Traz os logins, as mudanças de conta e as detecções de ameaças do Okta para Eventos de segurança. |
 

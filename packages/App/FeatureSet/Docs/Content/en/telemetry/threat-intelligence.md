@@ -1,9 +1,10 @@
 # Threat Intelligence (STIX/TAXII)
 
-A threat intel feed brings known-bad IP addresses, domains, URLs, email addresses and file hashes into OneUptime, and tells you when your [security events](/docs/telemetry/security-events) mention one. Each feed subscribes one TAXII 2.1 collection of STIX 2.1 indicators: your own MISP, OpenCTI or OpenTAXII server, or a provider's collection. OneUptime ships no feed content of its own: you bring the collections, as you bring the Sigma rules.
+A threat intel feed brings known-bad IP addresses, domains, URLs, email addresses and file hashes into OneUptime, and tells you when your [security events](/docs/telemetry/security-events) mention one. A feed reads one source: a list of indicators at an https address, such as the free lists OneUptime adds in one click, a TAXII 2.1 collection of STIX 2.1 indicators from your own MISP, OpenCTI or OpenTAXII server or a provider, or the indicators Google SecOps found in your events.
 
 :::cards
-- [Subscribe a feed](#subscribe-a-feed): A TAXII server, a collection and how to sign in.
+- [Add a free list](#add-a-free-list): Feodo Tracker, Emerging Threats and the Tor exit nodes, in one click.
+- [Subscribe a feed](#subscribe-a-feed): A list's address, a TAXII collection or a Google SecOps connection.
 - [What gets ingested](#what-gets-ingested): The indicator patterns OneUptime keeps, and for how long.
 - [How matches are found](#how-matches-are-found): Tagged as events arrive, and matched every minute.
 - [Threat levels](#threat-levels): How an indicator's confidence becomes a severity.
@@ -11,9 +12,9 @@ A threat intel feed brings known-bad IP addresses, domains, URLs, email addresse
 
 ## How it works
 
-```mermaid title="From a TAXII collection to an alert"
+```mermaid title="From a feed to an alert"
 flowchart TB
-    taxii["TAXII 2.1 collection"] -->|"Polled on the<br/>feed's interval"| indicators["Indicators: IPs,<br/>domains, URLs,<br/>emails, hashes"]
+    taxii["A list, a TAXII<br/>collection or<br/>Google SecOps"] -->|"Polled on the<br/>feed's interval"| indicators["Indicators: IPs,<br/>domains, URLs,<br/>emails, hashes"]
     events["New security<br/>events"] --> tag["Tagged as they<br/>arrive with threat.*<br/>attributes"]
     indicators --> tag
     indicators --> match["Matched every<br/>minute against<br/>recent events"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## Before you begin
 
-- A TAXII 2.1 server that publishes STIX 2.1 `indicator` objects, and the ID of the collection to poll. A feed signs in anonymously, with a bearer token, or with HTTP basic auth.
+- For a list, an `https` address that downloads a text file with one indicator a line.
+- For a TAXII feed, a TAXII 2.1 server that publishes STIX 2.1 `indicator` objects, and the ID of the collection to poll. A TAXII feed signs in anonymously, with a bearer token, or with HTTP basic auth.
+- For a Google SecOps feed, a [Google SecOps connection](/docs/integrations/google-secops#set-up-the-managed-connector) whose service account can search indicator matches: the `roles/chronicle.viewer` role can.
 - Servers that require a TLS client certificate (mutual TLS), such as CISA AIS, are not supported. MITRE's public ATT&CK server publishes techniques and groups rather than indicators, so a feed pointed at it stays empty.
 - A role that can create feeds: Project Owner, Project Admin, Security Admin or Security Member. Security Viewer can read feeds and indicators. See [Roles](/docs/permissions/reference#roles).
+
+## Add a free list
+
+The **Free Lists** card on **Threat Intel** adds a free blocklist in one click: click **Add List** on a list, and OneUptime creates a feed that downloads it on the list's schedule. A list the project reads already says **Added**.
+
+| List | Published by | Read | Confidence | A match opens |
+| --- | --- | --- | --- | --- |
+| Feodo Tracker botnet C2 servers | abuse.ch | Every hour | 90, Critical | A case and an alert |
+| Emerging Threats compromised hosts | Proofpoint Emerging Threats | Every day | 70, High | A case and an alert |
+| Tor exit nodes | The Tor Project | Every hour | 30, Low | A case |
+
+A list's tile links its terms: Feodo Tracker is free for any use (CC0), and the Emerging Threats list is BSD licensed. A feed added from a list is edited and deleted like any other.
 
 ## Subscribe a feed
 
@@ -35,7 +50,7 @@ Open **Products → Security Events → Detections → Threat Intel**.
 
 ### Create the feed
 
-Click **Create Threat Intel Feed** and fill in its three steps: **TAXII Server**, **Sign-in** and **On Match**. The fields are in the table below.
+Click **Create Threat Intel Feed** and pick its **Source**: **List of indicators**, **TAXII collection** or **Google SecOps**. The next step asks for that source alone: a list's **List URL**, a collection's **TAXII Server** and **Sign-in**, or the **Google SecOps Connection**. **On Match** comes last. The fields are in the table below.
 
 ### Check the first poll
 
@@ -44,10 +59,14 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 
 | Field | What to enter |
 | --- | --- |
+| **Source** | Where the indicators come from. It is set when the feed is created: a feed of another source is a new feed. |
+| **List URL** | For a list: the `https` address of a text file with one IP address, domain, URL or file hash a line. |
+| **Confidence** | For a list: how sure the list is, 1 to 100. Each indicator on the list gets it, and it sets the [threat level](#threat-levels); empty is Medium. |
+| **Google SecOps Connection** | For Google SecOps: the connection whose key reads the indicators Google SecOps found. **Connect Google SecOps** opens **Connections** when there is none. |
 | **TAXII API Root URL** | The server's TAXII 2.1 API root, such as `https://taxii.example.com/api1/`. Collections are addressed under it. |
 | **Collection ID** | The collection that publishes the indicators. |
-| **Poll Interval (Minutes)** | How often to fetch new objects: 1 to 1440 minutes, 60 by default. |
-| **Minimum Confidence** | Indicators with a lower STIX `confidence` are skipped: 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
+| **Poll Interval (Minutes)** | How often to read the source: 1 to 1440 minutes, 60 by default. A list is read every 15 minutes at most. |
+| **Minimum Confidence** | For a TAXII collection or Google SecOps: indicators with a lower confidence are skipped, 0 to 100, 0 keeps everything. Indicators with no confidence always pass. |
 | **Sign-in** | How OneUptime signs in: **No sign-in** for a public collection, **Bearer token** for a token the server's operator gave you, or **Username and password** for HTTP basic auth. |
 | **API Token**, **Basic Auth Username** and **Basic Auth Password** | Asked only for the sign-in picked. |
 | **Open a Case on Match** | On by default: each event that names an indicator opens a [case](/docs/telemetry/security-cases) about it, or joins the open case already about it. |
@@ -57,7 +76,7 @@ Within a minute or two the feed's row shows **Last Polled**, and **Last Poll Sum
 | **Incident Severity** | Like **Alert Severity**, for incidents. |
 | **Write Detection Finding on Match** | On by default: each match writes a finding into the event stream. |
 
-Tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
+A TAXII feed's tokens and passwords are encrypted and never shown again after you save them. To change them, pick **Update Credentials** in the feed's row and choose **Bearer token**, **Username and password** or **No sign-in**, which clears what is stored: your choice replaces the feed's sign-in, so saving a token clears a stored password, and the other way round.
 
 ### How a feed is polled
 
@@ -67,9 +86,22 @@ Polls name themselves with the user agent `OneUptime/<version> (+https://oneupti
 
 A disabled feed is neither polled nor matched. The indicators it already has keep tagging new events until they expire.
 
+### How a list is read
+
+- Each poll downloads the whole list and reads it a line at a time: the first value on a line, up to a space, tab, comma or semicolon. Lines starting with `#`, `;` or `//` are comments, a port after an address or a domain is dropped, and an address range such as `198.51.100.0/24` is skipped.
+- A value stays an active indicator for 2 days after the poll that last read it, and a value the list drops stops matching at the next poll. A list that has not changed is written again once a day.
+- A list holds at most 50,000 indicators. **Last Poll Summary** says how many were read, how many lines were skipped and how many were left out.
+- The address must use `https` and is held to the same outbound rules as a connection: on OneUptime Cloud a private address is refused.
+
+### How Google SecOps is read
+
+- Each poll reads the indicator matches Google SecOps recorded since the previous poll, with Mandiant's attributes: the matched domain, address or file hash, its confidence, its category and the campaigns and actors it is tied to. The first poll reads the last 7 days.
+- An indicator stays active for 30 days after Google SecOps last saw it, or until its source says it stops being active, and one an analyst muted in Google SecOps stops matching here too.
+- A match Google SecOps marks as an active breach is Critical, and a high-priority one is High at least.
+
 ## What gets ingested
 
-OneUptime keeps STIX `indicator` objects whose pattern is plain equality on one of these types:
+From a TAXII collection, OneUptime keeps STIX `indicator` objects whose pattern is plain equality on one of these types. A list and Google SecOps give the same types:
 
 | Type | Example pattern |
 | --- | --- |
@@ -108,7 +140,7 @@ Every incoming security event, from the ingest API or a connection, is checked a
 | Attribute | Value |
 | --- | --- |
 | `threat.matched` | Always `"true"` on a tagged event |
-| `threat.indicator_id` | The STIX indicator's id |
+| `threat.indicator_id` | The STIX indicator's id, or `list` or `google-secops` for those sources |
 | `threat.indicator_type` | The indicator's type, such as `ipv4-addr` or `file-hash-sha256` |
 | `threat.indicator_value` | The matched value, in lowercase |
 | `threat.feed` / `threat.feed_id` | The feed the indicator came from |
@@ -149,7 +181,7 @@ Every minute, each enabled feed's active indicators are matched against the even
 | Attribute | Value |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | The feed |
-| `oneuptime.threat.indicator_id` | The STIX indicator's id |
+| `oneuptime.threat.indicator_id` | The STIX indicator's id, or `list` or `google-secops` for those sources |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | What matched |
 | `oneuptime.threat.confidence` | The indicator's confidence |
 | `oneuptime.threat.match_count` | How many events are behind this finding |
@@ -195,7 +227,15 @@ Read **Last Poll Summary**. No objects fetched: the collection is empty or publi
 :::
 
 :::details Indicators exist, but nothing matches
-Matching compares an indicator's value with an event's observables, not with every field: open an event you expected to match in **Events** and check that its observables hold the value. Only indicators with the **Active** status match. Check **Last Match Error** on the feed.
+Matching compares an indicator's value with an event's observables, not with every field: open an event you expected to match in **Events** and check that its observables hold the value. Only indicators with the **Active** status match. If the feed's **Status** reads **Matching failed**, **View Error** in its row shows why.
+:::
+
+:::details A list feed's Last Error says the address answered with a web page
+The **List URL** opens a page, such as a sign-in or an error page, not the list: open it in a browser and copy the address of the file itself. A list whose text holds no IP address, domain, URL or file hash is refused the same way, and the feed's indicators are kept as they were.
+:::
+
+:::details A Google SecOps feed's Last Error says HTTP 403
+The connection's service account cannot search indicator matches: grant it `roles/chronicle.viewer`. When the connection was deleted, the feed says so: edit it and pick another **Google SecOps Connection**.
 :::
 
 :::details A match didn't open an alert

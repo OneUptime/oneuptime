@@ -383,9 +383,10 @@ describe("/incident and its form need a connected account of a current member", 
     projectAuth.projectId = projectId;
     projectAuth.authToken = projectAuthToken;
     projectAuth.miscData = { botUserId: "B0BOT" } as never;
+    // The workspace's one connection (WorkspaceProjectResolution reads them all).
     jest
-      .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
-      .mockResolvedValue(projectAuth);
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([projectAuth]);
     jest
       .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
       .mockResolvedValue(userAuth);

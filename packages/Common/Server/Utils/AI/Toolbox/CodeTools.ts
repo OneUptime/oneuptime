@@ -1,6 +1,7 @@
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { keepAllowedCodeRepositories } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -165,7 +166,9 @@ async function addInstallationIds(
  * The repositories this user can see, already filtered to the ones that are
  * actually readable. A repository row can exist without a usable GitHub App
  * installation (e.g. imported then uninstalled, or a GitLab row — GitLab has
- * no read path yet), and those must never look readable to the model.
+ * no read path yet), and those must never look readable to the model. A run
+ * held to some repositories (ctx.codeRepositoryAllowance - the ones the rules
+ * that matched its incident name) reads only those.
  */
 export async function findReadableRepositories(
   ctx: ToolContext,
@@ -188,7 +191,7 @@ export async function findReadableRepositories(
    * Ask AI about code - "You do not have permissions to select on -
    * gitHubAppInstallationId" - though the tools are offered to them.
    */
-  const repositories: Array<CodeRepository> =
+  const allRepositories: Array<CodeRepository> =
     await CodeRepositoryService.findBy({
       query: query as never,
       select: {
@@ -205,6 +208,14 @@ export async function findReadableRepositories(
       skip: 0,
       props: ctx.props,
     });
+
+  const repositories: Array<CodeRepository> = keepAllowedCodeRepositories({
+    allowance: ctx.codeRepositoryAllowance,
+    repositories: allRepositories,
+    getId: (repository: CodeRepository): string => {
+      return repository.id?.toString() || "";
+    },
+  });
 
   await addInstallationIds(ctx, repositories);
 
@@ -603,6 +614,8 @@ export const FindCodeForExceptionTool: ObservabilityTool = {
         projectId: ctx.projectId,
         stackTrace: stackTrace,
         serviceName: null,
+        // A run held to some repositories resolves among those only.
+        allowance: ctx.codeRepositoryAllowance,
       });
 
     /*

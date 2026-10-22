@@ -86,6 +86,11 @@ const describePostgres: typeof describe =
     : describe.skip;
 
 const TABLES: Array<string> = [
+  /*
+   * Severities are audit logged (#5161): a delete reads the whole row for the
+   * log first, its user relations (createdByUser, archivedByUser) with it.
+   */
+  "User",
   "Project",
   "Team",
   "IncidentSeverity",

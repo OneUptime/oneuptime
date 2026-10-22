@@ -13,6 +13,12 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import OneUptimeDate from "Common/Types/Date";
 import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
+import Clipboard from "Common/UI/Utils/Clipboard";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "Common/UI/Utils/UseClipboardCopy";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   REPLAY_BUFFERING_GRACE_MS,
   REPLAY_BUFFERING_RETRY_HINT_MS,
@@ -391,6 +397,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
   const { phase, currentTimeMs } = snapshot;
   const sizing: ReplayStageSizing = props.sizing ?? "responsive";
   const rootClassName: string = getReplayStageOverlaysRootClassName(sizing);
+  const translator: Translator = useTranslator();
 
   /* ---- URL bar. ---- */
 
@@ -407,37 +414,25 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     });
   }, [navigations, props.chunks, currentTimeMs, props.entryUrl]);
 
-  const [isUrlCopied, setIsUrlCopied] = useState<boolean>(false);
-  const urlCopiedTimerRef: React.MutableRefObject<ReturnType<
-    typeof setTimeout
-  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (urlCopiedTimerRef.current !== null) {
-        clearTimeout(urlCopiedTimerRef.current);
-      }
-    };
-  }, []);
+  /*
+   * Copy says "Copied" once the address is on the clipboard, and "Copy
+   * failed" when the browser refused it - a page served over plain http
+   * whose older copy command was refused too. It used to say nothing then,
+   * a button that seemed to do nothing (issue #5132); the address is
+   * selected in the bar now, to copy by hand.
+   */
+  const urlClipboard: ClipboardCopy = useClipboardCopy();
+  const copyUrlText: (text: string) => Promise<boolean> = urlClipboard.copy;
+  const urlTextRef: React.RefObject<HTMLSpanElement> =
+    useRef<HTMLSpanElement>(null);
 
   const handleCopyUrl: () => void = useCallback((): void => {
-    void copyTextToClipboard(currentUrl).then((isCopied: boolean): void => {
+    void copyUrlText(currentUrl).then((isCopied: boolean): void => {
       if (!isCopied) {
-        return;
+        Clipboard.selectForManualCopy(urlTextRef.current);
       }
-
-      setIsUrlCopied(true);
-
-      if (urlCopiedTimerRef.current !== null) {
-        clearTimeout(urlCopiedTimerRef.current);
-      }
-
-      urlCopiedTimerRef.current = setTimeout((): void => {
-        urlCopiedTimerRef.current = null;
-        setIsUrlCopied(false);
-      }, 2000);
     });
-  }, [currentUrl]);
+  }, [currentUrl, copyUrlText]);
 
   /* ---- Buffering grace and retry hint. ---- */
 
@@ -899,6 +894,7 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           className="h-3.5 w-3.5 shrink-0 text-gray-400"
         />
         <span
+          ref={urlTextRef}
           className="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-600"
           title={currentUrl || "No page URL is known yet"}
           data-testid="replay-url-text"
@@ -908,13 +904,52 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
         {currentUrl && (
           <ReplayToolButton
             dataTestId="replay-url-copy"
-            icon={isUrlCopied ? IconProp.Check : IconProp.Copy}
-            tone={isUrlCopied ? "success" : "neutral"}
-            title={isUrlCopied ? "Copied" : "Copy the URL"}
-            ariaLabel={isUrlCopied ? "URL copied" : "Copy the URL"}
+            icon={
+              urlClipboard.isCopied
+                ? IconProp.Check
+                : urlClipboard.isFailed
+                  ? IconProp.Alert
+                  : IconProp.Copy
+            }
+            tone={
+              urlClipboard.isCopied
+                ? "success"
+                : urlClipboard.isFailed
+                  ? "danger"
+                  : "neutral"
+            }
+            title={
+              urlClipboard.isCopied
+                ? "Copied"
+                : urlClipboard.isFailed
+                  ? "Copy failed"
+                  : "Copy the URL"
+            }
+            ariaLabel={
+              urlClipboard.isCopied
+                ? "URL copied"
+                : urlClipboard.isFailed
+                  ? "Copy failed"
+                  : "Copy the URL"
+            }
+            dataAttributes={{ "data-copy-state": urlClipboard.status }}
             className="h-7 w-7"
             onClick={handleCopyUrl}
           />
+        )}
+        {currentUrl && (
+          // What the copy did, said to a screen reader.
+          <span
+            className="sr-only"
+            role="status"
+            data-testid="replay-url-copy-status"
+          >
+            {urlClipboard.isCopied
+              ? translator.translateText("URL copied")
+              : urlClipboard.isFailed
+                ? translator.translateText("Copy failed")
+                : ""}
+          </span>
         )}
         {currentUrl && OPENABLE_URL_PATTERN.test(currentUrl) && (
           <a

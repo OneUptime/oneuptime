@@ -60,7 +60,9 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
   "packages/App/FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts":
     "the project a worker run starts from",
   "packages/Common/Server/Infrastructure/GlobalCache.ts":
-    "the counters its callers name: certificate orders, below",
+    "the counters its callers name: certificate orders and production review AI reads, below",
+  "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts":
+    "OneUptime AI's production review reads per repository and day",
   "packages/Common/Server/Utils/Greenlock/CertificateOrder.ts":
     "certificate orders per budget",
   "packages/Common/Server/Utils/Greenlock/CertificateOrderBudget.ts":

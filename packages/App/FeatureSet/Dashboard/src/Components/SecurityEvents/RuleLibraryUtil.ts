@@ -4,6 +4,10 @@ import {
   DetectionRuleLibraryEntry,
   isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DetectionRuleShape,
+  readDetectionRuleShape,
+} from "./DetectionRuleShape";
 
 /*
  * The rule library as the page lists it: filtered by category and search,
@@ -69,11 +73,17 @@ export function matchesLibrarySearch(
     return true;
   }
 
+  // A correlation is found by its kind too: "sequence", "first seen".
+  const shape: DetectionRuleShape | null = readDetectionRuleShape(
+    entry.sigmaRuleYaml,
+  );
+
   const haystack: string = [
     entry.title,
     entry.description,
     entry.dataSource,
     entry.category,
+    shape && shape.isCorrelation ? shape.typeTitle : "",
   ]
     .join(" ")
     .toLowerCase();

@@ -134,7 +134,7 @@ El interruptor **Ejecutar este runbook** del runbook está desactivado, en su p�
 :::
 
 :::details Un paso falló porque le falta un Runner
-El mensaje dice, por ejemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." El paso se guardó sin **Runner**. Un paso JavaScript necesita un Runner propio solo cuando ningún [Runner global](/docs/runbooks/agents#runners-globales) puede ejecutarlo. Abre los **Pasos** del runbook, elige el Runner del paso, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
+El mensaje dice, por ejemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." El paso se guardó sin **Runner**, y el proyecto no tiene un [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto). Un paso JavaScript necesita un Runner propio solo cuando ningún [Runner global](/docs/runbooks/agents#runners-globales) puede ejecutarlo. Abre los **Pasos** del runbook, elige el Runner del paso en **Más campos**, haz clic en **Guardar pasos** y vuelve a ejecutar el runbook.
 :::
 
 :::details Un paso falló porque nombra variables que no puede usar

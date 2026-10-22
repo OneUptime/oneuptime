@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Trouver l'hôte dans OneUptime
 
-Ouvrez **Produits → Infrastructure → Docker → Tous les hôtes**. L'hôte apparaît sous son `DOCKER_HOST_NAME` en une minute environ, avec ses conteneurs, ses métriques et ses journaux. L'agent IA apparaît comme connecté sur la page **Agent IA** de l'hôte, et en bas de sa **Vue d'ensemble**.
+Ouvrez **Produits → Infrastructure → Docker → Tous les hôtes**. L'hôte apparaît sous son `DOCKER_HOST_NAME` en une minute environ, avec ses conteneurs, ses métriques et ses journaux. L'agent IA apparaît comme connecté sur la page **Agent IA** de l'hôte, et en bas de sa **Vue d'ensemble**. La page **Topologie** de l'hôte dessine ses projets Compose, conteneurs, images, réseaux et volumes sur une seule carte : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
 
 ## Variables d'environnement

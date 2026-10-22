@@ -14,6 +14,7 @@ OneUptime GitHub App 不只是與你程式碼的一個連線：你可以在儲�
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ flowchart TB
 | 命令 | 會發生什麼 | 同樣能理解 |
 | --- | --- | --- |
 | `@oneuptime review` | 複製分支，讀取變更的程式碼及其周圍的程式碼，檢查正式環境對這些程式碼說明了什麼，並以留言形式發布審查。不做任何變更。 | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | 無論拉取請求由誰開啟，立即根據正式環境審查它：已變更程式碼周圍的例外、操作、事件和部署，放在一則原地更新的留言中（請參閱 [拉取請求的正式環境審查](/docs/ai/ai-agent#拉取請求的正式環境審查)）。不複製任何內容，也不執行任何內容。 | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | 複製拉取請求自己的分支，做出變更，並向該分支推送新的提交。從不開啟第二個拉取請求。 | `revise`, `please revise`, `rework`, `redo` |
 
 你在提及之後寫的任何不屬於已知命令的內容，都會被當作修訂請求，因為它幾乎總是如此：
@@ -100,6 +102,8 @@ OneUptime 掌握著它所審查的程式碼的遙測，因此審查能說出只�
 
 它不需要任何設定：這些服務就是 OneUptime 為此儲存庫找到的服務，與它為修正所做的一樣（請參閱 [修正中的正式環境遙測](/docs/ai/ai-agent#修正中的正式環境遙測)）。這些查詢是唯讀的，在 OneUptime 伺服器上執行，不會讀取其他服務、專案或私人事件的任何內容。如果儲存庫的服務沒有向專案傳送遙測，就只根據它的程式碼進行審查。
 
+要讓每個拉取請求都自動根據正式環境接受審查，請在儲存庫設定中開啟 **根據正式環境審查拉取請求**：請參閱 [拉取請求的正式環境審查](/docs/ai/ai-agent#拉取請求的正式環境審查)。
+
 ## 誰可以向它下達命令
 
 **只有對儲存庫擁有 write、maintain 或 admin 權限的人。** OneUptime 每次都會向 GitHub 查詢留言者在該儲存庫上的權限；它不信任 GitHub 在留言旁顯示的 "contributor" 徽章，因為該徽章描述的是過去的活動，而不是目前的權限。
@@ -118,11 +122,11 @@ OneUptime 掌握著它所審查的程式碼的遙測，因此審查能說出只�
 
 ## 費用以及如何設定上限
 
-每條啟動工作的命令都是一次完整的代理程式執行：一次複製，最多 40 次 LLM 呼叫和 100,000 個輸出權杖，以及在你設定了的情況下儲存庫的建置和測試命令。審查的正式環境查詢最多 12 次，計入同樣的 40 次呼叫。
+每條啟動工作的命令都是一次完整的代理程式執行：一次複製，最多 40 次 LLM 呼叫和 100,000 個輸出權杖，以及在你自己的 Runner 上，儲存庫的 `AGENTS.md` 所描述的建置和測試檢查。審查的正式環境查詢最多 12 次，計入同樣的 40 次呼叫。
 
 GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正任務限制；當專案設定了自己的每日 AI 限制時，這些限制適用。唯一的其他限制，就是已經約束 [程式碼](/docs/ai/ai-agent) 中任務的那一個：
 
-- **未關閉拉取請求的上限**（儲存庫 **設定** 頁面上的 **Max Open Fix Pull Requests**）。在你選擇 **設定上限** 之前，**AI 修正提取要求** 為 **無限制**；選擇 **無** 會阻止該儲存庫上的 AI 修正拉取請求。審查和修訂不受此限制：兩者都不會向你的審查佇列新增拉取請求。
+- **未關閉拉取請求的上限**（儲存庫 **設定** 頁面 **更多設定** 下的 **Max Open Fix Pull Requests**）。在你選擇 **設定上限** 之前，**AI 修正提取要求** 為 **無限制**；選擇 **無** 會阻止該儲存庫上的 AI 修正拉取請求。審查和修訂不受此限制：兩者都不會向你的審查佇列新增拉取請求。
 
 每個 issue 或拉取請求上，同一時間每種執行只有一個處於作用中。要求兩次時，它會告訴你它已經在處理；在修訂執行時要求審查會同時啟動兩者，因為它們是不同的請求。
 
@@ -130,9 +134,9 @@ GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正
 
 ## 關閉它
 
-每個儲存庫都有一個開關：儲存庫 **設定** 頁面上的 **Respond to GitHub Commands**。關閉後，應用程式會忽略該儲存庫中的提及、指派和觸發標籤，並告訴詢問的人開關在哪裡。
+每個儲存庫都有一個開關：儲存庫 **設定** 頁面上的 **Respond to GitHub Commands**。它對每個儲存庫預設開啟，切換的那一刻就會儲存。關閉後，應用程式會忽略該儲存庫中的提及、指派和觸發標籤，並告訴詢問的人開關在哪裡。
 
-如果你想用 `oneuptime` 以外的標籤，同一頁面上有 **GitHub Trigger Label**。
+如果你想用 `oneuptime` 以外的標籤，同一頁面的 **更多設定** 下有 **GitHub Trigger Label**。
 
 ## 需要訂閱的事件
 
@@ -142,7 +146,7 @@ GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正
 | --- | --- |
 | **Issue comment** | issue 和拉取請求上的 `@mention` 命令 |
 | **Issues** | 把 issue 指派給應用程式，以及觸發標籤 |
-| **Pull request** | 向應用程式要求的審查 |
+| **Pull request** | 向應用程式要求的審查，以及拉取請求開啟和變更時的正式環境審查 |
 | **Pull request review** | 已提交審查內文中的提及 |
 | **Pull request review comment** | diff 行內留言中的提及 |
 

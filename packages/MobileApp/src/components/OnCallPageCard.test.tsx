@@ -138,10 +138,11 @@ describe("OnCallPageCard status", () => {
     expect(screen.getByText("Failed to notify")).toBeTruthy();
   });
 
-  test("a page the responder passed on says so - not 'Not acknowledged'", async (): Promise<void> => {
+  test("a page the responder escalated says Escalated - not 'Not acknowledged'", async (): Promise<void> => {
     /*
-     * They could not take it and passed it on: the policy paged its next
-     * escalation rule, and nothing is waiting on them any more.
+     * They could not take it and escalated it: the policy paged its next
+     * level, and nothing is waiting on them any more. The server stores the
+     * status as "Passed On", the action's first name; it reads "Escalated".
      */
     await render(
       <OnCallPageCard
@@ -152,15 +153,16 @@ describe("OnCallPageCard status", () => {
       />,
     );
 
-    expect(screen.getByText("Passed on")).toBeTruthy();
+    expect(screen.getByText("Escalated")).toBeTruthy();
+    expect(screen.queryByText("Passed on")).toBeNull();
     expect(screen.queryByText("Not acknowledged")).toBeNull();
     // A screen reader hears it too.
     expect(
-      screen.getByRole("button", { name: "Replica lag. Passed on." }),
+      screen.getByRole("button", { name: "Replica lag. Escalated." }),
     ).toBeTruthy();
   });
 
-  test("a page passed on and then acknowledged after all is acknowledged", async (): Promise<void> => {
+  test("a page escalated and then acknowledged after all is acknowledged", async (): Promise<void> => {
     await render(
       <OnCallPageCard
         page={page({
@@ -171,7 +173,7 @@ describe("OnCallPageCard status", () => {
     );
 
     expect(screen.getByText("Acknowledged")).toBeTruthy();
-    expect(screen.queryByText("Passed on")).toBeNull();
+    expect(screen.queryByText("Escalated")).toBeNull();
   });
 
   test("an acknowledged response remains acknowledged even when a delivery attempt failed", async (): Promise<void> => {

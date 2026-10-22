@@ -68,15 +68,38 @@ export interface EvidenceFocusRequest {
   requestId: number;
 }
 
+/*
+ * What the evidence belongs to: an incident's or alert's investigation, or
+ * a security case's triage (SecurityCaseAiCard), whose rows come from its
+ * own route (loadEvidenceRows).
+ */
+export type InvestigationEvidenceSubjectType =
+  | InvestigationReportSubjectType
+  | "securityCase";
+
+/*
+ * Fetches the rows behind one citation, for a subject whose evidence is
+ * re-run somewhere other than POST /ai-investigation/evidence.
+ */
+export type LoadEvidenceRows = (data: {
+  runId: string;
+  citationId: string;
+}) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse>;
+
 export interface ComponentProps {
   // Structured evidence from the API. When present it is the whole list.
   items: Array<InvestigationEvidenceItem>;
   // The report's own "Evidence checked" block, for runs that predate `items`.
   legacyEntries: Array<InvestigationEvidenceCheckedEntry>;
-  subjectType: InvestigationReportSubjectType;
+  subjectType: InvestigationEvidenceSubjectType;
   subjectId: string;
   runId: string | null;
   focusRequest?: EvidenceFocusRequest | null | undefined;
+  /*
+   * Where "Load rows" asks, in place of POST /ai-investigation/evidence
+   * (which knows incidents and alerts only).
+   */
+  loadEvidenceRows?: LoadEvidenceRows | undefined;
 }
 
 export const EVIDENCE_HIGHLIGHT_DURATION_MS: number = 2000;
@@ -293,18 +316,23 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.post<JSONObject>({
-            url: URL.fromString(
-              APP_API_URL.toString() + "/ai-investigation/evidence",
-            ),
-            data: {
-              subjectType: props.subjectType,
-              subjectId: props.subjectId,
-              investigationRunId: props.runId,
-              citationId: citationId,
-            },
-            headers: ModelAPI.getCommonHeaders(),
-          });
+          props.loadEvidenceRows
+            ? await props.loadEvidenceRows({
+                runId: props.runId,
+                citationId: citationId,
+              })
+            : await API.post<JSONObject>({
+                url: URL.fromString(
+                  APP_API_URL.toString() + "/ai-investigation/evidence",
+                ),
+                data: {
+                  subjectType: props.subjectType,
+                  subjectId: props.subjectId,
+                  investigationRunId: props.runId,
+                  citationId: citationId,
+                },
+                headers: ModelAPI.getCommonHeaders(),
+              });
 
         if (!isCurrent()) {
           return;
@@ -337,7 +365,7 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
         });
       }
     },
-    [props.runId, props.subjectId, props.subjectType],
+    [props.runId, props.subjectId, props.subjectType, props.loadEvidenceRows],
   );
 
   const findItem: (

@@ -88,13 +88,19 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Teams | `Team` |
 | Aangepaste rollen, en de teams die er een krijgen | `Custom Role`, `Team Custom Role` |
 | Labels | `Label` |
+| Statussen en ernstniveaus van incidenten | `Incident State`, `Incident Severity` |
+| Statussen en ernstniveaus van waarschuwingen | `Alert State`, `Alert Severity` |
+| Monitorstatussen | `Monitor Status` |
+| Statussen van gepland onderhoud | `Scheduled Maintenance State` |
+| Incidentrollen | `Incident Role` |
+| Postmortem-statussen | `Postmortem Status` |
 | API-sleutels | `API Key` |
 | MCP-clients die mensen koppelen | `MCP Client Authorization` |
 | Inventarisitems | `Inventory Item` |
 | Collectorconfiguraties | `Collector Config` |
 | vCenters | `vCenter` |
 | Pakketopnames, en hun downloads | `Packet Capture` |
-| Beveiligingszaken en playbooks | `Security Case`, `Security Playbook` |
+| Beveiligingszaken, playbooks en hun uitvoeringen, en beschermde entiteiten | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 

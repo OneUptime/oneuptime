@@ -1,3 +1,8 @@
+/*
+ * The product's theme, as the Dashboard loads it: a test can draw the page
+ * dark by putting "dark" on <html>, as the theme switch does.
+ */
+import "Common/UI/Styles/Theme.css";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -34,6 +39,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import {
   buildAlertSeverities,
+  buildBackOfficeTemplate,
   buildCampusHosts,
   buildIncidentSeverities,
   buildMonitorStatuses,
@@ -373,6 +379,10 @@ window.__discoveryFixture = {
   usePolicy() {
     this.policies = [buildPolicy({})];
   },
+  // A template made in another tab while the import is open (#5145).
+  addBackOfficeTemplate() {
+    this.templates = [...this.templates, buildBackOfficeTemplate()];
+  },
   dropRecommendedTemplate() {
     this.templates = this.templates.filter(
       (item) => item.templateName !== "Network device alert pack (recommended)",
@@ -428,12 +438,24 @@ ModelAPI.getList = async ({ modelType, query, requestOptions }) => {
     return { data: roles, count: roles.length, skip: 0, limit: 10 };
   }
   if (modelType === MonitorTemplate) {
-    return {
-      data: window.__discoveryFixture.templates,
-      count: window.__discoveryFixture.templates.length,
-      skip: 0,
-      limit: 10,
-    };
+    /*
+     * As the server answers: the kinds the query asks for (an Includes of
+     * monitor types, or one type), by name.
+     */
+    const kinds = query?.monitorType;
+    const wanted = Array.isArray(kinds?.values)
+      ? kinds.values.map(String)
+      : kinds
+        ? [String(kinds)]
+        : null;
+    const data = window.__discoveryFixture.templates
+      .filter((item) => !wanted || wanted.includes(String(item.monitorType)))
+      .sort((a, b) =>
+        String(a.templateName || "").localeCompare(
+          String(b.templateName || ""),
+        ),
+      );
+    return { data, count: data.length, skip: 0, limit: 10 };
   }
   if (modelType === MonitorStatus) {
     return { data: buildMonitorStatuses(), count: 2, skip: 0, limit: 10 };

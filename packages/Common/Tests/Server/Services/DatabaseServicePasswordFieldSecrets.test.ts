@@ -567,8 +567,6 @@ describe("the write path unwraps HashedString for every column that is not a has
         "ThreatIntelFeed.basicAuthPassword",
         "DataSource.password",
         "DataSource.apiToken",
-        "RunbookCredential.sshPassword",
-        "RunbookCredential.sshPassphrase",
       ]),
     );
   });

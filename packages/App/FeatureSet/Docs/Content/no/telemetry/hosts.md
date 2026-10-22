@@ -75,7 +75,7 @@ Hver OneUptime leverer sine egne installasjonsprogrammer, så en selvdriftet One
 
 ### Vent på verten
 
-Det siste trinnet i dialogen viser når verten kobler til, med en lenke til den. I listen vises den som **Starter** til de første målingene kommer, vanligvis innen et minutt, og deretter som tilkoblet, med innsamleren **Kjører**.
+Det siste trinnet i dialogen viser når verten kobler til, med en lenke til den. I listen vises den som **Starter** til de første målingene kommer, vanligvis innen et minutt, og deretter som tilkoblet, med innsamleren **Kjører**. Vertens side **Topologi** tegner på ett kart hva som kjører på den, hva som kaller den og hva den kaller: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Merk verter

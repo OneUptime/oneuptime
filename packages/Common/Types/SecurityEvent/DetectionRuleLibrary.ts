@@ -4,15 +4,21 @@
  *
  * Every rule is written against the fields OneUptime stores - the typed
  * columns every source is normalized into (className, statusName,
- * principalUser, principalProcess, ...) or the source's own attribute keys
- * where only one product says it (Okta's `eventType`, CloudTrail's
- * `eventName`, Kubernetes audit's `objectRef.resource`) - so a rule added
- * here matches the events the project already has, with no field mapping.
+ * principalUser, and CommandLine, which reads the command line of the
+ * process an event is about, ...) or the source's own attribute keys where
+ * only one product says it (Okta's `eventType`, CloudTrail's `eventName`,
+ * Kubernetes audit's `objectRef.resource`) - so a rule added here matches
+ * the events the project already has, with no field mapping.
  * Each one parses and compiles in the engine's own tests.
  *
  * A rule's Sigma `id` is its identity: a project's detection rule whose
  * YAML carries the same id is "this library rule, added", which is how the
  * library shows what a project already has.
+ *
+ * Some rules are Sigma correlations (SigmaCorrelation.ts) - a sequence, or
+ * the first time a user or host shows a value - written whole in one YAML
+ * with the rules they read, so adding one adds everything it needs. Their
+ * YAML holds their grouping, so they set no Group By Field of their own.
  */
 
 export enum DetectionRuleLibraryCategory {
@@ -340,6 +346,178 @@ detection:
   selection_okta:
     eventType: user.lifecycle.create
   condition: 1 of selection_*
+`,
+    },
+
+    {
+      id: "1e112332-583d-4fd9-b688-9b5d715d5896",
+      title: "Failed sign-ins, then a success from the same address",
+      description:
+        "Five or more failed sign-ins from one IP address, then one from it that worked, within ten minutes: a password that was guessed.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Authentication events from any source",
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Failed sign-ins, then a success from the same address
+id: 1e112332-583d-4fd9-b688-9b5d715d5896
+description: Many failed sign-ins from one IP address, then one from it that worked.
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1110
+  - attack.initial_access
+  - attack.t1078
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "e65a43a0-6eb3-4441-beff-ecdfc5f0b8f4",
+      title: "Sign-in from an address the account never used",
+      description:
+        "An account signed in from an IP address it has not signed in from in two weeks. Expected after travel or on a new network; worth a look for admins.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Authentication events from any source",
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Sign-in from an address the account never used
+id: e65a43a0-6eb3-4441-beff-ecdfc5f0b8f4
+description: The first sign-in of an account from an IP address in two weeks.
+level: low
+tags:
+  - attack.initial_access
+  - attack.t1078
+correlation:
+  type: new_value
+  rules:
+    - successful_sign_in
+  group-by:
+    - principalUser
+  timespan: 14d
+  condition:
+    field: principalIp
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+`,
+    },
+    {
+      id: "99749e02-7b91-4139-96ca-fdc1ad7a0c53",
+      title: "Okta sign-in from a new country",
+      description:
+        "A person signed in to Okta from a country they have not signed in from in thirty days: travel, or someone else with their password.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Okta System Log",
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Okta sign-in from a new country
+id: 99749e02-7b91-4139-96ca-fdc1ad7a0c53
+description: The first Okta sign-in of a person from a country in thirty days.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1078.004
+correlation:
+  type: new_value
+  rules:
+    - okta_sign_in
+  group-by:
+    - principalUser
+  timespan: 30d
+  condition:
+    field: client.geographicalContext.country
+---
+title: Okta sign-in
+name: okta_sign_in
+detection:
+  selection:
+    eventType: user.session.start
+    outcome.result: SUCCESS
+  condition: selection
+`,
+    },
+    {
+      id: "497508d7-8051-41b8-905f-c149c008eca4",
+      title: "New account given admin rights within an hour",
+      description:
+        "An account was created and given administrator privileges less than an hour later: how an attacker keeps the access they got.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "Okta System Log",
+      evaluationIntervalInMinutes: 5,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: New account given admin rights within an hour
+id: 497508d7-8051-41b8-905f-c149c008eca4
+description: An account was created, then given administrator privileges within an hour.
+level: high
+tags:
+  - attack.persistence
+  - attack.t1136
+  - attack.privilege_escalation
+  - attack.t1098
+correlation:
+  type: temporal_ordered
+  rules:
+    - account_created
+    - admin_granted
+  group-by:
+    - targetUser
+  timespan: 1h
+---
+title: Account created
+name: account_created
+detection:
+  selection_class:
+    className: Account Change
+    activityName: Create
+  selection_okta:
+    eventType: user.lifecycle.create
+  condition: 1 of selection_*
+---
+title: Admin privileges granted
+name: admin_granted
+detection:
+  selection:
+    eventType: user.account.privilege.grant
+  condition: selection
 `,
     },
 
@@ -762,6 +940,42 @@ detection:
 `,
     },
 
+    {
+      id: "0b55cc2f-57df-49ed-b98b-2e6b7f976d32",
+      title: "First sudo on a host by a user",
+      description:
+        "A user ran a command with sudo on a host where they had not used sudo in two weeks: a new admin, or someone else's account.",
+      category: DetectionRuleLibraryCategory.Endpoint,
+      dataSource: "sudo logs",
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: First sudo on a host by a user
+id: 0b55cc2f-57df-49ed-b98b-2e6b7f976d32
+description: The first sudo command of a user on a host in two weeks.
+level: medium
+tags:
+  - attack.privilege_escalation
+  - attack.t1548.003
+correlation:
+  type: new_value
+  rules:
+    - sudo_command
+  group-by:
+    - principalHost
+  timespan: 14d
+  condition:
+    field: principalUser
+---
+title: Command run with sudo
+name: sudo_command
+detection:
+  selection:
+    productName: sudo
+    activityName: Launch
+  condition: selection
+`,
+    },
+
     // Cloud
     {
       id: "e431079d-c7d4-4ae3-9bfc-b6407f2697b8",
@@ -908,6 +1122,42 @@ detection:
       - AccessDenied
       - UnauthorizedOperation
       - Client.UnauthorizedOperation
+  condition: selection
+`,
+    },
+
+    {
+      id: "c71e033b-45d0-44cb-8835-c05cb59c9a96",
+      title: "AWS activity in a region the account never used",
+      description:
+        "Calls in an AWS region the account had no activity in for thirty days: attackers start miners and hide resources in regions nobody watches.",
+      category: DetectionRuleLibraryCategory.Cloud,
+      dataSource: "AWS CloudTrail",
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: AWS activity in a region the account never used
+id: c71e033b-45d0-44cb-8835-c05cb59c9a96
+description: The first calls in an AWS region of an account in thirty days.
+level: medium
+tags:
+  - attack.stealth
+  - attack.t1535
+correlation:
+  type: new_value
+  rules:
+    - cloudtrail_call
+  group-by:
+    - targetHost
+  timespan: 30d
+  condition:
+    field: awsRegion
+---
+title: CloudTrail call
+name: cloudtrail_call
+detection:
+  selection:
+    productName: AWS CloudTrail
+    statusName: Success
   condition: selection
 `,
     },
@@ -1129,6 +1379,42 @@ detection:
   condition: selection
 `,
     },
+    {
+      id: "861ed734-f8ec-46da-a0f8-cadeb0e1c750",
+      title: "First shell in a namespace by a user",
+      description:
+        "Somebody ran kubectl exec into a pod in a namespace where they had not opened a shell in thirty days.",
+      category: DetectionRuleLibraryCategory.Kubernetes,
+      dataSource: "Kubernetes audit logs",
+      evaluationIntervalInMinutes: 15,
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: First shell in a namespace by a user
+id: 861ed734-f8ec-46da-a0f8-cadeb0e1c750
+description: The first kubectl exec of a user in a namespace in thirty days.
+level: medium
+tags:
+  - attack.execution
+  - attack.t1609
+correlation:
+  type: new_value
+  rules:
+    - pod_shell
+  group-by:
+    - user.username
+  timespan: 30d
+  condition:
+    field: objectRef.namespace
+---
+title: Shell opened in a pod
+name: pod_shell
+detection:
+  selection:
+    objectRef.resource: pods
+    objectRef.subresource: exec
+    verb: create
+  condition: selection
+`,
+    },
   ];
 
 export function getDetectionRuleLibraryEntry(
@@ -1159,6 +1445,8 @@ export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
   "acf2a37e-301a-46de-87c7-d4343f3a8445",
   "c6b500e1-8b3c-4be3-b303-ef90a0355345",
   "e16d3ff9-32d3-4180-b4fc-c3c2fd4ca835",
+  // A sequence: failed sign-ins from one address, then one that worked.
+  "1e112332-583d-4fd9-b688-9b5d715d5896",
   // Linux commands, from sudo or an EDR.
   "aee4cdc7-f786-4023-a636-135397c6ff49",
   "deeb8c3e-02d1-465e-bc88-83b49be848b5",

@@ -189,7 +189,7 @@ Os registros aceitam `list`, `get`, `create`, `update`, `delete` e `count`:
 | Área | Comandos |
 | --- | --- |
 | Monitoramento | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidentes | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Incidentes | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Alertas | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Páginas de status | `status-page`, `status-page-announcement` |
 | Manutenção programada | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

@@ -84,6 +84,7 @@ En sag bevæger sig gennem fire statusser. Den kan springe en over, f.eks. en fa
 Sagens side har alt, hvad du skal bruge for at behandle den:
 
 - Øverst: **Assign to Me**, **Run Playbook**, **Erklær hændelse** og **Close Case**, statustrinnene og prioriteten under menuen ved siden af dem.
+- **OneUptime AI**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
 - **Detections**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **MITRE ATT&CK**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
@@ -104,6 +105,8 @@ For at behandle flere sager på én gang vælger du dem i køen og bruger **Assi
 | Undetermined | Der var ikke nok information til at afgøre det |
 
 Konklusionerne tælles på oversigten. En regel, hvis sager bliver ved med at blive lukket som False Positive, er en regel, der bør finjusteres.
+
+En sag, der er åbnet fra Google SecOps-advarsler, lukker dem også i Google SecOps med afgørelsen og afslutningsnoten, når dens forbindelse har **Luk advarsler, når deres sag lukkes** slået til: se [Google SecOps](/docs/integrations/google-secops#luk-advarsler-når-deres-sag-lukkes).
 
 ### Erklær en hændelse
 
@@ -164,6 +167,7 @@ En playbook er en liste over trin, der kører på en sag. Opret en under **Produ
 | --- | --- |
 | Case Opened | Én gang, når en sag åbnes |
 | Detection Added | Hver gang en ny detektion føjes til en åben sag |
+| Vurderet som sandsynligvis ondsindet | Én gang, når OneUptime AI's vurdering læser sagen som Sandsynligvis ondsindet |
 | Manual | Kun når nogen kører den fra en sag |
 
 Enhver aktiveret playbook kan også køres manuelt med **Run Playbook** på en sag. En playbook, der kører af sig selv, kan afgrænses:
@@ -319,5 +323,6 @@ Sagen handler ikke om nogen bruger eller vært, f.eks. kun om en adresse, eller 
 :::cards
 - [Sikkerhedsbegivenheder](/docs/telemetry/security-events): Send begivenheder, skriv detektionsregler, og forbind sikkerhedsprodukter.
 - [Trusselsintelligens](/docs/telemetry/threat-intelligence): Match dine begivenheder mod STIX/TAXII-feeds.
+- [OneUptime AI i sikkerhed](/docs/telemetry/security-ai): Vurder sager, skriv udkast til detektionsregler, og spørg om sikkerhed med AI.
 - [Tilladelsesreference](/docs/permissions/reference): Security-rollerne, og hvad hver af dem kan.
 :::

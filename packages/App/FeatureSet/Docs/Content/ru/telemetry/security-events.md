@@ -46,10 +46,11 @@ flowchart TB
 | **Ожидает одобрения** | Playbooks | Шаги плейбуков, которые ждут, пока кто-то их одобрит или отклонит |
 | **Запуски плейбуков** | Playbooks | Что сделал каждый плейбук, шаг за шагом |
 | **Protected Entities** | Playbooks | Пользователи и хосты, к которым ни один плейбук не применяет сдерживание |
+| **Настройки** | ИИ | Оценивает ли OneUptime AI каждый новый кейс |
 | **Connections** | Connections | Ваши логи, продукты безопасности, которые опрашивает OneUptime, и SIEM, в которые он отправляет |
 | **Руководство по настройке** | Connections | Фрагменты кода для отправки событий с уже подставленным ключом приёма |
 
-**Detections** и **Connections**, которые настраивают один раз, остаются свёрнутыми, пока вы их не откроете. Впервые работаете с безопасностью? [Начало работы с безопасностью](/docs/telemetry/security-getting-started) настраивает её в два клика.
+**Detections**, **ИИ** и **Connections**, которые настраивают один раз, остаются свёрнутыми, пока вы их не откроете. Впервые работаете с безопасностью? [Начало работы с безопасностью](/docs/telemetry/security-getting-started) настраивает её в два клика.
 
 ## Перед началом
 
@@ -135,6 +136,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Слово серьёзности становится уровнем OCSF: `info` читается как Informational, `warning` как Low, `error` как Medium, `alert` как Critical, а `emergency` как Fatal.
 
@@ -194,6 +201,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Серьёзность | `severityName`, одно из значений Unknown, Informational, Low, Medium, High, Critical, Fatal или Other, и `severityId` |
 | Кто это сделал | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Что было затронуто | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Процесс | `processName`, `processPath` и `processCommandLine`: при запуске процесса — запущенный процесс, иначе — процесс, который действовал. `parentProcessName`, `parentProcessPath` и `parentProcessCommandLine`: процесс, который его запустил |
 | Источник | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Содержимое | `message`, `mitreTactics`, `mitreTechniques` и `observables`: каждый пользователь, хост, IP-адрес, домен и хеш, извлечённые из события |
 | Атрибуты | Все исходные данные источника, развёрнутые в ключи с точками |
@@ -218,11 +226,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | Атрибут присутствует | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Атрибут содержит текст | `@finding_info.title:~ransom` |
 
-Поле — это либо краткое имя (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`), либо собственное имя поля, например `severityName` или `principalHost`. Любое другое имя читается как атрибут источника. `observable:<value>` находит каждое событие, где упоминается значение, на какой бы стороне активности оно ни было.
+Поле — это либо краткое имя (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`), либо собственное имя поля, например `severityName` или `principalHost`. Любое другое имя читается как атрибут источника. `observable:<value>` находит каждое событие, где упоминается значение, на какой бы стороне активности оно ни было.
 
 ### Фасеты
 
-Боковая панель подсчитывает события окна по полям **Источник**, **Серьёзность**, **Класс событий**, **Category**, **Активность**, **Статус**, **Поставщик**, **Продукт**, **Detection Rule**, **Пользователь-источник** и **Хост-источник**. Нажмите на значение, чтобы оставить только его события, или на минус рядом, чтобы исключить их. Нажмите ещё раз, чтобы отменить. График и каждый подсчёт описывают ровно события из списка.
+Боковая панель подсчитывает события окна по полям **Источник**, **Серьёзность**, **Класс событий**, **Category**, **Активность**, **Статус**, **Поставщик**, **Продукт**, **Detection Rule**, **Пользователь-источник**, **Хост-источник**, **Процесс** и **Родительский процесс**. Нажмите на значение, чтобы оставить только его события, или на минус рядом, чтобы исключить их. Нажмите ещё раз, чтобы отменить. График и каждый подсчёт описывают ровно события из списка.
 
 ### Корреляция
 
@@ -278,9 +286,67 @@ OneUptime выполняет булево ядро Sigma:
 - Условия объединяют выборки через `and`, `or`, `not` и скобки или через `1 of selection_*`, `all of selection_*`, `any of them` и `all of them`.
 - Модификаторы полей: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` и `windash`. Текст сравнивается без учёта регистра, если вы не добавите `cased`.
 - Поле — это типизированное поле (`principalUser`), распространённое написание такого поля в Sigma (`CommandLine`, `src_ip`, `Hostname`) или любой ключ атрибута в том виде, в каком он записан в событии (`threat.matched`).
+- `Image` и `CommandLine` читают процесс, о котором событие: при запуске процесса — запущенный процесс (`processPath`, `processCommandLine`), а `ParentImage` и `ParentCommandLine` — процесс, который его запустил (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` — это процесс, который действовал, то есть при запуске — родительский.
 - `level` задаёт серьёзность: `informational`, `low`, `medium`, `high` или `critical`, а при отсутствии — `medium`. ID ATT&CK в `tags` (`attack.t1110`, `attack.ta0006`) заполняют поля MITRE находки.
 
-Агрегации вроде `| count() by principalIp > 5` отклоняются при сохранении: используйте вместо них **Group By Field** и **Match Count Threshold**. `logsource` носит только информационный характер и ничего не сужает: поместите такой фильтр в выборку, например `className: Authentication`. `timeframe` игнорируется, потому что окно задаёт интервал правила.
+Агрегации вроде `| count() by principalIp > 5` отклоняются при сохранении: используйте вместо них [правило корреляции](#правила-корреляции) или **Group By Field** и **Match Count Threshold**. `logsource` носит только информационный характер и ничего не сужает: поместите такой фильтр в выборку, например `className: Authentication`. `timeframe` игнорируется, потому что окно задаёт интервал правила.
+
+### Правила корреляции
+
+[Корреляция Sigma](https://sigmahq.io/docs/meta/correlations.html) срабатывает на несколько событий вместе, а не на одно. Вставьте её в **Sigma Rule (YAML)** вместе с правилами, которые она читает, как YAML-документы, разделённые `---`, или назовите правила, которые в проекте уже есть, по их `name` или `id` в Sigma. В **Rule Library** есть готовые, например неудачные входы, за которыми следует успешный.
+
+| Тип | Срабатывает, когда | Показывается как |
+| --- | --- | --- |
+| `event_count` | Одна группа достигает числа событий в пределах `timespan` | Число событий |
+| `value_count` | Одна группа показывает число разных значений поля в пределах `timespan` | Разные значения |
+| `temporal` | Каждое правило совпадает для одной и той же группы в пределах `timespan`, в любом порядке | События вместе |
+| `temporal_ordered` | Правила совпадают в своём порядке для одной и той же группы в пределах `timespan` | Sequence |
+| `new_value` | Группа показывает значение поля, которого не показывала в пределах `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- Группа — это значение полей `group-by`, например один адрес. Подсчёт скользящий: всплеск, который поделили два запуска, всё равно считается целиком в пределах своего `timespan`, а он не больше 24 часов.
+- `new_value` — собственный тип OneUptime, потому что в Sigma нет корреляции «впервые замечено»: он сравнивает с историей до 30 дней. `value_sum`, `value_avg`, `value_percentile` и `value_median` отклоняются при сохранении.
+- Столбец **Тип** в **Detection Rules** называет вид каждого правила, а форма одним предложением говорит, что ищет правило.
 
 ### Настройки оценки
 
@@ -379,7 +445,7 @@ Detection Finding — это событие безопасности класс�
 :::
 
 :::details Правило никогда не срабатывает
-Проверьте, что оно **Включено**, и посмотрите **Last Evaluated** и **Последняя ошибка** в его строке. Откройте событие, которое должно было совпасть, и сравните его с правилом поле за полем: простое значение должно совпадать со всем полем, поэтому для части значения используйте `contains` или `*`. Атрибут называется так же, как в событии (`threat.matched`, а не `attributes.threat.matched`). При пороге больше 1 совпадения должны попасть в один запуск.
+Проверьте его **Статус**: при **Отключено** правило не запускается, а при **Запуск не удался** кнопка **Просмотреть ошибку** в его строке покажет причину. Откройте событие, которое должно было совпасть, и сравните его с правилом поле за полем: простое значение должно совпадать со всем полем, поэтому для части значения используйте `contains` или `*`. Атрибут называется так же, как в событии (`threat.matched`, а не `attributes.threat.matched`). При пороге больше 1 совпадения должны попасть в один запуск.
 :::
 
 :::details Правило сработало, но оповещение не открылось

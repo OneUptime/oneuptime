@@ -405,6 +405,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * (OnCallPagePassOn): the rule passes them over. The run's first rule has
    * nobody to pass over; every later rule and repeat is started by
    * OnCallEscalationAdvance, which reads them.
+   *
+   * `alsoPageUserIds` are paged first, before everybody the rule names: the
+   * person who acknowledged a record its policy pages again about
+   * (OnCallAcknowledgementTimeout). They are paged as anybody the rule names
+   * directly is - a user override covers for them, nobody who left the
+   * project is paged, and nobody is paged twice.
    */
   @CaptureSpan()
   public async startRuleExecution(
@@ -419,6 +425,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       onCallPolicyExecutionLogId: ObjectID;
       onCallPolicyId: ObjectID;
       passedOnUserIds?: Array<ObjectID> | undefined;
+      alsoPageUserIds?: Array<ObjectID> | undefined;
     },
   ): Promise<OnCallRuleExecutionOutcome> {
     logger.debug(`Starting rule execution for ruleId: ${ruleId.toString()}`, {
@@ -553,14 +560,16 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
 
     /*
-     * Who this rule pages, in paging order: the accepted members of each
-     * team, then the users named directly, then whoever is on call in each
-     * schedule, then the next person in the rotation of each schedule it
-     * pages that way (pageTargets).
+     * Who this rule pages, in paging order: anybody asked to be paged first
+     * (alsoPageUserIds), the accepted members of each team, then the users
+     * named directly, then whoever is on call in each schedule, then the
+     * next person in the rotation of each schedule it pages that way
+     * (pageTargets).
      */
     const outcome: OnCallPagingOutcome = await this.pageTargets({
       context: options,
       ruleId: ruleId,
+      firstUserIds: options.alsoPageUserIds || [],
       teamIds: teamsInRule
         .map((teamInRule: OnCallDutyPolicyEscalationRuleTeam) => {
           return teamInRule.teamId;
@@ -788,6 +797,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     const outcome: OnCallPagingOutcome = await this.pageTargets({
       context: options,
       ruleId: null,
+      firstUserIds: [],
       teamIds: options.targets.teamIds,
       userIds: options.targets.userIds,
       scheduleIds: options.targets.onCallScheduleIds,
@@ -941,6 +951,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   private async pageTargets(data: {
     context: PageContext;
     ruleId: ObjectID | null;
+    /*
+     * People paged before every other target: the person who acknowledged
+     * a record its policy pages again about (OnCallAcknowledgementTimeout).
+     * None for every other page.
+     */
+    firstUserIds: Array<ObjectID>;
     teamIds: Array<ObjectID>;
     userIds: Array<ObjectID>;
     // Schedules whose on-call person is paged.
@@ -1148,6 +1164,26 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * than once per person.
      */
     const targets: Array<RuleTarget> = [];
+
+    /*
+     * Anybody paged first: named directly, as a rule's own users are, so an
+     * override covers for them and they are paged once whatever names them
+     * again below.
+     */
+    for (const userId of data.firstUserIds) {
+      const recipient: { recipientUserId: ObjectID; awayUntil: Date | null } =
+        await resolveAlertRecipient(userId);
+
+      targets.push({
+        kind: RuleTargetKind.Recipient,
+        originalUserId: userId,
+        recipientUserId: recipient.recipientUserId,
+        teamId: null,
+        scheduleId: null,
+        awayUntil: recipient.awayUntil,
+        isNextInRotation: false,
+      });
+    }
 
     for (const teamId of data.teamIds) {
       /*
@@ -1552,11 +1588,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       }
 
       /*
-       * They passed this run's page on: they said they cannot take it, and
+       * They escalated this run's page: they said they cannot take it, and
        * are not paged about it again - not by this rule, a later one or a
        * repeat. The line stays on the run's own page; the feed and the
-       * run's Slack and Microsoft Teams message said once that they passed
-       * it on.
+       * run's Slack and Microsoft Teams message said once that they
+       * escalated it.
        */
       if (hasPassedItOn(pagedUserId)) {
         // Said once per rule, whichever of its targets names them again.

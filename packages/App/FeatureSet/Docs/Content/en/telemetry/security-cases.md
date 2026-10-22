@@ -84,6 +84,7 @@ A case moves through four statuses. It can skip one, such as a false positive cl
 The case's page has everything to work it:
 
 - At the top: **Assign to Me**, **Run Playbook**, **Declare Incident** and **Close Case**, the status steps, and the priority under the menu beside them.
+- **OneUptime AI**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **MITRE ATT&CK**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
@@ -104,6 +105,8 @@ To work several cases at once, select them in the queue and use **Assign to Me**
 | Undetermined | There was not enough information to tell |
 
 The verdicts are counted on the overview. A rule whose cases keep closing as False Positive is a rule to tune.
+
+A case opened from Google SecOps alerts closes them in Google SecOps too, with the verdict and the closing note, when its connection has **Close alerts when their case closes** on: see [Google SecOps](/docs/integrations/google-secops#close-alerts-when-their-case-closes).
 
 ### Declare an incident
 
@@ -164,6 +167,7 @@ A playbook is a list of steps that run on a case. Create one under **Products â†
 | --- | --- |
 | Case Opened | Once, as a case opens |
 | Detection Added | Each time a new detection joins an open case |
+| Triaged as Likely Malicious | Once, when OneUptime AI's triage reads the case as Likely Malicious |
 | Manual | Only when someone runs it from a case |
 
 Any enabled playbook can also be run by hand, with **Run Playbook** on a case. A playbook that runs by itself can be narrowed:
@@ -319,5 +323,6 @@ The case is about no user or host, only an address for example, or every user or
 :::cards
 - [Security Events](/docs/telemetry/security-events): Send events, write detection rules and connect security products.
 - [Threat Intelligence](/docs/telemetry/threat-intelligence): Match your events against STIX/TAXII feeds.
+- [OneUptime AI in Security](/docs/telemetry/security-ai): Triage cases, draft detection rules and ask about security, with AI.
 - [Permission Reference](/docs/permissions/reference): The Security roles, and what each can do.
 :::

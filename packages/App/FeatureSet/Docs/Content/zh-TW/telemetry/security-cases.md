@@ -84,6 +84,7 @@ flowchart TB
 案件頁面上有處理它所需的一切：
 
 - 頂端：**Assign to Me**、**Run Playbook**、**宣告事件** 和 **Close Case** 按鈕，狀態步驟，以及它們旁邊選單中的優先順序。
+- **OneUptime AI**：OneUptime AI 對案件的研判、它建議的優先順序和劇本，以及背後的證據。請參閱 [安全性中的 OneUptime AI](/docs/telemetry/security-ai)。
 - **Detections**：觸發後開啟或併入此案件的偵測、觸發次數，以及最新的符合事件。
 - **實體**：案件涉及的使用者、主機和位址，以及它們最近 7 天在你所有安全性事件中的活動。每個實體都可以在 **關聯分析** 中開啟。
 - **MITRE ATT&CK**：案件的偵測所對應的戰術和技術，每一項都連結到 attack.mitre.org 上的對應頁面。
@@ -104,6 +105,8 @@ flowchart TB
 | Undetermined | 沒有足夠的資訊可以判斷 |
 
 概覽頁面會統計這些結論。如果某條規則的案件總是以 False Positive 關閉，就表示這條規則需要調校。
+
+從 Google SecOps 警示開啟的案件，如果其連線開啟了 **案例關閉時關閉其警示**，也會在 Google SecOps 中關閉這些警示，並附上結論和關閉說明：請參閱 [Google SecOps](/docs/integrations/google-secops#案例關閉時關閉其警示)。
 
 ### 宣告事件
 
@@ -164,6 +167,7 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 | --- | --- |
 | Case Opened | 案件開啟時執行一次 |
 | Detection Added | 每當有新的偵測併入未關閉的案件時 |
+| 研判為可能惡意 | 當 OneUptime AI 的研判把案件判讀為 可能為惡意 時，執行一次 |
 | Manual | 只有在有人從案件執行它時 |
 
 任何已啟用的劇本也可以透過案件上的 **Run Playbook** 手動執行。自動執行的劇本可以用下列設定縮小範圍：
@@ -319,5 +323,6 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 :::cards
 - [安全性事件](/docs/telemetry/security-events): 傳送事件、撰寫偵測規則並連線安全性產品。
 - [威脅情資](/docs/telemetry/threat-intelligence): 將你的事件與 STIX/TAXII 情資來源比對。
+- [安全性中的 OneUptime AI](/docs/telemetry/security-ai): 用 AI 研判案件、草擬偵測規則，並詢問安全性問題。
 - [權限參考](/docs/permissions/reference): Security 角色以及每個角色能做什麼。
 :::

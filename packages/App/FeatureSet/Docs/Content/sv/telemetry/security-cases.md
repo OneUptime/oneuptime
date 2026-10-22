@@ -84,6 +84,7 @@ Ett ärende går igenom fyra statusar. Det kan hoppa över en, till exempel när
 Ärendets sida har allt som behövs för att arbeta med det:
 
 - Överst: **Assign to Me**, **Run Playbook**, **Deklarera incident** och **Close Case**, statusstegen, och prioriteten i menyn bredvid dem.
+- **OneUptime AI**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **MITRE ATT&CK**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
@@ -104,6 +105,8 @@ För att arbeta med flera ärenden samtidigt markerar du dem i kön och använde
 | Undetermined | Det fanns inte tillräckligt med information för att avgöra |
 
 Bedömningarna räknas på översikten. En regel vars ärenden gång på gång stängs som False Positive är en regel som behöver finjusteras.
+
+Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng varningar när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-varningar-när-deras-ärende-stängs).
 
 ### Deklarera en incident
 
@@ -164,6 +167,7 @@ En playbook är en lista med steg som körs på ett ärende. Skapa en under **Pr
 | --- | --- |
 | Case Opened | En gång, när ett ärende öppnas |
 | Detection Added | Varje gång en ny detektion läggs till i ett öppet ärende |
+| Bedömd som troligen skadlig | En gång, när OneUptime AI:s bedömning läser ärendet som Troligen skadlig |
 | Manual | Bara när någon kör den från ett ärende |
 
 Alla aktiverade playbooks kan också köras manuellt, med **Run Playbook** på ett ärende. En playbook som körs av sig själv kan begränsas:
@@ -319,5 +323,6 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 :::cards
 - [Säkerhetshändelser](/docs/telemetry/security-events): Skicka händelser, skriv detektionsregler och anslut säkerhetsprodukter.
 - [Hotunderrättelser](/docs/telemetry/threat-intelligence): Matcha dina händelser mot STIX/TAXII-flöden.
+- [OneUptime AI i säkerhet](/docs/telemetry/security-ai): Bedöm ärenden, skriv utkast till detektionsregler och fråga om säkerhet, med AI.
 - [Behörighetsreferens](/docs/permissions/reference): Security-rollerna, och vad var och en kan göra.
 :::

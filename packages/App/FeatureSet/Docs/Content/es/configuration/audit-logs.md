@@ -88,13 +88,19 @@ Los monitores, incidentes, alertas, páginas de estado, SLO y muchos otros recur
 | Equipos | `Team` |
 | Roles personalizados, y los equipos que reciben uno | `Custom Role`, `Team Custom Role` |
 | Etiquetas | `Label` |
+| Estados y gravedades de incidente | `Incident State`, `Incident Severity` |
+| Estados y gravedades de alerta | `Alert State`, `Alert Severity` |
+| Estados de monitor | `Monitor Status` |
+| Estados de mantenimiento programado | `Scheduled Maintenance State` |
+| Roles de incidente | `Incident Role` |
+| Estados de post mortem | `Postmortem Status` |
 | Claves de API | `API Key` |
 | Clientes MCP que conectan las personas | `MCP Client Authorization` |
 | Elementos del inventario | `Inventory Item` |
 | Configuraciones del recolector | `Collector Config` |
 | vCenter | `vCenter` |
 | Capturas de paquetes, y sus descargas | `Packet Capture` |
-| Casos de seguridad y playbooks | `Security Case`, `Security Playbook` |
+| Casos de seguridad, playbooks y sus ejecuciones, y entidades protegidas | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 También se registra que un administrador añada o quite un método de notificación o una regla de guardia personal en la cuenta de otra persona, sin la dirección ni el número en sí.
 

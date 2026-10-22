@@ -6,6 +6,7 @@ import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleSe
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
+import HostCollectorConfigService from "Common/Server/Services/HostCollectorConfigService";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
 import IncidentMeasurementService from "Common/Server/Services/IncidentMeasurementService";
@@ -13,6 +14,7 @@ import IncidentReminderRuleService from "Common/Server/Services/IncidentReminder
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import IncidentSlaRuleService from "Common/Server/Services/IncidentSlaRuleService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import IncidentPostmortemStatusService from "Common/Server/Services/IncidentPostmortemStatusService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import LogDropFilterService from "Common/Server/Services/LogDropFilterService";
 import LogPipelineProcessorService from "Common/Server/Services/LogPipelineProcessorService";
@@ -92,6 +94,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       StatusPageHistoryChartBarColorRuleService,
       IncomingCallPolicyEscalationRuleService,
       AIPostmortemRuleService,
+      // A project's Collector Configs: the first that matches a host wins.
+      HostCollectorConfigService,
       /*
        * A project's states, severities and monitor statuses. Their numbers
        * were kept unique per project before they were dragged, so this only
@@ -103,6 +107,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       MonitorStatusService,
       IncidentSeverityService,
       AlertSeverityService,
+      // A project's postmortem statuses, made with their places since they began.
+      IncidentPostmortemStatusService,
     ] as Array<DatabaseService<any>>;
   }
 

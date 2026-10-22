@@ -46,10 +46,11 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
 | **Protected Entities** | Playbooks | The users and hosts no playbook contains |
+| **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 
-**Detections** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections**, **AI** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 
@@ -135,6 +136,12 @@ A generic event is read by common field names:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 A severity word becomes an OCSF level: `info` reads as Informational, `warning` as Low, `error` as Medium, `alert` as Critical and `emergency` as Fatal.
 
@@ -194,6 +201,7 @@ Every event is stored with typed fields and its source payload:
 | Severity | `severityName`, one of Unknown, Informational, Low, Medium, High, Critical, Fatal or Other, and `severityId` |
 | Who did it | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | What it touched | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| The process | `processName`, `processPath` and `processCommandLine`: in a process launch the process that started, otherwise the process that acted. `parentProcessName`, `parentProcessPath` and `parentProcessCommandLine`: the process that started it |
 | Source | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Content | `message`, `mitreTactics`, `mitreTechniques` and `observables`: every user, host, IP address, domain and hash taken from the event |
 | Attributes | The whole source payload, flattened to dotted keys |
@@ -218,11 +226,11 @@ The search bar speaks the same language as the other telemetry explorers (see [S
 | `@<attribute>:*` | The attribute is present | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | The attribute contains the text | `@finding_info.title:~ransom` |
 
-A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
+A field is either a short name (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) or the field's own name, such as `severityName` or `principalHost`. Any other name is read as a source attribute. `observable:<value>` finds every event that mentions a value, on whichever side of the activity it was.
 
 ### Facets
 
-The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User** and **Principal Host**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
+The sidebar counts the window's events by **Source**, **Severity**, **Event Class**, **Category**, **Activity**, **Status**, **Vendor**, **Product**, **Detection Rule**, **Principal User**, **Principal Host**, **Process** and **Parent Process**. Click a value to keep only its events, or the minus beside it to leave them out. Click it again to undo. The chart and every count describe exactly the events in the list.
 
 ### Correlate
 
@@ -278,9 +286,67 @@ OneUptime runs the boolean core of Sigma:
 - Conditions combine selections with `and`, `or`, `not` and parentheses, or with `1 of selection_*`, `all of selection_*`, `any of them` and `all of them`.
 - Field modifiers: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` and `windash`. Text is compared ignoring case, unless you add `cased`.
 - A field is a typed field (`principalUser`), a common Sigma spelling of one (`CommandLine`, `src_ip`, `Hostname`), or any attribute key, spelled as it is in the event (`threat.matched`).
+- `Image` and `CommandLine` read the process the event is about, the one that started in a process launch (`processPath`, `processCommandLine`), and `ParentImage` and `ParentCommandLine` the process that started it (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is the process that acted, which in a launch is the parent.
 - `level` sets the severity: `informational`, `low`, `medium`, `high` or `critical`, and `medium` when missing. ATT&CK ids in `tags` (`attack.t1110`, `attack.ta0006`) fill the finding's MITRE fields.
 
-Aggregations such as `| count() by principalIp > 5` are refused when you save: use **Group By Field** and **Match Count Threshold** instead. `logsource` is informational only and narrows nothing: put that filter in a selection, such as `className: Authentication`. A `timeframe` is ignored, because the rule's interval sets its window.
+Aggregations such as `| count() by principalIp > 5` are refused when you save: use a [correlation rule](#correlation-rules), or **Group By Field** and **Match Count Threshold**, instead. `logsource` is informational only and narrows nothing: put that filter in a selection, such as `className: Authentication`. A `timeframe` is ignored, because the rule's interval sets its window.
+
+### Correlation rules
+
+A [Sigma correlation](https://sigmahq.io/docs/meta/correlations.html) fires on several events together rather than one. Paste it into **Sigma Rule (YAML)** with the rules it reads, as YAML documents separated by `---`, or name rules the project already has by their Sigma `name` or `id`. The **Rule Library** has ready-made ones, such as failed sign-ins followed by a success.
+
+| Type | Fires when | Shown as |
+| --- | --- | --- |
+| `event_count` | One group reaches a number of events within the `timespan` | Event count |
+| `value_count` | One group shows a number of different values of a field within the `timespan` | Distinct values |
+| `temporal` | Every rule matches for the same group within the `timespan`, in any order | Events together |
+| `temporal_ordered` | The rules match in their order for the same group within the `timespan` | Sequence |
+| `new_value` | A group shows a value of a field it has not shown within the `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- A group is the value of the `group-by` fields, such as one address. Counts are rolling: a burst that two runs split is still counted whole within its `timespan`, which is at most 24 hours.
+- `new_value` is OneUptime's own type, since Sigma has no "first seen" correlation: it compares with up to 30 days of history. `value_sum`, `value_avg`, `value_percentile` and `value_median` are refused when you save.
+- The **Type** column of **Detection Rules** names each rule's kind, and the form says in a sentence what the rule looks for.
 
 ### Evaluation settings
 
@@ -379,7 +445,7 @@ Check the key in `x-oneuptime-token` and the path, `/security-events/v1/ingest`.
 :::
 
 :::details A rule never matches
-Check that it is **Enabled**, and read **Last Evaluated** and **Last Error** in its row. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
+Check its **Status**: a **Disabled** rule does not run, and when it reads **Run failed**, **View Error** in its row shows why. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
 :::
 
 :::details A rule matched, but no alert opened

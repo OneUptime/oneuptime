@@ -193,8 +193,7 @@ describe("RepairHashedStringEnvelopeSecrets", () => {
         [
           "DataSource.apiToken",
           "DataSource.password",
-          "RunbookCredential.sshPassphrase",
-          "RunbookCredential.sshPassword",
+          // Runbook credentials' two were dropped with them.
           "ThreatIntelFeed.apiToken",
           "ThreatIntelFeed.basicAuthPassword",
           "UserWebhook.secret",
@@ -314,14 +313,9 @@ describe("RepairHashedStringEnvelopeSecrets", () => {
       );
 
       expect(tablesQueried).toEqual(
-        new Set([
-          "ThreatIntelFeed",
-          "DataSource",
-          "RunbookCredential",
-          "UserWebhook",
-        ]),
+        new Set(["ThreatIntelFeed", "DataSource", "UserWebhook"]),
       );
-      expect(query).toHaveBeenCalledTimes(7);
+      expect(query).toHaveBeenCalledTimes(5);
       // Both ThreatIntelFeed columns failed and were each reported.
       expect(mockedLogger.error).toHaveBeenCalledTimes(4);
     });

@@ -101,6 +101,16 @@ export interface GoogleSecOpsImportResult {
 }
 
 /*
+ * One page of legacySearchEnterpriseWideIoCs: the IOC matches (each an
+ * IoCDiscoveryInfo, read by GoogleSecOpsIocMatches), and whether there were
+ * more in the window than were asked for.
+ */
+export interface GoogleSecOpsIocMatchesResult {
+  matches: Array<JSONObject>;
+  moreDataAvailable: boolean;
+}
+
+/*
  * One curated rule that produced detections in the counted interval, read
  * from countAllCuratedRuleSetDetections' curatedRuleCounts[]. ruleId is the
  * last segment of CuratedRule.name (ur_...), the identifier
@@ -831,6 +841,145 @@ export default class GoogleSecOpsClient {
     }
 
     return GoogleSecOpsClient.parseCuratedRuleCountsBody(responseText);
+  }
+
+  /*
+   * Give an alert an analyst's feedback - close it, with a reason, a
+   * verdict and a comment: what OneUptime does to the alerts behind a
+   * security case when the case is closed (SecurityCaseSourceAlerts).
+   *
+   *   POST {base}/legacy:legacyUpdateAlert
+   *     { alertId, feedback: { status, reason, verdict, comment } }
+   *   -> 200 Collection
+   * https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyUpdateAlert
+   *
+   * The service account needs chronicle.legacies.legacyUpdateAlert (the
+   * Chronicle API Editor role has it; Viewer, which importing needs, does
+   * not). Same token handling and one-shot 401 retry as everything else.
+   * The answer is returned, not thrown: whether to try again, leave the
+   * alert or stop is the caller's to decide from the status.
+   */
+  public async updateAlertFeedback(data: {
+    alertId: string;
+    feedback: JSONObject;
+  }): Promise<GoogleSecOpsImportResult> {
+    const url: string = `${this.getApiBaseUrl()}/legacy:legacyUpdateAlert`;
+    const body: string = JSON.stringify({
+      alertId: data.alertId,
+      feedback: data.feedback,
+    });
+
+    let accessToken: string = await this.getAccessToken();
+    let response: FetchResponseLike = await this.postJson(
+      url,
+      accessToken,
+      body,
+      "alert update",
+    );
+
+    if (response.status === 401) {
+      this.clearCachedAccessToken();
+      accessToken = await this.getAccessToken();
+      response = await this.postJson(url, accessToken, body, "alert update");
+    }
+
+    const responseText: string = await response.text();
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      errorText: response.ok
+        ? ""
+        : GoogleSecOpsClient.redactErrorBody(responseText),
+      errorReason: response.ok
+        ? ""
+        : GoogleSecOpsClient.errorInfoReason(
+            GoogleSecOpsClient.findErrorObject(responseText),
+          ),
+    };
+  }
+
+  /*
+   * The indicators of compromise Google SecOps found in the instance's own
+   * events - its threat intelligence (Mandiant's and the feeds it applies)
+   * matched against what it ingested - for a window of match time. What a
+   * Google SecOps threat-intel feed brings into OneUptime, so the rest of
+   * the project's events are matched against them too.
+   *
+   *   GET {base}/legacy:legacySearchEnterpriseWideIoCs
+   *     ?timestampRange.startTime&timestampRange.endTime
+   *     &maxMatchesToReturn&addMandiantAttributes=true
+   *   -> { matches: [IoCDiscoveryInfo], moreDataAvailable }
+   * https://cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchEnterpriseWideIoCs
+   *
+   * Needs chronicle.legacies.legacySearchEnterpriseWideIoCs, which the
+   * Chronicle API Viewer role has.
+   */
+  public async searchEnterpriseIocMatches(data: {
+    startTime: Date;
+    endTime: Date;
+    maxMatches: number;
+  }): Promise<GoogleSecOpsIocMatchesResult> {
+    const params: URLSearchParams = new URLSearchParams();
+    params.set("timestampRange.startTime", data.startTime.toISOString());
+    params.set("timestampRange.endTime", data.endTime.toISOString());
+    params.set("maxMatchesToReturn", String(Math.max(1, data.maxMatches)));
+    params.set("addMandiantAttributes", "true");
+
+    const url: string = `${this.getApiBaseUrl()}/legacy:legacySearchEnterpriseWideIoCs?${params.toString()}`;
+
+    let accessToken: string = await this.getAccessToken();
+    let response: FetchResponseLike = await this.requestJson(
+      url,
+      accessToken,
+      "IOC matches search",
+    );
+    let responseText: string = await response.text();
+
+    if (response.status === 401) {
+      this.clearCachedAccessToken();
+      accessToken = await this.getAccessToken();
+      response = await this.requestJson(url, accessToken, "IOC matches search");
+      responseText = await response.text();
+    }
+
+    if (!response.ok) {
+      throw new APIException(
+        `Google SecOps IOC matches search failed (HTTP ${response.status}): ${GoogleSecOpsClient.redactErrorBody(responseText)}` +
+          GoogleSecOpsClient.describeHttpFailure(response.status, responseText),
+      );
+    }
+
+    let parsed: unknown;
+
+    try {
+      parsed = JSON.parse(responseText || "{}");
+    } catch {
+      throw new APIException(
+        `Google SecOps IOC matches search returned a non-JSON body: ${GoogleSecOpsClient.redactErrorBody(responseText)}`,
+      );
+    }
+
+    const root: JSONObject =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as JSONObject)
+        : {};
+    const matches: Array<JSONObject> = Array.isArray(root["matches"])
+      ? (root["matches"] as Array<JSONValue>).filter(
+          (match: JSONValue): match is JSONObject => {
+            return (
+              match !== null &&
+              typeof match === "object" &&
+              !Array.isArray(match)
+            );
+          },
+        )
+      : [];
+
+    return {
+      matches,
+      moreDataAvailable: root["moreDataAvailable"] === true,
+    };
   }
 
   /*

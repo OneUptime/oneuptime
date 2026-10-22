@@ -9,6 +9,11 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import {
+  ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE,
+  OnCallPageAgainAcknowledgeAnswer,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -28,7 +33,7 @@ import {
 import User from "../../Models/DatabaseModels/User";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" FROM THE DASHBOARD AND THE MOBILE APP
+ * "CAN'T TAKE IT? ESCALATE" FROM THE DASHBOARD AND THE MOBILE APP
  * (OnCallPagePassOn).
  *
  * GET  /on-call-page/pass-on/<record type>/<record id>
@@ -46,7 +51,10 @@ import User from "../../Models/DatabaseModels/User";
  *
  * Each page and each answer also carries `sentence`: what it does or did,
  * as the server words it everywhere else (the confirm page, a call), with
- * times in the caller's own time zone. The mobile app shows it as it is.
+ * times in the caller's own time zone. The mobile app shows it as it is, so
+ * a level's place ("Level 2 of 3") and a time ("5:28 AM UTC") are written
+ * to stay on one line of a phone screen, as on the confirm page
+ * (keepTogether).
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -148,8 +156,10 @@ router.get(
         pages: pages.map((page: OnCallOpenPage): OnCallOpenPage => {
           return {
             ...page,
+            // Shown on a phone: "Level 2 of 3" and a time stay on one line.
             sentence: getOnCallPassOnSentence(page.preview, {
               timezone: timezone,
+              keepTogether: true,
             }),
           };
         }),
@@ -210,6 +220,7 @@ router.post(
                 passOnAnswer.passedOn && passOnAnswer.result
                   ? getOnCallPassOnSentence(passOnAnswer.result, {
                       timezone: timezone,
+                      keepTogether: true,
                     })
                   : getOnCallPassOnRefusalSentence(passOnAnswer),
             };
@@ -223,6 +234,59 @@ router.post(
         req,
         res,
         // Plain JSON: its times are ISO strings (readOnCallPassOnResult).
+        answer as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /on-call-page/acknowledge/<record type>/<record id>
+ *   Acknowledges the signed-in person's pages again about the record
+ *   (OnCallAcknowledgementTimeout): a page again's record was acknowledged
+ *   all along, so its own Acknowledge is not offered, and the person answers
+ *   their page instead, as its link, a call's 1 or a text would. Only their
+ *   own pages again, in the project they are signed in to: { acknowledged:
+ *   N }, 0 when there was none to answer.
+ */
+router.post(
+  `${ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE}/:recordType/:recordId`,
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const caller: { userId: ObjectID; projectId: ObjectID } =
+        readCaller(props);
+
+      const record: {
+        recordType: OnCallPageRecordType;
+        recordId: ObjectID;
+      } = readRecord(req);
+
+      const answer: OnCallPageAgainAcknowledgeAnswer = {
+        acknowledged:
+          await OnCallAcknowledgementTimeout.acknowledgePagesAgainForRecord({
+            userId: caller.userId,
+            projectId: caller.projectId,
+            recordType: record.recordType,
+            recordId: record.recordId,
+          }),
+      };
+
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
         answer as unknown as JSONObject,
       );
     } catch (err) {

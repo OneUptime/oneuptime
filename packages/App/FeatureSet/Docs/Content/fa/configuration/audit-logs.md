@@ -88,13 +88,19 @@ flowchart TB
 | تیم‌ها | `Team` |
 | نقش‌های سفارشی، و تیم‌هایی که یکی می‌گیرند | `Custom Role`، `Team Custom Role` |
 | برچسب‌ها | `Label` |
+| وضعیت‌ها و شدت‌های حادثه | `Incident State`، `Incident Severity` |
+| وضعیت‌ها و شدت‌های هشدار | `Alert State`، `Alert Severity` |
+| وضعیت‌های مانیتور | `Monitor Status` |
+| وضعیت‌های نگهداری زمان‌بندی‌شده | `Scheduled Maintenance State` |
+| نقش‌های حادثه | `Incident Role` |
+| وضعیت‌های گزارش پس از حادثه | `Postmortem Status` |
 | کلیدهای API | `API Key` |
 | کلاینت‌های MCP که افراد وصل می‌کنند | `MCP Client Authorization` |
 | اقلام موجودی | `Inventory Item` |
 | پیکربندی‌های کالکتور | `Collector Config` |
 | سرورهای vCenter | `vCenter` |
 | ضبط‌های بسته و دانلودهایشان | `Packet Capture` |
-| پرونده‌های امنیتی و پلی‌بوک‌ها | `Security Case`، `Security Playbook` |
+| پرونده‌های امنیتی، پلی‌بوک‌ها و اجراهای آن‌ها، و موجودیت‌های محافظت‌شده | `Security Case`، `Security Playbook`، `Security Playbook Run`، `Protected Entity` |
 
 این هم ثبت می‌شود که مدیری روش اعلان یا قاعدهٔ آنکال شخصی را روی حساب کس دیگری اضافه یا حذف کند، بدون خود نشانی یا شماره.
 

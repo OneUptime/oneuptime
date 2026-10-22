@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### Het cluster vinden in OneUptime
 
-Open **Producten → Infrastructuur → Proxmox → Alle clusters**. Het cluster verschijnt ongeveer een minuut na de eerste scrape onder zijn `PROXMOX_CLUSTER_NAME`, met zijn nodes, gasten en opslag.
+Open **Producten → Infrastructuur → Proxmox → Alle clusters**. Het cluster verschijnt ongeveer een minuut na de eerste scrape onder zijn `PROXMOX_CLUSTER_NAME`, met zijn nodes, gasten en opslag. Zijn pagina **Topologie** tekent ze op één kaart: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
 ## Omgevingsvariabelen

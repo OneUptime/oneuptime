@@ -21,11 +21,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyLimitValues,
   ProjectAiDailyUsage,
 } from "Common/Types/AI/ProjectAiDailyLimits";
-import {
-  AUTOMATIC_FIX_PULL_REQUESTS,
-  AUTOMATIC_FIX_SWITCH_COLUMNS,
-  AutomaticFixPullRequest,
-} from "Common/Types/AI/AutomaticFixSwitches";
+import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 
 /*
@@ -54,12 +50,14 @@ import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemed
  * and so is turned on by the project itself, and Enable AI is still the
  * project's only AI switch.
  *
- * Fixing has two switches of its own under it: the pull requests OneUptime
- * AI opens - a fix in the code, and missing telemetry. "It should actually
- * be a child of 'Fix new alerts automatically'" - the maintainer. They are
- * drawn under it only while it is on, turn on and off with it in the same
- * save, and the server opens their pull requests only while it is on
- * (Common/Types/AI/AutomaticFixSwitches).
+ * The pull requests OneUptime AI opens - a fix in the code, and missing
+ * telemetry - are part of fixing, and live in the auto remediation rules,
+ * under each rule's More fields, on by default (and on with no rule): "Both
+ * of these toggles should be inside of Remediation Rule, inside of More,
+ * and they should be checked by default ... You can remove these toggles
+ * from the main card" - the maintainer. They open only while fixing is on
+ * (Common/Types/AI/AutomaticFixPullRequests), and the fix switch's line says
+ * a pull request is one of the ways it fixes.
  *
  * Which incidents (or alerts) are investigated, and which are fixed and how,
  * can be narrowed by rules - Investigation rules and Auto remediation rules,
@@ -103,12 +101,8 @@ export type AiLaneSwitchColumn =
   | "enableAutomaticIncidentInvestigation"
   | "enableAutomaticIncidentRemediation"
   | "enableAutomaticPostmortemDraft"
-  | "enableAutomaticIncidentCodeFixes"
-  | "enableIncidentInstrumentationFixTasks"
   | "enableAutomaticAlertInvestigation"
-  | "enableAutomaticAlertRemediation"
-  | "enableAutomaticAlertCodeFixes"
-  | "enableAlertInstrumentationFixTasks";
+  | "enableAutomaticAlertRemediation";
 
 // The Project columns behind AI Insights' switches.
 export type AiInsightsSwitchColumn =
@@ -139,64 +133,28 @@ export const getProjectAiSwitchTestId: (column: string) => string = (
   return `ai-switch-${column}`;
 };
 
-/*
- * The fix pull request switches read the same for incidents and alerts:
- * both follow an investigation, whichever kind it was. They are part of
- * fixing, so they sit under "Fix new incidents automatically" (or alerts).
- */
-const CODE_FIX_TITLE: string = translationKey(
-  "Open a fix pull request when an investigation finds a code change",
-);
-const CODE_FIX_DESCRIPTION: string = translationKey(
-  "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
-);
-const CODE_FIX_NOTE: string = translationKey(
-  "Needs a repository connected through the GitHub App and a Runner that can fix code.",
-);
-const TELEMETRY_FIX_TITLE: string = translationKey(
-  "Open a pull request that adds missing telemetry",
-);
-const TELEMETRY_FIX_DESCRIPTION: string = translationKey(
-  "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
-);
+// What AI Insights' fix pull request switch needs besides the switch.
 const GITHUB_APP_NOTE: string = translationKey(
   "Needs a repository connected through the GitHub App.",
 );
 /*
  * Fixing starts off: it changes infrastructure, so a project turns it on
- * itself (ProjectService leaves it, and the pull requests under it, out of
- * the new project's AI defaults). Rules under More settings narrow it. Who
- * approves what, in one sentence: the AI agent's settings decide for its own
- * fixes, and a runbook OneUptime AI picks is proposed unless a rule that
- * fixes without asking names it - or runs it every time
- * (Common/Types/AutoRemediation/AutoRemediationFix).
+ * itself (ProjectService leaves it out of the new project's AI defaults).
+ * Rules under More settings narrow it. Who approves what, in one sentence:
+ * the AI agent's settings decide for its own fixes, and a runbook OneUptime
+ * AI picks is proposed unless a rule that fixes without asking names it - or
+ * runs it every time (Common/Types/AutoRemediation/AutoRemediationFix). A
+ * pull request is never merged, so it waits for nobody.
  */
 const REMEDIATION_NOTE: string = translationKey(
   "Nothing runs without approval unless the AI agent's settings or a rule allow it.",
 );
 
-// What each pull request's switch says: the same for incidents and alerts.
-const FIX_PULL_REQUEST_COPY: Record<
-  AutomaticFixPullRequest,
-  { title: string; description: string; note: string }
-> = {
-  [AutomaticFixPullRequest.CodeFix]: {
-    title: CODE_FIX_TITLE,
-    description: CODE_FIX_DESCRIPTION,
-    note: CODE_FIX_NOTE,
-  },
-  [AutomaticFixPullRequest.MissingTelemetry]: {
-    title: TELEMETRY_FIX_TITLE,
-    description: TELEMETRY_FIX_DESCRIPTION,
-    note: GITHUB_APP_NOTE,
-  },
-};
-
 /*
- * A lane's fix switch and the pull-request switches under it, by the rule
- * the server reads (Common/Types/AI/AutomaticFixSwitches): its columns and
- * their order come from there, the words from here. So the page can never
- * nest a switch the server does not hold to fixing, or leave one out.
+ * A lane's fix switch, by the column the server reads
+ * (Common/Types/AI/AutomaticFixPullRequests). It has no switches under it:
+ * the pull requests that are part of fixing are each auto remediation
+ * rule's (More settings), on by default.
  */
 const getFixSwitch: (data: {
   signal: AutoRemediationTriggerEntity;
@@ -208,28 +166,17 @@ const getFixSwitch: (data: {
   description: string;
 }): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
   return {
-    column: AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].fix,
+    column: AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal],
     title: data.title,
     description: data.description,
     note: REMEDIATION_NOTE,
-    children: AUTOMATIC_FIX_PULL_REQUESTS.map(
-      (
-        pullRequest: AutomaticFixPullRequest,
-      ): ProjectAiSwitchDefinition<AiLaneSwitchColumn> => {
-        return {
-          column:
-            AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal].pullRequests[pullRequest],
-          ...FIX_PULL_REQUEST_COPY[pullRequest],
-        };
-      },
-    ),
   };
 };
 
 /*
  * The switches of each lane's page, in the order they are drawn: what
  * OneUptime AI does on its own as incidents (or alerts) happen - investigate,
- * fix (and, as part of fixing, open pull requests), and for incidents draft
+ * fix (with a pull request among the ways it fixes), and for incidents draft
  * the postmortem.
  */
 export const AI_LANE_SWITCHES: Record<
@@ -248,7 +195,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Incident,
       title: translationKey("Fix new incidents automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, or with one of your runbooks.",
+        "OneUptime AI fixes each new incident through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
       ),
     }),
     {
@@ -271,7 +218,7 @@ export const AI_LANE_SWITCHES: Record<
       signal: AutoRemediationTriggerEntity.Alert,
       title: translationKey("Fix new alerts automatically"),
       description: translationKey(
-        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, or with one of your runbooks.",
+        "OneUptime AI fixes each new alert through the AI agent on the affected cluster or host, with one of your runbooks, or with a pull request.",
       ),
     }),
   ],
@@ -716,12 +663,16 @@ export const getAiLaneAdvancedSummary: (
 /*
  * The two tables of rules under a lane's More settings. With no rule, every
  * incident (or alert) is investigated, and every one is fixed while fixing
- * is on; rules narrow that to the ones that match.
+ * is on - its pull requests included; rules narrow that to the ones that
+ * match.
  *
- * An investigation rule is only conditions. An auto remediation rule is
- * conditions and one answer: whether a fix waits for someone to approve it.
- * OneUptime AI fixes; the runbooks it may run and the Runner it runs its
- * commands on are folded under the rule's More fields.
+ * An investigation rule is conditions and when to investigate; the MCP
+ * servers and code repositories OneUptime AI may read are folded under its
+ * More fields. An auto remediation rule is conditions and one answer:
+ * whether a fix waits for someone to approve it. OneUptime AI fixes; the
+ * runbooks it may run, the Runner it runs its commands on, the MCP servers
+ * and code repositories it may use, and the two pull requests it opens are
+ * folded under the rule's More fields.
  */
 export interface AiLaneRulesCopy {
   investigationRulesDescription: string;
@@ -734,7 +685,7 @@ export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
       "With no rule, OneUptime AI investigates every new incident right away. Add rules to investigate only the incidents that match one of them, or only those still open after a wait.",
     ),
     remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new incident while fixing is on. Add rules to fix only the incidents that match one of them, to ask before fixing, or to choose the runbooks it may run.",
+      "With no rule, OneUptime AI fixes every new incident while fixing is on, pull requests included. Add rules to fix only the incidents that match one, to ask first, or to choose what it may use.",
     ),
   },
   [AiLane.Alert]: {
@@ -742,7 +693,7 @@ export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
       "With no rule, OneUptime AI investigates every new alert right away. Add rules to investigate only the alerts that match one of them, or only those still open after a wait.",
     ),
     remediationRulesDescription: translationKey(
-      "With no rule, OneUptime AI fixes every new alert while fixing is on. Add rules to fix only the alerts that match one of them, to ask before fixing, or to choose the runbooks it may run.",
+      "With no rule, OneUptime AI fixes every new alert while fixing is on, pull requests included. Add rules to fix only the alerts that match one, to ask first, or to choose what it may use.",
     ),
   },
 };
@@ -817,6 +768,44 @@ export const AiInsightsSettingsCopy: {
 export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
+ * Security Events → AI → Settings: what OneUptime AI does on its own for
+ * security cases. One switch, saved the moment it is flipped: triaging each
+ * case a detection opens. On for new projects (ProjectService
+ * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps it off until
+ * someone turns it on here. A person can ask for a triage on any case's AI
+ * card whatever it says.
+ */
+export type SecurityAiSwitchColumn = "enableAutomaticSecurityCaseTriage";
+
+export const SECURITY_AI_SWITCHES: Array<
+  ProjectAiSwitchDefinition<SecurityAiSwitchColumn>
+> = [
+  {
+    column: "enableAutomaticSecurityCaseTriage",
+    title: translationKey("Triage new cases"),
+    description: translationKey(
+      "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    ),
+  },
+];
+
+/*
+ * The card's words are the Incidents' and Alerts' AI settings' own: the same
+ * title, and a sentence that says it works on its own and can be turned off.
+ */
+export const SecurityAiSettingsCopy: {
+  cardTitle: string;
+  cardDescription: string;
+} = {
+  cardTitle: SWITCHES_CARD_TITLE,
+  cardDescription: translationKey(
+    "It works on security cases on its own. Turn off anything you do not want it to do.",
+  ),
+};
+
+export const SECURITY_AI_SWITCHES_TEST_ID: string = "security-ai-switches";
+
+/*
  * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
  * Turning it off stops every AI feature at once, so it asks first. The column
  * lives in EnableAiColumn.ts, which the dashboard's first chunk reads.
@@ -889,6 +878,8 @@ export enum ProjectAiNoticeContext {
    * only while it runs.
    */
   ExternalMcpServers = "ExternalMcpServers",
+  // Security Events → AI → Settings: triaging security cases.
+  SecurityEvents = "SecurityEvents",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1071,6 +1062,12 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, OneUptime AI uses none of these servers.",
+    ),
+  },
+  [ProjectAiNoticeContext.SecurityEvents]: {
+    aiOffDescription: AI_OFF_EVENT_PAGE,
+    providerConsequence: translationKey(
+      "Until it has one, security cases are not triaged.",
     ),
   },
 };

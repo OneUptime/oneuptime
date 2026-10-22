@@ -97,9 +97,9 @@ As variáveis de runbook tomaram o lugar dos segredos de runbook e das credencia
 - cada credencial que uma etapa nomeava virou variáveis globais secretas com os mesmos Runners, nomeadas a partir dela: `<name>-ssh-key` (e `<name>-ssh-key-passphrase`, para uma chave que tinha uma), `<name>-ssh-password` ou `<name>-kubeconfig`;
 - cada etapa SSH que nomeava uma credencial entra na sua máquina com elas e executa seu comando como script, e cada etapa Kubernetes virou uma etapa kubectl que executa o `kubectl patch` que sua ação fazia, sem precisar de mais acesso do que a etapa tinha.
 
-Um Runner anterior a esta versão não consegue executar um script kubectl. Por isso cada etapa Kubernetes levada a essa forma também manteve sua credencial e sua ação, e um Runner mais antigo executa a etapa com elas, como fazia. Assim que você muda o script ou o kubeconfig da etapa, ela deixa de mantê-las: como toda etapa kubectl nova, ela passa a precisar de um Runner desta versão, e um mais antigo a faz falhar e avisa que o Runner precisa ser atualizado.
+Um Runner anterior a esta versão (14.0.79) não consegue executar um script kubectl: ele faz uma etapa kubectl falhar e avisa que o Runner precisa ser atualizado. Cada etapa Kubernetes levada a essa forma manteve primeiro sua credencial e sua ação ao lado do script, para um Runner assim; elas foram embora com as credenciais de runbook, então toda etapa kubectl precisa de um Runner da 14.0.79 ou posterior.
 
-Uma etapa escrita pela API com uma credencial continua sendo executada com ela, e sua página de etapas oferece **Transformar em etapa de script**. As credenciais também continuam, para o que os próprios comandos do OneUptime AI alcançam: veja [Acesso da IA](/docs/runbooks/credentials).
+As credenciais de runbook foram removidas depois, e uma etapa que ainda nomeava uma foi levada antes à mesma forma. Uma etapa que nomeia uma credencial não é mais executada, e sua página de etapas oferece **Transformar em etapa de script**; um salvamento pela API ou pelo Terraform que dá uma a uma etapa é recusado. Veja [As credenciais de runbook foram removidas](/docs/installation/upgrading#as-credenciais-de-runbook-foram-removidas).
 
 ## Próximos passos
 

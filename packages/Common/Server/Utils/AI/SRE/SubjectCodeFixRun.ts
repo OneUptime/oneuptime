@@ -10,6 +10,10 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskSnapshot,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeRepositoryAllowance,
+  allowsAnyCodeRepository,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -29,6 +33,12 @@ interface SubjectCodeFixRunInput {
   alertId?: ObjectID | undefined;
   userId?: ObjectID | undefined;
   taskContext?: CodeFixTaskContext | undefined;
+  /*
+   * The LLM provider the rule behind the run picks (AIRun.llmProviderId):
+   * the run's completions use it (CodeFixAgentCompletion). None: the
+   * project's provider.
+   */
+  llmProviderId?: ObjectID | undefined;
 }
 
 /*
@@ -42,20 +52,40 @@ interface SubjectCodeFixRunInput {
  * enqueue idiom must not.
  */
 export default class SubjectCodeFixRun {
+  // A rule's pick as a run records it: undefined for none.
+  public static toRunLlmProviderId(
+    pickedProviderId: string | undefined,
+  ): ObjectID | undefined {
+    return pickedProviderId && ObjectID.isValidUUID(pickedProviderId)
+      ? new ObjectID(pickedProviderId)
+      : undefined;
+  }
+
   /*
    * Only GitHub-App-connected repositories can be cloned and pushed by the
-   * agent (mirrors CodeRepositoryService.resolveRepositoryForException).
+   * agent (mirrors CodeRepositoryService.resolveRepositoryForException) -
+   * and, for a run the auto remediation rules opened, only one of those the
+   * rules allow (Types/CodeRepository/CodeRepositoryAllowance). Left out,
+   * every connected repository counts.
    */
   @CaptureSpan()
   public static async hasGitHubAppConnectedRepository(
     projectId: ObjectID,
+    allowance?: CodeRepositoryAllowance | undefined,
   ): Promise<boolean> {
+    if (!allowsAnyCodeRepository(allowance)) {
+      return false;
+    }
+
     const connectedRepositoryCount: number = (
       await CodeRepositoryService.countBy({
         query: {
           projectId,
           repositoryHostedAt: CodeRepositoryType.GitHub,
           gitHubAppInstallationId: QueryHelper.notNull(),
+          ...(allowance && !allowance.isEveryRepository
+            ? { _id: QueryHelper.any(allowance.repositoryIds) }
+            : {}),
         },
         props: { isRoot: true },
       })
@@ -276,6 +306,10 @@ export default class SubjectCodeFixRun {
 
     if (codeRepositoryId) {
       run.codeRepositoryId = codeRepositoryId;
+    }
+
+    if (data.llmProviderId) {
+      run.llmProviderId = data.llmProviderId;
     }
 
     if (revalidateInvestigationSource) {

@@ -14,6 +14,7 @@ Die OneUptime GitHub App ist mehr als eine Verbindung zu Ihrem Code: Sie können
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Jeder Befehl beginnt mit einer Erwähnung der App. Die Erwähnung kann irgendwo 
 | Befehl | Was passiert | Ebenfalls verstanden |
 | --- | --- | --- |
 | `@oneuptime review` | Klont den Branch, liest den geänderten Code und den Code drumherum, prüft, was die Produktion darüber sagt, und veröffentlicht ein Review als Kommentar. Ändert nichts. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Prüft den Pull Request jetzt gegen die Produktion, egal wer ihn geöffnet hat: die Ausnahmen, Vorgänge, Vorfälle und Deploys rund um den geänderten Code, in einem Kommentar, der an Ort und Stelle aktualisiert wird (siehe [Produktionsprüfung von Pull Requests](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests)). Klont nichts und führt nichts aus. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Klont den eigenen Branch des Pull Requests, nimmt die Änderung vor und pusht neue Commits auf diesen Branch. Öffnet nie einen zweiten Pull Request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles, was Sie nach der Erwähnung schreiben und kein bekannter Befehl ist, wird als Überarbeitungsanfrage gelesen, weil es fast immer genau das ist:
@@ -100,6 +102,8 @@ Was es findet, steht im Review unter einer Überschrift **Production context**, 
 
 Es muss nichts eingerichtet werden: Die Dienste sind die, für die OneUptime dieses Repository findet, wie bei einer Korrektur (siehe [Produktionstelemetrie in einer Korrektur](/docs/ai/ai-agent#produktionstelemetrie-in-einer-korrektur)). Die Abfragen lesen nur, laufen auf dem OneUptime-Server und lesen nichts aus einem anderen Dienst, einem anderen Projekt oder einem privaten Vorfall. Ein Repository, dessen Dienste keine Telemetrie an das Projekt senden, wird allein anhand seines Codes geprüft.
 
+Damit jeder Pull Request von selbst gegen die Produktion geprüft wird, schalten Sie **Pull Requests gegen die Produktion prüfen** in den Einstellungen des Repositorys ein: siehe [Produktionsprüfung von Pull Requests](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests).
+
 ## Wer ihr Befehle geben darf
 
 **Nur Personen mit Write-, Maintain- oder Admin-Zugriff auf das Repository.** OneUptime fragt GitHub jedes Mal nach der Berechtigung der kommentierenden Person für dieses Repository; dem Abzeichen "contributor", das GitHub neben einem Kommentar zeigt, vertraut es nicht, denn es beschreibt frühere Aktivität, nicht den aktuellen Zugriff.
@@ -118,11 +122,11 @@ Sie ignoriert außerdem jeden Kommentar, den ein Bot geschrieben hat, ihre eigen
 
 ## Was es kostet und wie Sie es begrenzen
 
-Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie die Build- und Testbefehle Ihres Repositorys, wenn Sie sie gesetzt haben. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
+Jeder Befehl, der Arbeit startet, ist ein vollständiger Agent-Lauf: ein Klon, bis zu 40 LLM-Aufrufe und 100.000 Ausgabe-Tokens sowie, auf einem eigenen Runner, die Build- und Testprüfungen, die die `AGENTS.md` Ihres Repositorys beschreibt. Die Produktionsabfragen eines Reviews, höchstens 12, zählen zu denselben 40 Aufrufen.
 
 GitHub-Befehle sind KI-Arbeit außerhalb von Vorfällen und Warnungen, daher gilt für sie kein tägliches Limit für Korrekturaufgaben; die eigenen täglichen KI-Limits des Projekts gelten, wenn das Projekt sie festlegt. Die einzige weitere Grenze ist die, die bereits für die Aufgaben in [Code](/docs/ai/ai-agent) gilt:
 
-- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
+- **Die Obergrenze für offene Pull Requests** (**Max. offene Korrektur-Pull-Requests** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys). **KI-Korrektur-Pull-Requests** steht auf **Kein Limit**, bis Sie **Ein Limit** wählen, oder auf **Keine**, was KI-Korrektur-Pull-Requests in diesem Repository blockiert. Reviews und Überarbeitungen sind ausgenommen: Keines davon fügt Ihrer Review-Warteschlange einen Pull Request hinzu.
 
 Pro Issue oder Pull Request ist jeweils nur ein Lauf einer Art aktiv. Zweimal zu fragen sagt Ihnen, dass sie bereits daran arbeitet; um ein Review zu bitten, während eine Überarbeitung läuft, startet beides, da es verschiedene Anfragen sind.
 
@@ -130,9 +134,9 @@ Wenn ein Lauf nicht starten kann, sagt die App im Thread, warum: Sie schlägt ni
 
 ## Ausschalten
 
-Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** auf der Seite **Einstellungen** des Repositorys. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
+Jedes Repository hat einen Schalter: **Auf GitHub-Befehle reagieren** auf der Seite **Einstellungen** des Repositorys. Er ist für jedes Repository an und speichert, sobald Sie ihn umlegen. Ist er aus, ignoriert die App in diesem Repository Erwähnungen, Zuweisungen und das Auslöser-Label und sagt jedem, der fragt, wo der Schalter ist.
 
-Dieselbe Seite enthält das **GitHub-Auslöser-Label**, falls Sie ein anderes Label als `oneuptime` möchten.
+Dieselbe Seite enthält unter **Weitere Einstellungen** das **GitHub-Auslöser-Label**, falls Sie ein anderes Label als `oneuptime` möchten.
 
 ## Was abonniert werden muss
 
@@ -142,7 +146,7 @@ Abonnieren Sie in den Einstellungen **Permissions & events** Ihrer GitHub App:
 | --- | --- |
 | **Issue comment** | `@mention`-Befehle in Issues und Pull Requests |
 | **Issues** | das Zuweisen eines Issues an die App und das Auslöser-Label |
-| **Pull request** | ein bei der App angefragtes Review |
+| **Pull request** | ein bei der App angefragtes Review, und Produktionsprüfungen von Pull Requests, wenn sie geöffnet werden und sich ändern |
 | **Pull request review** | eine Erwähnung im Text eines abgeschickten Reviews |
 | **Pull request review comment** | eine Erwähnung in einem Inline-Kommentar zum Diff |
 

@@ -46,10 +46,11 @@ flowchart TB
 | **等待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
 | **劇本執行記錄** | Playbooks | 每個劇本逐步做了什麼 |
 | **Protected Entities** | Playbooks | 任何劇本都不會圍堵的使用者和主機 |
+| **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
 | **Connections** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
 
-只需設定一次的 **Detections** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
+只需設定一次的 **Detections**、**人工智慧** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
 
 ## 開始之前
 
@@ -135,6 +136,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 表示嚴重程度的字詞會變成 OCSF 等級：`info` 讀作 Informational，`warning` 讀作 Low，`error` 讀作 Medium，`alert` 讀作 Critical，`emergency` 讀作 Fatal。
 
@@ -194,6 +201,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 嚴重程度 | `severityName`，值為 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 誰做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什麼 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| 處理程序 | `processName`、`processPath` 和 `processCommandLine`：在處理程序啟動事件中是被啟動的處理程序，其他事件中是執行動作的處理程序。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：啟動它的處理程序 |
 | 來源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 內容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：從事件中擷取出的每個使用者、主機、IP 位址、網域和雜湊 |
 | 屬性 | 完整的來源承載資料，展平為以點分隔的鍵 |
@@ -218,11 +226,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在該屬性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 屬性包含該文字 | `@finding_info.title:~ransom` |
 
-欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
+欄位要麼是簡稱（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要麼是欄位本身的名稱，例如 `severityName` 或 `principalHost`。任何其他名稱都會被讀作來源屬性。`observable:<value>` 會找出提到某個值的每個事件，無論該值出現在活動的哪一方。
 
 ### 面向
 
-側邊欄依 **來源**、**嚴重程度**、**事件類別**、**Category**、**活動**、**狀態**、**供應商**、**產品**、**Detection Rule**、**來源使用者** 和 **來源主機** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
+側邊欄依 **來源**、**嚴重程度**、**事件類別**、**Category**、**活動**、**狀態**、**供應商**、**產品**、**Detection Rule**、**來源使用者**、**來源主機**、**處理程序** 和 **父處理程序** 統計時間窗內的事件。按一下某個值只保留它的事件，按一下旁邊的減號則排除它們。再按一下即可復原。圖表和每個計數描述的正是清單中的事件。
 
 ### 關聯分析
 
@@ -278,9 +286,67 @@ OneUptime 會執行 Sigma 的布林核心：
 - 條件用 `and`、`or`、`not` 和括號，或用 `1 of selection_*`、`all of selection_*`、`any of them` 和 `all of them` 組合選取項目。
 - 欄位修飾詞：`contains`、`startswith`、`endswith`、`all`、`re`、`cased`、`gt`、`gte`、`lt`、`lte`、`cidr`、`exists` 和 `windash`。除非你加上 `cased`，否則文字比較不區分大小寫。
 - 欄位可以是型別化欄位（`principalUser`）、它在 Sigma 中的常見寫法（`CommandLine`、`src_ip`、`Hostname`），或任何屬性鍵，依它在事件中的寫法拼寫（`threat.matched`）。
+- `Image` 和 `CommandLine` 讀取事件所涉及的處理程序，在處理程序啟動事件中即被啟動的處理程序（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 讀取啟動它的處理程序（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是執行動作的處理程序，在處理程序啟動中即父處理程序。
 - `level` 設定嚴重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺少時為 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）會填入偵測結果的 MITRE 欄位。
 
-像 `| count() by principalIp > 5` 這樣的彙總會在儲存時遭到拒絕：請改用 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只有說明作用，不會縮小任何範圍：請把這種篩選放進選取項目，例如 `className: Authentication`。`timeframe` 會被忽略，因為規則的間隔決定了它的時間窗。
+像 `| count() by principalIp > 5` 這樣的彙總會在儲存時遭到拒絕：請改用 [關聯規則](#關聯規則)，或 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只有說明作用，不會縮小任何範圍：請把這種篩選放進選取項目，例如 `className: Authentication`。`timeframe` 會被忽略，因為規則的間隔決定了它的時間窗。
+
+### 關聯規則
+
+[Sigma 關聯](https://sigmahq.io/docs/meta/correlations.html) 在多個事件一起出現時觸發，而不是在單一事件上。把它和它讀取的規則一起貼到 **Sigma Rule (YAML)** 中，作為以 `---` 分隔的 YAML 文件，或依 Sigma 的 `name` 或 `id` 指定專案中已有的規則。**Rule Library** 中有現成的規則，例如登入失敗後緊接一次成功登入。
+
+| 類型 | 觸發條件 | 顯示為 |
+| --- | --- | --- |
+| `event_count` | 一個群組在 `timespan` 內達到一定數量的事件 | 事件數 |
+| `value_count` | 一個群組在 `timespan` 內出現某欄位一定數量的不同值 | 不同值 |
+| `temporal` | 在 `timespan` 內同一群組的每條規則都符合，順序不限 | 同時發生的事件 |
+| `temporal_ordered` | 在 `timespan` 內同一群組的規則依順序符合 | Sequence |
+| `new_value` | 一個群組出現了它在 `timespan` 內沒有出現過的欄位值 | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- 群組是 `group-by` 欄位的值，例如一個位址。計數是滾動的：被兩次執行分開的一陣突發，在其 `timespan` 內仍會被完整計數，該時間跨度最長 24 小時。
+- `new_value` 是 OneUptime 自有的類型，因為 Sigma 沒有「首次出現」關聯：它會與最多 30 天的歷史比較。`value_sum`、`value_avg`、`value_percentile` 和 `value_median` 會在儲存時遭到拒絕。
+- **Detection Rules** 的 **類型** 欄會寫出每條規則的種類，表單會用一句話說明規則在找什麼。
 
 ### 評估設定
 
@@ -379,7 +445,7 @@ Detection Finding 是來自產品 `OneUptime Detections`、類別為 `Detection 
 :::
 
 :::details 規則從不符合
-檢查它是否處於 **已啟用** 狀態，並查看它所在列中的 **Last Evaluated** 和 **最近的錯誤** 。開啟一個你預期會符合的事件，逐一欄位與規則比對：一般值必須等於整個欄位，所以要符合其中一部分時，請使用 `contains` 或 `*`。屬性依它在事件中的名稱書寫（寫 `threat.matched`，而不是 `attributes.threat.matched`）。閾值大於 1 時，這些符合必須落在同一次執行中。
+檢查它的 **狀態** ： **已停用** 的規則不會執行；顯示 **執行失敗** 時，可以透過它所在列的 **檢視錯誤** 查看原因。開啟一個你預期會符合的事件，逐一欄位與規則比對：一般值必須等於整個欄位，所以要符合其中一部分時，請使用 `contains` 或 `*`。屬性依它在事件中的名稱書寫（寫 `threat.matched`，而不是 `attributes.threat.matched`）。閾值大於 1 時，這些符合必須落在同一次執行中。
 :::
 
 :::details 規則符合了，但沒有開啟警示

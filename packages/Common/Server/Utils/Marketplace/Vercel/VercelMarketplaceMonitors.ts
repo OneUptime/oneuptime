@@ -466,9 +466,10 @@ export default class VercelMarketplaceMonitors {
       props: { isRoot: true },
     });
 
+    // A new monitor is set up with severities that can be picked.
     const incidentSeverities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
-        query: { projectId: projectId },
+        query: { projectId: projectId, isArchived: false },
         select: { _id: true },
         sort: { order: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,
@@ -478,7 +479,7 @@ export default class VercelMarketplaceMonitors {
 
     const alertSeverities: Array<AlertSeverity> =
       await AlertSeverityService.findBy({
-        query: { projectId: projectId },
+        query: { projectId: projectId, isArchived: false },
         select: { _id: true },
         sort: { order: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,

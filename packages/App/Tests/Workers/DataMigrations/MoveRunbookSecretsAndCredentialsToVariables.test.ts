@@ -72,11 +72,16 @@ describe("MoveRunbookSecretsAndCredentialsToVariables", () => {
       ).toHaveLength(1);
     });
 
-    test("sits right before AddAuditLogMcpClientColumns, the last slot", () => {
+    /*
+     * It sat right before AddAuditLogMcpClientColumns, the last slot.
+     * RemoveRunbookCredentials deletes the credentials this reads, so it
+     * runs right after this, and the last slot is still that one.
+     */
+    test("sits right before RemoveRunbookCredentials, which deletes the credentials it reads", () => {
       const instantiations: Array<string> = registeredMigrations();
 
       expect(instantiations.indexOf(MIGRATION_NAME)).toBe(
-        instantiations.indexOf("AddAuditLogMcpClientColumns") - 1,
+        instantiations.indexOf("RemoveRunbookCredentials") - 1,
       );
       expect(instantiations[instantiations.length - 1]).toBe(
         "AddAuditLogMcpClientColumns",

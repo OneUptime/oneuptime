@@ -189,7 +189,7 @@ Records nemen `list`, `get`, `create`, `update`, `delete` en `count`:
 | Gebied | Opdrachten |
 | --- | --- |
 | Monitoring | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidenten | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Incidenten | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Waarschuwingen | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Statuspagina's | `status-page`, `status-page-announcement` |
 | Gepland onderhoud | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

@@ -4,6 +4,7 @@ import {
   canPickAnotherPerson,
   criteriaRolesToAssignments,
   episodeRolesToAssignments,
+  getPickableIncidentRoleChoices,
   getPickedUserIds,
   keepKnownRoles,
   INCIDENT_ROLE_CHOICE_SELECT,
@@ -415,6 +416,68 @@ describe("a role as the picker draws it", () => {
       roleIcon: true,
       canAssignMultipleUsers: true,
       isPrimaryRole: true,
+      isArchived: true,
     });
+  });
+
+  test("an archived role is read as one", () => {
+    const role: IncidentRole = new IncidentRole();
+    role._id = SCRIBE;
+    role.name = "Scribe";
+    role.isArchived = true;
+
+    expect(toIncidentRoleChoice(role)).toEqual({
+      id: SCRIBE,
+      name: "Scribe",
+      isPrimaryRole: false,
+      canAssignMultipleUsers: false,
+      isArchived: true,
+    });
+  });
+});
+
+/*
+ * An archived role (Common/Utils/ArchivableValues): nobody is given it
+ * again, and the people who hold it keep it - so the picker draws it only
+ * where someone already holds it, and saves them back as they were.
+ */
+describe("archived roles in the picker", () => {
+  const roles: Array<IncidentRoleChoice> = [
+    { id: COMMANDER, name: "Incident Commander", isPrimaryRole: true },
+    { id: RESPONDER, name: "Responder", isArchived: true },
+    { id: SCRIBE, name: "Scribe", isArchived: true },
+  ];
+
+  test("are left out where nobody holds them", () => {
+    expect(
+      getPickableIncidentRoleChoices({ roles: roles, assignments: [] }).map(
+        (role: IncidentRoleChoice): string => {
+          return role.name;
+        },
+      ),
+    ).toEqual(["Incident Commander"]);
+  });
+
+  test("are kept where someone holds them, whatever the case of the id", () => {
+    expect(
+      getPickableIncidentRoleChoices({
+        roles: roles,
+        assignments: [
+          { roleId: RESPONDER.toUpperCase(), userIds: [ALICE] },
+          // A role with nobody picked holds nobody.
+          { roleId: SCRIBE, userIds: [] },
+        ],
+      }).map((role: IncidentRoleChoice): string => {
+        return role.name;
+      }),
+    ).toEqual(["Incident Commander", "Responder"]);
+  });
+
+  test("the roles it was handed are left as they were", () => {
+    const handed: Array<IncidentRoleChoice> = [...roles];
+
+    getPickableIncidentRoleChoices({ roles: handed, assignments: [] });
+
+    expect(handed).toEqual(roles);
   });
 });

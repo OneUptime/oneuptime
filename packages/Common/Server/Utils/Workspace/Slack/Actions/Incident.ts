@@ -415,6 +415,8 @@ export default class SlackIncidentActions {
         props: props,
         query: {
           projectId: projectId,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -440,6 +442,8 @@ export default class SlackIncidentActions {
         props: props,
         query: {
           projectId: projectId,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           name: true,
@@ -467,6 +471,8 @@ export default class SlackIncidentActions {
         props: props,
         query: {
           projectId: projectId,
+          // Offered for a new pick: never an archived value.
+          isArchived: false,
         },
         select: {
           name: true,

@@ -369,7 +369,7 @@ If they differ, the user messaging the bot is signed in to a different Microsoft
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Two or more OneUptime projects have connected the same Microsoft tenant. A bot message only carries a tenant id, so OneUptime cannot tell which project you mean and refuses rather than guessing. Disconnect Microsoft Teams from all but one project.
+Two or more OneUptime projects are connected to the same Microsoft 365 organization, and nothing in the message told them apart. A card's button acts in the project of the record it is about, and a message in the project of the channel it is sent in, or else in the one project the sender's Microsoft Teams account is connected in. Send it again from a channel of the project you mean, such as one of its incident channels. A sender whose account is connected in none of the projects is asked to connect it first.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

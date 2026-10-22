@@ -147,6 +147,28 @@ Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
+## Splunk로 보안 이벤트 보내기
+
+OneUptime은 찾은 것을 Splunk의 HTTP Event Collector(HEC)를 통해 Splunk로 보낼 수도 있어, 검색과 대시보드에서 OneUptime의 탐지를 여러분의 탐지와 나란히 볼 수 있습니다. 각 보안 이벤트는 sourcetype이 `oneuptime:security` 인 HEC 이벤트 하나이며, 필드 이름은 Splunk의 Common Information Model이 부르는 이름을 따릅니다: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature`, `severity`.
+
+:::steps
+### HEC 토큰 만들기
+
+Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열고 **New Token** 을 클릭합니다. 이름을 정하고, 쓸 수 있는 인덱스와 기본 인덱스를 고른 뒤, 토큰 값을 복사합니다. Splunk Cloud에서는 HEC가 `https://http-inputs-<stack>.splunkcloud.com` 에서 수신하고, Splunk Enterprise에서는 **Global Settings** 에서 토큰을 켜면 포트 `8088` 에서 수신합니다.
+
+### 대상 추가하기
+
+**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Splunk를 고른 뒤 **다음** 을 클릭합니다. **HEC URL** 을 입력하고 토큰을 **HEC 토큰** 에 붙여 넣습니다. **Index** 와 **소스 유형** 은 선택 사항입니다. 비워 두면 이벤트는 토큰의 기본 인덱스로 sourcetype `oneuptime:security` 와 함께 갑니다.
+
+### 테스트 이벤트를 보내고 전송 시작하기
+
+**테스트 이벤트 보내기** 를 클릭합니다. 양식의 설정으로 정보 수준 이벤트 하나가 Splunk로 가며, 아무것도 저장되지 않습니다. `sourcetype="oneuptime:security"` 로 검색하세요. 그런 다음 **보낼 내용** 에서 **탐지만** 을 그대로 두거나 **모든 보안 이벤트** 를 고르고, **전송 시작** 을 클릭합니다.
+:::
+
+- **HEC URL** 은 `https` 를 써야 하며, OneUptime이 신뢰하는 인증서가 있어야 합니다. 인증서 검사는 절대 건너뛰지 않습니다.
+- 이벤트는 최대 500개씩 배치로 갑니다. Splunk가 거부한 이벤트는 빠지고 **오류 보기** 에 이름이 나오며, 바쁜 수집기(`503`)는 다시 시도하고, 토큰이나 인덱스가 거부되면 고칠 때까지 전송이 멈춥니다.
+- OneUptime이 Splunk에서 가져온 notable event는 절대 Splunk로 다시 보내지 않습니다.
+
 ## 문제 해결
 
 연결의 **마지막 오류**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.

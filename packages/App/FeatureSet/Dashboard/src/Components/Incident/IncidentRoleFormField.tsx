@@ -26,9 +26,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUser from "../../Utils/ProjectUser";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   canPickAnotherPerson,
+  getPickableIncidentRoleChoices,
   getPickedUserIds,
   INCIDENT_ROLE_CHOICE_SELECT,
   IncidentRoleChoice,
@@ -38,6 +39,12 @@ import {
   toIncidentRoleChoice,
   withRoleUsers,
 } from "../IncidentRole/IncidentRoleAssignments";
+import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
+
+// Under an archived role's card: why nobody can be added to it.
+export const ARCHIVED_ROLE_NOTE: string = translationKey(
+  "This role is archived: the people who hold it keep it, and nobody new can be given it.",
+);
 
 export type { IncidentRoleChoice, RoleAssignment };
 
@@ -166,9 +173,18 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
     };
   }, [needsRoles, needsUsers]);
 
+  /*
+   * An archived role is drawn only while someone holds it here: its people
+   * stay on the record, and nobody new is given it.
+   */
   const roles: Array<IncidentRoleChoice> = useMemo(() => {
-    return sortIncidentRoleChoices(props.roles || loadedRoles);
-  }, [props.roles, loadedRoles]);
+    return sortIncidentRoleChoices(
+      getPickableIncidentRoleChoices({
+        roles: props.roles || loadedRoles,
+        assignments: props.initialValue || [],
+      }),
+    );
+  }, [props.roles, loadedRoles, props.initialValue]);
   const userOptions: Array<DropdownOption> = props.users || loadedUsers;
 
   /*
@@ -230,7 +246,9 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
     <div className="space-y-4">
       {roles.map((role: IncidentRoleChoice) => {
         const picked: Array<string> = getPickedUserIds(assignments, role.id);
-        const canAddMore: boolean = canPickAnotherPerson(role, picked.length);
+        // Nobody new is given an archived role; its people can be taken off.
+        const canAddMore: boolean =
+          !role.isArchived && canPickAnotherPerson(role, picked.length);
         // A role is never drawn, or read out, without a name.
         const roleName: string =
           role.name ||
@@ -258,6 +276,9 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">
                     {translator.translateText("Primary")}
                   </span>
+                )}
+                {role.isArchived && (
+                  <ArchivedTag dataTestId="incident-role-archived-tag" />
                 )}
               </div>
             </div>
@@ -333,9 +354,11 @@ const IncidentRoleFormField: FunctionComponent<IncidentRoleFormFieldProps> = (
 
             {!canAddMore && (
               <p className="text-xs text-gray-500">
-                {translator.translateText(
-                  "Only one user can be assigned to this role.",
-                )}
+                {role.isArchived
+                  ? translator.translateText(ARCHIVED_ROLE_NOTE)
+                  : translator.translateText(
+                      "Only one user can be assigned to this role.",
+                    )}
               </p>
             )}
           </div>

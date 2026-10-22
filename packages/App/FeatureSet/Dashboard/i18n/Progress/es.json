@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 3659
+    "keys": 32601,
+    "untranslated": 3695
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -15,7 +15,6 @@
     "\"warn\"",
     "%{IPV4:client_ip} %{USER:ident} %{USER:auth} [%{HTTPDATE:timestamp}] \"%{WORD:verb} %{NOTSPACE:request} HTTP/%{NUMBER:http_version}\" %{NUMBER:status:int} %{NUMBER:bytes:int}",
     "%{IPV4:client_ip} - %{WORD:method} %{NOTSPACE:path} %{NUMBER:status:int}",
-    "-----BEGIN CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
     "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
     "-----BEGIN OPENSSH PRIVATE KEY-----",
@@ -251,6 +250,8 @@
     "OpenTofu",
     "PM",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "PVE {{version}}",
     "Paraguay",
     "Ping",
@@ -418,7 +419,6 @@
     "pools",
     "prod, staging",
     "prod-.*",
-    "prod-cluster",
     "prod-vcenter",
     "production, staging",
     "public-.*",
@@ -447,6 +447,7 @@
     "unit-1042-*",
     "user1@example.com\nuser2@example.com\nuser3@example.com",
     "user@company.com",
+    "vCenters",
     "vSphere Client",
     "var(--ou-danger-text, #b91c1c)",
     "var(--ou-link, #1d4ed8)",

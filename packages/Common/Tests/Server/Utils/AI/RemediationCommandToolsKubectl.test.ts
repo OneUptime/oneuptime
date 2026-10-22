@@ -57,8 +57,9 @@ beforeEach(() => {
  * Contract under test — the Kubectl lane of the remediation command toolkit:
  *
  * - a cluster is a target only when its AI page made it remediation-ready;
- *   the model names the cluster and the toolkit fills in the Runner and
- *   credential the cluster's page bound — never the model's choice;
+ *   the model names the cluster and the toolkit fills in the Runner or
+ *   agent that reaches it — never the model's choice (and no credential:
+ *   runbook credentials were removed);
  * - FullAuto executes SafeWrite kubectl inline, refuses RiskyWrite
  *   unless the cluster allowlist names it, refuses Denied always, and
  *   refuses everything on a cluster that asks for approval (a kubectl read
@@ -751,12 +752,14 @@ describe("RemediationCommandToolkit propose_remediation_commands (Kubectl, Sugge
     const toolkit: RemediationCommandToolkit = buildToolkit({
       mode: "Suggest",
       clusterTargets: [
-        cluster({
-          remediationMode: KubernetesAiRemediationMode.RequireApproval,
-          accessMethod: "credential",
+        {
+          ...cluster({
+            remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          }),
+          // A status from an older server still naming a runbook credential.
           credentialId: "55555555-5555-4555-8555-555555555555",
           credentialName: "prod kubeconfig",
-        }),
+        } as KubernetesClusterAiAccessStatus,
       ],
     });
 
@@ -796,8 +799,9 @@ describe("RemediationCommandToolkit propose_remediation_commands (Kubectl, Sugge
     expect(restart.rollbackCommand).toBe(
       "kubectl rollout undo deployment/web -n web",
     );
-    expect(restart.credentialId).toBe("55555555-5555-4555-8555-555555555555");
-    expect(restart.credentialNameSnapshot).toBe("prod kubeconfig");
+    // No command names a runbook credential: they were removed.
+    expect(restart).not.toHaveProperty("credentialId");
+    expect(restart).not.toHaveProperty("credentialNameSnapshot");
     expect(restart.runnerNameSnapshot).toBe("kubernetes-agent/prod-us");
 
     expect(setImage.kubectlTier).toBe(KubectlCommandTier.RiskyWrite);

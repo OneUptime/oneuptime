@@ -1,9 +1,10 @@
 # Inteligencia de amenazas (STIX/TAXII)
 
-Un feed de inteligencia de amenazas trae a OneUptime direcciones IP, dominios, URLs, direcciones de email y hashes de archivos maliciosos conocidos, y te avisa cuando tus [eventos de seguridad](/docs/telemetry/security-events) mencionan uno. Cada feed se suscribe a una colección TAXII 2.1 de indicadores STIX 2.1: tu propio servidor MISP, OpenCTI u OpenTAXII, o la colección de un proveedor. OneUptime no incluye contenido de feeds propio: tú aportas las colecciones, igual que aportas las reglas Sigma.
+Un feed de inteligencia de amenazas trae a OneUptime direcciones IP, dominios, URLs, direcciones de email y hashes de archivos maliciosos conocidos, y te avisa cuando tus [eventos de seguridad](/docs/telemetry/security-events) mencionan uno. Un feed lee un origen: una lista de indicadores en una dirección https, como las listas gratuitas que OneUptime añade con un clic, una colección TAXII 2.1 de indicadores STIX 2.1 de tu propio servidor MISP, OpenCTI u OpenTAXII o de un proveedor, o los indicadores que Google SecOps encontró en tus eventos.
 
 :::cards
-- [Suscribirse a un feed](#suscribirse-a-un-feed): Un servidor TAXII, una colección y cómo iniciar sesión.
+- [Añadir una lista gratuita](#añadir-una-lista-gratuita): Feodo Tracker, Emerging Threats y los nodos de salida de Tor, con un clic.
+- [Suscribirse a un feed](#suscribirse-a-un-feed): La dirección de una lista, una colección TAXII o una conexión de Google SecOps.
 - [Qué se ingiere](#qué-se-ingiere): Los patrones de indicador que conserva OneUptime, y durante cuánto tiempo.
 - [Cómo se encuentran las coincidencias](#cómo-se-encuentran-las-coincidencias): Marcadas al llegar los eventos y cotejadas cada minuto.
 - [Niveles de amenaza](#niveles-de-amenaza): Cómo la confianza de un indicador se convierte en una gravedad.
@@ -11,9 +12,9 @@ Un feed de inteligencia de amenazas trae a OneUptime direcciones IP, dominios, U
 
 ## Cómo funciona
 
-```mermaid title="De una colección TAXII a una alerta"
+```mermaid title="De un feed a una alerta"
 flowchart TB
-    taxii["Colección TAXII 2.1"] -->|"Consultada con el<br/>intervalo del feed"| indicators["Indicadores: IPs,<br/>dominios, URLs,<br/>emails, hashes"]
+    taxii["Una lista, una<br/>colección TAXII<br/>o Google SecOps"] -->|"Consultada con el<br/>intervalo del feed"| indicators["Indicadores: IPs,<br/>dominios, URLs,<br/>emails, hashes"]
     events["Nuevos eventos<br/>de seguridad"] --> tag["Marcados al llegar<br/>con atributos<br/>threat.*"]
     indicators --> tag
     indicators --> match["Cotejados cada<br/>minuto con los<br/>eventos recientes"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## Antes de empezar
 
-- Un servidor TAXII 2.1 que publique objetos STIX 2.1 de tipo `indicator`, y el ID de la colección que consultar. Un feed inicia sesión de forma anónima, con un token bearer o con autenticación básica HTTP.
+- Para una lista, una dirección `https` que descargue un archivo de texto con un indicador por línea.
+- Para un feed TAXII, un servidor TAXII 2.1 que publique objetos STIX 2.1 de tipo `indicator`, y el ID de la colección que consultar. Un feed TAXII inicia sesión de forma anónima, con un token bearer o con autenticación básica HTTP.
+- Para un feed de Google SecOps, una [conexión de Google SecOps](/docs/integrations/google-secops#configurar-el-conector-gestionado) cuya cuenta de servicio pueda buscar coincidencias de indicadores: el rol `roles/chronicle.viewer` puede.
 - No se admiten los servidores que exigen un certificado de cliente TLS (TLS mutuo), como CISA AIS. El servidor ATT&CK público de MITRE publica técnicas y grupos en lugar de indicadores, así que un feed que apunte a él se queda vacío.
 - Un rol que pueda crear feeds: Project Owner, Project Admin, Security Admin o Security Member. Security Viewer puede leer feeds e indicadores. Consulta [Roles](/docs/permissions/reference#roles).
+
+## Añadir una lista gratuita
+
+La tarjeta **Listas gratuitas** de **Inteligencia de amenazas** añade una lista de bloqueo gratuita con un clic: haz clic en **Añadir lista** en una lista, y OneUptime crea un feed que la descarga según el calendario de la lista. Una lista que el proyecto ya lee indica **Añadido**.
+
+| Lista | Publicada por | Lectura | Confianza | Una coincidencia abre |
+| --- | --- | --- | --- | --- |
+| Servidores C2 de botnets de Feodo Tracker | abuse.ch | Cada hora | 90, Critical | Un caso y una alerta |
+| Hosts comprometidos de Emerging Threats | Proofpoint Emerging Threats | Cada día | 70, High | Un caso y una alerta |
+| Nodos de salida de Tor | The Tor Project | Cada hora | 30, Low | Un caso |
+
+La tarjeta de cada lista enlaza sus condiciones: Feodo Tracker es libre para cualquier uso (CC0), y la lista de Emerging Threats tiene licencia BSD. Un feed añadido desde una lista se edita y se elimina como cualquier otro.
 
 ## Suscribirse a un feed
 
@@ -35,7 +50,7 @@ Abre **Productos → Eventos de seguridad → Detecciones → Inteligencia de am
 
 ### Crea el feed
 
-Haz clic en **Crear Feed de inteligencia de amenazas** y rellena sus tres pasos: **Servidor TAXII**, **Inicio de sesión** y **Al coincidir**. Los campos están en la tabla de abajo.
+Haz clic en **Crear Feed de inteligencia de amenazas** y elige su **Origen**: **Lista de indicadores**, **Colección TAXII** o **Google SecOps**. El siguiente paso pide solo ese origen: la **URL de la lista** de una lista, el **Servidor TAXII** y el **Inicio de sesión** de una colección, o la **Conexión de Google SecOps**. **Al coincidir** va al final. Los campos están en la tabla de abajo.
 
 ### Comprueba la primera consulta
 
@@ -44,10 +59,14 @@ En uno o dos minutos, la fila del feed muestra **Último sondeo**, y **Resumen d
 
 | Campo | Qué introducir |
 | --- | --- |
+| **Origen** | De dónde vienen los indicadores. Se fija al crear el feed: un feed de otro origen es un feed nuevo. |
+| **URL de la lista** | Para una lista: la dirección `https` de un archivo de texto con una dirección IP, un dominio, una URL o un hash de archivo por línea. |
+| **Confianza** | Para una lista: lo segura que está la lista, de 1 a 100. Cada indicador de la lista la recibe, y fija el [nivel de amenaza](#niveles-de-amenaza); vacío es Medium. |
+| **Conexión de Google SecOps** | Para Google SecOps: la conexión cuya clave lee los indicadores que encontró Google SecOps. **Conectar Google SecOps** abre **Conexiones** cuando no hay ninguna. |
 | **URL raíz de la API de TAXII** | La raíz de la API TAXII 2.1 del servidor, como `https://taxii.example.com/api1/`. Las colecciones se direccionan debajo de ella. |
 | **ID de la colección** | La colección que publica los indicadores. |
-| **Intervalo de sondeo (minutos)** | Cada cuánto se traen objetos nuevos: de 1 a 1440 minutos, 60 por defecto. |
-| **Confianza mínima** | Los indicadores con una `confidence` STIX menor se omiten: de 0 a 100, y 0 lo conserva todo. Los indicadores sin confianza siempre pasan. |
+| **Intervalo de sondeo (minutos)** | Cada cuánto se lee el origen: de 1 a 1440 minutos, 60 por defecto. Una lista se lee como mucho cada 15 minutos. |
+| **Confianza mínima** | Para una colección TAXII o Google SecOps: los indicadores con una confianza menor se omiten, de 0 a 100, y 0 lo conserva todo. Los indicadores sin confianza siempre pasan. |
 | **Inicio de sesión** | Cómo inicia sesión OneUptime: **Sin inicio de sesión** para una colección pública, **Token bearer** para un token del operador del servidor, o **Usuario y contraseña** para la autenticación básica HTTP. |
 | **Token de API**, **Usuario de Basic Auth** y **Contraseña de Basic Auth** | Solo se piden para el inicio de sesión elegido. |
 | **Open a Case on Match** | Activado por defecto: cada evento que nombra un indicador abre un [caso](/docs/telemetry/security-cases) sobre él, o se suma al caso abierto que ya trata sobre él. |
@@ -57,7 +76,7 @@ En uno o dos minutos, la fila del feed muestra **Último sondeo**, y **Resumen d
 | **Gravedad del incidente** | Como **Gravedad de la alerta**, para los incidentes. |
 | **Escribir un hallazgo de detección al coincidir** | Activado por defecto: cada coincidencia escribe un hallazgo en el flujo de eventos. |
 
-Los tokens y las contraseñas se cifran y no vuelven a mostrarse después de guardarlos. Para cambiarlos, elige **Actualizar credenciales** en la fila del feed y elige **Token bearer**, **Usuario y contraseña** o **Sin inicio de sesión**, que borra lo almacenado: tu elección sustituye el inicio de sesión del feed, así que guardar un token borra una contraseña guardada, y al revés.
+Los tokens y las contraseñas de un feed TAXII se cifran y no vuelven a mostrarse después de guardarlos. Para cambiarlos, elige **Actualizar credenciales** en la fila del feed y elige **Token bearer**, **Usuario y contraseña** o **Sin inicio de sesión**, que borra lo almacenado: tu elección sustituye el inicio de sesión del feed, así que guardar un token borra una contraseña guardada, y al revés.
 
 ### Cómo se consulta un feed
 
@@ -67,9 +86,22 @@ Las consultas se identifican con el user agent `OneUptime/<version> (+https://on
 
 Un feed desactivado no se consulta ni se coteja. Los indicadores que ya tiene siguen marcando eventos nuevos hasta que caducan.
 
+### Cómo se lee una lista
+
+- Cada sondeo descarga la lista entera y la lee línea a línea: el primer valor de una línea, hasta un espacio, un tabulador, una coma o un punto y coma. Las líneas que empiezan por `#`, `;` o `//` son comentarios, el puerto que sigue a una dirección o un dominio se quita, y un rango de direcciones como `198.51.100.0/24` se omite.
+- Un valor sigue siendo un indicador activo durante 2 días después del sondeo que lo leyó por última vez, y un valor que la lista quita deja de coincidir en el siguiente sondeo. Una lista que no ha cambiado se vuelve a escribir una vez al día.
+- Una lista tiene como máximo 50.000 indicadores. **Resumen del último sondeo** dice cuántos se leyeron, cuántas líneas se omitieron y cuántos se dejaron fuera.
+- La dirección debe usar `https` y sigue las mismas reglas de salida que una conexión: en OneUptime Cloud se rechaza una dirección privada.
+
+### Cómo se lee Google SecOps
+
+- Cada sondeo lee las coincidencias de indicadores que Google SecOps registró desde el sondeo anterior, con los atributos de Mandiant: el dominio, la dirección o el hash de archivo coincidente, su confianza, su categoría y las campañas y actores con los que está relacionado. El primer sondeo lee los últimos 7 días.
+- Un indicador sigue activo durante 30 días después de que Google SecOps lo viera por última vez, o hasta que su origen diga que deja de estar activo, y uno que un analista silenció en Google SecOps deja de coincidir aquí también.
+- Una coincidencia que Google SecOps marca como una intrusión activa es Critical, y una de prioridad alta es como mínimo High.
+
 ## Qué se ingiere
 
-OneUptime conserva los objetos STIX de tipo `indicator` cuyo patrón es una igualdad simple sobre uno de estos tipos:
+De una colección TAXII, OneUptime conserva los objetos STIX de tipo `indicator` cuyo patrón es una igualdad simple sobre uno de estos tipos. Una lista y Google SecOps dan los mismos tipos:
 
 | Tipo | Patrón de ejemplo |
 | --- | --- |
@@ -108,7 +140,7 @@ Cada evento de seguridad entrante, desde la API de ingesta o una conexión, se c
 | Atributo | Valor |
 | --- | --- |
 | `threat.matched` | Siempre `"true"` en un evento marcado |
-| `threat.indicator_id` | El ID del indicador STIX |
+| `threat.indicator_id` | El ID del indicador STIX, o `list` o `google-secops` para esos orígenes |
 | `threat.indicator_type` | El tipo del indicador, como `ipv4-addr` o `file-hash-sha256` |
 | `threat.indicator_value` | El valor coincidente, en minúsculas |
 | `threat.feed` / `threat.feed_id` | El feed del que vino el indicador |
@@ -149,7 +181,7 @@ Cada minuto, los indicadores activos de cada feed habilitado se cotejan con los 
 | Atributo | Valor |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | El feed |
-| `oneuptime.threat.indicator_id` | El ID del indicador STIX |
+| `oneuptime.threat.indicator_id` | El ID del indicador STIX, o `list` o `google-secops` para esos orígenes |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | Lo que coincidió |
 | `oneuptime.threat.confidence` | La confianza del indicador |
 | `oneuptime.threat.match_count` | Cuántos eventos hay detrás de este hallazgo |
@@ -195,7 +227,15 @@ Lee **Resumen del último sondeo**. Ningún objeto traído: la colección está 
 :::
 
 :::details Hay indicadores, pero nada coincide
-El cotejo compara el valor de un indicador con los observables de un evento, no con cada campo: abre en **Eventos** un evento que esperabas que coincidiera y comprueba que sus observables contienen el valor. Solo coinciden los indicadores con el estado **Activo**. Revisa **Error de la última coincidencia** en el feed.
+El cotejo compara el valor de un indicador con los observables de un evento, no con cada campo: abre en **Eventos** un evento que esperabas que coincidiera y comprueba que sus observables contienen el valor. Solo coinciden los indicadores con el estado **Activo**. Si el **Estado** del feed dice **La comparación falló**, **Ver error** en su fila muestra por qué.
+:::
+
+:::details El Último error de un feed de lista dice que la dirección respondió con una página web
+La **URL de la lista** abre una página, como una de inicio de sesión o de error, y no la lista: ábrela en un navegador y copia la dirección del propio archivo. Una lista cuyo texto no tiene ninguna dirección IP, dominio, URL ni hash de archivo se rechaza igual, y los indicadores del feed se quedan como estaban.
+:::
+
+:::details El Último error de un feed de Google SecOps dice HTTP 403
+La cuenta de servicio de la conexión no puede buscar coincidencias de indicadores: concédele `roles/chronicle.viewer`. Si la conexión se eliminó, el feed lo dice: edítalo y elige otra **Conexión de Google SecOps**.
 :::
 
 :::details Una coincidencia no abrió una alerta

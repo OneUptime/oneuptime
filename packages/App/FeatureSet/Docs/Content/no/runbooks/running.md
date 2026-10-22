@@ -134,7 +134,7 @@ Runbookets bryter **Kjør dette runbooket** er slått av på siden **Innstilling
 :::
 
 :::details Et trinn feilet fordi det mangler en Runner
-Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet ble lagret uten **Runner**. Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg trinnets Runner, klikk **Save Steps**, og kjør runbooket på nytt.
+Meldingen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet ble lagret uten **Runner**, og prosjektet har ingen [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner). Et JavaScript-trinn trenger bare sin egen Runner når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan kjøre det. Åpne runbookets **Trinn**, velg trinnets Runner under **Flere felt**, klikk **Save Steps**, og kjør runbooket på nytt.
 :::
 
 :::details Et trinn feilet fordi det nevner variabler det ikke kan bruke

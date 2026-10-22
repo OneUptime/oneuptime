@@ -134,7 +134,7 @@ stateDiagram-v2
 :::
 
 :::details Шаг завершился сбоем, потому что у него нет Runner-а
-Сообщение, например, такое: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» Шаг был сохранён без **Runner**. Шагу JavaScript собственный Runner нужен, только когда ни один [глобальный Runner](/docs/runbooks/agents#глобальные-runner-ы) не может его выполнить. Откройте **Шаги** runbook-а, выберите Runner шага, нажмите **Save Steps** и запустите runbook снова.
+Сообщение, например, такое: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.» Шаг был сохранён без **Runner**, и у проекта нет [Runner-а по умолчанию](/docs/runbooks/agents#runner-проекта-по-умолчанию). Шагу JavaScript собственный Runner нужен, только когда ни один [глобальный Runner](/docs/runbooks/agents#глобальные-runner-ы) не может его выполнить. Откройте **Шаги** runbook-а, выберите Runner шага в **Дополнительные поля**, нажмите **Save Steps** и запустите runbook снова.
 :::
 
 :::details Шаг завершился сбоем, потому что называет переменные, которые не может использовать

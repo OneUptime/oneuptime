@@ -66,6 +66,19 @@ Quand l'attente du dernier niveau se termine sans que personne ne prenne en comp
 
 Une politique qui recommence trois fois de plus parcourt ses niveaux quatre fois au total. La ligne **Après le dernier niveau** de la carte dit ce que fait la politique, et **Policy at a glance** sur la **Vue d'ensemble** dit la même chose en toutes lettres.
 
+## Alerter de nouveau si ce n'est pas résolu
+
+La prise en compte arrête définitivement les alertes d'une politique, même si personne ne résout ensuite l'incident ou l'alerte. Une politique peut plutôt alerter de nouveau : ouvrez sa page **Règles d'escalade**, ouvrez **Plus de paramètres** en bas, puis cliquez sur **Modifier** sur la carte **Délai après prise en compte**. **Modifier le délai après prise en compte** demande **S'il est pris en compte mais pas résolu** :
+
+| Réponse | Ce qu'elle fait |
+| --- | --- |
+| **Ne pas alerter de nouveau** | La prise en compte arrête définitivement les alertes. Une nouvelle politique commence avec cette réponse. |
+| **Alerter de nouveau** | Alerte la personne qui l'a pris en compte et la personne d'astreinte maintenant. **Après combien de minutes ?** indique quand : de 5 à 1440, 30 au départ. |
+
+Les minutes sont comptées à partir de chaque prise en compte, et une politique alerte de nouveau au plus 5 fois pour un même incident, une même alerte ou un même épisode. Une nouvelle alerte commence au niveau qui alertait lors de la prise en compte, alerte la personne d'astreinte à ce niveau maintenant, puis parcourt les niveaux comme la première exécution. L'incident ou l'alerte reste pris en compte : la nouvelle alerte est une exécution à part, dans son fil d'activité et dans les journaux d'exécution de la politique, où son **Statut** indique « Alerté de nouveau (1 sur 5) ».
+
+La personne alertée de nouveau la prend en compte depuis son message, ou avec **Prendre en compte de nouveau** sur la page de l'incident ou de l'alerte, et les minutes recommencent ; **Escalader** la passe au niveau suivant. Résoudre ou supprimer l'incident ou l'alerte, archiver ou supprimer la politique, ou choisir **Ne pas alerter de nouveau** l'arrête. La ligne **Après une prise en compte** de la carte dit ce que fait la politique, et **Plus de paramètres** affiche les minutes tant qu'il est replié. **Policy at a glance** sur la **Vue d'ensemble** et le **Résumé de l'escalade** disent la même chose en toutes lettres.
+
 ## Journaux d'exécution
 
 Chaque fois qu'une politique s'exécute, elle écrit un journal d'exécution, et ce journal passe par ses statuts au fil de l'exécution :
@@ -122,9 +135,12 @@ Les politiques d'astreinte sont la ressource `/api/on-call-duty-policy`, et la r
 | **Description** | `description` |
 | **Si personne ne prend en compte après le dernier niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Combien de fois de plus ?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Après combien de minutes ?** | `acknowledgementTimeoutInMinutes` |
 | Archivée | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` vaut `false` pour **Arrêter les alertes** et `true` pour **Recommencer depuis Level 1**. À `true` avec `repeatPolicyIfNoOneAcknowledgesNoOfTimes` à `0`, une politique ne se répète jamais, et le tableau de bord l'affiche comme **Arrêter les alertes**.
+
+`acknowledgementTimeoutInMinutes` vaut `null` pour **Ne pas alerter de nouveau**, et un nombre entier de minutes de 5 à 1440 pour **Alerter de nouveau**. OneUptime refuse toute autre valeur.
 
 Pour créer une politique avec son premier niveau en une seule requête, voir [Créer des règles avec l'API ou Terraform](/docs/on-call/escalation-rules#créer-des-règles-avec-lapi-ou-terraform).
 

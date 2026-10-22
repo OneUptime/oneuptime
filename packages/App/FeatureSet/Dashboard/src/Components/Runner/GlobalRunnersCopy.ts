@@ -17,6 +17,11 @@ import { GLOBAL_RUNNER_MAX_EXECUTION_TIMEOUT_IN_MS } from "Common/Types/Runner/G
 export const GlobalRunnersCopy: {
   globalCardTitle: string;
   globalCardDescription: string;
+  /*
+   * When the project has a default Runner: steps that pick no Runner run on
+   * it, so a global Runner runs the ones that pick Global Runner.
+   */
+  globalCardDescriptionWithDefault: string;
   // When the project turned global Runners off.
   globalCardDescriptionWhenOff: string;
   /*
@@ -56,12 +61,22 @@ export const GlobalRunnersCopy: {
   switchOffDescription: string;
   turnOffTitle: string;
   turnOffDescription: string;
+  /*
+   * The switch's lines and the turn-off question while the project has a
+   * default Runner, which runs the steps that pick none.
+   */
+  switchOnDescriptionWithDefault: string;
+  switchOffDescriptionWithDefault: string;
+  turnOffDescriptionWithDefault: string;
   turnOffButton: string;
 } = {
   globalCardTitle: translationKey("Global Runners"),
   // One line across the card, as Global Probes' is.
   globalCardDescription: translationKey(
     "Runners OneUptime runs for every project. JavaScript steps run on them by default, in a sandbox that reaches the internet only.",
+  ),
+  globalCardDescriptionWithDefault: translationKey(
+    "Runners OneUptime runs for every project. Steps that pick Global Runner run on them, in a sandbox that reaches the internet only.",
   ),
   globalCardDescriptionWhenOff: translationKey(
     "Runners OneUptime runs for every project. This project does not use them, so steps and code repositories run on yours.",
@@ -103,6 +118,15 @@ export const GlobalRunnersCopy: {
   turnOffTitle: translationKey("Stop using global Runners?"),
   turnOffDescription: translationKey(
     "JavaScript steps and code repositories that pick no Runner stop running until they pick one of yours. Work queued for a global Runner will not run.",
+  ),
+  switchOnDescriptionWithDefault: translationKey(
+    "JavaScript steps that pick Global Runner, and code repositories that pick no Runner, run on a global Runner.",
+  ),
+  switchOffDescriptionWithDefault: translationKey(
+    "Every step and code repository runs on one of your Runners: steps that pick none run on the project default.",
+  ),
+  turnOffDescriptionWithDefault: translationKey(
+    "JavaScript steps that pick Global Runner, and code repositories that pick no Runner, stop running until they pick one of yours.",
   ),
   turnOffButton: translationKey("Stop Using Global Runners"),
 };

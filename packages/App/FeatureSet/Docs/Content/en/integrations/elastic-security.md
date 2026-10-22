@@ -142,6 +142,48 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 
 Every request in a test has a 20 second deadline. A test never imports anything or moves the cursor, and each failed check says what to change.
 
+## Send security events to Elastic Security
+
+OneUptime can also send what it finds to Elasticsearch, as Elastic Common Schema (ECS) documents in a data stream, so Elastic Security's alerts, timelines and detection rules see OneUptime's detections next to your own. A detection is a document with `event.kind` `alert`, and every other event has `event.kind` `event`.
+
+:::steps
+### Create an API key that can write
+
+In Kibana, open **Stack Management → API keys**, click **Create API key**, give it the privileges below, and copy its **Encoded** value.
+
+### Add the destination
+
+Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**, choose Elastic Security under **SIEM** and click **Next**. Fill in the **Elasticsearch URL**, the deployment's Elasticsearch endpoint rather than Kibana's, and paste the key into **API key**. **Data stream** is optional: left empty, documents go to `logs-oneuptime.security-default`, which Elasticsearch creates on the first write.
+
+### Send a test event and start sending
+
+Click **Send a test event**: one document arrives in the data stream. Then under **What to send** keep **Detections only** or choose **All security events**, and click **Start sending**.
+:::
+
+The key's privileges, for the default data stream:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Documents go in batches of up to 500, each with its event's own id, so an event sent twice is stored once.
+- A document Elasticsearch cannot map is left out and named in **View Error**, and one it cannot take for now (`429`) is sent again.
+- Alerts OneUptime imported from Elastic Security are never sent back to it.
+
 ## Troubleshooting
 
 The connection's **Last Error** keeps the complete error message, with credentials redacted, behind a prefix that names the step that failed. When a connection has an error, select **View Error** in its **Actions** column to read it, and **Copy Error** in the dialog to copy it. Read the prefix first.

@@ -84,6 +84,7 @@ flowchart TB
 案例页面上有处理它所需的一切：
 
 - 顶部：**Assign to Me**、**Run Playbook**、**声明事件** 和 **Close Case** 按钮，状态步骤，以及它们旁边菜单中的优先级。
+- **OneUptime AI**：OneUptime AI 对案例的研判、它建议的优先级和剧本，以及背后的证据。请参阅 [安全中的 OneUptime AI](/docs/telemetry/security-ai)。
 - **Detections**：触发后打开或并入该案例的检测、触发次数，以及最新的匹配事件。
 - **实体**：案例涉及的用户、主机和地址，以及它们最近 7 天在你所有安全事件中的活动。每个实体都可以在 **关联分析** 中打开。
 - **MITRE ATT&CK**：案例的检测所映射的战术和技术，每一项都链接到 attack.mitre.org 上的对应页面。
@@ -104,6 +105,8 @@ flowchart TB
 | Undetermined | 没有足够的信息来判断 |
 
 概览页面会统计这些结论。如果某条规则的案例总是以 False Positive 关闭，这条规则就需要调优了。
+
+从 Google SecOps 警报打开的案例，如果其连接打开了 **案例关闭时关闭其警报**，也会在 Google SecOps 中关闭这些警报，并附上结论和关闭说明：参见 [Google SecOps](/docs/integrations/google-secops#案例关闭时关闭其警报)。
 
 ### 声明事件
 
@@ -164,6 +167,7 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | --- | --- |
 | Case Opened | 案例打开时运行一次 |
 | Detection Added | 每当有新的检测并入未关闭的案例时 |
+| 研判为可能恶意 | 当 OneUptime AI 的研判把案例判读为 可能为恶意 时，运行一次 |
 | Manual | 仅当有人从案例中运行它时 |
 
 任何已启用的剧本也可以通过案例上的 **Run Playbook** 手动运行。自动运行的剧本可以用以下设置缩小范围：
@@ -319,5 +323,6 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 :::cards
 - [安全事件](/docs/telemetry/security-events): 发送事件、编写检测规则并连接安全产品。
 - [威胁情报](/docs/telemetry/threat-intelligence): 将你的事件与 STIX/TAXII 源进行比对。
+- [安全中的 OneUptime AI](/docs/telemetry/security-ai): 用 AI 研判案例、起草检测规则，并询问安全问题。
 - [权限参考](/docs/permissions/reference): Security 角色以及每个角色能做什么。
 :::

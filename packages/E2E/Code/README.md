@@ -40,10 +40,17 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   GitHub right there for a repository GitHub does not reach), a member who
   may only read, the Free plan, and no repository yet: what Code is for and
   Connect GitHub;
-- Repositories: a list with what needs someone at each row's end and the
-  quieter facts under its name (a German name never cut short), a search box
-  once there are more than six, GitHub's connection gone said once over the
-  list, and Connect repositories;
+- Repositories: the shared table of the repositories AI can work in, most
+  recently active first (a German name never cut short), with Connect
+  repositories as its main button; those the GitHub App no longer reaches
+  folded apart under Not connected, with Connect GitHub; a search box once
+  there are more than six, which opens Not connected when only a folded one
+  matches; GitHub's connection gone said once, in the empty list;
+- a repository's settings: cards, not a stepped dialog - GitHub Commands, on
+  by default and saved the moment it is flipped; the Runner card; More
+  settings with Pull Requests, the trigger label and, on a repository that
+  has them, its build and test commands with Remove Commands; Connection
+  saying Not connected where Repositories folds the repository;
 - a repository's page: its tasks newest first, examples on a repository with
   no task yet, asking with context - a file, a note and an incident picked
   from the project - recorded as sent, then the new task's conversation
@@ -53,7 +60,7 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   was typed; every reason AI cannot work said above the request box with the
   link that fixes it, and nothing sendable;
 - a repository's Runner in its settings: Global Runner and how it is doing,
-  Edit Settings' Runner step, a project that turned global Runners off
+  the Runner card's Edit, a project that turned global Runners off
   (`?uses=0`), a server with none (`?global=0`) or one not heard from
   (`?gstatus=disconnected`), and a pick the page is not shown
   (`?runner=gone`);
@@ -63,6 +70,13 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- a repository's pull requests reviewed against production: Production
+  Reviews (on, or off with the GitHub command that asks for one), each pull
+  request's review with every part of production linked into OneUptime,
+  Review again keeping the last review until the new one is in, a read-only
+  member, and the setting - one switch, and Production Review Comment under
+  More settings (`?review=off|unset`, `?reviews=none`,
+  `?reviewcomment=Link|ReviewEvenIfPublic`);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
@@ -70,6 +84,7 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`), so the tests check what was sent as well as what was drawn. The
+`lists`, `reviewLists`, `reviewAgains`), so the tests check what was sent as
+well as what was drawn. The
 query string steers the fixture; `Fixture/Fixture.js` lists every switch.
 Screenshots go to `output/playwright/code-ui/`.

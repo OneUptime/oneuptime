@@ -84,6 +84,7 @@ Um caso passa por quatro status. Ele pode pular um, como um falso positivo fecha
 A página do caso tem tudo para tratá-lo:
 
 - No topo: **Assign to Me**, **Run Playbook**, **Declarar incidente** e **Close Case**, as etapas de status e, no menu ao lado, a prioridade.
+- **OneUptime AI**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 - **Detections**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **MITRE ATT&CK**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
@@ -104,6 +105,8 @@ Para tratar vários casos de uma vez, selecione-os na fila e use **Assign to Me*
 | Undetermined | Não havia informação suficiente para dizer |
 
 Os vereditos são contados na visão geral. Uma regra cujos casos continuam sendo fechados como False Positive é uma regra a ajustar.
+
+Um caso aberto a partir de alertas do Google SecOps também os fecha no Google SecOps, com o veredito e a nota de fechamento, quando a conexão dele tem **Fechar os alertas quando o caso deles for fechado** ativado: veja [Google SecOps](/docs/integrations/google-secops#fechar-os-alertas-quando-o-caso-deles-for-fechado).
 
 ### Declarar um incidente
 
@@ -164,6 +167,7 @@ Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos �
 | --- | --- |
 | Case Opened | Uma vez, quando um caso é aberto |
 | Detection Added | Cada vez que uma nova detecção entra em um caso aberto |
+| Classificado como provavelmente malicioso | Uma vez, quando a classificação do OneUptime AI lê o caso como Provavelmente malicioso |
 | Manual | Só quando alguém o executa a partir de um caso |
 
 Qualquer playbook habilitado também pode ser executado manualmente, com **Run Playbook** em um caso. Um playbook que roda sozinho pode ser restringido:
@@ -319,5 +323,6 @@ O caso não trata de nenhum usuário ou host, só de um endereço, por exemplo, 
 :::cards
 - [Eventos de segurança](/docs/telemetry/security-events): Envie eventos, escreva regras de detecção e conecte produtos de segurança.
 - [Inteligência de ameaças](/docs/telemetry/threat-intelligence): Compare os seus eventos com feeds STIX/TAXII.
+- [OneUptime AI na segurança](/docs/telemetry/security-ai): Classificar casos, escrever rascunhos de regras de detecção e perguntar sobre segurança, com IA.
 - [Referência de permissões](/docs/permissions/reference): Os papéis de segurança, e o que cada um pode fazer.
 :::

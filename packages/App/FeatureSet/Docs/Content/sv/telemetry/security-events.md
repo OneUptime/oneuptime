@@ -46,10 +46,11 @@ flowchart TB
 | **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
 | **Protected Entities** | Playbooks | De användare och värdar som ingen playbook begränsar |
+| **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
-**Detections** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections**, **AI** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 
@@ -135,6 +136,12 @@ En generisk händelse läses utifrån vanliga fältnamn:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Ett ord för allvarlighetsgrad blir en OCSF-nivå: `info` läses som Informational, `warning` som Low, `error` som Medium, `alert` som Critical och `emergency` som Fatal.
 
@@ -194,6 +201,7 @@ Varje händelse lagras med typade fält och källans nyttolast:
 | Allvarlighetsgrad | `severityName`, en av Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, och `severityId` |
 | Vem som gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Vad det berörde | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Processen | `processName`, `processPath` och `processCommandLine`: vid en processtart den process som startade, annars den process som agerade. `parentProcessName`, `parentProcessPath` och `parentProcessCommandLine`: den process som startade den |
 | Källa | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Innehåll | `message`, `mitreTactics`, `mitreTechniques` och `observables`: varje användare, värd, IP-adress, domän och hash som hämtats från händelsen |
 | Attribut | Hela källans nyttolast, utplattad till nycklar med punkter |
@@ -218,11 +226,11 @@ Sökfältet talar samma språk som de andra telemetriutforskarna (se [Söksyntax
 | `@<attribute>:*` | Attributet finns | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributet innehåller texten | `@finding_info.title:~ransom` |
 
-Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
+Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
 
 ### Facetter
 
-Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare** och **Källvärd**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
 
 ### Korrelera
 
@@ -278,9 +286,67 @@ OneUptime kör den booleska kärnan i Sigma:
 - Villkor kombinerar urval med `and`, `or`, `not` och parenteser, eller med `1 of selection_*`, `all of selection_*`, `any of them` och `all of them`.
 - Fältmodifierare: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` och `windash`. Text jämförs utan hänsyn till versaler och gemener, om du inte lägger till `cased`.
 - Ett fält är ett typat fält (`principalUser`), en vanlig Sigma-stavning av ett (`CommandLine`, `src_ip`, `Hostname`) eller vilken attributnyckel som helst, stavad som i händelsen (`threat.matched`).
+- `Image` och `CommandLine` läser den process som händelsen handlar om, vid en processtart den som startade (`processPath`, `processCommandLine`), och `ParentImage` och `ParentCommandLine` den process som startade den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` är den process som agerade, vilket vid en start är den överordnade.
 - `level` anger allvarlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, och `medium` när den saknas. ATT&CK-ID:n i `tags` (`attack.t1110`, `attack.ta0006`) fyller i fyndets MITRE-fält.
 
-Aggregeringar som `| count() by principalIp > 5` avvisas när du sparar: använd **Group By Field** och **Match Count Threshold** i stället. `logsource` är bara informativ och begränsar ingenting: lägg det filtret i ett urval, till exempel `className: Authentication`. En `timeframe` ignoreras, eftersom regelns intervall bestämmer dess fönster.
+Aggregeringar som `| count() by principalIp > 5` avvisas när du sparar: använd en [korrelationsregel](#korrelationsregler), eller **Group By Field** och **Match Count Threshold**, i stället. `logsource` är bara informativ och begränsar ingenting: lägg det filtret i ett urval, till exempel `className: Authentication`. En `timeframe` ignoreras, eftersom regelns intervall bestämmer dess fönster.
+
+### Korrelationsregler
+
+En [Sigma-korrelation](https://sigmahq.io/docs/meta/correlations.html) utlöses av flera händelser tillsammans i stället för en. Klistra in den i **Sigma Rule (YAML)** tillsammans med reglerna den läser, som YAML-dokument åtskilda av `---`, eller namnge regler som projektet redan har med deras Sigma-`name` eller -`id`. **Rule Library** har färdiga, till exempel misslyckade inloggningar följda av en lyckad.
+
+| Typ | Utlöses när | Visas som |
+| --- | --- | --- |
+| `event_count` | En grupp når ett antal händelser inom `timespan` | Antal händelser |
+| `value_count` | En grupp visar ett antal olika värden för ett fält inom `timespan` | Olika värden |
+| `temporal` | Varje regel matchar för samma grupp inom `timespan`, i valfri ordning | Händelser tillsammans |
+| `temporal_ordered` | Reglerna matchar i sin ordning för samma grupp inom `timespan` | Sequence |
+| `new_value` | En grupp visar ett värde för ett fält som den inte har visat inom `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- En grupp är värdet av fälten i `group-by`, till exempel en adress. Räkningar är rullande: en skur som två körningar delar räknas ändå hel inom sitt `timespan`, som är högst 24 timmar.
+- `new_value` är OneUptimes egen typ, eftersom Sigma saknar en korrelation för "först sedd": den jämför med upp till 30 dagars historik. `value_sum`, `value_avg`, `value_percentile` och `value_median` avvisas när du sparar.
+- Kolumnen **Typ** i **Detection Rules** visar varje regels slag, och formuläret säger i en mening vad regeln letar efter.
 
 ### Utvärderingsinställningar
 
@@ -379,7 +445,7 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 :::
 
 :::details En regel träffar aldrig
-Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Senaste fel** i dess rad. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
 :::
 
 :::details En regel träffade, men inget larm öppnades

@@ -148,9 +148,6 @@ describe("the AI SRE page", () => {
     expect(page).toContain(
       "Fixes also need two project switches. **Fix new incidents automatically** (on **Incidents → AI → Settings**) and **Fix new alerts automatically** (on **Alerts → AI → Settings**) start off: until one is on, nothing new of that kind is fixed. **Enable AI** (**Project Settings → AI → AI Features**) is on unless someone turned it off;",
     );
-    expect(page).toContain(
-      "Fixes through a Runner need the same project switches as fixes through the AI agent: **Enable AI**, and **Fix new incidents automatically** (or alerts).",
-    );
     expect(page).not.toContain("The only project switch fixes need is");
   });
 

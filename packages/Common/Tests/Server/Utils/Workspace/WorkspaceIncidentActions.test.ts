@@ -236,12 +236,20 @@ function teamMember(
 }
 
 /*
- * findEventForMember is generic, which a SpyInstance of its own type cannot
+ * readEventForMember is generic, which a SpyInstance of its own type cannot
  * hold: its spy, as these tests stub and read it.
  */
 type FindEventSpy = SpyInstance<(data: unknown) => Promise<unknown>>;
 
 function spyOnFindEvent(): FindEventSpy {
+  return jest.spyOn(
+    WorkspaceMemberActions,
+    "readEventForMember",
+  ) as unknown as FindEventSpy;
+}
+
+// The read that answers null, not a refusal: for a chat's own answer.
+function spyOnFindEventOrNull(): FindEventSpy {
   return jest.spyOn(
     WorkspaceMemberActions,
     "findEventForMember",
@@ -305,10 +313,12 @@ describe("WorkspaceIncidentActions.authorizeForForm: may the member do what a fo
       action: "page someone about this incident",
     });
     expect(canUpdate).not.toHaveBeenCalled();
+    // Read as the member, refusing with why for what the form does.
     expect(found).toHaveBeenCalledWith({
       event: { type: WorkspaceEventType.Incident, id: INCIDENT_ID },
       props: props,
       select: { title: true },
+      action: "page someone about this incident",
     });
   });
 
@@ -380,11 +390,24 @@ describe("WorkspaceIncidentActions.authorizeForForm: may the member do what a fo
     },
   );
 
-  test("an incident they may not read is answered as one that is not there", async () => {
+  test("an incident their access does not include is refused with that, never as one that is not there", async () => {
     jest
       .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
       .mockResolvedValue();
-    spyOnFindEvent().mockResolvedValue(null);
+    // Their own read finds nothing; OneUptime's finds it, and it is not private.
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident.id = INCIDENT_ID;
+        return incident;
+      }) as never);
 
     await expect(
       WorkspaceIncidentActions.authorizeForForm({
@@ -398,7 +421,30 @@ describe("WorkspaceIncidentActions.authorizeForForm: may the member do what a fo
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "You do not have permission to assign a role on this incident: the incident was not found in this project, or you do not have access to it.",
+        "You do not have permission to assign a role on this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+      ),
+    );
+  });
+
+  test("an incident that is gone is not found - it may have been deleted", async () => {
+    jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+      .mockResolvedValue();
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+
+    await expect(
+      WorkspaceIncidentActions.authorizeForForm({
+        incidentId: INCIDENT_ID,
+        props: memberProps(),
+        check: {
+          kind: "create",
+          modelType: IncidentMember,
+          action: "assign a role on this incident",
+        },
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "Could not assign a role on this incident: the incident was not found. It may have been deleted.",
       ),
     );
   });
@@ -1016,9 +1062,10 @@ describe("WorkspaceIncidentActions.getSeverityChoices", () => {
       }),
     ).toEqual([{ id: SEVERITY_ID, name: "Critical" }]);
 
+    // An archived severity is never offered: the server would refuse it.
     expect(read.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
-        query: { projectId: PROJECT_ID },
+        query: { projectId: PROJECT_ID, isArchived: false },
         sort: { order: "ASC" },
         props: props,
       }),
@@ -1097,7 +1144,7 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
     expect(update).not.toHaveBeenCalled();
   });
 
-  test("a severity not of this project, or not theirs to read: refused, nothing written", async () => {
+  test("a severity not of this project, or gone: not found, nothing written", async () => {
     stubSeverity(false);
     const update: SpyInstance<typeof IncidentService.updateOneById> =
       jest.spyOn(IncidentService, "updateOneById");
@@ -1110,10 +1157,59 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "The incident severity was not found in this project, or you do not have access to it.",
+        "Could not change the severity of this incident: the incident severity was not found. It may have been deleted.",
       ),
     );
     expect(update).not.toHaveBeenCalled();
+  });
+
+  test("a severity of the project their access does not include: so, nothing written", async () => {
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity.id = SEVERITY_ID;
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? severity : null;
+      }) as never);
+    const update: SpyInstance<typeof IncidentService.updateOneById> =
+      jest.spyOn(IncidentService, "updateOneById");
+
+    await expect(
+      WorkspaceIncidentActions.changeSeverity({
+        event: incidentEvent(),
+        severityId: SEVERITY_ID,
+        props: memberProps(),
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to change the severity of this incident: your access in this project does not include this incident severity. Ask a project admin for access to it.",
+      ),
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test("a severity read refused for the permission names the permission", async () => {
+    jest
+      .spyOn(IncidentSeverityService, "findOneBy")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permissions to read Incident Severity.",
+        ),
+      );
+
+    await expect(
+      WorkspaceIncidentActions.changeSeverity({
+        event: incidentEvent(),
+        severityId: SEVERITY_ID,
+        props: memberProps(),
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to change the severity of this incident. You do not have permissions to read Incident Severity.",
+      ),
+    );
   });
 
   test("an incident they may read but not change (its labels, its owners): the update's own reason, never 'changed'", async () => {
@@ -1136,10 +1232,16 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
     ).rejects.toBe(reason);
   });
 
-  test("an incident gone since it was read: said as one they may not read", async () => {
+  test("an incident gone since it was read: not found - it may have been deleted", async () => {
     stubSeverity(true);
     stubCurrent(OTHER_SEVERITY_ID);
-    jest.spyOn(IncidentService, "updateOneById").mockResolvedValue(0);
+    jest
+      .spyOn(IncidentService, "updateOneById")
+      .mockImplementation((async () => {
+        // Deleted meanwhile: OneUptime's own read finds it no more.
+        jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+        return 0;
+      }) as never);
     jest
       .spyOn(IncidentService, "getUnwrittenByIdError")
       .mockResolvedValue(new NotFoundException("Incident not found"));
@@ -1152,7 +1254,7 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "The incident was not found in this project, or you do not have access to it.",
+        "Could not change this incident: the incident was not found. It may have been deleted.",
       ),
     );
   });
@@ -1493,7 +1595,7 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
     expect(writes.create).not.toHaveBeenCalled();
   });
 
-  test("a role not of this project, or not theirs to read: refused", async () => {
+  test("a role not of this project, or gone: not found, and nothing written", async () => {
     stubRole(null);
     const writes: ReturnType<typeof stubWrites> = stubWrites();
 
@@ -1506,8 +1608,33 @@ describe("WorkspaceIncidentActions.assignRole: an incident member, as the member
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "The incident role was not found in this project, or you do not have access to it.",
+        "Could not assign a role on this incident: the incident role was not found. It may have been deleted.",
       ),
+    );
+    expect(writes.create).not.toHaveBeenCalled();
+  });
+
+  test("a role of the project their access does not include: so, and nothing written", async () => {
+    const role: IncidentRole = new IncidentRole();
+    role.id = COMMANDER_ROLE_ID;
+    jest
+      .spyOn(IncidentRoleService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? role : null;
+      }) as never);
+    const writes: ReturnType<typeof stubWrites> = stubWrites();
+
+    await expect(
+      WorkspaceIncidentActions.assignRole({
+        event: incidentEvent(),
+        roleId: COMMANDER_ROLE_ID,
+        userId: USER_ID,
+        props: memberProps(),
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to assign a role on this incident: your access in this project does not include this incident role.",
     );
     expect(writes.create).not.toHaveBeenCalled();
   });
@@ -1785,7 +1912,7 @@ describe("what each action answers, naming the incident with its link", () => {
   test("Add Note: public or private, the incident as the member reads it", async () => {
     const record: Incident = new Incident();
     record.id = INCIDENT_ID;
-    const found: FindEventSpy = spyOnFindEvent().mockResolvedValue({
+    const found: FindEventSpy = spyOnFindEventOrNull().mockResolvedValue({
       record: record,
       event: incidentEvent(),
     });
@@ -2004,10 +2131,11 @@ describe("WorkspaceIncidentActions.getUnwrittenError", () => {
     });
   });
 
-  test("an incident gone: said as one they may not read", async () => {
+  test("an incident gone: not found - it may have been deleted", async () => {
     jest
       .spyOn(IncidentService, "getUnwrittenByIdError")
       .mockResolvedValue(new NotFoundException("Incident not found"));
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
 
     const error: Error = await WorkspaceIncidentActions.getUnwrittenError({
       incidentId: INCIDENT_ID,
@@ -2016,7 +2144,36 @@ describe("WorkspaceIncidentActions.getUnwrittenError", () => {
 
     expect(error).toBeInstanceOf(NotAuthorizedException);
     expect(error.message).toBe(
-      "The incident was not found in this project, or you do not have access to it.",
+      "Could not change this incident: the incident was not found. It may have been deleted.",
+    );
+  });
+
+  test("an incident there that they may no longer read: so, never 'not found'", async () => {
+    jest
+      .spyOn(IncidentService, "getUnwrittenByIdError")
+      .mockResolvedValue(new NotFoundException("Incident not found"));
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident.id = INCIDENT_ID;
+        return incident;
+      }) as never);
+
+    const error: Error = await WorkspaceIncidentActions.getUnwrittenError({
+      incidentId: INCIDENT_ID,
+      props: memberProps(),
+    });
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(
+      "You do not have permission to change this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
     );
   });
 });

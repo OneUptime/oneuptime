@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到集群
 
-打开 **产品 → 基础设施 → Ceph → 所有集群**。大约一分钟内，集群会以其 `CEPH_CLUSTER_NAME` 出现，并带有其 OSD、存储池和守护进程。
+打开 **产品 → 基础设施 → Ceph → 所有集群**。大约一分钟内，集群会以其 `CEPH_CLUSTER_NAME` 出现，并带有其 OSD、存储池和守护进程。它的 **拓扑** 页面将这些绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量

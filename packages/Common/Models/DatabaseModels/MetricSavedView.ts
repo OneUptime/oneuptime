@@ -377,6 +377,7 @@ export default class MetricSavedView extends BaseModel {
     title: "Is Default",
     description: "Whether this saved metric view should be applied by default.",
     defaultValue: false,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

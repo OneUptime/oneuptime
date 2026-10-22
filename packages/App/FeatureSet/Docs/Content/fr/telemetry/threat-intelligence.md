@@ -1,9 +1,10 @@
 # Renseignement sur les menaces (STIX/TAXII)
 
-Un flux de renseignement apporte dans OneUptime des adresses IP, des domaines, des URL, des adresses e-mail et des hachages de fichiers malveillants connus, et vous prévient quand vos [événements de sécurité](/docs/telemetry/security-events) en mentionnent un. Chaque flux s'abonne à une collection TAXII 2.1 d'indicateurs STIX 2.1 : votre propre serveur MISP, OpenCTI ou OpenTAXII, ou la collection d'un fournisseur. OneUptime ne fournit aucun contenu de flux : vous apportez les collections, comme vous apportez les règles Sigma.
+Un flux de renseignement apporte dans OneUptime des adresses IP, des domaines, des URL, des adresses e-mail et des hachages de fichiers malveillants connus, et vous prévient quand vos [événements de sécurité](/docs/telemetry/security-events) en mentionnent un. Un flux lit une source : une liste d'indicateurs à une adresse https, comme les listes gratuites que OneUptime ajoute en un clic, une collection TAXII 2.1 d'indicateurs STIX 2.1 issue de votre propre serveur MISP, OpenCTI ou OpenTAXII ou d'un fournisseur, ou les indicateurs que Google SecOps a trouvés dans vos événements.
 
 :::cards
-- [S'abonner à un flux](#sabonner-à-un-flux): Un serveur TAXII, une collection et un mode de connexion.
+- [Ajouter une liste gratuite](#ajouter-une-liste-gratuite): Feodo Tracker, Emerging Threats et les nœuds de sortie Tor, en un clic.
+- [S'abonner à un flux](#sabonner-à-un-flux): L'adresse d'une liste, une collection TAXII ou une connexion Google SecOps.
 - [Ce qui est ingéré](#ce-qui-est-ingéré): Les motifs d'indicateurs que conserve OneUptime, et pour combien de temps.
 - [Comment les correspondances sont trouvées](#comment-les-correspondances-sont-trouvées): Marquées à l'arrivée des événements et confrontées chaque minute.
 - [Niveaux de menace](#niveaux-de-menace): Comment la confiance d'un indicateur devient une gravité.
@@ -11,9 +12,9 @@ Un flux de renseignement apporte dans OneUptime des adresses IP, des domaines, d
 
 ## Fonctionnement
 
-```mermaid title="D'une collection TAXII à une alerte"
+```mermaid title="D'un flux à une alerte"
 flowchart TB
-    taxii["Collection TAXII 2.1"] -->|"Interrogée à<br/>l'intervalle du flux"| indicators["Indicateurs : IP,<br/>domaines, URL,<br/>e-mails, hachages"]
+    taxii["Une liste, une<br/>collection TAXII<br/>ou Google SecOps"] -->|"Interrogée à<br/>l'intervalle du flux"| indicators["Indicateurs : IP,<br/>domaines, URL,<br/>e-mails, hachages"]
     events["Nouveaux événements<br/>de sécurité"] --> tag["Marqués à l'arrivée<br/>par des attributs<br/>threat.*"]
     indicators --> tag
     indicators --> match["Confrontés chaque<br/>minute aux<br/>événements récents"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## Avant de commencer
 
-- Un serveur TAXII 2.1 qui publie des objets STIX 2.1 de type `indicator`, et l'ID de la collection à interroger. Un flux se connecte de façon anonyme, avec un jeton bearer ou avec l'authentification HTTP basique.
+- Pour une liste, une adresse `https` qui télécharge un fichier texte avec un indicateur par ligne.
+- Pour un flux TAXII, un serveur TAXII 2.1 qui publie des objets STIX 2.1 de type `indicator`, et l'ID de la collection à interroger. Un flux TAXII se connecte de façon anonyme, avec un jeton bearer ou avec l'authentification HTTP basique.
+- Pour un flux Google SecOps, une [connexion Google SecOps](/docs/integrations/google-secops#configurer-le-connecteur-géré) dont le compte de service peut rechercher les correspondances d'indicateurs : le rôle `roles/chronicle.viewer` le peut.
 - Les serveurs qui exigent un certificat client TLS (TLS mutuel), comme CISA AIS, ne sont pas pris en charge. Le serveur ATT&CK public de MITRE publie des techniques et des groupes plutôt que des indicateurs, donc un flux qui pointe vers lui reste vide.
 - Un rôle qui peut créer des flux : Project Owner, Project Admin, Security Admin ou Security Member. Security Viewer peut lire les flux et les indicateurs. Voir [Rôles](/docs/permissions/reference#rôles).
+
+## Ajouter une liste gratuite
+
+La carte **Listes gratuites** de **Threat Intel** ajoute une liste de blocage gratuite en un clic : cliquez sur **Ajouter la liste** sur une liste, et OneUptime crée un flux qui la télécharge selon le calendrier de la liste. Une liste que le projet lit déjà indique **Ajouté**.
+
+| Liste | Publiée par | Lue | Confiance | Une correspondance ouvre |
+| --- | --- | --- | --- | --- |
+| Serveurs C2 de botnets de Feodo Tracker | abuse.ch | Toutes les heures | 90, Critical | Un dossier et une alerte |
+| Hôtes compromis d'Emerging Threats | Proofpoint Emerging Threats | Tous les jours | 70, High | Un dossier et une alerte |
+| Nœuds de sortie Tor | The Tor Project | Toutes les heures | 30, Low | Un dossier |
+
+La tuile d'une liste renvoie à ses conditions : Feodo Tracker est libre pour tout usage (CC0), et la liste Emerging Threats est sous licence BSD. Un flux ajouté depuis une liste se modifie et se supprime comme les autres.
 
 ## S'abonner à un flux
 
@@ -35,7 +50,7 @@ Ouvrez **Produits → Événements de sécurité → Détections → Threat Inte
 
 ### Créer le flux
 
-Cliquez sur **Créer : Flux de renseignements sur les menaces** et remplissez ses trois étapes : **Serveur TAXII**, **Connexion** et **En cas de correspondance**. Les champs figurent dans le tableau ci-dessous.
+Cliquez sur **Créer : Flux de renseignements sur les menaces** et choisissez sa **Source** : **Liste d'indicateurs**, **Collection TAXII** ou **Google SecOps**. L'étape suivante ne demande que cette source : l'**URL de la liste** pour une liste, le **Serveur TAXII** et la **Connexion** pour une collection, ou la **Connexion Google SecOps**. **En cas de correspondance** vient en dernier. Les champs figurent dans le tableau ci-dessous.
 
 ### Vérifier la première interrogation
 
@@ -44,10 +59,14 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 
 | Champ | Ce qu'il faut saisir |
 | --- | --- |
+| **Source** | D'où viennent les indicateurs. Elle est fixée à la création du flux : un flux d'une autre source est un nouveau flux. |
+| **URL de la liste** | Pour une liste : l'adresse `https` d'un fichier texte avec une adresse IP, un domaine, une URL ou un hachage de fichier par ligne. |
+| **Confiance** | Pour une liste : le degré de certitude de la liste, de 1 à 100. Chaque indicateur de la liste le reçoit, et il fixe le [niveau de menace](#niveaux-de-menace) ; vide, c'est Medium. |
+| **Connexion Google SecOps** | Pour Google SecOps : la connexion dont la clé lit les indicateurs que Google SecOps a trouvés. **Connecter Google SecOps** ouvre **Connexions** quand il n'y en a aucune. |
 | **TAXII API Root URL** | La racine de l'API TAXII 2.1 du serveur, par exemple `https://taxii.example.com/api1/`. Les collections sont adressées en dessous. |
 | **ID de la collection** | La collection qui publie les indicateurs. |
-| **Poll Interval (Minutes)** | La fréquence de récupération des nouveaux objets : de 1 à 1440 minutes, 60 par défaut. |
-| **Confiance minimale** | Les indicateurs dont la `confidence` STIX est inférieure sont ignorés : de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
+| **Poll Interval (Minutes)** | La fréquence de lecture de la source : de 1 à 1440 minutes, 60 par défaut. Une liste est lue au plus toutes les 15 minutes. |
+| **Confiance minimale** | Pour une collection TAXII ou Google SecOps : les indicateurs de confiance inférieure sont ignorés, de 0 à 100, et 0 garde tout. Les indicateurs sans confiance passent toujours. |
 | **Connexion** | La façon dont OneUptime se connecte : **Sans connexion** pour une collection publique, **Jeton bearer** pour un jeton fourni par l'opérateur du serveur, ou **Nom d'utilisateur et mot de passe** pour l'authentification HTTP basique. |
 | **Jeton d'API**, **Nom d'utilisateur Basic Auth** et **Mot de passe Basic Auth** | Demandés seulement pour la connexion choisie. |
 | **Open a Case on Match** | Activé par défaut : chaque événement qui nomme un indicateur ouvre un [dossier](/docs/telemetry/security-cases) sur cet indicateur, ou rejoint le dossier ouvert qui porte déjà sur lui. |
@@ -57,7 +76,7 @@ En une minute ou deux, la ligne du flux affiche **Dernière interrogation**, et 
 | **Gravité de l'incident** | Comme **Gravité de l'alerte**, pour les incidents. |
 | **Write Detection Finding on Match** | Activé par défaut : chaque correspondance écrit un constat dans le flux d'événements. |
 
-Les jetons et les mots de passe sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Update Credentials** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
+Les jetons et les mots de passe d'un flux TAXII sont chiffrés et ne sont plus jamais affichés après l'enregistrement. Pour les changer, choisissez **Update Credentials** dans la ligne du flux, puis **Jeton bearer**, **Nom d'utilisateur et mot de passe** ou **Sans connexion**, qui efface ce qui est enregistré : votre choix remplace la connexion du flux, donc enregistrer un jeton efface un mot de passe enregistré, et inversement.
 
 ### Comment un flux est interrogé
 
@@ -67,9 +86,22 @@ Les interrogations se présentent avec l'user agent `OneUptime/<version> (+https
 
 Un flux désactivé n'est ni interrogé ni confronté. Les indicateurs qu'il possède déjà continuent de marquer les nouveaux événements jusqu'à leur expiration.
 
+### Comment une liste est lue
+
+- Chaque interrogation télécharge toute la liste et la lit ligne par ligne : la première valeur d'une ligne, jusqu'à une espace, une tabulation, une virgule ou un point-virgule. Les lignes qui commencent par `#`, `;` ou `//` sont des commentaires, un port après une adresse ou un domaine est retiré, et une plage d'adresses comme `198.51.100.0/24` est ignorée.
+- Une valeur reste un indicateur actif pendant 2 jours après l'interrogation qui l'a lue en dernier, et une valeur que la liste retire cesse de correspondre à l'interrogation suivante. Une liste qui n'a pas changé est réécrite une fois par jour.
+- Une liste contient au plus 50 000 indicateurs. **Résumé de la dernière interrogation** indique combien ont été lus, combien de lignes ont été ignorées et combien ont été laissés de côté.
+- L'adresse doit utiliser `https` et suit les mêmes règles sortantes qu'une connexion : sur OneUptime Cloud, une adresse privée est refusée.
+
+### Comment Google SecOps est lu
+
+- Chaque interrogation lit les correspondances d'indicateurs que Google SecOps a enregistrées depuis l'interrogation précédente, avec les attributs de Mandiant : le domaine, l'adresse ou le hachage de fichier en cause, sa confiance, sa catégorie, et les campagnes et acteurs auxquels il est lié. La première interrogation lit les 7 derniers jours.
+- Un indicateur reste actif pendant 30 jours après que Google SecOps l'a vu pour la dernière fois, ou jusqu'à ce que sa source le déclare inactif, et celui qu'un analyste a mis en sourdine dans Google SecOps cesse aussi de correspondre ici.
+- Une correspondance que Google SecOps marque comme une intrusion active est Critical, et une correspondance de haute priorité est au moins High.
+
 ## Ce qui est ingéré
 
-OneUptime conserve les objets STIX de type `indicator` dont le motif est une simple égalité sur l'un de ces types :
+D'une collection TAXII, OneUptime conserve les objets STIX de type `indicator` dont le motif est une simple égalité sur l'un de ces types. Une liste et Google SecOps donnent les mêmes types :
 
 | Type | Exemple de motif |
 | --- | --- |
@@ -108,7 +140,7 @@ Chaque événement de sécurité entrant, depuis l'API d'ingestion ou une connex
 | Attribut | Valeur |
 | --- | --- |
 | `threat.matched` | Toujours `"true"` sur un événement marqué |
-| `threat.indicator_id` | L'ID de l'indicateur STIX |
+| `threat.indicator_id` | L'ID de l'indicateur STIX, ou `list` ou `google-secops` pour ces sources |
 | `threat.indicator_type` | Le type de l'indicateur, par exemple `ipv4-addr` ou `file-hash-sha256` |
 | `threat.indicator_value` | La valeur correspondante, en minuscules |
 | `threat.feed` / `threat.feed_id` | Le flux d'où vient l'indicateur |
@@ -149,7 +181,7 @@ Chaque minute, les indicateurs actifs de chaque flux activé sont confrontés au
 | Attribut | Valeur |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | Le flux |
-| `oneuptime.threat.indicator_id` | L'ID de l'indicateur STIX |
+| `oneuptime.threat.indicator_id` | L'ID de l'indicateur STIX, ou `list` ou `google-secops` pour ces sources |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | Ce qui a correspondu |
 | `oneuptime.threat.confidence` | La confiance de l'indicateur |
 | `oneuptime.threat.match_count` | Combien d'événements se trouvent derrière ce constat |
@@ -195,7 +227,15 @@ Lisez **Résumé de la dernière interrogation**. Aucun objet récupéré : la c
 :::
 
 :::details Des indicateurs existent, mais rien ne correspond
-La confrontation compare la valeur d'un indicateur aux observables d'un événement, pas à chaque champ : ouvrez dans **Événements** un événement qui aurait dû correspondre et vérifiez que ses observables contiennent la valeur. Seuls les indicateurs au statut **Actif** correspondent. Vérifiez **Erreur de la dernière correspondance** sur le flux.
+La confrontation compare la valeur d'un indicateur aux observables d'un événement, pas à chaque champ : ouvrez dans **Événements** un événement qui aurait dû correspondre et vérifiez que ses observables contiennent la valeur. Seuls les indicateurs au statut **Actif** correspondent. Si le **Statut** du flux indique **Échec de la comparaison**, **Voir l'erreur** dans sa ligne en donne la raison.
+:::
+
+:::details La Dernière erreur d'un flux de liste dit que l'adresse a répondu par une page web
+L'**URL de la liste** ouvre une page, comme une page de connexion ou d'erreur, et non la liste : ouvrez-la dans un navigateur et copiez l'adresse du fichier lui-même. Une liste dont le texte ne contient aucune adresse IP, aucun domaine, aucune URL ni aucun hachage de fichier est refusée de la même façon, et les indicateurs du flux restent tels qu'ils étaient.
+:::
+
+:::details La Dernière erreur d'un flux Google SecOps indique HTTP 403
+Le compte de service de la connexion ne peut pas rechercher les correspondances d'indicateurs : accordez-lui `roles/chronicle.viewer`. Si la connexion a été supprimée, le flux le signale : modifiez-le et choisissez une autre **Connexion Google SecOps**.
 :::
 
 :::details Une correspondance n'a pas ouvert d'alerte

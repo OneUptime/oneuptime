@@ -35,6 +35,8 @@ export interface SecurityEventForCase {
   principalHost?: string | undefined;
   principalIp?: string | undefined;
   principalProcess?: string | undefined;
+  processName?: string | undefined;
+  parentProcessName?: string | undefined;
   targetUser?: string | undefined;
   targetHost?: string | undefined;
   targetIp?: string | undefined;
@@ -63,6 +65,8 @@ const TYPED_FIELDS: Array<keyof SecurityEventForCase> = [
   "principalHost",
   "principalIp",
   "principalProcess",
+  "processName",
+  "parentProcessName",
   "targetUser",
   "targetHost",
   "targetIp",
