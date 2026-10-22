@@ -147,6 +147,28 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
+## 將安全性事件傳送到 Splunk
+
+OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現的內容傳送到 Splunk，讓你的搜尋和儀表板在你自己的偵測結果旁邊看到 OneUptime 的偵測結果。每個安全性事件都是一個 sourcetype 為 `oneuptime:security` 的 HEC 事件，其欄位依 Splunk 的 Common Information Model 命名：`src`、`src_ip`、`src_user`、`dest`、`dest_ip`、`dest_port`、`user`、`signature` 和 `severity`。
+
+:::steps
+### 建立 HEC 權杖
+
+在 Splunk Web 中開啟 **Settings → Data inputs → HTTP Event Collector**，按一下 **New Token**。為它命名，選擇它可以寫入的索引及其預設索引，然後複製權杖的值。在 Splunk Cloud 上，HEC 接聽 `https://http-inputs-<stack>.splunkcloud.com`；在 Splunk Enterprise 上，在 **Global Settings** 開啟權杖後接聽連接埠 `8088`。
+
+### 新增目的地
+
+開啟 **產品 → Security Events → Connections**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Splunk，然後按一下 **下一步**。填寫 **HEC URL**，並把權杖貼到 **HEC 權杖** 中。**Index** 和 **來源類型** 是選用的：留空時，事件會以 sourcetype `oneuptime:security` 進入權杖的預設索引。
+
+### 傳送測試事件並開始傳送
+
+按一下 **傳送測試事件**：一個資訊等級的事件會依表單中的設定傳送到 Splunk，不會儲存任何內容。用 `sourcetype="oneuptime:security"` 搜尋它。接著在 **傳送內容** 下保留 **僅偵測結果** 或選擇 **所有安全事件**，再按一下 **開始傳送**。
+:::
+
+- **HEC URL** 必須使用 `https`，並帶有 OneUptime 信任的憑證：憑證檢查從不略過。
+- 事件以每批最多 500 個傳送。Splunk 拒絕的事件會被略去並在 **檢視錯誤** 中列出，忙碌的收集器（`503`）會重試，權杖或索引被拒絕時會停止傳送，直到你修正它。
+- OneUptime 從 Splunk 匯入的 notable event 永遠不會被傳回 Splunk。
+
 ## 疑難排解
 
 連線的 **最近的錯誤** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **複製錯誤** 複製。請先閱讀字首。

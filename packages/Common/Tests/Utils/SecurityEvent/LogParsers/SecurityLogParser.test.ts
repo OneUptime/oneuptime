@@ -17,6 +17,11 @@ import SecurityLogParser, {
   matchesSecurityLogPrefilter,
 } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  DetectionRuleDefinition,
+  SigmaCorrelationStep,
+} from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import {
@@ -388,6 +393,67 @@ describe("the recommended rules fire on what the log parsers make", () => {
     },
   );
 
+  /*
+   * A recommended correlation fires on a run of events, not on one: each of
+   * its steps is shown matching the log line it reads.
+   */
+  const EXPECTED_STEP_MATCHES: Array<[string, string, string]> = [
+    [
+      "Failed sign-ins, then a success from the same address",
+      "Failed sign-in",
+      SSH_LINES.failedPasswordInvalidUser,
+    ],
+    [
+      "Failed sign-ins, then a success from the same address",
+      "Successful sign-in",
+      SSH_LINES.acceptedPublicKey,
+    ],
+  ];
+
+  function correlationTitled(
+    title: string,
+  ): Extract<DetectionRuleDefinition, { kind: "correlation" }> {
+    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+      ruleTitled(title).sigmaRuleYaml,
+    );
+
+    if (definition.kind !== "correlation") {
+      throw new Error(`${title} is not a correlation`);
+    }
+
+    return definition;
+  }
+
+  // The Sigma rules a step reads: its own, or the ones a counting step counts.
+  function stepRules(step: SigmaCorrelationStep): Array<SigmaRule> {
+    return step.rule ? [step.rule] : step.count ? step.count.rules : [];
+  }
+
+  test.each(EXPECTED_STEP_MATCHES)(
+    "%s: its step %s fires on an event from the logs",
+    (title: string, stepTitle: string, line: string) => {
+      const definition: Extract<
+        DetectionRuleDefinition,
+        { kind: "correlation" }
+      > = correlationTitled(title);
+      const rules: Array<SigmaRule> = definition.steps.flatMap(stepRules);
+      const rule: SigmaRule | undefined = rules.find(
+        (candidate: SigmaRule): boolean => {
+          return candidate.title === stepTitle;
+        },
+      );
+      const events: Array<NormalizedSecurityEvent> = parse(line);
+
+      expect(rule).toBeDefined();
+      expect(events.length).toBeGreaterThan(0);
+      expect(
+        events.some((event: NormalizedSecurityEvent): boolean => {
+          return sigmaRuleMatchesEvent(rule!, event);
+        }),
+      ).toBe(true);
+    },
+  );
+
   test("a successful sign-in fires none of them", () => {
     const events: Array<NormalizedSecurityEvent> = parse(
       SSH_LINES.acceptedPublicKey,
@@ -396,6 +462,11 @@ describe("the recommended rules fire on what the log parsers make", () => {
     expect(events).toHaveLength(1);
 
     for (const entry of getRecommendedDetectionRules()) {
+      // A correlation needs more than one event (its steps are shown above).
+      if (SigmaRuleSetParser.isCorrelationYaml(entry.sigmaRuleYaml)) {
+        continue;
+      }
+
       const rule: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
 
       expect([entry.title, sigmaRuleMatchesEvent(rule, events[0]!)]).toEqual([
@@ -406,11 +477,16 @@ describe("the recommended rules fire on what the log parsers make", () => {
   });
 
   test("every recommended rule that reads a log format is shown firing above", () => {
-    const shown: Set<string> = new Set(
-      EXPECTED_MATCHES.map((match: [string, string]): string => {
+    const shown: Set<string> = new Set([
+      ...EXPECTED_MATCHES.map((match: [string, string]): string => {
         return match[0];
       }),
-    );
+      ...EXPECTED_STEP_MATCHES.map(
+        (match: [string, string, string]): string => {
+          return match[0];
+        },
+      ),
+    ]);
     const notShown: Array<string> = getRecommendedDetectionRules()
       .map((entry: DetectionRuleLibraryEntry): string => {
         return entry.title;

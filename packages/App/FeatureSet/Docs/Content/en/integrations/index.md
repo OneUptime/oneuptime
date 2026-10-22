@@ -50,12 +50,12 @@ Start from the top of the table: the higher a way is, the less there is to maint
 | Tool | Direction | What it does |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Inbound | Page on-call for Huntress incident reports, and resolve the incident when the report closes. |
-| [Google SecOps](/docs/integrations/google-secops) | Inbound | Bring Google SecOps detections into Security Events. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Inbound | Bring Microsoft Sentinel incidents into Security Events. |
+| [Google SecOps](/docs/integrations/google-secops) | Both | Bring Google SecOps detections and indicators into Security Events, and send it what OneUptime finds. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Both | Bring Microsoft Sentinel incidents into Security Events, and send it what OneUptime finds. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Inbound | Bring Microsoft Defender XDR alerts into Security Events. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Inbound | Bring CrowdStrike Falcon alerts into Security Events. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Inbound | Bring Splunk notable events into Security Events. |
-| [Elastic Security](/docs/integrations/elastic-security) | Inbound | Bring Elastic Security detection alerts into Security Events. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Both | Bring Splunk notable events into Security Events, and send it what OneUptime finds. |
+| [Elastic Security](/docs/integrations/elastic-security) | Both | Bring Elastic Security detection alerts into Security Events, and send it what OneUptime finds. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inbound | Bring AWS Security Hub findings into Security Events. |
 | [Okta System Log](/docs/integrations/okta) | Inbound | Bring Okta sign-ins, account changes and threat detections into Security Events. |
 

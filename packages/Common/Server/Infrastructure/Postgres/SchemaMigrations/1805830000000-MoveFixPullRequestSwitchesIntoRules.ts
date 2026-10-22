@@ -142,10 +142,10 @@ export function getRestoreProjectSwitchesStatement(
   return `UPDATE "Project" AS project SET "${signal.codeFix}" = (project."${signal.fix}" = true AND NOT EXISTS (SELECT 1 FROM "AutoRemediationRule" AS rule WHERE rule."projectId" = project."_id" AND rule."triggerEntityType" = '${signal.triggerEntityType}' AND rule."deletedAt" IS NULL AND rule."openCodeFixPullRequests" = false)), "${signal.telemetry}" = (project."${signal.fix}" = true AND NOT EXISTS (SELECT 1 FROM "AutoRemediationRule" AS rule WHERE rule."projectId" = project."_id" AND rule."triggerEntityType" = '${signal.triggerEntityType}' AND rule."deletedAt" IS NULL AND rule."openTelemetryPullRequests" = false))`;
 }
 
-export class MoveFixPullRequestSwitchesIntoRules1805820000000
+export class MoveFixPullRequestSwitchesIntoRules1805830000000
   implements MigrationInterface
 {
-  public name: string = "MoveFixPullRequestSwitchesIntoRules1805820000000";
+  public name: string = "MoveFixPullRequestSwitchesIntoRules1805830000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

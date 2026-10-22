@@ -8,17 +8,24 @@
  *
  * A value names the same product as the inbound connector of that product
  * (SecurityEventConnectorProvider), so "google-secops" is Google SecOps
- * whichever way the events flow. Splunk, Microsoft Sentinel and Elastic
- * follow as one entry here, one in the catalog and one sender each.
+ * whichever way the events flow, and "splunk" Splunk.
  */
 enum SecurityEventDestinationProvider {
   GoogleSecOps = "google-secops",
+  Splunk = "splunk",
+  MicrosoftSentinel = "microsoft-sentinel",
+  ElasticSecurity = "elastic-security",
 }
 
 export default SecurityEventDestinationProvider;
 
 export const AllSecurityEventDestinationProviders: Array<SecurityEventDestinationProvider> =
-  [SecurityEventDestinationProvider.GoogleSecOps];
+  [
+    SecurityEventDestinationProvider.GoogleSecOps,
+    SecurityEventDestinationProvider.Splunk,
+    SecurityEventDestinationProvider.MicrosoftSentinel,
+    SecurityEventDestinationProvider.ElasticSecurity,
+  ];
 
 export function isSecurityEventDestinationProvider(
   value: unknown,

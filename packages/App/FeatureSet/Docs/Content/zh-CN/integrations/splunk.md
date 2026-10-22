@@ -147,6 +147,28 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
+## 将安全事件发送到 Splunk
+
+OneUptime 也可以通过 Splunk 的 HTTP Event Collector（HEC）把它发现的内容发送到 Splunk，让你的搜索和仪表板在你自己的检测结果旁边看到 OneUptime 的检测结果。每个安全事件都是一个 sourcetype 为 `oneuptime:security` 的 HEC 事件，其字段按 Splunk 的 Common Information Model 命名：`src`、`src_ip`、`src_user`、`dest`、`dest_ip`、`dest_port`、`user`、`signature` 和 `severity`。
+
+:::steps
+### 创建 HEC 令牌
+
+在 Splunk Web 中打开 **Settings → Data inputs → HTTP Event Collector**，点击 **New Token**。为它命名，选择它可以写入的索引及其默认索引，然后复制令牌的值。在 Splunk Cloud 上，HEC 监听 `https://http-inputs-<stack>.splunkcloud.com`；在 Splunk Enterprise 上，在 **Global Settings** 打开令牌后监听端口 `8088`。
+
+### 添加目标
+
+打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Splunk，然后点击 **下一步**。填写 **HEC URL**，并把令牌粘贴到 **HEC 令牌** 中。**Index** 和 **源类型** 是可选的：留空时，事件会以 sourcetype `oneuptime:security` 进入令牌的默认索引。
+
+### 发送测试事件并开始发送
+
+点击 **发送测试事件**：一个信息级事件会按表单中的设置发送到 Splunk，不会保存任何内容。用 `sourcetype="oneuptime:security"` 搜索它。然后在 **发送内容** 下保留 **仅检测结果** 或选择 **所有安全事件**，再点击 **开始发送**。
+:::
+
+- **HEC URL** 必须使用 `https`，并带有 OneUptime 信任的证书：证书检查从不跳过。
+- 事件按每批最多 500 个发送。Splunk 拒绝的事件会被略去并在 **查看错误** 中列出，繁忙的收集器（`503`）会重试，令牌或索引被拒绝时会停止发送，直到你修复它。
+- OneUptime 从 Splunk 导入的 notable event 永远不会被发回 Splunk。
+
 ## 故障排除
 
 连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。

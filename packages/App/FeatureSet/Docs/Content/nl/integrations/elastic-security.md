@@ -142,6 +142,48 @@ Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er me
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
+## Beveiligingsgebeurtenissen naar Elastic Security sturen
+
+OneUptime kan wat het vindt ook naar Elasticsearch sturen, als Elastic Common Schema (ECS)-documenten in een datastream, zodat de waarschuwingen, tijdlijnen en detectieregels van Elastic Security de detecties van OneUptime naast die van jezelf zien. Een detectie is een document met `event.kind` `alert`, en elke andere gebeurtenis heeft `event.kind` `event`.
+
+:::steps
+### Een API-sleutel maken die mag schrijven
+
+Open in Kibana **Stack Management → API keys**, klik op **Create API key**, geef de sleutel de rechten hieronder en kopieer de waarde **Encoded**.
+
+### De bestemming toevoegen
+
+Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Elastic Security onder **SIEM** en klik op **Volgende**. Vul de **Elasticsearch-URL** in, het Elasticsearch-eindpunt van de deployment en niet dat van Kibana, en plak de sleutel in **API-sleutel**. **Datastream** is optioneel: leeg gelaten gaan documenten naar `logs-oneuptime.security-default`, die Elasticsearch bij de eerste schrijfactie maakt.
+
+### Een testgebeurtenis verzenden en beginnen met verzenden
+
+Klik op **Testgebeurtenis verzenden**: er komt één document aan in de datastream. Laat daarna onder **Wat te verzenden** de keuze **Alleen detecties** staan of kies **Alle beveiligingsgebeurtenissen**, en klik op **Beginnen met verzenden**.
+:::
+
+De rechten van de sleutel, voor de standaarddatastream:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Documenten gaan in batches van maximaal 500, elk met de eigen id van zijn gebeurtenis, zodat een gebeurtenis die twee keer wordt verzonden één keer wordt opgeslagen.
+- Een document dat Elasticsearch niet kan mappen, wordt weggelaten en genoemd in **Fout bekijken**, en een document dat het nu niet kan aannemen (`429`), wordt opnieuw verzonden.
+- Waarschuwingen die OneUptime uit Elastic Security heeft geïmporteerd, worden nooit naar Elastic Security teruggestuurd.
+
 ## Problemen oplossen
 
 De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.

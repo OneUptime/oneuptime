@@ -152,6 +152,22 @@ jest.mock("../../../UI/Components/ModelTable/AnalyticsModelTable", () => {
   };
 });
 
+/*
+ * Free Lists, above the feeds, reads the project's feeds on its own: it has
+ * a suite of its own (ThreatIntelSourcesUi), and stands aside here.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelRecommendedLists",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
+
 import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import {
@@ -459,6 +475,7 @@ describe("the threat intel feeds table says whether each feed works", () => {
 
     expect(columnTitles("ThreatIntelFeed", "shown")).toEqual([
       "Name",
+      "Source",
       "Status",
       "Last Polled",
       "Last Match",
@@ -593,6 +610,7 @@ describe("the detection rules table says whether each rule works", () => {
 
     expect(columnTitles("DetectionRule", "shown")).toEqual([
       "Name",
+      "Type",
       "Status",
       "Last Match",
       "Last Evaluated",

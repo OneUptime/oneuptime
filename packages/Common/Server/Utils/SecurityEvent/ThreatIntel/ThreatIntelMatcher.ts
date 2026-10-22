@@ -25,6 +25,7 @@ import {
   THREAT_INTEL_PRODUCT_NAME,
   THREAT_INTEL_SERVICE_NAME,
   THREAT_MATCH_COUNT_ATTRIBUTE,
+  isStixIndicatorId,
   ocsfSeverityForConfidence,
 } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
@@ -789,7 +790,7 @@ export default class ThreatIntelMatcher {
       )} and ${OneUptimeDate.getDateAsFormattedString(data.endTime)}.`,
     );
 
-    if (matchGroup.stixId) {
+    if (isStixIndicatorId(matchGroup.stixId)) {
       descriptionParts.push(`STIX indicator: ${matchGroup.stixId}`);
     }
 

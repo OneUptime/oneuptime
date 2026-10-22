@@ -105,6 +105,8 @@ För att arbeta med flera ärenden samtidigt markerar du dem i kön och använde
 
 Bedömningarna räknas på översikten. En regel vars ärenden gång på gång stängs som False Positive är en regel som behöver finjusteras.
 
+Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng varningar när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-varningar-när-deras-ärende-stängs).
+
 ### Deklarera en incident
 
 **Deklarera incident** öppnar en OneUptime-incident för ärendet, med den allvarlighetsgrad du väljer, och länkar dem åt båda hållen: incidentens beskrivning nämner ärendet, och ärendets rubrik länkar till incidenten. Därifrån tar jour, statussidor och postmortem över. Det kräver en roll som både kan arbeta med ärenden och skapa incidenter.

@@ -288,7 +288,64 @@ OneUptime kører den boolske kerne af Sigma:
 - `Image` og `CommandLine` læser den proces, som begivenheden handler om, ved en processtart den, der startede (`processPath`, `processCommandLine`), og `ParentImage` og `ParentCommandLine` den proces, der startede den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` er den proces, der handlede, hvilket ved en processtart er den overordnede.
 - `level` angiver alvorligheden: `informational`, `low`, `medium`, `high` eller `critical`, og `medium`, når den mangler. ATT&CK-ID'er i `tags` (`attack.t1110`, `attack.ta0006`) udfylder fundets MITRE-felter.
 
-Aggregeringer som `| count() by principalIp > 5` afvises, når du gemmer: brug i stedet **Group By Field** og **Match Count Threshold**. `logsource` er kun informativ og indsnævrer intet: læg det filter i en selektion, f.eks. `className: Authentication`. En `timeframe` ignoreres, fordi regelens interval bestemmer dens vindue.
+Aggregeringer som `| count() by principalIp > 5` afvises, når du gemmer: brug i stedet en [korrelationsregel](#korrelationsregler) eller **Group By Field** og **Match Count Threshold**. `logsource` er kun informativ og indsnævrer intet: læg det filter i en selektion, f.eks. `className: Authentication`. En `timeframe` ignoreres, fordi regelens interval bestemmer dens vindue.
+
+### Korrelationsregler
+
+En [Sigma-korrelation](https://sigmahq.io/docs/meta/correlations.html) udløses af flere hændelser sammen i stedet for én. Indsæt den i **Sigma Rule (YAML)** sammen med de regler, den læser, som YAML-dokumenter adskilt af `---`, eller navngiv regler, projektet allerede har, med deres Sigma-`name` eller -`id`. **Rule Library** har færdige, f.eks. mislykkede logins efterfulgt af et vellykket.
+
+| Type | Udløses, når | Vises som |
+| --- | --- | --- |
+| `event_count` | Én gruppe når et antal hændelser inden for `timespan` | Antal hændelser |
+| `value_count` | Én gruppe viser et antal forskellige værdier af et felt inden for `timespan` | Forskellige værdier |
+| `temporal` | Hver regel matcher for den samme gruppe inden for `timespan`, i vilkårlig rækkefølge | Hændelser sammen |
+| `temporal_ordered` | Reglerne matcher i deres rækkefølge for den samme gruppe inden for `timespan` | Sequence |
+| `new_value` | En gruppe viser en værdi af et felt, den ikke har vist inden for `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- En gruppe er værdien af felterne i `group-by`, f.eks. én adresse. Optællinger er rullende: et udbrud, som to kørsler deler, tælles stadig helt inden for sit `timespan`, som højst er 24 timer.
+- `new_value` er OneUptimes egen type, da Sigma ikke har nogen korrelation for "set første gang": den sammenligner med op til 30 dages historik. `value_sum`, `value_avg`, `value_percentile` og `value_median` afvises, når du gemmer.
+- Kolonnen **Type** i **Detection Rules** angiver hver regels slags, og formularen siger i én sætning, hvad reglen leder efter.
 
 ### Evalueringsindstillinger
 

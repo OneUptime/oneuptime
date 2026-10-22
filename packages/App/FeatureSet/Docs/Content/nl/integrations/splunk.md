@@ -147,6 +147,28 @@ Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er me
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
+## Beveiligingsgebeurtenissen naar Splunk sturen
+
+OneUptime kan wat het vindt ook naar Splunk sturen, via de HTTP Event Collector (HEC), zodat je zoekopdrachten en dashboards de detecties van OneUptime naast die van jezelf zien. Elke beveiligingsgebeurtenis is één HEC-gebeurtenis met de sourcetype `oneuptime:security`, met velden die heten zoals het Common Information Model van Splunk ze noemt: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` en `severity`.
+
+:::steps
+### Een HEC-token maken
+
+Open in Splunk Web **Settings → Data inputs → HTTP Event Collector** en klik op **New Token**. Geef het een naam, kies de indexen waarin het mag schrijven en de standaardindex, en kopieer de waarde van het token. Op Splunk Cloud luistert HEC op `https://http-inputs-<stack>.splunkcloud.com`; op Splunk Enterprise op poort `8088` zodra **Global Settings** tokens aanzet.
+
+### De bestemming toevoegen
+
+Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Splunk onder **SIEM** en klik op **Volgende**. Vul de **HEC-URL** in en plak het token in **HEC-token**. **Index** en **Brontype** zijn optioneel: leeg gelaten gaan gebeurtenissen naar de standaardindex van het token met de sourcetype `oneuptime:security`.
+
+### Een testgebeurtenis verzenden en beginnen met verzenden
+
+Klik op **Testgebeurtenis verzenden**: één informatieve gebeurtenis gaat met de instellingen van het formulier naar Splunk, en er wordt niets opgeslagen. Zoek haar met `sourcetype="oneuptime:security"`. Laat daarna onder **Wat te verzenden** de keuze **Alleen detecties** staan of kies **Alle beveiligingsgebeurtenissen**, en klik op **Beginnen met verzenden**.
+:::
+
+- De **HEC-URL** moet `https` gebruiken, met een certificaat dat OneUptime vertrouwt: certificaatcontroles worden nooit overgeslagen.
+- Gebeurtenissen gaan in batches van maximaal 500. Een gebeurtenis die Splunk weigert, wordt weggelaten en genoemd in **Fout bekijken**, een drukke collector (`503`) wordt opnieuw geprobeerd, en een geweigerd token of een geweigerde index stopt het verzenden totdat je het oplost.
+- Notable events die OneUptime uit Splunk heeft geïmporteerd, worden nooit naar Splunk teruggestuurd.
+
 ## Problemen oplossen
 
 De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.

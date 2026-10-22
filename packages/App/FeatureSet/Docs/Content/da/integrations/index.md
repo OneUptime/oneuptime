@@ -50,12 +50,12 @@ Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at ved
 | Værktøj | Retning | Hvad det gør |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Indgående | Kalder vagten op ved hændelsesrapporter fra Huntress og løser hændelsen, når rapporten lukkes. |
-| [Google SecOps](/docs/integrations/google-secops) | Indgående | Henter detektioner fra Google SecOps ind i Sikkerhedshændelser. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Indgående | Henter hændelser fra Microsoft Sentinel ind i Sikkerhedshændelser. |
+| [Google SecOps](/docs/integrations/google-secops) | Begge | Henter detektioner og indikatorer fra Google SecOps ind i Sikkerhedshændelser og sender det, OneUptime finder, dertil. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Begge | Henter hændelser fra Microsoft Sentinel ind i Sikkerhedshændelser og sender det, OneUptime finder, dertil. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Indgående | Henter alarmer fra Microsoft Defender XDR ind i Sikkerhedshændelser. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Indgående | Henter alarmer fra CrowdStrike Falcon ind i Sikkerhedshændelser. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Indgående | Henter notable events fra Splunk ind i Sikkerhedshændelser. |
-| [Elastic Security](/docs/integrations/elastic-security) | Indgående | Henter detektionsalarmer fra Elastic Security ind i Sikkerhedshændelser. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Begge | Henter notable events fra Splunk ind i Sikkerhedshændelser og sender det, OneUptime finder, dertil. |
+| [Elastic Security](/docs/integrations/elastic-security) | Begge | Henter detektionsalarmer fra Elastic Security ind i Sikkerhedshændelser og sender det, OneUptime finder, dertil. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Indgående | Henter fund fra AWS Security Hub ind i Sikkerhedshændelser. |
 | [Okta System Log](/docs/integrations/okta) | Indgående | Henter logins, kontoændringer og trusselsdetektioner fra Okta ind i Sikkerhedshændelser. |
 

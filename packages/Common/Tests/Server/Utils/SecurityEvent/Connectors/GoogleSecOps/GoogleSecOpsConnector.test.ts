@@ -367,9 +367,11 @@ describe("GoogleSecOpsConnector.validateSettings", () => {
     ].map((field: ConnectorField): string => {
       return field.title;
     });
+    // The switch on the form's last step is a setting too, with no wrong value.
     expect(titles).toEqual([
       "Region",
       "Instance resource name",
+      "Close alerts when their case closes",
       "Service account JSON",
     ]);
 

@@ -159,6 +159,75 @@ Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og a
 
 Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre.
 
+## Send sikkerhedshændelser til Microsoft Sentinel
+
+OneUptime kan også sende det, den finder, til Microsoft Sentinel gennem Azure Monitors Logs Ingestion API, ind i en brugerdefineret tabel i det arbejdsområde, Sentinel kører på. Dine analyseregler, hunting-forespørgsler og projektmapper forespørger derefter `OneUptimeSecurityEvents_CL` ved siden af dine andre tabeller.
+
+:::steps
+### Opret tabellen og dens dataindsamlingsregel
+
+Åbn arbejdsområdets **Tables → Create → New custom log (DCR-based)** i Azure-portalen. Kald tabellen `OneUptimeSecurityEvents`, opret en ny dataindsamlingsregel og et dataindsamlingsslutpunkt, hvis formularen beder om et. Upload eksemplet nedenfor som eksempelfil, behold transformationen, som den er, og opret tabellen.
+
+### Lad et program sende til den
+
+Registrér et program, og giv det en klienthemmelighed som i [Registrér et program](#registrér-et-program). Åbn derefter dataindsamlingsreglen, **Access control (IAM) → Add → Add role assignment**, vælg **Monitoring Metrics Publisher**, og vælg programmet.
+
+### Tilføj destinationen
+
+Åbn **Produkter → Security Events → Connections**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Microsoft Sentinel under **SIEM**, og klik på **Næste**. Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Client secret**, **Slutpunkt til logindtagelse** fra dataindsamlingsslutpunktets (eller reglens) **Overview** og **Uforanderligt ID for dataindsamlingsreglen** fra reglens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
+
+### Send en testhændelse, og begynd at sende
+
+Klik på **Send en testhændelse**: én række når tabellen inden for få minutter. Behold derefter **Kun detektioner** under **Hvad der skal sendes**, eller vælg **Alle sikkerhedshændelser**, og klik på **Begynd at sende**.
+:::
+
+Eksempelfilen, én række med alle tabellens kolonner:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API tager op til 1 MB pr. kald, så rækker sendes i batches på op til 500. En batch, Azure afviser, deles, indtil den række, den ikke vil tage, er fundet og udeladt, og begrænsning (`429`) prøves igen.
+- En `403` betyder, at programmet mangler **Monitoring Metrics Publisher** på reglen, og en `404` et forkert uforanderligt ID eller en forkert strøm.
+- Hændelser, som OneUptime har importeret fra Microsoft Sentinel, sendes aldrig tilbage dertil.
+
 ## Fejlfinding
 
 Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsoplysninger maskeret, bag et præfiks, der navngiver det trin, der mislykkedes. Når en forbindelse har en fejl, vælger du **Vis fejl** i dens kolonne **Handlinger** for at læse den og **Kopiér fejl** i dialogboksen for at kopiere den. Læs præfikset først.

@@ -159,6 +159,75 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 टेस्ट के हर अनुरोध की समय सीमा 20 सेकंड है। टेस्ट कभी कुछ इम्पोर्ट नहीं करता और न कर्सर हिलाता है, और हर विफल जांच बताती है कि क्या बदलना है।
 
+## Microsoft Sentinel को सुरक्षा इवेंट भेजें
+
+OneUptime जो पाता है उसे Azure Monitor के Logs Ingestion API के ज़रिए Microsoft Sentinel को भी भेज सकता है, उस वर्कस्पेस की एक कस्टम टेबल में जिस पर Sentinel चलता है। फिर आपके एनालिटिक्स नियम, हंटिंग क्वेरी और वर्कबुक आपकी दूसरी टेबल के साथ `OneUptimeSecurityEvents_CL` से क्वेरी करते हैं।
+
+:::steps
+### टेबल और उसका डेटा संग्रह नियम बनाएँ
+
+Azure पोर्टल में वर्कस्पेस का **Tables → Create → New custom log (DCR-based)** खोलें। टेबल का नाम `OneUptimeSecurityEvents` रखें, एक नया डेटा संग्रह नियम बनाएँ, और अगर फ़ॉर्म माँगे तो एक डेटा संग्रह एंडपॉइंट भी। नीचे के नमूने को नमूना फ़ाइल के रूप में अपलोड करें, ट्रांसफ़ॉर्मेशन को जैसा है वैसा रखें, और टेबल बनाएँ।
+
+### किसी ऐप्लिकेशन को इसमें भेजने दें
+
+[एक ऐप्लिकेशन रजिस्टर करें](#एक-ऐप्लिकेशन-रजिस्टर-करें) की तरह एक ऐप्लिकेशन रजिस्टर करें और उसे एक क्लाइंट सीक्रेट दें। फिर डेटा संग्रह नियम खोलें, **Access control (IAM) → Add → Add role assignment**, **Monitoring Metrics Publisher** चुनें, और ऐप्लिकेशन चुनें।
+
+### गंतव्य जोड़ें
+
+**उत्पाद → Security Events → Connections** खोलें। **अपने SIEM में भेजें** के नीचे **गंतव्य जोड़ें** पर क्लिक करें, **SIEM** में Microsoft Sentinel चुनें और **अगला** पर क्लिक करें। **डायरेक्टरी (टेनेंट) ID**, **एप्लिकेशन (क्लाइंट) ID** और **Client secret** भरें, डेटा संग्रह एंडपॉइंट (या नियम) के **Overview** से **लॉग इनजेशन एंडपॉइंट**, और नियम के **JSON View** से **डेटा संग्रह नियम की अपरिवर्तनीय ID** भरें। **स्ट्रीम** वैकल्पिक है: खाली छोड़ने पर यह `Custom-OneUptimeSecurityEvents_CL` होती है।
+
+### टेस्ट इवेंट भेजें और भेजना शुरू करें
+
+**टेस्ट इवेंट भेजें** पर क्लिक करें: कुछ ही मिनटों में टेबल में एक पंक्ति पहुँचती है। फिर **क्या भेजना है** में **सिर्फ़ डिटेक्शन** रहने दें या **सभी सुरक्षा इवेंट** चुनें, और **भेजना शुरू करें** पर क्लिक करें।
+:::
+
+नमूना फ़ाइल, टेबल के हर कॉलम वाली एक पंक्ति:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API हर कॉल में 1 MB तक लेता है, इसलिए पंक्तियाँ 500 तक के बैच में जाती हैं। जिस बैच को Azure अस्वीकार करता है, उसे तब तक बाँटा जाता है जब तक वह पंक्ति न मिल जाए जिसे वह नहीं लेता, और उसे छोड़ दिया जाता है, और थ्रॉटलिंग (`429`) को फिर आज़माया जाता है।
+- `403` का मतलब है कि ऐप्लिकेशन के पास नियम पर **Monitoring Metrics Publisher** नहीं है, और `404` का मतलब है कि अपरिवर्तनीय ID या स्ट्रीम गलत है।
+- OneUptime ने Microsoft Sentinel से जो घटनाएं (incidents) इम्पोर्ट की हैं, वे कभी वापस Microsoft Sentinel को नहीं भेजी जातीं।
+
 ## समस्या निवारण
 
 कनेक्शन का **पिछली त्रुटि** पूरा त्रुटि संदेश रखता है, क्रेडेंशियल छिपाकर, एक ऐसे प्रीफ़िक्स के पीछे जो विफल हुए चरण का नाम बताता है। जब किसी कनेक्शन में त्रुटि हो, तो उसे पढ़ने के लिए उसके **क्रियाएँ** कॉलम में **त्रुटि देखें** चुनें, और कॉपी करने के लिए डायलॉग में **त्रुटि कॉपी करें**। पहले प्रीफ़िक्स पढ़ें।

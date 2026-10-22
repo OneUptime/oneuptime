@@ -22,8 +22,10 @@ import NetworkSite from "../../../../../Models/DatabaseModels/NetworkSite";
 import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
+import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import Team from "../../../../../Models/DatabaseModels/Team";
+import ThreatIntelFeed from "../../../../../Models/DatabaseModels/ThreatIntelFeed";
 import VideoCallConnection from "../../../../../Models/DatabaseModels/VideoCallConnection";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
@@ -69,6 +71,7 @@ const SNMP_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000d1";
 const VIDEO_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000e1";
 const API_KEY_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000f1";
 const MCP_SERVER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000101";
+const CONNECTION_A: string = "0193c0de-cccc-4aaa-8bbb-000000000111";
 
 const row: (
   permission: Permission,
@@ -236,6 +239,7 @@ describe("the settings that hold credentials", () => {
     [NetworkSnmpCredentialProfile],
     [VideoCallConnection],
     [ApiKey],
+    [SecurityEventConnection],
   ] as Array<[{ new (): BaseModel }]>)(
     "%p is read as a whole table, and named only by its readers",
     (modelType: { new (): BaseModel }) => {
@@ -289,6 +293,12 @@ describe("the settings that hold credentials", () => {
       VideoCallConnection,
     ],
     [ApiKeyPermission, "apiKey", "apiKeyId", ApiKey],
+    [
+      ThreatIntelFeed,
+      "securityEventConnection",
+      "securityEventConnectionId",
+      SecurityEventConnection,
+    ],
   ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
     "%p.%s is held to the read of the setting it names, under both of its names",
     (
@@ -739,5 +749,97 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
         }),
       ).toBeUndefined();
     }
+  });
+});
+
+/*
+ * A Google SecOps threat-intel feed reads the indicators Google SecOps found
+ * with a security tool connection's key, so the connection a feed names is
+ * held to the read of Security Tool Connections: every Security tier reads
+ * them, a custom role that only creates feeds does not.
+ */
+describe("the security tool connection a threat-intel feed reads through", () => {
+  test("is refused to a role that creates or edits feeds but reads no connections, and nothing is looked up", async () => {
+    for (const permission of [
+      Permission.CreateProjectThreatIntelFeed,
+      Permission.EditProjectThreatIntelFeed,
+    ]) {
+      for (const data of [
+        { securityEventConnectionId: CONNECTION_A },
+        { securityEventConnection: { _id: CONNECTION_A } },
+      ]) {
+        const found: Lookups = lookups();
+
+        const refusal: unknown = await check({
+          modelType: ThreatIntelFeed,
+          data: data,
+          props: member([permission]),
+          lookups: found,
+        });
+
+        expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+        expect((refusal as Error).message).toMatch(
+          refusedFor("Google SecOps Connection", CONNECTION_A),
+        );
+        expect(found.calls).toEqual([]);
+      }
+    }
+  });
+
+  test("is named by every Security tier that creates feeds, and by the admins", async () => {
+    for (const props of [
+      member([Permission.SecurityMember]),
+      member([Permission.SecurityAdmin]),
+      member([Permission.ProjectAdmin]),
+      member([Permission.ProjectOwner]),
+      member([
+        Permission.CreateProjectThreatIntelFeed,
+        Permission.SecurityViewer,
+      ]),
+    ]) {
+      expect(
+        await check({
+          modelType: ThreatIntelFeed,
+          data: { securityEventConnectionId: CONNECTION_A },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a feed of another source names none, and asks nothing", async () => {
+    for (const data of [
+      { securityEventConnectionId: null },
+      { name: "Feodo Tracker", listUrl: "https://example.com/list.txt" },
+    ]) {
+      expect(
+        await check({
+          modelType: ThreatIntelFeed,
+          data: data,
+          props: member([Permission.CreateProjectThreatIntelFeed]),
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("an API key is held to the same rule", async () => {
+    expect(
+      await check({
+        modelType: ThreatIntelFeed,
+        data: { securityEventConnectionId: CONNECTION_A },
+        props: apiKey([Permission.CreateProjectThreatIntelFeed]),
+      }),
+    ).toBeInstanceOf(UnreadableReferenceException);
+
+    expect(
+      await check({
+        modelType: ThreatIntelFeed,
+        data: { securityEventConnectionId: CONNECTION_A },
+        props: apiKey([
+          Permission.CreateProjectThreatIntelFeed,
+          Permission.SecurityViewer,
+        ]),
+      }),
+    ).toBeUndefined();
   });
 });

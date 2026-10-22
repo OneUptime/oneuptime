@@ -363,6 +363,8 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "An API key is itself a credential: a permission row that names one grants that key what it lists.",
   ExternalMcpServer:
     "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
+  SecurityEventConnection:
+    "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
 };
 
 // The references to them, each held to the read of the table it names.
@@ -375,6 +377,7 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["IncidentVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["AlertVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["ApiKeyPermission", "apiKey", "ApiKey"],
+  ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
 ];
 
 /*

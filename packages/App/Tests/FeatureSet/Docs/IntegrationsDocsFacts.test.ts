@@ -55,6 +55,7 @@ import {
 import ToolImportSource, {
   AllToolImportSources,
 } from "Common/Types/ToolImport/ToolImportSource";
+import { AllSecurityEventDestinationProviders } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
 import ComponentMetadata, {
   Argument,
   Port,
@@ -628,11 +629,36 @@ describe("Integrations Overview", () => {
     );
 
     expect([...connections].sort()).toEqual([...catalog].sort());
-    expect(
-      rows.every((row: Array<string>): boolean => {
-        return row[1] === "Inbound";
-      }),
-    ).toBe(true);
+
+    /*
+     * A tool OneUptime also sends to - a SIEM of Send to your SIEM, the same
+     * product value as its connection - works both ways; the rest only
+     * bring their records in.
+     */
+    const sentTo: Array<string> = AllSecurityEventDestinationProviders.map(
+      (provider: string): string => {
+        const definition: SecurityEventConnectorDefinition =
+          SecurityEventConnectorCatalog.find(
+            (candidate: SecurityEventConnectorDefinition): boolean => {
+              return candidate.provider === (provider as string);
+            },
+          ) as SecurityEventConnectorDefinition;
+
+        return `[${definition.title}](${definition.docsPath})`;
+      },
+    );
+
+    expect(sentTo).toHaveLength(4);
+    for (const row of rows) {
+      expect({ tool: row[0], direction: row[1] }).toEqual({
+        tool: row[0],
+        direction: sentTo.includes(row[0] as string) ? "Both" : "Inbound",
+      });
+
+      if (sentTo.includes(row[0] as string)) {
+        expect(row[2]).toContain("send it what OneUptime finds");
+      }
+    }
 
     const urls: Array<string> = connections.map((cell: string): string => {
       return cell.slice(cell.indexOf("(") + 1, -1);
