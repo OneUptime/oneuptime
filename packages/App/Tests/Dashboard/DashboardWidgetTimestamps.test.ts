@@ -246,6 +246,11 @@ describe("dashboard widget timestamps", () => {
       "DashboardLogStreamComponent.tsx",
       "DashboardTableComponent.tsx",
       "DashboardHostListComponent.tsx",
+      /*
+       * The Value widgets' view: the hovered point's time, the sparkline's
+       * ends and the halves its trend compares.
+       */
+      "ValueWidgetView.tsx",
     ];
 
     for (const name of timestampWidgets) {

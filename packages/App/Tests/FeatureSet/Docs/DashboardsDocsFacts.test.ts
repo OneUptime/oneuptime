@@ -5,7 +5,15 @@ import {
   getFirstWidget,
   searchWidgetCatalog,
 } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog";
-import { aggregateValues } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetData";
+import {
+  aggregateValues,
+  getMetricValueWidgetReduce,
+} from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetData";
+import {
+  getValueWidgetTrend,
+  ValueWidgetTrend,
+  ValueWidgetTrendDirection,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
 import { resolveTraceAttributeFilters } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 import { getExactAttributeFilters } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Components/LogChartData";
 import {
@@ -188,6 +196,7 @@ const ADD_WIDGET_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Toolbar/AddWidget
 const VARIABLES_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Toolbar/DashboardVariablesModal.tsx`;
 const SETTINGS_DIALOG: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/ComponentSettingsModal.tsx`;
 const GAUGE_WIDGET: string = `${WIDGET_COMPONENTS_DIR}/DashboardGaugeComponent.tsx`;
+const VALUE_VIEW: string = `${WIDGET_COMPONENTS_DIR}/ValueWidgetView.tsx`;
 const DATA_SOURCE_PLACEHOLDER: string = `${WIDGET_COMPONENTS_DIR}/DataSourceWidgetPlaceholder.tsx`;
 const RESOURCE_OWNERS: string = `${DASHBOARD_APP}/Components/ResourceOwners/useResourceOwners.tsx`;
 const DASHBOARD_ROUTES: string = `${DASHBOARD_APP}/Utils/RouteMap.ts`;
@@ -1438,6 +1447,53 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
 
     expect(sectionOf(page, "### Value")).toContain(
       "summed for a sum or a count, the highest for a max, the lowest for a min, and the mean otherwise",
+    );
+  });
+
+  it("compares the halves of the range as the page says: each worked out like the value, both named on the arrow", () => {
+    const values: Array<number> = [1, 2, 6];
+
+    // Each half is reduced with the widget's own reduction.
+    for (const type of Object.values(AggregationType)) {
+      expect(getMetricValueWidgetReduce(type)(values)).toBe(
+        aggregateValues(values, type),
+      );
+    }
+
+    // The two halves are of the time range, oldest first whatever the API's order.
+    const trend: ValueWidgetTrend | null = getValueWidgetTrend({
+      points: [
+        { timestamp: new Date("2026-10-15T12:00:00.000Z"), value: 30 },
+        { timestamp: new Date("2026-10-15T10:00:00.000Z"), value: 10 },
+      ],
+      reduce: getMetricValueWidgetReduce(AggregationType.Sum),
+      isAdditive: true,
+      windowStart: new Date("2026-10-15T10:00:00.000Z"),
+      windowEnd: new Date("2026-10-15T14:00:00.000Z"),
+      bucketWidthMs: 60 * 60 * 1000,
+    });
+    expect([trend?.direction, trend?.percent]).toEqual([
+      ValueWidgetTrendDirection.Up,
+      200,
+    ]);
+
+    /*
+     * The arrow's tooltip names both halves; the sparkline's hover reads a
+     * point's time, named as precisely as its bucket.
+     */
+    const view: string = readSource(VALUE_VIEW);
+    expect(view).toContain('translator.translateTemplate("First half")');
+    expect(view).toContain('translator.translateTemplate("Second half")');
+    expect(view).toContain(
+      "getDashboardBucketLabel(hoveredPoint.timestamp, bucketWidthMs)",
+    );
+
+    const value: string = sectionOf(page, "### Value");
+    expect(value).toContain(
+      "An arrow compares the second half of the range with the first, each half worked out the same way",
+    );
+    expect(value).toContain(
+      "Point at the arrow to see both halves' values, and at the sparkline to read any point's value and time.",
     );
   });
 

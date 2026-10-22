@@ -10,6 +10,7 @@ import React, {
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
+import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
@@ -20,12 +21,21 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import {
+  getValueWidgetTrend,
+  ValueWidgetReduce,
+  ValueWidgetTrend,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ValueWidgetView, { SparklinePoint } from "./ValueWidgetView";
 import {
   aggregateValues,
   collectDataPoints,
+  getMetricValueWidgetReduce,
+  getMetricValueWidgetSeries,
   getNumericValues,
   getResultsErrorMessage,
+  isAdditiveAggregation,
 } from "./ValueWidgetData";
 import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
@@ -50,6 +60,15 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const [aggregationType, setAggregationType] = useState<AggregationType>(
     AggregationType.Avg,
   );
+  /*
+   * The time range the results on screen were asked for. The trend splits
+   * THAT range in half - not the board's current one, which a zoom or a
+   * refresh moves on before the answer for it lands.
+   */
+  const [resultsWindow, setResultsWindow] = useState<{
+    startDate: Date;
+    endDate: Date;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -139,6 +158,10 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
         return;
       }
       setMetricResults(results);
+      setResultsWindow({
+        startDate: data.startAndEndDate.startValue,
+        endDate: data.startAndEndDate.endValue,
+      });
       setError("");
     } catch (err: unknown) {
       if (fetchId !== fetchSequenceRef.current) {
@@ -172,20 +195,45 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Sparkline data — preserve timestamp alongside value so the view can
-   * render it under the big number while the cursor is over the chart.
+   * Sparkline data, oldest first. The metrics API answers newest first (its
+   * aggregates are sorted by time, descending, so a read that hits its row
+   * limit loses the oldest buckets rather than the newest), and these points
+   * used to be drawn in that order: the line ran backwards, and the trend
+   * compared the newer half with the older one. One point per bucket, a
+   * grouped query's groups combined the way the number combines them.
    */
-  const sparklineData: Array<SparklinePoint> = allDataPoints.map(
-    (item: AggregatedModel) => {
-      return {
-        value: item.value,
-        timestamp:
-          item.timestamp instanceof Date
-            ? item.timestamp
-            : new Date(item.timestamp as unknown as string),
-      };
-    },
-  );
+  const sparklineData: Array<SparklinePoint> = useMemo(() => {
+    return getMetricValueWidgetSeries(metricResults, aggregationType);
+  }, [metricResults, aggregationType]);
+
+  /*
+   * The arrow: the second half of the time range against the first, each
+   * reduced the way the big number is - the sum of each half for a sum or a
+   * count, the mean of each for an average.
+   */
+  const trend: ValueWidgetTrend | null = useMemo(() => {
+    if (!resultsWindow) {
+      return null;
+    }
+
+    const reduce: ValueWidgetReduce =
+      getMetricValueWidgetReduce(aggregationType);
+
+    return getValueWidgetTrend({
+      points: sparklineData,
+      reduce: reduce,
+      isAdditive: isAdditiveAggregation(aggregationType),
+      windowStart: resultsWindow.startDate,
+      windowEnd: resultsWindow.endDate,
+      // The interval the server bucketed this window at.
+      bucketWidthMs: AggregationIntervalUtil.getAggregationIntervalMs(
+        AggregationIntervalUtil.getAggregationIntervalForWindow({
+          startDate: resultsWindow.startDate,
+          endDate: resultsWindow.endDate,
+        }),
+      ),
+    });
+  }, [sparklineData, aggregationType, resultsWindow]);
 
   const metricName: string =
     props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
@@ -220,13 +268,14 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
       error={error}
       value={aggregatedValue}
       points={sparklineData}
+      trend={trend}
       noDataMessage={
         getResultsErrorMessage(metricResults) ||
-        "No data for the selected time range"
+        translationKey("No data for the selected time range")
       }
       isConfigured={isConfigured}
-      setupTitle="Value Widget"
-      setupMessage="Click to configure metric"
+      setupTitle={translationKey("Value Widget")}
+      setupMessage={translationKey("Click to configure metric")}
       title={props.component.arguments.title}
       rawUnit={rawUnit}
       metricName={metricName}

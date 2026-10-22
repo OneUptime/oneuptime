@@ -141,8 +141,20 @@ export default class Response {
     _req: ExpressRequest,
     res: ExpressResponse,
     path: string,
+    /*
+     * Called once the file is sent, or with why it could not be. Without it,
+     * Express hands every failure - a missing file too - to the error
+     * handler, which answers 500.
+     */
+    onSent?: (err?: Error) => void,
   ): void {
     Response.setNoCacheHeaders(res);
+
+    if (onSent) {
+      res.sendFile(path, onSent);
+      return;
+    }
+
     res.sendFile(path);
   }
 
