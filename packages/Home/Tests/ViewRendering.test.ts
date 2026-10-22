@@ -943,6 +943,15 @@ describe("security-events.ejs", () => {
     expect(html).toContain(
       "An AI that closes cases or contains threats on its own.",
     );
+    /*
+     * A containment step waits for approval by default - a playbook may turn
+     * it off for a step (SecurityPlaybookStep requiresApproval) - so the
+     * page never says every one does.
+     */
+    expect(html).toContain(
+      "a playbook&rsquo;s containment steps wait for approval by default.",
+    );
+    expect(html).not.toContain("every containment step a playbook takes");
   });
 
   test("claims AI triage as the product does it: every new case, read-only, cited, a person decides", () => {

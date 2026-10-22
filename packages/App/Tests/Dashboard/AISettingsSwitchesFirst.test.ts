@@ -603,8 +603,17 @@ describe("the pages draw switches first, and fold the limits", () => {
         },
       ),
     ).toEqual(["enableAutomaticSecurityCaseTriage"]);
-    expect(SecurityAiSettingsCopy.cardDescription).toContain(
-      "A person decides the verdict and priority, and runs every playbook.",
+    /*
+     * The card says what the Incidents' and Alerts' AI settings say: their
+     * title, and that it works on its own and can be turned off. It used to
+     * say a person runs every playbook, which a Triaged as Likely Malicious
+     * playbook does not wait for.
+     */
+    expect(SecurityAiSettingsCopy.cardTitle).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
+    expect(SecurityAiSettingsCopy.cardDescription).toBe(
+      "It works on security cases on its own. Turn off anything you do not want it to do.",
     );
   });
 
