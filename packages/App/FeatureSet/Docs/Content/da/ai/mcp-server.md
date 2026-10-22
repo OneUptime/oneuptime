@@ -39,7 +39,7 @@ Serveren er tilstandsløs: den udsteder ingen sessions-id'er, og hver anmodning 
 - **Planlagt vedligeholdelse**: opret og administrer vedligeholdelseshændelser.
 - **Telemetri**: forespørg logs, metrikker, spor, undtagelser, monitorlogs, sikkerhedshændelser og mere, kun læsning.
 
-Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 27 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
+Der er værktøjer til at oprette, hente, liste, opdatere, slette og tælle for 28 slags poster, værktøjer til at liste og tælle for 9 slags telemetri og værktøjer lavet til hændelseshåndtering. Skrivebeskyttede værktøjer har `readOnlyHint`, alle værktøjer, der ændrer noget, har `destructiveHint`, og kun værktøjerne til offentlige statussider har `openWorldHint`, så en klient selv kan køre skrivebeskyttede kald og spørge dig før enhver ændring. Et mislykket værktøjskald kommer tilbage som et værktøjsresultat (`isError: true`) med en `statusCode`, detaljerne og et forslag, ikke som en MCP-protokolfejl, så agenten kan læse fejlen og rette sig selv.
 
 ## Før du begynder
 
@@ -471,7 +471,7 @@ MCP-serveren er tilstandsløs: den hverken udsteder eller sporer sessions-id'er,
 | Område | Poster med værktøjer til at oprette, hente, liste, opdatere, slette og tælle |
 | --- | --- |
 | Overvågning | Monitor, Monitor Status, Monitor Status Event |
-| Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| Hændelser | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Advarsler | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussider | Status Page, Status Page Announcement |
 | Planlagt vedligeholdelse | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

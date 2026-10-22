@@ -1,6 +1,7 @@
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentPostmortemStatus from "../../Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -48,6 +49,7 @@ const MODEL_BY_TYPE: Record<ArchivableValueType, ModelType> = {
   [ArchivableValueType.ScheduledMaintenanceState]: ScheduledMaintenanceState,
   [ArchivableValueType.Label]: Label,
   [ArchivableValueType.IncidentRole]: IncidentRole,
+  [ArchivableValueType.IncidentPostmortemStatus]: IncidentPostmortemStatus,
 };
 
 const rowId: (n: number) => string = (n: number): string => {
@@ -59,7 +61,7 @@ const getRowId: (row: unknown) => string = (row: unknown): string => {
 };
 
 describe("the archivable values", () => {
-  test("are the eight values records pick from, each once", () => {
+  test("are the nine values records pick from, each once", () => {
     expect(
       ARCHIVABLE_VALUE_DEFINITIONS.map(
         (definition: ArchivableValueDefinition): ArchivableValueType => {
@@ -67,7 +69,7 @@ describe("the archivable values", () => {
         },
       ).sort(),
     ).toEqual(Object.values(ArchivableValueType).sort());
-    expect(new Set(ARCHIVABLE_VALUE_TABLE_NAMES).size).toBe(8);
+    expect(new Set(ARCHIVABLE_VALUE_TABLE_NAMES).size).toBe(9);
   });
 
   test.each(Object.values(ArchivableValueType))(
@@ -155,6 +157,10 @@ describe("the rows OneUptime relies on", () => {
         StateListType.ScheduledMaintenanceState,
       ],
       [ArchivableValueType.MonitorStatus, StateListType.MonitorStatus],
+      [
+        ArchivableValueType.IncidentPostmortemStatus,
+        StateListType.IncidentPostmortemStatus,
+      ],
     ];
 
     for (const [archivable, list] of pairs) {

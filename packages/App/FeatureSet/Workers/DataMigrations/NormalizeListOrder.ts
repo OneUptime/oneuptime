@@ -14,6 +14,7 @@ import IncidentReminderRuleService from "Common/Server/Services/IncidentReminder
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import IncidentSlaRuleService from "Common/Server/Services/IncidentSlaRuleService";
 import IncidentStateService from "Common/Server/Services/IncidentStateService";
+import IncidentPostmortemStatusService from "Common/Server/Services/IncidentPostmortemStatusService";
 import IncomingCallPolicyEscalationRuleService from "Common/Server/Services/IncomingCallPolicyEscalationRuleService";
 import LogDropFilterService from "Common/Server/Services/LogDropFilterService";
 import LogPipelineProcessorService from "Common/Server/Services/LogPipelineProcessorService";
@@ -106,6 +107,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       MonitorStatusService,
       IncidentSeverityService,
       AlertSeverityService,
+      // A project's postmortem statuses, made with their places since they began.
+      IncidentPostmortemStatusService,
     ] as Array<DatabaseService<any>>;
   }
 

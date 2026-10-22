@@ -1,17 +1,19 @@
 # Postmortem-Analysen
 
-Ein Postmortem ist die Aufarbeitung nach einem Vorfall: was passiert ist, warum, was es Ihre Nutzer gekostet hat und was sich jetzt ändert. In OneUptime schreiben Sie es direkt am Vorfall. Es kann mit Ihrer eigenen Vorlage oder einem Entwurf von OneUptime AI beginnen, und es kann auf Ihrer Statusseite als abschließendes Update des Vorfalls veröffentlicht werden.
+Ein Postmortem ist die Aufarbeitung nach einem Vorfall: was passiert ist, warum, was es Ihre Nutzer gekostet hat und was sich jetzt ändert. In OneUptime schreiben Sie es direkt am Vorfall. Es kann mit Ihrer eigenen Vorlage oder einem Entwurf von OneUptime AI beginnen, und es kann auf Ihrer Statusseite als abschließendes Update des Vorfalls veröffentlicht werden. Jedes Postmortem hat außerdem einen Status, und **Vorfälle → Postmortem-Analysen** listet das Postmortem jedes Vorfalls auf, damit Sie sehen, welche noch ausstehen.
 
 :::cards
 - [Ein Postmortem schreiben](#ein-postmortem-schreiben): Auf der Postmortem-Seite des Vorfalls, in fünf Schritten.
 - [Mit einer Vorlage oder einem KI-Entwurf beginnen](#mit-einer-vorlage-oder-einem-ki-entwurf-beginnen): Ihre Gliederung oder eine, die OneUptime AI ausfüllt.
 - [Es auf Ihrer Statusseite veröffentlichen](#es-auf-ihrer-statusseite-veröffentlichen): Es Kunden zeigen und Abonnenten einmal informieren.
+- [Verfolgen, wo jedes Postmortem steht](#verfolgen-wo-jedes-postmortem-steht): Nicht gestartet, Entwurf, Abgeschlossen oder ein eigener Status.
+- [Alle Postmortems sehen](#alle-postmortems-sehen): Nach Eigentümer, Schweregrad und Status filtern, um die noch ausstehenden zu finden.
 - [Postmortems von Episoden](#postmortems-von-episoden): Eine Aufarbeitung für eine Gruppe von Vorfällen.
 :::
 
 ## Wie ein Postmortem entsteht
 
-Ein Postmortem hat drei Teile, alle am Vorfall: die Notiz, in Markdown geschrieben; ihre Anhänge, etwa Screenshots und Berichte; und ob es auf Ihrer Statusseite steht. Sie finden sie auf der Seite **Postmortem** des Vorfalls, unter **Untersuchung** in seinem Seitenmenü.
+Ein Postmortem hat drei Teile, alle am Vorfall: die Notiz, in Markdown geschrieben; ihre Anhänge, etwa Screenshots und Berichte; und ob es auf Ihrer Statusseite steht. Sie finden sie auf der Seite **Postmortem** des Vorfalls, unter **Untersuchung** in seinem Seitenmenü. Ein Postmortem hat außerdem einen Status, der sagt, wie weit es ist, und Eigentümer: die Eigentümer des Vorfalls.
 
 ```mermaid title="Von einem behobenen Vorfall zu einem veröffentlichten Postmortem"
 flowchart TB
@@ -30,11 +32,11 @@ flowchart TB
 :::steps
 ### Das Postmortem öffnen
 
-Öffnen Sie den Vorfall und klicken Sie in seinem Seitenmenü unter **Untersuchung** auf **Postmortem**. Die Karte **Postmortem-Notiz** zeigt die Notiz, die Anhänge und ob das Postmortem auf der Statusseite steht.
+Öffnen Sie den Vorfall und klicken Sie in seinem Seitenmenü unter **Untersuchung** auf **Postmortem**. Die Karte **Postmortem** zeigt **Status** und **Eigentümer** des Postmortems, die Notiz, die Anhänge und ob das Postmortem auf der Statusseite steht.
 
-### Auf Postmortem-Notiz bearbeiten klicken
+### Auf Postmortem schreiben klicken
 
-Der Dialog **Postmortem-Notiz bearbeiten** öffnet sich mit seinem ersten Schritt, **Postmortem**.
+Der Dialog **Postmortem schreiben** öffnet sich mit seinem ersten Schritt, **Postmortem**. Sobald das Postmortem geschrieben ist, heißt die Schaltfläche der Karte **Postmortem-Notiz bearbeiten** und öffnet dieselben Schritte.
 
 ### Die Notiz schreiben und Dateien anhängen
 
@@ -46,7 +48,7 @@ Klicken Sie auf **Weiter**. Im Schritt **Statusseite** ist **Auf Statusseite ver
 
 ### Das Postmortem speichern
 
-Klicken Sie auf **Änderungen speichern**. Die Karte zeigt die Notiz und die Anhänge.
+Klicken Sie auf **Änderungen speichern**. Die Karte zeigt die Notiz und die Anhänge. Der Status des Postmortems wechselt von **Nicht gestartet** zu **Entwurf**: siehe [Wie sich ein Postmortem bewegt](#wie-sich-ein-postmortem-bewegt).
 :::
 
 Jede Änderung der Notiz wird im Feed des Vorfalls festgehalten und im Slack- oder Microsoft Teams-Kanal des Vorfalls gepostet, wenn er einen hat. Solange das Postmortem nicht veröffentlicht ist, erfährt kein Abonnent der Statusseite davon.
@@ -55,13 +57,13 @@ Ein Postmortem schreiben können die Rollen Project Owner, Project Admin, Projec
 
 ## Mit einer Vorlage oder einem KI-Entwurf beginnen
 
-Zwei Schaltflächen auf der Karte füllen die Notiz für Sie aus: **Mit KI generieren**, und **Vorlage anwenden**, sobald das Projekt eine Postmortem-Vorlage hat. Beide öffnen denselben Editor wie **Postmortem-Notiz bearbeiten**, mit ausgefüllter Notiz und dem Rest des Postmortems unverändert. Nichts wird gespeichert, bis Sie auf **Änderungen speichern** klicken, lesen und ändern Sie die Notiz also vorher.
+Zwei Schaltflächen füllen die Notiz für Sie aus. Solange nichts geschrieben ist, stehen sie neben **Postmortem schreiben**: **Mit Vorlage beginnen**, sobald das Projekt eine Postmortem-Vorlage hat, und **Mit KI generieren**. Sobald das Postmortem geschrieben ist, finden Sie sie im Menü **⋯** neben **Postmortem-Notiz bearbeiten**, als **Vorlage anwenden** und **Mit KI generieren**. Beide öffnen denselben Editor, mit ausgefüllter Notiz und dem Rest des Postmortems unverändert. Nichts wird gespeichert, bis Sie auf **Änderungen speichern** klicken, lesen und ändern Sie die Notiz also vorher.
 
 ### Eine Vorlage anwenden
 
 **Vorlage anwenden** erscheint, sobald das Projekt eine Postmortem-Vorlage hat. Vorlagen legen Sie unter **Vorfälle → Einstellungen → Postmortem-Vorlagen** an: siehe [Postmortem-Vorlagen](/docs/incidents/settings#postmortem-vorlagen). In OneUptime Cloud erfordern Vorlagen den Growth-Plan.
 
-Klicken Sie auf **Vorlage anwenden**, wählen Sie im Dialog **Postmortem-Vorlage anwenden** unter **Vorlage auswählen** eine aus und klicken Sie auf **Vorlage anwenden**. Hat das Projekt nur eine Vorlage, ist sie bereits ausgewählt.
+Klicken Sie auf **Mit Vorlage beginnen** oder auf **Vorlage anwenden** im Menü **⋯**, wählen Sie im Dialog **Postmortem-Vorlage anwenden** unter **Vorlage auswählen** eine aus und klicken Sie auf **Vorlage anwenden**. Hat das Projekt nur eine Vorlage, ist sie bereits ausgewählt.
 
 ### Mit KI generieren
 
@@ -123,11 +125,54 @@ Was entscheidet, ob Kunden es sehen und davon erfahren:
 
 **Postmortem veröffentlicht am** ist auch der Zeitpunkt, zu dem das Postmortem für die Messung **Zeit bis zum Postmortem** als veröffentlicht gilt: siehe [Vorgefertigte Messungen](/docs/incidents/settings#vorgefertigte-messungen).
 
+## Verfolgen, wo jedes Postmortem steht
+
+Das Postmortem jedes Vorfalls hat einen der Postmortem-Status des Projekts, angezeigt unter **Status** oben auf seiner Karte **Postmortem**. Ein neues Projekt hat vier. Ein Postmortem in **Nicht gestartet** oder **Entwurf** steht noch aus, eines in **Abgeschlossen** oder **Nicht erforderlich** nicht:
+
+| Status | Was er bedeutet | Steht noch aus |
+| --- | --- | --- |
+| **Nicht gestartet** | Dieses Postmortem hat noch niemand geschrieben. | Ja |
+| **Entwurf** | Das Postmortem wird geschrieben. | Ja |
+| **Abgeschlossen** | Das Postmortem ist geschrieben und fertig. | Nein |
+| **Nicht erforderlich** | Dieser Vorfall braucht kein Postmortem. | Nein |
+
+### Wie sich ein Postmortem bewegt
+
+OneUptime verschiebt ein Postmortem in drei Momenten von selbst:
+
+- Das Postmortem eines neuen Vorfalls beginnt in **Nicht gestartet**, in **Entwurf**, wenn der Vorfall mit einer Notiz gemeldet wird, oder in **Abgeschlossen**, wenn diese Notiz gleich mit veröffentlicht wird.
+- Die erste Notiz eines Postmortems in **Nicht gestartet** verschiebt es nach **Entwurf**, ob jemand sie schreibt, eine Vorlage anwendet oder OneUptime AI sie entwirft.
+- Die Veröffentlichung auf der Statusseite verschiebt es nach **Abgeschlossen**, sofern es nicht schon fertig ist.
+
+Es bewegt sich nie zurück: Die Notiz zu leeren oder das Postmortem von der Statusseite zu nehmen, lässt seinen Status, wo er ist. Ein Status, den jemand im selben Speichervorgang wählt, gilt immer.
+
+### Selbst verschieben
+
+Klicken Sie auf den Status, auf der Seite **Postmortem** des Vorfalls oder in seiner Zeile der Postmortem-Liste, und wählen Sie einen unter **Postmortem verschieben nach**. Das Postmortem wird sofort verschoben. Ein Postmortem zu verschieben erfordert die Rollen, die eines schreiben, und jeder, der den Vorfall lesen kann, sieht, wo sein Postmortem steht.
+
+### Eigene Status anlegen
+
+Hat Ihr Prozess einen eigenen Schritt, etwa eine Prüfung, legen Sie einen Status dafür an. Öffnen Sie **Vorfälle → Einstellungen → Postmortem-Status**, klicken Sie auf **Postmortem-Status erstellen** und geben Sie ihm einen Namen, etwa **In Prüfung**, eine Farbe und eine Beschreibung. Ein neuer Status kommt direkt über **Abgeschlossen**; ziehen Sie einen Status, um seine Position zu ändern.
+
+Die Position eines Status bestimmt, als was er zählt, angezeigt unter **Zählt als**: über **Entwurf** als **Nicht gestartet**, ab **Entwurf** abwärts als **Läuft gerade**, ab **Abgeschlossen** abwärts als **Fertig**, und dann steht er nicht mehr aus. **In Prüfung**, dazwischen, steht noch aus; **Nicht erforderlich**, unter **Abgeschlossen**, nicht.
+
+**Nicht gestartet**, **Entwurf** und **Abgeschlossen** sind vordefiniert, weil OneUptime Postmortems in sie verschiebt: Sie können sie umbenennen und umfärben, aber nicht löschen oder archivieren, und sie behalten ihre Reihenfolge. Archivieren Sie einen Status, den Sie nicht mehr nutzen, über das Menü **⋯** seiner Zeile: Niemand kann ein Postmortem mehr dorthin verschieben, die Postmortems darin bleiben, bis jemand sie verschiebt, und die Liste filtert weiterhin danach. **Archivierte Postmortem-Status**, eingeklappt unter der Tabelle, listet sie auf, mit **Aus Archiv entfernen**, um einen zurückzuholen. Status anzulegen, zu bearbeiten und zu löschen erfordert die Rolle Project Owner, Project Admin oder Incident Admin oder eine benutzerdefinierte Rolle mit der passenden Berechtigung für Postmortem-Status.
+
+## Alle Postmortems sehen
+
+**Vorfälle → Postmortem-Analysen** listet das Postmortem jedes Vorfalls im Projekt auf, das neueste zuerst, mit den Spalten **Vorfall**, **Titel**, **Postmortem-Status**, **Schweregrad**, **Eigentümer** und **Erklärt**. **Ansehen** in einer Zeile öffnet die Seite **Postmortem** des Vorfalls.
+
+Über der Liste zählt eine Kachel pro Status die Postmortems darin. Klicken Sie auf eine Kachel, um nur diese aufzulisten, und erneut, um wieder alle aufzulisten.
+
+Filtern Sie die Liste mit den Chips darüber: **Eigentümer**, eine Person oder ein Team; **Schweregrad**; **Postmortem-Status**; **Vorfallsstatus**; **Beschriftungen**; und **Betroffene Ressourcen**. Um zu sehen, welche Postmortems ein Team für Ihre schwersten Vorfälle noch schuldet, wählen Sie das Team unter **Eigentümer**, den Schweregrad unter **Schweregrad** und **Nicht gestartet** und **Entwurf** unter **Postmortem-Status**. Die Filter stehen in der Adresse der Seite, sodass Sie die Liste als Lesezeichen speichern oder teilen können.
+
+Um viele auf einmal zu ändern, wählen Sie sie aus und öffnen Sie **Massenaktionen**: **Postmortem-Status ändern** verschiebt sie alle in einen Status, etwa **Nicht erforderlich** für Vorfälle, die keines brauchen, und **Eigentümer hinzufügen** und **Eigentümer entfernen** ändern, wem sie gehören.
+
 ## Postmortems von Episoden
 
 Eine Vorfallepisode hat ebenfalls eine Seite **Postmortem**, unter **Untersuchung**: eine Aufarbeitung für jeden Vorfall der Episode. Klicken Sie auf **Postmortem bearbeiten**, um sie zu schreiben. **Vorlage anwenden** und **Mit KI generieren** funktionieren wie bei einem Vorfall, und die KI liest die Episode und ihre zugehörigen Vorfälle.
 
-Das Postmortem einer Episode ist nur die Notiz: Es hat keine Anhänge, und keine Statusseite zeigt es. OneUptime AI entwirft keines von selbst, wenn eine Episode behoben wird. Das Generieren erfordert die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident Episode.
+Das Postmortem einer Episode ist nur die Notiz: Es hat keine Anhänge, und keine Statusseite zeigt es. OneUptime AI entwirft keines von selbst, wenn eine Episode behoben wird. Das Generieren erfordert die Rolle Project Owner oder Project Admin oder eine benutzerdefinierte Rolle mit der Berechtigung Edit Incident Episode. Es hat auch keinen Status, und die Postmortem-Liste lässt es aus.
 
 Warnungen und geplante Wartungsereignisse haben kein Postmortem.
 
@@ -141,8 +186,9 @@ Ein Postmortem ist eine Gruppe von Feldern am Vorfall, gelesen und geschrieben �
 | `showPostmortemOnStatusPage` | Ob das Postmortem auf Ihren Statusseiten veröffentlicht ist. Beginnt mit `false`. |
 | `notifySubscribersOnPostmortemPublished` | Ob Abonnenten informiert werden, wenn es veröffentlicht wird. Beginnt mit `true`. |
 | `postmortemPostedAt` | Die Zeit, die die Statusseite daneben anzeigt. |
+| `postmortemStatusId` | Der Status des Postmortems: einer der Status des Projekts, unter `/api/incident-postmortem-status`. |
 
-`showPostmortemOnStatusPage` als `true` über eine geschriebene `postmortemNote` zu schreiben, veröffentlicht das Postmortem, wie es der Dialog tut.
+`showPostmortemOnStatusPage` als `true` über eine geschriebene `postmortemNote` zu schreiben, veröffentlicht das Postmortem, wie es der Dialog tut. Das verschiebt das Postmortem außerdem nach **Abgeschlossen**, sofern derselbe Schreibvorgang nicht `postmortemStatusId` setzt.
 
 ## Fehlerbehebung
 
@@ -164,6 +210,10 @@ Prüfen Sie drei Dinge: **Auf Statusseite veröffentlichen** ist eingeschaltet, 
 
 :::details Kein KI-Entwurf erschien, als der Vorfall behoben wurde
 Der Vorfall hatte bereits eine Notiz, das Postmortem war schon veröffentlicht, keine Postmortem-Regel passte auf ihn, oder **Postmortem entwerfen, wenn ein Vorfall gelöst wird** ist aus. KI muss für das Projekt eingeschaltet sein, und das Projekt darf seine täglichen KI-Limits nicht erreicht haben. Ist das Transkript des Anrufs zum Vorfall noch unterwegs, kommt der Entwurf, sobald OneUptime AI es gelesen hat.
+:::
+
+:::details Der Status eines Postmortems hat sich nicht bewegt, als seine Notiz geschrieben wurde
+Nur ein Postmortem in **Nicht gestartet** oder in einem eigenen Status über **Entwurf** bewegt sich von selbst, bei seiner ersten Notiz. Eines, das schon in Arbeit oder fertig ist, bleibt, wo es ist, ebenso ein Status, den jemand im selben Speichervorgang gewählt hat. Verschieben Sie es selbst über seinen Status: siehe [Selbst verschieben](#selbst-verschieben).
 :::
 
 ## Nächste Schritte

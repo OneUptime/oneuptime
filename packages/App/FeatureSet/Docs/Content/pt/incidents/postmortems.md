@@ -1,17 +1,19 @@
 # Post-mortems
 
-Um post-mortem é o relatório depois de um incidente: o que aconteceu, por quê, quanto custou aos seus usuários e o que muda agora. No OneUptime você o escreve no próprio incidente. Ele pode começar a partir do seu próprio modelo ou de um rascunho do OneUptime AI, e pode ser publicado na sua página de status como a atualização final do incidente.
+Um post-mortem é o relatório depois de um incidente: o que aconteceu, por quê, quanto custou aos seus usuários e o que muda agora. No OneUptime você o escreve no próprio incidente. Ele pode começar a partir do seu próprio modelo ou de um rascunho do OneUptime AI, e pode ser publicado na sua página de status como a atualização final do incidente. Cada post-mortem também tem um status, e **Incidentes → Post-mortems** lista o post-mortem de cada incidente, para você ver quais ainda estão pendentes.
 
 :::cards
 - [Escrever um post-mortem](#escrever-um-post-mortem): Na página Post-mortem do incidente, em cinco etapas.
 - [Começar com um modelo ou um rascunho da IA](#começar-com-um-modelo-ou-um-rascunho-da-ia): O seu roteiro, ou um que o OneUptime AI preenche.
 - [Publicá-lo na sua página de status](#publicá-lo-na-sua-página-de-status): Mostrá-lo aos clientes e avisar os assinantes uma vez.
+- [Acompanhar em que ponto está cada post-mortem](#acompanhar-em-que-ponto-está-cada-post-mortem): Não iniciado, Rascunho, Concluído ou um status seu.
+- [Ver todos os post-mortems](#ver-todos-os-post-mortems): Filtrar por proprietário, gravidade e status para achar os que ainda estão pendentes.
 - [Post-mortems de episódios](#post-mortems-de-episódios): Um único relatório para um grupo de incidentes.
 :::
 
 ## Como um post-mortem é montado
 
-Um post-mortem tem três partes, todas no incidente: a nota, escrita em Markdown; os anexos dela, como capturas de tela e relatórios; e se ele está na sua página de status. Elas ficam na página **Post-mortem** do incidente, em **Investigação** no menu lateral dele.
+Um post-mortem tem três partes, todas no incidente: a nota, escrita em Markdown; os anexos dela, como capturas de tela e relatórios; e se ele está na sua página de status. Elas ficam na página **Post-mortem** do incidente, em **Investigação** no menu lateral dele. Um post-mortem também tem um status, que diz até onde ele chegou, e proprietários: os do incidente.
 
 ```mermaid title="De um incidente resolvido a um post-mortem publicado"
 flowchart TB
@@ -30,11 +32,11 @@ flowchart TB
 :::steps
 ### Abrir o post-mortem
 
-Abra o incidente e clique em **Post-mortem**, em **Investigação** no menu lateral dele. O cartão **Nota da análise pós-incidente** mostra a nota, os anexos e se o post-mortem está na página de status.
+Abra o incidente e clique em **Post-mortem**, em **Investigação** no menu lateral dele. O cartão **Post-mortem** mostra o **Status** e os **Proprietários** do post-mortem, a nota, os anexos e se o post-mortem está na página de status.
 
-### Clicar em Editar nota do post-mortem
+### Clicar em Escrever post-mortem
 
-O diálogo **Editar nota do post-mortem** abre na primeira etapa, **Post-mortem**.
+O diálogo **Escrever post-mortem** abre na primeira etapa, **Post-mortem**. Depois que o post-mortem está escrito, o botão do cartão passa a ser **Editar nota do post-mortem**, que abre as mesmas etapas.
 
 ### Escrever a nota e anexar arquivos
 
@@ -46,7 +48,7 @@ Clique em **Próximo**. Na etapa **Página de status**, **Publicar na Página de
 
 ### Salvar o post-mortem
 
-Clique em **Salvar alterações**. O cartão mostra a nota e os anexos.
+Clique em **Salvar alterações**. O cartão mostra a nota e os anexos. O status do post-mortem passa de **Não iniciado** para **Rascunho**: veja [Como um post-mortem avança](#como-um-post-mortem-avança).
 :::
 
 Cada alteração da nota fica registrada no feed do incidente, e é publicada no canal do Slack ou do Microsoft Teams do incidente se ele tiver um. Enquanto o post-mortem não estiver publicado, nenhum assinante da página de status fica sabendo dele.
@@ -55,13 +57,13 @@ Escrever um post-mortem exige o papel Project Owner, Project Admin, Project Memb
 
 ## Começar com um modelo ou um rascunho da IA
 
-Dois botões do cartão preenchem a nota para você: **Generate with AI**, e **Aplicar modelo** assim que o projeto tiver um modelo de post-mortem. Os dois abrem o mesmo editor de **Editar nota do post-mortem**, com a nota preenchida e o resto do post-mortem como estava. Nada é salvo até você clicar em **Salvar alterações**, então leia a nota e corrija-a antes.
+Dois botões preenchem a nota para você. Enquanto nada está escrito, eles ficam ao lado de **Escrever post-mortem**: **Começar com um modelo**, assim que o projeto tiver um modelo de post-mortem, e **Generate with AI**. Depois que o post-mortem está escrito, eles ficam no menu **⋯** ao lado de **Editar nota do post-mortem**, como **Aplicar modelo** e **Generate with AI**. Os dois abrem o mesmo editor, com a nota preenchida e o resto do post-mortem como estava. Nada é salvo até você clicar em **Salvar alterações**, então leia a nota e corrija-a antes.
 
 ### Aplicar um modelo
 
 **Aplicar modelo** aparece assim que o projeto tem um modelo de post-mortem. Os modelos são criados em **Incidentes → Configurações → Modelos de post-mortem**: veja [Modelos de post-mortem](/docs/incidents/settings#modelos-de-post-mortem). No OneUptime Cloud, os modelos exigem o plano Growth.
 
-Clique em **Aplicar modelo**, escolha um em **Selecionar Modelo** no diálogo **Aplicar modelo de post-mortem** e clique em **Aplicar modelo**. Um projeto com um único modelo já o traz selecionado.
+Clique em **Começar com um modelo**, ou em **Aplicar modelo** no menu **⋯**, escolha um em **Selecionar Modelo** no diálogo **Aplicar modelo de post-mortem** e clique em **Aplicar modelo**. Um projeto com um único modelo já o traz selecionado.
 
 ### Gerá-lo com IA
 
@@ -123,11 +125,54 @@ O que decide se os clientes o veem, e se ficam sabendo:
 
 **Análise pós-incidente publicada em** é também o momento em que o post-mortem conta como publicado para a medição **Tempo até o post-mortem**: veja [Medições prontas](/docs/incidents/settings#medições-prontas).
 
+## Acompanhar em que ponto está cada post-mortem
+
+O post-mortem de cada incidente está em um dos status de post-mortem do projeto, mostrado em **Status** no topo do cartão **Post-mortem**. Um projeto novo tem quatro. Um post-mortem em **Não iniciado** ou **Rascunho** ainda está pendente; um em **Concluído** ou **Não necessário**, não:
+
+| Status | O que significa | Ainda pendente |
+| --- | --- | --- |
+| **Não iniciado** | Ninguém escreveu este post-mortem ainda. | Sim |
+| **Rascunho** | O post-mortem está sendo escrito. | Sim |
+| **Concluído** | O post-mortem está escrito e concluído. | Não |
+| **Não necessário** | Este incidente não precisa de um post-mortem. | Não |
+
+### Como um post-mortem avança
+
+O OneUptime move um post-mortem sozinho em três momentos:
+
+- O post-mortem de um novo incidente começa em **Não iniciado**, ou em **Rascunho** quando o incidente é declarado com uma nota, ou em **Concluído** quando essa nota é publicada junto.
+- A primeira nota de um post-mortem em **Não iniciado** o move para **Rascunho**, seja alguém escrevendo, aplicando um modelo ou o OneUptime AI redigindo.
+- Publicá-lo na página de status o move para **Concluído**, a menos que ele já esteja concluído.
+
+Ele nunca volta: esvaziar a nota, ou tirar o post-mortem da página de status, deixa o status onde está. Um status que alguém escolhe no mesmo salvamento sempre prevalece.
+
+### Movê-lo você mesmo
+
+Clique no status, na página **Post-mortem** do incidente ou na linha dele na lista de post-mortems, e escolha um em **Mover o post-mortem para**. O post-mortem é movido na hora. Mover um post-mortem exige os papéis que o escrevem, e quem pode ler o incidente vê em que ponto está o post-mortem dele.
+
+### Adaptar os status ao seu processo
+
+Se o seu processo tem uma etapa própria, como uma revisão, adicione um status para ela. Abra **Incidentes → Configurações → Status de post-mortem**, clique em **Criar: Status do post-mortem** e dê a ele um nome, como **Em revisão**, uma cor e uma descrição. Um status novo entra logo acima de **Concluído**; arraste um status para mudar sua posição.
+
+A posição de um status define como ele conta, mostrado em **Conta como**: acima de **Rascunho**, **Não iniciado**; de **Rascunho** para baixo, **Em andamento**; de **Concluído** para baixo, **Concluído**, e não está mais pendente. **Em revisão**, entre os dois, ainda está pendente; **Não necessário**, abaixo de **Concluído**, não.
+
+**Não iniciado**, **Rascunho** e **Concluído** são integrados, porque o OneUptime move os post-mortems para eles: você pode renomeá-los e mudar sua cor, mas não excluí-los nem arquivá-los, e eles mantêm sua ordem. Arquive um status que você não usa mais pelo menu **⋯** da linha dele: ninguém pode mover um post-mortem para ele de novo, os post-mortems que estão nele ficam até alguém movê-los, e a lista ainda filtra por ele. **Status de post-mortem arquivados**, recolhido abaixo da tabela, lista esses status, com **Desarquivar** para trazer um de volta. Criar, editar e excluir status exige o papel Project Owner, Project Admin ou Incident Admin, ou um papel personalizado com a permissão correspondente sobre status de post-mortem.
+
+## Ver todos os post-mortems
+
+**Incidentes → Post-mortems** lista o post-mortem de cada incidente do projeto, do mais recente para o mais antigo, com as colunas **Incidente**, **Título**, **Status do post-mortem**, **Gravidade**, **Proprietários** e **Declarado**. **Visualizar** em uma linha abre a página **Post-mortem** do incidente.
+
+Acima da lista, um bloco por status conta os post-mortems que estão nele. Clique em um bloco para listar só esses, e clique de novo para listar todos.
+
+Filtre a lista com os chips acima dela: **Proprietário**, uma pessoa ou uma equipe; **Gravidade**; **Status do post-mortem**; **Estado do incidente**; **Rótulos**; e **Recursos afetados**. Para ver quais post-mortems uma equipe ainda deve dos seus incidentes mais graves, escolha a equipe em **Proprietário**, a gravidade em **Gravidade**, e **Não iniciado** e **Rascunho** em **Status do post-mortem**. Os filtros ficam no endereço da página, então você pode salvar a lista nos favoritos ou compartilhá-la.
+
+Para alterar vários de uma vez, selecione-os e abra **Ações em massa**: **Alterar status do post-mortem** move todos para um mesmo status, como **Não necessário** para incidentes que não precisam de um, e **Add Owner** e **Remove Owner** mudam quem são os proprietários.
+
 ## Post-mortems de episódios
 
 Um episódio de incidentes também tem uma página **Post-mortem**, em **Investigação**: um único relatório para todos os incidentes do episódio. Clique em **Editar post-mortem** para escrevê-lo. **Aplicar modelo** e **Generate with AI** funcionam como em um incidente, e a IA lê o episódio e os incidentes membros dele.
 
-O post-mortem de um episódio é só a nota: não tem anexos, e nenhuma página de status o exibe. O OneUptime AI não redige um sozinho quando um episódio é resolvido. Gerá-lo exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident Episode.
+O post-mortem de um episódio é só a nota: não tem anexos, e nenhuma página de status o exibe. O OneUptime AI não redige um sozinho quando um episódio é resolvido. Gerá-lo exige o papel Project Owner ou Project Admin, ou um papel personalizado com a permissão Edit Incident Episode. Ele também não tem status, e a lista de post-mortems não o inclui.
 
 Alertas e eventos de manutenção programada não têm post-mortem.
 
@@ -141,8 +186,9 @@ Um post-mortem é um conjunto de campos do incidente, lidos e escritos por `/api
 | `showPostmortemOnStatusPage` | Se o post-mortem está publicado nas suas páginas de status. Começa como `false`. |
 | `notifySubscribersOnPostmortemPublished` | Se os assinantes são avisados quando ele é publicado. Começa como `true`. |
 | `postmortemPostedAt` | O horário que a página de status mostra ao lado dele. |
+| `postmortemStatusId` | O status do post-mortem: um dos status do projeto, em `/api/incident-postmortem-status`. |
 
-Escrever `showPostmortemOnStatusPage` como `true` sobre uma `postmortemNote` já escrita publica o post-mortem, como o diálogo faz.
+Escrever `showPostmortemOnStatusPage` como `true` sobre uma `postmortemNote` já escrita publica o post-mortem, como o diálogo faz. Isso também move o post-mortem para **Concluído**, a menos que a mesma escrita defina `postmortemStatusId`.
 
 ## Solução de problemas
 
@@ -164,6 +210,10 @@ Verifique três coisas: **Publicar na Página de status** está ligado, a nota n
 
 :::details Nenhum rascunho da IA apareceu quando o incidente foi resolvido
 O incidente já tinha uma nota, o post-mortem já estava publicado, nenhuma regra de post-mortem correspondeu a ele, ou **Redigir um post-mortem quando um incidente é resolvido** está desligado. A IA precisa estar ligada para o projeto, e o projeto não pode ter atingido os seus limites diários de IA. Quando a transcrição da chamada do incidente está a caminho, o rascunho chega assim que o OneUptime AI a lê.
+:::
+
+:::details O status de um post-mortem não mudou quando a nota foi escrita
+Só um post-mortem em **Não iniciado**, ou em um status seu acima de **Rascunho**, avança sozinho, com a primeira nota. Um que já está em andamento ou concluído fica onde está, assim como um status que alguém escolheu no mesmo salvamento. Mova-o você mesmo pelo status: veja [Movê-lo você mesmo](#movê-lo-você-mesmo).
 :::
 
 ## Próximos passos

@@ -145,6 +145,7 @@ const SEEDERS: Array<string> = [
   "addDefaultProjectTeams",
   "addDefaultMonitorStatus",
   "addDefaultIncidentState",
+  "addDefaultIncidentPostmortemStatuses",
   "addDefaultScheduledMaintenanceState",
   "addDefaultAlertState",
   "addDefaultIncidentRoles",
