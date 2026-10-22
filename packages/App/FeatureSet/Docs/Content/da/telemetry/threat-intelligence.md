@@ -54,7 +54,7 @@ Klik på **Opret Threat Intel Feed**, og vælg dets **Kilde**: **Liste over indi
 
 ### Tjek den første hentning
 
-Inden for et minut eller to viser feedets række **Last Polled**, og **Last Poll Summary** fortæller, hvad hentningen fik med. Indikatorerne vises i tabellen **Indicators** under feedsene.
+Inden for et minut eller to viser feedets række **Last Polled**, og **Last Poll Summary** fortæller, hvad hentningen fik med. Indikatorerne vises i tabellen **Indikatorer** under feedsene.
 :::
 
 | Felt | Hvad du skal angive |
@@ -129,7 +129,7 @@ Alle andre mønstre, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsa
 - En tilbagekaldt indikator, eller en, der er opdateret med en `valid_until` i fortiden, holder op med at matche, så snart opdateringen er hentet. Det samme gælder en værdi, som udbyderen fjerner fra et opdateret mønster.
 - Værdier gemmes med små bogstaver og matches uanset store og små bogstaver.
 
-Tabellen **Indicators** viser indikatorerne, som de er gemt, med en **Status** på **Aktiv**, **Udløbet** eller **Revoked**. En genhentet indikator kan vises to gange i et stykke tid, og en udløbet eller tilbagekaldt række bliver stående på listen, indtil oprydningen i lageret fjerner den, op til omkring en måned efter at den er udløbet. Matchning tjekker altid gyldighed og tilbagekaldelse, så sådan en række matcher aldrig.
+Tabellen **Indikatorer** viser indikatorerne, som de er gemt, med en **Status** på **Aktiv**, **Udløbet** eller **Revoked**. En genhentet indikator kan vises to gange i et stykke tid, og en udløbet eller tilbagekaldt række bliver stående på listen, indtil oprydningen i lageret fjerner den, op til omkring en måned efter at den er udløbet. Matchning tjekker altid gyldighed og tilbagekaldelse, så sådan en række matcher aldrig.
 
 ## Sådan findes match
 

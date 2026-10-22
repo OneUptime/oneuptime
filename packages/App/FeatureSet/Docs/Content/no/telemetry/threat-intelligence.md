@@ -54,7 +54,7 @@ Klikk på **Opprett Threat Intel Feed**, og velg **Kilde**: **Liste over indikat
 
 ### Sjekk den første hentingen
 
-I løpet av et minutt eller to viser feedens rad **Last Polled**, og **Last Poll Summary** forteller hva hentingen fikk med seg. Indikatorene vises i tabellen **Indicators** under feedene.
+I løpet av et minutt eller to viser feedens rad **Last Polled**, og **Last Poll Summary** forteller hva hentingen fikk med seg. Indikatorene vises i tabellen **Indikatorer** under feedene.
 :::
 
 | Felt | Hva du skal fylle inn |
@@ -129,7 +129,7 @@ Alle andre mønstre, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsb
 - En tilbakekalt indikator, eller en som er oppdatert med en `valid_until` i fortiden, slutter å treffe så snart oppdateringen er hentet. Det samme gjelder en verdi som leverandøren fjerner fra et oppdatert mønster.
 - Verdier lagres med små bokstaver og treffer uansett store og små bokstaver.
 
-Tabellen **Indicators** viser indikatorene slik de er lagret, med en **Status** som er **Aktiv**, **Utløpt** eller **Revoked**. En indikator som er hentet på nytt, kan vises to ganger en stund, og en utløpt eller tilbakekalt rad blir stående i listen til lageropprydningen fjerner den, opptil omtrent en måned etter at den utløper. Sammenligningen sjekker alltid gyldighet og tilbakekalling, så en slik rad treffer aldri.
+Tabellen **Indikatorer** viser indikatorene slik de er lagret, med en **Status** som er **Aktiv**, **Utløpt** eller **Revoked**. En indikator som er hentet på nytt, kan vises to ganger en stund, og en utløpt eller tilbakekalt rad blir stående i listen til lageropprydningen fjerner den, opptil omtrent en måned etter at den utløper. Sammenligningen sjekker alltid gyldighet og tilbakekalling, så en slik rad treffer aldri.
 
 ## Slik finnes treff
 

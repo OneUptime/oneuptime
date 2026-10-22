@@ -54,7 +54,7 @@ Klik op **Threat Intel Feed aanmaken** en kies de **Bron**: **Lijst van indicato
 
 ### Controleer de eerste ophaalronde
 
-Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Poll Summary** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicators** onder de feeds.
+Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Poll Summary** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicatoren** onder de feeds.
 :::
 
 | Veld | Wat je invult |
@@ -129,7 +129,7 @@ Elk ander patroon, met `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, een tijdsk
 - Een ingetrokken indicator, of een indicator die is bijgewerkt met een `valid_until` in het verleden, stopt met matchen zodra de update is opgehaald. Hetzelfde geldt voor een waarde die de aanbieder uit een bijgewerkt patroon laat vallen.
 - Waarden worden in kleine letters opgeslagen en gematcht ongeacht hun hoofdletters.
 
-De tabel **Indicators** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Revoked**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
+De tabel **Indicatoren** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Revoked**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
 
 ## Hoe matches worden gevonden
 

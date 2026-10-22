@@ -54,7 +54,7 @@ Fai clic su **Crea: Threat Intel Feed** e scegli la sua **Origine**: **Elenco di
 
 ### Controlla la prima interrogazione
 
-Entro un paio di minuti la riga del feed mostra **Last Polled**, e **Last Poll Summary** dice cosa ha recuperato l'interrogazione. Gli indicatori compaiono nella tabella **Indicators**, sotto i feed.
+Entro un paio di minuti la riga del feed mostra **Last Polled**, e **Last Poll Summary** dice cosa ha recuperato l'interrogazione. Gli indicatori compaiono nella tabella **Indicatori**, sotto i feed.
 :::
 
 | Campo | Cosa inserire |
@@ -129,7 +129,7 @@ Qualsiasi altro pattern, con `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, un q
 - Un indicatore revocato, o aggiornato con un `valid_until` nel passato, smette di corrispondere appena l'aggiornamento viene interrogato. Lo stesso vale per un valore che il fornitore toglie da un pattern aggiornato.
 - I valori vengono salvati in minuscolo e confrontati senza badare a maiuscole e minuscole.
 
-La tabella **Indicators** elenca gli indicatori come sono salvati, con uno **Stato** **Attivo**, **Scaduto** o **Revoked**. Un indicatore interrogato di nuovo può comparire due volte per un po', e una riga scaduta o revocata resta in elenco finché la pulizia dello spazio di archiviazione non la rimuove, fino a circa un mese dopo la scadenza. Il confronto controlla sempre validità e revoca, quindi una riga così non corrisponde mai.
+La tabella **Indicatori** elenca gli indicatori come sono salvati, con uno **Stato** **Attivo**, **Scaduto** o **Revoked**. Un indicatore interrogato di nuovo può comparire due volte per un po', e una riga scaduta o revocata resta in elenco finché la pulizia dello spazio di archiviazione non la rimuove, fino a circa un mese dopo la scadenza. Il confronto controlla sempre validità e revoca, quindi una riga così non corrisponde mai.
 
 ## Come si trovano le corrispondenze
 

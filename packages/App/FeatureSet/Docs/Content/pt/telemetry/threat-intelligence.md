@@ -54,7 +54,7 @@ Clique em **Criar: Threat Intel Feed** e escolha a **Origem** dele: **Lista de i
 
 ### Confira a primeira consulta
 
-Em um ou dois minutos, a linha do feed mostra **Last Polled**, e **Last Poll Summary** diz o que a consulta trouxe. Os indicadores aparecem na tabela **Indicators**, abaixo dos feeds.
+Em um ou dois minutos, a linha do feed mostra **Last Polled**, e **Last Poll Summary** diz o que a consulta trouxe. Os indicadores aparecem na tabela **Indicadores**, abaixo dos feeds.
 :::
 
 | Campo | O que informar |
@@ -129,7 +129,7 @@ Qualquer outro padrão, com `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, um qu
 - Um indicador revogado, ou atualizado com um `valid_until` no passado, deixa de corresponder assim que a atualização é consultada. O mesmo vale para um valor que o fornecedor tira de um padrão atualizado.
 - Os valores são guardados em minúsculas e comparados sem diferenciar maiúsculas.
 
-A tabela **Indicators** lista os indicadores como estão guardados, com um **Status** de **Ativo**, **Expirado** ou **Revoked**. Um indicador consultado de novo pode aparecer duas vezes por um tempo, e uma linha expirada ou revogada continua listada até a limpeza do armazenamento removê-la, até cerca de um mês depois de expirar. A comparação sempre verifica validade e revogação, então uma linha assim nunca corresponde.
+A tabela **Indicadores** lista os indicadores como estão guardados, com um **Status** de **Ativo**, **Expirado** ou **Revoked**. Um indicador consultado de novo pode aparecer duas vezes por um tempo, e uma linha expirada ou revogada continua listada até a limpeza do armazenamento removê-la, até cerca de um mês depois de expirar. A comparação sempre verifica validade e revogação, então uma linha assim nunca corresponde.
 
 ## Como as correspondências são encontradas
 

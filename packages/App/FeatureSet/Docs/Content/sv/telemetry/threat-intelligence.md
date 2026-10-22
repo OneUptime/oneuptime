@@ -54,7 +54,7 @@ Klicka på **Skapa Threat Intel Feed** och välj dess **Källa**: **Lista med in
 
 ### Kontrollera den första hämtningen
 
-Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Summary** berättar vad hämtningen fick med sig. Indikatorerna visas i tabellen **Indicators** under flödena.
+Inom en minut eller två visar flödets rad **Last Polled**, och **Last Poll Summary** berättar vad hämtningen fick med sig. Indikatorerna visas i tabellen **Indikatorer** under flödena.
 :::
 
 | Fält | Vad du anger |
@@ -129,7 +129,7 @@ Alla andra mönster, med `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, en tidsb
 - En återkallad indikator, eller en som uppdaterats med en `valid_until` i det förflutna, slutar träffa så snart uppdateringen har hämtats. Detsamma gäller ett värde som leverantören tar bort från ett uppdaterat mönster.
 - Värden lagras med gemener och träffar oavsett versaler och gemener.
 
-Tabellen **Indicators** listar indikatorerna som de är lagrade, med en **Status** som är **Aktiv**, **Utgången** eller **Revoked**. En indikator som hämtats på nytt kan visas två gånger en stund, och en utgången eller återkallad rad ligger kvar i listan tills lagringsrensningen tar bort den, upp till ungefär en månad efter att den löpt ut. Matchningen kontrollerar alltid giltighet och återkallelse, så en sådan rad träffar aldrig.
+Tabellen **Indikatorer** listar indikatorerna som de är lagrade, med en **Status** som är **Aktiv**, **Utgången** eller **Revoked**. En indikator som hämtats på nytt kan visas två gånger en stund, och en utgången eller återkallad rad ligger kvar i listan tills lagringsrensningen tar bort den, upp till ungefär en månad efter att den löpt ut. Matchningen kontrollerar alltid giltighet och återkallelse, så en sådan rad träffar aldrig.
 
 ## Så hittas träffar
 
