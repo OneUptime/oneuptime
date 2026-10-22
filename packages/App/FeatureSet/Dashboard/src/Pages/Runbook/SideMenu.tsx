@@ -33,26 +33,18 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Play,
         },
-      ],
-    },
-    /*
-     * Runners have a section of their own, not a row inside Settings: a Bash,
-     * SSH or Kubernetes step cannot run without one, and the section's title
-     * is where people look to see whether theirs is still connected. The AI
-     * pages that need a Runner (code fixes, remediation commands) link
-     * straight to these too.
-     *
-     * Folded down to that title until opened, like every rarely used section:
-     * a Runner is installed once and checked now and then, while the
-     * runbooks and their executions above are what this menu is opened for.
-     * It opens by itself on the Runners and AI Access pages, and on a
-     * Runner's own page. AI Access is what OneUptime AI's commands reach
-     * through a Runner (the credentials runbook steps no longer use).
-     */
-    {
-      title: "Runners",
-      defaultCollapsed: true,
-      items: [
+        /*
+         * The Runners sit with the runbooks, not in Settings: a Bash, SSH or
+         * kubectl step runs on one, and this is where people look to see
+         * whether theirs is still connected. The AI pages that need a Runner
+         * (code fixes, remediation commands) link straight here too.
+         *
+         * They had a section of their own while AI Access stood beside them
+         * (the runbook credentials OneUptime AI's commands reached a host or a
+         * cluster with). AI Access is gone - hosts and Kubernetes clusters
+         * have AI agents of their own - and a section holding one row named
+         * like itself is a fold to open for nothing, so the row is here.
+         */
         {
           link: {
             title: "Runners",
@@ -61,15 +53,6 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
             ),
           },
           icon: IconProp.Terminal,
-        },
-        {
-          link: {
-            title: "AI Access",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route,
-            ),
-          },
-          icon: IconProp.Key,
         },
       ],
     },

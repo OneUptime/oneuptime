@@ -97,9 +97,9 @@ Runbook-variabler har taget pladsen for runbook-hemmeligheder og for de loginopl
 - alle loginoplysninger, som et trin nævnte, blev til hemmelige globale variabler med samme Runnere, opkaldt efter dem: `<name>-ssh-key` (og `<name>-ssh-key-passphrase` for en nøgle, der havde en), `<name>-ssh-password` eller `<name>-kubeconfig`;
 - hvert SSH-trin, der nævnte loginoplysninger, logger ind på sin maskine med dem og kører sin kommando som sit script, og hvert Kubernetes-trin blev et kubectl-trin, der kører den `kubectl patch`, som dets handling lavede, uden at kræve mere adgang, end trinnet havde.
 
-En Runner, der er ældre end denne udgivelse, kan ikke køre et kubectl-script. Derfor beholdt hvert Kubernetes-trin, der blev flyttet på denne måde, også sine loginoplysninger og sin handling, og en ældre Runner kører trinnet med dem, som den gjorde. Når du ændrer trinnets script eller kubeconfig, beholder det dem ikke længere: som ethvert nyt kubectl-trin kræver det så en Runner fra denne udgivelse, og en ældre får det til at fejle og siger, at Runneren skal opdateres.
+En Runner, der er ældre end denne udgivelse (14.0.79), kan ikke køre et kubectl-script: den får et kubectl-trin til at fejle og siger, at Runneren skal opdateres. Hvert Kubernetes-trin, der blev flyttet på denne måde, beholdt først sine loginoplysninger og sin handling ved siden af sit script til sådan en Runner; de forsvandt med runbook-loginoplysningerne, så hvert kubectl-trin kræver en Runner fra 14.0.79 eller nyere.
 
-Et trin, der er skrevet gennem API'et med loginoplysninger, kører stadig med dem, og dets side med trin tilbyder **Lav om til et script-trin**. Loginoplysningerne bliver også, til det, som OneUptime AI's egne kommandoer når: se [AI-adgang](/docs/runbooks/credentials).
+Runbook-loginoplysninger er siden fjernet, og et trin, der stadig nævnte loginoplysninger, blev først flyttet på samme måde. Et trin, der nævner loginoplysninger, kører ikke længere, og dets side med trin tilbyder **Lav om til et script-trin**; en gemning via API'et eller Terraform, der giver et trin loginoplysninger, afvises. Se [Runbook-loginoplysninger er fjernet](/docs/installation/upgrading#runbook-loginoplysninger-er-fjernet).
 
 ## Næste trin
 

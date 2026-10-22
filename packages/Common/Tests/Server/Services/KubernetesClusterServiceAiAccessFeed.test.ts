@@ -1,7 +1,6 @@
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import UserService from "../../../Server/Services/UserService";
@@ -10,7 +9,6 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import { KubernetesClusterFeedEventType } from "../../../Models/DatabaseModels/KubernetesClusterFeed";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Gray500, Yellow500 } from "../../../Types/BrandColors";
@@ -20,7 +18,6 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 
@@ -64,9 +61,6 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 );
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
-);
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
 );
 const USER_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 
@@ -154,11 +148,11 @@ describe("KubernetesClusterService AI access feed", () => {
         {
           id: CLUSTER_ID,
           projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
           isAiInvestigationEnabled: true,
           aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
           aiKubectlCommandAllowlist: null,
           aiAccessRunnerId: null,
-          aiAccessCredentialId: null,
         } as unknown as KubernetesCluster,
       ]);
 
@@ -181,21 +175,15 @@ describe("KubernetesClusterService AI access feed", () => {
     jest
       .spyOn(UserService, "getUserMarkdownString")
       .mockResolvedValue(FeedMarkdown.asMarkdown(USER_MARKDOWN));
-    jest
-      .spyOn(RunnerService, "findOneBy")
-      .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
+    // The cluster's own in-cluster Runner: the only one it may be bound to.
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
+      id: RUNNER_ID,
+      name: "kubernetes-agent/prod-us",
+    } as unknown as Runner);
     jest.spyOn(RunnerService, "findOneById").mockResolvedValue({
       id: RUNNER_ID,
       name: "kubernetes-agent/prod-us",
     } as unknown as Runner);
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-      id: CREDENTIAL_ID,
-      credentialType: RunbookCredentialType.Kubernetes,
-    } as unknown as RunbookCredential);
-    jest.spyOn(RunbookCredentialService, "findOneById").mockResolvedValue({
-      id: CREDENTIAL_ID,
-      name: "prod-us cluster-admin token",
-    } as unknown as RunbookCredential);
 
     feedItems = jest
       .spyOn(KubernetesClusterFeedService, "createKubernetesClusterFeedItem")
@@ -331,11 +319,12 @@ describe("KubernetesClusterService AI access feed", () => {
   });
 
   /*
-   * With a Kubernetes AI agent, clearing the Runner hands the cluster to the
-   * agent: the same loosening the permission check applies, so the item is
-   * in the warning colour.
+   * Clearing the Runner handed a cluster bound to a Runner outside it to its
+   * Kubernetes AI agent, and the item was in the warning colour. The only
+   * Runner a cluster can hold now is its own in-cluster one, which the agent
+   * goes before anyway: clearing it never loosens, agent or not.
    */
-  it("records clearing the Runner of a cluster with an AI agent in warning colour", async () => {
+  it("records clearing the Runner of a cluster with an AI agent in the neutral colour", async () => {
     clusterSettings.mockResolvedValue([
       {
         id: CLUSTER_ID,
@@ -357,7 +346,7 @@ describe("KubernetesClusterService AI access feed", () => {
     );
 
     expect(item.feedInfoInMarkdown).toContain("Runner cleared");
-    expect(item.displayColor).toBe(Yellow500);
+    expect(item.displayColor).toBe(Gray500);
   });
 
   it("records turning fixes on from Off in warning colour", async () => {
@@ -379,20 +368,21 @@ describe("KubernetesClusterService AI access feed", () => {
   });
 
   /*
-   * The feed is readable by everyone who may read the cluster; credentials
-   * only by those who may read credentials. So a credential is reported as
-   * bound, never by name.
+   * A cluster bound a Kubernetes runbook credential too, and the feed said
+   * so. Runbook credentials are gone, and the column with them: a write
+   * that still names one changes no AI access setting, and no item speaks
+   * of a credential.
    */
-  it("records a credential being bound without naming it", async () => {
-    const item: FeedItem = onlyItem(
-      await runUpdate({ aiAccessCredentialId: CREDENTIAL_ID }),
-    );
+  it("records no credential: a cluster holds none any more", async () => {
+    const items: Array<FeedItem> = await runUpdate({
+      aiAccessCredentialId: "55555555-5555-4555-8555-555555555555",
+    });
 
-    expect(item.feedInfoInMarkdown).toContain("Kubernetes credential bound");
-    expect(item.feedInfoInMarkdown).not.toContain("cluster-admin token");
-    expect(item.moreInformationInMarkdown || "").not.toContain(
-      "cluster-admin token",
-    );
+    expect(aiFeedWriter).not.toHaveBeenCalled();
+    for (const item of items) {
+      expect(item.feedInfoInMarkdown).not.toMatch(/credential/i);
+      expect(item.moreInformationInMarkdown || "").not.toMatch(/credential/i);
+    }
   });
 
   it("lists the allowlist patterns now in effect", async () => {
@@ -453,7 +443,6 @@ describe("KubernetesClusterService AI access feed", () => {
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
         aiKubectlCommandAllowlist: ["kubectl scale *"],
         aiAccessRunnerId: RUNNER_ID,
-        aiAccessCredentialId: null,
       } as unknown as KubernetesCluster,
     ]);
 
@@ -463,7 +452,6 @@ describe("KubernetesClusterService AI access feed", () => {
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
         aiKubectlCommandAllowlist: ["kubectl scale *"],
         aiAccessRunner: { _id: RUNNER_ID.toString() },
-        aiAccessCredential: null,
       }),
     ).toHaveLength(0);
   });
@@ -551,7 +539,6 @@ describe("KubernetesClusterService AI access feed", () => {
         await runUpdate(
           {
             aiAccessRunnerId: RUNNER_ID,
-            aiAccessCredentialId: null,
             isAiInvestigationEnabled: true,
             aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
           },

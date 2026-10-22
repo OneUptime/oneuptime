@@ -157,25 +157,6 @@ function legacyStatus(
   });
 }
 
-function advancedStatus(
-  isOnline: boolean = true,
-): KubernetesClusterAiAccessStatus {
-  return agentStatus({
-    runner: {
-      id: "55555555-0000-4000-8000-000000000006",
-      name: "ops-runner",
-      kind: "runner",
-      isOnline,
-      lastAliveAt: minutesAgo(3),
-      canRunAiCommands: true,
-      posture: { inCluster: false, kubectlVersion: "v1.29.1" },
-    },
-    accessMethod: "credential",
-    credentialId: "cred-1",
-    credentialName: "prod token",
-  });
-}
-
 interface StateCase {
   state: AiAgentCardState;
   status: KubernetesClusterAiAccessStatus;
@@ -222,22 +203,6 @@ const STATES: Array<StateCase> = [
     connection: "offline",
     badge: { text: "Offline", tone: "danger" },
     sentence: AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT,
-  },
-  {
-    state: "advanced_runner",
-    status: advancedStatus(),
-    connection: "connected",
-    badge: { text: "Connected", tone: "on" },
-    sentence:
-      'Reached through Runner "ops-runner" with credential "prod token".',
-  },
-  {
-    state: "advanced_runner_offline",
-    status: advancedStatus(false),
-    connection: "offline",
-    badge: { text: "Offline", tone: "danger" },
-    sentence:
-      'Reached through Runner "ops-runner" with credential "prod token". The Runner is offline.',
   },
 ];
 
@@ -318,7 +283,7 @@ describe("the cluster Overview's AI agent card, in every state the AI agent page
   });
 
   test("a cluster reached through a Runner keeps no place for the agent's version", () => {
-    for (const status of [legacyStatus(), advancedStatus()]) {
+    for (const status of [legacyStatus(), legacyStatus(false)]) {
       expect(
         getKubernetesAiAgentStatusSummary(status, NOW).connectionDetails,
       ).not.toContain(AI_AGENT_VERSION_DETAIL);

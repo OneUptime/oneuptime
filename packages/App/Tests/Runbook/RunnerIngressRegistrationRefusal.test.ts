@@ -6,7 +6,6 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "Common/Server/Services/KubernetesAiAgentService";
 import CodeRepositoryService from "Common/Server/Services/CodeRepositoryService";
 import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
 import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunnerService from "Common/Server/Services/RunnerService";
 import KubernetesAiAgent from "Common/Models/DatabaseModels/KubernetesAiAgent";
@@ -116,13 +115,6 @@ jest.mock("Common/Server/Utils/Express", () => {
         };
       },
     },
-  };
-});
-
-jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
-  return {
-    __esModule: true,
-    default: { resolveForJob: jest.fn() },
   };
 });
 
@@ -264,9 +256,6 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
       .mockResolvedValue(cluster());
     jest
       .spyOn(KubernetesClusterService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0));
-    jest
-      .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(RunbookVariableService, "countBy")

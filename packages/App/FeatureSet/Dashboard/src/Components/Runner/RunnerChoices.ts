@@ -164,39 +164,6 @@ export default class RunnerChoicesLoader {
   }
 
   /*
-   * The Runners a Kubernetes cluster's AI settings may bind for OneUptime
-   * AI's kubectl (the cluster's AI → Agent page, an advanced binding): the
-   * project's own, as rows - the page tells the in-cluster Runners the
-   * Kubernetes agent chart installed from the rest by their name and
-   * posture (hostInfo), and keeps a bound one it no longer offers. Never a
-   * global Runner: it never runs OneUptime AI's commands. Throws when the
-   * Runners cannot be read, so the page can say so and leave the binding as
-   * it is.
-   */
-  public static async loadForKubernetesCluster(
-    projectId: ObjectID,
-    limit: number,
-  ): Promise<Array<Runner>> {
-    const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
-      modelType: Runner,
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        // The posture: which rows the Kubernetes agent chart installed.
-        hostInfo: true,
-      },
-      sort: { name: SortOrder.Ascending },
-      limit: limit,
-      skip: 0,
-    });
-
-    return result.data || [];
-  }
-
-  /*
    * The project's own Runners. For a code repository - and an auto
    * remediation rule, which picks the same way - without the in-cluster
    * Runners the Kubernetes agent chart installed: they run kubectl for their

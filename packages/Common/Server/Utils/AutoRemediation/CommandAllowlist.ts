@@ -5,8 +5,8 @@
  * a real array or a JSON string containing one; an operator who typed one
  * pattern without brackets saved a bare string. The run reads all three
  * (RemediationExecutionRunner), and so must every check that asks whether a
- * rule runs commands without asking (AiRemediationCredentialUse) - or a
- * string would read as no allowlist to the check and as one to the run.
+ * rule runs commands without asking - or a string would read as no
+ * allowlist to the check and as one to the run.
  * Anything that is not a usable pattern list reads as empty: nothing
  * auto-executes, the safe direction.
  *

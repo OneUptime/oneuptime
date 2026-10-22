@@ -9,12 +9,10 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../../Models/DatabaseModels/Runner";
@@ -34,15 +32,19 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * Contract under test — ONE access target per cluster, resolved from
  * liveness (resolveKubernetesAiAccessTarget), and the status built from it:
  *
- * 1. a bound Runner that is not a kubernetes-agent row: the advanced Runner
- *    an operator chose (it wins over everything the chart installs);
- * 2. the cluster's Kubernetes AI agent, when online;
- * 3. the bound previous in-cluster Runner of THIS cluster, when online —
+ * 1. the cluster's Kubernetes AI agent, when online;
+ * 2. the bound previous in-cluster Runner of THIS cluster, when online —
  *    the rollback case: a helm rollback stops the agent and the old Runner
  *    serves again with no dashboard step;
- * 4. the agent, offline (ai_agent_offline);
- * 5. the bound previous in-cluster Runner, offline;
- * 6. nothing (ai_agent_not_connected).
+ * 3. the agent, offline (ai_agent_offline);
+ * 4. the bound previous in-cluster Runner, offline;
+ * 5. nothing (ai_agent_not_connected).
+ *
+ * A bound Runner outside the cluster - an advanced Runner an operator chose,
+ * which reached the cluster with a Kubernetes runbook credential and won
+ * over everything the chart installed - is none of these: runbook
+ * credentials were removed, and it is ignored. No status names a
+ * credential.
  *
  * The status always carries aiAgent (the agent row whether or not it is the
  * target) and automaticInvestigation, and names the target's kind so the
@@ -58,9 +60,6 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 );
 const RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
-);
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
 );
 const AGENT_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
@@ -79,7 +78,6 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     ...overrides,
@@ -130,8 +128,11 @@ function legacyRunner(overrides: Record<string, unknown> = {}): Runner {
   } as unknown as Runner;
 }
 
-// A Runner an operator created in the dashboard (reaches with a credential).
-function advancedRunner(overrides: Record<string, unknown> = {}): Runner {
+/*
+ * A Runner an operator created in the dashboard: it runs outside every
+ * cluster, and reached one only with a runbook credential (gone).
+ */
+function outsideRunner(overrides: Record<string, unknown> = {}): Runner {
   return legacyRunner({
     name: "platform-ops-runner",
     hostInfo: {},
@@ -173,31 +174,42 @@ function resolve(data: {
   });
 }
 
-describe("resolveKubernetesAiAccessTarget — the six rules", () => {
-  it("rule 1: an advanced Runner an operator bound wins, even over an online agent", () => {
-    const target: KubernetesAiAccessTarget = resolve({
-      bound: advancedRunner(),
-      boundOnline: true,
-      aiAgent: agent(),
-      agentOnline: true,
-    });
+describe("resolveKubernetesAiAccessTarget — the five rules", () => {
+  /*
+   * An advanced Runner an operator bound won over everything, the online
+   * agent included: it reached the cluster with a Kubernetes runbook
+   * credential. Runbook credentials were removed, and it is no target,
+   * online or not - the agent serves, or nothing does.
+   */
+  it.each([
+    ["online", true],
+    ["offline", false],
+  ])(
+    "a Runner outside the cluster, %s, is never a target: the agent serves, or nothing does",
+    (_label: string, boundOnline: boolean) => {
+      expect(
+        resolve({
+          bound: outsideRunner(),
+          boundOnline,
+          aiAgent: agent(),
+          agentOnline: true,
+        }),
+      ).toMatchObject({ type: "ai_agent", isOnline: true });
+      expect(
+        resolve({
+          bound: outsideRunner(),
+          boundOnline,
+          aiAgent: agent(),
+          agentOnline: false,
+        }),
+      ).toMatchObject({ type: "ai_agent", isOnline: false });
+      expect(resolve({ bound: outsideRunner(), boundOnline })).toEqual({
+        type: "none",
+      });
+    },
+  );
 
-    expect(target.type).toBe("advanced_runner");
-    expect(getKubernetesAiAccessTargetId(target)).toBe(RUNNER_ID.toString());
-  });
-
-  it("rule 1: an offline advanced Runner is still the target (an operator's choice is not second-guessed by liveness)", () => {
-    const target: KubernetesAiAccessTarget = resolve({
-      bound: advancedRunner(),
-      boundOnline: false,
-      aiAgent: agent(),
-      agentOnline: true,
-    });
-
-    expect(target).toMatchObject({ type: "advanced_runner", isOnline: false });
-  });
-
-  it("rule 2: the online agent wins over the online previous in-cluster Runner (the upgrade window)", () => {
+  it("rule 1: the online agent wins over the online previous in-cluster Runner (the upgrade window)", () => {
     const target: KubernetesAiAccessTarget = resolve({
       bound: legacyRunner(),
       boundOnline: true,
@@ -209,14 +221,14 @@ describe("resolveKubernetesAiAccessTarget — the six rules", () => {
     expect(getKubernetesAiAccessTargetId(target)).toBe(AGENT_ID.toString());
   });
 
-  it("rule 2: an online agent with nothing bound", () => {
+  it("rule 1: an online agent with nothing bound", () => {
     expect(resolve({ aiAgent: agent(), agentOnline: true })).toMatchObject({
       type: "ai_agent",
       isOnline: true,
     });
   });
 
-  it("rule 3 (rollback): the agent offline and the previous in-cluster Runner online → the previous Runner", () => {
+  it("rule 2 (rollback): the agent offline and the previous in-cluster Runner online → the previous Runner", () => {
     const target: KubernetesAiAccessTarget = resolve({
       bound: legacyRunner(),
       boundOnline: true,
@@ -228,13 +240,13 @@ describe("resolveKubernetesAiAccessTarget — the six rules", () => {
     expect(getKubernetesAiAccessTargetId(target)).toBe(RUNNER_ID.toString());
   });
 
-  it("rule 3: the previous in-cluster Runner online and no agent at all", () => {
+  it("rule 2: the previous in-cluster Runner online and no agent at all", () => {
     expect(resolve({ bound: legacyRunner(), boundOnline: true })).toMatchObject(
       { type: "legacy_runner", isOnline: true },
     );
   });
 
-  it("rule 4: the agent offline beats the previous Runner offline", () => {
+  it("rule 3: the agent offline beats the previous Runner offline", () => {
     expect(
       resolve({
         bound: legacyRunner(),
@@ -245,20 +257,20 @@ describe("resolveKubernetesAiAccessTarget — the six rules", () => {
     ).toMatchObject({ type: "ai_agent", isOnline: false });
   });
 
-  it("rule 4: the agent offline with nothing bound", () => {
+  it("rule 3: the agent offline with nothing bound", () => {
     expect(resolve({ aiAgent: agent(), agentOnline: false })).toMatchObject({
       type: "ai_agent",
       isOnline: false,
     });
   });
 
-  it("rule 5: the previous in-cluster Runner offline and no agent", () => {
+  it("rule 4: the previous in-cluster Runner offline and no agent", () => {
     expect(
       resolve({ bound: legacyRunner(), boundOnline: false }),
     ).toMatchObject({ type: "legacy_runner", isOnline: false });
   });
 
-  it("rule 6: nothing", () => {
+  it("rule 5: nothing", () => {
     const target: KubernetesAiAccessTarget = resolve({});
 
     expect(target).toEqual({ type: "none" });
@@ -312,7 +324,7 @@ describe("resolveKubernetesAiAccessTarget — the six rules", () => {
   it("a Runner row handed in without a binding on the cluster is ignored", () => {
     expect(
       resolve({
-        bound: advancedRunner(),
+        bound: outsideRunner(),
         boundOnline: true,
         aiAccessRunnerId: null,
       }),
@@ -337,13 +349,6 @@ describe("resolveKubernetesAiAccessTarget — the six rules", () => {
         isOnline: true,
       }),
     ).toBe(AGENT_ID.toString());
-    expect(
-      getKubernetesAiAccessTargetId({
-        type: "advanced_runner",
-        runner: advancedRunner(),
-        isOnline: true,
-      }),
-    ).toBe(RUNNER_ID.toString());
     expect(
       getKubernetesAiAccessTargetId({
         type: "legacy_runner",
@@ -550,7 +555,7 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
     expect(status.isInvestigationReady).toBe(true);
     expect(status.isRemediationReady).toBe(true);
     expect(status.accessMethod).toBe("in_cluster");
-    expect(status.credentialId).toBeUndefined();
+    expect(status).not.toHaveProperty("credentialId");
     expect(status.runner).toEqual({
       id: AGENT_ID.toString(),
       name: KUBERNETES_AI_AGENT_DISPLAY_NAME,
@@ -613,29 +618,42 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
     });
   });
 
-  it("reports the agent row even when an advanced Runner is the target", async () => {
-    runnerLookup.mockResolvedValue(advancedRunner());
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-      id: CREDENTIAL_ID,
-      _id: CREDENTIAL_ID.toString(),
-      name: "prod kubeconfig",
-      credentialType: "Kubernetes",
-      runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-    } as unknown as RunbookCredential);
+  /*
+   * An advanced Runner an operator bound was the target, over the online
+   * agent, with the cluster's Kubernetes runbook credential. Runbook
+   * credentials were removed; a cluster still bound to such a Runner (its
+   * data migration clears the binding) is reached through its agent.
+   */
+  it("an outside Runner still bound is no target: the online agent serves, and no credential is named", async () => {
+    runnerLookup.mockResolvedValue(outsideRunner());
 
     const status: KubernetesClusterAiAccessStatus = await statusOf({
       aiAccessRunnerId: RUNNER_ID,
-      aiAccessCredentialId: CREDENTIAL_ID,
     });
 
-    expect(status.runner?.kind).toBe("runner");
-    expect(status.runner?.name).toBe("platform-ops-runner");
-    expect(status.accessMethod).toBe("credential");
-    expect(status.credentialId).toBe(CREDENTIAL_ID.toString());
-    expect(status.aiAgent?.id).toBe(AGENT_ID.toString());
-    // Enable AI is the only project switch a Runner's fixes need.
+    expect(status.runner?.kind).toBe("ai_agent");
+    expect(status.runner?.id).toBe(AGENT_ID.toString());
+    expect(status.accessMethod).toBe("in_cluster");
     expect(status.gaps).toEqual([]);
     expect(status.isRemediationReady).toBe(true);
+    expect(status).not.toHaveProperty("credentialId");
+    expect(status).not.toHaveProperty("credentialName");
+  });
+
+  it("with no agent, an outside Runner still bound leaves the cluster unreached, and the gap says the Runner is not used", async () => {
+    agentLookup.mockResolvedValue(null);
+    runnerLookup.mockResolvedValue(outsideRunner());
+
+    const status: KubernetesClusterAiAccessStatus = await statusOf({
+      aiAccessRunnerId: RUNNER_ID,
+    });
+
+    expect(status.runner).toBeNull();
+    expect(status.accessMethod).toBe("none");
+    expect(gapCodes(status)).toEqual(["ai_agent_not_connected"]);
+    expect(status.gaps[0]?.description).toContain(
+      'Runner "platform-ops-runner" is still selected for this cluster, but it is not this cluster\'s in-cluster Runner, so OneUptime AI does not use it.',
+    );
   });
 
   it("the upgrade window: an online agent is the target while the previous Runner is still bound and online", async () => {
@@ -776,14 +794,9 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
   it("a previous in-cluster Runner whose report dropped its posture is not used; the step is the upgrade", async () => {
     agentLookup.mockResolvedValue(null);
     runnerLookup.mockResolvedValue(legacyRunner({ hostInfo: {} }));
-    const credentialLookup: jest.SpyInstance = jest.spyOn(
-      RunbookCredentialService,
-      "findOneBy",
-    );
 
     const status: KubernetesClusterAiAccessStatus = await statusOf({
       aiAccessRunnerId: RUNNER_ID,
-      aiAccessCredentialId: CREDENTIAL_ID,
     });
 
     expect(gapCodes(status)).toEqual(["runner_cluster_mismatch"]);
@@ -794,25 +807,20 @@ describe("the status of a cluster reached through its Kubernetes AI agent", () =
       "Upgrade the Kubernetes agent chart",
     );
     expect(status.accessMethod).toBe("none");
-    expect(status.credentialId).toBeUndefined();
-    // Never handed a credential, so the credential is not even read.
-    expect(credentialLookup).not.toHaveBeenCalled();
+    expect(status).not.toHaveProperty("credentialId");
   });
 
-  it("never reads or uses a credential selected on a cluster the agent reaches", async () => {
-    const credentialLookup: jest.SpyInstance = jest.spyOn(
-      RunbookCredentialService,
-      "findOneBy",
-    );
-
+  it("reads no credential column: a cluster row that still carries one changes nothing", async () => {
     const status: KubernetesClusterAiAccessStatus = await statusOf({
-      aiAccessCredentialId: CREDENTIAL_ID,
+      aiAccessCredentialId: "55555555-5555-4555-8555-555555555555",
     });
 
     expect(status.gaps).toEqual([]);
-    expect(status.credentialId).toBeUndefined();
-    expect(status.credentialName).toBeUndefined();
-    expect(credentialLookup).not.toHaveBeenCalled();
+    expect(JSON.stringify(status)).not.toContain(
+      "55555555-5555-4555-8555-555555555555",
+    );
+    expect(status).not.toHaveProperty("credentialId");
+    expect(status).not.toHaveProperty("credentialName");
   });
 
   it("the agent never gets the runner_ai_commands_disabled gap, and with AI off only project_ai_disabled", async () => {
@@ -1003,7 +1011,7 @@ describe("KubernetesClusterAiAccessService.getLegacyAgentRunnerForCluster", () =
   it("does not return a bound Runner that is not this cluster's agent", async () => {
     runnerLookup
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(advancedRunner());
+      .mockResolvedValueOnce(outsideRunner());
     clusterLookup.mockResolvedValue(cluster({ aiAccessRunnerId: RUNNER_ID }));
 
     expect(await find("prod-us")).toBeNull();

@@ -80,9 +80,9 @@ async function created(
 }
 
 /*
- * A project owner, who may read runbook credentials - so an edit that lets
- * OneUptime AI run a rule's commands without asking needs nothing more
- * (AutoRemediationRuleUnattendedCommands.test.ts has the editors who may not).
+ * A project owner. An edit that lets OneUptime AI run a rule's commands
+ * without asking needs nothing more than the rule's own permissions
+ * (AutoRemediationRuleUnattendedCommands.test.ts).
  */
 const OWNER: DatabaseCommonInteractionProps = {
   tenantId: PROJECT_ID,

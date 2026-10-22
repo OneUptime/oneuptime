@@ -115,7 +115,6 @@ export interface GitOpsCommandInspection {
 export interface GitOpsReadCluster {
   clusterId: string;
   runnerId: string;
-  credentialId?: string | undefined;
 }
 
 export default class GitOpsInspector {
@@ -129,7 +128,6 @@ export default class GitOpsInspector {
     return {
       clusterId: cluster.clusterId,
       runnerId: cluster.runner.id,
-      credentialId: cluster.credentialId,
     };
   }
 
@@ -242,7 +240,6 @@ export default class GitOpsInspector {
         origin: RunnerJobOrigin.AiInvestigation,
         kubernetesClusterId: new ObjectID(data.cluster.clusterId),
         targetRunnerId: new ObjectID(data.cluster.runnerId),
-        credentialId: data.cluster.credentialId,
         command: buildOwnershipReadCommand({
           kind: data.kind,
           name: data.name,

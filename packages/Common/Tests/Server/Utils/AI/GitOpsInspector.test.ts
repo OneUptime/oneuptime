@@ -191,7 +191,7 @@ describe("GitOpsInspector.readObject", () => {
     const read: KubectlObjectRead = await GitOpsInspector.readObject({
       projectId: PROJECT_ID,
       aiRunId: RUN_ID,
-      cluster: { ...CLUSTER, credentialId: "credential-1" },
+      cluster: CLUSTER,
       kind: "deployment",
       name: "web",
       namespace: "shop",
@@ -206,7 +206,6 @@ describe("GitOpsInspector.readObject", () => {
         origin: RunnerJobOrigin.AiInvestigation,
         kubernetesClusterId: new ObjectID(CLUSTER_ID),
         targetRunnerId: new ObjectID(RUNNER_ID),
-        credentialId: "credential-1",
         command:
           "kubectl get deployment/web -n shop -o json --show-managed-fields",
         stepId: "ai-gitops-1-before",

@@ -1,14 +1,10 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerService from "../../../../Server/Services/RunnerService";
-import AiCommandCredentialReach, {
-  CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
-  CredentialReachHold,
-} from "../../../../Server/Utils/AutoRemediation/AiCommandCredentialReach";
 import RunnerAiCommandsPick from "../../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import BadDataException from "../../../../Types/Exception/BadDataException";
-import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../Types/Permission";
 import UserType from "../../../../Types/UserType";
@@ -23,10 +19,12 @@ import UserType from "../../../../Types/UserType";
  * own Runners: never a global Runner, never another project's, never the
  * in-cluster Runner the Kubernetes agent chart installed.
  *
- * And the pick asks what the switch asked: someone who may not read runbook
- * credentials may not let OneUptime AI's commands reach a Runner that holds
- * SSH credentials, and their pick holds the project's lock
- * (AiCommandCredentialReach) from before it reads until it is written.
+ * The pick asked one thing more while runbook credentials existed: someone
+ * who could not read them could not let OneUptime AI's commands reach a
+ * Runner that held SSH credentials, and their pick held the project's lock
+ * (AiCommandCredentialReach) from before it read until it wrote. Runbook
+ * credentials were removed, and the check and its lock with them: who may
+ * pick is decided where the pick is saved.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -227,203 +225,68 @@ describe("who picks the Runner", () => {
     Permission.EditAutoRemediationRule,
   ];
 
-  interface Lock {
-    hold: CredentialReachHold;
-    take: ReturnType<typeof jest.spyOn>;
-    keep: ReturnType<typeof jest.spyOn>;
-    giveBack: ReturnType<typeof jest.spyOn>;
-  }
+  test.each([
+    [
+      "a rule editor who may not read anything else",
+      (): DatabaseCommonInteractionProps | undefined => {
+        return picker(RULE_EDITOR);
+      },
+    ],
+    [
+      "OneUptime itself",
+      (): DatabaseCommonInteractionProps | undefined => {
+        return { isRoot: true };
+      },
+    ],
+    [
+      "a caller who names no one",
+      (): DatabaseCommonInteractionProps | undefined => {
+        return undefined;
+      },
+    ],
+  ])(
+    "%s: the pick turns the Runner on, and asks nothing more",
+    async (
+      _label: string,
+      props: () => DatabaseCommonInteractionProps | undefined,
+    ) => {
+      const runners: ReturnType<typeof stubRunners> = stubRunners([
+        row(HOST_RUNNER_ID),
+      ]);
 
-  function stubLock(): Lock {
-    const hold: CredentialReachHold = { locks: [] };
-
-    return {
-      hold,
-      take: jest
-        .spyOn(AiCommandCredentialReach, "take")
-        .mockResolvedValue(hold as never),
-      keep: jest
-        .spyOn(AiCommandCredentialReach, "keepForWrite")
-        .mockResolvedValue(undefined as never),
-      giveBack: jest
-        .spyOn(AiCommandCredentialReach, "giveBack")
-        .mockResolvedValue(undefined as never),
-    };
-  }
-
-  test("someone who may read runbook credentials is not asked, and takes no lock", async () => {
-    const runners: ReturnType<typeof stubRunners> = stubRunners([
-      row(HOST_RUNNER_ID),
-    ]);
-    const lock: Lock = stubLock();
-    const credentials: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      RunnerService,
-      "assertNoCredentialsForAiCommands",
-    );
-
-    await RunnerAiCommandsPick.allowPickedRunners({
-      projectId: PROJECT_ID,
-      runnerIds: [HOST_RUNNER_ID],
-      props: picker([...RULE_EDITOR, Permission.ReadRunbookCredential]),
-    });
-
-    expect(lock.take).not.toHaveBeenCalled();
-    expect(credentials).not.toHaveBeenCalled();
-    expect(runners.updateCalls()).toHaveLength(1);
-  });
-
-  test("OneUptime's own pick is not asked either", async () => {
-    const runners: ReturnType<typeof stubRunners> = stubRunners([
-      row(HOST_RUNNER_ID),
-    ]);
-    const lock: Lock = stubLock();
-
-    await RunnerAiCommandsPick.allowPickedRunners({
-      projectId: PROJECT_ID,
-      runnerIds: [HOST_RUNNER_ID],
-      props: { isRoot: true },
-    });
-
-    expect(lock.take).not.toHaveBeenCalled();
-    expect(runners.updateCalls()).toHaveLength(1);
-  });
-
-  test("anyone else's pick is checked under the project's lock, kept right before the write, then given back", async () => {
-    const runners: ReturnType<typeof stubRunners> = stubRunners([
-      row(HOST_RUNNER_ID),
-    ]);
-    const lock: Lock = stubLock();
-    const order: Array<string> = [];
-    lock.take.mockImplementation(async (): Promise<never> => {
-      order.push("lock");
-      return lock.hold as never;
-    });
-    jest
-      .spyOn(RunnerService, "assertNoCredentialsForAiCommands")
-      .mockImplementation(async (turnedOn: unknown): Promise<void> => {
-        order.push(
-          `check ${(turnedOn as Array<Runner>)
-            .map((runner: Runner): string => {
-              return String(runner._id);
-            })
-            .join(",")}`,
-        );
-      });
-    lock.keep.mockImplementation(async (): Promise<void> => {
-      order.push("keep");
-    });
-    jest
-      .mocked(RunnerService.updateOneById)
-      .mockImplementation(async (): Promise<never> => {
-        order.push("write");
-        return undefined as never;
-      });
-    lock.giveBack.mockImplementation(async (): Promise<void> => {
-      order.push("give back");
-    });
-
-    await RunnerAiCommandsPick.allowPickedRunners({
-      projectId: PROJECT_ID,
-      runnerIds: [HOST_RUNNER_ID],
-      props: picker(RULE_EDITOR),
-    });
-
-    expect(lock.take).toHaveBeenCalledWith([PROJECT_ID]);
-    expect(order).toEqual([
-      "lock",
-      `check ${HOST_RUNNER_ID}`,
-      "keep",
-      "write",
-      "give back",
-    ]);
-    // Read under the lock: the switch as it is now.
-    expect(runners.findCalls()).toHaveLength(1);
-  });
-
-  test("a Runner that holds SSH credentials is refused, says who may, and nothing is written", async () => {
-    const runners: ReturnType<typeof stubRunners> = stubRunners([
-      row(HOST_RUNNER_ID),
-    ]);
-    stubLock();
-    jest
-      .spyOn(AiCommandCredentialReach, "giveBackAfterFailedWrite")
-      .mockResolvedValue(undefined as never);
-    const refusal: NotAuthorizedException = new NotAuthorizedException(
-      'Runner "bash-runner" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so letting it run OneUptime AI\'s commands takes permission to read runbook credentials: Read Runbook Credential.',
-    );
-    jest
-      .spyOn(RunnerService, "assertNoCredentialsForAiCommands")
-      .mockRejectedValue(refusal as never);
-
-    await expect(
-      RunnerAiCommandsPick.allowPickedRunners({
+      await RunnerAiCommandsPick.allowPickedRunners({
         projectId: PROJECT_ID,
         runnerIds: [HOST_RUNNER_ID],
-        props: picker(RULE_EDITOR),
-      }),
-    ).rejects.toBe(refusal);
+        props: props(),
+      });
 
-    expect(runners.updateCalls()).toEqual([]);
+      // One read and one write, both as OneUptime, whoever picked.
+      expect(runners.findCalls()).toHaveLength(1);
+      expect(runners.findCalls()[0]!.props.isRoot).toBe(true);
+      expect(runners.updateCalls()).toHaveLength(1);
+      expect(runners.updateCalls()[0]!.data).toEqual({
+        canRunAiCommands: true,
+      });
+    },
+  );
+
+  test("the credential check and the project's lock went with runbook credentials", () => {
+    expect(RunnerService).not.toHaveProperty(
+      "assertNoCredentialsForAiCommands",
+    );
     expect(
-      AiCommandCredentialReach.giveBackAfterFailedWrite,
-    ).toHaveBeenCalled();
+      fs.existsSync(
+        path.join(
+          __dirname,
+          "../../../../Server/Utils/AutoRemediation/AiCommandCredentialReach.ts",
+        ),
+      ),
+    ).toBe(false);
   });
 
-  test("the check is asked about exactly the Runners the pick turns on, for the picker", async () => {
-    stubRunners([row(HOST_RUNNER_ID)]);
-    stubLock();
-    // RunnerServiceAiCommandsCredentialRead pins what the check reads.
-    const props: DatabaseCommonInteractionProps = picker(RULE_EDITOR);
-    const assertion: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      RunnerService,
-      "assertNoCredentialsForAiCommands",
-    );
-    assertion.mockResolvedValue(undefined as never);
-
-    await RunnerAiCommandsPick.allowPickedRunners({
-      projectId: PROJECT_ID,
-      runnerIds: [HOST_RUNNER_ID],
-      props,
-    });
-
-    expect(assertion).toHaveBeenCalledWith(
-      [expect.objectContaining({ _id: HOST_RUNNER_ID })],
-      props,
-    );
-  });
-
-  test("a pick that cannot have the lock is refused before anything is read", async () => {
-    const runners: ReturnType<typeof stubRunners> = stubRunners([
-      row(HOST_RUNNER_ID),
-    ]);
-    jest
-      .spyOn(AiCommandCredentialReach, "take")
-      .mockRejectedValue(
-        new BadDataException(
-          CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE,
-        ) as never,
-      );
-
-    await expect(
-      RunnerAiCommandsPick.allowPickedRunners({
-        projectId: PROJECT_ID,
-        runnerIds: [HOST_RUNNER_ID],
-        props: picker(RULE_EDITOR),
-      }),
-    ).rejects.toThrow(CREDENTIAL_REACH_CHANGE_IN_PROGRESS_MESSAGE);
-
-    expect(runners.findCalls()).toEqual([]);
-    expect(runners.updateCalls()).toEqual([]);
-  });
-
-  test("a Runner that runs OneUptime AI's commands already is not asked about", async () => {
-    // Read with canRunAiCommands: false, so none comes back.
+  test("a pick that writes nothing reads once, and turns nothing on", async () => {
+    // Read with canRunAiCommands: false, so a Runner that runs them already is not.
     const runners: ReturnType<typeof stubRunners> = stubRunners([]);
-    const lock: Lock = stubLock();
-    const credentials: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      RunnerService,
-      "assertNoCredentialsForAiCommands",
-    );
 
     await RunnerAiCommandsPick.allowPickedRunners({
       projectId: PROJECT_ID,
@@ -431,9 +294,7 @@ describe("who picks the Runner", () => {
       props: picker(RULE_EDITOR),
     });
 
-    expect(credentials).not.toHaveBeenCalled();
+    expect(runners.findCalls()).toHaveLength(1);
     expect(runners.updateCalls()).toEqual([]);
-    // The lock is given back all the same.
-    expect(lock.giveBack).toHaveBeenCalledWith(lock.hold);
   });
 });

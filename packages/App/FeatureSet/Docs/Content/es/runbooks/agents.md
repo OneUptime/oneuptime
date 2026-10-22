@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"HTTPS saliente, ID y clave del Runner"| ingest
-    ingest -->|"Trabajo reclamado, con sus secretos o su credencial"| runner
+    ingest -->|"Trabajo reclamado, con sus secretos"| runner
     runner -->|"Script, SSH o API de Kubernetes"| targets
 ```
 
@@ -61,13 +61,12 @@ Los Runners globales son los Runners que OneUptime ejecuta para todos los proyec
 | Lo que un paso puede alcanzar | Direcciones públicas de internet | Lo que alcanza su host |
 | Lo más que dura un paso | 5 minutos | 1 hora |
 | Variables secretas | Las que dejas usar a los Runners globales | Las que lo incluyen |
-| Credenciales | Ninguna | Las que le asignas |
 
 Un Runner global ejecuta los pasos de muchos proyectos, así que cada paso se mantiene aparte de todos los demás:
 
 - Cada paso se ejecuta en un sandbox `isolated-vm` propio, creado para ese paso y descartado después: sin archivos, sin procesos, sin variables de entorno y sin nada que se conserve de un paso al siguiente.
 - Sus peticiones HTTP solo alcanzan direcciones públicas de internet, nunca una dirección privada, de loopback o de enlace local ni un endpoint de metadatos de la nube, así que un Runner global nunca alcanza tu red.
-- Recibe una variable secreta solo cuando su interruptor **Los Runners globales pueden usarlo** está activado, y solo para un paso del propio proyecto de la variable. Nunca recibe una credencial.
+- Recibe una variable secreta solo cuando su interruptor **Los Runners globales pueden usarlo** está activado, y solo para un paso del propio proyecto de la variable.
 - Un proyecto ejecuta como mucho tres pasos a la vez en los Runners globales, así que ningún proyecto los acapara.
 
 Elige uno de tus propios Runners para un paso que deba alcanzar tu red, o para mantener el paso en hosts que controlas. Para mantener todos los pasos en tus propios Runners, desactiva **Usar Runners globales** al final de **Runbooks → Agentes de runbook**. Un paso JavaScript que no elige ningún Runner se ejecuta entonces en el Runner predeterminado del proyecto o, si no hay ninguno, falla, indicándolo, hasta que elija uno de los tuyos; un paso que elige uno de tus Runners lo conserva en cualquier caso. Un repositorio de código que no elige ningún Runner en sus ajustes en Código también trabaja en un Runner global, y necesita uno de los tuyos mientras el interruptor está desactivado; consulta [Código](/docs/ai/ai-agent#elige-el-runner-del-repositorio).
@@ -98,7 +97,7 @@ Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **C
 | **Ejecuta runbooks** | En **Más campos** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
 | **Etiquetas** | En **Más campos** | Opcional. |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de remediación automática elige el Runner en el que OneUptime AI ejecuta sus comandos, y los ajustes de IA de un clúster de Kubernetes el Runner en el que se ejecuta su kubectl: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él. Elegir uno que tiene credenciales SSH requiere permiso para leer las credenciales de runbook; consulta [Runners que ejecutan los comandos de OneUptime AI](/docs/runbooks/credentials#runners-que-ejecutan-los-comandos-de-oneuptime-ai).
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de remediación automática elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él.
 
 ### 2. Copiar el comando de instalación
 

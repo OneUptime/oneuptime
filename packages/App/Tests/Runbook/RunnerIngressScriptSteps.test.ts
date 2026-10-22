@@ -18,16 +18,11 @@ import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import {
   KubernetesAction,
   KubernetesWorkloadKind,
 } from "Common/Types/Runbook/RunbookStep";
-import {
-  LEGACY_KUBERNETES_STEP_JOB_KEY,
-  getKubectlScriptForLegacyKubernetesStep,
-  getLegacyKubernetesStepForOlderRunner,
-} from "Common/Types/Runbook/RunbookLegacySteps";
+import { getKubectlScriptForLegacyKubernetesStep } from "Common/Types/Runbook/RunbookLegacySteps";
 import { REDACTED_SECRET_TEXT } from "Common/Types/Runbook/SecretOutputRedaction";
 import {
   afterEach,
@@ -50,9 +45,12 @@ import {
  *     Runner older than kubectl scripts (its claim names no
  *     "kubectl-script") is not handed one: the step fails, saying to update
  *     the Runner, rather than running an action it never had;
- *   - a kubectl step moved from a Kubernetes action, which kept the action:
- *     such a Runner is handed the action and its credential, exactly as
- *     before the move, and nothing of the script's; a newer one the script;
+ *   - a kubectl step moved from a Kubernetes action, whose job still
+ *     carries the action it kept (queued before runbook credentials were
+ *     removed): such a Runner is told to update - it was handed the action
+ *     and its credential - and a newer one the script and the kubeconfig;
+ *   - a step written with a runbook credential and no script is failed,
+ *     saying how to fix the step, and nothing is read for it;
  *   - the result the Runner sends is stored with every secret the step was
  *     handed hidden, whatever the Runner did.
  * ---------------------------------------------------------------------------
@@ -130,18 +128,8 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
-  return {
-    __esModule: true,
-    default: {
-      resolveForJob: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
-import RunbookCredentialsUtil from "../../FeatureSet/Runbook/Utils/Credentials";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
 
 const CLAIM_ROUTE: string = "/claim-next-job";
@@ -346,8 +334,6 @@ describe("a project's Runner claims an SSH step that takes a script", () => {
       privateKey: PRIVATE_KEY,
     });
     expect(job["secretValues"]).toEqual([PRIVATE_KEY]);
-    // A credential of the old kind is never looked up for it.
-    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
     // Its script runs on another machine: no run inputs.
     expect(job).not.toHaveProperty("inputs");
     expect(submitSpy).not.toHaveBeenCalled();
@@ -370,28 +356,33 @@ describe("a project's Runner claims an SSH step that takes a script", () => {
     expect(JSON.stringify(submitSpy.mock.calls)).not.toContain("OPENSSH");
   });
 
-  test("a step written with a credential is served as it always was", async () => {
-    const credentialId: string = ObjectID.generate().toString();
+  /*
+   * A step written with a credential was served with it, resolved for this
+   * Runner. Runbook credentials were removed: one written through the API
+   * and never moved to variables is failed, saying how to fix the step.
+   */
+  test("a step written with a credential is failed, saying how to fix it, and nothing is read", async () => {
     claimSpy.mockResolvedValue(
       claimedJob({
         stepType: RunbookStepType.SSH,
-        payload: { credentialId, command: "uptime" },
+        payload: {
+          credentialId: ObjectID.generate().toString(),
+          command: "uptime",
+        },
       }),
     );
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue({ hostname: "h", username: "u", password: "p" });
 
     await callRoute({ uri: CLAIM_ROUTE });
 
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job["payload"]).toEqual({ credentialId, command: "uptime" });
-    expect(job["credential"]).toEqual({
-      hostname: "h",
-      username: "u",
-      password: "p",
+    expect(lastJsonResponse()).toEqual({ job: null });
+    expect(submitSpy.mock.calls[0]![0]).toEqual({
+      jobId: new ObjectID(JOB_ID),
+      agentId: RUNNER_ID,
+      success: false,
+      errorMessage: RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL,
     });
     expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
+    expect(RunbookExecutionService.findOneById).not.toHaveBeenCalled();
   });
 });
 
@@ -454,12 +445,14 @@ describe("a project's Runner claims a kubectl step that takes a script", () => {
 });
 
 /*
- * A kubectl step the data migration moved from a Kubernetes action keeps
- * that action and its credential (RunbookLegacySteps), and its job carries
- * them beside the script (StepExecutors). A Runner older than kubectl
- * scripts - its claim names no "kubectl-script" - is handed the step as it
- * was written, exactly as before the move, and nothing more; a newer Runner
- * is handed the script and the kubeconfig, as for every kubectl step.
+ * A kubectl step the data migration moved from a Kubernetes action kept
+ * that action and its credential (RunbookLegacySteps), and its job carried
+ * them beside the script (as "legacyStep"), for a Runner older than kubectl
+ * scripts - which was handed the action and the credential. Runbook
+ * credentials were removed, and that fallback with them: a job queued
+ * before still carries the action, and is served as every kubectl step is.
+ * A job written with a credential and no script is failed, saying how to
+ * fix the step.
  */
 describe("a kubectl step moved from a Kubernetes action", () => {
   const LEGACY_CREDENTIAL_ID: string = "c1000000-0000-4000-8000-0000000000e1";
@@ -481,34 +474,14 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     replicas: 0,
   };
 
-  // What the server resolves the credential to, for a Runner assigned to it.
-  const KUBERNETES_CREDENTIAL: JSONObject = {
-    credentialType: RunbookCredentialType.Kubernetes,
-    apiServerUrl: "https://prod.example.com:6443",
-    token: "sa-token-0123456789abcdef",
-    caCertificate:
-      "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----",
-  };
-
-  // The job the Worker sends for a moved step (StepExecutors.runKubernetesStep).
-  function movedJob(legacy: JSONObject, payload: JSONObject = {}): RunnerJob {
-    const legacyStep: JSONObject | null = getLegacyKubernetesStepForOlderRunner(
-      {
-        kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
-        script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
-        ...legacy,
-      },
-    );
-
-    expect(legacyStep).not.toBeNull();
-
+  // The job the Worker sent for a moved step before the removal.
+  function movedJob(legacy: JSONObject, legacyStep?: JSONObject): RunnerJob {
     return claimedJob({
       stepType: RunbookStepType.Kubernetes,
       payload: {
         kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
         script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
-        [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacyStep,
-        ...payload,
+        legacyStep: legacyStep || { ...legacy },
       },
     });
   }
@@ -521,134 +494,67 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     });
   }
 
-  beforeEach(() => {
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue(KUBERNETES_CREDENTIAL);
-  });
-
-  test.each([
-    ["a restart", RESTART],
-    ["a scale to zero", SCALE],
-  ])(
-    "%s: a Runner older than kubectl scripts is handed the action and its credential, exactly as before the move",
-    async (_label: string, legacy: JSONObject) => {
-      // Before the move: the step written with a credential.
-      claimSpy.mockResolvedValue(legacyJob(legacy));
-      await callRoute({ uri: CLAIM_ROUTE, body: {} });
-      const before: JSONObject = lastJsonResponse()["job"] as JSONObject;
-
-      // After it: the same Runner takes the moved step.
-      claimSpy.mockResolvedValue(movedJob(legacy));
-      await callRoute({ uri: CLAIM_ROUTE, body: {} });
-      const after: JSONObject = lastJsonResponse()["job"] as JSONObject;
-
-      expect(after).toEqual(before);
-      expect(after).toEqual({
-        jobId: JOB_ID,
-        runbookExecutionId: EXECUTION_ID.toString(),
-        origin: RunnerJobOrigin.Runbook,
-        stepId: "step-1",
-        stepType: RunbookStepType.Kubernetes,
-        script: "",
-        timeoutInMs: 30_000,
-        payload: legacy,
-        credential: KUBERNETES_CREDENTIAL,
-      });
-      expect(submitSpy).not.toHaveBeenCalled();
-    },
-  );
-
-  test("the credential is resolved for this Runner, in its project, and only as a Kubernetes credential", async () => {
-    claimSpy.mockResolvedValue(movedJob(RESTART));
-
-    await callRoute({ uri: CLAIM_ROUTE, body: {} });
-
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledWith({
-      credentialId: LEGACY_CREDENTIAL_ID,
-      agentId: RUNNER_ID,
-      projectId: PROJECT_ID,
-      credentialType: RunbookCredentialType.Kubernetes,
-    });
-  });
-
-  test("nothing of the script's is handed to it: no script, no kubeconfig, no variable read, no secret, no run inputs", async () => {
-    claimSpy.mockResolvedValue(movedJob(RESTART));
-
-    await callRoute({ uri: CLAIM_ROUTE, body: {} });
-
-    const response: string = JSON.stringify(lastJsonResponse());
-
-    // No variable is read for it, so no value of one can be handed over.
-    expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
-    expect(RunbookExecutionService.findOneById).not.toHaveBeenCalled();
-    expect(response).not.toContain("kube-token");
-    expect(response).not.toContain("PROD_KUBECONFIG");
-    expect(response).not.toContain("kubectl patch");
-    expect(response).not.toContain(LEGACY_KUBERNETES_STEP_JOB_KEY);
-
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job).not.toHaveProperty("secretValues");
-    expect(job).not.toHaveProperty("inputs");
-    expect(job).not.toHaveProperty("trigger");
-  });
-
-  test("whatever else a job's legacy step carries is not handed over", async () => {
-    claimSpy.mockResolvedValue(
-      movedJob(RESTART, {
-        [LEGACY_KUBERNETES_STEP_JOB_KEY]: {
-          ...RESTART,
-          kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
-          token: "smuggled",
-        },
-      }),
-    );
-
-    await callRoute({ uri: CLAIM_ROUTE, body: {} });
-
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job["payload"]).toEqual(RESTART);
-    expect(JSON.stringify(job)).not.toContain("smuggled");
-  });
-
   test.each([
     ["no features at all", {}],
     ["features it does not have", { features: ["something-newer"] }],
     ["features that are not a list", { features: "kubectl-script" }],
   ])(
-    "a claim with %s is an older Runner's",
+    "a Runner older than kubectl scripts (a claim with %s) is told to update, never handed the action or a credential",
     async (_label: string, body: JSONObject) => {
       claimSpy.mockResolvedValue(movedJob(RESTART));
 
       await callRoute({ uri: CLAIM_ROUTE, body });
 
-      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-      expect(job["payload"]).toEqual(RESTART);
-      expect(job["credential"]).toEqual(KUBERNETES_CREDENTIAL);
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(submitSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER);
+      expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
+      expect(JSON.stringify(lastJsonResponse())).not.toContain(
+        LEGACY_CREDENTIAL_ID,
+      );
     },
   );
 
-  test("a credential this Runner may not have fails the step with the reason, and nothing is handed over", async () => {
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue(null);
-    claimSpy.mockResolvedValue(movedJob(RESTART));
+  test.each([
+    ["a restart", RESTART],
+    ["a scale to zero", SCALE],
+  ])(
+    "%s: a Runner that runs kubectl scripts is handed the script and the kubeconfig, never the action or the credential",
+    async (_label: string, legacy: JSONObject) => {
+      claimSpy.mockResolvedValue(movedJob(legacy));
 
-    await callRoute({ uri: CLAIM_ROUTE, body: {} });
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        body: { features: ["kubectl-script"] },
+      });
 
-    expect(lastJsonResponse()).toEqual({ job: null });
-    expect(submitSpy).toHaveBeenCalledTimes(1);
-    expect(submitSpy.mock.calls[0]![0]).toEqual({
-      jobId: new ObjectID(JOB_ID),
-      agentId: RUNNER_ID,
-      success: false,
-      errorMessage: RunnerIngressAPI.CREDENTIAL_NOT_AVAILABLE,
-    });
-  });
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
 
-  test("a Runner that runs kubectl scripts is handed the script and the kubeconfig, never the action or the credential", async () => {
-    claimSpy.mockResolvedValue(movedJob(SCALE));
+      expect(job["payload"]).toEqual({
+        script: getKubectlScriptForLegacyKubernetesStep(legacy as never),
+      });
+      expect(job["credential"]).toEqual({
+        credentialType: "Kubeconfig",
+        kubeconfig: KUBECONFIG,
+      });
+      expect(job["secretValues"]).toEqual([KUBECONFIG]);
+      expect(job["inputs"]).toEqual({});
+      expect(JSON.stringify(job)).not.toContain(LEGACY_CREDENTIAL_ID);
+      expect(JSON.stringify(job)).not.toContain("legacyStep");
+      expect(submitSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("whatever a job's legacy step carries is never handed over", async () => {
+    claimSpy.mockResolvedValue(
+      movedJob(RESTART, {
+        ...RESTART,
+        kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+        token: "smuggled",
+      }),
+    );
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -656,23 +562,37 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     });
 
     const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-
     expect(job["payload"]).toEqual({
-      script: getKubectlScriptForLegacyKubernetesStep(SCALE as never),
+      script: getKubectlScriptForLegacyKubernetesStep(RESTART as never),
     });
-    expect(job["credential"]).toEqual({
-      credentialType: "Kubeconfig",
-      kubeconfig: KUBECONFIG,
-    });
-    expect(job["secretValues"]).toEqual([KUBECONFIG]);
-    expect(job["inputs"]).toEqual({});
-    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
-    expect(JSON.stringify(job)).not.toContain(LEGACY_CREDENTIAL_ID);
-    expect(submitSpy).not.toHaveBeenCalled();
+    expect(JSON.stringify(job)).not.toContain("smuggled");
   });
 
+  test.each([
+    ["a restart", RESTART],
+    ["a scale to zero", SCALE],
+  ])(
+    "%s, as it was written before kubectl scripts (a credential, no script), is failed for every Runner, saying how to fix the step",
+    async (_label: string, legacy: JSONObject) => {
+      for (const body of [{}, { features: ["kubectl-script"] }]) {
+        submitSpy.mockClear();
+        claimSpy.mockResolvedValue(legacyJob(legacy));
+
+        await callRoute({ uri: CLAIM_ROUTE, body });
+
+        expect(lastJsonResponse()).toEqual({ job: null });
+        expect(submitSpy).toHaveBeenCalledTimes(1);
+        expect(
+          (submitSpy.mock.calls[0]![0] as { errorMessage: string })
+            .errorMessage,
+        ).toBe(RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL);
+      }
+
+      expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
+    },
+  );
+
   test("a step written as a script, or changed since it was moved, carries no action: an older Runner is told to update", async () => {
-    // Its job carries no legacy step (StepExecutors leaves it out).
     claimSpy.mockResolvedValue(
       claimedJob({
         stepType: RunbookStepType.Kubernetes,
@@ -689,31 +609,10 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     expect(
       (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
     ).toBe(RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER);
-    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
     expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
   });
 
-  test.each([
-    ["no credential", { ...RESTART, credentialId: "" }],
-    ["no workload", { ...RESTART, workloadName: "" }],
-  ])(
-    "a legacy step with %s is no step to hand over: an older Runner is told to update",
-    async (_label: string, legacyStep: JSONObject) => {
-      claimSpy.mockResolvedValue(
-        movedJob(RESTART, { [LEGACY_KUBERNETES_STEP_JOB_KEY]: legacyStep }),
-      );
-
-      await callRoute({ uri: CLAIM_ROUTE, body: {} });
-
-      expect(lastJsonResponse()).toEqual({ job: null });
-      expect(
-        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
-      ).toBe(RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER);
-      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
-    },
-  );
-
-  test("a kubernetes-agent Runner is still served kubectl only, and never handed the action's credential", async () => {
+  test("a kubernetes-agent Runner is still served kubectl only, and never handed a secret", async () => {
     claimSpy.mockResolvedValue(movedJob(RESTART));
 
     await callRoute({
@@ -729,7 +628,6 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     ).toEqual([RunbookStepType.Kubectl]);
 
     // ... and one that reached it anyway carries no credential and no secret.
-    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
     expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
     expect(submitSpy).not.toHaveBeenCalled();
 
@@ -738,41 +636,33 @@ describe("a kubectl step moved from a Kubernetes action", () => {
     expect(job).not.toHaveProperty("secretValues");
   });
 
-  test("an AI-composed command is served as before, whatever the Runner's features", async () => {
-    const credentialId: string = ObjectID.generate().toString();
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue({ hostname: "h", username: "u", password: "p" });
-    claimSpy.mockResolvedValue(
-      claimedJob({
-        origin: RunnerJobOrigin.AiRemediation,
-        stepType: RunbookStepType.SSH,
-        payload: { credentialId, command: "uptime" },
-      }),
-    );
+  test("an AI-composed command that names a runbook credential is failed, whatever the Runner's features", async () => {
+    for (const body of [{}, { features: ["kubectl-script"] }]) {
+      submitSpy.mockClear();
+      claimSpy.mockResolvedValue(
+        claimedJob({
+          origin: RunnerJobOrigin.AiRemediation,
+          stepType: RunbookStepType.SSH,
+          payload: {
+            credentialId: ObjectID.generate().toString(),
+            command: "uptime",
+          },
+        }),
+      );
 
-    await callRoute({
-      uri: CLAIM_ROUTE,
-      body: {},
-      runner: { canRunAiCommands: true },
-    });
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        body,
+        runner: { canRunAiCommands: true },
+      });
 
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job["origin"]).toBe(RunnerJobOrigin.AiRemediation);
-    expect(job["payload"]).toEqual({ credentialId, command: "uptime" });
-    expect(job["credential"]).toEqual({
-      hostname: "h",
-      username: "u",
-      password: "p",
-    });
-    // The credential path it always took: no kind asked for, no variable read.
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledWith({
-      credentialId,
-      agentId: RUNNER_ID,
-      projectId: PROJECT_ID,
-    });
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL);
+    }
+
     expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
-    expect(job).not.toHaveProperty("secretValues");
   });
 });
 

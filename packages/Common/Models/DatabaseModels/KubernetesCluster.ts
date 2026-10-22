@@ -2,7 +2,6 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "../../Types/Database/AccessControl/ColumnBillingAccessControl";
 import Label from "./Label";
 import Project from "./Project";
-import RunbookCredential from "./RunbookCredential";
 import Runner from "./Runner";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -1009,26 +1008,26 @@ export default class KubernetesCluster extends BaseModel {
   /*
    * ---- OneUptime AI access -------------------------------------------
    *
-   * The cluster's AI page binds one Runner that can reach the cluster and
-   * decides what OneUptime AI may do with it. The in-cluster Runner the
-   * kubernetes-agent chart installs (aiAccess.enabled=true) binds itself
-   * here on registration; an operator can instead bind any existing Runner
-   * plus a Kubernetes credential. Whether AI may investigate (read-only
-   * kubectl) and how it may remediate are separate switches so a project
-   * can let AI look without letting it touch.
+   * OneUptime AI reaches a cluster through the Kubernetes AI agent the
+   * kubernetes-agent chart installs (KubernetesAiAgent, never a Runner), or
+   * through the in-cluster Runner an older chart installed
+   * (aiAccess.enabled=true), which binds itself here on registration. A
+   * Runner outside the cluster cannot be bound: it reached a cluster only
+   * with a Kubernetes runbook credential, and runbook credentials are gone.
+   * Whether AI may investigate (read-only kubectl) and how it may remediate
+   * are separate switches so a project can let AI look without letting it
+   * touch.
    *
    * The update ACLs below are the cluster's own on purpose: everyone who
    * may edit the cluster may make AI do LESS (remediation Off or Ask for
-   * approval, fewer allowlist patterns, no Runner or credential, the
-   * investigation switch). Making AI do MORE — an unattended mode, a new
-   * allowlist pattern, binding a Runner or credential — is refused in
-   * KubernetesClusterService unless the caller holds one of
-   * KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the permissions that may author
-   * a FullAuto AutoRemediationRule), and binding a credential also needs
-   * the read of runbook credentials (RunbookCredentialReaders - the one rule
-   * every use of a runbook credential asks). A column ACL cannot express
-   * "tightening is free", which is why the rule lives in the service. The
-   * descriptions say so, because they are the API and Terraform docs.
+   * approval, fewer allowlist patterns, no Runner, the investigation
+   * switch). Making AI do MORE — an unattended mode, a new allowlist
+   * pattern, binding a Runner — is refused in KubernetesClusterService
+   * unless the caller holds one of KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS
+   * (the permissions that may author a FullAuto AutoRemediationRule). A
+   * column ACL cannot express "tightening is free", which is why the rule
+   * lives in the service. The descriptions say so, because they are the API
+   * and Terraform docs.
    */
   @ColumnAccessControl({
     create: [],
@@ -1057,7 +1056,7 @@ export default class KubernetesCluster extends BaseModel {
     modelType: Runner,
     title: "AI Access Runner",
     description:
-      "The Runner OneUptime AI uses to run kubectl against this cluster — the in-cluster Runner installed by the Kubernetes agent chart (which binds itself here when it first registers, unless a Runner was bound here before), or any Runner you created that holds a Kubernetes credential for this cluster. Another cluster's in-cluster Runner cannot be bound. Binding a Runner, or switching to a different one, needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
+      "The in-cluster Runner an older Kubernetes agent chart installed, which binds itself here when it first registers (unless a Runner was bound here before) and runs OneUptime AI's kubectl while the cluster's Kubernetes AI agent is not online. Only this cluster's own in-cluster Runner can be bound. Binding it again needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
   })
   @ManyToOne(
     () => {
@@ -1101,7 +1100,7 @@ export default class KubernetesCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "AI Access Runner ID",
     description:
-      "ID of the Runner OneUptime AI uses to run kubectl against this cluster. Another cluster's in-cluster Runner cannot be bound. Binding a Runner, or switching to a different one, needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
+      "ID of the in-cluster Runner an older Kubernetes agent chart installed on this cluster. Only this cluster's own in-cluster Runner can be bound. Binding it again needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1109,85 +1108,6 @@ export default class KubernetesCluster extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public aiAccessRunnerId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadKubernetesCluster,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditKubernetesCluster,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "aiAccessCredentialId",
-    type: TableColumnType.Entity,
-    modelType: RunbookCredential,
-    title: "AI Access Credential",
-    description:
-      "The Kubernetes credential (API server URL and ServiceAccount token) the AI access Runner uses for this cluster; it must be a Kubernetes credential of this project that is assigned to that Runner. Leave empty for the in-cluster Runner, which uses its own ServiceAccount and is never given a credential. Binding a credential needs Project Owner, Project Admin or Edit Auto Remediation Rule, and also permission to read credentials (Project Owner, Project Admin or Read Runbook Credential); anyone who may edit the cluster can clear it.",
-  })
-  @ManyToOne(
-    () => {
-      return RunbookCredential;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "aiAccessCredentialId" })
-  public aiAccessCredential?: RunbookCredential = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadKubernetesCluster,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditKubernetesCluster,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    canReadOnRelationQuery: true,
-    title: "AI Access Credential ID",
-    description:
-      "ID of the Kubernetes credential the AI access Runner uses for this cluster; the credential must be assigned to that Runner. Empty for the in-cluster Runner, which is never given a credential. Binding a credential needs Project Owner, Project Admin or Edit Auto Remediation Rule, and also permission to read credentials (Project Owner, Project Admin or Read Runbook Credential); anyone who may edit the cluster can clear it.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public aiAccessCredentialId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1396,8 +1316,8 @@ export default class KubernetesCluster extends BaseModel {
 
   /*
    * When a Runner was first bound to this cluster for AI access — by the
-   * in-cluster Runner's registration or by anyone selecting a Runner on the
-   * AI page. Only the server writes it and nothing ever clears it.
+   * in-cluster Runner's registration or by anyone binding it through the
+   * API. Only the server writes it and nothing ever clears it.
    *
    * aiAccessConfiguredAt alone cannot tell the two cases registration must
    * treat differently apart: an operator who chose a remediation mode

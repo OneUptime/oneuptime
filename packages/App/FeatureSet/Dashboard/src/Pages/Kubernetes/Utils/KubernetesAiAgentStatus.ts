@@ -8,7 +8,6 @@ import {
   KubernetesAiAutomaticRemediationSettings,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
-  KUBECTL_ALLOW_WRITES_ENV,
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
   getKubernetesAiAccessTargetKind,
@@ -116,9 +115,6 @@ export const ASK_PROJECT_ADMIN_TEXT: string = translationKey(
   "Ask a project owner or admin.",
 );
 
-// A Runner's name where the status has none.
-const UNNAMED_RUNNER: string = translationKey("(unnamed)");
-
 // Where the cluster's investigation and fixes are set, as its status says.
 export function getKubernetesAiSettingsSource(
   status: KubernetesClusterAiAccessStatus,
@@ -189,22 +185,17 @@ export function getAiAgentSummary(
  *                           chart's previous in-cluster Runner — every
  *                           14.0.x install between the server upgrade and
  *                           the chart upgrade.
- * advanced_runner(_offline): an operator bound a Runner outside the chart
- *                           (with a Kubernetes credential); it wins over the
- *                           agent.
  *
- * A legacy Runner is told from an advanced one the way the server tells
- * them apart: the kubernetes-agent name marker or an agent posture, or its
- * in-cluster access method.
+ * A Runner is the access target only as the chart's previous in-cluster
+ * Runner: a Runner outside the cluster reached it with a Kubernetes runbook
+ * credential, and runbook credentials were removed.
  */
 export type AiAgentCardState =
   | "connected"
   | "offline"
   | "not_installed"
   | "legacy_runner"
-  | "legacy_runner_offline"
-  | "advanced_runner"
-  | "advanced_runner_offline";
+  | "legacy_runner_offline";
 
 export function getAiAgentCardState(
   status: KubernetesClusterAiAccessStatus,
@@ -227,11 +218,7 @@ export function getAiAgentCardState(
     return runner.isOnline ? "connected" : "offline";
   }
 
-  if (isLegacyRunnerTarget(status)) {
-    return runner.isOnline ? "legacy_runner" : "legacy_runner_offline";
-  }
-
-  return runner.isOnline ? "advanced_runner" : "advanced_runner_offline";
+  return runner.isOnline ? "legacy_runner" : "legacy_runner_offline";
 }
 
 // Is the resolved target the chart's previous in-cluster Runner?
@@ -248,22 +235,6 @@ export function isLegacyRunnerTarget(
     status.accessMethod === "in_cluster" ||
     isKubernetesAgentRunnerName(runner.name) ||
     isKubernetesAgentRunnerPosture(runner.posture)
-  );
-}
-
-/*
- * Is the resolved target a Runner an operator bound outside the chart? The
- * only state in which the page shows the Runner and credential at all.
- */
-export function isAdvancedRunnerTarget(
-  status: KubernetesClusterAiAccessStatus,
-): boolean {
-  const runner: KubernetesClusterAiAccessStatus["runner"] = status.runner;
-
-  return (
-    runner !== null &&
-    getKubernetesAiAccessTargetKind(runner) === "runner" &&
-    !isLegacyRunnerTarget(status)
   );
 }
 
@@ -300,53 +271,11 @@ export function getAiAgentStatusPill(
         text: "Connected through the previous in-cluster Runner",
         tone: "success",
       };
-    case "advanced_runner":
-      return {
-        text: translateTemplate(
-          "Connected through Runner {{name}} (advanced)",
-          {
-            name: status.runner?.name || translatableTerm(UNNAMED_RUNNER),
-          },
-        ),
-        tone: "success",
-      };
     case "offline":
     case "legacy_runner_offline":
-    case "advanced_runner_offline":
     default:
       return { text: "Offline", tone: "danger" };
   }
-}
-
-/*
- * 'Reached through Runner "ops" with credential "prod token".' for the
- * advanced states, and that the Runner is offline when it is. Each case is
- * one key, so a locale words its sentences together.
- */
-function describeAdvancedBinding(
-  status: KubernetesClusterAiAccessStatus,
-  isRunnerOffline: boolean,
-): string {
-  const values: TemplateValues = {
-    runner: status.runner?.name || translatableTerm(UNNAMED_RUNNER),
-    credential: status.credentialName || "",
-  };
-
-  if (status.credentialName) {
-    return translateTemplate(
-      isRunnerOffline
-        ? 'Reached through Runner "{{runner}}" with credential "{{credential}}". The Runner is offline.'
-        : 'Reached through Runner "{{runner}}" with credential "{{credential}}".',
-      values,
-    );
-  }
-
-  return translateTemplate(
-    isRunnerOffline
-      ? 'Reached through Runner "{{runner}}". The Runner is offline.'
-      : 'Reached through Runner "{{runner}}".',
-    values,
-  );
 }
 
 /*
@@ -420,12 +349,8 @@ export function getAiAgentStateSentence(
     case "legacy_runner":
       return translateTemplate(AI_AGENT_LEGACY_RUNNER_TEXT);
     case "legacy_runner_offline":
-      return translateTemplate(AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT);
-    case "advanced_runner":
-      return describeAdvancedBinding(status, false);
-    case "advanced_runner_offline":
     default:
-      return describeAdvancedBinding(status, true);
+      return translateTemplate(AI_AGENT_LEGACY_RUNNER_OFFLINE_TEXT);
   }
 }
 
@@ -533,8 +458,7 @@ function withVersionPrefix(version: string): string {
  * target is the cluster's own agent — the agent's version, which the page
  * draws with AgentVersion (so an outdated agent gets its sign and upgrade
  * dialog, like every other agent version), then kubectl's version and what
- * it may change. A Runner reached with a credential reports no write scope
- * — its credential's RBAC decides — so none is shown for it.
+ * it may change.
  */
 export interface AiAgentMeta {
   lastSeen: string | null;
@@ -676,12 +600,6 @@ export type AiAgentGapAction =
   | "open_ai_features"
   | "open_llm_providers"
   | "open_ai_credits"
-  | "view_runner"
-  /*
-   * A bound Runner chosen before choosing one was what lets OneUptime AI
-   * run kubectl on it: one click chooses it again (RunnerAiCommandsPick).
-   */
-  | "choose_runner_again"
   | "test_connection";
 
 export function getAiAgentGapAction(
@@ -708,15 +626,11 @@ export function getAiAgentGapAction(
       return "open_ai_credits";
     case "last_access_check_failed":
       return status.runner ? "test_connection" : null;
-    case "runner_ai_commands_disabled":
-      // The Runner has no switch for it: choosing it here is the consent.
-      return isAdvancedRunnerTarget(status) ? "choose_runner_again" : null;
-    case "runner_offline":
-    case "runner_cluster_mismatch":
-    case "credential_missing":
-    case "credential_on_agent_runner":
-      // The previous in-cluster Runner is replaced by upgrading the chart.
-      return isAdvancedRunnerTarget(status) ? "view_runner" : null;
+    /*
+     * The previous in-cluster Runner's gaps (runner_offline,
+     * runner_cluster_mismatch, runner_ai_commands_disabled) are fixed by
+     * upgrading the chart, whose command the card shows.
+     */
     default:
       return null;
   }
@@ -789,11 +703,9 @@ function getServerStepText(gap: KubernetesAiAccessGap): string {
 }
 
 /*
- * A Runner gap, for the Runner the cluster is reached through. The previous
- * in-cluster Runner is not fixed but replaced: the chart upgrade the card
- * shows moves the cluster to its AI agent. A Runner an operator bound is
- * fixed on the Runner, or swapped for a credential or the AI agent in the
- * Change modal.
+ * A Runner gap, for the Runner the cluster is reached through: the
+ * previous in-cluster Runner, which is not fixed but replaced - the chart
+ * upgrade the card shows moves the cluster to its AI agent.
  */
 function getRunnerStepText(
   gap: KubernetesAiAccessGap,
@@ -806,31 +718,7 @@ function getRunnerStepText(
     );
   }
 
-  if (!isAdvancedRunnerTarget(status)) {
-    return getServerStepText(gap);
-  }
-
-  switch (gap.code) {
-    case "runner_offline":
-      return translateTemplate(
-        "Start the Runner and make sure it can reach your OneUptime URL.",
-      );
-    case "runner_ai_commands_disabled":
-      return translateTemplate(
-        "Choose the Runner again to let OneUptime AI run kubectl on it.",
-      );
-    case "credential_on_agent_runner":
-      return translateTemplate(
-        "With Change below, choose a Runner created in the dashboard, or clear the Runner to use the {{agent}}.",
-        getAgentValues(),
-      );
-    default:
-      // credential_missing, and a Runner that did not say which cluster.
-      return translateTemplate(
-        "With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the {{agent}}.",
-        getAgentValues(),
-      );
-  }
+  return getServerStepText(gap);
 }
 
 /*
@@ -893,12 +781,7 @@ export function getAiAgentAttentionStepText(
           getAgentValues(),
         );
       }
-      return isAdvancedRunnerTarget(status)
-        ? translateTemplate(
-            "Set {{variable}}=true on the Runner's host and restart it.",
-            { variable: KUBECTL_ALLOW_WRITES_ENV },
-          )
-        : getServerStepText(gap);
+      return getServerStepText(gap);
     /*
      * project_auto_remediation_disabled and
      * project_ai_command_execution_disabled are retired: Enable AI covers
@@ -971,8 +854,7 @@ export function getAiAgentAttention(
 /*
  * Show the write-access commands inline? Only when fixes are on and the
  * in-cluster target (the agent, or the previous Runner the same commands
- * replace) reports read-only RBAC. A Runner reached with a credential is
- * bounded by that credential's RBAC, not by the chart.
+ * replace) reports read-only RBAC.
  */
 export function shouldShowWriteAccessCommands(
   status: KubernetesClusterAiAccessStatus,
@@ -1129,20 +1011,6 @@ export function getAutomaticInvestigationConfirmation(data: {
   });
 }
 
-/*
- * "Switch to the AI agent" undoes an advanced Runner binding. Offered only
- * while the agent is online — switching to an agent that is not there
- * would leave the cluster with no access.
- */
-export function canSwitchToAiAgent(
-  status: KubernetesClusterAiAccessStatus,
-): boolean {
-  return (
-    isAdvancedRunnerTarget(status) &&
-    getAiAgentSummary(status)?.isOnline === true
-  );
-}
-
 // The Overview's "AI agent" card.
 export interface AiAgentOverviewState {
   text: "Connected" | "Offline" | "Not installed";
@@ -1155,7 +1023,6 @@ export function getAiAgentOverviewState(
   switch (getAiAgentCardState(status)) {
     case "connected":
     case "legacy_runner":
-    case "advanced_runner":
       return { text: "Connected", tone: "success" };
     case "not_installed":
       return { text: "Not installed", tone: "neutral" };

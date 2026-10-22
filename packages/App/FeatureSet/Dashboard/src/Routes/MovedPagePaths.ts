@@ -11,7 +11,9 @@ import RouteParams from "../Utils/RouteParams";
 
 /*
  * The Runner pages moved from Project Settings into Runbooks. Relative to
- * …/settings/.
+ * …/settings/. Runner Credentials (later AI Access) is gone: its old address
+ * forwards to Runbooks > Runners, as its newer one does
+ * (MOVED_RUNNER_CREDENTIALS_PATH).
  */
 export const MOVED_RUNNER_SETTINGS_PATHS: {
   runners: string;
@@ -29,6 +31,15 @@ export const MOVED_RUNNER_SETTINGS_PATHS: {
  * …/runbooks/.
  */
 export const MOVED_RUNBOOK_SECRETS_PATH: string = "settings/secrets";
+
+/*
+ * Runbooks > Runners > AI Access - the runbook credentials OneUptime AI's
+ * commands reached a host or a cluster with through a Runner - is gone:
+ * hosts and Kubernetes clusters have AI agents of their own, and runbook
+ * steps sign in with runbook variables. Its address forwards to Runbooks >
+ * Runners, the section it lived in. Relative to …/runbooks/.
+ */
+export const MOVED_RUNNER_CREDENTIALS_PATH: string = "runner-credentials";
 
 /*
  * Project Settings > Security > OIDC folded into SSO: one page for single

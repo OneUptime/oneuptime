@@ -61,8 +61,6 @@ import {
   KubernetesClusterAiAccessStatus,
   getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import CallerPermission from "../Utils/Permission/CallerPermission";
-import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   TracePerformanceFixSuggestion,
@@ -448,8 +446,8 @@ async function sendLatestInvestigation(
    * reader "we investigated with OneUptime data only; here is what is
    * missing and where to fix it". Enrichment: a failure yields no rows.
    * Present, possibly empty, in every response shape. How much of each row
-   * the viewer gets follows THEIR read access to the cluster (and to
-   * credentials), not their access to the incident or alert.
+   * the viewer gets follows THEIR read access to the cluster, not their
+   * access to the incident or alert.
    */
   const clusterAccess: Array<InvestigationPanelClusterAccess> =
     await getClusterAccessForPanel({
@@ -618,11 +616,9 @@ async function sendLatestInvestigation(
  *    through the incident's own cluster relation);
  *  - a viewer who can also read the cluster gets the rest the cluster's AI
  *    page would show them: the Runner and its posture, the allowlist, the
- *    last verification and error, and each gap's full description;
- *  - the credential's name additionally needs credential read — the same
- *    rule the cluster AI page's credential picker applies.
+ *    last verification and error, and each gap's full description.
  *
- * The credential id and anything else the jobs themselves use never leave.
+ * Anything else the jobs themselves use never leaves.
  */
 export type InvestigationPanelClusterAccess = Pick<
   KubernetesClusterAiAccessStatus,
@@ -634,12 +630,12 @@ export type InvestigationPanelClusterAccess = Pick<
   | "gaps"
   | "evaluatedAt"
 > &
-  Partial<Omit<KubernetesClusterAiAccessStatus, "credentialId">>;
+  Partial<KubernetesClusterAiAccessStatus>;
 
 /*
  * Stands in for a gap description on a row whose viewer cannot read the
- * cluster: descriptions name the Runner, the credential and the cluster
- * identifier the Runner reported.
+ * cluster: descriptions name the Runner and the cluster identifier the
+ * Runner reported.
  */
 export const RESTRICTED_GAP_DESCRIPTION: string =
   "Someone who can view this Kubernetes cluster can see the details on its AI agent page (AI → Agent).";
@@ -647,8 +643,8 @@ export const RESTRICTED_GAP_DESCRIPTION: string =
 /*
  * Stand in for a gap's next step on a row whose viewer cannot read the
  * cluster. The service's next steps are written for the cluster's AI agent
- * page and may name the Runner, the credential, the agent's namespace or
- * the cluster identifier — none of which such a viewer is shown — and
+ * page and may name the Runner, the agent's namespace or the cluster
+ * identifier — none of which such a viewer is shown — and
  * point at a page they cannot open. A project-level gap is fixed in
  * Project Settings instead.
  */
@@ -687,14 +683,6 @@ export function getRestrictedGapNextStep(code: string): string {
     : RESTRICTED_GAP_NEXT_STEP;
 }
 
-/*
- * Stands in for a credential_missing gap description when the viewer can
- * read the cluster but not credentials: those descriptions name the
- * credential.
- */
-export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
-  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on the cluster's AI agent page (AI → Agent).";
-
 function toPanelRunnerSummary(
   runner: KubernetesAiAccessRunnerSummary | null,
 ): KubernetesAiAccessRunnerSummary | null {
@@ -729,7 +717,6 @@ function toPanelRunnerSummary(
 // What the viewer may see of one cluster's row.
 export interface PanelClusterAccessVisibility {
   canReadCluster: boolean;
-  canReadCredentials: boolean;
 }
 
 export function toPanelClusterAccess(
@@ -743,13 +730,10 @@ export function toPanelClusterAccess(
         title: gap.title,
         description: !visibility.canReadCluster
           ? RESTRICTED_GAP_DESCRIPTION
-          : gap.code === "credential_missing" && !visibility.canReadCredentials
-            ? RESTRICTED_CREDENTIAL_GAP_DESCRIPTION
-            : gap.description,
+          : gap.description,
         /*
-         * A reader of the cluster keeps the actionable step — it names the
-         * Runner they would select, and no credential. Everyone else gets
-         * a generic one: the step can name what the row withholds.
+         * A reader of the cluster keeps the actionable step. Everyone else
+         * gets a generic one: the step can name what the row withholds.
          */
         nextStep: !visibility.canReadCluster
           ? getRestrictedGapNextStep(gap.code)
@@ -779,9 +763,6 @@ export function toPanelClusterAccess(
     clusterIdentifier: status.clusterIdentifier,
     runner: toPanelRunnerSummary(status.runner),
     accessMethod: status.accessMethod,
-    ...(visibility.canReadCredentials
-      ? { credentialName: status.credentialName }
-      : {}),
     kubectlAllowlist: [...(status.kubectlAllowlist || [])],
     isInvestigationEnabled: status.isInvestigationEnabled,
     lastVerifiedAt: status.lastVerifiedAt,
@@ -832,30 +813,6 @@ async function getClusterIdsReadableByViewer(data: {
   }
 }
 
-/*
- * Whether the viewer may read Runner credentials in this project: one of
- * the permissions that read runbook credentials
- * (RunbookCredentialReaders.getReadPermissions), the list the cluster AI
- * page's credential picker applies, read the way every permission check
- * reads it (CallerPermission). A block row is a denial, never a grant —
- * even one limited to some labels, since the row cannot tell which
- * credential the name belongs to.
- */
-export function canViewerReadCredentialNames(
-  viewerProps: DatabaseCommonInteractionProps,
-  projectId: ObjectID,
-): boolean {
-  if (viewerProps.isRoot || viewerProps.isMasterAdmin) {
-    return true;
-  }
-
-  return CallerPermission.holdsAnyOf(
-    viewerProps,
-    RunbookCredentialReaders.getReadPermissions(),
-    { projectId: projectId, labelledBlocksRefuse: true },
-  );
-}
-
 async function getClusterAccessForPanel(data: {
   projectId: ObjectID;
   incidentId?: ObjectID | undefined;
@@ -888,10 +845,6 @@ async function getClusterAccessForPanel(data: {
     projectId: data.projectId,
     viewerProps: data.viewerProps,
   });
-  const canReadCredentials: boolean = canViewerReadCredentialNames(
-    data.viewerProps,
-    data.projectId,
-  );
 
   return statuses.map(
     (
@@ -899,7 +852,6 @@ async function getClusterAccessForPanel(data: {
     ): InvestigationPanelClusterAccess => {
       return toPanelClusterAccess(status, {
         canReadCluster: readableClusterIds.has(status.clusterId),
-        canReadCredentials,
       });
     },
   );

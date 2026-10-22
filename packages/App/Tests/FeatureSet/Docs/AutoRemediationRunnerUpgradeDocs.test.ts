@@ -29,8 +29,10 @@ import path from "path";
  *     rule's Runner (AutoRemediationRule.runnerId);
  *   - with no rule, OneUptime AI proposes the runbook that fits;
  *   - picking a Runner is what lets OneUptime AI's commands run on it
- *     (RunnerAiCommandsPick), and picking one that holds SSH credentials
- *     takes the read of runbook credentials;
+ *     (RunnerAiCommandsPick); picking one that held SSH credentials took
+ *     the read of runbook credentials until they were removed (the note
+ *     "Runbook credentials are removed" says so), and asks nothing more
+ *     now;
  *   - the migration writes out the Runners a command rule ran on, picks the
  *     one, and changes no Runner's switch.
  */
@@ -178,7 +180,19 @@ describe("the note is true to the upgrade", () => {
       ),
     ).toMatch(/update: \[\]/);
     expect(pick).toContain("canRunAiCommands: true");
-    expect(pick).toContain("RunnerService.assertNoCredentialsForAiCommands(");
+
+    /*
+     * Picking one that held SSH credentials took the read of runbook
+     * credentials until they were removed; a pick asks nothing more now,
+     * and the upgrade guide says what changed.
+     */
+    expect(pick).not.toContain("assertNoCredentialsForAiCommands");
+    expect(
+      fs.readFileSync(
+        path.join(CONTENT_DIR, "en", "installation/upgrading.md"),
+        "utf8",
+      ),
+    ).toContain("\n### Runbook credentials are removed\n");
   });
 
   it("proposes a runbook OneUptime AI picks with no rule set up, never starting it", () => {
