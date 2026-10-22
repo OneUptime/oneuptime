@@ -120,7 +120,7 @@ OneUptime 按間隔輪詢你租用戶的偵測和警示，無需任何 SOAR 設�
 
 連線清單顯示 **名稱**、**提供者**（下方顯示連線的 Data to import 選擇）、**狀態**（已啟用或已停用）、**Health**、**Interval (Minutes)**、**Last Polled**、**Last Successful Poll** 和 **Last Event Imported**。連線出錯時，它的 **操作** 欄中會出現 **檢視錯誤**，位於 **測試連線**、**Run now**、**Diagnostics**、**編輯** 和 **Update credentials** 旁邊。已啟用表示已設定自動輪詢。Last Polled 記錄的是一次嘗試；一個成功的空時間窗並不能說明某個特定的偵測已被匯入。
 
-**Health** 只有在匯入過事件之後才會顯示 **Last poll succeeded**。在此之前，一個成功輪詢的連線會顯示 **Polling, no events imported yet**，這正是需要用測試連線來排查的狀態。其他狀態有 **No records returned**、**Partial import**、**Catching up**、**Last poll failed**、**Poll overdue**、**Schedule paused** 和 **Waiting for first poll**；把滑鼠懸停在某個狀態上即可檢視它的含義。
+**Health** 只有在匯入過事件之後才會顯示 **Last poll succeeded**。在此之前，一個成功輪詢的連線會顯示 **Polling, no events imported yet**，這正是需要用測試連線來排查的狀態。其他狀態有 **No records returned**、**Partial import**、**Catching up**、**Last poll failed**、**Poll overdue**、**Schedule paused** 和 **等待首次輪詢**；把滑鼠懸停在某個狀態上即可檢視它的含義。
 
 > [!NOTE]
 > 連接器使用 Chronicle 的 `v1alpha` 舊版偵測和警示 API，Google 將其作為正式發布前（pre-GA）的版本提供。輪詢失敗時，連線的 **最近的錯誤** 欄位會儲存完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首，包括 Chronicle 傳回 `200` 卻在內文中給出拒絕的情況。在連線的 **操作** 欄中選擇 **檢視錯誤** 來閱讀訊息，然後在對話方塊中用 **複製錯誤** 複製它以提供給支援人員。

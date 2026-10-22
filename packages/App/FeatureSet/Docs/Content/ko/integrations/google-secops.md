@@ -120,7 +120,7 @@ Google SecOps에서 **SIEM Settings → Profile**을 엽니다. 인스턴스 리
 
 연결 목록에는 **이름**, **공급자**(그 아래에 연결의 Data to import 선택), **상태**(활성화됨 또는 비활성화됨), **Health**, **Interval (Minutes)**, **Last Polled**, **Last Successful Poll**, **Last Event Imported**가 표시됩니다. 연결에 오류가 있으면 **작업** 열의 **연결 테스트**, **Run now**, **Diagnostics**, **편집**, **Update credentials** 옆에 **오류 보기**가 나타납니다. 활성화됨은 자동 폴링이 구성되어 있다는 뜻입니다. Last Polled는 시도를 기록할 뿐이며, 성공한 빈 구간이 특정 탐지를 가져왔다는 것을 보여 주지는 않습니다.
 
-**Health**는 이벤트를 하나라도 가져온 뒤에야 **Last poll succeeded**로 표시됩니다. 그전까지 성공하고 있는 연결은 **Polling, no events imported yet**으로 표시되며, 이것이 연결 테스트로 조사해야 할 상태입니다. 그 밖의 상태는 **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused**, **Waiting for first poll**입니다. 상태에 마우스를 올리면 의미가 표시됩니다.
+**Health**는 이벤트를 하나라도 가져온 뒤에야 **Last poll succeeded**로 표시됩니다. 그전까지 성공하고 있는 연결은 **Polling, no events imported yet**으로 표시되며, 이것이 연결 테스트로 조사해야 할 상태입니다. 그 밖의 상태는 **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused**, **첫 폴링 대기 중**입니다. 상태에 마우스를 올리면 의미가 표시됩니다.
 
 > [!NOTE]
 > 커넥터는 Chronicle `v1alpha` 레거시 탐지 및 알림 API를 사용하며, Google은 이를 정식 출시 전(pre-GA) 단계로 제공합니다. 폴링이 실패하면 연결의 **마지막 오류** 필드에 실패한 단계를 나타내는 접두사와 함께, 자격 증명을 가린 전체 오류 메시지가 저장됩니다. Chronicle이 `200`으로 응답하면서 본문 안에 거부를 담는 경우도 마찬가지입니다. 연결의 **작업** 열에서 **오류 보기**를 선택해 메시지를 읽은 다음, 대화 상자의 **오류 복사**로 복사해 지원팀에 보내세요.
