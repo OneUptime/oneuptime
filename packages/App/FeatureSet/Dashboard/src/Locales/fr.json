@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Toutes les {{interval}}",
   "Last reported {{time}}": "Dernier rapport {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter ne l'a pas signalé depuis plus de 15 minutes, il a donc quitté l'inventaire jusqu'à ce qu'une collecte le signale de nouveau. Ses métriques précédentes sont conservées : choisissez une plage de temps plus longue pour les voir."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter ne l'a pas signalé depuis plus de 15 minutes, il a donc quitté l'inventaire jusqu'à ce qu'une collecte le signale de nouveau. Ses métriques précédentes sont conservées : choisissez une plage de temps plus longue pour les voir.",
+  "Add people, teams or schedules": "Ajouter des personnes, des équipes ou des plannings",
+  "Add schedules": "Ajouter des plannings",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Invite aussi les personnes d'astreinte dans {{schedules}} à la création du canal.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Invite les personnes d'astreinte dans {{schedules}} à la création du canal.",
+  "Mention who is on call": "Mentionner les personnes d'astreinte",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Mentionne les personnes d'astreinte dans {{schedules}} à la création du canal.",
+  "Search on-call schedules...": "Rechercher des plannings d'astreinte...",
+  "Search people, teams or schedules...": "Rechercher des personnes, des équipes ou des plannings...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Ces personnes et équipes rejoignent chaque canal créé par la règle, tout comme les personnes d'astreinte dans ces plannings à la création du canal. Personne n'est alerté.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Les personnes d'astreinte dans ces plannings à la création du canal y sont @mentionnées, pour que Microsoft Teams les notifie. Personne n'est alerté.",
+  "No on-call schedules available.": "Aucun planning d'astreinte disponible.",
+  "No people, teams or schedules available.": "Aucune personne, équipe ni planning disponible."
 }

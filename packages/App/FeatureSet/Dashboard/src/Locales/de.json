@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Alle {{interval}}",
   "Last reported {{time}}": "Zuletzt gemeldet {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher hat er das Inventar verlassen, bis eine Erfassung ihn wieder meldet. Seine früheren Metriken bleiben erhalten: Wählen Sie einen längeren Zeitraum, um sie zu sehen."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter hat ihn seit mehr als 15 Minuten nicht gemeldet, daher hat er das Inventar verlassen, bis eine Erfassung ihn wieder meldet. Seine früheren Metriken bleiben erhalten: Wählen Sie einen längeren Zeitraum, um sie zu sehen.",
+  "Add people, teams or schedules": "Personen, Teams oder Bereitschaftspläne hinzufügen",
+  "Add schedules": "Bereitschaftspläne hinzufügen",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Lädt außerdem beim Erstellen des Kanals die Personen ein, die in {{schedules}} Bereitschaft haben.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Lädt beim Erstellen des Kanals die Personen ein, die in {{schedules}} Bereitschaft haben.",
+  "Mention who is on call": "Personen in Bereitschaft erwähnen",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Erwähnt beim Erstellen des Kanals die Personen, die in {{schedules}} Bereitschaft haben.",
+  "Search on-call schedules...": "Bereitschaftspläne suchen...",
+  "Search people, teams or schedules...": "Personen, Teams oder Bereitschaftspläne suchen...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Diese Personen und Teams treten jedem Kanal bei, den die Regel erstellt, ebenso wie die Personen, die beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft haben. Niemand wird alarmiert.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Wer beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft hat, wird darin mit @ erwähnt und so von Microsoft Teams benachrichtigt. Niemand wird alarmiert.",
+  "No on-call schedules available.": "Keine Bereitschaftspläne verfügbar.",
+  "No people, teams or schedules available.": "Keine Personen, Teams oder Bereitschaftspläne verfügbar."
 }

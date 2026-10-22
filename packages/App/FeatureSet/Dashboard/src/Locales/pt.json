@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "A cada {{interval}}",
   "Last reported {{time}}": "Último relatório {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "O vCenter não o informa há mais de 15 minutos, então ele saiu do inventário até que uma coleta volte a informá-lo. Suas métricas anteriores são mantidas: escolha um intervalo de tempo maior para vê-las."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "O vCenter não o informa há mais de 15 minutos, então ele saiu do inventário até que uma coleta volte a informá-lo. Suas métricas anteriores são mantidas: escolha um intervalo de tempo maior para vê-las.",
+  "Add people, teams or schedules": "Adicionar pessoas, equipes ou agendamentos",
+  "Add schedules": "Adicionar agendamentos",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Também convida quem está de plantão em {{schedules}} quando o canal é criado.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Convida quem está de plantão em {{schedules}} quando o canal é criado.",
+  "Mention who is on call": "Mencionar quem está de plantão",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Menciona quem está de plantão em {{schedules}} quando o canal é criado.",
+  "Search on-call schedules...": "Pesquisar agendamentos de plantão...",
+  "Search people, teams or schedules...": "Pesquisar pessoas, equipes ou agendamentos...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Essas pessoas e equipes entram em cada canal que a regra cria, assim como quem está de plantão nesses agendamentos quando o canal é criado. Ninguém é acionado.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Quem está de plantão nesses agendamentos quando o canal é criado é @mencionado nele, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado.",
+  "No on-call schedules available.": "Nenhum agendamento de plantão disponível.",
+  "No people, teams or schedules available.": "Nenhuma pessoa, equipe ou agendamento disponível."
 }

@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Cada {{interval}}",
   "Last reported {{time}}": "Último informe {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter no ha informado de él durante más de 15 minutos, así que salió del inventario hasta que una recopilación vuelva a informar de él. Sus métricas anteriores se conservan: elige un intervalo de tiempo más largo para verlas."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter no ha informado de él durante más de 15 minutos, así que salió del inventario hasta que una recopilación vuelva a informar de él. Sus métricas anteriores se conservan: elige un intervalo de tiempo más largo para verlas.",
+  "Add people, teams or schedules": "Añadir personas, equipos o programaciones",
+  "Add schedules": "Añadir programaciones",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "También invita a quien esté de guardia en {{schedules}} cuando se crea el canal.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Invita a quien esté de guardia en {{schedules}} cuando se crea el canal.",
+  "Mention who is on call": "Mencionar a quien esté de guardia",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Menciona a quien esté de guardia en {{schedules}} cuando se crea el canal.",
+  "Search on-call schedules...": "Buscar programaciones de guardia...",
+  "Search people, teams or schedules...": "Buscar personas, equipos o programaciones...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Estas personas y equipos se unen a cada canal que crea la regla, igual que quien esté de guardia en estas programaciones cuando se crea el canal. No se avisa a nadie.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Cuando se crea el canal, se @menciona en él a quien esté de guardia en estas programaciones, para que Microsoft Teams le envíe una notificación. No se avisa a nadie.",
+  "No on-call schedules available.": "No hay programaciones de guardia disponibles.",
+  "No people, teams or schedules available.": "No hay personas, equipos ni programaciones disponibles."
 }

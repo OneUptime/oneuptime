@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Hver {{interval}}",
   "Last reported {{time}}": "Sist rapportert {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter har ikke rapportert den på mer enn 15 minutter, så den er ute av inventaret til en innsamling rapporterer den igjen. De tidligere målingene beholdes: velg et lengre tidsrom for å se dem."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter har ikke rapportert den på mer enn 15 minutter, så den er ute av inventaret til en innsamling rapporterer den igjen. De tidligere målingene beholdes: velg et lengre tidsrom for å se dem.",
+  "Add people, teams or schedules": "Legg til personer, team eller vaktplaner",
+  "Add schedules": "Legg til vaktplaner",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Inviterer også dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Inviterer dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "Mention who is on call": "Nevn dem som har vakt",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nevner dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "Search on-call schedules...": "Søk etter vaktplaner ...",
+  "Search people, teams or schedules...": "Søk etter personer, team eller vaktplaner ...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Disse personene og teamene blir med i hver kanal regelen oppretter, og det samme gjør de som har vakt i disse vaktplanene når kanalen opprettes. Ingen blir varslet.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt.",
+  "No on-call schedules available.": "Ingen vaktplaner tilgjengelig.",
+  "No people, teams or schedules available.": "Ingen personer, team eller vaktplaner tilgjengelig."
 }

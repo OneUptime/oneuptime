@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "هر {{interval}}",
   "Last reported {{time}}": "آخرین گزارش {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter بیش از ۱۵ دقیقه آن را گزارش نکرده است، پس تا وقتی که یک جمع‌آوری دوباره آن را گزارش کند از موجودی خارج است. متریک‌های قبلی‌اش نگه داشته می‌شوند: برای دیدن آن‌ها بازه زمانی طولانی‌تری انتخاب کنید."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter بیش از ۱۵ دقیقه آن را گزارش نکرده است، پس تا وقتی که یک جمع‌آوری دوباره آن را گزارش کند از موجودی خارج است. متریک‌های قبلی‌اش نگه داشته می‌شوند: برای دیدن آن‌ها بازه زمانی طولانی‌تری انتخاب کنید.",
+  "Add people, teams or schedules": "افزودن افراد، تیم‌ها یا زمان‌بندی‌ها",
+  "Add schedules": "افزودن زمان‌بندی‌ها",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "هنگام ساخت کانال، هر کسی را هم که در {{schedules}} آنکال باشد دعوت می‌کند.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "هنگام ساخت کانال، هر کسی را که در {{schedules}} آنکال باشد دعوت می‌کند.",
+  "Mention who is on call": "منشن کردن آنکال‌ها",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "هنگام ساخت کانال، هر کسی را که در {{schedules}} آنکال باشد منشن می‌کند.",
+  "Search on-call schedules...": "جستجوی زمان‌بندی‌های آنکال...",
+  "Search people, teams or schedules...": "جستجوی افراد، تیم‌ها یا زمان‌بندی‌ها...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "این افراد و تیم‌ها به هر کانالی که قاعده ایجاد می‌کند می‌پیوندند، و هر کسی هم که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد به آن می‌پیوندد. هیچ‌کس فراخوانده نمی‌شود.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "هر کسی که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد، در آن @منشن می‌شود تا Microsoft Teams او را باخبر کند. هیچ‌کس فراخوانده نمی‌شود.",
+  "No on-call schedules available.": "هیچ زمان‌بندی آنکالی در دسترس نیست.",
+  "No people, teams or schedules available.": "هیچ فرد، تیم یا زمان‌بندی‌ای در دسترس نیست."
 }

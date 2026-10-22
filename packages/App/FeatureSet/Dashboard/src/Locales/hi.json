@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "हर {{interval}}",
   "Last reported {{time}}": "आखिरी रिपोर्ट {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter ने 15 मिनट से ज़्यादा समय से इसकी रिपोर्ट नहीं दी, इसलिए यह इन्वेंटरी से तब तक बाहर है जब तक कोई संग्रह इसकी फिर से रिपोर्ट न दे। इसके पहले के मेट्रिक्स रखे जाते हैं: उन्हें देखने के लिए लंबी समय सीमा चुनें।"
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter ने 15 मिनट से ज़्यादा समय से इसकी रिपोर्ट नहीं दी, इसलिए यह इन्वेंटरी से तब तक बाहर है जब तक कोई संग्रह इसकी फिर से रिपोर्ट न दे। इसके पहले के मेट्रिक्स रखे जाते हैं: उन्हें देखने के लिए लंबी समय सीमा चुनें।",
+  "Add people, teams or schedules": "लोग, टीमें या अनुसूचियाँ जोड़ें",
+  "Add schedules": "अनुसूचियाँ जोड़ें",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे भी आमंत्रित करता है।",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे आमंत्रित करता है।",
+  "Mention who is on call": "ऑन-कॉल लोगों को मेंशन करें",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे मेंशन करता है।",
+  "Search on-call schedules...": "ऑन-कॉल अनुसूचियाँ खोजें...",
+  "Search people, teams or schedules...": "लोग, टीमें या अनुसूचियाँ खोजें...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "ये लोग और टीमें नियम द्वारा बनाए गए हर चैनल में शामिल होते हैं, और चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, वह भी शामिल होता है। किसी को पेज नहीं किया जाता।",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, उसे चैनल में @मेंशन किया जाता है, ताकि Microsoft Teams उसे सूचित करे। किसी को पेज नहीं किया जाता।",
+  "No on-call schedules available.": "कोई ऑन-कॉल अनुसूची उपलब्ध नहीं है।",
+  "No people, teams or schedules available.": "कोई लोग, टीमें या अनुसूचियाँ उपलब्ध नहीं हैं।"
 }

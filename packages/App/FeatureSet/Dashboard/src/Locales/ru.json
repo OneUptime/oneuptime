@@ -32708,5 +32708,17 @@
   "Handed Back Count": "Handed Back Count",
   "Every {{interval}}": "Каждые {{interval}}",
   "Last reported {{time}}": "Последний отчёт {{time}}",
-  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter не сообщал о нём более 15 минут, поэтому он исключён из инвентаря, пока очередной сбор снова не сообщит о нём. Его прежние метрики сохранены: выберите более длинный период, чтобы их увидеть."
+  "vCenter has not reported it for more than 15 minutes, so it left the inventory until a collection reports it again. Its earlier metrics are kept: pick a longer time range to see them.": "vCenter не сообщал о нём более 15 минут, поэтому он исключён из инвентаря, пока очередной сбор снова не сообщит о нём. Его прежние метрики сохранены: выберите более длинный период, чтобы их увидеть.",
+  "Add people, teams or schedules": "Добавить людей, команды или расписания",
+  "Add schedules": "Добавить расписания",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Также приглашает дежурных по {{schedules}} при создании канала.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Приглашает дежурных по {{schedules}} при создании канала.",
+  "Mention who is on call": "Упомянуть дежурных",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Упоминает дежурных по {{schedules}} при создании канала.",
+  "Search on-call schedules...": "Поиск расписаний дежурств...",
+  "Search people, teams or schedules...": "Поиск людей, команд или расписаний...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Эти люди и команды присоединяются к каждому каналу, который создаёт правило, как и те, кто дежурит по этим расписаниям на момент создания канала. Никого не вызывают.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Тех, кто дежурит по этим расписаниям на момент создания канала, @упоминают в нём, чтобы Microsoft Teams их уведомил. Никого не вызывают.",
+  "No on-call schedules available.": "Нет доступных расписаний дежурств.",
+  "No people, teams or schedules available.": "Нет доступных людей, команд или расписаний."
 }
