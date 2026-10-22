@@ -111,7 +111,7 @@ Hvilke muligheder der findes, afhænger af monitortypen. De omfatter destination
 - Undtagelser gælder for samlede og enkelte synkroniseringer. De gemmes på skabelonen og vælges ikke særskilt for hver synkronisering.
 - Nye monitorer starter stadig med skabelonens feltværdier. Undtagelser påvirker kun synkronisering af eksisterende monitorer.
 - Kriterier synkroniseres altid. En synkronisering af kun kriterier lader overvågningsintervallet, etiketterne og andre indstillinger på monitorniveau være.
-- Eksisterende skabeloner har ingen feltundtagelser, før du sætter dem op. Netværksenhedsmonitorer beholder fortsat automatisk deres egen enhedstilknytning.
+- Eksisterende skabeloner har ingen feltundtagelser, før du sætter dem op. Netværksenhedsmonitorer beholder fortsat automatisk deres egen enhedstilknytning, og de Ping-, IP-, Port- og NTP-monitorer, som en import fra netværksopdagelse har oprettet til enheder, bliver ved med at tjekke hver enheds egen adresse.
 
 I skabeloner med flere trin matches beskyttede værdier via trin-id'erne. Uafhængigt oprettede monitorer med ét trin kan også modtage en skabelon med ét trin. Kan et beskyttet trin ikke matches, afvises synkroniseringen, før nogen monitor opdateres, så et nyt eller omrokeret trin ikke ved et uheld kan kopiere et andet trins destination eller legitimationsoplysninger.
 
