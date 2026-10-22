@@ -178,6 +178,8 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationTemplate from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Field from "../../../UI/Components/Forms/Types/Field";
@@ -363,6 +365,42 @@ describe("Subscriber Settings", () => {
       "Custom SMTP",
       "Twilio Config",
     ]);
+  });
+
+  /*
+   * A page sends its subscribers SMS, and a Twilio config used for calls
+   * only sends none (Common/Types/CallAndSMS/TwilioConfigUse): the picker
+   * lists only the configs that send SMS, and says so.
+   */
+  test("its Twilio Config picker lists only the configs that send SMS, and says why one is missing", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    const twilio: Record<string, unknown> | undefined = recordedDetailCards.find(
+      (card: Record<string, unknown>): boolean => {
+        return (
+          (card["cardProps"] as Record<string, unknown>)["title"] ===
+          "Twilio Config"
+        );
+      },
+    );
+    const picker: Field<unknown> | undefined = (
+      (twilio?.["formFields"] as Array<Field<unknown>>) || []
+    ).find((field: Field<unknown>): boolean => {
+      return fieldKey(field) === "callSmsConfig";
+    });
+    const usedFor: unknown = picker?.dropdownModal?.query?.["usedFor"];
+
+    expect(usedFor).toBeInstanceOf(Includes);
+    expect((usedFor as Includes).values).toEqual([
+      TwilioConfigUse.CallsAndSms,
+      TwilioConfigUse.SmsOnly,
+    ]);
+    expect((usedFor as Includes).values).not.toContain(
+      TwilioConfigUse.CallsOnly,
+    );
+    expect(picker?.description).toBe(
+      "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.",
+    );
   });
 
   test("with no subscriber timezones, says what subscribers see in the placeholder chip, which wraps", async () => {
