@@ -410,8 +410,10 @@ describe("the Acknowledgement Timeout card", () => {
       expect(dialog).toHaveTextContent(
         "Enter a whole number of minutes between 5 and 1440.",
       );
-      // The form's own words named the question: "After how many minutes?
-      // should not be less than 5."
+      /*
+       * The form's own words named the question: "After how many minutes?
+       * should not be less than 5."
+       */
       expect(dialog).not.toHaveTextContent(/should not be/);
     },
   );
