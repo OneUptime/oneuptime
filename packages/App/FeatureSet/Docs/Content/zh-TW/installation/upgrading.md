@@ -400,7 +400,7 @@ Kubernetes 叢集或基礎架構資源上的調查和修正，現在是 AI 代�
 
 ### 新專案開始時所有 AI 功能都已開啟
 
-升級後建立的專案開始時所有 AI 功能都已開啟，而不僅僅是事件和警示的自動調查：事後分析草稿（事件 → 人工智慧 → 設定），以及帶有修正拉取請求和預期拒絕例外自動封存的 AI Insights（人工智慧 → 洞察 → 設定）。OneUptime AI 為事件和警示開啟的拉取請求屬於修正的一部分，而修正開始時是關閉的；請參閱 [拉取請求開關屬於修正的一部分](#拉取請求開關屬於修正的一部分)。
+升級後建立的專案開始時所有 AI 功能都已開啟，而不僅僅是事件和警示的自動調查：事後分析草稿（事件 → 人工智慧 → 設定），以及帶有修正拉取請求和預期拒絕例外自動封存的 AI Insights（人工智慧 → 洞察 → 設定）。OneUptime AI 為事件和警示開啟的拉取請求屬於修正的一部分，而修正開始時是關閉的；請參閱 [拉取請求開關已移到自動補救規則中](#拉取請求開關已移到自動補救規則中)。
 
 已存在的專案保留其現有設定；升級不會開啟任何東西。開啟也不意味著正在執行：每個功能仍然需要 LLM 提供商（在 OneUptime Cloud 上還需要 AI 點數），而開啟拉取請求的功能還需要已連線的存放庫和具備程式碼修正能力的 Runner。可以在各自的設定頁面上關閉其中任何一個，或用 **啟用 AI** 關閉全部。
 
@@ -453,18 +453,22 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
 
 API 用戶端和 Terraform 設定可以用專案的 `enableAutomaticIncidentRemediation` 和 `enableAutomaticAlertRemediation`（Terraform 中為 `enable_automatic_incident_remediation` 和 `enable_automatic_alert_remediation`）開啟修正，並在規則的 `remediationAction` 中說明它用什麼修正（`OneUptimeAI` 或 `Runbooks`）。在不指定它的情況下建立、帶有運行手冊且沒有 AI 設定的規則，是 **運行手冊** 規則，與以前的執行方式相同。
 
-### 拉取請求開關屬於修正的一部分
+### 拉取請求開關已移到自動補救規則中
 
-**當調查發現程式碼變更時開啟修正拉取請求** 和 **開啟補上缺少遙測的拉取請求**（事件或警示 → 人工智慧 → 設定）現在位於 **自動修正新事件**（或 **自動修正新警示**）之下。只有在修正開啟時它們才會顯示；開啟修正會同時開啟兩者，關閉修正會同時關閉兩者。修正開啟期間，兩者都可以單獨關閉。
+**Open a fix pull request when an investigation finds a code change** 和 **Open a pull request that adds missing telemetry** 不再是 **事件 → 人工智慧 → 設定** 和 **警示 → 人工智慧 → 設定** 上的開關。現在由每條自動補救規則擁有它們，即 **更多欄位** 中的 **修正 Pull Request** 和 **遙測 Pull Request**，新規則中兩者都預設開啟。拉取請求仍然只在 **自動修正新事件** （或 **自動修正新警示**）開啟期間才會自動開啟：
 
-升級後會發生的變化：
+- 沒有規則時，兩種拉取請求都會開啟，在任一已連線的儲存庫中。
+- 有規則時，拉取請求只會為規則符合的事件（或警示）開啟，前提是符合的規則開啟了它，並且只在符合的規則於 **程式碼儲存庫** 中指定的儲存庫中開啟。未指定任何儲存庫的規則允許所有已連線的儲存庫；調查規則以同樣的方式指定 OneUptime AI 可以讀取的儲存庫。
 
-- 只有在其自身開關之外修正也處於開啟狀態時，拉取請求才會自動開啟。曾開啟拉取請求開關但關閉修正的專案，會停止自動開啟這些拉取請求。開啟修正即可恢復。若要阻止 OneUptime AI 變更您的叢集或主機，請在它們的 **AI 代理程式** 頁面上保持 **修正** 關閉（預設設定），並且不要新增自動補救規則。
-- 升級不會變更任何已儲存的設定。在關閉的修正之下處於開啟狀態的拉取請求開關會保持開啟並等待；修正開啟後設定頁面就會顯示它，而開啟修正無論如何都會開啟它。
-- 新專案開始時拉取請求開關處於關閉狀態，與修正一樣。調查、事後分析草稿和 AI Insights 開始時仍處於開啟狀態。
-- 調查上的 **Open Fix PR from this analysis** 不變：它不需要這兩個開關中的任何一個。
+每個專案都保留自己的選擇：
 
-API 用戶端和 Terraform 設定保留其欄位（`enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes`、`enableAlertInstrumentationFixTasks`，或 Terraform 中的 `enable_automatic_incident_code_fixes` 等）。伺服器會儲存它們寫入的內容，不會隨 `enableAutomaticIncidentRemediation`（或警示欄位）開啟或關閉拉取請求欄位：若要連同拉取請求一起開啟修正，請在一個請求中設定全部三個欄位。
+- 修正關閉、或兩個開關都開啟的專案，規則保持原樣，規則中的開關以開啟狀態開始。
+- 修正開啟且某個開關關閉的專案，該類型的每條規則中的這個開關都會關閉。如果沒有該類型的已啟用規則，專案會得到一條規則 **All incidents** （或 **All alerts**）：它符合所有對象，像沒有規則時的 OneUptime AI 一樣無需詢問直接修正，並依專案原來的設定保持兩個開關。若要開啟這些拉取請求，請在其中開啟開關，或刪除這條規則。
+- 調查上的 **Open Fix PR from this analysis** 維持不變。
+
+規則的 **Runner** 只列出您自己的 Runner。**AI agent on the cluster or host** 已被移除：受影響的叢集或主機上的指令無論規則選擇什麼，一律透過其 AI 代理程式執行。之前沒有選擇任何 Runner 的規則顯示為 **無 Runner**，並像以前一樣修正。
+
+API 用戶端和 Terraform 設定不再有專案欄位 `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`（Terraform 中的 `enable_automatic_incident_code_fixes` 等）：請從設定中刪除它們。自動補救規則的 `openCodeFixPullRequests` 和 `openTelemetryPullRequests`（`open_code_fix_pull_requests` 和 `open_telemetry_pull_requests`）除非您設定，否則都為 `true`，兩種規則都在 `codeRepositories`（`code_repositories`）中指定儲存庫，為空表示所有已連線的儲存庫。
 
 ### 驗證版本和授權
 
