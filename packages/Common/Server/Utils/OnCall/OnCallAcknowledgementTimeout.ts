@@ -132,21 +132,27 @@ interface TimeoutRecordAccess {
 // How many rows of a record's state timeline are read to find who acknowledged it.
 const TIMELINE_ROWS_READ: number = 100;
 
-const readIncidentStates: (projectId: ObjectID) => Promise<Array<unknown>> =
-  async (projectId: ObjectID): Promise<Array<unknown>> => {
-    return await IncidentStateService.getAllIncidentStates({
-      projectId: projectId,
-      props: { isRoot: true },
-    });
-  };
+const readIncidentStates: (
+  projectId: ObjectID,
+) => Promise<Array<unknown>> = async (
+  projectId: ObjectID,
+): Promise<Array<unknown>> => {
+  return await IncidentStateService.getAllIncidentStates({
+    projectId: projectId,
+    props: { isRoot: true },
+  });
+};
 
-const readAlertStates: (projectId: ObjectID) => Promise<Array<unknown>> =
-  async (projectId: ObjectID): Promise<Array<unknown>> => {
-    return await AlertStateService.getAllAlertStates({
-      projectId: projectId,
-      props: { isRoot: true },
-    });
-  };
+const readAlertStates: (
+  projectId: ObjectID,
+) => Promise<Array<unknown>> = async (
+  projectId: ObjectID,
+): Promise<Array<unknown>> => {
+  return await AlertStateService.getAllAlertStates({
+    projectId: projectId,
+    props: { isRoot: true },
+  });
+};
 
 const INCIDENT: TimeoutRecordAccess = {
   kind: "incident",
@@ -173,7 +179,11 @@ const INCIDENT: TimeoutRecordAccess = {
     const rows: Array<IncidentStateTimeline> =
       await IncidentStateTimelineService.findBy({
         query: { incidentId: recordId },
-        select: { incidentStateId: true, startsAt: true, createdByUserId: true },
+        select: {
+          incidentStateId: true,
+          startsAt: true,
+          createdByUserId: true,
+        },
         sort: { startsAt: SortOrder.Descending },
         skip: 0,
         limit: TIMELINE_ROWS_READ,
@@ -258,7 +268,11 @@ const INCIDENT_EPISODE: TimeoutRecordAccess = {
     const rows: Array<IncidentEpisodeStateTimeline> =
       await IncidentEpisodeStateTimelineService.findBy({
         query: { incidentEpisodeId: recordId },
-        select: { incidentStateId: true, startsAt: true, createdByUserId: true },
+        select: {
+          incidentStateId: true,
+          startsAt: true,
+          createdByUserId: true,
+        },
         sort: { startsAt: SortOrder.Descending },
         skip: 0,
         limit: TIMELINE_ROWS_READ,
@@ -280,13 +294,11 @@ const ALERT_EPISODE: TimeoutRecordAccess = {
   runColumn: "triggeredByAlertEpisodeId",
   list: StateListType.AlertState,
   readRecord: async (recordId: ObjectID): Promise<TimeoutRecord | null> => {
-    const episode: AlertEpisode | null = await AlertEpisodeService.findOneById(
-      {
-        id: recordId,
-        select: { projectId: true, currentAlertStateId: true },
-        props: { isRoot: true },
-      },
-    );
+    const episode: AlertEpisode | null = await AlertEpisodeService.findOneById({
+      id: recordId,
+      select: { projectId: true, currentAlertStateId: true },
+      props: { isRoot: true },
+    });
 
     return episode?.projectId
       ? {
@@ -844,12 +856,10 @@ export default class OnCallAcknowledgementTimeout {
       return "this page again is acknowledged";
     }
 
-    const state: OnCallTimeoutRecordState | null = await this.readRecordState(
-      {
-        kind: data.kind,
-        recordId: data.recordId,
-      },
-    );
+    const state: OnCallTimeoutRecordState | null = await this.readRecordState({
+      kind: data.kind,
+      recordId: data.recordId,
+    });
 
     if (!state) {
       return `${data.kind} is deleted`;
@@ -921,12 +931,10 @@ export default class OnCallAcknowledgementTimeout {
       return 0;
     }
 
-    const state: OnCallTimeoutRecordState | null = await this.readRecordState(
-      {
-        kind: kind,
-        recordId: data.recordId,
-      },
-    );
+    const state: OnCallTimeoutRecordState | null = await this.readRecordState({
+      kind: kind,
+      recordId: data.recordId,
+    });
 
     // Resolved, or gone: the page again is over, with nothing to answer.
     if (!state || state.isResolved) {
@@ -954,7 +962,9 @@ export default class OnCallAcknowledgementTimeout {
   }
 
   // Whether a run's policy pages again after an acknowledgement, as read with it.
-  private static doesPolicyPageAgain(run: OnCallDutyPolicyExecutionLog): boolean {
+  private static doesPolicyPageAgain(
+    run: OnCallDutyPolicyExecutionLog,
+  ): boolean {
     return Boolean(
       run.onCallDutyPolicy &&
         run.onCallDutyPolicy.isArchived !== true &&

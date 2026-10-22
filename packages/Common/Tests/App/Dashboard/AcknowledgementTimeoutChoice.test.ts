@@ -58,9 +58,9 @@ describe("the answers", () => {
   });
 
   test("the choice is a form value of its own, never a column", () => {
-    expect(
-      new OnCallDutyPolicy().getTableColumns().columns,
-    ).not.toContain(ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY);
+    expect(new OnCallDutyPolicy().getTableColumns().columns).not.toContain(
+      ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY,
+    );
   });
 });
 
@@ -182,15 +182,17 @@ describe("the numbers the card goes by are the rule's", () => {
     const numbers: Array<string> =
       AcknowledgementTimeoutCopy.minutesDescription.match(ONE_DIGIT) || [];
 
-    expect(numbers).toEqual([String(ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN)]);
+    expect(numbers).toEqual([
+      String(ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN),
+    ]);
   });
 });
 
 describe("the words", () => {
   test("are short: a card's description, a field's, a choice's", () => {
-    expect(AcknowledgementTimeoutCopy.cardDescription.length).toBeLessThanOrEqual(
-      210,
-    );
+    expect(
+      AcknowledgementTimeoutCopy.cardDescription.length,
+    ).toBeLessThanOrEqual(210);
 
     for (const text of [
       AcknowledgementTimeoutCopy.minutesDescription,
@@ -209,7 +211,8 @@ describe("the words", () => {
       AcknowledgementTimeoutCopy.fieldTitle,
       AcknowledgementTimeoutCopy.rowTitle,
       AcknowledgementTimeoutCopy.minutesTitle,
-      AcknowledgementTimeoutCopy.choices[AcknowledgementTimeoutChoice.Off].title,
+      AcknowledgementTimeoutCopy.choices[AcknowledgementTimeoutChoice.Off]
+        .title,
       AcknowledgementTimeoutCopy.choices[AcknowledgementTimeoutChoice.PageAgain]
         .title,
     ]) {

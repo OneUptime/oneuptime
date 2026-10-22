@@ -226,8 +226,7 @@ describe("a policy's Escalation Rules page", () => {
 
     // In this order on the page.
     expect(
-      rules.compareDocumentPosition(repeat) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      rules.compareDocumentPosition(repeat) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       repeat.compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -263,9 +262,10 @@ describe("a policy's Escalation Rules page", () => {
     });
 
     await waitFor(() => {
-      expect(
-        within(fold).getByTestId("folded-section-item"),
-      ).toHaveAttribute("data-item-set", "true");
+      expect(within(fold).getByTestId("folded-section-item")).toHaveAttribute(
+        "data-item-set",
+        "true",
+      );
     });
 
     expect(within(fold).getByTestId("folded-section-item")).toHaveTextContent(
@@ -300,7 +300,9 @@ describe("a policy's Escalation Rules page", () => {
     const dialog: HTMLElement = await screen.findByTestId("modal");
 
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole("radio", { name: "Page again" }));
+      fireEvent.click(
+        within(dialog).getByRole("radio", { name: "Page again" }),
+      );
     });
     await settle();
 

@@ -195,7 +195,9 @@ function headerButton(name: string): HTMLElement | null {
 describe("the record's header, for the person paged again", () => {
   test("has Acknowledge first, then Escalate", async () => {
     const latest: { controls?: PassOnPageControls } = {};
-    getAnswers.push({ pages: [openPage(true)] as unknown as JSONObject["pages"] });
+    getAnswers.push({
+      pages: [openPage(true)] as unknown as JSONObject["pages"],
+    });
 
     render(
       <Header
@@ -208,7 +210,11 @@ describe("the record's header, for the person paged again", () => {
 
     expect(
       latest.controls!.actions.map(
-        (action: { id: string; label: string; icon?: IconProp | undefined }) => {
+        (action: {
+          id: string;
+          label: string;
+          icon?: IconProp | undefined;
+        }) => {
           return [action.id, action.label, action.icon];
         },
       ),
@@ -229,7 +235,9 @@ describe("the record's header, for the person paged again", () => {
   test("Acknowledge answers their page in one step, tells the page, and goes", async () => {
     const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
-    getAnswers.push({ pages: [openPage(true)] as unknown as JSONObject["pages"] });
+    getAnswers.push({
+      pages: [openPage(true)] as unknown as JSONObject["pages"],
+    });
     postAnswers.push({ acknowledged: 1 });
     // Read again afterwards: not paged any more.
     getAnswers.push({ pages: [] });
@@ -257,7 +265,9 @@ describe("the record's header, for the person paged again", () => {
   test("an answer of none - answered elsewhere already - tells the page nothing", async () => {
     const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
-    getAnswers.push({ pages: [openPage(true)] as unknown as JSONObject["pages"] });
+    getAnswers.push({
+      pages: [openPage(true)] as unknown as JSONObject["pages"],
+    });
     postAnswers.push({ acknowledged: 0 });
 
     render(<Header onPassedOn={onPassedOn} />);
@@ -273,7 +283,9 @@ describe("the record's header, for the person paged again", () => {
   });
 
   test("a failure says so, and nothing else changes", async () => {
-    getAnswers.push({ pages: [openPage(true)] as unknown as JSONObject["pages"] });
+    getAnswers.push({
+      pages: [openPage(true)] as unknown as JSONObject["pages"],
+    });
     postAnswers.push("fail");
 
     render(<Header />);
@@ -286,7 +298,9 @@ describe("the record's header, for the person paged again", () => {
 
     const dialog: HTMLElement = await screen.findByTestId("modal");
 
-    expect(dialog).toHaveTextContent("Could not acknowledge. Please try again.");
+    expect(dialog).toHaveTextContent(
+      "Could not acknowledge. Please try again.",
+    );
     expect(headerButton("Acknowledge")).not.toBeNull();
 
     await act(async () => {
@@ -299,7 +313,9 @@ describe("the record's header, for the person paged again", () => {
 
 describe("the record's header, for everybody else", () => {
   test("a page that is not a page again: Escalate alone, as before", async () => {
-    getAnswers.push({ pages: [openPage(false)] as unknown as JSONObject["pages"] });
+    getAnswers.push({
+      pages: [openPage(false)] as unknown as JSONObject["pages"],
+    });
 
     render(<Header />);
     await flush();

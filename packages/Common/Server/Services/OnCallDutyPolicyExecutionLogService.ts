@@ -575,22 +575,19 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-        rule.id!,
-        {
-          projectId: data.projectId,
-          triggeredByIncidentId: data.triggeredByIncidentId,
-          triggeredByAlertId: data.triggeredByAlertId,
-          triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
-          triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
-          userNotificationEventType: data.userNotificationEventType,
-          onCallPolicyExecutionLogId: runId,
-          onCallPolicyId: data.onCallDutyPolicyId,
-          alsoPageUserIds: data.acknowledgedByUserId
-            ? [data.acknowledgedByUserId]
-            : [],
-        },
-      );
+      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(rule.id!, {
+        projectId: data.projectId,
+        triggeredByIncidentId: data.triggeredByIncidentId,
+        triggeredByAlertId: data.triggeredByAlertId,
+        triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+        userNotificationEventType: data.userNotificationEventType,
+        onCallPolicyExecutionLogId: runId,
+        onCallPolicyId: data.onCallDutyPolicyId,
+        alsoPageUserIds: data.acknowledgedByUserId
+          ? [data.acknowledgedByUserId]
+          : [],
+      });
 
       await this.updateOneById({
         id: runId,

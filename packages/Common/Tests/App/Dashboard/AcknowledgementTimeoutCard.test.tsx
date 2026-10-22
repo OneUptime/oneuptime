@@ -310,7 +310,9 @@ describe("the Acknowledgement Timeout card", () => {
       expect.objectContaining({ acknowledgementTimeoutInMinutes: 30 }),
     );
     // The choice is the form's own: nothing else is sent under it.
-    expect(Object.keys(saved[0]!)).not.toContain("acknowledgementTimeoutChoice");
+    expect(Object.keys(saved[0]!)).not.toContain(
+      "acknowledgementTimeoutChoice",
+    );
   });
 
   test("a typed number is saved as typed, and the card says it", async () => {

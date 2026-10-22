@@ -270,8 +270,7 @@ export class Service extends DatabaseService<Model> {
       data: {
         acknowledgedAt: page.acknowledgedAt,
         isAcknowledged: true,
-        status:
-          OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+        status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
         statusMessage: statusMessage,
       },
       props: {

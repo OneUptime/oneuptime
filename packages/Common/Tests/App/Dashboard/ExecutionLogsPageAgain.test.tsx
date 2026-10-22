@@ -163,14 +163,17 @@ describe("every other run's status", () => {
     [OnCallDutyPolicyStatus.Executing, undefined],
     [OnCallDutyPolicyStatus.Completed, undefined],
     [OnCallDutyPolicyStatus.Error, 0],
-  ])("%s with no page again number is the pill alone", (status: OnCallDutyPolicyStatus, number: number | undefined) => {
-    const cell: { container: HTMLElement } = statusCell(run(status, number));
+  ])(
+    "%s with no page again number is the pill alone",
+    (status: OnCallDutyPolicyStatus, number: number | undefined) => {
+      const cell: { container: HTMLElement } = statusCell(run(status, number));
 
-    expect(
-      cell.container.querySelector("[data-testid=execution-log-paged-again]"),
-    ).toBeNull();
-    expect(cell.container).not.toHaveTextContent("Paged again");
-  });
+      expect(
+        cell.container.querySelector("[data-testid=execution-log-paged-again]"),
+      ).toBeNull();
+      expect(cell.container).not.toHaveTextContent("Paged again");
+    },
+  );
 });
 
 describe("the table", () => {

@@ -173,9 +173,8 @@ export const getAcknowledgementTimeoutChoiceInForm: (
 ) => AcknowledgementTimeoutChoice = (
   values: unknown,
 ): AcknowledgementTimeoutChoice => {
-  const picked: unknown = asRecord(values)[
-    ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY
-  ];
+  const picked: unknown =
+    asRecord(values)[ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY];
 
   if (isAcknowledgementTimeoutChoice(picked)) {
     return picked;
@@ -211,7 +210,8 @@ export const getValuesForAcknowledgementTimeoutChoice: (data: {
 
   return {
     ...values,
-    [ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY]: AcknowledgementTimeoutChoice.Off,
+    [ACKNOWLEDGEMENT_TIMEOUT_CHOICE_FIELD_KEY]:
+      AcknowledgementTimeoutChoice.Off,
     [ACKNOWLEDGEMENT_TIMEOUT_COLUMN]: null,
   };
 };

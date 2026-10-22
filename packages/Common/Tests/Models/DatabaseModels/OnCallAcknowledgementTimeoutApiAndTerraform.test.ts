@@ -77,7 +77,9 @@ describe("the policy's acknowledgementTimeoutInMinutes", () => {
     expect(column.required).toBe(false);
     expect(column.isDefaultValueColumn).toBeFalsy();
     expect(column.defaultValue).toBeUndefined();
-    expect(new OnCallDutyPolicy().acknowledgementTimeoutInMinutes).toBeUndefined();
+    expect(
+      new OnCallDutyPolicy().acknowledgementTimeoutInMinutes,
+    ).toBeUndefined();
   });
 
   test("is written by whoever may create or edit a policy, and read by whoever may read one", () => {
@@ -199,7 +201,9 @@ describe("a run's clock and its page again number", () => {
   });
 
   test("the API reads both, and takes neither on create", () => {
-    const read: JSONObject = propertiesOf("OnCallDutyPolicyExecutionLogReadSchema");
+    const read: JSONObject = propertiesOf(
+      "OnCallDutyPolicyExecutionLogReadSchema",
+    );
 
     expect(read["acknowledgementTimeoutStartedAt"]).toBeDefined();
     expect(read["pageAgainNumber"]).toBeDefined();

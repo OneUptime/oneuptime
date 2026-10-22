@@ -1,5 +1,5 @@
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
-import {
+import OnCallAcknowledgementTimeoutUtil, {
   OnCallAcknowledgementTimeoutStop,
   OnCallPageAgainOutcome,
   OnCallPageAgainResult,
@@ -12,7 +12,6 @@ import {
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
-import OnCallAcknowledgementTimeoutUtil from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import AcknowledgementTimeoutWorld, {
@@ -565,7 +564,10 @@ describe("pages again once for each time the timeout runs out", () => {
       .sort();
 
     expect(outcomes).toEqual(
-      [OnCallPageAgainOutcome.PagedAgain, OnCallPageAgainOutcome.TakenElsewhere].sort(),
+      [
+        OnCallPageAgainOutcome.PagedAgain,
+        OnCallPageAgainOutcome.TakenElsewhere,
+      ].sort(),
     );
     expect(world.pagesAgain()).toHaveLength(1);
   });
@@ -813,9 +815,11 @@ describe("a timeout changed while its clock runs", () => {
     expect(only(pagedAgain(await world.pageAgainTick())).pageAgainNumber).toBe(
       1,
     );
-    expect(world.feed.some((item: { markdown: string }) => {
-      return item.markdown.includes("still not resolved 10 minutes after");
-    })).toBe(true);
+    expect(
+      world.feed.some((item: { markdown: string }) => {
+        return item.markdown.includes("still not resolved 10 minutes after");
+      }),
+    ).toBe(true);
   });
 });
 
@@ -836,8 +840,10 @@ describe("a page again can be escalated, like any page", () => {
       .result!.outcome;
     expect(fromDana).toBe(OnCallPassOnOutcome.OthersStillPaged);
 
-    const answer: { passedOn: boolean; result?: { outcome: OnCallPassOnOutcome } | undefined } =
-      await world.escalate(ANA, run.id!);
+    const answer: {
+      passedOn: boolean;
+      result?: { outcome: OnCallPassOnOutcome } | undefined;
+    } = await world.escalate(ANA, run.id!);
 
     expect(answer.passedOn).toBe(true);
     expect(answer.result!.outcome).toBe(OnCallPassOnOutcome.NextRulePaged);
@@ -862,8 +868,10 @@ describe("a page again can be escalated, like any page", () => {
 
     await world.answerPage(ANA, run.id!);
 
-    const answer: { passedOn: boolean; refusal?: OnCallPassOnRefusal | undefined } =
-      await world.escalate(BOB, run.id!);
+    const answer: {
+      passedOn: boolean;
+      refusal?: OnCallPassOnRefusal | undefined;
+    } = await world.escalate(BOB, run.id!);
 
     expect(answer.passedOn).toBe(false);
     expect(answer.refusal).toBe(OnCallPassOnRefusal.RecordAcknowledged);
@@ -905,7 +913,8 @@ describe("one clock per incident and policy", () => {
 
     // The policy is run again by hand for the same incident.
     world.advance(2);
-    const again: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const again: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     again.id = new ObjectID("0f500000-0000-4000-8000-0000000000f9");
     again.projectId = world.runById(RUN_ID).projectId!;
     again.onCallDutyPolicyId = world.runById(RUN_ID).onCallDutyPolicyId!;

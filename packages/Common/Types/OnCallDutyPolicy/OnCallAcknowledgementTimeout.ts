@@ -92,7 +92,10 @@ export function getOnCallAcknowledgementTimeoutInMinutes(
 
   return Math.min(
     MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
-    Math.max(MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES, Math.floor(minutes)),
+    Math.max(
+      MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
+      Math.floor(minutes),
+    ),
   );
 }
 

@@ -194,9 +194,7 @@ describe("when the clock runs out", () => {
    */
   test("by the moment, not by whole minutes, at every second of the minute", () => {
     for (let second: number = 0; second < 60; second++) {
-      const started: Date = new Date(
-        Date.UTC(2026, 9, 22, 2, 0, second, 500),
-      );
+      const started: Date = new Date(Date.UTC(2026, 9, 22, 2, 0, second, 500));
       const tickBefore: Date = new Date(Date.UTC(2026, 9, 22, 2, 30, 0, 0));
       const tickAfter: Date = new Date(Date.UTC(2026, 9, 22, 2, 31, 0, 0));
 
@@ -315,9 +313,9 @@ describe("the words a page again says itself in", () => {
       true,
     );
     expect(isOnCallPageAgainStatusMessage(message)).toBe(true);
-    expect(isOnCallPageAgainStatusMessage("First escalation rule executed...")).toBe(
-      false,
-    );
+    expect(
+      isOnCallPageAgainStatusMessage("First escalation rule executed..."),
+    ).toBe(false);
     expect(isOnCallPageAgainStatusMessage(undefined)).toBe(false);
   });
 
@@ -337,12 +335,13 @@ describe("the words a page again says itself in", () => {
    * message read it the same way.
    */
   test("how it ends when its record is resolved", () => {
-    const resolved: string = getOnCallPolicyRunRecordResolvedMessage("incident");
+    const resolved: string =
+      getOnCallPolicyRunRecordResolvedMessage("incident");
 
     expect(resolved).toBe("Execution completed because incident is resolved.");
-    expect(resolved.startsWith(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START)).toBe(
-      true,
-    );
+    expect(
+      resolved.startsWith(ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START),
+    ).toBe(true);
     expect(getOnCallPolicyRunRecordHandledMessage("incident")).toBe(
       "Execution completed because incident is acknowledged or resolved.",
     );

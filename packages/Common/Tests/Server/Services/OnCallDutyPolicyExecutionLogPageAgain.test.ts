@@ -51,12 +51,8 @@ const POLICY_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "8b000000-0000-4000-8000-000000000003",
 );
-const LEVEL_2: ObjectID = new ObjectID(
-  "8b000000-0000-4000-8000-000000000004",
-);
-const LEVEL_1: ObjectID = new ObjectID(
-  "8b000000-0000-4000-8000-000000000005",
-);
+const LEVEL_2: ObjectID = new ObjectID("8b000000-0000-4000-8000-000000000004");
+const LEVEL_1: ObjectID = new ObjectID("8b000000-0000-4000-8000-000000000005");
 const ANA: ObjectID = new ObjectID("8b000000-0000-4000-8000-0000000000a1");
 const NEW_RUN_ID: ObjectID = new ObjectID(
   "8b000000-0000-4000-8000-0000000000f1",
@@ -95,7 +91,9 @@ beforeEach(() => {
 
   jest
     .spyOn(OnCallDutyPolicyExecutionLogService, "create")
-    .mockImplementation((async (data: { data: OnCallDutyPolicyExecutionLog }) => {
+    .mockImplementation((async (data: {
+      data: OnCallDutyPolicyExecutionLog;
+    }) => {
       recorded.created.push(data.data);
       const created: OnCallDutyPolicyExecutionLog = data.data;
       created.id = NEW_RUN_ID;
@@ -127,9 +125,11 @@ beforeEach(() => {
       return URL.fromString("https://oneuptime.test/dashboard/p/policy");
     }) as never);
 
-  jest.spyOn(UserService, "getUserMarkdownString").mockImplementation((async () => {
-    return FeedMarkdown.link("Ana Lopez", "https://oneuptime.test/users/ana");
-  }) as never);
+  jest
+    .spyOn(UserService, "getUserMarkdownString")
+    .mockImplementation((async () => {
+      return FeedMarkdown.link("Ana Lopez", "https://oneuptime.test/users/ana");
+    }) as never);
 
   jest
     .spyOn(IncidentFeedService, "createIncidentFeedItem")
@@ -156,7 +156,10 @@ beforeEach(() => {
 
       return (
         [...rules].sort(
-          (a: OnCallDutyPolicyEscalationRule, b: OnCallDutyPolicyEscalationRule) => {
+          (
+            a: OnCallDutyPolicyEscalationRule,
+            b: OnCallDutyPolicyEscalationRule,
+          ) => {
             return (a.order || 0) - (b.order || 0);
           },
         )[0] || null
@@ -170,7 +173,12 @@ beforeEach(() => {
       options: Record<string, unknown>,
     ) => {
       recorded.started.push({ ruleId: ruleId.toString(), options: options });
-      return { paged: [], notPaged: [], hadScheduleGap: false, movesOnAtOnce: false };
+      return {
+        paged: [],
+        notPaged: [],
+        hadScheduleGap: false,
+        movesOnAtOnce: false,
+      };
     }) as never);
 
   jest.spyOn(OnCallPolicyRunMessage, "refresh").mockImplementation((() => {
@@ -363,7 +371,9 @@ describe("starting a page again", () => {
 
     expect(recorded.feed).toEqual([]);
     expect(alertFeed).toHaveLength(1);
-    expect(alertFeed[0]).toContain("the alert is still not resolved 30 minutes");
+    expect(alertFeed[0]).toContain(
+      "the alert is still not resolved 30 minutes",
+    );
     expect(recorded.started[0]!.options["triggeredByAlertId"]).toEqual(
       INCIDENT_ID,
     );
@@ -372,7 +382,8 @@ describe("starting a page again", () => {
 
 describe("a page again, as it is created", () => {
   test("is not started at the policy's first rule by the create hook: its caller starts it", async () => {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = NEW_RUN_ID;
     run.projectId = PROJECT_ID;
     run.onCallDutyPolicyId = POLICY_ID;
@@ -406,7 +417,10 @@ describe("the clock's own writes", () => {
     const write: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.updateColumnsByIdWithoutHooks
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "updateColumnsByIdWithoutHooks")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "updateColumnsByIdWithoutHooks",
+      )
       .mockResolvedValue(undefined);
 
     const at: Date = new Date("2026-10-22T03:05:00.000Z");
@@ -454,9 +468,7 @@ describe("the clock's own writes", () => {
 describe("an on-call policy's acknowledgement timeout, as the API takes it", () => {
   type CheckWrite = (write: { data: unknown }) => Promise<void>;
 
-  const checkCreate: CheckWrite = (
-    write: { data: unknown },
-  ): Promise<void> => {
+  const checkCreate: CheckWrite = (write: { data: unknown }): Promise<void> => {
     return (
       OnCallDutyPolicyService as unknown as {
         checkCreateBeforeReferences: CheckWrite;
@@ -464,9 +476,7 @@ describe("an on-call policy's acknowledgement timeout, as the API takes it", () 
     ).checkCreateBeforeReferences(write);
   };
 
-  const checkUpdate: CheckWrite = (
-    write: { data: unknown },
-  ): Promise<void> => {
+  const checkUpdate: CheckWrite = (write: { data: unknown }): Promise<void> => {
     return (
       OnCallDutyPolicyService as unknown as {
         checkUpdateBeforeReferences: CheckWrite;

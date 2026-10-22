@@ -356,7 +356,9 @@ const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
     await OnCallAcknowledgementTimeout.readRecordState(record);
 
   if (!state) {
-    throw new BadDataException(`The ${record.kind} this page is about is gone.`);
+    throw new BadDataException(
+      `The ${record.kind} this page is about is gone.`,
+    );
   }
 
   return state.isResolved ? record.kind : null;

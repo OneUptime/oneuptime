@@ -259,10 +259,12 @@ beforeEach(() => {
       return incidentStates();
     }) as never);
 
-  jest.spyOn(AlertStateService, "getAllAlertStates").mockImplementation((async () => {
-    alertStatesRead++;
-    return alertStates();
-  }) as never);
+  jest
+    .spyOn(AlertStateService, "getAllAlertStates")
+    .mockImplementation((async () => {
+      alertStatesRead++;
+      return alertStates();
+    }) as never);
 
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(new Date(NOW));
 });
@@ -271,11 +273,15 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function policy(minutes: number | null, isArchived: boolean = false): OnCallDutyPolicy {
+function policy(
+  minutes: number | null,
+  isArchived: boolean = false,
+): OnCallDutyPolicy {
   const row: OnCallDutyPolicy = new OnCallDutyPolicy();
   row.isArchived = isArchived;
-  (row as unknown as Record<string, unknown>)["acknowledgementTimeoutInMinutes"] =
-    minutes;
+  (row as unknown as Record<string, unknown>)[
+    "acknowledgementTimeoutInMinutes"
+  ] = minutes;
   return row;
 }
 
@@ -308,81 +314,84 @@ function runOf(data: {
   return run;
 }
 
-describe.each(KINDS)("a $kind's state, read for the clock", (kindCase: KindCase) => {
-  test("acknowledged, not resolved", async () => {
-    kindCase.readRecord(ACKNOWLEDGED);
+describe.each(KINDS)(
+  "a $kind's state, read for the clock",
+  (kindCase: KindCase) => {
+    test("acknowledged, not resolved", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
 
-    const state: OnCallTimeoutRecordState | null =
+      const state: OnCallTimeoutRecordState | null =
+        await OnCallAcknowledgementTimeout.readRecordState({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+        });
+
+      expect(state).toEqual({ isAcknowledged: true, isResolved: false });
+    });
+
+    test("resolved counts as acknowledged too, and as resolved", async () => {
+      kindCase.readRecord(RESOLVED);
+
+      expect(
+        await OnCallAcknowledgementTimeout.readRecordState({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+        }),
+      ).toEqual({ isAcknowledged: true, isResolved: true });
+    });
+
+    test("created: neither", async () => {
+      kindCase.readRecord(CREATED);
+
+      expect(
+        await OnCallAcknowledgementTimeout.readRecordState({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+        }),
+      ).toEqual({ isAcknowledged: false, isResolved: false });
+    });
+
+    test("read with its own list of states", async () => {
+      kindCase.readRecord(ACKNOWLEDGED);
+
       await OnCallAcknowledgementTimeout.readRecordState({
         kind: kindCase.kind,
         recordId: RECORD_ID,
       });
 
-    expect(state).toEqual({ isAcknowledged: true, isResolved: false });
-  });
-
-  test("resolved counts as acknowledged too, and as resolved", async () => {
-    kindCase.readRecord(RESOLVED);
-
-    expect(
-      await OnCallAcknowledgementTimeout.readRecordState({
-        kind: kindCase.kind,
-        recordId: RECORD_ID,
-      }),
-    ).toEqual({ isAcknowledged: true, isResolved: true });
-  });
-
-  test("created: neither", async () => {
-    kindCase.readRecord(CREATED);
-
-    expect(
-      await OnCallAcknowledgementTimeout.readRecordState({
-        kind: kindCase.kind,
-        recordId: RECORD_ID,
-      }),
-    ).toEqual({ isAcknowledged: false, isResolved: false });
-  });
-
-  test("read with its own list of states", async () => {
-    kindCase.readRecord(ACKNOWLEDGED);
-
-    await OnCallAcknowledgementTimeout.readRecordState({
-      kind: kindCase.kind,
-      recordId: RECORD_ID,
+      expect({ incident: incidentStatesRead, alert: alertStatesRead }).toEqual(
+        kindCase.usesAlertStates
+          ? { incident: 0, alert: 1 }
+          : { incident: 1, alert: 0 },
+      );
     });
 
-    expect({ incident: incidentStatesRead, alert: alertStatesRead }).toEqual(
-      kindCase.usesAlertStates
-        ? { incident: 0, alert: 1 }
-        : { incident: 1, alert: 0 },
-    );
-  });
+    test("a record that is gone has no state", async () => {
+      const services: Record<string, unknown> = {
+        incident: IncidentService,
+        alert: AlertService,
+        "incident episode": IncidentEpisodeService,
+        "alert episode": AlertEpisodeService,
+      };
 
-  test("a record that is gone has no state", async () => {
-    const services: Record<string, unknown> = {
-      incident: IncidentService,
-      alert: AlertService,
-      "incident episode": IncidentEpisodeService,
-      "alert episode": AlertEpisodeService,
-    };
-
-    jest
-      .spyOn(services[kindCase.kind] as never, "findOneById" as never)
-      .mockImplementation((async () => {
-        return null;
-      }) as never);
-
-    expect(
-      await OnCallAcknowledgementTimeout.readRecordState({
-        kind: kindCase.kind,
-        recordId: RECORD_ID,
-      }),
-    ).toBeNull();
-  });
-
-  test("a new acknowledgement starts the clock on its runs, found by its own column", async () => {
-    const findBy: SpyInstance<typeof OnCallDutyPolicyExecutionLogService.findBy> =
       jest
+        .spyOn(services[kindCase.kind] as never, "findOneById" as never)
+        .mockImplementation((async () => {
+          return null;
+        }) as never);
+
+      expect(
+        await OnCallAcknowledgementTimeout.readRecordState({
+          kind: kindCase.kind,
+          recordId: RECORD_ID,
+        }),
+      ).toBeNull();
+    });
+
+    test("a new acknowledgement starts the clock on its runs, found by its own column", async () => {
+      const findBy: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.findBy
+      > = jest
         .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
         .mockImplementation((async (data: {
           query: Record<string, unknown>;
@@ -410,78 +419,90 @@ describe.each(KINDS)("a $kind's state, read for the clock", (kindCase: KindCase)
           ];
         }) as never);
 
-    const started: SpyInstance<
-      typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
-    > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
-      .mockResolvedValue(undefined);
+      const started: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
+      > = jest
+        .spyOn(
+          OnCallDutyPolicyExecutionLogService,
+          "startAcknowledgementTimeoutClock",
+        )
+        .mockResolvedValue(undefined);
 
-    await OnCallAcknowledgementTimeout.onRecordStateChanged({
-      kind: kindCase.kind,
-      recordId: RECORD_ID,
-      projectId: PROJECT_ID,
-      stateId: new ObjectID(ACKNOWLEDGED),
-      previousStateId: new ObjectID(CREATED),
+      await OnCallAcknowledgementTimeout.onRecordStateChanged({
+        kind: kindCase.kind,
+        recordId: RECORD_ID,
+        projectId: PROJECT_ID,
+        stateId: new ObjectID(ACKNOWLEDGED),
+        previousStateId: new ObjectID(CREATED),
+      });
+
+      expect(findBy.mock.calls[0]![0].query).toHaveProperty(
+        kindCase.runColumn,
+        RECORD_ID,
+      );
+      expect(started).toHaveBeenCalledTimes(1);
+      expect(started.mock.calls[0]![0].startedAt).toEqual(NOW);
     });
 
-    expect(findBy.mock.calls[0]![0].query).toHaveProperty(
-      kindCase.runColumn,
-      RECORD_ID,
-    );
-    expect(started).toHaveBeenCalledTimes(1);
-    expect(started.mock.calls[0]![0].startedAt).toEqual(NOW);
-  });
+    test("who acknowledged it last is read off its own state timeline", async () => {
+      const BOB: ObjectID = new ObjectID(
+        "7a000000-0000-4000-8000-0000000000c2",
+      );
 
-  test("who acknowledged it last is read off its own state timeline", async () => {
-    const BOB: ObjectID = new ObjectID("7a000000-0000-4000-8000-0000000000c2");
+      kindCase.readRecord(ACKNOWLEDGED);
+      kindCase.readTimeline([
+        { stateId: CREATED, userId: BOB },
+        { stateId: ACKNOWLEDGED, userId: ANA },
+      ]);
 
-    kindCase.readRecord(ACKNOWLEDGED);
-    kindCase.readTimeline([
-      { stateId: CREATED, userId: BOB },
-      { stateId: ACKNOWLEDGED, userId: ANA },
-    ]);
+      const run: OnCallDutyPolicyExecutionLog = runOf({
+        id: "7a000000-0000-4000-8000-000000000101",
+        policyId: POLICY_A,
+        column: kindCase.runColumn,
+        minutes: 30,
+        createdMinutesAgo: 60,
+        clockStartedAt: new Date(NOW.getTime() - 31 * 60 * 1000),
+      });
 
-    const run: OnCallDutyPolicyExecutionLog = runOf({
-      id: "7a000000-0000-4000-8000-000000000101",
-      policyId: POLICY_A,
-      column: kindCase.runColumn,
-      minutes: 30,
-      createdMinutesAgo: 60,
-      clockStartedAt: new Date(NOW.getTime() - 31 * 60 * 1000),
+      jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+        .mockImplementation((async () => {
+          return [run];
+        }) as never);
+      jest
+        .spyOn(
+          OnCallDutyPolicyExecutionLogService,
+          "stopAcknowledgementTimeoutClock",
+        )
+        .mockResolvedValue(true);
+
+      const startPageAgain: SpyInstance<
+        typeof OnCallDutyPolicyExecutionLogService.startPageAgain
+      > = jest
+        .spyOn(OnCallDutyPolicyExecutionLogService, "startPageAgain")
+        .mockResolvedValue(ObjectID.generate());
+
+      const result: OnCallPageAgainResult =
+        await OnCallAcknowledgementTimeout.pageAgainIfDue({
+          run: run,
+          now: NOW,
+        });
+
+      expect(result.outcome).toBe(OnCallPageAgainOutcome.PagedAgain);
+      expect(startPageAgain.mock.calls[0]![0]).toMatchObject({
+        recordKind: kindCase.kind,
+        acknowledgedByUserId: ANA,
+        pageAgainNumber: 1,
+        minutes: 30,
+        [kindCase.runColumn]: RECORD_ID,
+      });
+
+      expect(
+        (kindCase.timelineService as { findBy: unknown }).findBy,
+      ).toHaveBeenCalled();
     });
-
-    jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
-      .mockImplementation((async () => {
-        return [run];
-      }) as never);
-    jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "stopAcknowledgementTimeoutClock")
-      .mockResolvedValue(true);
-
-    const startPageAgain: SpyInstance<
-      typeof OnCallDutyPolicyExecutionLogService.startPageAgain
-    > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startPageAgain")
-      .mockResolvedValue(ObjectID.generate());
-
-    const result: OnCallPageAgainResult =
-      await OnCallAcknowledgementTimeout.pageAgainIfDue({ run: run, now: NOW });
-
-    expect(result.outcome).toBe(OnCallPageAgainOutcome.PagedAgain);
-    expect(startPageAgain.mock.calls[0]![0]).toMatchObject({
-      recordKind: kindCase.kind,
-      acknowledgedByUserId: ANA,
-      pageAgainNumber: 1,
-      minutes: 30,
-      [kindCase.runColumn]: RECORD_ID,
-    });
-
-    expect(
-      (kindCase.timelineService as { findBy: unknown }).findBy,
-    ).toHaveBeenCalled();
-  });
-});
+  },
+);
 
 describe("a record resolved", () => {
   test("stops every running clock of the record, and starts none", async () => {
@@ -504,23 +525,30 @@ describe("a record resolved", () => {
       }),
     ];
 
-    const findBy: SpyInstance<typeof OnCallDutyPolicyExecutionLogService.findBy> =
-      jest
-        .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
-        .mockImplementation((async () => {
-          return armed;
-        }) as never);
+    const findBy: SpyInstance<
+      typeof OnCallDutyPolicyExecutionLogService.findBy
+    > = jest
+      .spyOn(OnCallDutyPolicyExecutionLogService, "findBy")
+      .mockImplementation((async () => {
+        return armed;
+      }) as never);
 
     const stopped: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.stopAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "stopAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "stopAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(true);
 
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onRecordStateChanged({
@@ -538,7 +566,9 @@ describe("a record resolved", () => {
 
     expect(
       stopped.mock.calls.map(
-        (call: Array<{ executionLogId: ObjectID; expectedStartedAt: Date }>) => {
+        (
+          call: Array<{ executionLogId: ObjectID; expectedStartedAt: Date }>,
+        ) => {
           return [
             call[0]!.executionLogId.toString(),
             call[0]!.expectedStartedAt.toISOString(),
@@ -546,8 +576,14 @@ describe("a record resolved", () => {
         },
       ),
     ).toEqual([
-      [armed[0]!.id!.toString(), armed[0]!.acknowledgementTimeoutStartedAt!.toISOString()],
-      [armed[1]!.id!.toString(), armed[1]!.acknowledgementTimeoutStartedAt!.toISOString()],
+      [
+        armed[0]!.id!.toString(),
+        armed[0]!.acknowledgementTimeoutStartedAt!.toISOString(),
+      ],
+      [
+        armed[1]!.id!.toString(),
+        armed[1]!.acknowledgementTimeoutStartedAt!.toISOString(),
+      ],
     ]);
     expect(started).not.toHaveBeenCalled();
   });
@@ -561,7 +597,10 @@ describe("a record resolved", () => {
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onRecordStateChanged({
@@ -613,7 +652,10 @@ describe("every policy that paged about the record keeps a clock of its own", ()
               return run.onCallDutyPolicyId!.toString() === policyId.toString();
             })
             .sort(
-              (a: OnCallDutyPolicyExecutionLog, b: OnCallDutyPolicyExecutionLog) => {
+              (
+                a: OnCallDutyPolicyExecutionLog,
+                b: OnCallDutyPolicyExecutionLog,
+              ) => {
                 return b.createdAt!.getTime() - a.createdAt!.getTime();
               },
             );
@@ -625,7 +667,10 @@ describe("every policy that paged about the record keeps a clock of its own", ()
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onRecordStateChanged({
@@ -676,7 +721,10 @@ describe("every policy that paged about the record keeps a clock of its own", ()
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onRecordStateChanged({
@@ -708,7 +756,10 @@ describe("every policy that paged about the record keeps a clock of its own", ()
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onRecordStateChanged({
@@ -904,7 +955,10 @@ describe("an answered page of a run whose policy does not page again", () => {
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onPageAcknowledged({
@@ -916,7 +970,8 @@ describe("an answered page of a run whose policy does not page again", () => {
   });
 
   test("a direct page - no policy - starts none either", async () => {
-    const run: OnCallDutyPolicyExecutionLog = new OnCallDutyPolicyExecutionLog();
+    const run: OnCallDutyPolicyExecutionLog =
+      new OnCallDutyPolicyExecutionLog();
     run.id = ObjectID.generate();
     run.triggeredByIncidentId = RECORD_ID;
     run.status = OnCallDutyPolicyStatus.Completed;
@@ -930,7 +985,10 @@ describe("an answered page of a run whose policy does not page again", () => {
     const started: SpyInstance<
       typeof OnCallDutyPolicyExecutionLogService.startAcknowledgementTimeoutClock
     > = jest
-      .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+      .spyOn(
+        OnCallDutyPolicyExecutionLogService,
+        "startAcknowledgementTimeoutClock",
+      )
       .mockResolvedValue(undefined);
 
     await OnCallAcknowledgementTimeout.onPageAcknowledged({

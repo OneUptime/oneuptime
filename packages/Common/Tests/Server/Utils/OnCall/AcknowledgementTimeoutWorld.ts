@@ -560,7 +560,9 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
 
   // ---- the incident ------------------------------------------------------
 
-  private isIncidentInState(kinds: Array<"acknowledged" | "resolved">): boolean {
+  private isIncidentInState(
+    kinds: Array<"acknowledged" | "resolved">,
+  ): boolean {
     if (!this.incident) {
       return false;
     }

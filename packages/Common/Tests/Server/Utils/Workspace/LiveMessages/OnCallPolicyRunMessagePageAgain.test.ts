@@ -146,9 +146,11 @@ describe("a page again nobody answered", () => {
 
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.key).toBe(ON_CALL_RUN_ALARM_OUTCOME);
-    expect(alarms[0]!.markdown.startsWith(
-      `⚠️ Nobody answered the page again for ${RECORD}: it is still not resolved.`,
-    )).toBe(true);
+    expect(
+      alarms[0]!.markdown.startsWith(
+        `⚠️ Nobody answered the page again for ${RECORD}: it is still not resolved.`,
+      ),
+    ).toBe(true);
     expect(alarms[0]!.markdown.endsWith("Someone needs to take it.")).toBe(
       true,
     );
@@ -184,9 +186,7 @@ describe("a run that is not a page again", () => {
 
     expect(first).not.toContain("Paged again");
     expect(first).not.toContain("paging again");
-    expect(first.split("\n\n")[0]).toBe(
-      `📟 ${POLICY} is paging for ${RECORD}`,
-    );
+    expect(first.split("\n\n")[0]).toBe(`📟 ${POLICY} is paging for ${RECORD}`);
   });
 });
 

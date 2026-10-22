@@ -21,7 +21,10 @@ import ts from "typescript";
  * rather than silently never paging again.
  */
 
-const SERVICES_DIR: string = path.resolve(__dirname, "../../../Server/Services");
+const SERVICES_DIR: string = path.resolve(
+  __dirname,
+  "../../../Server/Services",
+);
 
 const WHITE_SPACE_RUN: RegExp = /\s+/g;
 const PROJECT_ID_OF_THE_CHANGE: RegExp = /^createdItem\.projectId!?$/;
@@ -113,7 +116,10 @@ function enclosingMethodName(node: ts.Node): string {
 }
 
 // The conditions of every `if` a node sits in, innermost first.
-function enclosingConditions(node: ts.Node, source: ts.SourceFile): Array<string> {
+function enclosingConditions(
+  node: ts.Node,
+  source: ts.SourceFile,
+): Array<string> {
   const conditions: Array<string> = [];
   let current: ts.Node | undefined = node.parent;
 
