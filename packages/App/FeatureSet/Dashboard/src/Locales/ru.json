@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "Подтверждение окончательно прекращает оповещения.",
   "After an acknowledgement": "После подтверждения",
   "After how many minutes?": "Через сколько минут?",
-  "Could not acknowledge. Please try again.": "Не удалось подтвердить. Попробуйте ещё раз.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Отсчёт идёт от каждого подтверждения. Повторное оповещение — не более 5 раз.",
   "Don't page again": "Не оповещать повторно",
   "Edit Acknowledgement Timeout": "Редактировать тайм-аут после подтверждения",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Что происходит, когда кто-то подтверждает, но никто не устраняет.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Активируйте, чтобы показать ниже только эти постмортемы.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Фильтрует постмортемы ниже - активируйте, чтобы снять этот фильтр.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Опишите, что произошло, последствия, решение и дальнейшие действия."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Опишите, что произошло, последствия, решение и дальнейшие действия.",
+  "Acknowledge again": "Подтвердить снова",
+  "Could not acknowledge": "Не удалось подтвердить",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Введите целое число минут от {{min}} до {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Если подтверждено, но не устранено за {{duration}}, политика оповещает повторно, {{times}}.",
+  "You are still being paged. Please try again.": "Вас по-прежнему оповещают. Попробуйте ещё раз.",
+  "up to {{count}} times": "до {{count}} раз",
+  "up to {{count}} times_one": "до {{count}} раза"
 }

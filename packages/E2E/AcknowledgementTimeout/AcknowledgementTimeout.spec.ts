@@ -61,6 +61,8 @@ const MINUTES_TITLE: string = "After how many minutes?";
 const MINUTES_DESCRIPTION: string =
   "Counted from each acknowledgement. It pages again 5 times at most.";
 const ROW_TITLE: string = "After an acknowledgement";
+const MINUTES_REFUSAL: string =
+  "Enter a whole number of minutes between 5 and 1440.";
 const SAVE: string = "Save Changes";
 const PLURAL_KEY: string =
   "Page again if not resolved within {{count}} minutes";
@@ -151,6 +153,19 @@ function summary(page: Page): Locator {
 }
 
 /*
+ * The last line of the Escalation summary at the top of the page, while
+ * the policy pages again: the setting is folded away, the summary is read
+ * first.
+ */
+function summaryLine(page: Page): Locator {
+  return page.getByTestId("escalation-summary-page-again");
+}
+
+function summarySentence(duration: string): string {
+  return `If it is acknowledged but not resolved within ${duration}, it pages again, up to 5 times.`;
+}
+
+/*
  * Opens More settings, and waits for the card's row to show. (Not its
  * description: a card hides its description below the md breakpoint.)
  */
@@ -213,6 +228,14 @@ test("keeps the setting folded under More settings, below the cards everyone use
   expect(repeatBox).not.toBeNull();
   expect(foldBox).not.toBeNull();
   expect(foldBox!.y).toBeGreaterThan(repeatBox!.y);
+
+  // A policy that does not page again: its summary reads as it always did.
+  await expect(
+    page.getByText(
+      "If no one acknowledges after the final level, escalation stops here.",
+    ),
+  ).toBeVisible();
+  await expect(summaryLine(page)).toHaveCount(0);
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "folded-1280");
@@ -283,6 +306,8 @@ test("pages again in one dialog: Page again, 30 minutes to start with, sent as t
   );
 
   await expect(summary(page)).toHaveText(pagesAgainAfter(30));
+  // The Escalation summary at the top says so at once, with no reload.
+  await expect(summaryLine(page)).toHaveText(summarySentence("30 min"));
 
   // Folded again, More settings says what it is set to.
   await foldHeader(page).click();
@@ -290,6 +315,7 @@ test("pages again in one dialog: Page again, 30 minutes to start with, sent as t
   await expect(foldedItems(page)).toHaveCount(1);
   await expect(foldedItems(page)).toContainText(CARD_TITLE);
   await expect(foldedItems(page)).toContainText("30 min");
+  await expect(summaryLine(page)).toBeVisible();
 });
 
 test("takes the minutes typed, from 5 to 1440, and refuses the rest before anything is sent", async ({
@@ -302,13 +328,18 @@ test("takes the minutes typed, from 5 to 1440, and refuses the rest before anyth
   await openDialog(page);
   await dialog(page).getByText(PAGE_AGAIN, { exact: true }).click();
 
-  for (const [typed, refusal] of [
-    ["4", "should not be less than 5"],
-    ["1441", "should not be more than 1440"],
-  ] as Array<[string, string]>) {
+  /*
+   * One sentence for every value the box may not hold - too few, too many,
+   * a fraction (which only the server refused before), nothing - that says
+   * what to type, rather than the form's words around the question
+   * ("After how many minutes? should not be less than 5.").
+   */
+  for (const typed of ["4", "1441", "7.5", ""]) {
     await minutesBox(page).fill(typed);
     await dialog(page).getByRole("button", { name: SAVE }).click();
-    await expect(dialog(page)).toContainText(refusal);
+    await expect(dialog(page)).toContainText(MINUTES_REFUSAL);
+    await expect(dialog(page)).not.toContainText("should not be");
+    await expect(dialog(page)).not.toContainText("is required");
     // Typing kept Page again picked, and the box where it was.
     await expect(
       dialog(page).getByRole("radio", { name: PAGE_AGAIN, exact: true }),
@@ -336,6 +367,8 @@ test("turns it off again: Don't page again sends an empty timeout", async ({
   // Folded, the set card says what it is set to.
   await expect(foldedItems(page)).toContainText(CARD_TITLE);
   await expect(foldedItems(page)).toContainText("45 min");
+  // And the Escalation summary at the top says it in words.
+  await expect(summaryLine(page)).toHaveText(summarySentence("45 min"));
 
   await openFold(page);
   await expect(summary(page)).toHaveText(pagesAgainAfter(45));
@@ -356,6 +389,8 @@ test("turns it off again: Don't page again sends an empty timeout", async ({
   expect(sent[0]!.data).toHaveProperty("acknowledgementTimeoutInMinutes", null);
 
   await expect(summary(page)).toHaveText(OFF);
+  // Off: the summary's line goes at once.
+  await expect(summaryLine(page)).toHaveCount(0);
 
   await foldHeader(page).click();
   await expect(foldedItems(page)).toHaveText(CARD_TITLE);

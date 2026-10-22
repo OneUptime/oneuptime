@@ -25,6 +25,7 @@ import useOnCallReadiness, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import AcknowledgementTimeoutPolicySentence from "../AcknowledgementTimeout/AcknowledgementTimeoutPolicySentence";
 
 /*
  * A concise, plain-english overview of how an on-call policy escalates — the
@@ -77,6 +78,13 @@ export interface ComponentProps {
   levels: Array<EscalationLevelSummary>;
   repeatEnabled: boolean;
   repeatCount: number;
+  /*
+   * The policy's acknowledgement timeout, in minutes, while it pages again
+   * when what it paged about is acknowledged but not resolved
+   * (AcknowledgementTimeout): the summary ends by saying so. Null or
+   * absent: it does not page again, and the summary is as it always was.
+   */
+  acknowledgementTimeoutInMinutes?: number | null | undefined;
   /*
    * Optional, and the summary is complete without it: supplying the policy id
    * turns on the readiness dots by letting this component load the policy's
@@ -523,6 +531,41 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                 )}
               </div>
             </li>
+
+            {/*
+             * After an acknowledgement: a branch of its own rather than a
+             * step after "stops here", so no connector leads to it - a gap
+             * and a rule set it apart instead. (The gap is an element of its
+             * own: the list's space-y-0 zeroes a margin on its rows.)
+             */}
+            {props.acknowledgementTimeoutInMinutes ? (
+              <div className="h-3" aria-hidden="true" />
+            ) : (
+              <></>
+            )}
+            {props.acknowledgementTimeoutInMinutes ? (
+              <li
+                className="flex items-start gap-3 border-t border-gray-100 pt-3"
+                data-testid="escalation-summary-page-again"
+              >
+                <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200">
+                  <Icon
+                    icon={IconProp.Bell}
+                    className="h-3.5 w-3.5 text-gray-500"
+                  />
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5 text-sm text-gray-600">
+                  <AcknowledgementTimeoutPolicySentence
+                    duration={formatDuration(
+                      props.acknowledgementTimeoutInMinutes,
+                      translator,
+                    )}
+                  />
+                </div>
+              </li>
+            ) : (
+              <></>
+            )}
           </ol>
         </div>
       </div>

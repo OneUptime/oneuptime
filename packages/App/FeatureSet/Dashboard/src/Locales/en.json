@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "Acknowledging stops the paging for good.",
   "After an acknowledgement": "After an acknowledgement",
   "After how many minutes?": "After how many minutes?",
-  "Could not acknowledge. Please try again.": "Could not acknowledge. Please try again.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Counted from each acknowledgement. It pages again 5 times at most.",
   "Don't page again": "Don't page again",
   "Edit Acknowledgement Timeout": "Edit Acknowledgement Timeout",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "What happens when someone acknowledges but nobody resolves.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Activate to show only these postmortems below.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Capture what happened, impact, resolution, and follow-up actions."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Capture what happened, impact, resolution, and follow-up actions.",
+  "Acknowledge again": "Acknowledge again",
+  "Could not acknowledge": "Could not acknowledge",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Enter a whole number of minutes between {{min}} and {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.",
+  "You are still being paged. Please try again.": "You are still being paged. Please try again.",
+  "up to {{count}} times": "up to {{count}} times",
+  "up to {{count}} times_one": "up to {{count}} time"
 }

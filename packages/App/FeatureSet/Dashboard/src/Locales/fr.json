@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "La prise en compte arrête définitivement les alertes.",
   "After an acknowledgement": "Après une prise en compte",
   "After how many minutes?": "Après combien de minutes ?",
-  "Could not acknowledge. Please try again.": "Impossible de prendre en compte. Veuillez réessayer.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Décompté depuis chaque prise en compte. Nouvelle alerte 5 fois au maximum.",
   "Don't page again": "Ne pas alerter de nouveau",
   "Edit Acknowledgement Timeout": "Modifier le délai après prise en compte",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Ce qui se passe quand quelqu'un prend en compte mais que personne ne résout.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}} : {{count}}. Activez pour n'afficher que ces post-mortems ci-dessous.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}} : {{count}}. Filtre les post-mortems ci-dessous - activez pour retirer ce filtre.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Décrivez ce qui s'est passé, l'impact, la résolution et les actions de suivi."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Décrivez ce qui s'est passé, l'impact, la résolution et les actions de suivi.",
+  "Acknowledge again": "Prendre en compte de nouveau",
+  "Could not acknowledge": "Impossible de prendre en compte",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Saisissez un nombre entier de minutes entre {{min}} et {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "S'il est pris en compte mais pas résolu en {{duration}}, la politique alerte de nouveau, {{times}}.",
+  "You are still being paged. Please try again.": "Vous êtes toujours alerté. Veuillez réessayer.",
+  "up to {{count}} times": "jusqu'à {{count}} fois",
+  "up to {{count}} times_one": "jusqu'à {{count}} fois"
 }

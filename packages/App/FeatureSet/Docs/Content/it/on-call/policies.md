@@ -77,7 +77,7 @@ Il riconoscimento interrompe definitivamente gli avvisi di una policy, anche se 
 
 I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei registri di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
 
-Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa.
+Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **Policy at a glance** nella **Panoramica** ed **Escalation summary** dicono la stessa cosa a parole.
 
 ## Registri di esecuzione
 

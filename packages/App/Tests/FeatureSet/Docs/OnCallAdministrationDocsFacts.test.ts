@@ -1210,10 +1210,10 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
     );
   });
 
-  it("is acknowledged from its message or with Acknowledge on the record's page, and escalated with Escalate", () => {
+  it("is acknowledged from its message or with Acknowledge again on the record's page, and escalated with Escalate", () => {
     expect(
       readDashboardSource("Components/OnCallPolicy/PassOn/PassOnPage.ts"),
-    ).toContain('button: translationKey("Acknowledge")');
+    ).toContain('button: translationKey("Acknowledge again")');
     expect(
       readDashboardSource("Components/OnCallPolicy/PassOn/usePassOnPage.tsx"),
     ).toContain('id: "acknowledge-page-again"');
@@ -1222,7 +1222,7 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
       readCommonSource("Server/Services/UserOnCallLogTimelineService.ts"),
     ).toContain("OnCallAcknowledgementTimeout.onPageAcknowledged");
     expect(pageAgainSection()).toContain(
-      "Whoever is paged again acknowledges it from its message, or with **Acknowledge** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level.",
+      "Whoever is paged again acknowledges it from its message, or with **Acknowledge again** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level.",
     );
   });
 
@@ -1251,6 +1251,42 @@ describe("paging again when an acknowledged incident or alert is not resolved", 
     expect(card).toContain("title: AcknowledgementTimeoutCopy.rowTitle");
     expect(pageAgainSection()).toContain(
       "The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded.",
+    );
+  });
+
+  it("says it in words in Policy at a glance on the Overview and in the Escalation summary, while it pages again", () => {
+    const sentence: string = readDashboardSource(
+      "Components/OnCallPolicy/AcknowledgementTimeout/AcknowledgementTimeoutPolicySentence.tsx",
+    );
+    const glance: string = readDashboardSource(
+      "Components/OnCallPolicy/OnCallPolicySummary.tsx",
+    );
+    const escalationSummary: string = readDashboardSource(
+      "Components/OnCallPolicy/EscalationRule/EscalationSummary.tsx",
+    );
+
+    expect(copy).toContain(
+      '"If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}."',
+    );
+    expect(sentence).toContain(
+      "template={AcknowledgementTimeoutCopy.policySentence}",
+    );
+    // Both summaries draw it, only while the policy pages again.
+    expect(glance).toContain("{overview.acknowledgementTimeoutInMinutes ? (");
+    expect(glance).toContain("<AcknowledgementTimeoutPolicySentence");
+    expect(glance).toContain('translator.translateText("Policy at a glance")');
+    expect(escalationSummary).toContain(
+      "{props.acknowledgementTimeoutInMinutes ? (",
+    );
+    expect(escalationSummary).toContain(
+      "<AcknowledgementTimeoutPolicySentence",
+    );
+    // The Escalation summary hears it from the card on the same page.
+    expect(escalationPage).toContain(
+      "acknowledgementTimeoutInMinutes={acknowledgementTimeoutMinutes}",
+    );
+    expect(pageAgainSection()).toContain(
+      "**Policy at a glance** on the **Overview** and the **Escalation summary** say the same in words.",
     );
   });
 

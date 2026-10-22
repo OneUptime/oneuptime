@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "स्वीकार करने से सूचित करना हमेशा के लिए बंद हो जाता है।",
   "After an acknowledgement": "स्वीकृति के बाद",
   "After how many minutes?": "कितने मिनट बाद?",
-  "Could not acknowledge. Please try again.": "स्वीकार नहीं किया जा सका। कृपया फिर से प्रयास करें।",
   "Counted from each acknowledgement. It pages again 5 times at most.": "हर स्वीकृति से गिना जाता है। अधिकतम 5 बार फिर से सूचित करता है।",
   "Don't page again": "फिर से सूचित न करें",
   "Edit Acknowledgement Timeout": "स्वीकृति के बाद टाइमआउट संपादित करें",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "जब कोई स्वीकार करता है लेकिन कोई नहीं सुलझाता, तब क्या होता है।",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}। नीचे केवल ये पोस्टमॉर्टम दिखाने के लिए सक्रिय करें।",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}। नीचे के पोस्टमॉर्टम फ़िल्टर हो रहे हैं - यह फ़िल्टर हटाने के लिए सक्रिय करें।",
-  "Capture what happened, impact, resolution, and follow-up actions.": "लिखें कि क्या हुआ, उसका असर, समाधान और आगे की कार्रवाइयां।"
+  "Capture what happened, impact, resolution, and follow-up actions.": "लिखें कि क्या हुआ, उसका असर, समाधान और आगे की कार्रवाइयां।",
+  "Acknowledge again": "फिर से स्वीकार करें",
+  "Could not acknowledge": "स्वीकार नहीं किया जा सका",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "{{min}} से {{max}} के बीच मिनटों की पूर्ण संख्या दर्ज करें।",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "अगर स्वीकार किया गया है लेकिन {{duration}} में नहीं सुलझा, तो यह फिर से सूचित करता है, {{times}}।",
+  "You are still being paged. Please try again.": "आपको अब भी सूचित किया जा रहा है। कृपया फिर से प्रयास करें।",
+  "up to {{count}} times": "अधिकतम {{count}} बार",
+  "up to {{count}} times_one": "अधिकतम {{count}} बार"
 }

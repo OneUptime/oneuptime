@@ -118,10 +118,10 @@ function dialogText(
 /*
  * And, for the person a policy pages AGAIN about a record that stayed
  * acknowledged without being resolved (OnCallAcknowledgementTimeout), an
- * "Acknowledge" of its own before Escalate: the record was acknowledged all
- * along, so its own Acknowledge is not there, and this answers their page
- * instead - their notifications stop, and the policy counts its time again
- * from now. Nobody else sees it.
+ * "Acknowledge again" of its own before Escalate: the record was
+ * acknowledged all along, so its own Acknowledge is not there, and this
+ * answers their page instead - their notifications stop, and the policy
+ * counts its time again from now. Nobody else sees it.
  */
 export default function usePassOnPage(data: {
   recordType: OnCallPageRecordType;
@@ -227,9 +227,10 @@ export default function usePassOnPage(data: {
   const actions: Array<EventPanelAction> = [];
 
   /*
-   * A page again: Acknowledge first, as the record's own Acknowledge comes
-   * first on a record that is not acknowledged yet. No dialog: answering a
-   * page is what every link, call and text of it does in one step too.
+   * A page again: Acknowledge again first, as the record's own Acknowledge
+   * comes first on a record that is not acknowledged yet. No dialog:
+   * answering a page is what every link, call and text of it does in one
+   * step too.
    */
   if (hasPageAgain(pages)) {
     actions.push({
@@ -305,7 +306,7 @@ export default function usePassOnPage(data: {
   if (acknowledgeError) {
     dialog = (
       <ConfirmModal
-        title={PAGE_AGAIN_TEXT.button}
+        title={PAGE_AGAIN_TEXT.failedTitle}
         description={acknowledgeError}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}

@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "인지하면 알림이 완전히 멈춥니다.",
   "After an acknowledgement": "인지 후",
   "After how many minutes?": "몇 분 후에?",
-  "Could not acknowledge. Please try again.": "인지하지 못했습니다. 다시 시도해 주세요.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "인지할 때마다 새로 셉니다. 다시 알림은 최대 5번입니다.",
   "Don't page again": "다시 알리지 않음",
   "Edit Acknowledgement Timeout": "인지 후 타임아웃 편집",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "누군가 인지했지만 아무도 해결하지 않을 때의 동작입니다.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. 활성화하면 아래에 이 포스트모템만 표시합니다.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. 아래 포스트모템을 필터링하는 중입니다. 활성화하면 이 필터를 제거합니다.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "무슨 일이 있었는지, 영향, 해결 방법, 후속 조치를 기록하세요."
+  "Capture what happened, impact, resolution, and follow-up actions.": "무슨 일이 있었는지, 영향, 해결 방법, 후속 조치를 기록하세요.",
+  "Acknowledge again": "다시 인지",
+  "Could not acknowledge": "인지하지 못했습니다",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "{{min}}에서 {{max}} 사이의 정수로 분을 입력하세요.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "인지되었지만 {{duration}} 안에 해결되지 않으면 {{times}} 다시 알립니다.",
+  "You are still being paged. Please try again.": "계속 알림을 받습니다. 다시 시도해 주세요.",
+  "up to {{count}} times": "최대 {{count}}번까지",
+  "up to {{count}} times_one": "최대 {{count}}번까지"
 }

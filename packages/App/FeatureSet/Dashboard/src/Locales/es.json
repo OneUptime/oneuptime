@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "Reconocerlo detiene los avisos para siempre.",
   "After an acknowledgement": "Después de un reconocimiento",
   "After how many minutes?": "¿Después de cuántos minutos?",
-  "Could not acknowledge. Please try again.": "No se pudo reconocer. Vuelve a intentarlo.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Se cuenta desde cada reconocimiento. Vuelve a avisar 5 veces como máximo.",
   "Don't page again": "No volver a avisar",
   "Edit Acknowledgement Timeout": "Editar tiempo límite tras el reconocimiento",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Qué pasa cuando alguien lo reconoce pero nadie lo resuelve.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Actívalo para mostrar solo estos post mortem abajo.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtra los post mortem de abajo - actívalo para quitar este filtro.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Describe lo que pasó, el impacto, la resolución y las acciones de seguimiento."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Describe lo que pasó, el impacto, la resolución y las acciones de seguimiento.",
+  "Acknowledge again": "Reconocer de nuevo",
+  "Could not acknowledge": "No se pudo reconocer",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Introduce un número entero de minutos entre {{min}} y {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Si se reconoce pero no se resuelve en {{duration}}, vuelve a avisar, {{times}}.",
+  "You are still being paged. Please try again.": "Se te sigue avisando. Inténtalo de nuevo.",
+  "up to {{count}} times": "hasta {{count}} veces",
+  "up to {{count}} times_one": "hasta {{count}} vez"
 }

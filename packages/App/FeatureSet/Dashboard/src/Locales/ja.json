@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "確認すると、通知は完全に停止します。",
   "After an acknowledgement": "確認後",
   "After how many minutes?": "何分後？",
-  "Could not acknowledge. Please try again.": "確認できませんでした。もう一度お試しください。",
   "Counted from each acknowledgement. It pages again 5 times at most.": "確認のたびに数え直します。再通知は最大 5 回です。",
   "Don't page again": "再通知しない",
   "Edit Acknowledgement Timeout": "確認後のタイムアウトを編集",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "誰かが確認したものの、誰も解決しない場合の動作。",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}。有効にすると、下にこれらのポストモーテムだけを表示します。",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}。下のポストモーテムを絞り込み中です。有効にするとこのフィルターを解除します。",
-  "Capture what happened, impact, resolution, and follow-up actions.": "何が起きたか、影響、解決方法、フォローアップのアクションを記録します。"
+  "Capture what happened, impact, resolution, and follow-up actions.": "何が起きたか、影響、解決方法、フォローアップのアクションを記録します。",
+  "Acknowledge again": "もう一度確認",
+  "Could not acknowledge": "確認できませんでした",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "{{min}} から {{max}} までの整数で分数を入力してください。",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "確認されても {{duration}} 以内に解決されない場合は、{{times}}再通知します。",
+  "You are still being paged. Please try again.": "引き続き通知されます。もう一度お試しください。",
+  "up to {{count}} times": "最大 {{count}} 回まで",
+  "up to {{count}} times_one": "最大 {{count}} 回まで"
 }

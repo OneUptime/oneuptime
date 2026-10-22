@@ -77,7 +77,7 @@ En bekræftelse stopper en politiks tilkald for altid, også selv om ingen løse
 
 Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange igen om den samme hændelse, advarsel eller episode. Et nyt tilkald starter på det niveau, der tilkaldte, da der blev bekræftet, tilkalder den, der har vagt der nu, og fortsætter gennem niveauerne som den første kørsel. Hændelsen eller advarslen forbliver bekræftet: det nye tilkald er en kørsel for sig, i dens feed og i politikkens udførelseslogs, hvor dens **Status** siger "Tilkaldt igen (1 af 5)".
 
-Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen.
+Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Policy at a glance** på **Oversigt** og **Escalation summary** siger det samme med ord.
 
 ## Udførelseslogs
 

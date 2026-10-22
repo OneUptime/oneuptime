@@ -77,7 +77,7 @@ Bevestigen stopt het oproepen van een beleid voorgoed, ook als daarna niemand he
 
 De minuten tellen vanaf elke bevestiging, en een beleid roept voor één incident, waarschuwing of episode hoogstens 5 keer opnieuw op. Een nieuwe oproep begint op het niveau dat opriep toen er werd bevestigd, roept op wie daar nu dienst heeft en gaat daarna door de niveaus zoals de eerste uitvoering. Het incident of de waarschuwing blijft bevestigd: de nieuwe oproep is een eigen uitvoering, in de feed en in de uitvoeringslogboeken van het beleid, waar de **Status** "Opnieuw opgeroepen (1 van 5)" zegt.
 
-Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt.
+Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt. **Policy at a glance** op het **Overzicht** en **Escalation summary** zeggen hetzelfde in woorden.
 
 ## Uitvoeringslogboeken
 

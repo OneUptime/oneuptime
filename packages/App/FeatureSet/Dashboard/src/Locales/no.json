@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "En bekreftelse stopper varslingen for godt.",
   "After an acknowledgement": "Etter en bekreftelse",
   "After how many minutes?": "Etter hvor mange minutter?",
-  "Could not acknowledge. Please try again.": "Kunne ikke bekrefte. Prøv igjen.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Telles fra hver bekreftelse. Den varsler igjen høyst 5 ganger.",
   "Don't page again": "Ikke varsle igjen",
   "Edit Acknowledgement Timeout": "Rediger tidsavbrudd etter bekreftelse",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Hva som skjer når noen bekrefter, men ingen løser.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktiver for å vise bare disse etteranalysene nedenfor.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerer etteranalysene nedenfor - aktiver for å fjerne dette filteret.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv hva som skjedde, konsekvensene, løsningen og oppfølgingen."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv hva som skjedde, konsekvensene, løsningen og oppfølgingen.",
+  "Acknowledge again": "Bekreft igjen",
+  "Could not acknowledge": "Kunne ikke bekrefte",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Angi et helt antall minutter mellom {{min}} og {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Hvis den er bekreftet, men ikke løst innen {{duration}}, varsler den igjen, {{times}}.",
+  "You are still being paged. Please try again.": "Du blir fortsatt varslet. Prøv igjen.",
+  "up to {{count}} times": "opptil {{count}} ganger",
+  "up to {{count}} times_one": "opptil {{count}} gang"
 }

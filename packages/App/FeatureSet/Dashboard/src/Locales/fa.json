@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "تأیید کردن، خبر دادن را برای همیشه متوقف می‌کند.",
   "After an acknowledgement": "پس از تأیید",
   "After how many minutes?": "پس از چند دقیقه؟",
-  "Could not acknowledge. Please try again.": "تأیید انجام نشد. لطفاً دوباره تلاش کنید.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "از هر تأیید شمرده می‌شود. حداکثر ۵ بار دوباره خبر می‌دهد.",
   "Don't page again": "بدون خبر دادن دوباره",
   "Edit Acknowledgement Timeout": "ویرایش مهلت پس از تأیید",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "وقتی کسی تأیید می‌کند ولی کسی برطرف نمی‌کند چه می‌شود.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. فعالش کنید تا در پایین فقط همین گزارش‌های پس از حادثه نشان داده شوند.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. گزارش‌های پس از حادثهٔ پایین فیلتر شده‌اند - برای برداشتن این فیلتر فعالش کنید.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "بنویسید چه اتفاقی افتاد، تأثیر آن، راه‌حل و اقدامات بعدی."
+  "Capture what happened, impact, resolution, and follow-up actions.": "بنویسید چه اتفاقی افتاد، تأثیر آن، راه‌حل و اقدامات بعدی.",
+  "Acknowledge again": "تأیید دوباره",
+  "Could not acknowledge": "تأیید انجام نشد",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "یک عدد صحیح دقیقه بین {{min}} و {{max}} وارد کنید.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "اگر تأیید شده ولی ظرف {{duration}} برطرف نشده باشد، دوباره خبر می‌دهد، {{times}}.",
+  "You are still being paged. Please try again.": "همچنان به شما خبر داده می‌شود. لطفاً دوباره تلاش کنید.",
+  "up to {{count}} times": "حداکثر {{count}} بار",
+  "up to {{count}} times_one": "حداکثر {{count}} بار"
 }

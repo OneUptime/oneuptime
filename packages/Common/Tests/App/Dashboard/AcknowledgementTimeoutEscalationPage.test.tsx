@@ -148,14 +148,27 @@ jest.mock("../../../UI/Utils/Project", () => {
   };
 });
 
-// The escalation rules and the Repeat Policy above the fold, stood in for.
+/*
+ * The escalation rules and the Repeat Policy above the fold, stood in for.
+ * The rules' stand-in shows the minutes the page hands its Escalation
+ * summary, which ends by saying the policy pages again while it does.
+ */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/EscalationRule/EscalationRules",
   () => {
     return {
       __esModule: true,
-      default: (): React.ReactElement => {
-        return <div data-testid="escalation-rules-stand-in" />;
+      default: (props: {
+        acknowledgementTimeoutInMinutes?: number | null | undefined;
+      }): React.ReactElement => {
+        return (
+          <div
+            data-testid="escalation-rules-stand-in"
+            data-summary-minutes={String(
+              props.acknowledgementTimeoutInMinutes ?? "none",
+            )}
+          />
+        );
       },
     };
   },
@@ -327,6 +340,64 @@ describe("a policy's Escalation Rules page", () => {
     expect(within(fold).getByTestId("folded-section-item")).toHaveTextContent(
       "Acknowledgement Timeout: 30 min",
     );
+  });
+
+  test("the Escalation summary at the top hears what the card read: none while it does not page again", async () => {
+    await renderPage({ acknowledgementTimeoutInMinutes: null });
+
+    expect(screen.getByTestId("escalation-rules-stand-in")).toHaveAttribute(
+      "data-summary-minutes",
+      "none",
+    );
+  });
+
+  test("the Escalation summary at the top hears the minutes while it pages again, folded or not", async () => {
+    const fold: HTMLElement = await renderPage({
+      acknowledgementTimeoutInMinutes: 45,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("escalation-rules-stand-in")).toHaveAttribute(
+        "data-summary-minutes",
+        "45",
+      );
+    });
+    expect(header(fold)).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("a change saved on the card reaches the summary at once", async () => {
+    const fold: HTMLElement = await renderPage({});
+
+    await act(async () => {
+      fireEvent.click(header(fold));
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(within(body(fold)).getByRole("button", { name: "Edit" }));
+    });
+    await settle();
+
+    const dialog: HTMLElement = await screen.findByTestId("modal");
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("radio", { name: "Page again" }),
+      );
+    });
+    await settle();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+    await settle();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("escalation-rules-stand-in")).toHaveAttribute(
+        "data-summary-minutes",
+        "30",
+      );
+    });
   });
 
   test("the page is the policy's Escalation Rules page", () => {

@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "A confirmação encerra os acionamentos de vez.",
   "After an acknowledgement": "Depois de uma confirmação",
   "After how many minutes?": "Depois de quantos minutos?",
-  "Could not acknowledge. Please try again.": "Não foi possível confirmar. Tente novamente.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Contado a partir de cada confirmação. Aciona de novo no máximo 5 vezes.",
   "Don't page again": "Não acionar de novo",
   "Edit Acknowledgement Timeout": "Editar tempo limite após a confirmação",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "O que acontece quando alguém confirma, mas ninguém resolve.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Ative para mostrar abaixo apenas estes post-mortems.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrando os post-mortems abaixo - ative para remover este filtro.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Registre o que aconteceu, o impacto, a resolução e as ações de acompanhamento."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Registre o que aconteceu, o impacto, a resolução e as ações de acompanhamento.",
+  "Acknowledge again": "Confirmar de novo",
+  "Could not acknowledge": "Não foi possível confirmar",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Insira um número inteiro de minutos entre {{min}} e {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Se for confirmado, mas não resolvido em {{duration}}, aciona de novo, {{times}}.",
+  "You are still being paged. Please try again.": "Você continua sendo acionado. Tente novamente.",
+  "up to {{count}} times": "até {{count}} vezes",
+  "up to {{count}} times_one": "até {{count}} vez"
 }

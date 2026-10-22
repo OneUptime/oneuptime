@@ -77,7 +77,7 @@ En bekreftelse stopper en retningslinjes varsling for godt, også om ingen løse
 
 Minuttene telles fra hver bekreftelse, og en retningslinje varsler høyst 5 ganger igjen om den samme hendelsen, det samme varselet eller den samme episoden. En ny varsling starter på nivået som varslet da det ble bekreftet, varsler den som har vakt der nå, og går videre gjennom nivåene som den første kjøringen. Hendelsen eller varselet forblir bekreftet: den nye varslingen er en egen kjøring, i feeden og i utførelsesloggene til retningslinjen, der **Status** sier "Varslet igjen (1 av 5)".
 
-Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket.
+Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policy at a glance** på **Oversikt** og **Escalation summary** sier det samme med ord.
 
 ## Utførelseslogger
 

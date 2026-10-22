@@ -380,14 +380,20 @@ describe("the Acknowledgement Timeout card", () => {
     await save();
 
     expect(saved).toHaveLength(0);
-    expect(dialog).toHaveTextContent(/After how many minutes\? is required/);
+    // One sentence that says what to type - never the question's own words.
+    expect(dialog).toHaveTextContent(
+      "Enter a whole number of minutes between 5 and 1440.",
+    );
+    expect(dialog).not.toHaveTextContent(/is required/);
   });
 
   test.each([
     ["4", "too short to have looked"],
     ["1441", "longer than a day"],
+    ["7.5", "a fraction, which only the server refused before"],
+    ["0", "nothing"],
   ])(
-    "%s minutes is refused before anything is sent (%s)",
+    "%s minutes is refused before anything is sent (%s), saying what to type",
     async (value: string) => {
       await renderCard({ acknowledgementTimeoutInMinutes: 30 });
 
@@ -401,6 +407,34 @@ describe("the Acknowledgement Timeout card", () => {
 
       expect(saved).toHaveLength(0);
       expect(minutesBox(dialog)).not.toBeNull();
+      expect(dialog).toHaveTextContent(
+        "Enter a whole number of minutes between 5 and 1440.",
+      );
+      // The form's own words named the question: "After how many minutes?
+      // should not be less than 5."
+      expect(dialog).not.toHaveTextContent(/should not be/);
+    },
+  );
+
+  test.each([["5"], ["1440"], ["45"]])(
+    "%s minutes is taken as it is",
+    async (value: string) => {
+      await renderCard({ acknowledgementTimeoutInMinutes: 30 });
+
+      const dialog: HTMLElement = await openEdit();
+
+      await act(async () => {
+        fireEvent.change(minutesBox(dialog)!, { target: { value: value } });
+      });
+      await settle();
+      await save();
+
+      await waitFor(() => {
+        expect(saved).toHaveLength(1);
+      });
+      expect(Number(saved[0]!["acknowledgementTimeoutInMinutes"])).toBe(
+        Number(value),
+      );
     },
   );
 

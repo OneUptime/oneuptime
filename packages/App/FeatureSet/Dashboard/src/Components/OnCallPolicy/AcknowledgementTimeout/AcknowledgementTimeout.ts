@@ -4,6 +4,7 @@ import {
   MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
   ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN,
   getOnCallAcknowledgementTimeoutInMinutes,
+  getOnCallAcknowledgementTimeoutRefusal,
 } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import {
   PluralTemplate,
@@ -67,9 +68,12 @@ export const AcknowledgementTimeoutCopy: {
   >;
   minutesTitle: string;
   minutesDescription: string;
+  minutesRefusal: string;
   rowTitle: string;
   pageAgainSummary: PluralTemplate;
   foldedValue: string;
+  policySentence: string;
+  policySentenceTimes: PluralTemplate;
 } = {
   cardTitle: translationKey("Acknowledgement Timeout"),
   cardDescription: translationKey(
@@ -97,6 +101,16 @@ export const AcknowledgementTimeoutCopy: {
   minutesDescription: translationKey(
     "Counted from each acknowledgement. It pages again 5 times at most.",
   ),
+  /*
+   * What the box says when it holds anything else - empty, a fraction, too
+   * few or too many minutes: one sentence that says what to type. The
+   * form's own words would name the question - "After how many minutes?
+   * should not be less than 5." - and say nothing about a fraction, which
+   * only the server would refuse.
+   */
+  minutesRefusal: translationKey(
+    "Enter a whole number of minutes between {{min}} and {{max}}.",
+  ),
   rowTitle: translationKey("After an acknowledgement"),
   /*
    * The card's row while it pages again: "Page again if not resolved within
@@ -108,6 +122,23 @@ export const AcknowledgementTimeoutCopy: {
   },
   // What More settings says it is set to, folded: "30 min".
   foldedValue: translationKey("{{minutes}} min"),
+  /*
+   * What the policy's summaries - Escalation summary on its Escalation
+   * Rules page, Policy at a glance on its Overview - add while it pages
+   * again: "If it is acknowledged but not resolved within 30 min, it pages
+   * again, up to 5 times." Where the policy is read in a few seconds, a
+   * setting that pages people is not left to a folded section. The
+   * duration is written as each summary writes its others ("30 min",
+   * "1 hr 30 min"); "up to 5 times" is the cap, as a plural of its own
+   * (the shared "{{count}} times" counts occurrences in some languages).
+   */
+  policySentence: translationKey(
+    "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.",
+  ),
+  policySentenceTimes: {
+    one: "up to {{count}} time",
+    other: "up to {{count}} times",
+  },
 };
 
 // The minutes "Page again" starts with, the bounds the box takes, and the cap.
@@ -140,6 +171,27 @@ export const getAcknowledgementTimeoutMinutes: (
       ACKNOWLEDGEMENT_TIMEOUT_COLUMN
     ] as number | null | undefined,
   });
+};
+
+/*
+ * Whether the minutes box holds what Page again may save: a whole number of
+ * minutes inside the allowed range - the rule the API holds a save to
+ * (getOnCallAcknowledgementTimeoutRefusal), less its empty answer, which
+ * only Don't page again sends. The box hands over its text ("45", "7.5",
+ * "") or a number.
+ */
+export const isAcknowledgementTimeoutMinutesValid: (
+  value: unknown,
+) => boolean = (value: unknown): boolean => {
+  if (value === null || value === undefined) {
+    return false;
+  }
+
+  if (typeof value === "string" && value.trim().length === 0) {
+    return false;
+  }
+
+  return getOnCallAcknowledgementTimeoutRefusal(value) === null;
 };
 
 export const isAcknowledgementTimeoutChoice: (

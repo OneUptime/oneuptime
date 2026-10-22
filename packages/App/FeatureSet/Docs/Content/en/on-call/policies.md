@@ -77,7 +77,7 @@ Acknowledging stops a policy's paging for good, even when nobody resolves the in
 
 The minutes are counted from each acknowledgement, and a policy pages again at most 5 times about one incident, alert or episode. A page again starts at the level that was paging when it was acknowledged, pages whoever is on call there now, and goes on through the levels as the first run did. The incident or alert stays acknowledged: the page again is a run of its own, in its feed and in the policy's execution logs, where its **Status** says "Paged again (1 of 5)".
 
-Whoever is paged again acknowledges it from its message, or with **Acknowledge** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level. Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it. The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded.
+Whoever is paged again acknowledges it from its message, or with **Acknowledge again** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level. Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it. The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded. **Policy at a glance** on the **Overview** and the **Escalation summary** say the same in words.
 
 ## Execution logs
 

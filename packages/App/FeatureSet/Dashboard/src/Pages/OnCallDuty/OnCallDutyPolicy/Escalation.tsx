@@ -38,7 +38,15 @@ const OnCallPolicyEscalation: FunctionComponent<
 
   return (
     <Fragment>
-      <EscalationRules onCallDutyPolicyId={modelId} projectId={projectId} />
+      {/*
+       * The summary at the top says the policy pages again while it does:
+       * the card below is folded away, the summary is read first.
+       */}
+      <EscalationRules
+        onCallDutyPolicyId={modelId}
+        projectId={projectId}
+        acknowledgementTimeoutInMinutes={acknowledgementTimeoutMinutes}
+      />
 
       <div className="mt-6">
         <RepeatPolicy onCallDutyPolicyId={modelId} />

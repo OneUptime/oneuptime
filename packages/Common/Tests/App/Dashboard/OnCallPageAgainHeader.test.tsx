@@ -68,9 +68,11 @@ import { StateListType } from "../../../Utils/StateOrder";
  * somebody acknowledged earlier (OnCallAcknowledgementTimeout). The record is
  * acknowledged, so its own Acknowledge is not in its header - which left the
  * person paged again, opening it from their push, with Escalate and no way
- * to say "still on it". They get an Acknowledge of their own, first, beside
- * Escalate: it answers their page, as its link, a call's 1 or a text would.
- * Nobody else sees it, and a page that is not a page again never shows it.
+ * to say "still on it". They get an Acknowledge again of their own, first,
+ * beside Escalate: it answers their page, as its link, a call's 1 or a text
+ * would. "Again", because the header already says Acknowledged: a bare
+ * Acknowledge beside that read as a button that did nothing. Nobody else
+ * sees it, and a page that is not a page again never shows it.
  *
  * The header is the real EventStatusPanel; only the server is replaced, at
  * API.get / API.post.
@@ -193,7 +195,7 @@ function headerButton(name: string): HTMLElement | null {
 }
 
 describe("the record's header, for the person paged again", () => {
-  test("has Acknowledge first, then Escalate", async () => {
+  test("has Acknowledge again first, then Escalate", async () => {
     const latest: { controls?: PassOnPageControls } = {};
     getAnswers.push({
       pages: [openPage(true)] as unknown as JSONObject["pages"],
@@ -219,20 +221,22 @@ describe("the record's header, for the person paged again", () => {
         },
       ),
     ).toEqual([
-      ["acknowledge-page-again", "Acknowledge", IconProp.Check],
+      ["acknowledge-page-again", "Acknowledge again", IconProp.Check],
       ["pass-on-page", "Escalate", IconProp.ArrowCircleUp],
     ]);
 
-    const acknowledge: HTMLElement = headerButton("Acknowledge")!;
+    const acknowledge: HTMLElement = headerButton("Acknowledge again")!;
     const escalate: HTMLElement = headerButton("Escalate")!;
 
     expect(
       acknowledge.compareDocumentPosition(escalate) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // Never a bare "Acknowledge" beside the header's Acknowledged.
+    expect(headerButton("Acknowledge")).toBeNull();
   });
 
-  test("Acknowledge answers their page in one step, tells the page, and goes", async () => {
+  test("Acknowledge again answers their page in one step, tells the page, and goes", async () => {
     const onPassedOn: Mock<() => void> = jest.fn<() => void>();
 
     getAnswers.push({
@@ -246,7 +250,7 @@ describe("the record's header, for the person paged again", () => {
     await flush();
 
     await act(async () => {
-      fireEvent.click(headerButton("Acknowledge")!);
+      fireEvent.click(headerButton("Acknowledge again")!);
     });
     await flush();
 
@@ -261,7 +265,7 @@ describe("the record's header, for the person paged again", () => {
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
     expect(onPassedOn).toHaveBeenCalledTimes(1);
     expect(gets).toHaveLength(2);
-    expect(headerButton("Acknowledge")).toBeNull();
+    expect(headerButton("Acknowledge again")).toBeNull();
     expect(headerButton("Escalate")).toBeNull();
   });
 
@@ -277,7 +281,7 @@ describe("the record's header, for the person paged again", () => {
     await flush();
 
     await act(async () => {
-      fireEvent.click(headerButton("Acknowledge")!);
+      fireEvent.click(headerButton("Acknowledge again")!);
     });
     await flush();
 
@@ -285,7 +289,7 @@ describe("the record's header, for the person paged again", () => {
     expect(gets).toHaveLength(2);
   });
 
-  test("a failure says so, and nothing else changes", async () => {
+  test("a failure says so under a title of its own, says the page goes on, and nothing else changes", async () => {
     getAnswers.push({
       pages: [openPage(true)] as unknown as JSONObject["pages"],
     });
@@ -295,16 +299,20 @@ describe("the record's header, for the person paged again", () => {
     await flush();
 
     await act(async () => {
-      fireEvent.click(headerButton("Acknowledge")!);
+      fireEvent.click(headerButton("Acknowledge again")!);
     });
     await flush();
 
     const dialog: HTMLElement = await screen.findByTestId("modal");
 
+    // What went wrong, not the button's words, and what it means for them.
+    expect(
+      within(dialog).getByRole("heading", { name: "Could not acknowledge" }),
+    ).toBeInTheDocument();
     expect(dialog).toHaveTextContent(
-      "Could not acknowledge. Please try again.",
+      "You are still being paged. Please try again.",
     );
-    expect(headerButton("Acknowledge")).not.toBeNull();
+    expect(headerButton("Acknowledge again")).not.toBeNull();
 
     await act(async () => {
       fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
@@ -324,7 +332,7 @@ describe("the record's header, for everybody else", () => {
     await flush();
 
     expect(headerButton("Escalate")).not.toBeNull();
-    expect(headerButton("Acknowledge")).toBeNull();
+    expect(headerButton("Acknowledge again")).toBeNull();
   });
 
   test("not paged at all: nothing", async () => {
@@ -332,7 +340,7 @@ describe("the record's header, for everybody else", () => {
     await flush();
 
     expect(headerButton("Escalate")).toBeNull();
-    expect(headerButton("Acknowledge")).toBeNull();
+    expect(headerButton("Acknowledge again")).toBeNull();
   });
 });
 
@@ -395,10 +403,11 @@ describe("the server's answers, read with care", () => {
     ).rejects.toBeDefined();
   });
 
-  test("the words are the button's and one plain failure", () => {
+  test("the words are the button's, and a failure's title and sentence", () => {
     expect(PAGE_AGAIN_TEXT).toEqual({
-      button: "Acknowledge",
-      failed: "Could not acknowledge. Please try again.",
+      button: "Acknowledge again",
+      failedTitle: "Could not acknowledge",
+      failed: "You are still being paged. Please try again.",
     });
   });
 });

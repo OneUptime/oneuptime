@@ -238,16 +238,24 @@ export async function fetchOpenPages(data: {
  * The policy paged again because the record stayed acknowledged without
  * being resolved. The record was acknowledged all along, so its own
  * Acknowledge is not in its header; the person paged again gets an
- * Acknowledge of their own there, beside Escalate, that answers their page
- * as its link, a call's 1 or a text would: their notifications stop, and
- * the policy counts its time again from now.
+ * "Acknowledge again" of their own there, beside Escalate, that answers
+ * their page as its link, a call's 1 or a text would: their notifications
+ * stop, and the policy counts its time again from now.
+ *
+ * "Again", because the header says the record is Acknowledged already: a
+ * bare "Acknowledge" beside that read as a button that did nothing, or as
+ * a mistake. If it cannot be acknowledged, a dialog says so, under a title
+ * that says what went wrong rather than the button's words, and says what
+ * that means for them: the page goes on.
  */
 export const PAGE_AGAIN_TEXT: {
   button: string;
+  failedTitle: string;
   failed: string;
 } = {
-  button: translationKey("Acknowledge"),
-  failed: translationKey("Could not acknowledge. Please try again."),
+  button: translationKey("Acknowledge again"),
+  failedTitle: translationKey("Could not acknowledge"),
+  failed: translationKey("You are still being paged. Please try again."),
 };
 
 // Whether any of the signed-in person's open pages is a page again.

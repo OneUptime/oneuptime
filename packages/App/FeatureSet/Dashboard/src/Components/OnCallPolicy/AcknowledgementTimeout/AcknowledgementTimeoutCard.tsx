@@ -11,6 +11,7 @@ import {
   getAcknowledgementTimeoutMinutes,
   getValuesForAcknowledgementTimeoutChoice,
   isAcknowledgementTimeoutChoice,
+  isAcknowledgementTimeoutMinutesValid,
 } from "./AcknowledgementTimeout";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ObjectID from "Common/Types/ObjectID";
@@ -90,11 +91,14 @@ export const AcknowledgementTimeoutChoiceField: FunctionComponent<
 /*
  * The dialog's fields: the choice (form-only, written into the one column)
  * and the minutes, shown once Page again is picked. Hidden, the minutes are
- * still saved: empty, which turns the timeout off.
+ * still saved: empty, which turns the timeout off. The translator words the
+ * minutes box's one refusal.
  */
-export const getAcknowledgementTimeoutFormFields: () => Array<
-  ModelField<OnCallDutyPolicy>
-> = (): Array<ModelField<OnCallDutyPolicy>> => {
+export const getAcknowledgementTimeoutFormFields: (
+  translator: Translator,
+) => Array<ModelField<OnCallDutyPolicy>> = (
+  translator: Translator,
+): Array<ModelField<OnCallDutyPolicy>> => {
   const isPagingAgain: (values: FormValues<OnCallDutyPolicy>) => boolean = (
     values: FormValues<OnCallDutyPolicy>,
   ): boolean => {
@@ -162,6 +166,32 @@ export const getAcknowledgementTimeoutFormFields: () => Array<
       validation: {
         minValue: ACKNOWLEDGEMENT_TIMEOUT_MIN_MINUTES,
         maxValue: ACKNOWLEDGEMENT_TIMEOUT_MAX_MINUTES,
+      },
+      /*
+       * One refusal for everything the box may not hold - empty, a
+       * fraction, too few or too many minutes - that says what to type.
+       * Checked last, it takes the place of the form's own words, which
+       * name the question ("After how many minutes? is required.").
+       */
+      customValidation: (
+        values: FormValues<OnCallDutyPolicy>,
+      ): string | null => {
+        if (
+          !isPagingAgain(values) ||
+          isAcknowledgementTimeoutMinutesValid(
+            asValues(values)[ACKNOWLEDGEMENT_TIMEOUT_COLUMN],
+          )
+        ) {
+          return null;
+        }
+
+        return translator.translateTemplate(
+          AcknowledgementTimeoutCopy.minutesRefusal,
+          {
+            min: ACKNOWLEDGEMENT_TIMEOUT_MIN_MINUTES,
+            max: ACKNOWLEDGEMENT_TIMEOUT_MAX_MINUTES,
+          },
+        );
       },
       showIf: isPagingAgain,
       /*
@@ -242,6 +272,8 @@ export interface ComponentProps {
 const AcknowledgementTimeoutCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <CardModelDetail<OnCallDutyPolicy>
       name="On-Call Policy > Acknowledgement Timeout"
@@ -252,7 +284,7 @@ const AcknowledgementTimeoutCard: FunctionComponent<ComponentProps> = (
         description: AcknowledgementTimeoutCopy.cardDescription,
       }}
       isEditable={true}
-      formFields={getAcknowledgementTimeoutFormFields()}
+      formFields={getAcknowledgementTimeoutFormFields(translator)}
       modelDetailProps={{
         modelType: OnCallDutyPolicy,
         id: `${ACKNOWLEDGEMENT_TIMEOUT_TEST_ID}-detail`,

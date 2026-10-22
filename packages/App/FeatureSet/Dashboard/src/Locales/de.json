@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "Mit der Bestätigung endet die Alarmierung endgültig.",
   "After an acknowledgement": "Nach einer Bestätigung",
   "After how many minutes?": "Nach wie vielen Minuten?",
-  "Could not acknowledge. Please try again.": "Bestätigen fehlgeschlagen. Bitte versuchen Sie es erneut.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Ab jeder Bestätigung gezählt. Es wird höchstens 5-mal erneut alarmiert.",
   "Don't page again": "Nicht erneut alarmieren",
   "Edit Acknowledgement Timeout": "Bestätigungs-Timeout bearbeiten",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Was passiert, wenn jemand bestätigt, aber niemand behebt.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktivieren, um unten nur diese Postmortems anzuzeigen.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtert die Postmortems unten - aktivieren, um diesen Filter zu entfernen.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Halten Sie fest, was passiert ist, die Auswirkungen, die Lösung und die Folgemaßnahmen."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Halten Sie fest, was passiert ist, die Auswirkungen, die Lösung und die Folgemaßnahmen.",
+  "Acknowledge again": "Erneut bestätigen",
+  "Could not acknowledge": "Bestätigen fehlgeschlagen",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Geben Sie eine ganze Zahl an Minuten zwischen {{min}} und {{max}} ein.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Wenn bestätigt, aber nicht innerhalb von {{duration}} behoben, wird erneut alarmiert, {{times}}.",
+  "You are still being paged. Please try again.": "Sie werden weiterhin alarmiert. Bitte versuchen Sie es erneut.",
+  "up to {{count}} times": "bis zu {{count}}-mal",
+  "up to {{count}} times_one": "bis zu {{count}}-mal"
 }

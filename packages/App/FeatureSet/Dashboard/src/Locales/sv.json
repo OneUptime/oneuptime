@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "En bekräftelse stoppar larmen för gott.",
   "After an acknowledgement": "Efter en bekräftelse",
   "After how many minutes?": "Efter hur många minuter?",
-  "Could not acknowledge. Please try again.": "Det gick inte att bekräfta. Försök igen.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Räknas från varje bekräftelse. Den larmar igen högst 5 gånger.",
   "Don't page again": "Larma inte igen",
   "Edit Acknowledgement Timeout": "Redigera tidsgräns efter bekräftelse",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Vad som händer när någon bekräftar men ingen löser.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Aktivera för att bara visa de här efteranalyserna nedan.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtrerar efteranalyserna nedan - aktivera för att ta bort filtret.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv vad som hände, påverkan, lösningen och uppföljningen."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv vad som hände, påverkan, lösningen och uppföljningen.",
+  "Acknowledge again": "Bekräfta igen",
+  "Could not acknowledge": "Det gick inte att bekräfta",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Ange ett heltal minuter mellan {{min}} och {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Om den är bekräftad men inte löst inom {{duration}}, larmar den igen, {{times}}.",
+  "You are still being paged. Please try again.": "Du larmas fortfarande. Försök igen.",
+  "up to {{count}} times": "upp till {{count}} gånger",
+  "up to {{count}} times_one": "upp till {{count}} gång"
 }

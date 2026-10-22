@@ -33073,7 +33073,6 @@
   "Acknowledging stops the paging for good.": "Bevestigen stopt het oproepen voorgoed.",
   "After an acknowledgement": "Na een bevestiging",
   "After how many minutes?": "Na hoeveel minuten?",
-  "Could not acknowledge. Please try again.": "Bevestigen is mislukt. Probeer het opnieuw.",
   "Counted from each acknowledgement. It pages again 5 times at most.": "Geteld vanaf elke bevestiging. Roept hoogstens 5 keer opnieuw op.",
   "Don't page again": "Niet opnieuw oproepen",
   "Edit Acknowledgement Timeout": "Time-out na bevestiging bewerken",
@@ -33087,5 +33086,12 @@
   "What happens when someone acknowledges but nobody resolves.": "Wat er gebeurt als iemand bevestigt, maar niemand het oplost.",
   "{{status}}: {{count}}. Activate to show only these postmortems below.": "{{status}}: {{count}}. Activeer om hieronder alleen deze postmortems te tonen.",
   "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.": "{{status}}: {{count}}. Filtert de postmortems hieronder - activeer om dit filter te verwijderen.",
-  "Capture what happened, impact, resolution, and follow-up actions.": "Beschrijf wat er is gebeurd, de impact, de oplossing en de vervolgacties."
+  "Capture what happened, impact, resolution, and follow-up actions.": "Beschrijf wat er is gebeurd, de impact, de oplossing en de vervolgacties.",
+  "Acknowledge again": "Opnieuw bevestigen",
+  "Could not acknowledge": "Bevestigen is mislukt",
+  "Enter a whole number of minutes between {{min}} and {{max}}.": "Voer een geheel aantal minuten in tussen {{min}} en {{max}}.",
+  "If it is acknowledged but not resolved within {{duration}}, it pages again, {{times}}.": "Als het bevestigd maar niet binnen {{duration}} opgelost is, roept het opnieuw op, {{times}}.",
+  "You are still being paged. Please try again.": "U wordt nog steeds opgeroepen. Probeer het opnieuw.",
+  "up to {{count}} times": "maximaal {{count}} keer",
+  "up to {{count}} times_one": "maximaal {{count}} keer"
 }

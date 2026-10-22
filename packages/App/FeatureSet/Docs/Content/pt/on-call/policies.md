@@ -77,7 +77,7 @@ Confirmar encerra os acionamentos de uma política de vez, mesmo que depois ning
 
 Os minutos contam a partir de cada confirmação, e uma política aciona de novo no máximo 5 vezes pelo mesmo incidente, alerta ou episódio. Um novo acionamento começa no nível que estava acionando quando houve a confirmação, aciona quem está de plantão agora nesse nível e segue pelos níveis como a primeira execução. O incidente ou alerta continua confirmado: o novo acionamento é uma execução própria, no seu feed e nos registros de execução da política, onde o seu **Status** diz "Acionado de novo (1 de 5)".
 
-Quem é acionado de novo confirma pela mensagem, ou com **Confirmar** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido.
+Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido. **Policy at a glance** na **Visão geral** e **Escalation summary** dizem o mesmo em palavras.
 
 ## Registros de execução
 
