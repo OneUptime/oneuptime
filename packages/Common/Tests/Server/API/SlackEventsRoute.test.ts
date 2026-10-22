@@ -20,7 +20,14 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import AIService from "../../../Server/Services/AIService";
+import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
+import AlertService from "../../../Server/Services/AlertService";
+import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import ObservabilityAssistant from "../../../Server/Utils/AI/Chat/ObservabilityAssistant";
@@ -702,6 +709,17 @@ beforeEach(() => {
       projectAuth.authToken = SLACK_PROJECT_TOKEN;
       projectAuth.miscData = { botUserId: ONEUPTIME } as never;
       return projectAuth;
+    }) as never);
+  // The workspace's connections, as WorkspaceProjectResolution reads them.
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+    .mockImplementation((async (...args: Array<unknown>) => {
+      const projectAuth: unknown = await (
+        WorkspaceProjectAuthTokenService.findOneBy as unknown as (
+          ...args: Array<unknown>
+        ) => Promise<unknown>
+      )(...args);
+      return projectAuth ? [projectAuth] : [];
     }) as never);
   jest
     .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
@@ -2044,5 +2062,156 @@ describe("the placeholder an answer stands behind", () => {
         data: { channel: "D0ALICE", ts: placeholderTimestamps[0] },
       },
     ]);
+  });
+});
+
+/*
+ * A SLACK WORKSPACE CONNECTED TO MORE THAN ONE PROJECT.
+ *
+ * A question used to be answered in whichever of the workspace's projects
+ * a lookup returned first - with that project's data, or a request to
+ * connect an account the asker had connected in the other. Now it is asked
+ * in the project of the channel it is asked in, or else the one project the
+ * asker is in (WorkspaceProjectResolution); when neither tells, the asker is
+ * told so, only to them, and AI is not asked.
+ */
+describe("a Slack workspace connected to more than one project", () => {
+  const OTHER_PROJECT: ObjectID = new ObjectID(
+    "c4768000-0000-4000-8000-0000000000ee",
+  );
+
+  let memberOf: Array<ObjectID>;
+  let channelOwnerProject: ObjectID | null;
+  let readIn: Array<string>;
+
+  function connection(projectId: ObjectID): WorkspaceProjectAuthToken {
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.projectId = projectId;
+    projectAuth.authToken = SLACK_PROJECT_TOKEN;
+    projectAuth.miscData = { botUserId: ONEUPTIME } as never;
+    return projectAuth;
+  }
+
+  beforeEach(() => {
+    memberOf = [OTHER_PROJECT, PROJECT_ID];
+    channelOwnerProject = null;
+    readIn = [];
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([connection(OTHER_PROJECT), connection(PROJECT_ID)]);
+
+    // Alice is connected in each project she is a member of.
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findBy")
+      .mockImplementation((async (findBy: {
+        query: { workspaceUserId: string };
+      }) => {
+        const userId: ObjectID | undefined = linked.get(
+          findBy.query.workspaceUserId,
+        );
+
+        if (!userId) {
+          return [];
+        }
+
+        return memberOf.map((projectId: ObjectID): WorkspaceUserAuthToken => {
+          const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+          link.projectId = projectId;
+          link.userId = userId;
+          return link;
+        });
+      }) as never);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "isProjectMember")
+      .mockResolvedValue(true);
+
+    // The channel's record, when a test gives it one; no notification posts.
+    jest.spyOn(IncidentService, "findBy").mockImplementation((async () => {
+      if (!channelOwnerProject) {
+        return [];
+      }
+
+      const incident: Incident = new Incident();
+      incident.id = ObjectID.generate();
+      incident.projectId = channelOwnerProject;
+      return [incident];
+    }) as never);
+
+    for (const service of [
+      AlertService,
+      IncidentEpisodeService,
+      AlertEpisodeService,
+      ScheduledMaintenanceService,
+    ] as unknown as Array<{ findBy: () => Promise<unknown> }>) {
+      jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+    }
+
+    jest
+      .spyOn(WorkspaceNotificationLogService, "findOneBy")
+      .mockResolvedValue(null);
+
+    // Which project the asker was read in.
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation(
+        async (data: { userId: ObjectID; projectId: ObjectID }) => {
+          readIn.push(data.projectId.toString());
+          return PROPS;
+        },
+      );
+  });
+
+  test("Alice, in both, @mentions OneUptime at the top of #ops: told which projects she is in, only to her - AI is not asked", async () => {
+    await say({ user: ALICE, text: `<@${ONEUPTIME}> what is down?` });
+
+    const posted: Array<SlackCall> = await untilWrites(1);
+
+    expect(methodsOf(posted)).toEqual(["chat.postEphemeral"]);
+    expect(posted[0]!.data["user"]).toBe(ALICE);
+    expect(JSON.stringify(posted[0]!.data)).toContain(
+      "connected to more than one OneUptime project",
+    );
+    expect(assistantCalls).toEqual([]);
+    expect(readIn).toEqual([]);
+  });
+
+  test("…in a channel an incident of one project owns: answered by AI, as her, in that project", async () => {
+    channelOwnerProject = PROJECT_ID;
+
+    const asked: Said = await say({
+      user: ALICE,
+      text: `<@${ONEUPTIME}> what is down?`,
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer(OPS, asked.ts));
+    expect(assistantCalls).toHaveLength(1);
+    expect(readIn).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("a direct message from Alice, in one of the projects: answered for that project", async () => {
+    memberOf = [PROJECT_ID];
+
+    const sent: Said = await directMessage({
+      user: ALICE,
+      text: "which monitors are down?",
+    });
+
+    expect(await untilWrites(2)).toEqual(aiAnswer("D0ALICE", sent.ts));
+    expect(readIn).toEqual([PROJECT_ID.toString()]);
+  });
+
+  test("Carol, connected in neither, @mentions OneUptime: told where to connect - no one project's Connect button", async () => {
+    await say({ user: CAROL, text: `<@${ONEUPTIME}> what is down?` });
+
+    const posted: Array<SlackCall> = await untilWrites(1);
+
+    expect(methodsOf(posted)).toEqual(["chat.postEphemeral"]);
+    expect(JSON.stringify(posted[0]!.data)).toContain(
+      "isn't connected in any of them yet",
+    );
+    expect(JSON.stringify(posted[0]!.data)).not.toContain(DASHBOARD_URL);
+    expect(assistantCalls).toEqual([]);
   });
 });

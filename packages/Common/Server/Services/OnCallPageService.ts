@@ -31,6 +31,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CallerPlan from "../Utils/Billing/CallerPlan";
 import AlertFeedService from "./AlertFeedService";
 import AlertService from "./AlertService";
 import AlertSeverityService from "./AlertSeverityService";
@@ -237,7 +238,24 @@ export const ON_CALL_DIRECT_PAGE_NOT_ALLOWED_MESSAGE: string =
 
 export class Service {
   @CaptureSpan()
-  public async page(request: OnCallPageRequest): Promise<OnCallPageResult> {
+  public async page(pageRequest: OnCallPageRequest): Promise<OnCallPageResult> {
+    /*
+     * On the caller's plan, read here when their props do not carry it, as
+     * the create itself reads it (CallerPlan.withPlanFor): the check below
+     * is asked before anything is created, and a plan check never reads
+     * "no plan" as any plan - it refuses it. Props built outside an API
+     * request without the plan - a chat's, before they carried it - were
+     * refused every page on OneUptime Cloud ("OneUptime could not confirm
+     * which plan this project is on").
+     */
+    const request: OnCallPageRequest = {
+      ...pageRequest,
+      props: await CallerPlan.withPlanFor({
+        props: pageRequest.props,
+        modelType: OnCallDutyPolicyExecutionLog,
+        type: DatabaseRequestType.Create,
+      }),
+    };
     const projectId: ObjectID = request.projectId;
     const props: DatabaseCommonInteractionProps = request.props;
 

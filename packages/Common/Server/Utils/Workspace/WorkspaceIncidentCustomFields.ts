@@ -26,6 +26,9 @@ import IncidentService from "../../Services/IncidentService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import crypto from "crypto";
 import WorkspaceIncidentActions from "./WorkspaceIncidentActions";
+import WorkspaceMemberActions, {
+  WorkspaceEventType,
+} from "./WorkspaceMemberActions";
 
 /*
  * AN INCIDENT'S CUSTOM FIELDS, FILLED IN FROM SLACK OR MICROSOFT TEAMS.
@@ -625,9 +628,11 @@ export default class WorkspaceIncidentCustomFields {
       });
 
     if (!now) {
-      throw new NotAuthorizedException(
-        "The incident was not found in this project, or you do not have access to it.",
-      );
+      throw await WorkspaceMemberActions.getUnreadableRefusal({
+        event: { type: WorkspaceEventType.Incident, id: data.incidentId },
+        props: data.props,
+        action: "edit the custom fields of this incident",
+      });
     }
 
     const customFields: JSONObject = WorkspaceIncidentCustomFields.applyChanges(

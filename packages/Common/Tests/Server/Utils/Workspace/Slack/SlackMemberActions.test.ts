@@ -96,8 +96,8 @@ import { DropdownOption } from "../../../../../UI/Components/Dropdown/Dropdown";
  * and nothing is written; a member with it writes the same row the
  * dashboard writes for them, with their own props, so the row is theirs (a
  * note is attributed to them, a state change was made by them); a record
- * outside the member's read - another project's, or outside their labels -
- * is refused like one that is not there; the change-state form offers only
+ * outside the member's read - outside their labels or owners - is refused
+ * with that, and one that is gone as not found; the change-state form offers only
  * the states the member may read that the record may move into next, and
  * says why instead of opening empty.
  *
@@ -284,6 +284,11 @@ function stubRecord(data: {
   currentStateId: ObjectID | null;
   // Other columns the read finds: the record's number, say.
   columns?: Record<string, unknown> | undefined;
+  /*
+   * There, but outside the member's read (their labels, their owners):
+   * only OneUptime's own read finds it.
+   */
+  isOutsideMemberRead?: boolean | undefined;
 }): AnySpy {
   const spy: AnySpy = jest.spyOn(
     data.service as { findOneBy: () => Promise<unknown> },
@@ -302,6 +307,17 @@ function stubRecord(data: {
   record["projectId"] = projectId;
   record[data.stateColumn] = data.currentStateId;
   Object.assign(record, data.columns || {});
+
+  if (data.isOutsideMemberRead) {
+    return spy.mockImplementation(
+      async (findOneBy: unknown): Promise<unknown> => {
+        return (findOneBy as { props: { isRoot?: boolean } }).props.isRoot
+          ? record
+          : null;
+      },
+    );
+  }
+
   return spy.mockResolvedValue(record);
 }
 
@@ -804,10 +820,32 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       ]);
     });
 
-    test(`a ${kind.noun} outside the member's read is refused like one that is not there`, async (): Promise<void> => {
+    test(`a ${kind.noun} outside the member's read is refused with that, never as one that is not there`, async (): Promise<void> => {
       mockMember([kind.role]);
       kind.stubStates();
-      // Another project's, or outside the member's labels: not found for them.
+      // Outside the member's labels or owners: there, but not for them.
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: ObjectID.generate(),
+        isOutsideMemberRead: true,
+      });
+      const createSpy: AnySpy = stubCreate(kind.timelineService);
+
+      await kind.handle(
+        handlerArgs(move.actionType, ObjectID.generate().toString()),
+      );
+
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(answerTexts()).toEqual([
+        `You do not have permission to ${move.refusal}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+      ]);
+    });
+
+    test(`a ${kind.noun} that is gone is not found, and nothing is written`, async (): Promise<void> => {
+      mockMember([kind.role]);
+      kind.stubStates();
       stubRecord({
         service: kind.recordService,
         makeRecord: kind.makeRecord,
@@ -822,9 +860,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
       expect(createSpy).not.toHaveBeenCalled();
       expect(answerTexts()).toEqual([
-        expect.stringContaining(
-          `the ${kind.noun} was not found in this project, or you do not have access to it.`,
-        ),
+        `Could not ${move.refusal}: the ${kind.noun} was not found. It may have been deleted.`,
       ]);
     });
   });
@@ -1144,13 +1180,14 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         ]);
       });
 
-      test(`a note on a ${kind.noun} outside the member's read is refused`, async (): Promise<void> => {
+      test(`a note on a ${kind.noun} outside the member's read is refused with that`, async (): Promise<void> => {
         mockMember([kind.role]);
         stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
           stateColumn: kind.recordStateColumn,
-          currentStateId: null,
+          currentStateId: ObjectID.generate(),
+          isOutsideMemberRead: true,
         });
         const createSpy: AnySpy = stubCreate(noteAction.service);
 
@@ -1164,7 +1201,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
         expect(createSpy).not.toHaveBeenCalled();
         expect(answerTexts()[0]).toContain(
-          `the ${kind.noun} was not found in this project`,
+          `your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
         );
       });
     },
@@ -1174,10 +1211,26 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
     const execute: NonNullable<SlackKind["execute"]> = kind.execute;
 
     describe("Execute On-Call Policy", (): void => {
-      function stubPolicy(readable: boolean): void {
+      /*
+       * The policy the form names: readable, there but outside the member's
+       * read ("outside"), or gone.
+       */
+      function stubPolicy(readable: boolean | "outside"): void {
         const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
         policy.id = ObjectID.generate();
         policy.projectId = projectId;
+
+        if (readable === "outside") {
+          jest
+            .spyOn(OnCallDutyPolicyService, "findOneBy")
+            .mockImplementation((async (findOneBy: {
+              props: { isRoot?: boolean };
+            }) => {
+              return findOneBy.props.isRoot ? policy : null;
+            }) as never);
+          return;
+        }
+
         jest
           .spyOn(OnCallDutyPolicyService, "findOneBy")
           .mockResolvedValue(readable ? policy : null);
@@ -1235,7 +1288,33 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
         ]);
       });
 
-      test("a policy outside the member's read is refused like one that is not there", async (): Promise<void> => {
+      test("a policy outside the member's read is refused with that", async (): Promise<void> => {
+        mockMember([kind.role, Permission.OnCallMember]);
+        kind.stubStates();
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: ObjectID.generate(),
+        });
+        stubPolicy("outside");
+        const createSpy: AnySpy = stubCreate(
+          OnCallDutyPolicyExecutionLogService,
+        );
+
+        await kind.handle(
+          handlerArgs(execute.actionType, ObjectID.generate().toString(), {
+            onCallPolicy: ObjectID.generate().toString(),
+          }),
+        );
+
+        expect(createSpy).not.toHaveBeenCalled();
+        expect(answerTexts()[0]).toContain(
+          "your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+        );
+      });
+
+      test("a policy that is gone is not found, and no one is paged", async (): Promise<void> => {
         mockMember([kind.role, Permission.OnCallMember]);
         kind.stubStates();
         stubRecord({
@@ -1257,7 +1336,7 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
 
         expect(createSpy).not.toHaveBeenCalled();
         expect(answerTexts()[0]).toContain(
-          "the on-call policy was not found in this project",
+          "the on-call policy was not found. It may have been deleted.",
         );
       });
     });

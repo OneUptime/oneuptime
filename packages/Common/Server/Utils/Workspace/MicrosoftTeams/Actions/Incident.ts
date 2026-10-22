@@ -233,9 +233,14 @@ export default class MicrosoftTeamsIncidentActions {
         props: databaseProps,
       });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!incident) {
-        await turnContext.sendActivity("Incident not found.");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: "see this incident",
+          service: IncidentService,
+          id: new ObjectID(actionValue),
+          props: databaseProps,
+        });
       }
 
       const declaredAt: Date | undefined =

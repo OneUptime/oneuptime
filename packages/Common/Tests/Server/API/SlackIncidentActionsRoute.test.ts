@@ -549,6 +549,17 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         projectAuth.miscData = { botUserId: "B0BOT" } as never;
         return projectAuth;
       }) as never);
+    // The workspace's connections, as WorkspaceProjectResolution reads them.
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockImplementation((async (...args: Array<unknown>) => {
+        const projectAuth: unknown = await (
+          WorkspaceProjectAuthTokenService.findOneBy as unknown as (
+            ...args: Array<unknown>
+          ) => Promise<unknown>
+        )(...args);
+        return projectAuth ? [projectAuth] : [];
+      }) as never);
     jest
       .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
       .mockImplementation((async () => {
@@ -1179,11 +1190,12 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         MINOR.toString(),
       );
 
-      // The form carries the incident, and the channel it was opened in.
+      // The form carries the incident, the channel it was opened in, and its project.
       expect(JSON.parse(view["private_metadata"] as string)).toEqual({
         oneuptime: 1,
         value: ID,
         channelId: INCIDENT_CHANNEL_ID,
+        projectId: PROJECT_ID.toString(),
       });
 
       // The incident, read as Simon.
@@ -1668,14 +1680,14 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
       );
     });
 
-    test("an incident the member may not read - its labels, its owners - is one that is not there", async () => {
+    test("an incident the member may not read - its labels, its owners - is refused with that, never as one that is not there", async () => {
       isIncidentReadable = false;
 
       await choose(`ViewChangeIncidentSeverity:${ID}`);
       const said: SlackCall = await onlyAnswer();
 
       expect(textOf(said.data["blocks"])).toBe(
-        "You do not have permission to change the severity of this incident: the incident was not found in this project, or you do not have access to it.\n",
+        "You do not have permission to change the severity of this incident: your access in this project does not include this incident. Ask a project admin for access to it.\n",
       );
     });
 
@@ -1963,6 +1975,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         oneuptime: 1,
         value: ID,
         channelId: INCIDENT_CHANNEL_ID,
+        projectId: PROJECT_ID.toString(),
         private: 1,
       });
 
@@ -2154,6 +2167,7 @@ describe("acting on an incident from Slack: its message's menu, and /oneuptime i
         oneuptime: 1,
         value: ID,
         channelId: INCIDENT_CHANNEL_ID,
+        projectId: PROJECT_ID.toString(),
       });
 
       // Whether it is private: read as OneUptime, the incident's switch only.
