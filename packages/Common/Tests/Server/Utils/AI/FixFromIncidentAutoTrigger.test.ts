@@ -4,6 +4,7 @@ import FixFromIncidentTaskTrigger, {
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import RemediationRulePullRequests from "../../../../Server/Utils/AI/SRE/RemediationRulePullRequests";
 import FixRunBudget from "../../../../Server/Utils/AI/CodeFix/FixRunBudget";
+import CodeFixRunRepository from "../../../../Server/Utils/AI/CodeFix/CodeFixRunRepository";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
@@ -858,5 +859,142 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", (
         incidentId,
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+/*
+ * The fix pull request is written with the LLM provider the rules that
+ * open it pick - the first of them by name that picks one - which the run
+ * records (AIRun.llmProviderId) for its completions to use.
+ */
+describe("FixFromIncidentTaskTrigger and the LLM provider the rules pick", () => {
+  const PICK: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+  const OTHER: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc2";
+
+  beforeEach(() => {
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+    jest
+      .spyOn(SubjectCodeFixRun, "hasGitHubAppConnectedRepository")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForSubject")
+      .mockResolvedValue(null);
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue();
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(persistedRecommendedInvestigation());
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the gate's decision carries the opening rules' pick, the first by name", () => {
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project: fakeProject(),
+        incidentId,
+        rules: matchingRules(
+          { name: "Zeta", llmProviderId: OTHER },
+          { name: "Alpha", llmProviderId: PICK },
+        ),
+        hasConnectedRepository: true,
+        existingRun: null,
+      }),
+    ).toMatchObject({ enqueue: true, llmProviderId: PICK });
+  });
+
+  test("a rule with fix pull requests off picks nothing for them", () => {
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project: fakeProject(),
+        incidentId,
+        rules: matchingRules(
+          { name: "A", llmProviderId: OTHER, openCodeFixPullRequests: false },
+          { name: "B", llmProviderId: PICK },
+        ),
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).llmProviderId,
+    ).toBe(PICK);
+  });
+
+  test("the run it enqueues records the pick", async () => {
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(matchingRules({ name: "Checkout", llmProviderId: PICK }));
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(fakeRun());
+
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+      projectId,
+      investigationRunId,
+      analysisMarkdown,
+      incidentId,
+    });
+
+    expect(
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+        .llmProviderId,
+    ).toEqual(new ObjectID(PICK));
+  });
+
+  test("no rule: the run picks none", async () => {
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(NO_RULES);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(fakeRun());
+
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+      projectId,
+      investigationRunId,
+      analysisMarkdown,
+      incidentId,
+    });
+
+    expect(
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+        .llmProviderId,
+    ).toBeUndefined();
+  });
+
+  test("SubjectCodeFixRun records the pick on the run it creates", async () => {
+    jest
+      .spyOn(CodeFixRunRepository, "resolveForNewRun")
+      .mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue(fakeRun());
+
+    await enqueueSubjectCodeFixRun({
+      projectId,
+      taskType: CodeFixTaskType.ImproveInstrumentation,
+      incidentId,
+      llmProviderId: new ObjectID(PICK),
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toEqual(new ObjectID(PICK));
+  });
+
+  test("toRunLlmProviderId: a pick as a run records it, none for none", () => {
+    expect(SubjectCodeFixRun.toRunLlmProviderId(PICK)).toEqual(
+      new ObjectID(PICK),
+    );
+    expect(SubjectCodeFixRun.toRunLlmProviderId("")).toBeUndefined();
+    expect(SubjectCodeFixRun.toRunLlmProviderId(undefined)).toBeUndefined();
+    expect(SubjectCodeFixRun.toRunLlmProviderId("not-an-id")).toBeUndefined();
   });
 });

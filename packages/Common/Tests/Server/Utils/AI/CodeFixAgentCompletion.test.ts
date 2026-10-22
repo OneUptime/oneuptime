@@ -7,7 +7,15 @@ import CodeFixAgentCompletion, {
   MAX_TOKENS_PER_COMPLETION_CALL,
 } from "../../../../Server/Utils/AI/CodeFix/CodeFixAgentCompletion";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import LlmLogService from "../../../../Server/Services/LlmLogService";
+import LlmProviderChoice from "../../../../Server/Utils/AI/LlmProviderChoice";
+import { AIRunEventResultSummary } from "../../../../Types/AI/AIChatTypes";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
+import {
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "../../../../Types/AI/LlmProviderChoice";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import AIService, {
   AILogRequest,
@@ -475,5 +483,215 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
     expect(updateSpy.mock.calls[0]![0]!.query["status"]).toBe(
       AIRunStatus.Running,
     );
+  });
+});
+
+/*
+ * A fix run a rule started - a fix or telemetry pull request an auto
+ * remediation rule opened - uses the LLM provider that rule picked
+ * (AIRun.llmProviderId, Server/Utils/AI/LlmProviderChoice), not the metered
+ * path's. A pick that cannot be used falls back to the metered path's
+ * provider, and the run says so - once, on its first completion - as a
+ * step of the task. A run no rule picked one for is as it always was.
+ */
+describe("CodeFixAgentCompletion.execute: the LLM provider the rule picked", () => {
+  const PICK: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  const picked: LlmProvider = Object.assign(new LlmProvider(), {
+    _id: PICK,
+    name: "Claude Opus",
+    modelName: "claude-opus-4-5",
+    isGlobalLlm: false,
+  });
+
+  const metered: LlmProvider = Object.assign(new LlmProvider(), {
+    _id: "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+    name: "Azure GPT-4o",
+    isGlobalLlm: false,
+  });
+
+  function progressLogs(
+    spy: jest.SpiedFunction<typeof AIRunEventService.appendEventToRun>,
+  ): Array<AIRunEventResultSummary | undefined> {
+    return spy.mock.calls
+      .filter(
+        (call: Parameters<typeof AIRunEventService.appendEventToRun>) => {
+          return call[0].eventType === AIRunEventType.ProgressLog;
+        },
+      )
+      .map((call: Parameters<typeof AIRunEventService.appendEventToRun>) => {
+        return call[0].resultSummary;
+      });
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the pick is used for the completion, and the metered path is not asked", async () => {
+    const { executeSpy } = mockHappyDependencies({
+      completionCalls: 0,
+      run: { llmProviderId: new ObjectID(PICK) },
+    });
+    const meteredSpy: jest.SpiedFunction<
+      typeof LlmProviderService.getLlmProviderForMeteredAgentPath
+    > = jest.spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath");
+    const decide: jest.SpiedFunction<typeof LlmProviderChoice.decideIfPicked> =
+      jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+        provider: { id: PICK, name: "Claude Opus", isGlobal: false },
+        source: LlmProviderSource.RulePick,
+        fallbackReason: null,
+        pickedProviderId: PICK,
+        llmProviderId: new ObjectID(PICK),
+        providerRow: picked,
+        activity: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Claude Opus",
+        },
+      });
+    const append: jest.SpiedFunction<
+      typeof AIRunEventService.appendEventToRun
+    > = jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(decide).toHaveBeenCalledWith({
+      projectId,
+      pickedProviderId: new ObjectID(PICK),
+    });
+    expect(meteredSpy).not.toHaveBeenCalled();
+    expect(executeSpy.mock.calls[0]![0]!.llmProviderId?.toString()).toBe(PICK);
+    expect(progressLogs(append)).toEqual([
+      {
+        message: "Using Claude Opus, the rule's LLM provider",
+        severity: "Info",
+        llmProvider: {
+          source: LlmProviderSource.RulePick,
+          providerName: "Claude Opus",
+        },
+      },
+    ]);
+  });
+
+  test("a pick that cannot be used: the metered path's provider, and the run says why", async () => {
+    const { executeSpy } = mockHappyDependencies({
+      completionCalls: 0,
+      run: { llmProviderId: new ObjectID(PICK) },
+    });
+    jest
+      .spyOn(LlmProviderService, "getLlmProviderForMeteredAgentPath")
+      .mockResolvedValue(metered);
+    jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+      provider: null,
+      source: null,
+      fallbackReason: LlmProviderFallbackReason.Unavailable,
+      pickedProviderId: PICK,
+      providerRow: null,
+      activity: { fallbackReason: LlmProviderFallbackReason.Unavailable },
+    });
+    const append: jest.SpiedFunction<
+      typeof AIRunEventService.appendEventToRun
+    > = jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(executeSpy.mock.calls[0]![0]!.llmProviderId?.toString()).toBe(
+      "cccccccc-cccc-4ccc-8ccc-ccccccccccc2",
+    );
+    expect(progressLogs(append)).toEqual([
+      {
+        message:
+          "Using Azure GPT-4o, the project's default LLM provider: the rule's provider is no longer available",
+        severity: "Warning",
+        llmProvider: {
+          source: LlmProviderSource.ProjectDefault,
+          providerName: "Azure GPT-4o",
+          fallbackReason: LlmProviderFallbackReason.Unavailable,
+        },
+      },
+    ]);
+  });
+
+  test("the line is said once: a later completion of the same run says nothing more", async () => {
+    mockHappyDependencies({
+      completionCalls: 3,
+      run: { llmProviderId: new ObjectID(PICK) },
+    });
+    jest.spyOn(LlmProviderChoice, "decideIfPicked").mockResolvedValue({
+      provider: { id: PICK, name: "Claude Opus", isGlobal: false },
+      source: LlmProviderSource.RulePick,
+      fallbackReason: null,
+      pickedProviderId: PICK,
+      llmProviderId: new ObjectID(PICK),
+      providerRow: picked,
+      activity: {
+        source: LlmProviderSource.RulePick,
+        providerName: "Claude Opus",
+      },
+    });
+    const append: jest.SpiedFunction<
+      typeof AIRunEventService.appendEventToRun
+    > = jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(progressLogs(append)).toEqual([]);
+  });
+
+  test("a run no rule picked a provider for: the metered path, as before, and no line", async () => {
+    const { executeSpy } = mockHappyDependencies({ completionCalls: 0 });
+    const append: jest.SpiedFunction<
+      typeof AIRunEventService.appendEventToRun
+    > = jest
+      .spyOn(AIRunEventService, "appendEventToRun")
+      .mockResolvedValue(undefined);
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(
+      LlmProviderService.getLlmProviderForMeteredAgentPath,
+    ).toHaveBeenCalledWith(projectId);
+    expect(executeSpy.mock.calls[0]![0]!.llmProviderId).toBeDefined();
+    expect(progressLogs(append)).toEqual([]);
+  });
+
+  test("the run is read with its pick", async () => {
+    mockHappyDependencies();
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(
+      (
+        AIRunService.findOneById as unknown as jest.SpiedFunction<
+          typeof AIRunService.findOneById
+        >
+      ).mock.calls[0]![0].select,
+    ).toMatchObject({ llmProviderId: true });
   });
 });
