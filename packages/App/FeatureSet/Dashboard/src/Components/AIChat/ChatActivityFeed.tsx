@@ -31,6 +31,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
+import {
+  LlmProviderActivity,
+  isLlmProviderActivityWarning,
+} from "Common/Types/AI/LlmProviderChoice";
+import { describeRuleLlmProviderActivity } from "../AI/RuleLlmProviderCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -743,6 +748,26 @@ function buildSteps(
             text: describeRecentChanges(recentChanges, translator),
             status: "done",
             kind: "log",
+          });
+          break;
+        }
+
+        /*
+         * The LLM provider a run its rule picked one for used, or why it
+         * used another: drawn from the data, in the reader's language.
+         */
+        const llmProvider: LlmProviderActivity | undefined =
+          event.resultSummary?.llmProvider;
+
+        if (llmProvider) {
+          steps.push({
+            key,
+            text: describeRuleLlmProviderActivity(llmProvider, translator),
+            status: "done",
+            kind: "log",
+            severity: isLlmProviderActivityWarning(llmProvider)
+              ? "Warning"
+              : undefined,
           });
           break;
         }
