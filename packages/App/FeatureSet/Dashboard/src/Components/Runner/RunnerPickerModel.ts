@@ -33,6 +33,14 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * still pick it), and drawn but never picked where it may not run the step -
  * a Bash, SSH or kubectl step, which global Runners never run, or a project
  * that turned them off - with why, so nobody wonders where it went.
+ *
+ * An auto remediation rule's picker lists the project's own Runners and
+ * nothing else: no global Runner (it never runs OneUptime AI's commands),
+ * and no "AI agent on the cluster or host" - that agent is not a Runner, and
+ * commands on the affected cluster or host go through it whatever the rule
+ * picks. A rule that picks none is drawn empty, as "No Runner", and can be
+ * cleared back to it. The project's default Runner is listed first, tagged
+ * as the default; a new rule's form starts on it.
  */
 
 /*
@@ -65,11 +73,10 @@ export enum RunnerPickerWork {
   CodeRepository = "code-repository",
   /*
    * An auto remediation rule's Runner (AutoRemediationRule.runnerId): the
-   * Runner OneUptime AI runs the rule's commands of its own on. The global
-   * Runners never run them (they run JavaScript steps in a sandbox every
-   * project shares), so the first choice is no Runner at all: OneUptime AI
-   * fixes through the AI agent on the affected cluster or host
-   * (Common/Types/AutoRemediation/AutoRemediationFix).
+   * Runner OneUptime AI runs the rule's Bash commands on. The global Runners
+   * never run them (they run JavaScript steps in a sandbox every project
+   * shares), so the choices are the project's own Runners only, and a rule
+   * may pick none (Common/Types/AutoRemediation/AutoRemediationFix).
    */
   AutoRemediation = "auto-remediation",
 }
@@ -225,36 +232,23 @@ export const CODE_NO_GLOBAL_RUNNER_HELPER_TEXT: string = translationKey(
 );
 
 /*
- * An auto remediation rule's first choice, what a rule that picked none
- * shows: no Runner of the project's own. Not "Global Runner": a global
- * Runner never runs OneUptime AI's commands, and the AI agent already on the
- * affected cluster or host is where OneUptime AI fixes by default.
+ * What a rule that picked no Runner shows in its picker: nothing picked,
+ * said in two words. Not "Global Runner": a global Runner never runs
+ * OneUptime AI's commands. Nor "AI agent on the cluster or host": that agent
+ * is not a Runner, and the field's own line says it is used whatever the
+ * rule picks.
  */
-export const REMEDIATION_NO_RUNNER_CHOICE_LABEL: string = translationKey(
-  "AI agent on the cluster or host",
-);
-
-export const REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION: string = translationKey(
-  "No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
-);
+export const REMEDIATION_NO_RUNNER_PLACEHOLDER: string =
+  translationKey("No Runner");
 
 /*
  * Under a rule's picker that picked none, in a project with no Runner of its
  * own to pick ({{location}}: a link to Runbooks › Runners). With Runners to
- * pick from, nothing is said under it: the choice and the field's own line
- * say it.
+ * pick from, nothing is said under it: the placeholder and the field's own
+ * line say it.
  */
 export const REMEDIATION_ADD_RUNNER_TEMPLATE: string = translationKey(
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
-);
-
-/*
- * Under a rule's picker on one of the project's own Runners. Bash only:
- * OneUptime AI's SSH commands reached another host with a runbook
- * credential, and runbook credentials were removed.
- */
-export const REMEDIATION_OWN_RUNNER_HELPER_TEXT: string = translationKey(
-  "OneUptime AI may also run Bash commands on this Runner, inside your network.",
 );
 
 /*
@@ -273,7 +267,8 @@ export interface RunnerPickerRunner {
   /*
    * The project's default Runner (Runner.isProjectDefault), set by the
    * loader only on one that may be it (Common/Types/Runner/
-   * ProjectDefaultRunner). Read for a runbook step only.
+   * ProjectDefaultRunner). Read for a runbook step and an auto remediation
+   * rule.
    */
   isProjectDefault?: boolean | undefined;
 }
@@ -316,15 +311,12 @@ export enum RunnerPickerOptionKind {
   GlobalUnavailable = "global-unavailable",
   Project = "project",
   /*
-   * A runbook step's first choice while the project has a default Runner:
-   * no Runner of the step's own, so that Runner.
+   * The project's default Runner. A runbook step's first choice while the
+   * project has one: no Runner of the step's own, so that Runner. An auto
+   * remediation rule's first choice too, by its own id: a rule stores the
+   * Runner it picks.
    */
   ProjectDefault = "project-default",
-  /*
-   * An auto remediation rule's first choice: no Runner of the project's own
-   * (REMEDIATION_NO_RUNNER_CHOICE_LABEL).
-   */
-  NoRunner = "no-runner",
   /*
    * A Runner the step names that is not one of the project's any more - or,
    * for a repository, one the reader may not see (CODE_HIDDEN_RUNNER_LABEL).
@@ -355,7 +347,10 @@ export enum RunnerPickerOutcome {
   // Picked none, and runs on the project's default Runner (steps only).
   ProjectDefaultRunner = "project-default",
   UnknownRunner = "unknown",
-  // An auto remediation rule that picked no Runner: the AI agents fix.
+  /*
+   * An auto remediation rule that picked no Runner: OneUptime AI runs no
+   * commands of its own for it, and fixes the rest of the way it does.
+   */
   NoRunner = "no-runner",
   /*
    * Picked none, with no project default Runner - or picked the Global
@@ -448,14 +443,15 @@ export function offersGlobalRunner(
 }
 
 /*
- * The project's default Runner, for a runbook step: the project Runner the
- * loader marked as the default. Never for a code repository or a rule,
- * which the default does not reach.
+ * The project's default Runner, for a runbook step and an auto remediation
+ * rule: the project Runner the loader marked as the default. A step that
+ * picks none runs on it; a new rule starts on it, and keeps it as its own
+ * pick. Never for a code repository, which picks by its own rule.
  */
 export function getProjectDefaultRunner(
   facts: Pick<RunnerPickerFacts, "work" | "projectRunners">,
 ): RunnerPickerRunner | undefined {
-  if (facts.work && facts.work !== RunnerPickerWork.RunbookStep) {
+  if (facts.work === RunnerPickerWork.CodeRepository) {
     return undefined;
   }
 
@@ -478,34 +474,106 @@ function toProjectOption(runner: RunnerPickerRunner): RunnerPickerOption {
   };
 }
 
-// The picker of a code repository or an auto remediation rule.
-function buildRepositoryOrRuleModel(
-  facts: RunnerPickerFacts,
-): RunnerPickerModel {
+/*
+ * An auto remediation rule's picker: the project's own Runners - its
+ * default Runner first, tagged, by its own id - and a pick the reader was
+ * not shown. Nothing else: a rule that picked none shows nothing picked
+ * ("No Runner"), and that is a rule that works - OneUptime AI fixes through
+ * the AI agents, runbooks, MCP servers and pull requests, and runs no
+ * commands of its own.
+ */
+function buildRuleModel(facts: RunnerPickerFacts): RunnerPickerModel {
   const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
-  const isGlobalOffered: boolean = offersGlobalRunner(facts);
-  const isForRemediation: boolean =
-    facts.work === RunnerPickerWork.AutoRemediation;
+  const defaultRunner: RunnerPickerRunner | undefined =
+    getProjectDefaultRunner(facts);
 
-  /*
-   * The first choice: the global Runners where they run the work; for an
-   * auto remediation rule, always no Runner of the project's own - the AI
-   * agents fix - whatever the server's global Runners are.
-   */
-  const globalOption: RunnerPickerOption | undefined = isForRemediation
+  const defaultOption: RunnerPickerOption | undefined = defaultRunner
     ? {
-        value: GLOBAL_RUNNER_CHOICE_VALUE,
-        kind: RunnerPickerOptionKind.NoRunner,
-        name: REMEDIATION_NO_RUNNER_CHOICE_LABEL,
+        value: defaultRunner.id,
+        kind: RunnerPickerOptionKind.ProjectDefault,
+        name: defaultRunner.name,
+        liveStatus: defaultRunner.liveStatus,
+        runnerId: defaultRunner.id,
       }
-    : isGlobalOffered
+    : undefined;
+
+  const projectOptions: Array<RunnerPickerOption> = facts.projectRunners
+    .filter((runner: RunnerPickerRunner): boolean => {
+      return runner !== defaultRunner;
+    })
+    .map(toProjectOption);
+
+  const ownOptions: Array<RunnerPickerOption> = [
+    ...(defaultOption ? [defaultOption] : []),
+    ...projectOptions,
+  ];
+
+  const currentOption: RunnerPickerOption | undefined = currentRunnerId
+    ? ownOptions.find((option: RunnerPickerOption): boolean => {
+        return sameId(option.value, currentRunnerId);
+      })
+    : undefined;
+
+  const unknownOption: RunnerPickerOption | undefined =
+    currentRunnerId && !currentOption
       ? {
-          value: GLOBAL_RUNNER_CHOICE_VALUE,
-          kind: RunnerPickerOptionKind.Global,
-          name: GLOBAL_RUNNER_CHOICE_LABEL,
-          liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
+          value: currentRunnerId,
+          kind: RunnerPickerOptionKind.Unknown,
+          name: currentRunnerId,
         }
       : undefined;
+
+  const options: Array<RunnerPickerOption> = [
+    ...(unknownOption ? [unknownOption] : []),
+    ...ownOptions,
+  ];
+
+  if (currentOption) {
+    return {
+      options,
+      selected: currentOption,
+      outcome: RunnerPickerOutcome.ProjectRunner,
+      willRun: true,
+      pickedGlobalRunner: false,
+      runnerId: currentOption.value,
+    };
+  }
+
+  if (unknownOption) {
+    return {
+      options,
+      selected: unknownOption,
+      outcome: RunnerPickerOutcome.UnknownRunner,
+      willRun: false,
+      pickedGlobalRunner: false,
+      runnerId: "",
+    };
+  }
+
+  return {
+    options,
+    selected: undefined,
+    outcome: RunnerPickerOutcome.NoRunner,
+    willRun: true,
+    pickedGlobalRunner: false,
+    runnerId: "",
+  };
+}
+
+// The picker of a code repository.
+function buildRepositoryModel(facts: RunnerPickerFacts): RunnerPickerModel {
+  const currentRunnerId: string = getChosenRunnerId(facts.currentRunnerId);
+  const isGlobalOffered: boolean = offersGlobalRunner(facts);
+
+  // The first choice: the global Runners where they run the work.
+  const globalOption: RunnerPickerOption | undefined = isGlobalOffered
+    ? {
+        value: GLOBAL_RUNNER_CHOICE_VALUE,
+        kind: RunnerPickerOptionKind.Global,
+        name: GLOBAL_RUNNER_CHOICE_LABEL,
+        liveStatus: getGlobalRunnersLiveStatus(facts.globalRunners),
+      }
+    : undefined;
 
   const projectOptions: Array<RunnerPickerOption> =
     facts.projectRunners.map(toProjectOption);
@@ -564,10 +632,7 @@ function buildRepositoryOrRuleModel(
     return {
       options,
       selected: globalOption,
-      outcome:
-        globalOption.kind === RunnerPickerOptionKind.NoRunner
-          ? RunnerPickerOutcome.NoRunner
-          : RunnerPickerOutcome.GlobalRunner,
+      outcome: RunnerPickerOutcome.GlobalRunner,
       willRun: true,
       pickedGlobalRunner: false,
       runnerId: "",
@@ -821,11 +886,30 @@ function buildStepModel(facts: RunnerPickerFacts): RunnerPickerModel {
 export function buildRunnerPickerModel(
   facts: RunnerPickerFacts,
 ): RunnerPickerModel {
-  if (facts.work && facts.work !== RunnerPickerWork.RunbookStep) {
-    return buildRepositoryOrRuleModel(facts);
+  if (facts.work === RunnerPickerWork.AutoRemediation) {
+    return buildRuleModel(facts);
+  }
+
+  if (facts.work === RunnerPickerWork.CodeRepository) {
+    return buildRepositoryModel(facts);
   }
 
   return buildStepModel(facts);
+}
+
+/*
+ * The Runner a new auto remediation rule starts on: the project's default
+ * Runner, when it has one the rule may pick. Its form picks it, so the rule
+ * saves it as its own pick (AutoRemediationRule.runnerId) - changing the
+ * project's default later does not move the rule.
+ */
+export function getNewRuleRunnerId(
+  projectRunners: Array<RunnerPickerRunner>,
+): string | undefined {
+  return getProjectDefaultRunner({
+    work: RunnerPickerWork.AutoRemediation,
+    projectRunners,
+  })?.id;
 }
 
 // Whether the picker has a choice that can be picked: else it says what to do.

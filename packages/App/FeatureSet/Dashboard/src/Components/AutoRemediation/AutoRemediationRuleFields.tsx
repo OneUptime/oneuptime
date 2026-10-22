@@ -2,7 +2,6 @@ import RunnerPicker from "../Runner/RunnerPicker";
 import RunnerChoicesLoader, { RunnerChoices } from "../Runner/RunnerChoices";
 import {
   GLOBAL_RUNNER_CHOICE_VALUE,
-  REMEDIATION_OWN_RUNNER_HELPER_TEXT,
   RunnerPickerWork,
 } from "../Runner/RunnerPickerModel";
 import useRefreshRunnerChoicesOnFocus from "../Runner/useRefreshRunnerChoicesOnFocus";
@@ -29,11 +28,13 @@ import React, {
  * The two custom fields of an auto remediation rule's More fields:
  *
  *   - AutoRemediationRunnerPicker: the Runner OneUptime AI runs the rule's
- *     commands of its own on (AutoRemediationRule.runnerId) - the one Runner
- *     picker (RunnerPicker) for a rule, drawn as a field of the form. Its
- *     first choice is no Runner: OneUptime AI fixes through the AI agent on
- *     the affected cluster or host. Picking a Runner is what lets OneUptime
- *     AI's commands run on it - a Runner has no switch for that any more.
+ *     Bash commands on (AutoRemediationRule.runnerId) - the one Runner
+ *     picker (RunnerPicker) for a rule, drawn as a field of the form. It
+ *     lists the project's own Runners, the default first; a rule that picks
+ *     none reads "No Runner". The AI agent on the affected cluster or host is
+ *     not one of its choices - commands there go through it whatever the
+ *     rule picks, which the field's line says. Picking a Runner is what lets
+ *     OneUptime AI's commands run on it - a Runner has no switch for that.
  *   - RunbooksEveryTimeSwitch: "Run them every time", the one older choice
  *     kept, folded away: the rule starts every runbook it names for every
  *     match, without OneUptime AI deciding (remediationAction Runbooks).
@@ -112,7 +113,6 @@ export interface AutoRemediationRunnerPickerProps {
 export const AutoRemediationRunnerPicker: FunctionComponent<
   AutoRemediationRunnerPickerProps
 > = (props: AutoRemediationRunnerPickerProps): ReactElement => {
-  const translator: Translator = useTranslator();
   const choices: RunnerChoices | null = useAutoRemediationRunnerChoices();
 
   if (!choices) {
@@ -138,9 +138,6 @@ export const AutoRemediationRunnerPicker: FunctionComponent<
         );
       }}
       choices={choices}
-      ownRunnerHelperText={translator.translateText(
-        REMEDIATION_OWN_RUNNER_HELPER_TEXT,
-      )}
       dataTestId={AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID}
     />
   );

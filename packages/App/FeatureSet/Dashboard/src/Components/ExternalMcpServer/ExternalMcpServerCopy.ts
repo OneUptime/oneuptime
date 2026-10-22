@@ -8,6 +8,10 @@ import {
   readExternalMcpServerTools,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTool";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  RULE_CODE_REPOSITORIES_FIELD_COPY,
+  hasRuleCodeRepositories,
+} from "../Code/RuleCodeRepositoriesCopy";
 import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import {
   PluralTemplate,
@@ -393,13 +397,21 @@ export function hasRuleMcpServers(values: unknown): boolean {
 }
 
 /*
- * The sentence an investigation rule's folded More fields says while it
- * names no MCP server: what the default does.
+ * The sentences an investigation rule's folded More fields says while it
+ * names no MCP server, and no code repository: what each default does.
  */
 export function getInvestigationRuleMoreFieldsSummary(
   values: unknown,
 ): Array<string> | undefined {
-  return hasRuleMcpServers(values)
-    ? undefined
-    : [RULE_MCP_SERVERS_FIELD_COPY.allServersSummary];
+  const sentences: Array<string> = [];
+
+  if (!hasRuleMcpServers(values)) {
+    sentences.push(RULE_MCP_SERVERS_FIELD_COPY.allServersSummary);
+  }
+
+  if (!hasRuleCodeRepositories(values)) {
+    sentences.push(RULE_CODE_REPOSITORIES_FIELD_COPY.allRepositoriesSummary);
+  }
+
+  return sentences.length > 0 ? sentences : undefined;
 }

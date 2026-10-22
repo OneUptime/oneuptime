@@ -157,6 +157,7 @@ import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerP
 import { TurnOnGitHubCommandsByDefault1805760000000 } from "./1805760000000-TurnOnGitHubCommandsByDefault";
 import { TurnOnUnsetGitHubCommands1805770000000 } from "./1805770000000-TurnOnUnsetGitHubCommands";
 import { RemoveRunbookCredentials1805780000000 } from "./1805780000000-RemoveRunbookCredentials";
+import { MoveFixPullRequestSwitchesIntoRules1805800000000 } from "./1805800000000-MoveFixPullRequestSwitchesIntoRules";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1516,4 +1517,5 @@ export default [
   TurnOnGitHubCommandsByDefault1805760000000,
   TurnOnUnsetGitHubCommands1805770000000,
   RemoveRunbookCredentials1805780000000,
+  MoveFixPullRequestSwitchesIntoRules1805800000000,
 ];

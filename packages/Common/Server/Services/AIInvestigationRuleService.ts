@@ -11,6 +11,7 @@ import {
 } from "../../Types/AI/AIInvestigationRuleCriteria";
 import { getInvestigationRuleWaitProblem } from "../../Types/AI/InvestigationRuleWait";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
+import { getRuleCodeRepositoriesProblem } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -19,13 +20,15 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A rule names at most as many external MCP servers as a project may
-   * have: answered before any reference is read. Whether each is the
-   * project's own is checked with every other reference the rule writes.
+   * have, and at most MAX_CODE_REPOSITORIES_PER_RULE code repositories:
+   * answered before any reference is read. Whether each is the project's
+   * own is checked with every other reference the rule writes.
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
     this.assertMcpServersFit(createBy.data.externalMcpServers);
+    this.assertCodeRepositoriesFit(createBy.data.codeRepositories);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -36,16 +39,27 @@ export class Service extends ProjectReferencesService<Model> {
       unknown
     >;
 
-    // An edit that leaves the servers alone is not judged on them.
-    if (data["externalMcpServers"] === undefined) {
-      return;
+    // An edit that leaves a list alone is not judged on it.
+    if (data["externalMcpServers"] !== undefined) {
+      this.assertMcpServersFit(data["externalMcpServers"]);
     }
 
-    this.assertMcpServersFit(data["externalMcpServers"]);
+    if (data["codeRepositories"] !== undefined) {
+      this.assertCodeRepositoriesFit(data["codeRepositories"]);
+    }
   }
 
   private assertMcpServersFit(servers: unknown): void {
     const problem: string | null = getRuleExternalMcpServersProblem(servers);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  private assertCodeRepositoriesFit(repositories: unknown): void {
+    const problem: string | null =
+      getRuleCodeRepositoriesProblem(repositories);
 
     if (problem) {
       throw new BadDataException(problem);

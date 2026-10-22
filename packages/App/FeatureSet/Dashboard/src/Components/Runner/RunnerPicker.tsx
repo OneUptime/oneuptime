@@ -37,9 +37,8 @@ import {
   PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT,
   PROJECT_DEFAULT_TAG,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
-  REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
   REMEDIATION_ADD_RUNNER_TEMPLATE,
-  REMEDIATION_NO_RUNNER_CHOICE_LABEL,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
   RUNNER_NOT_CONNECTED_TEMPLATE,
   RunnerPickerModel,
   RunnerPickerOption,
@@ -69,6 +68,12 @@ import {
  * it is drawn but cannot be picked, saying why. The project's own Runners
  * follow, each with how it is doing. When there is nothing to pick, one
  * plain sentence says what to do instead of an empty box.
+ *
+ * A rule's picker lists the project's own Runners only - its default first,
+ * tagged - and a rule may pick none: then it reads "No Runner", and a pick
+ * can be cleared back to it. With no Runner to pick it stays drawn, empty,
+ * with where one is added under it: a rule with no Runner is a rule that
+ * works, not one that is broken.
  */
 
 export interface ComponentProps {
@@ -89,8 +94,11 @@ export interface ComponentProps {
   value: string;
   onChange: (value: string) => void;
   choices: RunnerChoices;
-  // The line under the picker when one of the project's own Runners is picked.
-  ownRunnerHelperText: ReactNode;
+  /*
+   * The line under the picker when one of the project's own Runners is
+   * picked; nothing when the field's own line already says it.
+   */
+  ownRunnerHelperText?: ReactNode | undefined;
   dataTestId?: string | undefined;
   /*
    * A field of a form (a code repository's settings): the form draws the
@@ -182,8 +190,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * A step's first choice while the project has a default Runner: that
-     * Runner, by its own name, tagged as the default.
+     * The project's default Runner, by its own name, tagged as the default:
+     * a step's first choice while the project has one, and a rule's first.
      */
     if (option.kind === RunnerPickerOptionKind.ProjectDefault) {
       return {
@@ -191,17 +199,6 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
         label: `${option.name} · ${translator.translateText(PROJECT_DEFAULT_TAG)} · ${getStatusText(option)}`,
         // The Runner's own name, drawn as named.
         isUserContent: true,
-      };
-    }
-
-    // An auto remediation rule's first choice: no Runner, the AI agents fix.
-    if (option.kind === RunnerPickerOptionKind.NoRunner) {
-      return {
-        value: GLOBAL_RUNNER_CHOICE_VALUE,
-        label:
-          translator.translateText(REMEDIATION_NO_RUNNER_CHOICE_LABEL) ||
-          REMEDIATION_NO_RUNNER_CHOICE_LABEL,
-        description: REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
       };
     }
 
@@ -230,8 +227,13 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
 
   const options: Array<DropdownOption> = model.options.map(toDropdownOption);
 
-  // Nothing in the list can be picked: one sentence says what to do instead.
-  const hasNothingToPick: boolean = !hasPickableOption(model);
+  /*
+   * Nothing in the list can be picked: one sentence says what to do
+   * instead. Never for a rule, which works with no Runner: its picker stays,
+   * empty, with where a Runner is added under it.
+   */
+  const hasNothingToPick: boolean =
+    !isForRemediation && !hasPickableOption(model);
 
   const selectedOption: DropdownOption | undefined = model.selected
     ? toDropdownOption(model.selected)
@@ -448,8 +450,14 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           <Dropdown
             options={options}
             value={selectedOption}
-            placeholder="Select a Runner"
-            isClearable={false}
+            placeholder={
+              isForRemediation
+                ? REMEDIATION_NO_RUNNER_PLACEHOLDER
+                : "Select a Runner"
+            }
+            // A rule may pick none: clearing its pick is "No Runner".
+            isClearable={isForRemediation}
+            disabled={isForRemediation && options.length === 0}
             dataTestId={`${dataTestId}-dropdown`}
             ariaLabel="Runner"
             ariaLabelledby={props.ariaLabelledby}
