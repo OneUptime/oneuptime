@@ -153,6 +153,18 @@ Där allvarlighetsgraden gör mer än att beskriva: under **Incidenter → Regle
 
 **Att ändra en incidents allvarlighetsgrad** — under **Redigera** på incidentens kort **Incidentdetaljer**, via API:t eller Terraform (`incidentSeverityId`), med ett arbetsflöde eller med AI-verktygen — gör samma fyra saker oavsett hur det skickas: incidentens flöde får en post **Incident updated** som nämner den nya allvarlighetsgraden, incidentens SLA-tidsgränser räknas om, dess påminnelseregel matchas igen, och incidentmåtten räknar en ändring av allvarlighetsgrad. Att spara den allvarlighetsgrad som incidenten redan har gör ingen av dem, så redigerar du bara titeln på en incident förblir dess SLA-tidsgränser, påminnelser och antal ändringar av allvarlighetsgrad som de var. Ett larms allvarlighetsgrad fungerar på samma sätt för dess flödespost och dess påminnelser.
 
+## Arkivera en status eller allvarlighetsgrad
+
+Arkivera en status eller allvarlighetsgrad som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar ingen incident. Att ta bort en status tar bort dess rader ur varje incidents historik, och en allvarlighetsgrad kan inte tas bort så länge incidenter har den.
+
+- **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de regler, mallar, mätningar, monitorkriterier och arbetsflöden som är inställda på att använda värdet: De fortsätter att använda det tills du ändrar dem.
+- **Ingen kan välja den igen.** Rapporteringsformuläret, **Ändra tillstånd**, incidentens sidhuvud, Slack, Microsoft Teams, regler, mallar och monitorkriterier utelämnar den. API:et, Terraform och MCP avvisar den och anger värdet och var den kan avarkiveras.
+- **Incidenter behåller den.** En incident som har den behåller den vid varje senare redigering, dess statustidslinje visar den fortfarande, och du kan fortfarande filtrera på den.
+- **Arkiverade värden listas för sig**, i det hopfällda avsnittet **Arkiverade incidentstatusar** eller **Arkiverade allvarlighetsgrader för incidenter** under tabellen, med vem som arkiverade varje värde och när. **Avarkivera** återställer ett som det var.
+- **Vissa kan inte arkiveras.** Den skapade, den kvitterade och den lösta statusen, och projektets sista allvarlighetsgrad som inte är arkiverad. Deras **Arkivera** är låst, med skälet.
+
+**Ta bort** talar först om vad den skulle göra. Så länge incidenter eller episoder har värdet nekas borttagningen, och dialogen listar dem. Annars listar den vad borttagningen skulle ändra och erbjuder **Arkivera i stället**.
+
 ## Flytta en incident genom dess tillstånd
 
 Det finns fyra sätt som en incident byter tillstånd på:

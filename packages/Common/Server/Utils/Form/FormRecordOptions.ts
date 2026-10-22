@@ -60,7 +60,12 @@ export default class FormRecordOptions {
       case FormTargetOptionsSource.IncidentSeverity: {
         const severities: Array<IncidentSeverity> =
           await IncidentSeverityService.findBy({
-            query: { projectId: data.projectId, ...idFilter },
+            // A choice a submitter makes: never an archived value.
+            query: {
+              projectId: data.projectId,
+              isArchived: false,
+              ...idFilter,
+            },
             select: { _id: true, name: true, color: true, order: true },
             sort: { order: SortOrder.Ascending },
             limit: LIMIT_PER_PROJECT,
@@ -86,7 +91,8 @@ export default class FormRecordOptions {
 
       case FormTargetOptionsSource.Label: {
         const labels: Array<Label> = await LabelService.findBy({
-          query: { projectId: data.projectId, ...idFilter },
+          // A choice a submitter makes: never an archived value.
+          query: { projectId: data.projectId, isArchived: false, ...idFilter },
           select: { _id: true, name: true, color: true },
           sort: { name: SortOrder.Ascending },
           limit: LIMIT_PER_PROJECT,

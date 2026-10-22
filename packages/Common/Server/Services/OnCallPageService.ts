@@ -967,6 +967,8 @@ export class Service {
         await AlertSeverityService.findOneBy({
           query: {
             projectId: projectId,
+            // A default OneUptime picks itself: never an archived severity.
+            isArchived: false,
           },
           sort: {
             order: SortOrder.Ascending,

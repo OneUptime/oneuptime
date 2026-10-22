@@ -236,7 +236,8 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
       : Promise.reject(new Error(canReadTemplates.disabledReason || "")),
     ModelAPI.getList<MonitorStatus>({
       modelType: MonitorStatus,
-      query: {},
+      // A new monitor is set up with values that can be picked.
+      query: { isArchived: false },
       select: {
         _id: true,
         name: true,
@@ -250,7 +251,8 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
     }),
     ModelAPI.getList<IncidentSeverity>({
       modelType: IncidentSeverity,
-      query: {},
+      // A new monitor is set up with values that can be picked.
+      query: { isArchived: false },
       select: { _id: true, name: true, color: true },
       sort: { order: SortOrder.Ascending },
       limit: LIMIT_PER_PROJECT,
@@ -258,7 +260,8 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
     }),
     ModelAPI.getList<AlertSeverity>({
       modelType: AlertSeverity,
-      query: {},
+      // A new monitor is set up with values that can be picked.
+      query: { isArchived: false },
       select: { _id: true, name: true, color: true },
       sort: { order: SortOrder.Ascending },
       limit: LIMIT_PER_PROJECT,

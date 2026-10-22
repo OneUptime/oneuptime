@@ -346,7 +346,8 @@ describe("reading the statuses", () => {
     const call: ListCall = getListMock.mock.calls[0]![0] as ListCall;
 
     expect(call.modelType).toBe(MonitorStatus);
-    expect(call.query).toEqual({ projectId: PROJECT_ID });
+    // An archived status is never offered: the server would refuse it.
+    expect(call.query).toEqual({ projectId: PROJECT_ID, isArchived: false });
     expect(call.select).toEqual({ _id: true, name: true, color: true });
     expect(call.sort).toEqual({ priority: SortOrder.Ascending });
     expect(call.limit).toBe(LIMIT_PER_PROJECT);

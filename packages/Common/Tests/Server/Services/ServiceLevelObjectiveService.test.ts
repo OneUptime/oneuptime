@@ -1279,7 +1279,11 @@ describe("ServiceLevelObjectiveService.onCreateSuccess - default alert severity"
       props: Record<string, unknown>;
     };
 
-    expect(findOneByArg.query).toEqual({ projectId: PROJECT_ID });
+    // The most severe one that is not archived: a default OneUptime picks.
+    expect(findOneByArg.query).toEqual({
+      projectId: PROJECT_ID,
+      isArchived: false,
+    });
     expect(findOneByArg.sort).toEqual({ order: SortOrder.Ascending });
     expect(findOneByArg.props).toEqual({ isRoot: true });
 

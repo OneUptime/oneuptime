@@ -472,10 +472,15 @@ describe("EventStatusPanel secondary actions", () => {
 
     /*
      * The menu offers the states the shared rule lets the record move into
-     * (EventStateMenu), less only those a state action's button offers.
+     * (EventStateMenu), less only those a state action's button offers. Its
+     * states are the panel's: an archived one only while the record is in
+     * it (Common/Utils/ArchivableValues), never one to move to.
      */
     expect(code).toContain(
-      "conststatesForMenu:Array<EventStateItem>=getEventStateMenuStates({list:props.stateList,states:props.states,currentStateId:props.currentStateId,buttonStateIds:props.actions.map((action:EventStateAction):string=>{returnaction.stateId;}),});",
+      "conststates:Array<EventStateItem>=props.states.filter((state:EventStateItem):boolean=>{return!state.isArchived||state.id===props.currentStateId;},);",
+    );
+    expect(code).toContain(
+      "conststatesForMenu:Array<EventStateItem>=getEventStateMenuStates({list:props.stateList,states:states,currentStateId:props.currentStateId,buttonStateIds:props.actions.map((action:EventStateAction):string=>{returnaction.stateId;}),});",
     );
 
     const menuRules: string = sectionBetween(
@@ -588,7 +593,7 @@ describe("EventStatusPanel layouts", () => {
     const compact: string = sectionBetween(
       code,
       '):(<divclassName="flexflex-colgap-3px-4py-4sm:px-5md:flex-rowmd:items-centermd:justify-between">',
-      "{props.states.length>1&&(",
+      "{states.length>1&&(",
     );
 
     expect(compact.endsWith('{getActionsCluster("md:w-auto")}</div>)}')).toBe(

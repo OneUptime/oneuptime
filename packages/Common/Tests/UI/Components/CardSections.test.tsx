@@ -256,6 +256,54 @@ describe("a card in CardSections is a section of the card that holds it", () => 
     }
   });
 
+  /*
+   * A section whose header the card holding it draws - a fold whose title
+   * names the table inside it (a value's Archived section) - draws none of
+   * its own, not even an empty one, and its body starts at its top edge.
+   */
+  test("a section with its header hidden draws none, and its body starts at its top", () => {
+    renderSections(
+      <Card title="" description="" isHeaderHidden={true}>
+        <div data-testid="body">body</div>
+      </Card>,
+    );
+
+    expect(screen.queryByTestId("card-header")).toBeNull();
+    expect(screen.queryByTestId("card-details-heading")).toBeNull();
+
+    const padding: HTMLElement = cards()[0]!.firstElementChild as HTMLElement;
+
+    for (const width of WIDTHS) {
+      const side: number = width >= 768 ? 24 : 20;
+
+      expect([width, resolvePadding(padding.className, width)]).toEqual([
+        width,
+        { top: 0, right: side, bottom: 24, left: side },
+      ]);
+    }
+
+    // The body has no gap above it either.
+    const body: HTMLElement = screen.getByTestId("body")
+      .parentElement as HTMLElement;
+
+    expect(body).not.toHaveClass("mt-4");
+    // Still a section: the divider above it.
+    expect(cards()[0]).toHaveClass(...CARD_SECTION_CLASS_NAME.split(" "));
+  });
+
+  test("a card that shows its header keeps it, and its padding, as before", () => {
+    renderSections(
+      <Card title="Daily limits" isHeaderHidden={false}>
+        <div>body</div>
+      </Card>,
+    );
+
+    expect(screen.getByTestId("card-header")).toBeInTheDocument();
+    expect(cards()[0]!.firstElementChild).toHaveClass(
+      ...CARD_PADDING_CLASS_NAME.split(" "),
+    );
+  });
+
   test("its title is a step below a page card's: one card's sections, not cards", () => {
     renderSections(<Card title="Daily limits" />);
 

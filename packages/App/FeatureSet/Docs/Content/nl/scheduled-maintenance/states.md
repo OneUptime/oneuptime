@@ -130,6 +130,15 @@ Houd je statussen onder **Gepland**: elke nieuwe gebeurtenis begint daar, en een
 > [!NOTE]
 > In OneUptime Cloud vraagt het toevoegen of wijzigen van onderhoudsstatussen het abonnement **Growth** of hoger. Elk abonnement kan ze lezen, gebruiken en een status die je hebt toegevoegd verwijderen.
 
+## Een status archiveren
+
+Archiveer een eigen status die uw team niet meer moet gebruiken, in plaats van die te verwijderen. Archiveren wijzigt geen enkele gebeurtenis: een gebeurtenis in die status blijft erin en gaat gewoon verder, en de statustijdlijn toont hem nog.
+
+- **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de metingen en workflows die zijn ingesteld om de status te gebruiken.
+- **Niemand kan hem nog kiezen.** De kop van de gebeurtenis, **Status wijzigen**, Slack en Microsoft Teams laten hem weg, en de API, Terraform en MCP weigeren hem. U kunt gebeurtenissen er nog steeds op filteren.
+- **Gearchiveerde statussen staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van gepland onderhoud** onder de tabel. **Uit archief halen** zet er een terug zoals hij was.
+- **De vier ingebouwde statussen kunnen niet worden gearchiveerd**: OneUptime zet gebeurtenissen erin. Hun **Archiveren** is vergrendeld, met de reden.
+
 ## De statustijdlijn
 
 De pagina **Statustijdlijn** van de gebeurtenis is het overzicht van elke status waarin ze heeft gestaan. Haar kaart, **Statustijdlijn**, tekent ze als tijdlijn: een band met elke status zo lang als die duurde, en daaronder elke wijziging, de nieuwste eerst. **Tabel**, in de kop van de kaart, toont ze in plaats daarvan als rijen, met **Status van geplande onderhoud**, **Begint op**, **Eindigt op**, **Duur**, of abonnees bericht moesten krijgen en hoe hun melding verliep.

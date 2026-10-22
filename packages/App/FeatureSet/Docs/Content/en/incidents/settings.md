@@ -477,6 +477,10 @@ Add the other roles your team uses, such as Responder, Communications Lead or Sc
 
 Roles are definitions only. You assign people to them per incident — the declare wizard asks on its **On-Call & Roles** step, with an **Assign Incident Roles** field, and each incident has a **Roles** page in its side menu. A monitor's criteria and an incident grouping rule can pick people for them ahead of time. Every one of these forms asks with the same cards, one per role: a role tagged **Primary** is Incident Commander or another primary role, and a role that takes one person drops its picker once it has one. On an incident's **Roles** card, a role that takes several people offers **Add More**.
 
+### Archiving a role
+
+Archive a role your team no longer uses from its row's **⋯** menu, instead of deleting it. People who hold it on an incident keep it, but nobody can be given it again: the role pickers leave it out, or show it only with the people who hold it, and the API refuses it. The primary role, and any role that can't be deleted, can't be archived. Archived roles are listed apart, in the folded **Archived Incident Roles** section, where **Unarchive** puts one back.
+
 ## Number prefixes
 
 Every incident gets a number from a per-project counter. Without a prefix it shows as `#42`; with one it shows as `INC-42`. If your team says "INC-42" out loud, make the product say it too. New projects start with `INC-` for incidents and `IE-` for incident episodes.

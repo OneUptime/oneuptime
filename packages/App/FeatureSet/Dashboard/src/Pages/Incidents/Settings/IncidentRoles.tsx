@@ -15,6 +15,10 @@ import RoleLabel from "Common/UI/Components/RoleLabel/RoleLabel";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, {
   Fragment,
   FunctionComponent,
@@ -39,6 +43,25 @@ import React, {
 const IncidentRoles: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<IncidentRole> =
+    useArchivableValues<IncidentRole>({
+      modelType: IncidentRole,
+      type: ArchivableValueType.IncidentRole,
+      // An archived role looks as it does in the table above, icon and all.
+      getNameElement: (item: IncidentRole): ReactElement => {
+        return (
+          <RoleLabel
+            name={item.name || ""}
+            color={item.color || undefined}
+            icon={item.roleIcon || undefined}
+            description={item.description || undefined}
+          />
+        );
+      },
+      nameSelect: { roleIcon: true, description: true },
+    });
+
   /*
    * Which of the listed roles are primary, so the form can leave Allow
    * Multiple Users out of Incident Commander's Edit: the form only loads
@@ -55,8 +78,12 @@ const IncidentRoles: FunctionComponent<
     <Fragment>
       <ModelTable<IncidentRole>
         modelType={IncidentRole}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
+          ...archive.query,
         }}
         id="incident-roles-table"
         name="Incidents > Settings > Incident Roles"
@@ -190,6 +217,7 @@ const IncidentRoles: FunctionComponent<
           },
         ]}
       />
+      {archive.element}
     </Fragment>
   );
 };

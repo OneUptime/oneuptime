@@ -780,6 +780,8 @@ export default class MonitorIncident {
               await IncidentSeverityService.findOneBy({
                 query: {
                   projectId: input.monitor.projectId!,
+                  // A default OneUptime picks itself: never an archived severity.
+                  isArchived: false,
                 },
                 sort: {
                   order: SortOrder.Ascending,

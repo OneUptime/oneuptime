@@ -95,7 +95,8 @@ export default class PingMonitorSeedIds {
     ] = await Promise.all([
       ModelAPI.getList<MonitorStatus>({
         modelType: MonitorStatus,
-        query: {},
+        // A new monitor is set up with values that can be picked.
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: {
@@ -109,7 +110,8 @@ export default class PingMonitorSeedIds {
       }),
       ModelAPI.getList<IncidentSeverity>({
         modelType: IncidentSeverity,
-        query: {},
+        // A new monitor is set up with values that can be picked.
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: {
@@ -121,7 +123,8 @@ export default class PingMonitorSeedIds {
       }),
       ModelAPI.getList<AlertSeverity>({
         modelType: AlertSeverity,
-        query: {},
+        // A new monitor is set up with values that can be picked.
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: {

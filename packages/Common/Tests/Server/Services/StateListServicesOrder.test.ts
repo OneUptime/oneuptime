@@ -140,15 +140,21 @@ const stub: (service: any, modelType: any) => Harness = (
     return harness.rows.map(toModel);
   }) as never);
 
-  // The rows a write targets, and the row an update reads before writing.
+  /*
+   * The rows a write targets, and the row an update reads before writing.
+   * A read of archived values (a create's look for an archived namesake,
+   * ArchivableValueGuard) finds none: no row here is archived.
+   */
   getJestSpyOn(service, "_findBy").mockImplementation((async (args: {
     query: Record<string, unknown>;
   }) => {
     return harness.rows
       .filter((row: Record<string, unknown>) => {
         return (
-          args.query["_id"] === undefined ||
-          String(row["_id"]) === String(args.query["_id"])
+          (args.query["_id"] === undefined ||
+            String(row["_id"]) === String(args.query["_id"])) &&
+          (args.query["isArchived"] === undefined ||
+            Boolean(row["isArchived"]) === args.query["isArchived"])
         );
       })
       .map(toModel);

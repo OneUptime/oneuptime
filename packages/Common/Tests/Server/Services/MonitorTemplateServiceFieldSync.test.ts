@@ -258,9 +258,11 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
       carryForward: null,
     });
 
+    // With who is writing: a person's steps may not pick archived values.
     expect(validateReferences).toHaveBeenCalledWith({
       monitorSteps: template.monitorSteps,
       projectId: PROJECT_ID,
+      props: createBy.props,
     });
     expect(firstStep(template.monitorSteps!).data!.doNotSyncFields).toEqual(
       PROTECTED_FIELDS,
@@ -398,10 +400,12 @@ describe("MonitorTemplateService validates saved field exclusions", () => {
     expect(read.mock.calls[0]![0].select).toEqual(
       expect.objectContaining({ monitorType: true, monitorSteps: true }),
     );
+    // With who is writing: a person's steps may not pick archived values.
     expect(validateReferences).toHaveBeenCalledWith({
       monitorSteps: updatedSteps,
       alreadyStoredMonitorSteps: storedTemplate.monitorSteps,
       projectId: PROJECT_ID,
+      props: updateBy.props,
     });
   });
 

@@ -1,5 +1,5 @@
 import { ButtonStyleType } from "../Button/Button";
-import Modal from "./Modal";
+import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -28,6 +28,12 @@ export interface ComponentProps {
   disableSubmitButton?: boolean | undefined;
   // Rendered under the description - for confirmations that also ask something.
   children?: ReactElement | undefined;
+  /*
+   * A plain button between Cancel and the submit button: another way to the
+   * same end, gentler than the one the dialog asks about - "Archive instead"
+   * beside Delete. Never primary.
+   */
+  secondaryButton?: ModalSecondaryButton | undefined;
 }
 
 /*
@@ -78,6 +84,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       }
       submitButtonStyleType={submitButtonType}
       error={props.error}
+      secondaryButton={props.secondaryButton}
     >
       {/*
        * The modal body is already the scroll container. A second one here gave

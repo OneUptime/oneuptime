@@ -303,6 +303,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           color: true,
           // The state's place: what tells where a state of the project's own is.
           order: true,
+          isArchived: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -671,6 +672,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
               name: state.name || "",
               color: state.color || Black,
               order: state.order,
+              isArchived: Boolean(state.isArchived),
             };
           },
         )}

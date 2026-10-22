@@ -207,11 +207,17 @@ export async function openDedupedIncidents(data: {
  * "least severe" the last. An explicit id that is not in the list
  * (deleted, or belonging to another project) falls through silently
  * rather than failing the source.
+ *
+ * The explicit severity is the source's own setup, and is kept even when it
+ * has been archived since: an automation keeps the values it was set up
+ * with (Common/Utils/ArchivableValues). The ones OneUptime picks itself -
+ * by name, or by rank - are never archived ones.
  */
 export function pickSeverityByPrecedence<
   TSeverity extends {
     id?: ObjectID | null | undefined;
     name?: string | undefined;
+    isArchived?: boolean | undefined;
   },
 >(data: {
   severities: Array<TSeverity>;
@@ -221,14 +227,14 @@ export function pickSeverityByPrecedence<
   // Severe sources rank to the project's most severe severity.
   isSevere: boolean;
 }): ObjectID | null {
-  const { severities, explicitSeverityId, severityLabel, isSevere } = data;
+  const { explicitSeverityId, severityLabel, isSevere } = data;
 
-  if (severities.length === 0) {
+  if (data.severities.length === 0) {
     return null;
   }
 
   if (explicitSeverityId) {
-    const explicit: TSeverity | undefined = severities.find(
+    const explicit: TSeverity | undefined = data.severities.find(
       (severity: TSeverity): boolean => {
         return severity.id?.toString() === explicitSeverityId.toString();
       },
@@ -237,6 +243,17 @@ export function pickSeverityByPrecedence<
     if (explicit && explicit.id) {
       return explicit.id;
     }
+  }
+
+  // The ones OneUptime picks by itself, by name or by rank: the live ones.
+  const severities: Array<TSeverity> = data.severities.filter(
+    (severity: TSeverity): boolean => {
+      return severity.isArchived !== true;
+    },
+  );
+
+  if (severities.length === 0) {
+    return null;
   }
 
   const nameMatch: TSeverity | undefined = severities.find(
@@ -271,6 +288,7 @@ export async function resolveAlertSeverityIdForProject(data: {
     select: {
       _id: true,
       name: true,
+      isArchived: true,
     },
     sort: {
       order: SortOrder.Ascending,
@@ -304,6 +322,7 @@ export async function resolveIncidentSeverityIdForProject(data: {
       select: {
         _id: true,
         name: true,
+        isArchived: true,
       },
       sort: {
         order: SortOrder.Ascending,

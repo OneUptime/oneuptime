@@ -112,6 +112,18 @@ Le rang décide quelle gravité l'emporte là où OneUptime les compare : la gra
 
 Une gravité n'alerte personne à elle seule. Pour alerter selon la gravité, ajoutez une règle d'astreinte dont les **Gravités d'alerte** lui correspondent : voir [Règles et paramètres des alertes](/docs/alerts/settings). Modifier la gravité d'une alerte écrit une entrée dans son fil d'activité et fait correspondre à nouveau sa règle de rappel.
 
+## Archiver un état ou une gravité
+
+Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au lieu de le supprimer. L'archivage ne modifie aucune alerte. Supprimer un état retire ses lignes de l'historique de chaque alerte, et une gravité ne peut pas être supprimée tant que des alertes l'ont.
+
+- **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les règles, mesures, critères de moniteur et flux de travail configurés pour utiliser la valeur : ils continuent à l'utiliser tant que vous ne les modifiez pas.
+- **Personne ne peut plus la choisir.** **Modifier l'état**, l'en-tête de l'alerte, Slack, Microsoft Teams, les règles et les critères de moniteur l'excluent. L'API, Terraform et MCP la refusent, en nommant la valeur et l'endroit où la désarchiver.
+- **Les alertes la conservent.** Une alerte qui l'a la conserve à chaque modification ultérieure, sa chronologie d'états l'affiche toujours, et vous pouvez toujours filtrer par celle-ci.
+- **Les valeurs archivées sont listées à part**, dans la section repliée **États d'alerte archivés** ou **Gravités d'alerte archivées** sous le tableau, avec qui a archivé chacune et quand. **Désarchiver** en remet une telle qu'elle était.
+- **Certaines ne peuvent pas être archivées.** Les états créé, accusé et résolu, ainsi que la dernière gravité non archivée du projet. Leur **Archiver** est verrouillé, avec la raison.
+
+**Supprimer** indique d'abord ce que la suppression ferait. Tant que des alertes ou des épisodes ont la valeur, la suppression est refusée et la boîte de dialogue les liste. Sinon, elle liste ce que la suppression changerait et propose **Archiver plutôt**.
+
 ## Faire passer une alerte par ses états
 
 | Moyen                      | Où                                                                                        | Ce qui est demandé                                                                                                                   |

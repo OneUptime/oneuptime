@@ -355,6 +355,12 @@ jobs:
           # only) joined them on 2026-10-21: about 20 for the eight. It moved
           # on to group 9 the same day, when this group took 20 minutes
           # without it on a slow runner.
+          # Archivable Values (about 1.5 minutes with its bundle locally,
+          # Chromium only: archiving a severity and a state on their settings
+          # pages, the dialogs while what uses a value is still read, and a
+          # create form that never offers an archived one, at a laptop's and a
+          # phone's width, light and dark) joined them on 2026-10-21: about 21
+          # on a slow runner.
           - group: 7
             browsers: chromium
             suites: >-
@@ -365,6 +371,7 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+              test-archivable-values-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -550,6 +557,8 @@ jobs:
             output/playwright/home-overview-ui/test-results
             output/playwright/list-delete-ui/*.png
             output/playwright/list-delete-ui/test-results
+            output/playwright/archivable-values-ui/*.png
+            output/playwright/archivable-values-ui/test-results
             output/playwright/status-timeline-ui/*.png
             output/playwright/status-timeline-ui/test-results
             output/playwright/episode-bulk-add-ui/*.png

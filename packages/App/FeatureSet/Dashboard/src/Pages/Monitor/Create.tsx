@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -1473,7 +1474,8 @@ const MonitorCreate: FunctionComponent<
             monitorSteps: true,
             monitoringInterval: true,
             customFields: true,
-            labels: true,
+            // An archived label is not prefilled: nobody adds it to anything.
+            labels: { _id: true, isArchived: true },
           },
         });
 
@@ -1492,9 +1494,11 @@ const MonitorCreate: FunctionComponent<
           monitorType: template.monitorType,
           monitorSteps: templateJSON["monitorSteps"],
           monitoringInterval: template.monitoringInterval,
-          labels: template.labels?.map((label: Label) => {
-            return label.id!.toString();
-          }),
+          labels: ArchivedValuePicker.getLiveValues(template.labels || []).map(
+            (label: Label) => {
+              return label.id!.toString();
+            },
+          ),
         };
 
         setInitialValues(values);

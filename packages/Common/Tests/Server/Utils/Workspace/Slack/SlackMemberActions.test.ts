@@ -951,8 +951,10 @@ describe.each(SLACK_KINDS)("Slack $name buttons", (kind: SlackKind): void => {
       expect(statesSpy).toHaveBeenCalledTimes(1);
       expect(statesSpy.mock.calls[0]![0].props.userId).toBe(userId);
       expect(statesSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
+      // Never an archived state: nobody may move a record into one.
       expect(statesSpy.mock.calls[0]![0].query).toEqual({
         projectId: projectId,
+        isArchived: false,
       });
 
       expect(showModalSpy).toHaveBeenCalledTimes(1);
