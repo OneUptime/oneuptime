@@ -2,6 +2,7 @@ import AlertSeverity from "./AlertSeverity";
 import CodeRepository from "./CodeRepository";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
+import LlmProvider from "./LlmProvider";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import Runbook from "./Runbook";
@@ -1081,6 +1082,89 @@ export default class AutoRemediationRule extends RuleBaseModel {
     },
   })
   public codeRepositories?: Array<CodeRepository> = undefined;
+
+  /*
+   * The LLM provider OneUptime AI fixes what this rule matches with - its
+   * runbook picks, its commands, its MCP fixes and the pull requests the
+   * rule opens: one of the project's own providers, or a global one. None
+   * picked is the project's default provider, else the global one. Read
+   * the way an investigation rule's is (Types/AI/LlmProviderChoice).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "llmProviderId",
+    type: TableColumnType.Entity,
+    modelType: LlmProvider,
+    title: "LLM Provider",
+    description:
+      "The LLM provider OneUptime AI uses for everything this rule starts: one of the project's providers or a global one. Empty: the project's default provider, else the global one.",
+  })
+  @ManyToOne(
+    () => {
+      return LlmProvider;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "llmProviderId" })
+  public llmProvider?: LlmProvider = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "ID of the LLM provider OneUptime AI uses for everything this rule starts. Empty: the project's default provider, else the global one.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
 
   /*
    * Whether OneUptime AI opens a fix pull request when an investigation of

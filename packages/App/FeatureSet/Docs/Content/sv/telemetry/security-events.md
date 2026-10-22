@@ -46,10 +46,11 @@ flowchart TB
 | **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
 | **Protected Entities** | Playbooks | De användare och värdar som ingen playbook begränsar |
+| **Inställningar** | AI | Om OneUptime AI bedömer varje nytt ärende |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
-**Detections** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
+**Detections**, **AI** och **Connections**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
 ## Innan du börjar
 

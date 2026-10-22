@@ -176,6 +176,7 @@ describe("the columns", () => {
       openCodeFixPullRequests: true,
       openTelemetryPullRequests: true,
       codeRepositories: { _id: true },
+      llmProviderId: true,
     });
   });
 });
@@ -252,10 +253,15 @@ describe("decideAutomaticFixPullRequest: fixing first", () => {
 
           expect(decision).toEqual(
             fix === true
-              ? { blocker: null, repositories: EVERY_CODE_REPOSITORY }
+              ? {
+                  blocker: null,
+                  repositories: EVERY_CODE_REPOSITORY,
+                  llmProviderId: "",
+                }
               : {
                   blocker: AutomaticFixPullRequestBlocker.FixOff,
                   repositories: NO_CODE_REPOSITORY,
+                  llmProviderId: "",
                 },
           );
         });
@@ -327,7 +333,11 @@ describe("decideAutomaticFixPullRequest: the rules", () => {
           pullRequest,
           rules: { rulesSetUp: false, matchingRules: [] },
         }),
-      ).toEqual({ blocker: null, repositories: EVERY_CODE_REPOSITORY });
+      ).toEqual({
+        blocker: null,
+        repositories: EVERY_CODE_REPOSITORY,
+        llmProviderId: "",
+      });
     }
   });
 
@@ -336,6 +346,7 @@ describe("decideAutomaticFixPullRequest: the rules", () => {
       expect(decide({ pullRequest, rules: null })).toEqual({
         blocker: AutomaticFixPullRequestBlocker.RulesUnreadable,
         repositories: NO_CODE_REPOSITORY,
+        llmProviderId: "",
       });
     }
   });
@@ -344,13 +355,18 @@ describe("decideAutomaticFixPullRequest: the rules", () => {
     expect(decide({ rules: { rulesSetUp: true, matchingRules: [] } })).toEqual({
       blocker: AutomaticFixPullRequestBlocker.NoMatchingRule,
       repositories: NO_CODE_REPOSITORY,
+      llmProviderId: "",
     });
   });
 
   test("a matching rule with the switch on (its default) opens it", () => {
     expect(
       decide({ rules: { rulesSetUp: true, matchingRules: [rule({})] } }),
-    ).toEqual({ blocker: null, repositories: EVERY_CODE_REPOSITORY });
+    ).toEqual({
+      blocker: null,
+      repositories: EVERY_CODE_REPOSITORY,
+      llmProviderId: "",
+    });
   });
 
   test("matching rules that all have it off open nothing, the other kind still opens", () => {
@@ -409,6 +425,7 @@ describe("decideAutomaticFixPullRequest: the repositories", () => {
     ).toEqual({
       blocker: null,
       repositories: { isEveryRepository: false, repositoryIds: [API] },
+      llmProviderId: "",
     });
   });
 
@@ -524,5 +541,135 @@ describe("describeAutomaticFixPullRequestBlocker", () => {
     ).toBe(
       "the auto remediation rules that match this incident have telemetry pull requests off",
     );
+  });
+});
+
+/*
+ * The LLM provider OneUptime AI writes the pull request with
+ * (Types/AI/LlmProviderChoice): the pick of the first rule that opens it, by
+ * name, that picks one - a rule that picks none, or one whose switch for
+ * this pull request is off, decides nothing - else "" (the project's
+ * default provider, else the global one).
+ */
+describe("decideAutomaticFixPullRequest: the LLM provider", () => {
+  const OPUS: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+  const AZURE: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc2";
+
+  const named: (
+    name: string,
+    facts: Partial<RemediationRulePullRequestFacts>,
+  ) => RemediationRulePullRequestFacts = (
+    name: string,
+    facts: Partial<RemediationRulePullRequestFacts>,
+  ): RemediationRulePullRequestFacts => {
+    return rule({ name, _id: ObjectID.generate().toString(), ...facts });
+  };
+
+  test("no rule set up: no pick - the project's default provider", () => {
+    expect(
+      decide({ rules: { rulesSetUp: false, matchingRules: [] } }).llmProviderId,
+    ).toBe("");
+  });
+
+  test("a matching rule that picks a provider writes the pull request with it", () => {
+    expect(
+      decide({
+        rules: {
+          rulesSetUp: true,
+          matchingRules: [named("Checkout", { llmProviderId: OPUS })],
+        },
+      }).llmProviderId,
+    ).toBe(OPUS);
+  });
+
+  test("of several opening rules, the first by name that picks one decides", () => {
+    expect(
+      decide({
+        rules: {
+          rulesSetUp: true,
+          matchingRules: [
+            named("Zeta", { llmProviderId: AZURE }),
+            named("alpha", { llmProviderId: OPUS }),
+            named("Beta", {}),
+          ],
+        },
+      }).llmProviderId,
+    ).toBe(OPUS);
+  });
+
+  test("a rule that picks none never hides the pick of another that opens it", () => {
+    expect(
+      decide({
+        rules: {
+          rulesSetUp: true,
+          matchingRules: [
+            named("A catch-all", {}),
+            named("Critical", { llmProviderId: AZURE }),
+          ],
+        },
+      }).llmProviderId,
+    ).toBe(AZURE);
+  });
+
+  test("a rule whose switch for this pull request is off picks nothing for it", () => {
+    const rules: AutomaticFixPullRequestRules = {
+      rulesSetUp: true,
+      matchingRules: [
+        named("A", { llmProviderId: OPUS, openCodeFixPullRequests: false }),
+        named("B", { llmProviderId: AZURE }),
+      ],
+    };
+
+    expect(
+      decide({ pullRequest: AutomaticFixPullRequest.CodeFix, rules })
+        .llmProviderId,
+    ).toBe(AZURE);
+    expect(
+      decide({ pullRequest: AutomaticFixPullRequest.MissingTelemetry, rules })
+        .llmProviderId,
+    ).toBe(OPUS);
+  });
+
+  test("a blocked pull request picks no provider", () => {
+    expect(
+      decide({
+        project: { enableAutomaticIncidentRemediation: false },
+        rules: {
+          rulesSetUp: true,
+          matchingRules: [named("A", { llmProviderId: OPUS })],
+        },
+      }),
+    ).toEqual({
+      blocker: AutomaticFixPullRequestBlocker.FixOff,
+      repositories: NO_CODE_REPOSITORY,
+      llmProviderId: "",
+    });
+    expect(
+      decide({
+        rules: {
+          rulesSetUp: true,
+          matchingRules: [
+            named("A", {
+              llmProviderId: OPUS,
+              openCodeFixPullRequests: false,
+            }),
+          ],
+        },
+      }).llmProviderId,
+    ).toBe("");
+  });
+
+  test("an AutoRemediationRule row's pick reads the same as a plain object", () => {
+    const row: AutoRemediationRule = new AutoRemediationRule();
+    row._id = ObjectID.generate().toString();
+    row.name = "Checkout";
+    row.openCodeFixPullRequests = true;
+    row.openTelemetryPullRequests = true;
+    row.llmProviderId = new ObjectID(OPUS);
+
+    expect(
+      decide({ rules: { rulesSetUp: true, matchingRules: [row] } })
+        .llmProviderId,
+    ).toBe(OPUS);
   });
 });

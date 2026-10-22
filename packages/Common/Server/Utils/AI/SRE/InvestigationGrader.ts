@@ -14,6 +14,7 @@ import AIService, {
   AI_INVESTIGATION_GRADING_FEATURE,
 } from "../../../Services/AIService";
 import logger from "../../Logger";
+import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -178,6 +179,8 @@ export default class InvestigationGrader {
           _id: true,
           autoGrade: true,
           completedAt: true,
+          // The LLM provider its rule picked: the grade uses it too.
+          llmProviderId: true,
         },
         sort: { createdAt: SortOrder.Descending },
         props: { isRoot: true },
@@ -227,11 +230,22 @@ export default class InvestigationGrader {
 
       const rootCause: string = incident!.rootCause!.trim();
 
+      /*
+       * The grade is part of the investigation: it uses the LLM provider
+       * the run's rule picked, when one did (Server/Utils/AI/LlmProviderChoice).
+       */
+      const llmProviderChoice: RuleLlmProviderChoice =
+        await LlmProviderChoice.decideIfPicked({
+          projectId,
+          pickedProviderId: run.llmProviderId,
+        });
+
       const response: AILogResponse = await AIService.executeWithLogging({
         projectId,
         feature: FEATURE_NAME,
         incidentId,
         aiRunId: run.id!,
+        llmProviderId: llmProviderChoice.llmProviderId,
         // Grades are stored on the run; no need to persist prompt previews.
         storeContentPreviews: false,
         temperature: 0,

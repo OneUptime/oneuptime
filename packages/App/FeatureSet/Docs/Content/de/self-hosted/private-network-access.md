@@ -208,4 +208,5 @@ Dies zu öffnen ändert tatsächlich, was Ihre OneUptime-Instanz erreichen kann;
 - [Workflow-Konfiguration](/docs/workflows/configuration): Was Workflow-Schritte erreichen und tun können.
 - [LLM-Anbieter](/docs/ai/llm-provider): OneUptime AI mit einem Modell in Ihrem Netzwerk verbinden.
 - [Architektur](/docs/self-hosted/architecture): Welcher Teil einer selbst gehosteten Installation welche Verbindung herstellt.
+- [Hinter einem VPN oder einer Firewall](/docs/self-hosted/behind-a-firewall): Der umgekehrte Weg: Was Ihren Server von außen erreicht.
 :::

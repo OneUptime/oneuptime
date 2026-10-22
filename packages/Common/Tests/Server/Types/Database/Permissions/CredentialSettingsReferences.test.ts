@@ -16,6 +16,8 @@ import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpS
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentVideoCall from "../../../../../Models/DatabaseModels/IncidentVideoCall";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
+import AIPostmortemRule from "../../../../../Models/DatabaseModels/AIPostmortemRule";
+import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import KubernetesCluster from "../../../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../../../Models/DatabaseModels/NetworkSite";
@@ -72,6 +74,7 @@ const VIDEO_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000e1";
 const API_KEY_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000f1";
 const MCP_SERVER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000101";
 const CONNECTION_A: string = "0193c0de-cccc-4aaa-8bbb-000000000111";
+const LLM_PROVIDER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000121";
 
 const row: (
   permission: Permission,
@@ -240,6 +243,7 @@ describe("the settings that hold credentials", () => {
     [VideoCallConnection],
     [ApiKey],
     [SecurityEventConnection],
+    [LlmProvider],
   ] as Array<[{ new (): BaseModel }]>)(
     "%p is read as a whole table, and named only by its readers",
     (modelType: { new (): BaseModel }) => {
@@ -299,6 +303,9 @@ describe("the settings that hold credentials", () => {
       "securityEventConnectionId",
       SecurityEventConnection,
     ],
+    [AIInvestigationRule, "llmProvider", "llmProviderId", LlmProvider],
+    [AutoRemediationRule, "llmProvider", "llmProviderId", LlmProvider],
+    [AIPostmortemRule, "llmProvider", "llmProviderId", LlmProvider],
   ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
     "%p.%s is held to the read of the setting it names, under both of its names",
     (
@@ -749,6 +756,127 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
         }),
       ).toBeUndefined();
     }
+  });
+});
+
+/*
+ * The LLM provider an AI rule picks holds the provider's API key: OneUptime
+ * AI does the work the rule starts with that provider, on that key
+ * (Types/AI/LlmProviderChoice). So the provider an investigation, auto
+ * remediation or postmortem rule names is held to the read of LLM
+ * providers: the owners and admins who write investigation and postmortem
+ * rules read them, as do the Settings tiers; a custom role that only edits
+ * auto remediation rules does not.
+ */
+describe("the LLM provider an AI rule picks", () => {
+  test("is refused to a role that edits auto remediation rules but reads no LLM providers, under either name, and nothing is looked up", async () => {
+    for (const permission of [
+      Permission.CreateAutoRemediationRule,
+      Permission.EditAutoRemediationRule,
+    ]) {
+      for (const data of [
+        { llmProviderId: LLM_PROVIDER_A },
+        { llmProvider: { _id: LLM_PROVIDER_A } },
+      ]) {
+        const found: Lookups = lookups();
+
+        const refusal: unknown = await check({
+          modelType: AutoRemediationRule,
+          data: data,
+          props: member([permission]),
+          lookups: found,
+        });
+
+        expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+        expect((refusal as Error).message).toMatch(
+          refusedFor("LLM Provider", LLM_PROVIDER_A),
+        );
+        expect(found.calls).toEqual([]);
+      }
+    }
+  });
+
+  test("is named by the owners and admins who write every kind of rule, and by a role that reads the providers", async () => {
+    const named: Array<
+      [{ new (): BaseModel }, DatabaseCommonInteractionProps]
+    > = [
+      [AIInvestigationRule, member([Permission.ProjectAdmin])],
+      [AIPostmortemRule, member([Permission.ProjectOwner])],
+      [AutoRemediationRule, member([Permission.ProjectAdmin])],
+      [
+        AutoRemediationRule,
+        member([Permission.EditAutoRemediationRule, Permission.ReadProjectLlm]),
+      ],
+      [
+        AutoRemediationRule,
+        member([
+          Permission.CreateAutoRemediationRule,
+          Permission.SettingsViewer,
+        ]),
+      ],
+    ];
+
+    for (const [modelType, props] of named) {
+      expect(
+        await check({
+          modelType: modelType,
+          data: { llmProviderId: LLM_PROVIDER_A },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a rule that picks none - the project's default, else the global provider - asks nothing", async () => {
+    for (const data of [
+      { llmProviderId: null },
+      { llmProvider: null },
+      { name: "Restart the checkout pods" },
+    ]) {
+      expect(
+        await check({
+          modelType: AutoRemediationRule,
+          data: data,
+          props: member([Permission.EditAutoRemediationRule]),
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("an update that keeps the pick a rule holds asks nothing", async () => {
+    const found: Lookups = lookups();
+
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: member([Permission.EditAutoRemediationRule]),
+        lookups: found,
+        heldIdsByColumn: { llmProvider: [[LLM_PROVIDER_A]] },
+      }),
+    ).toBeUndefined();
+    expect(found.calls).toEqual([]);
+  });
+
+  test("an API key is held to the same rule", async () => {
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: apiKey([Permission.CreateAutoRemediationRule]),
+      }),
+    ).toBeInstanceOf(UnreadableReferenceException);
+
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: apiKey([
+          Permission.CreateAutoRemediationRule,
+          Permission.ReadProjectLlm,
+        ]),
+      }),
+    ).toBeUndefined();
   });
 });
 

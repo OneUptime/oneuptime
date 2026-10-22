@@ -132,6 +132,16 @@ export interface ObservabilityAssistantRequest {
    */
   excludeToolNames?: Array<string> | undefined;
   /*
+   * Called with what each successful tool call handed the model - the text
+   * it read, as it read it - so a run can look over everything it was shown
+   * (a security case's triage looks for text written to steer an AI:
+   * Common/Utils/AI/InstructionLikeText). Never changes what the model
+   * reads; a handler that throws is logged and the run goes on.
+   */
+  onToolResult?:
+    | ((result: { toolName: string; textForLlm: string }) => void)
+    | undefined;
+  /*
    * The code repositories the run's code tools may read
    * (ToolContext.codeRepositoryAllowance): left out, every one the caller
    * may read.
@@ -478,6 +488,19 @@ export default class ObservabilityAssistant {
             citationLabel: outcome.result.citationLabel,
             citationTarget: outcome.result.citationTarget,
           });
+
+          if (request.onToolResult) {
+            try {
+              request.onToolResult({
+                toolName: toolCall.name,
+                textForLlm: outcome.textForLlm,
+              });
+            } catch (error) {
+              logger.error(
+                `ObservabilityAssistant: a tool result handler failed for ${toolCall.name}: ${error}`,
+              );
+            }
+          }
 
           const escapedText: string = escapeToolResultContent(
             outcome.textForLlm,

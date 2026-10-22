@@ -470,14 +470,29 @@ export default class InvestigationRuleWait {
       }
 
       /*
+       * The LLM provider the record's investigation rules pick: the run
+       * the rules made wait uses it, started now or when the wait ends.
+       */
+      const llmProviderId: ObjectID | undefined =
+        await InvestigationRules.getSubjectLlmProviderId({
+          projectId: subject.projectId,
+          ...(subject.lane === "Incident"
+            ? { incidentId: subject.subjectId }
+            : { alertId: subject.subjectId }),
+        });
+
+      /*
        * What stops OneUptime AI altogether. Automatic investigation being
        * switched off since does not: this is someone asking.
        */
       const disabled: InvestigationNotStartedCode | null =
-        await AIInvestigationEngine.getDisabledReason(
-          subject.projectId,
-          subject.lane,
-        );
+        await AIInvestigationEngine.getDisabledReasonForSubject({
+          projectId: subject.projectId,
+          subjectType: subject.lane,
+          getRuleLlmProviderId: async (): Promise<ObjectID | undefined> => {
+            return llmProviderId;
+          },
+        });
 
       if (disabled && disabled !== "automatic_investigation_disabled") {
         return startNowProblem(disabled);
@@ -490,6 +505,7 @@ export default class InvestigationRuleWait {
         ...(subject.lane === "Incident"
           ? { subjectIncidentId: subject.subjectId }
           : { subjectAlertId: subject.subjectId }),
+        ...(llmProviderId ? { llmProviderId } : {}),
         subjectMonitorId:
           await InvestigationRuleWait.getFirstMonitorId(subject),
         ruleWaitMinutes: waiting.waitMinutes,

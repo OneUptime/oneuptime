@@ -11,6 +11,8 @@ import AIService, {
   AI_INVESTIGATION_TLDR_FEATURE,
   AI_REMEDIATION_EXECUTION_FEATURE,
   AI_REMEDIATION_PLANNING_FEATURE,
+  AI_SECURITY_CASE_TRIAGE_FEATURE,
+  AI_DETECTION_RULE_DRAFT_FEATURE,
   AI_PRODUCTION_REVIEW_FEATURE,
   RUNBOOK_AI_STEP_FEATURE,
   WORKFLOW_AI_FEATURE,
@@ -86,6 +88,7 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
     expect(AI_INSIGHT_TRIAGE_FEATURE).toBe("AI Insight Triage");
     expect(AI_REMEDIATION_PLANNING_FEATURE).toBe("AI Remediation Planning");
     expect(AI_REMEDIATION_EXECUTION_FEATURE).toBe("AI Remediation Execution");
+    expect(AI_SECURITY_CASE_TRIAGE_FEATURE).toBe("AI Security Case Triage");
     expect(RUNBOOK_AI_STEP_FEATURE).toBe("Runbook AI Step");
     expect(WORKFLOW_AI_FEATURE).toBe("Workflow AI");
   });
@@ -101,11 +104,25 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
       AI_INSIGHT_TRIAGE_FEATURE,
       AI_REMEDIATION_PLANNING_FEATURE,
       AI_REMEDIATION_EXECUTION_FEATURE,
+      AI_SECURITY_CASE_TRIAGE_FEATURE,
       RUNBOOK_AI_STEP_FEATURE,
       WORKFLOW_AI_FEATURE,
     ]) {
       expect(AUTONOMOUS_AI_FEATURES).toContain(feature);
     }
+  });
+
+  /*
+   * Drafting a detection rule is a person's request, answered while they
+   * wait on the form: the project's daily limits cover it, and the
+   * autonomous budget - which would refuse it once triage spent the day's
+   * share - does not.
+   */
+  test("drafting a detection rule is not autonomous work", () => {
+    expect(AI_DETECTION_RULE_DRAFT_FEATURE).toBe("AI Detection Rule Draft");
+    expect(AUTONOMOUS_AI_FEATURES).not.toContain(
+      AI_DETECTION_RULE_DRAFT_FEATURE,
+    );
   });
 
   /*
@@ -147,6 +164,7 @@ describe("AUTONOMOUS_AI_FEATURES persisted labels", () => {
         AI_INSIGHT_TRIAGE_FEATURE,
         AI_REMEDIATION_PLANNING_FEATURE,
         AI_REMEDIATION_EXECUTION_FEATURE,
+        AI_SECURITY_CASE_TRIAGE_FEATURE,
         AI_PRODUCTION_REVIEW_FEATURE,
         RUNBOOK_AI_STEP_FEATURE,
         WORKFLOW_AI_FEATURE,

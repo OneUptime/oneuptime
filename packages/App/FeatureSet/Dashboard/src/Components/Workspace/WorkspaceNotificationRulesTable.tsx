@@ -70,6 +70,7 @@ import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnectio
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
@@ -154,6 +155,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MicrosoftTeamsChat>
   >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
+  const [onCallSchedules, setOnCallSchedules] = React.useState<
+    Array<OnCallDutyPolicySchedule>
+  >([]);
   const [videoCallConnections, setVideoCallConnections] = React.useState<
     Array<VideoCallConnection>
   >([]);
@@ -447,6 +451,34 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setUsers(uniqueUsers);
 
       /*
+       * The on-call schedules, by name, for a rule's summary to name those
+       * whose on-call person joins its channel. A member who may not read
+       * them still edits the rule, so a refusal leaves them unnamed.
+       */
+      try {
+        const schedules: ListResult<OnCallDutyPolicySchedule> =
+          await ModelAPI.getList({
+            modelType: OnCallDutyPolicySchedule,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              _id: true,
+              name: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+
+        setOnCallSchedules(schedules.data);
+      } catch {
+        setOnCallSchedules([]);
+      }
+
+      /*
        * What the name of the channel a rule creates is made of: the
        * project's number prefixes (incident INC-42's channel is inc-42),
        * and for an on-call policy rule, one of the project's policies. The
@@ -635,6 +667,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
         users={users}
+        onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
         exampleRecordName={exampleRecordName}
       />
@@ -1037,6 +1070,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           monitorStatus: monitorStatus,
           teams: teams,
           users: users,
+          onCallSchedules: onCallSchedules,
           microsoftTeamsTeams: microsoftTeamsTeams,
           microsoftTeamsChats: microsoftTeamsChats,
           videoCallConnections: videoCallConnections,

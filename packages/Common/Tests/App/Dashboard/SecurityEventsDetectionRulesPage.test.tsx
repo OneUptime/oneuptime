@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -90,6 +96,7 @@ import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { isFormFieldValueSet } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
+import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -652,6 +659,93 @@ describe("Detection Rules page", () => {
 
       expect(yamlFields).toHaveLength(1);
       expect(yamlFields[0]?.title).toBe("Sigma Rule (YAML)");
+    });
+  });
+
+  describe("Draft with AI, under the Sigma rule", () => {
+    type FooterField = {
+      getFooterElement?: (
+        values: Record<string, unknown>,
+        error?: string,
+        footer?: { setValue: (value: unknown) => void },
+      ) => React.ReactElement | undefined;
+    };
+
+    function drawFooter(
+      values: Record<string, unknown>,
+    ): ReturnType<typeof jest.fn> {
+      renderPage();
+
+      const field: FooterField = fieldTitled(
+        "Sigma Rule (YAML)",
+      ) as unknown as FooterField;
+      const setValue: ReturnType<typeof jest.fn> = jest.fn();
+
+      expect(field.getFooterElement).toBeDefined();
+      render(
+        field.getFooterElement!(values, undefined, {
+          setValue: setValue as unknown as (value: unknown) => void,
+        })!,
+      );
+
+      return setValue;
+    }
+
+    test("an empty rule is offered a draft; a written one a redraft", () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProject")
+        .mockReturnValue({ enableAi: true } as never);
+
+      drawFooter({ sigmaRuleYaml: "" });
+      expect(
+        screen.getByTestId("detection-rule-ai-draft-open"),
+      ).toHaveTextContent("Draft with AI");
+      cleanup();
+
+      drawFooter({ sigmaRuleYaml: "   " });
+      expect(
+        screen.getByTestId("detection-rule-ai-draft-open"),
+      ).toHaveTextContent("Draft with AI");
+      cleanup();
+
+      drawFooter({ sigmaRuleYaml: "title: Something\n" });
+      expect(
+        screen.getByTestId("detection-rule-ai-draft-open"),
+      ).toHaveTextContent("Redraft with AI");
+    });
+
+    test("the drafted rule is set as the field's own value, so the rule is named after it", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProject")
+        .mockReturnValue({ enableAi: true } as never);
+      jest
+        .spyOn(SecurityCaseApi, "draftDetectionRule")
+        .mockResolvedValue({ sigmaRuleYaml: "title: Drafted\n", title: "" });
+
+      const setValue: ReturnType<typeof jest.fn> = drawFooter({
+        sigmaRuleYaml: "",
+      });
+
+      fireEvent.click(screen.getByTestId("detection-rule-ai-draft-open"));
+      fireEvent.change(
+        screen.getByTestId("detection-rule-ai-draft-description"),
+        { target: { value: "SSH sign-ins from outside the office" } },
+      );
+      fireEvent.click(screen.getByTestId("detection-rule-ai-draft-submit"));
+
+      await waitFor(() => {
+        expect(setValue).toHaveBeenCalledWith("title: Drafted\n");
+      });
+    });
+
+    test("with the project's AI off the field has no Draft with AI", () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProject")
+        .mockReturnValue({ enableAi: false } as never);
+
+      drawFooter({ sigmaRuleYaml: "" });
+
+      expect(screen.queryByTestId("detection-rule-ai-draft-open")).toBeNull();
     });
   });
 

@@ -208,4 +208,5 @@ probes:
 - [ワークフローの設定](/docs/workflows/configuration): ワークフローのステップが到達できる範囲と、実行できること。
 - [LLM プロバイダー](/docs/ai/llm-provider): OneUptime AI をネットワーク上のモデルに接続します。
 - [アーキテクチャ](/docs/self-hosted/architecture): セルフホスト環境のどの部分がどの接続を行うか。
+- [VPN またはファイアウォールの内側](/docs/self-hosted/behind-a-firewall): 逆方向です。外部からサーバーに届く通信をまとめています。
 :::

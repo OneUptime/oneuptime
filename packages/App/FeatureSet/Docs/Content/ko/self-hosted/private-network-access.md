@@ -208,4 +208,5 @@ probes:
 - [워크플로 구성](/docs/workflows/configuration): 워크플로 단계가 접근하고 수행할 수 있는 것.
 - [LLM 공급자](/docs/ai/llm-provider): OneUptime AI를 네트워크의 모델에 연결합니다.
 - [아키텍처](/docs/self-hosted/architecture): 자체 호스팅 설치의 어느 부분이 각 연결을 만드는지.
+- [VPN 또는 방화벽 뒤에서 운영](/docs/self-hosted/behind-a-firewall): 반대 방향으로, 외부에서 서버에 도달하는 연결을 정리합니다.
 :::

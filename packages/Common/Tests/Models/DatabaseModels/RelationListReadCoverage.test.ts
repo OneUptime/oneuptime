@@ -367,6 +367,8 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
   SecurityEventConnection:
     "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
+  LlmProvider:
+    "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key.",
 };
 
 // The references to them, each held to the read of the table it names.
@@ -380,6 +382,9 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["AlertVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["ApiKeyPermission", "apiKey", "ApiKey"],
   ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
+  ["AIInvestigationRule", "llmProvider", "LlmProvider"],
+  ["AutoRemediationRule", "llmProvider", "LlmProvider"],
+  ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];
 
 /*

@@ -219,6 +219,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "The installation's Twilio account: what it is used for (calls and SMS, SMS only or calls only), then its account SID, auth token and the one number that answer takes - values the Twilio console shows together and that only work together - and one folded Advanced header with the numbers few installations need: the numbers SMS go out from when the others can only make calls, and the extra numbers bought for other countries. Each number field is shown for one answer alone, so the page shows four open rows at most. It walked the account, then the numbers, which split one copy-and-paste across a Next.",
   },
   {
+    file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Settings/Telegram/Index.tsx",
+    form: "CardModelDetail: Telegram Bot Settings",
+    reason:
+      "The installation's Telegram bot: the token and username @BotFather gives together, then how the bot's messages arrive - Poll Telegram for Messages, or a webhook whose secret token shows only while polling is off. Three rows when the bot polls; as two steps, one setup the guide above walks in one go would split across a Next.",
+  },
+  {
     file: "packages/App/FeatureSet/AdminDashboard/src/Pages/Projects/View/Users.tsx",
     form: "ModelFormModal: Invite New User",
     reason:

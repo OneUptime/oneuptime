@@ -523,6 +523,41 @@ export default class AIRun extends BaseModel {
   })
   public ruleWaitMinutes?: number = undefined;
 
+  /*
+   * The LLM provider the rule that started this run picked for it - an
+   * investigation rule, an auto remediation rule, or the rule behind a fix
+   * pull request - recorded when the run was created. Empty when no rule
+   * picked one: the run uses the project's default provider, else the
+   * global one. Kept as written, with no foreign key: a run queued before
+   * its provider was deleted still knows it had one, falls back when it
+   * starts, and says so in its activity (Server/Utils/AI/LlmProviderChoice).
+   * The provider each LLM call used is on its LlmLog row.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "The LLM provider the rule that started this run picked for it. Empty when no rule picked one: the project's default provider, else the global one.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [
@@ -578,6 +613,38 @@ export default class AIRun extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public triggeredByAiInsightId?: ObjectID = undefined;
+
+  /*
+   * Set when the run triages a security case (SecurityCaseTriageRunner):
+   * the case OneUptime AI read, whose card shows the run and whose timeline
+   * the report is posted to. A triage reads only; it never changes the case
+   * beyond the read it records on it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Security Case ID",
+    description:
+      "The security case this run triaged (for security case triage runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredBySecurityCaseId?: ObjectID = undefined;
 
   /*
    * Set on RemediationPlan runs: the AutoRemediationSuggestion this planning
