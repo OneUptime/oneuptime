@@ -116,13 +116,19 @@ export async function fetchKubernetesEvents(data: {
         _id: idOf(log),
         time: log.time,
         attributes: log.attributes,
+        // Not asked for; kept if a server sends it anyway.
+        body: log.body,
       };
     },
   );
 
   const unstampedIds: Array<string> = logs
     .filter((log: KubernetesEventLogLike): boolean => {
-      return isUnstampedKubernetesEventLog(log) && Boolean(log._id);
+      return (
+        isUnstampedKubernetesEventLog(log) &&
+        typeof log.body !== "string" &&
+        Boolean(log._id)
+      );
     })
     .map((log: KubernetesEventLogLike): string => {
       return String(log._id);

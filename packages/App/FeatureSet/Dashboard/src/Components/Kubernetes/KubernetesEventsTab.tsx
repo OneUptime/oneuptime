@@ -264,6 +264,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
           clusterId={props.clusterId}
           showObject={props.scope.kind !== "object"}
           showNamespace={false}
+          pageResetKey={shownType}
         />
       )}
 

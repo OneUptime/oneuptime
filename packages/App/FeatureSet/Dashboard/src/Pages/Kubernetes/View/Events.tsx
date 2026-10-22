@@ -24,8 +24,8 @@ import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import Dropdown, {
@@ -39,6 +39,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
+import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import {
   getFilteredEmptyStateProps,
   getLoadErrorStateProps,
@@ -221,11 +222,10 @@ const KubernetesClusterEvents: FunctionComponent<
    * before ingest stamped its type is only found there.
    */
   const warningRows: Array<KubernetesEventRow> = loaded
-    ? mergeKubernetesEventRows(
-        loaded.warnings.rows,
-        loaded.all.rows.filter((row: KubernetesEventRow): boolean => {
+    ? mergeKubernetesEventRows(loaded.warnings.rows, loaded.all.rows).filter(
+        (row: KubernetesEventRow): boolean => {
           return row.isWarning;
-        }),
+        },
       )
     : [];
   const allRows: Array<KubernetesEventRow> = loaded
@@ -336,28 +336,30 @@ const KubernetesClusterEvents: FunctionComponent<
   };
 
   const rangeElement: ReactElement = (
-    <div className="flex items-center gap-2">
-      <RangeStartAndEndDateView
-        dashboardStartAndEndDate={view.range}
-        onChange={(range: RangeStartAndEndDateTime) => {
-          applyView({ ...view, range: range });
-        }}
-      />
-      <Button
-        title=""
-        ariaLabel="Refresh"
-        tooltip="Refresh"
-        icon={IconProp.Refresh}
-        buttonStyle={ButtonStyleType.ICON}
-        dataTestId="kubernetes-events-refresh"
-        onClick={() => {
-          load(view).catch(() => {
-            // handled inside.
-          });
-        }}
-      />
-    </div>
+    <RangeStartAndEndDateView
+      dashboardStartAndEndDate={view.range}
+      onChange={(range: RangeStartAndEndDateTime) => {
+        applyView({ ...view, range: range });
+      }}
+    />
   );
+
+  /*
+   * Refresh lives in the ⋯ at the end of the card's header, where every
+   * table keeps it (getTableHeaderButtons), beside the time range.
+   */
+  const cardButtons: Array<CardButtonSchema> = [
+    {
+      title: "",
+      buttonStyle: ButtonStyleType.ICON,
+      onClick: () => {
+        load(view).catch(() => {
+          // handled inside.
+        });
+      },
+      icon: IconProp.Refresh,
+    },
+  ];
 
   const renderEmptyState: () => ReactElement = (): ReactElement => {
     if (hasFilters) {
@@ -418,7 +420,8 @@ const KubernetesClusterEvents: FunctionComponent<
         title="Events"
         description="What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. Warnings are listed first when there are any."
         rightElement={rangeElement}
-        headerLayout="stacked"
+        buttons={getTableHeaderButtons(cardButtons)}
+        headerLayout="toolbar"
       >
         {!loaded && isLoading ? <ComponentLoader /> : <></>}
 
@@ -531,6 +534,7 @@ const KubernetesClusterEvents: FunctionComponent<
                 clusterId={modelId}
                 showObject={true}
                 showNamespace={true}
+                pageResetKey={JSON.stringify({ ...view, type: shownType })}
               />
             )}
 

@@ -1,5 +1,4 @@
 import { KubernetesEventRow } from "./KubernetesEventsModel";
-import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -13,6 +12,7 @@ import {
   getFeedClock,
 } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import Table from "Common/UI/Components/Table/Table";
 import { TableEmptyStateProps } from "Common/UI/Components/Table/TableEmptyState";
 import Column from "Common/UI/Components/Table/Types/Column";
@@ -56,6 +56,12 @@ export interface ComponentProps {
   showNamespace: boolean;
   isLoading?: boolean | undefined;
   error?: string | undefined;
+  /*
+   * What the rows are of - the type, the filters, the range. A new one
+   * starts the table on its first page; a refresh of the same view keeps
+   * the reader's page, held to the rows there are.
+   */
+  pageResetKey?: string | undefined;
   // What the table says when there are no rows.
   emptyStateProps?: TableEmptyStateProps | undefined;
   noItemsMessage?: string | undefined;
@@ -229,12 +235,12 @@ const ObjectCell: FunctionComponent<{
     <div className="min-w-0" data-testid="kubernetes-event-object">
       <div className="text-xs text-gray-500">{row.objectKind}</div>
       {route ? (
-        <AppLink
+        <Link
           to={route}
           className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline [overflow-wrap:anywhere]"
         >
           {row.objectName}
-        </AppLink>
+        </Link>
       ) : (
         <span className="font-medium text-gray-900 [overflow-wrap:anywhere]">
           {row.objectName}
@@ -296,10 +302,10 @@ const KubernetesEventsTable: FunctionComponent<ComponentProps> = (
   const [sortBy, setSortBy] = useState<SortKey | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Descending);
 
-  // New rows - another filter, a refresh - start from the first page.
+  // Another view starts from the first page.
   useEffect(() => {
     setCurrentPage(1);
-  }, [props.rows]);
+  }, [props.pageResetKey]);
 
   const sortedRows: Array<KubernetesEventRow> = useMemo(() => {
     if (!sortBy) {

@@ -1,6 +1,5 @@
 import { KubernetesWarningSummary } from "./KubernetesEventsModel";
 import { getKubernetesObjectRoute } from "./KubernetesEventsTable";
-import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -15,6 +14,7 @@ import {
   getFeedClock,
 } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -120,12 +120,12 @@ const WarningLine: FunctionComponent<{
           >
             <span className="text-gray-500">{warning.objectKind}</span>
             {objectRoute ? (
-              <AppLink
+              <Link
                 to={objectRoute}
                 className="truncate text-indigo-600 hover:text-indigo-800 hover:underline"
               >
                 {warning.objectName}
-              </AppLink>
+              </Link>
             ) : (
               <span className="truncate">{warning.objectName}</span>
             )}
@@ -205,13 +205,14 @@ const KubernetesRecentWarningsCard: FunctionComponent<ComponentProps> = (
         })}
       </ul>
       <div className="-mx-5 -mb-6 border-t border-gray-100 px-5 py-3 md:-mx-6 md:px-6">
-        <AppLink
+        <Link
           to={eventsRoute}
           className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          dataTestId="kubernetes-recent-warnings-view-all"
         >
           <span>{translator.translateText("View all warnings")}</span>
           <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-        </AppLink>
+        </Link>
       </div>
     </Card>
   );
