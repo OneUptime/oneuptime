@@ -1,0 +1,273 @@
+/*
+ * AN ON-CALL POLICY'S ACKNOWLEDGEMENT TIMEOUT: PAGE AGAIN WHEN AN
+ * ACKNOWLEDGED INCIDENT, ALERT OR EPISODE IS NOT RESOLVED IN TIME.
+ *
+ * Acknowledging a page stops the policy for good: somebody took it. When
+ * they are then pulled away, fall back asleep or forget, the record can sit
+ * acknowledged with nobody reminded of it (issue #5123). A policy can now
+ * say how long that may last - "page again if it is acknowledged but not
+ * resolved within N minutes" (OnCallDutyPolicy.acknowledgementTimeoutInMinutes).
+ * Empty, as it is on every policy until somebody sets it, nothing changes:
+ * acknowledging stops the paging, as it always did.
+ *
+ * What it does, decided once for everybody (there is nothing else to pick):
+ *
+ *   - The clock starts when the record is acknowledged - from anywhere: an
+ *     answered page, the Dashboard, the mobile app, Slack or Microsoft
+ *     Teams, the API, a workflow - and starts again at every new
+ *     acknowledgement, a page again answered included. It is counted from
+ *     the moment OneUptime records the acknowledgement, so a state change
+ *     back-dated to yesterday does not page anybody at once.
+ *   - When it runs out with the record still acknowledged and not resolved,
+ *     the policy pages again: a new run of it (a "page again", numbered on
+ *     the run as pageAgainNumber). It starts at the escalation rule that was
+ *     paging when the record was acknowledged and pages whoever is on call
+ *     there NOW - a rotation that changed hands since pages its new person -
+ *     and, first, the person who acknowledged it.
+ *   - The record stays acknowledged. OneUptime never moves a record back up
+ *     its list of states (Common/Utils/StateMove): doing it here would write
+ *     a state change into the record's history, tell status page
+ *     subscribers and the record's channels it changed, and start every
+ *     automation that waits for a state - for a reminder. The page again
+ *     is a page of its own instead, in the record's feed and its on-call
+ *     logs like every page: acknowledged, escalated or left alone like any.
+ *     Escalated, it moves to the next level; left alone, it goes through
+ *     the policy's levels as the first run did.
+ *   - It pages again at most ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN
+ *     times for one record, so a record somebody keeps acknowledging and
+ *     never resolves is not paged about for ever.
+ *   - It stops when the record is resolved or deleted, when the policy is
+ *     archived or deleted, and when the timeout is turned off. A changed
+ *     number of minutes applies to the clocks already running.
+ *
+ * This file holds the rule and its words, for the server (the clock, the
+ * worker that pages again, the feed and the runs' chat messages), the
+ * Dashboard and the docs tests. It imports nothing that needs a server or
+ * React.
+ */
+
+// What "Page again" starts with in the Dashboard: half an hour.
+export const DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES: number = 30;
+
+/*
+ * The shortest and longest timeouts a policy may have. Under five minutes
+ * nobody acknowledging has had time to look; a day is the longest wait a
+ * reminder about an open record is still about the same piece of work.
+ */
+export const MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES: number = 5;
+export const MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES: number = 1440;
+
+/*
+ * How many times one policy pages again about one record, at most. A
+ * person who acknowledges each page again is working on it: after a few
+ * times they have said so often enough.
+ */
+export const ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN: number = 5;
+
+const MINUTE_IN_MS: number = 60 * 1000;
+
+export interface OnCallAcknowledgementTimeoutSettings {
+  acknowledgementTimeoutInMinutes?: number | null | undefined;
+}
+
+/*
+ * The policy's timeout in minutes, or null when it does not page again.
+ * A stored number is read as the worker reads it: not a positive number is
+ * off, anything else a whole number inside the allowed range.
+ */
+export function getOnCallAcknowledgementTimeoutInMinutes(
+  policy: OnCallAcknowledgementTimeoutSettings | null | undefined,
+): number | null {
+  const value: unknown = policy?.acknowledgementTimeoutInMinutes;
+
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const minutes: number = Number(value);
+
+  if (!Number.isFinite(minutes) || minutes <= 0) {
+    return null;
+  }
+
+  return Math.min(
+    MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
+    Math.max(MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES, Math.floor(minutes)),
+  );
+}
+
+// Whether a policy pages again after an acknowledgement.
+export function isOnCallAcknowledgementTimeoutOn(
+  policy: OnCallAcknowledgementTimeoutSettings | null | undefined,
+): boolean {
+  return getOnCallAcknowledgementTimeoutInMinutes(policy) !== null;
+}
+
+/*
+ * Why a value cannot be a policy's timeout, or null when it can: empty (the
+ * timeout is off) or a whole number of minutes in the allowed range. What
+ * the API, Terraform and the Dashboard are told.
+ */
+export function getOnCallAcknowledgementTimeoutRefusal(
+  value: unknown,
+): string | null {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const minutes: number = typeof value === "number" ? value : Number(value);
+
+  if (
+    typeof value === "boolean" ||
+    !Number.isFinite(minutes) ||
+    !Number.isInteger(minutes)
+  ) {
+    return "The acknowledgement timeout is a whole number of minutes. Leave it empty to turn it off.";
+  }
+
+  if (
+    minutes < MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES ||
+    minutes > MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES
+  ) {
+    return `The acknowledgement timeout is between ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} and ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} minutes (24 hours). Leave it empty to turn it off.`;
+  }
+
+  return null;
+}
+
+// When a clock that started at `startedAt` runs out.
+export function getOnCallAcknowledgementTimeoutDueAt(data: {
+  startedAt: Date;
+  minutes: number;
+}): Date {
+  return new Date(
+    new Date(data.startedAt).getTime() + data.minutes * MINUTE_IN_MS,
+  );
+}
+
+/*
+ * Whether a clock that started at `startedAt` has run out at `now`: to the
+ * millisecond, never by whole minutes - a worker that ticks once a minute
+ * pages again at its first tick at or after the moment.
+ */
+export function isOnCallAcknowledgementTimeoutDue(data: {
+  startedAt: Date;
+  minutes: number;
+  now: Date;
+}): boolean {
+  const startedAt: number = new Date(data.startedAt).getTime();
+
+  if (isNaN(startedAt)) {
+    return false;
+  }
+
+  return (
+    getOnCallAcknowledgementTimeoutDueAt({
+      startedAt: new Date(startedAt),
+      minutes: data.minutes,
+    }).getTime() <= new Date(data.now).getTime()
+  );
+}
+
+/*
+ * Whether a policy may page again about a record it paged again about
+ * `pagesAgainSoFar` times already.
+ */
+export function hasOnCallPagesAgainLeft(
+  pagesAgainSoFar: number | null | undefined,
+): boolean {
+  const count: number = Number(pagesAgainSoFar || 0);
+
+  // A count that is not a number pages nobody again: it cannot be trusted.
+  if (!Number.isFinite(count)) {
+    return false;
+  }
+
+  return count < ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN;
+}
+
+export interface OnCallPageAgainRun {
+  pageAgainNumber?: number | null | undefined;
+}
+
+/*
+ * Whether a run is a page again: started because its record stayed
+ * acknowledged without being resolved. Such a run is not over because its
+ * record is acknowledged - it was all along - only once somebody
+ * acknowledges the run itself, or the record is resolved.
+ */
+export function isOnCallPageAgainRun(
+  run: OnCallPageAgainRun | null | undefined,
+): boolean {
+  const number: number = Number(run?.pageAgainNumber || 0);
+
+  return Number.isFinite(number) && number > 0;
+}
+
+/*
+ * A timeout in words: "30 minutes", "1 hour", "1 hour 30 minutes",
+ * "24 hours".
+ */
+export function describeOnCallAcknowledgementTimeout(minutes: number): string {
+  const whole: number = Math.max(0, Math.floor(minutes));
+  const hours: number = Math.floor(whole / 60);
+  const rest: number = whole % 60;
+
+  const minutesText: string = rest === 1 ? "1 minute" : `${rest} minutes`;
+
+  if (hours === 0) {
+    return minutesText;
+  }
+
+  const hoursText: string = hours === 1 ? "1 hour" : `${hours} hours`;
+
+  return rest === 0 ? hoursText : `${hoursText} ${minutesText}`;
+}
+
+// Which page again of how many, for a line about one: "1 of 5".
+export function getOnCallPageAgainPlace(pageAgainNumber: number): string {
+  return `${pageAgainNumber} of ${ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN}`;
+}
+
+/*
+ * The status message a page again runs with while it pages, the words its
+ * Execution Logs row and the run's own page show:
+ *
+ *   Paging again (1 of 5): still not resolved 30 minutes after it was
+ *   acknowledged.
+ */
+export const ON_CALL_PAGE_AGAIN_STATUS_MESSAGE_START: string = "Paging again (";
+
+export function getOnCallPageAgainStatusMessage(data: {
+  pageAgainNumber: number;
+  minutes: number;
+}): string {
+  return `${ON_CALL_PAGE_AGAIN_STATUS_MESSAGE_START}${getOnCallPageAgainPlace(
+    data.pageAgainNumber,
+  )}): still not resolved ${describeOnCallAcknowledgementTimeout(
+    data.minutes,
+  )} after it was acknowledged.`;
+}
+
+// Whether a run's status message is the one a page again pages with.
+export function isOnCallPageAgainStatusMessage(
+  statusMessage: string | null | undefined,
+): boolean {
+  return (statusMessage || "").startsWith(
+    ON_CALL_PAGE_AGAIN_STATUS_MESSAGE_START,
+  );
+}
+
+/*
+ * What a page again's Slack and Microsoft Teams message says first, under
+ * its headline: "Paged again (1 of 5): still not resolved after it was
+ * acknowledged." The last one says it is the last.
+ */
+export function getOnCallPageAgainChatLine(pageAgainNumber: number): string {
+  const isLast: boolean =
+    pageAgainNumber >= ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN;
+
+  return `Paged again (${getOnCallPageAgainPlace(pageAgainNumber)}${
+    isLast ? ", the last time" : ""
+  }): still not resolved after it was acknowledged.`;
+}
