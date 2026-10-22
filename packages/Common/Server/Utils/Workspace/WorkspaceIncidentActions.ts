@@ -1,4 +1,6 @@
-import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseBaseModel, {
+  DatabaseBaseModelType,
+} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
@@ -28,6 +30,7 @@ import WorkspaceIncidentNumberWordReader, {
   WorkspaceIncidentNumberWord,
 } from "./WorkspaceIncidentNumberWord";
 import type { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields";
+import DatabaseService from "../../Services/DatabaseService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentService from "../../Services/IncidentService";
@@ -333,11 +336,12 @@ export default class WorkspaceIncidentActions {
   /*
    * May the member do what a form of the menu does, to this incident: the
    * row it creates or the columns it changes (`check`), and a read of the
-   * incident, as theirs - an incident they may not read is answered like
-   * one that is not there. Asked before the form opens, so nobody fills one
-   * in for nothing, and again when it is submitted. Throws
-   * NotAuthorizedException (or PaymentRequiredException, below the plan),
-   * worded for the chat; hands back the incident as they read it.
+   * incident, as theirs - an incident they may not read is refused with why
+   * (WorkspaceActionAuthorization.getUnreadableRefusal). Asked before the
+   * form opens, so nobody fills one in for nothing, and again when it is
+   * submitted. Throws NotAuthorizedException (or PaymentRequiredException,
+   * below the plan), worded for the chat; hands back the incident as they
+   * read it.
    */
   @CaptureSpan()
   public static async authorizeForForm(data: {
@@ -362,20 +366,15 @@ export default class WorkspaceIncidentActions {
       });
     }
 
-    const found: { record: Incident; event: WorkspaceEventRecord } | null =
-      await WorkspaceMemberActions.findEventForMember<Incident>({
+    const found: { record: Incident; event: WorkspaceEventRecord } =
+      await WorkspaceMemberActions.readEventForMember<Incident>({
         event: { type: WorkspaceEventType.Incident, id: data.incidentId },
         props: data.props,
         select: {
           title: true,
         },
+        action: check.action,
       });
-
-    if (!found) {
-      throw new NotAuthorizedException(
-        `You do not have permission to ${check.action}: the incident ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-      );
-    }
 
     return { event: found.event, title: found.record.title || "" };
   }
@@ -792,8 +791,11 @@ export default class WorkspaceIncidentActions {
     severityId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<{ isChanged: boolean; severityName: string }> {
-    const severity: IncidentSeverity | null =
-      await IncidentSeverityService.findOneBy({
+    let severity: IncidentSeverity | null = null;
+    let readError: unknown = undefined;
+
+    try {
+      severity = await IncidentSeverityService.findOneBy({
         query: {
           _id: data.severityId.toString(),
           projectId: data.event.projectId,
@@ -804,11 +806,23 @@ export default class WorkspaceIncidentActions {
         },
         props: data.props,
       });
+    } catch (err) {
+      if (!(err instanceof NotAuthorizedException)) {
+        throw err;
+      }
+
+      readError = err;
+    }
 
     if (!severity?.id) {
-      throw new NotAuthorizedException(
-        `The incident severity ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-      );
+      throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+        action: "change the severity of this incident",
+        service:
+          IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
+        id: data.severityId,
+        props: data.props,
+        readError: readError,
+      });
     }
 
     const severityName: string = severity.name || "";
@@ -990,23 +1004,39 @@ export default class WorkspaceIncidentActions {
   }): Promise<WorkspaceRoleAssignment> {
     const projectId: ObjectID = data.event.projectId;
 
-    const role: IncidentRole | null = await IncidentRoleService.findOneBy({
-      query: {
-        _id: data.roleId.toString(),
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        canAssignMultipleUsers: true,
-      },
-      props: data.props,
-    });
+    let role: IncidentRole | null = null;
+    let readError: unknown = undefined;
+
+    try {
+      role = await IncidentRoleService.findOneBy({
+        query: {
+          _id: data.roleId.toString(),
+          projectId: projectId,
+        },
+        select: {
+          _id: true,
+          name: true,
+          canAssignMultipleUsers: true,
+        },
+        props: data.props,
+      });
+    } catch (err) {
+      if (!(err instanceof NotAuthorizedException)) {
+        throw err;
+      }
+
+      readError = err;
+    }
 
     if (!role?.id) {
-      throw new NotAuthorizedException(
-        `The incident role ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-      );
+      throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+        action: "assign a role on this incident",
+        service:
+          IncidentRoleService as unknown as DatabaseService<DatabaseBaseModel>,
+        id: data.roleId,
+        props: data.props,
+        readError: readError,
+      });
     }
 
     const roleName: string = role.name || "";
@@ -1597,11 +1627,15 @@ export default class WorkspaceIncidentActions {
       type: DatabaseRequestType.Update,
     });
 
-    return error instanceof NotAuthorizedException
-      ? error
-      : new NotAuthorizedException(
-          `The incident ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-        );
+    if (error instanceof NotAuthorizedException) {
+      return error;
+    }
+
+    // Not readable to them any more: why, as for any record a chat names.
+    return await WorkspaceMemberActions.getUnreadableRefusal({
+      event: { type: WorkspaceEventType.Incident, id: data.incidentId },
+      props: data.props,
+    });
   }
 
   // A person's name, as a list shows it: their name, or their email.

@@ -24,6 +24,12 @@ import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredEx
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import CallerPlan from "../Billing/CallerPlan";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
+import logger from "../Logger";
+import { shouldBypassRecordPrivacy } from "../PrivacyFilterUtil";
+import { applyIncidentSelfPrivacyFilter } from "../Incident/IncidentPrivacyFilter";
+import { applyAlertSelfPrivacyFilter } from "../Alert/AlertPrivacyFilter";
+import { applyIncidentEpisodeSelfPrivacyFilter } from "../IncidentEpisode/IncidentEpisodePrivacyFilter";
+import { applyAlertEpisodeSelfPrivacyFilter } from "../AlertEpisode/AlertEpisodePrivacyFilter";
 
 /*
  * A resource a chat action is performed against: the incident being
@@ -40,6 +46,25 @@ export interface WorkspaceActionResource {
    */
   select?: Select<DatabaseBaseModel> | undefined;
 }
+
+// A table's rule for its private records, added to a query of it.
+type SelfPrivacyFilter = <TQuery>(
+  query: TQuery,
+  props: DatabaseCommonInteractionProps,
+) => TQuery;
+
+/*
+ * The tables that hold private records - an incident, an alert or an
+ * episode marked private - by table name, with the rule every read of them
+ * as a person follows: a private record is read only by its owners and by
+ * those who see every private record of the project.
+ */
+const PRIVACY_FILTERS: Record<string, SelfPrivacyFilter> = {
+  Incident: applyIncidentSelfPrivacyFilter,
+  Alert: applyAlertSelfPrivacyFilter,
+  IncidentEpisode: applyIncidentEpisodeSelfPrivacyFilter,
+  AlertEpisode: applyAlertEpisodeSelfPrivacyFilter,
+};
 
 /*
  * Slack and Microsoft Teams actions (buttons, modals, cards, emoji reactions)
@@ -65,17 +90,44 @@ export interface WorkspaceActionResource {
  *      OnCallDutyPolicyExecutionLog to page an on-call policy, and so on,
  *   3. every resource the action names is one the user can read in THIS
  *      project, under their label, owner and privacy scoping.
+ *
+ * A refusal says what is actually wrong, and what to do about it, in words
+ * the chat shows them (getUnreadableRefusal): the permission they lack, a
+ * record that is private, one their access does not include, or one that
+ * is not there at all - never "not found" for a record that is there.
  */
 export default class WorkspaceActionAuthorization {
   public static readonly NOT_A_PROJECT_MEMBER_MESSAGE: string =
     "Your OneUptime account is not a member of this project. Ask a project admin to invite you, then try again.";
 
   /*
-   * How a record the member may not read is answered, after its name: like
-   * one that is not there, so that nothing about it is told to them.
+   * What a record is answered with, after "You do not have permission to
+   * <action>: ", when the member may read records of its kind but their
+   * access does not include this one - their role is limited to some
+   * labels, or to what they or their teams own, or a team of theirs is
+   * blocked from it. The record is the one the chat showed them: that it is
+   * there is nothing new to them, and nothing else about it is told.
    */
-  public static readonly NOT_FOUND_OR_NOT_READABLE: string =
-    "was not found in this project, or you do not have access to it.";
+  public static getNotIncludedReason(noun: string): string {
+    return `your access in this project does not include this ${noun}. Ask a project admin for access to it.`;
+  }
+
+  /*
+   * The same, for a private record (an incident, an alert or an episode)
+   * the member is not an owner of: only its owners, and the project's
+   * owners and admins, see it.
+   */
+  public static getPrivateReason(noun: string): string {
+    return `this ${noun} is private: only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.`;
+  }
+
+  /*
+   * What a record that is not in the project at all is answered with, after
+   * "Could not <action>: ": deleted since the message was posted, say.
+   */
+  public static getNotFoundReason(noun: string): string {
+    return `the ${noun} was not found. It may have been deleted.`;
+  }
 
   @CaptureSpan()
   public static async isProjectMember(data: {
@@ -141,7 +193,7 @@ export default class WorkspaceActionAuthorization {
       );
     }
 
-    return {
+    return await WorkspaceActionAuthorization.withProjectPlan({
       userId: userId,
       tenantId: projectId,
       userGlobalAccessPermission: userGlobalAccessPermission || undefined,
@@ -149,7 +201,35 @@ export default class WorkspaceActionAuthorization {
         [projectId.toString()]: userTenantAccessPermission,
       },
       userTeamIds: userTeamIds,
-    };
+    });
+  }
+
+  /*
+   * The member's props with their project's plan, as a dashboard request
+   * carries it (CommonAPI, CallerPlan.withPlan): on OneUptime Cloud every
+   * plan check an action meets - in DatabaseService and in a service's own
+   * check alike, such as the one a page from chat makes before anything is
+   * read (OnCallPageService) - reads the plan from them. Props without it
+   * are refused wherever a plan decides ("OneUptime could not confirm which
+   * plan this project is on"), which paging from Slack was, for every
+   * project on Cloud. Billing off: the props come back as they are.
+   *
+   * A plan that cannot be read refuses the action with that sentence, as
+   * every API request of the project is refused then - never "any plan".
+   */
+  private static async withProjectPlan(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<DatabaseCommonInteractionProps> {
+    try {
+      return await CallerPlan.withPlan(props);
+    } catch (err) {
+      logger.error("Could not read the plan of a project for a chat action.", {
+        projectId: props.tenantId?.toString(),
+      });
+      logger.error(err, { projectId: props.tenantId?.toString() });
+
+      throw new NotAuthorizedException(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+    }
   }
 
   /*
@@ -218,6 +298,7 @@ export default class WorkspaceActionAuthorization {
 
     for (const resource of data.resources || []) {
       let readableResource: DatabaseBaseModel | null = null;
+      let readError: unknown = undefined;
 
       try {
         readableResource = await resource.service.findOneBy({
@@ -235,22 +316,128 @@ export default class WorkspaceActionAuthorization {
         if (!(err instanceof NotAuthorizedException)) {
           throw err;
         }
+
+        readError = err;
       }
 
       if (!readableResource) {
-        const resourceName: string = (
-          resource.service.getModel().singularName || "resource"
-        ).toLowerCase();
-
-        throw new NotAuthorizedException(
-          `You do not have permission to ${action}: the ${resourceName} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-        );
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: action,
+          service: resource.service,
+          id: resource.id,
+          props: props,
+          readError: readError,
+        });
       }
 
       readableResources.push(readableResource);
     }
 
     return readableResources;
+  }
+
+  /*
+   * THE REFUSAL OF A RECORD THE MEMBER COULD NOT READ, saying what is
+   * actually wrong and what to do (a record of the project in `props`):
+   *
+   *   - their role may not read records of its kind at all: the read's own
+   *     refusal, which names the permissions that would let them;
+   *   - it is not in the project: not found - it may have been deleted;
+   *   - it is private, and they are not one of its owners: so, and who to
+   *     ask to add them;
+   *   - otherwise their access does not include it - limited to some
+   *     labels, or to what they or their teams own: so, and to ask a
+   *     project admin.
+   *
+   * `readError` is the member's read's own refusal, when it threw one. Only
+   * the record's id and its project are read here, as OneUptime: nothing
+   * the member may not read is told to them. A refusal of the read for the
+   * plan is the plan's refusal, as it was thrown.
+   */
+  @CaptureSpan()
+  public static async getUnreadableRefusal(data: {
+    // Completes "You do not have permission to ...": "acknowledge this incident".
+    action: string;
+    service: DatabaseService<DatabaseBaseModel>;
+    id: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    readError?: unknown;
+  }): Promise<Error> {
+    const { service, props } = data;
+    const projectId: ObjectID | undefined = props.tenantId;
+
+    if (data.readError instanceof PaymentRequiredException) {
+      return data.readError;
+    }
+
+    if (data.readError instanceof NotAuthorizedException) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.action}. ${data.readError.message}`,
+      );
+    }
+
+    const noun: string = (
+      service.getModel().singularName || "record"
+    ).toLowerCase();
+
+    if (!projectId) {
+      return new NotAuthorizedException(
+        `You do not have permission to ${data.action}.`,
+      );
+    }
+
+    const query: Query<DatabaseBaseModel> = {
+      _id: data.id.toString(),
+      projectId: projectId,
+    } as Query<DatabaseBaseModel>;
+
+    const record: DatabaseBaseModel | null = await service.findOneBy({
+      query: query,
+      select: {
+        _id: true,
+      } as Select<DatabaseBaseModel>,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!record) {
+      return new NotAuthorizedException(
+        `Could not ${data.action}: ${WorkspaceActionAuthorization.getNotFoundReason(noun)}`,
+      );
+    }
+
+    const privacyFilter: SelfPrivacyFilter | undefined =
+      PRIVACY_FILTERS[service.getModel().tableName || ""];
+
+    if (privacyFilter && !shouldBypassRecordPrivacy(props)) {
+      // Read as OneUptime under the member's rule for private records.
+      const visible: DatabaseBaseModel | null = await service.findOneBy({
+        query: privacyFilter(
+          {
+            _id: data.id.toString(),
+            projectId: projectId,
+          } as Query<DatabaseBaseModel>,
+          props,
+        ),
+        select: {
+          _id: true,
+        } as Select<DatabaseBaseModel>,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!visible) {
+        return new NotAuthorizedException(
+          `You do not have permission to ${data.action}: ${WorkspaceActionAuthorization.getPrivateReason(noun)}`,
+        );
+      }
+    }
+
+    return new NotAuthorizedException(
+      `You do not have permission to ${data.action}: ${WorkspaceActionAuthorization.getNotIncludedReason(noun)}`,
+    );
   }
 
   /*

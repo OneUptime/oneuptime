@@ -1225,7 +1225,7 @@ export default class MicrosoftTeamsIncidentMoreActions {
   }): Promise<WorkspaceIncidentForForm> {
     if (!data.actionValue || !ObjectID.isValidUUID(data.actionValue)) {
       throw new NotAuthorizedException(
-        `You do not have permission to ${data.check.action}: the incident ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
+        `Could not ${data.check.action}: ${WorkspaceActionAuthorization.getNotFoundReason("incident")}`,
       );
     }
 
