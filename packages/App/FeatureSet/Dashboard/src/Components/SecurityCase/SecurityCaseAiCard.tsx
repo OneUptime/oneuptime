@@ -367,7 +367,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         title={SecurityCaseAiCopy.reasons[reasonCode]}
         testId="security-case-ai-reason"
       >
-        {reasonAction ? (
+        {reasonAction && reasonAction.page ? (
           <AppLink
             className="font-medium text-indigo-600 hover:underline"
             to={RouteUtil.populateRouteParams(
@@ -376,6 +376,10 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           >
             <>{translator.translateText(reasonAction.label)}</>
           </AppLink>
+        ) : reasonAction ? (
+          <span data-testid="security-case-ai-reason-who-can">
+            {translator.translateText(reasonAction.label)}
+          </span>
         ) : (
           <></>
         )}

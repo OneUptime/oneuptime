@@ -19,6 +19,7 @@ import {
   shouldOfferSuggestedPriority,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseAiTriage";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import { ProjectBalanceAccess } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
@@ -274,10 +275,32 @@ describe("what the card offers", () => {
       label: "Set up an LLM provider",
       page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     });
-    expect(getSecurityCaseAiReasonAction("insufficient_ai_balance")).toEqual({
+    // Only someone who may add AI credits is sent to the page that adds them.
+    expect(
+      getSecurityCaseAiReasonAction(
+        "insufficient_ai_balance",
+        ProjectBalanceAccess.Yes,
+      ),
+    ).toEqual({
       label: "Add AI credits",
       page: PageMap.SETTINGS_AI_CREDITS,
     });
+    // Anyone else is told who can, once that is known; nothing before.
+    expect(
+      getSecurityCaseAiReasonAction(
+        "insufficient_ai_balance",
+        ProjectBalanceAccess.No,
+      ),
+    ).toEqual({
+      label:
+        "A project owner or someone with Manage Billing can add AI credits.",
+    });
+    expect(
+      getSecurityCaseAiReasonAction(
+        "insufficient_ai_balance",
+        ProjectBalanceAccess.Unknown,
+      ),
+    ).toBeNull();
     expect(
       getSecurityCaseAiReasonAction("project_daily_limit_reached")?.page,
     ).toBe(PageMap.SETTINGS_AI_FEATURES);

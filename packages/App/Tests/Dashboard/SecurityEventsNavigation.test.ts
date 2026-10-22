@@ -128,7 +128,7 @@ function sectionTitled(title: string): SecurityEventsMenuSection {
 }
 
 describe("the Security Events menu", () => {
-  test("is six sections, in the order Security works: overview, cases, events, detections, playbooks, connections", () => {
+  test("is seven sections, in the order Security works: overview, cases, events, detections, playbooks, AI, connections", () => {
     expect(
       SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
         return section.title;
@@ -139,6 +139,7 @@ describe("the Security Events menu", () => {
       "Events",
       "Detections",
       "Playbooks",
+      "AI",
       "Connections",
     ]);
   });
@@ -176,6 +177,8 @@ describe("the Security Events menu", () => {
           "Protected Entities",
         ],
       ],
+      // What OneUptime AI does on its own; the triage is on each case.
+      ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
     ]);
   });
@@ -205,6 +208,7 @@ describe("the Security Events menu", () => {
       ["Waiting for Approval", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
       ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
+      ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
     ]);
@@ -228,7 +232,7 @@ describe("the Security Events menu", () => {
     ).toEqual(Object.keys(SecurityEventsRoutePath).sort());
   });
 
-  test("folds the sections set up once - Detections and Connections - and keeps the everyday ones open", () => {
+  test("folds the sections set up once - Detections, AI and Connections - and keeps the everyday ones open", () => {
     expect(
       SECURITY_EVENTS_MENU.map(
         (section: SecurityEventsMenuSection): [string, boolean] => {
@@ -242,6 +246,7 @@ describe("the Security Events menu", () => {
       ["Detections", true],
       // Open: a run held for an approval does nothing until somebody decides.
       ["Playbooks", false],
+      ["AI", true],
       ["Connections", true],
     ]);
   });
@@ -539,6 +544,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks", "Waiting for Approval"],
       ["Security Events", "Playbooks", "Playbook Runs"],
       ["Security Events", "Playbooks", "Protected Entities"],
+      ["Security Events", "AI", "Settings"],
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
     ]);
