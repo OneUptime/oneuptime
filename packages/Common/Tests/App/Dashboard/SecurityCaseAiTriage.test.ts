@@ -7,6 +7,7 @@ import {
   canStartTriage,
   didLatestTriageNotFinish,
   getSecurityCaseAiBadge,
+  getSecurityCaseAiCreditsAction,
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
   getSecurityCaseAiStepLabel,
@@ -19,7 +20,6 @@ import {
   shouldOfferSuggestedPriority,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseAiTriage";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
-import { ProjectBalanceAccess } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
@@ -275,37 +275,38 @@ describe("what the card offers", () => {
       label: "Set up an LLM provider",
       page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     });
-    // Only someone who may add AI credits is sent to the page that adds them.
-    expect(
-      getSecurityCaseAiReasonAction(
-        "insufficient_ai_balance",
-        ProjectBalanceAccess.Yes,
-      ),
-    ).toEqual({
-      label: "Add AI credits",
-      page: PageMap.SETTINGS_AI_CREDITS,
-    });
-    // Anyone else is told who can, once that is known; nothing before.
-    expect(
-      getSecurityCaseAiReasonAction(
-        "insufficient_ai_balance",
-        ProjectBalanceAccess.No,
-      ),
-    ).toEqual({
-      label:
-        "A project owner or someone with Manage Billing can add AI credits.",
-    });
-    expect(
-      getSecurityCaseAiReasonAction(
-        "insufficient_ai_balance",
-        ProjectBalanceAccess.Unknown,
-      ),
-    ).toBeNull();
+    // Running out of AI credits is answered by who is reading (below).
+    expect(getSecurityCaseAiReasonAction("insufficient_ai_balance")).toBeNull();
     expect(
       getSecurityCaseAiReasonAction("project_daily_limit_reached")?.page,
     ).toBe(PageMap.SETTINGS_AI_FEATURES);
     expect(getSecurityCaseAiReasonAction("not_enqueued")).toBeNull();
     expect(getSecurityCaseAiReasonAction(null)).toBeNull();
+  });
+
+  test("out of AI credits: AI Credits for someone who may add them, who can for anyone known not to, nothing while unknown", () => {
+    expect(
+      getSecurityCaseAiCreditsAction({
+        mayAddCredits: true,
+        isKnownNotToAdd: false,
+      }),
+    ).toEqual({ label: "Add AI credits", linksToAiCredits: true });
+    expect(
+      getSecurityCaseAiCreditsAction({
+        mayAddCredits: false,
+        isKnownNotToAdd: true,
+      }),
+    ).toEqual({
+      label:
+        "A project owner or someone with Manage Billing can add AI credits.",
+      linksToAiCredits: false,
+    });
+    expect(
+      getSecurityCaseAiCreditsAction({
+        mayAddCredits: false,
+        isKnownNotToAdd: false,
+      }),
+    ).toBeNull();
   });
 
   test("the suggested priority is one click only when the case is at another", () => {

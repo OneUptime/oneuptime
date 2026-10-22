@@ -46,10 +46,11 @@ flowchart TB
 | **승인 대기 중** | Playbooks | 누군가 승인하거나 거부하기를 기다리는 플레이북 단계 |
 | **플레이북 실행** | Playbooks | 각 플레이북이 한 일을 단계별로 |
 | **Protected Entities** | Playbooks | 어떤 플레이북도 봉쇄하지 않는 사용자와 호스트 |
+| **설정** | AI | OneUptime AI가 새 케이스마다 트리아지할지 여부 |
 | **Connections** | Connections | 로그, OneUptime이 가져오는 보안 제품, 그리고 이벤트를 보내는 SIEM |
 | **설정 가이드** | Connections | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
 
-한 번 설정하면 되는 **Detections** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
+한 번 설정하면 되는 **Detections**, **AI** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
 
 ## 시작하기 전에
 

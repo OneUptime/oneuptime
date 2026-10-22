@@ -84,6 +84,7 @@ flowchart TB
 케이스 페이지에는 케이스를 처리하는 데 필요한 모든 것이 있습니다.
 
 - 상단: **Assign to Me**, **Run Playbook**, **인시던트 선언**, **Close Case** 버튼, 상태 단계, 그리고 그 옆 메뉴 아래의 우선순위.
+- **OneUptime AI**: OneUptime AI가 케이스를 어떻게 읽었는지, 제안하는 우선순위와 플레이북, 그리고 그 근거. [보안의 OneUptime AI](/docs/telemetry/security-ai) 를 참조하세요.
 - **Detections**: 케이스를 열었거나 케이스에 합류한 탐지, 그 발동 횟수, 일치한 최신 이벤트.
 - **엔티티**: 케이스가 다루는 사용자, 호스트, 주소와, 최근 7일 동안 모든 보안 이벤트에 걸친 그 활동. 각각 **상관 분석** 에서 열 수 있습니다.
 - **MITRE ATT&CK**: 탐지가 매핑된 전술과 기법. 각각 attack.mitre.org의 해당 페이지로 연결됩니다.
@@ -166,6 +167,7 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | --- | --- |
 | Case Opened | 케이스가 열릴 때 한 번 |
 | Detection Added | 열린 케이스에 새 탐지가 합류할 때마다 |
+| 악성 가능성 높음으로 트리아지됨 | OneUptime AI의 트리아지가 케이스를 악성 가능성 높음 판정으로 읽을 때 한 번 |
 | Manual | 누군가 케이스에서 직접 실행할 때만 |
 
 활성화된 플레이북은 케이스의 **Run Playbook** 으로 직접 실행할 수도 있습니다. 자동으로 실행되는 플레이북은 대상을 좁힐 수 있습니다.
@@ -321,5 +323,6 @@ VPN에 대한 무차별 대입처럼 주소로 그룹화된 케이스는 어느 
 :::cards
 - [보안 이벤트](/docs/telemetry/security-events): 이벤트를 보내고, 탐지 규칙을 작성하고, 보안 제품을 연결합니다.
 - [위협 인텔리전스](/docs/telemetry/threat-intelligence): 이벤트를 STIX/TAXII 피드와 대조합니다.
+- [보안의 OneUptime AI](/docs/telemetry/security-ai): AI로 케이스를 트리아지하고, 탐지 규칙 초안을 만들고, 보안에 관해 질문합니다.
 - [권한 레퍼런스](/docs/permissions/reference): Security 역할과 각 역할이 할 수 있는 일.
 :::

@@ -46,10 +46,11 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Waiting for Approval** | Playbooks | The playbook steps waiting for someone to approve or reject them |
 | **Playbook Runs** | Playbooks | What each playbook did, step by step |
 | **Protected Entities** | Playbooks | The users and hosts no playbook contains |
+| **Settings** | AI | Whether OneUptime AI triages each new case |
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 
-**Detections** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
+**Detections**, **AI** and **Connections**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
 ## Before you begin
 

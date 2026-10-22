@@ -13,6 +13,7 @@ import InvestigationRunDetails from "../AI/InvestigationReport/InvestigationRunD
 import SecurityCaseApi from "./SecurityCaseApi";
 import {
   SecurityCaseAiCopy,
+  SecurityCaseAiCreditsAction,
   SecurityCaseAiReasonAction,
   SecurityCaseAiResult,
   SecurityCaseAiStage,
@@ -21,6 +22,7 @@ import {
   canStartTriage,
   didLatestTriageNotFinish,
   getSecurityCaseAiBadge,
+  getSecurityCaseAiCreditsAction,
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
   getSecurityCaseAiStepLabel,
@@ -34,6 +36,10 @@ import {
   SecurityCaseAiVerdictPill,
   SecurityCasePriorityPill,
 } from "./SecurityCasePills";
+import {
+  getProjectBalanceAccess,
+  ProjectBalanceAccess,
+} from "../ProjectBalance/ProjectBalanceAccess";
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -73,6 +79,7 @@ import PermissionGate, {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useAiOffered from "../../Utils/UseAiOffered";
+import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -356,6 +363,40 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     getSecurityCaseAiReasonAction(reasonCode);
   const blockingReason: boolean = isBlockingTriageReason(reasonCode);
 
+  /*
+   * Out of AI credits: AI Credits for someone who may add them, who can for
+   * anyone known not to (LowBalanceMessagesNameWhoCan).
+   */
+  const renderCreditsAction: () => ReactElement = (): ReactElement => {
+    const access: ProjectBalanceAccess = getProjectBalanceAccess(
+      ProjectBalanceType.AI,
+    );
+    const action: SecurityCaseAiCreditsAction | null =
+      getSecurityCaseAiCreditsAction({
+        mayAddCredits: access === ProjectBalanceAccess.Yes,
+        isKnownNotToAdd: access === ProjectBalanceAccess.No,
+      });
+
+    if (!action) {
+      return <></>;
+    }
+
+    return action.linksToAiCredits ? (
+      <AppLink
+        className="font-medium text-indigo-600 hover:underline"
+        to={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_AI_CREDITS] as Route,
+        )}
+      >
+        <>{translator.translateText(action.label)}</>
+      </AppLink>
+    ) : (
+      <span data-testid="security-case-ai-reason-who-can">
+        {translator.translateText(action.label)}
+      </span>
+    );
+  };
+
   const renderReason: () => ReactElement = (): ReactElement => {
     if (!reasonCode || !blockingReason) {
       return <></>;
@@ -367,7 +408,9 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         title={SecurityCaseAiCopy.reasons[reasonCode]}
         testId="security-case-ai-reason"
       >
-        {reasonAction && reasonAction.page ? (
+        {reasonCode === "insufficient_ai_balance" ? (
+          renderCreditsAction()
+        ) : reasonAction ? (
           <AppLink
             className="font-medium text-indigo-600 hover:underline"
             to={RouteUtil.populateRouteParams(
@@ -376,10 +419,6 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           >
             <>{translator.translateText(reasonAction.label)}</>
           </AppLink>
-        ) : reasonAction ? (
-          <span data-testid="security-case-ai-reason-who-can">
-            {translator.translateText(reasonAction.label)}
-          </span>
         ) : (
           <></>
         )}

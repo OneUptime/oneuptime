@@ -49,6 +49,11 @@ import {
   SecurityPlaybookActionCategory,
   SecurityPlaybookActionDefinition,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
+import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import {
+  SECURITY_CASE_AI_VERDICTS,
+  SecurityCaseAiVerdictDescription,
+} from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import {
   DatabaseAlertTemplateEntry,
   DatabaseAlertTemplateGroup,
@@ -929,7 +934,72 @@ describe("security-events.ejs", () => {
     );
     expect(html).not.toContain("alerts and incidents are the case record");
     expect(html).not.toContain("no security case queue");
-    expect(html).toContain("AI summaries of cases");
+    /*
+     * OneUptime AI triages cases now (SecurityCaseTriageRunner), so "AI
+     * summaries of cases" left "Not in the box"; what it still never does -
+     * close a case or contain a threat by itself - took its place.
+     */
+    expect(html).not.toContain("AI summaries of cases");
+    expect(html).toContain(
+      "An AI that closes cases or contains threats on its own.",
+    );
+  });
+
+  test("claims AI triage as the product does it: every new case, read-only, cited, a person decides", () => {
+    /*
+     * The four reads are the code's own (SecurityCaseAiVerdict), the playbook
+     * trigger is the form's name for it, and the case's AI card in the visual
+     * draws the card's own buttons. The docs link is the page that says how.
+     */
+    const reads: Array<string> = SECURITY_CASE_AI_VERDICTS.map(
+      (read: SecurityCaseAiVerdictDescription): string => {
+        return read.verdict;
+      },
+    );
+
+    expect(reads).toEqual([
+      "Likely Malicious",
+      "Likely Benign",
+      "Likely False Positive",
+      "Inconclusive",
+    ]);
+    expect(html).toContain(
+      "says whether the case looks Likely Malicious, Likely Benign, Likely False Positive or Inconclusive",
+    );
+    expect(html).toContain("It changes nothing on the case");
+    expect(html).toContain("every claim cited to the query behind it");
+    expect(html).toContain("AI triage on every new case");
+    expect(html).toContain(">AI triage</span>");
+
+    const card: string = html.slice(
+      html.indexOf('id="sec-case-ai-card"'),
+      html.indexOf("Run playbook</div>", html.indexOf('id="sec-case-ai-card"')),
+    );
+
+    expect(card.length).toBeGreaterThan(0);
+    expect(card).toContain(">OneUptime AI</p>");
+    expect(card).toContain(">Likely Malicious</span>");
+    expect(card).toContain("Set priority");
+
+    expect(SecurityPlaybookTrigger.TriagedAsLikelyMalicious).toBe(
+      "Triaged as Likely Malicious",
+    );
+    expect(html).toContain(
+      "when OneUptime AI triages a case as Likely Malicious, or when someone clicks Run Playbook",
+    );
+    expect(html).toContain("It drafts Sigma rules from a sentence");
+
+    const seo: PageSEOData = PageSEOConfig["/product/security-events"]!;
+
+    expect(seo.description).toContain(
+      "grouped into cases that OneUptime AI triages",
+    );
+    expect(seo.softwareApplication!.features).toContain(
+      "OneUptime AI triage of every new case, with cited evidence and a suggested priority and playbook",
+    );
+    expect(seo.softwareApplication!.features).toContain(
+      "Detection rules drafted by AI from a sentence",
+    );
   });
 
   test("quotes the rule library, playbooks and connectors as the code counts them", () => {

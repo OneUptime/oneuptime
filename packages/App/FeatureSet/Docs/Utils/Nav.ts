@@ -911,6 +911,10 @@ const DocsNav: NavGroup[] = [
         title: "Threat Intelligence (STIX/TAXII)",
         url: "/docs/telemetry/threat-intelligence",
       },
+      {
+        title: "OneUptime AI in Security",
+        url: "/docs/telemetry/security-ai",
+      },
     ],
   },
   /*

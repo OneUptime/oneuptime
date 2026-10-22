@@ -1,10 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import { describeEvidenceTool } from "../../Utils/InvestigationEvidenceFormat";
 import { parseInvestigationEvidence } from "../AI/InvestigationReport/InvestigationReportData";
-import {
-  getProjectBalanceAccess,
-  ProjectBalanceAccess,
-} from "../ProjectBalance/ProjectBalanceAccess";
 import { WHO_CAN_ADD_AI_CREDITS } from "../ProjectBalance/ProjectBalanceCopy";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -17,7 +13,6 @@ import SecurityCasePriority, {
   isSecurityCasePriority,
 } from "Common/Types/SecurityCase/SecurityCasePriority";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { ProjectBalanceType } from "Common/Utils/Project/ProjectBalance";
 
 /*
  * THE CASE'S AI CARD, as data: what OneUptime AI did with the case and what
@@ -396,20 +391,17 @@ export function getSecurityCaseAiVerdictSentence(
 
 /*
  * Where a reason sends the reader, when somewhere can fix it: the page,
- * and its link's words. AI credits are added by a project owner or someone
- * with Manage Billing, so only they are sent to the page that adds them;
- * someone known not to be one of them is told who can instead, and while
- * that is not known yet (the permissions are on their way) nothing is said.
+ * and its link's words. Running out of AI credits is the card's own to
+ * answer (getSecurityCaseAiCreditsAction): what it offers depends on who
+ * is reading.
  */
 export interface SecurityCaseAiReasonAction {
   label: string;
-  // Absent: a sentence to read, not a link.
-  page?: PageMap | undefined;
+  page: PageMap;
 }
 
 export function getSecurityCaseAiReasonAction(
   code: SecurityCaseTriageNotStartedCode | null,
-  balanceAccess?: ProjectBalanceAccess,
 ): SecurityCaseAiReasonAction | null {
   switch (code) {
     case "provider_missing":
@@ -417,21 +409,6 @@ export function getSecurityCaseAiReasonAction(
         label: translationKey("Set up an LLM provider"),
         page: PageMap.SETTINGS_AI_LLM_PROVIDERS,
       };
-    case "insufficient_ai_balance": {
-      const access: ProjectBalanceAccess =
-        balanceAccess || getProjectBalanceAccess(ProjectBalanceType.AI);
-
-      if (access === ProjectBalanceAccess.Yes) {
-        return {
-          label: translationKey("Add AI credits"),
-          page: PageMap.SETTINGS_AI_CREDITS,
-        };
-      }
-
-      return access === ProjectBalanceAccess.No
-        ? { label: WHO_CAN_ADD_AI_CREDITS }
-        : null;
-    }
     case "project_daily_limit_reached":
       return {
         label: translationKey("Go to Project Settings → AI → AI Features"),
@@ -440,6 +417,35 @@ export function getSecurityCaseAiReasonAction(
     default:
       return null;
   }
+}
+
+/*
+ * What the card offers when the project is out of AI credits. A project
+ * owner or someone with Manage Billing adds them, so only they are sent to
+ * AI Credits; someone known not to be one of them is told who can instead,
+ * and while that is not known yet (the permissions are on their way)
+ * nothing is offered. The card asks who is reading (getProjectBalanceAccess).
+ */
+export interface SecurityCaseAiCreditsAction {
+  label: string;
+  // The AI Credits page, or a sentence to read.
+  linksToAiCredits: boolean;
+}
+
+export function getSecurityCaseAiCreditsAction(reader: {
+  mayAddCredits: boolean;
+  isKnownNotToAdd: boolean;
+}): SecurityCaseAiCreditsAction | null {
+  if (reader.mayAddCredits) {
+    return {
+      label: translationKey("Add AI credits"),
+      linksToAiCredits: true,
+    };
+  }
+
+  return reader.isKnownNotToAdd
+    ? { label: WHO_CAN_ADD_AI_CREDITS, linksToAiCredits: false }
+    : null;
 }
 
 // The card's words, each an English key the card translates.
