@@ -191,9 +191,43 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       descriptionPlaceholder:
         "Customers cannot use the product. Respond immediately.",
     },
+    /*
+     * A postmortem can move back up this list (reopened for another look),
+     * so unlike the state pages it does not say it "only ever moves down":
+     * its order says what each status counts as (Common/Utils/Incident/
+     * PostmortemStatus).
+     */
+    [StateListType.IncidentPostmortemStatus]: {
+      title: "Postmortem Statuses",
+      description:
+        "How far a postmortem has come. Drag a status to change where it sits. A new status is added just above the completed status, and a status below it counts as done.",
+      countsAs: {
+        title: "Counts as",
+        tooltip:
+          "Where a status sits decides what a postmortem in it counts as. From the draft status down, it is in progress. From the completed status down, it is done and no longer owed.",
+        aboveAll: "Not started",
+        byBuiltIn: {
+          isNotStartedStatus: "Not started",
+          isDraftStatus: "In progress",
+          isCompletedStatus: "Done",
+        },
+      },
+      builtInTooltips: {
+        isNotStartedStatus:
+          "A new incident's postmortem starts in this status. It can be renamed, but not deleted.",
+        isDraftStatus:
+          "Writing a postmortem moves it to this status. It can be renamed, but not deleted.",
+        isCompletedStatus:
+          "Publishing a postmortem on a status page moves it to this status. It can be renamed, but not deleted.",
+      },
+      deleteLockedReason: "Built-in statuses can be renamed, but not deleted.",
+      namePlaceholder: "In Review",
+      descriptionPlaceholder:
+        "The postmortem is written and waiting for the team's review.",
+    },
   };
 
-/** Every string the six pages show, for the locale checks. */
+/** Every string the seven pages show, for the locale checks. */
 export const getStateSettingsStrings: () => Array<string> =
   (): Array<string> => {
     const strings: Set<string> = new Set(

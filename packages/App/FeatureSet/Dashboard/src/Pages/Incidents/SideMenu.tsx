@@ -76,6 +76,20 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
               } as any)
             : undefined,
         },
+        /*
+         * Every incident's postmortem in one list: where each stands and
+         * who owns it, filtered by owner, severity or status - which are
+         * still owed, across every incident.
+         */
+        {
+          link: {
+            title: "Postmortems",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENT_POSTMORTEMS] as Route,
+            ),
+          },
+          icon: IconProp.DocumentText,
+        },
       ],
     },
     {
@@ -281,6 +295,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.Book,
+        },
+        // The statuses a postmortem moves through, beside its templates.
+        {
+          link: {
+            title: "Postmortem Statuses",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.ClipboardDocumentCheck,
         },
         {
           link: {
