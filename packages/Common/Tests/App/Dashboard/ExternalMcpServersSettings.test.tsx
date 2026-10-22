@@ -649,7 +649,25 @@ describe("how a server is doing", () => {
     );
     expect(getInvestigationRuleMoreFieldsSummary({})).toEqual([
       "OneUptime AI may use all of your MCP servers.",
+      "OneUptime AI may read all connected repositories.",
     ]);
+    // Each default is said only while it is left as it is.
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        externalMcpServers: [{ _id: "a" }],
+      }),
+    ).toEqual(["OneUptime AI may read all connected repositories."]);
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        codeRepositories: [{ _id: "c1111111-1111-4111-8111-111111111111" }],
+      }),
+    ).toEqual(["OneUptime AI may use all of your MCP servers."]);
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        externalMcpServers: [{ _id: "a" }],
+        codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+      }),
+    ).toBeUndefined();
   });
 });
 

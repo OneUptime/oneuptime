@@ -12,11 +12,12 @@ import {
   RunnerPickerOutcome,
   RunnerPickerRunner,
   RunnerPickerWork,
-  REMEDIATION_NO_RUNNER_CHOICE_LABEL,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
   RunnerSummary,
   buildRunnerPickerModel,
   canGlobalRunnersRunWork,
   getGlobalRunnersLiveStatus,
+  getNewRuleRunnerId,
   getProjectDefaultRunner,
   getRunnerSummary,
   getWaitingProjectRunner,
@@ -532,11 +533,12 @@ describe("a project with a default Runner", () => {
   });
 
   /*
-   * The project default reaches runbook steps only: a code repository picks
-   * its Runner by its own rule, and an auto remediation rule's first choice
-   * is the AI agent - neither is told about the default.
+   * The project default reaches runbook steps and auto remediation rules: a
+   * code repository picks its Runner by its own rule, and is not told about
+   * it. A rule lists it first, tagged, by its own id (a rule stores its
+   * pick); a new rule's form starts on it.
    */
-  test("a code repository's picker and a rule's picker do not follow it", () => {
+  test("a code repository's picker does not follow it; a rule's lists it first, by its id", () => {
     const repository: RunnerPickerModel = buildRunnerPickerModel(
       withDefault({ work: RunnerPickerWork.CodeRepository, stepType: "" }),
     );
@@ -544,19 +546,33 @@ describe("a project with a default Runner", () => {
     expect(repository.options[0]!.kind).toBe(RunnerPickerOptionKind.Global);
     expect(repository.outcome).toBe(RunnerPickerOutcome.GlobalRunner);
     expect(values(repository)).toContain(PROD_DEFAULT.id);
+    expect(
+      getProjectDefaultRunner({
+        work: RunnerPickerWork.CodeRepository,
+        projectRunners: [PROD_DEFAULT],
+      }),
+    ).toBeUndefined();
 
     const rule: RunnerPickerModel = buildRunnerPickerModel(
       withDefault({ work: RunnerPickerWork.AutoRemediation, stepType: "" }),
     );
 
-    expect(rule.options[0]!.kind).toBe(RunnerPickerOptionKind.NoRunner);
+    expect(rule.options[0]).toEqual({
+      value: PROD_DEFAULT.id,
+      kind: RunnerPickerOptionKind.ProjectDefault,
+      name: PROD_DEFAULT.name,
+      liveStatus: PROD_DEFAULT.liveStatus,
+      runnerId: PROD_DEFAULT.id,
+    });
+    // A rule that picked none is on no Runner - the default is a choice.
+    expect(rule.selected).toBeUndefined();
     expect(rule.outcome).toBe(RunnerPickerOutcome.NoRunner);
     expect(
       getProjectDefaultRunner({
         work: RunnerPickerWork.AutoRemediation,
         projectRunners: [PROD_DEFAULT],
-      }),
-    ).toBeUndefined();
+      })?.id,
+    ).toBe(PROD_DEFAULT.id);
     expect(
       getProjectDefaultRunner({ projectRunners: [PROD_DEFAULT] })?.id,
     ).toBe(PROD_DEFAULT.id);
@@ -910,10 +926,12 @@ describe("the picker agrees with the server", () => {
 
 /*
  * An auto remediation rule's Runner (AutoRemediationRule.runnerId): the
- * Runner OneUptime AI runs the rule's commands of its own on. A global
- * Runner never runs them, so the first choice is no Runner of the
- * project's own - the AI agent on the affected cluster or host - whatever
- * the server's global Runners and the project's switch are.
+ * Runner OneUptime AI runs the rule's Bash commands on. The picker lists
+ * the project's own Runners and nothing else - no global Runner, which never
+ * runs them, and no "AI agent on the cluster or host", which is not a
+ * Runner (the maintainer: "why does it see an AI agent on the cluster or
+ * host? That doesn't make any sense"). A rule that picked none shows
+ * nothing picked, "No Runner", and works.
  */
 describe("an auto remediation rule's Runner", () => {
   function ruleFacts(
@@ -936,65 +954,110 @@ describe("an auto remediation rule's Runner", () => {
     expect(offersGlobalRunner(ruleFacts())).toBe(false);
   });
 
-  test("a rule that picked none is on the AI agent, first and picked, with the project's own Runners after it", () => {
+  test("a rule that picked none lists the project's own Runners only, picks nothing, and works", () => {
     for (const overrides of [
       {},
       { projectUsesGlobalRunners: false },
       { globalRunners: [] },
-      { projectRunners: [] },
     ] as Array<Partial<RunnerPickerFacts>>) {
       const model: RunnerPickerModel = buildRunnerPickerModel(
         ruleFacts(overrides),
       );
 
-      expect(model.options[0]).toEqual({
-        value: GLOBAL_RUNNER_CHOICE_VALUE,
-        kind: RunnerPickerOptionKind.NoRunner,
-        name: REMEDIATION_NO_RUNNER_CHOICE_LABEL,
-      });
-      expect(model.selected).toBe(model.options[0]);
+      expect(values(model)).toEqual([BASTION.id, STAGING.id]);
+      expect(kinds(model)).toEqual([
+        RunnerPickerOptionKind.Project,
+        RunnerPickerOptionKind.Project,
+      ]);
+      expect(model.selected).toBeUndefined();
       expect(model.outcome).toBe(RunnerPickerOutcome.NoRunner);
       expect(model.willRun).toBe(true);
-      expect(
-        model.options.some((option: RunnerPickerOption): boolean => {
-          return (
-            option.kind === RunnerPickerOptionKind.Global ||
-            option.kind === RunnerPickerOptionKind.GlobalUnavailable
-          );
-        }),
-      ).toBe(false);
-      expect(values(model).slice(1)).toEqual(
-        (overrides.projectRunners || [BASTION, STAGING]).map(
-          (runner: RunnerPickerRunner): string => {
-            return runner.id;
-          },
-        ),
-      );
+      expect(model.runnerId).toBe("");
+      expect(getRunnerSummary(model)).toBeUndefined();
     }
-
-    expect(REMEDIATION_NO_RUNNER_CHOICE_LABEL).toBe(
-      "AI agent on the cluster or host",
-    );
   });
 
-  test("a rule that picked one of the project's Runners keeps it, with the AI agent still first", () => {
+  test("no choice is the AI agent, a global Runner, or a value of nothing", () => {
+    for (const model of [
+      buildRunnerPickerModel(ruleFacts()),
+      buildRunnerPickerModel(
+        ruleFacts({ projectRunners: [BASTION, PROD_DEFAULT] }),
+      ),
+      buildRunnerPickerModel(ruleFacts({ currentRunnerId: GONE_ID })),
+    ]) {
+      for (const option of model.options) {
+        expect([
+          option.kind,
+          option.value,
+          option.name.toLowerCase().includes("ai agent"),
+        ]).toEqual([
+          expect.not.stringMatching(/^global/),
+          expect.not.stringMatching(/^$/),
+          false,
+        ]);
+      }
+    }
+
+    expect(REMEDIATION_NO_RUNNER_PLACEHOLDER).toBe("No Runner");
+  });
+
+  test("with no Runner of the project's own, there is nothing to pick, and the rule still works", () => {
+    const model: RunnerPickerModel = buildRunnerPickerModel(
+      ruleFacts({ projectRunners: [] }),
+    );
+
+    expect(model.options).toEqual([]);
+    expect(model.outcome).toBe(RunnerPickerOutcome.NoRunner);
+    expect(model.willRun).toBe(true);
+  });
+
+  test("a rule that picked one of the project's Runners keeps it, whatever the case of its id", () => {
     const model: RunnerPickerModel = buildRunnerPickerModel(
       ruleFacts({ currentRunnerId: STAGING.id.toUpperCase() }),
     );
 
     expect(model.selected?.value).toBe(STAGING.id);
     expect(model.outcome).toBe(RunnerPickerOutcome.ProjectRunner);
-    expect(model.options[0]!.kind).toBe(RunnerPickerOptionKind.NoRunner);
+    expect(model.runnerId).toBe(STAGING.id);
+    expect(getRunnerSummary(model)?.name).toBe(STAGING.name);
   });
 
-  test("a Runner the reader is not shown stays the rule's pick, as unknown", () => {
+  test("the project's default Runner comes first, tagged, and a pick of it reads as it", () => {
+    const model: RunnerPickerModel = buildRunnerPickerModel(
+      ruleFacts({
+        projectRunners: [BASTION, PROD_DEFAULT, STAGING],
+        currentRunnerId: PROD_DEFAULT.id,
+      }),
+    );
+
+    expect(kinds(model)).toEqual([
+      RunnerPickerOptionKind.ProjectDefault,
+      RunnerPickerOptionKind.Project,
+      RunnerPickerOptionKind.Project,
+    ]);
+    expect(values(model)).toEqual([PROD_DEFAULT.id, BASTION.id, STAGING.id]);
+    expect(model.selected?.kind).toBe(RunnerPickerOptionKind.ProjectDefault);
+    expect(model.outcome).toBe(RunnerPickerOutcome.ProjectRunner);
+    expect(model.runnerId).toBe(PROD_DEFAULT.id);
+  });
+
+  test("a Runner the reader is not shown stays the rule's pick, as unknown, first", () => {
     const model: RunnerPickerModel = buildRunnerPickerModel(
       ruleFacts({ currentRunnerId: GONE_ID }),
     );
 
     expect(model.selected?.value).toBe(GONE_ID);
     expect(model.outcome).toBe(RunnerPickerOutcome.UnknownRunner);
-    expect(model.options[0]!.kind).toBe(RunnerPickerOptionKind.NoRunner);
+    expect(model.options[0]!.kind).toBe(RunnerPickerOptionKind.Unknown);
+    expect(values(model).slice(1)).toEqual([BASTION.id, STAGING.id]);
+  });
+
+  test("a new rule starts on the project's default Runner, and on none without one", () => {
+    expect(getNewRuleRunnerId([BASTION, PROD_DEFAULT, STAGING])).toBe(
+      PROD_DEFAULT.id,
+    );
+    expect(getNewRuleRunnerId([BASTION, STAGING])).toBeUndefined();
+    expect(getNewRuleRunnerId([])).toBeUndefined();
   });
 
   test("negative control: a runbook step and a code repository still offer Global Runner", () => {
