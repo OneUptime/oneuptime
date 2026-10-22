@@ -14,9 +14,12 @@ import OneUptimeDate, { Moment } from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
 import {
   DashboardDateTime,
+  DashboardSpanLabels,
   NO_DATE_LABEL,
   getDashboardDateTime,
   getDashboardDateTimeLabel,
+  getDashboardSpanLabeller,
+  getDashboardSpanLabels,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardDateTime";
 
 const NY: Timezone = Timezone.AmericaNew_York;
@@ -492,5 +495,124 @@ describe("DashboardDateTime", () => {
       expect(morning).toContain("Jul 16, 2026");
       expect(evening).toContain("Jul 16, 2026");
     });
+  });
+});
+
+/*
+ * The ends of a Value widget's sparkline, and the halves its trend compares,
+ * labelled the way a chart's time axis labels its ticks: as short as they can
+ * be while still telling the instants of the stretch apart.
+ */
+describe("getDashboardSpanLabels", () => {
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  const at: (iso: string) => Date = (iso: string): Date => {
+    return new Date(iso);
+  };
+
+  it("within one day, the clock alone - 24-hour, like the axis ticks", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardSpanLabels(
+        at("2026-10-22T09:00:00.000Z"),
+        at("2026-10-22T17:45:00.000Z"),
+      ),
+    ).toEqual({ start: "09:00", end: "17:45" });
+  });
+
+  it("past midnight, a day as well: two '10:00's would name the same clock", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    const labels: DashboardSpanLabels | null = getDashboardSpanLabels(
+      at("2026-10-21T10:00:00.000Z"),
+      at("2026-10-22T10:00:00.000Z"),
+    );
+
+    expect(labels).toEqual({ start: "21 Oct, 10:00", end: "22 Oct, 10:00" });
+    expect(labels?.start).not.toBe(labels?.end);
+  });
+
+  it("an hour that crosses midnight in the reader's timezone is labelled with its days", () => {
+    OneUptimeDate.setUserTimezone(LA);
+
+    // 23:30 to 00:30 in Los Angeles.
+    expect(
+      getDashboardSpanLabels(
+        at("2026-07-17T06:30:00.000Z"),
+        at("2026-07-17T07:30:00.000Z"),
+      ),
+    ).toEqual({ start: "16 Jul, 23:30", end: "17 Jul, 00:30" });
+  });
+
+  it("up to three days, a day and a time; past that, a day", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardSpanLabels(
+        at("2026-10-19T10:00:00.000Z"),
+        at("2026-10-22T10:00:00.000Z"),
+      ),
+    ).toEqual({ start: "19 Oct, 10:00", end: "22 Oct, 10:00" });
+
+    // A week: the report's range.
+    expect(
+      getDashboardSpanLabels(
+        at("2026-10-15T10:00:00.000Z"),
+        at("2026-10-22T09:00:00.000Z"),
+      ),
+    ).toEqual({ start: "15 Oct", end: "22 Oct" });
+  });
+
+  it("past half a year, a month and a year", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardSpanLabels(
+        at("2026-01-10T00:00:00.000Z"),
+        at("2026-10-22T00:00:00.000Z"),
+      ),
+    ).toEqual({ start: "Jan 2026", end: "Oct 2026" });
+  });
+
+  it("the ends are read in the configured timezone", () => {
+    OneUptimeDate.setUserTimezone(KOLKATA);
+
+    // 09:00 to 10:00 UTC is 14:30 to 15:30 in Kolkata.
+    expect(
+      getDashboardSpanLabels(
+        at("2026-10-22T09:00:00.000Z"),
+        at("2026-10-22T10:00:00.000Z"),
+      ),
+    ).toEqual({ start: "14:30", end: "15:30" });
+  });
+
+  it("takes ISO strings as the API hands them over", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(
+      getDashboardSpanLabels("2026-10-22T09:00:00.000Z", "2026-10-22T10:00:00.000Z"),
+    ).toEqual({ start: "09:00", end: "10:00" });
+  });
+
+  it("is null when either end is not a time", () => {
+    expect(getDashboardSpanLabels(null, at("2026-10-22T10:00:00.000Z"))).toBeNull();
+    expect(getDashboardSpanLabels(at("2026-10-22T10:00:00.000Z"), undefined)).toBeNull();
+    expect(getDashboardSpanLabels("not a date", "2026-10-22T10:00:00.000Z")).toBeNull();
+    expect(getDashboardSpanLabeller("", "")).toBeNull();
+  });
+
+  it("labels any instant inside the stretch the way it labels the ends", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    const label: ((date: Date) => string) | null = getDashboardSpanLabeller(
+      at("2026-10-21T10:00:00.000Z"),
+      at("2026-10-22T10:00:00.000Z"),
+    );
+
+    // The midpoint of a day's range, as the trend's tooltip names it.
+    expect(label?.(at("2026-10-21T22:00:00.000Z"))).toBe("21 Oct, 22:00");
   });
 });
