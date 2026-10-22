@@ -32,8 +32,12 @@ export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
   manageHint: translationKey(
     "Connect and manage repositories on the {{codeRepositoriesLink}} page.",
   ),
-  // A repository a rule names that the reader may not read.
-  hiddenRepository: translationKey("A repository you do not have access to"),
+  /*
+   * A repository a rule names that the reader may not read. Drawn as a
+   * chip, which cuts its text at 14rem: "A repository you do not have
+   * access to" lost its last word there.
+   */
+  hiddenRepository: translationKey("A repository you cannot access"),
   // What a folded More fields line says while the rule names none.
   allRepositoriesSummary: translationKey(
     "OneUptime AI may read all connected repositories.",

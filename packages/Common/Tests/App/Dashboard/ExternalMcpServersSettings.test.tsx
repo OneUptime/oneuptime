@@ -124,6 +124,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerFormFields";
 import { readExternalMcpServerCheck } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerTestApi";
 import TestExternalMcpServerModal from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/TestExternalMcpServerModal";
+import RuleMcpServersFieldHint from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/RuleMcpServersFieldHint";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -156,6 +157,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 
 const PROJECT_ID: string = "ca1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b01";
@@ -1247,5 +1249,32 @@ describe("where it is", () => {
     expect(
       RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW]?.toString(),
     ).toBe("/dashboard/:projectId/settings/external-mcp-servers/:id");
+  });
+
+  /*
+   * Under a rule's MCP Servers field: where the servers are added. In a new
+   * tab, as the Runner field's link to Runbooks › Runners: the rule being
+   * edited in its dialog stays, and the picker searches the servers again
+   * when it next opens.
+   */
+  test("a rule's MCP Servers field links to the page, in a new tab", () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+
+    render(<RuleMcpServersFieldHint />);
+
+    const hint: HTMLElement = screen.getByTestId("rule-mcp-servers-hint");
+    expect(hint).toHaveTextContent(
+      "Add and manage MCP servers on the External MCP Servers page.",
+    );
+
+    const link: HTMLElement = within(hint).getByTestId("rule-mcp-servers-link");
+    expect(link).toHaveTextContent("External MCP Servers");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/external-mcp-servers`,
+    );
+    expect(link).toHaveAttribute("target", "_blank");
   });
 });

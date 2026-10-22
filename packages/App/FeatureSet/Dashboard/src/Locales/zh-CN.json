@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未关闭的事件或警报无法读取，因此地图可能未全部显示。",
   "See {{count}} more related parts": "查看另外 {{count}} 个相关部分",
   "See {{count}} more related parts_one": "查看另外 {{count}} 个相关部分",
-  "A repository you do not have access to": "您无权访问的存储库",
   "All connected repositories": "所有已连接的存储库",
   "Code › Repositories": "代码 › 存储库",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "在 {{codeRepositoriesLink}} 页面连接和管理存储库。",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "以下项目会继续使用它，直到您更改它们：",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何 MCP 服务器和已连接的存储库。",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI 可以使用您的任何运行手册、MCP 服务器和已连接的存储库，并在这些存储库中打开拉取请求。",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何运行手册、MCP 服务器和已连接的存储库。"
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何运行手册、MCP 服务器和已连接的存储库。",
+  "A repository you cannot access": "您无法访问的存储库"
 }

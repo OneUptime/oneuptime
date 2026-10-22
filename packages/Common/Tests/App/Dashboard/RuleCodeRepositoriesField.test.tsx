@@ -66,10 +66,13 @@ import ProjectUtil from "../../../UI/Utils/Project";
  *   - it lists the project's repositories by name, GitHub's full name under
  *     each, and stores the ones picked by id;
  *   - a repository the rule names that the reader may not read is kept, as
- *     one they do not have access to - never as an id, never dropped;
+ *     one they cannot access - never as an id, never dropped - in words
+ *     short enough for its chip;
  *   - a project whose plan cannot read repositories still gets the field,
  *     with nothing to pick, and can save its rule;
- *   - under it, where repositories are connected.
+ *   - under it, where repositories are connected, in a new tab so the
+ *     rule being edited stays; the list is read again when the window
+ *     takes the focus back, so a repository connected there can be picked.
  */
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000001";
@@ -333,13 +336,10 @@ describe("a rule's code repositories", () => {
     expect(picked()).toEqual(["checkout"]);
   });
 
-  test("one the reader may not read is kept, named as one they do not have access to", async () => {
+  test("one the reader may not read is kept, named as one they cannot access", async () => {
     await renderPicker([{ _id: CHECKOUT_ID }, { _id: HIDDEN_ID }]);
 
-    expect(picked()).toEqual([
-      "checkout",
-      "A repository you do not have access to",
-    ]);
+    expect(picked()).toEqual(["checkout", "A repository you cannot access"]);
     expect(picker()).not.toHaveTextContent(HIDDEN_ID);
 
     // Picking another keeps it: an edit never drops a repository.
@@ -371,9 +371,117 @@ describe("a rule's code repositories", () => {
     expect(hint).toHaveTextContent(
       "Connect and manage repositories on the Code › Repositories page.",
     );
+    const link: HTMLElement = within(hint).getByTestId(
+      "rule-code-repositories-link",
+    );
+    expect(link).toHaveTextContent("Code › Repositories");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/code/repositories`,
+    );
+    // In a new tab, as the Runner field's link: the rule being edited stays.
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  /*
+   * A chip cuts its words at 14rem, about 32 of these letters: the old
+   * "A repository you do not have access to" lost its last word there.
+   */
+  test("the words for one the reader cannot access fit its chip", () => {
+    expect(RULE_CODE_REPOSITORIES_FIELD_COPY.hiddenRepository).toBe(
+      "A repository you cannot access",
+    );
     expect(
-      within(hint).getByTestId("rule-code-repositories-link"),
-    ).toHaveTextContent("Code › Repositories");
+      RULE_CODE_REPOSITORIES_FIELD_COPY.hiddenRepository.length,
+    ).toBeLessThanOrEqual(32);
+  });
+
+  test("reads the repositories again when the window takes the focus back: one connected in another tab can be picked", async () => {
+    await renderPicker(undefined);
+    expect(openMenu()).toHaveLength(2);
+
+    listSpy.mockResolvedValue({
+      ...listed(),
+      data: [
+        ...listed().data,
+        repository({
+          id: "c4444444-4444-4444-8444-444444444444",
+          name: "search",
+          organizationName: "acme",
+          repositoryName: "search",
+        }),
+      ],
+      count: 3,
+    } as never);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(listSpy).toHaveBeenCalledTimes(2);
+    const options: Array<HTMLElement> = openMenu();
+    expect(options).toHaveLength(3);
+    expect(options[2]).toHaveTextContent("search");
+  });
+
+  test("a read again that fails keeps the repositories it has", async () => {
+    await renderPicker(undefined);
+    expect(openMenu()).toHaveLength(2);
+
+    listSpy.mockRejectedValue(new Error("Network error") as never);
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(listSpy).toHaveBeenCalledTimes(2);
+    expect(openMenu()).toHaveLength(2);
+  });
+
+  test("an older read that answers late never replaces a newer one", async () => {
+    let answerFirst: (value: ListResult<CodeRepository>) => void = (): void => {
+      return undefined;
+    };
+    listSpy.mockReturnValueOnce(
+      new Promise<ListResult<CodeRepository>>(
+        (done: (value: ListResult<CodeRepository>) => void) => {
+          answerFirst = done;
+        },
+      ) as never,
+    );
+    listSpy.mockResolvedValueOnce({
+      ...listed(),
+      data: listed().data.slice(1),
+      count: 1,
+    } as never);
+
+    render(<PickerHarness initialValue={undefined} />);
+
+    // Focus comes back before the first read answers: a newer read.
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(openMenu()).toHaveLength(1);
+
+    await act(async () => {
+      answerFirst(listed());
+    });
+
+    // The first read's answer is older than what is drawn: dropped.
+    expect(openMenu()).toHaveLength(1);
+  });
+
+  test("stops reading on focus once it is gone", async () => {
+    const view: { unmount: () => void } = render(
+      <PickerHarness initialValue={undefined} />,
+    );
+    await screen.findByTestId(RULE_CODE_REPOSITORIES_PICKER_TEST_ID);
+    expect(listSpy).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    window.dispatchEvent(new Event("focus"));
+
+    expect(listSpy).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -416,7 +524,7 @@ describe("what the field reads and folds to", () => {
       { id: CHECKOUT_ID, name: "checkout" },
       {
         id: HIDDEN_ID,
-        name: "A repository you do not have access to",
+        name: "A repository you cannot access",
         isHidden: true,
       },
     ]);

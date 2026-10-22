@@ -5,6 +5,7 @@ import {
 } from "../../../UI/Components/Dropdown/Dropdown";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import "@testing-library/jest-dom";
 import {
   act,
   cleanup,
@@ -361,6 +362,77 @@ describe("EntityDropdown", () => {
         selectedOptions: [{ value: "members", label: "Members" }],
         previousOptions: [],
       });
+    });
+  });
+
+  /*
+   * An option with a line beside its name - a code repository's GitHub
+   * organization/name beside the name it is called. The name and the line
+   * used to shrink alike, so on a phone a short name beside a long line was
+   * cut first: "infra" read "in..." beside
+   * "acme-platform-engineering/terraform-infrastr...". The name takes the
+   * row now, and the line never more than half of it; the browser suite
+   * (E2E AutoRemediationRules) measures it at 390px.
+   */
+  describe("an option's name and the line beside it", () => {
+    test("the name takes the row; the line keeps at most half of it, cut short first", () => {
+      render(
+        <EntityDropdown
+          ariaLabel="Team"
+          isMultiSelect={true}
+          options={[
+            {
+              value: "infra",
+              label: "infra",
+              description:
+                "acme-platform-engineering/terraform-infrastructure-live",
+            },
+          ]}
+        />,
+      );
+
+      fireEvent.focus(screen.getByRole("combobox", { name: "Team" }));
+
+      const option: HTMLElement = screen.getByRole("option", {
+        name: /^infra/,
+      });
+      const spans: Array<HTMLElement> = Array.from(
+        option.querySelectorAll(":scope > span"),
+      ) as Array<HTMLElement>;
+      expect(spans).toHaveLength(2);
+      const name: HTMLElement = spans[0]!;
+      const line: HTMLElement = spans[1]!;
+
+      expect(name).toHaveTextContent("infra");
+      expect(name.className.split(" ")).toEqual(
+        expect.arrayContaining(["min-w-0", "flex-1", "truncate"]),
+      );
+
+      expect(line).toHaveTextContent(
+        "acme-platform-engineering/terraform-infrastructure-live",
+      );
+      expect(line.className.split(" ")).toEqual(
+        expect.arrayContaining(["max-w-[50%]", "flex-none", "truncate"]),
+      );
+      // It no longer pushes itself away from a name that shrinks with it.
+      expect(line.className.split(" ")).not.toContain("ml-auto");
+    });
+
+    test("an option with no line is its name alone, taking the row", () => {
+      render(<EntityDropdown ariaLabel="Team" options={options} />);
+
+      fireEvent.focus(screen.getByRole("combobox", { name: "Team" }));
+
+      const spans: Array<Element> = Array.from(
+        screen
+          .getByRole("option", { name: "Members" })
+          .querySelectorAll(":scope > span"),
+      );
+
+      expect(spans).toHaveLength(1);
+      expect(spans[0]!.className.split(" ")).toEqual(
+        expect.arrayContaining(["min-w-0", "flex-1", "truncate"]),
+      );
     });
   });
 });

@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "برخی از حوادث یا هشدارهای باز خوانده نشدند، بنابراین ممکن است نقشه همه آن‌ها را نشان ندهد.",
   "See {{count}} more related parts": "دیدن {{count}} بخش مرتبط دیگر",
   "See {{count}} more related parts_one": "دیدن {{count}} بخش مرتبط دیگر",
-  "A repository you do not have access to": "مخزنی که به آن دسترسی ندارید",
   "All connected repositories": "همه مخازن متصل",
   "Code › Repositories": "کد › مخازن",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "مخازن را در صفحه {{codeRepositoriesLink}} متصل و مدیریت کنید.",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "این موارد تا وقتی تغییرشان ندهید از آن استفاده می‌کنند:",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI می‌تواند از هر یک از سرورهای MCP و مخازن متصل شما استفاده کند.",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI می‌تواند از هر یک از رانبوک‌ها، سرورهای MCP و مخازن متصل شما استفاده کند و در مخازن Pull Request باز کند.",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI می‌تواند از هر یک از رانبوک‌ها، سرورهای MCP و مخازن متصل شما استفاده کند."
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI می‌تواند از هر یک از رانبوک‌ها، سرورهای MCP و مخازن متصل شما استفاده کند.",
+  "A repository you cannot access": "مخزنی بدون دسترسی"
 }

@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "部分未關閉的事件或警示無法讀取，因此地圖可能未全部顯示。",
   "See {{count}} more related parts": "查看另外 {{count}} 個相關部分",
   "See {{count}} more related parts_one": "查看另外 {{count}} 個相關部分",
-  "A repository you do not have access to": "您無權存取的儲存庫",
   "All connected repositories": "所有已連線的儲存庫",
   "Code › Repositories": "程式碼 › 儲存庫",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "在 {{codeRepositoriesLink}} 頁面連線和管理儲存庫。",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "以下項目會繼續使用它，直到您變更它們：",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何 MCP 伺服器和已連線的儲存庫。",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI 可以使用您的任何運行手冊、MCP 伺服器和已連線的儲存庫，並在這些儲存庫中開啟 Pull Request。",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何運行手冊、MCP 伺服器和已連線的儲存庫。"
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何運行手冊、MCP 伺服器和已連線的儲存庫。",
+  "A repository you cannot access": "您無法存取的儲存庫"
 }

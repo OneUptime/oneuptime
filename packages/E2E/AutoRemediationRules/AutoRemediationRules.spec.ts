@@ -134,6 +134,9 @@ const REPOSITORIES_HINT: string =
   "Connect and manage repositories on the Code › Repositories page.";
 const FIX_PULL_REQUESTS: string = "Fix pull requests";
 const TELEMETRY_PULL_REQUESTS: string = "Telemetry pull requests";
+// A repository a saved rule names that the reader may not read (?hiddenRepository=1).
+const HIDDEN_REPOSITORY_ID: string = "d0000000-0000-4000-8000-000000000fff";
+const HIDDEN_REPOSITORY: string = "A repository you cannot access";
 
 interface Recorded {
   creates: Array<{ model: string; data: Record<string, unknown> }>;
@@ -1762,6 +1765,270 @@ test.describe("code repositories and pull requests", () => {
     const sent: Recorded = await recorded(page);
     expect(sent.creates).toHaveLength(1);
     expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([]);
+  });
+
+  /*
+   * Picking repositories one at a time: Escape closes the list and leaves
+   * the focus in the box, and a click on the box used to open nothing until
+   * the box had lost the focus. It opens the list now.
+   */
+  test("after Escape, a click on the box opens the list again to pick another", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, repositoriesPicker(dialog), /^checkout/);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(repositoriesPicker(dialog)).toBeFocused();
+    await expect(dialog).toBeVisible();
+
+    await repositoriesPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await page.getByRole("option", { name: /^billing/ }).click();
+    await page.keyboard.press("Escape");
+    await expect(repositoryChips(dialog)).toHaveText(["billing", "checkout"]);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual(
+      [
+        CODE_REPOSITORY_IDS["billing"]!,
+        CODE_REPOSITORY_IDS["checkout"]!,
+      ].sort(),
+    );
+  });
+
+  /*
+   * A repository is listed by the name it is called, with its GitHub
+   * organization/name beside it. On a phone the two shrank alike, so a
+   * short name beside a long GitHub name was cut first: "infra" read
+   * "in...". The name takes the row now, and the GitHub name at most half.
+   */
+  test("on a phone, a short repository name is never cut short for its GitHub name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const card: Locator = await openRulesCard(page, {
+      query: "repositories=many",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+    await repositoriesPicker(dialog).click();
+
+    const option: Locator = page.getByRole("option", { name: /^infra/ });
+    await expect(option).toBeVisible();
+
+    const measured: {
+      name: string;
+      isNameCut: boolean;
+      isLineCut: boolean;
+      lineWidth: number;
+      rowWidth: number;
+    } = await option.evaluate((element: Element) => {
+      const spans: Array<HTMLElement> = Array.from(
+        element.querySelectorAll(":scope > span"),
+      ) as Array<HTMLElement>;
+      const name: HTMLElement = spans[0]!;
+      const line: HTMLElement = spans[1]!;
+
+      return {
+        name: name.textContent || "",
+        isNameCut: name.scrollWidth > name.clientWidth,
+        isLineCut: line.scrollWidth > line.clientWidth,
+        lineWidth: line.getBoundingClientRect().width,
+        rowWidth: element.getBoundingClientRect().width,
+      };
+    });
+
+    expect(measured.name).toBe("infra");
+    expect(measured.isNameCut).toBe(false);
+    // The GitHub name gives way, and keeps at most half of the row.
+    expect(measured.isLineCut).toBe(true);
+    expect(measured.lineWidth).toBeLessThanOrEqual(measured.rowWidth / 2 + 1);
+
+    // A long name gives way only after the GitHub name has.
+    const longName: Locator = page.getByRole("option", {
+      name: /^payments-gateway/,
+    });
+    await longName.scrollIntoViewIfNeeded();
+    const longRow: { nameWidth: number; rowWidth: number } =
+      await longName.evaluate((element: Element) => {
+        const name: HTMLElement = element.querySelector(
+          ":scope > span",
+        ) as HTMLElement;
+
+        return {
+          nameWidth: name.getBoundingClientRect().width,
+          rowWidth: element.getBoundingClientRect().width,
+        };
+      });
+    expect(longRow.nameWidth).toBeGreaterThanOrEqual(longRow.rowWidth / 3);
+
+    expect(
+      await page.evaluate(() => {
+        return document.documentElement.scrollWidth;
+      }),
+    ).toBeLessThanOrEqual(390);
+    await screenshot(page, "code-repositories-menu-phone");
+  });
+
+  /*
+   * The lines under the MCP Servers and Code Repositories fields link to
+   * where those are added - in a new tab, as the Runner field's link to
+   * Runbooks › Runners: the rule being edited stays. Coming back, the
+   * repositories are read again, so one just connected can be picked.
+   */
+  test("the hints open their pages in a new tab, and a repository connected there can be picked on coming back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(dialog.getByTestId("rule-mcp-servers-link")).toHaveAttribute(
+      "target",
+      "_blank",
+    );
+    const repositoriesLink: Locator = dialog.getByTestId(
+      "rule-code-repositories-link",
+    );
+    await expect(repositoriesLink).toHaveAttribute("target", "_blank");
+
+    const opened: Promise<Page> = page.context().waitForEvent("page");
+    await repositoriesLink.click();
+    const tab: Page = await opened;
+    expect(new URL(tab.url()).pathname).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories`,
+    );
+    await tab.close();
+
+    // The rule being edited is still here, as it was.
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText(APPROVAL_DESCRIPTION);
+
+    // Connected in the other tab; this tab takes the focus back.
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __fixture: { connectRepository: (name: string) => void };
+        }
+      ).__fixture.connectRepository("search");
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await repositoriesPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(3);
+    await page.getByRole("option", { name: /^search/ }).click();
+    await page.keyboard.press("Escape");
+    await expect(repositoryChips(dialog)).toHaveText(["search"]);
+  });
+
+  /*
+   * The server keeps both switches on every rule, on unless turned off: a
+   * rule saved before they moved here opens with both on, and keeps them.
+   */
+  test("a rule saved before the switches moved here opens with both pull requests on, and keeps them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Restart checkout every time",
+    );
+
+    // Folded, its line names neither as off: both are as a new rule has them.
+    await expect(moreFieldsButton(dialog)).not.toContainText(
+      `${FIX_PULL_REQUESTS}: Off`,
+    );
+    await expect(moreFieldsButton(dialog)).not.toContainText(
+      `${TELEMETRY_PULL_REQUESTS}: Off`,
+    );
+    await openMoreFields(dialog);
+    await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toBeChecked();
+    await expect(
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+    ).toBeChecked();
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["everyTime"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(update!.data["openCodeFixPullRequests"]).toBe(true);
+    expect(update!.data["openTelemetryPullRequests"]).toBe(true);
+  });
+
+  /*
+   * A repository a rule names that the reader may not read stays on the
+   * rule, named as one they cannot access - in words short enough for its
+   * chip, which cuts at 14rem ("A repository you do not have acces..." lost
+   * its last word there).
+   */
+  test("a repository the reader cannot access stays on the rule, its chip named in full", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "rules=saved&hiddenRepository=1",
+    });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Fix database incidents",
+    );
+
+    await expect(dialog).toContainText("Code Repositories: 2");
+    await openMoreFields(dialog);
+    await expect(repositoryChips(dialog)).toHaveText([
+      "checkout",
+      HIDDEN_REPOSITORY,
+    ]);
+    await expect(dialog).not.toContainText(HIDDEN_REPOSITORY_ID);
+
+    const isCut: boolean = await repositoryChips(dialog)
+      .nth(1)
+      .evaluate((element: Element) => {
+        return element.scrollWidth > element.clientWidth;
+      });
+    expect(isCut).toBe(false);
+    await dialogScreenshot(
+      dialog,
+      repositoriesPicker(dialog),
+      "code-repositories-hidden",
+    );
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["aiWithRunner"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(idsOf(update!.data["codeRepositories"])).toEqual(
+      [CODE_REPOSITORY_IDS["checkout"]!, HIDDEN_REPOSITORY_ID].sort(),
+    );
   });
 
   test("an alert rule asks the same", async ({ page }: { page: Page }) => {

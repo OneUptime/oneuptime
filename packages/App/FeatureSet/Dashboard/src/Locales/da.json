@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Nogle åbne hændelser eller alarmer kunne ikke læses, så kortet viser måske ikke dem alle.",
   "See {{count}} more related parts": "Se {{count}} relaterede dele mere",
   "See {{count}} more related parts_one": "Se {{count}} relateret del mere",
-  "A repository you do not have access to": "Et repository, du ikke har adgang til",
   "All connected repositories": "Alle forbundne repositorier",
   "Code › Repositories": "Kode › Repositorier",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "Forbind og administrer repositorier på siden {{codeRepositoriesLink}}.",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "Disse bliver ved med at bruge den, indtil du ændrer dem:",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI må bruge alle dine MCP-servere og forbundne repositorier.",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI må bruge alle dine runbooks, MCP-servere og forbundne repositorier og åbne pull requests i dem.",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI må bruge alle dine runbooks, MCP-servere og forbundne repositorier."
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI må bruge alle dine runbooks, MCP-servere og forbundne repositorier.",
+  "A repository you cannot access": "Et repository uden adgang"
 }

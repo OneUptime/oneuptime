@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "未解決のインシデントまたはアラートの一部を読み込めなかったため、マップにすべてが表示されていない可能性があります。",
   "See {{count}} more related parts": "ほかの関連する {{count}} 件を見る",
   "See {{count}} more related parts_one": "ほかの関連する {{count}} 件を見る",
-  "A repository you do not have access to": "アクセス権のないリポジトリ",
   "All connected repositories": "接続済みのすべてのリポジトリ",
   "Code › Repositories": "コード › リポジトリ",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "リポジトリの接続と管理は {{codeRepositoriesLink}} ページで行います。",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "次の項目は、変更するまでこれを使い続けます:",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI は、どの MCP サーバーと接続済みリポジトリでも使えます。",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI は、どの Runbook、MCP サーバー、接続済みリポジトリでも使え、そのリポジトリにプルリクエストを作成できます。",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI は、どの Runbook、MCP サーバー、接続済みリポジトリでも使えます。"
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI は、どの Runbook、MCP サーバー、接続済みリポジトリでも使えます。",
+  "A repository you cannot access": "アクセスできないリポジトリ"
 }

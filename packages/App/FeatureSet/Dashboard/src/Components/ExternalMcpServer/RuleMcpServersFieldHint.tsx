@@ -18,7 +18,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Close under its box and a field's gap above the next field (mb-2 on the
  * form's gap-y-3), so it reads as this field's, not the next one's - as
- * the Code Repositories hint does.
+ * the Code Repositories hint does. In a new tab, as the Runner field's
+ * link to Runbooks › Runners is: the rule being edited stays, and the
+ * picker searches the servers again when it next opens.
  */
 const RuleMcpServersFieldHint: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -36,6 +38,7 @@ const RuleMcpServersFieldHint: FunctionComponent = (): ReactElement => {
               to={RouteUtil.populateRouteParams(
                 RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVERS] as Route,
               )}
+              openInNewTab={true}
               className="underline"
               dataTestId="rule-mcp-servers-link"
             >

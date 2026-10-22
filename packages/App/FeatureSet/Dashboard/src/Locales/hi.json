@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "कुछ खुली घटनाएं या अलर्ट पढ़े नहीं जा सके, इसलिए हो सकता है कि मानचित्र उन सभी को न दिखाए।",
   "See {{count}} more related parts": "{{count}} और संबंधित हिस्से देखें",
   "See {{count}} more related parts_one": "{{count}} और संबंधित हिस्सा देखें",
-  "A repository you do not have access to": "ऐसी रिपॉजिटरी जिसकी पहुंच आपके पास नहीं है",
   "All connected repositories": "सभी जुड़ी हुई रिपॉजिटरी",
   "Code › Repositories": "कोड › रिपॉजिटरी",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "रिपॉजिटरी {{codeRepositoriesLink}} पेज पर जोड़ें और प्रबंधित करें।",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "जब तक आप इन्हें नहीं बदलते, ये इसका उपयोग करते रहेंगे:",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI आपके किसी भी MCP सर्वर और जुड़ी हुई रिपॉजिटरी का उपयोग कर सकता है।",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI आपकी किसी भी रनबुक, MCP सर्वर और जुड़ी हुई रिपॉजिटरी का उपयोग कर सकता है, और उनमें पुल रिक्वेस्ट खोल सकता है।",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI आपकी किसी भी रनबुक, MCP सर्वर और जुड़ी हुई रिपॉजिटरी का उपयोग कर सकता है।"
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI आपकी किसी भी रनबुक, MCP सर्वर और जुड़ी हुई रिपॉजिटरी का उपयोग कर सकता है।",
+  "A repository you cannot access": "बिना एक्सेस वाली रिपॉजिटरी"
 }

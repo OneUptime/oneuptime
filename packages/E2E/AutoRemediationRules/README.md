@@ -55,6 +55,13 @@ The suite drives the pages the way a person does:
   keeps them, a project with no repository (`?repositories=0`) or a plan
   without Code (`?repositories=denied`) still saves a rule, and an
   investigation rule names its repositories too, with no Runner;
+- picking repositories one at a time (after Escape, a click on the box opens
+  the list again), a short name never cut for its GitHub name on a phone
+  (`?repositories=many`), the hints opening their pages in a new tab with
+  the list read again on coming back (`window.__fixture.connectRepository`),
+  a rule saved before the switches moved opening with both on, and a
+  repository the reader cannot access kept and named in full on its chip
+  (`?hiddenRepository=1`);
 - rules saved before this change: the table names each for what it does (its
   runbooks every time, OneUptime AI, and the two older shapes), and editing
   one keeps what it does - a rule that runs its runbooks every time opens

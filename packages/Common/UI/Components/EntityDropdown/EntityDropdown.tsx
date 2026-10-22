@@ -1676,6 +1676,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 setIsOpen(true);
                 setHighlightedIndex(-1);
               }}
+              /*
+               * A click opens the menu even when the box already has the
+               * focus: after Escape closed the menu (focus stays here, see
+               * closeMenuOnEscape) or after Clear, a click on the box did
+               * nothing, and picking a second item needed a click away
+               * first.
+               */
+              onClick={() => {
+                if (!props.disabled) {
+                  setIsOpen(true);
+                }
+              }}
               onFocus={() => {
                 // Not when focus lands here after a clear (clearShownValue).
                 if (!keepMenuClosedOnFocusRef.current) {
@@ -1940,10 +1952,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                             style={{ backgroundColor: colorStr }}
                           />
                         )}
-                        <span className="truncate">{opt.label}</span>
+                        {/*
+                         * The name comes first: it takes the row, and the
+                         * line beside it never more than half of it. Both
+                         * shrinking alike cut a short name ("infra") to
+                         * "in..." beside a long description on a phone.
+                         */}
+                        <span className="min-w-0 flex-1 truncate">
+                          {opt.label}
+                        </span>
                         {opt.description && (
                           <span
-                            className={`ml-auto truncate text-xs ${
+                            className={`max-w-[50%] flex-none truncate text-xs ${
                               isHighlighted
                                 ? "text-indigo-100"
                                 : "text-gray-500"

@@ -47,19 +47,21 @@ import React, {
  * Cloud, and a project whose plan cannot read them must still be able to
  * save a rule - there the list is empty and the rule uses every connected
  * repository, which is none. A repository the rule names that the reader may
- * not read is kept, named as one they do not have access to, so an edit
- * never drops it.
+ * not read is kept, named as one they cannot access, so an edit never drops
+ * it.
+ *
+ * The line under it links to Code › Repositories in a new tab, as the
+ * Runner field's line links to Runbooks › Runners, so the rule being edited
+ * stays; the repositories are read again when the person comes back to this
+ * tab, so one they just connected can be picked at once.
  */
 
-// The project's repositories, by name, or null while they are read.
-export function useRuleCodeRepositoryChoices(): Array<RuleCodeRepositoryChoice> | null {
-  const [repositories, setRepositories] =
-    useState<Array<RuleCodeRepositoryChoice> | null>(null);
-
-  useEffect(() => {
-    let isMounted: boolean = true;
-
-    ModelAPI.getList<CodeRepository>({
+// The project's repositories, by name.
+async function readRuleCodeRepositoryChoices(): Promise<
+  Array<RuleCodeRepositoryChoice>
+> {
+  const result: ListResult<CodeRepository> =
+    await ModelAPI.getList<CodeRepository>({
       modelType: CodeRepository,
       query: {},
       select: {
@@ -71,43 +73,73 @@ export function useRuleCodeRepositoryChoices(): Array<RuleCodeRepositoryChoice> 
       sort: { name: SortOrder.Ascending },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
-    })
-      .then((result: ListResult<CodeRepository>) => {
-        if (!isMounted) {
-          return;
-        }
+    });
 
-        setRepositories(
-          result.data.map(
-            (repository: CodeRepository): RuleCodeRepositoryChoice => {
-              const name: string = repository.name || "";
-              const fullName: string =
-                repository.organizationName && repository.repositoryName
-                  ? `${repository.organizationName}/${repository.repositoryName}`
-                  : "";
+  return result.data.map(
+    (repository: CodeRepository): RuleCodeRepositoryChoice => {
+      const name: string = repository.name || "";
+      const fullName: string =
+        repository.organizationName && repository.repositoryName
+          ? `${repository.organizationName}/${repository.repositoryName}`
+          : "";
 
-              return {
-                id: repository._id?.toString() || "",
-                name: name || fullName,
-                ...(fullName && fullName !== name ? { fullName } : {}),
-              };
-            },
-          ),
-        );
-      })
-      .catch(() => {
-        /*
-         * Not read - a plan without Code, or a reader who may not read
-         * repositories: nothing to pick, and the rule's own picks are
-         * still kept and shown.
-         */
-        if (isMounted) {
-          setRepositories([]);
-        }
-      });
+      return {
+        id: repository._id?.toString() || "",
+        name: name || fullName,
+        ...(fullName && fullName !== name ? { fullName } : {}),
+      };
+    },
+  );
+}
+
+/*
+ * The project's repositories, by name, or null while they are first read -
+ * and read again whenever the window takes the focus back.
+ */
+export function useRuleCodeRepositoryChoices(): Array<RuleCodeRepositoryChoice> | null {
+  const [repositories, setRepositories] =
+    useState<Array<RuleCodeRepositoryChoice> | null>(null);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+    // Only the newest read is drawn: an older answer arriving late is dropped.
+    let latestRead: number = 0;
+
+    const read: () => void = (): void => {
+      latestRead++;
+      const thisRead: number = latestRead;
+
+      readRuleCodeRepositoryChoices()
+        .then((choices: Array<RuleCodeRepositoryChoice>) => {
+          if (isMounted && thisRead === latestRead) {
+            setRepositories(choices);
+          }
+        })
+        .catch(() => {
+          /*
+           * Not read - a plan without Code, or a reader who may not read
+           * repositories: nothing to pick, and the rule's own picks are
+           * still kept and shown. A read again that fails keeps the list
+           * the field already has.
+           */
+          if (isMounted && thisRead === latestRead) {
+            setRepositories(
+              (
+                current: Array<RuleCodeRepositoryChoice> | null,
+              ): Array<RuleCodeRepositoryChoice> => {
+                return current || [];
+              },
+            );
+          }
+        });
+    };
+
+    read();
+    window.addEventListener("focus", read);
 
     return () => {
       isMounted = false;
+      window.removeEventListener("focus", read);
     };
   }, []);
 
@@ -216,7 +248,9 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
 /*
  * Under the field: where the repositories it lists are connected, as a
  * link - so a project with none yet finds the page. Close under its box
- * and a field's gap above the next field, as the MCP Servers hint is.
+ * and a field's gap above the next field, as the MCP Servers hint is. In a
+ * new tab: the rule being edited stays, and the picker reads the
+ * repositories again when the person comes back.
  */
 export const RuleCodeRepositoriesFieldHint: FunctionComponent =
   (): ReactElement => {
@@ -235,6 +269,7 @@ export const RuleCodeRepositoriesFieldHint: FunctionComponent =
                 to={RouteUtil.populateRouteParams(
                   RouteMap[PageMap.CODE_REPOSITORIES] as Route,
                 )}
+                openInNewTab={true}
                 className="underline"
                 dataTestId="rule-code-repositories-link"
               >

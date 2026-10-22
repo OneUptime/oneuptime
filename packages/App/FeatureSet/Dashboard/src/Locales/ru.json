@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Не удалось прочитать некоторые открытые инциденты или оповещения, поэтому на карте могут быть показаны не все.",
   "See {{count}} more related parts": "Показать ещё связанные части: {{count}}",
   "See {{count}} more related parts_one": "Показать ещё {{count}} связанную часть",
-  "A repository you do not have access to": "Репозиторий, к которому у вас нет доступа",
   "All connected repositories": "Все подключённые репозитории",
   "Code › Repositories": "Код › Репозитории",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "Подключайте репозитории и управляйте ими на странице {{codeRepositoriesLink}}.",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "Эти настройки будут использовать его, пока вы их не измените:",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI может использовать любые ваши MCP-серверы и подключённые репозитории.",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI может использовать любые ваши runbook, MCP-серверы и подключённые репозитории и открывать в них pull request.",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI может использовать любые ваши runbook, MCP-серверы и подключённые репозитории."
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI может использовать любые ваши runbook, MCP-серверы и подключённые репозитории.",
+  "A repository you cannot access": "Репозиторий без доступа"
 }

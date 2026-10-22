@@ -32867,7 +32867,6 @@
   "Some open incidents or alerts could not be read, so the map may not show them all.": "Certains incidents ou alertes ouverts n'ont pas pu être lus, la carte ne les affiche donc peut-être pas tous.",
   "See {{count}} more related parts": "Voir {{count}} autres éléments liés",
   "See {{count}} more related parts_one": "Voir {{count}} autre élément lié",
-  "A repository you do not have access to": "Un dépôt auquel vous n'avez pas accès",
   "All connected repositories": "Tous les dépôts connectés",
   "Code › Repositories": "Code › Dépôts",
   "Connect and manage repositories on the {{codeRepositoriesLink}} page.": "Connectez et gérez les dépôts sur la page {{codeRepositoriesLink}}.",
@@ -33011,5 +33010,6 @@
   "These keep using it until you change them:": "Ces éléments continuent à l'utiliser tant que vous ne les modifiez pas :",
   "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI peut utiliser tous vos serveurs MCP et dépôts connectés.",
   "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI peut utiliser tous vos runbooks, serveurs MCP et dépôts connectés, et y ouvrir des pull requests.",
-  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI peut utiliser tous vos runbooks, serveurs MCP et dépôts connectés."
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI peut utiliser tous vos runbooks, serveurs MCP et dépôts connectés.",
+  "A repository you cannot access": "Un dépôt inaccessible"
 }
