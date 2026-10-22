@@ -22,7 +22,6 @@ import {
 import ObjectID from "../../../../Types/ObjectID";
 import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 
 /*
  * The code tools are the bridge from a telemetry signal to the source that
@@ -791,7 +790,10 @@ describe("a run held to the code repositories its rules name", () => {
 
   test("search_code searches only the repositories allowed", async () => {
     mockRepositories(twoRepositories());
-    const tree: SpyInstance<typeof GitHubUtil.getRepositoryTreePaths> = jest
+    const tree: jest.SpyInstance<
+      ReturnType<typeof GitHubUtil.getRepositoryTreePaths>,
+      Parameters<typeof GitHubUtil.getRepositoryTreePaths>
+    > = jest
       .spyOn(GitHubUtil, "getRepositoryTreePaths")
       .mockResolvedValue(["src/billing/charge.ts"]);
 
@@ -827,8 +829,9 @@ describe("a run held to the code repositories its rules name", () => {
       .mockResolvedValue(exception as never);
     mockStoredRepositories(twoRepositories());
 
-    const resolve: SpyInstance<
-      typeof CodeRepositoryService.resolveRepositoryForException
+    const resolve: jest.SpyInstance<
+      ReturnType<typeof CodeRepositoryService.resolveRepositoryForException>,
+      Parameters<typeof CodeRepositoryService.resolveRepositoryForException>
     > = jest
       .spyOn(CodeRepositoryService, "resolveRepositoryForException")
       .mockResolvedValue({
