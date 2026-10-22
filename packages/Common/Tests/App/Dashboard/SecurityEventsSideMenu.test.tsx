@@ -142,6 +142,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
     ],
   ],
+  // What OneUptime AI does on its own; the triage itself is on each case.
+  ["AI", [["Settings", PageMap.SECURITY_EVENTS_SETTINGS_AI]]],
   // Both workspaces connected (beforeEach).
   [
     "Workspace",
@@ -241,7 +243,7 @@ describe("Security Events side menu", () => {
     ConnectedWorkspaces.reset();
   });
 
-  test("is seven sections, in the order Security works, each holding its pages", async () => {
+  test("is eight sections, in the order Security works, each holding its pages", async () => {
     await renderSecurityMenu();
 
     expect(sectionTitlesInOrder()).toEqual(
@@ -310,7 +312,7 @@ describe("Security Events side menu", () => {
     expect(new Set(drawings).size).toBe(drawings.length);
   });
 
-  test("on the overview, folds Detections, Workspace and Connections and keeps the everyday sections open", async () => {
+  test("on the overview, folds Detections, AI, Workspace and Connections and keeps the everyday sections open", async () => {
     await renderSecurityMenu();
 
     expect(
@@ -323,6 +325,7 @@ describe("Security Events side menu", () => {
       ["Events", true],
       ["Detections", false],
       ["Playbooks", true],
+      ["AI", false],
       ["Workspace", false],
       ["Connections", false],
     ]);
@@ -331,6 +334,7 @@ describe("Security Events side menu", () => {
       "opacity-0",
       "invisible",
     );
+    expect(sectionBody("AI")).toHaveClass("invisible");
     expect(sectionBody("Workspace")).toHaveClass("invisible");
     expect(sectionBody("Connections")).toHaveClass("invisible");
   });
@@ -514,6 +518,7 @@ describe("Security Events side menu: the Workspace section", () => {
         "Events",
         "Detections",
         "Playbooks",
+        "AI",
         "Workspace",
         "Connections",
       ]);

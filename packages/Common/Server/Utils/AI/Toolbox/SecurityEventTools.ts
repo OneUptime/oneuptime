@@ -10,7 +10,10 @@ import {
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
 import SecurityEventService from "../../../Services/SecurityEventService";
-import ToolResultSerializer, { SerializedResult } from "./Serializer";
+import ToolResultSerializer, {
+  RedactionOptions,
+  SerializedResult,
+} from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
@@ -24,7 +27,16 @@ import {
  * AI toolbox over the SecurityEvent table — the "AI security analyst"
  * surface. Read-only; executes under the requesting user's permission
  * props like every other analytics tool.
+ *
+ * Its results keep the observables a security question is about - IP
+ * addresses, user names and email addresses, file hashes - which every
+ * other tool's results redact (ToolResultSerializer's
+ * keepSecurityObservables): "a sign-in from [redacted-ip]" cannot be
+ * judged, nor looked up in threat intel. Secrets are redacted as anywhere.
  */
+const SECURITY_RESULT_OPTIONS: RedactionOptions = {
+  keepSecurityObservables: true,
+};
 
 /*
  * Derived from the model ACL so the tool gate can never drift from RBAC.
@@ -192,8 +204,11 @@ export const SearchSecurityEventsTool: ObservabilityTool = {
       },
     );
 
-    const serialized: SerializedResult =
-      ToolResultSerializer.serializeRows(rows);
+    const serialized: SerializedResult = ToolResultSerializer.serializeRows(
+      rows,
+      undefined,
+      SECURITY_RESULT_OPTIONS,
+    );
 
     const securityEventsLink: AIChatCitationTarget = {
       type: AIChatCitationTargetType.SecurityEvents,
@@ -314,8 +329,11 @@ export const SecurityEventSummaryTool: ObservabilityTool = {
       },
     );
 
-    const serialized: SerializedResult =
-      ToolResultSerializer.serializeRows(rows);
+    const serialized: SerializedResult = ToolResultSerializer.serializeRows(
+      rows,
+      undefined,
+      SECURITY_RESULT_OPTIONS,
+    );
 
     const sampleNote: string =
       events.length >= SUMMARY_SAMPLE_LIMIT

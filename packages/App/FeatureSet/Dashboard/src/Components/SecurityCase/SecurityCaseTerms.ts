@@ -24,6 +24,11 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   translationKey("Benign Positive"),
   translationKey("False Positive"),
   translationKey("Undetermined"),
+  // SecurityCaseAiVerdict: OneUptime AI's read of a case
+  translationKey("Likely Malicious"),
+  translationKey("Likely Benign"),
+  translationKey("Likely False Positive"),
+  translationKey("Inconclusive"),
   // SecurityDetectionSource
   translationKey("Detection Rule"),
   translationKey("Threat Intel"),
@@ -41,6 +46,7 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   // SecurityPlaybookTrigger
   translationKey("Case Opened"),
   translationKey("Detection Added"),
+  translationKey("Triaged as Likely Malicious"),
   // SecurityPlaybookRunStatus and SecurityPlaybookStepStatus
   translationKey("Queued"),
   translationKey("Running"),

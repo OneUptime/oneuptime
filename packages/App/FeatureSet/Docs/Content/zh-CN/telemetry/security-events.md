@@ -46,10 +46,11 @@ flowchart TB
 | **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
 | **Protected Entities** | Playbooks | 任何剧本都不会遏制的用户和主机 |
+| **设置** | 人工智能 | OneUptime AI 是否研判每个新案例 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 
-只需设置一次的 **Detections** 和 **Connections** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
+只需设置一次的 **Detections**、**人工智能** 和 **Connections** 会保持折叠，直到你打开它们。刚开始使用安全功能？[安全入门](/docs/telemetry/security-getting-started) 两次点击即可完成设置。
 
 ## 开始之前
 

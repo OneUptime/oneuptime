@@ -23,6 +23,7 @@ import AIFeatures from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/
 import AlertAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
 import AIInsightsSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/AIInsights/Settings";
 import IncidentAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
+import SecurityEventsAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   AI_INSIGHTS_SWITCHES,
@@ -44,6 +45,9 @@ import {
   ProjectAiNoticeCopy,
   ProjectAiSwitchDefinition,
   AI_LANE_RULES_COPY,
+  SECURITY_AI_SWITCHES,
+  SECURITY_AI_SWITCHES_TEST_ID,
+  SecurityAiSettingsCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -312,6 +316,13 @@ function openInsightsPage(): void {
   openPage(
     <AIInsightsSettings {...PAGE_PROPS} />,
     `/dashboard/${PROJECT_ID}/ai/insights/settings`,
+  );
+}
+
+function openSecurityPage(): void {
+  openPage(
+    <SecurityEventsAISettings {...PAGE_PROPS} />,
+    `/dashboard/${PROJECT_ID}/security-events/ai/settings`,
   );
 }
 
@@ -1339,6 +1350,124 @@ describe("the pull requests are the auto remediation rules', not the page's", ()
       expect(updateByIdSpy).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("Security Events → AI → Settings", () => {
+  test("one switch, Triage new cases, with what the project has", async () => {
+    stored = projectWith({ enableAutomaticSecurityCaseTriage: false });
+
+    openSecurityPage();
+    await findSwitch(
+      getProjectAiSwitchTestId("enableAutomaticSecurityCaseTriage"),
+    );
+
+    const card: HTMLElement = screen.getByTestId(SECURITY_AI_SWITCHES_TEST_ID);
+    const switches: Array<HTMLElement> = switchesIn(
+      SECURITY_AI_SWITCHES_TEST_ID,
+    );
+
+    expect(
+      switches.map((control: HTMLElement): string => {
+        return nameOf(control);
+      }),
+    ).toEqual(["Triage new cases"]);
+    expect(titlesOf(SECURITY_AI_SWITCHES)).toEqual(["Triage new cases"]);
+    expect(switches[0]).toHaveAttribute("aria-checked", "false");
+    /*
+     * The card says what the Incidents' and Alerts' AI settings say: the
+     * same title, and that it works on its own and can be turned off.
+     */
+    expect(SecurityAiSettingsCopy.cardTitle).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
+    expect(
+      screen.getByRole("heading", { name: "What OneUptime AI does" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "It works on security cases on its own. Turn off anything you do not want it to do.",
+      ),
+    ).toBeVisible();
+    expect(card).toHaveTextContent(
+      "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    );
+    // Nothing here belongs to the incidents' or alerts' AI.
+    expect(
+      screen.queryByTestId(
+        getProjectAiSwitchTestId("enableAutomaticIncidentInvestigation"),
+      ),
+    ).toBeNull();
+  });
+
+  test("flipping it saves that column alone, at once", async () => {
+    stored = projectWith({ enableAutomaticSecurityCaseTriage: false });
+
+    openSecurityPage();
+    await press(
+      await findSwitch(
+        getProjectAiSwitchTestId("enableAutomaticSecurityCaseTriage"),
+      ),
+    );
+
+    expect(updates()).toEqual([{ enableAutomaticSecurityCaseTriage: true }]);
+    expect(
+      screen.getByTestId(
+        getProjectAiSwitchTestId("enableAutomaticSecurityCaseTriage"),
+      ),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Update")).toBeNull();
+  });
+
+  test("with Enable AI off, the notice offers Enable AI's own switch", async () => {
+    stored = projectWith({
+      enableAi: false,
+      enableAutomaticSecurityCaseTriage: true,
+    });
+
+    openSecurityPage();
+
+    expect(
+      await screen.findByTestId(
+        ENABLE_AI_NOTICE_SWITCH_TEST_ID,
+        {},
+        { timeout: WAIT_TIMEOUT },
+      ),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("with no LLM provider, it says new cases are not triaged until there is one", async () => {
+    providersAnswer = NO_PROVIDER;
+
+    openSecurityPage();
+
+    const notice: HTMLElement = await screen.findByTestId(
+      PROJECT_AI_PROVIDER_NOTICE_TEST_ID,
+      {},
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    expect(notice).toHaveTextContent(
+      "Until it has one, security cases are not triaged.",
+    );
+    expect(
+      PROJECT_AI_NOTICE_CONTEXT_COPY[ProjectAiNoticeContext.SecurityEvents]
+        .providerConsequence,
+    ).toBe("Until it has one, security cases are not triaged.");
+  });
+
+  test("a Viewer reads it, locked", async () => {
+    grant([...BASE_PERMISSIONS, Permission.Viewer]);
+    stored = projectWith({ enableAutomaticSecurityCaseTriage: true });
+
+    openSecurityPage();
+
+    const control: HTMLElement = await findSwitch(
+      getProjectAiSwitchTestId("enableAutomaticSecurityCaseTriage"),
+    );
+
+    expect(control).toHaveAttribute("aria-checked", "true");
+    expect(control).toHaveAttribute("aria-disabled", "true");
+  });
 });
 
 describe("AI → Insights → Settings", () => {

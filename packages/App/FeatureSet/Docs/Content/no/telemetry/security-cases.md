@@ -84,6 +84,7 @@ En sak går gjennom fire statuser. Den kan hoppe over en, for eksempel en false 
 Siden til saken har alt du trenger for å behandle den:
 
 - Øverst: **Assign to Me**, **Run Playbook**, **Erklær hendelse** og **Close Case**, statusstegene, og prioriteten under menyen ved siden av dem.
+- **OneUptime AI**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **MITRE ATT&CK**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
@@ -166,6 +167,7 @@ En playbook er en liste med steg som kjører på en sak. Opprett en under **Prod
 | --- | --- |
 | Case Opened | Én gang, når en sak åpnes |
 | Detection Added | Hver gang en ny deteksjon legges til i en åpen sak |
+| Vurdert som sannsynligvis ondsinnet | Én gang, når OneUptime AI sin vurdering leser saken som Sannsynligvis ondsinnet |
 | Manual | Bare når noen kjører den fra en sak |
 
 Enhver aktivert playbook kan også kjøres manuelt, med **Run Playbook** på en sak. En playbook som kjører av seg selv, kan snevres inn:
@@ -321,5 +323,6 @@ Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle 
 :::cards
 - [Sikkerhetshendelser](/docs/telemetry/security-events): Send hendelser, skriv deteksjonsregler og koble til sikkerhetsprodukter.
 - [Trusseletterretning](/docs/telemetry/threat-intelligence): Sammenlign hendelsene dine med STIX/TAXII-feeder.
+- [OneUptime AI i sikkerhet](/docs/telemetry/security-ai): Vurder saker, skriv utkast til deteksjonsregler, og spør om sikkerhet med KI.
 - [Tillatelsesreferanse](/docs/permissions/reference): Security-rollene, og hva hver av dem kan gjøre.
 :::

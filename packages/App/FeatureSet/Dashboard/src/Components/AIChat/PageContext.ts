@@ -7,6 +7,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Route from "Common/Types/API/Route";
@@ -150,6 +151,19 @@ const entityPageRules: Array<EntityPageRule> = [
     icon: IconProp.Bug,
     isValidId: isUuid,
   },
+  /*
+   * A security case's page: Ask AI reads the case, its detections and its
+   * triage (query_security_cases), and can add a note or start a playbook
+   * on it - each asked first.
+   */
+  {
+    pageMapKey: PageMap.SECURITY_CASE_VIEW,
+    type: AIChatPageContextType.SecurityCase,
+    noun: translationKey("security case"),
+    chipLabel: "This security case",
+    icon: IconProp.ShieldExclamation,
+    isValidId: isUuid,
+  },
 ];
 
 const areaPageRules: Array<AreaPageRule> = [
@@ -222,6 +236,18 @@ const areaPageRules: Array<AreaPageRule> = [
     noun: translationKey("profiles"),
     chipLabel: "Profiler",
     icon: IconProp.Fire,
+  },
+  {
+    /*
+     * Every other Security Events page - the case queue, the events,
+     * entities, detections, playbooks: Ask AI searches the security events
+     * in plain words and reads cases, threat intel and playbooks.
+     */
+    baseRoute: RouteMap[PageMap.SECURITY_EVENTS],
+    type: AIChatPageContextType.SecurityEvents,
+    noun: translationKey("security events"),
+    chipLabel: "Security Events",
+    icon: IconProp.ShieldExclamation,
   },
   {
     /*
@@ -384,6 +410,20 @@ export default class PageContextUtil {
               select: { message: true, exceptionType: true },
             });
           return item?.message || item?.exceptionType || null;
+        }
+        case AIChatPageContextType.SecurityCase: {
+          const item: SecurityCase | null =
+            await ModelAPI.getItem<SecurityCase>({
+              modelType: SecurityCase,
+              id: id,
+              select: { title: true, caseNumberWithPrefix: true },
+            });
+          if (!item?.title) {
+            return null;
+          }
+          return item.caseNumberWithPrefix
+            ? `${item.caseNumberWithPrefix} ${item.title}`
+            : item.title;
         }
         default:
           return null;
@@ -895,6 +935,60 @@ export default class PageContextUtil {
             icon: IconProp.Cube,
             title: "Memory",
             question: "What holds the most memory in my services right now?",
+          },
+        ];
+      case AIChatPageContextType.SecurityCase:
+        return [
+          {
+            icon: IconProp.Document,
+            title: "Summarize",
+            question:
+              "Summarize this security case: what happened, which users and hosts it is about, and how bad it is.",
+          },
+          {
+            icon: IconProp.ShieldExclamation,
+            title: "Is it real?",
+            question:
+              "Is this security case a real attack or a false positive? Weigh the evidence for each.",
+          },
+          {
+            icon: IconProp.Search,
+            title: "Check threat intel",
+            question:
+              "Check this case's IP addresses, domains and file hashes against our threat intel.",
+          },
+          {
+            icon: IconProp.Bolt,
+            title: "What next?",
+            question:
+              "What should I do next on this case? Name the playbook that fits, if one does.",
+          },
+        ];
+      case AIChatPageContextType.SecurityEvents:
+        return [
+          {
+            icon: IconProp.Search,
+            title: "Failed sign-ins",
+            question:
+              "Show failed sign-ins in the last hour, by user and source IP address.",
+          },
+          {
+            icon: IconProp.ShieldExclamation,
+            title: "Open cases",
+            question:
+              "Which security cases are open, and which look most urgent?",
+          },
+          {
+            icon: IconProp.Activity,
+            title: "Unusual activity",
+            question:
+              "Which users or hosts had unusual security activity in the last 24 hours?",
+          },
+          {
+            icon: IconProp.ChartBar,
+            title: "This week",
+            question:
+              "Summarize security events over the last 7 days by event class and severity.",
           },
         ];
       case AIChatPageContextType.ExceptionsList:

@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nothing to backfill: the column is off by default, so a server that has a
  * webhook keeps it.
  */
-export class AddTelegramPollForUpdates1805980000000
+export class AddTelegramPollForUpdates1806020000000
   implements MigrationInterface
 {
-  public name: string = "AddTelegramPollForUpdates1805980000000";
+  public name: string = "AddTelegramPollForUpdates1806020000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

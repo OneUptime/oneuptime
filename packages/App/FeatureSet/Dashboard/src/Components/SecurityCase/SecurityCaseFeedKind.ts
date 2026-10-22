@@ -58,6 +58,9 @@ export const getSecurityCaseFeedKind: GetSecurityCaseFeedKindFunction = (
       return { icon: IconProp.Alert, tone: FeedTone.Danger };
     case SecurityCaseFeedEventType.ResponseAction:
       return { icon: IconProp.ShieldCheck, tone: FeedTone.Record };
+    // OneUptime AI's triage: drawn as an AI investigation's report is.
+    case SecurityCaseFeedEventType.AiTriage:
+      return SHARED_FEED_ENTRY_KINDS.AIRootCause;
     default:
       return undefined;
   }

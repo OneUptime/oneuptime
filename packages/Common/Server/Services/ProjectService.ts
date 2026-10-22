@@ -229,6 +229,7 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"
   | "enableAutomaticAlertInvestigation"
+  | "enableAutomaticSecurityCaseTriage"
   | "enableAutomaticPostmortemDraft"
   | "enableAiInsights"
   | "enableInsightFixTasks"
@@ -238,6 +239,7 @@ export const NEW_PROJECT_AI_DEFAULT_COLUMNS: ReadonlyArray<NewProjectAiDefaultCo
   [
     "enableAutomaticIncidentInvestigation",
     "enableAutomaticAlertInvestigation",
+    "enableAutomaticSecurityCaseTriage",
     "enableAutomaticPostmortemDraft",
     "enableAiInsights",
     "enableInsightFixTasks",

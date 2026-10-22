@@ -768,6 +768,44 @@ export const AiInsightsSettingsCopy: {
 export const AI_INSIGHTS_SWITCHES_TEST_ID: string = "ai-insights-switches";
 
 /*
+ * Security Events → AI → Settings: what OneUptime AI does on its own for
+ * security cases. One switch, saved the moment it is flipped: triaging each
+ * case a detection opens. On for new projects (ProjectService
+ * NEW_PROJECT_AI_DEFAULT_COLUMNS); a project that existed keeps it off until
+ * someone turns it on here. A person can ask for a triage on any case's AI
+ * card whatever it says.
+ */
+export type SecurityAiSwitchColumn = "enableAutomaticSecurityCaseTriage";
+
+export const SECURITY_AI_SWITCHES: Array<
+  ProjectAiSwitchDefinition<SecurityAiSwitchColumn>
+> = [
+  {
+    column: "enableAutomaticSecurityCaseTriage",
+    title: translationKey("Triage new cases"),
+    description: translationKey(
+      "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    ),
+  },
+];
+
+/*
+ * The card's words are the Incidents' and Alerts' AI settings' own: the same
+ * title, and a sentence that says it works on its own and can be turned off.
+ */
+export const SecurityAiSettingsCopy: {
+  cardTitle: string;
+  cardDescription: string;
+} = {
+  cardTitle: SWITCHES_CARD_TITLE,
+  cardDescription: translationKey(
+    "It works on security cases on its own. Turn off anything you do not want it to do.",
+  ),
+};
+
+export const SECURITY_AI_SWITCHES_TEST_ID: string = "security-ai-switches";
+
+/*
  * Project Settings → AI → AI Features: Enable AI, the project's one AI switch.
  * Turning it off stops every AI feature at once, so it asks first. The column
  * lives in EnableAiColumn.ts, which the dashboard's first chunk reads.
@@ -840,6 +878,8 @@ export enum ProjectAiNoticeContext {
    * only while it runs.
    */
   ExternalMcpServers = "ExternalMcpServers",
+  // Security Events → AI → Settings: triaging security cases.
+  SecurityEvents = "SecurityEvents",
 }
 
 // Project.enableAi, as the page knows it.
@@ -1022,6 +1062,12 @@ export const PROJECT_AI_NOTICE_CONTEXT_COPY: Record<
     ),
     providerConsequence: translationKey(
       "Until it has one, OneUptime AI uses none of these servers.",
+    ),
+  },
+  [ProjectAiNoticeContext.SecurityEvents]: {
+    aiOffDescription: AI_OFF_EVENT_PAGE,
+    providerConsequence: translationKey(
+      "Until it has one, security cases are not triaged.",
     ),
   },
 };

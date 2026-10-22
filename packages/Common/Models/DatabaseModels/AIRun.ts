@@ -580,6 +580,38 @@ export default class AIRun extends BaseModel {
   public triggeredByAiInsightId?: ObjectID = undefined;
 
   /*
+   * Set when the run triages a security case (SecurityCaseTriageRunner):
+   * the case OneUptime AI read, whose card shows the run and whose timeline
+   * the report is posted to. A triage reads only; it never changes the case
+   * beyond the read it records on it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Security Case ID",
+    description:
+      "The security case this run triaged (for security case triage runs).",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredBySecurityCaseId?: ObjectID = undefined;
+
+  /*
    * Set on RemediationPlan runs: the AutoRemediationSuggestion this planning
    * run is picking a runbook for. The suggestion carries the reverse link
    * (aiRunId) for the dashboard.

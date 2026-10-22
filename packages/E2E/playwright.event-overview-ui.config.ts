@@ -8,10 +8,26 @@ import path from "path";
  */
 const port: string = process.env["EVENT_OVERVIEW_FIXTURE_PORT"] || "4222";
 
+/*
+ * App Test runs this suite in halves, one per Dashboard Offline UI group:
+ * the group's matrix sets EVENT_OVERVIEW_SHARD to "1/2" or "2/2". The suite
+ * is one spec file of independent tests - each opens its own page - so it
+ * is split by test rather than by file (fullyParallel), each half one
+ * worker as before. Unset, the whole suite runs, in file order, as it
+ * always has.
+ */
+const shardMatch: RegExpExecArray | null = /^(\d+)\/(\d+)$/.exec(
+  process.env["EVENT_OVERVIEW_SHARD"] || "",
+);
+const shard: { current: number; total: number } | null = shardMatch
+  ? { current: Number(shardMatch[1]), total: Number(shardMatch[2]) }
+  : null;
+
 export default defineConfig({
   testDir: "./EventOverview",
   testMatch: "*.spec.ts",
-  fullyParallel: false,
+  fullyParallel: shard !== null,
+  shard: shard,
   workers: 1,
   timeout: 120000,
   expect: { timeout: 15000 },
