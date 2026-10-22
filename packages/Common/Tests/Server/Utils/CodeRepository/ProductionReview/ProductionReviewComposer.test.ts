@@ -7,6 +7,7 @@ import ProductionReviewComposer, {
   formatPercent,
   githubSafeAiText,
   githubSafeText,
+  withoutTrailingSlashes,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer";
 import GitHubCommandParser from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommandParser";
 import { GitHubCommandSurface } from "../../../../../Types/CodeRepository/GitHubCommand";
@@ -595,6 +596,27 @@ describe("ProductionReviewComposer.summarize", () => {
 });
 
 describe("formatting", () => {
+  test("an address loses the slashes it ends with, in time in line with it", () => {
+    expect(withoutTrailingSlashes("https://oneuptime.com/dashboard/")).toBe(
+      "https://oneuptime.com/dashboard",
+    );
+    expect(withoutTrailingSlashes("https://oneuptime.com/dashboard///")).toBe(
+      "https://oneuptime.com/dashboard",
+    );
+    expect(withoutTrailingSlashes("https://oneuptime.com/dashboard")).toBe(
+      "https://oneuptime.com/dashboard",
+    );
+    expect(withoutTrailingSlashes("///")).toBe("");
+    expect(withoutTrailingSlashes("")).toBe("");
+
+    // The worst case of the pattern this replaced: slashes, then not one.
+    const worst: string = `${"/".repeat(400000)}x/`;
+    const started: number = Date.now();
+
+    expect(withoutTrailingSlashes(worst)).toBe(`${"/".repeat(400000)}x`);
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
   test("counts", () => {
     expect(formatCount(1240)).toBe("1,240");
     expect(formatCount(0.4)).toBe("0");

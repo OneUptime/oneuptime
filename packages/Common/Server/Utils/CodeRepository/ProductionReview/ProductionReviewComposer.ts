@@ -195,6 +195,20 @@ export function formatAge(at: string | undefined, now: Date): string {
   return `${days} ${days === 1 ? "day" : "days"} ago`;
 }
 
+/*
+ * An address without the slashes it ends with, read one character at a
+ * time from the end: in time in line with the address, whatever it holds.
+ */
+export function withoutTrailingSlashes(url: string): string {
+  let end: number = url.length;
+
+  while (end > 0 && url[end - 1] === "/") {
+    end--;
+  }
+
+  return url.substring(0, end);
+}
+
 // "a, b and c" of pieces already Markdown.
 function listing(items: Array<MarkdownText>): MarkdownText {
   if (items.length <= 1) {
@@ -439,7 +453,7 @@ export default class ProductionReviewComposer {
     input: ProductionReviewCommentInput,
     path: string,
   ): string {
-    return `${input.dashboardUrl.replace(/\/+$/, "")}/${input.projectId}/${path}`;
+    return `${withoutTrailingSlashes(input.dashboardUrl)}/${input.projectId}/${path}`;
   }
 
   private static describeWhere(
