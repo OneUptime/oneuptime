@@ -310,6 +310,25 @@ const shoot: (
 };
 
 /*
+ * The page as the viewer sees it while a tooltip is open. A full-page
+ * screenshot resizes the window to the page's height, and the tooltip,
+ * placed for the window it opened in, is drawn away from its arrow.
+ */
+const shootViewport: (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+) => Promise<void> = async (
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+): Promise<void> => {
+  await page.screenshot({
+    path: `${SCREENSHOTS}/${testInfo.project.name}-${name}.png`,
+  });
+};
+
+/*
  * The trend's tooltip, once it has faded all the way in: a screenshot taken
  * as it opens shows the tile through it.
  */
@@ -842,7 +861,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     const detailsBox: { y: number } | null = await details.boundingBox();
     expect(detailsBox!.y).toBeLessThan(tileBox!.y + 200);
 
-    await shoot(page, testInfo, "trend-tooltip");
+    await shootViewport(page, testInfo, "trend-tooltip");
   });
 
   test("draw a series that never moves across the middle, with '→ 0%' in grey", async ({
@@ -944,7 +963,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
         [],
       );
 
-      await shoot(page, testInfo, "dark-trend-tooltip");
+      await shootViewport(page, testInfo, "dark-trend-tooltip");
     }
 
     await shoot(page, testInfo, "board-dark");
@@ -990,7 +1009,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
       "Keine Daten für den ausgewählten Zeitraum",
     );
 
-    await shoot(page, testInfo, "german-trend-tooltip");
+    await shootViewport(page, testInfo, "german-trend-tooltip");
   });
 
   test("keep time running left to right on a right-to-left page", async ({
@@ -1033,9 +1052,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
      * The page as the viewer sees it: an element's own screenshot is cut
      * from the wrong place on a right-to-left page.
      */
-    await page.screenshot({
-      path: `${SCREENSHOTS}/${testInfo.project.name}-persian-hover.png`,
-    });
+    await shootViewport(page, testInfo, "persian-hover");
   });
 
   test("on a phone, a tap on the arrow says what it compares", async ({
@@ -1056,7 +1073,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
 
     await expect(await trendTooltipSettled(page)).toContainText("First half");
 
-    await shoot(page, testInfo, "phone-trend-tooltip");
+    await shootViewport(page, testInfo, "phone-trend-tooltip");
   });
 });
 
