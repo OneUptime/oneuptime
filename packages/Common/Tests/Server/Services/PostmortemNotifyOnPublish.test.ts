@@ -914,11 +914,16 @@ describe("the stored postmortem is read once, before the write", () => {
     await runUpdate(editPostmortemFormSave({ note: NOTE, publish: true }));
 
     expect(postmortemReads()).toHaveLength(1);
+    /*
+     * With the postmortem's status: writing the note or publishing it moves
+     * the status from where it was (Common/Utils/Incident/PostmortemStatus).
+     */
     expect(postmortemReads()[0]!.select).toEqual({
       _id: true,
       postmortemNote: true,
       showPostmortemOnStatusPage: true,
       subscriberNotificationStatusOnPostmortemPublished: true,
+      postmortemStatusId: true,
     });
     // By id, among the incidents the caller may write - found in their project.
     expect(postmortemReads()[0]!.query).toEqual({ _id: RECORD_ID });
@@ -992,6 +997,7 @@ describe("the stored postmortem is read once, before the write", () => {
       postmortemNote: true,
       showPostmortemOnStatusPage: true,
       subscriberNotificationStatusOnPostmortemPublished: true,
+      postmortemStatusId: true,
     });
 
     // Both comparisons ran on that one read.
