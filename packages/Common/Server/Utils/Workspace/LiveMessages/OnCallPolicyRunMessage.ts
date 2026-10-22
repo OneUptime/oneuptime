@@ -61,6 +61,7 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { readAwayUntil } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../../../Types/OnCallDutyPolicy/OnCallDirectPage";
+import { isOnCallPageAgainRun } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { MarkdownText } from "../../../../Utils/Markdown/FeedMarkdown";
 import OnCallPolicyRunMessageView, {
   ON_CALL_RUN_NOT_PAGED,
@@ -735,6 +736,8 @@ export default class OnCallPolicyRunMessage {
           // A run that waits to page: when it starts, and why it started early.
           pagingStartsAt: true,
           pagingStartedEarlyReason: true,
+          // A page again: which time (OnCallAcknowledgementTimeout).
+          pageAgainNumber: true,
           acknowledgedByUserId: true,
           acknowledgedByUser: {
             name: true,
@@ -1613,6 +1616,9 @@ export default class OnCallPolicyRunMessage {
     return {
       ...waiting,
       ...(startedEarlyReason ? { startedEarlyReason: startedEarlyReason } : {}),
+      ...(isOnCallPageAgainRun(executionLog)
+        ? { pageAgainNumber: Number(executionLog.pageAgainNumber) }
+        : {}),
       policyName: data.directPage
         ? ""
         : executionLog.onCallDutyPolicy?.name?.trim() || "On-call policy",

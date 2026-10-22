@@ -42,6 +42,7 @@ import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
 
 export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeline> {
   /*
@@ -565,6 +566,23 @@ export class Service extends ProjectReferencesService<IncidentEpisodeStateTimeli
       savedStateChange: createdItem,
       props: onCreate.createBy.props,
     });
+
+    /*
+     * An on-call policy that pages again when an acknowledged episode is not
+     * resolved in time: its clock starts at a new acknowledgement and stops
+     * at a resolve (OnCallAcknowledgementTimeout). The episode's current
+     * state only - a back-dated row changes neither. Never throws.
+     */
+    if (!createdItem.endsAt && createdItem.projectId) {
+      await OnCallAcknowledgementTimeout.onRecordStateChanged({
+        kind: "incident episode",
+        recordId: createdItem.incidentEpisodeId,
+        projectId: createdItem.projectId,
+        stateId: createdItem.incidentStateId,
+        previousStateId:
+          onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+      });
+    }
 
     /*
      * Resolved: the episode's channels whose rule says to archive them when

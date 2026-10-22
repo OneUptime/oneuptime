@@ -105,6 +105,12 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
   projectId: ObjectID;
+  /*
+   * The policy's acknowledgement timeout in minutes while it pages again,
+   * as the Acknowledgement Timeout card on the same page last read or
+   * saved it - so the summary says what the card says, at once - or null.
+   */
+  acknowledgementTimeoutInMinutes?: number | null | undefined;
 }
 
 /*
@@ -1929,6 +1935,9 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
             levels={summaryLevels}
             repeatEnabled={repeatEnabled}
             repeatCount={repeatCount}
+            acknowledgementTimeoutInMinutes={
+              props.acknowledgementTimeoutInMinutes
+            }
             onCallDutyPolicyId={props.onCallDutyPolicyId}
             readiness={readiness}
           />
