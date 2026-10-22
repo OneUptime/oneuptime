@@ -32,6 +32,11 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
+  SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
+  getSecurityPlaybookTriggerOptions,
+} from "../../Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
+import useAiOffered from "../../Utils/UseAiOffered";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 function getPlaybookViewRoute(id: ObjectID): Route {
@@ -49,6 +54,7 @@ const SecurityPlaybooksPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
   const [error, setError] = useState<string>("");
   const [creatingKey, setCreatingKey] = useState<string>("");
 
@@ -223,12 +229,13 @@ const SecurityPlaybooksPage: FunctionComponent<
             field: { trigger: true },
             stepId: "when",
             title: "Trigger",
-            description:
-              "Case Opened: once, as a case opens. Detection Added: each time a new detection joins an open case. Manual: only when someone runs it.",
+            description: SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SecurityPlaybookTrigger,
-            ),
+            // Each says when it runs; the AI one only while AI is on.
+            dropdownOptions: getSecurityPlaybookTriggerOptions({
+              isAiOffered,
+              isEditing: false,
+            }),
             required: true,
           },
           {

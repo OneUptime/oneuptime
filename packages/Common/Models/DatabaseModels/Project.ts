@@ -2100,6 +2100,47 @@ export default class Project extends TenantModel {
   public enableAutomaticAlertInvestigation?: boolean = undefined;
 
   /*
+   * Triaging new security cases: OneUptime AI reads each case a detection
+   * opens - its detections and events, threat intel, how unusual its
+   * entities' activity is, the OneUptime hosts they are and who owns them -
+   * and posts what happened, how likely it is to be real, the priority it
+   * deserves and the playbook that fits, to the case's timeline. Read-only:
+   * a person still decides the verdict and the priority, and runs the
+   * playbook. On for new projects, like investigating new incidents (see
+   * enableAutomaticIncidentInvestigation above); a project that existed
+   * before keeps it off, so an upgrade spends no AI credits unasked.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Security Case Triage",
+    description:
+      "When enabled, OneUptime AI triages every new security case a detection opens: it posts what happened, how likely it is to be real, the priority it deserves and the playbook that fits to the case's timeline. It changes nothing: a person decides the verdict and priority and runs the playbook. On for new projects created in OneUptime; projects that existed before keep their setting. Requires AI to be enabled and an LLM provider to be configured.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticSecurityCaseTriage?: boolean = undefined;
+
+  /*
    * Fixing new incidents and alerts automatically (auto-remediation): the
    * master switches, one per kind of signal, as investigation has. OFF for
    * every project, new ones included, and on purpose not among the switches

@@ -46,10 +46,11 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Esperando aprobación** | Playbooks | Los pasos de playbook que esperan que alguien los apruebe o los rechace |
 | **Ejecuciones de playbooks** | Playbooks | Lo que hizo cada playbook, paso a paso |
 | **Protected Entities** | Playbooks | Los usuarios y hosts a los que ningún playbook aplica contención |
+| **Ajustes** | IA | Si OneUptime AI clasifica cada caso nuevo |
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 
-**Detecciones** y **Conexiones**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
+**Detecciones**, **IA** y **Conexiones**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
 ## Antes de empezar
 

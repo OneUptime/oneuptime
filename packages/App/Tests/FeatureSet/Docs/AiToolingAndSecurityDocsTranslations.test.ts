@@ -10,6 +10,7 @@ import {
   DocsPageEntry,
   GEMINI_COPILOT,
   PROVIDER_ACCOUNTS,
+  SECURITY_AI,
   SECURITY_CASES,
   SECURITY_EVENTS,
   SECURITY_GETTING_STARTED,
@@ -132,6 +133,7 @@ const WIDEST_DIAGRAM_LINE: Record<string, number> = {
   [THREAT_INTELLIGENCE]: 28,
   [SECURITY_CASES]: 26,
   [SECURITY_GETTING_STARTED]: 24,
+  [SECURITY_AI]: 20,
 };
 
 // Bold words that name a product opened from the Products menu.

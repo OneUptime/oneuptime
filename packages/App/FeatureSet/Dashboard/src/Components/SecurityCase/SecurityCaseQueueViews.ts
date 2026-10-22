@@ -45,15 +45,34 @@ export type SecurityCaseQueueColumn =
   | "lastDetection"
   | "closed";
 
-// The case list's filters, in the order they are offered.
+/*
+ * The case list's filters, in the order they are offered. AI Verdict - what
+ * OneUptime AI's triage read each case as - is offered only while the
+ * project's AI is on (withoutAiFilters).
+ */
 export type SecurityCaseQueueFilter =
   | "title"
   | "priority"
   | "status"
   | "verdict"
+  | "aiVerdict"
   | "labels"
   | "opened"
   | "closed";
+
+// The filters that read what OneUptime AI wrote on a case.
+export const SECURITY_CASE_AI_FILTERS: ReadonlyArray<SecurityCaseQueueFilter> =
+  ["aiVerdict"];
+
+// A list's filters as drawn: with the AI ones only while AI is on.
+export function getSecurityCaseQueueFilters(
+  view: SecurityCaseQueueView,
+  isAiOffered: boolean,
+): Array<SecurityCaseQueueFilter> {
+  return view.filters.filter((filter: SecurityCaseQueueFilter): boolean => {
+    return isAiOffered || !SECURITY_CASE_AI_FILTERS.includes(filter);
+  });
+}
 
 export type SecurityCaseQueueSort = "lastDetectedAt" | "closedAt";
 
@@ -103,11 +122,16 @@ const OPEN_COLUMNS: ReadonlyArray<SecurityCaseQueueColumn> = [
   "lastDetection",
 ];
 
-// No open case has a verdict yet: an open list is filtered by where it stands instead.
+/*
+ * No open case has a verdict yet: an open list is filtered by where it
+ * stands instead - and by what OneUptime AI read it as, to pick up the
+ * likely malicious first.
+ */
 const OPEN_FILTERS: ReadonlyArray<SecurityCaseQueueFilter> = [
   "title",
   "priority",
   "status",
+  "aiVerdict",
   "labels",
   "opened",
 ];
@@ -209,7 +233,15 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToMe: false,
     columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
     hiddenColumns: ["labels"],
-    filters: ["title", "priority", "verdict", "labels", "opened", "closed"],
+    filters: [
+      "title",
+      "priority",
+      "verdict",
+      "aiVerdict",
+      "labels",
+      "opened",
+      "closed",
+    ],
     sortBy: "closedAt",
   },
   {
@@ -236,7 +268,15 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
       "lastDetection",
     ],
     hiddenColumns: ["verdict", "labels"],
-    filters: ["title", "priority", "status", "verdict", "labels", "opened"],
+    filters: [
+      "title",
+      "priority",
+      "status",
+      "verdict",
+      "aiVerdict",
+      "labels",
+      "opened",
+    ],
     sortBy: "lastDetectedAt",
   },
 ];

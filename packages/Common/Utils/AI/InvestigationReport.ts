@@ -18,6 +18,14 @@ export const AI_ROOT_CAUSE_HEADING_TEXT: string =
   "AI — Automated Root Cause Analysis";
 
 /*
+ * The heading of a security case's triage report (SecurityCaseTriageRunner,
+ * through the engine's reportHeading): the same report in every other way,
+ * so it is read the same way.
+ */
+export const AI_SECURITY_CASE_TRIAGE_HEADING_TEXT: string =
+  "AI — Security Case Triage";
+
+/*
  * How the runner's own first line of a follow-up check's report starts: the
  * report OneUptime AI writes when it checks an incident again after an alert
  * opened on its linked infrastructure ("**Checked again** after alert #12
@@ -26,6 +34,17 @@ export const AI_ROOT_CAUSE_HEADING_TEXT: string =
  * right under the brand heading, before the model's analysis.
  */
 export const FOLLOW_UP_REPORT_LEAD_PREFIX: string = "**Checked again**";
+
+/*
+ * How the runner's heads-up starts on a security case's triage report when
+ * the case's data held text written to steer an AI
+ * (SecurityCaseTriageRunner.getPromptInjectionReportLead): the paragraph
+ * right under the brand heading. The timeline and Copy report keep it; the
+ * case's AI card says the same first, in the reader's language, and draws
+ * the report without it (SecurityCaseAiTriage.withoutTriageInjectionLead).
+ */
+export const SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX: string =
+  "**Heads up:** some text in this case's data reads like instructions to an AI";
 
 // A lead is one short paragraph; anything longer is the model's own text.
 const MAX_FOLLOW_UP_LEAD_LENGTH: number = 1000;
@@ -186,7 +205,11 @@ const KNOWN_LABELS: Map<string, LabelKind> = new Map<string, LabelKind>([
   ["evidence checked", "EvidenceChecked"],
 ]);
 
-const BRAND_HEADING_MARKER: string = "automated root cause analysis";
+// What a brand heading says after "AI — ", lower case.
+const BRAND_HEADING_MARKERS: ReadonlyArray<string> = [
+  "automated root cause analysis",
+  "security case triage",
+];
 const FOOTER_PREFIX: string = "Investigated automatically by OneUptime AI";
 
 const LINE_ENDING_REGEX: RegExp = /\r\n?/g;
@@ -890,9 +913,15 @@ function matchSectionStart(line: string): LabelLineMatch | null {
 function isBrandHeading(line: string): boolean {
   const heading: RegExpExecArray | null = ATX_HEADING_REGEX.exec(line);
 
-  return Boolean(
-    heading && (heading[1] || "").toLowerCase().includes(BRAND_HEADING_MARKER),
-  );
+  if (!heading) {
+    return false;
+  }
+
+  const text: string = (heading[1] || "").toLowerCase();
+
+  return BRAND_HEADING_MARKERS.some((marker: string): boolean => {
+    return text.includes(marker);
+  });
 }
 
 /*

@@ -11,7 +11,11 @@ import {
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  FieldFooterProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import DetectionRuleAiDraft from "../../Components/SecurityEvents/DetectionRuleAiDraft";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   DETECTION_RULE_MATCH_WORDING,
@@ -193,19 +197,40 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             stepId: "sigma-rule",
             description:
               "One Sigma rule, or a Sigma correlation with the rules it reads, in YAML.",
-            // What a correlation looks for, in a sentence, as it is typed.
+            /*
+             * Draft with AI - describe what to catch and OneUptime AI
+             * writes the rule here - and what a correlation looks for, in a
+             * sentence, as it is typed.
+             */
             getFooterElement: (
               values: FormValues<DetectionRule>,
+              _error?: string,
+              footer?: FieldFooterProps,
             ): ReactElement | undefined => {
               const shape: DetectionRuleShape | null = readDetectionRuleShape(
                 values.sigmaRuleYaml,
               );
 
-              return shape && shape.isCorrelation ? (
-                <div className="mt-2">
-                  <DetectionRuleSummary shape={shape} />
-                </div>
-              ) : undefined;
+              return (
+                <>
+                  <DetectionRuleAiDraft
+                    hasRule={
+                      typeof values.sigmaRuleYaml === "string" &&
+                      values.sigmaRuleYaml.trim().length > 0
+                    }
+                    onDraft={(sigmaRuleYaml: string) => {
+                      footer?.setValue(sigmaRuleYaml);
+                    }}
+                  />
+                  {shape && shape.isCorrelation ? (
+                    <div className="mt-2">
+                      <DetectionRuleSummary shape={shape} />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </>
+              );
             },
             /*
              * YAML, not Markdown. Markdown put a rich-text toolbar (Bold, H1)

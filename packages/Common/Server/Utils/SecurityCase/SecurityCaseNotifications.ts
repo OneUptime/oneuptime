@@ -238,6 +238,8 @@ export function describeRunTrigger(
       return "Automatically, when the case opened";
     case SecurityPlaybookTrigger.DetectionAdded:
       return "Automatically, for a new detection";
+    case SecurityPlaybookTrigger.TriagedAsLikelyMalicious:
+      return "Automatically, when AI triage read the case as Likely Malicious";
     default:
       return "By hand";
   }

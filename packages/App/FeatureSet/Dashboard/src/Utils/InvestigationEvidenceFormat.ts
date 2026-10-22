@@ -246,6 +246,38 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "query_security_cases",
+    {
+      description: "Read security cases",
+      icon: IconProp.ShieldExclamation,
+      category: "Security",
+    },
+  ],
+  [
+    "lookup_threat_intel",
+    {
+      description: "Checked threat intel",
+      icon: IconProp.Bug,
+      category: "Security",
+    },
+  ],
+  [
+    "security_entity_activity",
+    {
+      description: "Checked how unusual an entity is",
+      icon: IconProp.Fingerprint,
+      category: "Security",
+    },
+  ],
+  [
+    "query_security_playbooks",
+    {
+      description: "Listed playbooks",
+      icon: IconProp.Bolt,
+      category: "Security",
+    },
+  ],
+  [
     "query_metrics",
     {
       description: "Queried a metric",
@@ -680,6 +712,10 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.Probes]: "Probes",
   [AIChatCitationTargetType.Teams]: "Teams",
   [AIChatCitationTargetType.SecurityEvents]: "Security events",
+  [AIChatCitationTargetType.SecurityCases]: "Security cases",
+  [AIChatCitationTargetType.SecurityCaseView]: "Security case",
+  [AIChatCitationTargetType.ThreatIntel]: "Threat Intel",
+  [AIChatCitationTargetType.SecurityPlaybooks]: "Playbooks",
 };
 
 // The page an evidence target opens, for "Open in <page>".

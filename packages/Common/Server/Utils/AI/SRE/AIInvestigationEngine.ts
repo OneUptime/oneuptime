@@ -135,6 +135,10 @@ const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
     tool_failed: AIRunEventType.ToolCallFailed,
   };
 
+// The heading of every report but a runner's own (reportHeading).
+export const AI_ROOT_CAUSE_REPORT_HEADING: string =
+  "Automated Root Cause Analysis";
+
 export const INVESTIGATION_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer. You have been woken automatically because a NEW signal (an incident or alert) was just declared in this project — no human has asked you a question yet. Investigate it proactively and produce a first-pass root cause analysis that the on-call engineer will read the moment they are paged.
 
 Investigate like a senior on-call engineer:
@@ -261,6 +265,21 @@ export interface InvestigationRequest {
    * present; extras are additive and own their own authorization.
    */
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+  /*
+   * Called with what each successful tool call handed the model (see
+   * ObservabilityAssistantRequest.onToolResult). A security case's triage
+   * looks over it for text written to steer an AI.
+   */
+  onToolResult?:
+    | ((result: { toolName: string; textForLlm: string }) => void)
+    | undefined;
+  /*
+   * The report's heading, after the brain mark, in place of "AI —
+   * Automated Root Cause Analysis": a security case's triage is no root
+   * cause analysis ("AI — Security Case Triage"). The dashboard's report
+   * parser knows both (Common/Utils/AI/InvestigationReport).
+   */
+  reportHeading?: string | undefined;
   /*
    * The code repositories the run may read (CodeRepositoryAllowance): the
    * ones the rules that matched its incident (or alert) name. Left out,
@@ -648,6 +667,7 @@ export default class AIInvestigationEngine {
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,
+          onToolResult: request.onToolResult,
           ...(request.codeRepositoryAllowance
             ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
             : {}),
@@ -809,6 +829,7 @@ export default class AIInvestigationEngine {
         clusterToolCallCount,
         infrastructureToolCallCount,
         request.reportLead,
+        request.reportHeading,
       );
 
       await request.postAnalysis({
@@ -1093,9 +1114,16 @@ export default class AIInvestigationEngine {
     infrastructureToolCallCount: number = 0,
     // The runner's own line under the heading (a follow-up check's why).
     reportLead?: MarkdownText | undefined,
+    // The heading after "AI — "; a root cause analysis unless a runner says.
+    reportHeading?: string | undefined,
   ): string {
+    const heading: string =
+      reportHeading && reportHeading.trim()
+        ? reportHeading.trim()
+        : AI_ROOT_CAUSE_REPORT_HEADING;
+
     let markdown: string =
-      mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+      mdText`## 🧠 AI — ${heading}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
 
     /*
      * The runner's own lead goes between the heading and the analysis, so
@@ -1103,7 +1131,7 @@ export default class AIInvestigationEngine {
      */
     if (reportLead && reportLead.toString().trim()) {
       markdown =
-        mdText`## 🧠 AI — Automated Root Cause Analysis\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
+        mdText`## 🧠 AI — ${heading}\n\n${reportLead}\n\n${FeedMarkdown.aiWritten(analysisMarkdown)}`.toString();
     }
 
     const citations: Array<AIChatCitation> = result.citations || [];

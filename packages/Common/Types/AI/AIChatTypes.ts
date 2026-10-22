@@ -37,6 +37,12 @@ export enum AIChatCitationTargetType {
   Probes = "Probes",
   Teams = "Teams",
   SecurityEvents = "SecurityEvents",
+  // The security case queue, and one case; params: { securityCaseId }.
+  SecurityCases = "SecurityCases",
+  SecurityCaseView = "SecurityCaseView",
+  // Threat Intel: the feeds and the indicators they hold.
+  ThreatIntel = "ThreatIntel",
+  SecurityPlaybooks = "SecurityPlaybooks",
   RumApplications = "RumApplications",
   RumApplicationView = "RumApplicationView",
   TelemetryResources = "TelemetryResources",
