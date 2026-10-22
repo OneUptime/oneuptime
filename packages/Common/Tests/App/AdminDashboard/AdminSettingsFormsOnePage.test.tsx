@@ -1004,9 +1004,7 @@ describe("Settings > Call & SMS", () => {
 
         expect(input).toBeVisible();
         expect(
-          document.getElementById(
-            input.getAttribute("aria-describedby") || "",
-          ),
+          document.getElementById(input.getAttribute("aria-describedby") || ""),
         ).toHaveTextContent(description);
       }
 
@@ -1016,7 +1014,9 @@ describe("Settings > Call & SMS", () => {
       // Asked before the account itself.
       const page: string = dialog.textContent || "";
 
-      expect(page.indexOf(USE)).toBeLessThan(page.indexOf("Twilio Account SID"));
+      expect(page.indexOf(USE)).toBeLessThan(
+        page.indexOf("Twilio Account SID"),
+      );
     });
 
     test("SMS only asks for SMS numbers, open and required, and no number to make calls from", async () => {
@@ -1034,9 +1034,9 @@ describe("Settings > Call & SMS", () => {
         ),
       ).toBeVisible();
       expect(shows(dialog, "Twilio Primary Phone Number")).toBe(false);
-      expect(within(dialog).queryByRole("button", { name: "More fields" })).toBe(
-        null,
-      );
+      expect(
+        within(dialog).queryByRole("button", { name: "More fields" }),
+      ).toBe(null);
     });
 
     test("an account used for SMS only is saved with its SMS numbers", async () => {

@@ -70,9 +70,7 @@ describe("what a config holds", () => {
     expect(TwilioConfigWrite.getMissingNumberError(callsAndSms)).toBeNull();
     expect(TwilioConfigWrite.getMissingNumberError(smsOnly)).toBeNull();
     expect(TwilioConfigWrite.getMissingNumberError(callsOnly)).toBeNull();
-    expect(
-      TwilioConfigWrite.getMissingNumberError(legacyWithoutNumbers),
-    ).toBe(
+    expect(TwilioConfigWrite.getMissingNumberError(legacyWithoutNumbers)).toBe(
       "A Twilio config used for calls and SMS needs a Twilio Primary Phone Number: calls go out from it.",
     );
     expect(
@@ -95,9 +93,9 @@ describe("what a write gives", () => {
       "smsPhoneNumbers",
     ]);
     expect(TwilioConfigWrite.getWrittenKeys({})).toEqual([]);
-    expect(
-      TwilioConfigWrite.getWrittenKeys({ smsPhoneNumbers: null }),
-    ).toEqual(["smsPhoneNumbers"]);
+    expect(TwilioConfigWrite.getWrittenKeys({ smsPhoneNumbers: null })).toEqual(
+      ["smsPhoneNumbers"],
+    );
     expect(
       TwilioConfigWrite.getWrittenKeys({
         use: TwilioConfigUse.SmsOnly,
@@ -231,7 +229,10 @@ describe("an update of a stored config", () => {
   });
 
   test("that makes calls needs a number to make them from", () => {
-    for (const use of [TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly]) {
+    for (const use of [
+      TwilioConfigUse.CallsAndSms,
+      TwilioConfigUse.CallsOnly,
+    ]) {
       expect(
         TwilioConfigWrite.getUpdateError({
           stored: smsOnly,

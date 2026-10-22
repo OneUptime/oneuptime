@@ -942,7 +942,10 @@ describe("what decides which fields show", () => {
     }
 
     expect(
-      isFormUsedFor(TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly)({
+      isFormUsedFor(
+        TwilioConfigUse.CallsAndSms,
+        TwilioConfigUse.CallsOnly,
+      )({
         usedFor: TwilioConfigUse.SmsOnly,
       }),
     ).toBe(false);

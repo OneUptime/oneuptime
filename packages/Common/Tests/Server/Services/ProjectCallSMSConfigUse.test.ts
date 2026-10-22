@@ -393,7 +393,10 @@ describe("updating a config", () => {
   test("that makes an SMS-only config make calls needs a number to make them from", async () => {
     storedAs([buildConfig({ use: TwilioConfigUse.SmsOnly, sms: SG_MOBILE })]);
 
-    for (const use of [TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly]) {
+    for (const use of [
+      TwilioConfigUse.CallsAndSms,
+      TwilioConfigUse.CallsOnly,
+    ]) {
       await expect(
         projectBeforeUpdate(updateOf({ usedFor: use })),
       ).rejects.toThrow("needs a Twilio Primary Phone Number");
@@ -413,9 +416,7 @@ describe("updating a config", () => {
       { isProjectDefault: true },
       { description: "For on-call SMS" },
     ]) {
-      await expect(
-        projectBeforeUpdate(updateOf(data)),
-      ).resolves.toBeDefined();
+      await expect(projectBeforeUpdate(updateOf(data))).resolves.toBeDefined();
     }
 
     expect(readRows).not.toHaveBeenCalled();
@@ -472,7 +473,10 @@ describe("a config, as the senders take it", () => {
   test("used for SMS only, has no number to make calls from and needs none", () => {
     const twilioConfig: TwilioConfig | undefined =
       ProjectCallSMSConfigService.toTwilioConfig(
-        buildConfig({ use: TwilioConfigUse.SmsOnly, sms: `${SG_MOBILE},${UK}` }),
+        buildConfig({
+          use: TwilioConfigUse.SmsOnly,
+          sms: `${SG_MOBILE},${UK}`,
+        }),
       );
 
     expect(twilioConfig?.use).toBe(TwilioConfigUse.SmsOnly);
@@ -504,13 +508,22 @@ describe("a config, as the senders take it", () => {
     });
 
     expect(
-      ProjectCallSMSConfigService.toTwilioConfig(smsOnly, TwilioMessageKind.Call),
+      ProjectCallSMSConfigService.toTwilioConfig(
+        smsOnly,
+        TwilioMessageKind.Call,
+      ),
     ).toBeUndefined();
     expect(
-      ProjectCallSMSConfigService.toTwilioConfig(smsOnly, TwilioMessageKind.SMS),
+      ProjectCallSMSConfigService.toTwilioConfig(
+        smsOnly,
+        TwilioMessageKind.SMS,
+      ),
     ).toBeDefined();
     expect(
-      ProjectCallSMSConfigService.toTwilioConfig(callsOnly, TwilioMessageKind.SMS),
+      ProjectCallSMSConfigService.toTwilioConfig(
+        callsOnly,
+        TwilioMessageKind.SMS,
+      ),
     ).toBeUndefined();
     expect(
       ProjectCallSMSConfigService.toTwilioConfig(

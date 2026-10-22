@@ -109,9 +109,9 @@ describe("a config used for calls and SMS", () => {
         secondary: [UK_LANDLINE],
       });
 
-      expect(TwilioPhoneNumbers.canSend(twilioConfig, TwilioMessageKind.SMS)).toBe(
-        true,
-      );
+      expect(
+        TwilioPhoneNumbers.canSend(twilioConfig, TwilioMessageKind.SMS),
+      ).toBe(true);
       expect(
         TwilioPhoneNumbers.canSend(twilioConfig, TwilioMessageKind.Call),
       ).toBe(true);
@@ -145,9 +145,7 @@ describe("a config used for calls and SMS", () => {
 
     for (const recipient of RECIPIENTS) {
       for (const kind of [TwilioMessageKind.SMS, TwilioMessageKind.Call]) {
-        expect(from(said, kind, recipient)).toBe(
-          from(silent, kind, recipient),
-        );
+        expect(from(said, kind, recipient)).toBe(from(silent, kind, recipient));
       }
     }
   });
@@ -165,9 +163,9 @@ describe("a config used for calls and SMS", () => {
     expect(
       TwilioPhoneNumbers.getCannotSendReason(noNumber, TwilioMessageKind.Call),
     ).toBe("This Twilio config has no number to make calls from.");
-    expect(
-      TwilioPhoneNumbers.canSend(config({}), TwilioMessageKind.SMS),
-    ).toBe(false);
+    expect(TwilioPhoneNumbers.canSend(config({}), TwilioMessageKind.SMS)).toBe(
+      false,
+    );
     expect(
       TwilioPhoneNumbers.getCannotSendReason(config({}), TwilioMessageKind.SMS),
     ).toBe("This Twilio config has no number to send SMS from.");
@@ -228,9 +226,7 @@ describe("a config used for SMS only", () => {
         TwilioPhoneNumbers.canSend(keepsANumber, TwilioMessageKind.Call),
       ).toBe(false);
       // And never sends an SMS from it either.
-      expect(from(keepsANumber, TwilioMessageKind.SMS, recipient)).not.toBe(
-        US,
-      );
+      expect(from(keepsANumber, TwilioMessageKind.SMS, recipient)).not.toBe(US);
       expect(from(keepsANumber, TwilioMessageKind.SMS, recipient)).not.toBe(
         UK_LANDLINE,
       );
@@ -263,7 +259,10 @@ describe("a config used for calls only", () => {
   });
 
   test("makes calls from its primary and secondary numbers, as a config for both does", () => {
-    const both: TwilioConfig = { ...callsOnly, use: TwilioConfigUse.CallsAndSms };
+    const both: TwilioConfig = {
+      ...callsOnly,
+      use: TwilioConfigUse.CallsAndSms,
+    };
 
     expect(TwilioPhoneNumbers.canSend(callsOnly, TwilioMessageKind.Call)).toBe(
       true,
@@ -291,7 +290,10 @@ describe("a config used for calls only", () => {
         TwilioPhoneNumbers.canSend(twilioConfig, TwilioMessageKind.SMS),
       ).toBe(false);
       expect(
-        TwilioPhoneNumbers.getSenderNumbers(twilioConfig, TwilioMessageKind.SMS),
+        TwilioPhoneNumbers.getSenderNumbers(
+          twilioConfig,
+          TwilioMessageKind.SMS,
+        ),
       ).toBeNull();
       expect(
         TwilioPhoneNumbers.getCannotSendReason(

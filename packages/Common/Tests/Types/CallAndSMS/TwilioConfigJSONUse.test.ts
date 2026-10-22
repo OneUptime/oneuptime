@@ -220,7 +220,10 @@ describe("a config, received", () => {
   });
 
   test("used for calls, without a number to make them from, is refused as before", () => {
-    for (const use of [TwilioConfigUse.CallsOnly, TwilioConfigUse.CallsAndSms]) {
+    for (const use of [
+      TwilioConfigUse.CallsOnly,
+      TwilioConfigUse.CallsAndSms,
+    ]) {
       expect(() => {
         TwilioConfigJSON.fromJSON({
           accountSid: "AC1",

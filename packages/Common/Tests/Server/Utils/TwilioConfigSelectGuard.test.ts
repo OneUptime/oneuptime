@@ -265,9 +265,9 @@ describe("TwilioConfigSelect's lists", () => {
     expect(projectUse).toBeDefined();
     expect(globalUse).toBeDefined();
     // Both start where every config was: calls and SMS.
-    expect(
-      (projectUse as { defaultValue: unknown }).defaultValue,
-    ).toEqual((globalUse as { defaultValue: unknown }).defaultValue);
+    expect((projectUse as { defaultValue: unknown }).defaultValue).toEqual(
+      (globalUse as { defaultValue: unknown }).defaultValue,
+    );
   });
 
   test("each list a sender reads names what the config is used for", () => {

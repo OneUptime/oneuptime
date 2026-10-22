@@ -14,9 +14,11 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import ObjectID from "../../../Types/ObjectID";
 import Phone from "../../../Types/Phone";
-import { getProjectBalanceTooLowMessage } from "../../../Utils/Project/ProjectBalance";
+import {
+  INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE,
+  getProjectBalanceTooLowMessage,
+} from "../../../Utils/Project/ProjectBalance";
 import { ProjectNotificationChannel } from "../../../Utils/Project/NotificationChannels";
-import { INCOMING_CALL_NUMBER_BALANCE_TOO_LOW_MESSAGE } from "../../../Utils/Project/ProjectBalance";
 import {
   getIncomingCallNumberNoTwilioAccountMessage,
   getNoTwilioAccountMessage,
@@ -162,7 +164,9 @@ describe("a number for calls, in a project whose config is used for SMS only", (
 
     await expect(
       UserCallService.getReasonCodeCannotBeSent(PROJECT_ID),
-    ).resolves.toBe(getProjectBalanceTooLowMessage(ProjectNotificationChannel.Call));
+    ).resolves.toBe(
+      getProjectBalanceTooLowMessage(ProjectNotificationChannel.Call),
+    );
 
     stub({
       projectDefault: TwilioConfigUse.CallsAndSms,
@@ -227,7 +231,9 @@ describe("a number for SMS, in a project whose config is used for calls only", (
 
     await expect(
       UserSmsService.getReasonCodeCannotBeSent(PROJECT_ID),
-    ).resolves.toBe(getProjectBalanceTooLowMessage(ProjectNotificationChannel.SMS));
+    ).resolves.toBe(
+      getProjectBalanceTooLowMessage(ProjectNotificationChannel.SMS),
+    );
   });
 
   test("adding one checks the balance too", async () => {

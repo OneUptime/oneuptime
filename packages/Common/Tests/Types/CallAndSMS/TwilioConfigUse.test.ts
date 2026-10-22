@@ -169,13 +169,15 @@ describe("the numbers each use takes", () => {
   };
 
   test("calls and SMS takes a number to make calls from; SMS numbers are optional", () => {
-    expect(has(TwilioConfigUse.CallsAndSms, { primary: true, sms: false })).toBe(
-      null,
-    );
+    expect(
+      has(TwilioConfigUse.CallsAndSms, { primary: true, sms: false }),
+    ).toBe(null);
     expect(has(TwilioConfigUse.CallsAndSms, { primary: true, sms: true })).toBe(
       null,
     );
-    expect(has(TwilioConfigUse.CallsAndSms, { primary: false, sms: true })).toBe(
+    expect(
+      has(TwilioConfigUse.CallsAndSms, { primary: false, sms: true }),
+    ).toBe(
       "A Twilio config used for calls and SMS needs a Twilio Primary Phone Number: calls go out from it.",
     );
     expect(

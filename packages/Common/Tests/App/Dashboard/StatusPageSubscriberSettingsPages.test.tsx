@@ -375,14 +375,13 @@ describe("Subscriber Settings", () => {
   test("its Twilio Config picker lists only the configs that send SMS, and says why one is missing", async () => {
     await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
 
-    const twilio: Record<string, unknown> | undefined = recordedDetailCards.find(
-      (card: Record<string, unknown>): boolean => {
+    const twilio: Record<string, unknown> | undefined =
+      recordedDetailCards.find((card: Record<string, unknown>): boolean => {
         return (
           (card["cardProps"] as Record<string, unknown>)["title"] ===
           "Twilio Config"
         );
-      },
-    );
+      });
     const picker: Field<unknown> | undefined = (
       (twilio?.["formFields"] as Array<Field<unknown>>) || []
     ).find((field: Field<unknown>): boolean => {

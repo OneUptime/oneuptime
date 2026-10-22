@@ -264,36 +264,36 @@ type GetTwilioConfigFunction = (
 export const getTwilioConfig: GetTwilioConfigFunction = async (
   kind?: TwilioMessageKind | undefined,
 ): Promise<TwilioConfig | null> => {
-    const globalConfig: GlobalConfig | null =
-      await GlobalConfigService.findOneBy({
-        query: {
-          _id: ObjectID.getZeroObjectID().toString(),
-        },
-        props: {
-          isRoot: true,
-        },
-        // Its SMS numbers too: SMS go out from them when they are set.
-        select: GLOBAL_TWILIO_CONFIG_SELECT,
-      });
+  const globalConfig: GlobalConfig | null = await GlobalConfigService.findOneBy(
+    {
+      query: {
+        _id: ObjectID.getZeroObjectID().toString(),
+      },
+      props: {
+        isRoot: true,
+      },
+      // Its SMS numbers too: SMS go out from them when they are set.
+      select: GLOBAL_TWILIO_CONFIG_SELECT,
+    },
+  );
 
-    if (!globalConfig) {
-      throw new BadDataException("Global Config not found");
-    }
+  if (!globalConfig) {
+    throw new BadDataException("Global Config not found");
+  }
 
-    // Its SMS numbers and what it is used for too: read whole.
-    const twilioConfig: TwilioConfig | null =
-      toServerTwilioConfig(globalConfig);
+  // Its SMS numbers and what it is used for too: read whole.
+  const twilioConfig: TwilioConfig | null = toServerTwilioConfig(globalConfig);
 
-    if (!twilioConfig) {
-      return null;
-    }
+  if (!twilioConfig) {
+    return null;
+  }
 
-    if (kind && !TwilioPhoneNumbers.canSend(twilioConfig, kind)) {
-      return null;
-    }
+  if (kind && !TwilioPhoneNumbers.canSend(twilioConfig, kind)) {
+    return null;
+  }
 
-    return twilioConfig;
-  };
+  return twilioConfig;
+};
 
 export const SMSDefaultCostInCents: number = process.env[
   "SMS_DEFAULT_COST_IN_CENTS"

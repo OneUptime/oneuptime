@@ -104,12 +104,14 @@ const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
  * shown only on a condition, and the form never shows two at once. The
  * default switch is too, so its help names what goes through the default.
  */
-const isUsedForCallsAndSms: (values: FormValues<ProjectCallSMSConfig>) => boolean =
-  isFormUsedFor(TwilioConfigUse.CallsAndSms);
+const isUsedForCallsAndSms: (
+  values: FormValues<ProjectCallSMSConfig>,
+) => boolean = isFormUsedFor(TwilioConfigUse.CallsAndSms);
 const isUsedForSmsOnly: (values: FormValues<ProjectCallSMSConfig>) => boolean =
   isFormUsedFor(TwilioConfigUse.SmsOnly);
-const isUsedForCallsOnly: (values: FormValues<ProjectCallSMSConfig>) => boolean =
-  isFormUsedFor(TwilioConfigUse.CallsOnly);
+const isUsedForCallsOnly: (
+  values: FormValues<ProjectCallSMSConfig>,
+) => boolean = isFormUsedFor(TwilioConfigUse.CallsOnly);
 const isUsedForCalls: (values: FormValues<ProjectCallSMSConfig>) => boolean =
   isFormUsedFor(TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly);
 

@@ -39,7 +39,10 @@ export const toServerTwilioConfig: (
     globalConfig.twilioUsedFor,
   );
 
-  if (!globalConfig.twilioPrimaryPhoneNumber && use !== TwilioConfigUse.SmsOnly) {
+  if (
+    !globalConfig.twilioPrimaryPhoneNumber &&
+    use !== TwilioConfigUse.SmsOnly
+  ) {
     return null;
   }
 

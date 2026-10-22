@@ -470,13 +470,16 @@ function useMemberName(use: TwilioConfigUse): string {
   return (member as [string, string])[0];
 }
 
+// A form field's showIf line: what follows "showIf: ", to the end of the line.
+const SHOW_IF: RegExp = /showIf: ([^\n]+)/;
+
 /*
  * Whether a form field is shown for this use: its showIf names the use -
  * isUsedForSmsOnly on the Dashboard, usedFor(TwilioConfigUse.SmsOnly) on the
  * Admin Dashboard.
  */
 function isShownFor(field: string, use: TwilioConfigUse): boolean {
-  const showIf: string = /showIf: ([^\n]+)/.exec(field)?.[1] || "";
+  const showIf: string = SHOW_IF.exec(field)?.[1] || "";
 
   return showIf.includes(useMemberName(use));
 }

@@ -486,12 +486,14 @@ describe("the server's own Twilio account", () => {
 
   test("takes a good list, and an emptied one", async () => {
     // The server's account, used for calls and SMS, with its number.
-    jest.spyOn(GlobalConfigService, "findRowsAndHoldUpdateToThem").mockResolvedValue([
-      Object.assign(new GlobalConfig(), {
-        twilioAccountSID: "AC00000000000000000000000000000001",
-        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
-      }),
-    ] as never);
+    jest
+      .spyOn(GlobalConfigService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([
+        Object.assign(new GlobalConfig(), {
+          twilioAccountSID: "AC00000000000000000000000000000001",
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        }),
+      ] as never);
 
     await expect(
       runBeforeUpdate({

@@ -259,7 +259,10 @@ const Settings: FunctionComponent = (): ReactElement => {
                 values.twilioSecondaryPhoneNumbers,
               );
             },
-            showIf: usedFor(TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly),
+            showIf: usedFor(
+              TwilioConfigUse.CallsAndSms,
+              TwilioConfigUse.CallsOnly,
+            ),
           },
         ]}
         modelDetailProps={{
