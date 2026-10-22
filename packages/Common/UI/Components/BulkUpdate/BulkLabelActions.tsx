@@ -92,8 +92,14 @@ function useBulkLabelActions<T extends BaseModel>(
       try {
         const result: ListResult<Label> = await ModelAPI.getList<Label>({
           modelType: Label,
+          /*
+           * The labels Add Labels offers: not archived - nobody adds an
+           * archived label to anything (Common/Utils/ArchivableValues).
+           * Remove Labels offers the ones the items have, archived or not.
+           */
           query: {
             projectId: projectId,
+            isArchived: false,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,

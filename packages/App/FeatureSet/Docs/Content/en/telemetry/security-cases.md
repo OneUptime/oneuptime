@@ -105,6 +105,8 @@ To work several cases at once, select them in the queue and use **Assign to Me**
 
 The verdicts are counted on the overview. A rule whose cases keep closing as False Positive is a rule to tune.
 
+A case opened from Google SecOps alerts closes them in Google SecOps too, with the verdict and the closing note, when its connection has **Close alerts when their case closes** on: see [Google SecOps](/docs/integrations/google-secops#close-alerts-when-their-case-closes).
+
 ### Declare an incident
 
 **Declare Incident** opens a OneUptime incident for the case, at the severity you choose, and links the two both ways: the incident's description names the case, and the case's header links to the incident. On-call, status pages and the postmortem take over from there. It takes a role that can both work cases and create incidents.

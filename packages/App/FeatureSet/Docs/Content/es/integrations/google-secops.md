@@ -108,6 +108,7 @@ Selecciona **Probar esta configuración** en **Probar antes de guardar** antes d
 | --- | --- | --- |
 | **Región** | El endpoint regional de Google SecOps (`us`, `europe`, `asia-southeast1`, ...) que coincide con la ubicación de tu nombre de recurso de instancia. No hay valor por defecto, para que un inquilino fuera de EE. UU. no pueda guardar por accidente el endpoint equivocado. | Sí |
 | **Nombre de recurso de la instancia** | En Google SecOps, **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Sí |
+| **Cerrar las alertas cuando se cierra su caso** | En el último paso del formulario, desactivado hasta que lo actives. Activado, cerrar un caso cierra sus alertas de Google SecOps: consulta [Cerrar las alertas cuando se cierra su caso](#cerrar-las-alertas-cuando-se-cierra-su-caso). | No |
 | **JSON de la cuenta de servicio** | Google Cloud, la pestaña **Keys** de la cuenta de servicio. Pega el archivo de clave JSON entero. Solo escritura: cifrado en reposo, la API nunca lo devuelve y nunca se vuelve a mostrar en la página. Usa **Actualizar credenciales** en la conexión para rotarlo. | Sí |
 | **Data to import** | Las **Alertas** siempre se importan, porque la API de alertas de Google siempre las devuelve. Selecciona **Detecciones** para importar también las coincidencias de reglas que no generaron una alerta. Esto no reenvía eventos UDM sin procesar: reenvíalos tú, como arriba. | Alertas siempre |
 
@@ -119,7 +120,7 @@ Las detecciones nuevas se importan como eventos Detection Finding atribuidos a u
 
 La lista de conexiones muestra **Nombre**, **Proveedor** (con la selección Data to import de la conexión debajo), **Estado** (Enabled o Disabled), **Salud**, **Intervalo (minutos)**, **Último sondeo**, **Último sondeo correcto** y **Último evento importado**. Cuando una conexión tiene un error, **Ver error** aparece en su columna **Acciones**, junto a **Probar conexión**, **Ejecutar ahora**, **Diagnósticos**, **Editar** y **Actualizar credenciales**. Enabled significa que el sondeo automático está configurado. Último sondeo registra un intento; una ventana vacía correcta no demuestra que se haya importado una detección concreta.
 
-**Salud** indica **Last poll succeeded** solo cuando ya se ha importado un evento. Hasta entonces, una conexión que funciona indica **Polling, no events imported yet**, el estado que hay que investigar con Probar conexión. Los demás estados son **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** y **Waiting for first poll**; pasa el cursor sobre un estado para ver qué significa.
+**Salud** indica **Last poll succeeded** solo cuando ya se ha importado un evento. Hasta entonces, una conexión que funciona indica **Polling, no events imported yet**, el estado que hay que investigar con Probar conexión. Los demás estados son **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** y **Esperando el primer sondeo**; pasa el cursor sobre un estado para ver qué significa.
 
 > [!NOTE]
 > El conector usa las API heredadas de detecciones y alertas `v1alpha` de Chronicle, que Google publica como pre-GA. Cuando un sondeo falla, el campo **Último error** de la conexión guarda el mensaje de error completo, con las credenciales ocultas, tras un prefijo que nombra el paso que falló, incluido el caso en que Chronicle responde `200` y pone el rechazo dentro del cuerpo. Selecciona **Ver error** en la columna **Acciones** de la conexión para leer el mensaje, y luego **Copiar error** en el cuadro de diálogo para copiarlo para soporte.
@@ -213,6 +214,17 @@ Google SecOps guarda la gravedad de una detección en distintos lugares según q
 
 Una detección que ninguno de estos clasifica se muestra como Unknown. Para clasificar una regla personalizada, añade una gravedad a su sección `meta` en Google SecOps, por ejemplo `severity = "High"`, o fija `$risk_score` en su sección `outcome`. Las detecciones que la regla crea a partir de entonces se importan con esa gravedad.
 
+## Cerrar las alertas cuando se cierra su caso
+
+Con **Cerrar las alertas cuando se cierra su caso** activado, cerrar un [caso de seguridad](/docs/telemetry/security-cases#cerrar-un-caso) cierra las alertas de Google SecOps de las que vino. Cada alerta se marca como cerrada con el veredicto del caso, un True Positive como malicioso y un False Positive o Benign Positive como no malicioso, junto con la nota de cierre del caso y un enlace de vuelta al caso. La cronología del caso dice cuántas alertas se cerraron.
+
+- La cuenta de servicio necesita `chronicle.legacies.legacyUpdateAlert`, que tiene el rol `roles/chronicle.editor`. El rol `roles/chronicle.viewer` lee alertas pero no puede cerrarlas, y un `403` lo indica en el caso.
+- Una alerta que Google SecOps ya no tiene se omite. Cuando no se puede llegar a Google SecOps, OneUptime lo reintenta durante una hora aproximadamente y luego escribe en el caso lo que no pudo cerrar.
+
+## Vigila tus otros eventos en busca de sus indicadores
+
+Un [feed de inteligencia de amenazas](/docs/telemetry/threat-intelligence#cómo-se-lee-google-secops) cuyo **Origen** es **Google SecOps** lee, a través de esta conexión, los indicadores que la inteligencia de amenazas de Google SecOps encontró en sus eventos, y vigila el resto de los eventos de tu proyecto en busca de ellos: los inicios de sesión, los flujos de red y los eventos de endpoints que Google SecOps nunca vio.
+
 ## Enviar eventos de seguridad a Google SecOps
 
 OneUptime también puede enviar lo que encuentra a Google SecOps, para que el SIEM en el que trabaja su equipo vea las detecciones de OneUptime junto a las suyas. Cada evento de seguridad se importa como evento UDM: un inicio de sesión como `USER_LOGIN`, el inicio de un proceso como `PROCESS_LAUNCH`, una conexión de red como `NETWORK_CONNECTION` y todo lo demás como `GENERIC_EVENT`, con su gravedad, sus etiquetas de MITRE ATT&CK y la regla que lo encontró.
@@ -224,7 +236,7 @@ En Google Cloud, cree una cuenta de servicio en el proyecto al que está vincula
 
 ### Añadir el destino
 
-Abra **Productos → Eventos de seguridad → Conexiones**. En **Enviar a tu SIEM**, haga clic en **Añadir destino**. Elija la **Región**, rellene el **Nombre de recurso de la instancia** como para el conector anterior y pegue la clave en **JSON de la cuenta de servicio**.
+Abre **Productos → Eventos de seguridad → Conexiones**. En **Enviar a tu SIEM**, haz clic en **Añadir destino**, elige Google SecOps en **SIEM** y haz clic en **Siguiente**. Elige la **Región**, rellena el **Nombre de recurso de la instancia** como para el conector anterior y pega la clave en **JSON de la cuenta de servicio**.
 
 ### Enviar un evento de prueba
 

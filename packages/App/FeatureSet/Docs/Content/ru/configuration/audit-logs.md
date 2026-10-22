@@ -88,6 +88,12 @@ flowchart TB
 | Команды | `Team` |
 | Пользовательские роли и команды, которые их получают | `Custom Role`, `Team Custom Role` |
 | Метки | `Label` |
+| Состояния и уровни серьёзности инцидентов | `Incident State`, `Incident Severity` |
+| Состояния и уровни серьёзности оповещений | `Alert State`, `Alert Severity` |
+| Статусы мониторов | `Monitor Status` |
+| Состояния планового обслуживания | `Scheduled Maintenance State` |
+| Роли инцидента | `Incident Role` |
+| Статусы постмортема | `Postmortem Status` |
 | Ключи API | `API Key` |
 | Клиенты MCP, которые подключают люди | `MCP Client Authorization` |
 | Элементы инвентаря | `Inventory Item` |

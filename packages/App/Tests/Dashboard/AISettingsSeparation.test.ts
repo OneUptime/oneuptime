@@ -175,22 +175,39 @@ const RETIRED_PROJECT_AI_SWITCH_TITLES: Array<string> = [
 const POSTMORTEM_DRAFT_COLUMN: string = "enableAutomaticPostmortemDraft";
 
 /*
- * In drawn order: the two pull requests are part of fixing, under "Fix new
- * incidents automatically", and the postmortem follows them.
+ * In drawn order: investigating, fixing, and for incidents the postmortem.
+ * The two pull requests fixing opens are no switches of the page any more:
+ * each auto remediation rule holds them (on by default, and on with no
+ * rule).
  */
 const INCIDENT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticIncidentRemediation",
-  "enableAutomaticIncidentCodeFixes",
-  "enableIncidentInstrumentationFixTasks",
   POSTMORTEM_DRAFT_COLUMN,
 ];
 
 const ALERT_SWITCH_COLUMNS: Array<string> = [
   "enableAutomaticAlertInvestigation",
   "enableAutomaticAlertRemediation",
+];
+
+/*
+ * The project's fix pull request switches, moved into the auto remediation
+ * rules (openCodeFixPullRequests, openTelemetryPullRequests). They are not
+ * Project columns any more, so nothing in the dashboard may read, write or
+ * name them.
+ */
+const RETIRED_PULL_REQUEST_SWITCH_FIELDS: Array<string> = [
+  "enableAutomaticIncidentCodeFixes",
+  "enableIncidentInstrumentationFixTasks",
   "enableAutomaticAlertCodeFixes",
   "enableAlertInstrumentationFixTasks",
+];
+
+// The titles their switches had on the AI card.
+const RETIRED_PULL_REQUEST_SWITCH_TITLES: Array<string> = [
+  "Open a fix pull request when an investigation finds a code change",
+  "Open a pull request that adds missing telemetry",
 ];
 
 const INCIDENT_LIMIT_COLUMNS: Array<string> = [
@@ -307,6 +324,26 @@ describe("incident and alert AI settings separation", () => {
 
     for (const legacyField of LEGACY_SHARED_FIELDS) {
       expect(allPageFields).not.toContain(legacyField);
+    }
+  });
+
+  /*
+   * "Both of these toggles should be inside of Remediation Rule, inside of
+   * More, and they should be checked by default" - the maintainer. Neither
+   * page draws a pull request switch, nor any card writes one.
+   */
+  test("neither page has a pull request switch: they are the auto remediation rules'", () => {
+    const allPageFields: Array<string> = [
+      ...formFieldsOf(INCIDENT_CARDS),
+      ...formFieldsOf(ALERT_CARDS),
+      ...INCIDENT_SWITCH_COLUMNS,
+      ...ALERT_SWITCH_COLUMNS,
+      ...columnsOf(AI_LANE_SWITCHES[AiLane.Incident]),
+      ...columnsOf(AI_LANE_SWITCHES[AiLane.Alert]),
+    ];
+
+    for (const retired of RETIRED_PULL_REQUEST_SWITCH_FIELDS) {
+      expect(allPageFields).not.toContain(retired);
     }
   });
 
@@ -482,6 +519,8 @@ describe("the project's AI switches", () => {
       for (const retired of [
         ...RETIRED_PROJECT_AI_SWITCH_FIELDS,
         ...RETIRED_PROJECT_AI_SWITCH_TITLES,
+        ...RETIRED_PULL_REQUEST_SWITCH_FIELDS,
+        ...RETIRED_PULL_REQUEST_SWITCH_TITLES,
       ]) {
         if (source.includes(retired)) {
           offenders.push(`${file}: ${retired}`);

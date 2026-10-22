@@ -95,7 +95,7 @@ Runbooks fica em **Produtos**, no grupo **Painéis e automação**.
 | Os **Proprietários** de um runbook | Adicionar as pessoas e equipes responsáveis por ele. |
 | As **Configurações** de um runbook | Desligar **Executar este runbook** sem excluir o runbook. |
 | **Runbooks → Execuções** | Todas as execuções de todos os runbooks do projeto. |
-| **Runbooks → Agentes de runbook** e **Runbooks → Agentes de runbook → Acesso da IA** | Instalar [Runners](/docs/runbooks/agents), e gerenciar o [acesso](/docs/runbooks/credentials) que os comandos do OneUptime AI têm por meio deles. |
+| **Runbooks → Agentes de runbook** | Instalar os [Runners](/docs/runbooks/agents) em que as etapas dos seus runbooks são executadas. |
 | **Runbooks → Configurações** | Gerenciar, em **Variáveis globais**, as variáveis que qualquer runbook pode [usar](/docs/runbooks/variables), e as **Regras de proprietário** e **Regras de Rótulos** que adicionam proprietários e rótulos aos novos runbooks. |
 | **Incidentes / Alertas / Manutenção programada → Regras → Regras de runbook** | Criar as regras que iniciam runbooks automaticamente. |
 | Um incidente, alerta ou evento de manutenção → **Runbooks** | Ver as execuções ligadas a ele e clicar em **Executar Runbook** para iniciar uma. |

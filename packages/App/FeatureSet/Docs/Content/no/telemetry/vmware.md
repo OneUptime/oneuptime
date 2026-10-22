@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn vCenter-et i OneUptime
 
-Ingenting sendes før den første fullstendige gjennomgangen av inventaret er ferdig, så gi det ett innsamlingsintervall (2 minutter som standard). Åpne deretter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter-et er der, med datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene og ressurspoolene sine.
+Ingenting sendes før den første fullstendige gjennomgangen av inventaret er ferdig, så gi det ett innsamlingsintervall (2 minutter som standard). Åpne deretter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter-et er der, med datasentrene, klyngene, ESXi-vertene, de virtuelle maskinene, datastorene og ressurspoolene sine. Siden **Topologi** tegner alt på ett kart og markerer det som krever oppmerksomhet: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler

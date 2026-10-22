@@ -46,11 +46,10 @@ import RunnerChoicesLoader, {
 import {
   CODE_HIDDEN_RUNNER_LABEL,
   GLOBAL_RUNNER_CHOICE_LABEL,
+  PROJECT_DEFAULT_TAG,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
-  REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
   REMEDIATION_ADD_RUNNER_TEMPLATE,
-  REMEDIATION_NO_RUNNER_CHOICE_LABEL,
-  REMEDIATION_OWN_RUNNER_HELPER_TEXT,
+  REMEDIATION_NO_RUNNER_PLACEHOLDER,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
@@ -63,18 +62,20 @@ import ProjectUtil from "../../../UI/Utils/Project";
 /*
  * AN AUTO REMEDIATION RULE'S MORE FIELDS, RENDERED.
  *
- * Runner: the Runner OneUptime AI runs the rule's commands of its own on,
- * picked with the one Runner picker. Its first choice is no Runner - "AI
- * agent on the cluster or host" - never "Global Runner": a global Runner
- * never runs OneUptime AI's commands. The project's own Runners follow,
- * never the in-cluster ones the Kubernetes agent chart installed. Picking
- * one is what lets OneUptime AI run commands on it.
+ * Runner: the Runner OneUptime AI runs the rule's Bash commands on, picked
+ * with the one Runner picker. It lists the project's own Runners - the
+ * default first, tagged - never "Global Runner" (a global Runner never runs
+ * OneUptime AI's commands), never the in-cluster Runners the Kubernetes
+ * agent chart installed, and never "AI agent on the cluster or host": that
+ * agent is not a Runner, and commands on the affected cluster or host go
+ * through it whatever the rule picks ("why does it see an AI agent on the
+ * cluster or host? That doesn't make any sense" - the maintainer). A rule
+ * that picks none reads "No Runner", and a pick can be cleared back to it.
+ * Picking one is what lets OneUptime AI run commands on it.
  *
- * Under the picker, a line only where it says something the choice does
- * not: what OneUptime AI may do on a Runner picked, that the reader may not
- * see the Runner a rule picks - and, in a project with no Runner of its
- * own, where one is added. With Runners to pick from, a rule that picks
- * none needs no line: its choice and the field's own line say it.
+ * Under the picker, a line only where it says something the field's own
+ * line does not: that the reader may not see the Runner a rule picks - and,
+ * in a project with no Runner of its own, where one is added.
  *
  * Run them every time: the switch that keeps a rule starting every runbook
  * it names for every match, without OneUptime AI deciding.
@@ -126,9 +127,17 @@ function RunnerHarness(props: { initialValue: unknown }): ReactElement {
 
 async function renderRunnerField(initialValue: unknown): Promise<void> {
   render(<RunnerHarness initialValue={initialValue} />);
-  await within(
-    await screen.findByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID),
-  ).findByRole("combobox");
+  // The picker is drawn once the choices are read (disabled with none).
+  await screen.findByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID);
+}
+
+// Whether the picker is drawn but cannot be opened: nothing to pick.
+function isPickerDisabled(): boolean {
+  return Boolean(
+    screen
+      .getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID)
+      .querySelector(".ou-select__control--is-disabled"),
+  );
 }
 
 function openMenu(): Array<HTMLElement> {
@@ -148,6 +157,25 @@ function shown(): string {
       .getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID)
       .querySelector(".ou-select__single-value")?.textContent || ""
   );
+}
+
+// What the picker says while nothing is picked.
+function placeholder(): string {
+  return (
+    screen
+      .getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID)
+      .querySelector(".ou-select__placeholder")?.textContent || ""
+  );
+}
+
+// The picker's clear control: back to no Runner.
+function clearPick(): void {
+  const clear: Element | null = screen
+    .getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID)
+    .querySelector(".ou-select__clear-indicator");
+
+  expect(clear).not.toBeNull();
+  fireEvent.mouseDown(clear as Element, { button: 0 });
 }
 
 function help(): HTMLElement {
@@ -190,9 +218,14 @@ describe("a rule's Runner", () => {
 
     render(<RunnerHarness initialValue={null} />);
 
-    expect(
-      screen.getByTestId(AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID),
-    ).toBeInTheDocument();
+    const loading: HTMLElement = screen.getByTestId(
+      AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID,
+    );
+    expect(loading).toBeInTheDocument();
+    // The menu's own place and height (Dropdown's margins, its 40px box).
+    for (const className of ["mt-2", "mb-1", "h-10", "w-full", "rounded-lg"]) {
+      expect(loading.classList.contains(className)).toBe(true);
+    }
     expect(String(loadSpy.mock.calls[0]![0])).toBe(PROJECT_ID);
 
     await act(async () => {
@@ -202,17 +235,22 @@ describe("a rule's Runner", () => {
     expect(
       screen.queryByTestId(AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID),
     ).toBeNull();
-    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(shown()).toBe("");
+    expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
   });
 
-  test("a rule that picked none shows the AI agent, picked, with no line repeating what the choice says", async () => {
+  test("a rule that picked none reads No Runner, with no line repeating what the field says", async () => {
     await renderRunnerField(null);
 
-    expect(shown()).toBe("AI agent on the cluster or host");
+    expect(placeholder()).toBe("No Runner");
+    expect(shown()).toBe("");
     noHelp();
+    expect(
+      screen.getByTestId(AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID),
+    ).not.toHaveTextContent("AI agent");
   });
 
-  test("a project with no Runner of its own is told where to add one, opened in a new tab", async () => {
+  test("a project with no Runner of its own sees the empty picker, and where to add one, opened in a new tab", async () => {
     loadSpy.mockResolvedValue({
       ...choices(),
       projectRunners: [],
@@ -220,7 +258,8 @@ describe("a rule's Runner", () => {
 
     await renderRunnerField(null);
 
-    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
+    expect(isPickerDisabled()).toBe(true);
     expect(REMEDIATION_ADD_RUNNER_TEMPLATE).toBe(
       "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
     );
@@ -233,47 +272,78 @@ describe("a rule's Runner", () => {
     );
     expect(link).toHaveTextContent("Runbooks › Runners");
     expect(link).toHaveAttribute("target", "_blank");
+    // Nothing is wrong with a rule that has no Runner: no warning box.
+    expect(
+      screen.queryByTestId(
+        `${AUTO_REMEDIATION_RUNNER_PICKER_TEST_ID}-nothing-to-pick`,
+      ),
+    ).toBeNull();
   });
 
-  test("offers the AI agent first, never Global Runner, then the project's own Runners with how each is doing", async () => {
+  test("offers the project's own Runners only, with how each is doing: no AI agent, no Global Runner", async () => {
+    await renderRunnerField(null);
+
+    const options: Array<HTMLElement> = openMenu();
+
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent("prod-eu-runner · Connected");
+    expect(options[1]).toHaveTextContent("office-runner · Disconnected");
+    for (const option of options) {
+      expect(option).not.toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
+      expect(option).not.toHaveTextContent("AI agent");
+    }
+  });
+
+  test("the project's default Runner comes first, tagged as the default", async () => {
+    loadSpy.mockResolvedValue({
+      ...choices(),
+      projectRunners: [
+        ...choices().projectRunners,
+        {
+          id: HIDDEN_ID,
+          name: "default-runner",
+          liveStatus: RunnerLiveStatus.Connected,
+          isProjectDefault: true,
+        },
+      ],
+    } as never);
+
     await renderRunnerField(null);
 
     const options: Array<HTMLElement> = openMenu();
 
     expect(options).toHaveLength(3);
-    expect(options[0]).toHaveTextContent(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
     expect(options[0]).toHaveTextContent(
-      REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
+      `default-runner · ${PROJECT_DEFAULT_TAG} · Connected`,
     );
     expect(options[1]).toHaveTextContent("prod-eu-runner · Connected");
-    expect(options[2]).toHaveTextContent("office-runner · Disconnected");
-    for (const option of options) {
-      expect(option).not.toHaveTextContent(GLOBAL_RUNNER_CHOICE_LABEL);
-    }
+
+    fireEvent.click(options[0]!);
+
+    // A rule stores the Runner it picks, by its id.
+    expect(changes).toEqual([HIDDEN_ID]);
   });
 
-  test("picking a Runner stores its id, and the line under it says what OneUptime AI may do there", async () => {
+  test("picking a Runner stores its id, and says nothing the field's line does not", async () => {
     await renderRunnerField(null);
 
-    fireEvent.click(openMenu()[1]!);
+    fireEvent.click(openMenu()[0]!);
 
     expect(changes).toEqual([PROD_ID]);
     expect(shown()).toBe("prod-eu-runner · Connected");
-    expect(help()).toHaveTextContent(
-      "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.",
-    );
-    expect(help()).toHaveTextContent(REMEDIATION_OWN_RUNNER_HELPER_TEXT);
+    noHelp();
   });
 
-  test("picking the AI agent again stores no Runner", async () => {
+  test("clearing the pick stores no Runner, and reads No Runner again", async () => {
     await renderRunnerField(OFFICE_ID);
 
     expect(shown()).toBe("office-runner · Disconnected");
 
-    fireEvent.click(openMenu()[0]!);
+    clearPick();
 
     expect(changes).toEqual([null]);
-    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(shown()).toBe("");
+    expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
   });
 
   test("a saved rule's Runner, as the form holds it, is shown picked", async () => {
@@ -298,9 +368,9 @@ describe("a rule's Runner", () => {
 
     await renderRunnerField(null);
 
-    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
     noHelp();
-    expect(openMenu()).toHaveLength(1);
+    expect(isPickerDisabled()).toBe(true);
   });
 
   test("a reader who may not read Runners is not told to add one either", async () => {
@@ -312,13 +382,13 @@ describe("a rule's Runner", () => {
 
     await renderRunnerField(null);
 
-    expect(shown()).toBe(REMEDIATION_NO_RUNNER_CHOICE_LABEL);
+    expect(placeholder()).toBe(REMEDIATION_NO_RUNNER_PLACEHOLDER);
     noHelp();
   });
 
   test("reads the choices again when the tab comes back, so a Runner just added can be picked", async () => {
     await renderRunnerField(null);
-    expect(openMenu()).toHaveLength(3);
+    expect(openMenu()).toHaveLength(2);
 
     loadSpy.mockResolvedValue({
       ...choices(),
@@ -341,7 +411,7 @@ describe("a rule's Runner", () => {
     });
     fireEvent.keyDown(document.body, { key: "Escape", code: "Escape" });
     await waitFor(() => {
-      expect(openMenu()).toHaveLength(4);
+      expect(openMenu()).toHaveLength(3);
     });
   });
 });

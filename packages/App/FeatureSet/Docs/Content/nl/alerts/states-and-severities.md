@@ -112,6 +112,18 @@ De rang bepaalt welk ernstniveau wint waar OneUptime ze vergelijkt: de ernst van
 
 Een ernstniveau roept op zichzelf niemand op. Om op ernst op te roepen, voeg je een bereikbaarheidsregel toe waarvan de **Waarschuwing Ernsten** erop overeenkomen: zie [Waarschuwingsregels en instellingen](/docs/alerts/settings). Een wijziging van de ernst van een waarschuwing schrijft een vermelding in haar feed en matcht haar herinneringsregel opnieuw.
 
+## Een status of ernst archiveren
+
+Archiveer een status of ernst die uw team niet meer moet gebruiken, in plaats van die te verwijderen. Archiveren wijzigt geen enkele waarschuwing. Een status verwijderen haalt zijn rijen uit de geschiedenis van elke waarschuwing, en een ernst kan niet worden verwijderd zolang waarschuwingen die hebben.
+
+- **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de regels, metingen, monitorcriteria en workflows die zijn ingesteld om de waarde te gebruiken: die blijven hem gebruiken tot u ze wijzigt.
+- **Niemand kan hem nog kiezen.** **Status wijzigen**, de kop van de waarschuwing, Slack, Microsoft Teams, regels en monitorcriteria laten hem weg. De API, Terraform en MCP weigeren hem, met de naam van de waarde en waar u hem uit het archief haalt.
+- **Waarschuwingen behouden hem.** Een waarschuwing die hem heeft, behoudt hem bij elke latere bewerking, de statustijdlijn toont hem nog, en u kunt er nog steeds op filteren.
+- **Gearchiveerde waarden staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van waarschuwingen** of **Gearchiveerde ernstniveaus van waarschuwingen** onder de tabel, met wie elke waarde heeft gearchiveerd en wanneer. **Uit archief halen** zet er een terug zoals hij was.
+- **Sommige kunnen niet worden gearchiveerd.** De aangemaakte, bevestigde en opgeloste status, en de laatste niet-gearchiveerde ernst van het project. Hun **Archiveren** is vergrendeld, met de reden.
+
+**Verwijderen** zegt eerst wat het zou doen. Zolang waarschuwingen of episodes de waarde hebben, wordt het verwijderen geweigerd en toont het dialoogvenster ze. Anders toont het wat het verwijderen zou wijzigen en biedt het **In plaats daarvan archiveren** aan.
+
 ## Een waarschuwing door haar statussen bewegen
 
 | Manier               | Waar                                                                                      | Wat er wordt gevraagd                                                                                                                |

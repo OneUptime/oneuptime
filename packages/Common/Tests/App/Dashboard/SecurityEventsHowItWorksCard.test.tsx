@@ -87,6 +87,8 @@ const TEST_GUIDE: SecurityEventsGuide = {
   levels: {
     title: "Severity levels",
     description: "How levels map to severities.",
+    // The link says which levels it explains, in words of its own.
+    linkText: "How severity levels are chosen",
     items: [
       { label: "low", severity: OcsfSeverity.Low },
       { label: "critical", severity: OcsfSeverity.Critical },

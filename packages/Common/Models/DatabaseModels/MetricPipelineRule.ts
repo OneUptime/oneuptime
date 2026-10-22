@@ -379,6 +379,7 @@ export default class MetricPipelineRule extends BaseModel {
     description:
       "How to combine filters: 'All' requires every filter to match (AND), 'Any' requires at least one to match (OR).",
     defaultValue: FilterCondition.All,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -670,6 +671,7 @@ export default class MetricPipelineRule extends BaseModel {
     title: "Enabled",
     description: "Whether this rule is active.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

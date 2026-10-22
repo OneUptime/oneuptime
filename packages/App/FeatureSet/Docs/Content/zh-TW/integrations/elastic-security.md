@@ -142,6 +142,48 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 測試中的每個請求都有 20 秒的期限。測試從不匯入任何內容，也不移動游標，每個失敗的檢查都會說明需要更改什麼。
 
+## 將安全性事件傳送到 Elastic Security
+
+OneUptime 也可以把它發現的內容當作資料串流中的 Elastic Common Schema（ECS）文件傳送到 Elasticsearch，讓 Elastic Security 的警示、時間軸和偵測規則在你自己的偵測結果旁邊看到 OneUptime 的偵測結果。偵測結果是 `event.kind` 為 `alert` 的文件，其他所有事件的 `event.kind` 為 `event`。
+
+:::steps
+### 建立可以寫入的 API 金鑰
+
+在 Kibana 中開啟 **Stack Management → API keys**，按一下 **Create API key**，授予它下面的權限，然後複製它的 **Encoded** 值。
+
+### 新增目的地
+
+開啟 **產品 → Security Events → Connections**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Elastic Security，然後按一下 **下一步**。在 **Elasticsearch URL** 中填寫部署的 Elasticsearch 端點，而不是 Kibana 的端點，並把金鑰貼到 **API 金鑰** 中。**資料串流** 是選用的：留空時，文件會進入 `logs-oneuptime.security-default`，Elasticsearch 會在第一次寫入時建立它。
+
+### 傳送測試事件並開始傳送
+
+按一下 **傳送測試事件**：會有一份文件到達資料串流。接著在 **傳送內容** 下保留 **僅偵測結果** 或選擇 **所有安全事件**，再按一下 **開始傳送**。
+:::
+
+預設資料串流對應的金鑰權限：
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- 文件以每批最多 500 份傳送，每份都帶有其事件自己的 id，所以傳送兩次的事件只會儲存一次。
+- Elasticsearch 無法對應的文件會被略去並在 **檢視錯誤** 中列出，它暫時無法接收的文件（`429`）會被重新傳送。
+- OneUptime 從 Elastic Security 匯入的警示永遠不會被傳回 Elastic Security。
+
 ## 疑難排解
 
 連線的 **最近的錯誤** 會保留完整的錯誤訊息（認證資訊已隱去），前面帶有一個指明失敗步驟的字首。連線出錯時，在它的 **操作** 欄中選擇 **檢視錯誤** 來閱讀，並在對話方塊中用 **複製錯誤** 複製。請先閱讀字首。

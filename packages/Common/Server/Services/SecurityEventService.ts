@@ -23,6 +23,18 @@ export interface DetectionMatchGroup {
   distinctCount: number;
   sampleMessage: string;
   sampleObservables: Array<string>;
+  /*
+   * A correlation rule's match (CorrelationRuleMatcher): what happened, in
+   * one sentence ("5 events of Failed sign-in, then Successful sign-in, 3
+   * minutes apart"), written on its finding, alert and case.
+   */
+  summary?: string | undefined;
+  /*
+   * Each group-by field of a correlation and its value, so the case types
+   * each entity by the field it came from. A single rule's group is typed
+   * by the rule's Group By Field instead.
+   */
+  groupFields?: Array<{ field: string; value: string }> | undefined;
 }
 
 export interface FindDetectionMatchesData {

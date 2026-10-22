@@ -159,6 +159,75 @@ Stopped after 20 incidents requests (the per-run request limit) before reading t
 
 هر درخواست در یک آزمایش مهلتی ۲۰ ثانیه‌ای دارد. یک آزمایش هرگز چیزی وارد نمی‌کند یا نشانگر را جابه‌جا نمی‌کند، و هر بررسی شکست‌خورده می‌گوید چه چیزی را تغییر دهید.
 
+## ارسال رویدادهای امنیتی به Microsoft Sentinel
+
+OneUptime می‌تواند آنچه را می‌یابد از راه Logs Ingestion API در Azure Monitor به Microsoft Sentinel هم بفرستد، به یک جدول سفارشی در فضای کاری‌ای که Sentinel روی آن اجرا می‌شود. سپس قاعده‌های تحلیلی، پرس‌وجوهای شکار و کارپوشه‌های شما `OneUptimeSecurityEvents_CL` را کنار جدول‌های دیگرتان پرس‌وجو می‌کنند.
+
+:::steps
+### ساختن جدول و قاعدهٔ گردآوری دادهٔ آن
+
+در Azure portal، **Tables → Create → New custom log (DCR-based)** فضای کاری را باز کنید. نام جدول را `OneUptimeSecurityEvents` بگذارید، یک قاعدهٔ گردآوری دادهٔ تازه بسازید، و اگر فرم خواست یک نقطهٔ پایانی گردآوری داده هم بسازید. نمونهٔ زیر را به‌عنوان پروندهٔ نمونه بارگذاری کنید، تبدیل را همان‌طور که هست نگه دارید، و جدول را بسازید.
+
+### اجازهٔ ارسال به یک برنامه
+
+یک برنامه ثبت کنید و به آن یک رمز سرویس‌گیرنده بدهید، مانند [ثبت یک برنامه](#ثبت-یک-برنامه). سپس قاعدهٔ گردآوری داده را باز کنید، **Access control (IAM) → Add → Add role assignment** ، **Monitoring Metrics Publisher** را برگزینید، و برنامه را انتخاب کنید.
+
+### افزودن مقصد
+
+**محصولات** > **رویدادهای امنیتی** > **Connections** را باز کنید. زیر **ارسال به SIEM شما**، روی **افزودن مقصد** کلیک کنید، Microsoft Sentinel را زیر **SIEM** انتخاب کنید و روی **بعدی** کلیک کنید. **شناسه دایرکتوری (مستأجر)** ، **شناسه برنامه (کلاینت)** و **Client secret** را پر کنید، **نقطهٔ پایانی دریافت لاگ** را از **Overview** نقطهٔ پایانی گردآوری داده (یا قاعده)، و **شناسهٔ تغییرناپذیر قاعدهٔ گردآوری داده** را از **JSON View** قاعده. **جریان** اختیاری است: اگر خالی بماند، `Custom-OneUptimeSecurityEvents_CL` است.
+
+### ارسال یک رویداد آزمایشی و شروع ارسال
+
+روی **ارسال رویداد آزمایشی** کلیک کنید: ظرف چند دقیقه یک ردیف به جدول می‌رسد. سپس زیر **چه چیزی فرستاده شود** گزینهٔ **فقط تشخیص‌ها** را نگه دارید یا **همه رویدادهای امنیتی** را برگزینید، و روی **شروع ارسال** کلیک کنید.
+:::
+
+پروندهٔ نمونه، یک ردیف با همهٔ ستون‌های جدول:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API در هر فراخوانی تا ۱ MB می‌پذیرد، پس ردیف‌ها در دسته‌هایی تا ۵۰۰ تایی می‌روند. دسته‌ای که Azure رد کند تقسیم می‌شود تا ردیفی که نمی‌پذیرد پیدا و کنار گذاشته شود، و محدودسازی (`429`) دوباره امتحان می‌شود.
+- `403` یعنی برنامه نقش **Monitoring Metrics Publisher** را روی قاعده ندارد، و `404` یعنی شناسهٔ تغییرناپذیر یا جریان نادرست است.
+- حادثه‌هایی که OneUptime از Microsoft Sentinel وارد کرده هرگز به آن برگردانده نمی‌شوند.
+
 ## عیب‌یابی
 
 **آخرین خطا** اتصال پیام خطای کامل را، با اعتبارنامه‌های پوشانده‌شده، پشت پیشوندی نگه می‌دارد که گام شکست‌خورده را نام می‌برد. وقتی اتصالی خطا دارد، برای خواندنش **مشاهده خطا** را در ستون **اقدام‌ها** آن برگزینید، و برای کپی کردنش **کپی خطا** را در کادر گفتگو. اول پیشوند را بخوانید.

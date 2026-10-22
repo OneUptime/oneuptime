@@ -339,11 +339,17 @@ describe("Monitor create labels", () => {
       }).toEqual({ column: column, isSelected: true });
     }
 
+    /*
+     * The template's labels that are not archived: a new monitor never
+     * starts with an archived one (Common/Utils/ArchivableValues).
+     */
     expect(templateLoader).toContain(
       squash(`
-        labels: template.labels?.map((label: Label) => {
-          return label.id!.toString();
-        }),
+        labels: ArchivedValuePicker.getLiveValues(template.labels || []).map(
+          (label: Label) => {
+            return label.id!.toString();
+          },
+        ),
       `),
     );
     expect(templateLoader).toContain("setInitialValues(values);");

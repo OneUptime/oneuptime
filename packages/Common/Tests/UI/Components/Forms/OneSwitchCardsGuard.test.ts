@@ -561,11 +561,14 @@ describe("one-switch cards in the frontends", () => {
         file: `${DASHBOARD}/Pages/Settings/AIFeatures.tsx`,
         column: "enableAi",
       },
+      /*
+       * The pull requests that are part of fixing are each auto remediation
+       * rule's now (its More fields), not switches of these pages.
+       */
       ...[
         "enableAutomaticIncidentInvestigation",
+        "enableAutomaticIncidentRemediation",
         "enableAutomaticPostmortemDraft",
-        "enableAutomaticIncidentCodeFixes",
-        "enableIncidentInstrumentationFixTasks",
       ].map((column: string): { file: string; column: string } => {
         return {
           file: `${DASHBOARD}/Pages/Incidents/Settings/IncidentAISettings.tsx`,
@@ -574,8 +577,7 @@ describe("one-switch cards in the frontends", () => {
       }),
       ...[
         "enableAutomaticAlertInvestigation",
-        "enableAutomaticAlertCodeFixes",
-        "enableAlertInstrumentationFixTasks",
+        "enableAutomaticAlertRemediation",
       ].map((column: string): { file: string; column: string } => {
         return {
           file: `${DASHBOARD}/Pages/Alerts/Settings/AlertAISettings.tsx`,

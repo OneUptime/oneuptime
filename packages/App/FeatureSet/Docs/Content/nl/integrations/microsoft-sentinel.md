@@ -159,6 +159,75 @@ Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er me
 
 Elk verzoek in een test heeft een deadline van 20 seconden. Een test importeert nooit iets en verplaatst nooit de cursor, en elke mislukte controle zegt wat je moet wijzigen.
 
+## Beveiligingsgebeurtenissen naar Microsoft Sentinel sturen
+
+OneUptime kan wat het vindt ook naar Microsoft Sentinel sturen, via de Logs Ingestion API van Azure Monitor, in een aangepaste tabel van de werkruimte waarop Sentinel draait. Je analyseregels, huntingquery's en werkmappen vragen dan `OneUptimeSecurityEvents_CL` op naast je andere tabellen.
+
+:::steps
+### De tabel en haar gegevensverzamelingsregel maken
+
+Open in de Azure-portal **Tables → Create → New custom log (DCR-based)** van de werkruimte. Noem de tabel `OneUptimeSecurityEvents`, maak een nieuwe gegevensverzamelingsregel, en een eindpunt voor gegevensverzameling als het formulier daarom vraagt. Upload het voorbeeld hieronder als voorbeeldbestand, laat de transformatie zoals ze is en maak de tabel.
+
+### Een toepassing ernaar laten sturen
+
+Registreer een toepassing en geef haar een clientgeheim, zoals in [Een toepassing registreren](#een-toepassing-registreren). Open daarna de gegevensverzamelingsregel, **Access control (IAM) → Add → Add role assignment**, kies **Monitoring Metrics Publisher** en selecteer de toepassing.
+
+### De bestemming toevoegen
+
+Open **Producten → Security Events → Connections**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Microsoft Sentinel onder **SIEM** en klik op **Volgende**. Vul de **Directory-ID (tenant)**, de **Applicatie-ID (client)** en het **Client secret** in, het **Eindpunt voor logopname** van de pagina **Overview** van het eindpunt voor gegevensverzameling (of van de regel), en de **Onveranderlijke ID van de gegevensverzamelingsregel** uit de **JSON View** van de regel. **Stream** is optioneel: leeg gelaten is het `Custom-OneUptimeSecurityEvents_CL`.
+
+### Een testgebeurtenis verzenden en beginnen met verzenden
+
+Klik op **Testgebeurtenis verzenden**: binnen een paar minuten komt er één rij in de tabel. Laat daarna onder **Wat te verzenden** de keuze **Alleen detecties** staan of kies **Alle beveiligingsgebeurtenissen**, en klik op **Beginnen met verzenden**.
+:::
+
+Het voorbeeldbestand, één rij met elke kolom van de tabel:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- De Logs Ingestion API neemt tot 1 MB per aanroep aan, dus rijen gaan in batches van maximaal 500. Een batch die Azure weigert, wordt gesplitst totdat de rij die het niet aanneemt is gevonden en weggelaten, en throttling (`429`) wordt opnieuw geprobeerd.
+- Een `403` betekent dat de toepassing **Monitoring Metrics Publisher** op de regel mist, en een `404` een verkeerde onveranderlijke ID of stream.
+- Incidenten die OneUptime uit Microsoft Sentinel heeft geïmporteerd, worden nooit naar Microsoft Sentinel teruggestuurd.
+
 ## Problemen oplossen
 
 De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met referenties gemaskeerd, achter een voorvoegsel dat de mislukte stap noemt. Wanneer een verbinding een fout heeft, selecteer je **Fout bekijken** in haar kolom **Acties** om hem te lezen, en **Fout kopiëren** in het dialoogvenster om hem te kopiëren. Lees eerst het voorvoegsel.

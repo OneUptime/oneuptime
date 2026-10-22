@@ -171,6 +171,15 @@ Cada cambio de estado queda en la **Cronología de estados** del monitor: cuánd
 
 Un cambio de estado solo avisa a los propietarios del monitor si han activado **Estado del monitor cambiado** en sus ajustes de notificación: empieza desactivado. Un monitor que vuelve a su **Estado de monitor predeterminado** porque ningún criterio coincidió no avisa a nadie. Consulte [Qué está activado para un nuevo miembro](/docs/notifications/notification-settings#qué-está-activado-para-un-miembro-nuevo).
 
+## Archivar un estado de monitor
+
+Archive un estado que su equipo ya no deba usar, en lugar de eliminarlo. Archivar no cambia ningún monitor: un monitor en ese estado sigue en él hasta que su estado cambie, y su cronología de estados lo sigue mostrando.
+
+- **Archivar** está en el menú **⋯** de la fila. Primero pide confirmación y enumera los criterios de monitor, plantillas y páginas de estado configurados para usar el estado: lo siguen usando hasta que los cambie.
+- **Nadie puede volver a elegirlo.** Un criterio, el menú de estado de un monitor, el estado de monitor de un incidente o de un evento de mantenimiento y los estados de caída de una página de estado lo omiten. La API, Terraform y MCP lo rechazan.
+- **Los estados archivados se listan aparte**, en la sección plegada **Estados de monitor archivados** bajo la tabla. **Desarchivar** devuelve uno tal como estaba.
+- **Los estados integrados no se pueden archivar.** Los monitores nuevos empiezan en el estado operativo, y OneUptime considera caído un monitor en el estado fuera de línea. Su **Archivar** está bloqueado, con el motivo.
+
 ## Solución de problemas
 
 :::details El sitio está caído, pero el monitor sigue Operativo

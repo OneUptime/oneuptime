@@ -288,7 +288,64 @@ O OneUptime roda o núcleo booleano do Sigma:
 - `Image` e `CommandLine` leem o processo de que o evento trata, o que foi iniciado na inicialização de um processo (`processPath`, `processCommandLine`), e `ParentImage` e `ParentCommandLine` o processo que o iniciou (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` é o processo que agiu, que em uma inicialização é o processo pai.
 - `level` define a gravidade: `informational`, `low`, `medium`, `high` ou `critical`, e `medium` quando falta. Os IDs ATT&CK em `tags` (`attack.t1110`, `attack.ta0006`) preenchem os campos MITRE do achado.
 
-Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use **Group By Field** e **Match Count Threshold**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
+Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use uma [regra de correlação](#regras-de-correlação), ou **Group By Field** e **Match Count Threshold**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
+
+### Regras de correlação
+
+Uma [correlação do Sigma](https://sigmahq.io/docs/meta/correlations.html) dispara com vários eventos juntos, e não com um só. Cole-a em **Sigma Rule (YAML)** com as regras que ela lê, como documentos YAML separados por `---`, ou cite regras que o projeto já tem pelo `name` ou pelo `id` do Sigma. A **Rule Library** tem algumas prontas, como logins com falha seguidos de um bem-sucedido.
+
+| Tipo | Dispara quando | Exibido como |
+| --- | --- | --- |
+| `event_count` | Um grupo atinge um número de eventos dentro do `timespan` | Contagem de eventos |
+| `value_count` | Um grupo mostra um número de valores diferentes de um campo dentro do `timespan` | Valores distintos |
+| `temporal` | Todas as regras correspondem para o mesmo grupo dentro do `timespan`, em qualquer ordem | Eventos juntos |
+| `temporal_ordered` | As regras correspondem na ordem delas para o mesmo grupo dentro do `timespan` | Sequence |
+| `new_value` | Um grupo mostra um valor de um campo que não mostrou dentro do `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- Um grupo é o valor dos campos de `group-by`, como um endereço. As contagens são móveis: uma rajada que duas execuções dividem ainda é contada inteira dentro do seu `timespan`, que é de no máximo 24 horas.
+- `new_value` é um tipo próprio do OneUptime, já que o Sigma não tem uma correlação de "visto pela primeira vez": ele compara com até 30 dias de histórico. `value_sum`, `value_avg`, `value_percentile` e `value_median` são recusados ao salvar.
+- A coluna **Tipo** de **Detection Rules** nomeia o tipo de cada regra, e o formulário diz em uma frase o que a regra procura.
 
 ### Configurações de avaliação
 
@@ -387,7 +444,7 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Último erro** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

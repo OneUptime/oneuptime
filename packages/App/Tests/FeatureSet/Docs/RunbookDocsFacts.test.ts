@@ -8,7 +8,6 @@ import {
 } from "./DocsDashboardMenus";
 import { boldSpans } from "./DocsTranslationChecks";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -154,7 +153,7 @@ import path from "path";
  * The translations are held to these English pages by RunbookDocsTranslations;
  * a few facts have suites of their own (RunbookStepActionsDocs,
  * RunbookStepReorderDocs, RunbookRuleConditionsDocs, RunbookAndBillingRolesDocs,
- * AgentVersionSignDocs, CredentialsReachAiRunnersDocs, RunnersUnderRunbooksDocs,
+ * AgentVersionSignDocs, AiAccessRemovalDocs, RunnersUnderRunbooksDocs,
  * AiLeavesOutEmbeddedImagesDocs).
  */
 
@@ -173,8 +172,6 @@ const AUTHORING: string = readPage("en", "runbooks/authoring");
 const RUNNING: string = readPage("en", "runbooks/running");
 const RULES: string = readPage("en", "runbooks/rules");
 const AGENTS: string = readPage("en", "runbooks/agents");
-// AI Access: the credentials OneUptime AI's commands use (runbooks/credentials).
-const CREDENTIALS: string = readPage("en", "runbooks/credentials");
 const VARIABLES: string = readPage("en", "runbooks/variables");
 const CONFIGURATION: string = readPage("en", "runbooks/configuration");
 const TRIGGERS: string = readPage("en", "runbooks/triggers");
@@ -185,7 +182,6 @@ const PAGES: Record<string, string> = {
   running: RUNNING,
   rules: RULES,
   agents: AGENTS,
-  credentials: CREDENTIALS,
   variables: VARIABLES,
   configuration: CONFIGURATION,
   triggers: TRIGGERS,
@@ -210,8 +206,9 @@ const RUNBOOK_FEATURE_INDEX: string = readSource(
 const RUNNER_AUTHORIZATION: string = readSource(
   "App/FeatureSet/Runbook/Middleware/RunnerAuthorization.ts",
 );
-const RUNBOOK_CREDENTIALS_UTIL: string = readSource(
-  "App/FeatureSet/Runbook/Utils/Credentials.ts",
+// What a claimed SSH step is handed: its host, port and sign-in.
+const RUNBOOK_JOB_VARIABLES: string = readSource(
+  "App/FeatureSet/Runbook/Utils/JobVariables.ts",
 );
 const RUNNER_JOB_SERVICE: string = readSource(
   "Common/Server/Services/RunnerJobService.ts",
@@ -251,13 +248,6 @@ const RUNNER_FORM_FIELDS: string = readDashboard(
 const RUNNERS_PAGE: string = readDashboard("Pages/Runbook/Runners/Runners.tsx");
 const RUNNER_VIEW: string = readDashboard(
   "Pages/Runbook/Runners/RunnerView.tsx",
-);
-const CREDENTIALS_PAGE: string = readDashboard(
-  "Pages/Runbook/Runners/RunnerCredentials.tsx",
-);
-// How an SSH credential signs in: the choice's words.
-const SSH_SIGN_IN: string = readDashboard(
-  "Components/Runner/RunnerCredentialSignIn.ts",
 );
 // The Global Variables page and a runbook's own Variables page draw this table.
 const VARIABLES_TABLE: string = readDashboard(
@@ -1062,7 +1052,7 @@ describe("the Runner the runbook pages describe", () => {
       "AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it.",
     );
     expect(setup).toContain(
-      "An auto remediation rule picks the Runner OneUptime AI runs its commands on, and a Kubernetes cluster's AI settings the Runner its kubectl runs on: picking a Runner there is what lets OneUptime AI's commands run on it.",
+      "An auto remediation rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.",
     );
 
     for (const [name, on] of defaults) {
@@ -1992,121 +1982,70 @@ describe("runbook rules", () => {
   });
 });
 
-describe("AI Access and runbook variables", () => {
-  it("walk Create Credential through the form's steps", () => {
-    // The table names a credential plainly, so its button reads Create Credential.
-    expect(CREDENTIALS_PAGE).toContain('singularName="Credential"');
-    expect(CREDENTIALS).toContain(
-      "Open **Runbooks → Runners → AI Access** and click **Create Credential**.",
-    );
-
-    expect(formSteps(CREDENTIALS_PAGE)).toEqual([
-      "Credential",
-      "SSH Host",
-      "SSH Authentication",
-      "Kubernetes",
-      "Runners",
-    ]);
-
-    const create: string = section(CREDENTIALS, "Create a credential");
-
-    for (const step of formSteps(CREDENTIALS_PAGE)) {
-      expect(create).toContain(`**${step}**`);
-    }
-
-    for (const field of [
-      "Name",
-      "Description",
-      "Type",
-      "Hostname",
-      "Port",
-      "Username",
-      "Private Key (PEM)",
-      "Private Key Passphrase",
-      "Password",
-      "API Server URL",
-      "Service Account Token",
-      "CA Certificate (PEM)",
+describe("runbook variables", () => {
+  /*
+   * Runbooks > Runners > AI Access held the runbook credentials OneUptime
+   * AI's own commands reached a host or a cluster with. It is gone, with
+   * its page, its docs page and the credentials: a step signs in with a
+   * secret variable, and a step that still names a credential is turned
+   * into a script step on its Steps page.
+   */
+  it("say runbook steps sign in with variables, and that runbook credentials were removed", () => {
+    for (const gone of [
+      "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials.tsx",
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerCredentialSignIn.ts",
+      "App/FeatureSet/Runbook/Utils/Credentials.ts",
+      "App/FeatureSet/Docs/Content/en/runbooks/credentials.md",
     ]) {
       expect({
-        field,
-        drawn: CREDENTIALS_PAGE.includes(`title: "${field}",`),
+        gone,
+        exists: fs.existsSync(path.join(PACKAGES_DIR, gone)),
       }).toEqual({
-        field,
-        drawn: true,
+        gone,
+        exists: false,
       });
-      expect(create).toContain(`**${field}**`);
     }
 
-    // An SSH credential asks how it signs in first: a key or a password.
-    expect(CREDENTIALS_PAGE).toContain(
-      "overrideFieldKey: SSH_SIGN_IN_FIELD_KEY, formOnly: true, title: SSH_SIGN_IN_FIELD_TITLE,".replace(
-        /, /g,
-        ",\n            ",
-      ),
+    expect(VARIABLES).toContain(
+      "Runbook credentials were removed since, and a step that still named one was moved the same way first.",
+    );
+    expect(VARIABLES).toContain(
+      "[Runbook credentials are removed](/docs/installation/upgrading#runbook-credentials-are-removed)",
     );
 
-    for (const word of ["Sign in with", "Private key", "Password"]) {
-      expect(SSH_SIGN_IN).toContain(`translationKey("${word}")`);
-      expect(create).toContain(`**${word}**`);
+    for (const markdown of Object.values(PAGES)) {
+      expect(markdown).not.toContain("/docs/runbooks/credentials");
+      expect(markdown).not.toContain("**Create Credential**");
     }
-
-    expect(create).toContain(
-      "pick how to **Sign in with**: a **Private key**, the better option where you have the choice",
-    );
   });
 
-  it("say the credentials are OneUptime AI's, and runbook steps sign in with variables", () => {
-    expect(CREDENTIALS_PAGE).toContain('title: "OneUptime AI Access",');
-    expect(CREDENTIALS_PAGE).toContain(
-      "Runbook steps use runbook variables instead.",
-    );
-    expect(CREDENTIALS.split("\n")[0]).toBe("# AI Access");
-    expect(CREDENTIALS).toContain(
-      "Runbook steps do not use these: an SSH or kubectl step signs in with a secret [runbook variable](/docs/runbooks/variables).",
-    );
-    expect(CREDENTIALS).not.toContain("## Secrets for scripts");
-  });
-
-  it("connect to port 22 when the port is left empty", () => {
-    expect(RUNBOOK_CREDENTIALS_UTIL).toContain(
-      "port: credential.sshPort || 22,",
+  it("connect an SSH step to port 22 when its port is left empty", () => {
+    expect(RUNBOOK_JOB_VARIABLES).toMatch(
+      /typeof payload\["port"\] === "number" && payload\["port"\] > 0\s*\?\s*\(payload\["port"\] as number\)\s*:\s*22;/,
     );
     expect(RUNNER_SSH_EXECUTOR).toContain(
       'Number(data.credential["port"] || 22)',
     );
 
-    expect(CREDENTIALS).toContain("the **Port** (22 when left empty)");
-    expect(CREDENTIALS).toContain("port (defaults to 22)");
+    expect(AUTHORING).toContain(
+      "| **Port** | Under **More fields**. 22 when left empty. |",
+    );
   });
 
-  it("say who manages credentials and variables, which Runbook Admin does not", () => {
-    for (const [model, permission, page, sentence] of [
-      [
-        new RunbookCredential(),
-        Permission.CreateRunbookCredential,
-        CREDENTIALS,
-        "Project Owner and Project Admin, or anyone with the **Create Runbook Credential** permission. The Runbook Admin role does not include it.",
-      ],
-      [
-        new RunbookVariable(),
-        Permission.CreateRunbookSecret,
-        VARIABLES,
-        `Project Owner and Project Admin, or the **${title(Permission.CreateRunbookSecret)}** permission. Runbook Admin reads variables, to pick them in the steps it writes, but does not change them.`,
-      ],
-    ] as Array<
-      [RunbookCredential | RunbookVariable, Permission, string, string]
-    >) {
-      expect(model.createRecordPermissions).toEqual([
-        Permission.ProjectOwner,
-        Permission.ProjectAdmin,
-        permission,
-      ]);
-      expect(model.createRecordPermissions).not.toContain(
-        Permission.RunbookAdmin,
-      );
-      expect(page).toContain(sentence);
-    }
+  it("say who manages variables, which Runbook Admin does not", () => {
+    const model: RunbookVariable = new RunbookVariable();
+
+    expect(model.createRecordPermissions).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateRunbookSecret,
+    ]);
+    expect(model.createRecordPermissions).not.toContain(
+      Permission.RunbookAdmin,
+    );
+    expect(VARIABLES).toContain(
+      `Project Owner and Project Admin, or the **${title(Permission.CreateRunbookSecret)}** permission. Runbook Admin reads variables, to pick them in the steps it writes, but does not change them.`,
+    );
 
     // The runbook secret permissions kept their names, and say variables now.
     expect(title(Permission.CreateRunbookSecret)).toBe(
@@ -2117,15 +2056,11 @@ describe("AI Access and runbook variables", () => {
     );
   });
 
-  it("say both need the Growth plan on OneUptime Cloud", () => {
-    for (const model of [new RunbookCredential(), new RunbookVariable()]) {
-      expect(model.createBillingPlan).toBe(PlanType.Growth);
-      expect(model.readBillingPlan).toBe(PlanType.Growth);
-    }
+  it("say variables need the Growth plan on OneUptime Cloud", () => {
+    const model: RunbookVariable = new RunbookVariable();
 
-    expect(CREDENTIALS).toContain(
-      "On OneUptime Cloud, runbook credentials need the **Growth** plan or above.",
-    );
+    expect(model.createBillingPlan).toBe(PlanType.Growth);
+    expect(model.readBillingPlan).toBe(PlanType.Growth);
     expect(VARIABLES).toContain(
       "On OneUptime Cloud, runbook variables need the **Growth** plan or above.",
     );
@@ -2228,9 +2163,9 @@ describe("the runbook pages' configuration reference", () => {
   it("give only menu paths the Runbooks side menu has", () => {
     const sections: Array<MenuSection> = runbookMenuSections();
 
-    expect(sections.slice(0, 3)).toEqual([
-      { title: "Runbooks", items: ["Runbooks", "Executions"] },
-      { title: "Runners", items: ["Runners", "AI Access"] },
+    // The Runners sit with the runbooks since AI Access went.
+    expect(sections.slice(0, 2)).toEqual([
+      { title: "Runbooks", items: ["Runbooks", "Executions", "Runners"] },
       {
         title: "Settings",
         items: ["Global Variables", "Owner Rules", "Label Rules"],
@@ -2250,7 +2185,6 @@ describe("the runbook pages' configuration reference", () => {
     expect(Array.from(paths).sort()).toEqual([
       "Runbooks → Executions",
       "Runbooks → Runners",
-      "Runbooks → Runners → AI Access",
       "Runbooks → Settings",
       "Runbooks → Settings → Global Variables",
     ]);

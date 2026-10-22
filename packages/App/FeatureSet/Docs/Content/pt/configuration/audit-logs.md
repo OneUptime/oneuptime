@@ -88,6 +88,12 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Equipes | `Team` |
 | Funções personalizadas, e as equipes que recebem uma | `Custom Role`, `Team Custom Role` |
 | Rótulos | `Label` |
+| Estados e severidades de incidente | `Incident State`, `Incident Severity` |
+| Estados e severidades de alerta | `Alert State`, `Alert Severity` |
+| Status de monitor | `Monitor Status` |
+| Estados de manutenção programada | `Scheduled Maintenance State` |
+| Funções de incidente | `Incident Role` |
+| Status de post-mortem | `Postmortem Status` |
 | Chaves de API | `API Key` |
 | Clientes MCP que as pessoas conectam | `MCP Client Authorization` |
 | Itens do inventário | `Inventory Item` |

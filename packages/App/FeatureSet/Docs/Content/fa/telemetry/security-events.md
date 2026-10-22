@@ -288,7 +288,64 @@ OneUptime هستهٔ بولی Sigma را اجرا می‌کند:
 - `Image` و `CommandLine` فرایندی را می‌خوانند که رویداد دربارهٔ آن است، یعنی در اجرای یک فرایند همان فرایندی که اجرا شد (`processPath` ، `processCommandLine`)، و `ParentImage` و `ParentCommandLine` فرایندی را که آن را اجرا کرد (`parentProcessPath` ، `parentProcessCommandLine`). `principalProcess` فرایندی است که عمل کرد، که در یک اجرا همان فرایند والد است.
 - `level` شدت را تعیین می‌کند: `informational` ، `low` ، `medium` ، `high` یا `critical` ، و اگر نباشد `medium` . شناسه‌های ATT&CK در `tags` (`attack.t1110` ، `attack.ta0006`) فیلدهای MITRE یافته را پر می‌کنند.
 
-تجمیع‌هایی مانند `| count() by principalIp > 5` هنگام ذخیره رد می‌شوند: به‌جای آن‌ها **Group By Field** و **Match Count Threshold** را به کار ببرید. `logsource` فقط جنبهٔ اطلاعاتی دارد و چیزی را محدود نمی‌کند: آن فیلتر را در یک گزینش بگذارید، مانند `className: Authentication` . یک `timeframe` نادیده گرفته می‌شود، چون بازهٔ قاعده پنجرهٔ آن را تعیین می‌کند.
+تجمیع‌هایی مانند `| count() by principalIp > 5` هنگام ذخیره رد می‌شوند: به‌جای آن‌ها یک [قاعدهٔ همبستگی](#قاعدههای-همبستگی) ، یا **Group By Field** و **Match Count Threshold** را به کار ببرید. `logsource` فقط جنبهٔ اطلاعاتی دارد و چیزی را محدود نمی‌کند: آن فیلتر را در یک گزینش بگذارید، مانند `className: Authentication` . یک `timeframe` نادیده گرفته می‌شود، چون بازهٔ قاعده پنجرهٔ آن را تعیین می‌کند.
+
+### قاعده‌های همبستگی
+
+یک [همبستگی Sigma](https://sigmahq.io/docs/meta/correlations.html) با چند رویداد با هم فعال می‌شود، نه با یکی. آن را همراه با قاعده‌هایی که می‌خواند، به‌صورت سندهای YAML جداشده با `---` ، در **Sigma Rule (YAML)** بچسبانید، یا قاعده‌هایی را که پروژه از پیش دارد با `name` یا `id` آن‌ها در Sigma نام ببرید. **Rule Library** نمونه‌های آماده دارد، مانند ورودهای ناموفقی که یک ورود موفق پس از آن‌ها می‌آید.
+
+| نوع | کی فعال می‌شود | نمایش با نام |
+| --- | --- | --- |
+| `event_count` | یک گروه در `timespan` به شمار معینی از رویدادها می‌رسد | تعداد رویداد |
+| `value_count` | یک گروه در `timespan` شمار معینی از مقدارهای متفاوت یک فیلد را نشان می‌دهد | مقادیر متمایز |
+| `temporal` | هر قاعده برای همان گروه در `timespan` تطابق دارد، به هر ترتیبی | رویدادهای هم‌زمان |
+| `temporal_ordered` | قاعده‌ها به ترتیب خودشان برای همان گروه در `timespan` تطابق دارند | Sequence |
+| `new_value` | یک گروه مقداری از یک فیلد را نشان می‌دهد که در `timespan` نشان نداده بود | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- یک گروه مقدار فیلدهای `group-by` است، مانند یک نشانی. شمارش‌ها غلتان‌اند: انفجاری که دو اجرا میانشان تقسیم کنند باز هم در `timespan` خودش کامل شمرده می‌شود، که حداکثر ۲۴ ساعت است.
+- `new_value` نوعی از خود OneUptime است، چون Sigma همبستگی «نخستین بار دیده‌شده» ندارد: آن را با تا ۳۰ روز تاریخچه مقایسه می‌کند. `value_sum` ، `value_avg` ، `value_percentile` و `value_median` هنگام ذخیره رد می‌شوند.
+- ستون **نوع** در **Detection Rules** گونهٔ هر قاعده را نام می‌برد، و فرم در یک جمله می‌گوید قاعده دنبال چه می‌گردد.
 
 ### تنظیمات ارزیابی
 
@@ -387,7 +444,7 @@ OneUptime هر دقیقه قاعده‌های فعالی را بررسی می‌
 :::
 
 :::details یک قاعده هرگز تطابق پیدا نمی‌کند
-بررسی کنید که **فعال** باشد، و **Last Evaluated** و **آخرین خطا** را در ردیفش بخوانید. رویدادی را که انتظار داشتید تطابق داشته باشد باز کنید و فیلد به فیلد با قاعده مقایسه کنید: یک مقدار ساده باید با کل فیلد برابر باشد، پس برای بخشی از آن `contains` یا `*` را به کار ببرید. یک ویژگی به همان نامی نوشته می‌شود که در رویداد دارد (`threat.matched` ، نه `attributes.threat.matched`). با آستانهٔ بیش از ۱، تطابق‌ها باید در یک اجرا بیفتند.
+**وضعیت** آن را بررسی کنید: قاعدهٔ **غیرفعال** اجرا نمی‌شود، و وقتی **اجرا ناموفق بود** نشان داده شود، **مشاهده خطا** در ردیفش علت را نشان می‌دهد. رویدادی را که انتظار داشتید تطابق داشته باشد باز کنید و فیلد به فیلد با قاعده مقایسه کنید: یک مقدار ساده باید با کل فیلد برابر باشد، پس برای بخشی از آن `contains` یا `*` را به کار ببرید. یک ویژگی به همان نامی نوشته می‌شود که در رویداد دارد (`threat.matched` ، نه `attributes.threat.matched`). با آستانهٔ بیش از ۱، تطابق‌ها باید در یک اجرا بیفتند.
 :::
 
 :::details قاعده تطابق یافت، اما هشداری باز نشد

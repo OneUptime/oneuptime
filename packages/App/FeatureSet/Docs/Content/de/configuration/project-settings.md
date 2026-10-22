@@ -71,6 +71,10 @@ Klicken Sie auf **Beschriftung erstellen**. Geben Sie ihr einen **Name** und, we
 
 In OneUptime Cloud erfordern das Anlegen und Ändern von Beschriftungen den Growth-Tarif. Siehe [Beschriftungen](/docs/permissions/index#labels) dazu, wie Beschriftungen Berechtigungen begrenzen, und [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules), um Ressourcen beim Anlegen zu beschriften.
 
+### Eine Beschriftung archivieren
+
+Um eine Beschriftung außer Dienst zu stellen, archivieren Sie sie über das Menü **⋯** ihrer Zeile, statt sie zu löschen. Alles, was die Beschriftung hat, behält sie, und Sie können weiterhin danach filtern, aber niemand kann sie erneut zu etwas hinzufügen: Jede Beschriftungsauswahl lässt sie weg, und die API, Terraform und MCP lehnen sie ab. Der Dialog listet die Regeln und Berechtigungen auf, die so eingerichtet sind, dass sie die Beschriftung verwenden; sie verwenden sie weiter, bis Sie sie ändern. Archivierte Beschriftungen werden getrennt aufgeführt, im eingeklappten Abschnitt **Archivierte Beschriftungen**, wo **Aus Archiv entfernen** eine wiederherstellt. **Löschen** listet zuerst alles auf, wovon die Beschriftung entfernt würde, und bietet **Stattdessen archivieren** an.
+
 ## Benachrichtigungen
 
 **Projekteinstellungen → Benachrichtigungen** enthält, wie das Projekt Benachrichtigungen sendet:

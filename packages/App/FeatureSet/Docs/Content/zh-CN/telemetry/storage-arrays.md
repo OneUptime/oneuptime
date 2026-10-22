@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到阵列
 
-打开 **产品 → 基础设施 → Storage Arrays → All Storage Arrays**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的告警和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。
+打开 **产品 → 基础设施 → Storage Arrays → All Storage Arrays**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的告警和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量

@@ -111,7 +111,7 @@ Welke opties er zijn, hangt af van het monitortype. Daaronder vallen bestemminge
 - Uitzonderingen gelden voor bulk- en losse synchronisaties. Ze worden op het sjabloon opgeslagen, niet per synchronisatie apart gekozen.
 - Nieuwe monitoren beginnen nog steeds met de veldwaarden van het sjabloon. Uitzonderingen hebben alleen invloed op het synchroniseren van bestaande monitoren.
 - Criteria worden altijd gesynchroniseerd. Een synchronisatie van alleen criteria laat het bewakingsinterval, de labels en andere instellingen op monitorniveau ongemoeid.
-- Bestaande sjablonen hebben geen velduitzonderingen totdat u ze instelt. Netwerkapparaatmonitoren behouden hun eigen apparaatkoppeling nog steeds automatisch.
+- Bestaande sjablonen hebben geen velduitzonderingen totdat u ze instelt. Netwerkapparaatmonitoren behouden hun eigen apparaatkoppeling nog steeds automatisch, en de Ping-, IP-, poort- en NTP-monitoren die een import uit netwerkdetectie voor apparaten heeft gemaakt, blijven het eigen adres van elk apparaat controleren.
 
 Bij sjablonen met meerdere stappen worden beschermde waarden gekoppeld via de stap-ID's. Zelfstandig gemaakte monitoren met één stap kunnen ook een sjabloon met één stap ontvangen. Als een beschermde stap niet kan worden gekoppeld, wordt de synchronisatie geweigerd voordat er een monitor wordt bijgewerkt, zodat een nieuwe of verplaatste stap niet per ongeluk de bestemming of inloggegevens van een andere stap kopieert.
 

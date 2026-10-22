@@ -147,6 +147,28 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 
 Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert nie etwas und verschiebt nie den Cursor, und jede fehlgeschlagene Prüfung sagt, was zu ändern ist.
 
+## Sicherheitsereignisse an Splunk senden
+
+OneUptime kann das, was es findet, auch an Splunk senden, über dessen HTTP Event Collector (HEC), sodass Ihre Suchen und Dashboards die Erkennungen von OneUptime neben Ihren eigenen sehen. Jedes Sicherheitsereignis ist ein HEC-Ereignis mit dem Sourcetype `oneuptime:security`, seine Felder benannt, wie das Common Information Model von Splunk sie benennt: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` und `severity`.
+
+:::steps
+### Ein HEC-Token erstellen
+
+Öffnen Sie in Splunk Web **Settings → Data inputs → HTTP Event Collector** und klicken Sie auf **New Token**. Benennen Sie es, wählen Sie die Indizes, in die es schreiben darf, und seinen Standardindex, und kopieren Sie den Wert des Tokens. In Splunk Cloud lauscht HEC auf `https://http-inputs-<stack>.splunkcloud.com`; in Splunk Enterprise auf Port `8088`, sobald **Global Settings** Tokens einschaltet.
+
+### Das Ziel hinzufügen
+
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen**. Klicken Sie unter **An Ihr SIEM senden** auf **Ziel hinzufügen**, wählen Sie Splunk unter **SIEM** und klicken Sie auf **Weiter**. Tragen Sie die **HEC-URL** ein und fügen Sie das Token in **HEC-Token** ein. **Index** und **Quelltyp** sind optional: Bleiben sie leer, gehen die Ereignisse in den Standardindex des Tokens, mit dem Sourcetype `oneuptime:security`.
+
+### Ein Testereignis senden und das Senden starten
+
+Klicken Sie auf **Testereignis senden**: Ein informatives Ereignis geht mit den Einstellungen im Formular an Splunk, und nichts wird gespeichert. Suchen Sie es mit `sourcetype="oneuptime:security"`. Behalten Sie dann unter **Was gesendet wird** die Option **Nur Erkennungen** oder wählen Sie **Alle Sicherheitsereignisse**, und klicken Sie auf **Senden starten**.
+:::
+
+- Die **HEC-URL** muss `https` verwenden, mit einem Zertifikat, dem OneUptime vertraut: Zertifikatsprüfungen werden nie übersprungen.
+- Ereignisse gehen in Stapeln von bis zu 500. Ein Ereignis, das Splunk ablehnt, wird ausgelassen und in **Fehler anzeigen** genannt, ein ausgelasteter Collector (`503`) wird erneut versucht, und ein abgelehntes Token oder ein abgelehnter Index stoppt das Senden, bis Sie es beheben.
+- Notable Events, die OneUptime aus Splunk importiert hat, werden nie an Splunk zurückgesendet.
+
 ## Fehlerbehebung
 
 Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, mit geschwärzten Anmeldedaten, hinter einem Präfix, das den fehlgeschlagenen Schritt nennt. Hat eine Verbindung einen Fehler, wählen Sie in ihrer Spalte **Aktionen** die Aktion **Fehler anzeigen**, um ihn zu lesen, und im Dialog **Fehler kopieren**, um ihn zu kopieren. Lesen Sie zuerst das Präfix.

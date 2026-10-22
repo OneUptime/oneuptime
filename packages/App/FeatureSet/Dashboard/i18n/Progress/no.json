@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 16521
+    "keys": 32601,
+    "untranslated": 16527
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -13,6 +13,7 @@
     "App",
     "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
+    "Container {{container}}: {{reason}}",
     "Diagram",
     "Embedding",
     "Failover",
@@ -23,7 +24,11 @@
     "Goroutines",
     "ICMP (ping)",
     "Null",
+    "Object Gateway",
+    "Object Gateways",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Pause",
     "Peer",
     "Person",

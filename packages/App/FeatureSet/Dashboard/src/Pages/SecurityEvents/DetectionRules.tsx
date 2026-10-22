@@ -5,7 +5,6 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import {
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
@@ -23,6 +22,16 @@ import {
   DETECTION_RULE_NAME_DESCRIPTION,
   getDetectionRuleNameAfterYamlChange,
 } from "../../Components/SecurityEvents/SecurityMatchRaises";
+import {
+  SecurityDetectionStatus,
+  getDetectionRuleMessages,
+  getDetectionRuleStatus,
+} from "../../Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  SecurityDetectionErrors,
+  getViewErrorActionButton,
+  useSecurityDetectionErrors,
+} from "../../Components/SecurityEvents/SecurityDetectionErrorModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import Route from "Common/Types/API/Route";
@@ -38,6 +47,13 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
+import DetectionRuleSummary, {
+  DetectionRuleTypeLabel,
+} from "../../Components/SecurityEvents/DetectionRuleSummary";
+import {
+  DetectionRuleShape,
+  readDetectionRuleShape,
+} from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -57,9 +73,29 @@ const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
 
+/*
+ * A single Sigma rule counts its matches by the form's Group By Field,
+ * Distinct Count Field and Match Count Threshold; a correlation says how it
+ * counts in its own YAML, so the form leaves those three out for it.
+ */
+export function countsByFormFields(values: FormValues<DetectionRule>): boolean {
+  const shape: DetectionRuleShape | null = readDetectionRuleShape(
+    values.sigmaRuleYaml,
+  );
+
+  return !shape || !shape.isCorrelation;
+}
+
 const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  /*
+   * A rule's last message in full, from its row's View Error. A hook: it
+   * runs before the reseller gate below can return early.
+   */
+  const ruleErrors: SecurityDetectionErrors<DetectionRule> =
+    useSecurityDetectionErrors<DetectionRule>(getDetectionRuleMessages);
+
   /*
    * Same reseller-telemetry gate as every other Security Events page —
    * detection rules run over telemetry-billed security events, so a plan
@@ -156,7 +192,21 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Sigma Rule (YAML)",
             stepId: "sigma-rule",
             description:
-              "The Sigma rule to evaluate against incoming security events, in YAML.",
+              "One Sigma rule, or a Sigma correlation with the rules it reads, in YAML.",
+            // What a correlation looks for, in a sentence, as it is typed.
+            getFooterElement: (
+              values: FormValues<DetectionRule>,
+            ): ReactElement | undefined => {
+              const shape: DetectionRuleShape | null = readDetectionRuleShape(
+                values.sigmaRuleYaml,
+              );
+
+              return shape && shape.isCorrelation ? (
+                <div className="mt-2">
+                  <DetectionRuleSummary shape={shape} />
+                </div>
+              ) : undefined;
+            },
             /*
              * YAML, not Markdown. Markdown put a rich-text toolbar (Bold, H1)
              * over a Sigma rule, and the editor behind it round-trips its value
@@ -212,7 +262,11 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             stepId: "sigma-rule",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            // A new rule runs (createInitialValues); turning it off is an edit.
+            /*
+             * A new rule runs: the create sends no isEnabled and the
+             * column's default, on, is stored (#5158). Turning it off is an
+             * edit.
+             */
             doNotShowWhenCreating: true,
           },
           {
@@ -260,6 +314,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               groupByField: true,
             },
+            showIf: countsByFormFields,
             title: "Group By Field",
             stepId: "on-match",
             description:
@@ -273,6 +328,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               distinctCountField: true,
             },
+            showIf: countsByFormFields,
             title: "Distinct Count Field",
             stepId: "on-match",
             description:
@@ -286,6 +342,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               matchCountThreshold: true,
             },
+            showIf: countsByFormFields,
             title: "Match Count Threshold",
             stepId: "on-match",
             description:
@@ -312,6 +369,11 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         searchableFields={["name", "description"]}
         showViewIdButton={true}
         actionButtons={[
+          // On a rule whose last run left a message, the row's button.
+          getViewErrorActionButton<DetectionRule>({
+            getMessages: getDetectionRuleMessages,
+            show: ruleErrors.show,
+          }),
           {
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -358,6 +420,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Enabled",
           },
         ]}
+        selectMoreFields={{
+          sigmaRuleYaml: true,
+        }}
         columns={[
           {
             field: {
@@ -368,33 +433,52 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              sigmaRuleYaml: true,
+            },
+            title: "Type",
+            type: FieldType.Element,
+            disableSort: true,
+            getElement: (item: DetectionRule): ReactElement => {
+              const shape: DetectionRuleShape | null = readDetectionRuleShape(
+                item.sigmaRuleYaml,
+              );
+
+              return shape ? (
+                <DetectionRuleTypeLabel
+                  shape={shape}
+                  dataTestId="detection-rule-type"
+                />
+              ) : (
+                <span className="text-gray-500">-</span>
+              );
+            },
+          },
+          {
+            field: {
               isEnabled: true,
             },
             title: "Status",
             type: FieldType.Boolean,
+            /*
+             * Whether the rule works, not only whether it is on: a failed
+             * run reads red here, a run's note about its own work yellow,
+             * with View Error on its row (SecurityDetectionStatus). It reads
+             * Last Error, which the table selects even while it is hidden.
+             */
             getElement: (item: DetectionRule): ReactElement => {
-              if (item.isEnabled) {
-                return <Pill color={Green} text="Enabled" />;
-              }
-              return <Pill color={Red} text="Disabled" />;
+              const status: SecurityDetectionStatus =
+                getDetectionRuleStatus(item);
+
+              return (
+                <Pill
+                  color={status.color}
+                  text={status.text}
+                  tooltip={status.tooltip}
+                />
+              );
             },
           },
-          {
-            field: {
-              evaluationIntervalInMinutes: true,
-            },
-            title: "Interval (Minutes)",
-            type: FieldType.Number,
-            noValueMessage: "-",
-          },
-          {
-            field: {
-              lastEvaluatedAt: true,
-            },
-            title: "Last Evaluated",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
-          },
+          // When it last fired comes first; that it runs, the Status says.
           {
             field: {
               lastMatchAt: true,
@@ -405,14 +489,40 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
+              lastEvaluatedAt: true,
+            },
+            title: "Last Evaluated",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          /*
+           * Hidden at first (Customize Columns brings them back): the
+           * interval is the rule's setting, and Last Error, empty while the
+           * rule works, shows through the Status and View Error.
+           */
+          {
+            field: {
+              evaluationIntervalInMinutes: true,
+            },
+            title: "Interval (Minutes)",
+            type: FieldType.Number,
+            noValueMessage: "-",
+            isHiddenByDefault: true,
+          },
+          {
+            field: {
               lastError: true,
             },
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            wrapContent: true,
+            isHiddenByDefault: true,
           },
         ]}
       />
+
+      {ruleErrors.element}
     </div>
   );
 };

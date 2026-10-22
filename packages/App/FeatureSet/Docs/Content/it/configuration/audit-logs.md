@@ -88,6 +88,12 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Team | `Team` |
 | Ruoli personalizzati, e i team che ne ricevono uno | `Custom Role`, `Team Custom Role` |
 | Etichette | `Label` |
+| Stati e gravità degli incidenti | `Incident State`, `Incident Severity` |
+| Stati e gravità degli avvisi | `Alert State`, `Alert Severity` |
+| Stati del monitor | `Monitor Status` |
+| Stati della manutenzione programmata | `Scheduled Maintenance State` |
+| Ruoli incidente | `Incident Role` |
+| Stati del post-mortem | `Postmortem Status` |
 | Chiavi API | `API Key` |
 | Client MCP che le persone collegano | `MCP Client Authorization` |
 | Elementi dell'inventario | `Inventory Item` |

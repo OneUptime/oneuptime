@@ -117,13 +117,13 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         path={MOVED_OIDC_SETTINGS_PATH}
         element={<MovedPageRedirect pageMap={PageMap.SETTINGS_SSO} />}
       />
+      {/*
+       * Runner Credentials, later AI Access, is gone: its oldest address
+       * forwards to the Runners as well.
+       */}
       <PageRoute
         path={MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}
-        element={
-          <MovedRunnerPageRedirect
-            pageMap={PageMap.RUNBOOKS_RUNNER_CREDENTIALS}
-          />
-        }
+        element={<MovedRunnerPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}
       />
 
       <PageRoute

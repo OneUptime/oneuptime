@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta klustret i OneUptime
 
-Öppna **Produkter → Infrastruktur → Ceph → Alla kluster**. Klustret visas under sitt `CEPH_CLUSTER_NAME` inom ungefär en minut, med sina OSD:er, pooler och daemoner.
+Öppna **Produkter → Infrastruktur → Ceph → Alla kluster**. Klustret visas under sitt `CEPH_CLUSTER_NAME` inom ungefär en minut, med sina OSD:er, pooler och daemoner. Dess sida **Topologi** ritar dem på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Miljövariabler

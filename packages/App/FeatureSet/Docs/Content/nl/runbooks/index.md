@@ -95,7 +95,7 @@ Runbooks staat onder **Producten**, in de groep **Dashboards & automatisering**.
 | De **Eigenaren** van een runbook | De mensen en teams toevoegen die ervoor verantwoordelijk zijn. |
 | De **Instellingen** van een runbook | **Dit runbook uitvoeren** uitschakelen zonder het runbook te verwijderen. |
 | **Runbooks → Uitvoeringen** | Elke uitvoering van elk runbook in het project. |
-| **Runbooks → Runbook-agenten** en **Runbooks → Runbook-agenten → AI-toegang** | [Runners](/docs/runbooks/agents) installeren, en de [toegang](/docs/runbooks/credentials) beheren die de opdrachten van OneUptime AI via hen hebben. |
+| **Runbooks → Runbook-agenten** | De [Runners](/docs/runbooks/agents) installeren waarop de stappen van uw runbooks draaien. |
 | **Runbooks → Instellingen** | Onder **Globale variabelen** de variabelen beheren die elk runbook kan [gebruiken](/docs/runbooks/variables), en de **Eigenaarsregels** en **Labelregels** die eigenaren en labels aan nieuwe runbooks toevoegen. |
 | **Incidenten / Waarschuwingen / Geplande onderhoud → Regels → Runbook-regels** | De regels maken die runbooks automatisch starten. |
 | Een incident, waarschuwing of onderhoudsevenement → **Runbooks** | De gekoppelde uitvoeringen zien, en op **Runbook uitvoeren** klikken om er een te starten. |

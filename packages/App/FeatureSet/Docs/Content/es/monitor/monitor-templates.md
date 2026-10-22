@@ -111,7 +111,7 @@ Las opciones disponibles dependen del tipo de monitor. Incluyen destinos y puert
 - Las exclusiones se aplican a las sincronizaciones masivas e individuales. Se guardan en la plantilla, no se eligen por separado en cada sincronización.
 - Los monitores nuevos siguen empezando con los valores de campo de la plantilla. Las exclusiones solo afectan a la sincronización de monitores existentes.
 - Los criterios siempre se sincronizan. Una sincronización solo de criterios deja sin tocar el intervalo de monitoreo, las etiquetas y otros ajustes del monitor.
-- Las plantillas existentes no tienen exclusiones de campos hasta que las configura. Los monitores de dispositivo de red siguen conservando automáticamente su propia vinculación al dispositivo.
+- Las plantillas existentes no tienen exclusiones de campos hasta que las configura. Los monitores de dispositivo de red siguen conservando automáticamente su propia vinculación al dispositivo, y los monitores Ping, IP, Puerto y NTP que una importación del descubrimiento de red creó para dispositivos siguen comprobando la dirección propia de cada dispositivo.
 
 En las plantillas con varios pasos, los valores protegidos se emparejan por los ID de paso. Los monitores de un solo paso creados de forma independiente también pueden recibir una plantilla de un solo paso. Si un paso protegido no se puede emparejar, la sincronización se rechaza antes de actualizar ningún monitor, para que un paso nuevo o reordenado no copie por accidente el destino o las credenciales de otro paso.
 

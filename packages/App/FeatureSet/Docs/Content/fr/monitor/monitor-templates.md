@@ -111,7 +111,7 @@ Les options disponibles dépendent du type de moniteur. Elles comprennent les de
 - Les exclusions s'appliquent aux synchronisations groupées et individuelles. Elles sont enregistrées sur le modèle, pas choisies séparément pour chaque synchronisation.
 - Les nouveaux moniteurs commencent toujours avec les valeurs de champ du modèle. Les exclusions n'affectent que la synchronisation des moniteurs existants.
 - Les critères sont toujours synchronisés. Une synchronisation des critères seuls laisse intacts l'intervalle de surveillance, les étiquettes et les autres réglages au niveau du moniteur.
-- Les modèles existants n'ont aucune exclusion de champ tant que vous n'en configurez pas. Les moniteurs d'équipement réseau continuent de garder automatiquement leur propre liaison à l'équipement.
+- Les modèles existants n'ont aucune exclusion de champ tant que vous n'en configurez pas. Les moniteurs d'équipement réseau continuent de garder automatiquement leur propre liaison à l'équipement, et les moniteurs Ping, IP, Port et NTP qu'un import de la découverte réseau a créés pour des équipements continuent de vérifier l'adresse propre de chaque équipement.
 
 Pour les modèles à plusieurs étapes, les valeurs protégées sont associées par les ID d'étape. Des moniteurs à une seule étape créés indépendamment peuvent aussi recevoir un modèle à une seule étape. Si une étape protégée ne peut pas être associée, la synchronisation est refusée avant toute mise à jour de moniteur, pour qu'une étape nouvelle ou réordonnée ne puisse pas copier par accident la destination ou les identifiants d'une autre étape.
 

@@ -15,6 +15,12 @@ export function getCephBreadcrumbs(path: string): Array<Link> | undefined {
       "Ceph",
       "View Cluster",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_TOPOLOGY, [
+      "Project",
+      "Ceph",
+      "View Cluster",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CEPH_CLUSTER_VIEW_OSDS, [
       "Project",
       "Ceph",

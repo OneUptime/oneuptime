@@ -14,6 +14,7 @@ import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
 import SecurityPlaybookLauncher from "../Utils/SecurityPlaybook/SecurityPlaybookLauncher";
+import SecurityCaseSourceAlerts from "../Utils/SecurityCase/SecurityCaseSourceAlerts";
 import SecurityCaseNotifications, {
   isSetupTestCase,
 } from "../Utils/SecurityCase/SecurityCaseNotifications";
@@ -550,6 +551,18 @@ export class Service extends ProjectReferencesService<Model> {
           newStatus === SecurityCaseStatus.Closed ? Green500 : Purple500,
         userId,
       });
+
+      /*
+       * Closed here, closed where its alerts came from: each connection
+       * with "Close alerts when their case closes" on (queued, never
+       * waited on - SecurityCaseSourceAlerts).
+       */
+      if (newStatus === SecurityCaseStatus.Closed) {
+        await SecurityCaseSourceAlerts.caseClosed({
+          projectId,
+          securityCaseId: caseId,
+        });
+      }
     }
 
     const newPriority: SecurityCasePriority | undefined =

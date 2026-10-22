@@ -21,6 +21,7 @@ import {
   within,
 } from "@testing-library/react";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import Route from "../../../Types/API/Route";
@@ -634,10 +635,14 @@ describe("DuplicateModel", () => {
       expect(mockCreate).toHaveBeenCalledTimes(1);
       const sent: Workflow = sentModel<Workflow>();
       expect(sent.name).toBe("Nightly Sync 2");
-      // The original read as fieldsToDuplicate asks.
-      expect((mockGetItem.mock.calls[1]![0] as GetItemArgs).select).toEqual(
-        WORKFLOW_FIELDS_TO_DUPLICATE,
-      );
+      /*
+       * The original read as fieldsToDuplicate asks - its labels with their
+       * archive switch, so an archived one stays behind.
+       */
+      expect((mockGetItem.mock.calls[1]![0] as GetItemArgs).select).toEqual({
+        ...WORKFLOW_FIELDS_TO_DUPLICATE,
+        labels: { _id: true, isArchived: true },
+      });
       expect(sent.description).toBe("Runs at night");
 
       // The copy opens: its own page under the list's route.
@@ -664,6 +669,59 @@ describe("DuplicateModel", () => {
       const sent: Workflow = sentModel<Workflow>();
       expect(sent._id).toBeUndefined();
       expect(sent.id).toBeFalsy();
+    });
+
+    /*
+     * Nobody can pick an archived label for anything new
+     * (Common/Utils/ArchivableValues), and the server refuses a create that
+     * names one: a copy of something that has one leaves it behind instead
+     * of failing over it. The original keeps it.
+     */
+    test("an archived label stays with the original: the copy takes the others", async () => {
+      serveWorkflow({ originalName: "Nightly Sync", projectNames: [] });
+
+      const live: Label = new Label();
+      live._id = "0198c8ec-2a1d-7f0c-9e75-3841941610a1";
+      live.isArchived = false;
+
+      const archived: Label = new Label();
+      archived._id = "0198c8ec-2a1d-7f0c-9e75-3841941610a2";
+      archived.isArchived = true;
+
+      mockGetItem.mockImplementation(
+        async (args: unknown): Promise<Workflow> => {
+          const { select } = args as GetItemArgs;
+
+          if (select["name"]) {
+            return workflowNamed("Nightly Sync");
+          }
+
+          const original: Workflow = new Workflow();
+          original.id = WORKFLOW_ID;
+          original.description = "Runs at night";
+          original.labels = [live, archived];
+          return original;
+        },
+      );
+
+      renderWorkflowDuplicate();
+      await openDialog();
+      await pressDuplicateInDialog();
+
+      await waitFor(() => {
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+      });
+
+      const sentLabels: Array<Label> = sentModel<Workflow>().labels || [];
+
+      expect(
+        sentLabels.map((label: Label): string => {
+          return label._id?.toString() || "";
+        }),
+      ).toEqual(["0198c8ec-2a1d-7f0c-9e75-3841941610a1"]);
+      // Sent as the plain select read it: the id alone.
+      expect(sentLabels[0]!.isArchived).toBeUndefined();
+      expect(sentLabels[0]).toBeInstanceOf(Label);
     });
 
     test("saves a name typed over the one filled in", async () => {

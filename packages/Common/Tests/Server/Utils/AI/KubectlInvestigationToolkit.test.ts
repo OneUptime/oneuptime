@@ -416,7 +416,12 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     });
   });
 
-  it("passes the cluster's credential id for a Runner outside the cluster", async () => {
+  /*
+   * A Runner outside the cluster reached it with the cluster's runbook
+   * credential, which the toolkit passed on. Runbook credentials are gone:
+   * a status from an older server that still names one passes nothing on.
+   */
+  it("never passes a credential on, even from a status that still names one", async () => {
     const enqueue: jest.SpyInstance = jest
       .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
       .mockResolvedValue(fakeJob());
@@ -429,10 +434,10 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
         projectId: PROJECT_ID,
         aiRunId: RUN_ID,
         clusters: [
-          readyCluster({
-            accessMethod: "credential",
+          {
+            ...readyCluster(),
             credentialId: "55555555-5555-4555-8555-555555555555",
-          }),
+          } as KubernetesClusterAiAccessStatus,
         ],
       }),
       RUN_KUBECTL_TOOL_NAME,
@@ -442,9 +447,7 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "capacity",
     });
 
-    expect(
-      (enqueue.mock.calls[0]![0] as Record<string, unknown>)["credentialId"],
-    ).toBe("55555555-5555-4555-8555-555555555555");
+    expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("credentialId");
   });
 
   /*
@@ -1878,9 +1881,10 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
   });
 
   /*
-   * IP-4: two clusters bound to the same external Runner, each with its
-   * own credential. Jobs are claimed by Runner, never by cluster, so an
-   * unclaimed command on one says the other's commands will not be
+   * IP-4: two clusters whose statuses name the same Runner (a Runner
+   * outside both did, reaching each with its own runbook credential, until
+   * those were removed). Jobs are claimed by Runner, never by cluster, so
+   * an unclaimed command on one says the other's commands will not be
    * claimed either.
    */
   function sharedRunnerToolkit(): KubectlInvestigationToolkit {
@@ -1897,16 +1901,12 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
       clusters: [
         readyCluster({
           runner: sharedRunner,
-          accessMethod: "credential",
-          credentialId: "11111111-1111-4111-8111-111111111111",
         }),
         readyCluster({
           clusterId: OTHER_CLUSTER_ID.toString(),
           clusterName: "prod-eu",
           clusterIdentifier: "prod-eu",
           runner: sharedRunner,
-          accessMethod: "credential",
-          credentialId: "55555555-5555-4555-8555-555555555555",
         }),
       ],
     });
@@ -2177,8 +2177,8 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
 
   it.each([
     [
-      "the claim-time credential refusal",
-      "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.",
+      "the claim-time refusal of a command composed with a runbook credential",
+      "OneUptime AI composed this command to run with a runbook credential, and runbook credentials were removed, so it was not run. A host or Kubernetes cluster is fixed through its own AI agent now.",
     ],
     [
       "the Runner's cluster refusal",

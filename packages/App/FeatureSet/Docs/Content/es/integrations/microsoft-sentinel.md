@@ -159,6 +159,75 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 
 Cada solicitud de una prueba tiene un plazo de 20 segundos. Una prueba nunca importa nada ni mueve el cursor, y cada comprobación que falla dice qué cambiar.
 
+## Enviar eventos de seguridad a Microsoft Sentinel
+
+OneUptime también puede enviar lo que encuentra a Microsoft Sentinel, a través de la API Logs Ingestion de Azure Monitor, a una tabla personalizada del área de trabajo en la que se ejecuta Sentinel. Tus reglas de análisis, consultas de búsqueda y libros consultan entonces `OneUptimeSecurityEvents_CL` junto a tus otras tablas.
+
+:::steps
+### Crear la tabla y su regla de recopilación de datos
+
+En el portal de Azure, abre **Tables → Create → New custom log (DCR-based)** del área de trabajo. Llama a la tabla `OneUptimeSecurityEvents`, crea una nueva regla de recopilación de datos, y un punto de conexión de recopilación de datos si el formulario lo pide. Sube el ejemplo de abajo como archivo de ejemplo, deja la transformación como está y crea la tabla.
+
+### Dejar que una aplicación le envíe datos
+
+Registra una aplicación y dale un secreto de cliente, como en [Registrar una aplicación](#registrar-una-aplicación). Después abre la regla de recopilación de datos, **Access control (IAM) → Add → Add role assignment**, elige **Monitoring Metrics Publisher** y selecciona la aplicación.
+
+### Añadir el destino
+
+Abre **Productos → Eventos de seguridad → Conexiones**. En **Enviar a tu SIEM**, haz clic en **Añadir destino**, elige Microsoft Sentinel en **SIEM** y haz clic en **Siguiente**. Rellena el **ID de directorio (tenant)**, el **ID de aplicación (cliente)** y el **Secreto del cliente**, el **Endpoint de ingesta de registros** desde la página **Overview** del punto de conexión de recopilación de datos (o de la regla), y el **ID inmutable de la regla de recopilación de datos** desde la **JSON View** de la regla. **Flujo** es opcional: si queda vacío, es `Custom-OneUptimeSecurityEvents_CL`.
+
+### Enviar un evento de prueba y empezar a enviar
+
+Haz clic en **Enviar un evento de prueba**: una fila llega a la tabla en pocos minutos. Después, en **Qué enviar**, deja **Solo detecciones** o elige **Todos los eventos de seguridad**, y haz clic en **Empezar a enviar**.
+:::
+
+El archivo de ejemplo, una fila con cada columna de la tabla:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- La API Logs Ingestion acepta hasta 1 MB por llamada, así que las filas van en lotes de hasta 500. Un lote que Azure rechaza se divide hasta encontrar la fila que no acepta, que se deja fuera, y la limitación (`429`) se reintenta.
+- Un `403` significa que a la aplicación le falta **Monitoring Metrics Publisher** en la regla, y un `404`, un ID inmutable o un flujo incorrectos.
+- Los incidentes que OneUptime importó de Microsoft Sentinel nunca se le devuelven.
+
 ## Solución de problemas
 
 El **Último error** de la conexión guarda el mensaje de error completo, con las credenciales ocultas, tras un prefijo que nombra el paso que falló. Cuando una conexión tiene un error, selecciona **Ver error** en su columna **Acciones** para leerlo, y **Copiar error** en el cuadro de diálogo para copiarlo. Lee primero el prefijo.

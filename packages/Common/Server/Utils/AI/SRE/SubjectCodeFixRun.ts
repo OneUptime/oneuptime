@@ -10,6 +10,10 @@ import CodeFixTaskContext, {
   InvestigationCodeFixTaskSnapshot,
 } from "../../../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeRepositoryAllowance,
+  allowsAnyCodeRepository,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -44,18 +48,29 @@ interface SubjectCodeFixRunInput {
 export default class SubjectCodeFixRun {
   /*
    * Only GitHub-App-connected repositories can be cloned and pushed by the
-   * agent (mirrors CodeRepositoryService.resolveRepositoryForException).
+   * agent (mirrors CodeRepositoryService.resolveRepositoryForException) -
+   * and, for a run the auto remediation rules opened, only one of those the
+   * rules allow (Types/CodeRepository/CodeRepositoryAllowance). Left out,
+   * every connected repository counts.
    */
   @CaptureSpan()
   public static async hasGitHubAppConnectedRepository(
     projectId: ObjectID,
+    allowance?: CodeRepositoryAllowance | undefined,
   ): Promise<boolean> {
+    if (!allowsAnyCodeRepository(allowance)) {
+      return false;
+    }
+
     const connectedRepositoryCount: number = (
       await CodeRepositoryService.countBy({
         query: {
           projectId,
           repositoryHostedAt: CodeRepositoryType.GitHub,
           gitHubAppInstallationId: QueryHelper.notNull(),
+          ...(allowance && !allowance.isEveryRepository
+            ? { _id: QueryHelper.any(allowance.repositoryIds) }
+            : {}),
         },
         props: { isRoot: true },
       })

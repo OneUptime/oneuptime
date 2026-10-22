@@ -88,6 +88,12 @@ flowchart TB
 | टीमें | `Team` |
 | कस्टम भूमिकाएँ, और उन्हें पाने वाली टीमें | `Custom Role`, `Team Custom Role` |
 | लेबल | `Label` |
+| घटना स्थितियाँ और गंभीरताएं | `Incident State`, `Incident Severity` |
+| अलर्ट स्थितियाँ और गंभीरताएं | `Alert State`, `Alert Severity` |
+| मॉनिटर स्थितियाँ | `Monitor Status` |
+| अनुसूचित रखरखाव स्थितियाँ | `Scheduled Maintenance State` |
+| घटना भूमिकाएं | `Incident Role` |
+| पोस्टमॉर्टम स्थितियां | `Postmortem Status` |
 | API कुंजियाँ | `API Key` |
 | लोगों द्वारा कनेक्ट किए गए MCP क्लाइंट | `MCP Client Authorization` |
 | इन्वेंटरी आइटम | `Inventory Item` |

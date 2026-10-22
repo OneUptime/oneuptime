@@ -1,12 +1,13 @@
 /*
  * Offline fixture for the Security Events SOC pages: the overview, the case
- * queue, a case, entities, the rule library, ATT&CK coverage, playbooks, a
- * playbook and the playbook runs - the production layout (breadcrumbs and
- * side menu) and pages from this branch, mounted under their real RouteMap
- * patterns.
+ * queue, a case, entities, the detection rules, the rule library, threat
+ * intel, ATT&CK coverage, playbooks, a playbook and the playbook runs - the
+ * production layout (breadcrumbs and side menu) and pages from this branch,
+ * mounted under their real RouteMap patterns.
  *
- * Only the data boundary is replaced: ModelAPI and API answer from the
- * in-memory tables below, and the Security product's own routes (overview,
+ * Only the data boundary is replaced: ModelAPI, AnalyticsModelAPI (the
+ * threat-intel indicators) and API answer from the in-memory tables below,
+ * and the Security product's own routes (overview,
  * top entities, entity activity) answer what the server would work out from
  * the same rows - the overview's numbers come from
  * computeSecurityOverviewMetrics, the function the server calls. Realtime is
@@ -48,6 +49,8 @@ import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Secur
 import SecurityCaseViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView";
 import SecurityEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
+import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import ThreatIntelPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
 import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
@@ -60,6 +63,7 @@ import RouteMap, {
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -76,6 +80,8 @@ import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import Team from "Common/Models/DatabaseModels/Team";
+import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
+import ThreatIntelIndicator from "Common/Models/AnalyticsModels/ThreatIntelIndicator";
 import User from "Common/Models/DatabaseModels/User";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -97,6 +103,9 @@ import {
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import ThreatIntelFeedType, {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+} from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus, {
   isOpenSecurityCaseStatus,
@@ -113,6 +122,7 @@ import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlayb
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import API from "Common/UI/Utils/API/API";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
@@ -135,6 +145,11 @@ const isEmpty = params.get("empty") === "1";
 const isQuiet = !isEmpty && params.get("quiet") === "1";
 const hasHistory = !isEmpty && !isQuiet;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
+/*
+ * ?lists=all: the project reads every free list already, so Threat Intel's
+ * Free Lists card has nothing left to offer.
+ */
+const hasEveryFreeList = !isEmpty && params.get("lists") === "all";
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
 
@@ -163,6 +178,7 @@ const ID = {
   run: (n) => uuid("25000000", n),
   rule: (n) => uuid("26000000", n),
   connection: (n) => uuid("27000000", n),
+  intel: (n) => uuid("28000000", n),
 };
 
 let rowCounter = 9000;
@@ -1154,10 +1170,223 @@ if (!isEmpty) {
   });
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Correlation rules: two of the team's own, on, with no ATT&CK tags (the
+ * coverage and the library's Added marks stay the six library rules'). A
+ * sequence - a burst of failed sign-ins from one address, then a success
+ * from it - and a first-seen rule.
+ * ---------------------------------------------------------------------------
+ */
+const SEQUENCE_RULE_YAML = `title: Spray, then a success
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - spray_failures
+    - spray_success
+  group-by:
+    - principalIp
+  timespan: 15m
+---
+title: Ten failed sign-ins
+name: spray_failures
+correlation:
+  type: event_count
+  rules:
+    - spray_failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 15m
+  condition:
+    gte: 10
+---
+title: Failed sign-in
+name: spray_failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: spray_success
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+`;
+
+const FIRST_SEEN_RULE_YAML = `title: Admin console from a new address
+level: medium
+correlation:
+  type: new_value
+  rules:
+    - admin_console_sign_in
+  group-by:
+    - principalUser
+  timespan: 30d
+  condition:
+    field: principalIp
+---
+title: Admin console sign-in
+name: admin_console_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+    targetResource|contains: admin
+  condition: selection
+`;
+
+if (!isEmpty) {
+  insert(DetectionRule, {
+    _id: ID.rule(30),
+    name: "Spray, then a success",
+    description: "A burst of failed sign-ins from one address, then a success.",
+    sigmaRuleYaml: SEQUENCE_RULE_YAML,
+    isEnabled: true,
+    evaluationIntervalInMinutes: 5,
+    shouldCreateCase: true,
+    lastEvaluatedAt: ago(2 * MINUTE),
+    lastMatchAt: hasHistory ? ago(4 * HOUR) : undefined,
+    createdAt: ago(12 * DAY),
+  });
+  insert(DetectionRule, {
+    _id: ID.rule(31),
+    name: "Admin console from a new address",
+    description:
+      "The first time an account signs in to an admin console from an address.",
+    sigmaRuleYaml: FIRST_SEEN_RULE_YAML,
+    isEnabled: true,
+    evaluationIntervalInMinutes: 15,
+    shouldCreateCase: true,
+    lastEvaluatedAt: ago(9 * MINUTE),
+    createdAt: ago(5 * DAY),
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Threat intel: one free list added from Free Lists (its tile says Added)
+ * and the team's own TAXII collection, with the indicators they hold.
+ * ---------------------------------------------------------------------------
+ */
+const FEODO_LIST = RECOMMENDED_THREAT_INTEL_LISTS.find((list) => {
+  return list.id === "feodo-tracker";
+});
+
+if (!isEmpty) {
+  insert(ThreatIntelFeed, {
+    _id: ID.intel(1),
+    name: FEODO_LIST.title,
+    feedType: ThreatIntelFeedType.List,
+    listUrl: FEODO_LIST.url,
+    indicatorConfidence: FEODO_LIST.indicatorConfidence,
+    pollIntervalInMinutes: FEODO_LIST.pollIntervalInMinutes,
+    isEnabled: true,
+    shouldCreateCase: true,
+    shouldCreateAlert: true,
+    shouldCreateIncident: false,
+    shouldWriteDetectionFinding: true,
+    lastPolledAt: ago(12 * MINUTE),
+    lastPollSummary:
+      "Read 412 indicators from the list, revoked 3 indicators no longer on it.",
+    lastEvaluatedAt: ago(1 * MINUTE),
+    lastMatchAt: hasHistory ? ago(6 * HOUR) : undefined,
+    createdAt: ago(20 * DAY),
+  });
+  insert(ThreatIntelFeed, {
+    _id: ID.intel(2),
+    name: "Corporate MISP",
+    feedType: ThreatIntelFeedType.Taxii,
+    apiRootUrl: "https://misp.acme-commerce.example/taxii2/api/",
+    collectionId: "91a7b528-80eb-42ed-a74d-c6fbd5a26116",
+    pollIntervalInMinutes: 60,
+    minimumConfidence: 0,
+    isEnabled: true,
+    shouldCreateCase: true,
+    shouldCreateAlert: true,
+    shouldCreateIncident: false,
+    shouldWriteDetectionFinding: true,
+    lastPolledAt: ago(25 * MINUTE),
+    lastPollSummary:
+      "Fetched 120 STIX objects across 1 page, ingested 98 indicator values.",
+    lastEvaluatedAt: ago(1 * MINUTE),
+    createdAt: ago(60 * DAY),
+  });
+}
+
+if (hasEveryFreeList) {
+  RECOMMENDED_THREAT_INTEL_LISTS.filter((list) => {
+    return list.id !== FEODO_LIST.id;
+  }).forEach((list, index) => {
+    insert(ThreatIntelFeed, {
+      _id: ID.intel(3 + index),
+      name: list.title,
+      feedType: ThreatIntelFeedType.List,
+      listUrl: list.url,
+      indicatorConfidence: list.indicatorConfidence,
+      pollIntervalInMinutes: list.pollIntervalInMinutes,
+      isEnabled: true,
+      shouldCreateCase: true,
+      shouldCreateAlert: list.raisesAlerts,
+      shouldCreateIncident: false,
+      shouldWriteDetectionFinding: true,
+      lastPolledAt: ago((20 + index) * MINUTE),
+      lastPollSummary: "Read 1,027 indicators from the list.",
+      lastEvaluatedAt: ago(1 * MINUTE),
+      createdAt: ago((10 + index) * DAY),
+    });
+  });
+}
+
+/*
+ * The indicators the feeds hold, as the ThreatIntelIndicator table lists
+ * them (AnalyticsModelAPI below): newest first.
+ */
+const INDICATORS = isEmpty
+  ? []
+  : [
+      ["198.51.100.23", "ipv4-addr", FEODO_LIST.title, 90, 2],
+      ["203.0.113.66", "ipv4-addr", FEODO_LIST.title, 90, 5],
+      ["update-check.example", "domain-name", "Corporate MISP", 80, 26],
+      [
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "file-hash-sha256",
+        "Corporate MISP",
+        65,
+        30,
+      ],
+      ["billing@invoice-alert.example", "email-addr", "Corporate MISP", 50, 48],
+    ].map(([value, type, feedName, confidence, hoursAgo], index) => {
+      return {
+        _id: uuid("29000000", index + 1),
+        projectId: projectObjectId,
+        feedName,
+        stixId:
+          feedName === "Corporate MISP"
+            ? `indicator--${uuid("2a000000", index + 1)}`
+            : "list",
+        indicatorType: type,
+        indicatorValue: value,
+        indicatorName: value,
+        confidence,
+        revoked: false,
+        validFrom: ago(hoursAgo * HOUR),
+        validUntil: new Date(NOW.getTime() + 300 * DAY),
+      };
+    });
+
 // What a playbook's steps can name: policies, severities, labels, workflows.
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
 insert(IncidentSeverity, { name: "SEV2", color: "#f97316", order: 2 });
+// What a detection rule's or a feed's alerts can be raised at.
+insert(AlertSeverity, { name: "Critical", color: "#dc2626", order: 1 });
+insert(AlertSeverity, { name: "High", color: "#f97316", order: 2 });
+insert(AlertSeverity, { name: "Low", color: "#0ea5e9", order: 3 });
 insert(Label, { name: "credential-access", color: "#6366f1" });
 insert(Workflow, { name: "Open a ticket in the IT queue" });
 
@@ -1179,6 +1408,7 @@ for (const modelType of [
   SecurityEventConnection,
   SecurityLogSource,
   DetectionRule,
+  ThreatIntelFeed,
   Team,
   WorkspaceProjectAuthToken,
 ]) {
@@ -1640,6 +1870,54 @@ ModelAPI.deleteItem = async (options) => {
 };
 
 /*
+ * The one analytics table these pages read: Threat Intel's Indicators. Any
+ * other analytics read is not modelled.
+ */
+function isIndicatorTable(modelType) {
+  return new modelType().tableName === new ThreatIntelIndicator().tableName;
+}
+
+AnalyticsModelAPI.getList = async (options) => {
+  const modelName = new options.modelType().tableName;
+  const skip = Number(options.skip || 0);
+  const limit = Number(options.limit || 10);
+  fixture.listRequests.push({
+    modelName,
+    analytics: true,
+    query: serialize(options.query),
+    sort: serialize(options.sort),
+    skip,
+    limit,
+  });
+  if (!isIndicatorTable(options.modelType)) {
+    fixture.unhandled.push({ kind: "analytics.getList", modelName });
+    return { data: [], count: 0, skip, limit };
+  }
+  return {
+    data: INDICATORS.slice(skip, skip + limit).map((record) => {
+      return Object.assign(new ThreatIntelIndicator(), record);
+    }),
+    count: INDICATORS.length,
+    skip,
+    limit,
+  };
+};
+
+AnalyticsModelAPI.count = async (modelType, query) => {
+  const modelName = new modelType().tableName;
+  fixture.countRequests.push({
+    modelName,
+    analytics: true,
+    query: serialize(query),
+  });
+  if (!isIndicatorTable(modelType)) {
+    fixture.unhandled.push({ kind: "analytics.count", modelName });
+    return 0;
+  }
+  return INDICATORS.length;
+};
+
+/*
  * What the server does when someone decides a held step: approving runs the
  * step and the ones after it (here, at once), rejecting ends the run.
  */
@@ -1810,7 +2088,9 @@ const PAGES = [
     return [view.page, SecurityCasesPage, view.key];
   }),
   [PageMap.SECURITY_EVENTS_ENTITIES, SecurityEntitiesPage],
+  [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, RuleLibraryPage],
+  [PageMap.SECURITY_EVENTS_THREAT_INTEL, ThreatIntelPage],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, AttackCoveragePage],
   [PageMap.SECURITY_PLAYBOOKS, SecurityPlaybooksPage],
   ...SECURITY_PLAYBOOK_RUN_VIEWS.map((view) => {
@@ -1820,8 +2100,6 @@ const PAGES = [
 const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS, "Events"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
-  [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
-  [PageMap.SECURITY_EVENTS_THREAT_INTEL, "Threat Intel"],
   [PageMap.SECURITY_EVENTS_CONNECTIONS, "Connections"],
   [PageMap.SECURITY_EVENTS_DOCUMENTATION, "Setup Guide"],
 ];

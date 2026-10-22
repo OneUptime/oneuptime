@@ -4,8 +4,8 @@ import path from "path";
 /*
  * Runbook variables and the steps that take a script, in real Chromium,
  * with no backend: RunbookVariables/Fixture/server.js bundles the production
- * Global Variables page, a runbook's own Variables page, its Steps page and
- * AI Access with the app's esbuild config, Tailwind, theme and font, over
+ * Global Variables page, a runbook's own Variables page and its Steps page
+ * with the app's esbuild config, Tailwind, theme and font, over
  * in-memory records whose saves it records. What jsdom cannot show is
  * checked here: the two-step create dialog and Replace Value, the SSH and
  * kubectl steps with their folded More fields, the secret pickers opened by

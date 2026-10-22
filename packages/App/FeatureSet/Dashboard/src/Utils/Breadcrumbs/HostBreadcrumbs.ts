@@ -22,6 +22,12 @@ export function getHostBreadcrumbs(path: string): Array<Link> | undefined {
       "Hosts",
       "View Host",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_TOPOLOGY, [
+      "Project",
+      "Hosts",
+      "View Host",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.HOST_VIEW_RECOMMENDATIONS, [
       "Project",
       "Hosts",

@@ -4,8 +4,15 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import IP from "Common/Types/IP/IP";
 import { ActiveMonitorLimitKind } from "Common/Types/Monitor/ActiveMonitorLimit";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import Port from "Common/Types/Port";
+import { DEVICE_MONITOR_TEMPLATE_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import NetworkAlertPolicyBootstrapUtil, {
   RECOMMENDED_TEMPLATE_NAME,
 } from "Common/Utils/NetworkDevice/NetworkAlertPolicyBootstrapUtil";
@@ -92,9 +99,12 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { fetchActiveMonitorLimitStatus } from "../../FeatureSet/Dashboard/src/Components/Monitor/ActiveMonitorLimitStatusApi";
 import {
   DiscoveryImportProjectFacts,
+  NO_DEVICE_MONITOR_TEMPLATE_REASON,
   buildTemplateChoices,
   loadDiscoveryImportProjectFacts,
+  mergeRefreshedFacts,
   toPolicyFacts,
+  toTemplateChoice,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportProjectFacts";
 import { DiscoveryImportTemplateChoice } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportOutcome";
 
@@ -136,6 +146,7 @@ function posTemplate(): MonitorTemplate {
   return Object.assign(new MonitorTemplate(), {
     id: POS_TEMPLATE_ID,
     templateName: "POS ping availability",
+    monitorType: MonitorType.NetworkDevice,
   });
 }
 
@@ -219,21 +230,380 @@ describe("the templates a reader can pick", () => {
     ).toEqual([]);
   });
 
-  test("a template with no id is not offered; one with no name is still named", () => {
+  test("a template with no id is not offered; one with no name is, and the step names it", () => {
     const unnamed: MonitorTemplate = posTemplate();
     // As a list read that did not select the name hands it back.
     delete unnamed.templateName;
+    const withoutId: MonitorTemplate = new MonitorTemplate();
+    withoutId.monitorType = MonitorType.NetworkDevice;
 
     expect(
       namesOf(
         buildTemplateChoices({
-          templates: [new MonitorTemplate(), unnamed],
+          templates: [withoutId, unnamed],
           canCreateTemplates: false,
           seedIds: null,
           projectId: PROJECT_ID,
         }),
       ),
-    ).toEqual(["Unnamed Network Device template"]);
+    ).toEqual([""]);
+  });
+});
+
+/*
+ * Issue #5145: a customer's own Ping template never showed, because only
+ * Network Device templates were read. Every kind a device's monitor can be
+ * made from is offered now - Network Device templates, which read each
+ * device's polls, then Ping, IP, Port and NTP ones, which check each
+ * device's address - and nothing else.
+ */
+describe("templates of every kind a device's monitor can be made from (#5145)", () => {
+  const KDS_TEMPLATE_ID: ObjectID = new ObjectID(
+    "8a8a8a8a-8a8a-4a8a-8a8a-8a8a8a8a8a8a",
+  );
+  const PRINTER_TEMPLATE_ID: ObjectID = new ObjectID(
+    "9b9b9b9b-9b9b-4b9b-8b9b-9b9b9b9b9b9b",
+  );
+  const TIME_TEMPLATE_ID: ObjectID = new ObjectID(
+    "acacacac-acac-4cac-8cac-acacacacacac",
+  );
+  const IP_TEMPLATE_ID: ObjectID = new ObjectID(
+    "bdbdbdbd-bdbd-4dbd-8dbd-bdbdbdbdbdbd",
+  );
+  const WEBSITE_TEMPLATE_ID: ObjectID = new ObjectID(
+    "cececece-cece-4ece-8ece-cececececece",
+  );
+
+  function addressTemplate(data: {
+    id: ObjectID;
+    name: string;
+    monitorType: MonitorType;
+    ports?: Array<number>;
+    monitoringInterval?: string;
+  }): MonitorTemplate {
+    const steps: MonitorSteps = new MonitorSteps();
+    steps.data = {
+      monitorStepsInstanceArray: (data.ports || [0]).map(
+        (port: number): MonitorStep => {
+          const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+            monitorName: data.name,
+            monitorType: data.monitorType,
+            onlineMonitorStatusId: ONLINE_ID,
+            offlineMonitorStatusId: OFFLINE_ID,
+            defaultIncidentSeverityId: CRITICAL_ID,
+            defaultAlertSeverityId: WARNING_ID,
+          });
+          step.setMonitorDestination(IP.fromString("192.0.2.10"));
+          if (port) {
+            step.setPort(new Port(port));
+          }
+          return step;
+        },
+      ),
+      defaultMonitorStatusId: ONLINE_ID,
+    };
+
+    return Object.assign(new MonitorTemplate(), {
+      id: data.id,
+      templateName: data.name,
+      monitorType: data.monitorType,
+      monitorSteps: steps,
+      ...(data.monitoringInterval
+        ? { monitoringInterval: data.monitoringInterval }
+        : {}),
+    });
+  }
+
+  function kdsTemplate(): MonitorTemplate {
+    return addressTemplate({
+      id: KDS_TEMPLATE_ID,
+      name: "WB KDS Ping Monitor Template",
+      monitorType: MonitorType.Ping,
+      monitoringInterval: "*/5 * * * *",
+    });
+  }
+
+  function printerTemplate(): MonitorTemplate {
+    return addressTemplate({
+      id: PRINTER_TEMPLATE_ID,
+      name: "Receipt printers",
+      monitorType: MonitorType.Port,
+      ports: [9100, 22, 9100],
+      monitoringInterval: "* * * * *",
+    });
+  }
+
+  function timeTemplate(): MonitorTemplate {
+    return addressTemplate({
+      id: TIME_TEMPLATE_ID,
+      name: "Store time servers",
+      monitorType: MonitorType.NTP,
+    });
+  }
+
+  function ipTemplate(): MonitorTemplate {
+    return addressTemplate({
+      id: IP_TEMPLATE_ID,
+      name: "Registers by IP",
+      monitorType: MonitorType.IP,
+      monitoringInterval: "*/10 * * * *",
+    });
+  }
+
+  function websiteTemplate(): MonitorTemplate {
+    return Object.assign(new MonitorTemplate(), {
+      id: WEBSITE_TEMPLATE_ID,
+      templateName: "Storefront website",
+      monitorType: MonitorType.Website,
+    });
+  }
+
+  function idsOf(choices: Array<DiscoveryImportTemplateChoice>): Array<string> {
+    return choices.map((choice: DiscoveryImportTemplateChoice): string => {
+      return choice.id;
+    });
+  }
+
+  test("the recommended one first, then the other Network Device templates, then the address ones - each in the order read", () => {
+    const choices: Array<DiscoveryImportTemplateChoice> = buildTemplateChoices({
+      templates: [
+        kdsTemplate(),
+        websiteTemplate(),
+        posTemplate(),
+        printerTemplate(),
+        recommendedTemplate(),
+        timeTemplate(),
+        ipTemplate(),
+      ],
+      canCreateTemplates: true,
+      seedIds: SEED_IDS,
+      projectId: PROJECT_ID,
+    });
+
+    expect(idsOf(choices)).toEqual([
+      RECOMMENDED_TEMPLATE_ID.toString(),
+      POS_TEMPLATE_ID.toString(),
+      KDS_TEMPLATE_ID.toString(),
+      PRINTER_TEMPLATE_ID.toString(),
+      TIME_TEMPLATE_ID.toString(),
+      IP_TEMPLATE_ID.toString(),
+    ]);
+    expect(
+      choices.map((choice: DiscoveryImportTemplateChoice): MonitorType => {
+        return choice.monitorType;
+      }),
+    ).toEqual([
+      MonitorType.NetworkDevice,
+      MonitorType.NetworkDevice,
+      MonitorType.Ping,
+      MonitorType.Port,
+      MonitorType.NTP,
+      MonitorType.IP,
+    ]);
+  });
+
+  test("a template that checks no device's address is never offered, whatever the read returned", () => {
+    for (const monitorType of [
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
+      MonitorType.DNS,
+      MonitorType.Manual,
+      MonitorType.Logs,
+    ]) {
+      const template: MonitorTemplate = websiteTemplate();
+      template.monitorType = monitorType;
+
+      expect(
+        buildTemplateChoices({
+          templates: [template],
+          canCreateTemplates: false,
+          seedIds: null,
+          projectId: PROJECT_ID,
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("only a Network Device template can be the recommended one, marker or not", () => {
+    const pretender: MonitorTemplate = kdsTemplate();
+    pretender.templateDescription =
+      recommendedTemplate().templateDescription || "";
+
+    const choices: Array<DiscoveryImportTemplateChoice> = buildTemplateChoices({
+      templates: [pretender],
+      canCreateTemplates: true,
+      seedIds: SEED_IDS,
+      projectId: PROJECT_ID,
+    });
+
+    // The real recommended template is offered to be created, before it.
+    expect(choices[0]!.isCreatedOnImport).toBe(true);
+    expect(choices[0]!.monitorType).toBe(MonitorType.NetworkDevice);
+    expect(idsOf(choices)).toEqual(["", KDS_TEMPLATE_ID.toString()]);
+  });
+
+  test("a Ping template alone is offered as it is to someone who may not create templates", () => {
+    expect(
+      idsOf(
+        buildTemplateChoices({
+          templates: [kdsTemplate()],
+          canCreateTemplates: false,
+          seedIds: SEED_IDS,
+          projectId: PROJECT_ID,
+        }),
+      ),
+    ).toEqual([KDS_TEMPLATE_ID.toString()]);
+  });
+
+  test("what the step says about an address template: its schedule, its ports, and that every check fires on any device", () => {
+    const kds: DiscoveryImportTemplateChoice = toTemplateChoice(kdsTemplate());
+    expect(kds).toEqual(
+      expect.objectContaining({
+        id: KDS_TEMPLATE_ID.toString(),
+        name: "WB KDS Ping Monitor Template",
+        monitorType: MonitorType.Ping,
+        monitoringInterval: "*/5 * * * *",
+      }),
+    );
+    expect(kds.ports).toBeUndefined();
+    expect(kds.summary.raisesIncidents).toBe(true);
+    expect(kds.summary.raisesIncidentsOnPingOnlyDevices).toBe(true);
+
+    const printers: DiscoveryImportTemplateChoice =
+      toTemplateChoice(printerTemplate());
+    expect(printers.ports).toEqual([9100, 22]);
+    expect(printers.monitoringInterval).toBe("* * * * *");
+
+    // An NTP template's port is the protocol's: not named.
+    expect(toTemplateChoice(timeTemplate()).ports).toBeUndefined();
+    expect(toTemplateChoice(timeTemplate()).monitoringInterval).toBeUndefined();
+  });
+
+  test("a Network Device template's monitors are judged on each poll: no schedule or ports of their own", () => {
+    const template: MonitorTemplate = recommendedTemplate();
+    template.monitoringInterval = "*/5 * * * *";
+
+    const choice: DiscoveryImportTemplateChoice = toTemplateChoice(template);
+
+    expect(choice.monitorType).toBe(MonitorType.NetworkDevice);
+    expect(choice.monitoringInterval).toBeUndefined();
+    expect(choice.ports).toBeUndefined();
+    // Read as before: only "Device unreachable" fires on a ping-only device.
+    expect(choice.summary.raisesIncidentsOnPingOnlyDevices).toBe(true);
+    expect(choice.summary.raisesAlertsOnPingOnlyDevices).toBe(false);
+  });
+
+  test("a template saved with no name is offered with none: the step names it in the reader's language", () => {
+    const unnamed: MonitorTemplate = kdsTemplate();
+    delete unnamed.templateName;
+    const spaces: MonitorTemplate = printerTemplate();
+    spaces.templateName = "   ";
+
+    expect(toTemplateChoice(unnamed).name).toBe("");
+    expect(toTemplateChoice(spaces).name).toBe("");
+  });
+});
+
+/*
+ * The templates are read again each time the reader comes back to the
+ * dialog's window (#5145): the step takes the new list, and nothing else -
+ * and keeps what it has when the read that matters failed.
+ */
+describe("the facts, once the templates are read again", () => {
+  function facts(
+    overrides: Partial<DiscoveryImportProjectFacts> = {},
+  ): DiscoveryImportProjectFacts {
+    return {
+      templates: buildTemplateChoices({
+        templates: [posTemplate()],
+        canCreateTemplates: true,
+        seedIds: SEED_IDS,
+        projectId: PROJECT_ID,
+      }),
+      didReadTemplates: true,
+      incidentSeverities: new Map([
+        [CRITICAL_ID.toString(), { name: "Critical" }],
+      ]),
+      alertSeverities: new Map(),
+      monitorStatuses: new Map(),
+      policies: [],
+      monitorLimitStatus: null,
+      monitorRoom: null,
+      canCreateMonitors: { isAllowed: true },
+      canCreateDevices: { isAllowed: true },
+      seedIds: SEED_IDS,
+      ...overrides,
+    };
+  }
+
+  test("the new list replaces the old; the rest is what the step read when it opened", () => {
+    const current: DiscoveryImportProjectFacts = facts();
+    const loaded: DiscoveryImportProjectFacts = facts({
+      templates: [
+        toTemplateChoice(posTemplate()),
+        toTemplateChoice(
+          Object.assign(new MonitorTemplate(), {
+            id: RECOMMENDED_TEMPLATE_ID,
+            templateName: "WB KDS Ping Monitor Template",
+            monitorType: MonitorType.Ping,
+          }),
+        ),
+      ],
+      incidentSeverities: new Map(),
+      monitorRoom: 3,
+    });
+
+    const merged: DiscoveryImportProjectFacts | null = mergeRefreshedFacts({
+      current: current,
+      loaded: loaded,
+    });
+
+    expect(namesOf(merged!.templates)).toEqual([
+      "POS ping availability",
+      "WB KDS Ping Monitor Template",
+    ]);
+    expect(merged!.incidentSeverities).toBe(current.incidentSeverities);
+    expect(merged!.monitorRoom).toBeNull();
+    expect(merged!.didReadTemplates).toBe(true);
+  });
+
+  test("a template read that failed lists none: the step keeps its list", () => {
+    expect(
+      mergeRefreshedFacts({
+        current: facts(),
+        loaded: facts({
+          templates: [],
+          didReadTemplates: false,
+          templatesUnavailableReason: "The connection was interrupted.",
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("a status or severity read that failed would take the recommended template away: the step keeps its list", () => {
+    expect(
+      mergeRefreshedFacts({
+        current: facts(),
+        loaded: facts({ seedIds: null, templates: [] }),
+      }),
+    ).toBeNull();
+  });
+
+  test("a project left with no template says why, as the step would have on opening", () => {
+    const merged: DiscoveryImportProjectFacts | null = mergeRefreshedFacts({
+      current: facts({ seedIds: null }),
+      loaded: facts({
+        seedIds: null,
+        templates: [],
+        templatesUnavailableReason: NO_DEVICE_MONITOR_TEMPLATE_REASON,
+      }),
+    });
+
+    expect(merged!.templates).toEqual([]);
+    expect(merged!.templatesUnavailableReason).toBe(
+      NO_DEVICE_MONITOR_TEMPLATE_REASON,
+    );
   });
 });
 
@@ -415,17 +785,34 @@ describe("reading the facts", () => {
     expect(facts.seedIds?.offlineMonitorStatusId.toString()).toBe(
       OFFLINE_ID.toString(),
     );
-    // Only Network Device templates of this project are asked for.
-    const templateRead: { query: Record<string, unknown> } =
-      getListMock.mock.calls.find((call: Array<unknown>): boolean => {
-        return (
-          (call[0] as { modelType: unknown }).modelType === MonitorTemplate
-        );
-      })![0] as { query: Record<string, unknown> };
-    expect(templateRead.query).toEqual({
-      projectId: PROJECT_ID,
-      monitorType: "Network Device",
-    });
+    /*
+     * This project's templates of every kind a device's monitor can be
+     * made from (#5145: a Ping template never showed), each with its type
+     * and schedule.
+     */
+    const templateRead: {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    } = getListMock.mock.calls.find((call: Array<unknown>): boolean => {
+      return (call[0] as { modelType: unknown }).modelType === MonitorTemplate;
+    })![0] as {
+      query: Record<string, unknown>;
+      select: Record<string, unknown>;
+    };
+    expect(templateRead.query["projectId"]).toBe(PROJECT_ID);
+    expect(templateRead.query["monitorType"]).toBeInstanceOf(Includes);
+    expect(
+      (templateRead.query["monitorType"] as Includes).values.map(String),
+    ).toEqual([...DEVICE_MONITOR_TEMPLATE_TYPES].map(String));
+    expect(templateRead.select).toEqual(
+      expect.objectContaining({
+        _id: true,
+        templateName: true,
+        monitorType: true,
+        monitorSteps: true,
+        monitoringInterval: true,
+      }),
+    );
   });
 
   test("a self-hosted install has no plan: nothing is asked, and there is no limit", async () => {
@@ -506,8 +893,37 @@ describe("reading the facts", () => {
 
     expect(facts.templates).toEqual([]);
     expect(facts.templatesUnavailableReason).toBe(
-      "This project has no Network Device monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies.",
+      NO_DEVICE_MONITOR_TEMPLATE_REASON,
     );
+    expect(NO_DEVICE_MONITOR_TEMPLATE_REASON).toBe(
+      "This project has no Network Device, Ping, IP, Port or NTP monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies, or another under Monitors > Settings > Templates.",
+    );
+  });
+
+  test("a Ping template is enough: no reason to give, though the reader may not create one", async () => {
+    allow({ createTemplates: false });
+    answerLists({
+      templates: {
+        data: [
+          Object.assign(new MonitorTemplate(), {
+            id: POS_TEMPLATE_ID,
+            templateName: "WB KDS Ping Monitor Template",
+            monitorType: MonitorType.Ping,
+            monitoringInterval: "*/5 * * * *",
+          }),
+        ],
+      },
+      statuses: STATUSES,
+      incidentSeverities: INCIDENT_SEVERITIES,
+      alertSeverities: ALERT_SEVERITIES,
+    });
+
+    const facts: DiscoveryImportProjectFacts =
+      await loadDiscoveryImportProjectFacts();
+
+    expect(namesOf(facts.templates)).toEqual(["WB KDS Ping Monitor Template"]);
+    expect(facts.templates[0]!.monitorType).toBe(MonitorType.Ping);
+    expect(facts.templatesUnavailableReason).toBeUndefined();
   });
 
   test("no template, and the project lacks what the recommended one is built from: says what to add", async () => {

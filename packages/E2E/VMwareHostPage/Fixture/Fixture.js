@@ -75,6 +75,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
+import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 
 /*
  * ---------------------------------------------------------------------------
@@ -732,6 +733,20 @@ const store = {
   OnCallDutyPolicy: [],
   Label: [],
 };
+
+/*
+ * A value records pick from - a status, a severity, a label - is not archived
+ * unless a row says so, as its column's default holds in the database: the
+ * Recommendations page asks for the ones with isArchived false
+ * (ArchivableValues).
+ */
+for (const name of ARCHIVABLE_VALUE_TABLE_NAMES) {
+  for (const record of store[name] || []) {
+    if (record.isArchived === undefined) {
+      record.isArchived = false;
+    }
+  }
+}
 
 function rows(modelType, query) {
   const name = tableName(modelType);

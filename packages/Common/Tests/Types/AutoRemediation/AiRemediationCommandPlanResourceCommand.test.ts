@@ -80,7 +80,8 @@ describe("AiRemediationCommandPlanUtil.parse — ResourceCommand steps", () => {
     expect(command?.resourceCommandTier).toBe(ResourceCommandTier.SafeWrite);
     expect(command?.command).toBe("docker restart web");
     expect(command?.rollbackCommand).toBe("docker start web");
-    expect(command?.credentialId).toBeUndefined();
+    // No command names a runbook credential: they were removed.
+    expect(command).not.toHaveProperty("credentialId");
     expect(command?.kubernetesClusterId).toBeUndefined();
   });
 
@@ -274,10 +275,9 @@ describe("plans stored before ResourceCommand parse exactly as before", () => {
 
     expect(plan).not.toBeNull();
 
+    // Without the credential a command named until those were removed.
     const expectedKeys: Array<string> = [
       "command",
-      "credentialId",
-      "credentialNameSnapshot",
       "execution",
       "expectedEffect",
       "kubectlTier",

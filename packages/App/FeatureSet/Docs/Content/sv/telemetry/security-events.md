@@ -288,7 +288,64 @@ OneUptime kör den booleska kärnan i Sigma:
 - `Image` och `CommandLine` läser den process som händelsen handlar om, vid en processtart den som startade (`processPath`, `processCommandLine`), och `ParentImage` och `ParentCommandLine` den process som startade den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` är den process som agerade, vilket vid en start är den överordnade.
 - `level` anger allvarlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, och `medium` när den saknas. ATT&CK-ID:n i `tags` (`attack.t1110`, `attack.ta0006`) fyller i fyndets MITRE-fält.
 
-Aggregeringar som `| count() by principalIp > 5` avvisas när du sparar: använd **Group By Field** och **Match Count Threshold** i stället. `logsource` är bara informativ och begränsar ingenting: lägg det filtret i ett urval, till exempel `className: Authentication`. En `timeframe` ignoreras, eftersom regelns intervall bestämmer dess fönster.
+Aggregeringar som `| count() by principalIp > 5` avvisas när du sparar: använd en [korrelationsregel](#korrelationsregler), eller **Group By Field** och **Match Count Threshold**, i stället. `logsource` är bara informativ och begränsar ingenting: lägg det filtret i ett urval, till exempel `className: Authentication`. En `timeframe` ignoreras, eftersom regelns intervall bestämmer dess fönster.
+
+### Korrelationsregler
+
+En [Sigma-korrelation](https://sigmahq.io/docs/meta/correlations.html) utlöses av flera händelser tillsammans i stället för en. Klistra in den i **Sigma Rule (YAML)** tillsammans med reglerna den läser, som YAML-dokument åtskilda av `---`, eller namnge regler som projektet redan har med deras Sigma-`name` eller -`id`. **Rule Library** har färdiga, till exempel misslyckade inloggningar följda av en lyckad.
+
+| Typ | Utlöses när | Visas som |
+| --- | --- | --- |
+| `event_count` | En grupp når ett antal händelser inom `timespan` | Antal händelser |
+| `value_count` | En grupp visar ett antal olika värden för ett fält inom `timespan` | Olika värden |
+| `temporal` | Varje regel matchar för samma grupp inom `timespan`, i valfri ordning | Händelser tillsammans |
+| `temporal_ordered` | Reglerna matchar i sin ordning för samma grupp inom `timespan` | Sequence |
+| `new_value` | En grupp visar ett värde för ett fält som den inte har visat inom `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- En grupp är värdet av fälten i `group-by`, till exempel en adress. Räkningar är rullande: en skur som två körningar delar räknas ändå hel inom sitt `timespan`, som är högst 24 timmar.
+- `new_value` är OneUptimes egen typ, eftersom Sigma saknar en korrelation för "först sedd": den jämför med upp till 30 dagars historik. `value_sum`, `value_avg`, `value_percentile` och `value_median` avvisas när du sparar.
+- Kolumnen **Typ** i **Detection Rules** visar varje regels slag, och formuläret säger i en mening vad regeln letar efter.
 
 ### Utvärderingsinställningar
 
@@ -387,7 +444,7 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 :::
 
 :::details En regel träffar aldrig
-Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Senaste fel** i dess rad. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
 :::
 
 :::details En regel träffade, men inget larm öppnades

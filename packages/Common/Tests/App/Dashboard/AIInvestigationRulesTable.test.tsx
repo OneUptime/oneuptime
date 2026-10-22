@@ -47,7 +47,15 @@ import {
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import {
+  RuleCodeRepositoriesFieldHint,
+  RuleCodeRepositoriesPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesField";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -100,6 +108,12 @@ interface CapturedField {
     currentValues: Record<string, unknown>,
     setNewFormValues: (values: Record<string, unknown>) => void,
   ) => void;
+  getFoldedValue?: (values: Record<string, unknown>) => string | null;
+  getCustomElement?: (
+    values: Record<string, unknown>,
+    props: CustomElementProps,
+  ) => React.ReactElement;
+  getFooterElement?: () => React.ReactElement;
 }
 
 interface CapturedColumn {
@@ -218,7 +232,7 @@ describe.each([
       );
     });
 
-    test("a rule asks Match, then Investigate: when, its name and, under More fields, its MCP servers and description", () => {
+    test("a rule asks Match, then Investigate: when, its name and, under More fields, its MCP servers, code repositories and description", () => {
       const props: Record<string, unknown> = tableFor(lane);
 
       expect(props["formSteps"]).toEqual([
@@ -244,8 +258,12 @@ describe.each([
         ["name", "investigate"],
         ["isEnabled", "investigate"],
         ["externalMcpServers", "investigate"],
+        ["codeRepositories", "investigate"],
         ["description", "investigate"],
       ]);
+
+      // No Runner: nothing of an investigation runs on one.
+      expect(fieldsOf(props).map(keyOf)).not.toContain("runnerId");
     });
 
     test("its MCP servers: folded under More fields, none picked is all of them", () => {
@@ -263,15 +281,69 @@ describe.each([
       expect(field.placeholder).toBe("All MCP servers");
       expect(field.title).toBe("MCP Servers");
 
-      // Folded, its line says what the default does - until some are picked.
+      /*
+       * Folded, its line says what the defaults do - in one sentence while
+       * a rule keeps both, then each until it is picked.
+       */
       expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
-        "OneUptime AI may use all of your MCP servers.",
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
       ]);
       expect(
         field.collapsibleSection?.getSummary?.({
           externalMcpServers: [{ value: "a", label: "AWS" }],
         } as never),
+      ).toEqual(["OneUptime AI may read all connected repositories."]);
+      expect(
+        field.collapsibleSection?.getSummary?.({
+          externalMcpServers: [{ value: "a", label: "AWS" }],
+          codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+        } as never),
       ).toBeUndefined();
+    });
+
+    /*
+     * "There should be a dropdown here to select the code repo for
+     * remediation and also investigation rules, if no code repo is selected
+     * - it should be able to read and investigate all the repos that are
+     * connected" - the maintainer.
+     */
+    test("its code repositories: folded under More fields with the MCP servers, none picked is all of them", () => {
+      const props: Record<string, unknown> = tableFor(lane);
+      const field: CapturedField = fieldNamed(props, "codeRepositories");
+
+      expect(field.collapsibleSection).toBe(
+        fieldNamed(props, "externalMcpServers").collapsibleSection,
+      );
+      expect(field.title).toBe(RULE_CODE_REPOSITORIES_FIELD_COPY.title);
+      expect(field.title).toBe("Code Repositories");
+      expect(field.description).toBe(
+        "OneUptime AI may read all of your connected repositories while it investigates. Pick some to let it read only those.",
+      );
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.required).toBe(false);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.hideColumnDescription).toBe(true);
+
+      expect(field.getFoldedValue!({} as never)).toBeNull();
+      expect(
+        field.getFoldedValue!({
+          codeRepositories: [{ _id: "c1111111-1111-4111-8111-111111111111" }],
+        } as never),
+      ).toBe("1");
+
+      const element: React.ReactElement = field.getCustomElement!(
+        {
+          codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+        } as never,
+        {},
+      );
+      expect(element.type).toBe(RuleCodeRepositoriesPicker);
+      expect(element.props["value"]).toEqual([
+        "c1111111-1111-4111-8111-111111111111",
+      ]);
+      expect(field.getFooterElement!().type).toBe(
+        RuleCodeRepositoriesFieldHint,
+      );
     });
 
     test("its name is required and held to a rule name's length, and a new rule starts on", () => {

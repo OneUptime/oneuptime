@@ -39,6 +39,7 @@ import IncidentViewSla from "../Pages/Incidents/View/Sla";
 import IncidentInternalNote from "../Pages/Incidents/View/InternalNote";
 import IncidentPublicNote from "../Pages/Incidents/View/PublicNote";
 import UnresolvedIncidents from "../Pages/Incidents/Unresolved";
+import IncidentPostmortems from "../Pages/Incidents/Postmortems";
 import IncidentViewCustomFields from "../Pages/Incidents/View/CustomFields";
 import IncidentViewOwner from "../Pages/Incidents/View/Owners";
 
@@ -71,6 +72,8 @@ import IncidentSettingsNoteTemplatesView from "../Pages/Incidents/Settings/Incid
 import IncidentSettingsPostmortemTemplates from "../Pages/Incidents/Settings/IncidentPostmortemTemplates";
 
 import IncidentSettingsPostmortemTemplatesView from "../Pages/Incidents/Settings/IncidentPostmortemTemplateView";
+
+import IncidentSettingsPostmortemStatuses from "../Pages/Incidents/Settings/IncidentPostmortemStatuses";
 
 import IncidentSettingsCustomFields from "../Pages/Incidents/Settings/IncidentCustomFields";
 
@@ -286,6 +289,16 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENT_POSTMORTEMS] || ""}
+          element={
+            <IncidentPostmortems
+              {...props}
+              pageRoute={RouteMap[PageMap.INCIDENT_POSTMORTEMS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
           path={
             IncidentsRoutePath[PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK] ||
             ""
@@ -453,6 +466,24 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES_VIEW
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            IncidentsRoutePath[
+              PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES
+            ] || ""
+          }
+          element={
+            <IncidentSettingsPostmortemStatuses
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES
                 ] as Route
               }
             />

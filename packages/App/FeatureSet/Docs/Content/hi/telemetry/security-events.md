@@ -288,7 +288,64 @@ OneUptime Sigma का बूलियन मूल हिस्सा चला
 - `Image` और `CommandLine` उस प्रक्रिया को पढ़ते हैं जिसके बारे में इवेंट है, यानी प्रक्रिया शुरू होने पर वह प्रक्रिया जो शुरू हुई (`processPath`, `processCommandLine`), और `ParentImage` और `ParentCommandLine` उस प्रक्रिया को जिसने उसे शुरू किया (`parentProcessPath`, `parentProcessCommandLine`)। `principalProcess` वह प्रक्रिया है जिसने काम किया, जो प्रक्रिया शुरू होने पर पैरेंट होती है।
 - `level` गंभीरता तय करता है: `informational`, `low`, `medium`, `high` या `critical`, और न होने पर `medium`। `tags` में ATT&CK ID (`attack.t1110`, `attack.ta0006`) निष्कर्ष के MITRE फ़ील्ड भरती हैं।
 
-`| count() by principalIp > 5` जैसे एग्रीगेशन सहेजते समय अस्वीकार हो जाते हैं: इसके बजाय **Group By Field** और **Match Count Threshold** इस्तेमाल करें। `logsource` सिर्फ़ जानकारी के लिए है और कुछ सीमित नहीं करता: वह फ़िल्टर किसी सिलेक्शन में डालें, जैसे `className: Authentication`। `timeframe` अनदेखा किया जाता है, क्योंकि नियम का अंतराल ही उसकी विंडो तय करता है।
+`| count() by principalIp > 5` जैसे एग्रीगेशन सहेजते समय अस्वीकार हो जाते हैं: इसके बजाय [कोरिलेशन नियम](#कोरिलेशन-नियम), या **Group By Field** और **Match Count Threshold** इस्तेमाल करें। `logsource` सिर्फ़ जानकारी के लिए है और कुछ सीमित नहीं करता: वह फ़िल्टर किसी सिलेक्शन में डालें, जैसे `className: Authentication`। `timeframe` अनदेखा किया जाता है, क्योंकि नियम का अंतराल ही उसकी विंडो तय करता है।
+
+### कोरिलेशन नियम
+
+[Sigma कोरिलेशन](https://sigmahq.io/docs/meta/correlations.html) एक इवेंट पर नहीं, बल्कि कई इवेंट के साथ होने पर चलता है। इसे उन नियमों के साथ **Sigma Rule (YAML)** में चिपकाएँ जिन्हें यह पढ़ता है, `---` से अलग किए YAML दस्तावेज़ों के रूप में, या प्रोजेक्ट में पहले से मौजूद नियमों को उनके Sigma `name` या `id` से बताएँ। **Rule Library** में तैयार नियम हैं, जैसे विफल साइन-इन के बाद एक सफल साइन-इन।
+
+| प्रकार | कब चलता है | किस नाम से दिखता है |
+| --- | --- | --- |
+| `event_count` | एक समूह `timespan` के भीतर तय संख्या में इवेंट तक पहुँचता है | इवेंट संख्या |
+| `value_count` | एक समूह `timespan` के भीतर किसी फ़ील्ड के तय संख्या में अलग-अलग मान दिखाता है | अलग-अलग मान |
+| `temporal` | `timespan` के भीतर एक ही समूह के लिए हर नियम मेल खाता है, किसी भी क्रम में | साथ होने वाले इवेंट |
+| `temporal_ordered` | `timespan` के भीतर एक ही समूह के लिए नियम अपने क्रम में मेल खाते हैं | Sequence |
+| `new_value` | एक समूह किसी फ़ील्ड का ऐसा मान दिखाता है जो उसने `timespan` के भीतर नहीं दिखाया | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- समूह `group-by` फ़ील्ड का मान होता है, जैसे एक पता। गिनती रोलिंग होती है: जिस उछाल को दो रन बाँट लेते हैं, उसे भी उसके `timespan` के भीतर पूरा गिना जाता है, जो ज़्यादा से ज़्यादा 24 घंटे का होता है।
+- `new_value` OneUptime का अपना प्रकार है, क्योंकि Sigma में "पहली बार देखा गया" कोरिलेशन नहीं है: यह 30 दिन तक के इतिहास से तुलना करता है। `value_sum`, `value_avg`, `value_percentile` और `value_median` सहेजते समय अस्वीकार हो जाते हैं।
+- **Detection Rules** का **प्रकार** कॉलम हर नियम का प्रकार बताता है, और फ़ॉर्म एक वाक्य में बताता है कि नियम क्या ढूँढता है।
 
 ### मूल्यांकन सेटिंग्स
 
@@ -387,7 +444,7 @@ Detection Finding `OneUptime Detections` उत्पाद से आया `De
 :::
 
 :::details नियम कभी मेल नहीं खाता
-जाँचें कि वह **सक्षम** है, और उसकी पंक्ति में **Last Evaluated** और **पिछली त्रुटि** पढ़ें। कोई ऐसा इवेंट खोलें जिसके मेल खाने की आपको उम्मीद थी, और उसकी तुलना नियम से फ़ील्ड-दर-फ़ील्ड करें: सादा मान पूरे फ़ील्ड के बराबर होना चाहिए, इसलिए किसी हिस्से के लिए `contains` या `*` इस्तेमाल करें। विशेषता का नाम वैसे ही लिखा जाता है जैसे इवेंट में है (`threat.matched`, न कि `attributes.threat.matched`)। 1 से ज़्यादा थ्रेशोल्ड होने पर मिलान एक ही रन में पड़ने चाहिए।
+उसकी **स्थिति** जाँचें: **अक्षम** नियम नहीं चलता, और **रन विफल रहा** दिखने पर उसकी पंक्ति में **त्रुटि देखें** वजह दिखाता है। कोई ऐसा इवेंट खोलें जिसके मेल खाने की आपको उम्मीद थी, और उसकी तुलना नियम से फ़ील्ड-दर-फ़ील्ड करें: सादा मान पूरे फ़ील्ड के बराबर होना चाहिए, इसलिए किसी हिस्से के लिए `contains` या `*` इस्तेमाल करें। विशेषता का नाम वैसे ही लिखा जाता है जैसे इवेंट में है (`threat.matched`, न कि `attributes.threat.matched`)। 1 से ज़्यादा थ्रेशोल्ड होने पर मिलान एक ही रन में पड़ने चाहिए।
 :::
 
 :::details नियम मेल खाया, लेकिन कोई अलर्ट नहीं खुला

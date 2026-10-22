@@ -88,6 +88,12 @@ flowchart TB
 | 팀 | `Team` |
 | 사용자 정의 역할과 그 역할을 받은 팀 | `Custom Role`, `Team Custom Role` |
 | 레이블 | `Label` |
+| 인시던트 상태 및 심각도 | `Incident State`, `Incident Severity` |
+| 알림 상태 및 심각도 | `Alert State`, `Alert Severity` |
+| 모니터 상태 | `Monitor Status` |
+| 예정된 유지 관리 상태 | `Scheduled Maintenance State` |
+| 인시던트 역할 | `Incident Role` |
+| 포스트모템 상태 | `Postmortem Status` |
 | API 키 | `API Key` |
 | 사람들이 연결하는 MCP 클라이언트 | `MCP Client Authorization` |
 | 인벤토리 항목 | `Inventory Item` |

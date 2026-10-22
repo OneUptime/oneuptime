@@ -86,6 +86,11 @@ import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+import { stubArchivedValues } from "../TestingUtils/ArchivedValues";
+import {
+  ArchivableValueDefinition,
+  getArchivableValueByTableName,
+} from "../../../Utils/ArchivableValues";
 import { DataSource } from "typeorm";
 import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 
@@ -643,6 +648,61 @@ describe.each(KINDS)("POST a new $name with an Initial State", (kind: Kind) => {
       expect(numbersUsed).toBe(0);
     },
   );
+
+  test.each([
+    [
+      "the relation",
+      (id: string): JSONObject => {
+        return { [kind.relation]: { _id: id } };
+      },
+    ],
+    [
+      "the ID column",
+      (id: string): JSONObject => {
+        return { [kind.idColumn]: id };
+      },
+    ],
+  ] as Array<[string, (id: string) => JSONObject]>)(
+    "an archived state by %s is refused, naming it and where to unarchive it, before anything is written or numbered",
+    async (_name: string, payload: (id: string) => JSONObject) => {
+      const definition: ArchivableValueDefinition =
+        getArchivableValueByTableName(new kind.stateModel().tableName)!;
+
+      // The project's second state, archived for this test.
+      stubArchivedValues([
+        {
+          table: definition.tableName,
+          id: ACKNOWLEDGED_STATE,
+          name: "Investigating (old)",
+          projectId: PROJECT_ID,
+        },
+      ]);
+
+      await expect(post(kind, payload(ACKNOWLEDGED_STATE))).rejects.toThrow(
+        `"Investigating (old)" is an archived ${definition.singular} and can't be picked. Choose another, or unarchive it in ${definition.settingsPath}.`,
+      );
+
+      expect(repositorySave).not.toHaveBeenCalled();
+      expect(numbersUsed).toBe(0);
+    },
+  );
+
+  test("a workflow may still start one in an archived state: it runs as it was built", async () => {
+    stubArchivedValues([
+      {
+        table: new kind.stateModel().tableName || "",
+        id: ACKNOWLEDGED_STATE,
+        name: "Investigating (old)",
+        projectId: PROJECT_ID,
+      },
+    ]);
+
+    caller = { ...caller, userType: UserType.Workflow };
+
+    await post(kind, { [kind.idColumn]: ACKNOWLEDGED_STATE });
+
+    expect(storedState(kind)).toBe(ACKNOWLEDGED_STATE);
+  });
 
   test("two different states under the two names are refused, naming both fields, and nothing is written", async () => {
     await expect(

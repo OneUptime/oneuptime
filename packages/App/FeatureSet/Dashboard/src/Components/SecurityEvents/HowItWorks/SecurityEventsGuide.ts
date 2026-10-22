@@ -15,15 +15,36 @@ import { markdownTableCell } from "Common/Utils/Markdown/MarkdownTableCell";
  *    tests — documentation that drifts from behavior is worse than none.
  */
 
+/*
+ * A sentence with numbers in it, as the card looks it up: the sentence (an
+ * en.json key, {{name}} where a number goes - the extractor reads it by its
+ * property name) and the numbers, each written the reader's way. The plain
+ * English beside it (description, label) is the same sentence filled in, for
+ * the help modal and the tests.
+ */
+export interface SecurityEventsGuideTemplate {
+  sentence: string;
+  values: Record<string, number>;
+}
+
 export interface SecurityEventsGuideStep {
   title: string;
   description: string;
+  // When the description holds numbers: how the card looks it up.
+  descriptionTemplate?: SecurityEventsGuideTemplate | undefined;
   icon: IconProp;
 }
 
 export interface SecurityEventsGuideLevel {
   // What the source calls it: a Sigma level, or a confidence band.
   label: string;
+  // When the label holds numbers: how the card looks it up.
+  labelTemplate?: SecurityEventsGuideTemplate | undefined;
+  /*
+   * The label is a value written as is in a rule (a Sigma level such as
+   * "high"): drawn as written, never translated.
+   */
+  isLabelAValue?: boolean | undefined;
   // The OCSF severity it becomes, shown with the Events table's pill colors.
   severity: OcsfSeverity;
 }
@@ -31,9 +52,24 @@ export interface SecurityEventsGuideLevel {
 export interface SecurityEventsGuideLevels {
   title: string;
   description: string;
+  // The link to the section below: "How severity levels are chosen".
+  linkText: string;
   items: Array<SecurityEventsGuideLevel>;
   // The full-guide section that explains the levels in depth.
   sectionId: string;
+}
+
+// A template filled in with its numbers as written in English: 1440, not 1,440.
+export function fillGuideTemplate(
+  guideTemplate: SecurityEventsGuideTemplate,
+): string {
+  let text: string = guideTemplate.sentence;
+
+  for (const [name, value] of Object.entries(guideTemplate.values)) {
+    text = text.split(`{{${name}}}`).join(String(value));
+  }
+
+  return text;
 }
 
 export interface SecurityEventsGuideSection {

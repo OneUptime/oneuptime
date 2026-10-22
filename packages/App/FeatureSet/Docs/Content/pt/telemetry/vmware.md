@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar o vCenter no OneUptime
 
-Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos.
+Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos. A sua página **Topologia** desenha tudo em um único mapa, marcando o que requer atenção: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Variáveis de ambiente

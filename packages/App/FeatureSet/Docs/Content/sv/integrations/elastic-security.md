@@ -142,6 +142,48 @@ Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
+## Skicka säkerhetshändelser till Elastic Security
+
+OneUptime kan också skicka det den hittar till Elasticsearch, som Elastic Common Schema (ECS)-dokument i en dataström, så att larmen, tidslinjerna och upptäcktsreglerna i Elastic Security ser OneUptimes upptäckter bredvid dina egna. En upptäckt är ett dokument med `event.kind` `alert`, och alla andra händelser har `event.kind` `event`.
+
+:::steps
+### Skapa en API-nyckel som får skriva
+
+Öppna **Stack Management → API keys** i Kibana, klicka på **Create API key**, ge den behörigheterna nedan och kopiera dess **Encoded**-värde.
+
+### Lägg till målet
+
+Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Elastic Security under **SIEM** och klicka på **Nästa**. Fyll i **Elasticsearch-URL**, distributionens Elasticsearch-slutpunkt och inte Kibanas, och klistra in nyckeln i **API-nyckel**. **Dataström** är valfri: lämnas den tom går dokumenten till `logs-oneuptime.security-default`, som Elasticsearch skapar vid första skrivningen.
+
+### Skicka en testhändelse och börja skicka
+
+Klicka på **Skicka en testhändelse**: ett dokument kommer fram i dataströmmen. Behåll sedan **Endast upptäckter** under **Vad som ska skickas**, eller välj **Alla säkerhetshändelser**, och klicka på **Börja skicka**.
+:::
+
+Nyckelns behörigheter, för standarddataströmmen:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Dokument skickas i omgångar om upp till 500, vart och ett med sin händelses eget id, så att en händelse som skickas två gånger lagras en gång.
+- Ett dokument som Elasticsearch inte kan mappa utelämnas och nämns i **Visa fel**, och ett som den inte kan ta emot just nu (`429`) skickas igen.
+- Larm som OneUptime har importerat från Elastic Security skickas aldrig tillbaka dit.
+
 ## Felsökning
 
 Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.

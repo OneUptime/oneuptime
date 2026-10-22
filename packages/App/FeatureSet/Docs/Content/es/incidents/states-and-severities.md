@@ -153,6 +153,18 @@ Donde la gravedad hace algo más que describir: en **Incidentes → Reglas → R
 
 **Cambiar la gravedad de un incidente** —con **Editar** en la tarjeta **Detalles del incidente** del incidente, por la API o Terraform (`incidentSeverityId`), con un flujo de trabajo o con las herramientas de IA— hace las mismas cuatro cosas se envíe como se envíe: el feed del incidente recibe una entrada **Incident updated** que nombra la nueva gravedad, se recalculan los plazos del SLA del incidente, su regla de recordatorio se vuelve a emparejar y las métricas de incidentes cuentan un cambio de gravedad. Guardar la gravedad que el incidente ya tiene no hace nada de eso, así que editar solo el título de un incidente deja sus plazos de SLA, sus recordatorios y su recuento de cambios de gravedad como estaban. La gravedad de una alerta funciona igual para su entrada de feed y sus recordatorios.
 
+## Archivar un estado o una gravedad
+
+Archive un estado o una gravedad que su equipo ya no deba usar, en lugar de eliminarlo. Archivar no cambia ningún incidente. Eliminar un estado quita sus filas del historial de cada incidente, y una gravedad no se puede eliminar mientras haya incidentes que la tengan.
+
+- **Archivar** está en el menú **⋯** de la fila. Primero pide confirmación y enumera las reglas, plantillas, mediciones, criterios de monitor y flujos de trabajo configurados para usar el valor: lo siguen usando hasta que los cambie.
+- **Nadie puede volver a elegirlo.** El formulario de declaración, **Cambiar estado**, la cabecera del incidente, Slack, Microsoft Teams, las reglas, las plantillas y los criterios de monitor lo omiten. La API, Terraform y MCP lo rechazan, indicando el valor y dónde desarchivarlo.
+- **Los incidentes lo conservan.** Un incidente que lo tiene lo conserva en cada edición posterior, su cronología de estados lo sigue mostrando y puede seguir filtrando por él.
+- **Los valores archivados se listan aparte**, en la sección plegada **Estados de incidente archivados** o **Gravedades de incidente archivadas** bajo la tabla, con quién archivó cada uno y cuándo. **Desarchivar** devuelve uno tal como estaba.
+- **Algunos no se pueden archivar.** Los estados creado, reconocido y resuelto, y la última gravedad sin archivar del proyecto. Su **Archivar** está bloqueado, con el motivo.
+
+**Eliminar** dice primero lo que haría. Mientras haya incidentes o episodios con el valor, la eliminación se rechaza y el diálogo los enumera. En caso contrario, enumera lo que cambiaría la eliminación y ofrece **Archivar en su lugar**.
+
 ## Mover un incidente por sus estados
 
 Un incidente cambia de estado de cuatro formas:

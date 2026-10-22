@@ -341,6 +341,8 @@ describe("Button disabled styling", () => {
   const DIMMING_STYLES: Array<[string, ButtonStyleType]> = [
     ["PRIMARY", ButtonStyleType.PRIMARY],
     ["SECONDARY", ButtonStyleType.SECONDARY],
+    // A Delete still waiting to know what it would change.
+    ["DANGER", ButtonStyleType.DANGER],
   ];
 
   test.each(DIMMING_STYLES)(

@@ -71,6 +71,10 @@ Klik på **Opret Mærkat**. Giv den et **Navn** og, hvis du vil, en **Beskrivels
 
 I OneUptime Cloud kræver det Growth-planen at oprette og ændre etiketter. Se [Etiketter](/docs/permissions/index#labels) for, hvordan etiketter begrænser tilladelser, og [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) for at sætte etiketter på ressourcer, når de oprettes.
 
+### Arkivér en etiket
+
+For at udfase en etiket skal du arkivere den fra rækkens menu **⋯** i stedet for at slette den. Alt, der har etiketten, beholder den, og du kan stadig filtrere efter den, men ingen kan tilføje den til noget igen: Hver etiketvælger udelader den, og API'et, Terraform og MCP afviser den. Dialogen viser de regler og tilladelser, der er sat op til at bruge etiketten, og som bliver ved med at bruge den, indtil du ændrer dem. Arkiverede etiketter vises for sig, i den sammenfoldede sektion **Arkiverede etiketter**, hvor **Fjern fra arkiv** sætter en tilbage. **Slet** viser først alt, som etiketten ville blive fjernet fra, og tilbyder **Arkivér i stedet**.
+
 ## Notifikationer
 
 **Projektindstillinger → Notifikationer** rummer, hvordan projektet sender notifikationer:

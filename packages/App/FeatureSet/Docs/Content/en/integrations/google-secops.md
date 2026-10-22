@@ -108,6 +108,7 @@ Select **Test these settings** under **Test before saving** before you save. The
 | --- | --- | --- |
 | **Region** | The Google SecOps regional endpoint (`us`, `europe`, `asia-southeast1`, ...) that matches the location in your instance resource name. There is no default, so a tenant outside the US cannot save the wrong endpoint by accident. | Yes |
 | **Instance resource name** | Google SecOps **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Yes |
+| **Close alerts when their case closes** | On the form's last step, off until you turn it on. On, closing a case closes its Google SecOps alerts: see [Close alerts when their case closes](#close-alerts-when-their-case-closes). | No |
 | **Service account JSON** | Google Cloud, the service account's **Keys** tab. Paste the whole JSON key file. Write-only: encrypted at rest, never returned by the API, never shown back on the page. Use **Update credentials** on the connection to rotate it. | Yes |
 | **Data to import** | **Alerts** are always imported because Google's alerts API always returns them. Select **Detections** to also import rule matches that did not generate an alert. This does not forward raw UDM events: forward those yourself, as above. | Alerts always |
 
@@ -213,6 +214,17 @@ Google SecOps stores a detection's severity in different places depending on who
 
 A detection that none of these grade is shown as Unknown. To grade a custom rule, add a severity to its `meta` section in Google SecOps, for example `severity = "High"`, or set `$risk_score` in its `outcome` section. Detections the rule creates after that are imported with that severity.
 
+## Close alerts when their case closes
+
+With **Close alerts when their case closes** on, closing a [security case](/docs/telemetry/security-cases#close-a-case) closes the Google SecOps alerts it came from. Each alert is marked closed with the case's verdict, a True Positive as malicious and a False Positive or Benign Positive as not malicious, and with the case's closing note and a link back to the case. The case's timeline says how many alerts were closed.
+
+- The service account needs `chronicle.legacies.legacyUpdateAlert`, which the `roles/chronicle.editor` role has. The `roles/chronicle.viewer` role reads alerts but cannot close them, and a `403` says so on the case.
+- An alert Google SecOps no longer has is skipped. When Google SecOps cannot be reached, OneUptime tries again for about an hour, then writes on the case what it could not close.
+
+## Watch your other events for its indicators
+
+A [threat intel feed](/docs/telemetry/threat-intelligence#how-google-secops-is-read) whose **Source** is **Google SecOps** reads the indicators Google SecOps's threat intelligence found in its events, through this connection, and watches the rest of your project's events for them: the sign-ins, network flows and endpoint events Google SecOps never saw.
+
 ## Send security events to Google SecOps
 
 OneUptime can also send what it finds to Google SecOps, so the SIEM your team works in sees OneUptime's detections next to its own. Each security event is imported as a UDM event: a sign-in as `USER_LOGIN`, a process launch as `PROCESS_LAUNCH`, a network connection as `NETWORK_CONNECTION` and anything else as `GENERIC_EVENT`, with its severity, its MITRE ATT&CK tags and the rule that found it.
@@ -224,7 +236,7 @@ In Google Cloud, create a service account on the project your SecOps instance is
 
 ### Add the destination
 
-Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**. Choose the **Region**, fill in the **Instance resource name** as for the connector above, and paste the key into **Service account JSON**.
+Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**, choose Google SecOps under **SIEM** and click **Next**. Choose the **Region**, fill in the **Instance resource name** as for the connector above, and paste the key into **Service account JSON**.
 
 ### Send a test event
 

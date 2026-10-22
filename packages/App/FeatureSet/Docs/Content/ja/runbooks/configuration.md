@@ -78,7 +78,7 @@ Runbook の権限は `Runbook` 権限グループにあります。
 
 Runbook のスケジュールと Webhook は人がいなくても実行を開始するため、どちらを設定するにも Runbook を編集する権限と実行する権限が必要です。Webhook URL を表示する場合も同様です。オフにするには編集する権限だけが必要です。[Runbook のトリガー](/docs/runbooks/triggers#トリガーを設定できるユーザー) を参照してください。
 
-Runbook の変数と認証情報は `RunbookAdmin` の対象外で、このロールは自分が書くステップで選ぶために変数を読むだけです。変数を管理するには `ProjectOwner` か `ProjectAdmin`、または `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`、`ReadRunbookSecret` の権限が必要です。これらは Runbook のシークレットの権限で、シークレットが変数になったときも名前が変わりませんでした。認証情報を管理するには `ProjectOwner` か `ProjectAdmin`、または `CreateRunbookCredential`、`EditRunbookCredential`、`DeleteRunbookCredential`、`ReadRunbookCredential` が必要です。[Runbook の変数](/docs/runbooks/variables) と [AI のアクセス](/docs/runbooks/credentials) を参照してください。
+Runbook の変数は `RunbookAdmin` の対象外で、このロールは自分が書くステップで選ぶために変数を読むだけです。変数を管理するには `ProjectOwner` か `ProjectAdmin`、または `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret`、`ReadRunbookSecret` の権限が必要です。これらは Runbook のシークレットの権限で、シークレットが変数になったときも名前が変わりませんでした。[Runbook の変数](/docs/runbooks/variables) を参照してください。
 
 **Runbook → 設定** にある所有者ルールとラベルルールも `RunbookAdmin` の対象外です。それらを管理するには、`ProjectOwner` または `ProjectAdmin`、あるいは `CreateRunbookOwnerRule` と `CreateRunbookLabelRule` の権限と、それぞれの編集、削除、閲覧の権限が必要です。
 
@@ -95,9 +95,9 @@ Manual ステップが API でチェックされると、実行は次のステ�
 - **JavaScript、Bash、SSH、kubectl** は、OneUptime Worker ではなく、自分で管理する Runner のホストで実行されます。JavaScript は 128 MB のメモリを持つ独立した `isolated-vm` のアイソレートで実行され、Runner のファイルシステムやプロセスにはアクセスできません。`axios` で HTTP リクエストを送れますが、プライベートネットワーク、ループバック、リンクローカルのアドレスへのリクエストは拒否されます。Bash は `bash -c` で実行され、タイムアウトは Runner で適用されます。 Runner を選ばない JavaScript のステップは、プロジェクトのデフォルト Runner で、それがなければグローバル Runner で実行されます。
 - **HTTP ステップ** は寛容なステータス検証を使うため、4xx や 5xx の応答は例外として投げられるのではなく失敗したステップとして記録され、記録された出力には相手側が実際に返した内容が反映されます。リダイレクトはたどりません。Worker は、クラウドのメタデータエンドポイントのようなループバックやリンクローカルのアドレスを決して呼び出しません。OneUptime Cloud ではプライベートネットワークのアドレスも拒否し、セルフホストの OneUptime は `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` のときに拒否します。
 - **AI ステップ** は、インシデントの非公開メモや Slack と Microsoft Teams のメッセージを決して参照しません。前のステップの出力はシークレットがないかスキャンされ、モデルに届く前にマスクされます。埋め込み画像と長いエンコード済みデータはプロンプトから除外されます。[AI](/docs/runbooks/authoring#ai) を参照してください。
-- **グローバル Runner** は JavaScript のステップだけを実行します。各ステップは、そのステップのために作られて終了後に破棄されるサンドボックスで、公開インターネットのアドレスにだけアクセスでき、最長 5 分、1 つのプロジェクトにつき同時に 3 ステップまで実行されます。渡されるのは、ステップ自身のプロジェクトのシークレット変数のうちグローバル Runner に対してオンになっているものだけで、認証情報は決して渡されません。同梱のグローバル Runner は専用のキーを持ち、サーバーのそれ以外のものは何も持ちません。[グローバル Runner](/docs/runbooks/agents#グローバル-runner) を参照してください。
+- **グローバル Runner** は JavaScript のステップだけを実行します。各ステップは、そのステップのために作られて終了後に破棄されるサンドボックスで、公開インターネットのアドレスにだけアクセスでき、最長 5 分、1 つのプロジェクトにつき同時に 3 ステップまで実行されます。渡されるのは、ステップ自身のプロジェクトのシークレット変数のうちグローバル Runner に対してオンになっているものだけです。同梱のグローバル Runner は専用のキーを持ち、サーバーのそれ以外のものは何も持ちません。[グローバル Runner](/docs/runbooks/agents#グローバル-runner) を参照してください。
 - **Runner の認証** は ID と秘密キーで行い、それらは Runner コンテナに環境変数として設定します。サーバー側では、Runner の正式な ID は、提示された ID とキーに対応するデータベースの行から得られます。キーが漏洩していても、クライアントが別の Runner になりすますことはできません。
-- **シークレット変数と認証情報** は保存時に暗号化され、API から返されることはなく、それらに指定された Runner が、それらを指定するステップやコマンドを取得したときにだけ渡されます。シークレット変数は、変数がグローバル Runner に使用を許可している場合、変数自身のプロジェクトのステップを取得したグローバル Runner にも渡されます。Runner はステップに渡した各シークレットをステップの出力で `[REDACTED]` に置き換え、OneUptime も出力を保存する前にもう一度置き換えます。
+- **シークレット変数** は保存時に暗号化され、API から返されることはなく、それらに指定された Runner が、それらを指定するステップを取得したときにだけ渡されます。シークレット変数は、変数がグローバル Runner に使用を許可している場合、変数自身のプロジェクトのステップを取得したグローバル Runner にも渡されます。Runner はステップに渡した各シークレットをステップの出力で `[REDACTED]` に置き換え、OneUptime も出力を保存する前にもう一度置き換えます。
 
 ## データベースのテーブル
 
@@ -108,7 +108,6 @@ Manual ステップが API でチェックされると、実行は次のステ�
 | `RunbookRule` | 自動トリガーのルール。判別子 `triggerEntityType`（Incident、Alert、ScheduledMaintenance）、開始する Runbook との多対多の関係、そして一致の対象（JSON 列 `criteria`（条件）と、モニター、インシデントの重大度、アラートの重大度、ラベル、モニターのラベルへの多対多のリンク、タイトル、説明、モニター名、モニターの説明のパターン）を持ちます。 |
 | `Runner` | インストールした Runner ごとに 1 行。名前、秘密キー、`lastAlive`、`connectionStatus`、ホスト情報、機能。 グローバル Runner には `isGlobalRunner` が設定され、プロジェクトはありません。プロジェクトのデフォルト Runner には `isProjectDefault` が設定されます。 |
 | `RunnerJob` | Runner に送ったステップごとに 1 行。`targetAgentId`（ステップの作成者が選んだ Runner）、ステップの種類、スクリプトまたはペイロード、ステータス（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut`、`Cancelled`）、取得の期限、リース、出力、終了コード。 `runsOnGlobalRunner` は、どのグローバル Runner でも取得できるステップを示します。 |
-| `RunbookCredential` | OneUptime AI のコマンドが使う SSH と Kubernetes の認証情報。シークレット項目は暗号化され、割り当て先の Runner も保持します。 |
 | `RunbookVariable` | Runbook の変数。プロジェクトのグローバル変数と、`runbookId` で Runbook を指定する Runbook 自身の変数です。シークレットの値は暗号化され、シークレットを受け取れる Runner も保持します。 |
 
 ## 運用のヒント

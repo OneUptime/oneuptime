@@ -355,7 +355,6 @@ const TABLES = {
   Runbook: [runbook],
   Runner: CUSTOM_RUNNERS,
   RunbookVariable: VARIABLES,
-  RunbookCredential: [],
   Label: [PRODUCTION],
   CodeRepository: CODE_REPOSITORIES,
 };

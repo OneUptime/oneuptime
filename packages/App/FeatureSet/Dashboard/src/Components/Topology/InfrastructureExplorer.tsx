@@ -61,6 +61,8 @@ import {
 } from "./TopologyData";
 import { metaForEntityType } from "./TopologyMeta";
 import { nounForType } from "./ServiceMapViewModel";
+import { ResourceTopologyLink } from "../ResourceTopology/ResourceTopologyLinks";
+import useResourceTopologyLink from "../ResourceTopology/UseResourceTopologyLink";
 
 /*
  * Infrastructure: "what runs where", walked top-down.
@@ -467,6 +469,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
   const scope: InfrastructureNode | null =
     scopeId === ROOT_ID ? null : model.nodes.get(scopeId) || null;
   const effectiveScopeId: string = scope ? scope.id : ROOT_ID;
+  const resourceTopologyLink: ResourceTopologyLink | null =
+    useResourceTopologyLink(scope?.entity || null);
   const path: Array<InfrastructureNode> = useMemo(() => {
     return getInfrastructurePath(model, scope?.id || null);
   }, [model, scope]);
@@ -1818,17 +1822,31 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 {!searching && scope?.entity && (
                   /*
                    * Under the scope's summary on a phone, at the right edge,
-                   * as a card header's actions always are.
+                   * as a card header's actions always are. A vCenter, a
+                   * cluster or a host also opens into its own topology: the
+                   * resource in depth, from its own inventory.
                    */
-                  <button
-                    type="button"
-                    className={`${BUTTON} flex-shrink-0 self-end border border-gray-200 text-gray-600 hover:bg-gray-50 sm:self-auto`}
-                    onClick={() => {
-                      setDetailTarget(targetForNode(scope));
-                    }}
-                  >
-                    {t("View details")}
-                  </button>
+                  <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 self-end sm:self-auto">
+                    {resourceTopologyLink && (
+                      <Link
+                        to={resourceTopologyLink.route}
+                        dataTestId="infrastructure-resource-topology-link"
+                        className={`${BUTTON} inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
+                      >
+                        <Icon icon={IconProp.FlowDiagram} className="h-4 w-4" />
+                        {t(resourceTopologyLink.text)}
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      className={`${BUTTON} border border-gray-200 text-gray-600 hover:bg-gray-50`}
+                      onClick={() => {
+                        setDetailTarget(targetForNode(scope));
+                      }}
+                    >
+                      {t("View details")}
+                    </button>
+                  </div>
                 )}
               </div>
 

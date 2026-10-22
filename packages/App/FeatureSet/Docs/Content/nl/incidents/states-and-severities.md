@@ -153,6 +153,18 @@ Waar ernst meer doet dan beschrijven: onder **Incidenten → Regels → Bereikba
 
 **De ernst van een incident wijzigen** — onder **Bewerken** op de kaart **Incidentdetails** van het incident, via de API of Terraform (`incidentSeverityId`), met een workflow of met de AI-tools — doet dezelfde vier dingen, hoe het ook wordt verstuurd: de incidentfeed krijgt een item **Incident updated** dat de nieuwe ernst noemt, de SLA-deadlines van het incident worden opnieuw berekend, zijn herinneringsregel wordt opnieuw gezocht, en de incidentstatistieken tellen één ernstwijziging. De ernst opslaan die het incident al heeft, doet geen van deze dingen, dus alleen de titel van een incident bewerken laat zijn SLA-deadlines, herinneringen en aantal ernstwijzigingen zoals ze waren. De ernst van een waarschuwing werkt op dezelfde manier voor haar feeditem en haar herinneringen.
 
+## Een status of ernst archiveren
+
+Archiveer een status of ernst die uw team niet meer moet gebruiken, in plaats van die te verwijderen. Archiveren wijzigt geen enkel incident. Een status verwijderen haalt zijn rijen uit de geschiedenis van elk incident, en een ernst kan niet worden verwijderd zolang incidenten die hebben.
+
+- **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de regels, sjablonen, metingen, monitorcriteria en workflows die zijn ingesteld om de waarde te gebruiken: die blijven hem gebruiken tot u ze wijzigt.
+- **Niemand kan hem nog kiezen.** Het meldformulier, **Status wijzigen**, de kop van het incident, Slack, Microsoft Teams, regels, sjablonen en monitorcriteria laten hem weg. De API, Terraform en MCP weigeren hem, met de naam van de waarde en waar u hem uit het archief haalt.
+- **Incidenten behouden hem.** Een incident dat hem heeft, behoudt hem bij elke latere bewerking, de statustijdlijn toont hem nog, en u kunt er nog steeds op filteren.
+- **Gearchiveerde waarden staan apart**, in de ingeklapte sectie **Gearchiveerde statussen van incidenten** of **Gearchiveerde ernstniveaus van incidenten** onder de tabel, met wie elke waarde heeft gearchiveerd en wanneer. **Uit archief halen** zet er een terug zoals hij was.
+- **Sommige kunnen niet worden gearchiveerd.** De aangemaakte, bevestigde en opgeloste status, en de laatste niet-gearchiveerde ernst van het project. Hun **Archiveren** is vergrendeld, met de reden.
+
+**Verwijderen** zegt eerst wat het zou doen. Zolang incidenten of episodes de waarde hebben, wordt het verwijderen geweigerd en toont het dialoogvenster ze. Anders toont het wat het verwijderen zou wijzigen en biedt het **In plaats daarvan archiveren** aan.
+
 ## Een incident door zijn statussen bewegen
 
 Er zijn vier manieren waarop een incident van status verandert:

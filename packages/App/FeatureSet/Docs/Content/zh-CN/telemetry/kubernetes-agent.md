@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### 在 OneUptime 中找到集群
 
-打开 **产品 → 基础设施 → Kubernetes → 所有集群**。几分钟内，集群会以其 `clusterName` 出现，节点、Pod 和工作负载也会填充进来。Kubernetes AI 代理会在集群 **人工智能** 下的 **智能体** 页面上显示为已连接。
+打开 **产品 → 基础设施 → Kubernetes → 所有集群**。几分钟内，集群会以其 `clusterName` 出现，节点、Pod 和工作负载也会填充进来。Kubernetes AI 代理会在集群 **人工智能** 下的 **智能体** 页面上显示为已连接。集群的 **拓扑** 页面将其命名空间、工作负载、Pod 和节点绘制在一张地图上，并标出需要关注的内容：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 作为 Amazon EKS 附加组件安装

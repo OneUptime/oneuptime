@@ -112,6 +112,18 @@ A posição decide qual gravidade prevalece onde o OneUptime as compara: a gravi
 
 Uma gravidade sozinha não aciona ninguém. Para acionar conforme a gravidade, adicione uma regra de plantão cujas **Alerta Severidades** correspondam a ela: veja [Regras e configurações de alertas](/docs/alerts/settings). Alterar a gravidade de um alerta escreve uma entrada no feed dele e faz sua regra de lembrete corresponder novamente.
 
+## Arquivar um estado ou uma severidade
+
+Arquive um estado ou uma severidade que sua equipe não deve mais usar, em vez de excluí-lo. Arquivar não altera nenhum alerta. Excluir um estado remove suas linhas do histórico de cada alerta, e uma severidade não pode ser excluída enquanto houver alertas com ela.
+
+- **Arquivar** fica no menu **⋯** da linha. Ele pede confirmação primeiro e lista as regras, medições, critérios de monitor e fluxos de trabalho configurados para usar o valor: eles continuam usando-o até que você os altere.
+- **Ninguém pode escolhê-lo novamente.** **Alterar estado**, o cabeçalho do alerta, Slack, Microsoft Teams, regras e critérios de monitor o deixam de fora. A API, o Terraform e o MCP o recusam, indicando o valor e onde desarquivá-lo.
+- **Os alertas o mantêm.** Um alerta que o tem o mantém em toda edição posterior, sua linha do tempo de estados ainda o mostra e você ainda pode filtrar por ele.
+- **Os valores arquivados são listados à parte**, na seção recolhida **Estados de alerta arquivados** ou **Severidades de alerta arquivadas** abaixo da tabela, com quem arquivou cada um e quando. **Desarquivar** devolve um como era.
+- **Alguns não podem ser arquivados.** Os estados criado, reconhecido e resolvido, e a última severidade não arquivada do projeto. O **Arquivar** deles fica bloqueado, com o motivo.
+
+**Excluir** diz primeiro o que faria. Enquanto alertas ou episódios tiverem o valor, a exclusão é recusada e a caixa de diálogo os lista. Caso contrário, ela lista o que a exclusão mudaria e oferece **Arquivar em vez disso**.
+
 ## Mover um alerta pelos seus estados
 
 | Forma                     | Onde                                                                                      | O que é pedido                                                                                                                       |

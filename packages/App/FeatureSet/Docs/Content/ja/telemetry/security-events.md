@@ -288,7 +288,64 @@ OneUptime は Sigma のブール演算の中核部分を実行します。
 - `Image` と `CommandLine` はイベントの対象のプロセス、つまりプロセスの起動では起動したプロセス (`processPath`、`processCommandLine`) を読み、`ParentImage` と `ParentCommandLine` はそれを起動したプロセス (`parentProcessPath`、`parentProcessCommandLine`) を読みます。`principalProcess` は動作したプロセスで、起動では親プロセスにあたります。
 - `level` は重大度を設定します。 `informational`、 `low`、 `medium`、 `high`、 `critical` のいずれかで、ない場合は `medium` です。 `tags` 内の ATT&CK ID (`attack.t1110`、`attack.ta0006`) は、検出結果の MITRE 項目に入ります。
 
-`| count() by principalIp > 5` のような集計は保存時に拒否されます。代わりに **グループ化のフィールド** と **一致件数のしきい値** を使ってください。 `logsource` は情報としてのみ扱われ、何も絞り込みません。その絞り込みは `className: Authentication` のようにセレクションに入れてください。 `timeframe` は無視されます。ウィンドウはルールの間隔で決まるからです。
+`| count() by principalIp > 5` のような集計は保存時に拒否されます。代わりに [相関ルール](#相関ルール) か、 **グループ化のフィールド** と **一致件数のしきい値** を使ってください。 `logsource` は情報としてのみ扱われ、何も絞り込みません。その絞り込みは `className: Authentication` のようにセレクションに入れてください。 `timeframe` は無視されます。ウィンドウはルールの間隔で決まるからです。
+
+### 相関ルール
+
+[Sigma の相関](https://sigmahq.io/docs/meta/correlations.html) は、一件ではなく複数のイベントの組み合わせで発火します。読み取るルールと一緒に、 `---` で区切った YAML ドキュメントとして **Sigma ルール（YAML）** に貼り付けるか、プロジェクトにすでにあるルールを Sigma の `name` か `id` で指定します。 **Rule Library** には、サインインの失敗に成功が続くものなど、すぐに使えるルールがあります。
+
+| 種類 | 発火する条件 | 表示名 |
+| --- | --- | --- |
+| `event_count` | ひとつのグループが `timespan` 内に一定数のイベントに達する | イベント数 |
+| `value_count` | ひとつのグループが `timespan` 内にフィールドの異なる値を一定数示す | 異なる値 |
+| `temporal` | `timespan` 内に同じグループですべてのルールが一致する (順序は問わない) | 同時に起きるイベント |
+| `temporal_ordered` | `timespan` 内に同じグループでルールがその順序どおりに一致する | シーケンス |
+| `new_value` | グループが `timespan` 内に示していなかったフィールドの値を示す | 初回確認 |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- グループは `group-by` のフィールドの値で、たとえばひとつのアドレスです。カウントはローリングです。2 回の実行に分かれたバーストも、その `timespan` 内では丸ごと数えられ、その長さは最大 24 時間です。
+- `new_value` は OneUptime 独自の型です。Sigma には「初回確認」の相関がないためで、最大 30 日分の履歴と比べます。 `value_sum` 、 `value_avg` 、 `value_percentile` 、 `value_median` は保存時に拒否されます。
+- **検出ルール** の **種類** 列に各ルールの種類が表示され、フォームにはルールが何を探すかが一文で示されます。
 
 ### 評価の設定
 
@@ -387,7 +444,7 @@ Detection Finding は、製品 `OneUptime Detections` によるクラス `Detect
 :::
 
 :::details ルールがまったく一致しない
-ルールが **有効** になっていることを確認し、その行の **最終評価** と **最終エラー** を読んでください。一致するはずだったイベントを開き、ルールと項目ごとに比べます。単純な値は項目全体と等しくなければならないので、一部だけなら `contains` か `*` を使います。属性はイベントにあるとおりの名前で書きます (`attributes.threat.matched` ではなく `threat.matched`)。しきい値が 1 より大きい場合、一致はひとつの実行の中に収まる必要があります。
+ルールの **ステータス** を確認してください。 **無効** なら実行されず、 **実行に失敗しました** なら、その行の **エラーを表示** で理由を確認できます。一致するはずだったイベントを開き、ルールと項目ごとに比べます。単純な値は項目全体と等しくなければならないので、一部だけなら `contains` か `*` を使います。属性はイベントにあるとおりの名前で書きます (`attributes.threat.matched` ではなく `threat.matched`)。しきい値が 1 より大きい場合、一致はひとつの実行の中に収まる必要があります。
 :::
 
 :::details ルールは一致したがアラートが開かない

@@ -39,7 +39,11 @@ import {
 } from "../../../Types/NetworkDevice/DiscoveryImport";
 import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
-import NetworkDeviceMonitorTemplateUtil from "../../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import DeviceMonitorTemplateUtil, {
+  DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+  isDeviceAddressMonitorType,
+  isDeviceMonitorTemplateType,
+} from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import {
   buildDeviceName,
   buildFallbackDeviceName,
@@ -75,8 +79,9 @@ import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorizat
  *            ticked and how they are monitored. Everything that can be
  *            refused is refused here, at once and in one sentence - no
  *            right to create devices or monitors, a scan the person cannot
- *            read, a template that is not a Network Device one, a plan with
- *            no room for another monitor - and the import is recorded and
+ *            read, a template no device's monitor can be made from (any but
+ *            a Network Device, Ping, IP, Port or NTP one), a plan with no
+ *            room for another monitor - and the import is recorded and
  *            queued.
  *   (worker) creates each host's device, then its monitor, acting as the
  *            person, and writes what happened to every host as it goes, so
@@ -242,6 +247,28 @@ export const DEVICE_NOT_REACHED_STOPPED: string =
   DISCOVERY_IMPORT_STOPPED_REASON;
 export const DEVICE_NOT_REACHED_FAILED: string =
   DISCOVERY_IMPORT_UNFINISHED_REASON;
+
+/*
+ * What the import reads of a device it created or found: its name and
+ * address for its monitor, how its health is established, and the probe
+ * that polls it - the probe a Ping, IP, Port or NTP monitor made for it
+ * runs on.
+ */
+const IMPORTED_DEVICE_SELECT: {
+  _id: true;
+  projectId: true;
+  name: true;
+  hostname: true;
+  monitoringMethod: true;
+  probeId: true;
+} = {
+  _id: true,
+  projectId: true,
+  name: true,
+  hostname: true,
+  monitoringMethod: true,
+  probeId: true,
+};
 
 // The state one worker keeps while it imports one import's hosts.
 interface ImportRunState {
@@ -1211,10 +1238,14 @@ export default class DiscoveryImportRunner {
       );
     }
 
-    if (template.monitorType !== MonitorType.NetworkDevice) {
-      throw new BadDataException(
-        "Pick a Network Device monitor template: it is the kind of monitor that reads each device's own polls.",
-      );
+    /*
+     * A Network Device template's monitor reads each device's polls; a
+     * Ping, IP, Port or NTP template's checks each device's address
+     * (#5145). No other kind of template has anything of a device's to
+     * check.
+     */
+    if (!isDeviceMonitorTemplateType(template.monitorType)) {
+      throw new BadDataException(DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL);
     }
 
     return template;
@@ -1443,9 +1474,9 @@ export default class DiscoveryImportRunner {
         props: { isRoot: true },
       });
 
-    if (!template || template.monitorType !== MonitorType.NetworkDevice) {
+    if (!template || !isDeviceMonitorTemplateType(template.monitorType)) {
       throw new BadDataException(
-        "The monitor template this import uses was deleted, or is no longer a Network Device template. Start the import again with another template.",
+        "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
       );
     }
 
@@ -1515,13 +1546,7 @@ export default class DiscoveryImportRunner {
         _id: deviceId,
         projectId: state.projectId,
       },
-      select: {
-        _id: true,
-        projectId: true,
-        name: true,
-        hostname: true,
-        monitoringMethod: true,
-      },
+      select: IMPORTED_DEVICE_SELECT,
       props: { isRoot: true },
     });
 
@@ -1540,13 +1565,7 @@ export default class DiscoveryImportRunner {
       await NetworkDeviceService.getDevicesByHostnames({
         projectId: state.projectId,
         hostnames: [address],
-        select: {
-          _id: true,
-          projectId: true,
-          name: true,
-          hostname: true,
-          monitoringMethod: true,
-        },
+        select: IMPORTED_DEVICE_SELECT,
         props: { isRoot: true },
       });
 
@@ -1664,6 +1683,13 @@ export default class DiscoveryImportRunner {
       cached.monitoringMethod = monitoringMethod;
     }
 
+    // The scan's probe, which the builder put on the device.
+    const probeId: ObjectID | undefined = device.probeId || attempted.probeId;
+
+    if (probeId) {
+      cached.probeId = probeId;
+    }
+
     state.devicesById.set(device.id.toString(), cached);
 
     return cached;
@@ -1675,6 +1701,12 @@ export default class DiscoveryImportRunner {
    * made it the moment the device was created - else created. The person's
    * own check runs on the monitor itself first; OneUptime then writes it,
    * provenance and all.
+   *
+   * A Network Device template's monitor reads the device's polls. A Ping,
+   * IP or Port template's checks the device's address (#5145), run by the
+   * probe that polls the device - the scan's, which just proved it can
+   * reach the address - rather than by the project's default probes, which
+   * cannot see a private network.
    */
   private static async ensureMonitor(
     state: ImportRunState,
@@ -1688,7 +1720,13 @@ export default class DiscoveryImportRunner {
       return;
     }
 
+    /*
+     * A device that takes its status from a bound monitor is not polled, so
+     * a Network Device monitor would have nothing to read. A Ping, IP or
+     * Port monitor checks its address all the same.
+     */
     if (
+      template.monitorType === MonitorType.NetworkDevice &&
       NetworkDeviceMonitoringMethodUtil.isMonitorBacked(device.monitoringMethod)
     ) {
       result.monitor = DiscoveryImportMonitorOutcome.Skipped;
@@ -1717,7 +1755,7 @@ export default class DiscoveryImportRunner {
     let monitor: Monitor;
 
     try {
-      monitor = NetworkDeviceMonitorTemplateUtil.buildMonitor({
+      monitor = DeviceMonitorTemplateUtil.buildMonitor({
         template: template,
         networkDevice: device,
       });
@@ -1733,11 +1771,10 @@ export default class DiscoveryImportRunner {
      * carry.
      */
     try {
-      const asThePerson: Monitor =
-        NetworkDeviceMonitorTemplateUtil.buildMonitor({
-          template: template,
-          networkDevice: device,
-        });
+      const asThePerson: Monitor = DeviceMonitorTemplateUtil.buildMonitor({
+        template: template,
+        networkDevice: device,
+      });
       // A column left undefined is not checked: see checkDataColumnPermissions.
       (asThePerson as unknown as Record<string, unknown>)[
         "autoProvisionedNetworkDeviceId"
@@ -1759,6 +1796,14 @@ export default class DiscoveryImportRunner {
     try {
       const created: Monitor = await MonitorService.create({
         data: monitor,
+        ...(isDeviceAddressMonitorType(template.monitorType)
+          ? {
+              miscDataProps: this.getAddressMonitorProbes({
+                device: device,
+                scan: state.scan,
+              }),
+            }
+          : {}),
         props: {
           isRoot: true,
           tenantId: state.projectId,
@@ -1785,6 +1830,24 @@ export default class DiscoveryImportRunner {
 
       this.recordMonitorFailure(state, result, error);
     }
+  }
+
+  /*
+   * The probe a Ping, IP, Port or NTP monitor made for a device runs on: the one
+   * that polls the device, else the scan's - each reached the address. The
+   * project's default probes would be global ones, which cannot reach a
+   * device on a private network, so they are what a device with neither
+   * gets, and only then (the monitor create attaches them when no probe is
+   * named, MonitorService.addProbesToMonitor).
+   */
+  public static getAddressMonitorProbes(data: {
+    device: NetworkDevice;
+    scan: NetworkDeviceDiscoveryScan;
+  }): JSONObject {
+    const probeId: string =
+      data.device.probeId?.toString() || data.scan.probeId?.toString() || "";
+
+    return probeId ? { probes: [probeId] } : {};
   }
 
   private static recordMonitorFailure(

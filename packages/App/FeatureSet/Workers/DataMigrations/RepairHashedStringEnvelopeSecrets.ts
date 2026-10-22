@@ -2,7 +2,6 @@ import DataMigrationBase from "./DataMigrationBase";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "Common/Server/Services/DatabaseService";
 import DataSourceService from "Common/Server/Services/DataSourceService";
-import RunbookCredentialService from "Common/Server/Services/RunbookCredentialService";
 import ThreatIntelFeedService from "Common/Server/Services/ThreatIntelFeedService";
 import UserWebhookService from "Common/Server/Services/UserWebhookService";
 import logger from "Common/Server/Utils/Logger";
@@ -29,7 +28,10 @@ export interface SecretColumns {
 
 /*
  * Every column a dashboard FormFieldSchemaType.Password field writes that
- * is not itself a hashed column.
+ * is not itself a hashed column. (Runbook credentials' SSH passphrase and
+ * password were two, until runbook credentials were removed: the data
+ * migration that moves what is left of them reads through the envelope
+ * itself, RunbookVariablesMove.readSecret, before deleting them.)
  */
 export const SECRET_COLUMNS_WRITTEN_FROM_PASSWORD_FIELDS: Array<SecretColumns> =
   [
@@ -42,12 +44,6 @@ export const SECRET_COLUMNS_WRITTEN_FROM_PASSWORD_FIELDS: Array<SecretColumns> =
       // Dashboards > Settings > Data Sources: create form and Update Credentials.
       service: DataSourceService as unknown as DatabaseService<BaseModel>,
       columns: ["password", "apiToken"],
-    },
-    {
-      // Runbooks > Runner Credentials.
-      service:
-        RunbookCredentialService as unknown as DatabaseService<BaseModel>,
-      columns: ["sshPassphrase", "sshPassword"],
     },
     {
       // User Settings > Notification Methods > Webhooks (not encrypted).

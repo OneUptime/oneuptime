@@ -407,15 +407,10 @@ describe("the English pages name the new location", () => {
       "runbooks/authoring.md",
       "Add an agent under **Runbooks → Runners** before relying on a Bash step.",
     ],
-    [
-      "runbooks/credentials.md",
-      "Manage them under **Runbooks → Runners → AI Access**.",
-    ],
     ["ai/ai-agent.md", "Create a Runner under **Runbooks → Runners**"],
     ["ai/ai-agent.md", "shows as connected on the **Runbooks → Runners** page"],
     ["ai/github-app.md", "is online under **Runbooks → Runners**."],
     ["ai/ai-sre.md", "never appears under Runbooks → Runners."],
-    ["ai/ai-sre.md", "through a Runner you run (Runbooks → Runners)."],
     [
       "ai/infrastructure-ai-agents.md",
       "It never appears under Runbooks → Runners,",
@@ -426,6 +421,10 @@ describe("the English pages name the new location", () => {
     ],
     [UPGRADING_PAGE, "(Or open the Runner in **Runbooks → Runners** and use"],
     [UPGRADING_PAGE, "1. Create a Runner under **Runbooks → Runners** and"],
+    [
+      UPGRADING_PAGE,
+      "The **AI Access** page's old address opens **Runbooks → Runners**.",
+    ],
   ])("%s says: %s", (page: string, sentence: string) => {
     expect(
       readPage(DEFAULT_DOCS_LANGUAGE, page).replace(/\s+/g, " "),

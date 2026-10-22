@@ -63,7 +63,7 @@ const HOOKS_THAT_TAKE: Array<string> = ["onBeforeCreate", "onCreatePermitted"];
  * nobody gave back would be kept alive for minutes.
  */
 const TAKES_A_LOCK: RegExp =
-  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate|AiCommandCredentialReach\.take)\s*\(/;
+  /\b(Semaphore\.lock|StateChangeLock\.take|SsoRequirementChanges\.beforeProjectCreate|ProjectSsoProviderChanges\.lockSignInChange|GlobalSsoProviderChanges\.beforeAttachmentCreate)\s*\(/;
 
 /*
  * Giving one back. A sign-in change's lock is handed back after a failed
@@ -75,7 +75,7 @@ const TAKES_A_LOCK: RegExp =
  * handing them what failed).
  */
 const GIVES_IT_BACK: RegExp =
-  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite|GlobalSsoProviderChanges\.afterFailedCreate|AiCommandCredentialReach\.giveBack|AiCommandCredentialReach\.giveBackAfterCreate|AiCommandCredentialReach\.giveBackAfterFailedCreate)\s*\(/;
+  /\b(Semaphore\.release|StateChangeLock\.giveBack|StateChangeLock\.giveBackFor|SsoRequirementChanges\.afterProjectCreate|SsoRequirementChanges\.afterFailedProjectCreate|ProjectSsoProviderChanges\.releaseSignInChange|GlobalSsoProviderChanges\.afterWrite|GlobalSsoProviderChanges\.afterFailedWrite|GlobalSsoProviderChanges\.afterFailedCreate)\s*\(/;
 
 /*
  * onCreateError takes what onBeforeCreate handed back - and, where the hook
@@ -85,7 +85,10 @@ const ERROR_HOOK_TAKES_THE_CREATE: RegExp =
   /onCreateError\(\s*error: Exception,\s*onCreate\?: OnCreate<\w+> \| undefined,?\s*(failedStatement\?: StatementContext \| undefined,?\s*)?\)/;
 
 /*
- * Every service whose create hooks take a lock, and what it locks.
+ * Every service whose create hooks take a lock, and what it locks. (A
+ * runbook credential's create took the project's lock on what OneUptime
+ * AI's commands reach - AiCommandCredentialReach - until runbook
+ * credentials were removed, and the lock with them.)
  */
 const LOCKING_CREATES: Record<string, string> = {
   "AlertEpisodeStateTimelineService.ts": "the alert episode",
@@ -96,8 +99,6 @@ const LOCKING_CREATES: Record<string, string> = {
   "IncidentStateTimelineService.ts": "the incident",
   "MonitorStatusTimelineService.ts": "the monitor (failing closed)",
   "ProjectService.ts": "the server's sign-in rules",
-  "RunbookCredentialService.ts":
-    "the project's runbook credentials and AI Runners (failing closed)",
   "ScheduledMaintenanceStateTimelineService.ts":
     "the scheduled maintenance event",
 };

@@ -112,6 +112,18 @@ Il grado decide quale gravità prevale dove OneUptime le confronta: la gravità 
 
 Una gravità da sola non chiama nessuno. Per chiamare in base alla gravità, aggiungete una regola di reperibilità le cui **Avviso Gravità** vi corrispondano: vedere [Regole e impostazioni degli avvisi](/docs/alerts/settings). Cambiare la gravità di un avviso scrive una voce nel suo feed e ricalcola la sua regola di promemoria.
 
+## Archiviare uno stato o una gravità
+
+Archivia uno stato o una gravità che il tuo team non deve più usare, invece di eliminarlo. L'archiviazione non modifica alcun avviso. Eliminare uno stato toglie le sue righe dalla cronologia di ogni avviso, e una gravità non può essere eliminata finché ci sono avvisi che la hanno.
+
+- **Archivia** si trova nel menu **⋯** della riga. Chiede prima conferma ed elenca le regole, le misurazioni, i criteri dei monitor e i flussi di lavoro configurati per usare il valore: continuano a usarlo finché non li modifichi.
+- **Nessuno può più sceglierlo.** **Cambia stato**, l'intestazione dell'avviso, Slack, Microsoft Teams, le regole e i criteri dei monitor lo escludono. L'API, Terraform e MCP lo rifiutano, indicando il valore e dove annullarne l'archiviazione.
+- **Gli avvisi lo mantengono.** Un avviso che lo ha lo mantiene a ogni modifica successiva, la sua cronologia degli stati lo mostra ancora e puoi ancora filtrare in base a esso.
+- **I valori archiviati sono elencati a parte**, nella sezione compressa **Stati avviso archiviati** o **Gravità avviso archiviate** sotto la tabella, con chi ha archiviato ciascuno e quando. **Annulla archiviazione** ne ripristina uno com'era.
+- **Alcuni non possono essere archiviati.** Gli stati creato, confermato e risolto, e l'ultima gravità non archiviata del progetto. Il loro **Archivia** è bloccato, con il motivo.
+
+**Elimina** dice prima cosa farebbe. Finché avvisi o episodi hanno il valore, l'eliminazione viene rifiutata e la finestra di dialogo li elenca. Altrimenti elenca cosa cambierebbe l'eliminazione e offre **Archivia invece**.
+
 ## Far passare un avviso tra i suoi stati
 
 | Modo                             | Dove                                                                                      | Che cosa chiede                                                                                                                      |

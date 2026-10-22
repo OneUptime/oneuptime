@@ -31,7 +31,7 @@ import {
 import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
-import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixSwitches";
+import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CODE_TASK_LIMITS,
@@ -1485,7 +1485,8 @@ describe("MCP Server", () => {
   }
 
   it("lists every record with CRUD tools, by its model's name", () => {
-    expect(records()).toHaveLength(27);
+    // Postmortem Status, the 28th, came with the Postmortems list.
+    expect(records()).toHaveLength(28);
     expect(namesIn(0)).toEqual(records());
     // Every database model with MCP on gets all six tools.
     for (const tool of [
@@ -1748,7 +1749,7 @@ describe("AI SRE and the infrastructure AI agents", () => {
       AutoRemediationTriggerEntity.Alert,
     ]) {
       expect(defaults).not.toContain(
-        `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal].fix}"`,
+        `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal]}"`,
       );
     }
 

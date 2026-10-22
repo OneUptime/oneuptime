@@ -14,7 +14,7 @@ import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCal
 import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
-import RunbookCredential from "../../../../../Models/DatabaseModels/RunbookCredential";
+import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import VideoCallConnection from "../../../../../Models/DatabaseModels/VideoCallConnection";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -36,8 +36,8 @@ afterEach(() => {
  * A WORKFLOW'S STEP NAMES NO SETTING THAT HOLDS CREDENTIALS.
  *
  * A setting that holds credentials - an SMTP server, a call and SMS
- * provider, SNMP credentials, a video call connection, an API key, a
- * runbook credential - is named only by a caller who may read it
+ * provider, SNMP credentials, a video call connection, an API key - is
+ * named only by a caller who may read it
  * (RelationListPermission.isHeldToTableRead). A workflow's step acts as a
  * Project Admin, who may read every one of them; but whoever may edit a
  * workflow decides what its steps name - with whatever its variables,
@@ -279,7 +279,6 @@ describe("a workflow's step naming a setting that holds credentials", () => {
       NetworkSnmpCredentialProfile,
       ProjectCallSMSConfig,
       ProjectSmtpConfig,
-      RunbookCredential,
       VideoCallConnection,
     ]) {
       expect(RelationListPermission.mayReadTable(modelType, step())).toBe(
@@ -304,7 +303,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
         new NetworkSnmpCredentialProfile().tableName!,
         new ProjectCallSMSConfig().tableName!,
         new ProjectSmtpConfig().tableName!,
-        new RunbookCredential().tableName!,
+        new SecurityEventConnection().tableName!,
         new VideoCallConnection().tableName!,
       ].sort(),
     );
@@ -323,6 +322,7 @@ const WORKFLOW_RECORDS_NAMING_CREDENTIAL_SETTINGS: Array<string> = [
   "IncomingCallPolicy.projectCallSMSConfig -> ProjectCallSMSConfig",
   "StatusPage.callSmsConfig -> ProjectCallSMSConfig",
   "StatusPage.smtpConfig -> ProjectSMTPConfig",
+  "ThreatIntelFeed.securityEventConnection -> SecurityEventConnection",
 ];
 
 describe("the workflow records that can name a setting that holds credentials", () => {

@@ -6,6 +6,7 @@ import {
   readClassSource,
 } from "../TestingUtils/ClassSource";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
 import path from "path";
 
 /*
@@ -38,8 +39,9 @@ import path from "path";
  * which do not know what failed.
  *
  * The two writes that put an SSH credential within reach of OneUptime AI's
- * commands - a Runner's update, a runbook credential's create - hold a lock
- * the same way (AiCommandCredentialReach), and hand on the same.
+ * commands - a Runner's update, a runbook credential's create - held a lock
+ * the same way (AiCommandCredentialReach), until runbook credentials were
+ * removed, and the lock with them.
  */
 
 // packages/Common/Tests/Server/Services -> packages/Common
@@ -50,10 +52,6 @@ const UTILS_DIR: string = path.join(COMMON_DIR, "Server", "Utils");
 // What an error hook hands on, last: the error it was handed, and which step failed.
 const HANDS_ON_ERROR_AND_STEP: RegExp =
   /,\s*error\s*,\s*failedStatement\s*,?\s*$/;
-
-// The same for AiCommandCredentialReach, which takes the error first.
-const HANDS_ON_ERROR_WRITE_AND_STEP: RegExp =
-  /^\s*error\s*,\s*on(Create|Update)\s*,\s*failedStatement\s*,?\s*$/;
 
 interface ErrorHookEntry {
   file: string;
@@ -130,23 +128,11 @@ const ERROR_HOOKS: Array<ErrorHookEntry> = [
     helper: /GlobalSsoProviderChanges\.afterFailedCreate/,
     handsOn: HANDS_ON_ERROR_AND_STEP,
   },
-  {
-    file: "RunnerService.ts",
-    hooks: ["onUpdateError"],
-    helper: /AiCommandCredentialReach\.giveBackAfterFailedUpdate/,
-    handsOn: HANDS_ON_ERROR_WRITE_AND_STEP,
-  },
-  {
-    file: "RunbookCredentialService.ts",
-    hooks: ["onCreateError"],
-    helper: /AiCommandCredentialReach\.giveBackAfterFailedCreate/,
-    handsOn: HANDS_ON_ERROR_WRITE_AND_STEP,
-  },
 ];
 
 // The helpers the success hooks give locks back with: they do not know what failed.
 const SUCCESS_HELPERS: RegExp =
-  /\b(SsoRequirementChanges\.afterUpdate|SsoRequirementChanges\.afterProjectCreate|GlobalSsoProviderChanges\.afterWrite|ProjectSsoProviderChanges\.releaseSignInChange|AiCommandCredentialReach\.giveBack|AiCommandCredentialReach\.giveBackAfterUpdate|AiCommandCredentialReach\.giveBackAfterCreate)\s*\(/;
+  /\b(SsoRequirementChanges\.afterUpdate|SsoRequirementChanges\.afterProjectCreate|GlobalSsoProviderChanges\.afterWrite|ProjectSsoProviderChanges\.releaseSignInChange)\s*\(/;
 
 const SOURCES: Map<string, ClassSource> = new Map<string, ClassSource>();
 
@@ -247,54 +233,20 @@ describe("the helpers decide by what failed, and which step it was", () => {
     );
   });
 
-  test.each([
-    ["giveBackAfterFailedUpdate", /^\s*failedStatement\s*$/],
-    [
-      "giveBackAfterFailedCreate",
-      /^\s*StatementOutcome\.ofCreate\(\s*failedStatement\s*\)\s*$/,
-    ],
-  ])(
-    "AiCommandCredentialReach %s hands its error, and which step failed, to giveBackAfterFailedWrite",
-    (method: string, context: RegExp) => {
-      const classSource: ClassSource = readClassSource(
+  test("the lock on what OneUptime AI's commands reach went with runbook credentials", () => {
+    expect(
+      fs.existsSync(
         path.join(UTILS_DIR, "AutoRemediation", "AiCommandCredentialReach.ts"),
-      );
-      const text: string = methodText(classSource, method);
-
-      expect(text).toMatch(/failedStatement\?: StatementContext \| undefined/);
-
-      const calls: Array<string> = callArguments(
-        text,
-        /AiCommandCredentialReach\.giveBackAfterFailedWrite/,
-      );
-
-      expect(calls).toHaveLength(1);
-
-      // The hold, the error, and what is known of the failed statement.
-      const handedOn: Array<string> = calls[0]!
-        .split(/,(?![^(]*\))/)
-        .filter((argument: string): boolean => {
-          return argument.trim().length > 0;
-        });
-
-      expect(handedOn).toHaveLength(3);
-      expect(handedOn[1]!.trim()).toBe("error");
-      expect(handedOn[2]!).toMatch(context);
-
-      // Which decides by StatementOutcome.
-      expect(methodText(classSource, "giveBackAfterFailedWrite")).toMatch(
-        /StatementOutcome\.mayStillApply\(\s*error,\s*context\s*\)/,
-      );
-    },
-  );
+      ),
+    ).toBe(false);
+    expect(
+      fs.existsSync(path.join(SERVICES_DIR, "RunbookCredentialService.ts")),
+    ).toBe(false);
+  });
 
   test.each([
     ["SsoRequirementChanges.ts", "afterFailedProjectCreate"],
     ["GlobalSsoProviderChanges.ts", "afterFailedCreate"],
-    [
-      path.join("AutoRemediation", "AiCommandCredentialReach.ts"),
-      "giveBackAfterFailedCreate",
-    ],
   ])(
     "%s %s says the create runs in a transaction of its own",
     (file: string, method: string) => {

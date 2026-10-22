@@ -6,6 +6,7 @@ Topologi tegner, hvordan dine systemer hænger sammen: hvilke tjenester der kald
 - [Åbn Topologi](#åbn-topologi): Tre visninger af én side.
 - [Læs tjenestekortet](#læs-tjenestekortet): Hvem der kalder hvem, og hvor sunde kaldene er.
 - [Udforsk din infrastruktur](#udforsk-din-infrastruktur): Hvor hver tjeneste kører.
+- [Åbn en ressources eget kort](#åbn-en-ressources-eget-kort): Ét vCenter, én klynge eller én vært i dybden.
 - [Se dit netværk](#se-dit-netværk): Enheder og deres forbindelser, live.
 :::
 
@@ -80,6 +81,14 @@ Klik på en pil for at se dens anmodningsrate, fejlrate og gennemsnitlige latens
 - **Gennemse den på din måde.** Vis den som **Liste** eller **Map**, fra hele din infrastruktur ned til én pod. Tallene over den viser, hvor mange ressourcer og workloads den tegner, hvor mange tjenester den kan placere, og hvor mange tavse ressourcer den udelader.
 - **Find en ressource.** Søg efter den ved navn, og klik på **View details** for at åbne dens side.
 - **Skift mellem visninger.** En tjeneste, der står på en ressource, åbner på **Service Map**, og de ressourcer, en tjeneste kører på, åbner på **Infrastruktur**.
+
+## Åbn en ressources eget kort
+
+Et vCenter, en Kubernetes-klynge, en vært, en Docker- eller Podman-vært, en Docker Swarm-, Proxmox- eller Ceph-klynge og et storage-array har hver deres egen side **Topologi**. Den tegner netop den ressource i dybden ud fra dens eget inventar: hvad der ligger i hvad, hver del farvet efter, hvordan den har det, og hver åben hændelse og alarm på den del, den handler om.
+
+- **Find det, der kræver opmærksomhed.** **Kræver opmærksomhed** beholder kun de dele, der har problemer, og vejen til hver af dem, og søgningen finder en del hvor som helst i ressourcen.
+- **Se nærmere.** Klik på en del for at se, hvad den er, med et link til dens egen side, og på **Fokuser på dette** for kun at tegne den del, hvad den indeholder, og hvad den hænger sammen med.
+- **Gå begge veje.** **Åbn i Topologi** åbner ressourcen på **Infrastruktur**, og dens knap **Åbn vCenter-topologi**, **Åbn klyngetopologi**, **Åbn værtstopologi** eller **Åbn storage-arrayets topologi** fører tilbage.
 
 ## Se dit netværk
 

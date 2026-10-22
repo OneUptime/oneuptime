@@ -967,6 +967,8 @@ export class Service {
         await AlertSeverityService.findOneBy({
           query: {
             projectId: projectId,
+            // A default OneUptime picks itself: never an archived severity.
+            isArchived: false,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -1324,7 +1326,7 @@ export class Service {
             return `Nobody is next in the rotation of schedule ${nameOf(data.targets.schedules, target.scheduleId) || "(unnamed)"} right now.`;
           // A direct page pages everybody as it starts; said all the same.
           case OnCallNotPagedReason.PassedOn:
-            return `${nameOfUser(target.userId)} was not paged: they passed this page on.`;
+            return `${nameOfUser(target.userId)} was not paged: they escalated this page.`;
           case OnCallNotPagedReason.EmptyTeam:
           default:
             return `Team ${nameOf(data.targets.teams, target.teamId) || "(unnamed)"} has no members.`;

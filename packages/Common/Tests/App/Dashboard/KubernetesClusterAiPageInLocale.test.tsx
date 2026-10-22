@@ -738,33 +738,40 @@ describe("the AI agent page in the reader's language", () => {
     },
   );
 
+  /*
+   * The previous in-cluster Runner's sentence, the one Runner a cluster is
+   * still reached through (a Runner outside the cluster had a sentence of
+   * its own, naming its runbook credential, until runbook credentials were
+   * removed).
+   */
   test.each(LANGUAGES)(
-    "%s: a Runner without a name is unnamed in the reader's language; the credential's name stays as typed",
+    "%s: the previous in-cluster Runner works today, in the reader's language",
     async (code: string) => {
       await setLanguage(code);
       serve(
         makeStatus({
           runner: {
-            id: "55555555-0000-4000-8000-000000000006",
-            name: "",
-            kind: "runner",
+            id: "55555555-0000-4000-8000-000000000005",
+            name: "kubernetes-agent/prod-east",
             isOnline: true,
             lastAliveAt: new Date().toISOString(),
             canRunAiCommands: true,
-            posture: { inCluster: false, kubectlVersion: "v1.29.1" },
+            posture: {
+              clusterIdentifier: "prod-east",
+              inCluster: true,
+              allowWrites: false,
+              kubectlVersion: "v1.30.0",
+            },
           },
-          accessMethod: "credential",
-          credentialId: "cred-1",
-          credentialName: "prod token",
+          aiAgent: null,
         }),
       );
       openAgentPage(acme());
 
       expect(await findTestId("ai-agent-sentence")).toHaveTextContent(
-        filledIn(
+        wordingIn(
           code,
-          'Reached through Runner "{{runner}}" with credential "{{credential}}".',
-          { runner: wordingIn(code, "(unnamed)"), credential: "prod token" },
+          "Works today. Upgrade the Kubernetes agent chart to switch to the new AI agent — your settings carry over.",
         ),
       );
     },

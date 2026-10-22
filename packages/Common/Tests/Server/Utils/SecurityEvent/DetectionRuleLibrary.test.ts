@@ -21,8 +21,23 @@ import {
   resolveMitreTechniqueId,
 } from "../../../../Types/SecurityEvent/MitreAttack";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
-import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import {
+  DetectionRuleDefinition,
+  DetectionRuleType,
+  SigmaCorrelationStep,
+  detectionRuleTypeOf,
+} from "../../../../Types/SecurityEvent/SigmaCorrelation";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+  sigmaRulesOf,
+} from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { describe, expect, test } from "@jest/globals";
+
+// The rule as the engine reads it: one Sigma rule, or a correlation, all in its own YAML.
+function parseEntry(entry: DetectionRuleLibraryEntry): DetectionRuleDefinition {
+  // No resolver: a library rule carries every rule it reads.
+  return SigmaRuleSetParser.parse(entry.sigmaRuleYaml);
+}
 
 /*
  * The rule library is only worth offering if every rule in it is one the
@@ -72,6 +87,20 @@ describe("DETECTION_RULE_LIBRARY", () => {
     expect(getDetectionRuleLibraryEntry("missing")).toBeUndefined();
   });
 
+  test("offers sequences and first-seen rules beside single-event ones", () => {
+    const types: Set<DetectionRuleType> = new Set(
+      DETECTION_RULE_LIBRARY.map(
+        (entry: DetectionRuleLibraryEntry): DetectionRuleType => {
+          return detectionRuleTypeOf(parseEntry(entry));
+        },
+      ),
+    );
+
+    expect(types.has(DetectionRuleType.SingleEvent)).toBe(true);
+    expect(types.has(DetectionRuleType.TemporalOrdered)).toBe(true);
+    expect(types.has(DetectionRuleType.NewValue)).toBe(true);
+  });
+
   test("covers identity, endpoint and cloud with more than a token rule each", () => {
     const countIn: (category: DetectionRuleLibraryCategory) => number = (
       category: DetectionRuleLibraryCategory,
@@ -98,7 +127,7 @@ describe("DETECTION_RULE_LIBRARY", () => {
     "%s",
     (_title: string, entry: DetectionRuleLibraryEntry) => {
       test("parses, with the entry's id and title", () => {
-        const rule: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
+        const rule: SigmaRule = detectionRuleHeader(parseEntry(entry));
 
         expect(rule.id).toBe(entry.id);
         expect(rule.title).toBe(entry.title);
@@ -106,12 +135,32 @@ describe("DETECTION_RULE_LIBRARY", () => {
       });
 
       test("compiles to a parameterized ClickHouse condition", () => {
-        const rule: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
-        const statement: Statement = SigmaClickhouseCompiler.compile(rule);
+        for (const rule of sigmaRulesOf(parseEntry(entry))) {
+          const statement: Statement = SigmaClickhouseCompiler.compile(rule);
 
-        expect(statement.query.length).toBeGreaterThan(0);
-        // Every value travels as a parameter, never as SQL text.
-        expect(Object.keys(statement.query_params).length).toBeGreaterThan(0);
+          expect(statement.query.length).toBeGreaterThan(0);
+          // Every value travels as a parameter, never as SQL text.
+          expect(Object.keys(statement.query_params).length).toBeGreaterThan(0);
+        }
+      });
+
+      test("a correlation holds every rule it reads, and groups by its own fields", () => {
+        const definition: DetectionRuleDefinition = parseEntry(entry);
+
+        if (definition.kind !== "correlation") {
+          return;
+        }
+
+        expect(definition.unresolvedReferences).toEqual([]);
+        expect(
+          definition.steps.every((step: SigmaCorrelationStep): boolean => {
+            return Boolean(step.rule || step.count);
+          }),
+        ).toBe(true);
+        // Its YAML holds its grouping: the entry sets none of its own.
+        expect(entry.groupByField).toBeUndefined();
+        expect(entry.distinctCountField).toBeUndefined();
+        expect(entry.matchCountThreshold).toBe(1);
       });
 
       test("its group and distinct-count fields build expressions", () => {
@@ -149,7 +198,7 @@ describe("DETECTION_RULE_LIBRARY", () => {
       });
 
       test("names at least one ATT&CK tactic and technique of the current matrix", () => {
-        const rule: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
+        const rule: SigmaRule = detectionRuleHeader(parseEntry(entry));
 
         expect(rule.mitreTactics.length).toBeGreaterThan(0);
         expect(rule.mitreTechniques.length).toBeGreaterThan(0);
