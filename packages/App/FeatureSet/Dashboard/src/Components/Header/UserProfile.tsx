@@ -30,7 +30,8 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
-  const theme: Theme = useTheme();
+  useTheme(); // subscribe to theme changes to trigger re-renders
+  const storedTheme: Theme = ThemeUtil.getStoredTheme();
 
   const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
     User.getProfilePicId(),
@@ -111,15 +112,23 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
           <IconDropdownItem
             title={
-              theme === Theme.Dark
-                ? t("userProfile.lightTheme", "Light theme")
-                : t("userProfile.darkTheme", "Dark theme")
+              storedTheme === Theme.Light
+                ? t("userProfile.darkTheme", "Dark theme")
+                : storedTheme === Theme.Dark
+                  ? t("userProfile.systemTheme", "System theme")
+                  : t("userProfile.lightTheme", "Light theme")
             }
             onClick={() => {
               ThemeUtil.toggleTheme();
               setIsDropdownVisible(false);
             }}
-            icon={theme === Theme.Dark ? IconProp.Sun : IconProp.Moon}
+            icon={
+              storedTheme === Theme.Light
+                ? IconProp.Moon
+                : storedTheme === Theme.Dark
+                  ? IconProp.ComputerDesktop
+                  : IconProp.Sun
+            }
           />
 
           <IconDropdownItem

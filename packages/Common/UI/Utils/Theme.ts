@@ -3,6 +3,7 @@ import React from "react";
 export enum Theme {
   Light = "light",
   Dark = "dark",
+  System = "system",
 }
 
 export const THEME_STORAGE_KEY: string = "oneuptime-dashboard-theme";
@@ -11,20 +12,43 @@ export const THEME_CHANGE_EVENT: string = "oneuptime:theme-change";
 const LIGHT_THEME_COLOR: string = "#f9fafb";
 const DARK_THEME_COLOR: string = "#0f172a";
 
-/**
- * Owns the dashboard theme at the document boundary. The saved preference is
- * deliberately opt-in: a missing, invalid, or inaccessible value is light.
- */
 export default class ThemeUtil {
   private static hasStorageListener: boolean = false;
+  private static hasMediaListener: boolean = false;
 
   public static getStoredTheme(): Theme {
     if (typeof window === "undefined") {
-      return Theme.Light;
+      return Theme.System;
     }
 
     try {
-      return window.localStorage.getItem(THEME_STORAGE_KEY) === Theme.Dark
+      const stored: string | null =
+        window.localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === Theme.Dark) {
+        return Theme.Dark;
+      }
+      if (stored === Theme.Light) {
+        return Theme.Light;
+      }
+      // "system", missing, or any unrecognised value → follow OS.
+      return Theme.System;
+    } catch {
+      return Theme.System;
+    }
+  }
+
+  /**
+   * Converts a stored Theme to the visual Light or Dark that should be
+   * applied right now. System is resolved via prefers-color-scheme; Light and
+   * Dark pass through unchanged.
+   */
+  public static resolveTheme(theme: Theme): Theme.Light | Theme.Dark {
+    if (theme !== Theme.System) {
+      return theme as Theme.Light | Theme.Dark;
+    }
+
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
         ? Theme.Dark
         : Theme.Light;
     } catch {
@@ -49,22 +73,47 @@ export default class ThemeUtil {
 
     ThemeUtil.applyTheme(ThemeUtil.getStoredTheme(), false);
 
-    if (ThemeUtil.hasStorageListener) {
-      return;
+    if (!ThemeUtil.hasStorageListener) {
+      window.addEventListener("storage", (event: StorageEvent): void => {
+        if (event.key !== THEME_STORAGE_KEY && event.key !== null) {
+          return;
+        }
+
+        let theme: Theme;
+        if (event.key === THEME_STORAGE_KEY) {
+          if (event.newValue === Theme.Dark) {
+            theme = Theme.Dark;
+          } else if (event.newValue === Theme.Light) {
+            theme = Theme.Light;
+          } else {
+            theme = Theme.System;
+          }
+        } else {
+          // null key means the whole storage was cleared.
+          theme = Theme.System;
+        }
+
+        ThemeUtil.applyTheme(theme);
+      });
+      ThemeUtil.hasStorageListener = true;
     }
 
-    window.addEventListener("storage", (event: StorageEvent): void => {
-      if (event.key !== THEME_STORAGE_KEY && event.key !== null) {
-        return;
+    // Re-theme when the OS switches dark/light (e.g. auto dark-mode at sunset).
+    if (!ThemeUtil.hasMediaListener) {
+      try {
+        const mq: MediaQueryList = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        );
+        mq.addEventListener("change", (): void => {
+          if (ThemeUtil.getStoredTheme() === Theme.System) {
+            ThemeUtil.applyTheme(Theme.System);
+          }
+        });
+        ThemeUtil.hasMediaListener = true;
+      } catch {
+        // matchMedia unavailable (jsdom, old browsers); ignore.
       }
-
-      ThemeUtil.applyTheme(
-        event.key === THEME_STORAGE_KEY && event.newValue === Theme.Dark
-          ? Theme.Dark
-          : Theme.Light,
-      );
-    });
-    ThemeUtil.hasStorageListener = true;
+    }
   }
 
   public static setTheme(theme: Theme): void {
@@ -79,30 +128,36 @@ export default class ThemeUtil {
     ThemeUtil.applyTheme(theme);
   }
 
+  /** Cycles Light → Dark → System → Light. */
   public static toggleTheme(): Theme {
-    const theme: Theme =
-      ThemeUtil.getAppliedTheme() === Theme.Dark ? Theme.Light : Theme.Dark;
-    ThemeUtil.setTheme(theme);
-    return theme;
+    const current: Theme = ThemeUtil.getStoredTheme();
+    const next: Theme =
+      current === Theme.Light
+        ? Theme.Dark
+        : current === Theme.Dark
+          ? Theme.System
+          : Theme.Light;
+    ThemeUtil.setTheme(next);
+    return next;
   }
 
   /*
-   * Draws the document in a theme - the dark class, data-theme, the
-   * color-scheme and the theme-color tag - and tells useTheme. Without
-   * saving it: the dashboard saves the reader's pick (setTheme), and a
-   * status page draws the theme its owner set (StatusPage/src/Utils/
-   * StatusPageTheme.ts), which is not the dashboard's to remember.
+   * Draws the document in a theme — the dark class, data-theme, the
+   * color-scheme and the theme-color tag — and tells useTheme. System is
+   * resolved to the OS preference before any class is toggled; data-theme
+   * and color-scheme always hold the resolved (light | dark) value.
    */
   public static applyTheme(theme: Theme, notify: boolean = true): void {
     if (typeof document === "undefined") {
       return;
     }
 
-    const isDark: boolean = theme === Theme.Dark;
+    const resolved: Theme.Light | Theme.Dark = ThemeUtil.resolveTheme(theme);
+    const isDark: boolean = resolved === Theme.Dark;
     const root: HTMLElement = document.documentElement;
     root.classList.toggle(Theme.Dark, isDark);
-    root.dataset["theme"] = theme;
-    root.style.colorScheme = theme;
+    root.dataset["theme"] = resolved;
+    root.style.colorScheme = resolved;
 
     const themeColor: HTMLMetaElement | null = document.querySelector(
       'meta[name="theme-color"]:not([media])',
@@ -115,7 +170,7 @@ export default class ThemeUtil {
     if (notify && typeof window !== "undefined") {
       window.dispatchEvent(
         new CustomEvent(THEME_CHANGE_EVENT, {
-          detail: { theme },
+          detail: { theme: resolved },
         }),
       );
     }
