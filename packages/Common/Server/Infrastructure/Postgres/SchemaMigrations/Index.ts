@@ -161,6 +161,7 @@ import { AddArchiveToValues1805800000000 } from "./1805800000000-AddArchiveToVal
 import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArchiveToValuesUserKeys";
 import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
 import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./1805830000000-MoveFixPullRequestSwitchesIntoRules";
+import { AddThreatIntelFeedConnectionIndexAndKey1805840000000 } from "./1805840000000-AddThreatIntelFeedConnectionIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1524,4 +1525,5 @@ export default [
   AddArchiveToValuesUserKeys1805810000000,
   AddThreatIntelFeedSources1805820000000,
   MoveFixPullRequestSwitchesIntoRules1805830000000,
+  AddThreatIntelFeedConnectionIndexAndKey1805840000000,
 ];
