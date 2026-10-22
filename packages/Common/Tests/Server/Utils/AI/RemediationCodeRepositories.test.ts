@@ -180,9 +180,7 @@ describe("every incident and alert AI run is held to its rules' repositories", (
     (directory: string, file: string) => {
       const source: string = read(directory, file);
 
-      expect(source).toContain(
-        "await RemediationCodeRepositories.forRule({\n",
-      );
+      expect(source).toContain("await RemediationCodeRepositories.forRule({\n");
       expect(source).toMatch(FOR_THE_RUNS_RULE);
       expect(engineCall(source)).toContain("codeRepositoryAllowance,");
     },

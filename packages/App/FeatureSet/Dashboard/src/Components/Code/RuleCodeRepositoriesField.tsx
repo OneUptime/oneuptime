@@ -178,7 +178,9 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
           RULE_CODE_REPOSITORIES_FIELD_COPY.title,
         )}
         ariaLabelledby={props.ariaLabelledby}
-        onChange={(value: DropdownValue | Array<DropdownValue> | null): void => {
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+        ): void => {
           const values: Array<DropdownValue> = Array.isArray(value)
             ? value
             : value === null || value === undefined

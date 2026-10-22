@@ -166,7 +166,8 @@ const ENABLE_OR_DISABLE: RegExp = /\b(enable|disable)/i;
 const PULL_REQUEST: RegExp = /pull request/;
 
 // The fix pull request switches' columns, before the rules held them.
-const PULL_REQUEST_SWITCH_COLUMN: RegExp = /(CodeFixes|InstrumentationFixTasks)$/;
+const PULL_REQUEST_SWITCH_COLUMN: RegExp =
+  /(CodeFixes|InstrumentationFixTasks)$/;
 
 /*
  * The switches a new project starts without: fixing new incidents and

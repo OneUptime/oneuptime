@@ -60,7 +60,9 @@ const VALUES: Array<boolean | null | undefined> = [
 const API: string = "c1111111-1111-4111-8111-111111111111";
 const WEB: string = "c2222222-2222-4222-8222-222222222222";
 
-function fixingOn(signal: AutoRemediationTriggerEntity): AutomaticFixSwitchValues {
+function fixingOn(
+  signal: AutoRemediationTriggerEntity,
+): AutomaticFixSwitchValues {
   return { [AUTOMATIC_FIX_SWITCH_COLUMNS[signal]]: true };
 }
 
@@ -147,8 +149,9 @@ describe("the columns", () => {
 
     for (const pullRequest of PULL_REQUESTS) {
       const column: string = REMEDIATION_RULE_PULL_REQUEST_COLUMNS[pullRequest];
-      const metadata: ReturnType<AutoRemediationRule["getTableColumnMetadata"]> =
-        model.getTableColumnMetadata(column);
+      const metadata: ReturnType<
+        AutoRemediationRule["getTableColumnMetadata"]
+      > = model.getTableColumnMetadata(column);
 
       expect([
         column,
@@ -207,11 +210,11 @@ describe("doesRuleOpenPullRequest", () => {
           [REMEDIATION_RULE_PULL_REQUEST_COLUMNS[pullRequest]]: value,
         };
 
-        expect([pullRequest, value, doesRuleOpenPullRequest(facts, pullRequest)]).toEqual([
+        expect([
           pullRequest,
           value,
-          value === true,
-        ]);
+          doesRuleOpenPullRequest(facts, pullRequest),
+        ]).toEqual([pullRequest, value, value === true]);
       }
     }
   });
@@ -320,7 +323,10 @@ describe("decideAutomaticFixPullRequest: the rules", () => {
   test("no rule set up: both pull requests open, in every connected repository", () => {
     for (const pullRequest of PULL_REQUESTS) {
       expect(
-        decide({ pullRequest, rules: { rulesSetUp: false, matchingRules: [] } }),
+        decide({
+          pullRequest,
+          rules: { rulesSetUp: false, matchingRules: [] },
+        }),
       ).toEqual({ blocker: null, repositories: EVERY_CODE_REPOSITORY });
     }
   });
@@ -457,9 +463,9 @@ describe("getAutomaticFixSwitchSelect", () => {
     expect(
       getAutomaticFixSwitchSelect(AutoRemediationTriggerEntity.Incident),
     ).toEqual({ enableAutomaticIncidentRemediation: true });
-    expect(getAutomaticFixSwitchSelect(AutoRemediationTriggerEntity.Alert)).toEqual(
-      { enableAutomaticAlertRemediation: true },
-    );
+    expect(
+      getAutomaticFixSwitchSelect(AutoRemediationTriggerEntity.Alert),
+    ).toEqual({ enableAutomaticAlertRemediation: true });
   });
 
   test("what it selects is exactly what the decision reads", () => {

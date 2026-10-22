@@ -282,9 +282,9 @@ describe("FixFromIncident task-details investigation snapshot", () => {
 
     async function startWith(
       taskContext: CodeFixTaskContext,
-    ): Promise<SpyInstance<
-      typeof CodeRepositoryService.resolveRepositoryForException
-    >> {
+    ): Promise<
+      SpyInstance<typeof CodeRepositoryService.resolveRepositoryForException>
+    > {
       const incidentId: ObjectID = ObjectID.generate();
       jest
         .spyOn(AIRunService, "findOneById")

@@ -492,7 +492,9 @@ describe("the messages people act on name Runbooks", () => {
     expect(model).toContain(
       'export const REMEDIATION_NO_RUNNER_PLACEHOLDER: string = translationKey("No Runner");',
     );
-    expect(model).not.toContain('translationKey("AI agent on the cluster or host")');
+    expect(model).not.toContain(
+      'translationKey("AI agent on the cluster or host")',
+    );
     expect(steps).toContain(
       'description: "Run a shell command on one of your Runners.",',
     );

@@ -37,9 +37,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const INCIDENT_ID: ObjectID = new ObjectID(
   "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
 );
-const ALERT_ID: ObjectID = new ObjectID(
-  "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
-);
+const ALERT_ID: ObjectID = new ObjectID("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1");
 const MONITOR_A: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
 );
@@ -331,7 +329,10 @@ describe("RemediationRulePullRequests.getRulesForSignal", () => {
       }),
     ).toEqual({
       blocker: null,
-      repositories: { isEveryRepository: false, repositoryIds: [CHECKOUT_REPO] },
+      repositories: {
+        isEveryRepository: false,
+        repositoryIds: [CHECKOUT_REPO],
+      },
     });
   });
 });

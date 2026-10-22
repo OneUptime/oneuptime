@@ -59,7 +59,8 @@ const MIGRATIONS_DIRECTORY: string =
 const SOURCE_FILE: RegExp = /\.tsx?$/;
 const DECLARATION_FILE: RegExp = /\.d\.ts$/;
 
-const RULE_FILE: string = "packages/Common/Types/AI/AutomaticFixPullRequests.ts";
+const RULE_FILE: string =
+  "packages/Common/Types/AI/AutomaticFixPullRequests.ts";
 
 const TRIGGERS: Array<string> = [
   "packages/Common/Server/Utils/AI/SRE/FixFromIncidentTaskTrigger.ts",

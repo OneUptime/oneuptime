@@ -65,8 +65,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   private assertCodeRepositoriesFit(repositories: unknown): void {
-    const problem: string | null =
-      getRuleCodeRepositoriesProblem(repositories);
+    const problem: string | null = getRuleCodeRepositoriesProblem(repositories);
 
     if (problem) {
       throw new BadDataException(problem);

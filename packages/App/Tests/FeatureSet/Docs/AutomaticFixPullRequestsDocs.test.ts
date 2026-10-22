@@ -138,9 +138,11 @@ describe("the upgrade note", () => {
 
   it("says every project keeps its choice, and names the rule the upgrade adds as the migration names it", () => {
     expect(note).toContain("Every project keeps its choice:");
-    expect(SIGNAL_COLUMNS.map((signal: { ruleName: string }) => {
-      return signal.ruleName;
-    })).toEqual(["All incidents", "All alerts"]);
+    expect(
+      SIGNAL_COLUMNS.map((signal: { ruleName: string }) => {
+        return signal.ruleName;
+      }),
+    ).toEqual(["All incidents", "All alerts"]);
     expect(note).toContain(
       `With no enabled rule of that kind, it gets one, **${SIGNAL_COLUMNS[0]!.ruleName}** (or **${SIGNAL_COLUMNS[1]!.ruleName}**)`,
     );
@@ -202,7 +204,10 @@ describe("the AI SRE page", () => {
     getSection(read(AI_SRE_PAGE), "## Automatic code fixes"),
   );
   const rules: string = flat(
-    getSection(read(AI_SRE_PAGE), "## Which incidents are investigated and fixed"),
+    getSection(
+      read(AI_SRE_PAGE),
+      "## Which incidents are investigated and fixed",
+    ),
   );
 
   it("no longer names the switches the AI card had", () => {
@@ -320,23 +325,27 @@ describe("the other pages that name the pull requests", () => {
     SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
       return language !== "en";
     }),
-  )("the %s AI SRE page names a rule's pull requests and repositories as its Dashboard does", (language: string) => {
-    const translated: string = fs.readFileSync(
-      path.join(DOCS_CONTENT_DIR, "..", language, "ai", "ai-sre.md"),
-      "utf8",
-    );
-    const locale: Record<string, unknown> = dashboardLocale(language);
-
-    for (const label of [
-      AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle,
-      AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle,
-      RULE_CODE_REPOSITORIES_FIELD_COPY.title,
-      RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder,
-      REMEDIATION_NO_RUNNER_PLACEHOLDER,
-    ]) {
-      expect([label, translated.includes(`**${String(locale[label])}**`)]).toEqual(
-        [label, true],
+  )(
+    "the %s AI SRE page names a rule's pull requests and repositories as its Dashboard does",
+    (language: string) => {
+      const translated: string = fs.readFileSync(
+        path.join(DOCS_CONTENT_DIR, "..", language, "ai", "ai-sre.md"),
+        "utf8",
       );
-    }
-  });
+      const locale: Record<string, unknown> = dashboardLocale(language);
+
+      for (const label of [
+        AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle,
+        AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle,
+        RULE_CODE_REPOSITORIES_FIELD_COPY.title,
+        RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder,
+        REMEDIATION_NO_RUNNER_PLACEHOLDER,
+      ]) {
+        expect([
+          label,
+          translated.includes(`**${String(locale[label])}**`),
+        ]).toEqual([label, true]);
+      }
+    },
+  );
 });

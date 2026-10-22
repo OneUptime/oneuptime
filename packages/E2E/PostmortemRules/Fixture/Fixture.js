@@ -154,8 +154,6 @@ const project = record(Project, {
   enableAutomaticIncidentInvestigation: true,
   enableAutomaticIncidentRemediation: false,
   enableAutomaticPostmortemDraft: true,
-  enableAutomaticIncidentCodeFixes: false,
-  enableIncidentInstrumentationFixTasks: false,
 });
 
 const SEVERITIES = [

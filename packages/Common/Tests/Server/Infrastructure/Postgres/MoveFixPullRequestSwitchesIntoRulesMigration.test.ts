@@ -30,7 +30,8 @@ import { QueryRunner } from "typeorm";
  * runs them against real rows.
  */
 
-const OWN_CLASS_NAME: string = "MoveFixPullRequestSwitchesIntoRules1805800000000";
+const OWN_CLASS_NAME: string =
+  "MoveFixPullRequestSwitchesIntoRules1805800000000";
 
 const MIGRATION_FILE_NAME: string =
   "1805800000000-MoveFixPullRequestSwitchesIntoRules.ts";
@@ -339,7 +340,9 @@ describe("MoveFixPullRequestSwitchesIntoRules migration - up()", () => {
       const signal: (typeof SIGNAL_COLUMNS)[number] = SIGNAL_COLUMNS[index]!;
 
       expect(statement).toContain(`'${signal.ruleName}'`);
-      expect(statement).toContain(`'${signal.triggerEntityType}', 'FullAuto', 'OneUptimeAI'`);
+      expect(statement).toContain(
+        `'${signal.triggerEntityType}', 'FullAuto', 'OneUptimeAI'`,
+      );
       expect(statement).toContain(
         `project."${signal.codeFix}", project."${signal.telemetry}" FROM "Project"`,
       );
@@ -357,9 +360,11 @@ describe("MoveFixPullRequestSwitchesIntoRules migration - up()", () => {
       expect(statement).toContain("this project''s choice");
     });
 
-    expect(SIGNAL_COLUMNS.map((signal: { ruleName: string }) => {
-      return signal.ruleName;
-    })).toEqual(["All incidents", "All alerts"]);
+    expect(
+      SIGNAL_COLUMNS.map((signal: { ruleName: string }) => {
+        return signal.ruleName;
+      }),
+    ).toEqual(["All incidents", "All alerts"]);
   });
 
   test("names the fixing switches the server reads", () => {

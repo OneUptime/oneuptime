@@ -805,7 +805,9 @@ describe("a run held to the code repositories its rules name", () => {
 
     expect(
       tree.mock.calls.map(
-        (call: Parameters<typeof GitHubUtil.getRepositoryTreePaths>): string => {
+        (
+          call: Parameters<typeof GitHubUtil.getRepositoryTreePaths>,
+        ): string => {
           return call[0].repositoryName;
         },
       ),

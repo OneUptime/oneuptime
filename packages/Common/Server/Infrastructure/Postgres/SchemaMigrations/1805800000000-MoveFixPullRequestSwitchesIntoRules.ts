@@ -120,7 +120,9 @@ export function getCarryOverStatements(): Array<string> {
  * rule, the switches as the project held them. Its id and timestamps are
  * the table's own defaults.
  */
-export function getAddRuleKeepingChoiceStatement(signal: SignalColumns): string {
+export function getAddRuleKeepingChoiceStatement(
+  signal: SignalColumns,
+): string {
   return `INSERT INTO "AutoRemediationRule" ("version", "projectId", "name", "description", "isEnabled", "triggerEntityType", "executionMode", "remediationAction", "aiSelectsRunbook", "aiComposesCommands", "autoResolveOnVerifiedRecovery", "openCodeFixPullRequests", "openTelemetryPullRequests") SELECT 1, project."_id", '${signal.ruleName}', '${signal.ruleDescription.replace(SINGLE_QUOTE, "''")}', true, '${signal.triggerEntityType}', 'FullAuto', 'OneUptimeAI', false, false, false, project."${signal.codeFix}", project."${signal.telemetry}" FROM "Project" AS project WHERE project."deletedAt" IS NULL AND project."${signal.fix}" = true AND (project."${signal.codeFix}" = false OR project."${signal.telemetry}" = false) AND NOT EXISTS (SELECT 1 FROM "AutoRemediationRule" AS rule WHERE rule."projectId" = project."_id" AND rule."triggerEntityType" = '${signal.triggerEntityType}' AND rule."isEnabled" = true AND rule."deletedAt" IS NULL)`;
 }
 

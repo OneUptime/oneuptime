@@ -584,7 +584,9 @@ describe.each([
       expect(runner.description).toBe(
         "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
       );
-      expect(runner.description).not.toContain("AI agent on the cluster or host");
+      expect(runner.description).not.toContain(
+        "AI agent on the cluster or host",
+      );
       expect(runner.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(runner.required).toBe(false);
       expect(runner.hideOptionalLabel).toBe(true);
@@ -764,8 +766,7 @@ describe.each([
         expect(pullRequests.showIf).toBeUndefined();
         // On by default: the column's own default fills the create form.
         expect(
-          new AutoRemediationRule().getTableColumnMetadata(column)
-            .defaultValue,
+          new AutoRemediationRule().getTableColumnMetadata(column).defaultValue,
         ).toBe(true);
       },
     );
@@ -1174,7 +1175,10 @@ describe("the line under More fields, folded", () => {
       getAutoRemediationMoreFieldsSummary(
         values({ codeRepositories: PICKED_REPOSITORIES }),
       ),
-    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook, ALL_MCP_SERVERS]);
+    ).toEqual([
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
+      ALL_MCP_SERVERS,
+    ]);
   });
 
   test("never names the AI agent, and a Runner picked changes nothing it says", () => {

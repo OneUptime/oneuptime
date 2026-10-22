@@ -19,11 +19,23 @@ import path from "path";
  *
  * So the Fix step asks one question, Approval, and More fields - folded -
  * holds the runbooks OneUptime AI may run (none: any), "Run them every
- * time" (what a rule saved with Fix With set to Runbooks keeps doing), and
- * the Runner OneUptime AI runs the rule's commands on (none: the AI agent
- * on the affected cluster or host - a global Runner never runs them). The
- * fixture records every create and update the page sends, so the tests
- * check what was sent as well as what was drawn.
+ * time" (what a rule saved with Fix With set to Runbooks keeps doing), the
+ * Runner OneUptime AI runs the rule's Bash commands on, the code
+ * repositories it may use and the two pull requests it opens. The fixture
+ * records every create and update the page sends, so the tests check what
+ * was sent as well as what was drawn.
+ *
+ * Later, the maintainer again: "why does it see an AI agent on the cluster
+ * or host? That doesn't make any sense because it's an AI agent that runs
+ * the commands ... Here, we could pick which runner the remediation would
+ * actually run on." So the Runner picker lists the project's own Runners
+ * only - its default first, and picked for a new rule - and a rule that
+ * picks none reads "No Runner". "Both of these toggles should be inside of
+ * Remediation Rule, inside of More, and they should be checked by default":
+ * the fix and telemetry pull requests. And "there should be a dropdown here
+ * to select the code repo for remediation and also investigation rules, if
+ * no code repo is selected - it should be able to read and investigate all
+ * the repos that are connected".
  *
  * The table names each rule's fix in one Fix column - whether it asks
  * first, and how it fixes only for a rule that does not fix the way every
@@ -74,20 +86,22 @@ const APPROVAL_DESCRIPTION: string =
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
   "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.";
-const DEFAULTS_SUMMARY: string =
-  "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.";
+// What More fields says, folded, while a new rule holds its defaults.
+const DEFAULTS_SUMMARY: string = "OneUptime AI may run any of your runbooks.";
+const REPOSITORIES_SUMMARY: string =
+  "OneUptime AI may read all connected repositories, and open pull requests in them.";
 const RUNBOOKS_DESCRIPTION: string =
   "OneUptime AI may run any of your runbooks. Pick some to let it run only those.";
 const RUNNER_DESCRIPTION: string =
-  "Where OneUptime AI runs commands of its own for this rule, inside your network.";
-const NO_RUNNER: string = "AI agent on the cluster or host";
+  "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.";
+// What the Runner picker reads while a rule picks none.
+const NO_RUNNER: string = "No Runner";
+// The choice the picker no longer offers: that agent is not a Runner.
+const RETIRED_RUNNER_CHOICE: string = "AI agent on the cluster or host";
 // Under the picker only in a project with no Runner of its own.
 const ADD_RUNNER_HELP: string =
   "Add a Runner under Runbooks › Runners for OneUptime AI to run commands on, then pick it here.";
 const RUNNER_HELP_TEST_ID: string = "auto-remediation-runner-picker-help";
-// Bash only: runbook credentials, which SSH commands reached a host with, are gone.
-const OWN_RUNNER_HELP: string =
-  "OneUptime AI may also run Bash commands on this Runner, inside your network.";
 const EVERY_TIME: string = "Run them every time";
 const OLDER_COMMANDS_NOTE: string =
   "This older rule only has OneUptime AI run commands on its Runners.";
@@ -95,6 +109,21 @@ const OLDER_PICKS_NOTE: string =
   "This older rule only has OneUptime AI pick one of its runbooks, and always asks first.";
 const FIX_LIKE_A_NEW_RULE: string = "Fix like a new rule";
 const OLDER_RULE_TEST_ID: string = "auto-remediation-older-rule";
+
+// The code repositories a rule may use, and the two pull requests it opens.
+const CODE_REPOSITORY_IDS: Record<string, string> = {
+  checkout: "d0000000-0000-4000-8000-000000000f01",
+  billing: "d0000000-0000-4000-8000-000000000f02",
+};
+const ALL_REPOSITORIES: string = "All connected repositories";
+const REMEDIATION_REPOSITORIES_DESCRIPTION: string =
+  "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.";
+const INVESTIGATION_REPOSITORIES_DESCRIPTION: string =
+  "OneUptime AI may read all of your connected repositories while it investigates. Pick some to let it read only those.";
+const REPOSITORIES_HINT: string =
+  "Connect and manage repositories on the Code › Repositories page.";
+const FIX_PULL_REQUESTS: string = "Fix pull requests";
+const TELEMETRY_PULL_REQUESTS: string = "Telemetry pull requests";
 
 interface Recorded {
   creates: Array<{ model: string; data: Record<string, unknown> }>;
@@ -254,6 +283,17 @@ const openMoreFields: (dialog: Locator) => Promise<void> = async (
   );
 };
 
+/*
+ * The sentences under More fields while it is folded. Read there, not in the
+ * whole dialog: the folded fields stay on the page, and the Runbooks field's
+ * own line starts with the same words as the runbooks sentence.
+ */
+const foldedSummary: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId("collapsible-section-summary");
+};
+
 // Picks an option of a react-select picker in the open dialog.
 const pickOption: (
   page: Page,
@@ -285,6 +325,19 @@ const runnerPicker: (dialog: Locator) => Locator = (
   return dialog.getByRole("combobox", { name: "Runner" });
 };
 
+const repositoriesPicker: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByRole("combobox", { name: "Code Repositories" });
+};
+
+const pullRequestSwitch: (dialog: Locator, title: string) => Locator = (
+  dialog: Locator,
+  title: string,
+): Locator => {
+  return dialog.getByRole("switch", { name: title, exact: true });
+};
+
 const everyTimeSwitch: (dialog: Locator) => Locator = (
   dialog: Locator,
 ): Locator => {
@@ -310,6 +363,24 @@ const screenshot: (page: Page, name: string) => Promise<void> = async (
     path: path.join(SCREENSHOTS, `${name}.png`),
     fullPage: true,
   });
+};
+
+/*
+ * The dialog alone, scrolled to a field: its body scrolls, so a page
+ * screenshot shows only what sits above the fold.
+ */
+const dialogScreenshot: (
+  dialog: Locator,
+  field: Locator,
+  name: string,
+) => Promise<void> = async (
+  dialog: Locator,
+  field: Locator,
+  name: string,
+): Promise<void> => {
+  fs.mkdirSync(SCREENSHOTS, { recursive: true });
+  await field.scrollIntoViewIfNeeded();
+  await dialog.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
 };
 
 // The cell under a column of a row, by the column's header.
@@ -412,14 +483,20 @@ test.describe("the Fix step", () => {
       "aria-expanded",
       "false",
     );
-    await expect(dialog).toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
+    // The agent on a cluster or host is no default of the rule's to name.
+    await expect(foldedSummary(dialog)).not.toContainText(
+      "fixes through the AI agent",
+    );
     await expect(runbooksPicker(dialog)).toBeHidden();
     await expect(runnerPicker(dialog)).toBeHidden();
+    await expect(repositoriesPicker(dialog)).toBeHidden();
 
     await screenshot(page, "fix-step-folded");
   });
 
-  test("More fields holds the runbooks OneUptime AI may run - none is any - and the Runner - none is the AI agent", async ({
+  test("More fields holds the runbooks OneUptime AI may run - none is any - and the Runner - none is No Runner", async ({
     page,
   }: {
     page: Page;
@@ -441,12 +518,14 @@ test.describe("the Fix step", () => {
     await expect(everyTimeSwitch(dialog)).toHaveCount(0);
 
     /*
-     * Runner: the AI agent, said in plain words. With Runners to pick from,
-     * no line under it repeats what the choice and the field's line say.
+     * Runner: none picked reads No Runner, and the field's line says that
+     * commands on the affected cluster or host go through its AI agent.
+     * With Runners to pick from, no line under it repeats what it says.
      */
     await expect(dialog).toContainText(RUNNER_DESCRIPTION);
     await expect(runnerPicker(dialog)).toBeVisible();
     await expect(dialog).toContainText(NO_RUNNER);
+    await expect(dialog).not.toContainText(RETIRED_RUNNER_CHOICE);
     await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
     await expect(dialog).not.toContainText(ADD_RUNNER_HELP);
     await expect(dialog).not.toContainText("Global Runner");
@@ -454,7 +533,7 @@ test.describe("the Fix step", () => {
     await screenshot(page, "fix-step-more-fields");
   });
 
-  test("the Runner's choices: the AI agent first, then the project's own Runners with how each is doing - never the Kubernetes agent's in-cluster Runner", async ({
+  test("the Runner's choices: the project's own Runners with how each is doing - no AI agent, and never the Kubernetes agent's in-cluster Runner", async ({
     page,
   }: {
     page: Page;
@@ -472,16 +551,74 @@ test.describe("the Fix step", () => {
     });
 
     expect(options).toEqual([
-      `${NO_RUNNER} No Runner of yours: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.`,
       "office-runner · Never connected",
       "prod-eu-runner · Connected",
     ]);
     expect(options.join(" ")).not.toContain("kubernetes-agent/prod-us");
+    expect(options.join(" ")).not.toContain(RETIRED_RUNNER_CHOICE);
 
     await screenshot(page, "runner-choices");
   });
 
-  test("a rule made without opening More fields is OneUptime AI's, with any runbook and no Runner", async ({
+  test("the project's default Runner comes first, tagged, and a new rule starts on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "defaultRunner=prod",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    // Picked already: a new rule starts on the project's default.
+    await expect(dialog).toContainText(
+      "prod-eu-runner · Project default · Connected",
+    );
+
+    await runnerPicker(dialog).click();
+    const options: Array<string> = (
+      await page.getByRole("option").allInnerTexts()
+    ).map((text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    });
+    expect(options).toEqual([
+      "prod-eu-runner · Project default · Connected",
+      "office-runner · Never connected",
+    ]);
+    await page.keyboard.press("Escape");
+    await screenshot(page, "runner-project-default");
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["runnerId"]).toBe(RUNNER_IDS["prodEu"]);
+  });
+
+  test("a rule's pick can be cleared back to No Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "defaultRunner=prod",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await dialog
+      .getByTestId("auto-remediation-runner-picker")
+      .locator(".ou-select__clear-indicator")
+      .click();
+    await expect(dialog).toContainText(NO_RUNNER);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+  });
+
+  test("a rule made without opening More fields is OneUptime AI's, with any runbook, no Runner, every repository and both pull requests", async ({
     page,
   }: {
     page: Page;
@@ -500,6 +637,10 @@ test.describe("the Fix step", () => {
     expect(sent.creates[0]!.data["executionMode"]).toBe("Suggest");
     expect(idsOf(sent.creates[0]!.data["runbooks"])).toEqual([]);
     expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
+    // Every connected repository, and both pull requests on.
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([]);
+    expect(sent.creates[0]!.data["openCodeFixPullRequests"]).toBe(true);
+    expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(true);
 
     // Listed as asking first - and nothing more: OneUptime AI fixes every rule.
     expect(await fixOf(card, "Fix checkout")).toBe("Asks first");
@@ -519,7 +660,8 @@ test.describe("the Fix step", () => {
     await page.keyboard.press("Escape");
 
     await pickOption(page, runnerPicker(dialog), /^prod-eu-runner/);
-    await expect(dialog).toContainText(OWN_RUNNER_HELP);
+    // The field's own line says what the Runner is for: nothing under it.
+    await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
 
     // With runbooks named, the rule can run them every time - off unless said.
     await expect(everyTimeSwitch(dialog)).toBeVisible();
@@ -529,7 +671,7 @@ test.describe("the Fix step", () => {
     // Folded again, its line says what is set.
     await moreFieldsButton(dialog).click();
     await expect(dialog).toContainText("Runbooks: 2");
-    await expect(dialog).not.toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).not.toContainText(DEFAULTS_SUMMARY);
     // "Run them every time" is off, so the line does not name it: named, it read as on.
     const folded: Array<string> = await dialog
       .getByTestId("folded-section-item")
@@ -608,7 +750,7 @@ test.describe("the Fix step", () => {
     expect((await recorded(page)).creates).toEqual([]);
   });
 
-  test("with no Runner of its own, the project's rules can still pick none", async ({
+  test("with no Runner of its own, a rule reads No Runner, has nothing to pick, and is told where to add one", async ({
     page,
   }: {
     page: Page;
@@ -623,16 +765,20 @@ test.describe("the Fix step", () => {
     await expect(
       help.getByRole("link", { name: "Runbooks › Runners" }),
     ).toHaveAttribute("target", "_blank");
+    await expect(dialog).toContainText(NO_RUNNER);
+    // Drawn, with nothing to open: no menu to tab to.
+    await expect(
+      dialog
+        .getByTestId("auto-remediation-runner-picker")
+        .locator(".ou-select__control--is-disabled"),
+    ).toHaveCount(1);
+    await expect(runnerPicker(dialog)).toHaveCount(0);
     await screenshot(page, "no-runners");
 
-    await runnerPicker(dialog).click();
-
-    const options: Array<string> = await page
-      .getByRole("option")
-      .allInnerTexts();
-
-    expect(options).toHaveLength(1);
-    expect(options[0]).toContain(NO_RUNNER);
+    // The rule still saves: it runs no command of its own.
+    await create(page, dialog);
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["runnerId"] || null).toBeNull();
   });
 });
 
@@ -929,7 +1075,7 @@ test.describe("rules saved before", () => {
     ]);
   });
 
-  test("a OneUptime AI rule opens with its runbooks and its Runner, and can go back to the AI agent", async ({
+  test("a OneUptime AI rule opens with its runbooks and its Runner, and can go back to no Runner", async ({
     page,
   }: {
     page: Page;
@@ -948,7 +1094,11 @@ test.describe("rules saved before", () => {
     await expect(dialog).toContainText("prod-eu-runner · Connected");
     await screenshot(page, "edit-ai-with-runner");
 
-    await pickOption(page, runnerPicker(dialog), new RegExp(`^${NO_RUNNER}`));
+    await dialog
+      .getByTestId("auto-remediation-runner-picker")
+      .locator(".ou-select__clear-indicator")
+      .click();
+    await expect(dialog).toContainText(NO_RUNNER);
     await expect(dialog.getByTestId(RUNNER_HELP_TEST_ID)).toHaveCount(0);
 
     await dialog.getByRole("button", { name: "Save Changes" }).click();
@@ -1040,7 +1190,7 @@ test.describe("rules saved before", () => {
     await expect(
       dialog.getByRole("radio", { name: /^Ask before fixing/ }),
     ).toHaveAttribute("aria-checked", "true");
-    await expect(dialog).toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(DEFAULTS_SUMMARY);
     await openMoreFields(dialog);
     await expect(runnerPicker(dialog)).toBeVisible();
     await screenshot(page, "edit-older-picks-fixed");
@@ -1095,7 +1245,7 @@ test.describe("alerts", () => {
     const dialog: Locator = await openFixStep(page, card);
 
     await expect(dialog).not.toContainText("Fix With");
-    await expect(dialog).toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
     await pickOption(page, runbooksPicker(dialog), "Fail over the database");
@@ -1208,13 +1358,401 @@ test.describe("people and screens", () => {
       .getByRole("button", { name: new RegExp(GERMAN["More fields"]!) })
       .click();
 
-    for (const english of [RUNBOOKS_DESCRIPTION, RUNNER_DESCRIPTION]) {
+    for (const english of [
+      RUNBOOKS_DESCRIPTION,
+      RUNNER_DESCRIPTION,
+      REMEDIATION_REPOSITORIES_DESCRIPTION,
+      FIX_PULL_REQUESTS,
+      TELEMETRY_PULL_REQUESTS,
+    ]) {
       expect(GERMAN[english]).toBeDefined();
       expect(GERMAN[english]).not.toBe(english);
       await expect(dialog).toContainText(GERMAN[english]!);
     }
 
     await expect(dialog).toContainText(GERMAN[NO_RUNNER]!);
+    await expect(dialog).toContainText(GERMAN[ALL_REPOSITORIES]!);
     await screenshot(page, "german");
   });
+});
+
+/*
+ * The code repositories OneUptime AI may use, and the two pull requests a
+ * rule opens - "Both of these toggles should be inside of Remediation Rule,
+ * inside of More, and they should be checked by default" - the maintainer.
+ */
+test.describe("code repositories and pull requests", () => {
+  test("folded under More fields: none picked is all connected repositories, with where to connect them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await expect(repositoriesPicker(dialog)).toBeHidden();
+    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
+
+    await openMoreFields(dialog);
+    await expect(repositoriesPicker(dialog)).toBeVisible();
+    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    await expect(dialog).toContainText(REMEDIATION_REPOSITORIES_DESCRIPTION);
+    await expect(dialog).not.toContainText("Code Repositories (Optional)");
+
+    const hint: Locator = dialog.getByTestId("rule-code-repositories-hint");
+    await expect(hint).toHaveText(REPOSITORIES_HINT);
+    const href: string =
+      (await hint
+        .getByTestId("rule-code-repositories-link")
+        .getAttribute("href")) || "";
+    expect(new URL(href, "http://127.0.0.1").pathname).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories`,
+    );
+
+    await repositoriesPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(2);
+    // By name, each with its GitHub organization/name under it.
+    const options: Array<string> = (
+      await page.getByRole("option").allInnerTexts()
+    ).map((text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    });
+    expect(options).toEqual([
+      "billing acme/billing",
+      "checkout acme/checkout-service",
+    ]);
+    await page.keyboard.press("Escape");
+
+    await dialogScreenshot(
+      dialog,
+      dialog.getByTestId("rule-code-repositories-hint"),
+      "code-repositories-more-fields",
+    );
+  });
+
+  test("the repositories picked are sent, and the folded line counts them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, repositoriesPicker(dialog), /^checkout/);
+    await page.keyboard.press("Escape");
+
+    await moreFieldsButton(dialog).click();
+    const folded: Array<string> = await dialog
+      .getByTestId("folded-section-item")
+      .allInnerTexts();
+    expect(folded.join(" ")).toContain("Code Repositories: 1");
+    await expect(foldedSummary(dialog)).not.toContainText(REPOSITORIES_SUMMARY);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([
+      CODE_REPOSITORY_IDS["checkout"]!,
+    ]);
+  });
+
+  test("both pull requests are on for a new rule; one turned off is sent off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toBeChecked();
+    await expect(
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+    ).toBeChecked();
+
+    await pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS).click();
+    await expect(
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+    ).not.toBeChecked();
+    await dialogScreenshot(
+      dialog,
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+      "pull-requests-more-fields",
+    );
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["openCodeFixPullRequests"]).toBe(true);
+    expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(false);
+  });
+
+  test("with both pull requests off, the folded line says only that it reads every repository", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pullRequestSwitch(dialog, FIX_PULL_REQUESTS).click();
+    await pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS).click();
+    await moreFieldsButton(dialog).click();
+
+    await expect(foldedSummary(dialog)).toContainText(
+      "OneUptime AI may read all connected repositories.",
+    );
+    await expect(foldedSummary(dialog)).not.toContainText(REPOSITORIES_SUMMARY);
+  });
+
+  test("a saved rule opens with its repository and its pull requests as it saved them, and keeps them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "rules=saved" });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Fix database incidents",
+    );
+
+    await expect(dialog).toContainText("Code Repositories: 1");
+    await openMoreFields(dialog);
+    await expect(
+      dialog
+        .getByTestId("rule-code-repositories-picker")
+        .locator(".ou-select__multi-value__label"),
+    ).toHaveText(["checkout"]);
+    await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toBeChecked();
+    await expect(
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+    ).not.toBeChecked();
+    await dialogScreenshot(
+      dialog,
+      pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+      "edit-repositories-and-pull-requests",
+    );
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["aiWithRunner"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(idsOf(update!.data["codeRepositories"])).toEqual([
+      CODE_REPOSITORY_IDS["checkout"]!,
+    ]);
+    expect(update!.data["openCodeFixPullRequests"]).toBe(true);
+    expect(update!.data["openTelemetryPullRequests"]).toBe(false);
+  });
+
+  test("a project with no repository has nothing to pick, and is told where to connect one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "repositories=0",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    await expect(dialog.getByTestId("rule-code-repositories-hint")).toHaveText(
+      REPOSITORIES_HINT,
+    );
+    await repositoriesPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+  });
+
+  test("a plan without Code still saves a rule: the field reads all connected repositories, with nothing to pick", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "repositories=denied",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    // Nothing on the form says it failed: the rule uses every repository.
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates).toHaveLength(1);
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([]);
+  });
+
+  test("an alert rule asks the same", async ({ page }: { page: Page }) => {
+    const card: Locator = await openRulesCard(page, { lane: "alert" });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, repositoriesPicker(dialog), /^billing/);
+    await page.keyboard.press("Escape");
+    await pullRequestSwitch(dialog, FIX_PULL_REQUESTS).click();
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["triggerEntityType"]).toBe("Alert");
+    expect(idsOf(sent.creates[0]!.data["codeRepositories"])).toEqual([
+      CODE_REPOSITORY_IDS["billing"]!,
+    ]);
+    expect(sent.creates[0]!.data["openCodeFixPullRequests"]).toBe(false);
+    expect(sent.creates[0]!.data["openTelemetryPullRequests"]).toBe(true);
+  });
+
+  test("an investigation rule names its repositories under More fields too, and picks no Runner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesCard(page);
+
+    const investigationCard: Locator = page
+      .locator("[data-card-surface='section']")
+      .filter({
+        has: page.getByRole("heading", {
+          name: "Investigation rules",
+          exact: true,
+        }),
+      });
+    const dialog: Locator = await openDialogWith(
+      page,
+      investigationCard
+        .getByRole("button", { name: "Create Investigation Rule" })
+        .first(),
+    );
+
+    await dialog.getByRole("button", { name: "Next", exact: true }).click();
+    await dialog
+      .getByRole("textbox", { name: /^Name/ })
+      .fill("Investigate billing");
+
+    await expect(foldedSummary(dialog)).toContainText(
+      "OneUptime AI may read all connected repositories.",
+    );
+    await openMoreFields(dialog);
+    await expect(dialog).toContainText(INVESTIGATION_REPOSITORIES_DESCRIPTION);
+    await expect(runnerPicker(dialog)).toHaveCount(0);
+
+    await pickOption(page, repositoriesPicker(dialog), /^billing/);
+    await page.keyboard.press("Escape");
+    await dialogScreenshot(
+      dialog,
+      repositoriesPicker(dialog),
+      "investigation-rule-code-repositories",
+    );
+
+    await dialog
+      .getByRole("button", { name: "Create Investigation Rule" })
+      .click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const investigationRule: { model: string; data: Record<string, unknown> } =
+      sent.creates.find((created: { model: string }): boolean => {
+        return created.model === "AIInvestigationRule";
+      })!;
+    expect(idsOf(investigationRule.data["codeRepositories"])).toEqual([
+      CODE_REPOSITORY_IDS["billing"]!,
+    ]);
+  });
+});
+
+/*
+ * The AI card and both rule dialogs, as a person sees them: 1280px and a
+ * phone's 390px, light and dark. The card draws fixing alone - no pull
+ * request switch under it - and nothing runs off a phone's screen.
+ */
+test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and dark", () => {
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        const card: Locator = await openRulesCard(page, {
+          query: theme === "dark" ? "theme=dark" : "",
+        });
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        }
+
+        // The AI card: investigate, fix, the postmortem - no pull request.
+        const aiCard: Locator = page.getByTestId("incident-ai-switches");
+        await expect(aiCard.getByRole("switch")).toHaveCount(3);
+        await expect(aiCard).not.toContainText(
+          "Open a fix pull request when an investigation finds a code change",
+        );
+        await expect(aiCard).not.toContainText(
+          "Open a pull request that adds missing telemetry",
+        );
+        fs.mkdirSync(SCREENSHOTS, { recursive: true });
+        await aiCard.screenshot({
+          path: path.join(SCREENSHOTS, `ai-card-${width}-${theme}.png`),
+        });
+
+        const dialog: Locator = await openFixStep(page, card);
+        await openMoreFields(dialog);
+        await expect(repositoriesPicker(dialog)).toBeVisible();
+        await expect(
+          pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
+        ).toBeVisible();
+
+        const overflow: number = await page.evaluate(() => {
+          return document.documentElement.scrollWidth;
+        });
+        expect(overflow).toBeLessThanOrEqual(width);
+        await dialogScreenshot(
+          dialog,
+          pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
+          `remediation-rule-more-fields-${width}-${theme}`,
+        );
+
+        await dialog.getByRole("button", { name: "Cancel" }).click();
+        await expect(dialog).toBeHidden();
+
+        const investigationCard: Locator = page
+          .locator("[data-card-surface='section']")
+          .filter({
+            has: page.getByRole("heading", {
+              name: "Investigation rules",
+              exact: true,
+            }),
+          });
+        const investigationDialog: Locator = await openDialogWith(
+          page,
+          investigationCard
+            .getByRole("button", { name: "Create Investigation Rule" })
+            .first(),
+        );
+        await investigationDialog
+          .getByRole("button", { name: "Next", exact: true })
+          .click();
+        await openMoreFields(investigationDialog);
+        await expect(repositoriesPicker(investigationDialog)).toBeVisible();
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth;
+          }),
+        ).toBeLessThanOrEqual(width);
+        await dialogScreenshot(
+          investigationDialog,
+          investigationDialog.getByTestId("rule-code-repositories-hint"),
+          `investigation-rule-more-fields-${width}-${theme}`,
+        );
+      });
+    }
+  }
 });

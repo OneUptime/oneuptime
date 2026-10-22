@@ -10,7 +10,14 @@ import {
 } from "../../../Types/CodeRepository/CodeRepositoryAllowance";
 import ObjectID from "../../../Types/ObjectID";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -140,8 +147,12 @@ describe("resolveRepositoryForException among the repositories the rules allow",
 
     // A service named like one of them still finds it.
     expect(
-      (await resolve({ allowance: EVERY_CODE_REPOSITORY, serviceName: "billing" }))
-        ?.codeRepositoryId,
+      (
+        await resolve({
+          allowance: EVERY_CODE_REPOSITORY,
+          serviceName: "billing",
+        })
+      )?.codeRepositoryId,
     ).toBe(BILLING_ID.toString());
   });
 });

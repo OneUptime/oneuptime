@@ -36,6 +36,15 @@
  *                     prod-eu-runner connected and office-runner never
  *                     connected, beside the in-cluster Runner the Kubernetes
  *                     agent chart installed, which is never offered)
+ *   - defaultRunner=prod
+ *                     prod-eu-runner is the project's default Runner (none
+ *                     by default): a new rule starts on it
+ *   - repositories=0  the project has no code repository (two by default,
+ *                     checkout and billing, connected through the GitHub
+ *                     App)
+ *   - repositories=denied
+ *                     the project's plan cannot read code repositories:
+ *                     the list is refused, as on a plan without Code
  *   - runbooks=0      the project has no runbook (three by default)
  *   - role=viewer     may read the page only (Viewer); the default is a
  *                     project owner
@@ -65,6 +74,7 @@ import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/
 import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -103,6 +113,10 @@ const investigationRuleSet = ["saved", "many"].includes(
   : "none";
 const layout = params.get("layout") === "page" ? "page" : "alone";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
+const hasDefaultRunner = params.get("defaultRunner") === "prod";
+const repositorySet = ["0", "denied"].includes(params.get("repositories"))
+  ? params.get("repositories")
+  : "two";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const language = params.get("lang") === "de" ? "de" : "en";
@@ -171,10 +185,6 @@ const project = record(Project, {
   enableAutomaticAlertInvestigation: true,
   enableAutomaticAlertRemediation: true,
   enableAutomaticPostmortemDraft: true,
-  enableAutomaticIncidentCodeFixes: false,
-  enableIncidentInstrumentationFixTasks: false,
-  enableAutomaticAlertCodeFixes: false,
-  enableAlertInstrumentationFixTasks: false,
   useGlobalRunners: true,
 });
 
@@ -263,6 +273,7 @@ const ALL_RUNNERS = [
     // Heard from a moment ago: connected.
     lastAlive: new Date(),
     hostInfo: {},
+    isProjectDefault: hasDefaultRunner,
   }),
   record(Runner, {
     _id: RUNNER_IDS.office,
@@ -310,6 +321,35 @@ const MCP_SERVERS = [
   }),
 ];
 
+/*
+ * The project's code repositories, connected through the GitHub App, which
+ * both kinds of rule may name.
+ */
+const CODE_REPOSITORY_IDS = {
+  checkout: "d0000000-0000-4000-8000-000000000f01",
+  billing: "d0000000-0000-4000-8000-000000000f02",
+};
+
+const CODE_REPOSITORIES =
+  repositorySet === "two"
+    ? [
+        record(CodeRepository, {
+          _id: CODE_REPOSITORY_IDS.checkout,
+          name: "checkout",
+          organizationName: "acme",
+          repositoryName: "checkout-service",
+          projectId: new ObjectID(PROJECT_ID),
+        }),
+        record(CodeRepository, {
+          _id: CODE_REPOSITORY_IDS.billing,
+          name: "billing",
+          organizationName: "acme",
+          repositoryName: "billing",
+          projectId: new ObjectID(PROJECT_ID),
+        }),
+      ]
+    : [];
+
 const trigger = lane === "alert" ? "Alert" : "Incident";
 
 function runbooksNamed(ids) {
@@ -354,6 +394,10 @@ const SAVED_RULES = [
       RUNBOOK_IDS.clearCache,
     ]),
     runnerId: new ObjectID(RUNNER_IDS.prodEu),
+    // It names one repository, and opens fix pull requests but not telemetry ones.
+    codeRepositories: CODE_REPOSITORIES.slice(0, 1),
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: false,
     criteria: null,
   }),
   // Saved before rules were simplified: AI composes commands on Runners.
@@ -486,6 +530,7 @@ const TABLES = {
         ? SAVED_INVESTIGATION_RULES
         : [],
   ExternalMcpServer: MCP_SERVERS,
+  CodeRepository: CODE_REPOSITORIES,
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
 };
@@ -540,6 +585,14 @@ function matchesQuery(item, query) {
 
 ModelAPI.getList = async (options) => {
   const name = tableName(options.modelType);
+
+  // A plan without Code: the repositories are refused (402).
+  if (name === "CodeRepository" && repositorySet === "denied") {
+    throw new Error(
+      "Please upgrade your plan to Growth to access this feature.",
+    );
+  }
+
   const items = sorted(
     (TABLES[name] || []).filter((item) => matchesQuery(item, options.query)),
     options.sort,
@@ -604,6 +657,8 @@ function applyRuleFields(item, json) {
       item.runbooks = relationList(value, Runbook);
     } else if (key === "externalMcpServers") {
       item.externalMcpServers = relationList(value, ExternalMcpServer);
+    } else if (key === "codeRepositories") {
+      item.codeRepositories = relationList(value, CodeRepository);
     } else if (key === "runnerId") {
       item.runnerId = value ? new ObjectID(idOf(value)) : null;
     } else if (key !== "_id") {

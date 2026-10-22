@@ -24,27 +24,39 @@ The suite drives the pages the way a person does:
 
 - the Fix step asks one question, Approval, with no OneUptime AI or Runbooks
   choice; More fields is folded under it, and its line says what the defaults
-  do (OneUptime AI may run any runbook, and fixes through the AI agent on the
-  affected cluster or host);
+  do (OneUptime AI may run any runbook, may use every MCP server, and may
+  read all connected repositories and open pull requests in them);
 - open, More fields holds the runbooks OneUptime AI may run ("Any runbook"
-  when none is picked) and the Runner OneUptime AI runs the rule's commands
-  on: the AI agent first, then the project's own Runners with how each is
-  doing, never the in-cluster Runner the Kubernetes agent chart installed and
-  never a global Runner;
+  when none is picked) and the Runner OneUptime AI runs the rule's Bash
+  commands on: the project's own Runners with how each is doing, the default
+  first and tagged (a new rule starts on it, `?defaultRunner=prod`), "No
+  Runner" while none is picked, never the AI agent on the cluster or host
+  (its line says commands there go through it), never the in-cluster Runner
+  the Kubernetes agent chart installed and never a global Runner;
 - a rule made without opening More fields is sent as OneUptime AI's, with no
-  runbook and no Runner; the runbooks and the Runner picked are sent, and the
-  folded line names them;
+  runbook, no Runner, every repository and both pull requests on; the
+  runbooks and the Runner picked are sent, and the folded line names them;
 - "Run them every time" appears once the rule names runbooks: the rule starts
   them for every match, picks no Runner, and needs a runbook to run;
-- a project with no Runner of its own can still pick none;
+- a project with no Runner of its own reads No Runner, has nothing to pick,
+  and is told where to add one;
+- the code repositories OneUptime AI may use ("All connected repositories"
+  when none is picked, with a link to Code › Repositories) and the rule's two
+  pull request switches, Fix pull requests and Telemetry pull requests, on for
+  a new rule - they moved here from the AI settings card, which now draws
+  fixing alone; picks are sent and counted on the folded line, a saved rule
+  keeps them, a project with no repository (`?repositories=0`) or a plan
+  without Code (`?repositories=denied`) still saves a rule, and an
+  investigation rule names its repositories too, with no Runner;
 - rules saved before this change: the table names each for what it does (its
   runbooks every time, OneUptime AI, and the two older shapes), and editing
   one keeps what it does - a rule that runs its runbooks every time opens
   with them, the switch on and no Runner, and a OneUptime AI rule with its
-  runbooks and its Runner, which can go back to the AI agent;
+  runbooks and its Runner, which can go back to No Runner;
 - an alert rule asks the same;
 - a viewer reads the rules but cannot add or edit one; a phone, dark mode
-  (`?theme=dark`) and German (`?lang=de`).
+  (`?theme=dark`) and German (`?lang=de`); the AI card and both rule dialogs
+  at 1280px and 390px, light and dark, with nothing off the screen.
 
 `InvestigationRules.spec.ts` drives the investigation rules beside them on the
 same page (issue #5074, `?investigationRules=saved` seeds one rule that

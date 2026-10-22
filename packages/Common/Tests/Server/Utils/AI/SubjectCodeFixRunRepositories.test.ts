@@ -26,9 +26,11 @@ const BILLING_REPO: string = "c2222222-2222-4222-8222-222222222222";
 function mockConnected(
   count: number,
 ): SpyInstance<typeof CodeRepositoryService.countBy> {
-  return jest
-    .spyOn(CodeRepositoryService, "countBy")
-    .mockResolvedValue({ toNumber: () => count } as never);
+  return jest.spyOn(CodeRepositoryService, "countBy").mockResolvedValue({
+    toNumber: (): number => {
+      return count;
+    },
+  } as never);
 }
 
 afterEach(() => {

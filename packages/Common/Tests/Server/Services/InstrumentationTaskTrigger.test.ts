@@ -217,7 +217,9 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
         hasConnectedRepository: true,
         existingRun: null,
       }).reason,
-    ).toBe("no auto remediation rule matches this incident, so it is not fixed");
+    ).toBe(
+      "no auto remediation rule matches this incident, so it is not fixed",
+    );
   });
 
   test("matching rules with telemetry pull requests off: nothing, though fix pull requests are on", () => {

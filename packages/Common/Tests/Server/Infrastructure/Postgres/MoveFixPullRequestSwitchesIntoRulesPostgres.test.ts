@@ -402,11 +402,14 @@ describePostgres("MoveFixPullRequestSwitchesIntoRules against Postgres", () => {
     );
     rules.set(
       "deleted rule",
-      await seedRule(projects.get("fix pull requests off, only a deleted rule")!, {
-        triggerEntityType: "Incident",
-        isEnabled: true,
-        deletedAt: new Date(),
-      }),
+      await seedRule(
+        projects.get("fix pull requests off, only a deleted rule")!,
+        {
+          triggerEntityType: "Incident",
+          isEnabled: true,
+          deletedAt: new Date(),
+        },
+      ),
     );
 
     // Alerts on their own: alert telemetry off, no alert rule.
@@ -596,9 +599,7 @@ describePostgres("MoveFixPullRequestSwitchesIntoRules against Postgres", () => {
         openCodeFixPullRequests: false,
         openTelemetryPullRequests: true,
       });
-      expect(added[0]!.description).toContain(
-        "to keep this project's choice",
-      );
+      expect(added[0]!.description).toContain("to keep this project's choice");
 
       // The rule it added opens telemetry pull requests, never fix ones.
       const fixingOn: { enableAutomaticIncidentRemediation: boolean } = {

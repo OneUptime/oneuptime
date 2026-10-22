@@ -226,8 +226,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
    * has one (getNewRuleRunnerId). Read with the page, so the form opens on
    * it; the rule saves it as its own pick.
    */
-  const runnerChoices: RunnerChoices | null =
-    useAutoRemediationRunnerChoices();
+  const runnerChoices: RunnerChoices | null = useAutoRemediationRunnerChoices();
   const newRuleRunnerId: string | undefined = runnerChoices
     ? getNewRuleRunnerId(runnerChoices.projectRunners)
     : undefined;

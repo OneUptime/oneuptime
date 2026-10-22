@@ -1220,7 +1220,9 @@ describe("the pull requests are the auto remediation rules', not the page's", ()
       const fix: ProjectAiSwitchDefinition<string> | undefined =
         AI_LANE_SWITCHES[lane.lane].find(
           (definition: ProjectAiSwitchDefinition<string>): boolean => {
-            return definition.column === AUTOMATIC_FIX_SWITCH_COLUMNS[lane.signal];
+            return (
+              definition.column === AUTOMATIC_FIX_SWITCH_COLUMNS[lane.signal]
+            );
           },
         );
 
@@ -1313,9 +1315,9 @@ describe("the pull requests are the auto remediation rules', not the page's", ()
   test.each(FIX_LANES)(
     "%s: the auto remediation rules card says the pull requests come with fixing when there is no rule",
     (_name: string, lane: FixLane) => {
-      expect(AI_LANE_RULES_COPY[lane.lane].remediationRulesDescription).toContain(
-        "while fixing is on, pull requests included.",
-      );
+      expect(
+        AI_LANE_RULES_COPY[lane.lane].remediationRulesDescription,
+      ).toContain("while fixing is on, pull requests included.");
     },
   );
 
