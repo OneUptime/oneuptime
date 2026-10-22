@@ -477,9 +477,7 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
 
     // An NTP template's port is the protocol's: not named.
     expect(toTemplateChoice(timeTemplate()).ports).toBeUndefined();
-    expect(
-      toTemplateChoice(timeTemplate()).monitoringInterval,
-    ).toBeUndefined();
+    expect(toTemplateChoice(timeTemplate()).monitoringInterval).toBeUndefined();
   });
 
   test("a Network Device template's monitors are judged on each poll: no schedule or ports of their own", () => {
@@ -506,7 +504,6 @@ describe("templates of every kind a device's monitor can be made from (#5145)", 
     expect(toTemplateChoice(spaces).name).toBe("");
   });
 });
-
 
 /*
  * The templates are read again each time the reader comes back to the

@@ -398,19 +398,17 @@ const TemplatePreview: FunctionComponent<{
   ): ReactElement => {
     return (
       <ul className="divide-y divide-gray-100">
-        {checks.map(
-          (criterion: MonitorCriteriaAlertSummary): ReactElement => {
-            return (
-              <TemplateCheckLine
-                key={criterion.id}
-                criterion={criterion}
-                index={enabledChecks.indexOf(criterion)}
-                facts={props.facts}
-                dataTestId={dataTestId}
-              />
-            );
-          },
-        )}
+        {checks.map((criterion: MonitorCriteriaAlertSummary): ReactElement => {
+          return (
+            <TemplateCheckLine
+              key={criterion.id}
+              criterion={criterion}
+              index={enabledChecks.indexOf(criterion)}
+              facts={props.facts}
+              dataTestId={dataTestId}
+            />
+          );
+        })}
       </ul>
     );
   };
@@ -488,10 +486,7 @@ const TemplatePreview: FunctionComponent<{
                   "These read an SNMP walk, so they never fire on a device that answers ping only until it has SNMP credentials.",
                 )}
               </p>
-              {renderChecks(
-                walkChecks,
-                "discovery-import-template-walk-check",
-              )}
+              {renderChecks(walkChecks, "discovery-import-template-walk-check")}
             </div>
           )}
           {walkChecks.length > 0 && isEveryHostPingOnly && (

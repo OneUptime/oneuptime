@@ -261,7 +261,9 @@ export default class DeviceMonitorTemplateUtil {
     }
 
     if (this.readSteps(template.monitorSteps).length === 0) {
-      throw new BadDataException("Monitor template monitor steps are required.");
+      throw new BadDataException(
+        "Monitor template monitor steps are required.",
+      );
     }
 
     const monitor: Monitor = new Monitor();
@@ -303,9 +305,7 @@ export default class DeviceMonitorTemplateUtil {
     }
 
     monitor.monitorTemplateId = new ObjectID(templateId.toString());
-    monitor.autoProvisionedNetworkDeviceId = new ObjectID(
-      device.id.toString(),
-    );
+    monitor.autoProvisionedNetworkDeviceId = new ObjectID(device.id.toString());
 
     return monitor;
   }
@@ -373,7 +373,9 @@ export default class DeviceMonitorTemplateUtil {
     destination: MonitorDestination,
   ): MonitorSteps {
     if (!monitorSteps || this.readSteps(monitorSteps).length === 0) {
-      throw new BadDataException("Monitor template monitor steps are required.");
+      throw new BadDataException(
+        "Monitor template monitor steps are required.",
+      );
     }
 
     const cloned: MonitorSteps = MonitorSteps.clone(monitorSteps);

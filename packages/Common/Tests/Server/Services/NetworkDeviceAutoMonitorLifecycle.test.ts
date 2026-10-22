@@ -435,7 +435,9 @@ describe("a Ping, IP, Port or NTP monitor made for a device", () => {
     return steps;
   }
 
-  function addressMonitor(monitorType: MonitorType = MonitorType.Ping): Monitor {
+  function addressMonitor(
+    monitorType: MonitorType = MonitorType.Ping,
+  ): Monitor {
     const monitor: Monitor = new Monitor();
     monitor.id = ObjectID.generate();
     monitor.projectId = PROJECT_ID;

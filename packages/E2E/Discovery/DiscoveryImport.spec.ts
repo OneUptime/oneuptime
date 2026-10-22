@@ -530,9 +530,7 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     await page.getByTestId("discovery-import-alerting-template").check();
     await pickTemplate(page, /^WB KDS Ping Monitor Template/);
 
-    await expect(
-      page.getByTestId("discovery-import-template-lead"),
-    ).toHaveText(
+    await expect(page.getByTestId("discovery-import-template-lead")).toHaveText(
       "Each device gets a Ping monitor that pings its own address from London datacenter.",
     );
     await expect(
@@ -558,7 +556,10 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     ).toHaveCount(0);
 
     await page.getByTestId("discovery-import-monitoring-step").screenshot({
-      path: path.join(screenshots, "discovery-import-ping-template-desktop.png"),
+      path: path.join(
+        screenshots,
+        "discovery-import-ping-template-desktop.png",
+      ),
     });
     await useDarkTheme(page);
     await page.getByTestId("discovery-import-monitoring-step").screenshot({
@@ -681,7 +682,9 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await page.keyboard.press("Escape");
 
     await pickTemplate(page, /^WB KDS Ping Monitor Template/);
-    await page.getByTestId("discovery-import-template-preview").scrollIntoViewIfNeeded();
+    await page
+      .getByTestId("discovery-import-template-preview")
+      .scrollIntoViewIfNeeded();
     await expectNoSidewaysScroll(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-ping-template-phone.png"),

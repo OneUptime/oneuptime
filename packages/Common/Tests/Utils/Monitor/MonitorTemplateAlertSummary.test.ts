@@ -512,10 +512,7 @@ describe("a template whose monitors check each device's address", () => {
   const SLOW_CHECK: MonitorCriteriaInstance = criterion({
     name: "Display answers slowly",
     filterCondition: FilterCondition.All,
-    filters: [
-      filter(CheckOn.ResponseTime),
-      filter(CheckOn.IsOnline),
-    ],
+    filters: [filter(CheckOn.ResponseTime), filter(CheckOn.IsOnline)],
     createAlerts: true,
     alerts: [alert(WARNING_ALERT)],
   });

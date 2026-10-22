@@ -134,12 +134,22 @@ const SNMP_HOSTS: Array<DiscoveredNetworkDevice> = [
 
 // Kitchen displays and registers that answer ping only, as in #5145.
 const PING_ONLY_HOSTS: Array<DiscoveredNetworkDevice> = [
-  { ipAddress: "10.48.24.31", netbiosName: "WB0024KDS01", snmpReachable: false },
-  { ipAddress: "10.48.24.32", netbiosName: "WB0024KDS02", snmpReachable: false },
+  {
+    ipAddress: "10.48.24.31",
+    netbiosName: "WB0024KDS01",
+    snmpReachable: false,
+  },
+  {
+    ipAddress: "10.48.24.32",
+    netbiosName: "WB0024KDS02",
+    snmpReachable: false,
+  },
   { ipAddress: "10.48.24.33", snmpReachable: false },
 ];
 
-function scanRow(hosts: Array<DiscoveredNetworkDevice>): NetworkDeviceDiscoveryScan {
+function scanRow(
+  hosts: Array<DiscoveredNetworkDevice>,
+): NetworkDeviceDiscoveryScan {
   return Object.assign(new NetworkDeviceDiscoveryScan(), {
     id: SCAN_ID,
     _id: SCAN_ID.toString(),
@@ -443,7 +453,9 @@ async function pickTemplate(name: RegExp): Promise<void> {
 
 async function submitImport(): Promise<void> {
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /^Import \d+ devices?$/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Import \d+ devices?$/ }),
+    );
   });
   await settle();
 }
@@ -488,49 +500,49 @@ beforeEach(() => {
       return (err as { message?: string }).message || String(err);
     });
 
-  getListSpy = jest.spyOn(ModelAPI, "getList").mockImplementation((async (request: {
-    modelType: unknown;
-  }) => {
-    if (request.modelType === MonitorTemplate && lists.templatesError) {
-      throw lists.templatesError;
-    }
+  getListSpy = jest
+    .spyOn(ModelAPI, "getList")
+    .mockImplementation((async (request: { modelType: unknown }) => {
+      if (request.modelType === MonitorTemplate && lists.templatesError) {
+        throw lists.templatesError;
+      }
 
-    const data: Array<unknown> =
-      request.modelType === MonitorTemplate
-        ? lists.templates
-        : request.modelType === MonitorStatus
-          ? [
-              Object.assign(new MonitorStatus(), {
-                id: ONLINE_ID,
-                name: "Operational",
-                isOperationalState: true,
-              }),
-              Object.assign(new MonitorStatus(), {
-                id: OFFLINE_ID,
-                name: "Offline",
-                isOfflineState: true,
-              }),
-            ]
-          : request.modelType === IncidentSeverity
+      const data: Array<unknown> =
+        request.modelType === MonitorTemplate
+          ? lists.templates
+          : request.modelType === MonitorStatus
             ? [
-                Object.assign(new IncidentSeverity(), {
-                  id: CRITICAL_ID,
-                  name: "Critical",
+                Object.assign(new MonitorStatus(), {
+                  id: ONLINE_ID,
+                  name: "Operational",
+                  isOperationalState: true,
+                }),
+                Object.assign(new MonitorStatus(), {
+                  id: OFFLINE_ID,
+                  name: "Offline",
+                  isOfflineState: true,
                 }),
               ]
-            : request.modelType === AlertSeverity
+            : request.modelType === IncidentSeverity
               ? [
-                  Object.assign(new AlertSeverity(), {
-                    id: WARNING_ID,
-                    name: "Warning",
+                  Object.assign(new IncidentSeverity(), {
+                    id: CRITICAL_ID,
+                    name: "Critical",
                   }),
                 ]
-              : request.modelType === NetworkAlertPolicy
-                ? []
-                : [];
+              : request.modelType === AlertSeverity
+                ? [
+                    Object.assign(new AlertSeverity(), {
+                      id: WARNING_ID,
+                      name: "Warning",
+                    }),
+                  ]
+                : request.modelType === NetworkAlertPolicy
+                  ? []
+                  : [];
 
-    return { data: data, count: data.length, skip: 0, limit: data.length };
-  }) as never);
+      return { data: data, count: data.length, skip: 0, limit: data.length };
+    }) as never);
 
   createSpy = jest.spyOn(ModelAPI, "create").mockResolvedValue({
     data: Object.assign(new MonitorTemplate(), { id: CREATED_TEMPLATE_ID }),
@@ -581,7 +593,10 @@ describe("which templates the step lists (issue #5145)", () => {
     ]);
 
     // Each kind under a heading that says which it is, in that order.
-    const headings: Array<string> = ["Network Device templates", "Ping, IP, Port and NTP templates"];
+    const headings: Array<string> = [
+      "Network Device templates",
+      "Ping, IP, Port and NTP templates",
+    ];
     const text: string = menu.textContent || "";
     expect(text.indexOf(headings[0]!)).toBeGreaterThanOrEqual(0);
     expect(text.indexOf(headings[1]!)).toBeGreaterThan(
@@ -626,7 +641,9 @@ describe("which templates the step lists (issue #5145)", () => {
     await toMonitoring();
     await monitorsForEachDevice();
 
-    expect(screen.getByTestId("discovery-import-template-rule")).toHaveTextContent(
+    expect(
+      screen.getByTestId("discovery-import-template-rule"),
+    ).toHaveTextContent(
       "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device. Manage templates",
     );
 
@@ -672,7 +689,9 @@ describe("picking a template whose monitors check each device's address", () => 
     await monitorsForEachDevice();
     await pickTemplate(/^WB KDS Ping Monitor Template/);
 
-    expect(screen.getByTestId("discovery-import-template-lead")).toHaveTextContent(
+    expect(
+      screen.getByTestId("discovery-import-template-lead"),
+    ).toHaveTextContent(
       "Each device gets a Ping monitor that pings its own address from Store probe.",
     );
     expect(
@@ -700,7 +719,9 @@ describe("picking a template whose monitors check each device's address", () => 
     );
     expect(
       screen.getByTestId("discovery-import-outcome-address"),
-    ).toHaveTextContent("Each monitor checks its device's address from Store probe.");
+    ).toHaveTextContent(
+      "Each monitor checks its device's address from Store probe.",
+    );
     expect(
       screen.queryByTestId("discovery-import-outcome-ping-silent"),
     ).toBeNull();
@@ -743,7 +764,11 @@ describe("picking a template whose monitors check each device's address", () => 
   ])(
     "%s is previewed as what each device gets",
     async (name: RegExp, lead: string, schedule: string) => {
-      lists.templates = [printersTemplate(), timeTemplate(), registersTemplate()];
+      lists.templates = [
+        printersTemplate(),
+        timeTemplate(),
+        registersTemplate(),
+      ];
 
       await openDialog();
       await toMonitoring();
@@ -767,7 +792,9 @@ describe("picking a template whose monitors check each device's address", () => 
     await monitorsForEachDevice();
     await pickTemplate(/^WB KDS Ping Monitor Template/);
 
-    expect(screen.getByTestId("discovery-import-template-lead")).toHaveTextContent(
+    expect(
+      screen.getByTestId("discovery-import-template-lead"),
+    ).toHaveTextContent(
       "Each device gets a Ping monitor that pings its own address from the probe that ran the scan.",
     );
     expect(
@@ -785,7 +812,9 @@ describe("picking a template whose monitors check each device's address", () => 
     await monitorsForEachDevice();
     await pickTemplate(/^POS ping availability/);
 
-    expect(screen.getByTestId("discovery-import-template-lead")).toHaveTextContent(
+    expect(
+      screen.getByTestId("discovery-import-template-lead"),
+    ).toHaveTextContent(
       "Each device gets a Network Device monitor that reads what its polls find.",
     );
     expect(
@@ -915,7 +944,9 @@ describe("a Network Device template, on devices that answer ping only", () => {
     );
     expect(
       screen.getByTestId("discovery-import-outcome-ping-silent"),
-    ).toHaveTextContent("The 3 devices that answer ping only will raise nothing");
+    ).toHaveTextContent(
+      "The 3 devices that answer ping only will raise nothing",
+    );
   });
 
   test("checks turned off in the template are counted, and a template with none on says it raises nothing", async () => {
@@ -973,7 +1004,9 @@ describe("what the choice says about the plan", () => {
       .getByTestId("discovery-import-alerting-template")
       .closest("label") as HTMLElement;
     expect(
-      screen.getByText("Each device gets a monitor from the template you pick."),
+      screen.getByText(
+        "Each device gets a monitor from the template you pick.",
+      ),
     ).toBeInTheDocument();
     expect(choice || document.body).not.toHaveTextContent(
       "counts towards your plan",

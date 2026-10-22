@@ -177,9 +177,7 @@ function buildDevice(
   return device;
 }
 
-function destinationsOf(
-  monitorSteps: MonitorSteps | undefined,
-): Array<string> {
+function destinationsOf(monitorSteps: MonitorSteps | undefined): Array<string> {
   return (monitorSteps?.data?.monitorStepsInstanceArray || []).map(
     (step: MonitorStep): string => {
       return step.data?.monitorDestination?.toString() || "";
@@ -325,27 +323,21 @@ describe("DeviceMonitorTemplateUtil.buildDestination", () => {
   });
 
   it("an IP monitor cannot check a name, and says what can", () => {
-    expectBadData(
-      () => {
-        return DeviceMonitorTemplateUtil.buildDestination({
-          address: "kds-03.wbhq.com",
-          monitorType: MonitorType.IP,
-        });
-      },
-      'An IP monitor checks an IP address, and this device\'s address "kds-03.wbhq.com" is a name. Use a Ping template for it.',
-    );
+    expectBadData(() => {
+      return DeviceMonitorTemplateUtil.buildDestination({
+        address: "kds-03.wbhq.com",
+        monitorType: MonitorType.IP,
+      });
+    }, 'An IP monitor checks an IP address, and this device\'s address "kds-03.wbhq.com" is a name. Use a Ping template for it.');
   });
 
   it("a device with no address cannot be checked", () => {
-    expectBadData(
-      () => {
-        return DeviceMonitorTemplateUtil.buildDestination({
-          address: "   ",
-          monitorType: MonitorType.Ping,
-        });
-      },
-      "This device has no address, so a monitor cannot check it.",
-    );
+    expectBadData(() => {
+      return DeviceMonitorTemplateUtil.buildDestination({
+        address: "   ",
+        monitorType: MonitorType.Ping,
+      });
+    }, "This device has no address, so a monitor cannot check it.");
   });
 
   it("a kind that checks no address is refused", () => {
@@ -354,15 +346,12 @@ describe("DeviceMonitorTemplateUtil.buildDestination", () => {
       MonitorType.Website,
       MonitorType.API,
     ]) {
-      expectBadData(
-        () => {
-          return DeviceMonitorTemplateUtil.buildDestination({
-            address: "10.48.24.33",
-            monitorType: monitorType,
-          });
-        },
-        `A ${monitorType} monitor does not check an address.`,
-      );
+      expectBadData(() => {
+        return DeviceMonitorTemplateUtil.buildDestination({
+          address: "10.48.24.33",
+          monitorType: monitorType,
+        });
+      }, `A ${monitorType} monitor does not check an address.`);
     }
   });
 });
@@ -440,16 +429,13 @@ describe("DeviceMonitorTemplateUtil.retargetMonitorSteps", () => {
     };
 
     for (const monitorSteps of [empty, undefined]) {
-      expectBadData(
-        () => {
-          return DeviceMonitorTemplateUtil.retargetMonitorSteps({
-            monitorSteps: monitorSteps,
-            address: "10.48.24.33",
-            monitorType: MonitorType.Ping,
-          });
-        },
-        "Monitor template monitor steps are required.",
-      );
+      expectBadData(() => {
+        return DeviceMonitorTemplateUtil.retargetMonitorSteps({
+          monitorSteps: monitorSteps,
+          address: "10.48.24.33",
+          monitorType: MonitorType.Ping,
+        });
+      }, "Monitor template monitor steps are required.");
     }
   });
 });
@@ -513,25 +499,19 @@ describe("DeviceMonitorTemplateUtil.keepTargetAddress", () => {
   });
 
   it("a monitor that checks no address is not guessed at", () => {
-    expectBadData(
-      () => {
-        return DeviceMonitorTemplateUtil.keepTargetAddress({
-          templateMonitorSteps: buildSteps(MonitorType.Ping),
-          currentMonitorSteps: buildSteps(MonitorType.Ping, [{}]),
-        });
-      },
-      "This monitor was made for a network device but checks no address, so a sync cannot tell which address to keep. Set its destination to the device's address, then sync again.",
-    );
+    expectBadData(() => {
+      return DeviceMonitorTemplateUtil.keepTargetAddress({
+        templateMonitorSteps: buildSteps(MonitorType.Ping),
+        currentMonitorSteps: buildSteps(MonitorType.Ping, [{}]),
+      });
+    }, "This monitor was made for a network device but checks no address, so a sync cannot tell which address to keep. Set its destination to the device's address, then sync again.");
 
-    expectBadData(
-      () => {
-        return DeviceMonitorTemplateUtil.keepTargetAddress({
-          templateMonitorSteps: buildSteps(MonitorType.Ping),
-          currentMonitorSteps: undefined,
-        });
-      },
-      "checks no address",
-    );
+    expectBadData(() => {
+      return DeviceMonitorTemplateUtil.keepTargetAddress({
+        templateMonitorSteps: buildSteps(MonitorType.Ping),
+        currentMonitorSteps: undefined,
+      });
+    }, "checks no address");
   });
 });
 

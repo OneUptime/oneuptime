@@ -166,7 +166,8 @@ export function buildTemplateChoices(data: {
   const offered: Array<MonitorTemplate> = data.templates.filter(
     (template: MonitorTemplate): boolean => {
       return (
-        Boolean(template.id) && isDeviceMonitorTemplateType(template.monitorType)
+        Boolean(template.id) &&
+        isDeviceMonitorTemplateType(template.monitorType)
       );
     },
   );
@@ -179,17 +180,20 @@ export function buildTemplateChoices(data: {
     );
   const recommendedId: string = recommended?.id?.toString() || "";
 
-  const byKind: (readsPolls: boolean) => Array<DiscoveryImportTemplateChoice> =
-    (readsPolls: boolean): Array<DiscoveryImportTemplateChoice> => {
-      return offered
-        .filter((template: MonitorTemplate): boolean => {
-          return (
-            template.id!.toString() !== recommendedId &&
-            (template.monitorType === MonitorType.NetworkDevice) === readsPolls
-          );
-        })
-        .map(toTemplateChoice);
-    };
+  const byKind: (
+    readsPolls: boolean,
+  ) => Array<DiscoveryImportTemplateChoice> = (
+    readsPolls: boolean,
+  ): Array<DiscoveryImportTemplateChoice> => {
+    return offered
+      .filter((template: MonitorTemplate): boolean => {
+        return (
+          template.id!.toString() !== recommendedId &&
+          (template.monitorType === MonitorType.NetworkDevice) === readsPolls
+        );
+      })
+      .map(toTemplateChoice);
+  };
 
   const rest: Array<DiscoveryImportTemplateChoice> = [
     ...byKind(true),

@@ -132,20 +132,25 @@ describe.each(LANGUAGES)("the %s network device guide", (language: string) => {
   });
 });
 
-describe.each(LANGUAGES)("the %s monitor templates guide", (language: string) => {
-  test("says the monitors a discovery import made keep their address, naming the kinds", () => {
-    const guide: string = read(language, TEMPLATES_GUIDE);
-    const englishLines: Array<string> = read("en", TEMPLATES_GUIDE).split("\n");
-    const index: number = englishLines.findIndex((line: string): boolean => {
-      return line.startsWith("- Existing templates have no field exclusions");
+describe.each(LANGUAGES)(
+  "the %s monitor templates guide",
+  (language: string) => {
+    test("says the monitors a discovery import made keep their address, naming the kinds", () => {
+      const guide: string = read(language, TEMPLATES_GUIDE);
+      const englishLines: Array<string> = read("en", TEMPLATES_GUIDE).split(
+        "\n",
+      );
+      const index: number = englishLines.findIndex((line: string): boolean => {
+        return line.startsWith("- Existing templates have no field exclusions");
+      });
+
+      expect(index).toBeGreaterThan(0);
+
+      const line: string = guide.split("\n")[index] || "";
+
+      for (const kind of ["Ping", "IP", "NTP"]) {
+        expect(line).toContain(kind);
+      }
     });
-
-    expect(index).toBeGreaterThan(0);
-
-    const line: string = guide.split("\n")[index] || "";
-
-    for (const kind of ["Ping", "IP", "NTP"]) {
-      expect(line).toContain(kind);
-    }
-  });
-});
+  },
+);

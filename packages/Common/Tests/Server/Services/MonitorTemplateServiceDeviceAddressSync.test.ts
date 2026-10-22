@@ -14,7 +14,14 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import Port from "../../../Types/Port";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
 /*
@@ -508,9 +515,9 @@ describe("MonitorTemplateService.hasMonitorsMadeForDevices", () => {
 
     const unsaved: MonitorTemplate = buildTemplate();
     (unsaved as unknown as Record<string, unknown>)["_id"] = undefined;
-    expect(await MonitorTemplateService.hasMonitorsMadeForDevices(unsaved)).toBe(
-      false,
-    );
+    expect(
+      await MonitorTemplateService.hasMonitorsMadeForDevices(unsaved),
+    ).toBe(false);
 
     expect(countSpy).not.toHaveBeenCalled();
   });
