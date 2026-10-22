@@ -1970,6 +1970,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
 
+      # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
+      # the two migrations on a copy of the incidents table that already
+      # holds incidents (the column added without a rewrite, the indexes and
+      # key built online and safe to build again, a status incidents are in
+      # can't be deleted), the backfill that gives every incident from before
+      # the status its postmortem is in, and the list's reads through the
+      # incident service.
+      - name: Test postmortem statuses and their backfill on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_POSTMORTEM_STATUS_TESTS: "true"
+          POSTMORTEM_STATUS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          POSTMORTEM_STATUS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          POSTMORTEM_STATUS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentPostmortemStatusPostgres.test.ts --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
