@@ -44,7 +44,7 @@ So fügen Sie eine Projektkonfiguration hinzu:
 :::steps
 1. Gehen Sie zu **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
 2. Wählen Sie in **Twilio-Konfiguration** die Schaltfläche **Twilio-Konfiguration erstellen**.
-3. Geben Sie einen Namen, **Twilio Account SID**, **Twilio Auth Token** und **Twilio-Primärrufnummer** ein. Unter **Weitere Felder** geben Sie optional durch Kommas getrennte **Twilio-Sekundärrufnummern** für andere Länder ein, und **Twilio-SMS-Rufnummern**, wenn Ihre Nummern keine SMS senden können.
+3. Geben Sie einen Namen ein, und wählen Sie unter **Dieses Konto verwenden für**, was das Konto sendet: **Anrufe und SMS**, **Nur SMS** oder **Nur Anrufe**. Geben Sie dann **Twilio Account SID**, **Twilio Auth Token** und die Nummer ein, nach der die Auswahl fragt: **Twilio-Primärrufnummer** für Anrufe oder **Twilio-SMS-Rufnummern** für **Nur SMS**. Unter **Weitere Felder** geben Sie optional durch Kommas getrennte **Twilio-Sekundärrufnummern** für andere Länder ein, und **Twilio-SMS-Rufnummern**, wenn Ihre Nummern keine SMS senden können.
 4. **Als Projektstandard festlegen** ist bei der ersten Konfiguration des Projekts eingeschaltet, sodass die SMS und Anrufe an die Mitglieder des Projekts, einschließlich der Bereitschaftsbenachrichtigungen, gleich nach dem Speichern darüber laufen. Schalten Sie es aus, wenn dieses Konto nur für Statusseiten oder eingehende Anrufe gedacht ist. Eine spätere Konfiguration beginnt mit ausgeschaltetem Schalter: Schalten Sie ihn ein oder wählen Sie im Zeilenmenü der Konfiguration **Als Projektstandard festlegen**, um diese Nachrichten dorthin zu verlegen. Eine API-Anfrage, die `isProjectDefault` weglässt, wird genauso behandelt.
 5. Speichern Sie. Nur eine Konfiguration kann der Projektstandard sein. Statusseiten verwenden die Konfiguration, die jeder Statusseite ausdrücklich zugewiesen ist.
 
@@ -52,7 +52,7 @@ So fügen Sie eine Projektkonfiguration hinzu:
 > **SMS** und **Telefonanrufe** sind in jedem Projekt zunächst ausgeschaltet, und solange sie aus sind, kann niemand im Projekt eine Telefonnummer dafür hinzufügen. Ein Projekteigentümer, ein **Billing Admin** oder jemand mit **Manage Billing** schaltet sie in der Karte **Benachrichtigungskanäle** auf derselben Seite ein.
 :::
 
-Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin Dashboard > Einstellungen > Anrufe und SMS** öffnen, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Die Benachrichtigungen der Mitglieder verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token vertraulich.
+Für einen installationsweiten Standard kann ein Administrator stattdessen **Admin Dashboard > Einstellungen > Anrufe und SMS** öffnen, wählen, was das Konto sendet, die Twilio-Zugangsdaten und Telefonnummern bearbeiten und speichern. Die Benachrichtigungen der Mitglieder verwenden diese globale Konfiguration, wenn ihr Projekt keinen Standard hat. Halten Sie das Auth Token vertraulich.
 
 ### Getrennte Nummern für Anrufe und SMS
 
@@ -70,6 +70,20 @@ Eine Konfiguration ohne SMS-Nummern sendet SMS wie bisher von denselben Nummern 
 
 > [!NOTE]
 > Welche Nummern SMS senden können und ob ein Absender zuerst registriert werden muss, ist von Land zu Land verschieden: Wo eine Registrierung vorgeschrieben ist, kann eine SMS von einer nicht registrierten Nummer blockiert oder als Spam markiert werden. Bevor Sie sich auf eine Nummer verlassen, prüfen Sie [Twilios SMS-Richtlinien](https://www.twilio.com/en-us/guidelines/sms) für jedes Land, in das Sie senden.
+
+### Ein Konto nur für SMS oder nur für Anrufe
+
+Ein Konto, das Sie nur für SMS oder nur für Anrufe verwenden, braucht keine Nummer für das andere. Wählen Sie das unter **Dieses Konto verwenden für**, und das Formular fragt nur nach den Nummern, die diese Auswahl braucht:
+
+| Auswahl | Nummern, die sie braucht | Was nie darüber geht |
+| --- | --- | --- |
+| **Anrufe und SMS** | **Twilio-Primärrufnummer** | Nichts |
+| **Nur SMS** | **Twilio-SMS-Rufnummern** | Anrufe |
+| **Nur Anrufe** | **Twilio-Primärrufnummer** | SMS |
+
+Was eine Konfiguration nicht sendet, geht so hinaus wie ohne sie: Ist die Standardkonfiguration des Projekts auf **Nur SMS** gestellt, gehen Anrufe an die Mitglieder des Projekts über die installationsweite Konfiguration. Kann keine Konfiguration eine Nachricht senden, steht im Protokoll der Nachricht, dass die Konfiguration des Projekts dafür nicht verwendet wird, und wer das ändern kann.
+
+Statusseiten bieten nur die Konfigurationen an, die SMS senden, und **Test-SMS senden** und **Testanruf senden** erscheinen nur für das, was eine Konfiguration sendet. Jede bestehende Konfiguration ist wie bisher auf **Anrufe und SMS** gestellt. Über die API und Terraform ist die Auswahl das Feld `usedFor`, und eine Konfiguration ohne die Nummern, die ihre Auswahl braucht, wird abgelehnt.
 
 ## 3. Netzwerkzugriff konfigurieren
 
@@ -145,6 +159,7 @@ Für die Entwicklung beschreibt Twilios [Anleitung zum Testen von Webhooks](http
 | --- | --- |
 | Nichts wird gesendet | Zugangsdaten, die Funktionen der Nummer, Einschränkungen des Kontos und die ausgehende Verbindung. |
 | Twilio lehnt SMS mit dem Fehler 21606 ab | Die Nummer kann keine SMS senden. Fügen Sie unter **Twilio-SMS-Rufnummern** eine hinzu, die es kann: siehe [Getrennte Nummern für Anrufe und SMS](#getrennte-nummern-für-anrufe-und-sms). |
+| Anrufe oder SMS gehen über ein anderes Konto als das des Projekts | Die Standardkonfiguration des Projekts ist auf **Nur SMS** oder **Nur Anrufe** gestellt: siehe [Ein Konto nur für SMS oder nur für Anrufe](#ein-konto-nur-für-sms-oder-nur-für-anrufe). |
 | Die SMS oder der Anruf kommt an, aber Status oder Bestätigung werden nicht aktualisiert | Die Callback-URL und die Logs des öffentlichen Ingress. Twilios [Hinweise zu HTTP-Abruffehlern](https://www.twilio.com/docs/api/errors/11200) helfen bei unerreichbaren Callbacks, TLS-Problemen und HTTP-Fehlern. |
 
 Ein erfolgreicher Testanruf allein beweist nicht, dass Callbacks erreichbar sind.
