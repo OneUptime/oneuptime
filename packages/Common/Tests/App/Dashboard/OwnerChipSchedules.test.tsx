@@ -34,6 +34,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -303,7 +304,7 @@ const openChip: (label: string) => HTMLElement = (
   label: string,
 ): HTMLElement => {
   const chip: HTMLElement = screen.getByRole("button", {
-    name: new RegExp(`^${label}(?:$| ·)`),
+    name: new RegExp(`^${escapeRegExp(label)}(?:$| ·)`),
   });
 
   if (chip.getAttribute("aria-expanded") !== "true") {
@@ -338,7 +339,9 @@ const setOperator: (label: string, operator: string) => Promise<void> = async (
   // The popover opens on the next render.
   const dialog: HTMLElement = await waitFor((): HTMLElement => {
     const found: HTMLElement | null = screen
-      .getByRole("button", { name: new RegExp(`^${label}(?:$| ·)`) })
+      .getByRole("button", {
+        name: new RegExp(`^${escapeRegExp(label)}(?:$| ·)`),
+      })
       .closest('[data-testid="filter-chip"]')!
       .parentElement!.querySelector('[role="dialog"]');
     expect(found).not.toBeNull();

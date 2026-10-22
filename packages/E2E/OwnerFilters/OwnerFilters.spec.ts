@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
 
@@ -196,7 +197,7 @@ function bar(page: Page): Locator {
 
 function chip(page: Page, label: string): Locator {
   return bar(page).getByRole("button", {
-    name: new RegExp(`^${label}(?:$| ·)`),
+    name: new RegExp(`^${escapeRegExp(label)}(?:$| ·)`),
   });
 }
 
