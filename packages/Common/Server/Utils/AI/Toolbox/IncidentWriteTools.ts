@@ -112,7 +112,8 @@ export const CreateIncidentTool: ObservabilityTool = {
 
     const severities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
-        query: {},
+        // The severities a new incident may take: never an archived one.
+        query: { isArchived: false },
         select: {
           _id: true,
           name: true,

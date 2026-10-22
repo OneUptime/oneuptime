@@ -1,5 +1,6 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import ModelAPI, { ListResult } from "../../Utils/ModelAPI/ModelAPI";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -123,6 +124,8 @@ export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
     select: {
       _id: true,
       [source.labelColumn]: true,
+      // An archived severity a step already names is shown, never offered.
+      ...ArchivedValuePicker.getSelectedValueSelect(source.modelType),
     } as Select<BaseModel>,
     sort: {
       [source.sortColumn || source.labelColumn]: SortOrder.Ascending,
@@ -131,22 +134,43 @@ export const loadRecordChoices: LoadRecordChoicesFunction = async (data: {
 
   const currentWorkflowId: string = data.workflowId.toString();
 
-  return result.data
-    .filter((record: BaseModel): boolean => {
+  const records: Array<BaseModel> = result.data.filter(
+    (record: BaseModel): boolean => {
       return !(
         source.excludesCurrentWorkflow &&
         record._id?.toString() === currentWorkflowId
       );
-    })
-    .map((record: BaseModel): DropdownOption => {
-      const id: string = record._id?.toString() ?? "";
-      const label: unknown = (record as unknown as Record<string, unknown>)[
-        source.labelColumn
-      ];
+    },
+  );
 
-      return {
-        label: typeof label === "string" && label ? label : id,
-        value: id,
-      };
-    });
+  /*
+   * An archived value (Common/Utils/ArchivableValues) comes last, marked
+   * Archived and never picked: a step that already names one still shows
+   * it - a workflow keeps running as it was built - and nobody picks it
+   * for a step again.
+   */
+  return [
+    ...ArchivedValuePicker.getLiveValues(records),
+    ...records.filter((record: BaseModel): boolean => {
+      return ArchivedValuePicker.isArchived(record);
+    }),
+  ].map((record: BaseModel): DropdownOption => {
+    const id: string = record._id?.toString() ?? "";
+    const label: unknown = (record as unknown as Record<string, unknown>)[
+      source.labelColumn
+    ];
+
+    const option: DropdownOption = {
+      label: typeof label === "string" && label ? label : id,
+      value: id,
+    };
+
+    // The dropdown draws the Archived tag beside it (ArchivedTag).
+    if (ArchivedValuePicker.isArchived(record)) {
+      option.isArchived = true;
+      option.isDisabled = true;
+    }
+
+    return option;
+  });
 };

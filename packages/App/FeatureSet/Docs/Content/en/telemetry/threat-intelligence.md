@@ -195,7 +195,7 @@ Read **Last Poll Summary**. No objects fetched: the collection is empty or publi
 :::
 
 :::details Indicators exist, but nothing matches
-Matching compares an indicator's value with an event's observables, not with every field: open an event you expected to match in **Events** and check that its observables hold the value. Only indicators with the **Active** status match. Check **Last Match Error** on the feed.
+Matching compares an indicator's value with an event's observables, not with every field: open an event you expected to match in **Events** and check that its observables hold the value. Only indicators with the **Active** status match. If the feed's **Status** reads **Matching failed**, **View Error** in its row shows why.
 :::
 
 :::details A match didn't open an alert

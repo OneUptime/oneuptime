@@ -876,6 +876,7 @@ export class Service extends ProjectReferencesService<Model> {
                   monitor.projectId,
                 ),
                 alreadyStoredMonitorSteps: monitor.monitorSteps,
+                props: updateBy.props,
               },
             );
           }
@@ -1972,6 +1973,7 @@ export class Service extends ProjectReferencesService<Model> {
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
+      props: createBy.props,
     });
 
     await this.validateLinkedResourcesBelongToProject({

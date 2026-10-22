@@ -674,6 +674,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     description:
       "How OneUptime delivers mail for this config. 'SMTP' uses the hostname/port. 'Microsoft Graph' sends via the Microsoft Graph REST API — use this when your Microsoft 365 tenant has SMTP AUTH disabled.",
     defaultValue: MailTransportType.SMTP,
+    isDefaultValueColumn: true,
     example: "SMTP",
   })
   @Column({
@@ -715,6 +716,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     description:
       "The type of authentication to use for this SMTP server. Options: Username and Password, OAuth, or None.",
     defaultValue: SMTPAuthenticationType.UsernamePassword,
+    isDefaultValueColumn: true,
     example: "Username and Password",
   })
   @Column({

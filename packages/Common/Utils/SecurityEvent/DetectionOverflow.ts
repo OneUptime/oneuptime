@@ -96,3 +96,33 @@ export function describeDetectionOverflow(overflow: DetectionOverflow): string {
 
   return `This ${pass} matched ${matched} ${unit}. ${opened}; ${recorded}. ${advice}`;
 }
+
+/*
+ * How every sentence a run leaves about its own work opens: the overflow
+ * above ("This run matched ...", "This check matched ..."), and any other
+ * note a run writes about what it did. A failure is the message of what the
+ * run threw, which never opens this way.
+ */
+const DETECTION_RUN_NOTICE_OPENINGS: Array<string> = [
+  "This run ",
+  "This check ",
+];
+
+/*
+ * Whether a rule's Last Error or a feed's Last Match Error is a run's note
+ * about its own work, not a failure: the Dashboard shows the first as
+ * needing a look, and the second as failing.
+ */
+export function isDetectionRunNotice(
+  message: string | null | undefined,
+): boolean {
+  if (!message) {
+    return false;
+  }
+
+  const text: string = message.trimStart();
+
+  return DETECTION_RUN_NOTICE_OPENINGS.some((opening: string): boolean => {
+    return text.startsWith(opening);
+  });
+}

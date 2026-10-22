@@ -88,6 +88,11 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Teams | `Team` |
 | Custom roles, and the teams given one | `Custom Role`, `Team Custom Role` |
 | Labels | `Label` |
+| Incident states and severities | `Incident State`, `Incident Severity` |
+| Alert states and severities | `Alert State`, `Alert Severity` |
+| Monitor statuses | `Monitor Status` |
+| Scheduled maintenance states | `Scheduled Maintenance State` |
+| Incident roles | `Incident Role` |
 | API keys | `API Key` |
 | MCP clients people connect | `MCP Client Authorization` |
 | Inventory items | `Inventory Item` |

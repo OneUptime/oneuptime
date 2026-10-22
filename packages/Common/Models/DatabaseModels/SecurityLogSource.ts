@@ -137,6 +137,7 @@ export default class SecurityLogSource extends BaseModel {
     description:
       "Whether OneUptime looks for security events in the project's logs.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

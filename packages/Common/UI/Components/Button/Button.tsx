@@ -170,10 +170,14 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
   }
 
+  /*
+   * A Delete that cannot be pressed yet - its dialog is still checking what
+   * it would change - looks it, as a disabled primary button does.
+   */
   if (buttonStyle === ButtonStyleType.DANGER) {
-    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm ${
-      disabled ? "" : "hover:bg-red-700"
-    } focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
+    buttonStyleCssClass = `inline-flex w-full justify-center rounded-md border border-transparent ${
+      disabled ? "bg-red-300" : "bg-red-600 hover:bg-red-700"
+    } text-base font-medium text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 md:ml-3 md:w-auto md:text-sm`;
   }
 
   if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {

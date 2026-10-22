@@ -550,6 +550,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentFormPostgres.test.ts --forceExit
 
+      # Issue #5158: a create may leave out every required column the API
+      # reference gives a default, and the row holds that default. Reads the
+      # migrated defaults of every model, and clones the 19 tables of the
+      # columns the issue was one of into an isolated schema, so it must run
+      # after the registered migrations.
+      - name: Test required columns with a default on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REQUIRED_COLUMN_DEFAULTS_TESTS: "true"
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RequiredColumnDefaultsPostgres.test.ts --forceExit
+
       # Clones the migrated UserProjectSsoConsent table (and its unique index)
       # into an isolated schema: two racing confirmations must leave one row.
       - name: Test project SSO consent records on migrated Postgres
@@ -1935,6 +1951,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # Archiving the values records pick from, on migrated Postgres: the two
+      # migrations on tables that already hold values (every value comes out
+      # live, the keys to who archived one are added online and cleared when
+      # the user goes, both undo), the reads the write check and the archive
+      # guard make, an archive stamped through the real update path, and the
+      # usage counts of the Archive and Delete dialogs run by Postgres for
+      # every reference the models declare.
+      - name: Test archiving states, severities, statuses, labels and roles on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ARCHIVABLE_VALUES_TESTS: "true"
+          ARCHIVABLE_VALUES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ARCHIVABLE_VALUES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ARCHIVABLE_VALUES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification

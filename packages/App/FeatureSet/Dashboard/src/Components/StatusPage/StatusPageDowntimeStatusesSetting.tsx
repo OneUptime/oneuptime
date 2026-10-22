@@ -117,7 +117,11 @@ const StatusPageDowntimeStatusesSetting: FunctionComponent<ComponentProps> = (
         const result: ListResult<MonitorStatus> =
           await ModelAPI.getList<MonitorStatus>({
             modelType: MonitorStatus,
-            query: {},
+            /*
+             * The statuses that can be added: not archived. An archived one
+             * the page already counts stays a chip (the page's own, below).
+             */
+            query: { isArchived: false },
             limit: LIMIT_PER_PROJECT,
             skip: 0,
             select: {

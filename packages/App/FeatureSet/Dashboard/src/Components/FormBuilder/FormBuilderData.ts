@@ -143,7 +143,8 @@ export const loadFormRecordOptions: LoadFormRecordOptionsFunction = async (
       const result: ListResult<IncidentSeverity> =
         await ModelAPI.getList<IncidentSeverity>({
           modelType: IncidentSeverity,
-          query: { projectId: projectId },
+          // A form offers values that can be picked: not archived.
+          query: { projectId: projectId, isArchived: false },
           select: { _id: true, name: true, color: true },
           sort: { order: SortOrder.Ascending },
           limit: LIMIT_PER_PROJECT,
@@ -169,7 +170,8 @@ export const loadFormRecordOptions: LoadFormRecordOptionsFunction = async (
     case FormTargetOptionsSource.Label: {
       const result: ListResult<Label> = await ModelAPI.getList<Label>({
         modelType: Label,
-        query: { projectId: projectId },
+        // A form offers values that can be picked: not archived.
+        query: { projectId: projectId, isArchived: false },
         select: { _id: true, name: true, color: true },
         sort: { name: SortOrder.Ascending },
         limit: LIMIT_PER_PROJECT,

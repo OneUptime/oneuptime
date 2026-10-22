@@ -262,4 +262,64 @@ describe("pickSeverityByPrecedence", () => {
       }),
     ).toBeNull();
   });
+
+  describe("archived severities (Common/Utils/ArchivableValues)", () => {
+    type ArchivableSeverity = TestSeverity & { isArchived?: boolean };
+
+    // Critical and Low are archived; High is the only live one.
+    const WITH_ARCHIVED: Array<ArchivableSeverity> = [
+      { ...SEVERITIES[0]!, isArchived: true },
+      { ...SEVERITIES[1]!, isArchived: false },
+      { ...SEVERITIES[2]!, isArchived: true },
+    ];
+
+    test("the rule's own severity is kept even when archived: it runs as it was set up", () => {
+      expect(
+        pickSeverityByPrecedence({
+          severities: WITH_ARCHIVED,
+          explicitSeverityId: SEVERITIES[0]!.id,
+          severityLabel: "Low",
+          isSevere: false,
+        })?.toString(),
+      ).toBe(SEVERITIES[0]!.id!.toString());
+    });
+
+    test("the name match never lands on an archived severity", () => {
+      expect(
+        pickSeverityByPrecedence({
+          severities: WITH_ARCHIVED,
+          explicitSeverityId: undefined,
+          severityLabel: "critical",
+          isSevere: false,
+        })?.toString(),
+      ).toBe(SEVERITIES[1]!.id!.toString());
+    });
+
+    test("the rank picks among the live ones, both ends", () => {
+      for (const isSevere of [true, false]) {
+        expect(
+          pickSeverityByPrecedence({
+            severities: WITH_ARCHIVED,
+            explicitSeverityId: undefined,
+            severityLabel: "Sev0",
+            isSevere: isSevere,
+          })?.toString(),
+        ).toBe(SEVERITIES[1]!.id!.toString());
+      }
+    });
+
+    test("only archived ones and no rule of its own: nothing is picked", () => {
+      expect(
+        pickSeverityByPrecedence({
+          severities: [
+            { ...SEVERITIES[0]!, isArchived: true },
+            { ...SEVERITIES[2]!, isArchived: true },
+          ],
+          explicitSeverityId: undefined,
+          severityLabel: "Critical",
+          isSevere: true,
+        }),
+      ).toBeNull();
+    });
+  });
 });

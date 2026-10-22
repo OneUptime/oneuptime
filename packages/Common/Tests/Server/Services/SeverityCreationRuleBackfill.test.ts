@@ -504,14 +504,16 @@ describe("GAP A CLOSED - IncidentSeverityService queues the rule backfill on cre
   /*
    * GAP A CLOSED - onCreateSuccess is the hook Phase 1 added, so it appears in
    * this list: the backfill hangs off the success hook, not off any of the
-   * before-hooks. There is no onBeforeUpdate any more: severities are dragged
-   * into order and DatabaseService keeps it (@ListOrderColumn), so an update
-   * needs no hook of its own.
+   * before-hooks. Severities are dragged into order and DatabaseService keeps
+   * it (@ListOrderColumn); the update hook there is now is archiving's
+   * (ArchivableValueGuard: a project keeps one severity that is not
+   * archived), and backfills nothing.
    */
   test("it overrides onCreateSuccess alongside its create and delete hooks", () => {
     expect(ownHookNames(IncidentSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
+      "onBeforeUpdate",
       "onCreateSuccess",
       "onDeleteSuccess",
     ]);
@@ -772,6 +774,7 @@ describe("GAP A CLOSED - AlertSeverityService queues the rule backfill on create
     expect(ownHookNames(AlertSeverityServiceClass.prototype)).toEqual([
       "onBeforeCreate",
       "onBeforeDelete",
+      "onBeforeUpdate",
       "onCreateSuccess",
       "onDeleteSuccess",
     ]);

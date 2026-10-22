@@ -2868,6 +2868,8 @@ export class Service extends ProjectReferencesService<Model> {
         await AlertSeverityService.findOneBy({
           query: {
             projectId: site.projectId,
+            // A default OneUptime picks itself: never an archived severity.
+            isArchived: false,
           },
           sort: {
             order: SortOrder.Ascending,

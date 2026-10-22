@@ -10,6 +10,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
+import useArchivableValues, {
+  ArchivableValues,
+} from "../../../Components/ArchivableValue/UseArchivableValues";
+import { ArchivableValueType } from "Common/Utils/ArchivableValues";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -20,10 +24,21 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const IncidentSeveritiesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  // Archive and Unarchive, and the folded Archived section. See the hook.
+  const archive: ArchivableValues<IncidentSeverity> =
+    useArchivableValues<IncidentSeverity>({
+      modelType: IncidentSeverity,
+      type: ArchivableValueType.IncidentSeverity,
+    });
+
   return (
     <Fragment>
       <ModelTable<IncidentSeverity>
         modelType={IncidentSeverity}
+        query={archive.query}
+        actionButtons={archive.actionButtons}
+        getDeleteConfirmation={archive.getDeleteConfirmation}
+        refreshToggle={archive.refreshToggle}
         id="incident-severity-table"
         userPreferencesKey="incident-severity-table"
         name="Settings > Incident Severity"
@@ -59,6 +74,7 @@ const IncidentSeveritiesPage: FunctionComponent<
         )}
         showRefreshButton={true}
       />
+      {archive.element}
     </Fragment>
   );
 };
