@@ -9,7 +9,7 @@ const output = path.join(
   repository,
   "output/playwright/owner-filters-ui/fixture",
 );
-const port = Number(process.env.OWNER_FILTERS_FIXTURE_PORT || 4459);
+const port = Number(process.env.OWNER_FILTERS_FIXTURE_PORT || 4481);
 const config = createConfig({
   serviceName: "owner-filters-fixture",
   publicPath: "/dist/",

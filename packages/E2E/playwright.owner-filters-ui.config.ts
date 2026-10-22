@@ -13,7 +13,7 @@ import path from "path";
  * column, what each list read sends, the chips kept across a reload, a
  * 390px phone, dark mode and German.
  */
-const port: string = process.env["OWNER_FILTERS_FIXTURE_PORT"] || "4459";
+const port: string = process.env["OWNER_FILTERS_FIXTURE_PORT"] || "4481";
 
 export default defineConfig({
   testDir: "./OwnerFilters",

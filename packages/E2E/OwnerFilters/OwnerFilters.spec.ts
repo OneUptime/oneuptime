@@ -36,7 +36,7 @@ import path from "path";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000f1";
 const PAGE_PATH: string = `/dashboard/${PROJECT_ID}/on-call-duty/schedules`;
-const PORT: string = process.env["OWNER_FILTERS_FIXTURE_PORT"] || "4459";
+const PORT: string = process.env["OWNER_FILTERS_FIXTURE_PORT"] || "4481";
 const TABLE_ID: string = "on-call-schedules-table";
 
 const SRE_TEAM_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -350,40 +350,55 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await openPage(page, { query: "?delay=1500" });
 
     /*
-     * Every frame from the click on: the chip reads its options a moment
-     * after it opens (debounced), and that moment used to say "Nothing to
-     * show".
+     * The page from the click on: the chip reads its options a moment after
+     * it opens (debounced), and that moment used to say "Nothing to show".
+     * Then, for one frame or none, the popover's first render did: React
+     * draws the click in a microtask, and a passive effect's "loading"
+     * waited for a later task, after the browser could paint. So the page
+     * is read once React has drawn the click - what the next frame shows -
+     * and then on every frame for 600ms.
      */
-    const framesSayingNothing: number = await page.evaluate(
-      async (): Promise<number> => {
-        const button: HTMLElement | undefined = Array.from(
-          document.querySelectorAll<HTMLElement>(
-            '[data-testid="facet-filter-bar"] button',
-          ),
-        ).find((candidate: HTMLElement): boolean => {
-          return (candidate.textContent || "").trim().startsWith("Owner");
-        });
-
-        button!.click();
-
-        let saidNothing: number = 0;
-        const start: number = performance.now();
-
-        while (performance.now() - start < 600) {
-          await new Promise((resolve: (value: unknown) => void) => {
-            requestAnimationFrame(resolve);
+    const seen: { onFirstFrame: boolean; framesSayingNothing: number } =
+      await page.evaluate(
+        async (): Promise<{
+          onFirstFrame: boolean;
+          framesSayingNothing: number;
+        }> => {
+          const button: HTMLElement | undefined = Array.from(
+            document.querySelectorAll<HTMLElement>(
+              '[data-testid="facet-filter-bar"] button',
+            ),
+          ).find((candidate: HTMLElement): boolean => {
+            return (candidate.textContent || "").trim().startsWith("Owner");
           });
 
-          if (document.body.innerText.includes("Nothing to show")) {
-            saidNothing++;
+          button!.click();
+
+          // React's render of the click is the microtask queued first.
+          await Promise.resolve();
+          await Promise.resolve();
+
+          const onFirstFrame: boolean =
+            document.body.innerText.includes("Nothing to show");
+
+          let framesSayingNothing: number = 0;
+          const start: number = performance.now();
+
+          while (performance.now() - start < 600) {
+            await new Promise((resolve: (value: unknown) => void) => {
+              requestAnimationFrame(resolve);
+            });
+
+            if (document.body.innerText.includes("Nothing to show")) {
+              framesSayingNothing++;
+            }
           }
-        }
 
-        return saidNothing;
-      },
-    );
+          return { onFirstFrame, framesSayingNothing };
+        },
+      );
 
-    expect(framesSayingNothing).toBe(0);
+    expect(seen).toEqual({ onFirstFrame: false, framesSayingNothing: 0 });
 
     const popover: Locator = await openChip(page, "Owner");
 

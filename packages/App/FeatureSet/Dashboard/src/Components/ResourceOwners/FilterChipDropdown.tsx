@@ -30,6 +30,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -238,8 +239,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     }
   }, [props.options, isAsync]);
 
-  // Async: load on open + whenever the search term changes (debounced).
-  useEffect(() => {
+  /*
+   * Async: load on open + whenever the search term changes (debounced).
+   *
+   * Loading from the moment the popover opens or the search changes, not
+   * from when the debounced read starts: in between, an Owner chip just
+   * opened said "Nothing to show - No options available", as though the
+   * project had no people and no teams. A layout effect, so the popover's
+   * first frame already says it is loading: a passive effect runs after
+   * the browser may have drawn the popover with nothing in it, and its
+   * update waits for a later task.
+   */
+  useLayoutEffect(() => {
     if (!isAsync || !props.loadOptions) {
       return;
     }
@@ -249,12 +260,6 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
 
     let cancelled: boolean = false;
 
-    /*
-     * Loading from the moment the popover opens or the search changes, not
-     * from when the debounced read starts: in between, an Owner chip just
-     * opened said "Nothing to show - No options available", as though the
-     * project had no people and no teams.
-     */
     setIsLoading(true);
 
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
