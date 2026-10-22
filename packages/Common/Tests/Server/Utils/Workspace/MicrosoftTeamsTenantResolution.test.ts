@@ -1311,7 +1311,7 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
       MonitorService,
       OnCallDutyPolicyService,
       ScheduledMaintenanceService,
-    ] as Array<{ findOneBy: () => Promise<unknown> }>) {
+    ] as unknown as Array<{ findOneBy: () => Promise<unknown> }>) {
       jest.spyOn(service, "findOneBy").mockResolvedValue(null as never);
     }
 

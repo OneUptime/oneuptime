@@ -1074,7 +1074,7 @@ describe("a workspace connected to more than one project", () => {
       IncidentEpisodeService,
       AlertEpisodeService,
       ScheduledMaintenanceService,
-    ] as Array<{ findBy: () => Promise<unknown> }>) {
+    ] as unknown as Array<{ findBy: () => Promise<unknown> }>) {
       jest.spyOn(service, "findBy").mockResolvedValue([] as never);
     }
 
