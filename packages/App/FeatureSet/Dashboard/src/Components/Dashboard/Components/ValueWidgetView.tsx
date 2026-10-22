@@ -1288,10 +1288,10 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * over the sparkline. The slot's height is reserved from whether the widget
    * COULD show either, never from whether it currently is, so the swap cannot
    * move anything below it.
-   */
-  /*
-   * Left to right on a right-to-left page too: "18 Oct, 22:00" starts with a
-   * digit, and a Persian page reordered it into "22:00 ,Oct 18".
+   *
+   * The time reads left to right on a right-to-left page too: "18 Oct, 22:00"
+   * starts with a digit, and a Persian page would reorder it into
+   * "22:00 ,Oct 18".
    */
   const statusElement: ReactElement | null = hoveredTimestamp ? (
     <span
