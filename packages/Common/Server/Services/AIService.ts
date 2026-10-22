@@ -165,6 +165,27 @@ export const AI_REMEDIATION_EXECUTION_FEATURE: string =
   "AI Remediation Execution";
 
 /*
+ * The LlmLog feature name for security case triage (SecurityCaseTriageRunner):
+ * the read-only Investigation AIRun that reads a security case and writes
+ * what it is, how likely it is to be real and what to do next. Fired when a
+ * detection opens a case, with no human in the loop, so a burst of
+ * detections is a burst of runs: the daily budget covers it. A person's
+ * "Triage with AI" runs the same unattended loop, so it counts the same way.
+ */
+export const AI_SECURITY_CASE_TRIAGE_FEATURE: string =
+  "AI Security Case Triage";
+
+/*
+ * The LlmLog feature name for drafting a detection rule from a description
+ * (DetectionRuleDraft): one request, started by a person on the Detection
+ * Rules form and answered while they wait. Not autonomous - the project's
+ * daily limits cover it like any other request, the autonomous budget does
+ * not.
+ */
+export const AI_DETECTION_RULE_DRAFT_FEATURE: string =
+  "AI Detection Rule Draft";
+
+/*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
  * These are NOT written by anything any more — they exist only so the daily
  * budget keeps counting rows that ALREADY carry them:
@@ -270,6 +291,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * larger per-run tool budget — the daily subject lane must cover it.
    */
   AI_REMEDIATION_EXECUTION_FEATURE,
+  /*
+   * Security case triage (SecurityCaseTriageRunner). One read-only run per
+   * case a detection opens, with no human in the loop - a burst of
+   * detections opens a burst of cases.
+   */
+  AI_SECURITY_CASE_TRIAGE_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment
