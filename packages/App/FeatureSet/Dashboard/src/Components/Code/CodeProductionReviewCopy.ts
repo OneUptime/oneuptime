@@ -84,7 +84,7 @@ export const PRODUCTION_REVIEW_COPY: {
   allTimeCount: string;
   hotFunctionSelf: string;
   incidentNames: string;
-  lastSeen: string;
+  lastThrown: string;
   declared: string;
   deployAfter: string;
   unreadTitle: string;
@@ -195,8 +195,13 @@ export const PRODUCTION_REVIEW_COPY: {
   incidentNames: translationKey(
     "Its root cause or postmortem names {{subject}}",
   ),
-  // {{time}} is "5 minutes ago", in the reader's words.
-  lastSeen: translationKey("Last seen {{time}}"),
+  /*
+   * When an exception was last thrown. {{time}} is "5 minutes ago" in the
+   * reader's words - its own sentence, not the shared "Last seen {{time}}",
+   * which other pages fill with an English time and most languages keep
+   * English for it.
+   */
+  lastThrown: translationKey("Last thrown {{time}}"),
   declared: translationKey("Declared {{time}}"),
   deployAfter: translationKey("Deployed {{time}}"),
   unreadTitle: translationKey("Not read this time"),

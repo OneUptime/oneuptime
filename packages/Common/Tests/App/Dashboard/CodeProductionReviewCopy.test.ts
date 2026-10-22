@@ -170,8 +170,7 @@ describe("the words are the Dashboard's to translate", () => {
     ];
     /*
      * Labels other pages drew first - a profile's "Samples": their words are
-     * those pages', and the review reuses them. ("Last seen {{time}}", which
-     * a resource's page drew first, is German now.)
+     * those pages', and the review reuses them.
      */
     const sharedWithOtherPages: Array<string> = [
       "Traces",
@@ -193,12 +192,20 @@ describe("the words are the Dashboard's to translate", () => {
     expect(
       german.translateText(PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle),
     ).toBe("Pull Requests gegen die Produktion prüfen");
-    // Shared words a review's rows draw, German too.
+    /*
+     * When an exception was last thrown is a sentence of the review's own,
+     * worded with its German time: the shared "Last seen {{time}}" stays
+     * English, as other pages fill it with an English time.
+     */
+    expect(PRODUCTION_REVIEW_COPY.lastThrown).not.toBe("Last seen {{time}}");
     expect(
-      german.translateTemplate(PRODUCTION_REVIEW_COPY.lastSeen, {
+      german.translateTemplate(PRODUCTION_REVIEW_COPY.lastThrown, {
         time: "vor 5 Minuten",
       }),
-    ).toBe("Zuletzt gesehen vor 5 Minuten");
+    ).toBe("Zuletzt aufgetreten vor 5 Minuten");
+    expect(
+      (germanLocale as unknown as Record<string, string>)["Last seen {{time}}"],
+    ).toBe("Last seen {{time}}");
     expect(
       german.translatePlural(
         { one: "{{count}} error", other: "{{count}} errors" },

@@ -535,7 +535,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                     ? fact(
                         "last-seen",
                         <TranslatedSentence
-                          template={PRODUCTION_REVIEW_COPY.lastSeen}
+                          template={PRODUCTION_REVIEW_COPY.lastThrown}
                           slots={{
                             time: <CodeTimeAgo date={exception.lastSeenAt} />,
                           }}

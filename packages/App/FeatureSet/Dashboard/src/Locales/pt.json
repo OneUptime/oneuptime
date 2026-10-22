@@ -19927,7 +19927,7 @@
   "Last fired {{time}}": "Last fired {{time}}",
   "Last refreshed {{time}}": "Last refreshed {{time}}",
   "Last sample {{time}}": "Last sample {{time}}",
-  "Last seen {{time}}": "Visto pela última vez {{time}}",
+  "Last seen {{time}}": "Last seen {{time}}",
   "Last: {{date}}": "Last: {{date}}",
   "Learn how to register devices, run subnet discovery, enable interface monitoring and SNMP traps, and use template variables in the {{documentation}}.": "Learn how to register devices, run subnet discovery, enable interface monitoring and SNMP traps, and use template variables in the {{documentation}}.",
   "Leave this on {{projectDefault}} unless this step needs a specific model — a cheaper one for routine triage, or a self-hosted one for data that should not leave your network. Changing the project default later moves every step still set to default; a pinned step stays where you put it.": "Deixe em {{projectDefault}}, a menos que esta etapa precise de um modelo específico — um mais barato para a triagem de rotina, ou um auto-hospedado para dados que não devem sair da sua rede. Se você mudar o padrão do projeto depois, todas as etapas ainda no padrão mudam junto; uma etapa fixada fica onde você a colocou.",
@@ -33161,5 +33161,6 @@
   "{{self}} in its own code": "{{self}} no próprio código",
   "Nothing was posted on the pull request.": "Nada foi publicado no pull request.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "O autor não tem acesso de escrita a este repositório, então ele só é revisado de novo quando alguém com acesso de escrita pede.",
-  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Este repositório não está conectado pelo GitHub App, então seus pull requests não são revisados."
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Este repositório não está conectado pelo GitHub App, então seus pull requests não são revisados.",
+  "Last thrown {{time}}": "Última vez {{time}}"
 }

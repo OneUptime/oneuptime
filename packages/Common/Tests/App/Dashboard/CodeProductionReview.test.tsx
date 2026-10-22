@@ -527,7 +527,7 @@ describe("the review: what production shows of the changed code", () => {
     expect(within(first!).getByText("chargeCard").tagName).toBe("CODE");
     expect(first).toHaveTextContent("At a changed line");
     expect(first).toHaveTextContent("checkout-api");
-    expect(first).toHaveTextContent("Last seen 12 minutes ago");
+    expect(first).toHaveTextContent("Last thrown 12 minutes ago");
 
     // An id that is not one opens nothing; a count the window could not read is the group's own.
     expect(within(second!).queryByRole("link")).toBeNull();
