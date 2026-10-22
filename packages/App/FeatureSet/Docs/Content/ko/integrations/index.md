@@ -50,12 +50,12 @@ Jira나 Dynamics 365 같은 양방향 통합은 두 방향을 모두 사용합�
 | 도구 | 방향 | 하는 일 |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | 인바운드 | Huntress 인시던트 보고서로 온콜을 호출하고, 보고서가 닫히면 인시던트를 해결합니다. |
-| [Google SecOps](/docs/integrations/google-secops) | 인바운드 | Google SecOps 탐지를 보안 이벤트로 가져옵니다. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 인바운드 | Microsoft Sentinel 인시던트를 보안 이벤트로 가져옵니다. |
+| [Google SecOps](/docs/integrations/google-secops) | 양방향 | Google SecOps 탐지와 지표를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Google SecOps로 보냅니다. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 양방향 | Microsoft Sentinel 인시던트를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Microsoft Sentinel로 보냅니다. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | 인바운드 | Microsoft Defender XDR 알림을 보안 이벤트로 가져옵니다. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | 인바운드 | CrowdStrike Falcon 알림을 보안 이벤트로 가져옵니다. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | 인바운드 | Splunk notable event를 보안 이벤트로 가져옵니다. |
-| [Elastic Security](/docs/integrations/elastic-security) | 인바운드 | Elastic Security 탐지 알림을 보안 이벤트로 가져옵니다. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | 양방향 | Splunk notable event를 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Splunk로 보냅니다. |
+| [Elastic Security](/docs/integrations/elastic-security) | 양방향 | Elastic Security 탐지 알림을 보안 이벤트로 가져오고, OneUptime이 찾은 것을 Elastic Security로 보냅니다. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 인바운드 | AWS Security Hub 검색 결과를 보안 이벤트로 가져옵니다. |
 | [Okta System Log](/docs/integrations/okta) | 인바운드 | Okta 로그인, 계정 변경, 위협 탐지를 보안 이벤트로 가져옵니다. |
 

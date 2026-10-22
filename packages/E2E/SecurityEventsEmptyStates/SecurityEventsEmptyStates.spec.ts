@@ -7,6 +7,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1593,13 +1594,34 @@ test.describe("connections: your logs and your SIEM", () => {
 
   /*
    * The SIEMs of the destination catalog, in its order, each with the
-   * first setting its Connection step asks for.
+   * first setting its Connection step asks for and the settings it folds
+   * under More fields (the ones most people leave at their defaults).
    */
-  const SIEMS: ReadonlyArray<{ title: string; firstSetting: string }> = [
-    { title: "Google SecOps", firstSetting: "Instance resource name" },
-    { title: "Splunk", firstSetting: "HEC URL" },
-    { title: "Microsoft Sentinel", firstSetting: "Directory (tenant) ID" },
-    { title: "Elastic Security", firstSetting: "Elasticsearch URL" },
+  const SIEMS: ReadonlyArray<{
+    title: string;
+    firstSetting: string;
+    folded: Array<string>;
+  }> = [
+    {
+      title: "Google SecOps",
+      firstSetting: "Instance resource name",
+      folded: [],
+    },
+    {
+      title: "Splunk",
+      firstSetting: "HEC URL",
+      folded: ["Index", "Source type"],
+    },
+    {
+      title: "Microsoft Sentinel",
+      firstSetting: "Directory (tenant) ID",
+      folded: ["Stream", "Cloud"],
+    },
+    {
+      title: "Elastic Security",
+      firstSetting: "Elasticsearch URL",
+      folded: ["Data stream"],
+    },
   ];
 
   test("Send to your SIEM picks the SIEM first, then opens that SIEM's own settings", async ({
@@ -1649,6 +1671,23 @@ test.describe("connections: your logs and your SIEM", () => {
           await expect(
             dialog.getByText(other.firstSetting, { exact: true }),
           ).toHaveCount(0);
+        }
+      }
+      // What most people leave at its default waits under More fields.
+      const moreFields: Locator = dialog.getByRole("button", {
+        name: /^More fields/,
+      });
+      if (siem.folded.length === 0) {
+        await expect(moreFields).toHaveCount(0);
+      } else {
+        await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+        await expect(dialog.getByTestId("folded-section-item")).toHaveText(
+          siem.folded,
+        );
+        for (const title of siem.folded) {
+          await expect(
+            dialog.getByLabel(new RegExp(`^${escapeRegExp(title)}`)),
+          ).toBeHidden();
         }
       }
       // Nothing is filled in, so there is nothing to test yet.

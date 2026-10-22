@@ -451,7 +451,7 @@ const troubleshootingMarkdown: string = `
 #### A Google SecOps feed fails
 
 - The connection was deleted, or is not a Google SecOps connection: edit the feed and choose one.
-- \`403\`: the connection's service account cannot read indicator matches. Grant it the Chronicle API Viewer role.
+- \`Google SecOps IOC matches search failed (HTTP 403)\`: the connection's service account cannot read indicator matches. Grant it the Chronicle API Viewer role. Last Error quotes the rest of Google's answer.
 
 #### Last Error is set after a poll
 

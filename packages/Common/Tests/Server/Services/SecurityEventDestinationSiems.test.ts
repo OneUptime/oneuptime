@@ -16,6 +16,8 @@ import {
   getSecurityEventDestinationDefinition,
 } from "../../../Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import SecurityEventDestinationProvider from "../../../Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
+import { ConnectorField } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import { readSentinelCloud } from "../../../Server/Utils/SecurityEvent/Destinations/MicrosoftSentinel/MicrosoftSentinelSender";
 import { getJestSpyOn } from "../../Spy";
 import {
   afterEach,
@@ -242,6 +244,65 @@ describe("the catalog", () => {
         /^\/docs\/integrations\/[a-z-]+#send-security-events-to-[a-z-]+$/,
       );
     }
+  });
+
+  test("what a SIEM's form folds under More fields is optional, and says what empty means", () => {
+    const folded: Array<[string, string]> = [];
+
+    for (const definition of SecurityEventDestinationCatalog) {
+      for (const field of [
+        ...definition.configFields,
+        ...definition.secretFields,
+      ] as Array<ConnectorField>) {
+        if (!field.isAdvanced) {
+          continue;
+        }
+
+        folded.push([definition.provider, field.key]);
+        // Nobody has to open the fold: the field may be left as it is.
+        expect(field.required).toBe(false);
+        // And its description, or its default, says what that means.
+        expect(
+          field.defaultValue !== undefined ||
+            field.description.includes("Leave empty for"),
+        ).toBe(true);
+      }
+
+      // A credential is never folded away.
+      for (const field of definition.secretFields) {
+        expect(field.isAdvanced).toBeFalsy();
+      }
+    }
+
+    expect(folded).toEqual([
+      ["splunk", "index"],
+      ["splunk", "sourceType"],
+      ["microsoft-sentinel", "streamName"],
+      ["microsoft-sentinel", "cloud"],
+      ["elastic-security", "dataStream"],
+    ]);
+  });
+
+  test("a Sentinel destination saved without a cloud is in the public cloud", async () => {
+    const valid: { config: JSONObject; secrets: JSONObject } =
+      VALID[SecurityEventDestinationProvider.MicrosoftSentinel]!;
+    const withoutCloud: JSONObject = { ...valid.config };
+    delete withoutCloud["cloud"];
+
+    await expect(
+      service.onBeforeCreate(
+        createBy(
+          SecurityEventDestinationProvider.MicrosoftSentinel,
+          withoutCloud,
+          valid.secrets,
+        ),
+      ),
+    ).resolves.toBeDefined();
+
+    // The sender reads no cloud, or any but Azure Government, as public.
+    expect(readSentinelCloud("")).toBe("public");
+    expect(readSentinelCloud("public")).toBe("public");
+    expect(readSentinelCloud("usgov")).toBe("usgov");
   });
 
   test("validateSettings is the same check the hooks make", () => {

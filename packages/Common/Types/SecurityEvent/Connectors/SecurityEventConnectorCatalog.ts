@@ -60,6 +60,11 @@ export interface ConnectorField {
    * on its last step, instead of with the product's settings.
    */
   isOption?: boolean | undefined;
+  /*
+   * A setting most people leave as it is - optional, with a default the
+   * description names: the form folds it under More fields.
+   */
+  isAdvanced?: boolean | undefined;
 }
 
 /*

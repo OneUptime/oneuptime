@@ -157,6 +157,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
           type: "text",
           required: false,
           placeholder: "security",
+          isAdvanced: true,
         },
         {
           key: "sourceType",
@@ -165,6 +166,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
           type: "text",
           required: false,
           placeholder: SPLUNK_DEFAULT_SOURCE_TYPE,
+          isAdvanced: true,
         },
       ],
       secretFields: [
@@ -235,18 +237,22 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
           type: "text",
           required: false,
           placeholder: MICROSOFT_SENTINEL_DEFAULT_STREAM_NAME,
+          isAdvanced: true,
         },
         {
           key: "cloud",
           title: "Cloud",
+          // The field starts on the public cloud (defaultValue below).
           description: "Which Azure cloud hosts the tenant and workspace.",
           type: "dropdown",
-          required: true,
+          // The sender reads anything but usgov as the public cloud.
+          required: false,
           options: [
             { label: "Azure public cloud", value: "public" },
             { label: "Azure Government (US)", value: "usgov" },
           ],
           defaultValue: "public",
+          isAdvanced: true,
         },
       ],
       secretFields: [
@@ -290,6 +296,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
           type: "text",
           required: false,
           placeholder: ELASTIC_DEFAULT_DATA_STREAM,
+          isAdvanced: true,
         },
       ],
       secretFields: [

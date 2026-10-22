@@ -71,7 +71,8 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   logs switch turns the logs on in one press and says when the first check runs, and a
   viewer cannot flip it; Send to your SIEM (and the card's Add destination) opens its form on
   the SIEM step - Google SecOps, Splunk, Microsoft Sentinel and Elastic Security - and Next
-  opens that SIEM's own settings alone, its test event waiting for the settings; with SIEMs
+  opens that SIEM's own settings alone, what most people leave at its default folded under
+  More fields (none for Google SecOps), its test event waiting for the settings; with SIEMs
   (`?siem=rows`) each row says what it is
   sent under its name and how sending goes, and the table fits its card at 1280 and 1440,
   its status never under the sticky actions; dark theme and a phone.

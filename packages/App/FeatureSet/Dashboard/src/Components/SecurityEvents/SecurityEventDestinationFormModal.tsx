@@ -27,7 +27,10 @@ import {
 } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -73,6 +76,14 @@ function fieldTypeOf(field: ConnectorField): FormFieldSchemaType {
 }
 
 /*
+ * The settings most people leave at their defaults (a Splunk index, a
+ * Sentinel stream or cloud, an Elastic data stream): folded under More
+ * fields, so a SIEM asks first for what it cannot do without.
+ */
+const advancedSection: FormFieldCollapsibleSection<JSONObject> =
+  getAdvancedFormSection<JSONObject>();
+
+/*
  * The fields of the SIEMs the form offers, each shown only while its SIEM
  * is the one picked. Built from the catalog, so a SIEM added there gets its
  * form without a change here.
@@ -99,8 +110,10 @@ export function getDestinationConnectionFields(data: {
   };
 
   for (const definition of data.definitions) {
-    for (const field of definition.configFields) {
-      fields.push({
+    const configField: (field: ConnectorField) => Field<JSONObject> = (
+      field: ConnectorField,
+    ): Field<JSONObject> => {
+      return {
         field: {
           [destinationConfigFieldName(definition.provider, field.key)]: true,
         },
@@ -111,6 +124,15 @@ export function getDestinationConnectionFields(data: {
         required: field.required,
         disableSpellCheck: true,
         showIf: isSelected(definition),
+        ...(field.isAdvanced ? { collapsibleSection: advancedSection } : {}),
+        /*
+         * The catalog's default (a Sentinel destination's public cloud): the
+         * field starts on it, and a fold reads it as nobody's setting.
+         */
+        ...(typeof field.defaultValue === "string" ||
+        typeof field.defaultValue === "number"
+          ? { defaultValue: field.defaultValue }
+          : {}),
         ...(field.placeholder ? { placeholder: field.placeholder } : {}),
         ...(field.type === "dropdown"
           ? {
@@ -121,7 +143,14 @@ export function getDestinationConnectionFields(data: {
               ),
             }
           : {}),
-      });
+      };
+    };
+
+    // What the SIEM cannot do without, its credential, then More fields.
+    for (const field of definition.configFields) {
+      if (!field.isAdvanced) {
+        fields.push(configField(field));
+      }
     }
 
     for (const field of definition.secretFields) {
@@ -145,6 +174,12 @@ export function getDestinationConnectionFields(data: {
             ? { placeholder: field.placeholder }
             : {}),
       });
+    }
+
+    for (const field of definition.configFields) {
+      if (field.isAdvanced) {
+        fields.push(configField(field));
+      }
     }
   }
 
@@ -200,21 +235,22 @@ const SecurityEventDestinationFormModal: FunctionComponent<ComponentProps> = (
             description: "Where OneUptime sends your security events.",
             stepId: DESTINATION_PROVIDER_STEP_ID,
             fieldType: FormFieldSchemaType.CardSelect,
-            cardSelectOptions: [
-              {
-                label: "SIEM",
-                options: SecurityEventDestinationCatalog.map(
-                  (definition: SecurityEventDestinationDefinition) => {
-                    return {
-                      value: definition.provider,
-                      title: definition.title,
-                      description: definition.description,
-                      icon: definition.icon,
-                    };
-                  },
-                ),
+            /*
+             * One card per SIEM, two to a row: each card carries a line on
+             * how it is sent to, which three columns squeeze, and four SIEMs
+             * make two even rows. No group heading: the field is the SIEM.
+             */
+            cardSelectOptions: SecurityEventDestinationCatalog.map(
+              (definition: SecurityEventDestinationDefinition) => {
+                return {
+                  value: definition.provider,
+                  title: definition.title,
+                  description: definition.description,
+                  icon: definition.icon,
+                };
               },
-            ],
+            ),
+            cardSelectMaxColumns: 2,
             required: true,
           } as Field<JSONObject>,
         ]),
