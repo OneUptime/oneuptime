@@ -161,6 +161,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import MonitorUptimeSummaryUtil from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 
 /*
  * ---------------------------------------------------------------------------
@@ -370,7 +371,19 @@ function table(modelType) {
 }
 
 function insert(modelType, record) {
-  const full = { _id: rowId(), projectId: projectObjectId, ...record };
+  const full = {
+    _id: rowId(),
+    projectId: projectObjectId,
+    /*
+     * A value records pick from - a status, a severity, a label - is not
+     * archived unless a row says so, as its column's default holds in the
+     * database: the pickers ask for isArchived false (ArchivableValues).
+     */
+    ...(ARCHIVABLE_VALUE_TABLE_NAMES.includes(tableName(modelType))
+      ? { isArchived: false }
+      : {}),
+    ...record,
+  };
   table(modelType).push(full);
   return make(modelType, full);
 }
