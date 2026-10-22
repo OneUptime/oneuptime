@@ -68,13 +68,30 @@
  *   - delay=<ms>        how long each request takes
  *   - lang=de|ja        the Dashboard's German or Japanese words
  *   - theme=dark        dark mode (server.js)
+ *   - review=off|unset  checkout-api's Production Review is off, or never
+ *                       set (a repository connected before it existed);
+ *                       by default on
+ *   - reviews=none      no pull request of checkout-api reviewed yet
+ *   - reviewcomment=Link|ReviewEvenIfPublic  what checkout-api's production
+ *                       review comment shows; by default never chosen (the
+ *                       review, or a link on a public repository)
+ *
+ * checkout-api's pull requests are reviewed against production
+ * (Common/Server/Utils/CodeRepository/ProductionReview): #42 found
+ * something in every part, #57 changed no code production runs, and #61 is
+ * waiting to be reviewed. Review again takes a review through Queued and
+ * Running to a new review, one stage each time the page reads it, as a
+ * request's turn is; the tasks lists leave the reviews out, as the server
+ * does, and a list read with kind productionReviews answers only them.
  *
  * What the pages send is recorded on window.__fixture: `creates`,
  * `replies`, `retries`, `stops`, `settings` (each repository update),
  * `deletes`, `navigations` (addresses outside the Dashboard, such as
  * GitHub's), `branchReads` (each read of a repository's branches, with what
- * was searched) and `lists` (each task list read, by its scope), so the
- * spec checks what was sent, not only what was drawn.
+ * was searched), `lists` (each task list read, by its scope),
+ * `reviewLists` (each production reviews list read, by its repository) and
+ * `reviewAgains` (each Review again, by its task), so the spec checks what
+ * was sent, not only what was drawn.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -116,6 +133,13 @@ import {
 } from "Common/Types/AI/CodeTask";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import {
+  ProductionReviewOperationMatch,
+  ProductionReviewPosting,
+  ProductionReviewTrigger,
+  ProductionReviewUtil,
+  ProductionReviewWhere,
+} from "Common/Types/CodeRepository/ProductionReview";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
@@ -209,6 +233,8 @@ window.__fixture = {
   navigations: [],
   branchReads: [],
   lists: [],
+  reviewLists: [],
+  reviewAgains: [],
   reads: { task: 0, list: 0, repositories: 0, repository: 0 },
 };
 
@@ -394,6 +420,10 @@ for (const repository of repositories) {
     testCommand: null,
     // The Runner AI works in it on: none picked, a global Runner.
     runnerId: null,
+    // Connected through the GitHub App from now on: reviewed against production.
+    isProductionReviewEnabled: repository.isConnected,
+    // Never chosen: the review, or a link on a public repository.
+    productionReviewPullRequestContent: null,
   };
 }
 
@@ -411,6 +441,31 @@ if (checkoutSettings && params.get("ghcommands") === "off") {
 
 if (checkoutSettings && params.get("ghcommands") === "unset") {
   checkoutSettings.isGitHubCommandsEnabled = null;
+}
+
+if (checkoutSettings && params.get("review") === "off") {
+  checkoutSettings.isProductionReviewEnabled = false;
+}
+
+if (checkoutSettings && params.get("review") === "unset") {
+  checkoutSettings.isProductionReviewEnabled = null;
+}
+
+if (
+  checkoutSettings &&
+  ["Link", "ReviewEvenIfPublic"].includes(params.get("reviewcomment"))
+) {
+  checkoutSettings.productionReviewPullRequestContent =
+    params.get("reviewcomment");
+}
+
+// Whether a repository's pull requests are reviewed against production, as Code's reads answer it.
+function withProductionReview(repository) {
+  const settings = settingsByRepository[repository.id] || {};
+  return {
+    ...repository,
+    isProductionReviewEnabled: settings.isProductionReviewEnabled === true,
+  };
 }
 
 if (
@@ -870,6 +925,329 @@ const tasks = [
   );
 });
 
+// ---- production reviews: one task per pull request, reviewed in place -----
+
+const REVIEW_IDS = {
+  found: "40000000-0000-4000-8000-0000000000f1",
+  nothing: "40000000-0000-4000-8000-0000000000f2",
+  waiting: "40000000-0000-4000-8000-0000000000f3",
+};
+
+const REVIEW_RECORD_IDS = {
+  service: RECORD_IDS.service,
+  worker: "50000000-0000-4000-8000-0000000000e6",
+  exception: RECORD_IDS.exception,
+  incident: RECORD_IDS.incident,
+  pastIncident: "50000000-0000-4000-8000-0000000000e7",
+};
+
+// The commit a pull request was reviewed at, and the one Review again reads.
+const REVIEW_SHAS = {
+  first: "4f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39",
+  next: "9b8a7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a09",
+};
+
+/*
+ * A review that found something in every part, as the server keeps it
+ * (Types/CodeRepository/ProductionReview): only counts, durations and the
+ * names of code.
+ */
+function foundReport(reviewedAt, headSha) {
+  return {
+    pullRequest: {
+      number: 42,
+      title: "Retry charges when the gateway times out",
+      url: "https://github.com/acme/checkout-api/pull/42",
+      authorLogin: "ada",
+      headSha,
+      baseRefName: "main",
+      isFromFork: false,
+    },
+    reviewedAt,
+    trigger: ProductionReviewTrigger.PullRequestChanged,
+    changedFileCount: 4,
+    codeFileCount: 3,
+    services: [
+      {
+        id: REVIEW_RECORD_IDS.service,
+        name: "checkout-api",
+        requestCount: 12840,
+        p99Ms: 840,
+      },
+      { id: REVIEW_RECORD_IDS.worker, name: "payments-worker" },
+    ],
+    exceptions: [
+      {
+        exceptionId: REVIEW_RECORD_IDS.exception,
+        type: "GatewayTimeoutError",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        path: "src/payments/charge.ts",
+        line: 88,
+        functionName: "chargeCard",
+        where: ProductionReviewWhere.ChangedLine,
+        occurrences: 1240,
+        isWindowCount: true,
+        firstSeenAt: minutesAgo(60 * 30),
+        lastSeenAt: minutesAgo(12),
+        isUnhandled: true,
+        isNew: true,
+      },
+      {
+        exceptionId: "50000000-0000-4000-8000-0000000000e8",
+        type: "RangeError",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        path: "src/payments/retry-policy-for-card-networks-and-wallets.ts",
+        where: ProductionReviewWhere.ChangedFile,
+        occurrences: 17,
+        isWindowCount: false,
+        lastSeenAt: minutesAgo(60 * 26),
+        isUnhandled: false,
+        isNew: false,
+      },
+    ],
+    operations: [
+      {
+        name: "POST /api/charges",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        path: "src/payments/charge.ts",
+        matchedBy: ProductionReviewOperationMatch.Route,
+        requestCount: 9300,
+        errorCount: 93,
+        p95Ms: 1240,
+      },
+      {
+        name: "PaymentClient.chargeWithRetries",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        path: "src/payments/client.ts",
+        functionName: "chargeWithRetries",
+        matchedBy: ProductionReviewOperationMatch.CodeAttribute,
+        requestCount: 9120,
+        errorCount: 0,
+        p95Ms: 610,
+      },
+    ],
+    hotFunctions: [
+      {
+        functionName: "chargeCard",
+        path: "src/payments/charge.ts",
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        totalPercent: 18.4,
+        selfPercent: 2.5,
+        isChangedFunction: true,
+        profileKind: "CPU time",
+      },
+    ],
+    incidents: {
+      total: 4,
+      open: 1,
+      items: [
+        {
+          incidentId: REVIEW_RECORD_IDS.incident,
+          label: "INC-87",
+          severity: "Critical",
+          state: "Investigating",
+          isOpen: true,
+          declaredAt: minutesAgo(90),
+        },
+        {
+          incidentId: REVIEW_RECORD_IDS.pastIncident,
+          label: "INC-61",
+          severity: "Major",
+          state: "Resolved",
+          isOpen: false,
+          declaredAt: minutesAgo(60 * 24 * 9),
+          mentions: "chargeCard",
+        },
+      ],
+    },
+    suspectDeploys: [
+      {
+        serviceId: REVIEW_RECORD_IDS.service,
+        serviceName: "checkout-api",
+        at: minutesAgo(180),
+        version: "v2.14.0",
+        impact:
+          "p95 latency of POST /api/charges rose from 420 ms to 1.2 s after it.",
+      },
+    ],
+    points: [
+      {
+        text: "This change retries `chargeCard()` on a timeout - the line that threw `GatewayTimeoutError` 1,240 times this week. Make sure a retried charge cannot charge a card twice.",
+      },
+      {
+        text: "INC-87 is open on checkout-api: consider merging after it is resolved.",
+      },
+    ],
+    unreadSections: [],
+    posting: ProductionReviewPosting.Review,
+    isPublicRepository: false,
+    commentUrl:
+      "https://github.com/acme/checkout-api/pull/42#issuecomment-1001",
+  };
+}
+
+// A review of a change to no code production runs: nothing to post.
+function nothingReport(reviewedAt) {
+  return {
+    pullRequest: {
+      number: 57,
+      title: "Update the README's setup steps",
+      url: "https://github.com/acme/checkout-api/pull/57",
+      authorLogin: "grace",
+      headSha: "1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d",
+      baseRefName: "main",
+      isFromFork: false,
+    },
+    reviewedAt,
+    trigger: ProductionReviewTrigger.PullRequestChanged,
+    changedFileCount: 1,
+    codeFileCount: 0,
+    services: [],
+    exceptions: [],
+    operations: [],
+    hotFunctions: [],
+    incidents: { total: 0, open: 0, items: [] },
+    suspectDeploys: [],
+    points: [],
+    unreadSections: [],
+    posting: ProductionReviewPosting.None,
+  };
+}
+
+function reviewTurn(data) {
+  return turn({
+    recipe: CodeFixTaskType.GitHubPullRequestProductionReview,
+    ...data,
+  });
+}
+
+function reviewOutcome(report) {
+  return {
+    summary: report.exceptions.length
+      ? "Production review: 2 exceptions, 2 operations, 1 hot function, 2 incidents and 1 suspect deploy in or around the changed code."
+      : "Nothing in production runs through this pull request's changes.",
+    filesChanged: [],
+    productionReview: report,
+  };
+}
+
+const REVIEW_TASKS = [
+  {
+    id: REVIEW_IDS.waiting,
+    repositoryId: REPOSITORY_IDS.checkout,
+    kind: "review",
+    title: "Cache coupon lookups for a minute",
+    turns: [
+      reviewTurn({
+        runId: REVIEW_IDS.waiting,
+        status: AIRunStatus.Queued,
+        createdAt: minutesAgo(1),
+      }),
+    ],
+    origin: {
+      type: CodeTaskOriginType.GitHubPullRequest,
+      label: "#61",
+      url: "https://github.com/acme/checkout-api/pull/61",
+    },
+  },
+  {
+    id: REVIEW_IDS.found,
+    repositoryId: REPOSITORY_IDS.checkout,
+    kind: "review",
+    title: "Retry charges when the gateway times out",
+    turns: [
+      reviewTurn({
+        runId: REVIEW_IDS.found,
+        status: AIRunStatus.Completed,
+        createdAt: minutesAgo(60 * 3),
+        startedAt: minutesAgo(6),
+        completedAt: minutesAgo(5),
+        outcome: reviewOutcome(foundReport(minutesAgo(5), REVIEW_SHAS.first)),
+      }),
+    ],
+    origin: {
+      type: CodeTaskOriginType.GitHubPullRequest,
+      label: "#42",
+      url: "https://github.com/acme/checkout-api/pull/42",
+    },
+  },
+  {
+    id: REVIEW_IDS.nothing,
+    repositoryId: REPOSITORY_IDS.checkout,
+    kind: "review",
+    title: "Update the README's setup steps",
+    turns: [
+      reviewTurn({
+        runId: REVIEW_IDS.nothing,
+        status: AIRunStatus.Completed,
+        createdAt: minutesAgo(60 * 26),
+        startedAt: minutesAgo(60 * 26 - 1),
+        completedAt: minutesAgo(60 * 26 - 2),
+        outcome: reviewOutcome(nothingReport(minutesAgo(60 * 26 - 2))),
+      }),
+    ],
+    origin: {
+      type: CodeTaskOriginType.GitHubPullRequest,
+      label: "#57",
+      url: "https://github.com/acme/checkout-api/pull/57",
+    },
+  },
+];
+
+if (
+  params.get("reviews") !== "none" &&
+  repositories.some((repository) => {
+    return repository.id === REPOSITORY_IDS.checkout;
+  })
+) {
+  tasks.push(...REVIEW_TASKS);
+}
+
+function isReview(task) {
+  return task.kind === "review";
+}
+
+/*
+ * One stage of a review the fixture's server is doing: Queued, Running,
+ * then a new review in place - the last one's report stays on the turn
+ * until then, as the server keeps it.
+ */
+function advanceReview(task, current) {
+  /*
+   * Only a review someone asked for again moves on: #61 waits for its
+   * minute after the pull request last changed, and is seen waiting.
+   */
+  if (
+    !current.stageAt ||
+    (current.status !== AIRunStatus.Queued &&
+      current.status !== AIRunStatus.Running)
+  ) {
+    return;
+  }
+  if (Date.now() - current.stageAt < pace) {
+    return;
+  }
+  current.stageAt = Date.now();
+  if (current.status === AIRunStatus.Queued) {
+    current.status = AIRunStatus.Running;
+    current.startedAt = new Date().toISOString();
+    return;
+  }
+  current.status = AIRunStatus.Completed;
+  current.completedAt = new Date().toISOString();
+  current.errorMessage = undefined;
+  const report =
+    task.id === REVIEW_IDS.nothing
+      ? nothingReport(current.completedAt)
+      : foundReport(current.completedAt, REVIEW_SHAS.next);
+  current.outcome = reviewOutcome(report);
+}
+
 let nextTaskNumber = 14;
 let nextRunNumber = 1;
 let nextPullRequest = 419;
@@ -1009,6 +1387,10 @@ function workingPullRequestOf(task) {
 
 // One stage of a turn the fixture's AI is working on.
 function advance(task, current) {
+  if (isReview(task)) {
+    advanceReview(task, current);
+    return;
+  }
   if (!current.stage || current.stage === "live") {
     return;
   }
@@ -1171,6 +1553,11 @@ function summaryOf(task) {
   if (changes) {
     summary.changes = changes;
   }
+  // A production review: what its latest review found, at a glance.
+  const review = latest.outcome && latest.outcome.productionReview;
+  if (isReview(task) && review) {
+    summary.productionReview = ProductionReviewUtil.summarize(review);
+  }
   return summary;
 }
 
@@ -1232,8 +1619,9 @@ function turnJSON(task, item, index, canSeeChanges) {
 }
 
 function statsOf(repositoryId) {
+  // A pull request's production review is not one of a repository's tasks.
   const own = tasks.filter((task) => {
-    return task.repositoryId === repositoryId;
+    return task.repositoryId === repositoryId && !isReview(task);
   });
   let working = 0;
   let waitingForYou = 0;
@@ -1360,7 +1748,10 @@ async function answer(path, body) {
       200,
       {
         repositories: repositories.map((repository) => {
-          return { ...repository, stats: statsOf(repository.id) };
+          return {
+            ...withProductionReview(repository),
+            stats: statsOf(repository.id),
+          };
         }),
         tasksWithoutRepositoryCount:
           params.get("other") === "1"
@@ -1387,7 +1778,7 @@ async function answer(path, body) {
     return new HTTPResponse(
       200,
       {
-        repository,
+        repository: withProductionReview(repository),
         stats: statsOf(repository.id),
         canAsk: CAN_ASK,
         blocker: blockerFor(repository),
@@ -1398,17 +1789,27 @@ async function answer(path, body) {
 
   if (path === "/list") {
     window.__fixture.reads.list++;
-    window.__fixture.lists.push(
-      body.allRepositories
-        ? "all"
-        : body.withoutRepository
-          ? "none"
-          : body.repositoryId,
-    );
+    // A repository's production reviews: a list of their own.
+    const isReviews = body.kind === "productionReviews";
+    if (isReviews) {
+      window.__fixture.reviewLists.push(body.repositoryId);
+    } else {
+      window.__fixture.lists.push(
+        body.allRepositories
+          ? "all"
+          : body.withoutRepository
+            ? "none"
+            : body.repositoryId,
+      );
+    }
     if (failParam === "list") {
       return refused(500, "The tasks could not be read right now.");
     }
     const own = tasks.filter((task) => {
+      // The tasks leave the reviews out; the reviews list holds only them.
+      if (isReview(task) !== isReviews) {
+        return false;
+      }
       // Every task; those with no repository too, where the project has some.
       if (body.allRepositories) {
         return Boolean(task.repositoryId) || params.get("other") === "1";
@@ -1507,7 +1908,7 @@ async function answer(path, body) {
         turns: task.turns.map((item, index) => {
           return turnJSON(task, item, index, CAN_ASK);
         }),
-        repository,
+        repository: repository ? withProductionReview(repository) : null,
         canAsk: Boolean(repository) && CAN_ASK,
         canSeeChanges: Boolean(repository) && CAN_ASK,
         canReadLogContent: role === "owner",
@@ -1590,6 +1991,46 @@ async function answer(path, body) {
     });
     task.turns.push(again);
     return new HTTPResponse(200, { taskId: task.id, runId: again.runId }, {});
+  }
+
+  /*
+   * Review again: the pull request's review is asked again, at once, as
+   * the server's ProductionReviewQueue asks it - for those who may ask AI
+   * in the repository, while GitHub reaches it.
+   */
+  if (path.startsWith("/review-again/")) {
+    const taskId = path.substring("/review-again/".length);
+    window.__fixture.reviewAgains.push(taskId);
+    const task = findTask(taskId);
+    if (!task || !isReview(task)) {
+      return refused(
+        400,
+        "Only a pull request's production review can be reviewed again.",
+      );
+    }
+    if (!CAN_ASK) {
+      return refused(
+        403,
+        "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+      );
+    }
+    const repository = repositoryOf(task);
+    if (!repository || !repository.isConnected) {
+      return refused(
+        400,
+        BLOCKER_MESSAGES[CodeTaskBlockerType.RepositoryNotConnected],
+      );
+    }
+    const latest = task.turns[task.turns.length - 1];
+    if (
+      latest.status !== AIRunStatus.Queued &&
+      latest.status !== AIRunStatus.Running
+    ) {
+      latest.status = AIRunStatus.Queued;
+      latest.stageAt = Date.now();
+      latest.completedAt = undefined;
+    }
+    return new HTTPResponse(200, { taskId: task.id }, {});
   }
 
   if (path.startsWith("/stop/")) {
@@ -1881,6 +2322,8 @@ const SETTING_KEYS = [
   "buildCommand",
   "testCommand",
   "runnerId",
+  "isProductionReviewEnabled",
+  "productionReviewPullRequestContent",
 ];
 
 ModelAPI.createOrUpdate = async (options) => {

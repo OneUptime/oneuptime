@@ -18,7 +18,9 @@ import path from "path";
  * working said once at the top of the box with what fixes it, a
  * repository's settings - the GitHub Commands switch, the Runner AI works
  * on, More settings and commands an operator set - read-only members, the
- * old Tasks and Code Repositories addresses, a phone, dark mode and German.
+ * old Tasks and Code Repositories addresses, a repository's pull requests
+ * reviewed against production (their page, a review's page, Review again
+ * and the setting), a phone, dark mode and German.
  *
  * The maintainer's ask: "overhaul the entire 'Tasks' product and call it
  * 'Code' ... it should show Code repos first and tasks in them ... it should
@@ -89,6 +91,10 @@ interface Recorded {
   navigations: Array<string>;
   branchReads: Array<{ repositoryId: string; search: string }>;
   lists: Array<string>;
+  // Each production reviews list read, by its repository.
+  reviewLists: Array<string>;
+  // Each Review again, by its task.
+  reviewAgains: Array<string>;
   reads: { task: number; list: number; repositories: number };
 }
 
@@ -2615,6 +2621,461 @@ test.describe("the old addresses forward to Code", () => {
     test.skip(isPhone(testInfo), "width-independent");
     await page.goto(`${DASHBOARD}/ai/agents/${TASK.retries}?from=email#reply`);
     await expect(page).toHaveURL(`${taskPath(TASK.retries)}?from=email#reply`);
+  });
+});
+
+/*
+ * The maintainer's ask (task doc, block 54): "If I want to do a production
+ * review of every PR because oneuptime has a lot of context in terms of
+ * performance / traces / exceptions, how do I configure it in the Code
+ * product? ... we basically create a setting which says, 'Do a production
+ * review'". A repository's pull requests are reviewed against what
+ * production shows of the code they change: one switch in its settings,
+ * a page of their own in Code, and each review's page.
+ */
+test.describe("a repository's pull requests, reviewed against production", () => {
+  const REVIEWS: string = `${repositoryPath(REPOSITORY.checkout)}/production-reviews`;
+  const SETTINGS: string = `${repositoryPath(REPOSITORY.checkout)}/settings`;
+
+  // checkout-api's reviews (Code/Fixture): #42 found something, #57 nothing, #61 waits.
+  const REVIEW: Record<"found" | "nothing" | "waiting", string> = {
+    found: "40000000-0000-4000-8000-0000000000f1",
+    nothing: "40000000-0000-4000-8000-0000000000f2",
+    waiting: "40000000-0000-4000-8000-0000000000f3",
+  };
+
+  async function openReview(
+    page: Page,
+    id: string,
+    search: string = "",
+  ): Promise<void> {
+    await page.goto(`${taskPath(id)}${search ? `?${search}` : ""}`);
+    await expect(page.getByTestId("code-task-header")).toBeVisible();
+  }
+
+  function reviewSwitch(page: Page): Locator {
+    return page.getByRole("switch", {
+      name: "Review Pull Requests Against Production",
+    });
+  }
+
+  test("Production Reviews: whether reviews are on, the way to Settings, and each pull request with what its latest review found", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(REVIEWS);
+
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute("data-production-review", "on");
+    await expect(status).toContainText(
+      "A pull request from someone with write access is reviewed when it opens and each time it changes.",
+    );
+
+    // Newest first, each its pull request: its title, its number, what was found.
+    const rows: Locator = page
+      .getByTestId("code-production-review-list")
+      .getByTestId("code-task-row");
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText(
+      "Cache coupon lookups for a minute",
+    );
+    await expect(rows.nth(0)).toContainText("Queued");
+    await expect(rows.nth(0)).toContainText("PR #61");
+    await expect(rows.nth(1)).toContainText(
+      "Retry charges when the gateway times out",
+    );
+    await expect(rows.nth(1)).toContainText("PR #42");
+    await expect(rows.nth(1)).toContainText("2 exceptions");
+    await expect(rows.nth(1)).toContainText("1 suspect deploy");
+    await expect(rows.nth(2)).toContainText("PR #57");
+    await expect(rows.nth(2)).toContainText("Nothing found");
+    await expect(page.getByTestId("code-production-reviews-count")).toHaveText(
+      "3",
+    );
+
+    // Read as a list of their own, not as the repository's tasks.
+    expect((await recorded(page)).reviewLists).toContain(REPOSITORY.checkout);
+    expect((await recorded(page)).lists).not.toContain(REPOSITORY.checkout);
+
+    // The trail runs through Repositories and the repository, as its other pages do.
+    await expect(
+      page
+        .locator("nav[aria-label='Breadcrumb']")
+        .locator("li.breadcrumb-item"),
+    ).toHaveText([
+      "Project",
+      "Code",
+      "Repositories",
+      "checkout-api",
+      "Production Reviews",
+    ]);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-reviews");
+
+    await page.getByTestId("code-production-reviews-settings").click();
+    await expect(page).toHaveURL(SETTINGS);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("a row opens its review; the repository's own tasks leave the reviews out", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRepository(page, REPOSITORY.checkout);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    await expect(page.getByTestId("code-task-row")).not.toContainText([
+      "Retry charges when the gateway times out",
+    ]);
+    for (const title of [
+      "Cache coupon lookups for a minute",
+      "Update the README's setup steps",
+    ]) {
+      await expect(
+        page.getByTestId("code-task-row").filter({ hasText: title }),
+      ).toHaveCount(0);
+    }
+
+    await page.goto(REVIEWS);
+    await page
+      .getByTestId("code-task-row")
+      .filter({ hasText: "PR #42" })
+      .getByRole("link")
+      .click();
+    await expect(page).toHaveURL(taskPath(REVIEW.found));
+    await expect(page.getByTestId("production-review")).toBeVisible();
+  });
+
+  test("off, with none yet: the GitHub command that asks for a review, drawn as code, and how a review comes", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(`${REVIEWS}?review=off&reviews=none`);
+
+    const status: Locator = page.getByTestId("code-production-reviews-status");
+    await expect(status).toHaveAttribute("data-production-review", "off");
+    await expect(status).toContainText(
+      "A pull request is reviewed only when someone with write access comments @oneuptime-app production review on it.",
+    );
+    await expect(
+      status.locator("code", { hasText: "@oneuptime-app production review" }),
+    ).toBeVisible();
+
+    const empty: Locator = page.getByTestId("code-production-reviews-empty");
+    await expect(empty).toContainText("No pull request reviewed yet");
+    await expect(empty).toContainText(
+      "Turn on Review Pull Requests Against Production in Settings, or comment @oneuptime-app production review on a pull request.",
+    );
+    await expect(page.getByTestId("code-production-reviews-count")).toHaveCount(
+      0,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-reviews-off");
+  });
+
+  test("a review: the pull request, the commit, what production shows of the changed code - each linked into OneUptime - and what never leaves OneUptime", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openReview(page, REVIEW.found);
+
+    const header: Locator = page.getByTestId("code-task-header");
+    await expect(header).toContainText("Production Review");
+    await expect(page.getByTestId("code-task-title")).toHaveText(
+      "Retry charges when the gateway times out",
+    );
+    await expect(
+      page.getByTestId("production-review-pull-request"),
+    ).toHaveAttribute("href", "https://github.com/acme/checkout-api/pull/42");
+    await expect(page.getByTestId("production-review-commit")).toHaveText(
+      "Commit 4f2a9c1",
+    );
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "Posted on the pull request.",
+    );
+    await expect(page.getByTestId("production-review-comment")).toHaveAttribute(
+      "href",
+      "https://github.com/acme/checkout-api/pull/42#issuecomment-1001",
+    );
+
+    // OneUptime AI's points first, the names of code in them as code.
+    const points: Locator = page.getByTestId("production-review-points");
+    await expect(points).toContainText("What to watch");
+    await expect(
+      points.locator("code", { hasText: "chargeCard()" }),
+    ).toBeVisible();
+
+    // Every part production showed, each with its rows.
+    await expect(page.getByTestId("production-review-exception")).toHaveCount(
+      2,
+    );
+    await expect(page.getByTestId("production-review-operation")).toHaveCount(
+      2,
+    );
+    await expect(
+      page.getByTestId("production-review-hot-function"),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("production-review-incident")).toHaveCount(2);
+    await expect(page.getByTestId("production-review-deploy")).toHaveCount(1);
+    await expect(
+      page.getByTestId("production-review-aggregates"),
+    ).toContainText(
+      "Only counts, durations and the names of code are posted on GitHub",
+    );
+
+    // No reply box: a review is not a conversation.
+    await expect(page.getByTestId("code-task-composer")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review");
+
+    // An exception opens where it lives in OneUptime.
+    await page
+      .getByTestId("production-review-exception")
+      .first()
+      .getByRole("link")
+      .click();
+    await expect(page.getByTestId("fixture-elsewhere")).toHaveText(
+      `${DASHBOARD}/exceptions/50000000-0000-4000-8000-0000000000e3`,
+    );
+  });
+
+  test("Review again: the review runs again in place - the last one stays on screen until the new one is in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReview(page, REVIEW.found);
+
+    await page.getByTestId("production-review-again").click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).reviewAgains;
+      })
+      .toEqual([REVIEW.found]);
+
+    // Asked: it waits, then runs - the last review still drawn below.
+    await expect(page.getByTestId("production-review-working")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toBeDisabled();
+    await expect(page.getByTestId("production-review")).toBeVisible();
+
+    // In: the new commit, and Review again back.
+    await expect(page.getByTestId("production-review-commit")).toHaveText(
+      "Commit 9b8a7c6",
+      { timeout: 30000 },
+    );
+    await expect(page.getByTestId("production-review-working")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+  });
+
+  test("waiting for its minute, and a review that found nothing and posted nothing, say so", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openReview(page, REVIEW.waiting);
+    await expect(page.getByTestId("production-review-working")).toContainText(
+      "Starting soon: a review waits a minute after the pull request last changed.",
+    );
+
+    await openReview(page, REVIEW.nothing);
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "Nothing was posted on the pull request: production shows nothing about the code it changes.",
+    );
+    await expect(page.getByTestId("production-review-comment")).toHaveCount(0);
+    await expect(
+      page.getByTestId("production-review-nothing-found"),
+    ).toContainText(
+      "This pull request changes no code production runs, so production has nothing to say about it.",
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-nothing");
+  });
+
+  test("a member who may only read reads the review, and is told why they cannot review it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReview(page, REVIEW.found, "role=viewer");
+
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toHaveCount(0);
+    await expect(page.getByTestId("production-review-read-only")).toContainText(
+      "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
+    );
+
+    // No way to Settings from the reviews page either.
+    await page.goto(`${REVIEWS}?role=viewer`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveCount(0);
+  });
+
+  test("the setting: one switch, on for this repository and saved the moment it is flipped - and what a review posts, under More settings", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await page.goto(SETTINGS);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(
+      page.getByText(
+        "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.",
+      ),
+    ).toBeVisible();
+
+    await reviewSwitch(page).click();
+    await expect
+      .poll(async () => {
+        return (await recorded(page)).settings;
+      })
+      .toEqual([{ isProductionReviewEnabled: false }]);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
+
+    // Folded, More settings names the choice; open, its card says what it is set to.
+    const moreSettings: Locator = page.getByTestId(
+      "code-repository-more-settings",
+    );
+    await expect(moreSettings).toContainText("Production Review Comment");
+    await moreSettings.getByRole("button", { name: "More settings" }).click();
+
+    const comment: Locator = page.getByTestId("card").filter({
+      has: page
+        .getByTestId("card-details-heading")
+        .getByText("Production Review Comment", { exact: true }),
+    });
+    await expect(comment).toContainText(
+      "What a production review posts on a pull request.",
+    );
+    await expect(
+      comment.getByTestId("production-review-content-value"),
+    ).toHaveText("The review, or a link on a public repository");
+
+    await comment.getByRole("button", { name: "Edit" }).click();
+    const modal: Locator = page.getByTestId("modal");
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText(
+      "Private repositories show the review. Public ones only link to it in OneUptime, since anyone on the internet can read them.",
+    );
+    await screenshot(page, testInfo, "code-production-review-comment-edit");
+    await modal.getByText("Only a link to the review", { exact: true }).click();
+    await modal.getByTestId("modal-footer-submit-button").click();
+    await expect(modal).toBeHidden();
+    await expect
+      .poll(async () => {
+        const settings: Array<Record<string, unknown>> = (await recorded(page))
+          .settings;
+        return settings[settings.length - 1];
+      })
+      .toMatchObject({ productionReviewPullRequestContent: "Link" });
+    await expect(
+      comment.getByTestId("production-review-content-value"),
+    ).toHaveText("Only a link to the review");
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("a repository connected before production review existed reads as off; the reviews page then says how to ask", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${SETTINGS}?review=unset`);
+    await expect(reviewSwitch(page)).toHaveAttribute("aria-checked", "false");
+
+    await page.goto(`${REVIEWS}?review=unset`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toHaveAttribute("data-production-review", "off");
+  });
+
+  test("dark mode: the reviews and a review draw on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    const lightSurfaces: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return await page.evaluate((channelPattern: string): Array<string> => {
+        const found: Array<string> = [];
+        for (const element of Array.from(
+          document.querySelectorAll(
+            "[data-testid='code-production-reviews-status'], [data-testid='code-task-row'], [data-testid='production-review-exceptions'], [data-testid='production-review-operations'], [data-testid='production-review-incidents'], [data-testid='production-review-footer-bar']",
+          ),
+        )) {
+          const background: string =
+            window.getComputedStyle(element).backgroundColor;
+          const channels: Array<number> = (
+            background.match(new RegExp(channelPattern, "g")) || []
+          )
+            .slice(0, 3)
+            .map(Number);
+          if (
+            channels.length === 3 &&
+            channels.every((value: number) => {
+              return value > 200;
+            })
+          ) {
+            found.push(element.getAttribute("data-testid") || "");
+          }
+        }
+        return found;
+      }, COLOUR_CHANNELS.source);
+    };
+
+    await page.goto(`${REVIEWS}?theme=dark`);
+    await expect(page.getByTestId("code-task-row").first()).toBeVisible();
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-production-reviews-dark");
+
+    await openReview(page, REVIEW.found, "theme=dark");
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    expect(await lightSurfaces()).toEqual([]);
+    await screenshot(page, testInfo, "code-production-review-dark");
+  });
+
+  test("German: the reviews, a review and the setting speak the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+
+    await page.goto(`${REVIEWS}?lang=de`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toContainText(
+      "Ein Pull Request von jemandem mit Schreibzugriff wird geprüft, wenn er geöffnet wird und jedes Mal, wenn er sich ändert.",
+    );
+    await expect(
+      page.getByTestId("code-task-row").filter({ hasText: "PR #42" }),
+    ).toContainText("2 Ausnahmen");
+
+    await openReview(page, REVIEW.found, "lang=de");
+    await expect(page.getByTestId("production-review-points")).toContainText(
+      "Worauf zu achten ist",
+    );
+    await expect(
+      page.getByTestId("production-review-exceptions"),
+    ).toContainText("Ausnahmen im geänderten Code");
+    await expect(page.getByTestId("production-review-again")).toHaveText(
+      "Erneut prüfen",
+    );
+
+    await page.goto(`${SETTINGS}?lang=de`);
+    await expect(
+      page.getByRole("switch", {
+        name: "Pull Requests gegen die Produktion prüfen",
+      }),
+    ).toBeVisible();
   });
 });
 
