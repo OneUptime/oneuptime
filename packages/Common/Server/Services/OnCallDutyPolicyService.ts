@@ -63,6 +63,8 @@ import {
   readFirstResponderIds,
 } from "../../Types/OnCallDutyPolicy/FirstResponders";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { getOnCallAcknowledgementTimeoutRefusal } from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 
 // A join row of a new policy's first escalation rule, and its model.
 interface FirstResponderJoin {
@@ -591,6 +593,39 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       miscDataProps: miscDataProps,
       props: data.props,
     });
+  }
+
+  /*
+   * The acknowledgement timeout is empty (off) or a whole number of minutes
+   * in its range (OnCallAcknowledgementTimeout) - from the Dashboard, the
+   * API, Terraform or a workflow alike. Checked before anything else is
+   * looked up: the value alone decides.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<OnCallDutyPolicy>,
+  ): Promise<void> {
+    Service.assertAcknowledgementTimeout(createBy.data);
+  }
+
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<OnCallDutyPolicy>,
+  ): Promise<void> {
+    Service.assertAcknowledgementTimeout(updateBy.data);
+  }
+
+  // Refuses a write whose acknowledgement timeout cannot be one.
+  public static assertAcknowledgementTimeout(data: unknown): void {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+
+    const refusal: string | null = getOnCallAcknowledgementTimeoutRefusal(
+      (data as Record<string, unknown>)["acknowledgementTimeoutInMinutes"],
+    );
+
+    if (refusal) {
+      throw new BadDataException(refusal);
+    }
   }
 
   protected override async onCreateSuccess(

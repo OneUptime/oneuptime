@@ -54,7 +54,7 @@ Use-o quando a forma da linha conta a história: latência, erros, vazão ou tam
 
 ### Valor
 
-Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, colorida conforme **Trend Direction**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. **Warning Threshold** deixa o fundo amarelo e **Critical Threshold** vermelho quando o valor os atinge.
+Um número grande com um minigráfico: o valor da consulta no intervalo de tempo inteiro, somado para uma soma ou uma contagem, o maior para um máximo, o menor para um mínimo, e a média nos outros casos. Uma seta compara a segunda metade do intervalo com a primeira, cada metade calculada da mesma forma, colorida conforme **Trend Direction**: se um valor maior é melhor ou pior, ou deduzido do nome da métrica. Aponte para a seta para ver o valor de cada metade, e para o minigráfico para ler o valor e a hora de qualquer ponto. **Warning Threshold** deixa o fundo amarelo e **Critical Threshold** vermelho quando o valor os atinge.
 
 Use-o quando um número responde à pergunta: a taxa de erros, a latência P95 ou as requisições atendidas hoje.
 
@@ -178,7 +178,7 @@ Cada um destes widgets lista os recursos que um agente ou um coletor informa ao 
 | **Docker Swarm** | **Nós**, **Serviços** | O agente Docker Swarm |
 | **Podman** | **Hosts**, **Contêineres**, **Imagens**, **Redes**, **Volumes** | O agente Podman |
 | **Proxmox** | **Nós**, **Guests** | O agente Proxmox |
-| **VMware** | **Hosts**, **Virtual Machines** | O agente VMware, ou um vCenter que você conecte |
+| **VMware** | **Hosts**, **Máquinas virtuais** | O agente VMware, ou um vCenter que você conecte |
 | **Ceph** | **OSDs**, como uma parede colorida por estado, e **Pools** | O agente Ceph |
 | **Arrays de armazenamento** | **Volumes**, e **Hardware** como uma parede colorida por status | O agente de arrays de armazenamento |
 

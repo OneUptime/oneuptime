@@ -15,6 +15,10 @@ import {
   RuleCriteriaSubjectCopy,
 } from "Common/UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 import { formatNameList } from "../../AiAccess/AiAccessModes";
+import {
+  canRuleCreateChannel,
+  ChannelRecordEventType,
+} from "./NotificationRuleOwnChannel";
 
 /*
  * WHAT A WORKSPACE NOTIFICATION RULE SAYS, IN PLAIN WORDS.
@@ -31,6 +35,10 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  *     - Archives the channel when the incident is resolved.
  *     - Posts updates in #ops.
  *
+ * A security case rule only posts to channels and chats people have
+ * (NotificationRuleOwnChannel), so the words about a channel of the
+ * record's own exist only for the kinds of record that can have one.
+ *
  * React-free, so the copy can be read where React is not (App's tests).
  * Every sentence is whole in the locale files - one per kind of record
  * where the record is named - so it reads right in every language; a list
@@ -38,6 +46,9 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  */
 
 type ByEventType = Readonly<Record<NotificationRuleEventType, string>>;
+
+// Words about the channel a rule creates: only where a rule can create one.
+type ByChannelEventType = Readonly<Record<ChannelRecordEventType, string>>;
 
 // The Conditions step's field: which records the rule is for.
 export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
@@ -56,12 +67,17 @@ export const NOTIFICATION_RULE_CONDITIONS_TITLES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Which on-call policies",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Which security cases",
+  ),
 };
 
 /*
  * And when they are checked: when the record is created and each time it
  * changes - so a rule for acknowledged incidents acts when an incident is
- * acknowledged, not only when one is created.
+ * acknowledged, not only when one is created. A security case's rules are
+ * checked each time there is something to post about the case
+ * (SecurityCaseNotifications), against the case as it is then.
  */
 export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
@@ -85,6 +101,9 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Conditions are checked when an on-call policy is created and again each time it changes.",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+  ),
 };
 
 /*
@@ -97,7 +116,7 @@ export const NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS: ByEventType = {
  * they did not want.
  */
 const RULE_SUBJECTS: Readonly<
-  Record<NotificationRuleEventType, RuleCriteriaSubject>
+  Partial<Record<NotificationRuleEventType, RuleCriteriaSubject>>
 > = {
   [NotificationRuleEventType.Incident]: RuleCriteriaSubject.Incidents,
   [NotificationRuleEventType.Alert]: RuleCriteriaSubject.Alerts,
@@ -111,6 +130,20 @@ const RULE_SUBJECTS: Readonly<
     RuleCriteriaSubject.OnCallPolicies,
 };
 
+/*
+ * The kinds of record only these rules are about, so no other rule's
+ * conditions name them (RuleCriteriaSubject has no security cases): their
+ * two answers, in the same words.
+ */
+const OWN_ANSWERS: Readonly<
+  Partial<Record<NotificationRuleEventType, RuleCriteriaSubjectCopy>>
+> = {
+  [NotificationRuleEventType.SecurityCase]: {
+    all: translationKey("All security cases"),
+    matching: translationKey("Only security cases that match conditions"),
+  },
+};
+
 const answersByEventType: (
   pick: (copy: RuleCriteriaSubjectCopy) => string,
 ) => ByEventType = (
@@ -120,7 +153,8 @@ const answersByEventType: (
 
   for (const eventType of Object.values(NotificationRuleEventType)) {
     answers[eventType] = pick(
-      getRuleCriteriaSubjectCopy(RULE_SUBJECTS[eventType]),
+      OWN_ANSWERS[eventType] ||
+        getRuleCriteriaSubjectCopy(RULE_SUBJECTS[eventType]),
     );
   }
 
@@ -168,6 +202,9 @@ export const RULE_SINGULAR_NAMES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "On-Call Policy Notification Rule",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Security Case Notification Rule",
+  ),
 };
 
 export const RULE_PLURAL_NAMES: ByEventType = {
@@ -189,6 +226,9 @@ export const RULE_PLURAL_NAMES: ByEventType = {
   ),
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "On-Call Policy Notification Rules",
+  ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Security Case Notification Rules",
   ),
 };
 
@@ -234,6 +274,12 @@ export const CONDITION_FIELD_WORDS: ReadonlyArray<string> = [
   translationKey("On Call Duty Policy Name"),
   translationKey("On Call Duty Policy Description"),
   translationKey("On Call Duty Policy Labels"),
+  translationKey("Security Case Title"),
+  translationKey("Security Case Description"),
+  translationKey("Security Case Priority"),
+  translationKey("Security Case Status"),
+  translationKey("Security Case Source"),
+  translationKey("Security Case Labels"),
 ];
 
 export const CONDITION_OPERATOR_WORDS: ReadonlyArray<string> = [
@@ -281,6 +327,10 @@ export const NOTIFICATION_RULES_CARD_DESCRIPTIONS: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Each rule picks the on-call policies it is for, then posts their updates to channels you have, or creates a channel for each policy.",
   ),
+  // What there is to post about a case: SecurityCaseNotifications.
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Each rule picks the security cases it is for, then posts to channels you have when a case opens, is assigned or has a playbook step waiting for approval.",
+  ),
 };
 
 // The Destination step's field.
@@ -295,8 +345,30 @@ export const NOTIFICATION_RULE_DESTINATION_DESCRIPTION: string = translationKey(
   "Where updates are posted, and who joins the channel the rule creates.",
 );
 
+/*
+ * A rule that only posts (a security case's) creates no channel, so nobody
+ * joins one: the step is only where it posts.
+ */
+export const POSTS_ONLY_DESTINATION_DESCRIPTIONS: Readonly<
+  Record<WorkspaceType, string>
+> = {
+  [WorkspaceType.Slack]: translationKey("The channels the rule posts in."),
+  [WorkspaceType.MicrosoftTeams]: translationKey(
+    "The channels and chats the rule posts in.",
+  ),
+};
+
+export function getNotificationRuleDestinationDescription(data: {
+  eventType: NotificationRuleEventType;
+  workspaceType: WorkspaceType;
+}): string {
+  return canRuleCreateChannel(data.eventType)
+    ? NOTIFICATION_RULE_DESTINATION_DESCRIPTION
+    : POSTS_ONLY_DESTINATION_DESCRIPTIONS[data.workspaceType];
+}
+
 // The switch that creates a channel for each record.
-export const CREATE_CHANNEL_TITLES: ByEventType = {
+export const CREATE_CHANNEL_TITLES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Create a channel for each incident",
   ),
@@ -320,7 +392,7 @@ export const CREATE_CHANNEL_TITLES: ByEventType = {
   ),
 };
 
-export const CREATE_CHANNEL_DESCRIPTIONS: ByEventType = {
+export const CREATE_CHANNEL_DESCRIPTIONS: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "The first time an incident matches this rule, OneUptime creates its channel and posts the incident's updates there.",
   ),
@@ -374,11 +446,43 @@ export const OWNERS_TITLE: string = translationKey("Owners, as they are added");
 export const ALSO_INVITE_TITLE: string = translationKey("Also invite");
 
 export const ALSO_INVITE_DESCRIPTION: string = translationKey(
-  "These people and teams join every channel the rule creates.",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
 );
 
 export const ALSO_INVITE_BUTTON_TEXT: string = translationKey(
-  "Add people or teams",
+  "Add people, teams or schedules",
+);
+
+export const ALSO_INVITE_SEARCH_PLACEHOLDER: string = translationKey(
+  "Search people, teams or schedules...",
+);
+
+export const ALSO_INVITE_EMPTY_TEXT: string = translationKey(
+  "No people, teams or schedules available.",
+);
+
+/*
+ * Microsoft Teams adds nobody to a channel: the people on call in the
+ * schedules a rule names are @mentioned in it instead, so Teams notifies
+ * them (MicrosoftTeamsOnCallMention).
+ */
+export const MENTION_ON_CALL_TITLE: string = translationKey(
+  "Mention who is on call",
+);
+
+export const MENTION_ON_CALL_DESCRIPTION: string = translationKey(
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
+);
+
+export const MENTION_ON_CALL_BUTTON_TEXT: string =
+  translationKey("Add schedules");
+
+export const MENTION_ON_CALL_SEARCH_PLACEHOLDER: string = translationKey(
+  "Search on-call schedules...",
+);
+
+export const MENTION_ON_CALL_EMPTY_TEXT: string = translationKey(
+  "No on-call schedules available.",
 );
 
 /*
@@ -390,7 +494,7 @@ export const TEAMS_WHO_JOINS_NOTE: string = translationKey(
 );
 
 // What happens to the channel when the record is over.
-export const ARCHIVE_CHANNEL_TITLES: ByEventType = {
+export const ARCHIVE_CHANNEL_TITLES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Archive the channel when the incident is resolved",
   ),
@@ -511,6 +615,9 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
   [NotificationRuleEventType.OnCallDutyPolicy]: translationKey(
     "Every on-call policy.",
   ),
+  [NotificationRuleEventType.SecurityCase]: translationKey(
+    "Every security case.",
+  ),
 };
 
 /*
@@ -518,7 +625,7 @@ export const NO_CONDITIONS_SENTENCES: ByEventType = {
  * example record's channel gets (ChannelNamePreview), as the workspace
  * shows it: #inc-42 in Slack, inc-42 in Microsoft Teams.
  */
-export const CREATES_CHANNEL_SENTENCES: ByEventType = {
+export const CREATES_CHANNEL_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Creates a channel like {{channel}} for each incident.",
   ),
@@ -543,7 +650,7 @@ export const CREATES_CHANNEL_SENTENCES: ByEventType = {
 };
 
 // Without a name to show: the project's number prefixes are not known.
-export const CREATES_CHANNEL_WITHOUT_NAME_SENTENCES: ByEventType = {
+export const CREATES_CHANNEL_WITHOUT_NAME_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Creates a channel for each incident.",
   ),
@@ -601,6 +708,24 @@ export const ALSO_INVITES_SENTENCE: string = translationKey(
   "Also invites {{names}} when the channel is created.",
 );
 
+/*
+ * The on-call schedules a rule names, whose on-call person joins its
+ * channel without being paged: a sentence of their own, after the people
+ * and teams it names.
+ */
+export const INVITES_ON_CALL_SENTENCE: string = translationKey(
+  "Invites whoever is on call in {{schedules}} when the channel is created.",
+);
+
+export const ALSO_INVITES_ON_CALL_SENTENCE: string = translationKey(
+  "Also invites whoever is on call in {{schedules}} when the channel is created.",
+);
+
+// Microsoft Teams: they are @mentioned in the channel instead.
+export const MENTIONS_ON_CALL_SENTENCE: string = translationKey(
+  "Mentions whoever is on call in {{schedules}} when the channel is created.",
+);
+
 export const TEAMS_EVERYONE_SENTENCE: string = translationKey(
   "Everyone in {{team}} can open the channel.",
 );
@@ -609,7 +734,7 @@ export const TEAMS_EVERYONE_WITHOUT_TEAM_SENTENCE: string = translationKey(
   "Everyone in the team can open the channel.",
 );
 
-export const ARCHIVES_SENTENCES: ByEventType = {
+export const ARCHIVES_SENTENCES: ByChannelEventType = {
   [NotificationRuleEventType.Incident]: translationKey(
     "Archives the channel when the incident is resolved.",
   ),
@@ -650,6 +775,28 @@ export const NOTHING_CHOSEN_SENTENCE: string = translationKey(
   "Pick where this rule posts: existing channels, a channel of its own for each one, or both.",
 );
 
+// A rule that only posts has no channel of its own to offer.
+export const POSTS_ONLY_NOTHING_CHOSEN_SENTENCES: Readonly<
+  Record<WorkspaceType, string>
+> = {
+  [WorkspaceType.Slack]: translationKey(
+    "Name the channels this rule posts in.",
+  ),
+  [WorkspaceType.MicrosoftTeams]: translationKey(
+    "Pick where this rule posts: existing channels, chats, or both.",
+  ),
+};
+
+// What is still to choose, while the rule posts nowhere.
+export function getNothingChosenSentence(data: {
+  eventType: NotificationRuleEventType;
+  workspaceType: WorkspaceType;
+}): string {
+  return canRuleCreateChannel(data.eventType)
+    ? NOTHING_CHOSEN_SENTENCE
+    : POSTS_ONLY_NOTHING_CHOSEN_SENTENCES[data.workspaceType];
+}
+
 /*
  * What the summary needs besides the rule: the names of what it refers to,
  * already found (users, teams, Microsoft Teams teams and chats), and the
@@ -664,6 +811,8 @@ export interface NotificationRuleSummaryInput {
   exampleChannelName?: string | undefined;
   userNames: Array<string>;
   teamNames: Array<string>;
+  // The on-call schedules whose on-call person joins the channel.
+  scheduleNames?: Array<string> | undefined;
   // The Microsoft Teams team the channel is created in, by its name.
   channelTeamName?: string | undefined;
   chatNames: Array<string>;
@@ -691,7 +840,8 @@ export function getExistingChannelNames(value: unknown): Array<string> {
 /*
  * The sentences that say what a rule does, in the reader's language, in
  * the order the rule acts: its own channel and who joins it, then the
- * channels and chats it posts in.
+ * channels and chats it posts in. A rule that only posts (a security
+ * case's) never creates a channel, whatever it holds, so it says none.
  */
 export function getNotificationRuleSummary(
   input: NotificationRuleSummaryInput,
@@ -699,16 +849,21 @@ export function getNotificationRuleSummary(
   const rule: Partial<IncidentNotificationRule> = input.rule || {};
   const translator: Translator = input.translator;
   const sentences: Array<string> = [];
+  const channelEventType: ChannelRecordEventType | null = canRuleCreateChannel(
+    input.eventType,
+  )
+    ? input.eventType
+    : null;
 
-  if (rule.shouldCreateNewChannel) {
+  if (rule.shouldCreateNewChannel && channelEventType) {
     sentences.push(
       input.exampleChannelName
         ? translator.translateTemplate(
-            CREATES_CHANNEL_SENTENCES[input.eventType],
+            CREATES_CHANNEL_SENTENCES[channelEventType],
             { channel: input.exampleChannelName },
           )
         : translator.translateText(
-            CREATES_CHANNEL_WITHOUT_NAME_SENTENCES[input.eventType],
+            CREATES_CHANNEL_WITHOUT_NAME_SENTENCES[channelEventType],
           ) || "",
     );
 
@@ -721,13 +876,25 @@ export function getNotificationRuleSummary(
           : translator.translateText(TEAMS_EVERYONE_WITHOUT_TEAM_SENTENCE) ||
               "",
       );
+
+      const scheduleNames: Array<string> = input.scheduleNames || [];
+
+      if (scheduleNames.length > 0) {
+        sentences.push(
+          translator.translateTemplate(MENTIONS_ON_CALL_SENTENCE, {
+            schedules: composedValue((sentence: Translator): string => {
+              return formatNameList(scheduleNames, "and", sentence);
+            }),
+          }),
+        );
+      }
     } else {
       sentences.push(...getInvitesSentences(input));
 
       // Slack only: OneUptime cannot archive a Microsoft Teams channel.
       if (rule.archiveChannelAutomatically) {
         sentences.push(
-          translator.translateText(ARCHIVES_SENTENCES[input.eventType]) || "",
+          translator.translateText(ARCHIVES_SENTENCES[channelEventType]) || "",
         );
       }
     }
@@ -776,8 +943,9 @@ export function getNotificationRuleSummary(
  * Who the rule invites to its channel: the kinds of people the record has,
  * as they join it, in one sentence, then the people and teams the rule
  * names, in one of their own ("Also invites Alice Smith and Platform when
- * the channel is created."). A rule that names people only invites them in
- * the first.
+ * the channel is created."), then whoever is on call in the schedules it
+ * names, in a last one. A rule that names people only invites them in the
+ * first, and one that names only schedules says so in its only sentence.
  */
 function getInvitesSentences(
   input: NotificationRuleSummaryInput,
@@ -791,8 +959,13 @@ function getInvitesSentences(
     });
 
   const names: Array<string> = [...input.userNames, ...input.teamNames];
+  const scheduleNames: Array<string> = input.scheduleNames || [];
 
-  if (invitees.length === 0 && names.length === 0) {
+  if (
+    invitees.length === 0 &&
+    names.length === 0 &&
+    scheduleNames.length === 0
+  ) {
     return [translator.translateText(INVITES_NOBODY_SENTENCE) || ""];
   }
 
@@ -802,37 +975,52 @@ function getInvitesSentences(
     return formatNameList(names, "and", sentence);
   };
 
-  if (invitees.length === 0) {
-    return [
+  const sentences: Array<string> = [];
+
+  if (invitees.length > 0) {
+    sentences.push(
       translator.translateTemplate(INVITES_SENTENCE, {
         people: composedValue((sentence: Translator): string => {
-          return sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
-            names: namedPeople(sentence),
-          });
+          return formatNameList(
+            invitees.map((invitee: NotificationRuleInvitee): string => {
+              return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
+            }),
+            "and",
+            sentence,
+          );
         }),
       }),
-    ];
+    );
   }
-
-  const sentences: Array<string> = [
-    translator.translateTemplate(INVITES_SENTENCE, {
-      people: composedValue((sentence: Translator): string => {
-        return formatNameList(
-          invitees.map((invitee: NotificationRuleInvitee): string => {
-            return sentence.translateText(INVITEE_PHRASES[invitee]) || "";
-          }),
-          "and",
-          sentence,
-        );
-      }),
-    }),
-  ];
 
   if (names.length > 0) {
     sentences.push(
-      translator.translateTemplate(ALSO_INVITES_SENTENCE, {
-        names: composedValue(namedPeople),
-      }),
+      sentences.length === 0
+        ? translator.translateTemplate(INVITES_SENTENCE, {
+            people: composedValue((sentence: Translator): string => {
+              return sentence.translateTemplate(NAMED_PEOPLE_PHRASE, {
+                names: namedPeople(sentence),
+              });
+            }),
+          })
+        : translator.translateTemplate(ALSO_INVITES_SENTENCE, {
+            names: composedValue(namedPeople),
+          }),
+    );
+  }
+
+  if (scheduleNames.length > 0) {
+    sentences.push(
+      translator.translateTemplate(
+        sentences.length === 0
+          ? INVITES_ON_CALL_SENTENCE
+          : ALSO_INVITES_ON_CALL_SENTENCE,
+        {
+          schedules: composedValue((sentence: Translator): string => {
+            return formatNameList(scheduleNames, "and", sentence);
+          }),
+        },
+      ),
     );
   }
 

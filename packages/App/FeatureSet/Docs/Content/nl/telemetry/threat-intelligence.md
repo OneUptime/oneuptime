@@ -1,9 +1,10 @@
 # Dreigingsinformatie (STIX/TAXII)
 
-Een threat-intelfeed brengt bekende kwaadaardige IP-adressen, domeinen, URL's, e-mailadressen en bestandshashes naar OneUptime, en vertelt je wanneer je [beveiligingsgebeurtenissen](/docs/telemetry/security-events) er een noemen. Elke feed abonneert zich op één TAXII 2.1-collectie met STIX 2.1-indicatoren: je eigen MISP-, OpenCTI- of OpenTAXII-server, of de collectie van een aanbieder. OneUptime levert zelf geen feedinhoud: jij brengt de collecties, zoals je de Sigma-regels brengt.
+Een threat-intelfeed brengt bekende kwaadaardige IP-adressen, domeinen, URL's, e-mailadressen en bestandshashes naar OneUptime, en vertelt je wanneer je [beveiligingsgebeurtenissen](/docs/telemetry/security-events) er een noemen. Een feed leest één bron: een lijst met indicatoren op een https-adres, zoals de gratis lijsten die OneUptime met één klik toevoegt, een TAXII 2.1-collectie met STIX 2.1-indicatoren van je eigen MISP-, OpenCTI- of OpenTAXII-server of van een aanbieder, of de indicatoren die Google SecOps in je gebeurtenissen vond.
 
 :::cards
-- [Een feed abonneren](#een-feed-abonneren): Een TAXII-server, een collectie en hoe je je aanmeldt.
+- [Een gratis lijst toevoegen](#een-gratis-lijst-toevoegen): Feodo Tracker, Emerging Threats en de Tor-exitnodes, met één klik.
+- [Een feed abonneren](#een-feed-abonneren): Het adres van een lijst, een TAXII-collectie of een Google SecOps-verbinding.
 - [Wat wordt ingenomen](#wat-wordt-ingenomen): De indicatorpatronen die OneUptime bewaart, en hoe lang.
 - [Hoe matches worden gevonden](#hoe-matches-worden-gevonden): Gemarkeerd bij binnenkomst, en elke minuut vergeleken.
 - [Dreigingsniveaus](#dreigingsniveaus): Hoe de confidence van een indicator een ernst wordt.
@@ -11,9 +12,9 @@ Een threat-intelfeed brengt bekende kwaadaardige IP-adressen, domeinen, URL's, e
 
 ## Hoe het werkt
 
-```mermaid title="Van een TAXII-collectie naar een waarschuwing"
+```mermaid title="Van een feed naar een waarschuwing"
 flowchart TB
-    taxii["TAXII 2.1-collectie"] -->|"Opgehaald met het<br/>interval van de feed"| indicators["Indicatoren: IP's,<br/>domeinen, URL's,<br/>e-mails, hashes"]
+    taxii["Een lijst, een<br/>TAXII-collectie<br/>of Google SecOps"] -->|"Opgehaald met het<br/>interval van de feed"| indicators["Indicatoren: IP's,<br/>domeinen, URL's,<br/>e-mails, hashes"]
     events["Nieuwe<br/>beveiligingsgebeurtenissen"] --> tag["Bij binnenkomst<br/>gemarkeerd met<br/>threat.*-attributen"]
     indicators --> tag
     indicators --> match["Elke minuut<br/>vergeleken met<br/>recente gebeurtenissen"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## Voordat je begint
 
-- Een TAXII 2.1-server die STIX 2.1-objecten van het type `indicator` publiceert, en de ID van de collectie die moet worden opgehaald. Een feed meldt zich anoniem aan, met een bearer-token, of met HTTP Basic-authenticatie.
+- Voor een lijst een `https`-adres dat een tekstbestand downloadt met één indicator per regel.
+- Voor een TAXII-feed een TAXII 2.1-server die STIX 2.1-objecten van het type `indicator` publiceert, en de ID van de collectie die moet worden opgehaald. Een TAXII-feed meldt zich anoniem aan, met een bearer-token, of met HTTP Basic-authenticatie.
+- Voor een Google SecOps-feed een [Google SecOps-verbinding](/docs/integrations/google-secops#de-beheerde-connector-instellen) waarvan het serviceaccount indicatorovereenkomsten mag doorzoeken: de rol `roles/chronicle.viewer` mag dat.
 - Servers die een TLS-clientcertificaat vereisen (mutual TLS), zoals CISA AIS, worden niet ondersteund. De openbare ATT&CK-server van MITRE publiceert technieken en groepen in plaats van indicatoren, dus een feed die daarop is gericht, blijft leeg.
 - Een rol die feeds kan aanmaken: Project Owner, Project Admin, Security Admin of Security Member. Security Viewer kan feeds en indicatoren lezen. Zie [Rollen](/docs/permissions/reference#rollen).
+
+## Een gratis lijst toevoegen
+
+De kaart **Gratis lijsten** op **Threat Intel** voegt met één klik een gratis blokkeerlijst toe: klik bij een lijst op **Lijst toevoegen**, en OneUptime maakt een feed die de lijst volgens haar schema downloadt. Een lijst die het project al leest, toont **Toegevoegd**.
+
+| Lijst | Gepubliceerd door | Gelezen | Confidence | Een overeenkomst opent |
+| --- | --- | --- | --- | --- |
+| Botnet-C2-servers van Feodo Tracker | abuse.ch | Elk uur | 90, Critical | Een zaak en een waarschuwing |
+| Gecompromitteerde hosts van Emerging Threats | Proofpoint Emerging Threats | Elke dag | 70, High | Een zaak en een waarschuwing |
+| Tor-exitnodes | The Tor Project | Elk uur | 30, Low | Een zaak |
+
+De tegel van een lijst linkt naar haar voorwaarden: Feodo Tracker is vrij voor elk gebruik (CC0), en de lijst van Emerging Threats heeft een BSD-licentie. Een feed die uit een lijst is toegevoegd, bewerk en verwijder je zoals elke andere.
 
 ## Een feed abonneren
 
@@ -35,19 +50,23 @@ Open **Producten → Security Events → Detections → Threat Intel**.
 
 ### Maak de feed aan
 
-Klik op **Threat Intel Feed aanmaken** en vul de drie stappen in: **TAXII-server**, **Aanmelden** en **Bij overeenkomst**. De velden staan in de tabel hieronder.
+Klik op **Threat Intel Feed aanmaken** en kies de **Bron**: **Lijst van indicatoren**, **TAXII-collectie** of **Google SecOps**. De volgende stap vraagt alleen naar die bron: voor een lijst de **Lijst-URL**, voor een collectie **TAXII-server** en **Aanmelden**, of de **Google SecOps-verbinding**. **Bij overeenkomst** komt als laatste. De velden staan in de tabel hieronder.
 
 ### Controleer de eerste ophaalronde
 
-Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Poll Summary** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicators** onder de feeds.
+Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Poll Summary** vertelt wat de ophaalronde binnenhaalde. Indicatoren verschijnen in de tabel **Indicatoren** onder de feeds.
 :::
 
 | Veld | Wat je invult |
 | --- | --- |
+| **Bron** | Waar de indicatoren vandaan komen. Die wordt vastgelegd wanneer de feed wordt aangemaakt: een feed van een andere bron is een nieuwe feed. |
+| **Lijst-URL** | Voor een lijst: het `https`-adres van een tekstbestand met één IP-adres, domein, URL of bestandshash per regel. |
+| **Confidence** | Voor een lijst: hoe zeker de lijst is, 1 tot 100. Elke indicator op de lijst krijgt die waarde, en die bepaalt het [dreigingsniveau](#dreigingsniveaus); leeg is Medium. |
+| **Google SecOps-verbinding** | Voor Google SecOps: de verbinding waarvan de sleutel de indicatoren leest die Google SecOps vond. **Google SecOps verbinden** opent **Connections** als er nog geen is. |
 | **TAXII API Root URL** | De TAXII 2.1-API-root van de server, zoals `https://taxii.example.com/api1/`. Collecties worden daaronder geadresseerd. |
 | **Collection ID** | De collectie die de indicatoren publiceert. |
-| **Poll Interval (Minutes)** | Hoe vaak nieuwe objecten worden opgehaald: 1 tot 1440 minuten, standaard 60. |
-| **Minimum Confidence** | Indicatoren met een lagere STIX-`confidence` worden overgeslagen: 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
+| **Poll Interval (Minutes)** | Hoe vaak de bron wordt gelezen: 1 tot 1440 minuten, standaard 60. Een lijst wordt hooguit elke 15 minuten gelezen. |
+| **Minimum Confidence** | Voor een TAXII-collectie of Google SecOps: indicatoren met een lagere confidence worden overgeslagen, 0 tot 100, en 0 houdt alles. Indicatoren zonder confidence komen altijd door. |
 | **Aanmelden** | Hoe OneUptime zich aanmeldt: **Niet aanmelden** voor een openbare collectie, **Bearer-token** voor een token van de beheerder van de server, of **Gebruikersnaam en wachtwoord** voor HTTP Basic-authenticatie. |
 | **API Token**, **Basic Auth Username** en **Basic Auth Password** | Alleen gevraagd voor de gekozen aanmelding. |
 | **Open a Case on Match** | Standaard aan: elke gebeurtenis die een indicator noemt, opent een [zaak](/docs/telemetry/security-cases) over die indicator, of wordt toegevoegd aan de open zaak die er al over gaat. |
@@ -57,7 +76,7 @@ Binnen een minuut of twee toont de rij van de feed **Last Polled**, en **Last Po
 | **Ernst van incident** | Zoals **Ernst van waarschuwing**, voor incidenten. |
 | **Write Detection Finding on Match** | Standaard aan: elke match schrijft een bevinding in de gebeurtenisstroom. |
 
-Tokens en wachtwoorden worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Update Credentials** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
+De tokens en wachtwoorden van een TAXII-feed worden versleuteld en na het opslaan nooit meer getoond. Om ze te wijzigen, kies je **Update Credentials** in de rij van de feed en daarna **Bearer-token**, **Gebruikersnaam en wachtwoord** of **Niet aanmelden**, dat wist wat is opgeslagen: je keuze vervangt de aanmelding van de feed, dus het opslaan van een token wist een opgeslagen wachtwoord, en omgekeerd.
 
 ### Hoe een feed wordt opgehaald
 
@@ -67,9 +86,22 @@ Ophaalrondes noemen zichzelf met de user agent `OneUptime/<version> (+https://on
 
 Een uitgeschakelde feed wordt niet opgehaald en niet vergeleken. De indicatoren die hij al heeft, blijven nieuwe gebeurtenissen markeren tot ze verlopen.
 
+### Hoe een lijst wordt gelezen
+
+- Elke ophaalronde downloadt de hele lijst en leest die regel voor regel: de eerste waarde op een regel, tot een spatie, tab, komma of puntkomma. Regels die beginnen met `#`, `;` of `//` zijn commentaar, een poort na een adres of domein valt weg, en een adresbereik zoals `198.51.100.0/24` wordt overgeslagen.
+- Een waarde blijft 2 dagen na de ophaalronde die haar het laatst las een actieve indicator, en een waarde die de lijst laat vallen, matcht vanaf de volgende ophaalronde niet meer. Een lijst die niet is veranderd, wordt eens per dag opnieuw geschreven.
+- Een lijst bevat hooguit 50.000 indicatoren. **Last Poll Summary** vertelt hoeveel er zijn gelezen, hoeveel regels zijn overgeslagen en hoeveel er zijn weggelaten.
+- Het adres moet `https` gebruiken en valt onder dezelfde uitgaande regels als een verbinding: op OneUptime Cloud wordt een privéadres geweigerd.
+
+### Hoe Google SecOps wordt gelezen
+
+- Elke ophaalronde leest de indicatorovereenkomsten die Google SecOps sinds de vorige ronde vastlegde, met de attributen van Mandiant: het gematchte domein, adres of de bestandshash, de confidence, de categorie en de campagnes en actoren waaraan de indicator is gekoppeld. De eerste ophaalronde leest de laatste 7 dagen.
+- Een indicator blijft 30 dagen actief nadat Google SecOps hem het laatst zag, of totdat zijn bron zegt dat hij niet meer actief is, en een indicator die een analist in Google SecOps dempte, matcht ook hier niet meer.
+- Een overeenkomst die Google SecOps als actieve inbraak markeert, is Critical, en een met hoge prioriteit is minstens High.
+
 ## Wat wordt ingenomen
 
-OneUptime bewaart STIX-objecten van het type `indicator` waarvan het patroon een eenvoudige gelijkheid is op een van deze typen:
+Uit een TAXII-collectie bewaart OneUptime STIX-objecten van het type `indicator` waarvan het patroon een eenvoudige gelijkheid is op een van deze typen. Een lijst en Google SecOps geven dezelfde typen:
 
 | Type | Voorbeeldpatroon |
 | --- | --- |
@@ -97,7 +129,7 @@ Elk ander patroon, met `AND`, `FOLLOWEDBY`, `NOT`, `LIKE`, `MATCHES`, een tijdsk
 - Een ingetrokken indicator, of een indicator die is bijgewerkt met een `valid_until` in het verleden, stopt met matchen zodra de update is opgehaald. Hetzelfde geldt voor een waarde die de aanbieder uit een bijgewerkt patroon laat vallen.
 - Waarden worden in kleine letters opgeslagen en gematcht ongeacht hun hoofdletters.
 
-De tabel **Indicators** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Revoked**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
+De tabel **Indicatoren** toont indicatoren zoals ze zijn opgeslagen, met een **Status** van **Actief**, **Verlopen** of **Revoked**. Een opnieuw opgehaalde indicator kan een tijdje dubbel verschijnen, en een verlopen of ingetrokken rij blijft in de lijst staan tot de opslagopschoning hem verwijdert, tot ongeveer een maand nadat hij verloopt. Matchen controleert altijd geldigheid en intrekking, dus zo'n rij matcht nooit.
 
 ## Hoe matches worden gevonden
 
@@ -108,7 +140,7 @@ Elke binnenkomende beveiligingsgebeurtenis, uit de ingest-API of een verbinding,
 | Attribuut | Waarde |
 | --- | --- |
 | `threat.matched` | Altijd `"true"` op een gemarkeerde gebeurtenis |
-| `threat.indicator_id` | De ID van de STIX-indicator |
+| `threat.indicator_id` | De ID van de STIX-indicator, of `list` of `google-secops` voor die bronnen |
 | `threat.indicator_type` | Het type van de indicator, zoals `ipv4-addr` of `file-hash-sha256` |
 | `threat.indicator_value` | De gematchte waarde, in kleine letters |
 | `threat.feed` / `threat.feed_id` | De feed waar de indicator vandaan kwam |
@@ -149,7 +181,7 @@ Elke minuut worden de actieve indicatoren van elke ingeschakelde feed vergeleken
 | Attribuut | Waarde |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | De feed |
-| `oneuptime.threat.indicator_id` | De ID van de STIX-indicator |
+| `oneuptime.threat.indicator_id` | De ID van de STIX-indicator, of `list` of `google-secops` voor die bronnen |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | Wat matchte |
 | `oneuptime.threat.confidence` | De confidence van de indicator |
 | `oneuptime.threat.match_count` | Hoeveel gebeurtenissen achter deze bevinding zitten |
@@ -195,7 +227,15 @@ Lees **Last Poll Summary**. Geen objecten opgehaald: de collectie is leeg of pub
 :::
 
 :::details Er zijn indicatoren, maar niets matcht
-Matchen vergelijkt de waarde van een indicator met de observables van een gebeurtenis, niet met elk veld: open in **Gebeurtenissen** een gebeurtenis waarvan je een match verwachtte en controleer of haar observables de waarde bevatten. Alleen indicatoren met de status **Actief** matchen. Controleer **Last Match Error** op de feed.
+Matchen vergelijkt de waarde van een indicator met de observables van een gebeurtenis, niet met elk veld: open in **Gebeurtenissen** een gebeurtenis waarvan je een match verwachtte en controleer of haar observables de waarde bevatten. Alleen indicatoren met de status **Actief** matchen. Staat bij de **Status** van de feed **Vergelijken mislukt**, dan toont **Fout bekijken** in zijn rij waarom.
+:::
+
+:::details De Laatste fout van een lijstfeed zegt dat het adres antwoordde met een webpagina
+De **Lijst-URL** opent een pagina, zoals een aanmeld- of foutpagina, niet de lijst: open hem in een browser en kopieer het adres van het bestand zelf. Een lijst waarvan de tekst geen enkel IP-adres, domein, URL of bestandshash bevat, wordt op dezelfde manier geweigerd, en de indicatoren van de feed blijven zoals ze waren.
+:::
+
+:::details De Laatste fout van een Google SecOps-feed zegt HTTP 403
+Het serviceaccount van de verbinding mag geen indicatorovereenkomsten doorzoeken: geef het `roles/chronicle.viewer`. Als de verbinding is verwijderd, zegt de feed dat: bewerk hem en kies een andere **Google SecOps-verbinding**.
 :::
 
 :::details Een match opende geen waarschuwing

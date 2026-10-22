@@ -312,6 +312,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   ScheduledMaintenanceState: PROJECT_SETTING,
   MonitorStatus: PROJECT_SETTING,
   IncidentRole: PROJECT_SETTING,
+  // An incident's postmortem status: one of the project's statuses.
+  IncidentPostmortemStatus: PROJECT_SETTING,
   AlertGroupingRule: PROJECT_SETTING,
   IncidentGroupingRule: PROJECT_SETTING,
   IncidentSlaRule: PROJECT_SETTING,
@@ -347,14 +349,14 @@ const REFERENCES_LEFT_OUT: Array<string> = [];
  * (RelationListPermission.isHeldToTableRead): a caller who may not read the
  * project's SMTP servers does not choose the one a status page sends with.
  * Each with the credentials it holds and the records that name it.
+ * (Runbook credentials - SSH keys and Kubernetes service account tokens a
+ * cluster named - were one, until they were removed.)
  */
 const CREDENTIAL_SETTINGS: Record<string, string> = {
   ProjectSMTPConfig:
     "An SMTP server's login: a status page that names one sends its subscribers' email through it.",
   ProjectCallSMSConfig:
     "A call and SMS provider's account token: a status page or an incoming call policy that names one calls and texts through it.",
-  RunbookCredential:
-    "SSH keys and Kubernetes service account tokens: a cluster that names one lets OneUptime AI reach the cluster with it.",
   NetworkSnmpCredentialProfile:
     "SNMP community strings and keys: a network device or site that names one is polled with them.",
   VideoCallConnection:
@@ -363,6 +365,10 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
     "An API key is itself a credential: a permission row that names one grants that key what it lists.",
   ExternalMcpServer:
     "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
+  SecurityEventConnection:
+    "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
+  LlmProvider:
+    "An LLM provider's API key: an investigation, auto remediation or postmortem rule that names one has OneUptime AI do the work it starts with that provider, on that key.",
 };
 
 // The references to them, each held to the read of the table it names.
@@ -370,12 +376,15 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["StatusPage", "smtpConfig", "ProjectSMTPConfig"],
   ["StatusPage", "callSmsConfig", "ProjectCallSMSConfig"],
   ["IncomingCallPolicy", "projectCallSMSConfig", "ProjectCallSMSConfig"],
-  ["KubernetesCluster", "aiAccessCredential", "RunbookCredential"],
   ["NetworkDevice", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
   ["NetworkSite", "snmpCredentialProfile", "NetworkSnmpCredentialProfile"],
   ["IncidentVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["AlertVideoCall", "videoCallConnection", "VideoCallConnection"],
   ["ApiKeyPermission", "apiKey", "ApiKey"],
+  ["ThreatIntelFeed", "securityEventConnection", "SecurityEventConnection"],
+  ["AIInvestigationRule", "llmProvider", "LlmProvider"],
+  ["AutoRemediationRule", "llmProvider", "LlmProvider"],
+  ["AIPostmortemRule", "llmProvider", "LlmProvider"],
 ];
 
 /*

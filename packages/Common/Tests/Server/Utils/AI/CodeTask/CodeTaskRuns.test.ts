@@ -5,6 +5,7 @@ import AIRunService from "../../../../../Server/Services/AIRunService";
 import FixRunBudget from "../../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskRuns, {
   CODE_TASK_BUSY_MESSAGE,
+  CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
 } from "../../../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
@@ -356,6 +357,30 @@ describe("CodeTaskRuns.reply", () => {
     ).toContain("not linked to a repository");
     expect(created).toHaveLength(0);
   });
+
+  /*
+   * A pull request's production review is the server's: it is reviewed
+   * again when the pull request changes, or when someone presses Review
+   * again - never by a reply that would hand a Runner a turn in it.
+   */
+  test("a production review takes no reply, and no lock is taken for one", async () => {
+    const review: AIRun = task();
+    review.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.reply({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+          task: review,
+          message: "Fix what you found",
+          context: [],
+        });
+      }),
+    ).toBe(CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE);
+    expect(created).toHaveLength(0);
+    expect(Semaphore.lock).not.toHaveBeenCalled();
+  });
 });
 
 describe("CodeTaskRuns.retry", () => {
@@ -435,6 +460,24 @@ describe("CodeTaskRuns.retry", () => {
         });
       }),
     ).toContain("was not asked for in Code");
+  });
+
+  test("a failed production review is not asked again as a turn", async () => {
+    latestReply = null;
+    const review: AIRun = task();
+    review.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    review.status = AIRunStatus.Error;
+
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.retry({
+          projectId: PROJECT_ID,
+          userId: USER_ID,
+          task: review,
+        });
+      }),
+    ).toContain("was not asked for in Code");
+    expect(created).toHaveLength(0);
   });
 });
 

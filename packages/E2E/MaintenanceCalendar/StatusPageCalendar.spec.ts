@@ -1,6 +1,7 @@
-import { expect, Locator, Page, test } from "@playwright/test";
+import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { STATUS_PAGE_PLAIN_HTTP_HOST } from "./StatusPageOrigins";
 
 /*
  * A status page's calendar buttons, end to end in a browser, on the real
@@ -14,7 +15,10 @@ import path from "path";
  * and never offered on a private page. Add to calendar on an event's page
  * puts that one event in a calendar app: Google's add-event page filled in,
  * or the event as a file - and is not offered for an event that is over.
- * Then the phone's width, the dark theme, German and Persian.
+ * Then the phone's width, the dark theme, German and Persian. Last, Copy
+ * link on a page served over plain http, where the browser has no
+ * clipboard API (issue #5132): the link really reaches the clipboard, and
+ * when the browser refuses, the dialog says so and selects it.
  */
 
 const SCREENSHOTS: string = path.resolve(
@@ -323,5 +327,318 @@ test.describe("the status page's calendar dialogs", () => {
     ).toBeVisible();
 
     await shot(page, "status-page-dark-subscribe", page.getByTestId("modal"));
+  });
+});
+
+/*
+ * Issue #5132, in a real browser. On a status page served over plain http
+ * from a name that is not localhost - a self-hosted install reached by a LAN
+ * hostname - the browser has no navigator.clipboard, and Copy link used to
+ * say "Copied!" with nothing copied. These read the page from such a name
+ * (status.calendar-copy.test, mapped to the fixture server), with the
+ * browser's own clipboard (?clipboard=browser), and read the system
+ * clipboard back from a page on a secure origin of the same browser: the
+ * link has to be really there.
+ */
+test.describe("Copy link copies, or says it could not (issue #5132)", () => {
+  const SENTINEL: string = "nothing copied yet";
+  const COLOR_CHANNELS: RegExp = /\d+/g;
+
+  // The fixture server, read from another name: same port, other host.
+  function originOn(baseURL: string | undefined, host: string): string {
+    const url: URL = new URL(baseURL || "http://127.0.0.1:4341");
+
+    return `http://${host}:${url.port}`;
+  }
+
+  // The system clipboard, read (or written) from a secure page of the same browser.
+  async function onSecurePage<T>(
+    context: BrowserContext,
+    action: (reader: Page) => Promise<T>,
+  ): Promise<T> {
+    const reader: Page = await context.newPage();
+
+    try {
+      // A plain file the fixture serves, on 127.0.0.1: a secure context.
+      await reader.goto("/tailwind.js");
+      await reader.bringToFront();
+      return await action(reader);
+    } finally {
+      await reader.close();
+    }
+  }
+
+  async function systemClipboard(context: BrowserContext): Promise<string> {
+    return await onSecurePage(context, async (reader: Page) => {
+      return await reader.evaluate(async (): Promise<string> => {
+        return await navigator.clipboard.readText();
+      });
+    });
+  }
+
+  async function seedClipboard(context: BrowserContext): Promise<void> {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await onSecurePage(context, async (reader: Page) => {
+      await reader.evaluate(async (text: string): Promise<void> => {
+        await navigator.clipboard.writeText(text);
+      }, SENTINEL);
+    });
+  }
+
+  async function openSubscribeAt(
+    page: Page,
+    url: string,
+    width: number,
+  ): Promise<void> {
+    await open(page, url, width);
+    await page.bringToFront();
+    await page.getByTestId("maintenance-calendar-subscribe").click();
+    await expect(
+      page.getByTestId("maintenance-calendar-subscribe-dialog"),
+    ).toBeVisible();
+  }
+
+  async function clipboardOfThePage(
+    page: Page,
+  ): Promise<{ isSecure: boolean; hasClipboardApi: boolean }> {
+    return await page.evaluate(() => {
+      return {
+        isSecure: window.isSecureContext,
+        hasClipboardApi: Boolean(
+          (navigator as unknown as { clipboard?: unknown }).clipboard,
+        ),
+      };
+    });
+  }
+
+  for (const width of [1280, 390]) {
+    test(`on a plain-http page with no clipboard API, the link really reaches the clipboard (${width}px)`, async ({
+      page,
+      context,
+      baseURL,
+    }: {
+      page: Page;
+      context: BrowserContext;
+      baseURL: string | undefined;
+    }) => {
+      await seedClipboard(context);
+
+      const origin: string = originOn(baseURL, STATUS_PAGE_PLAIN_HTTP_HOST);
+
+      await openSubscribeAt(
+        page,
+        `${origin}${PREVIEW}/scheduled-events?clipboard=browser`,
+        width,
+      );
+
+      // The case the issue is about: not a secure context, no clipboard API.
+      expect(await clipboardOfThePage(page)).toEqual({
+        isSecure: false,
+        hasClipboardApi: false,
+      });
+
+      const link: string = `${origin}${PREVIEW}/maintenance.ics`;
+
+      await expect(page.getByTestId("maintenance-calendar-url")).toHaveValue(
+        link,
+      );
+
+      const copy: Locator = page.getByTestId("maintenance-calendar-copy");
+
+      await copy.click();
+
+      await expect(copy).toHaveText("Copied!");
+      await expect(
+        page.getByTestId("maintenance-calendar-copy-failed"),
+      ).toHaveCount(0);
+      // The browser's copy command took the focus for a moment and gave it back.
+      await expect(copy).toBeFocused();
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+
+      await shot(
+        page,
+        `status-page-copy-plain-http-${width}`,
+        page.getByTestId("modal"),
+      );
+
+      expect(await systemClipboard(context)).toBe(link);
+    });
+  }
+
+  test("on localhost, a secure context, it copies through the browser's clipboard API", async ({
+    page,
+    context,
+    baseURL,
+  }: {
+    page: Page;
+    context: BrowserContext;
+    baseURL: string | undefined;
+  }) => {
+    await seedClipboard(context);
+
+    const origin: string = originOn(baseURL, "localhost");
+
+    await openSubscribeAt(
+      page,
+      `${origin}${PREVIEW}/scheduled-events?clipboard=browser`,
+      1280,
+    );
+
+    expect(await clipboardOfThePage(page)).toEqual({
+      isSecure: true,
+      hasClipboardApi: true,
+    });
+
+    await page.getByTestId("maintenance-calendar-copy").click();
+
+    await expect(page.getByTestId("maintenance-calendar-copy")).toHaveText(
+      "Copied!",
+    );
+    expect(await systemClipboard(context)).toBe(
+      `${origin}${PREVIEW}/maintenance.ics`,
+    );
+  });
+
+  for (const width of [1280, 390]) {
+    test(`refused both ways: it says so, never Copied!, and the link is selected to copy by hand (${width}px)`, async ({
+      page,
+      context,
+      baseURL,
+    }: {
+      page: Page;
+      context: BrowserContext;
+      baseURL: string | undefined;
+    }) => {
+      await seedClipboard(context);
+
+      // What the page says in its console: React's markup warnings included.
+      const consoleErrors: Array<string> = [];
+
+      page.on(
+        "console",
+        (message: { type: () => string; text: () => string }) => {
+          if (message.type() === "error") {
+            consoleErrors.push(message.text());
+          }
+        },
+      );
+
+      const origin: string = originOn(baseURL, STATUS_PAGE_PLAIN_HTTP_HOST);
+      const link: string = `${origin}${PREVIEW}/maintenance.ics`;
+
+      await openSubscribeAt(
+        page,
+        `${origin}${PREVIEW}/scheduled-events?clipboard=refused`,
+        width,
+      );
+
+      const copy: Locator = page.getByTestId("maintenance-calendar-copy");
+      const field: Locator = page.getByTestId("maintenance-calendar-url");
+
+      await copy.click();
+
+      const failed: Locator = page.getByTestId(
+        "maintenance-calendar-copy-failed",
+      );
+
+      await expect(failed).toBeVisible();
+      await expect(failed).toHaveText(
+        "Your browser didn't let this page copy the link. It's selected above, so you can copy it yourself.",
+      );
+      await expect(copy).toHaveText("Copy link");
+      // The link, focused and selected whole, ready for the keyboard.
+      await expect(field).toBeFocused();
+      expect(
+        await field.evaluate((input: HTMLInputElement) => {
+          return [input.selectionStart, input.selectionEnd, input.value.length];
+        }),
+      ).toEqual([0, link.length, link.length]);
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      /*
+       * The line is markup React accepts: drawn in a <p>, its icon's <div>
+       * made React warn "validateDOMNesting" in the console of every page.
+       */
+      expect(
+        await failed.evaluate((element: Element) => {
+          return element.tagName;
+        }),
+      ).toBe("DIV");
+      expect(consoleErrors).toEqual([]);
+      // Nothing reached the clipboard.
+      expect(await systemClipboard(context)).toBe(SENTINEL);
+
+      await shot(
+        page,
+        `status-page-copy-failed-${width}`,
+        page.getByTestId("modal"),
+      );
+
+      // Copied by hand, as the line says: the selection is the whole link.
+      await page.bringToFront();
+      await field.press("ControlOrMeta+C");
+
+      expect(await systemClipboard(context)).toBe(link);
+    });
+  }
+
+  test("the failure line reads in the dark theme", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSubscribeAt(
+      page,
+      `${PREVIEW}/scheduled-events?clipboard=refused&theme=dark`,
+      1280,
+    );
+
+    await page.getByTestId("maintenance-calendar-copy").click();
+
+    const failed: Locator = page.getByTestId(
+      "maintenance-calendar-copy-failed",
+    );
+
+    await expect(failed).toBeVisible();
+
+    // Light text on the dark dialog, not the light theme's dark amber.
+    const color: string = await failed.evaluate((element: Element) => {
+      return getComputedStyle(element).color;
+    });
+    const channels: Array<number> = (color.match(COLOR_CHANNELS) || [])
+      .slice(0, 3)
+      .map(Number);
+    const brightness: number = channels.reduce(
+      (sum: number, value: number): number => {
+        return sum + value;
+      },
+      0,
+    );
+
+    expect(brightness).toBeGreaterThan(450);
+
+    await shot(page, "status-page-copy-failed-dark", page.getByTestId("modal"));
+  });
+
+  test("the failure line is in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openSubscribeAt(
+      page,
+      `${PREVIEW}/scheduled-events?clipboard=refused&lang=de`,
+      1280,
+    );
+
+    await page.getByTestId("maintenance-calendar-copy").click();
+
+    await expect(
+      page.getByTestId("maintenance-calendar-copy-failed"),
+    ).toHaveText(
+      "Ihr Browser hat das Kopieren des Links nicht zugelassen. Der Link ist oben markiert, sodass Sie ihn selbst kopieren können.",
+    );
+    await expect(page.getByTestId("maintenance-calendar-copy")).toHaveText(
+      "Link kopieren",
+    );
   });
 });

@@ -1,5 +1,9 @@
 import {
   AI_COMMAND_STEP_TYPES,
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+  STORED_AI_COMMAND_STEP_TYPES,
+  isRemovedSshCommand,
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlan,
@@ -36,9 +40,11 @@ import { describe, expect, test } from "@jest/globals";
  *
  * The invariant is fail-closed: ANY structural problem in ANY command rejects
  * the WHOLE plan with null — never a partially-valid plan. A Denied verdict,
- * a step type outside Bash/SSH/Kubectl, an SSH command without a credential,
- * a Kubectl command without a cluster, an over-long or empty command, or
- * more than MAX_PLAN_COMMANDS entries must all return null. Cosmetic fields
+ * a step type outside Bash/Kubectl/ResourceCommand (or SSH, which a plan
+ * composed before runbook credentials were removed may hold and which never
+ * runs), a Kubectl command without a cluster, an over-long or empty command,
+ * or more than MAX_PLAN_COMMANDS entries must all return null. No command
+ * carries a credential: one a stored command still names is not read. Cosmetic fields
  * (snapshots, rationale, timeouts, the kubectl tier, execution bookkeeping)
  * instead degrade to safe defaults, because a stale display string must not
  * brick an otherwise executable plan.
@@ -47,6 +53,8 @@ import { describe, expect, test } from "@jest/globals";
 const RUNNER_ID: string = "22222222-2222-4222-8222-222222222222";
 const CREDENTIAL_ID: string = "33333333-3333-4333-8333-333333333333";
 const CLUSTER_ID: string = "44444444-4444-4444-8444-444444444444";
+// What to do with a plan an SSH command keeps from being approved: dismiss it, first.
+const DISMISS_FIRST: RegExp = /^Dismiss this suggestion\./;
 
 function makeCommand(overrides: JSONObject = {}): JSONObject {
   return {
@@ -153,7 +161,7 @@ describe("AI command step id prefixes", () => {
 });
 
 describe("AI_COMMAND_STEP_TYPES", () => {
-  test("permits exactly Bash, SSH, Kubectl and ResourceCommand, in that order", () => {
+  test("permits exactly Bash, Kubectl and ResourceCommand, in that order", () => {
     /*
      * This array IS the whitelist parse checks against. Widening it (to
      * Kubernetes, JavaScript, ...) would let the AI compose step types the
@@ -165,25 +173,56 @@ describe("AI_COMMAND_STEP_TYPES", () => {
      */
     expect(AI_COMMAND_STEP_TYPES).toEqual([
       RunbookStepType.Bash,
-      RunbookStepType.SSH,
       RunbookStepType.Kubectl,
       RunbookStepType.ResourceCommand,
     ]);
   });
 
-  test("places Kubectl after the two host lanes and ResourceCommand last, with no duplicates", () => {
+  test("places Kubectl after the host lane and ResourceCommand last, with no duplicates", () => {
     expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand)).toBe(
       AI_COMMAND_STEP_TYPES.length - 1,
     );
     expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
       AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.ResourceCommand) - 1,
     );
-    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.SSH)).toBeLessThan(
-      AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl),
-    );
     expect(new Set(AI_COMMAND_STEP_TYPES).size).toBe(
       AI_COMMAND_STEP_TYPES.length,
     );
+  });
+
+  /*
+   * SSH reached a host with a runbook credential assigned to the Runner.
+   * Runbook credentials were removed, and SSH left the lanes AI composes:
+   * a stored plan may still hold one, which reads (so its card still shows
+   * it) and never runs.
+   */
+  test("leaves SSH out: a stored plan's SSH command is read, and never run", () => {
+    expect(AI_COMMAND_STEP_TYPES).not.toContain(RunbookStepType.SSH);
+    expect(STORED_AI_COMMAND_STEP_TYPES).toEqual([
+      ...AI_COMMAND_STEP_TYPES,
+      RunbookStepType.SSH,
+    ]);
+    expect(isRemovedSshCommand({ stepType: RunbookStepType.SSH })).toBe(true);
+    for (const stepType of AI_COMMAND_STEP_TYPES) {
+      expect(isRemovedSshCommand({ stepType })).toBe(false);
+    }
+    expect(REMOVED_SSH_COMMAND_MESSAGE).toContain(
+      "runbook credentials were removed",
+    );
+  });
+
+  /*
+   * A command a run reaches belongs to a plan that was approved already,
+   * which has nothing left to dismiss: its record says why it did not
+   * run, and only the refusal to approve a plan says what to do with it.
+   */
+  test("an SSH command's record says why it did not run; only the approval refusal says to dismiss the plan", () => {
+    expect(REMOVED_SSH_COMMAND_MESSAGE).toBe(
+      "OneUptime AI no longer runs SSH commands: they reached a host with a runbook credential, and runbook credentials were removed.",
+    );
+    expect(REMOVED_SSH_COMMAND_MESSAGE).not.toContain("Dismiss");
+    expect(REMOVED_SSH_COMMAND_NEXT_STEP).toMatch(DISMISS_FIRST);
+    expect(REMOVED_SSH_COMMAND_NEXT_STEP).toContain("Host AI agent");
   });
 
   test("admits Kubectl but never the structured Kubernetes runbook step", () => {
@@ -210,6 +249,7 @@ describe("AI_COMMAND_STEP_TYPES", () => {
         RunbookStepType.HttpRequest,
         RunbookStepType.AI,
         RunbookStepType.Kubernetes,
+        RunbookStepType.SSH,
       ]
         .slice()
         .sort(),
@@ -359,8 +399,6 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
       stepType: RunbookStepType.Bash,
       runnerId: RUNNER_ID,
       runnerNameSnapshot: "prod-runner-1",
-      credentialId: undefined,
-      credentialNameSnapshot: undefined,
       command: "systemctl restart nginx",
       timeoutInMs: 30000,
       rationale: "nginx is not serving requests",
@@ -373,7 +411,7 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
     });
   });
 
-  test("SSH parses when a credentialId is present", () => {
+  test("a stored SSH command parses, with its credential not read", () => {
     const command: AiRemediationCommand = onlyCommand(
       makePlan([
         makeCommand({
@@ -385,8 +423,9 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
     );
 
     expect(command.stepType).toBe(RunbookStepType.SSH);
-    expect(command.credentialId).toBe(CREDENTIAL_ID);
-    expect(command.credentialNameSnapshot).toBe("web-01 root key");
+    expect(isRemovedSshCommand(command)).toBe(true);
+    expect(command).not.toHaveProperty("credentialId");
+    expect(command).not.toHaveProperty("credentialNameSnapshot");
   });
 
   test("Kubectl parses with its cluster, and carries the cluster snapshot and tier through", () => {
@@ -409,7 +448,7 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
     expect(command.kubectlTier).toBe(KubectlCommandTier.SafeWrite);
     // The cluster's bound Runner still travels on the command.
     expect(command.runnerId).toBe(RUNNER_ID);
-    expect(command.credentialId).toBeUndefined();
+    expect(command).not.toHaveProperty("credentialId");
   });
 
   test("Kubectl without a kubernetesClusterId returns null", () => {
@@ -466,7 +505,7 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
     expect(command.kubectlTier).toBeUndefined();
   });
 
-  test("Bash and SSH commands ignore cluster fields", () => {
+  test("Bash commands ignore cluster fields", () => {
     const command: AiRemediationCommand = onlyCommand(
       makePlan([
         makeCommand({
@@ -494,7 +533,8 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
       /*
        * Kubernetes and JavaScript are legitimate Runner step types, which is
        * exactly why they must be refused here — the AI command lane was only
-       * reviewed for Bash, SSH and the policy-tiered Kubectl lane.
+       * reviewed for Bash and the policy-tiered Kubectl lane (and SSH, which
+       * it composed until runbook credentials were removed).
        */
       expect(
         AiRemediationCommandPlanUtil.parse(
@@ -616,46 +656,40 @@ describe("AiRemediationCommandPlanUtil.parse — runnerId", () => {
   });
 });
 
-describe("AiRemediationCommandPlanUtil.parse — SSH credential requirement", () => {
-  test("SSH without a credentialId returns null", () => {
-    // The Runner cannot open a session without a credential to resolve.
-    expect(
-      AiRemediationCommandPlanUtil.parse(
-        makePlan([makeCommand({ stepType: RunbookStepType.SSH })]),
-      ),
-    ).toBeNull();
-  });
+/*
+ * An SSH command needed a credential to open its session, and a plan
+ * without one was refused. SSH commands never run now, and no command
+ * carries a credential: a stored SSH command reads whatever it held.
+ */
+describe("AiRemediationCommandPlanUtil.parse — no credential, whatever a command held", () => {
+  test.each([
+    ["no credentialId", {}],
+    ["a whitespace-only credentialId", { credentialId: "   " }],
+    ["a non-string credentialId", { credentialId: 42 }],
+  ] as Array<[string, JSONObject]>)(
+    "a stored SSH command with %s reads, and never runs",
+    (_label: string, fields: JSONObject) => {
+      const command: AiRemediationCommand = onlyCommand(
+        makePlan([makeCommand({ stepType: RunbookStepType.SSH, ...fields })]),
+      );
 
-  test("SSH with a whitespace-only credentialId returns null", () => {
-    expect(
-      AiRemediationCommandPlanUtil.parse(
-        makePlan([
-          makeCommand({
-            stepType: RunbookStepType.SSH,
-            credentialId: "   ",
-          }),
-        ]),
-      ),
-    ).toBeNull();
-  });
+      expect(isRemovedSshCommand(command)).toBe(true);
+      expect(command).not.toHaveProperty("credentialId");
+    },
+  );
 
-  test("SSH with a non-string credentialId returns null", () => {
-    expect(
-      AiRemediationCommandPlanUtil.parse(
-        makePlan([
-          makeCommand({ stepType: RunbookStepType.SSH, credentialId: 42 }),
-        ]),
-      ),
-    ).toBeNull();
-  });
-
-  test("Bash needs no credentialId and parses it to undefined", () => {
+  test("a Bash command's credential fields are not read", () => {
     const command: AiRemediationCommand = onlyCommand(
-      makePlan([makeCommand({ credentialNameSnapshot: 42 })]),
+      makePlan([
+        makeCommand({
+          credentialId: CREDENTIAL_ID,
+          credentialNameSnapshot: 42,
+        }),
+      ]),
     );
 
-    expect(command.credentialId).toBeUndefined();
-    expect(command.credentialNameSnapshot).toBeUndefined();
+    expect(command).not.toHaveProperty("credentialId");
+    expect(command).not.toHaveProperty("credentialNameSnapshot");
   });
 });
 

@@ -11,19 +11,23 @@ import { RenderResult, cleanup, fireEvent } from "@testing-library/react";
 import * as React from "react";
 
 /*
- * The Security Events side menu, rendered against the real RouteMap: six
+ * The Security Events side menu, rendered against the real RouteMap: seven
  * sections - Overview, Security Cases, Events, Detections, Playbooks,
- * Connections - each holding its pages, every page an entry of its own.
- * "Can we create side menu sections instead and have different pages for
- * these things?" (the maintainer, of the tabs each page carried and the
- * views along the top of the case queue).
+ * Workspace, Connections - each holding its pages, every page an entry of
+ * its own. "Can we create side menu sections instead and have different
+ * pages for these things?" (the maintainer, of the tabs each page carried
+ * and the views along the top of the case queue).
  *
  * Pinned here: the sections and entries in order and where each links, an
- * icon of its own drawn for every entry, Detections and Connections folded
- * on the overview and open on their own pages, exactly the entry of the
- * page you are on lit, the counts beside Open Cases, Assigned to Me and
- * Waiting for Approval (each asking what its page lists), and the phone's
- * "Section / Page" summary.
+ * icon of its own drawn for every entry, Detections, Workspace and
+ * Connections folded on the overview and open on their own pages, exactly
+ * the entry of the page you are on lit, the counts beside Open Cases,
+ * Assigned to Me and Waiting for Approval (each asking what its page
+ * lists), and the phone's "Section / Page" summary.
+ *
+ * Workspace is the one every product's menu has (WorkspaceSideMenuSection):
+ * here a project with Slack and Microsoft Teams both connected, so it lists
+ * both; with neither, it is the one entry that connects them.
  *
  * ModelAPI.count backs the counts; it is stubbed inline because jest.mock
  * is hoisted above the imports.
@@ -55,10 +59,22 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import SecurityEventsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { getSecurityCaseQueueQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
+import {
+  WORKSPACE_MENU_ENTRY_TITLES,
+  WORKSPACE_SECTION_TITLE,
+  WorkspaceMenuEntry,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSideMenuSection";
+import {
+  SECURITY_EVENTS_WORKSPACE_PAGES,
+  SECURITY_EVENTS_WORKSPACE_SECTION_TITLE,
+  getSecurityEventsPageTrail,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
+import ConnectedWorkspaces from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import { OPEN_SECURITY_CASE_STATUSES } from "../../../Types/SecurityCase/SecurityCaseStatus";
 import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import User from "../../../UI/Utils/User";
 import {
   DESKTOP_WIDTH,
@@ -124,6 +140,19 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
       ],
       ["Playbook Runs", PageMap.SECURITY_PLAYBOOK_RUNS],
       ["Protected Entities", PageMap.SECURITY_PROTECTED_ENTITIES],
+    ],
+  ],
+  // What OneUptime AI does on its own; the triage itself is on each case.
+  ["AI", [["Settings", PageMap.SECURITY_EVENTS_SETTINGS_AI]]],
+  // Both workspaces connected (beforeEach).
+  [
+    "Workspace",
+    [
+      ["Slack", PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK],
+      [
+        "Microsoft Teams",
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      ],
     ],
   ],
   [
@@ -193,14 +222,28 @@ describe("Security Events side menu", () => {
     countQueries.length = 0;
     jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(ME));
     goTo(`/dashboard/${PROJECT_ID}/security-events/overview`);
+
+    /*
+     * A project with Slack and Microsoft Teams both connected, so the
+     * Workspace section lists both. The other combinations, and what is
+     * listed while the answer is on its way, are pinned for every product
+     * menu in WorkspaceMenusConnected.test.tsx.
+     */
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+    ]);
   });
 
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+    ConnectedWorkspaces.reset();
   });
 
-  test("is six sections, in the order Security works, each holding its pages", async () => {
+  test("is eight sections, in the order Security works, each holding its pages", async () => {
     await renderSecurityMenu();
 
     expect(sectionTitlesInOrder()).toEqual(
@@ -269,7 +312,7 @@ describe("Security Events side menu", () => {
     expect(new Set(drawings).size).toBe(drawings.length);
   });
 
-  test("on the overview, folds Detections and Connections and keeps the everyday sections open", async () => {
+  test("on the overview, folds Detections, AI, Workspace and Connections and keeps the everyday sections open", async () => {
     await renderSecurityMenu();
 
     expect(
@@ -282,6 +325,8 @@ describe("Security Events side menu", () => {
       ["Events", true],
       ["Detections", false],
       ["Playbooks", true],
+      ["AI", false],
+      ["Workspace", false],
       ["Connections", false],
     ]);
     expect(sectionBody("Detections")).toHaveClass(
@@ -289,6 +334,8 @@ describe("Security Events side menu", () => {
       "opacity-0",
       "invisible",
     );
+    expect(sectionBody("AI")).toHaveClass("invisible");
+    expect(sectionBody("Workspace")).toHaveClass("invisible");
     expect(sectionBody("Connections")).toHaveClass("invisible");
   });
 
@@ -426,5 +473,169 @@ describe("Security Events side menu", () => {
     await renderSecurityMenu();
     expect(mobileSummaryText()).toContain("Events");
     expect(mobileSummaryText()).not.toContain("Events / Events");
+    cleanup();
+
+    goTo(routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK));
+    await renderSecurityMenu();
+    expect(mobileSummaryText()).toContain("Workspace / Slack");
+  });
+});
+
+/*
+ * "Products → Security Events → Workspace → Slack (or Microsoft Teams)": the
+ * security cases' notification rules, as the Security Cases docs send
+ * people to them. The section is every product's (useWorkspaceSideMenuSection),
+ * so it lists only what the project has connected.
+ */
+describe("Security Events side menu: the Workspace section", () => {
+  beforeEach(() => {
+    setViewportWidth(DESKTOP_WIDTH);
+    jest.spyOn(User, "getUserId").mockReturnValue(new ObjectID(ME));
+    goTo(`/dashboard/${PROJECT_ID}/security-events/overview`);
+    window.localStorage.clear();
+    ConnectedWorkspaces.reset();
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+    ConnectedWorkspaces.reset();
+  });
+
+  test("sits after Playbooks and before Connections, whatever is connected", async () => {
+    for (const connected of [
+      [],
+      [WorkspaceType.Slack],
+      [WorkspaceType.MicrosoftTeams],
+      [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams],
+    ]) {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, connected);
+      await renderSecurityMenu();
+
+      expect(sectionTitlesInOrder()).toEqual([
+        "Overview",
+        "Security Cases",
+        "Events",
+        "Detections",
+        "Playbooks",
+        "AI",
+        "Workspace",
+        "Connections",
+      ]);
+      expect(isExpanded("Workspace")).toBe(false);
+
+      cleanup();
+    }
+  });
+
+  test("lists only the connected workspace: Slack", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Slack]);
+    await renderSecurityMenu();
+
+    expect(linksIn("Workspace")).toEqual([
+      {
+        title: "Slack",
+        href: routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK),
+      },
+    ]);
+  });
+
+  test("lists only the connected workspace: Microsoft Teams", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [
+      WorkspaceType.MicrosoftTeams,
+    ]);
+    await renderSecurityMenu();
+
+    expect(linksIn("Workspace")).toEqual([
+      {
+        title: "Microsoft Teams",
+        href: routeFor(
+          PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+        ),
+      },
+    ]);
+  });
+
+  test("with nothing connected, holds one entry, to its own page that connects them", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+    await renderSecurityMenu();
+
+    expect(linksIn("Workspace")).toEqual([
+      {
+        title: "Connect Slack or Teams",
+        href: routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS),
+      },
+    ]);
+  });
+
+  test.each([
+    ["Slack", PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK],
+    [
+      "Microsoft Teams",
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    ],
+  ])(
+    "opens by itself on the %s page, and marks it",
+    async (title: string, page: string) => {
+      ConnectedWorkspaces.setConnected(PROJECT_ID, [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]);
+      goTo(routeFor(page));
+      await renderSecurityMenu();
+
+      expect(isExpanded("Workspace")).toBe(true);
+      expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+      expect(isExpanded("Detections")).toBe(false);
+      expect(isExpanded("Connections")).toBe(false);
+      expect(activeLinkTitles()).toEqual([title]);
+    },
+  );
+
+  test("the page that connects them opens it and marks its entry", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, []);
+    goTo(routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS));
+    await renderSecurityMenu();
+
+    expect(isExpanded("Workspace")).toBe(true);
+    expect(activeLinkTitles()).toEqual(["Connect Slack or Teams"]);
+  });
+
+  test("opens with a click", async () => {
+    ConnectedWorkspaces.setConnected(PROJECT_ID, [WorkspaceType.Slack]);
+    await renderSecurityMenu();
+
+    fireEvent.click(sectionToggle("Workspace"));
+
+    expect(isExpanded("Workspace")).toBe(true);
+    expect(sectionBody("Workspace")).not.toHaveClass("invisible");
+  });
+
+  test("its pages and names are the ones the navigation lists, as every Workspace section names them", () => {
+    expect(SECURITY_EVENTS_WORKSPACE_SECTION_TITLE).toBe(
+      WORKSPACE_SECTION_TITLE,
+    );
+    expect(SECURITY_EVENTS_WORKSPACE_PAGES).toEqual({
+      slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams:
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
+    });
+    expect(
+      getSecurityEventsPageTrail(SECURITY_EVENTS_WORKSPACE_PAGES.slack),
+    ).toEqual([
+      "Security Events",
+      WORKSPACE_SECTION_TITLE,
+      WORKSPACE_MENU_ENTRY_TITLES[WorkspaceMenuEntry.Slack],
+    ]);
+    expect(
+      getSecurityEventsPageTrail(
+        SECURITY_EVENTS_WORKSPACE_PAGES.microsoftTeams,
+      ),
+    ).toEqual([
+      "Security Events",
+      WORKSPACE_SECTION_TITLE,
+      WORKSPACE_MENU_ENTRY_TITLES[WorkspaceMenuEntry.MicrosoftTeams],
+    ]);
   });
 });

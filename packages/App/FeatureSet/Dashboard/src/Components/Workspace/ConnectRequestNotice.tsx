@@ -45,10 +45,11 @@ import React, {
  * again.
  *
  * The Connect Slack account link in a Slack channel's note (the people
- * OneUptime could not add to it) opens the Slack page with
- * `?connectAccount=true` instead: there is no press to finish, so the page
- * only connects the account of whoever opened it, when it is not connected
- * yet.
+ * OneUptime could not add to it), and the Connect button of the message an
+ * admin has OneUptime send every member in Slack or Microsoft Teams
+ * (WorkspaceAskToConnect), open the page with `?connectAccount=true`
+ * instead: there is no press to finish, so the page only connects the
+ * account of whoever opened it, when it is not connected yet.
  *
  * A sign-in that cannot start is said above the page, which loads as usual
  * with its own Connect button right below to try again - never a page that is

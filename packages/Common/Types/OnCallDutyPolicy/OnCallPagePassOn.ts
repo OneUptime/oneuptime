@@ -1,37 +1,54 @@
 /*
- * "CAN'T TAKE IT? PASS IT ON."
+ * "CAN'T TAKE IT? ESCALATE."
  *
  * Somebody an on-call policy pages may not be able to take the page: on a
  * flight, driving, at the dentist, deep in another incident. Until now the
  * policy waited out the whole escalation rule (30 minutes by default) before
  * it paged the next level, and those minutes were lost for nothing. The
- * person being paged can now pass the page on, from the page itself: the
+ * person being paged can now escalate the page, from the page itself: the
  * email, the text, the call ("press 2"), the Slack or Microsoft Teams
  * message, the Dashboard and the mobile app. A customer called it NACK, a
- * negative acknowledgement; "pass it on" says what happens, in the words a
- * person woken at 3 a.m. reads at a glance.
+ * negative acknowledgement.
  *
- * What passing a page on does:
+ * The action is called Escalate everywhere a person meets it - the word
+ * on-call people already use for handing a page up to the next level, and
+ * the one the maintainer's copy for the incident page uses:
+ *
+ *   Escalate Incident?
+ *   This will immediately page Platform leads (Level 2 of 3), without
+ *     waiting.
+ *   You will not be paged again for this incident.
+ *   [Cancel] [Escalate]
+ *
+ * It was first called "Pass it on". In code the feature keeps that name -
+ * pass on (OnCallPagePassOn, passOn, the /pass-on routes, the "Passed On"
+ * status value) - so what is stored, the API and the links already sent
+ * keep working. What people read says Escalate; the stored status reads
+ * "Escalated" (getOnCallPageStatusLabel), and the messages written before
+ * the rename are still understood (isOnCallPagePassedOnStatusMessage and
+ * the other readers below).
+ *
+ * What escalating a page does:
  *
  * - The person is not paged about it again by that run: the notifications
  *   still due to them stop (a call after 10 minutes, a push that repeats),
  *   and the run's later escalation rules and repeats pass them over.
  * - The run moves on AT ONCE when nobody else on its current escalation rule
- *   is left to take the page - everybody else that rule paged has passed it
- *   on too: the next rule is paged straight away, as it would have been when
- *   the wait ran out. After the last rule the policy starts again from the
+ *   is left to take the page - everybody else that rule paged has escalated
+ *   too: the next level is paged straight away, as it would have been when
+ *   the wait ran out. After the last level the policy starts again from the
  *   first if its Repeat Policy says so, and otherwise stops, and the
  *   record's Slack and Microsoft Teams channels are told nobody took it.
- * - While somebody else on the rule is still being paged, the run waits for
+ * - While somebody else on the level is still being paged, the run waits for
  *   them as it always did: one person who cannot take a page does not wake
- *   the next level while a colleague on the same rule may still pick it up.
+ *   the next level while a colleague on the same level may still pick it up.
  * - A direct page (people, a team or a schedule paged with no policy) has no
- *   next rule: the person stops being paged, and once everybody it paged has
- *   passed it on, the page ends as one nobody took.
+ *   next level: the person stops being paged, and once everybody it paged
+ *   has escalated, the page ends as one nobody took.
  * - It acknowledges nothing and changes nothing on the record. Acknowledging
  *   afterwards still works, and still stops all paging.
  *
- * Only the person being paged can pass their page on: through a link only
+ * Only the person being paged can escalate their page: through a link only
  * their own messages carry (signed, OnCallPageLinkToken), their own phone
  * call, or signed in as themselves.
  *
@@ -43,51 +60,109 @@
 
 import OneUptimeDate from "../Date";
 import Timezone from "../Timezone";
+import OnCallDutyExecutionLogTimelineStatus from "./OnCalDutyExecutionLogTimelineStatus";
+import { isDefaultEscalationRuleName } from "./EscalationRuleDefaults";
 
-// The action, on every button and link: "Pass it on".
-export const PASS_IT_ON: string = "Pass it on";
+// The action, on every button and link: "Escalate".
+export const ESCALATE: string = "Escalate";
 
 // What leads up to it where there is room: "Can't take it?".
 export const CANT_TAKE_IT: string = "Can't take it?";
 
-// "Can't take it? Pass it on" - a link's text where one line says both.
-export const CANT_TAKE_IT_PASS_IT_ON: string = `${CANT_TAKE_IT} ${PASS_IT_ON}`;
+// "Can't take it? Escalate" - a link's text where one line says both.
+export const CANT_TAKE_IT_ESCALATE: string = `${CANT_TAKE_IT} ${ESCALATE}`;
 
 /*
- * The status message of a person's page that they passed on - their
+ * The status message of a person's page that they escalated - their
  * notification log, and the run's timeline line for them. The feed reads it
  * back as one sentence (OnCallFeedText) rather than saying it twice.
  */
 export const ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE: string =
+  "Escalated: could not take this page.";
+
+// The same message as pages escalated before the rename were given it.
+export const LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE: string =
   "Passed on: could not take this page.";
 
 /*
  * The timeline's line for somebody a later escalation rule (or a repeat)
- * would have paged, who had passed this run's page on already. It is kept
+ * would have paged, who had escalated this run's page already. It is kept
  * on the run's own page only: the feed and the run's Slack and Microsoft
- * Teams message say once that the person passed it on, not once for every
+ * Teams message say once that the person escalated, not once for every
  * rule after it.
  */
 export const ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE: string =
+  "Skipped because they escalated this page.";
+
+// The same line as runs before the rename wrote it.
+export const LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE: string =
   "Skipped because they passed this page on.";
 
 /*
  * The status message of the delivery - the email, the text, the call - a
- * person passed their page on through.
+ * person escalated their page through. Shown, never read back.
  */
 export const ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE: string =
-  "Passed on from this notification.";
+  "Escalated from this notification.";
+
+function isOneOf(
+  message: string | undefined | null,
+  messages: Array<string>,
+): boolean {
+  return messages.includes((message || "").trim());
+}
 
 /*
- * The key a phone call asks the person to press to pass the page on, and
+ * Whether a status message is the one an escalated page is given - in the
+ * words of today, or of before the rename: logs written before it are read
+ * back the same way.
+ */
+export function isOnCallPagePassedOnStatusMessage(
+  message: string | undefined | null,
+): boolean {
+  return isOneOf(message, [
+    ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+    LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+  ]);
+}
+
+// Whether a timeline line is the one that passes over somebody who escalated.
+export function isOnCallPagePassedOnSkipTimelineMessage(
+  message: string | undefined | null,
+): boolean {
+  return isOneOf(message, [
+    ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+    LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+  ]);
+}
+
+/*
+ * The status an escalated page is stored with is "Passed On" - the value
+ * the run's timeline, a person's notification logs and the API have used
+ * since the action was first named. People read it as "Escalated".
+ */
+export const ON_CALL_PAGE_PASSED_ON_STATUS_VALUE: string =
+  OnCallDutyExecutionLogTimelineStatus.PassedOn;
+
+export const ON_CALL_PAGE_ESCALATED_STATUS_LABEL: string = "Escalated";
+
+// A stored status as people read it: "Passed On" reads "Escalated".
+export function getOnCallPageStatusLabel(status: string): string {
+  return status === ON_CALL_PAGE_PASSED_ON_STATUS_VALUE
+    ? ON_CALL_PAGE_ESCALATED_STATUS_LABEL
+    : status;
+}
+
+/*
+ * The key a phone call asks the person to press to escalate the page, and
  * what it says about it, after "To acknowledge this incident, press 1.": "If
- * you can't take it, press 2 to pass it on." What it answers when the key is
+ * you can't take it, press 2 to escalate." What it answers when the key is
  * pressed depends on what came of it (UserOnCallLogTimelineAPI).
  */
 export const ON_CALL_PAGE_CALL_PASS_ON_DIGIT: string = "2";
 
 export function getOnCallPageCallPassOnPrompt(): string {
-  return `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to pass it on.`;
+  return `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`;
 }
 
 // The record kinds a page is about, as the Dashboard's API names them.
@@ -100,10 +175,10 @@ export enum OnCallPageRecordType {
 
 /*
  * GET  <api>/on-call-page/pass-on/<record type>/<record id>
- *   The signed-in person's open pages about one record, and what passing
- *   them on would do.
+ *   The signed-in person's open pages about one record, and what escalating
+ *   them would do.
  * POST <api>/on-call-page/pass-on/<record type>/<record id>
- *   Passes them on, and answers what it did.
+ *   Escalates them, and answers what it did.
  */
 export const ON_CALL_PAGE_PASS_ON_ROUTE: string = "/on-call-page/pass-on";
 
@@ -133,41 +208,41 @@ export function getOnCallPageRecordNoun(
   }
 }
 
-// What passing a page on did - or, asked beforehand, would do.
+// What escalating a page did - or, asked beforehand, would do.
 export enum OnCallPassOnOutcome {
   /*
    * Nobody else on the run's current escalation rule was left to take it:
-   * the next rule was paged straight away.
+   * the next level was paged straight away.
    */
   NextRulePaged = "NextRulePaged",
   /*
-   * It was the policy's last rule and its Repeat Policy repeats: the policy
-   * started again from its first rule straight away.
+   * It was the policy's last level and its Repeat Policy repeats: the
+   * policy started again from its first level straight away.
    */
   PolicyStartedAgain = "PolicyStartedAgain",
   /*
-   * Nobody is left to page: it was the last rule with no repeat left, a
-   * direct page whose people have all passed it on, or a run that had
-   * stopped paging already. Somebody needs to take the record.
+   * Nobody is left to page: it was the last level with no repeat left, a
+   * direct page whose people have all escalated, or a run that had stopped
+   * paging already. Somebody needs to take the record.
    */
   PagingStopped = "PagingStopped",
   /*
-   * Somebody else on the current escalation rule (or on a direct page) is
-   * still being paged: the run waits for them, as it always did.
+   * Somebody else on the current level (or on a direct page) is still being
+   * paged: the run waits for them, as it always did.
    */
   OthersStillPaged = "OthersStillPaged",
   /*
-   * The person's page was from an earlier escalation rule: the run has
-   * moved on past it already, and goes on as it is.
+   * The person's page was from an earlier level: the run has moved on past
+   * it already, and goes on as it is.
    */
   AlreadyEscalated = "AlreadyEscalated",
 }
 
-// Why a page could not be passed on.
+// Why a page could not be escalated.
 export enum OnCallPassOnRefusal {
   // The record is acknowledged or resolved: somebody has taken it.
   RecordAcknowledged = "RecordAcknowledged",
-  // The person passed this page on already.
+  // The person escalated this page already.
   AlreadyPassedOn = "AlreadyPassedOn",
   // The page is over: its run ended and the person's notifications are done.
   PageOver = "PageOver",
@@ -177,45 +252,46 @@ export enum OnCallPassOnRefusal {
   InvalidLink = "InvalidLink",
 }
 
+// An escalation rule - a level of the policy - by its place and name.
 export interface OnCallPassOnRule {
   order: number;
   name?: string | undefined;
 }
 
 /*
- * What passing on came to, or would come to (isPreview). Plain data, so the
+ * What escalating came to, or would come to (isPreview). Plain data, so the
  * Dashboard and the mobile app can word it in their own language; the
  * server words it with getOnCallPassOnSentence.
  */
 export interface OnCallPassOnResult {
   outcome: OnCallPassOnOutcome;
-  // True when this says what passing on WOULD do - nothing was changed.
+  // True when this says what escalating WOULD do - nothing was changed.
   isPreview: boolean;
   // A direct page: no policy, so no escalation rules.
   isDirectPage: boolean;
   // The policy's name; empty for a direct page.
   policyName: string;
   /*
-   * NextRulePaged: the rule now paging (a preview: the rule that would be).
-   * PolicyStartedAgain: the first rule. AlreadyEscalated: the rule the run
-   * is on.
+   * NextRulePaged: the level now paging (a preview: the level that would
+   * be). PolicyStartedAgain: the first level. AlreadyEscalated: the level
+   * the run is on.
    */
   rule?: OnCallPassOnRule | undefined;
-  // The rule's people who were paged now. Empty in a preview.
+  // The level's people who were paged now. Empty in a preview.
   pagedNames: Array<string>;
   // OthersStillPaged: who else is still being paged.
   stillPagedNames: Array<string>;
   /*
-   * OthersStillPaged on a policy's run: when the current rule's wait runs
-   * out, and the rule after it then, when there is one.
+   * OthersStillPaged on a policy's run: when the current level's wait runs
+   * out, and the level after it then, when there is one.
    */
   nextStepAt?: Date | undefined;
   nextRule?: OnCallPassOnRule | undefined;
-  // How many escalation rules the policy has, for "escalation rule 2 of 3".
+  // How many levels the policy has, for "Level 2 of 3".
   ruleCount: number;
 }
 
-// What passing on one page answers: done, with what came of it, or refused.
+// What escalating one page answers: done, with what came of it, or refused.
 export interface OnCallPassOnAnswer {
   passedOn: boolean;
   result?: OnCallPassOnResult | undefined;
@@ -234,23 +310,31 @@ export interface OnCallPassOnAnswer {
   sentence?: string | undefined;
 }
 
-// One page a person can pass on, and what passing it on would do.
+// One page a person can escalate, and what escalating it would do.
 export interface OnCallOpenPage {
   executionLogId: string;
   preview: OnCallPassOnResult;
   // The API's answer only: the preview as the server words it (see above).
   sentence?: string | undefined;
+  /*
+   * Present (true) when the page is a page again
+   * (OnCallAcknowledgementTimeout): its record was acknowledged all along,
+   * so the record's own Acknowledge is gone, and the page is acknowledged
+   * as the page it is (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE). Absent
+   * otherwise.
+   */
+  isPageAgain?: true | undefined;
 }
 
 /*
  * The GET answer of the Dashboard and the mobile app: the signed-in person's
- * open pages about the record (empty when there is nothing to pass on).
+ * open pages about the record (empty when there is nothing to escalate).
  */
 export interface OnCallOpenPagesAnswer {
   pages: Array<OnCallOpenPage>;
 }
 
-// The POST answer: one answer per page that was passed on.
+// The POST answer: one answer per page that was escalated.
 export interface OnCallPassOnRecordAnswer {
   answers: Array<OnCallPassOnAnswer>;
 }
@@ -265,6 +349,13 @@ export interface OnCallPassOnWording {
    * (getOnCallPassOnTime). Now without one.
    */
   now?: Date | undefined;
+  /*
+   * For a sentence drawn on a page or a phone screen: a level's place -
+   * "Level 2 of 3" - and a time - "5:28 AM UTC" - each stay on one line,
+   * written with spaces no line breaks at (ON_CALL_PASS_ON_NO_BREAK_SPACE).
+   * A call reads its sentence out, and leaves this off.
+   */
+  keepTogether?: boolean | undefined;
 }
 
 // "Alex, Sam and Kim" - names are text.
@@ -285,25 +376,84 @@ export function joinOnCallPassOnNames(names: Array<string>): string {
 }
 
 /*
- * "escalation rule 2 of 3 (Level 2)", or without the count or the name when
- * they are not known.
+ * A level's own name, or nothing: none when it has no name, and none when
+ * its name is the one its place gives it ("Level 2" on the second level,
+ * EscalationRuleDefaults) - "Level 2 (Level 2 of 3)" would say it twice.
  */
-export function getOnCallPassOnRuleLabel(
+export function getOnCallPassOnLevelName(
   rule: OnCallPassOnRule,
-  ruleCount?: number | undefined,
-): string {
-  const position: string =
-    ruleCount && ruleCount >= rule.order
-      ? `escalation rule ${rule.order} of ${ruleCount}`
-      : `escalation rule ${rule.order}`;
-
+): string | undefined {
   const name: string = (rule.name || "").trim();
 
-  return name ? `${position} (${name})` : position;
+  if (!name || isDefaultEscalationRuleName(name, rule.order)) {
+    return undefined;
+  }
+
+  return name;
 }
 
-function capitalize(text: string): string {
-  return text.length > 0 ? text[0]!.toUpperCase() + text.slice(1) : text;
+/*
+ * How many levels to say there are: the policy's count, never fewer than
+ * the level's own place ("Level 3 of 2" would be a lie about a policy read
+ * while it changed).
+ */
+export function getOnCallPassOnLevelCount(
+  rule: OnCallPassOnRule,
+  ruleCount?: number | undefined,
+): number {
+  return Math.max(ruleCount || 0, rule.order);
+}
+
+// U+00A0, a space no line breaks at.
+export const ON_CALL_PASS_ON_NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+// A phrase whose spaces no line breaks at, when it is to stay on one line.
+function keepOnOneLine(
+  phrase: string,
+  keepTogether: boolean | undefined,
+): string {
+  return keepTogether
+    ? phrase.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE)
+    : phrase;
+}
+
+/*
+ * A level as every sentence names it: "Platform leads (Level 2 of 3)" - its
+ * name, then its place - or "Level 2 of 3" when it has no name of its own.
+ * In every sentence it is what the policy pages.
+ *
+ * keepTogether writes the place with spaces no line breaks at, for a page
+ * or a phone screen: a narrow one broke the maintainer's own example as
+ * "Platform leads (Level 2 of" / "3)". The name keeps its own spaces - it
+ * is text somebody typed, and may be long.
+ */
+export function getOnCallPassOnLevelLabel(
+  rule: OnCallPassOnRule,
+  ruleCount?: number | undefined,
+  keepTogether?: boolean | undefined,
+): string {
+  const place: string = keepOnOneLine(
+    `Level ${rule.order} of ${getOnCallPassOnLevelCount(rule, ruleCount)}`,
+    keepTogether,
+  );
+  const name: string | undefined = getOnCallPassOnLevelName(rule);
+
+  return name ? `${name} (${place})` : place;
+}
+
+/*
+ * A level's label, or nothing when the level is not known: no rule, or one
+ * whose place could not be read (order 0) - "the next level" says it then,
+ * as the Dashboard does.
+ */
+function getKnownLevelLabel(
+  rule: OnCallPassOnRule | undefined,
+  ruleCount: number,
+  keepTogether: boolean | undefined,
+): string | undefined {
+  return rule && rule.order
+    ? getOnCallPassOnLevelLabel(rule, ruleCount, keepTogether)
+    : undefined;
 }
 
 /*
@@ -347,7 +497,7 @@ export function getOnCallPassOnTimeOfDay(data: {
 
 /*
  * When the policy moves on, in the reader's zone (the server's without
- * one). A rule's wait is minutes away, so on the same day the time says it
+ * one). A level's wait is minutes away, so on the same day the time says it
  * - "by 5:28 AM UTC" - and a date in front of it would only stand between
  * the reader and the clock, on a page read at 3 a.m. or a call read out. A
  * time on another day keeps its date: "by Oct 17, 2026, 12:10 AM UTC".
@@ -373,44 +523,59 @@ export function getOnCallPassOnTime(
 }
 
 /*
- * What passing on did, or would do, in plain sentences: what the confirm
- * page, the page after it, a phone call and the API answer say.
+ * What escalating did, or would do, in plain sentences: what the confirm
+ * page, the page after it, a phone call and the API answer say - word for
+ * word what the Dashboard says in English (PassOnPage).
  *
- *   Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.
+ *   This will immediately page Platform leads (Level 2 of 3), without
+ *     waiting.
+ *   The policy is now paging Platform leads (Level 2 of 3): Sam Lee.
  *   Bob Smith is still being paged. If nobody acknowledges by 5:28 AM UTC,
- *     escalation rule 2 of 3 is next.
+ *     the policy pages Level 3 of 3 next.
  *
+ * A level is always what the policy pages, never the sentence's first
+ * word: its name is text somebody typed, in whatever case they typed it.
  * It never says the person is not paged again: every place says that once,
- * in its own words, beside it.
+ * in its own words, beside it (getOnCallPageNotPagedAgainSentence).
  */
 export function getOnCallPassOnSentence(
   result: OnCallPassOnResult,
   wording: OnCallPassOnWording = {},
 ): string {
+  const level: string | undefined = getKnownLevelLabel(
+    result.rule,
+    result.ruleCount,
+    wording.keepTogether,
+  );
+
   switch (result.outcome) {
     case OnCallPassOnOutcome.NextRulePaged: {
-      const rule: string = result.rule
-        ? getOnCallPassOnRuleLabel(result.rule, result.ruleCount)
-        : "the next escalation rule";
-
       if (result.isPreview) {
-        return `${capitalize(rule)} is paged right away, without waiting.`;
+        return level
+          ? `This will immediately page ${level}, without waiting.`
+          : "This will immediately page the next level, without waiting.";
       }
 
-      return result.pagedNames.length > 0
-        ? `${capitalize(rule)} is paging ${joinOnCallPassOnNames(result.pagedNames)} now.`
-        : `${capitalize(rule)} is next, and is being paged now.`;
+      if (!level) {
+        return "The policy is now paging the next level.";
+      }
+
+      const names: string = joinOnCallPassOnNames(result.pagedNames);
+
+      return names
+        ? `The policy is now paging ${level}: ${names}.`
+        : `The policy is now paging ${level}.`;
     }
     case OnCallPassOnOutcome.PolicyStartedAgain: {
-      const start: string = result.isPreview
-        ? "This is the policy's last escalation rule, so the policy starts again from escalation rule 1 right away."
-        : "That was the policy's last escalation rule, so the policy started again from escalation rule 1.";
-
-      if (result.isPreview || result.pagedNames.length === 0) {
-        return start;
+      if (result.isPreview) {
+        return level
+          ? `There is no level after yours, so this will immediately page ${level} again, without waiting.`
+          : "There is no level after yours, so this will immediately page the first level again, without waiting.";
       }
 
-      return `${start} It is paging ${joinOnCallPassOnNames(result.pagedNames)} now.`;
+      return level
+        ? `There was no level after yours, so the policy started over and is paging ${level} again.`
+        : "There was no level after yours, so the policy started over and is paging the first level again.";
     }
     case OnCallPassOnOutcome.OthersStillPaged: {
       const who: string =
@@ -423,22 +588,24 @@ export function getOnCallPassOnSentence(
         return still;
       }
 
-      const next: string = result.nextRule
-        ? `${getOnCallPassOnRuleLabel(result.nextRule, result.ruleCount)} is next`
-        : "the policy moves on";
+      const time: string = keepOnOneLine(
+        getOnCallPassOnTime(result.nextStepAt, wording),
+        wording.keepTogether,
+      );
+      const next: string | undefined = getKnownLevelLabel(
+        result.nextRule,
+        result.ruleCount,
+        wording.keepTogether,
+      );
 
-      return `${still} If nobody acknowledges by ${getOnCallPassOnTime(
-        result.nextStepAt,
-        wording,
-      )}, ${next}.`;
+      return next
+        ? `${still} If nobody acknowledges by ${time}, the policy pages ${next} next.`
+        : `${still} If nobody acknowledges by ${time}, the policy moves on.`;
     }
-    case OnCallPassOnOutcome.AlreadyEscalated: {
-      const rule: string = result.rule
-        ? getOnCallPassOnRuleLabel(result.rule, result.ruleCount)
-        : "a later escalation rule";
-
-      return `The policy has moved on already: ${rule} is paging now.`;
-    }
+    case OnCallPassOnOutcome.AlreadyEscalated:
+      return level
+        ? `The policy has moved on already and is paging ${level} now.`
+        : "The policy has moved on already and is paging a later level now.";
     case OnCallPassOnOutcome.PagingStopped:
     default:
       if (result.isPreview) {
@@ -452,8 +619,8 @@ export function getOnCallPassOnSentence(
 }
 
 /*
- * Why a page could not be passed on, as a sentence: "Incident INC-42 was
- * already acknowledged by Ana Lopez, so there is nothing to pass on."
+ * Why a page could not be escalated, as a sentence: "Incident INC-42 was
+ * already acknowledged by Ana Lopez, so there is nothing to escalate."
  */
 export function getOnCallPassOnRefusalSentence(
   answer: OnCallPassOnAnswer,
@@ -466,15 +633,15 @@ export function getOnCallPassOnRefusalSentence(
       const byWhom: string = (answer.acknowledgedByName || "").trim();
 
       return byWhom
-        ? `${record} was already acknowledged by ${byWhom}, so there is nothing to pass on.`
-        : `${record} is already acknowledged, so there is nothing to pass on.`;
+        ? `${record} was already acknowledged by ${byWhom}, so there is nothing to escalate.`
+        : `${record} is already acknowledged, so there is nothing to escalate.`;
     }
     case OnCallPassOnRefusal.AlreadyPassedOn:
-      return "You passed this page on already. You won't be paged about it again.";
+      return "You escalated it already, so you will not be paged again for it.";
     case OnCallPassOnRefusal.PageOver:
       return "This page is over: the on-call policy has stopped paging.";
     case OnCallPassOnRefusal.InvalidLink:
-      return "This link cannot pass the page on: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
+      return "This link cannot escalate the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.";
     case OnCallPassOnRefusal.NotPaged:
     default:
       return "You are not being paged about this right now.";
@@ -482,10 +649,29 @@ export function getOnCallPassOnRefusalSentence(
 }
 
 /*
- * Whether passing on leaves - or left - nobody being paged: the last rule
- * with no repeat, or everybody else passed it on too. Every place says that
- * one as a warning, not in passing: nobody is on the record, and somebody
- * still needs to take it.
+ * The headings over what came of it, on the pages a message's links open -
+ * the Dashboard's dialog uses the same words (PassOnPage). A refusal's
+ * heading says why in a few words, never the button's own word: "Escalate"
+ * over a refusal would read as an instruction.
+ */
+export const ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE: string =
+  "Already acknowledged";
+export const ON_CALL_PAGE_ALREADY_ESCALATED_TITLE: string = "Already escalated";
+export const ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE: string =
+  "Nothing to escalate";
+
+// "Incident escalated", "Alert Episode escalated": the heading once it is done.
+export function getOnCallPageEscalatedTitle(recordName: string): string {
+  const name: string = recordName.trim();
+
+  return name ? `${name} escalated` : "Escalated";
+}
+
+/*
+ * Whether escalating leaves - or left - nobody being paged: the last level
+ * with no repeat, or everybody else escalated too. Every place says that one
+ * as a warning, not in passing: nobody is on the record, and somebody still
+ * needs to take it.
  */
 export function isOnCallPassOnPagingStopped(
   result: OnCallPassOnResult,
@@ -494,11 +680,20 @@ export function isOnCallPassOnPagingStopped(
 }
 
 /*
- * The one line every place says beside what happens: the person who passed
- * it on is not paged about it again by this run.
+ * The one line every place says beside what happens: the person who
+ * escalated is not paged about it again by this run. "You will not be paged
+ * again for this incident." - by what the page is about, as the place names
+ * it ("incident", "alert episode"), or "for it" without one.
  */
-export const ON_CALL_PAGE_NOT_PAGED_AGAIN: string =
-  "You won't be paged about it again.";
+export function getOnCallPageNotPagedAgainSentence(
+  recordNoun?: string | undefined,
+): string {
+  const noun: string = (recordNoun || "").trim().toLowerCase();
+
+  return noun
+    ? `You will not be paged again for this ${noun}.`
+    : "You will not be paged again for it.";
+}
 
 // Reads an answer's dates back after JSON: nextStepAt comes as a string.
 export function readOnCallPassOnResult(

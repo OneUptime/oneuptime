@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta vCenter i OneUptime
 
-Inget skickas förrän den första fullständiga genomgången av inventariet är klar, så ge det ett insamlingsintervall (2 minuter som standard). Öppna sedan **Produkter → Infrastruktur → VMware → Alla vCenter**: vCenter finns där, med sina datacenter, kluster, ESXi-värdar, virtuella maskiner, datalager och resurspooler.
+Inget skickas förrän den första fullständiga genomgången av inventariet är klar, så ge det ett insamlingsintervall (2 minuter som standard). Öppna sedan **Produkter → Infrastruktur → VMware → Alla vCenter**: vCenter finns där, med sina datacenter, kluster, ESXi-värdar, virtuella maskiner, datalager och resurspooler. Dess sida **Topologi** ritar alla på en karta och markerar det som kräver uppmärksamhet: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Miljövariabler
@@ -239,6 +239,17 @@ Sidan **Översikt** besvarar först "är det här vCenter friskt": de effektiva 
 ### ESXi-värdar
 
 ![Sidan med värdar som listar varje ESXi-värd med dess kluster, datacenter samt CPU- och minnesutnyttjande](/docs/static/images/VMwareHosts.png)
+
+Välj en värd för att öppna dess sida. Den svarar på det som sidan för en värd utanför VMware svarar på, med det som vCenter vet om en hypervisor:
+
+- **Översikt**: CPU, minne, den långsammaste diskens latens och nätverksgenomströmning under det tidsintervall du väljer, som rutor och diagram (dra över ett diagram för att zooma in); de incidenter och varningar som är öppna på värden; dess mest belastade virtuella maskiner, där de som väntar på en fysisk CPU är markerade; dess fysiska nätverkskort och lagringsenheter, där paketfel och långsamma diskar är markerade; vilka värdvarningar som är påslagna; och värdens detaljer.
+- **Virtuella maskiner**: värdens VM:ar och mallar, med status, resurspool, CPU ready, CPU och minne.
+- **Mätvärden**: värdens CPU-, minnes-, nätverks- och diskserier som diagram, per nätverkskort och lagringsenhet, där var och en kan öppnas i mätvärdesutforskaren.
+- **Loggar**: värdens egen syslog, så snart den skickar den (se [Skicka ESXi-syslog](#valfritt-skicka-esxi-syslog)). Fram till dess ger fliken de kommandon som pekar den här värden, eller hela dess kluster, mot agenten. En vCenter som en sond samlar in har ingen syslog, eftersom en sond inte tar emot den.
+
+När vCenter slutar rapportera en värd säger sidan det ovanför sina flikar, med när vCenter senast rapporterade den. Efter 15 minuter utan rapport lämnar värden inventariet: dess sida säger det då och visar fortfarande dess tidigare mätvärden.
+
+De fem värdvarningarna (CPU- och minnesmättnad, hög disklatens, nätverkspaketfel och kastade paket) bevakar var och en alla värdar i vCenter och utlöses för varje värd som går över dem. Kortet **Värdvarningar** på en värds sida visar vilka som är påslagna, och dess knapp öppnar vCenters **Recommendations** med de saknade redan valda: Skapa dem där, en gång, för alla värdar.
 
 ### Virtuella maskiner
 

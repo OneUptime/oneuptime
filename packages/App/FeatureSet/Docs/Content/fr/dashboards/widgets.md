@@ -54,7 +54,7 @@ Utilisez-le quand la forme de la courbe raconte l'histoire : latence, erreurs, d
 
 ### Valeur
 
-Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. **Warning Threshold** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
+Un grand nombre avec une sparkline : la valeur de la requête sur toute la plage temporelle, additionnée pour une somme ou un comptage, la plus haute pour un maximum, la plus basse pour un minimum, et la moyenne sinon. Une flèche compare la seconde moitié de la plage à la première, chaque moitié calculée de la même façon, colorée selon **Trend Direction** : si une valeur plus haute est meilleure ou pire, ou déduit du nom de la métrique. Pointez sur la flèche pour voir la valeur de chaque moitié, et sur la sparkline pour lire la valeur et l'heure de n'importe quel point. **Warning Threshold** colore le fond en jaune et **Seuil critique** en rouge dès que la valeur les atteint.
 
 Utilisez-la quand un nombre répond à la question : le taux d'erreur, la latence P95 ou les requêtes servies aujourd'hui.
 
@@ -178,7 +178,7 @@ Chacun de ces widgets liste les ressources qu'un agent ou un collecteur signale 
 | **Docker Swarm** | **Nœuds**, **Services** | L'agent Docker Swarm |
 | **Podman** | **Hôtes**, **Conteneurs**, **Images**, **Réseaux**, **Volumes** | L'agent Podman |
 | **Proxmox** | **Nœuds**, **Invités** | L'agent Proxmox |
-| **VMware** | **Hôtes**, **Virtual Machines** | L'agent VMware, ou un vCenter que vous connectez |
+| **VMware** | **Hôtes**, **Machines virtuelles** | L'agent VMware, ou un vCenter que vous connectez |
 | **Ceph** | **OSDs**, en mur coloré selon l'état, et **Pools** | L'agent Ceph |
 | **Baies de stockage** | **Volumes**, et **Hardware** en mur coloré selon le statut | L'agent Storage Array |
 

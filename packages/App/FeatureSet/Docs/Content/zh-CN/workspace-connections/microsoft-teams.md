@@ -4,6 +4,7 @@
 
 :::cards
 - [连接 Microsoft Teams](#连接-microsoft-teams): 管理员同意、您的登录，以及每个团队中的应用。
+- [请所有人连接账户](#请所有人连接账户): 一次性向每位尚未连接账户的成员发送消息。
 - [通知规则](#通知规则): 决定哪些事件发布到哪里，以及哪些事件拥有专属频道。
 - [与 OneUptime 机器人对话](#与-oneuptime-机器人对话): 在与机器人的聊天中使用命令、提问和表单。
 - [值班标记](#值班标记): 让团队的标记与值班人员保持一致，并呼叫它。
@@ -27,6 +28,8 @@ flowchart TB
 - **项目的连接** 只需建立一次：Microsoft 365 管理员为您的组织同意 OneUptime 应用。
 - **每个团队中的 OneUptime 应用**，即您希望接收通知的每个团队。Microsoft 只允许机器人在已添加它的团队中发布消息。
 - **每个人自己的连接**：此人的 Microsoft Teams 账户关联到其 OneUptime 账户。按钮、命令和回应都以此人的身份、按其在项目中的权限执行。
+
+一个 Microsoft 365 组织可以连接到多个项目，例如生产环境和测试环境。卡片上的按钮在卡片所涉及记录的项目中执行。发给机器人的消息在其发送所在频道（例如事件的频道）的项目中执行，否则在发送者的 Microsoft Teams 账户所连接的唯一项目中执行。如果无法据此判断，机器人会列出此人所在的项目，并请此人从目标项目的频道中重试。
 
 ## 开始之前
 
@@ -57,7 +60,7 @@ flowchart TB
 
 ### 连接其他所有人
 
-每个人都在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联自己的 Microsoft Teams 账户，以便以本人身份处理事件并接收私信。项目连接到 Microsoft Teams 后，该部分就会出现。
+每个人都在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联自己的 Microsoft Teams 账户，以便以本人身份处理事件并接收私信。项目连接到 Microsoft Teams 后，该部分就会出现。如需让整个团队一次性完成连接，请参阅 [请所有人连接账户](#请所有人连接账户)。
 
 ### 添加通知规则
 
@@ -66,6 +69,14 @@ flowchart TB
 
 > [!NOTE]
 > 为您自己安装 OneUptime，或将其添加到聊天中，是另一种安装，并不能让它向团队的频道发布消息。 **私密频道** 需要将应用添加到频道本身：打开频道 > "..." > **Manage channel** > **Apps** > **Add an app**。 **共享频道** 无法接收通知：Microsoft Teams 不支持在共享频道中使用机器人。
+
+## 请所有人连接账户
+
+任何人都无法替他人连接 Microsoft Teams 账户，管理员也不例外：每个人都要亲自登录自己的账户。要让整个团队完成连接，可由 **Project Owner** 或 **Project Admin** 在 **项目设置** > **工作区** > **Microsoft Teams** 中一次性请所有人连接。 **Members' Microsoft Teams accounts** 卡片会显示已有多少成员完成连接。 **Ask everyone to connect** 会让 OneUptime 机器人向每位尚未连接的成员发送一条消息，并附带一个 **Connect Microsoft Teams account** 按钮，只需点击一下即可连接其账户。
+
+- **谁会收到消息。** 项目中每位尚未连接 Microsoft Teams 账户、且所在团队已添加 OneUptime 应用的成员，在该团队中通过其电子邮件地址或用户主体名称（UPN）找到。过去 24 小时内已请求过的人不会被再次请求，因此第二天再请一次时，只会提醒仍未连接的人。
+- **卡片显示的内容。** 消息发送期间显示发送进度，之后显示是谁发起的请求，以及有多少成员收到了消息。OneUptime 找不到的成员会在卡片上列出姓名：请将应用添加到他们所在的团队，或让他们自行在 **用户设置** > **工作区** > **Microsoft Teams** 中连接。
+- **按钮连接的账户。** 按下按钮并登录的人的 Microsoft Teams 账户，会连接到此人自己的 OneUptime 账户。转发给他人的消息，不会为原本收到消息的成员连接任何账户。
 
 ## 通知规则
 
@@ -91,6 +102,8 @@ flowchart TB
 规则创建的频道以其记录命名：事件 INC-42 得到 `inc-42`，警报 ALT-7 得到 `alt-7`；在没有编号前缀的项目中，事件 42 得到 `incident-42`。 **频道名称前缀** 中的文字放在名称前面，因此 `prod-` 会得到 `prod-inc-42`，表单会在您输入时显示名称。对于计划维护事件，前缀会取代其编号前缀：SM-5 得到 `sm-5`，`maint-` 会得到 `maint-5`。OneUptime 只保留字母、数字、空格、`-` 和 `_`，最多为 Microsoft Teams 接受的 50 个字符。如果团队中已有同名频道（例如其他项目的频道或最近 30 天内删除的频道），OneUptime 会加上 `-2`、`-3` 等。
 
 规则的频道会在事件首次匹配该规则时创建：在事件创建时，或之后在事件仍未结束时，由某次更新使其匹配时。针对已确认事件的规则会在事件被确认时创建频道。Microsoft Teams 会向团队中的每个人显示团队的频道，因此 OneUptime 不会逐个把人加入频道：您选择的团队中的每个人都可以打开频道，正如规则表单在 **谁会加入频道** 下所说。私密事件、警报或片段会获得私密频道，只有其成员可见；请在 Microsoft Teams 中添加人员。
+
+若要让值班人员参与进来，请在 **提及值班人员** 下选择他们的值班计划。创建频道时，OneUptime 会紧接在记录的第一条消息之后，在频道中发布一条消息，在其中 @提及这些值班计划中正在值班的人，因此 Microsoft Teams 会通知他们。不会呼叫任何人。OneUptime 会根据每个人连接到 OneUptime 的 Microsoft Teams 账户在团队中找到此人，否则根据其电子邮件地址查找。不在该团队中的人无法打开团队的频道，因此消息中会改为列出其姓名并说明原因。私密频道只有其成员才能打开，因此请在 Microsoft Teams 中将值班人员添加到该频道。
 
 此后记录的每次更新（状态变化、备注、新所有者）都会发布到它的频道，并在规则的条件匹配期间发布到其规则指定的现有频道和聊天。OneUptime 无法归档 Microsoft Teams 频道，因此记录结束后，规则的频道会保留；请在 Microsoft Teams 中归档或删除它。
 
@@ -195,7 +208,7 @@ flowchart TB
 - **立即被呼叫的人。** 您 @提及的人，以及您 @提及的标记所关联值班计划中正在值班的人，前提是其后跟有消息（请参阅 [值班标记](#值班标记)）。OneUptime 通过此人的 Microsoft Teams 账户所连接的 OneUptime 账户识别此人，否则通过此人在 Microsoft Teams 中的电子邮件地址识别。项目之外的人不会被呼叫。
 - **其他情况会收到卡片。** 如果没有 @提及任何人（例如在与机器人的个人聊天中）、没有消息、提及了未关联您可见值班计划的标记，或有 OneUptime 无法识别的人，机器人会以 **Page someone** 卡片回复，其中已填入您输入的内容，并说明哪些人无法选中。选择人员、团队、值班计划（呼叫此刻在该计划中值班的人）或值班策略（按其升级规则呼叫），然后提交。对话中的任何人都可以以自己的身份提交该卡片。呼叫完成后，卡片会被移除，以免有人用它重复呼叫。
 - **显示位置。** 对话会以一张持续更新的卡片显示这次呼叫：呼叫了谁、如何呼叫，以及谁已确认。机器人无法发布它时，它的回复会告诉您呼叫了谁，并附上警报的链接。
-- **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同时拥有 **On-Call Member** 和 **Alert Member** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在回复中收到告知，并且不会呼叫任何人。
+- **谁可以呼叫。** 既能执行值班策略又能创建警报的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同时拥有 **On-Call Member** 和 **Alert Member** 的人（自定义角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不经值班策略直接呼叫人员、团队或值班计划，还需要访问项目中所有值班策略的权限。其他任何人都会在回复中收到告知，并且不会呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 套餐：低于该套餐时，OneUptime 会说明所需的套餐，并且不会呼叫任何人。
 
 ## 值班标记
 
@@ -242,7 +255,7 @@ flowchart TB
 OneUptime 卡片上的按钮以点击者的身份执行，无论是在个人聊天、频道还是群聊中：即以其 Microsoft Teams 账户所连接的 OneUptime 账户的身份，按该账户在项目中的权限执行。事件、警报或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及计划维护活动上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自会做出与 OneUptime 中相同操作一样的更改，并在那里记在此人名下：记录的状态时间线和动态会显示是谁更改了其状态，备注也归此人所有。通过回应从消息保存的备注也以同样方式发布。
 
 - **谁可以使用。** 能在 OneUptime 中做出同样更改的人。确认、解决事件或更改其状态需要更改其状态的权限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自定义角色中的 **Create Incident State Timeline**。警报、片段或计划维护活动需要其自身类型的同等权限（例如 **Create Alert State Timeline** ），备注需要发布该类备注的权限。与 OneUptime 中的状态面板一样，它们不要求编辑事件或警报本身的权限。其他任何人都会收到告知，并且不会有任何更改。
-- **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录或其他项目的记录上的按钮，都会得到该记录 "was not found in this project, or you do not have access to it." 的回复，并且不会有任何更改。在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
+- **哪些记录。** 与在 OneUptime 中一样，是此人可以读取的记录：如果角色仅限于某些标签，则为带有这些标签的事件、警报、片段和活动。任何其他记录上的按钮都会说明原因，并且不会有任何更改：对于此人的角色无法触及的事件，回复 "your access in this project does not include this incident. Ask a project admin for access to it."；对于此人不是负责人的私密事件，回复 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；对于此后已删除的事件，回复 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，项目套餐不包含的更改会被拒绝，并说明所需的套餐。
 - **Change State 提供什么。** 按项目的顺序，提供此人可以读取、记录接下来可以转入的状态：不会提供早于其当前状态的状态，片段与事件、警报或计划维护活动一样，因为状态更改永远不会让记录在其列表中回退（请参阅 [顺序是真正的约束，而不是显示偏好](/docs/incidents/states-and-severities#顺序是真正的约束而不是显示偏好) ）。如果此人一个都无法读取，机器人会说 "No incident states are available to you in this project. Ask a project admin for access to them."；如果记录处于它能达到的最后一个状态，则会说 "There is no later state to move this incident to."。这两种情况都不会显示空卡片。
 - **私密事件上的 Add Note。** 私密事件不能添加公开备注，因此它的卡片不会询问备注类型，而是添加一条私密备注。在它设为私密之前发送的卡片也会添加私密备注，并说明这一点。参见[私密事件只能添加私密备注](/docs/incidents/notes-owners-and-feed#私密事件只能添加私密备注)。
 - **Escalate.** 卡片上的 **Escalate** 会针对卡片所涉及的事件、警报或片段执行其值班策略，以点击者的身份，并使用与 **Execute On-Call Policy** 相同的权限。不涉及其中任何一种的卡片会得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回复，并且不会呼叫任何人。

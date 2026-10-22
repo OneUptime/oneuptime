@@ -36,6 +36,8 @@ import {
 } from "./OperationalOverlay";
 import { TrafficTotals } from "./ServiceMapViewModel";
 import { EntityDetailTarget } from "./TopologyData";
+import { ResourceTopologyLink } from "../ResourceTopology/ResourceTopologyLinks";
+import useResourceTopologyLink from "../ResourceTopology/UseResourceTopologyLink";
 import {
   AppendedConnectionsPage,
   EntityConnection,
@@ -390,6 +392,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     current && current.status === "ready" ? current.data : null;
   const fullEntity: EntityDetail | null = data ? data.entity : null;
   const isMissing: boolean = Boolean(data && !data.entity);
+  // A vCenter, cluster or host opens into its own topology.
+  const resourceTopologyLink: ResourceTopologyLink | null =
+    useResourceTopologyLink(fullEntity);
 
   useEffect(() => {
     const controllers: Map<TopologyConnectionSection, AbortController> =
@@ -1338,6 +1343,17 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
                   {t("Open")}
                 </h3>
                 <ul className="mt-2 space-y-2 text-sm">
+                  {resourceTopologyLink && (
+                    <li>
+                      <Link
+                        to={resourceTopologyLink.route}
+                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                        dataTestId="entity-detail-resource-topology-link"
+                      >
+                        {t(resourceTopologyLink.text)}
+                      </Link>
+                    </li>
+                  )}
                   {fullEntity.id && (
                     <li>
                       <Link

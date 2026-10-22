@@ -9,6 +9,7 @@ import {
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorTemplateAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import {
   DiscoveredHostFilter,
@@ -24,6 +25,7 @@ import {
   getImportedAddresses,
   getPickedTemplate,
   getReviewHosts,
+  keepPickedTemplate,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportReview";
 
 /*
@@ -72,6 +74,7 @@ const SUMMARY: MonitorTemplateAlertSummary = {
 const RECOMMENDED: DiscoveryImportTemplateChoice = {
   id: "",
   name: "Network device alert pack",
+  monitorType: MonitorType.NetworkDevice,
   summary: SUMMARY,
   isCreatedOnImport: true,
 };
@@ -79,6 +82,7 @@ const RECOMMENDED: DiscoveryImportTemplateChoice = {
 const POS_TEMPLATE: DiscoveryImportTemplateChoice = {
   id: "9b2f4d6e-1a3c-4e5f-8a7b-0c1d2e3f4a5b",
   name: "POS ping availability",
+  monitorType: MonitorType.NetworkDevice,
   summary: SUMMARY,
 };
 
@@ -274,5 +278,113 @@ describe("the template the settings pick", () => {
         templates: [POS_TEMPLATE],
       }),
     ).toBeNull();
+  });
+});
+
+/*
+ * The templates are read when the step opens, and again each time the
+ * reader comes back to the dialog's window (issue #5145: "Manage templates"
+ * opens the templates in a new tab). What stays picked:
+ */
+describe("the pick, once the templates are read again", () => {
+  const KDS: DiscoveryImportTemplateChoice = {
+    id: "1c3e5a7b-2d4f-4a6b-8c9d-0e1f2a3b4c5d",
+    name: "WB KDS Ping Monitor Template",
+    monitorType: MonitorType.Ping,
+    summary: SUMMARY,
+  };
+  const SAVED_RECOMMENDED: DiscoveryImportTemplateChoice = {
+    id: "2d4f6a8b-3e5a-4b7c-9d0e-1f2a3b4c5d6e",
+    name: "Network device alert pack",
+    monitorType: MonitorType.NetworkDevice,
+    summary: SUMMARY,
+  };
+  const MONITORS: typeof DEFAULT_DISCOVERY_IMPORT_SETTINGS = {
+    ...DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+    alerting: DiscoveryImportAlerting.MonitorTemplate,
+  };
+
+  test("the template picked stays picked while it is listed - the very settings, unchanged", () => {
+    const settings: typeof DEFAULT_DISCOVERY_IMPORT_SETTINGS = {
+      ...MONITORS,
+      monitorTemplateId: KDS.id,
+    };
+
+    expect(
+      keepPickedTemplate({
+        settings: settings,
+        templates: [RECOMMENDED, POS_TEMPLATE, KDS],
+      }),
+    ).toBe(settings);
+  });
+
+  test("nothing picked yet: the first template, the recommended one, is", () => {
+    expect(
+      keepPickedTemplate({
+        settings: DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+        templates: [RECOMMENDED, KDS],
+      }),
+    ).toEqual({
+      ...DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+      monitorTemplateId: RECOMMENDED_TEMPLATE_CHOICE_VALUE,
+    });
+  });
+
+  test("a template deleted meanwhile gives way to the first", () => {
+    expect(
+      keepPickedTemplate({
+        settings: { ...MONITORS, monitorTemplateId: KDS.id },
+        templates: [RECOMMENDED, POS_TEMPLATE],
+      }),
+    ).toEqual({
+      ...MONITORS,
+      monitorTemplateId: RECOMMENDED_TEMPLATE_CHOICE_VALUE,
+    });
+  });
+
+  test("the recommended one, made meanwhile, is picked as itself", () => {
+    expect(
+      keepPickedTemplate({
+        settings: {
+          ...MONITORS,
+          monitorTemplateId: RECOMMENDED_TEMPLATE_CHOICE_VALUE,
+        },
+        templates: [SAVED_RECOMMENDED, KDS],
+      }),
+    ).toEqual({ ...MONITORS, monitorTemplateId: SAVED_RECOMMENDED.id });
+  });
+
+  test("with no template left, nothing is picked and the import makes no monitors", () => {
+    expect(
+      keepPickedTemplate({
+        settings: { ...MONITORS, monitorTemplateId: KDS.id },
+        templates: [],
+      }),
+    ).toEqual({
+      ...MONITORS,
+      alerting: DiscoveryImportAlerting.None,
+      monitorTemplateId: undefined,
+    });
+
+    // Settings that already ask for nothing are handed back as they are.
+    expect(
+      keepPickedTemplate({
+        settings: DEFAULT_DISCOVERY_IMPORT_SETTINGS,
+        templates: [],
+      }),
+    ).toBe(DEFAULT_DISCOVERY_IMPORT_SETTINGS);
+  });
+
+  test("the interval and vendor template switch are never touched", () => {
+    const settings: typeof DEFAULT_DISCOVERY_IMPORT_SETTINGS = {
+      ...MONITORS,
+      pollingIntervalInMinutes: 1,
+      applyVendorTemplates: false,
+      monitorTemplateId: "0e0e0e0e-0e0e-4e0e-8e0e-0e0e0e0e0e0e",
+    };
+
+    expect(
+      keepPickedTemplate({ settings: settings, templates: [KDS] }),
+    ).toEqual({ ...settings, monitorTemplateId: KDS.id });
   });
 });

@@ -118,6 +118,56 @@ describe("buildSecurityEventOverviewFields", () => {
     expect(valueOf(fields, "MITRE Techniques")).toBeUndefined();
   });
 
+  test("a process launch shows the process that started, then the one that started it", () => {
+    const fields: Array<SecurityEventDetailField> =
+      buildSecurityEventOverviewFields(
+        event({
+          className: "Process Activity",
+          principalHost: "laptop-7",
+          principalProcess: "winword.exe",
+          processName: "powershell.exe",
+          processPath:
+            "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          processCommandLine: "powershell.exe -nop -enc JABzAD0A",
+          parentProcessName: "winword.exe",
+          parentProcessPath:
+            "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+          parentProcessCommandLine: '"WINWORD.EXE" /n "C:\\Users\\a\\x.docm"',
+        }),
+      );
+
+    expect(labels(fields)).toEqual([
+      "Event Class",
+      "Principal Host",
+      "Principal Process",
+      "Process",
+      "Process Path",
+      "Command Line",
+      "Parent Process",
+      "Parent Process Path",
+      "Parent Command Line",
+    ]);
+    expect(valueOf(fields, "Command Line")).toBe(
+      "powershell.exe -nop -enc JABzAD0A",
+    );
+    expect(valueOf(fields, "Parent Process")).toBe("winword.exe");
+    // The names filter the list; a click lands on the facet of the same name.
+    expect(
+      fields
+        .filter((field: SecurityEventDetailField): boolean => {
+          return Boolean(field.facetKey);
+        })
+        .map((field: SecurityEventDetailField): string => {
+          return field.facetKey!;
+        }),
+    ).toEqual([
+      "className",
+      "principalHost",
+      "processName",
+      "parentProcessName",
+    ]);
+  });
+
   test("every field offering a filter names a facet the sidebar also offers", () => {
     const fields: Array<SecurityEventDetailField> =
       buildSecurityEventOverviewFields(
@@ -132,6 +182,8 @@ describe("buildSecurityEventOverviewFields", () => {
           principalUser: "alice",
           principalHost: "web-01",
           principalIp: "10.0.0.4",
+          processName: "powershell.exe",
+          parentProcessName: "winword.exe",
           targetUser: "root",
           targetHost: "db-01",
           targetIp: "10.0.0.9",
@@ -190,6 +242,10 @@ describe("buildSecurityEventOverviewFields", () => {
           eventUid: "abc123",
           ruleId: "rule-7",
           principalProcess: "/usr/bin/sshd -D",
+          processPath: "C:\\Windows\\System32\\cmd.exe",
+          processCommandLine: "cmd.exe /c whoami",
+          parentProcessPath: "C:\\Windows\\explorer.exe",
+          parentProcessCommandLine: "C:\\Windows\\Explorer.EXE",
           targetResource: "/etc/shadow",
         }),
       );
@@ -199,6 +255,10 @@ describe("buildSecurityEventOverviewFields", () => {
       "Event UID",
       "Rule ID",
       "Principal Process",
+      "Process Path",
+      "Command Line",
+      "Parent Process Path",
+      "Parent Command Line",
       "Target Resource",
     ]) {
       expect(
@@ -232,6 +292,8 @@ describe("buildSecurityEventJson", () => {
     expect(json["severityName"]).toBe(OcsfSeverity.Critical);
     expect(json["vendorName"]).toBe("");
     expect(json["targetHost"]).toBe("");
+    expect(json["processCommandLine"]).toBe("");
+    expect(json["parentProcessName"]).toBe("");
     expect(json["mitreTechniques"]).toEqual([]);
   });
 

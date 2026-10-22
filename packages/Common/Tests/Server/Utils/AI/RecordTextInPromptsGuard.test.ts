@@ -170,6 +170,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The run's own analysis, written by the model: no record text.",
   "packages/Common/Server/Utils/AI/SRE/InvestigationTldr.ts":
     "The run's own analysis, written by the model: no record text.",
+  "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts":
+    "A pull request's production review: the review's aggregate facts and the names of code, each a boundedLine, and the diff of its files of code held to MAX_DIFF_CHARACTERS, all one JSON value of data under a system message that holds every instruction.",
   "packages/Common/Server/Utils/AI/SRE/PostmortemTemplatePick.ts":
     "Which postmortem template fits an incident: its title, description and root cause, and each template's description and outline, every one a field held to a length.",
   "packages/Common/Server/Utils/AI/SRE/InvestigationGrader.ts":
@@ -178,6 +180,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
   "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
     "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
+  "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":
+    "A detection rule from a person's description: the description as a field of DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH, the Rule Library's own examples, and the model's own YAML back with the parser's error.",
 };
 
 // The one caller that may keep embedded data (rule C).

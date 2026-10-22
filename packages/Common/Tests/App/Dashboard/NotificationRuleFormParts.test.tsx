@@ -487,10 +487,19 @@ describe("who joins the channel a rule creates", () => {
         "The commander is usually assigned when someone first acknowledges the incident or changes its state.",
       ),
     ).toBeVisible();
-    // Anybody else the rule names, people or teams, in one picker.
+    // Anybody else the rule names - people, teams or on-call schedules - in one picker.
     expect(
-      screen.getByRole("button", { name: /Add people or teams/ }),
+      screen.getByRole("button", { name: /Add people, teams or schedules/ }),
     ).toBeVisible();
+    expect(
+      screen.getByText(
+        "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.",
+      ),
+    ).toBeVisible();
+    // Slack adds the people on call: there is nothing to mention.
+    expect(
+      screen.queryByRole("button", { name: /^Add schedules/ }),
+    ).not.toBeInTheDocument();
   });
 
   test("an alert has no incident roles; a monitor's channel gets its owners", async () => {
@@ -659,8 +668,26 @@ describe("who joins the channel a rule creates", () => {
       screen.queryByRole("switch", { name: /^Archive the channel/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Add people or teams/ }),
+      screen.queryByRole("button", { name: /Add people, teams or schedules/ }),
     ).not.toBeInTheDocument();
+    /*
+     * Teams adds nobody to a channel: whoever is on call in the schedules
+     * picked here is @mentioned in it instead.
+     */
+    expect(
+      screen.getByRole("button", { name: /^Add schedules/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(
+        "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
+      ),
+    ).toBeVisible();
+    expect(
+      isBefore(
+        screen.getByTestId("who-joins-teams-note"),
+        screen.getByRole("button", { name: /^Add schedules/ }),
+      ),
+    ).toBe(true);
     // The channel's name as Teams shows it: no #.
     expect(summary()).toEqual([
       "Creates a channel like oneuptime-incident-inc-42 for each incident.",
@@ -708,7 +735,7 @@ describe("the Destination step, as a reader meets it", () => {
     // Nothing of the channel's name after who joins.
     expect(
       isBefore(
-        screen.getByRole("button", { name: /Add people or teams/ }),
+        screen.getByRole("button", { name: /Add people, teams or schedules/ }),
         moreFields,
       ),
     ).toBe(false);
@@ -787,5 +814,97 @@ describe("the Destination step, as a reader meets it", () => {
     expect(summary()).toEqual([
       "Posts updates in the chats On-call leads and Alice Smith.",
     ]);
+  });
+});
+
+/*
+ * A security case gets no channel of its own (SecurityCaseNotificationRule):
+ * its Destination half asks only where the rule posts - even for a rule
+ * saved through the API that holds a channel's switches, which the server
+ * never acts on for a case.
+ */
+describe("a security case rule's Destination half", () => {
+  const SAVED_SECURITY_CASE_RULE: IncidentNotificationRule = {
+    ...SAVED_RULE,
+    filters: [],
+    shouldCreateNewChannel: true,
+    shouldInviteOwnersToNewChannel: true,
+    archiveChannelAutomatically: true,
+    shouldPostToExistingChannel: true,
+    existingChannelNames: "#security",
+  } as IncidentNotificationRule;
+
+  test("Slack: existing channels only, and no channel of its own", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      value: SAVED_SECURITY_CASE_RULE,
+    });
+
+    expect(
+      await screen.findByRole("switch", { name: /^Post to existing channels/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(
+      screen.queryByRole("switch", { name: /^Create a channel for each/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Who joins the channel" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(
+      screen.queryByRole("button", { name: "More fields" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("channel-name-prefix")).not.toBeInTheDocument();
+    expect(summary()).toEqual(["Posts updates in #security."]);
+  });
+
+  test("Microsoft Teams: existing channels and chats, nothing else", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      microsoftTeamsChats: [LEADS_CHAT],
+      value: {
+        ...SAVED_SECURITY_CASE_RULE,
+        existingTeam: OPS_TEAM.id,
+        existingChannelNames: "Security",
+        shouldPostToExistingChat: true,
+        existingChatIds: [LEADS_CHAT.id],
+      } as IncidentNotificationRule,
+    });
+
+    await screen.findByRole("switch", { name: /^Post to existing channels/ });
+
+    // Existing channels, and chats: the two switches there are.
+    expect(screen.getAllByRole("switch")).toHaveLength(2);
+    expect(
+      screen.getByRole("switch", { name: /^Post to chats/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.queryByRole("switch", { name: /^Create a channel for each/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("who-joins-teams-note"),
+    ).not.toBeInTheDocument();
+    expect(summary()).toEqual([
+      "Posts updates in Security.",
+      "Posts updates in the chat On-call leads.",
+    ]);
+  });
+
+  test("posting nowhere, it says what there is to pick, without a channel of its own", async () => {
+    await renderPart({
+      part: NotificationRuleFormPart.Destination,
+      eventType: NotificationRuleEventType.SecurityCase,
+      value: {
+        ...SAVED_SECURITY_CASE_RULE,
+        shouldPostToExistingChannel: false,
+      } as IncidentNotificationRule,
+    });
+
+    expect(
+      await screen.findByTestId("notification-rule-summary"),
+    ).toHaveTextContent("Name the channels this rule posts in.");
   });
 });

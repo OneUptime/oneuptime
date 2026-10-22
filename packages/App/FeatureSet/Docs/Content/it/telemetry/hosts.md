@@ -75,7 +75,7 @@ Ogni istanza di OneUptime serve i propri programmi di installazione, quindi un'i
 
 ### Attendi l'host
 
-L'ultimo passaggio della finestra di dialogo indica quando l'host si connette, con un link all'host. Nell'elenco appare come **In avvio** finché non arrivano le sue prime metriche, di solito entro un minuto, poi come connesso, con il collector **In esecuzione**.
+L'ultimo passaggio della finestra di dialogo indica quando l'host si connette, con un link all'host. Nell'elenco appare come **In avvio** finché non arrivano le sue prime metriche, di solito entro un minuto, poi come connesso, con il collector **In esecuzione**. La pagina **Topologia** dell'host disegna su un'unica mappa ciò che gira su di esso, ciò che lo chiama e ciò che chiama: vedi [Topologia](/docs/telemetry/topology#aprire-la-mappa-di-una-risorsa).
 :::
 
 ## Etichettare gli host

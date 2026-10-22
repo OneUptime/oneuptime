@@ -1,4 +1,8 @@
-import RecommendationFilterUtil from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationFilterUtil";
+import RecommendationFilterUtil, {
+  MAX_SELECTION_QUERY_IDS,
+  MAX_SELECTION_QUERY_ID_LENGTH,
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationFilterUtil";
 import {
   RecommendationCategoryGroup,
   RecommendationCounts,
@@ -1793,5 +1797,131 @@ describe("RecommendationFilterUtil", () => {
       expect(selected.size).toBe(0);
       expect(original.size).toBe(1);
     });
+  });
+});
+
+/*
+ * `?select=` on the Recommendations page: the ids a link asks to have
+ * ticked as the page opens (an ESXi host's "Turn on N alerts"). Whatever a
+ * link carries, the page only ever counts and creates the ones that are on
+ * its list and still available (getSelectableViewModels, above), so the
+ * parser's job is to read what a well-made link says and to stay bounded on
+ * anything else.
+ */
+describe("the ?select= selection query", () => {
+  const VMWARE_HOST_ALERT_IDS: Array<string> =
+    MonitorRecommendationCatalog.getRecommendations(
+      MonitorRecommendationResourceType.VMware,
+    )
+      .filter((recommendation: MonitorRecommendation) => {
+        return recommendation.category === "Host";
+      })
+      .map((recommendation: MonitorRecommendation) => {
+        return recommendation.recommendationId;
+      });
+
+  it("is the select parameter", () => {
+    expect(RECOMMENDATION_SELECTION_QUERY_PARAM).toBe("select");
+  });
+
+  it("round-trips real catalog ids, colons included", () => {
+    expect(VMWARE_HOST_ALERT_IDS.length).toBeGreaterThan(0);
+
+    const query: string = RecommendationFilterUtil.toSelectionQuery(
+      VMWARE_HOST_ALERT_IDS,
+    );
+
+    // The colon in "VMware:vmware-host-..." is encoded; the commas are not.
+    expect(query).not.toContain(":");
+    expect(query.split(",")).toHaveLength(VMWARE_HOST_ALERT_IDS.length);
+
+    // What the browser hands back for the parameter: decoded.
+    const decoded: string | null = new URLSearchParams(`select=${query}`).get(
+      "select",
+    );
+
+    expect(
+      Array.from(RecommendationFilterUtil.parseSelectionQuery(decoded)),
+    ).toEqual(VMWARE_HOST_ALERT_IDS);
+  });
+
+  it("reads nothing from no value", () => {
+    expect(RecommendationFilterUtil.parseSelectionQuery(null).size).toBe(0);
+    expect(RecommendationFilterUtil.parseSelectionQuery(undefined).size).toBe(
+      0,
+    );
+    expect(RecommendationFilterUtil.parseSelectionQuery("").size).toBe(0);
+  });
+
+  it("drops blanks and repeats, and trims each id", () => {
+    expect(
+      Array.from(
+        RecommendationFilterUtil.parseSelectionQuery(
+          " VMware:a , ,VMware:b,VMware:a,, ",
+        ),
+      ),
+    ).toEqual(["VMware:a", "VMware:b"]);
+  });
+
+  it("drops an id longer than any catalog id could be", () => {
+    const tooLong: string = "x".repeat(MAX_SELECTION_QUERY_ID_LENGTH + 1);
+    const longest: string = "y".repeat(MAX_SELECTION_QUERY_ID_LENGTH);
+
+    expect(
+      Array.from(
+        RecommendationFilterUtil.parseSelectionQuery(`${tooLong},${longest}`),
+      ),
+    ).toEqual([longest]);
+  });
+
+  it("stops at its limit however long the value", () => {
+    const ids: Array<string> = Array.from(
+      { length: MAX_SELECTION_QUERY_IDS * 50 },
+      (_: unknown, index: number): string => {
+        return `Kubernetes:id-${index}`;
+      },
+    );
+    const parsed: Set<string> = RecommendationFilterUtil.parseSelectionQuery(
+      ids.join(","),
+    );
+
+    expect(parsed.size).toBe(MAX_SELECTION_QUERY_IDS);
+    expect(parsed.has("Kubernetes:id-0")).toBe(true);
+    expect(parsed.has(`Kubernetes:id-${MAX_SELECTION_QUERY_IDS}`)).toBe(false);
+  });
+
+  it("writes nothing for no ids, and leaves out blank ones", () => {
+    expect(RecommendationFilterUtil.toSelectionQuery([])).toBe("");
+    expect(RecommendationFilterUtil.toSelectionQuery([" ", "a b"])).toBe(
+      "a%20b",
+    );
+  });
+
+  it("a ticked id that is created by now is never counted for creation", () => {
+    const recommendation: MonitorRecommendation =
+      KUBERNETES_RECOMMENDATIONS[0]!;
+
+    const selected: Set<string> = RecommendationFilterUtil.parseSelectionQuery(
+      recommendation.recommendationId,
+    );
+
+    expect(
+      RecommendationFilterUtil.getSelectableViewModels({
+        viewModels: [
+          buildViewModel(recommendation, RecommendationStatus.Created),
+        ],
+        selectedRecommendationIds: selected,
+      }),
+    ).toEqual([]);
+    expect(
+      idsOf(
+        RecommendationFilterUtil.getSelectableViewModels({
+          viewModels: [
+            buildViewModel(recommendation, RecommendationStatus.Available),
+          ],
+          selectedRecommendationIds: selected,
+        }),
+      ),
+    ).toEqual([recommendation.recommendationId]);
   });
 });

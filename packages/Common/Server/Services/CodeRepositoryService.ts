@@ -16,12 +16,17 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  CodeRepositoryAllowance,
+  keepAllowedCodeRepositories,
+} from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import Runner from "../../Models/DatabaseModels/Runner";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import GlobalRunnerChoice from "../Utils/Runner/GlobalRunnerChoice";
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -35,6 +40,32 @@ export interface ImportReposFromInstallationResult {
   // Rows already in the project, moved onto this installation.
   reconnected: number;
   skipped: number;
+}
+
+/*
+ * What a repository the GitHub App imports starts with, beyond what GitHub
+ * says about it (its name, its default branch). Nothing else is set: AI may
+ * open fix pull requests without a limit (maxOpenFixPullRequests empty), the
+ * trigger label is "oneuptime" (gitHubTriggerLabel empty), and no build or
+ * test command is set - the code agent reads how to build and test from the
+ * repository itself (its AGENTS.md).
+ */
+export interface NewRepositoryDefaults {
+  // "Respond to GitHub Commands": on.
+  isGitHubCommandsEnabled: boolean;
+  /*
+   * "Review pull requests against production": on. A repository connected
+   * from now on has its pull requests reviewed against production unless
+   * someone turns it off; those connected before keep it off.
+   */
+  isProductionReviewEnabled: boolean;
+  /*
+   * The project's default Runner (Runner.isProjectDefault), when it has
+   * one: a Runner of the project's own, which builds and tests a change
+   * before its pull request opens. None otherwise: a global Runner takes
+   * the repository's work.
+   */
+  runnerId: ObjectID | null;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -196,7 +227,14 @@ export class Service extends ProjectReferencesService<Model> {
    * project. A repository the project already has (matched on
    * organizationName + repositoryName) is not imported again; its row is
    * moved onto this installation when it is on no installation or another
-   * one. Never deletes anything.
+   * one, and keeps its settings. Never deletes anything.
+   *
+   * Connecting asks nothing, so a new repository starts with what most
+   * teams want (getNewRepositoryDefaults): its main branch is GitHub's
+   * default branch, GitHub commands are on, its pull requests are reviewed
+   * against production, AI may open fix pull requests without a limit, and
+   * AI works on the project's default Runner when the project has one -
+   * otherwise it picks none, and a global Runner takes its work.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
@@ -253,6 +291,9 @@ export class Service extends ProjectReferencesService<Model> {
     let imported: number = 0;
     let reconnected: number = 0;
     let skipped: number = 0;
+
+    // Read once, and only when there is something to import.
+    let newRepositoryDefaults: NewRepositoryDefaults | null = null;
 
     for (const repository of installationRepositories) {
       const repositoryKey: string = `${repository.ownerLogin.toLowerCase()}/${repository.name.toLowerCase()}`;
@@ -322,6 +363,12 @@ export class Service extends ProjectReferencesService<Model> {
         suffix++;
       }
 
+      if (!newRepositoryDefaults) {
+        newRepositoryDefaults = await Service.getNewRepositoryDefaults(
+          data.projectId,
+        );
+      }
+
       const codeRepository: Model = new Model();
       codeRepository.projectId = data.projectId;
       codeRepository.name = displayName;
@@ -330,6 +377,14 @@ export class Service extends ProjectReferencesService<Model> {
       codeRepository.repositoryName = repository.name;
       codeRepository.mainBranchName = repository.defaultBranch || "main";
       codeRepository.gitHubAppInstallationId = data.installationId;
+      codeRepository.isGitHubCommandsEnabled =
+        newRepositoryDefaults.isGitHubCommandsEnabled;
+      codeRepository.isProductionReviewEnabled =
+        newRepositoryDefaults.isProductionReviewEnabled;
+
+      if (newRepositoryDefaults.runnerId) {
+        codeRepository.runnerId = newRepositoryDefaults.runnerId;
+      }
 
       if (repository.htmlUrl) {
         codeRepository.repositoryUrl = URL.fromString(repository.htmlUrl);
@@ -364,6 +419,40 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * What a repository the GitHub App imports into the project starts with
+   * (NewRepositoryDefaults). The project's default Runner is read through
+   * GlobalRunnerChoice, the one reader of it, so a repository starts on the
+   * same Runner a runbook step that picks none runs on. A default Runner
+   * that cannot be read leaves the repository on a global Runner: the
+   * import never fails for it.
+   */
+  public static async getNewRepositoryDefaults(
+    projectId: ObjectID,
+  ): Promise<NewRepositoryDefaults> {
+    let runnerId: ObjectID | null = null;
+
+    try {
+      const defaultRunnerId: string =
+        await GlobalRunnerChoice.findProjectDefaultRunnerId(projectId);
+
+      if (defaultRunnerId && ObjectID.isValidUUID(defaultRunnerId)) {
+        runnerId = new ObjectID(defaultRunnerId);
+      }
+    } catch (error) {
+      logger.error(
+        `Could not read project ${projectId.toString()}'s default Runner for its new repositories; they start on a global Runner:`,
+      );
+      logger.error(error);
+    }
+
+    return {
+      isGitHubCommandsEnabled: true,
+      isProductionReviewEnabled: true,
+      runnerId,
+    };
+  }
+
+  /*
    * Resolve which of the project's repositories an exception's code lives
    * in, AT RUNTIME — stack-trace path matching over cached git trees, with
    * exact-name-match and only-repository fallbacks. This replaces the old
@@ -374,9 +463,21 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     stackTrace: string | null;
     serviceName: string | null;
+    /*
+     * The repositories the work may be done in (CodeRepositoryAllowance):
+     * the others are never candidates. Left out, every resolvable one is.
+     */
+    allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<RepoResolution | null> {
-    const resolvable: Array<ResolvableRepository> =
-      await this.getResolvableRepositories(data.projectId);
+    const resolvable: Array<ResolvableRepository> = keepAllowedCodeRepositories(
+      {
+        allowance: data.allowance,
+        repositories: await this.getResolvableRepositories(data.projectId),
+        getId: (repository: ResolvableRepository): string => {
+          return repository.id;
+        },
+      },
+    );
 
     if (resolvable.length === 0) {
       return null;

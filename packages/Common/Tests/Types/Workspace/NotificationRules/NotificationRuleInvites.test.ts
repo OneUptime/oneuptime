@@ -1,3 +1,4 @@
+import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites, {
   NOTIFICATION_RULE_INVITEE_SWITCH,
@@ -57,6 +58,8 @@ describe("NotificationRuleInvites.getInvitees", () => {
       NotificationRuleEventType.OnCallDutyPolicy,
       [NotificationRuleInvitee.Owners],
     ],
+    // No owners, and no channel of its own: a case's rules post to channels that exist.
+    [NotificationRuleEventType.SecurityCase, []],
   ] as Array<[NotificationRuleEventType, Array<NotificationRuleInvitee>]>)(
     "a %s rule can add %j, in the form's order",
     (
@@ -67,8 +70,12 @@ describe("NotificationRuleInvites.getInvitees", () => {
     },
   );
 
-  test("every kind of record is answered, and only records an on-call policy pages for have on-call responders", () => {
-    for (const eventType of ALL_EVENT_TYPES) {
+  test("every kind of record with owners is answered, and only records an on-call policy pages for have on-call responders", () => {
+    for (const eventType of ALL_EVENT_TYPES.filter(
+      (kind: NotificationRuleEventType): boolean => {
+        return kind !== NotificationRuleEventType.SecurityCase;
+      },
+    )) {
       const invitees: Array<NotificationRuleInvitee> =
         NotificationRuleInvites.getInvitees(eventType);
 
@@ -368,5 +375,65 @@ describe("NotificationRuleInvites.withSwitchesAsTheyAct", () => {
         eventType: NotificationRuleEventType.Alert,
       }),
     ).toBe(alertRule);
+  });
+});
+
+/*
+ * The on-call schedules a rule names, whose on-call person joins its
+ * channel: read from the rule as it is stored, whatever wrote it.
+ */
+describe("NotificationRuleInvites.getOnCallScheduleIds", () => {
+  const FIRST: string = "0d6c4b5e-6a3f-4c1e-9b7a-2f1e8d9c0a11";
+  const SECOND: string = "7e2f1a9b-3c4d-4e5f-8a6b-1c2d3e4f5a62";
+
+  function idsOf(value: unknown): Array<string> {
+    return NotificationRuleInvites.getOnCallScheduleIds({
+      inviteOnCallSchedulesToNewChannel: value,
+    }).map((id: ObjectID): string => {
+      return id.toString();
+    });
+  }
+
+  test("the ids the Dashboard saves, in the rule's order", () => {
+    expect(idsOf([SECOND, FIRST])).toEqual([SECOND, FIRST]);
+  });
+
+  test("ObjectIDs, and ObjectIDs written as JSON or as rows, are read too", () => {
+    expect(
+      idsOf([
+        new ObjectID(FIRST),
+        { _type: "ObjectID", value: SECOND },
+        { _id: FIRST },
+      ]),
+    ).toEqual([FIRST, SECOND]);
+  });
+
+  test("each schedule once, whatever the case of its id", () => {
+    expect(idsOf([FIRST, FIRST.toUpperCase(), ` ${FIRST} `])).toEqual([FIRST]);
+  });
+
+  test("what is not a schedule id is left out, so it cannot stop a channel being set up", () => {
+    expect(
+      idsOf([
+        "",
+        "not-an-id",
+        '\'; DROP TABLE "OnCallDutyPolicySchedule"; --',
+        42,
+        null,
+        undefined,
+        {},
+        { value: 7 },
+        SECOND,
+      ]),
+    ).toEqual([SECOND]);
+  });
+
+  test("a rule without schedules - saved before they could be named, or with something else there - names none", () => {
+    expect(idsOf(undefined)).toEqual([]);
+    expect(idsOf(null)).toEqual([]);
+    expect(idsOf(FIRST)).toEqual([]);
+    expect(idsOf({ 0: FIRST })).toEqual([]);
+    expect(NotificationRuleInvites.getOnCallScheduleIds(undefined)).toEqual([]);
+    expect(NotificationRuleInvites.getOnCallScheduleIds(null)).toEqual([]);
   });
 });

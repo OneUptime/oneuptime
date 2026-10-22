@@ -550,6 +550,22 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentFormPostgres.test.ts --forceExit
 
+      # Issue #5158: a create may leave out every required column the API
+      # reference gives a default, and the row holds that default. Reads the
+      # migrated defaults of every model, and clones the 19 tables of the
+      # columns the issue was one of into an isolated schema, so it must run
+      # after the registered migrations.
+      - name: Test required columns with a default on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_REQUIRED_COLUMN_DEFAULTS_TESTS: "true"
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          REQUIRED_COLUMN_DEFAULTS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/RequiredColumnDefaultsPostgres.test.ts --forceExit
+
       # Clones the migrated UserProjectSsoConsent table (and its unique index)
       # into an isolated schema: two racing confirmations must leave one row.
       - name: Test project SSO consent records on migrated Postgres
@@ -918,6 +934,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/FoldAiSwitchesIntoEnableAiPostgres.test.ts --forceExit
+
+      # The fix and telemetry pull request switches moved from the project
+      # into its auto remediation rules. Clones the migrated Project,
+      # AutoRemediationRule, AIInvestigationRule and CodeRepository tables
+      # into an isolated schema, puts the four project switches back as they
+      # were, seeds projects with fixing on and off, rules enabled, disabled
+      # and deleted, and runs up() and down(): every project keeps its
+      # choice, and gets a rule that holds it only when it has no enabled
+      # rule of that kind.
+      - name: Test moving the fix pull request switches into the rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_FIX_PULL_REQUEST_SWITCH_TESTS: "true"
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MoveFixPullRequestSwitchesIntoRulesPostgres.test.ts --forceExit
 
       # Clones the migrated TeamMember, Team and User tables into an isolated
       # schema and runs the real create and accept pipelines: a member of a
@@ -1935,6 +1970,60 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # Archiving the values records pick from, on migrated Postgres: the two
+      # migrations on tables that already hold values (every value comes out
+      # live, the keys to who archived one are added online and cleared when
+      # the user goes, both undo), the reads the write check and the archive
+      # guard make, an archive stamped through the real update path, and the
+      # usage counts of the Archive and Delete dialogs run by Postgres for
+      # every reference the models declare.
+      - name: Test archiving states, severities, statuses, labels and roles on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_ARCHIVABLE_VALUES_TESTS: "true"
+          ARCHIVABLE_VALUES_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ARCHIVABLE_VALUES_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ARCHIVABLE_VALUES_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
+
+      # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
+      # the two migrations on a copy of the incidents table that already
+      # holds incidents (the column added without a rewrite, the indexes and
+      # key built online and safe to build again, a status incidents are in
+      # can't be deleted), the backfill that gives every incident from before
+      # the status its postmortem is in, and the list's reads through the
+      # incident service.
+      - name: Test postmortem statuses and their backfill on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_POSTMORTEM_STATUS_TESTS: "true"
+          POSTMORTEM_STATUS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          POSTMORTEM_STATUS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          POSTMORTEM_STATUS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentPostmortemStatusPostgres.test.ts --forceExit
+
+      # The LLM provider an AI rule picks, on migrated Postgres: the two
+      # migrations on copies of the rule tables that already hold rules (the
+      # columns added without a backfill, each rule's index and key built
+      # online and safe to build again), and a provider deleted while rules
+      # point at it - every rule that picked it picks none, while a run keeps
+      # the pick it was queued with.
+      - name: Test the AI rules' LLM provider on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_LLM_PROVIDER_TESTS: "true"
+          RULE_LLM_PROVIDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_LLM_PROVIDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_LLM_PROVIDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
+          --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification

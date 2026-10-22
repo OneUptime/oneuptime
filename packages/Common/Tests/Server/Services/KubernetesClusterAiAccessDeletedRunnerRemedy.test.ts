@@ -9,7 +9,6 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -91,8 +90,8 @@ interface FakeDatabase {
   // The cluster's Kubernetes AI agent row, once the chart installs it.
   aiAgent: KubernetesAiAgent | null;
   runners: Array<Runner>;
-  // Runner credentials assigned, by Runner id.
-  assignedCredentials: Map<string, number>;
+  // Secret runbook variables assigned, by Runner id.
+  assignedSecrets: Map<string, number>;
   clusterUpdates: Array<Record<string, unknown>>;
   runnerUpdates: Array<{ id: string; data: Record<string, unknown> }>;
   createdRunners: Array<Runner>;
@@ -108,7 +107,6 @@ function boundCluster(
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: AGENT_RUNNER_ID,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     aiKubectlCommandAllowlist: undefined,
@@ -230,7 +228,7 @@ function installFakeDatabase(database: FakeDatabase): void {
   jest.spyOn(RunnerService, "countBy").mockResolvedValue(new PositiveNumber(0));
 
   jest
-    .spyOn(RunbookCredentialService, "countBy")
+    .spyOn(RunbookVariableService, "countBy")
     .mockImplementation(async (args: unknown): Promise<PositiveNumber> => {
       // QueryHelper.inRelationArray: the Runner ids, as ObjectIDs.
       const runnerIds: Array<string> = (
@@ -243,14 +241,11 @@ function installFakeDatabase(database: FakeDatabase): void {
       let count: number = 0;
 
       for (const runnerId of runnerIds) {
-        count += database.assignedCredentials.get(runnerId) || 0;
+        count += database.assignedSecrets.get(runnerId) || 0;
       }
 
       return new PositiveNumber(count);
     });
-  jest
-    .spyOn(RunbookVariableService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0));
   // No code repository picks the Runner.
   jest
     .spyOn(CodeRepositoryService, "countBy")
@@ -296,7 +291,7 @@ function deleteRunner(database: FakeDatabase, runnerId: ObjectID): void {
   database.runners = database.runners.filter((runner: Runner) => {
     return runner.id!.toString() !== runnerId.toString();
   });
-  database.assignedCredentials.delete(runnerId.toString());
+  database.assignedSecrets.delete(runnerId.toString());
 
   if (database.cluster.aiAccessRunnerId?.toString() === runnerId.toString()) {
     database.cluster = {
@@ -366,12 +361,12 @@ describe("recovering from a previous in-cluster Runner that holds more than the 
       });
     }
 
-    // A Runner credential was assigned to the agent Runner before the guards.
+    // A secret runbook variable was assigned to the agent Runner before the guards.
     database = {
       cluster: boundCluster(),
       aiAgent: null,
       runners: [offlineAgentRunner()],
-      assignedCredentials: new Map<string, number>([
+      assignedSecrets: new Map<string, number>([
         [AGENT_RUNNER_ID.toString(), 1],
       ]),
       clusterUpdates: [],
@@ -406,7 +401,7 @@ describe("recovering from a previous in-cluster Runner that holds more than the 
     const head: string = refusal.message.slice(0, 500);
     expect(head.startsWith(UPGRADE_STEP)).toBe(true);
     expect(head).toContain(
-      'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": unassign its 1 Runner credential(s).',
+      'Or, under Runbooks → Runners, on Runner "kubernetes-agent/prod-us": unassign its 1 secret runbook variable(s).',
     );
     expect(refusal.message).not.toContain("AI page");
     // Nothing was written by the refused registration.
@@ -440,7 +435,7 @@ describe("recovering from a previous in-cluster Runner that holds more than the 
    * restarted pod re-keys the same row, and the cluster is still bound to it.
    */
   it("following the removal path: the same Runner comes back and the cluster is still bound to it", async () => {
-    database.assignedCredentials.clear();
+    database.assignedSecrets.clear();
 
     const result: RegisterKubernetesAgentRunnerResult =
       await registerRestartedPod();
@@ -538,7 +533,7 @@ describe("the runner_belongs_to_another_cluster refusal", () => {
           },
         }),
       ],
-      assignedCredentials: new Map<string, number>(),
+      assignedSecrets: new Map<string, number>(),
       clusterUpdates: [],
       runnerUpdates: [],
       createdRunners: [],
@@ -611,7 +606,7 @@ describe("a cluster bound to another cluster's in-cluster Runner", () => {
           },
         }),
       ],
-      assignedCredentials: new Map<string, number>(),
+      assignedSecrets: new Map<string, number>(),
       clusterUpdates: [],
       runnerUpdates: [],
       createdRunners: [],

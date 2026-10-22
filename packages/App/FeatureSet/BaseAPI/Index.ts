@@ -1,4 +1,6 @@
 import BaseAPI from "Common/Server/API/BaseAPI";
+// The values records pick from: BaseAPI, and what uses one. See the class.
+import ArchivableValueAPI from "Common/Server/API/ArchivableValueAPI";
 import BaseAnalyticsAPI from "Common/Server/API/BaseAnalyticsAPI";
 import BillingAPI from "Common/Server/API/BillingAPI";
 import BillingInvoiceAPI from "Common/Server/API/BillingInvoiceAPI";
@@ -582,9 +584,7 @@ import LogPipelineProcessorService, {
 import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
-import DetectionRuleService, {
-  Service as DetectionRuleServiceType,
-} from "Common/Server/Services/DetectionRuleService";
+import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
@@ -661,6 +661,9 @@ import IncidentMemberService, {
 import IncidentStateService, {
   Service as IncidentStateServiceType,
 } from "Common/Server/Services/IncidentStateService";
+import IncidentPostmortemStatusService, {
+  Service as IncidentPostmortemStatusServiceType,
+} from "Common/Server/Services/IncidentPostmortemStatusService";
 import MonitorTestService, {
   Service as MonitorTestServiceType,
 } from "Common/Server/Services/MonitorTestService";
@@ -1238,9 +1241,6 @@ import RunnerOwnerUserService, {
 import RunbookVariableService, {
   Service as RunbookVariableServiceType,
 } from "Common/Server/Services/RunbookVariableService";
-import RunbookCredentialService, {
-  Service as RunbookCredentialServiceType,
-} from "Common/Server/Services/RunbookCredentialService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -1410,6 +1410,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentPostmortemStatus from "Common/Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
@@ -1590,7 +1591,6 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
@@ -1622,7 +1622,6 @@ import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
-import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
@@ -1747,6 +1746,7 @@ import ScheduledMaintenanceExternalCalendarAPI from "Common/Server/API/Scheduled
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import WorkspaceChannelLinkAPI from "Common/Server/API/WorkspaceChannelLinkAPI";
 import WorkspaceChannelMembersAPI from "Common/Server/API/WorkspaceChannelMembersAPI";
+import WorkspaceAskToConnectAPI from "Common/Server/API/WorkspaceAskToConnectAPI";
 import OnCallPagePassOnAPI from "Common/Server/API/OnCallPagePassOnAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
 
@@ -2061,7 +2061,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertState, AlertStateServiceType>(
+      new ArchivableValueAPI<AlertState, AlertStateServiceType>(
         AlertState,
         AlertStateService,
       ).getRouter(),
@@ -2536,7 +2536,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertSeverity, AlertSeverityServiceType>(
+      new ArchivableValueAPI<AlertSeverity, AlertSeverityServiceType>(
         AlertSeverity,
         AlertSeverityService,
       ).getRouter(),
@@ -3861,7 +3861,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
+      new ArchivableValueAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService,
       ).getRouter(),
@@ -3923,12 +3923,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Detection rules' CRUD, and drafting one with OneUptime AI.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DetectionRule, DetectionRuleServiceType>(
-        DetectionRule,
-        DetectionRuleService,
-      ).getRouter(),
+      new DetectionRuleAPI().getRouter(),
     );
 
     app.use(
@@ -4094,7 +4092,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentState, IncidentStateServiceType>(
+      new ArchivableValueAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService,
       ).getRouter(),
@@ -4102,7 +4100,15 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
+      new ArchivableValueAPI<
+        IncidentPostmortemStatus,
+        IncidentPostmortemStatusServiceType
+      >(IncidentPostmortemStatus, IncidentPostmortemStatusService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ArchivableValueAPI<
         ScheduledMaintenanceState,
         ScheduledMaintenanceStateServiceType
       >(
@@ -4287,14 +4293,6 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookCredential, RunbookCredentialServiceType>(
-        RunbookCredential,
-        RunbookCredentialService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter(),
     );
 
@@ -4390,7 +4388,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
+      new ArchivableValueAPI<IncidentSeverity, IncidentSeverityServiceType>(
         IncidentSeverity,
         IncidentSeverityService,
       ).getRouter(),
@@ -4398,7 +4396,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<IncidentRole, IncidentRoleServiceType>(
+      new ArchivableValueAPI<IncidentRole, IncidentRoleServiceType>(
         IncidentRole,
         IncidentRoleService,
       ).getRouter(),
@@ -4596,7 +4594,10 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter(),
+      new ArchivableValueAPI<Label, LabelServiceType>(
+        Label,
+        LabelService,
+      ).getRouter(),
     );
 
     app.use(
@@ -5417,7 +5418,15 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
 
     /*
-     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * Asking every member of the project to connect their Slack or
+     * Microsoft Teams account, by direct message
+     * (/workspace-ask-to-connect/<workspace type>). For project owners and
+     * admins.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceAskToConnectAPI);
+
+    /*
+     * "Can't take it? Escalate" for the signed-in person's own pages about
      * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
      * page in the Dashboard and from the mobile app.
      */

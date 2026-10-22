@@ -425,6 +425,27 @@ describe("a closed single-select's value and its Clear button", () => {
     expect(screen.getByRole("textbox", { name: "Next field" })).toHaveFocus();
   });
 
+  /*
+   * After a clear the search input has the focus with the menu closed, so a
+   * click on it used to open nothing: it opens the menu now.
+   */
+  test("after a clear, a click on the search input opens the menu", async () => {
+    const user: UserEventController = userEvent.setup();
+    const harness: Harness = renderDropdown();
+
+    await user.click(getClearButton());
+    expect(getCombobox()).toHaveFocus();
+    expect(queryMenu()).toBeNull();
+
+    await user.click(getCombobox());
+
+    expect(queryMenu()).toBeInTheDocument();
+    expect(getCombobox()).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("option", { name: "Admins" })).toBeInTheDocument();
+    // Only the clear was handed on: opening the menu changes nothing.
+    expect(harness.onChange).toHaveBeenCalledTimes(1);
+  });
+
   test("a press on the value still opens the menu, ready to type", async () => {
     const user: UserEventController = userEvent.setup();
     const harness: Harness = renderDropdown();
@@ -447,6 +468,18 @@ describe("a closed single-select's value and its Clear button", () => {
     expect(classesOf(screen.getByTestId("entity-dropdown-value"))).toContain(
       "bg-gray-100",
     );
+    /*
+     * One fill: beside bg-white, bg-gray-100 lost in light mode (the
+     * stylesheet orders the two, not the class list), so a locked field
+     * looked like one to click. Nor does its border light up under the
+     * pointer.
+     */
+    expect(
+      classesOf(screen.getByTestId("entity-dropdown-value")),
+    ).not.toContain("bg-white");
+    expect(
+      classesOf(screen.getByTestId("entity-dropdown-value")),
+    ).not.toContain("hover:border-indigo-300");
 
     fireEvent.keyDown(getValueButton(), { key: "Backspace" });
     fireEvent.keyDown(getValueButton(), { key: "Delete" });

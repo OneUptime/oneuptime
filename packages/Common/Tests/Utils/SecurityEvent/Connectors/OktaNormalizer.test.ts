@@ -734,3 +734,19 @@ describe("OktaNormalizer", () => {
     });
   });
 });
+
+describe("OktaNormalizer: processes", () => {
+  test("an identity provider's event names no process", () => {
+    const event: NormalizedSecurityEvent =
+      OktaNormalizer.normalize(baseEvent());
+
+    expect([
+      event.processName,
+      event.processPath,
+      event.processCommandLine,
+      event.parentProcessName,
+      event.parentProcessPath,
+      event.parentProcessCommandLine,
+    ]).toEqual(["", "", "", "", "", ""]);
+  });
+});

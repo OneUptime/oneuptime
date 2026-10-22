@@ -8,6 +8,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
 } from "Common/Types/Runner/RunnerLiveStatus";
+import { canBeProjectDefaultRunner } from "Common/Types/Runner/ProjectDefaultRunner";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -20,9 +21,11 @@ import { isKubernetesAgentRunnerRow } from "../../Pages/Kubernetes/Utils/Kuberne
  * What a Runner picker needs to know, loaded once by the page that shows
  * one (Runbooks -> a runbook -> Steps; Code -> a repository -> Settings; and
  * any other page that lets people pick a Runner): the project's own
- * Runners, the global Runners - the ones OneUptime runs for every project,
- * from their own endpoint since no project owns them - and whether the
- * project uses them (Project.useGlobalRunners).
+ * Runners - with which of them is the project's default Runner, the one a
+ * step that picks no Runner runs on - the global Runners - the ones
+ * OneUptime runs for every project, from their own endpoint since no
+ * project owns them - and whether the project uses them
+ * (Project.useGlobalRunners).
  *
  * A code repository's picker (loadForCodeRepository) reads the global
  * Runners for code instead - the ones that take the AI work of every
@@ -161,44 +164,16 @@ export default class RunnerChoicesLoader {
   }
 
   /*
-   * The Runners a Kubernetes cluster's AI settings may bind for OneUptime
-   * AI's kubectl (the cluster's AI → Agent page, an advanced binding): the
-   * project's own, as rows - the page tells the in-cluster Runners the
-   * Kubernetes agent chart installed from the rest by their name and
-   * posture (hostInfo), and keeps a bound one it no longer offers. Never a
-   * global Runner: it never runs OneUptime AI's commands. Throws when the
-   * Runners cannot be read, so the page can say so and leave the binding as
-   * it is.
-   */
-  public static async loadForKubernetesCluster(
-    projectId: ObjectID,
-    limit: number,
-  ): Promise<Array<Runner>> {
-    const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
-      modelType: Runner,
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        // The posture: which rows the Kubernetes agent chart installed.
-        hostInfo: true,
-      },
-      sort: { name: SortOrder.Ascending },
-      limit: limit,
-      skip: 0,
-    });
-
-    return result.data || [];
-  }
-
-  /*
    * The project's own Runners. For a code repository - and an auto
    * remediation rule, which picks the same way - without the in-cluster
    * Runners the Kubernetes agent chart installed: they run kubectl for their
    * cluster only, and the server refuses a repository or a rule that picks
    * one.
+   *
+   * The project's default Runner is marked (isProjectDefault) only when it
+   * may be it - the rule the server reads it by (ProjectDefaultRunner) - so
+   * the picker never offers as the default a Runner the server would pass
+   * over.
    */
   public static async loadProjectRunners(
     projectId: ObjectID,
@@ -215,7 +190,10 @@ export default class RunnerChoicesLoader {
         _id: true,
         name: true,
         lastAlive: true,
-        ...(forCodeRepository ? { hostInfo: true } : {}),
+        // Which is the default, and whether it may be it.
+        isProjectDefault: true,
+        canRunRunbooks: true,
+        hostInfo: true,
       },
       sort: { name: SortOrder.Ascending },
       limit: LIMIT_MAX,
@@ -227,12 +205,65 @@ export default class RunnerChoicesLoader {
         return !forCodeRepository || !isKubernetesAgentRunnerRow(runner);
       })
       .map((runner: Runner): RunnerPickerRunner => {
-        return {
+        const pickerRunner: RunnerPickerRunner = {
           id: runner._id?.toString() || "",
           name: runner.name || "Unnamed Runner",
           liveStatus: getRunnerLiveStatus(runner.lastAlive),
         };
+
+        if (
+          runner.isProjectDefault === true &&
+          canBeProjectDefaultRunner(runner)
+        ) {
+          pickerRunner.isProjectDefault = true;
+        }
+
+        return pickerRunner;
       });
+  }
+
+  /*
+   * The project's default Runner, by its id and name - what Runbooks ->
+   * Runners and a Runner's own page say about it, and what the dialogs that
+   * change it name - or null when the project has none (or none that may
+   * be it: the rule the server reads it by, ProjectDefaultRunner). Throws
+   * when the Runners cannot be read, so a page can claim nothing.
+   */
+  public static async loadProjectDefaultRunner(
+    projectId: ObjectID,
+  ): Promise<{ id: string; name: string } | null> {
+    const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
+      modelType: Runner,
+      query: {
+        projectId: projectId,
+        isProjectDefault: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        isProjectDefault: true,
+        canRunRunbooks: true,
+        hostInfo: true,
+      },
+      sort: {},
+      limit: 1,
+      skip: 0,
+    });
+
+    const runner: Runner | undefined = result.data[0];
+
+    if (
+      !runner ||
+      runner.isProjectDefault !== true ||
+      !canBeProjectDefaultRunner(runner)
+    ) {
+      return null;
+    }
+
+    return {
+      id: runner._id?.toString() || "",
+      name: runner.name || "Unnamed Runner",
+    };
   }
 
   /*

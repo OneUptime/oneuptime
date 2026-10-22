@@ -88,13 +88,19 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Team | `Team` |
 | Ruoli personalizzati, e i team che ne ricevono uno | `Custom Role`, `Team Custom Role` |
 | Etichette | `Label` |
+| Stati e gravità degli incidenti | `Incident State`, `Incident Severity` |
+| Stati e gravità degli avvisi | `Alert State`, `Alert Severity` |
+| Stati del monitor | `Monitor Status` |
+| Stati della manutenzione programmata | `Scheduled Maintenance State` |
+| Ruoli incidente | `Incident Role` |
+| Stati del post-mortem | `Postmortem Status` |
 | Chiavi API | `API Key` |
 | Client MCP che le persone collegano | `MCP Client Authorization` |
 | Elementi dell'inventario | `Inventory Item` |
 | Configurazioni del collector | `Collector Config` |
 | vCenter | `vCenter` |
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
-| Casi di sicurezza e playbook | `Security Case`, `Security Playbook` |
+| Casi di sicurezza, playbook e le loro esecuzioni, ed entità protette | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 

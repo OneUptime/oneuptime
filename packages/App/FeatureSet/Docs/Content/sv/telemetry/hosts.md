@@ -75,7 +75,7 @@ Varje OneUptime tillhandahåller sina egna installationsprogram, så en egenvär
 
 ### Vänta på värden
 
-Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mått kommer in, oftast inom en minut, och sedan som ansluten, med sin insamlare **Körs**.
+Dialogrutans sista steg visar när värden ansluter, med en länk till den. I listan visas den som **Startar** tills dess första mått kommer in, oftast inom en minut, och sedan som ansluten, med sin insamlare **Körs**. Värdens sida **Topologi** ritar på en karta vad som körs på den, vad som anropar den och vad den anropar: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Märk värdar

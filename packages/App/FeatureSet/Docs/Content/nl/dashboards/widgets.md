@@ -54,7 +54,7 @@ Gebruik hem als de vorm van de lijn het verhaal vertelt: latentie, fouten, doorv
 
 ### Waarde
 
-Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, gekleurd volgens **Trend Direction**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. **Warning Threshold** maakt de achtergrond geel en **Critical Threshold** rood zodra de waarde ze bereikt.
+Eén groot getal met een sparkline: de waarde van de query over het hele tijdsbereik, opgeteld voor een som of een telling, de hoogste voor een maximum, de laagste voor een minimum, en anders het gemiddelde. Een pijl vergelijkt de tweede helft van het bereik met de eerste, elke helft op dezelfde manier berekend, gekleurd volgens **Trend Direction**: of een hogere waarde beter of slechter is, of afgeleid uit de naam van de metric. Wijs de pijl aan om de waarde van beide helften te zien, en de sparkline om de waarde en het tijdstip van elk punt af te lezen. **Warning Threshold** maakt de achtergrond geel en **Critical Threshold** rood zodra de waarde ze bereikt.
 
 Gebruik hem als één getal de vraag beantwoordt: het foutpercentage, de P95-latentie, of het aantal verzoeken dat vandaag is afgehandeld.
 
@@ -178,7 +178,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Docker Swarm** | **Knooppunten**, **Services** | De Docker Swarm-agent |
 | **Podman** | **Hosts**, **Containers**, **Images**, **Netwerken**, **Volumes** | De Podman-agent |
 | **Proxmox** | **Knooppunten**, **Guests** | De Proxmox-agent |
-| **VMware** | **Hosts**, **Virtual Machines** | De VMware-agent, of een vCenter die je koppelt |
+| **VMware** | **Hosts**, **Virtuele machines** | De VMware-agent, of een vCenter die je koppelt |
 | **Ceph** | **OSDs**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
 | **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Storage Array-agent |
 

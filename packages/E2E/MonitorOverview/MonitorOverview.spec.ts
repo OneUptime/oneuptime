@@ -351,8 +351,11 @@ async function expectAbove(
 /*
  * Where a card header keeps what the card offers (Edit, Test Monitor, the
  * probe picker, a link): at the header's right edge, and under the title
- * only when it does not fit beside it - never under the description, never
- * at the left, never centred. "Why are edit buttons not on the right?"
+ * only when it does not fit beside it - never at the left, never centred.
+ * "Why are edit buttons not on the right?" And the description stays right
+ * under the title ("There's a lot of gap between the title of the card and
+ * the description of the card"): beside the title the actions come before
+ * it, which runs under both; on a line of their own they follow it.
  */
 async function expectHeaderActionsOnTheRight(
   cardLocator: Locator,
@@ -392,13 +395,29 @@ async function expectHeaderActionsOnTheRight(
     );
   }
 
-  // Never under the description: that comes after the actions, or beside them.
+  /*
+   * The description stays right under the title: beside the title the
+   * actions come before it (it runs under both, or beside them in the
+   * default header); on a line of their own they follow it.
+   */
   const description: Locator = header.getByTestId("card-description");
   if ((await description.count()) > 0 && (await description.isVisible())) {
     const descriptionBox: Box = await documentBox(description);
-    expect(actions.y, `${label} is not under the description`).toBeLessThan(
-      descriptionBox.y + 1,
-    );
+
+    if (isOnTitleLine) {
+      expect(actions.y, `${label} is not under the description`).toBeLessThan(
+        descriptionBox.y + 1,
+      );
+    } else {
+      expect(
+        descriptionBox.y - (title.y + title.height),
+        `${label}'s description right under the title`,
+      ).toBeLessThanOrEqual(7);
+      expect(
+        actions.y,
+        `${label} follows the description on a line of its own`,
+      ).toBeGreaterThanOrEqual(descriptionBox.y + descriptionBox.height - 1);
+    }
   }
 }
 
@@ -3097,17 +3116,17 @@ test.describe("responsive", () => {
     const cardBox: Box = await documentBox(summary);
     /*
      * The picker and Test Monitor are too wide to share the title's line,
-     * so they sit on their own line under it - at the card's right edge, and
-     * above the description, which runs under them across the card.
+     * so they sit on their own line - at the card's right edge, after the
+     * description, which stays right under the title across the card.
      */
     expect(title.width).toBeGreaterThan(cardBox.width * 0.8);
     await expectHeaderActionsOnTheRight(summary, "the probe picker", {
       onTitleLine: false,
     });
     await expectAbove(
-      summary.getByRole("combobox", { name: "Showing results from:" }),
       summary.getByTestId("card-description"),
-      "picker above the description",
+      summary.getByRole("combobox", { name: "Showing results from:" }),
+      "the description above the picker",
     );
   });
 

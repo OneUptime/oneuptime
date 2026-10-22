@@ -13,6 +13,7 @@ import {
   AIChatCitationTarget,
   AIChatWidget,
 } from "../../../../Types/AI/AIChatTypes";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 
 /*
  * The execution context for a tool call. projectId is ALWAYS the tenant from
@@ -22,6 +23,14 @@ import {
 export interface ToolContext {
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
+  /*
+   * The code repositories this run may read (CodeRepositoryAllowance): an
+   * investigation or a fix reads only the ones the rules that matched its
+   * incident (or alert) name. Left out - a person's own question - every
+   * repository the caller may read. Every code tool finds its repositories
+   * through findReadableRepositories, which holds them to it.
+   */
+  codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
 }
 
 export interface ToolExecutionResult {

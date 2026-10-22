@@ -276,6 +276,11 @@ export default class InvestigationTldr {
   public static async generateTldr(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
+    /*
+     * The LLM provider the run uses, when its rule picked one
+     * (Server/Utils/AI/LlmProviderChoice); else the project's provider.
+     */
+    llmProviderId?: ObjectID | undefined;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     analysisMarkdown: string;
@@ -305,6 +310,7 @@ export default class InvestigationTldr {
           projectId: data.projectId,
           feature: INVESTIGATION_TLDR_FEATURE,
           aiRunId: data.aiRunId,
+          llmProviderId: data.llmProviderId,
           incidentId: data.incidentId,
           alertId: data.alertId,
           // The output is displayed verbatim; no prompt previews in LlmLog.

@@ -123,6 +123,7 @@ import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettings
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
+import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -146,6 +147,9 @@ import HideImagesOfScheduledAnnouncements from "./HideImagesOfScheduledAnnouncem
 import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMembers";
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
+import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
+import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -786,6 +790,38 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new BackfillFirstPagedAt(),
   /*
+   * The three security case notification settings (a case at my chosen
+   * priority, a case assigned to me or my team, a playbook step waiting for
+   * my approval) with email and push on, for every member who joined before
+   * they existed, so Notification Settings shows them as they behave.
+   * Idempotent, no ordering requirement.
+   */
+  new AddSecurityCaseNotificationSettingsForUsers(),
+  /*
+   * Security events gained the process an event is about and its parent
+   * (SecurityEvent.processName, processPath, processCommandLine,
+   * parentProcessName, parentProcessPath, parentProcessCommandLine), which
+   * Sigma's Image, CommandLine, ParentImage and ParentCommandLine read.
+   * Metadata-only and idempotent; rows written before it read ''. No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddProcessColumnsToSecurityEvent(),
+  /*
+   * Postmortem statuses (Incidents > Postmortems): every project from before
+   * them gets the four a new project starts with, then every incident the
+   * status its postmortem is in - Completed when published on a status page,
+   * Draft when it has a note, Not Started otherwise. After the schema
+   * migration AddIncidentPostmortemStatus, which adds the table and the
+   * column (data migrations run after every schema migration).
+   * Postgres-only and idempotent; no ordering requirement among data
+   * migrations, so it sits above the runbook moves, which keep their places
+   * right before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddDefaultPostmortemStatusesToExistingProjects(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -802,12 +838,23 @@ const DataMigrations: Array<DataMigrationBase> = [
    * variable of the same name, every credential a step names the secret
    * variables its key, password or kubeconfig went into, and every SSH and
    * Kubernetes step is rewritten to a script that uses them, doing what it
-   * did. The legacy secrets table and the credentials stay. After
-   * AddRunbookVariable1804265000000; idempotent; no other ordering
-   * requirement, so it sits before the last slot AddAuditLogMcpClientColumns
-   * asserts for itself.
+   * did. The legacy secrets table stays. After AddRunbookVariable1804265000000
+   * and before RemoveRunbookCredentials, which deletes the credentials this
+   * reads; idempotent.
    */
   new MoveRunbookSecretsAndCredentialsToVariables(),
+  /*
+   * Runbook credentials (Runbooks > Runners > AI Access) are removed: the
+   * runbook steps that still name one move to variables as above (secrets
+   * left alone - they all moved already), the moved Kubernetes steps drop
+   * the credential and action they kept for an older Runner, the Kubernetes
+   * clusters bound to a Runner outside them are cleared, and every
+   * credential is deleted. After MoveRunbookSecretsAndCredentialsToVariables
+   * (it reads the credentials this deletes) and the schema migration
+   * RemoveRunbookCredentials; idempotent; it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new RemoveRunbookCredentials(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -129,7 +129,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontre o host no OneUptime
 
-Abra **Produtos → Infraestrutura → Docker → Todos os hosts**. O host aparece com o `DOCKER_HOST_NAME` dele em cerca de um minuto, com os contêineres, as métricas e os logs dele. O agente de IA aparece como conectado na página **Agente de IA** do host e no fim da **Visão geral** dele.
+Abra **Produtos → Infraestrutura → Docker → Todos os hosts**. O host aparece com o `DOCKER_HOST_NAME` dele em cerca de um minuto, com os contêineres, as métricas e os logs dele. O agente de IA aparece como conectado na página **Agente de IA** do host e no fim da **Visão geral** dele. A página **Topologia** do host desenha os seus projetos do Compose, contêineres, imagens, redes e volumes em um único mapa: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Variáveis de ambiente

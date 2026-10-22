@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta klustret i OneUptime
 
-Öppna **Produkter → Infrastruktur → Proxmox → Alla kluster**. Klustret visas under sitt `PROXMOX_CLUSTER_NAME` ungefär en minut efter den första skrapningen, med sina noder, gäster och lagring.
+Öppna **Produkter → Infrastruktur → Proxmox → Alla kluster**. Klustret visas under sitt `PROXMOX_CLUSTER_NAME` ungefär en minut efter den första skrapningen, med sina noder, gäster och lagring. Dess sida **Topologi** ritar dem på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Miljövariabler

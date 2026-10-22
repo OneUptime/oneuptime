@@ -189,6 +189,12 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A changed YAML becomes the next version. One config at a time: each
    * config's next number is its own.
+   *
+   * The config is the one the update writes, read the way every hook that
+   * judges an update by its rows reads them (findOneRowAndHoldUpdateToIt):
+   * the update is held to that config, so the version is numbered and
+   * noted from the config the YAML is written to - never from a row the
+   * update does not reach.
    */
   @CaptureSpan()
   protected override async onUpdatePermitted(
@@ -200,26 +206,22 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    const rows: Array<Model> = await this.findBy({
-      query: updateBy.query,
-      select: {
+    const written: { row: Model | null; writesMore: boolean } =
+      await this.findOneRowAndHoldUpdateToIt(updateBy, {
         _id: true,
         projectId: true,
         currentVersionNumber: true,
         configHash: true,
-      },
-      limit: 2,
-      skip: 0,
-      props: { isRoot: true },
-    });
+      });
 
-    if (rows.length > 1) {
+    if (written.writesMore) {
       throw new BadDataException(
         "Change the config of one Collector Config at a time.",
       );
     }
 
-    const row: Model | undefined = rows[0];
+    // No config: the update writes none, so there is no version to number.
+    const row: Model | null = written.row;
     if (!row || !row.id || !row.projectId) {
       return;
     }
@@ -265,18 +267,22 @@ export class Service extends ProjectReferencesService<Model> {
     return super.onUpdateSuccess(onUpdate, updatedItemIds);
   }
 
+  /*
+   * The projects whose hosts lose a config, for their next poll to read the
+   * list again (onDeleteSuccess): the projects of the configs the delete
+   * removes, read the way every hook that acts on a delete's rows reads
+   * them (findRowsAndHoldDeleteToThem), with the delete held to those
+   * configs - so the projects told are the ones that lost a config.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     const onDelete: OnDelete<Model> = await super.onBeforeDelete(deleteBy);
-    const rows: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { projectId: true },
-      limit: 1000,
-      skip: 0,
-      props: { isRoot: true },
-    });
+    const rows: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      onDelete.deleteBy,
+      { projectId: true },
+    );
 
     return {
       deleteBy: onDelete.deleteBy,

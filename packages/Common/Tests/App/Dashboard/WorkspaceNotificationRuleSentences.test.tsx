@@ -47,6 +47,10 @@ import {
   getNotificationRuleSummary,
   NotificationRuleSummaryInput,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import {
+  canRuleCreateChannel,
+  CHANNEL_RECORD_EVENT_TYPES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleOwnChannel";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleInvites from "../../../Types/Workspace/NotificationRules/NotificationRuleInvites";
@@ -223,6 +227,50 @@ describe("the sentences that say what a rule does", () => {
     ).toBe("Invites Alice and Database when the channel is created.");
   });
 
+  /*
+   * The on-call schedules a rule names: whoever is on call in them when the
+   * channel is created joins it, without being paged - in a sentence of
+   * their own, after the people and teams the rule names.
+   */
+  test("whoever is on call in the rule's schedules joins when the channel is created", () => {
+    expect(
+      sentences({
+        rule: rule({ shouldInviteOwnersToNewChannel: true }),
+        userNames: ["Alice"],
+        scheduleNames: ["Payments Primary", "Payments Secondary"],
+      }).slice(1),
+    ).toEqual([
+      "Invites the Incident Commander and other incident roles as they are assigned and owners as they are added.",
+      "Also invites Alice when the channel is created.",
+      "Also invites whoever is on call in Payments Primary and Payments Secondary when the channel is created.",
+    ]);
+    // Named alone, they are who the rule invites.
+    expect(
+      sentences({
+        rule: rule({}),
+        scheduleNames: ["Payments Primary"],
+      }).slice(1),
+    ).toEqual([
+      "Invites whoever is on call in Payments Primary when the channel is created.",
+    ]);
+  });
+
+  test("Microsoft Teams: whoever is on call in the rule's schedules is mentioned in the channel", () => {
+    expect(
+      sentences({
+        rule: rule({}),
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        exampleChannelName: "inc-42",
+        channelTeamName: "Ops",
+        scheduleNames: ["Payments Primary"],
+      }),
+    ).toEqual([
+      "Creates a channel like inc-42 for each incident.",
+      "Everyone in Ops can open the channel.",
+      "Mentions whoever is on call in Payments Primary when the channel is created.",
+    ]);
+  });
+
   test("a German reader reads the people named in a sentence of their own", () => {
     expect(
       sentences({
@@ -396,6 +444,133 @@ describe("the sentences that say what a rule does", () => {
     },
   );
 
+  /*
+   * A security case gets no channel of its own (SecurityCaseNotificationRule):
+   * its rule posts to channels and chats people have, and says only that -
+   * even a rule saved through the API that holds the switches of a channel.
+   */
+  test("a security case rule says only where it posts, whatever channel switches it holds", () => {
+    expect(canRuleCreateChannel(NotificationRuleEventType.SecurityCase)).toBe(
+      false,
+    );
+
+    const savedThroughTheApi: IncidentNotificationRule = rule({
+      shouldCreateNewChannel: true,
+      shouldInviteOwnersToNewChannel: true,
+      archiveChannelAutomatically: true,
+      shouldPostToExistingChannel: true,
+      existingChannelNames: "#security, #soc",
+    });
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.SecurityCase,
+        exampleChannelName: "#security-case",
+        rule: savedThroughTheApi,
+      }),
+    ).toEqual(["Posts updates in #security and #soc."]);
+
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.SecurityCase,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        exampleChannelName: "security-case",
+        channelTeamName: "Security",
+        chatNames: ["SOC on call"],
+        rule: rule({
+          shouldCreateNewChannel: true,
+          shouldPostToExistingChannel: true,
+          existingChannelNames: "Incidents",
+          shouldPostToExistingChat: true,
+          existingChatIds: ["chat-1"],
+        }),
+      }),
+    ).toEqual([
+      "Posts updates in Incidents.",
+      "Posts updates in the chat SOC on call.",
+    ]);
+
+    // Posting nowhere, it says nothing; the form says what is left to pick.
+    expect(
+      sentences({
+        eventType: NotificationRuleEventType.SecurityCase,
+        rule: rule({ shouldCreateNewChannel: true }),
+      }),
+    ).toEqual([]);
+  });
+
+  test("what is left to pick, and the Destination step's words, for a rule that only posts", () => {
+    expect(
+      Copy.getNothingChosenSentence({
+        eventType: NotificationRuleEventType.SecurityCase,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("Name the channels this rule posts in.");
+    expect(
+      Copy.getNothingChosenSentence({
+        eventType: NotificationRuleEventType.SecurityCase,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("Pick where this rule posts: existing channels, chats, or both.");
+    expect(
+      Copy.getNotificationRuleDestinationDescription({
+        eventType: NotificationRuleEventType.SecurityCase,
+        workspaceType: WorkspaceType.Slack,
+      }),
+    ).toBe("The channels the rule posts in.");
+    expect(
+      Copy.getNotificationRuleDestinationDescription({
+        eventType: NotificationRuleEventType.SecurityCase,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }),
+    ).toBe("The channels and chats the rule posts in.");
+
+    // Every other kind keeps its words: a channel of its own, and who joins it.
+    for (const eventType of CHANNEL_RECORD_EVENT_TYPES) {
+      for (const workspaceType of [
+        WorkspaceType.Slack,
+        WorkspaceType.MicrosoftTeams,
+      ]) {
+        expect(
+          Copy.getNothingChosenSentence({ eventType, workspaceType }),
+        ).toBe(Copy.NOTHING_CHOSEN_SENTENCE);
+        expect(
+          Copy.getNotificationRuleDestinationDescription({
+            eventType,
+            workspaceType,
+          }),
+        ).toBe(Copy.NOTIFICATION_RULE_DESTINATION_DESCRIPTION);
+      }
+    }
+  });
+
+  test("a security case rule is named, and its records counted, in its own words", () => {
+    expect(
+      Copy.NOTIFICATION_RULE_CONDITIONS_TITLES[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).toBe("Which security cases");
+    expect(
+      Copy.NO_CONDITIONS_SENTENCES[NotificationRuleEventType.SecurityCase],
+    ).toBe("Every security case.");
+    expect(
+      Copy.RULE_SINGULAR_NAMES[NotificationRuleEventType.SecurityCase],
+    ).toBe("Security Case Notification Rule");
+    expect(
+      Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).toBe(
+      "Each rule picks the security cases it is for, then posts to channels you have when a case opens, is assigned or has a playbook step waiting for approval.",
+    );
+    // It never offers a channel of its own.
+    expect(
+      Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).not.toMatch(/creates a channel/i);
+  });
+
   test("every kind of record has each of its words", () => {
     const maps: Array<Readonly<Record<NotificationRuleEventType, string>>> = [
       Copy.NOTIFICATION_RULE_CONDITIONS_TITLES,
@@ -403,13 +578,7 @@ describe("the sentences that say what a rule does", () => {
       Copy.APPLIES_TO_ALL_ANSWERS,
       Copy.APPLIES_TO_MATCHING_ANSWERS,
       Copy.NOTIFICATION_RULES_CARD_DESCRIPTIONS,
-      Copy.CREATE_CHANNEL_TITLES,
-      Copy.CREATE_CHANNEL_DESCRIPTIONS,
-      Copy.ARCHIVE_CHANNEL_TITLES,
       Copy.NO_CONDITIONS_SENTENCES,
-      Copy.CREATES_CHANNEL_SENTENCES,
-      Copy.CREATES_CHANNEL_WITHOUT_NAME_SENTENCES,
-      Copy.ARCHIVES_SENTENCES,
     ];
 
     for (const map of maps) {
@@ -418,11 +587,53 @@ describe("the sentences that say what a rule does", () => {
       }
     }
 
-    // When conditions are checked: when created, and each time it changes.
-    for (const eventType of ALL_EVENT_TYPES) {
+    /*
+     * When conditions are checked: when created, and each time it changes.
+     * A security case's are checked each time there is something to post
+     * about it (SecurityCaseNotifications).
+     */
+    for (const eventType of CHANNEL_RECORD_EVENT_TYPES) {
       expect(Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[eventType]).toMatch(
         /^Conditions are checked when an? .+ is created and again each time it changes/,
       );
+    }
+
+    expect(
+      Copy.NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS[
+        NotificationRuleEventType.SecurityCase
+      ],
+    ).toBe(
+      "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+    );
+  });
+
+  // The words about a channel of the record's own: only where it can have one.
+  test("every kind of record a rule can create a channel for has the words of that channel, and a security case has none", () => {
+    const channelMaps: Array<Readonly<Record<string, string>>> = [
+      Copy.CREATE_CHANNEL_TITLES,
+      Copy.CREATE_CHANNEL_DESCRIPTIONS,
+      Copy.ARCHIVE_CHANNEL_TITLES,
+      Copy.CREATES_CHANNEL_SENTENCES,
+      Copy.CREATES_CHANNEL_WITHOUT_NAME_SENTENCES,
+      Copy.ARCHIVES_SENTENCES,
+    ];
+
+    expect([...CHANNEL_RECORD_EVENT_TYPES].sort()).toEqual(
+      ALL_EVENT_TYPES.filter((eventType: NotificationRuleEventType) => {
+        return eventType !== NotificationRuleEventType.SecurityCase;
+      }).sort(),
+    );
+
+    for (const map of channelMaps) {
+      expect(Object.keys(map).sort()).toEqual(
+        [...CHANNEL_RECORD_EVENT_TYPES].sort(),
+      );
+
+      for (const eventType of CHANNEL_RECORD_EVENT_TYPES) {
+        expect(map[eventType]).toBeTruthy();
+      }
+
+      expect(map[NotificationRuleEventType.SecurityCase]).toBeUndefined();
     }
   });
 
@@ -440,6 +651,7 @@ describe("the sentences that say what a rule does", () => {
         "All scheduled maintenance events",
       [NotificationRuleEventType.Monitor]: "All monitors",
       [NotificationRuleEventType.OnCallDutyPolicy]: "All on-call policies",
+      [NotificationRuleEventType.SecurityCase]: "All security cases",
     });
 
     for (const eventType of ALL_EVENT_TYPES) {

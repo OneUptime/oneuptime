@@ -5,6 +5,7 @@ Security Events maakt zaken van wat je detectieregels, je threat intelligence en
 :::cards
 - [Waar zaken vandaan komen](#waar-zaken-vandaan-komen): Detectieregels, threat intelligence, gekoppelde producten en mensen.
 - [Een zaak afhandelen](#een-zaak-afhandelen): Toewijzen, de entiteiten onderzoeken en sluiten met een oordeel.
+- [Meldingen](#meldingen): Wie hoort over een nieuwe zaak, een toewijzing en een stap die op goedkeuring wacht.
 - [Playbooks](#playbooks): Stappen die op een zaak draaien, met goedkeuring waar het ertoe doet.
 - [Het overzicht](#het-overzicht): Wat nu aandacht nodig heeft, en hoe snel zaken worden afgehandeld.
 :::
@@ -49,7 +50,7 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 | Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Polling** van de verbinding |
 | Mensen | Iemand er een opent vanuit **Beveiligingszaken**, of met **Open Case** in het paneel van een gebeurtenis | Niet uit te zetten |
 
-Elke bron staat standaard aan. Een verbinding opent zaken voor **High and above**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
+Elke bron staat standaard aan. Een verbinding opent zaken voor **Hoog en hoger**, tenzij je een ander niveau kiest; de waarschuwingen daaronder worden nog steeds als gebeurtenissen geïmporteerd.
 
 ### Hoe detecties worden gegroepeerd
 
@@ -83,6 +84,7 @@ Een zaak doorloopt vier statussen. Ze kan er een overslaan, bijvoorbeeld een fal
 De pagina van de zaak heeft alles om haar af te handelen:
 
 - Bovenaan: **Assign to Me**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
+- **OneUptime AI**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **MITRE ATT&CK**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
@@ -104,9 +106,56 @@ Om meerdere zaken tegelijk af te handelen, selecteer je ze in de wachtrij en geb
 
 De oordelen worden geteld in het overzicht. Een regel waarvan de zaken steeds als False Positive worden gesloten, is een regel om bij te stellen.
 
+Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Google SecOps, met het oordeel en de sluitnotitie, wanneer bij de verbinding **Waarschuwingen sluiten wanneer hun zaak sluit** aan staat: zie [Google SecOps](/docs/integrations/google-secops#waarschuwingen-sluiten-wanneer-hun-zaak-sluit).
+
 ### Een incident melden
 
 **Incident melden** opent een OneUptime-incident voor de zaak, met de ernst die je kiest, en koppelt de twee in beide richtingen: de beschrijving van het incident noemt de zaak, en de kop van de zaak linkt naar het incident. On-call, statuspagina's en de postmortem nemen het vanaf daar over. Daarvoor is een rol nodig die zowel zaken mag afhandelen als incidenten mag aanmaken.
+
+## Meldingen
+
+OneUptime brengt mensen op de hoogte van drie dingen op een zaak. Niemand hoeft iets in te stellen: een project dat alleen op **Aanbevolen inschakelen** heeft geklikt, hoort per e-mail en push over zijn zaken met prioriteit High en Kritiek.
+
+| Melding | Wie het hoort | Standaard |
+| --- | --- | --- |
+| Nieuwe beveiligingszaak | Iedereen die de zaken van het project kan zien, wanneer een zaak wordt geopend of in prioriteit stijgt, op de prioriteit die hij koos of hoger | E-mail en push, voor zaken met High en Kritiek |
+| Beveiligingszaak aan mij toegewezen | De persoon aan wie de zaak is toegewezen, en de leden van het team waaraan ze is toegewezen | E-mail en push |
+| Playbookstap wacht op mijn goedkeuring | De mensen van de zaak die de stap mogen goedkeuren: de persoon aan wie ze is toegewezen en de leden van haar team. Mag geen van hen goedkeuren, dan iedereen in het project die het mag | E-mail en push |
+
+- Alleen mensen die de zaak kunnen zien, horen erover: Project Owners, Project Admins en de rollen Security Admin, Security Member en Security Viewer. Een rol die tot bepaalde labels is beperkt, hoort alleen over de zaken met die labels.
+- Niemand hoort over wat hij zelf deed: wie een zaak met de hand opent, haar toewijst of een uitvoering start, krijgt daar geen melding van.
+- Ieder hoort één keer over een zaak. Een zaak die op Medium wordt geopend en later naar Kritiek stijgt, bereikt bij die stijging de mensen die High of Kritiek kozen, en niet opnieuw de mensen die Medium kozen, want die hoorden erover toen ze werd geopend.
+- De testaanval van **Testaanval sturen** opent een zaak die niemand een melding geeft.
+- Een zaak met Kritiek en een stap die op goedkeuring wacht, worden meteen verstuurd en nooit vastgehouden in een [e-mailbundeling](/docs/emails/notification-rollup).
+- De **Tijdlijn** van de zaak laat zien wie het hoorde, en wanneer.
+
+### Kiezen wat je hoort
+
+Ieder kiest dat voor zichzelf, onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**: de kanalen voor elke melding (e-mail, sms, oproep, push, Telegram, Slack, Microsoft Teams of webhook), en onder **Nieuwe beveiligingszaak** de prioriteit die hem een melding geeft:
+
+| Keuze | Meldt zaken met |
+| --- | --- |
+| Alleen Kritiek | Kritiek |
+| Hoog en Kritiek | High en Kritiek (de standaard) |
+| Gemiddeld en hoger | Kritiek, High en Medium |
+| Laag en hoger | Elke prioriteit behalve Informatief |
+| Elke zaak | Elke prioriteit |
+
+Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding opent de OneUptime-app, en de link erin opent de zaak in de browser.
+
+### Plaatsen in kanalen van Slack en Microsoft Teams
+
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Security Events → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+
+| Voorwaarde | Matcht op |
+| --- | --- |
+| Prioriteit van beveiligingszaak | Kritiek, High, Medium, Low of Informatief |
+| Titel van beveiligingszaak, Beschrijving van beveiligingszaak | Tekst die de titel of de beschrijving van de zaak bevat, waarmee die begint of waarmee die eindigt |
+| Status van beveiligingszaak | Nieuw, Onderzoeken, Contained of Gesloten |
+| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product of Manual |
+| Labels van beveiligingszaak | De labels van de zaak |
+
+De drie meldingen worden elk geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **High** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
 
 ## Playbooks
 
@@ -118,6 +167,7 @@ Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan o
 | --- | --- |
 | Case Opened | Eén keer, wanneer een zaak wordt geopend |
 | Detection Added | Telkens wanneer een nieuwe detectie aan een open zaak wordt toegevoegd |
+| Beoordeeld als waarschijnlijk kwaadaardig | Eén keer, wanneer de beoordeling van OneUptime AI de zaak als Waarschijnlijk kwaadaardig leest |
 | Manual | Alleen wanneer iemand het vanuit een zaak uitvoert |
 
 Elk ingeschakeld playbook kan ook met de hand worden uitgevoerd, met **Run Playbook** op een zaak. Een playbook dat vanzelf draait, kun je beperken:
@@ -252,6 +302,10 @@ Daarboven toont een strook hoe beveiliging is ingericht: de bronnen, detecties, 
 Controleer **Open a Case on Match** in de stap **Bij overeenkomst** van de regel. Een detectie over een entiteit die al een open zaak heeft, wordt aan die zaak toegevoegd in plaats van een nieuwe te openen: zoek haar onder **Detections** in de open zaak.
 :::
 
+:::details Niemand hoorde over een zaak
+Kijk op de **Tijdlijn** van de zaak, die laat zien wie een melding kreeg. Een melding **Nieuwe beveiligingszaak** gaat naar de mensen van wie de zaak de gekozen prioriteit haalt, dus een zaak met Medium geeft geen melding aan wie de standaard, **Hoog en Kritiek**, heeft gehouden. Controleer of de mensen die het zouden moeten horen beveiligingszaken kunnen zien (een Security-rol, of Project Owner of Project Admin), en of de melding voor hen aanstaat onder **Gebruikersinstellingen → Meldingsinstellingen → Beveiliging**.
+:::
+
 :::details Een playbook draaide niet
 Controleer of het is ingeschakeld, of de **Trigger** klopt (Case Opened draait één keer, wanneer een zaak wordt geopend), en of de zaak voldoet aan de instellingen **For Cases At Least**, **Only For Detections From** en **Only For These Detection Rules**. Een met de hand geopende zaak heeft geen detectie, dus een playbook dat tot een bron of tot regels is beperkt, draait er niet op.
 :::
@@ -269,5 +323,6 @@ De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een ad
 :::cards
 - [Beveiligingsgebeurtenissen](/docs/telemetry/security-events): Stuur gebeurtenissen, schrijf detectieregels en koppel beveiligingsproducten.
 - [Dreigingsinformatie](/docs/telemetry/threat-intelligence): Vergelijk je gebeurtenissen met STIX/TAXII-feeds.
+- [OneUptime AI in beveiliging](/docs/telemetry/security-ai): Zaken beoordelen, detectieregels laten opstellen en vragen stellen over beveiliging, met AI.
 - [Machtigingsreferentie](/docs/permissions/reference): De Security-rollen, en wat elk ervan kan.
 :::

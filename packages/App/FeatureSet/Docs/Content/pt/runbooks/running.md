@@ -134,7 +134,7 @@ O interruptor **Executar este runbook** do runbook está desligado, na página *
 :::
 
 :::details Uma etapa falhou porque falta um Runner
-A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." A etapa foi salva sem **Runner**. Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o Runner da etapa, clique em **Save Steps** e execute o runbook de novo.
+A mensagem diz, por exemplo, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." A etapa foi salva sem **Runner**, e o projeto não tem um [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto). Uma etapa JavaScript só precisa de um Runner próprio quando nenhum [Runner global](/docs/runbooks/agents#runners-globais) consegue executá-la. Abra as **Etapas** do runbook, escolha o Runner da etapa em **Mais campos**, clique em **Save Steps** e execute o runbook de novo.
 :::
 
 :::details Uma etapa falhou porque nomeia variáveis que não pode usar

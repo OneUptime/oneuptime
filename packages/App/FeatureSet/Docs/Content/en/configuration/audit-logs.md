@@ -88,13 +88,19 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Teams | `Team` |
 | Custom roles, and the teams given one | `Custom Role`, `Team Custom Role` |
 | Labels | `Label` |
+| Incident states and severities | `Incident State`, `Incident Severity` |
+| Alert states and severities | `Alert State`, `Alert Severity` |
+| Monitor statuses | `Monitor Status` |
+| Scheduled maintenance states | `Scheduled Maintenance State` |
+| Incident roles | `Incident Role` |
+| Postmortem statuses | `Postmortem Status` |
 | API keys | `API Key` |
 | MCP clients people connect | `MCP Client Authorization` |
 | Inventory items | `Inventory Item` |
 | Collector Configs | `Collector Config` |
 | vCenters | `vCenter` |
 | Packet captures, and their downloads | `Packet Capture` |
-| Security cases and playbooks | `Security Case`, `Security Playbook` |
+| Security cases, playbooks and their runs, and protected entities | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 An administrator adding or removing a notification method or a personal on-call rule on someone else's account is recorded too, without the address or number itself.
 

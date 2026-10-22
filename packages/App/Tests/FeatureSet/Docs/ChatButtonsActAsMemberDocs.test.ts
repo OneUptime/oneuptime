@@ -176,15 +176,24 @@ describe("Docs: Slack's and Microsoft Teams' buttons act as the member", () => {
   );
 
   test.each(PAGES)(
-    "$name says only readable records are acted on, in the words the chat answers with",
+    "$name says only readable records are acted on, and quotes why any other is refused, in the words the chat answers with",
     (page: { text: () => string }) => {
       const line: string = bullet(page.text(), "**Which records.**");
 
       expect(line).toContain("with a role limited to some labels");
-      expect(line).toContain("or on one of another project");
+      expect(line).toContain("says why, and nothing changes");
+      // A record their role does not reach, a private one, a deleted one.
       expect(line).toContain(
-        WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
+        `"${WorkspaceActionAuthorization.getNotIncludedReason("incident")}"`,
       );
+      expect(line).toContain(
+        `"${WorkspaceActionAuthorization.getPrivateReason("incident")}"`,
+      );
+      expect(line).toContain(
+        `"${WorkspaceActionAuthorization.getNotFoundReason("incident")}"`,
+      );
+      // Never "not found" for a record that is there.
+      expect(line).not.toContain("not found in this project");
       expect(line).toContain("refused with the plan it needs");
     },
   );

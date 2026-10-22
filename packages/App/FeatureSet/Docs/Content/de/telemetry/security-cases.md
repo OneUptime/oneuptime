@@ -5,6 +5,7 @@ Das Produkt Sicherheitsereignisse macht aus den Funden Ihrer Erkennungsregeln, I
 :::cards
 - [Woher Fälle kommen](#woher-fälle-kommen): Erkennungsregeln, Threat Intelligence, verbundene Produkte und Personen.
 - [Einen Fall bearbeiten](#einen-fall-bearbeiten): Ihn zuweisen, seine Entitäten untersuchen und ihn mit einer Bewertung schließen.
+- [Benachrichtigungen](#benachrichtigungen): Wer von einem neuen Fall, einer Zuweisung und einem Schritt erfährt, der auf Genehmigung wartet.
 - [Playbooks](#playbooks): Schritte, die auf einem Fall laufen, mit Genehmigung, wo es darauf ankommt.
 - [Die Übersicht](#die-übersicht): Was gerade Aufmerksamkeit braucht, und wie schnell Fälle bearbeitet werden.
 :::
@@ -49,7 +50,7 @@ Jedes dieser Rechte lässt sich auch einzeln vergeben, vom Erstellen eines Falls
 | Verbundene Produkte | Eine eigene Warnung des Produkts auf oder über dem Schwellenwert der Verbindung importiert wird | **Open Cases From** auf **Nie** gesetzt, im Schritt **Abfrage** der Verbindung |
 | Personen | Jemand einen unter **Sicherheitsfälle** eröffnet, oder mit **Open Case** im Panel eines Ereignisses | Nicht abschaltbar |
 
-Jede Quelle ist standardmäßig eingeschaltet. Eine Verbindung eröffnet Fälle für **High and above**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
+Jede Quelle ist standardmäßig eingeschaltet. Eine Verbindung eröffnet Fälle für **Hoch und höher**, sofern Sie keine andere Stufe wählen; die Warnungen darunter werden weiterhin als Ereignisse importiert.
 
 ### Wie Erkennungen gruppiert werden
 
@@ -83,6 +84,7 @@ Ein Fall durchläuft vier Status. Er kann einen davon überspringen, etwa wenn e
 Die Seite des Falls bietet alles, um ihn zu bearbeiten:
 
 - Oben: **Assign to Me**, **Run Playbook**, **Vorfall melden** und **Close Case**, die Statusschritte und die Priorität im Menü daneben.
+- **OneUptime AI**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **MITRE ATT&CK**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
@@ -104,9 +106,56 @@ Um mehrere Fälle auf einmal zu bearbeiten, wählen Sie sie in der Warteschlange
 
 Die Bewertungen werden in der Übersicht gezählt. Eine Regel, deren Fälle immer wieder als False Positive geschlossen werden, sollte nachgeschärft werden.
 
+Ein Fall, der aus Google SecOps-Warnungen eröffnet wurde, schließt sie auch in Google SecOps, mit dem Urteil und der Abschlussnotiz, wenn an seiner Verbindung **Warnungen schließen, wenn ihr Fall geschlossen wird** eingeschaltet ist: siehe [Google SecOps](/docs/integrations/google-secops#warnungen-schließen-wenn-ihr-fall-geschlossen-wird).
+
 ### Einen Vorfall melden
 
 **Vorfall melden** öffnet für den Fall einen OneUptime-Vorfall mit dem Schweregrad, den Sie wählen, und verknüpft beide in beide Richtungen: Die Beschreibung des Vorfalls nennt den Fall, und der Kopfbereich des Falls verlinkt auf den Vorfall. Ab dort übernehmen Bereitschaft, Statusseiten und das Postmortem. Dafür braucht es eine Rolle, die sowohl Fälle bearbeiten als auch Vorfälle erstellen darf.
+
+## Benachrichtigungen
+
+OneUptime informiert Personen über drei Dinge an einem Fall. Niemand muss dafür etwas einrichten: Ein Projekt, das nur auf **Empfohlenes aktivieren** geklickt hat, erfährt von seinen Fällen mit Priorität Hoch und Kritisch per E-Mail und Push.
+
+| Benachrichtigung | Wer informiert wird | Standardmäßig |
+| --- | --- | --- |
+| Neuer Sicherheitsfall | Alle, die die Fälle des Projekts sehen können, wenn ein Fall eröffnet wird oder in der Priorität steigt, ab der Priorität, die sie gewählt haben | Per E-Mail und Push, für Fälle mit Priorität Hoch und Kritisch |
+| Mir zugewiesener Sicherheitsfall | Die Person, der der Fall zugewiesen ist, und die Mitglieder des Teams, dem er zugewiesen ist | Per E-Mail und Push |
+| Playbook-Schritt wartet auf meine Genehmigung | Die Personen am Fall, die den Schritt genehmigen dürfen: die Person, der er zugewiesen ist, und die Mitglieder seines Teams. Darf keiner von ihnen genehmigen, alle im Projekt, die es dürfen | Per E-Mail und Push |
+
+- Nur Personen, die den Fall sehen können, werden darüber informiert: Project Owner, Project Admin und die Rollen Security Admin, Security Member und Security Viewer. Eine Rolle, die auf bestimmte Labels beschränkt ist, wird nur über die Fälle mit diesen Labels informiert.
+- Niemand wird über das informiert, was er selbst getan hat: Wer einen Fall per Hand eröffnet, ihn zuweist oder eine Ausführung startet, wird darüber nicht benachrichtigt.
+- Jede Person erfährt nur einmal von einem Fall. Ein Fall, der mit Medium eröffnet wird und später auf Kritisch steigt, erreicht beim Anstieg die Personen, die Hoch und Kritisch oder Nur Kritisch gewählt haben, und nicht noch einmal die Personen, die Mittel und höher gewählt und schon bei der Eröffnung davon erfahren haben.
+- Der Testangriff aus **Testangriff senden** eröffnet einen Fall, der niemanden benachrichtigt.
+- Ein Fall mit Priorität Kritisch und ein Schritt, der auf Genehmigung wartet, werden sofort gesendet und nie in einer [E-Mail-Zusammenfassung](/docs/emails/notification-rollup) zurückgehalten.
+- Die **Zeitachse** des Falls zeigt, wer wann informiert wurde.
+
+### Wählen, worüber Sie informiert werden
+
+Jede Person wählt selbst, unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit**: die Kanäle für jede Benachrichtigung (E-Mail, SMS, Anruf, Push, Telegram, Slack, Microsoft Teams oder Webhook) und unter **Neuer Sicherheitsfall** die Priorität, ab der sie benachrichtigt wird:
+
+| Auswahl | Benachrichtigt über Fälle der Priorität |
+| --- | --- |
+| Nur Kritisch | Kritisch |
+| Hoch und Kritisch | Hoch und Kritisch (die Voreinstellung) |
+| Mittel und höher | Kritisch, Hoch und Medium |
+| Niedrig und höher | Jede außer Hinweise |
+| Jeder Fall | Jede |
+
+Für Sicherheitsfälle werden keine WhatsApp-Nachrichten gesendet. Eine Push-Benachrichtigung öffnet die OneUptime-App, und ihr Link öffnet den Fall im Browser.
+
+### In Kanäle von Slack und Microsoft Teams posten
+
+Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignisse → Arbeitsbereich → Slack** (oder **Microsoft Teams**) eine Regel hinzu. Ist keines von beiden verbunden, ist der einzige Eintrag des Bereichs **Slack oder Teams verbinden**. Eine Regel nennt die Kanäle, in die gepostet wird (und in Microsoft Teams die Chats), und auf Wunsch die Fälle, für die sie gilt:
+
+| Bedingung | Trifft zu auf |
+| --- | --- |
+| Priorität des Sicherheitsfalls | Kritisch, Hoch, Medium, Low oder Hinweise |
+| Titel des Sicherheitsfalls, Beschreibung des Sicherheitsfalls | Text, den der Titel oder die Beschreibung des Falls enthält, mit dem sie beginnen oder auf den sie enden |
+| Status des Sicherheitsfalls | Neu, Untersuchung läuft, Contained oder Geschlossen |
+| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product oder Manuell |
+| Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
+
+Die drei Benachrichtigungen werden jeweils in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
 
 ## Playbooks
 
@@ -118,6 +167,7 @@ Ein Playbook ist eine Liste von Schritten, die auf einem Fall laufen. Erstellen 
 | --- | --- |
 | Case Opened | Einmal, wenn ein Fall eröffnet wird |
 | Detection Added | Jedes Mal, wenn eine neue Erkennung einem offenen Fall zugeordnet wird |
+| Als wahrscheinlich bösartig triagiert | Einmal, wenn die Triage von OneUptime AI den Fall als Wahrscheinlich bösartig liest |
 | Manuell | Nur, wenn jemand es aus einem Fall heraus ausführt |
 
 Jedes aktivierte Playbook lässt sich auch per Hand ausführen, mit **Run Playbook** an einem Fall. Ein Playbook, das von selbst läuft, lässt sich eingrenzen:
@@ -252,6 +302,10 @@ Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erke
 Prüfen Sie **Open a Case on Match** im Schritt **Bei Treffer** der Regel. Eine Erkennung zu einer Entität, die bereits einen offenen Fall hat, wird diesem Fall zugeordnet, statt einen weiteren zu eröffnen: Suchen Sie sie unter **Erkennungen** im offenen Fall.
 :::
 
+:::details Niemand wurde über einen Fall informiert
+Sehen Sie in der **Zeitachse** des Falls nach, die zeigt, wer benachrichtigt wurde. Eine Benachrichtigung **Neuer Sicherheitsfall** geht an die Personen, deren gewählte Priorität der Fall erreicht; ein Fall mit Medium benachrichtigt also niemanden, der die Voreinstellung **Hoch und Kritisch** behalten hat. Prüfen Sie, dass die Personen, die davon erfahren sollen, Sicherheitsfälle sehen können (eine Security-Rolle oder Project Owner bzw. Project Admin) und dass die Benachrichtigung für sie unter **Benutzereinstellungen → Benachrichtigungseinstellungen → Sicherheit** eingeschaltet ist.
+:::
+
 :::details Ein Playbook ist nicht gelaufen
 Prüfen Sie, dass es aktiviert ist, dass sein **Auslöser** passt (Case Opened läuft einmal, wenn ein Fall eröffnet wird) und dass der Fall seine Einstellungen **For Cases At Least**, **Only For Detections From** und **Only For These Detection Rules** erfüllt. Ein per Hand eröffneter Fall hat keine Erkennung, also läuft ein Playbook, das auf eine Quelle oder auf Regeln beschränkt ist, nicht darauf.
 :::
@@ -269,5 +323,6 @@ Im Fall geht es um keinen Benutzer und keinen Host, etwa nur um eine Adresse, od
 :::cards
 - [Sicherheitsereignisse](/docs/telemetry/security-events): Ereignisse senden, Erkennungsregeln schreiben und Sicherheitsprodukte verbinden.
 - [Threat Intelligence](/docs/telemetry/threat-intelligence): Ihre Ereignisse mit STIX/TAXII-Feeds abgleichen.
+- [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai): Fälle triagieren, Erkennungsregeln entwerfen und mit KI Fragen zur Sicherheit stellen.
 - [Berechtigungsreferenz](/docs/permissions/reference): Die Security-Rollen und was jede darf.
 :::

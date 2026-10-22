@@ -369,7 +369,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-둘 이상의 OneUptime 프로젝트가 같은 Microsoft 테넌트를 연결했습니다. 봇 메시지에는 테넌트 ID만 들어 있으므로 OneUptime은 어느 프로젝트를 말하는지 알 수 없고, 추측하는 대신 거부합니다. 하나를 제외한 모든 프로젝트에서 Microsoft Teams 연결을 해제하세요.
+둘 이상의 OneUptime 프로젝트가 같은 Microsoft 365 조직에 연결되어 있고, 메시지만으로는 어느 프로젝트인지 알 수 없었습니다. 카드의 버튼은 그 카드가 다루는 레코드의 프로젝트에서, 메시지는 전송된 채널의 프로젝트에서 작동하고, 그렇지 않으면 보낸 사람의 Microsoft Teams 계정이 연결된 유일한 프로젝트에서 작동합니다. 원하는 프로젝트의 채널 (예: 그 프로젝트의 인시던트 채널) 에서 다시 보내세요. 어느 프로젝트에도 계정이 연결되어 있지 않은 사람에게는 먼저 연결하라고 안내합니다.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

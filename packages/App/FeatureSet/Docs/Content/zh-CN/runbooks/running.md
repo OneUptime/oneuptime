@@ -134,7 +134,7 @@ Runbook 的 **运行此 Runbook** 开关在其 **设置** 页面上被关闭了�
 :::
 
 :::details 步骤因缺少 Runner 而失败
-消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，选择步骤的 Runner，点击 **Save Steps** ，然后再次运行 Runbook。
+消息类似于“This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.”该步骤在保存时没有选择 **Runner** ，项目也没有 [默认 Runner](/docs/runbooks/agents#项目默认-runner) 。只有当没有 [全局 Runner](/docs/runbooks/agents#全局-runner) 可以运行 JavaScript 步骤时，它才需要你自己的 Runner。打开 Runbook 的 **步骤** ，在步骤的 **更多字段** 中选择它的 Runner，点击 **Save Steps** ，然后再次运行 Runbook。
 :::
 
 :::details 步骤因引用了无法使用的变量而失败

@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find vCenter i OneUptime
 
-Intet sendes, før den første fulde gennemgang af inventaret er færdig, så giv det ét indsamlingsinterval (som standard 2 minutter). Åbn derefter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter er der med sine datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores og ressourcepuljer.
+Intet sendes, før den første fulde gennemgang af inventaret er færdig, så giv det ét indsamlingsinterval (som standard 2 minutter). Åbn derefter **Produkter → Infrastruktur → VMware → Alle vCenter**: vCenter er der med sine datacentre, klynger, ESXi-værter, virtuelle maskiner, datastores og ressourcepuljer. Dets side **Topologi** tegner dem alle på ét kort og markerer det, der kræver opmærksomhed: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Miljøvariabler
@@ -239,6 +239,17 @@ Siden **Oversigt** besvarer først "er dette vCenter sundt": de effektive værte
 ### ESXi-værter
 
 ![Siden med værter, der viser hver ESXi-vært med dens klynge, datacenter og CPU- og hukommelsesudnyttelse](/docs/static/images/VMwareHosts.png)
+
+Vælg en vært for at åbne dens side. Den svarer på det, siden for en vært uden for VMware svarer på, med det, vCenter ved om en hypervisor:
+
+- **Oversigt**: CPU, hukommelse, den langsomste disks latens og netværksgennemløb i det tidsinterval, du vælger, som felter og diagrammer (træk hen over et diagram for at zoome ind); de hændelser og advarsler, der er åbne på værten; dens mest belastede virtuelle maskiner, hvor dem, der venter på en fysisk CPU, er markeret; dens fysiske netværksadaptere og lagerenheder, hvor pakkefejl og langsomme diske er markeret; hvilke værtsadvarsler der er slået til; og værtens detaljer.
+- **Virtuelle maskiner**: værtens VM'er og skabeloner med deres status, ressourcepulje, CPU ready, CPU og hukommelse.
+- **Metrikker**: værtens CPU-, hukommelses-, netværks- og diskserier som diagrammer, pr. netværksadapter og lagerenhed, som hver kan åbnes i metrik-explorer.
+- **Protokoller**: værtens egen syslog, når den sender den (se [Send ESXi-syslog](#valgfrit-send-esxi-syslog)). Indtil da giver fanen de kommandoer, der peger denne vært, eller hele dens klynge, mod agenten. En vCenter, som en sonde indsamler, har ingen syslog, fordi en sonde ikke modtager den.
+
+Når vCenter holder op med at rapportere en vært, siger siden det over sine faner, med hvornår vCenter sidst rapporterede den. Efter 15 minutter uden rapport forlader værten inventaret: dens side siger det så og viser stadig dens tidligere metrikker.
+
+De fem værtsadvarsler (CPU- og hukommelsesmætning, høj disklatens, netværkspakkefejl og droppede pakker) overvåger hver især alle værter i vCenter og udløses for hver vært, der overskrider dem. Kortet **Værtsadvarsler** på en værts side viser, hvilke der er slået til, og dets knap åbner vCenters **Recommendations** med de manglende allerede valgt: Opret dem der, én gang, for alle værter.
 
 ### Virtuelle maskiner
 

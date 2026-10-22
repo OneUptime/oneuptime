@@ -505,9 +505,16 @@ describe("5. the monitor criteria and recommendations show status and severity c
     const index: number = criteriaSteps.indexOf(`${setter}(`);
 
     expect(index).toBeGreaterThan(-1);
-    expect(criteriaSteps.slice(index, index + 120)).toContain(
-      "DropdownUtil.getDropdownOptionsFromEntityArray(",
-    );
+
+    /*
+     * Through ArchivedValuePicker, which leaves an archived value out
+     * unless the criteria already have it: the options are still the rows'
+     * own, colours and all.
+     */
+    const call: string = criteriaSteps.slice(index, index + 320);
+
+    expect(call).toContain("ArchivedValuePicker.getPickerOptions(");
+    expect(call).toContain("DropdownUtil.getDropdownOptionsFromEntityArray(");
   });
 
   test.each(["IncidentSeverity", "AlertSeverity"])(

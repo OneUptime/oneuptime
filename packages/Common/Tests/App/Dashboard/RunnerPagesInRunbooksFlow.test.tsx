@@ -46,13 +46,11 @@ jest.mock("../../../UI/Utils/Analytics", () => {
 
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import Route from "../../../Types/API/Route";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -61,22 +59,24 @@ import {
   DESKTOP_WIDTH,
   MenuLink,
   PROJECT_ID,
+  hrefsInMenu,
   linksIn,
   setViewportWidth,
+  titlesInMenu,
 } from "./SideMenuHarness";
 
 /*
  * The Runner pages, walked through the way a person uses them — with the real
  * Runbooks route group, the real Runbooks layout (side menu and breadcrumbs)
- * and the real Runners, Runner and AI Access pages, in a router that
- * moves the address bar. Only the model API is stubbed.
+ * and the real Runners and Runner pages, in a router that moves the address
+ * bar. Only the model API is stubbed.
  *
  * The other suites pin each piece on its own: the routes, the redirects, the
  * menu, the trail. What none of them can see is the joins between pages —
  * that the list's "View Runner" opens the Runner under Runbooks, that
- * deleting a Runner returns to the Runbooks list, that a credential's Runner
- * links to that Runner's page, and that somebody arriving on an old
- * Project Settings bookmark ends up on a page that works rather than on a
+ * deleting a Runner returns to the Runbooks list, and that somebody arriving
+ * on an old bookmark - a Project Settings one, or AI Access, which went with
+ * runbook credentials - ends up on a page that works rather than on a
  * redirect to nothing.
  */
 
@@ -182,7 +182,8 @@ const STAGING_ID: string = "aaaaaaaa-1111-4111-8111-000000000002";
 const RUNBOOKS: string = `/dashboard/${PROJECT_ID}/runbooks`;
 const SETTINGS: string = `/dashboard/${PROJECT_ID}/settings`;
 const RUNNERS_PATH: string = `${RUNBOOKS}/runners`;
-const CREDENTIALS_PATH: string = `${RUNBOOKS}/runner-credentials`;
+// Runbooks > Runners > AI Access, gone with runbook credentials.
+const OLD_CREDENTIALS_PATH: string = `${RUNBOOKS}/runner-credentials`;
 
 function runnerPath(id: string): string {
   return `${RUNNERS_PATH}/${id}`;
@@ -204,20 +205,6 @@ function makeRunner(id: string, name: string): Runner {
     canRunRunbooks: true,
     canRunAiCommands: false,
     lastAlive: new Date(),
-  });
-}
-
-function makeCredential(
-  id: string,
-  name: string,
-  runners: Array<Runner>,
-): RunbookCredential {
-  return Object.assign(new RunbookCredential(), {
-    _id: id,
-    name,
-    description: "",
-    credentialType: RunbookCredentialType.SSH,
-    runners,
   });
 }
 
@@ -371,14 +358,6 @@ beforeEach(() => {
         data = [];
       } else if (modelType === Runner) {
         data = runners;
-      } else if (modelType === RunbookCredential) {
-        data = [
-          makeCredential(
-            "bbbbbbbb-1111-4111-8111-000000000001",
-            "db-host-ssh",
-            [runners[0]!],
-          ),
-        ];
       }
 
       return {
@@ -416,11 +395,17 @@ describe("the Runners list, inside Runbooks", () => {
     );
     expect(breadcrumbs()).toEqual(["Project", "Runbooks", "Runners"]);
     expect(highlightedMenuEntries()).toEqual(["Runners"]);
+    // Runners is a row of the Runbooks section, with nothing beside it.
     expect(
-      linksIn("Runners").map((link: MenuLink): string => {
+      linksIn("Runbooks").map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toEqual(["Runbooks", "Executions", "Runners"]);
+    expect(
+      linksIn("Runbooks").map((link: MenuLink): string => {
         return link.href;
       }),
-    ).toEqual([RUNNERS_PATH, CREDENTIALS_PATH]);
+    ).toContain(RUNNERS_PATH);
   });
 
   test("View Runner opens that Runner's page under Runbooks", async () => {
@@ -503,41 +488,28 @@ describe("a Runner's page, inside Runbooks", () => {
 });
 
 /*
- * AI Access is the page Runner Credentials was: what OneUptime AI's commands
- * reach through a Runner. Its address is the one Runner Credentials had.
+ * AI Access - the page Runner Credentials was, the runbook credentials
+ * OneUptime AI's commands reached a host or a cluster with - went with
+ * runbook credentials. Nothing in the menu leads to it, and its address
+ * lands on Runners.
  */
-describe("AI Access, inside Runbooks", () => {
-  test("the menu's AI Access entry opens it", async () => {
+describe("AI Access, gone from Runbooks", () => {
+  test("the menu leads nowhere near it", async () => {
     open(RUNNERS_PATH);
     await rowOf("prod-bastion");
 
-    const credentialsEntry: HTMLElement | undefined = Array.from(
-      document.querySelectorAll<HTMLElement>("nav a"),
-    ).find((anchor: HTMLElement): boolean => {
-      return anchor.getAttribute("href") === CREDENTIALS_PATH;
-    });
-    expect(credentialsEntry).toBeDefined();
-    fireEvent.click(credentialsEntry!);
-
-    await expectPath(CREDENTIALS_PATH);
-    await rowOf("db-host-ssh");
-    expect(breadcrumbs()).toEqual(["Project", "Runbooks", "AI Access"]);
-    expect(highlightedMenuEntries()).toEqual(["AI Access"]);
+    expect(hrefsInMenu()).not.toContain(OLD_CREDENTIALS_PATH);
+    expect(titlesInMenu()).not.toContain("AI Access");
+    expect(titlesInMenu()).not.toContain("Runner Credentials");
   });
 
-  test("a credential's Runner links to that Runner's page, and the link works", async () => {
-    open(CREDENTIALS_PATH);
+  test("its address lands on Runners, under Runbooks", async () => {
+    open(OLD_CREDENTIALS_PATH);
 
-    const row: HTMLElement = await rowOf("db-host-ssh");
-    const runnerLink: HTMLElement = within(row).getByRole("link", {
-      name: /prod-bastion/,
-    });
-    expect(runnerLink).toHaveAttribute("href", runnerPath(BASTION_ID));
-
-    fireEvent.click(runnerLink);
-
-    await expectPath(runnerPath(BASTION_ID));
-    await expectRunnerPage("prod-bastion");
+    await expectPath(RUNNERS_PATH);
+    await rowOf("prod-bastion");
+    expect(breadcrumbs()).toEqual(["Project", "Runbooks", "Runners"]);
+    expect(highlightedMenuEntries()).toEqual(["Runners"]);
   });
 });
 
@@ -569,12 +541,12 @@ describe("arriving on an old Project Settings bookmark", () => {
     ]);
   });
 
-  test("the Runner Credentials bookmark shows the credentials, on AI Access", async () => {
+  test("the Runner Credentials bookmark lands on Runners: the page went with runbook credentials", async () => {
     open(`${SETTINGS}/runner-credentials`);
 
-    await expectPath(CREDENTIALS_PATH);
-    await rowOf("db-host-ssh");
-    expect(highlightedMenuEntries()).toEqual(["AI Access"]);
+    await expectPath(RUNNERS_PATH);
+    await rowOf("prod-bastion");
+    expect(highlightedMenuEntries()).toEqual(["Runners"]);
   });
 
   test("Back does not bounce through the redirect", async () => {

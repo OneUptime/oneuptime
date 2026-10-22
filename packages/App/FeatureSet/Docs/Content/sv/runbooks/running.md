@@ -134,7 +134,7 @@ Runbookets brytare **Kör det här runbooket** är avstängd på dess sida **Ins
 :::
 
 :::details Ett steg misslyckades för att det saknar en Runner
-Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Steget sparades utan **Runner**. Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj stegets Runner, klicka på **Save Steps** och kör runbooket igen.
+Meddelandet lyder till exempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Steget sparades utan **Runner**, och projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Ett JavaScript-steg behöver bara en egen Runner när ingen [global Runner](/docs/runbooks/agents#globala-runners) kan köra det. Öppna runbookets **Steg**, välj stegets Runner under **Fler fält**, klicka på **Save Steps** och kör runbooket igen.
 :::
 
 :::details Ett steg misslyckades för att det nämner variabler som det inte kan använda

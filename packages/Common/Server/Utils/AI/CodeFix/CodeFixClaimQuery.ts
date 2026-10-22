@@ -1,6 +1,8 @@
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   CodeWorker,
@@ -63,9 +65,17 @@ export default class CodeFixClaimQuery {
     const parameters: Array<unknown> = [
       AIRunType.CodeFix,
       AIRunStatus.Queued,
-      facts.claimableTaskTypes.map((taskType: CodeFixTaskType): string => {
-        return taskType;
-      }),
+      /*
+       * Never a recipe the server runs itself (a production review), even
+       * when the list handed in names one: no worker may take it.
+       */
+      facts.claimableTaskTypes
+        .filter((taskType: CodeFixTaskType): boolean => {
+          return !CodeFixTaskTypeHelper.isRunByServer(taskType);
+        })
+        .map((taskType: CodeFixTaskType): string => {
+          return taskType;
+        }),
     ];
 
     const conditions: Array<string> = [

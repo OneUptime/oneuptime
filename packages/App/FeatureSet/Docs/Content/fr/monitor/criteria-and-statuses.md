@@ -171,6 +171,15 @@ Chaque changement de statut est conservé dans la **Chronologie de statut** du m
 
 Un changement de statut ne notifie les propriétaires du moniteur que s'ils ont activé **Statut du moniteur modifié** dans leurs paramètres de notification : c'est désactivé au départ. Un moniteur qui revient à son **État du moniteur par défaut** parce qu'aucun critère n'a correspondu ne notifie personne. Voir [Ce qui est activé pour un nouveau membre](/docs/notifications/notification-settings#ce-qui-est-activé-pour-un-nouveau-membre).
 
+## Archiver un statut de moniteur
+
+Archivez un statut que votre équipe ne doit plus utiliser, au lieu de le supprimer. L'archivage ne modifie aucun moniteur : un moniteur avec ce statut le garde jusqu'à ce que son statut change, et sa chronologie de statuts l'affiche toujours.
+
+- **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les critères de moniteur, modèles et pages de statut configurés pour utiliser le statut : ils continuent à l'utiliser tant que vous ne les modifiez pas.
+- **Personne ne peut plus le choisir.** Un critère, le menu de statut d'un moniteur, le statut de moniteur d'un incident ou d'un événement de maintenance et les statuts d'indisponibilité d'une page de statut l'excluent. L'API, Terraform et MCP le refusent.
+- **Les statuts archivés sont listés à part**, dans la section repliée **Statuts de moniteur archivés** sous le tableau. **Désarchiver** en remet un tel qu'il était.
+- **Les statuts intégrés ne peuvent pas être archivés.** Les nouveaux moniteurs commencent avec le statut opérationnel, et OneUptime considère qu'un moniteur avec le statut hors ligne est hors service. Leur **Archiver** est verrouillé, avec la raison.
+
 ## Dépannage
 
 :::details Le site est en panne, mais le moniteur reste opérationnel

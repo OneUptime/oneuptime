@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Das vCenter in OneUptime finden
 
-Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools.
+Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools. Seine Seite **Topologie** zeichnet alles als eine Karte und markiert, was Aufmerksamkeit erfordert: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Umgebungsvariablen
@@ -239,6 +239,17 @@ Die **Übersicht** beantwortet zuerst die Frage, ob dieses vCenter gesund ist: d
 ### ESXi-Hosts
 
 ![Die Seite Hosts mit jedem ESXi-Host samt Cluster, Rechenzentrum, CPU- und Speicherauslastung](/docs/static/images/VMwareHosts.png)
+
+Wählen Sie einen Host aus, um seine Seite zu öffnen. Sie beantwortet, was die Seite eines Hosts außerhalb von VMware beantwortet, mit dem, was vCenter über einen Hypervisor weiß:
+
+- **Übersicht**: CPU, Arbeitsspeicher, die Latenz der langsamsten Festplatte und der Netzwerkdurchsatz im gewählten Zeitraum, als Kacheln und Diagramme (ziehen Sie über ein Diagramm, um hineinzuzoomen); die offenen Vorfälle und Warnungen des Hosts; seine am stärksten ausgelasteten virtuellen Maschinen, wobei die markiert sind, die auf eine physische CPU warten; seine physischen Netzwerkadapter und Speichergeräte, wobei Paketfehler und langsame Festplatten markiert sind; welche Host-Warnungen eingeschaltet sind; und die Details des Hosts.
+- **Virtuelle Maschinen**: die VMs und Vorlagen auf dem Host mit Status, Ressourcenpool, CPU Ready, CPU und Arbeitsspeicher.
+- **Metriken**: die CPU-, Arbeitsspeicher-, Netzwerk- und Festplattenserien des Hosts als Diagramme, pro Netzwerkadapter und Speichergerät, jedes davon im Metrik-Explorer zu öffnen.
+- **Protokolle**: das eigene Syslog des Hosts, sobald er es sendet (siehe [ESXi-Syslog senden](#optional-esxi-syslog-senden)). Bis dahin zeigt der Tab die Befehle, die diesen Host oder seinen ganzen Cluster auf den Agent verweisen. Ein vCenter, das eine Sonde erfasst, hat kein Syslog, da eine Sonde es nicht empfängt.
+
+Meldet vCenter einen Host nicht mehr, sagt die Seite das über ihren Tabs, mit dem Zeitpunkt, zu dem vCenter ihn zuletzt gemeldet hat. Nach 15 Minuten ohne Meldung verlässt der Host das Inventar: Seine Seite sagt das dann und zeigt weiterhin seine früheren Metriken.
+
+Die fünf Host-Warnungen (CPU- und Arbeitsspeicher-Sättigung, hohe Festplattenlatenz, Netzwerk-Paketfehler und verworfene Pakete) überwachen jeweils alle Hosts des vCenters und lösen für jeden Host aus, der sie überschreitet. Die Karte **Host-Warnungen** auf der Seite eines Hosts zeigt, welche eingeschaltet sind, und ihre Schaltfläche öffnet die **Empfehlungen** des vCenters mit den fehlenden bereits ausgewählt: Erstellen Sie sie dort einmal, für alle Hosts.
 
 ### Virtuelle Maschinen
 

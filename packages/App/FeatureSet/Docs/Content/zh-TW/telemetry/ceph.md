@@ -104,7 +104,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到叢集
 
-開啟 **產品 → 基礎設施 → Ceph → 所有叢集**。大約一分鐘內，叢集會以其 `CEPH_CLUSTER_NAME` 出現，並帶有其 OSD、儲存池和常駐程式。
+開啟 **產品 → 基礎設施 → Ceph → 所有叢集**。大約一分鐘內，叢集會以其 `CEPH_CLUSTER_NAME` 出現，並帶有其 OSD、儲存池和常駐程式。它的 **拓撲** 頁面將這些繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數

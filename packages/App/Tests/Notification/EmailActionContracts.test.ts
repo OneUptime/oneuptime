@@ -580,7 +580,7 @@ describe("the primary and copyable actions have independent destinations", () =>
 
 /*
  * The four page-out emails: Acknowledge, with its link to copy, and - for
- * somebody who cannot take the page - "Pass it on" under it, a second,
+ * somebody who cannot take the page - "Escalate" under it, a second,
  * quieter button (OnCallPagePassOn). An email sent without a pass-on link
  * has Acknowledge alone.
  */
@@ -602,18 +602,18 @@ const PAGE_OUT_CONTRACTS: Array<[string, DestinationKey, string]> = [
 describe.each(PAGE_OUT_CONTRACTS)(
   "%s",
   (template: string, key: DestinationKey, label: string) => {
-    test("acknowledges first, then offers passing the page on", () => {
+    test("acknowledges first, then offers escalating the page", () => {
       expectNavigation(
         render(template),
-        [action(key, label), action("passOnLink", "Pass it on")],
+        [action(key, label), action("passOnLink", "Escalate")],
         [copyable(key)],
       );
     });
 
-    test("passing on is the quieter, secondary button", () => {
+    test("escalating is the quieter, secondary button", () => {
       const passOn: Anchor | undefined = anchors(render(template)).find(
         (anchor: Anchor): boolean => {
-          return anchor.text === "Pass it on";
+          return anchor.text === "Escalate";
         },
       );
 

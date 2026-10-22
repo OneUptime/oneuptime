@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import ProxmoxLayout from "../Pages/Proxmox/Layout";
 import ProxmoxClusterViewLayout from "../Pages/Proxmox/View/Layout";
+import ProxmoxClusterTopology from "../Pages/Proxmox/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, ProxmoxRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -144,6 +145,20 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
             <ProxmoxClusterOverview
               {...props}
               pageRoute={RouteMap[PageMap.PROXMOX_CLUSTER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY,
+          )}
+          element={
+            <ProxmoxClusterTopology
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY] as Route
+              }
             />
           }
         />

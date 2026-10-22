@@ -54,7 +54,7 @@ Usalo quando è la forma della linea a raccontare la storia: latenza, errori, th
 
 ### Valore
 
-Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. **Warning Threshold** rende lo sfondo giallo e **Critical Threshold** rosso quando il valore li raggiunge.
+Un grande numero con uno sparkline: il valore della query sull'intero intervallo di tempo, sommato per una somma o un conteggio, il più alto per un massimo, il più basso per un minimo, e la media negli altri casi. Una freccia confronta la seconda metà dell'intervallo con la prima, ciascuna metà calcolata allo stesso modo, colorata in base a **Trend Direction**: se un valore più alto è meglio o peggio, oppure dedotto dal nome della metrica. Punta il cursore sulla freccia per vedere il valore di ciascuna metà, e sullo sparkline per leggere valore e ora di qualsiasi punto. **Warning Threshold** rende lo sfondo giallo e **Critical Threshold** rosso quando il valore li raggiunge.
 
 Usalo quando un numero risponde alla domanda: il tasso di errori, la latenza P95 o le richieste servite oggi.
 
@@ -178,7 +178,7 @@ Ognuno di questi widget elenca le risorse che un agent o un collector comunica a
 | **Docker Swarm** | **Nodi**, **Servizi** | L'agent Docker Swarm |
 | **Podman** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Podman |
 | **Proxmox** | **Nodi**, **Guests** | L'agent Proxmox |
-| **VMware** | **Host**, **Virtual Machines** | L'agent VMware, o un vCenter che colleghi |
+| **VMware** | **Host**, **Macchine virtuali** | L'agent VMware, o un vCenter che colleghi |
 | **Ceph** | **OSDs**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
 | **Array di storage** | **Volumi**, e **Hardware** come un muro colorato per stato | L'agent per array di storage |
 

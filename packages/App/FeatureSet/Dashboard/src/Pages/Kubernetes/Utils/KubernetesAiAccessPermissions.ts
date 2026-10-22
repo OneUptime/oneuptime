@@ -1,8 +1,6 @@
 import Permission from "Common/Types/Permission";
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
-import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import PermissionGate, {
   ModelAction,
@@ -37,9 +35,8 @@ export function holdsKubernetesAiAccessPermission(
 
 /*
  * Whether the signed-in user may LOOSEN what AI may do on the cluster:
- * turn fixes on or up, add a kubectl allowlist pattern, bind a Runner or
- * credential, or move an advanced binding over to the cluster's AI agent.
- * A cluster's fixes mode does the job of an auto-remediation rule, so it
+ * turn fixes on or up, or add a kubectl allowlist pattern. A cluster's
+ * fixes mode does the job of an auto-remediation rule, so it
  * takes the same permissions (KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS) and
  * the server refuses the write without them. Tightening stays open to
  * every cluster editor (getKubernetesAiAccessLooseningChanges).
@@ -81,37 +78,6 @@ export const PROJECT_AI_SETTINGS_PERMISSIONS: Array<Permission> = [
 
 export function canChangeProjectAiSettings(): boolean {
   return holdsKubernetesAiAccessPermission(PROJECT_AI_SETTINGS_PERMISSIONS);
-}
-
-/*
- * Whether the signed-in user may pick a Kubernetes credential for an
- * advanced Runner. The picker lists RunbookCredential rows, which carry
- * cluster tokens and are deliberately not readable by every member - and
- * reading them is what the server asks of whoever binds one
- * (RunbookCredentialReaders), so it is the whole rule.
- */
-export function canPickKubernetesCredential(): boolean {
-  return PermissionGate.check(new RunbookCredential(), ModelAction.Read)
-    .isAllowed;
-}
-
-export function getKubernetesCredentialPermissionTitles(): Array<string> {
-  return PermissionGate.getPermissionTitles(
-    new RunbookCredential().getReadPermissions(),
-  );
-}
-
-/*
- * The Runner picker's sibling of canPickKubernetesCredential. The Runner
- * read ACL is not widened: it exposes every Runner's capabilities and
- * liveness.
- */
-export function canPickKubernetesRunner(): boolean {
-  return PermissionGate.check(new Runner(), ModelAction.Read).isAllowed;
-}
-
-export function getKubernetesRunnerPermissionTitles(): Array<string> {
-  return PermissionGate.getPermissionTitles(new Runner().getReadPermissions());
 }
 
 /*
@@ -176,19 +142,10 @@ export function getAccessTestPermissionMessage(): string {
 export interface KubernetesAiAccessEditCapabilities {
   // Loosening. Without it the modal still offers every tightening.
   canConfigureUnattended: boolean;
-  // The Runner picker (advanced bindings only): loosening AND able to list Runners.
-  canPickRunner: boolean;
-  // The credential picker: loosening AND able to read (and bind) credentials.
-  canPickCredential: boolean;
 }
 
 export function getKubernetesAiAccessEditCapabilities(): KubernetesAiAccessEditCapabilities {
-  const canConfigureUnattended: boolean =
-    canConfigureUnattendedKubernetesAiAccess();
-
   return {
-    canConfigureUnattended,
-    canPickRunner: canConfigureUnattended && canPickKubernetesRunner(),
-    canPickCredential: canConfigureUnattended && canPickKubernetesCredential(),
+    canConfigureUnattended: canConfigureUnattendedKubernetesAiAccess(),
   };
 }

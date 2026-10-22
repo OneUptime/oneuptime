@@ -152,4 +152,91 @@ describe("CodeFixTaskTypeHelper", () => {
       }
     });
   });
+
+  /*
+   * A production review is a code-fix run so it lives in Code with the
+   * rest, but the SERVER carries it out: no Runner may ever be handed one -
+   * not one that names it among what it can do, not one that names nothing,
+   * and not the queue's count a Runner autoscales on.
+   */
+  describe("recipes the server runs itself", () => {
+    test("the production review is the one, and the only one", () => {
+      expect(CodeFixTaskTypeHelper.getServerRunTaskTypes()).toEqual([
+        CodeFixTaskType.GitHubPullRequestProductionReview,
+      ]);
+
+      for (const taskType of Object.values(CodeFixTaskType)) {
+        expect(CodeFixTaskTypeHelper.isRunByServer(taskType)).toBe(
+          taskType === CodeFixTaskType.GitHubPullRequestProductionReview,
+        );
+      }
+
+      expect(CodeFixTaskTypeHelper.isRunByServer(null)).toBe(false);
+      expect(CodeFixTaskTypeHelper.isRunByServer(undefined)).toBe(false);
+      expect(CodeFixTaskTypeHelper.isRunByServer("SomethingElse")).toBe(false);
+    });
+
+    test("a Runner may be handed every recipe but those", () => {
+      expect(CodeFixTaskTypeHelper.getRunnerTaskTypes()).toEqual(
+        Object.values(CodeFixTaskType).filter((taskType: CodeFixTaskType) => {
+          return taskType !== CodeFixTaskType.GitHubPullRequestProductionReview;
+        }),
+      );
+      expect(
+        CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay(),
+      ).not.toContain(CodeFixTaskType.GitHubPullRequestProductionReview);
+    });
+
+    test("a Runner that says it can review against production is not believed", () => {
+      expect(
+        CodeFixTaskTypeHelper.readSupportedTaskTypes([
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+          CodeFixTaskType.FixException,
+        ]),
+      ).toEqual([CodeFixTaskType.FixException]);
+    });
+
+    test("it carries its context in the run, opens no pull request, and is not a GitHub agent recipe", () => {
+      expect(
+        CodeFixTaskTypeHelper.getContextKind(
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+        ),
+      ).toBe(CodeFixContextKind.TaskContext);
+      expect(
+        CodeFixTaskTypeHelper.opensNewPullRequest(
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+        ),
+      ).toBe(false);
+      expect(
+        CodeFixTaskTypeHelper.isGitHubTaskType(
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+        ),
+      ).toBe(false);
+      expect(
+        CodeFixTaskTypeHelper.isUserTriggerable(
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+        ),
+      ).toBe(false);
+    });
+
+    test("isProductionReview names it, and nothing else", () => {
+      expect(
+        CodeFixTaskTypeHelper.isProductionReview(
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+        ),
+      ).toBe(true);
+      expect(
+        CodeFixTaskTypeHelper.isProductionReview(
+          CodeFixTaskType.GitHubPullRequestReview,
+        ),
+      ).toBe(false);
+      expect(CodeFixTaskTypeHelper.isProductionReview(null)).toBe(false);
+    });
+
+    test("its wire value never changes", () => {
+      expect(CodeFixTaskType.GitHubPullRequestProductionReview).toBe(
+        "GitHubPullRequestProductionReview",
+      );
+    });
+  });
 });

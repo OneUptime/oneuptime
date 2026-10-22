@@ -7,6 +7,7 @@ import PodmanHost from "./PodmanHost";
 import PodmanResource from "./PodmanResource";
 import Host from "./Host";
 import IncidentEpisode from "./IncidentEpisode";
+import IncidentPostmortemStatus from "./IncidentPostmortemStatus";
 import IncidentSeverity from "./IncidentSeverity";
 import IncidentState from "./IncidentState";
 import KubernetesCluster from "./KubernetesCluster";
@@ -131,6 +132,8 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
   },
 })
 @Index(["projectId", "currentIncidentStateId"]) // Active-incident counters on dashboard
+// The Postmortems list: its status chips and the count of each status.
+@Index(["projectId", "postmortemStatusId"])
 /*
  * The incidents an investigation rule makes OneUptime AI wait on: a handful
  * at any moment, so the index holds only them, and the rule-wait job's
@@ -2593,6 +2596,109 @@ export default class Incident extends BaseModel {
     },
   })
   public postmortemAttachments?: Array<File> = undefined;
+
+  /*
+   * How far the incident's postmortem has come: one of the project's
+   * postmortem statuses (IncidentPostmortemStatus). A new incident's starts
+   * in the not started status, writing its note moves it to the draft
+   * status and publishing it on a status page to the completed status
+   * (Common/Utils/Incident/PostmortemStatus); anyone who can edit the
+   * incident moves it to any other. Written by the same roles as the
+   * postmortem's note.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "postmortemStatusId",
+    type: TableColumnType.Entity,
+    modelType: IncidentPostmortemStatus,
+    title: "Postmortem Status",
+    description:
+      "How far the incident's postmortem has come: Not Started, Draft, Completed or another of the project's postmortem statuses.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentPostmortemStatus;
+    },
+    {
+      eager: false,
+      nullable: true,
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "postmortemStatusId" })
+  public postmortemStatus?: IncidentPostmortemStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Postmortem Status ID",
+    description:
+      "ID of the incident's postmortem status. Left out on create, the postmortem starts in the project's not started status - or its draft status when the incident is created with a postmortem note, its completed status when that note is published on a status page.",
+    example: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public postmortemStatusId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

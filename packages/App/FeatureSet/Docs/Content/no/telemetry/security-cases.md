@@ -5,6 +5,7 @@ Security Events gjør det deteksjonsreglene, trusseletterretningen og de tilkobl
 :::cards
 - [Hvor saker kommer fra](#hvor-saker-kommer-fra): Deteksjonsregler, trusseletterretning, tilkoblede produkter og personer.
 - [Behandle en sak](#behandle-en-sak): Tildel den, undersøk entitetene, og lukk den med en konklusjon.
+- [Varslinger](#varslinger): Hvem som får beskjed om en ny sak, en tildeling og et steg som venter på godkjenning.
 - [Playbooks](#playbooks): Steg som kjører på en sak, med godkjenning der det betyr noe.
 - [Oversikten](#oversikten): Det som trenger noen nå, og hvor raskt saker blir håndtert.
 :::
@@ -49,7 +50,7 @@ Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å 
 | Tilkoblede produkter | Et varsel fra selve produktet importeres på eller over tilkoblingens terskel | **Open Cases From** satt til **Aldri**, i tilkoblingens steg **Polling** |
 | Personer | Noen åpner en fra **Sikkerhetssaker**, eller med **Open Case** i panelet til en hendelse | Ingen |
 
-Alle kilder er på som standard. En tilkobling åpner saker for **High and above** med mindre du velger et annet nivå; varslene under det nivået importeres fortsatt som hendelser.
+Alle kilder er på som standard. En tilkobling åpner saker for **Høy og høyere** med mindre du velger et annet nivå; varslene under det nivået importeres fortsatt som hendelser.
 
 ### Slik grupperes deteksjoner
 
@@ -83,6 +84,7 @@ En sak går gjennom fire statuser. Den kan hoppe over en, for eksempel en false 
 Siden til saken har alt du trenger for å behandle den:
 
 - Øverst: **Assign to Me**, **Run Playbook**, **Erklær hendelse** og **Close Case**, statusstegene, og prioriteten under menyen ved siden av dem.
+- **OneUptime AI**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **MITRE ATT&CK**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
@@ -104,9 +106,56 @@ For å behandle flere saker samtidig merker du dem i køen og bruker **Assign to
 
 Konklusjonene telles på oversikten. En regel der sakene stadig lukkes som False Positive, er en regel som bør justeres.
 
+En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps, med konklusjonen og avslutningsnotatet, når tilkoblingen har **Lukk varsler når saken deres lukkes** slått på: se [Google SecOps](/docs/integrations/google-secops#lukk-varsler-når-saken-deres-lukkes).
+
 ### Erklær en hendelse
 
 **Erklær hendelse** åpner en OneUptime-hendelse (incident) for saken, med alvorlighetsgraden du velger, og kobler de to sammen begge veier: beskrivelsen av hendelsen nevner saken, og toppen av saken lenker til hendelsen. Vaktordningen, statussider og postmortem tar over derfra. Det krever en rolle som både kan behandle saker og opprette hendelser (incidents).
+
+## Varslinger
+
+OneUptime gir folk beskjed om tre ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
+
+| Varsling | Hvem som får beskjed | Som standard |
+| --- | --- | --- |
+| Ny sikkerhetssak | Alle som kan se prosjektets saker, når en sak åpnes eller stiger, på prioriteten de har valgt eller høyere | E-post og push, for saker med High og Kritisk |
+| Sikkerhetssak tildelt meg | Personen saken er tildelt, og medlemmene av teamet den er tildelt | E-post og push |
+| Playbook-trinn venter på min godkjenning | Personene på saken som kan godkjenne steget: personen den er tildelt, og medlemmene av teamet dens. Kan ingen av dem godkjenne, alle i prosjektet som kan | E-post og push |
+
+- Bare personer som kan se saken, får beskjed om den: Project Owners, Project Admins og rollene Security Admin, Security Member og Security Viewer. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
+- Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
+- Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
+- Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
+- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup).
+- Sakens **Tidslinje** viser hvem som fikk beskjed, og når.
+
+### Velg hva du får beskjed om
+
+Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+
+| Valg | Varsler om saker med |
+| --- | --- |
+| Bare Kritisk | Kritisk |
+| Høy og Kritisk | High og Kritisk (standard) |
+| Middels og høyere | Kritisk, High og Medium |
+| Lav og høyere | Alle prioriteter unntatt Til orientering |
+| Alle saker | Alle prioriteter |
+
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner OneUptime-appen, og lenken i det åpner saken i nettleseren.
+
+### Legg ut i Slack- og Microsoft Teams-kanaler
+
+For å legge ut i en kanal legger du til en regel under **Produkter → Security Events → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+
+| Betingelse | Treffer på |
+| --- | --- |
+| Prioritet for sikkerhetssak | Kritisk, High, Medium, Low eller Til orientering |
+| Tittel på sikkerhetssak, Beskrivelse av sikkerhetssak | Tekst som tittelen eller beskrivelsen av saken inneholder, starter med eller slutter med |
+| Status for sikkerhetssak | Ny, Undersøker, Contained eller Lukket |
+| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Etiketter for sikkerhetssak | Etikettene på saken |
+
+De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **High**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
 
 ## Playbooks
 
@@ -118,6 +167,7 @@ En playbook er en liste med steg som kjører på en sak. Opprett en under **Prod
 | --- | --- |
 | Case Opened | Én gang, når en sak åpnes |
 | Detection Added | Hver gang en ny deteksjon legges til i en åpen sak |
+| Vurdert som sannsynligvis ondsinnet | Én gang, når OneUptime AI sin vurdering leser saken som Sannsynligvis ondsinnet |
 | Manual | Bare når noen kjører den fra en sak |
 
 Enhver aktivert playbook kan også kjøres manuelt, med **Run Playbook** på en sak. En playbook som kjører av seg selv, kan snevres inn:
@@ -252,6 +302,10 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 Sjekk **Open a Case on Match** i regelens steg **Ved treff**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Detections** på den åpne saken.
 :::
 
+:::details Ingen fikk beskjed om en sak
+Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og Kritisk**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+:::
+
 :::details En playbook kjørte ikke
 Sjekk at den er aktivert, at innstillingen **Trigger** passer (Case Opened kjører én gang, når en sak åpnes), og at saken oppfyller innstillingene **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules**. En sak som er åpnet manuelt, har ingen deteksjon, så en playbook som er begrenset til en kilde eller til regler, kjører ikke på den.
 :::
@@ -269,5 +323,6 @@ Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle 
 :::cards
 - [Sikkerhetshendelser](/docs/telemetry/security-events): Send hendelser, skriv deteksjonsregler og koble til sikkerhetsprodukter.
 - [Trusseletterretning](/docs/telemetry/threat-intelligence): Sammenlign hendelsene dine med STIX/TAXII-feeder.
+- [OneUptime AI i sikkerhet](/docs/telemetry/security-ai): Vurder saker, skriv utkast til deteksjonsregler, og spør om sikkerhet med KI.
 - [Tillatelsesreferanse](/docs/permissions/reference): Security-rollene, og hva hver av dem kan gjøre.
 :::

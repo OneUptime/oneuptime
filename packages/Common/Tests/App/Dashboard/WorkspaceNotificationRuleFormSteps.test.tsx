@@ -190,6 +190,8 @@ import WorkspaceNotificationRuleTable from "../../../../App/FeatureSet/Dashboard
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import Label from "../../../Models/DatabaseModels/Label";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 const NAME_PLACEHOLDER: string = "Notify DevOps Team";
 const SUBMIT_LABEL: string = "Create Notification Rule";
@@ -1549,5 +1551,253 @@ describe("Name the channel a rule creates", () => {
     expect(previewNotes()).toContain(
       "Shortened to the Microsoft Teams limit of 50 characters.",
     );
+  });
+});
+
+/*
+ * A SECURITY CASE RULE (Security Events > Workspace > Slack or Microsoft
+ * Teams): the case's own conditions, then the channels - and, in Microsoft
+ * Teams, the chats - it posts in. A case gets no channel of its own
+ * (SecurityCaseNotificationRule), so the Destination step offers no channel
+ * to create, nobody to invite and no name to preview, and a new rule starts
+ * posting to the channels it is to name.
+ */
+describe("Create a notification rule for security cases", () => {
+  const SECURITY_CASE_FIELDS: Array<string> = [
+    "Security Case Priority",
+    "Security Case Title",
+    "Security Case Description",
+    "Security Case Status",
+    "Security Case Source",
+    "Security Case Labels",
+  ];
+
+  beforeEach(() => {
+    createOrUpdateMock.mockReset().mockResolvedValue({ data: {} });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  // Nothing the rule creates or starts: no Video Call step.
+  test("walks Basic, Conditions, then Destination, the last step", async () => {
+    await renderForm(NotificationRuleEventType.SecurityCase);
+
+    expect(stepTitles()).toEqual(["Basic", "Conditions", "Destination"]);
+  });
+
+  test("asks which security cases, with the six fields of a case to match", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await toConditions(user);
+
+    expect(within(dialog()).getByText("Which security cases")).toBeVisible();
+    expect(
+      within(dialog()).getByRole("radio", { name: "All security cases" }),
+    ).toBeChecked();
+
+    await user.click(
+      within(dialog()).getByRole("radio", {
+        name: "Only security cases that match conditions",
+      }),
+    );
+
+    expect(
+      within(dialog()).getByText(
+        "Conditions are checked each time there is something to post about a security case: when it opens or rises to a higher priority, is assigned, or has a playbook step waiting for approval.",
+      ),
+    ).toBeVisible();
+
+    // The Filter Type of the condition it opened with: the case's fields only.
+    await settle();
+    await user.click((await within(dialog()).findAllByRole("combobox"))[0]!);
+
+    expect(
+      Array.from(document.querySelectorAll("[id*='-option-']")).map(
+        (option: Element): string => {
+          return (option.textContent || "").trim();
+        },
+      ),
+    ).toEqual(SECURITY_CASE_FIELDS);
+  });
+
+  // The table loads the project's labels for every kind of rule, a case's too.
+  test("Security Case Labels offers the project's own labels", async () => {
+    const ransomware: Label = new Label();
+    ransomware._id = "a7a7a7a7-a7a7-4a7a-8a7a-a7a7a7a7a7a7";
+    ransomware.name = "Ransomware";
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (data: {
+      modelType: unknown;
+    }): Promise<{
+      data: Array<unknown>;
+      count: number;
+      skip: number;
+      limit: number;
+    }> => {
+      return data.modelType === Label
+        ? { data: [ransomware], count: 1, skip: 0, limit: 1 }
+        : { data: [], count: 0, skip: 0, limit: 0 };
+    }) as never);
+
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await toConditions(user);
+    await user.click(
+      within(dialog()).getByRole("radio", {
+        name: "Only security cases that match conditions",
+      }),
+    );
+    await settle();
+
+    const pick: (index: number, option: string) => Promise<void> = async (
+      index: number,
+      option: string,
+    ): Promise<void> => {
+      await user.click(
+        (await within(dialog()).findAllByRole("combobox"))[index]!,
+      );
+      await user.click(await screen.findByText(option));
+      await settle();
+    };
+
+    await pick(0, "Security Case Labels");
+    await pick(1, "Contains Any");
+    await user.click((await within(dialog()).findAllByRole("combobox"))[2]!);
+
+    expect(await screen.findByText("Ransomware")).toBeVisible();
+  });
+
+  test("Slack: posts to the channels it names, and offers no channel of its own", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.SecurityCase,
+    );
+
+    await toDestination(user);
+
+    expect(
+      within(dialog()).getByText("The channels the rule posts in."),
+    ).toBeVisible();
+    // On from the start: the one destination every such rule needs.
+    expect(switchNamed(/^Post to existing channels/)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(
+      within(dialog()).getByPlaceholderText("#incidents, #ops"),
+    ).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("switch", {
+        name: /^Create a channel for each/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByRole("switch", { name: /^Archive the channel/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByText("Who joins the channel"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByRole("checkbox", { name: OWNERS_BOX }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByRole("button", { name: "More fields" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("channel-name-preview"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByRole("switch", { name: /^Post to chats/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).getByTestId("notification-rule-summary"),
+    ).toHaveTextContent("Name the channels this rule posts in.");
+
+    // The channels are asked for, not assumed.
+    await submit(user);
+
+    expect(
+      await within(dialog()).findByText(
+        "Existing Slack channel name is required",
+      ),
+    ).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText("#incidents, #ops"),
+      { target: { value: "#security, #soc" } },
+    );
+    await settle();
+
+    expect(summary()).toEqual(["Posts updates in #security and #soc."]);
+
+    await submit(user);
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    const call: CreateCall = createCall();
+    const rule: JSONObject = call.model
+      .notificationRule as unknown as JSONObject;
+
+    expect(call.model.eventType).toBe(NotificationRuleEventType.SecurityCase);
+    expect(call.model.workspaceType).toBe(WorkspaceType.Slack);
+    expect(rule["shouldPostToExistingChannel"]).toBe(true);
+    expect(rule["existingChannelNames"]).toBe("#security, #soc");
+    expect(rule["shouldCreateNewChannel"]).toBeUndefined();
+    expect(rule["shouldInviteOwnersToNewChannel"]).toBeUndefined();
+    expect(rule["filters"]).toEqual([]);
+    expect(rule["filterCondition"]).toBe(FilterCondition.All);
+  });
+
+  test("Microsoft Teams: posts to channels or chats, and asks for one of them", async () => {
+    const user: UserEvent = await renderForm(
+      NotificationRuleEventType.SecurityCase,
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    await toDestination(user);
+
+    expect(
+      within(dialog()).getByText("The channels and chats the rule posts in."),
+    ).toBeVisible();
+    expect(switchNamed(/^Post to existing channels/)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(switchNamed(/^Post to chats/)).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("switch", {
+        name: /^Create a channel for each/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog()).queryByTestId("who-joins-teams-note"),
+    ).not.toBeInTheDocument();
+
+    // Neither channels nor chats: the rule would post nowhere.
+    await user.click(switchNamed(/^Post to existing channels/));
+    await settle();
+
+    expect(
+      within(dialog()).getByTestId("notification-rule-summary"),
+    ).toHaveTextContent(
+      "Pick where this rule posts: existing channels, chats, or both.",
+    );
+
+    await submit(user);
+
+    expect(
+      await within(dialog()).findByText(
+        "Please select a destination: post to an existing Microsoft Teams channel or to an existing Microsoft Teams chat",
+      ),
+    ).toBeVisible();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 });

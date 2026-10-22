@@ -40,6 +40,8 @@ import IncidentService from "../../../Services/IncidentService";
 import { AI_REMEDIATION_EXECUTION_FEATURE } from "../../../Services/AIService";
 import { MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR } from "../../../Services/AutoRemediationRuleEngineService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
+import RemediationCodeRepositories from "./RemediationCodeRepositories";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
 import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
@@ -304,6 +306,13 @@ export default class McpRemediationRunner {
 
       const runToolkit: McpRunToolkit = toolkit;
 
+      // The code repositories the run may read: its rule's, or every one.
+      const codeRepositoryAllowance: CodeRepositoryAllowance =
+        await RemediationCodeRepositories.forRule({
+          projectId,
+          autoRemediationRuleId: suggestion.autoRemediationRuleId,
+        });
+
       await AIInvestigationEngine.executeRun({
         aiRunId,
         projectId,
@@ -313,6 +322,7 @@ export default class McpRemediationRunner {
           incidentId: suggestion.incidentId,
           alertId: suggestion.alertId,
           contextSummary,
+          codeRepositoryAllowance,
           personaOverride:
             target.mode === "MakeChanges"
               ? MAKE_CHANGES_PERSONA

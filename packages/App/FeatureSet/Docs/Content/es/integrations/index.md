@@ -50,12 +50,12 @@ Empieza por arriba de la tabla: cuanto más arriba está una forma, menos hay qu
 | Herramienta | Sentido | Qué hace |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | De entrada | Avisa a la guardia de los informes de incidentes de Huntress y resuelve el incidente cuando el informe se cierra. |
-| [Google SecOps](/docs/integrations/google-secops) | De entrada | Trae las detecciones de Google SecOps a Eventos de seguridad. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | De entrada | Trae los incidentes de Microsoft Sentinel a Eventos de seguridad. |
+| [Google SecOps](/docs/integrations/google-secops) | Ambos | Trae las detecciones y los indicadores de Google SecOps a Eventos de seguridad, y le envía lo que OneUptime encuentra. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Ambos | Trae los incidentes de Microsoft Sentinel a Eventos de seguridad, y le envía lo que OneUptime encuentra. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | De entrada | Trae las alertas de Microsoft Defender XDR a Eventos de seguridad. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | De entrada | Trae las alertas de CrowdStrike Falcon a Eventos de seguridad. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | De entrada | Trae los eventos notables de Splunk a Eventos de seguridad. |
-| [Elastic Security](/docs/integrations/elastic-security) | De entrada | Trae las alertas de detección de Elastic Security a Eventos de seguridad. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Ambos | Trae los eventos notables de Splunk a Eventos de seguridad, y le envía lo que OneUptime encuentra. |
+| [Elastic Security](/docs/integrations/elastic-security) | Ambos | Trae las alertas de detección de Elastic Security a Eventos de seguridad, y le envía lo que OneUptime encuentra. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | De entrada | Trae los hallazgos de AWS Security Hub a Eventos de seguridad. |
 | [Okta System Log](/docs/integrations/okta) | De entrada | Trae los inicios de sesión, los cambios de cuenta y las detecciones de amenazas de Okta a Eventos de seguridad. |
 

@@ -6,6 +6,7 @@ La topologie dessine comment vos systèmes sont reliés : quels services en appe
 - [Ouvrir la topologie](#ouvrir-la-topologie): Trois vues d'une même page.
 - [Lire la carte des services](#lire-la-carte-des-services): Qui appelle qui, et à quel point les appels sont sains.
 - [Explorer votre infrastructure](#explorer-votre-infrastructure): Où tourne chaque service.
+- [Ouvrir la carte propre à une ressource](#ouvrir-la-carte-propre-à-une-ressource): Un vCenter, un cluster ou un hôte en détail.
 - [Voir votre réseau](#voir-votre-réseau): Les équipements et leurs liens, en direct.
 :::
 
@@ -80,6 +81,14 @@ Cliquez sur une flèche pour voir son débit de requêtes, son taux d'erreur et 
 - **Parcourez-la à votre façon.** Affichez-la en **Liste** ou en **Carte**, de toute votre infrastructure jusqu'à un seul pod. Les chiffres au-dessus indiquent combien de ressources et de charges de travail elle dessine, combien de services elle peut placer, et combien de ressources silencieuses elle laisse de côté.
 - **Trouvez une ressource.** Cherchez-la par son nom, et cliquez sur **View details** pour ouvrir sa page.
 - **Passez d'une vue à l'autre.** Un service listé sur une ressource s'ouvre sur la **Service Map**, et les ressources sur lesquelles tourne un service s'ouvrent dans **Infrastructure**.
+
+## Ouvrir la carte propre à une ressource
+
+Un vCenter, un cluster Kubernetes, un hôte, un hôte Docker ou Podman, un cluster Docker Swarm, Proxmox ou Ceph et une baie de stockage ont chacun leur propre page **Topologie**. Elle dessine cette ressource en détail, à partir de son propre inventaire : ce qui se trouve dans quoi, chaque élément coloré selon son état, et chaque incident et alerte ouverts sur l'élément qu'ils concernent.
+
+- **Trouvez ce qui demande votre attention.** **Attention requise** ne garde que les éléments en difficulté et le chemin vers chacun, et la recherche trouve un élément n'importe où dans la ressource.
+- **Regardez de plus près.** Cliquez sur un élément pour voir ce qu'il est et un lien vers sa propre page, et sur **Se concentrer sur cet élément** pour ne dessiner que cet élément, ce qu'il contient et ce à quoi il est lié.
+- **Allez dans les deux sens.** **Ouvrir dans Topologie** ouvre la ressource dans **Infrastructure**, et son bouton **Ouvrir la topologie du vCenter**, **Ouvrir la topologie du cluster**, **Ouvrir la topologie de l'hôte** ou **Ouvrir la topologie de la baie de stockage** ramène à sa carte.
 
 ## Voir votre réseau
 

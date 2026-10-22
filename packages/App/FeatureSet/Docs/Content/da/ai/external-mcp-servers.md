@@ -81,7 +81,7 @@ For at få OneUptime AI til at holde op med at bruge en server skal du slå **La
 
 ## Vælg de servere, en regel må bruge
 
-Undersøgelsesregler og regler for automatisk afhjælpning kan hver især nævne de MCP-servere, OneUptime AI må bruge til det, de matcher. Feltet er **MCP-servere** under **Flere felter**. Indtil du vælger nogle, siger den foldede sektion **OneUptime AI må bruge alle dine MCP-servere.**
+Undersøgelsesregler og regler for automatisk afhjælpning kan hver især nævne de MCP-servere, OneUptime AI må bruge til det, de matcher. Feltet er **MCP-servere** under **Flere felter**. Indtil du vælger nogle, må OneUptime AI bruge dem alle, og den foldede sektion siger det.
 
 - **Ingen valgt** – alle projektets servere, der er slået til.
 - **Nogle valgt** – kun dem. På en regel for automatisk afhjælpning, der retter uden at spørge, er det også det at nævne dens servere, der lader OneUptime AI foretage deres ændringer uden at spørge.

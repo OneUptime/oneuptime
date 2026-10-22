@@ -1,17 +1,19 @@
 # Etteranalyser
 
-En etteranalyse er gjennomgangen etter en hendelse: hva som skjedde, hvorfor, hva det kostet brukerne dine og hva som endres nå. I OneUptime skriver du den på selve hendelsen. Den kan starte fra din egen mal eller fra et utkast fra OneUptime AI, og den kan publiseres på statussiden din som hendelsens avsluttende oppdatering.
+En etteranalyse er gjennomgangen etter en hendelse: hva som skjedde, hvorfor, hva det kostet brukerne dine og hva som endres nå. I OneUptime skriver du den på selve hendelsen. Den kan starte fra din egen mal eller fra et utkast fra OneUptime AI, og den kan publiseres på statussiden din som hendelsens avsluttende oppdatering. Hver etteranalyse har også en status, og **Hendelser → Etteranalyser** viser etteranalysen for hver hendelse, slik at du ser hvilke som fortsatt mangler.
 
 :::cards
 - [Skriv en etteranalyse](#skriv-en-etteranalyse): På hendelsens side Etteranalyse, i fem trinn.
 - [Start fra en mal eller et KI-utkast](#start-fra-en-mal-eller-et-ki-utkast): Din disposisjon, eller en som OneUptime AI fyller ut.
 - [Publiser den på statussiden din](#publiser-den-på-statussiden-din): Vis den til kundene og varsle abonnenter én gang.
+- [Følg hvor langt hver etteranalyse har kommet](#følg-hvor-langt-hver-etteranalyse-har-kommet): Ikke startet, Utkast, Fullført eller en status du lager selv.
+- [Se alle etteranalyser](#se-alle-etteranalyser): Filtrer etter eier, alvorlighetsgrad og status for å finne dem som fortsatt mangler.
 - [Etteranalyser for episoder](#etteranalyser-for-episoder): Én gjennomgang for en gruppe hendelser.
 :::
 
 ## Slik blir en etteranalyse til
 
-En etteranalyse har tre deler, alle på hendelsen: notatet, skrevet i Markdown; vedleggene, som skjermbilder og rapporter; og om den vises på statussiden din. De ligger på hendelsens side **Etteranalyse**, under **Undersøkelse** i sidemenyen.
+En etteranalyse har tre deler, alle på hendelsen: notatet, skrevet i Markdown; vedleggene, som skjermbilder og rapporter; og om den vises på statussiden din. De ligger på hendelsens side **Etteranalyse**, under **Undersøkelse** i sidemenyen. En etteranalyse har også en status, som sier hvor langt den har kommet, og eiere: hendelsens eiere.
 
 ```mermaid title="Fra en løst hendelse til en publisert etteranalyse"
 flowchart TB
@@ -30,11 +32,11 @@ flowchart TB
 :::steps
 ### Åpne etteranalysen
 
-Åpne hendelsen, og klikk på **Etteranalyse** under **Undersøkelse** i sidemenyen. Kortet **Notat om etteranalyse** viser notatet, vedleggene og om etteranalysen vises på statussiden.
+Åpne hendelsen, og klikk på **Etteranalyse** under **Undersøkelse** i sidemenyen. Kortet **Etteranalyse** viser etteranalysens **Status** og **Eiere**, notatet, vedleggene og om etteranalysen vises på statussiden.
 
-### Klikk på Rediger evalueringsnotat
+### Klikk på Skriv etteranalyse
 
-Dialogen **Rediger evalueringsnotat** åpnes på første trinn, **Etteranalyse**.
+Dialogen **Skriv etteranalyse** åpnes på første trinn, **Etteranalyse**. Når etteranalysen er skrevet, heter kortets knapp **Rediger evalueringsnotat**, og den åpner de samme trinnene.
 
 ### Skriv notatet og legg ved filer
 
@@ -46,7 +48,7 @@ Klikk på **Neste**. På trinnet **Statusside** er **Publiser på statussiden** 
 
 ### Lagre etteranalysen
 
-Klikk på **Lagre endringer**. Kortet viser notatet og vedleggene.
+Klikk på **Lagre endringer**. Kortet viser notatet og vedleggene. Etteranalysens status flyttes fra **Ikke startet** til **Utkast**: se [Slik flytter en etteranalyse seg](#slik-flytter-en-etteranalyse-seg).
 :::
 
 Hver endring av notatet registreres i hendelsens feed og postes i hendelsens Slack- eller Microsoft Teams-kanal hvis den har en. Så lenge etteranalysen ikke er publisert, får ingen abonnent på statussiden høre om den.
@@ -55,13 +57,13 @@ Hver endring av notatet registreres i hendelsens feed og postes i hendelsens Sla
 
 ## Start fra en mal eller et KI-utkast
 
-To knapper på kortet fyller ut notatet for deg: **Generate with AI**, og **Bruk mal** så snart prosjektet har en mal for etteranalyse. Begge åpner den samme editoren som **Rediger evalueringsnotat**, med notatet utfylt og resten av etteranalysen uendret. Ingenting lagres før du klikker på **Lagre endringer**, så les notatet og rett det først.
+To knapper fyller ut notatet for deg. Så lenge ingenting er skrevet, står de ved siden av **Skriv etteranalyse**: **Start fra mal**, så snart prosjektet har en mal for etteranalyse, og **Generate with AI**. Når etteranalysen er skrevet, ligger de i menyen **⋯** ved siden av **Rediger evalueringsnotat**, som **Bruk mal** og **Generate with AI**. Begge åpner den samme editoren, med notatet utfylt og resten av etteranalysen uendret. Ingenting lagres før du klikker på **Lagre endringer**, så les notatet og rett det først.
 
 ### Bruk en mal
 
 **Bruk mal** vises så snart prosjektet har en mal for etteranalyse. Du oppretter dem under **Hendelser → Innstillinger → Postmortem-maler**: se [Postmortem-maler](/docs/incidents/settings#maler-for-etteranalyse). På OneUptime Cloud krever maler Growth-planen.
 
-Klikk på **Bruk mal**, velg en under **Velg mal** i dialogen **Bruk obduksjonsmal**, og klikk på **Bruk mal**. Har prosjektet bare én mal, er den allerede valgt.
+Klikk på **Start fra mal**, eller på **Bruk mal** i menyen **⋯**, velg en under **Velg mal** i dialogen **Bruk obduksjonsmal**, og klikk på **Bruk mal**. Har prosjektet bare én mal, er den allerede valgt.
 
 ### Generer den med KI
 
@@ -86,6 +88,7 @@ Uten regler får hver løste hendelse et utkast i standardoppsettet til OneUptim
 
 - En regel samsvarer med **Alle hendelser**, eller med **Bare hendelser som oppfyller betingelsene** på monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, slik en undersøkelsesregel gjør.
 - Dens **Maler** er malene for etteranalyse som utkastet kan følge. Uten noen følger utkastet standardoppsettet; med én, den malen; med flere, den OneUptime AI mener passer best til hendelsen. Utkastets innlegg i feeden nevner malen det fulgte.
+- Dens **LLM-leverandør**, under **Flere felt**, er leverandøren OneUptime AI skriver utkastet og velger malen med. Med ingen valgt er det prosjektets standardleverandør, ellers den globale. Utkastets innlegg i feeden nevner leverandøren en regel valgte, eller den som ble brukt i stedet, og hvorfor. Se [Hvilken LLM-leverandør en regel bruker](/docs/ai/ai-sre#hvilken-llm-leverandør-en-regel-bruker).
 - Den første aktiverte regelen som samsvarer med hendelsen, avgjør, regnet fra toppen av listen: dra en regel for å flytte den. En hendelse som ingen regel samsvarer med, får ikke noe utkast, og det får ingen hendelse så lenge reglene ikke kan leses.
 - **Skriv utkast til etteranalyse når en hendelse er løst** er fortsatt den eneste bryteren som slår av utkast. Regler avgjør bare utkastene OneUptime AI skriver på egen hånd: **Generate with AI** tilbyr alle oppsett, uansett hva reglene sier.
 - Å opprette, redigere og omordne regler krever rollen Project Owner eller Project Admin. På OneUptime Cloud krever maler Growth-planen: under den avgjør reglene fortsatt hvilke hendelser som får et utkast, og hvert utkast følger standardoppsettet.
@@ -123,11 +126,54 @@ Dette avgjør om kundene ser den og hører om den:
 
 **Etteranalyse publisert** er også tidspunktet da etteranalysen regnes som publisert for målingen **Tid til etteranalyse**: se [Ferdige målinger](/docs/incidents/settings#ferdige-målinger).
 
+## Følg hvor langt hver etteranalyse har kommet
+
+Etteranalysen for hver hendelse har en av prosjektets statuser for etteranalyse, vist under **Status** øverst på kortet **Etteranalyse**. Et nytt prosjekt har fire. En etteranalyse i **Ikke startet** eller **Utkast** mangler fortsatt; en i **Fullført** eller **Ikke nødvendig** gjør ikke det:
+
+| Status | Hva den betyr | Mangler fortsatt |
+| --- | --- | --- |
+| **Ikke startet** | Ingen har skrevet denne etteranalysen ennå. | Ja |
+| **Utkast** | Etteranalysen skrives. | Ja |
+| **Fullført** | Etteranalysen er skrevet og ferdig. | Nei |
+| **Ikke nødvendig** | Denne hendelsen trenger ingen etteranalyse. | Nei |
+
+### Slik flytter en etteranalyse seg
+
+OneUptime flytter en etteranalyse av seg selv på tre tidspunkter:
+
+- Etteranalysen for en ny hendelse starter i **Ikke startet**, eller i **Utkast** når hendelsen erklæres med et notat, eller i **Fullført** når det notatet publiseres samtidig.
+- Det første notatet i en etteranalyse i **Ikke startet** flytter den til **Utkast**, enten noen skriver det, bruker en mal eller OneUptime AI skriver et utkast.
+- Når den publiseres på statussiden, flyttes den til **Fullført**, med mindre den allerede er ferdig.
+
+Den flytter seg aldri tilbake: å tømme notatet, eller ta etteranalysen av statussiden, lar statusen bli der den er. En status som noen velger i samme lagring, gjelder alltid.
+
+### Flytt den selv
+
+Klikk på statusen, på hendelsens side **Etteranalyse** eller i raden dens i listen over etteranalyser, og velg en under **Flytt etteranalysen til**. Etteranalysen flyttes med en gang. Å flytte en etteranalyse krever rollene som skriver en, og alle som kan lese hendelsen, ser hvor langt etteranalysen har kommet.
+
+### Lag dine egne statuser
+
+Har prosessen din et eget trinn, for eksempel en gjennomgang, legger du til en status for det. Åpne **Hendelser → Innstillinger → Statuser for etteranalyse**, klikk på **Opprett Status for etteranalyse**, og gi den et navn, for eksempel **Til gjennomgang**, en farge og en beskrivelse. En ny status havner rett over **Fullført**; dra en status for å endre plasseringen.
+
+Hvor en status står, avgjør hva den teller som, vist under **Teller som**: over **Utkast** som **Ikke startet**, fra **Utkast** og nedover som **Pågår**, fra **Fullført** og nedover som **Ferdig**, og da mangler den ikke lenger. **Til gjennomgang**, mellom dem, mangler fortsatt; **Ikke nødvendig**, under **Fullført**, gjør ikke det.
+
+**Ikke startet**, **Utkast** og **Fullført** er innebygde, fordi OneUptime flytter etteranalyser til dem: du kan gi dem nytt navn og ny farge, men ikke slette eller arkivere dem, og de beholder rekkefølgen. Arkiver en status du ikke bruker lenger, fra menyen **⋯** i raden: ingen kan flytte en etteranalyse dit igjen, etteranalysene i den blir der til noen flytter dem, og listen filtrerer fortsatt etter den. **Arkiverte etteranalysestatuser**, slått sammen under tabellen, viser dem, med **Fjern fra arkiv** for å hente en tilbake. Å opprette, redigere og slette statuser krever rollen Project Owner, Project Admin eller Incident Admin, eller en egendefinert rolle med den tilsvarende tillatelsen for statuser for etteranalyse.
+
+## Se alle etteranalyser
+
+**Hendelser → Etteranalyser** viser etteranalysen for hver hendelse i prosjektet, den nyeste først, med kolonnene **Hendelse**, **Tittel**, **Status for etteranalyse**, **Alvorlighetsgrad**, **Eiere** og **Erklært**. **Vis** i en rad åpner hendelsens side **Etteranalyse**.
+
+Over listen teller en flis per status etteranalysene i den. Klikk på en flis for å vise bare dem, og klikk igjen for å vise alle.
+
+Filtrer listen med brikkene over den: **Eier**, en person eller et team; **Alvorlighetsgrad**; **Status for etteranalyse**; **Hendelsesstatus**; **Etiketter**; og **Berørte ressurser**. For å se hvilke etteranalyser et team fortsatt skylder for de alvorligste hendelsene dine, velger du teamet under **Eier**, alvorlighetsgraden under **Alvorlighetsgrad**, og **Ikke startet** og **Utkast** under **Status for etteranalyse**. Filtrene står i adressen til siden, så du kan lagre listen som bokmerke eller dele den.
+
+For å endre mange samtidig velger du dem og åpner **Massehandlinger**: **Endre status for etteranalyse** flytter alle til én status, for eksempel **Ikke nødvendig** for hendelser som ikke trenger en, og **Add Owner** og **Remove Owner** endrer hvem som eier dem.
+
 ## Etteranalyser for episoder
 
 En hendelsesepisode har også en side **Etteranalyse**, under **Undersøkelse**: én gjennomgang for alle hendelsene i episoden. Klikk på **Rediger evaluering** for å skrive den. **Bruk mal** og **Generate with AI** fungerer som på en hendelse, og KI leser episoden og medlemshendelsene.
 
-En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident Episode.
+En episodes etteranalyse er bare notatet: den har ingen vedlegg, og ingen statusside viser den. OneUptime AI skriver ikke et utkast av seg selv når en episode løses. Å generere en krever rollen Project Owner eller Project Admin, eller en egendefinert rolle med tillatelsen Edit Incident Episode. Den har heller ingen status, og listen over etteranalyser utelater den.
 
 Varsler og planlagte vedlikeholdshendelser har ingen etteranalyse.
 
@@ -141,8 +187,9 @@ En etteranalyse er et sett felt på hendelsen, som leses og skrives via `/api/in
 | `showPostmortemOnStatusPage` | Om etteranalysen er publisert på statussidene dine. Starter som `false`. |
 | `notifySubscribersOnPostmortemPublished` | Om abonnenter får beskjed når den publiseres. Starter som `true`. |
 | `postmortemPostedAt` | Tidspunktet statussiden viser ved siden av den. |
+| `postmortemStatusId` | Etteranalysens status: en av prosjektets statuser, under `/api/incident-postmortem-status`. |
 
-Å skrive `showPostmortemOnStatusPage` som `true` over en skrevet `postmortemNote` publiserer etteranalysen, slik dialogen gjør.
+Å skrive `showPostmortemOnStatusPage` som `true` over en skrevet `postmortemNote` publiserer etteranalysen, slik dialogen gjør. Det flytter også etteranalysen til **Fullført**, med mindre samme skriving setter `postmortemStatusId`.
 
 ## Feilsøking
 
@@ -164,6 +211,10 @@ Sjekk tre ting: **Publiser på statussiden** er slått på, notatet er ikke tomt
 
 :::details Det kom ikke noe KI-utkast da hendelsen ble løst
 Hendelsen hadde allerede et notat, etteranalysen var allerede publisert, ingen postmortem-regel samsvarte med den, eller **Skriv utkast til etteranalyse når en hendelse er løst** er slått av. KI må være slått på for prosjektet, og prosjektet kan ikke ha nådd de daglige KI-grensene sine. Er transkripsjonen av hendelsens samtale på vei, kommer utkastet når OneUptime AI har lest den.
+:::
+
+:::details Statusen til en etteranalyse flyttet seg ikke da notatet ble skrevet
+Bare en etteranalyse i **Ikke startet**, eller i en egen status over **Utkast**, flytter seg av seg selv, ved det første notatet. En som allerede pågår eller er ferdig, blir der den er, og det samme gjør en status som noen valgte i samme lagring. Flytt den selv via statusen: se [Flytt den selv](#flytt-den-selv).
 :::
 
 ## Neste trinn

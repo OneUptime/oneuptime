@@ -8,7 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -47,9 +47,25 @@ import {
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import {
+  RuleCodeRepositoriesFieldHint,
+  RuleCodeRepositoriesPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesField";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import {
+  ONEUPTIME_AI_PROVIDER,
+  OPUS_PROVIDER,
+  mockRuleLlmProviders,
+  projectProvidersAnswer,
+  providersAnswer,
+} from "./RuleLlmProviderFixtures";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import {
   INVESTIGATION_RULE_NAME_COLUMN_CLASS_NAME,
@@ -100,6 +116,12 @@ interface CapturedField {
     currentValues: Record<string, unknown>,
     setNewFormValues: (values: Record<string, unknown>) => void,
   ) => void;
+  getFoldedValue?: (values: Record<string, unknown>) => string | null;
+  getCustomElement?: (
+    values: Record<string, unknown>,
+    props: CustomElementProps,
+  ) => React.ReactElement;
+  getFooterElement?: () => React.ReactElement;
 }
 
 interface CapturedColumn {
@@ -162,6 +184,8 @@ async function fetchAndSettle(props: Record<string, unknown>): Promise<void> {
 
 beforeEach(() => {
   mockCapturedTableProps.length = 0;
+  // The LLM Provider field's providers: not answered unless a test says so.
+  mockRuleLlmProviders();
 });
 
 afterEach(() => {
@@ -218,7 +242,7 @@ describe.each([
       );
     });
 
-    test("a rule asks Match, then Investigate: when, its name and, under More fields, its MCP servers and description", () => {
+    test("a rule asks Match, then Investigate: when, its name and, under More fields, its LLM provider, MCP servers, code repositories and description", () => {
       const props: Record<string, unknown> = tableFor(lane);
 
       expect(props["formSteps"]).toEqual([
@@ -243,9 +267,14 @@ describe.each([
         ["onlyIfOpenAfterMinutes", "investigate"],
         ["name", "investigate"],
         ["isEnabled", "investigate"],
+        ["llmProviderId", "investigate"],
         ["externalMcpServers", "investigate"],
+        ["codeRepositories", "investigate"],
         ["description", "investigate"],
       ]);
+
+      // No Runner: nothing of an investigation runs on one.
+      expect(fieldsOf(props).map(keyOf)).not.toContain("runnerId");
     });
 
     test("its MCP servers: folded under More fields, none picked is all of them", () => {
@@ -263,15 +292,69 @@ describe.each([
       expect(field.placeholder).toBe("All MCP servers");
       expect(field.title).toBe("MCP Servers");
 
-      // Folded, its line says what the default does - until some are picked.
+      /*
+       * Folded, its line says what the defaults do - in one sentence while
+       * a rule keeps both, then each until it is picked.
+       */
       expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
-        "OneUptime AI may use all of your MCP servers.",
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
       ]);
       expect(
         field.collapsibleSection?.getSummary?.({
           externalMcpServers: [{ value: "a", label: "AWS" }],
         } as never),
+      ).toEqual(["OneUptime AI may read all connected repositories."]);
+      expect(
+        field.collapsibleSection?.getSummary?.({
+          externalMcpServers: [{ value: "a", label: "AWS" }],
+          codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+        } as never),
       ).toBeUndefined();
+    });
+
+    /*
+     * "There should be a dropdown here to select the code repo for
+     * remediation and also investigation rules, if no code repo is selected
+     * - it should be able to read and investigate all the repos that are
+     * connected" - the maintainer.
+     */
+    test("its code repositories: folded under More fields with the MCP servers, none picked is all of them", () => {
+      const props: Record<string, unknown> = tableFor(lane);
+      const field: CapturedField = fieldNamed(props, "codeRepositories");
+
+      expect(field.collapsibleSection).toBe(
+        fieldNamed(props, "externalMcpServers").collapsibleSection,
+      );
+      expect(field.title).toBe(RULE_CODE_REPOSITORIES_FIELD_COPY.title);
+      expect(field.title).toBe("Code Repositories");
+      expect(field.description).toBe(
+        "OneUptime AI may read all of your connected repositories while it investigates. Pick some to let it read only those.",
+      );
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.required).toBe(false);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.hideColumnDescription).toBe(true);
+
+      expect(field.getFoldedValue!({} as never)).toBeNull();
+      expect(
+        field.getFoldedValue!({
+          codeRepositories: [{ _id: "c1111111-1111-4111-8111-111111111111" }],
+        } as never),
+      ).toBe("1");
+
+      const element: React.ReactElement = field.getCustomElement!(
+        {
+          codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+        } as never,
+        {},
+      );
+      expect(element.type).toBe(RuleCodeRepositoriesPicker);
+      expect(element.props["value"]).toEqual([
+        "c1111111-1111-4111-8111-111111111111",
+      ]);
+      expect(field.getFooterElement!().type).toBe(
+        RuleCodeRepositoriesFieldHint,
+      );
     });
 
     test("its name is required and held to a rule name's length, and a new rule starts on", () => {
@@ -290,19 +373,112 @@ describe.each([
       expect(enabled.description).toBe(RULE_ENABLED_DESCRIPTION);
     });
 
-    test("what most rules leave alone - the description, with the MCP servers - is folded under one More fields", () => {
-      const description: CapturedField = fieldNamed(
-        tableFor(lane),
-        "description",
-      );
+    test("what most rules leave alone - the description, with the LLM provider and the MCP servers - is folded under one More fields", () => {
+      const props: Record<string, unknown> = tableFor(lane);
+      const description: CapturedField = fieldNamed(props, "description");
 
       expect(description.fieldType).toBe(FormFieldSchemaType.LongText);
       expect(description.required).toBe(false);
       expect(description.collapsibleSection?.title).toBe("More fields");
-      // One fold on the Investigate step, with the MCP servers.
-      expect(description.collapsibleSection).toBe(
-        fieldNamed(tableFor(lane), "externalMcpServers").collapsibleSection,
+      // One fold on the Investigate step, with the provider and the MCP servers.
+      for (const key of ["llmProviderId", "externalMcpServers"]) {
+        expect(description.collapsibleSection).toBe(
+          fieldNamed(props, key).collapsibleSection,
+        );
+      }
+    });
+
+    /*
+     * The LLM provider OneUptime AI investigates with (Common/Types/AI/
+     * LlmProviderChoice): first under More fields; empty is the default
+     * provider, which the folded line names first.
+     */
+    test("its LLM provider: first under More fields, with the line every rule has", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
+
+      expect(field.title).toBe("LLM Provider");
+      expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.required).toBe(false);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.hideColumnDescription).toBe(true);
+      expect(field.collapsibleSection?.title).toBe(MORE_FIELDS_SECTION_TITLE);
+    });
+
+    test("folded, the line names the provider first: the project's default, the global one, or the rule's pick", async () => {
+      mockRuleLlmProviders(projectProvidersAnswer());
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      let field: CapturedField = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!,
+        "llmProviderId",
       );
+
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "The rule uses the project's default LLM provider, Azure GPT-4o.",
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
+      ]);
+      expect(
+        field.collapsibleSection?.getSummary?.({
+          llmProviderId: OPUS_PROVIDER.id,
+        } as never),
+      ).toEqual([
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
+      ]);
+      expect(
+        field.getFoldedValue!({ llmProviderId: OPUS_PROVIDER.id } as never),
+      ).toBe("Claude Opus");
+
+      cleanup();
+      mockCapturedTableProps.length = 0;
+      mockRuleLlmProviders(
+        providersAnswer(
+          [OPUS_PROVIDER, ONEUPTIME_AI_PROVIDER],
+          ONEUPTIME_AI_PROVIDER.id,
+        ),
+      );
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      field = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!,
+        "llmProviderId",
+      );
+
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "The rule uses the global LLM provider, OneUptime AI.",
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
+      ]);
+    });
+
+    /*
+     * The global provider alone - a new OneUptime Cloud project: nothing to
+     * pick between, so the line says nothing of it, as before rules could
+     * pick one. The open field's box still names it.
+     */
+    test("folded, with the one provider only, the line says nothing of it", async () => {
+      mockRuleLlmProviders(
+        providersAnswer([ONEUPTIME_AI_PROVIDER], ONEUPTIME_AI_PROVIDER.id),
+      );
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const field: CapturedField = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!,
+        "llmProviderId",
+      );
+
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
+      ]);
+      expect(field.getFoldedValue!({} as never)).toBeNull();
     });
 
     test("its conditions are the auto remediation rules' conditions", () => {

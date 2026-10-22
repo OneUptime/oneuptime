@@ -16,15 +16,18 @@ import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpS
 import IncidentSeverity from "../../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentVideoCall from "../../../../../Models/DatabaseModels/IncidentVideoCall";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
+import AIPostmortemRule from "../../../../../Models/DatabaseModels/AIPostmortemRule";
+import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import KubernetesCluster from "../../../../../Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "../../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "../../../../../Models/DatabaseModels/NetworkSite";
 import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
-import RunbookCredential from "../../../../../Models/DatabaseModels/RunbookCredential";
+import SecurityEventConnection from "../../../../../Models/DatabaseModels/SecurityEventConnection";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import Team from "../../../../../Models/DatabaseModels/Team";
+import ThreatIntelFeed from "../../../../../Models/DatabaseModels/ThreatIntelFeed";
 import VideoCallConnection from "../../../../../Models/DatabaseModels/VideoCallConnection";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../../Types/Database/AccessControl/PermissionScope";
@@ -46,10 +49,10 @@ afterEach(() => {
  * A SETTING THAT HOLDS CREDENTIALS IS NAMED ONLY BY A CALLER WHO MAY READ IT.
  *
  * The SMTP server a status page sends its email through, the call and SMS
- * provider a status page or an incoming call policy uses, the credential the
- * AI reaches a cluster with, the SNMP credentials a device or site is polled
- * with, the video call provider a meeting starts through and the API key a
- * permission is granted to are read as a whole table: no label or owner
+ * provider a status page or an incoming call policy uses, the SNMP
+ * credentials a device or site is polled with, the video call provider a
+ * meeting starts through and the API key a permission is granted to are
+ * read as a whole table: no label or owner
  * narrows a read of them. A create or an update that names one is held to
  * its caller's permission to read that table (RelationListPermission
  * .isHeldToTableRead), not to the project alone: a caller who may not read
@@ -66,11 +69,12 @@ const projectId: ObjectID = new ObjectID(
 const SMTP_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000a1";
 const SMTP_B: string = "0193c0de-cccc-4aaa-8bbb-0000000000a2";
 const CALL_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000b1";
-const CREDENTIAL_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000c1";
 const SNMP_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000d1";
 const VIDEO_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000e1";
 const API_KEY_A: string = "0193c0de-cccc-4aaa-8bbb-0000000000f1";
 const MCP_SERVER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000101";
+const CONNECTION_A: string = "0193c0de-cccc-4aaa-8bbb-000000000111";
+const LLM_PROVIDER_A: string = "0193c0de-cccc-4aaa-8bbb-000000000121";
 
 const row: (
   permission: Permission,
@@ -235,10 +239,11 @@ describe("the settings that hold credentials", () => {
   test.each([
     [ProjectSmtpConfig],
     [ProjectCallSMSConfig],
-    [RunbookCredential],
     [NetworkSnmpCredentialProfile],
     [VideoCallConnection],
     [ApiKey],
+    [SecurityEventConnection],
+    [LlmProvider],
   ] as Array<[{ new (): BaseModel }]>)(
     "%p is read as a whole table, and named only by its readers",
     (modelType: { new (): BaseModel }) => {
@@ -268,12 +273,6 @@ describe("the settings that hold credentials", () => {
       ProjectCallSMSConfig,
     ],
     [
-      KubernetesCluster,
-      "aiAccessCredential",
-      "aiAccessCredentialId",
-      RunbookCredential,
-    ],
-    [
       NetworkDevice,
       "snmpCredentialProfile",
       "snmpCredentialProfileId",
@@ -298,6 +297,15 @@ describe("the settings that hold credentials", () => {
       VideoCallConnection,
     ],
     [ApiKeyPermission, "apiKey", "apiKeyId", ApiKey],
+    [
+      ThreatIntelFeed,
+      "securityEventConnection",
+      "securityEventConnectionId",
+      SecurityEventConnection,
+    ],
+    [AIInvestigationRule, "llmProvider", "llmProviderId", LlmProvider],
+    [AutoRemediationRule, "llmProvider", "llmProviderId", LlmProvider],
+    [AIPostmortemRule, "llmProvider", "llmProviderId", LlmProvider],
   ] as Array<[{ new (): BaseModel }, string, string, { new (): BaseModel }]>)(
     "%p.%s is held to the read of the setting it names, under both of its names",
     (
@@ -537,36 +545,25 @@ describe("a call and SMS provider", () => {
   });
 });
 
-describe("the credential the AI reaches a cluster with", () => {
-  test("is refused to a cluster editor who may not read credentials", async () => {
-    for (const permission of [
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.EditKubernetesCluster,
-    ]) {
-      expect(
-        await check({
-          modelType: KubernetesCluster,
-          data: { aiAccessCredentialId: CREDENTIAL_A },
-          props: member([permission]),
-        }),
-      ).toBeInstanceOf(UnreadableReferenceException);
-    }
-  });
-
-  test("is named by one who may", async () => {
-    for (const props of [
-      member([Permission.ProjectAdmin]),
-      member([Permission.SettingsAdmin, Permission.ReadRunbookCredential]),
-    ]) {
-      expect(
-        await check({
-          modelType: KubernetesCluster,
-          data: { aiAccessCredential: { _id: CREDENTIAL_A } },
-          props: props,
-        }),
-      ).toBeUndefined();
-    }
+/*
+ * A cluster named the runbook credential OneUptime AI reached it with
+ * through a Runner outside it. Runbook credentials are gone, and the
+ * reference with them: a cluster names no setting that holds credentials.
+ */
+describe("a Kubernetes cluster", () => {
+  test("names no setting that holds credentials any more", () => {
+    expect(
+      RelationListPermission.getCheckedReferences(KubernetesCluster).filter(
+        (reference: CheckedRelationList): boolean => {
+          return RelationListPermission.isHeldToTableRead(
+            reference.listedModelType,
+          );
+        },
+      ),
+    ).toEqual([]);
+    expect(
+      referenceOf(KubernetesCluster, "aiAccessCredential"),
+    ).toBeUndefined();
   });
 });
 
@@ -759,5 +756,218 @@ describe("the outside MCP servers a rule lets OneUptime AI use", () => {
         }),
       ).toBeUndefined();
     }
+  });
+});
+
+/*
+ * The LLM provider an AI rule picks holds the provider's API key: OneUptime
+ * AI does the work the rule starts with that provider, on that key
+ * (Types/AI/LlmProviderChoice). So the provider an investigation, auto
+ * remediation or postmortem rule names is held to the read of LLM
+ * providers: the owners and admins who write investigation and postmortem
+ * rules read them, as do the Settings tiers; a custom role that only edits
+ * auto remediation rules does not.
+ */
+describe("the LLM provider an AI rule picks", () => {
+  test("is refused to a role that edits auto remediation rules but reads no LLM providers, under either name, and nothing is looked up", async () => {
+    for (const permission of [
+      Permission.CreateAutoRemediationRule,
+      Permission.EditAutoRemediationRule,
+    ]) {
+      for (const data of [
+        { llmProviderId: LLM_PROVIDER_A },
+        { llmProvider: { _id: LLM_PROVIDER_A } },
+      ]) {
+        const found: Lookups = lookups();
+
+        const refusal: unknown = await check({
+          modelType: AutoRemediationRule,
+          data: data,
+          props: member([permission]),
+          lookups: found,
+        });
+
+        expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+        expect((refusal as Error).message).toMatch(
+          refusedFor("LLM Provider", LLM_PROVIDER_A),
+        );
+        expect(found.calls).toEqual([]);
+      }
+    }
+  });
+
+  test("is named by the owners and admins who write every kind of rule, and by a role that reads the providers", async () => {
+    const named: Array<
+      [{ new (): BaseModel }, DatabaseCommonInteractionProps]
+    > = [
+      [AIInvestigationRule, member([Permission.ProjectAdmin])],
+      [AIPostmortemRule, member([Permission.ProjectOwner])],
+      [AutoRemediationRule, member([Permission.ProjectAdmin])],
+      [
+        AutoRemediationRule,
+        member([Permission.EditAutoRemediationRule, Permission.ReadProjectLlm]),
+      ],
+      [
+        AutoRemediationRule,
+        member([
+          Permission.CreateAutoRemediationRule,
+          Permission.SettingsViewer,
+        ]),
+      ],
+    ];
+
+    for (const [modelType, props] of named) {
+      expect(
+        await check({
+          modelType: modelType,
+          data: { llmProviderId: LLM_PROVIDER_A },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a rule that picks none - the project's default, else the global provider - asks nothing", async () => {
+    for (const data of [
+      { llmProviderId: null },
+      { llmProvider: null },
+      { name: "Restart the checkout pods" },
+    ]) {
+      expect(
+        await check({
+          modelType: AutoRemediationRule,
+          data: data,
+          props: member([Permission.EditAutoRemediationRule]),
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("an update that keeps the pick a rule holds asks nothing", async () => {
+    const found: Lookups = lookups();
+
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: member([Permission.EditAutoRemediationRule]),
+        lookups: found,
+        heldIdsByColumn: { llmProvider: [[LLM_PROVIDER_A]] },
+      }),
+    ).toBeUndefined();
+    expect(found.calls).toEqual([]);
+  });
+
+  test("an API key is held to the same rule", async () => {
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: apiKey([Permission.CreateAutoRemediationRule]),
+      }),
+    ).toBeInstanceOf(UnreadableReferenceException);
+
+    expect(
+      await check({
+        modelType: AutoRemediationRule,
+        data: { llmProviderId: LLM_PROVIDER_A },
+        props: apiKey([
+          Permission.CreateAutoRemediationRule,
+          Permission.ReadProjectLlm,
+        ]),
+      }),
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * A Google SecOps threat-intel feed reads the indicators Google SecOps found
+ * with a security tool connection's key, so the connection a feed names is
+ * held to the read of Security Tool Connections: every Security tier reads
+ * them, a custom role that only creates feeds does not.
+ */
+describe("the security tool connection a threat-intel feed reads through", () => {
+  test("is refused to a role that creates or edits feeds but reads no connections, and nothing is looked up", async () => {
+    for (const permission of [
+      Permission.CreateProjectThreatIntelFeed,
+      Permission.EditProjectThreatIntelFeed,
+    ]) {
+      for (const data of [
+        { securityEventConnectionId: CONNECTION_A },
+        { securityEventConnection: { _id: CONNECTION_A } },
+      ]) {
+        const found: Lookups = lookups();
+
+        const refusal: unknown = await check({
+          modelType: ThreatIntelFeed,
+          data: data,
+          props: member([permission]),
+          lookups: found,
+        });
+
+        expect(refusal).toBeInstanceOf(UnreadableReferenceException);
+        expect((refusal as Error).message).toMatch(
+          refusedFor("Google SecOps Connection", CONNECTION_A),
+        );
+        expect(found.calls).toEqual([]);
+      }
+    }
+  });
+
+  test("is named by every Security tier that creates feeds, and by the admins", async () => {
+    for (const props of [
+      member([Permission.SecurityMember]),
+      member([Permission.SecurityAdmin]),
+      member([Permission.ProjectAdmin]),
+      member([Permission.ProjectOwner]),
+      member([
+        Permission.CreateProjectThreatIntelFeed,
+        Permission.SecurityViewer,
+      ]),
+    ]) {
+      expect(
+        await check({
+          modelType: ThreatIntelFeed,
+          data: { securityEventConnectionId: CONNECTION_A },
+          props: props,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a feed of another source names none, and asks nothing", async () => {
+    for (const data of [
+      { securityEventConnectionId: null },
+      { name: "Feodo Tracker", listUrl: "https://example.com/list.txt" },
+    ]) {
+      expect(
+        await check({
+          modelType: ThreatIntelFeed,
+          data: data,
+          props: member([Permission.CreateProjectThreatIntelFeed]),
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("an API key is held to the same rule", async () => {
+    expect(
+      await check({
+        modelType: ThreatIntelFeed,
+        data: { securityEventConnectionId: CONNECTION_A },
+        props: apiKey([Permission.CreateProjectThreatIntelFeed]),
+      }),
+    ).toBeInstanceOf(UnreadableReferenceException);
+
+    expect(
+      await check({
+        modelType: ThreatIntelFeed,
+        data: { securityEventConnectionId: CONNECTION_A },
+        props: apiKey([
+          Permission.CreateProjectThreatIntelFeed,
+          Permission.SecurityViewer,
+        ]),
+      }),
+    ).toBeUndefined();
   });
 });

@@ -7,8 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { Mock, SpyInstance } from "jest-mock";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -27,9 +33,13 @@ import * as React from "react";
  * So a rule asks its conditions and one question about the fix - whether it
  * waits for approval - and OneUptime AI fixes. Folded under More fields: the
  * runbooks OneUptime AI may run (none picked: any), "Run them every time"
- * (what a rule saved with Fix With set to Runbooks keeps doing), and the
- * Runner OneUptime AI runs the rule's commands on (none: the AI agent on the
- * affected cluster or host). The same for alerts.
+ * (what a rule saved with Fix With set to Runbooks keeps doing), the Runner
+ * OneUptime AI runs the rule's Bash commands on (the project's default for a
+ * new rule, or none - never "AI agent on the cluster or host", which is not a
+ * Runner), the MCP servers and code repositories it may use (none picked:
+ * all), and the two pull requests an investigation of a match can open -
+ * "Both of these toggles should be inside of Remediation Rule, inside of
+ * More, and they should be checked by default". The same for alerts.
  *
  * The table names a rule's fix in one Fix column: whether it asks first
  * and, in a quiet line, how it fixes - only for a rule that does not fix
@@ -89,6 +99,14 @@ import {
   isRunbooksEveryTime,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
 import { AUTO_REMEDIATION_OLDER_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleFields";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import {
+  RuleCodeRepositoriesFieldHint,
+  RuleCodeRepositoriesPicker,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesField";
+import RunnerChoicesLoader from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices";
+import RunnerLiveStatus from "../../../Types/Runner/RunnerLiveStatus";
+import ProjectUtil from "../../../UI/Utils/Project";
 import { AutoRemediationFixKind } from "../../../Types/AutoRemediation/AutoRemediationFix";
 import {
   AI_LANE_REMEDIATION_RULES_TABLE_ID,
@@ -114,6 +132,12 @@ import {
   MORE_FIELDS_SECTION_TITLE,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import {
+  OPUS_PROVIDER,
+  mockRuleLlmProviders,
+  projectProvidersAnswer,
+} from "./RuleLlmProviderFixtures";
 
 // ModelAPI.count spied on, as jest-mock's spyOn types it.
 type CountSpy = SpyInstance<
@@ -155,6 +179,8 @@ interface CapturedField {
     values: Values,
     props: CustomElementProps,
   ) => React.ReactElement;
+  getFooterElement?: () => React.ReactElement;
+  hideColumnDescription?: boolean;
 }
 
 interface CapturedColumn {
@@ -250,6 +276,8 @@ const PICKED_RUNBOOKS: Array<unknown> = [
 
 beforeEach(() => {
   mockCapturedTableProps.length = 0;
+  // The LLM Provider field's providers: not answered unless a test says so.
+  mockRuleLlmProviders();
 });
 
 afterEach(() => {
@@ -318,7 +346,7 @@ describe.each([
         description: AI_LANE_RULES_COPY[lane].remediationRulesDescription,
       });
       expect(AI_LANE_RULES_COPY[lane].remediationRulesDescription).toBe(
-        `With no rule, OneUptime AI fixes every new ${subject.toLowerCase()} while fixing is on. Add rules to fix only the ${subject.toLowerCase()}s that match one of them, to ask before fixing, or to choose the runbooks it may run.`,
+        `With no rule, OneUptime AI fixes every new ${subject.toLowerCase()} while fixing is on, pull requests included. Add rules to fix only the ${subject.toLowerCase()}s that match one, to ask first, or to choose what it may use.`,
       );
       expect(props["noItemsMessage"]).toBe(
         `No rules. Every new ${subject.toLowerCase()} is fixed while fixing is on.`,
@@ -364,8 +392,16 @@ describe.each([
         ["executionMode", "remediation", ""],
         ["runbooks", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["remediationAction", "remediation", MORE_FIELDS_SECTION_TITLE],
+        /*
+         * After the switch that turns AI off, never first: the fold keeps
+         * its place by its first field, and this one comes and goes.
+         */
+        ["llmProviderId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runnerId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["externalMcpServers", "remediation", MORE_FIELDS_SECTION_TITLE],
+        ["codeRepositories", "remediation", MORE_FIELDS_SECTION_TITLE],
+        ["openCodeFixPullRequests", "remediation", MORE_FIELDS_SECTION_TITLE],
+        ["openTelemetryPullRequests", "remediation", MORE_FIELDS_SECTION_TITLE],
       ]);
     });
 
@@ -374,8 +410,12 @@ describe.each([
       const folded: Array<CapturedField> = [
         "runbooks",
         "remediationAction",
+        "llmProviderId",
         "runnerId",
         "externalMcpServers",
+        "codeRepositories",
+        "openCodeFixPullRequests",
+        "openTelemetryPullRequests",
       ].map((key: string): CapturedField => {
         return fieldNamed(props, key);
       });
@@ -387,7 +427,75 @@ describe.each([
       }
       expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
       expect(section.title).toBe("More fields");
-      expect(section.getSummary).toBe(getAutoRemediationMoreFieldsSummary);
+
+      // Before the providers are read: what the rest's defaults do, alone.
+      for (const each of [values({}), EVERY_TIME, OLDER_COMMANDS]) {
+        expect(section.getSummary!(each)).toEqual(
+          getAutoRemediationMoreFieldsSummary(each),
+        );
+      }
+    });
+
+    /*
+     * The LLM provider OneUptime AI fixes with - its runbook picks, its
+     * commands, its MCP fixes and the rule's pull requests
+     * (Common/Types/AI/LlmProviderChoice): under More fields, after the
+     * switch that turns AI off; empty is the default provider, which the
+     * folded line names first.
+     */
+    test("the LLM provider is under More fields, with the line every rule has", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
+
+      expect(field.title).toBe("LLM Provider");
+      expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.hideColumnDescription).toBe(true);
+      expect(field.showIf!(values({}))).toBe(true);
+      expect(field.showIf!(OLDER_PICKS)).toBe(true);
+    });
+
+    test("a rule that runs its runbooks every time uses no AI: no provider to pick, none named", async () => {
+      mockRuleLlmProviders(projectProvidersAnswer());
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!;
+      const field: CapturedField = fieldNamed(props, "llmProviderId");
+
+      expect(field.showIf!(EVERY_TIME)).toBe(false);
+      expect(field.collapsibleSection!.getSummary!(EVERY_TIME)).toEqual(
+        getAutoRemediationMoreFieldsSummary(EVERY_TIME),
+      );
+    });
+
+    test("folded, the line names the provider: the project's default first, or the rule's pick", async () => {
+      mockRuleLlmProviders(projectProvidersAnswer());
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!;
+      const field: CapturedField = fieldNamed(props, "llmProviderId");
+      const section: FormFieldCollapsibleSection<AutoRemediationRule> =
+        field.collapsibleSection!;
+
+      expect(section.getSummary!(values({}))).toEqual([
+        "The rule uses the project's default LLM provider, Azure GPT-4o.",
+        ...(getAutoRemediationMoreFieldsSummary(values({})) || []),
+      ]);
+
+      const picking: Values = values({ llmProviderId: OPUS_PROVIDER.id });
+
+      expect(section.getSummary!(picking)).toEqual(
+        getAutoRemediationMoreFieldsSummary(picking),
+      );
+      expect(field.getFoldedValue!(picking)).toBe("Claude Opus");
     });
 
     test("no longer asks Fix With, nor anything else a rule does not need", () => {
@@ -547,16 +655,26 @@ describe.each([
       ).toBe(false);
     });
 
-    test("Runner: none is the AI agent, and a rule that runs its runbooks every time has none", () => {
+    test("Runner: none is no Runner, the field says the AI agent is used anyway, and a rule that runs its runbooks every time has none", () => {
       const runner: CapturedField = fieldNamed(tableFor(lane), "runnerId");
 
       expect(runner.title).toBe("Runner");
+      /*
+       * The one line that says the AI agent on the affected cluster or host
+       * is not a Runner choice: it is used whatever the rule picks.
+       */
       expect(runner.description).toBe(
-        "Where OneUptime AI runs commands of its own for this rule, inside your network.",
+        "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+      );
+      expect(runner.description).not.toContain(
+        "AI agent on the cluster or host",
       );
       expect(runner.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(runner.required).toBe(false);
       expect(runner.hideOptionalLabel).toBe(true);
+      expect(runner.hideColumnDescription).toBe(true);
+      // With no project default Runner read, a new rule starts on none.
+      expect(runner.defaultValue).toBeUndefined();
 
       expect(runner.showIf!(values({}))).toBe(true);
       expect(runner.showIf!(values({ runbooks: PICKED_RUNBOOKS }))).toBe(true);
@@ -590,6 +708,219 @@ describe.each([
       expect(servers.showIf!(OLDER_COMMANDS)).toBe(false);
       expect(servers.showIf!(OLDER_PICKS)).toBe(false);
     });
+
+    test("a new rule starts on the project's default Runner, once the Runners are read", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("dddddddd-0000-4000-8000-000000000001"));
+      jest.spyOn(RunnerChoicesLoader, "loadForRemediation").mockResolvedValue({
+        projectRunners: [
+          {
+            id: "aaaaaaaa-0000-4000-8000-000000000002",
+            name: "office-runner",
+            liveStatus: RunnerLiveStatus.Disconnected,
+          },
+          {
+            id: RUNNER_ID,
+            name: "prod-runner",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+        ],
+        globalRunners: [],
+        projectUsesGlobalRunners: true,
+      } as never);
+
+      await act(async () => {
+        render(<AutoRemediationRulesTable lane={lane} />);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1] || {};
+
+      expect(fieldNamed(props, "runnerId").defaultValue).toBe(RUNNER_ID);
+    });
+
+    /*
+     * Folded, the line names the Runner a rule picks - the project's default
+     * a new rule starts on included - as a runbook step's line does: where
+     * the rule's Bash commands run is never hidden by the fold.
+     */
+    test("folded, the line names the Runner the rule picks, and says nothing of none", async () => {
+      const OFFICE_RUNNER_ID: string = "aaaaaaaa-0000-4000-8000-000000000002";
+
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("dddddddd-0000-4000-8000-000000000001"));
+      jest.spyOn(RunnerChoicesLoader, "loadForRemediation").mockResolvedValue({
+        projectRunners: [
+          {
+            id: OFFICE_RUNNER_ID,
+            name: "office-runner",
+            liveStatus: RunnerLiveStatus.NeverConnected,
+          },
+          {
+            id: RUNNER_ID,
+            name: "prod-runner",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+        ],
+        globalRunners: [],
+        projectUsesGlobalRunners: true,
+      } as never);
+
+      await act(async () => {
+        render(<AutoRemediationRulesTable lane={lane} />);
+      });
+
+      const runner: CapturedField = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1] || {},
+        "runnerId",
+      );
+      const folded: (formValues: Values) => string | null =
+        runner.getFoldedValue!;
+
+      // The default a new rule starts on is named: it is where commands run.
+      expect(folded(values({ runnerId: runner.defaultValue }))).toBe(
+        "prod-runner",
+      );
+      // A pick as the form holds it: an id, or an ObjectID read from the rule.
+      expect(folded(values({ runnerId: new ObjectID(RUNNER_ID) }))).toBe(
+        "prod-runner",
+      );
+      // One not connected says so, as the picker does.
+      expect(folded(values({ runnerId: OFFICE_RUNNER_ID }))).toBe(
+        "office-runner · Never connected",
+      );
+      // No Runner is the field's empty answer: named, never as set.
+      expect(folded(values({}))).toBeNull();
+      expect(folded(values({ runnerId: null }))).toBeNull();
+      // One the reader was not shown is never an id.
+      expect(
+        folded(values({ runnerId: "aaaaaaaa-0000-4000-8000-0000000000ff" })),
+      ).toBe("A Runner you do not have access to");
+    });
+
+    test("folded, a Runner picked before the Runners are read is not named yet", () => {
+      const runner: CapturedField = fieldNamed(tableFor(lane), "runnerId");
+
+      expect(
+        runner.getFoldedValue!(values({ runnerId: RUNNER_ID })),
+      ).toBeNull();
+    });
+
+    test("a project with no default Runner starts a new rule on none", async () => {
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("dddddddd-0000-4000-8000-000000000001"));
+      jest.spyOn(RunnerChoicesLoader, "loadForRemediation").mockResolvedValue({
+        projectRunners: [
+          {
+            id: RUNNER_ID,
+            name: "prod-runner",
+            liveStatus: RunnerLiveStatus.Connected,
+          },
+        ],
+        globalRunners: [],
+        projectUsesGlobalRunners: true,
+      } as never);
+
+      await act(async () => {
+        render(<AutoRemediationRulesTable lane={lane} />);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1] || {};
+
+      expect(fieldNamed(props, "runnerId").defaultValue).toBeUndefined();
+    });
+
+    test("Code Repositories: none picked is every connected one, for every kind of rule", () => {
+      const repositories: CapturedField = fieldNamed(
+        tableFor(lane),
+        "codeRepositories",
+      );
+
+      expect(repositories.title).toBe("Code Repositories");
+      expect(repositories.title).toBe(RULE_CODE_REPOSITORIES_FIELD_COPY.title);
+      expect(repositories.description).toBe(
+        "OneUptime AI may read all of your connected repositories, and open pull requests in them. Pick some to let it use only those.",
+      );
+      expect(repositories.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(repositories.required).toBe(false);
+      // Empty is an answer of its own - all of them - not "(Optional)".
+      expect(repositories.hideOptionalLabel).toBe(true);
+      expect(repositories.hideColumnDescription).toBe(true);
+      // The pull requests below go to them, whatever the rule fixes with.
+      expect(repositories.showIf).toBeUndefined();
+
+      // Folded, the line says how many it names; none is the default.
+      expect(repositories.getFoldedValue!(values({}))).toBeNull();
+      expect(
+        repositories.getFoldedValue!(
+          values({
+            codeRepositories: [
+              "c1111111-1111-4111-8111-111111111111",
+              { _id: "c2222222-2222-4222-8222-222222222222" },
+            ],
+          }),
+        ),
+      ).toBe("2");
+
+      const onChange: Mock<(value: unknown) => void> = jest.fn();
+      const element: React.ReactElement = repositories.getCustomElement!(
+        values({ codeRepositories: ["c1111111-1111-4111-8111-111111111111"] }),
+        { onChange, ariaLabelledby: "label-id" },
+      );
+
+      expect(element.type).toBe(RuleCodeRepositoriesPicker);
+      expect(element.props["value"]).toEqual([
+        "c1111111-1111-4111-8111-111111111111",
+      ]);
+      expect(element.props["ariaLabelledby"]).toBe("label-id");
+
+      // What the picker hands back is what the form holds: ids.
+      (element.props["onChange"] as (ids: Array<string>) => void)([
+        "c2222222-2222-4222-8222-222222222222",
+      ]);
+      expect(onChange).toHaveBeenCalledWith([
+        "c2222222-2222-4222-8222-222222222222",
+      ]);
+
+      expect(repositories.getFooterElement!().type).toBe(
+        RuleCodeRepositoriesFieldHint,
+      );
+    });
+
+    test.each([
+      [
+        "openCodeFixPullRequests",
+        "Fix pull requests",
+        "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
+      ],
+      [
+        "openTelemetryPullRequests",
+        "Telemetry pull requests",
+        "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
+      ],
+    ])(
+      "%s is a switch under More fields, on by default, on every kind of rule",
+      (column: string, title: string, description: string) => {
+        const pullRequests: CapturedField = fieldNamed(tableFor(lane), column);
+
+        expect(pullRequests.title).toBe(title);
+        expect(pullRequests.description).toBe(description);
+        expect(pullRequests.fieldType).toBe(FormFieldSchemaType.Toggle);
+        expect(pullRequests.required).toBe(false);
+        expect(pullRequests.hideColumnDescription).toBe(true);
+        expect(pullRequests.showIf).toBeUndefined();
+        // On by default: the column's own default fills the create form.
+        expect(
+          new AutoRemediationRule().getTableColumnMetadata(column).defaultValue,
+        ).toBe(true);
+      },
+    );
 
     test("an older rule's note: first on the Fix step, only for an older rule", () => {
       const note: CapturedField = fieldNamed(tableFor(lane), "olderRuleNote");
@@ -959,52 +1290,131 @@ describe("what a rule fixes with", () => {
 });
 
 describe("the line under More fields, folded", () => {
+  /*
+   * A new rule keeps every default, and that is one sentence - not one
+   * per field, each starting "OneUptime AI may".
+   */
+  const EVERYTHING_AND_PULL_REQUESTS: string =
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.";
+  const EVERYTHING: string =
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.";
   const ALL_MCP_SERVERS: string =
     "OneUptime AI may use all of your MCP servers.";
+  const ALL_REPOSITORIES_AND_PULL_REQUESTS: string =
+    "OneUptime AI may read all connected repositories, and open pull requests in them.";
+  const ALL_REPOSITORIES: string =
+    "OneUptime AI may read all connected repositories.";
   const PICKED_MCP_SERVERS: Array<unknown> = [
     { value: "bbbbbbbb-0000-4000-8000-000000000001", label: "AWS" },
   ];
+  const PICKED_REPOSITORIES: Array<string> = [
+    "c1111111-1111-4111-8111-111111111111",
+  ];
 
-  test("names the defaults left: any runbook, the AI agent, and every MCP server", () => {
+  test("a new rule keeps every default, said in one sentence", () => {
     expect(getAutoRemediationMoreFieldsSummary(values({}))).toEqual([
-      "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.",
-      ALL_MCP_SERVERS,
+      EVERYTHING_AND_PULL_REQUESTS,
     ]);
+    expect(
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everythingAndPullRequests,
+    ).toBe(EVERYTHING_AND_PULL_REQUESTS);
+    expect(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everything).toBe(EVERYTHING);
+  });
+
+  test("once some are set, names each default left: any runbook, every MCP server, every repository and its pull requests", () => {
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ runbooks: PICKED_RUNBOOKS }),
       ),
-    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents, ALL_MCP_SERVERS]);
-    expect(
-      getAutoRemediationMoreFieldsSummary(values({ runnerId: RUNNER_ID })),
-    ).toEqual([
-      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
-      ALL_MCP_SERVERS,
-    ]);
+    ).toEqual([ALL_MCP_SERVERS, ALL_REPOSITORIES_AND_PULL_REQUESTS]);
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ externalMcpServers: PICKED_MCP_SERVERS }),
       ),
-    ).toEqual([AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbookAndAgents]);
-  });
-
-  test("says nothing for an older rule: none of its defaults are the ones the line describes", () => {
-    expect(getAutoRemediationMoreFieldsSummary(OLDER_COMMANDS)).toBeUndefined();
-    expect(getAutoRemediationMoreFieldsSummary(OLDER_PICKS)).toBeUndefined();
-  });
-
-  test("says nothing once all are set - the line names them - or for a rule that runs its runbooks", () => {
+    ).toEqual([
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
+      ALL_REPOSITORIES_AND_PULL_REQUESTS,
+    ]);
     expect(
       getAutoRemediationMoreFieldsSummary(
-        values({ runbooks: PICKED_RUNBOOKS, runnerId: RUNNER_ID }),
+        values({ codeRepositories: PICKED_REPOSITORIES }),
       ),
-    ).toEqual([ALL_MCP_SERVERS]);
+    ).toEqual([
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
+      ALL_MCP_SERVERS,
+    ]);
+  });
+
+  test("never names the AI agent, and a Runner picked changes nothing it says", () => {
+    for (const formValues of [values({}), values({ runnerId: RUNNER_ID })]) {
+      for (const sentence of getAutoRemediationMoreFieldsSummary(formValues) ||
+        []) {
+        expect(sentence).not.toContain("AI agent");
+      }
+    }
+
+    expect(
+      getAutoRemediationMoreFieldsSummary(values({ runnerId: RUNNER_ID })),
+    ).toEqual(getAutoRemediationMoreFieldsSummary(values({})));
+  });
+
+  test("with both pull requests off, it says the repositories are read only", () => {
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({
+          openCodeFixPullRequests: false,
+          openTelemetryPullRequests: false,
+        }),
+      ),
+    ).toEqual([EVERYTHING]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({
+          runbooks: PICKED_RUNBOOKS,
+          openCodeFixPullRequests: false,
+          openTelemetryPullRequests: false,
+        }),
+      ),
+    ).toEqual([ALL_MCP_SERVERS, ALL_REPOSITORIES]);
+    // One still on still opens pull requests.
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({ openCodeFixPullRequests: false }),
+      ),
+    ).toEqual([EVERYTHING_AND_PULL_REQUESTS]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({ runbooks: PICKED_RUNBOOKS, openCodeFixPullRequests: false }),
+      ),
+    ).toContain(ALL_REPOSITORIES_AND_PULL_REQUESTS);
+    expect(ALL_REPOSITORIES).toBe(
+      RULE_CODE_REPOSITORIES_FIELD_COPY.allRepositoriesSummary,
+    );
+  });
+
+  test("an older rule, or one that runs its runbooks, has only the repositories' default to describe", () => {
+    for (const formValues of [
+      OLDER_COMMANDS,
+      OLDER_PICKS,
+      values({
+        remediationAction: AutoRemediationAction.Runbooks,
+        runbooks: PICKED_RUNBOOKS,
+      }),
+    ]) {
+      expect(getAutoRemediationMoreFieldsSummary(formValues)).toEqual([
+        ALL_REPOSITORIES_AND_PULL_REQUESTS,
+      ]);
+    }
+  });
+
+  test("says nothing once everything it describes is set - the line names them", () => {
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({
           runbooks: PICKED_RUNBOOKS,
           runnerId: RUNNER_ID,
           externalMcpServers: PICKED_MCP_SERVERS,
+          codeRepositories: PICKED_REPOSITORIES,
         }),
       ),
     ).toBeUndefined();
@@ -1013,6 +1423,7 @@ describe("the line under More fields, folded", () => {
         values({
           remediationAction: AutoRemediationAction.Runbooks,
           runbooks: PICKED_RUNBOOKS,
+          codeRepositories: PICKED_REPOSITORIES,
         }),
       ),
     ).toBeUndefined();
@@ -1069,7 +1480,13 @@ describe("the choices", () => {
         "Start every runbook above for every match, instead of OneUptime AI deciding.",
       runnerTitle: "Runner",
       runnerDescription:
-        "Where OneUptime AI runs commands of its own for this rule, inside your network.",
+        "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+      codeFixTitle: "Fix pull requests",
+      codeFixDescription:
+        "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
+      telemetryTitle: "Telemetry pull requests",
+      telemetryDescription:
+        "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
     });
   });
 });

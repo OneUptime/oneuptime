@@ -24,6 +24,11 @@ export interface EventStateItem {
    * record may move into next.
    */
   order?: number | undefined;
+  /*
+   * An archived state (Common/Utils/ArchivableValues): shown only while the
+   * record is in it, and never offered as a state to move to.
+   */
+  isArchived?: boolean | undefined;
 }
 
 export interface EventStateAction {
@@ -130,13 +135,24 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
 
-  const currentState: EventStateItem | undefined = props.states.find(
+  /*
+   * The states the panel draws and offers: an archived state only while
+   * the record is in it - its header still says where it is - and never as
+   * one to move to, which the server would refuse.
+   */
+  const states: Array<EventStateItem> = props.states.filter(
+    (state: EventStateItem): boolean => {
+      return !state.isArchived || state.id === props.currentStateId;
+    },
+  );
+
+  const currentState: EventStateItem | undefined = states.find(
     (state: EventStateItem) => {
       return state.id === props.currentStateId;
     },
   );
 
-  const currentStateIndex: number = props.states.findIndex(
+  const currentStateIndex: number = states.findIndex(
     (state: EventStateItem) => {
       return state.id === props.currentStateId;
     },
@@ -145,7 +161,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
   const getStepRail: () => ReactElement = (): ReactElement => {
     return (
       <div className="flex flex-wrap items-center gap-y-1.5">
-        {props.states.map((state: EventStateItem, index: number) => {
+        {states.map((state: EventStateItem, index: number) => {
           const isReached: boolean =
             currentStateIndex >= 0 && index <= currentStateIndex;
           const isCurrent: boolean = index === currentStateIndex;
@@ -204,7 +220,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
    */
   const statesForMenu: Array<EventStateItem> = getEventStateMenuStates({
     list: props.stateList,
-    states: props.states,
+    states: states,
     currentStateId: props.currentStateId,
     buttonStateIds: props.actions.map((action: EventStateAction): string => {
       return action.stateId;
@@ -588,7 +604,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           {getActionsCluster("md:w-auto")}
         </div>
       )}
-      {props.states.length > 1 && (
+      {states.length > 1 && (
         <div className="border-t border-gray-100 px-4 py-2.5 sm:px-5">
           {getStepRail()}
         </div>

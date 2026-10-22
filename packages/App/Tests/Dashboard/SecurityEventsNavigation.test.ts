@@ -4,6 +4,9 @@ import {
   SECURITY_EVENTS_LANDING_PAGE,
   SECURITY_EVENTS_MENU,
   SECURITY_EVENTS_REDIRECTED_PAGES,
+  SECURITY_EVENTS_WORKSPACE_PAGES,
+  SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE,
+  SECURITY_EVENTS_WORKSPACE_SECTION_TITLE,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
   getSecurityEventsMenuItemFor,
@@ -11,6 +14,8 @@ import {
   getSecurityEventsMenuSectionFor,
   getSecurityEventsPageTrail,
   getSecurityEventsPathSegment,
+  getSecurityEventsWorkspacePages,
+  isSecurityEventsWorkspacePage,
 } from "../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import {
   SECURITY_CASE_QUEUE_VIEWS,
@@ -34,6 +39,12 @@ import {
  * counts, the old addresses, and where each page says it is. The rendered
  * menu is pinned in Common/Tests/App/Dashboard/SecurityEventsSideMenu.test.tsx.
  *
+ * The Workspace section - the security cases' Slack and Microsoft Teams
+ * pages, and the page that connects either - is drawn by the hook every
+ * product's Workspace section is, so its entries follow what the project has
+ * connected: its pages, their addresses and where it sits are pinned here,
+ * and the section as it is drawn in SecurityEventsSideMenu.test.tsx.
+ *
  * Deferred imports with a browser stub: RouteMap pulls in Common/UI/Config,
  * which reads `window` at module load.
  */
@@ -42,6 +53,7 @@ type RouteMapModule =
   typeof import("../../FeatureSet/Dashboard/src/Utils/RouteMap");
 
 let SecurityEventsRoutePath: RouteMapModule["SecurityEventsRoutePath"];
+let MonitorsRoutePath: RouteMapModule["MonitorsRoutePath"];
 let RouteUtil: RouteMapModule["RouteUtil"];
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -83,6 +95,7 @@ beforeAll(async () => {
   );
 
   SecurityEventsRoutePath = routeMapModule.SecurityEventsRoutePath;
+  MonitorsRoutePath = routeMapModule.MonitorsRoutePath;
   RouteUtil = routeMapModule.RouteUtil;
 });
 
@@ -115,7 +128,7 @@ function sectionTitled(title: string): SecurityEventsMenuSection {
 }
 
 describe("the Security Events menu", () => {
-  test("is six sections, in the order Security works: overview, cases, events, detections, playbooks, connections", () => {
+  test("is seven sections, in the order Security works: overview, cases, events, detections, playbooks, AI, connections", () => {
     expect(
       SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
         return section.title;
@@ -126,6 +139,7 @@ describe("the Security Events menu", () => {
       "Events",
       "Detections",
       "Playbooks",
+      "AI",
       "Connections",
     ]);
   });
@@ -163,6 +177,8 @@ describe("the Security Events menu", () => {
           "Protected Entities",
         ],
       ],
+      // What OneUptime AI does on its own; the triage is on each case.
+      ["AI", ["Settings"]],
       ["Connections", ["Connections", "Setup Guide"]],
     ]);
   });
@@ -192,12 +208,13 @@ describe("the Security Events menu", () => {
       ["Waiting for Approval", "SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL"],
       ["Playbook Runs", "SECURITY_PLAYBOOK_RUNS"],
       ["Protected Entities", "SECURITY_PROTECTED_ENTITIES"],
+      ["Settings", "SECURITY_EVENTS_SETTINGS_AI"],
       ["Connections", "SECURITY_EVENTS_CONNECTIONS"],
       ["Setup Guide", "SECURITY_EVENTS_DOCUMENTATION"],
     ]);
   });
 
-  test("reaches every routed page from exactly one entry, except the pages that open on their own and the old addresses", () => {
+  test("reaches every routed page from exactly one entry or the Workspace section, except the pages that open on their own and the old addresses", () => {
     const reachable: Array<string> = getSecurityEventsMenuItems().map(
       (item: SecurityEventsMenuItem): string => {
         return item.page;
@@ -208,13 +225,14 @@ describe("the Security Events menu", () => {
     expect(
       [
         ...reachable,
+        ...getSecurityEventsWorkspacePages(),
         ...SECURITY_EVENTS_DETAIL_PAGES,
         ...SECURITY_EVENTS_REDIRECTED_PAGES,
       ].sort(),
     ).toEqual(Object.keys(SecurityEventsRoutePath).sort());
   });
 
-  test("folds the sections set up once - Detections and Connections - and keeps the everyday ones open", () => {
+  test("folds the sections set up once - Detections, AI and Connections - and keeps the everyday ones open", () => {
     expect(
       SECURITY_EVENTS_MENU.map(
         (section: SecurityEventsMenuSection): [string, boolean] => {
@@ -228,6 +246,7 @@ describe("the Security Events menu", () => {
       ["Detections", true],
       // Open: a run held for an approval does nothing until somebody decides.
       ["Playbooks", false],
+      ["AI", true],
       ["Connections", true],
     ]);
   });
@@ -270,6 +289,104 @@ describe("the Security Events menu", () => {
     for (const section of SECURITY_EVENTS_MENU) {
       expect(section.title).not.toBe("Security");
     }
+  });
+});
+
+/*
+ * "Products → Security Events → Workspace → Slack (or Microsoft Teams)", as
+ * the Security Cases docs send people: the rules that post cases to
+ * channels. Drawn by useWorkspaceSideMenuSection, so it lists only what the
+ * project has connected, and kept out of SECURITY_EVENTS_MENU, whose entries
+ * every project has.
+ */
+describe("the Workspace section", () => {
+  test("is the security cases' Slack and Microsoft Teams pages, and the page that connects either", () => {
+    expect(SECURITY_EVENTS_WORKSPACE_PAGES).toEqual({
+      slack: "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
+      microsoftTeams: "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      connect: "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
+    });
+    expect(getSecurityEventsWorkspacePages()).toEqual([
+      "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
+      "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+      "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
+    ]);
+  });
+
+  test("is titled Workspace, as the docs name it, and sits before Connections", () => {
+    expect(SECURITY_EVENTS_WORKSPACE_SECTION_TITLE).toBe("Workspace");
+    expect(SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE).toBe("Connections");
+    expect(
+      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
+        return section.title;
+      }),
+    ).toContain(SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE);
+  });
+
+  test("is not a section of the menu every project has: its entries follow what is connected", () => {
+    for (const page of getSecurityEventsWorkspacePages()) {
+      expect(getSecurityEventsMenuItemFor(page as never)).toBeUndefined();
+      expect(isSecurityEventsWorkspacePage(page as never)).toBe(true);
+    }
+
+    expect(
+      SECURITY_EVENTS_MENU.map((section: SecurityEventsMenuSection): string => {
+        return section.title;
+      }),
+    ).not.toContain(SECURITY_EVENTS_WORKSPACE_SECTION_TITLE);
+    expect(
+      getSecurityEventsMenuItems().some((item: SecurityEventsMenuItem) => {
+        return isSecurityEventsWorkspacePage(item.page);
+      }),
+    ).toBe(false);
+    expect(isSecurityEventsWorkspacePage(undefined)).toBe(false);
+  });
+
+  test("its pages sit at the addresses every product's Workspace pages have", () => {
+    expect(
+      getSecurityEventsWorkspacePages().map((page: string): string => {
+        return SecurityEventsRoutePath[page] as string;
+      }),
+    ).toEqual([
+      "workspace-connection-slack",
+      "workspace-connection-microsoft-teams",
+      "workspace-connections",
+    ]);
+    // Monitors' are the same words, one level under its own root.
+    expect([
+      MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_SLACK"],
+      MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS"],
+      MonitorsRoutePath["MONITORS_WORKSPACE_CONNECTIONS"],
+    ]).toEqual([
+      "workspace-connection-slack",
+      "workspace-connection-microsoft-teams",
+      "workspace-connections",
+    ]);
+    expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK")).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/workspace-connection-slack`,
+    );
+    expect(
+      routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS"),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/workspace-connection-microsoft-teams`,
+    );
+    expect(routeFor("SECURITY_EVENTS_WORKSPACE_CONNECTIONS")).toBe(
+      `/dashboard/${PROJECT_ID}/security-events/workspace-connections`,
+    );
+  });
+
+  test("its pages say where they are: Slack and Microsoft Teams under Workspace, and the connect page as Workspace itself", () => {
+    expect(
+      getSecurityEventsWorkspacePages().map(
+        (page: string): Array<string> | undefined => {
+          return getSecurityEventsPageTrail(page as never);
+        },
+      ),
+    ).toEqual([
+      ["Security Events", "Workspace", "Slack"],
+      ["Security Events", "Workspace", "Microsoft Teams"],
+      ["Security Events", "Workspace"],
+    ]);
   });
 });
 
@@ -427,6 +544,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Playbooks", "Waiting for Approval"],
       ["Security Events", "Playbooks", "Playbook Runs"],
       ["Security Events", "Playbooks", "Protected Entities"],
+      ["Security Events", "AI", "Settings"],
       ["Security Events", "Connections"],
       ["Security Events", "Connections", "Setup Guide"],
     ]);

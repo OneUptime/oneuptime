@@ -203,6 +203,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
           name: true,
           color: true,
           order: true,
+          isArchived: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -560,6 +561,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             name: state.name || "",
             color: state.color || Black,
             order: state.order,
+            isArchived: Boolean(state.isArchived),
           };
         })}
         stateList={StateListType.IncidentState}

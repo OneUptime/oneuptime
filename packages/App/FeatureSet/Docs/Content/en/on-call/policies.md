@@ -66,6 +66,19 @@ When the last level's wait runs out with nobody acknowledging, a policy stops, u
 
 A policy that starts again three more times goes through its levels four times in all. The card's **After the last level** row says what the policy does, and **Policy at a glance** on the **Overview** says the same in words.
 
+## Page again if it is not resolved
+
+Acknowledging stops a policy's paging for good, even when nobody resolves the incident or alert afterwards. A policy can page again instead: open its **Escalation Rules** page, open **More settings** at the bottom, and click **Edit** on the **Acknowledgement Timeout** card. **Edit Acknowledgement Timeout** asks **If it is acknowledged but not resolved**:
+
+| Answer | What it does |
+| --- | --- |
+| **Don't page again** | Acknowledging stops the paging for good. A new policy starts with this answer. |
+| **Page again** | Pages whoever acknowledged it, and whoever is on call now. **After how many minutes?** says when: from 5 to 1440, 30 to start with. |
+
+The minutes are counted from each acknowledgement, and a policy pages again at most 5 times about one incident, alert or episode. A page again starts at the level that was paging when it was acknowledged, pages whoever is on call there now, and goes on through the levels as the first run did. The incident or alert stays acknowledged: the page again is a run of its own, in its feed and in the policy's execution logs, where its **Status** says "Paged again (1 of 5)".
+
+Whoever is paged again acknowledges it from its message, or with **Acknowledge again** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level. Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it. The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded. **Policy at a glance** on the **Overview** and the **Escalation summary** say the same in words.
+
 ## Execution logs
 
 Every time a policy runs, it writes an execution log, and the log moves through its statuses as the run goes on:
@@ -122,9 +135,12 @@ On-call policies are the `/api/on-call-duty-policy` resource, and the `oneuptime
 | **Description** | `description` |
 | **If nobody acknowledges after the last level** | `repeatPolicyIfNoOneAcknowledges` |
 | **How many more times?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **After how many minutes?** | `acknowledgementTimeoutInMinutes` |
 | Archived | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true` and `repeatPolicyIfNoOneAcknowledgesNoOfTimes` at `0`, a policy never repeats, and the dashboard shows it as **Stop paging**.
+
+`acknowledgementTimeoutInMinutes` is `null` for **Don't page again**, and a whole number of minutes from 5 to 1440 for **Page again**. OneUptime refuses anything else.
 
 To create a policy with its first level in one request, see [Creating rules with the API or Terraform](/docs/on-call/escalation-rules#creating-rules-with-the-api-or-terraform).
 

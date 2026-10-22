@@ -13,28 +13,9 @@ import AutoRemediationAction, {
   isAutoRemediationAction,
 } from "../../Types/AutoRemediation/AutoRemediationAction";
 import { readAutoRemediationIds } from "../../Types/AutoRemediation/AutoRemediationFix";
-import AiRemediationCredentialUse, {
-  RuleCommandSettings,
-  RuleCommandSettingsChange,
-} from "../Utils/AutoRemediation/AiRemediationCredentialUse";
 import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
-
-/*
- * The columns that decide whether, and where, a rule runs OneUptime AI's
- * commands without asking (AiRemediationCredentialUse) - whether it is on
- * included. The rule's Runner is written as runnerId or as its relation.
- */
-const COMMAND_SETTINGS_COLUMNS: Array<keyof RuleCommandSettings> = [
-  "isEnabled",
-  "remediationAction",
-  "aiComposesCommands",
-  "aiSelectsRunbook",
-  "executionMode",
-  "commandAllowlist",
-  "commandRunners",
-  "runnerId",
-];
+import { getRuleCodeRepositoriesProblem } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 
 // The keys a write names the rule's Runner by: the id, or the relation.
 const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
@@ -46,13 +27,15 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A rule names at most as many external MCP servers as a project may
-   * have: answered before any reference is read. Whether each is the
-   * project's own is checked with every other reference the rule writes.
+   * have, and at most MAX_CODE_REPOSITORIES_PER_RULE code repositories:
+   * answered before any reference is read. Whether each is the project's
+   * own is checked with every other reference the rule writes.
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
     this.assertMcpServersFit(createBy.data.externalMcpServers);
+    this.assertCodeRepositoriesFit(createBy.data.codeRepositories);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -63,12 +46,14 @@ export class Service extends ProjectReferencesService<Model> {
       unknown
     >;
 
-    // An edit that leaves the servers alone is not judged on them.
-    if (data["externalMcpServers"] === undefined) {
-      return;
+    // An edit that leaves a list alone is not judged on it.
+    if (data["externalMcpServers"] !== undefined) {
+      this.assertMcpServersFit(data["externalMcpServers"]);
     }
 
-    this.assertMcpServersFit(data["externalMcpServers"]);
+    if (data["codeRepositories"] !== undefined) {
+      this.assertCodeRepositoriesFit(data["codeRepositories"]);
+    }
   }
 
   private assertMcpServersFit(servers: unknown): void {
@@ -79,10 +64,18 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  private assertCodeRepositoriesFit(repositories: unknown): void {
+    const problem: string | null = getRuleCodeRepositoriesProblem(repositories);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
   /*
    * A rule's Runner (and, for a rule saved before rules were simplified, its
-   * Command Runners) are the hosts its AI-composed Bash/SSH commands may
-   * target. A kubernetes-agent Runner (the in-cluster Runner the agent chart
+   * Command Runners) are the hosts its AI-composed Bash commands may target.
+   * A kubernetes-agent Runner (the in-cluster Runner the agent chart
    * registers; RunnerService.isKubernetesAgentRunnerRow) is never one: it
    * runs policy-tiered kubectl for its own cluster only, the claim path
    * never serves it shell work, and its identity is issued with the
@@ -105,17 +98,6 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.remediationAction = Service.getRemediationActionOnCreate(
       createBy.data,
     );
-
-    /*
-     * A rule that runs OneUptime AI's commands without asking is saved only
-     * by someone who may read runbook credentials: its commands may run over
-     * SSH with any credential assigned to its Runners, and nobody approves
-     * them (AiRemediationCredentialUse).
-     */
-    AiRemediationCredentialUse.assertMaySaveRules({
-      props: createBy.props,
-      changes: [{ before: null, after: createBy.data }],
-    });
 
     const written: Record<string, unknown> = createBy.data as unknown as Record<
       string,
@@ -154,19 +136,12 @@ export class Service extends ProjectReferencesService<Model> {
    * path never serves it shell work - so it narrows the rule to nothing it
    * can target. Adding one is refused.
    *
-   * And an update may leave a rule running OneUptime AI's commands without
-   * asking more widely than it did - turn it on, add an allowlist pattern,
-   * reach more Runners - only when its caller may read runbook credentials
-   * (AiRemediationCredentialUse). Only a real change counts: the dashboard's
-   * rule form posts every field, so an edit that keeps what a rule already
-   * runs keeps it.
-   *
-   * Both read the rules the update writes - the ones its caller may write -
+   * It reads the rules the update writes - the ones its caller may write -
    * once, and the update is held to the rules read
-   * (findRowsAndHoldUpdateToThem), so a rule neither check saw is never
-   * written. Nothing is read when neither has anything to ask. A Runner the
-   * update picks is let run OneUptime AI's commands once the checks pass
-   * (RunnerAiCommandsPick).
+   * (findRowsAndHoldUpdateToThem), so a rule the check did not see is never
+   * written. Nothing is read when the update names no kubernetes-agent
+   * Runner. A Runner the update picks is let run OneUptime AI's commands
+   * once the check passes (RunnerAiCommandsPick).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -192,23 +167,13 @@ export class Service extends ProjectReferencesService<Model> {
       data as unknown as Record<string, unknown>,
     );
 
-    // Whether who may run OneUptime AI's commands without asking is asked.
-    const asksAboutCommandsWithoutAsking: boolean =
-      (COMMAND_SETTINGS_COLUMNS.some(
-        (column: keyof RuleCommandSettings): boolean => {
-          return data[column] !== undefined;
-        },
-      ) ||
-        data["runner"] !== undefined) &&
-      !AiRemediationCredentialUse.mayUseCredentials(updateBy.props);
-
     const agentRunners: Array<Runner> =
       await RunnerService.findKubernetesAgentRunners([
         ...RunnerServiceClass.readRunnerIds(data["commandRunners"]),
         ...writtenRunnerIds,
       ]);
 
-    if (!asksAboutCommandsWithoutAsking && agentRunners.length === 0) {
+    if (agentRunners.length === 0) {
       await this.allowPickedRunners({
         updateBy,
         runnerIds: writtenRunnerIds,
@@ -226,25 +191,10 @@ export class Service extends ProjectReferencesService<Model> {
       {
         _id: true,
         projectId: true,
-        isEnabled: true,
-        remediationAction: true,
-        aiComposesCommands: true,
-        aiSelectsRunbook: true,
-        executionMode: true,
-        commandAllowlist: true,
         commandRunners: { _id: true },
         runnerId: true,
       },
     );
-
-    if (asksAboutCommandsWithoutAsking) {
-      AiRemediationCredentialUse.assertMaySaveRules({
-        props: updateBy.props,
-        changes: rules.map((rule: Model): RuleCommandSettingsChange => {
-          return Service.getCommandSettingsChange(rule, data);
-        }),
-      });
-    }
 
     for (const agentRunner of agentRunners) {
       const isHeldByEveryRule: boolean = rules.every((rule: Model) => {
@@ -312,39 +262,6 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * What an update does to a rule's command settings: the rule as it is,
-   * and as it will be once every setting the update writes is written. A
-   * Runner written as the relation counts as written to runnerId.
-   */
-  public static getCommandSettingsChange(
-    rule: Model,
-    data: JSONObject,
-  ): RuleCommandSettingsChange {
-    const after: RuleCommandSettings = {
-      isEnabled: rule.isEnabled,
-      remediationAction: rule.remediationAction,
-      aiComposesCommands: rule.aiComposesCommands,
-      aiSelectsRunbook: rule.aiSelectsRunbook,
-      executionMode: rule.executionMode,
-      commandAllowlist: rule.commandAllowlist,
-      commandRunners: rule.commandRunners,
-      runnerId: rule.runnerId,
-    };
-
-    for (const column of COMMAND_SETTINGS_COLUMNS) {
-      if (data[column] !== undefined) {
-        (after as unknown as JSONObject)[column] = data[column];
-      }
-    }
-
-    if (data["runnerId"] === undefined && data["runner"] !== undefined) {
-      after.runnerId = data["runner"];
-    }
-
-    return { before: rule, after: after };
-  }
-
-  /*
    * What a new rule fixes with. The dashboard always says; an API or
    * Terraform client written before rules had a Fix With does not, and a
    * rule it creates with runbooks and no AI flag meant "run these
@@ -405,7 +322,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   public static getAgentCommandRunnerRefusal(runner: Runner): string {
-    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash or SSH commands a rule composes, so it cannot be this rule's Runner. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Pick a Runner you created under Runbooks → Runners, or none: OneUptime AI then fixes through the AI agent on the affected cluster or host.`;
+    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash commands a rule composes, so it cannot be this rule's Runner. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page), whatever Runner the rule picks. Pick a Runner you created under Runbooks → Runners, or none.`;
   }
 }
 

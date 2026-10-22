@@ -86,8 +86,11 @@ import WorkspaceActionAuthorization, {
  * as it is for a change made in the dashboard (StateChangeFollowOn).
  *
  * The record is read as the member first: one they may not read is
- * answered like one that is not there, before anything about it - its state
- * included - is told to them. A press reads it once. The check that the
+ * refused before anything about it - its state included - is told to them,
+ * with what is actually wrong: the permission they lack, a private record,
+ * one their access does not include, or one that is gone
+ * (WorkspaceActionAuthorization.getUnreadableRefusal). A press reads it
+ * once. The check that the
  * member may act (authorize) reads it with what the actions and the chats'
  * own answers need, and hands it on as a WorkspaceEventRecord; an action
  * given one reads nothing of it again, and one given only the record's id
@@ -352,7 +355,7 @@ export default class WorkspaceMemberActions {
     props: DatabaseCommonInteractionProps;
     select: Select<TBaseModel>;
   }): Promise<{ record: TBaseModel; event: WorkspaceEventRecord } | null> {
-    const record: DatabaseBaseModel | null = await this.findAsMember({
+    const { record } = await this.findAsMember({
       event: data.event,
       props: data.props,
       select: data.select as Select<DatabaseBaseModel>,
@@ -360,6 +363,47 @@ export default class WorkspaceMemberActions {
 
     if (!record) {
       return null;
+    }
+
+    return {
+      record: record as TBaseModel,
+      event: this.asMemberRead({
+        event: data.event,
+        props: data.props,
+        record: record,
+      }),
+    };
+  }
+
+  /*
+   * findEventForMember, for a chat that may not go on without the record:
+   * one the member may not read is refused with why - the permission they
+   * lack, a private record, one their access does not include, or one that
+   * is gone (getUnreadableRefusal), after "You do not have permission to
+   * <action>".
+   */
+  @CaptureSpan()
+  public static async readEventForMember<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    select: Select<TBaseModel>;
+    action: string;
+  }): Promise<{ record: TBaseModel; event: WorkspaceEventRecord }> {
+    const { record, readError } = await this.findAsMember({
+      event: data.event,
+      props: data.props,
+      select: data.select as Select<DatabaseBaseModel>,
+    });
+
+    if (!record) {
+      throw await this.getUnreadableRefusal({
+        event: data.event,
+        props: data.props,
+        readError: readError,
+        action: data.action,
+      });
     }
 
     return {
@@ -887,21 +931,24 @@ export default class WorkspaceMemberActions {
   /*
    * The record, read with the member's props: in its project, under their
    * labels, owners and blocks, a private incident only for those who may
-   * see it. One they may not read is refused like one that is not there.
+   * see it. One they may not read is refused with why
+   * (WorkspaceActionAuthorization.getUnreadableRefusal).
    */
   private static async readEvent(data: {
     event: WorkspaceEvent;
     props: DatabaseCommonInteractionProps;
   }): Promise<WorkspaceEventRecord> {
-    const record: DatabaseBaseModel | null = await this.findAsMember({
+    const { record, readError } = await this.findAsMember({
       event: data.event,
       props: data.props,
     });
 
     if (!record) {
-      throw new NotAuthorizedException(
-        `The ${this.getNoun(data.event.type)} ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
-      );
+      throw await this.getUnreadableRefusal({
+        event: data.event,
+        props: data.props,
+        readError: readError,
+      });
     }
 
     return this.asMemberRead({
@@ -912,15 +959,41 @@ export default class WorkspaceMemberActions {
   }
 
   /*
+   * Why the member may not act on a record their read did not find, as
+   * WorkspaceActionAuthorization says it for every record a chat names:
+   * "You do not have permission to change this incident: ..." - the
+   * permission they lack, a private record, one their access does not
+   * include - or that it was not found. `readError` is their read's own
+   * refusal, when it threw one.
+   */
+  @CaptureSpan()
+  public static async getUnreadableRefusal(data: {
+    event: WorkspaceEvent;
+    props: DatabaseCommonInteractionProps;
+    readError?: unknown;
+    // Completes "You do not have permission to ...". "change this incident" by default.
+    action?: string | undefined;
+  }): Promise<Error> {
+    return await WorkspaceActionAuthorization.getUnreadableRefusal({
+      action: data.action || `change this ${this.getNoun(data.event.type)}`,
+      service: this.getEventResource(data.event).service,
+      id: data.event.id,
+      props: data.props,
+      readError: data.readError,
+    });
+  }
+
+  /*
    * The member's read of the record, with getEventResource's columns and
-   * `select`'s: in their project, with their props. Null for a record they
-   * may not read, as for one that is not there.
+   * `select`'s: in their project, with their props. No record for one they
+   * may not read, as for one that is not there - and the read's refusal,
+   * when it threw one, to say why (getUnreadableRefusal).
    */
   private static async findAsMember(data: {
     event: WorkspaceEvent;
     props: DatabaseCommonInteractionProps;
     select?: Select<DatabaseBaseModel> | undefined;
-  }): Promise<DatabaseBaseModel | null> {
+  }): Promise<{ record: DatabaseBaseModel | null; readError?: unknown }> {
     const projectId: ObjectID | undefined = data.props.tenantId;
 
     if (!data.props.userId || !projectId) {
@@ -932,25 +1005,27 @@ export default class WorkspaceMemberActions {
     const resource: WorkspaceActionResource = this.getEventResource(data.event);
 
     try {
-      return await resource.service.findOneBy({
-        query: {
-          _id: data.event.id.toString(),
-          projectId: projectId,
-        } as Query<DatabaseBaseModel>,
-        select: {
-          ...(data.select || {}),
-          ...(resource.select || {}),
-          _id: true,
-        } as Select<DatabaseBaseModel>,
-        props: data.props,
-      });
+      return {
+        record: await resource.service.findOneBy({
+          query: {
+            _id: data.event.id.toString(),
+            projectId: projectId,
+          } as Query<DatabaseBaseModel>,
+          select: {
+            ...(data.select || {}),
+            ...(resource.select || {}),
+            _id: true,
+          } as Select<DatabaseBaseModel>,
+          props: data.props,
+        }),
+      };
     } catch (err) {
       if (!WorkspaceActionAuthorization.isReadRefusal(err)) {
         throw err;
       }
-    }
 
-    return null;
+      return { record: null, readError: err };
+    }
   }
 
   // Where the record stands among the project's states (getStanding).
@@ -1054,8 +1129,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: IncidentStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,
@@ -1071,8 +1148,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: AlertStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,
@@ -1087,8 +1166,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: ScheduledMaintenanceStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,

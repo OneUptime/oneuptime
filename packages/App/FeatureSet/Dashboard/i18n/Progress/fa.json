@@ -1,11 +1,14 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16523
+    "keys": 32601,
+    "untranslated": 16445
   },
   "sameAsEnglish": [
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "ICMP (ping)",
+    "PV",
+    "PVC",
     "Runner",
     "SNMP trap",
     "VMware vCenter",

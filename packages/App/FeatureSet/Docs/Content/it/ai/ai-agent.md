@@ -8,6 +8,7 @@ Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository,
 - [Come funziona un'esecuzione di correzione](#come-funziona-unesecuzione-di-correzione): Da un clic a una pull request, passo dopo passo.
 - [Dove partono le attività di correzione](#dove-partono-le-attività-di-correzione): Le attività che OneUptime avvia, e cosa fa ogni pull request.
 - [Telemetria di produzione in una correzione](#telemetria-di-produzione-in-una-correzione): Cosa legge una correzione dalla produzione mentre scrive la modifica.
+- [Revisione di produzione delle pull request](#revisione-di-produzione-delle-pull-request): Cosa dice la produzione del codice che cambia ogni pull request.
 - [Prima di iniziare](#prima-di-iniziare): Un modello, un repository collegato e un Runner.
 - [Quando una correzione non riesce](#quando-una-correzione-non-riesce): Cosa succede a un'esecuzione che va in errore, si blocca o resta in attesa.
 :::
@@ -20,7 +21,7 @@ Codice è il posto in cui chiedi a OneUptime AI di lavorare nei tuoi repository,
 :::steps
 ### Apri Codice
 
-Apri **Prodotti → Codice**. Si apre su **Cosa deve fare l'IA?**: la casella in cui chiedi, con tutte le attività sotto, le più recenti per prime. Se non c'è ancora nessun repository, offre invece **Connetti GitHub** (vedi [Prima di iniziare](#prima-di-iniziare)). **Repository**, nel suo menu laterale, elenca i repository collegati, e la pagina di ogni repository ha la stessa casella per quel repository.
+Apri **Prodotti → Codice**. Si apre su **Cosa deve fare l'IA?**: la casella in cui chiedi, con tutte le attività sotto, le più recenti per prime. Se non c'è ancora nessun repository, offre invece **Connetti GitHub** (vedi [Prima di iniziare](#prima-di-iniziare)). **Repository**, nel suo menu laterale, elenca i repository in cui l'IA può lavorare, e raccoglie sotto **Non connesso** quelli che la GitHub App non raggiunge più. La pagina di ogni repository ha la stessa casella per quel repository.
 
 ### Scegli il repository e il branch
 
@@ -89,7 +90,7 @@ flowchart TB
 3. Il Runner recupera il contesto dell'attività. Per una richiesta, sono le sue parole, il contesto aggiunto e la conversazione fin lì; per un'eccezione, il tipo, il messaggio e lo stack trace.
 4. Clona il repository in un proprio spazio di lavoro e crea un branch. Una correzione di un'eccezione si chiama `oneuptime-fix-exception-` seguito dai primi caratteri dell'id dell'esecuzione. Una richiesta parte dal branch scelto quando è stata fatta, e la sua pull request si apre verso di esso. Una risposta lavora invece sul branch della pull request aperta dell'attività.
 5. Un agente di codice, alimentato dal provider LLM del tuo progetto, legge il codice e scrive la modifica. Il server OneUptime effettua le chiamate al LLM, quindi il Runner non possiede mai la chiave API del tuo provider, e ogni chiamata viene misurata ed elencata nei log dell'IA. Una correzione di un'eccezione, di una traccia lenta o di un incidente legge anche i dati di produzione mentre lavora: le eccezioni, le tracce, i log e le metriche dei servizi del repository (vedi [Telemetria di produzione in una correzione](#telemetria-di-produzione-in-una-correzione)).
-6. Se il repository ha comandi di verifica, un Runner tuo compila e testa la modifica prima di fare qualsiasi commit, e restituisce un errore all'agente di codice perché lo ripari (vedi [Verifica prima della pull request](#verifica-prima-della-pull-request)).
+6. Su un Runner tuo, l'agente di codice compila e testa la sua modifica come dice l'`AGENTS.md` del repository prima che venga fatto qualsiasi commit, e ripara ciò che fallisce (vedi [Verifica prima della pull request](#verifica-prima-della-pull-request)).
 7. Il Runner fa il commit, il push del branch, apre la pull request (per una richiesta, solo se ha modificato il codice) ed elimina lo spazio di lavoro.
 
 La pagina da cui è stata avviata l'attività ne mostra lo stato in tempo reale. Ogni attività è elencata nel suo repository, in **Prodotti → Codice**: la sua pagina è la sua conversazione, e il **Registro** di ogni turno ha una riga per ogni file che il Runner ha letto o scritto e per ogni comando che ha eseguito.
@@ -146,17 +147,41 @@ Cosa può leggere l'agente lo decide il server OneUptime, in base all'attività 
 
 Quando nessun servizio corrisponde al repository, l'attività viene eseguita senza telemetria di produzione, come prima.
 
+## Revisione di produzione delle pull request
+
+OneUptime sa cosa fa il tuo codice in produzione, quindi può rivedere una pull request con ciò che nessuno vede leggendo il diff. Attiva **Rivedi le pull request rispetto alla produzione** nella pagina **Impostazioni** di un repository in Codice, e ogni pull request che qualcuno con accesso in scrittura apre o aggiorna riceve un commento che dice cosa mostra la produzione del codice che cambia. Il commento viene modificato sul posto a ogni push, e la pagina **Revisioni di produzione** del repository in Codice conserva ogni revisione, con **Rivedi di nuovo**.
+
+| Cosa legge | Del codice che la pull request cambia |
+| --- | --- |
+| **Eccezioni** | Le eccezioni sollevate nelle righe, funzioni e file modificati negli ultimi 7 giorni, con quelle nuove e non gestite segnalate. |
+| **Operazioni** | Le operazioni tracciate che eseguono il codice modificato nell'ultima ora: i loro span, i loro errori e il loro p95. |
+| **Funzioni costose** | Le funzioni del codice modificato che occupano una quota dei profili dei servizi nell'ultima ora. |
+| **Incidenti** | Gli incidenti dei servizi degli ultimi 30 giorni ancora aperti, o la cui causa principale o il cui post-mortem cita il codice modificato. Mai un incidente privato. |
+| **Deploy** | I deploy dei servizi degli ultimi 7 giorni che OneUptime sospetta di una regressione. |
+
+Quando la produzione dice qualcosa, OneUptime AI la legge accanto al diff e aggiunge **Cosa tenere d'occhio**: pochi punti brevi, ognuno basato sui fatti. Viene eseguita solo finché l'IA è attiva per il progetto, al massimo 10 volte al giorno per una pull request e 100 per un repository, ed è conteggiata come ogni chiamata di IA; i fatti vengono letti ogni volta senza di essa. Quando la produzione non mostra nulla della modifica, OneUptime non pubblica nulla.
+
+- **Solo dati aggregati.** Il commento contiene conteggi, durate e nomi di codice: mai il messaggio di un'eccezione, una riga di log, il titolo di un incidente o dati personali.
+- **I repository pubblici ricevono un link.** Chiunque può leggere le pull request di un repository pubblico, quindi lì il commento rimanda solo alla revisione in OneUptime, che solo i membri del progetto possono aprire. **Commento della revisione di produzione**, sotto **Altre impostazioni** nella pagina **Impostazioni** del repository, può pubblicare **Solo un link alla revisione** ovunque, oppure **La revisione, anche in un repository pubblico**.
+- **I collaboratori esterni non possono avviarne una.** Una pull request viene rivista da sola solo quando il suo autore, e chiunque vi abbia fatto push, possono scrivere nel repository. Quella di chiunque altro - un collaboratore esterno, un fork, un bot - viene rivista quando qualcuno con accesso in scrittura vi commenta `@oneuptime production review`, o fa clic su **Rivedi di nuovo** in Codice.
+- **Sola lettura.** Una revisione non clona nulla e non esegue nulla della pull request. Il suo diff e il suo titolo sono dati per OneUptime AI, mai istruzioni: l'IA non ha strumenti, e ciò che scrive viene inserito nel commento come testo.
+
+L'interruttore è attivo per i repository che la GitHub App collega da ora in poi. Un repository collegato prima che esistesse lo mantiene disattivato finché non lo attivi.
+
 ## Verifica prima della pull request
 
-Un repository può avere fino a tre comandi di verifica nella sua pagina **Impostazioni** in Codice:
+Un repository dice come si compila e si testa in un `AGENTS.md` nella sua radice, il file che leggono gli agenti di codice. Prima di cambiare qualsiasi cosa, l'agente di codice legge l'`AGENTS.md` del repository (o il suo `CLAUDE.md`, quando non ha un `AGENTS.md`) dal branch da cui parte l'attività, e lavora come dice. Senza nessuno dei due, impara come fare dal `CONTRIBUTING.md` del repository, dal README, dagli script del pacchetto, dal `Makefile` o dai workflow di CI. Non c'è nulla da configurare in OneUptime.
 
-| Comando | Esempio | Quando viene eseguito |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Per primo, per installare le dipendenze. |
-| **Build Command** | `npm run build` | Dopo il setup. |
-| **Test Command** | `npm test` | Per ultimo. |
+| Dove lavora l'IA | Cosa fa con la build e i test del repository |
+| --- | --- |
+| Uno dei tuoi Runner | Compila e testa la sua modifica prima che si apra la pull request, corregge ciò che fallisce e verifica di nuovo, e dice nel suo riepilogo quali verifiche ha eseguito. Ogni comando che esegue ha fino a 2 minuti, senza le credenziali proprie del Runner nel suo ambiente. |
+| **Runner globale** | Non esegue alcun comando: scrive la modifica e apre la pull request, e la CI del tuo repository la controlla. |
 
-Quando uno di essi è impostato, ogni esecuzione di correzione verifica la sua modifica prima che si apra la pull request:
+Nulla di una pull request che viene da un fork viene mai letto come istruzioni del repository: una revisione rifiuta una pull request simile, e una review legge il branch di base.
+
+### Comandi impostati su un repository
+
+Codice non chiede più i comandi di setup, build e test, ma un repository che li ha, impostati prima o tramite l'API o Terraform, li mantiene. Compaiono in sola lettura nella scheda **Comandi di build e test**, in **Altre impostazioni** nella pagina **Impostazioni** del repository, e **Rimuovi comandi** li rimuove tutti e tre. Finché uno di essi è impostato, ogni esecuzione di correzione su un Runner tuo verifica anche la sua modifica con essi prima che si apra la pull request:
 
 1. Quando l'agente di codice ha finito, i comandi vengono eseguiti in ordine nella radice del repository, sul Runner, nello spazio di lavoro clonato. Ognuno ha fino a 15 minuti e viene eseguito con `CI=true`, così niente resta in attesa di un input; il primo errore ferma il passaggio.
 2. In caso di errore, la parte finale dell'output del comando fallito torna allo stesso agente di codice come attività di riparazione, con l'istruzione di correggere la propria modifica invece di indebolire o saltare i test, e i comandi vengono eseguiti di nuovo. Fa al massimo **2** tentativi di riparazione. Condividono il budget LLM dell'esecuzione, e le loro modifiche finiscono nello stesso commit della correzione.
@@ -205,12 +230,12 @@ Non associ i repository ai servizi. Quando un'attività parte, OneUptime trova i
 
 ### Scegli il Runner del repository
 
-Ogni repository sceglie il Runner su cui l'IA ci lavora: nella sua pagina **Impostazioni** in Codice, fai clic su **Modifica impostazioni** e scegline uno nel passaggio **Runner**. Un repository che non ne sceglie nessuno lavora su **Runner globale**, che OneUptime esegue per ogni progetto.
+Ogni repository sceglie il Runner su cui l'IA ci lavora: nella sua pagina **Impostazioni** in Codice, fai clic su **Modifica** nella scheda **Runner** e scegline uno. Un repository che la GitHub App importa parte sul [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto) del progetto, quando ne ha uno. Un repository che non ne sceglie nessuno lavora su **Runner globale**, che OneUptime esegue per ogni progetto.
 
 | Runner | Cosa fa con un'attività |
 | --- | --- |
-| **Runner globale** | Scrive la modifica e apre la pull request, senza i tuoi comandi di setup, build e test: la CI del tuo repository controlla la modifica. |
-| Uno dei tuoi Runner | Esegue anche i tuoi comandi di setup, build e test, su un host che controlli tu. |
+| **Runner globale** | Scrive la modifica e apre la pull request senza compilarla né testarla: la CI del tuo repository controlla la modifica. |
+| Uno dei tuoi Runner | Compila e testa anche la modifica come dice l'`AGENTS.md` del repository, su un host che controlli tu. |
 
 Solo il Runner scelto da un repository riceve le sue attività e un token per esso. In un progetto che disattiva **Usa i Runner globali** in **Runbook → Agenti di runbook**, ogni repository ha bisogno di uno dei Runner del progetto. La pagina di un Runner elenca i repository che lo scelgono.
 
@@ -233,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Sceglilo per il repository
 
-Nella pagina **Impostazioni** del repository in Codice, fai clic su **Modifica impostazioni** e scegli il Runner nel passaggio **Runner**. Il Runner recepisce la modifica al suo prossimo heartbeat, entro circa un minuto; non c'è nulla da riavviare.
+Nella pagina **Impostazioni** del repository in Codice, fai clic su **Modifica** nella scheda **Runner** e scegli il Runner. Il Runner recepisce la modifica al suo prossimo heartbeat, entro circa un minuto; non c'è nulla da riavviare.
 
 ### Verifica che si colleghi
 
@@ -253,13 +278,13 @@ Qualsiasi modo di eseguire il container funziona (Docker Compose, Kubernetes e c
 
 ## Correzioni di codice automatiche dalle indagini
 
-Quando un'[indagine IA](/docs/ai/ai-sre) pubblica un'analisi della causa principale su un incidente o un avviso, e la sua attenta classificazione raccomanda una modifica al codice, la scheda dell'indagine offre **Open Fix PR from this analysis**: un'attività di correzione il cui intero contesto è l'analisi pubblicata. Il pulsante è nascosto quando il rimedio è operativo, solo infrastrutturale, esterno, un rifiuto previsto, un errore dell'utente o non conclusivo. Le correzioni idonee avvengono senza il clic finché l'interruttore **Apri una pull request di correzione quando un'indagine trova una modifica al codice** è attivo. Fa parte della correzione: si trova sotto **Correggi automaticamente i nuovi incidenti** in **Incidenti → IA → Impostazioni** (e sotto **Correggi automaticamente i nuovi avvisi** in **Avvisi → IA → Impostazioni**), si attiva quando si attiva la correzione e apre pull request solo finché la correzione è attiva. Entrambi partono disattivati, anche per i nuovi progetti.
+Quando un'[indagine IA](/docs/ai/ai-sre) pubblica un'analisi della causa principale su un incidente o un avviso, e la sua attenta classificazione raccomanda una modifica al codice, la scheda dell'indagine offre **Open Fix PR from this analysis**: un'attività di correzione il cui intero contesto è l'analisi pubblicata. Il pulsante è nascosto quando il rimedio è operativo, solo infrastrutturale, esterno, un rifiuto previsto, un errore dell'utente o non conclusivo. Le correzioni idonee avvengono senza il clic finché **Correggi automaticamente i nuovi incidenti** è attivo in **Incidenti → IA → Impostazioni** (e **Correggi automaticamente i nuovi avvisi** in **Avvisi → IA → Impostazioni**). La correzione parte disattivata, anche per i nuovi progetti. Senza regole di rimedio automatico si apre ogni correzione idonea; con le regole, solo una per ciò che corrisponde a una regola, quando la regola ha **Pull request di correzione** attivo (una nuova regola lo ha), nei repository di codice che indica.
 
-Finché è attivo, un'indagine che termina con una causa principale certa e documentata, che una modifica al codice può correggere, mette in coda la stessa attività di correzione che crea il pulsante. La decisione è una classificazione vincolata che il server controlla, mai uno schema cercato nel testo dell'analisi: solo un verdetto positivo di correzione del codice apre una pull request. Prove mancanti, un rimedio fuori dal codice e una classificazione fallita portano tutti a non fare nulla.
+Finché la correzione è attiva, un'indagine che termina con una causa principale certa e documentata, che una modifica al codice può correggere, mette in coda la stessa attività di correzione che crea il pulsante. La decisione è una classificazione vincolata che il server controlla, mai uno schema cercato nel testo dell'analisi: solo un verdetto positivo di correzione del codice apre una pull request. Prove mancanti, un rimedio fuori dal codice e una classificazione fallita portano tutti a non fare nulla.
 
 Tutto il resto è come il pulsante:
 
-- La pull request si apre pronta per la revisione, scritta a partire dall'analisi pubblicata, e richiede un repository collegato tramite la GitHub App e un Runner online per lavorarci: quello scelto dal repository, o un Runner globale.
+- La pull request si apre pronta per la revisione, scritta a partire dall'analisi pubblicata, e richiede un repository collegato tramite la GitHub App, uno di quelli indicati dalle regole corrispondenti quando ne indicano, e un Runner online per lavorarci: quello scelto dal repository, o un Runner globale.
 - Conta per il limite giornaliero di attività di correzione di quel segnale (**Daily Incident AI Fix Task Limit** o **Daily Alert AI Fix Task Limit**, in **Altre impostazioni** nella sua pagina delle impostazioni IA) e per il tetto di pull request aperte del repository, quando uno dei due è impostato. Se non sono impostati, nessuno dei due limita nulla.
 - Ogni trigger cerca prima un'attività di correzione già in coda o in esecuzione per lo stesso incidente o avviso, così un trigger automatico e un clic diventano di solito un'unica attività, non due pull request. Il controllo è una lettura prima della scrittura, non un blocco, quindi due trigger nello stesso istante possono comunque passare entrambi.
 - L'esecuzione è scritta dal sistema, non è attribuita a nessuno, e niente viene unito da solo.

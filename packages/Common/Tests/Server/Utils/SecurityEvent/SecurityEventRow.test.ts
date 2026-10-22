@@ -77,6 +77,12 @@ function buildNormalized(
     principalHost: "workstation-1",
     principalIp: "10.0.0.1",
     principalProcess: "sshd",
+    processName: "sshd",
+    processPath: "/usr/sbin/sshd",
+    processCommandLine: "sshd: alice [priv]",
+    parentProcessName: "sshd",
+    parentProcessPath: "/usr/sbin/sshd",
+    parentProcessCommandLine: "/usr/sbin/sshd -D",
     targetUser: "root",
     targetHost: "server-1",
     targetIp: "10.0.0.2",
@@ -138,6 +144,12 @@ describe("buildSecurityEventDbRow", () => {
       expect(row["principalHost"]).toBe("workstation-1");
       expect(row["principalIp"]).toBe("10.0.0.1");
       expect(row["principalProcess"]).toBe("sshd");
+      expect(row["processName"]).toBe("sshd");
+      expect(row["processPath"]).toBe("/usr/sbin/sshd");
+      expect(row["processCommandLine"]).toBe("sshd: alice [priv]");
+      expect(row["parentProcessName"]).toBe("sshd");
+      expect(row["parentProcessPath"]).toBe("/usr/sbin/sshd");
+      expect(row["parentProcessCommandLine"]).toBe("/usr/sbin/sshd -D");
       expect(row["targetUser"]).toBe("root");
       expect(row["targetHost"]).toBe("server-1");
       expect(row["targetIp"]).toBe("10.0.0.2");
@@ -149,6 +161,23 @@ describe("buildSecurityEventDbRow", () => {
         "source.ip": "10.0.0.1",
       });
       expect(row["primaryEntityType"]).toBe(ServiceType.OpenTelemetry);
+    });
+
+    test("every field a normalizer fills is a column of the row, under the same name", () => {
+      const normalized: NormalizedSecurityEvent = buildNormalized();
+      const row: JSONObject = buildRow();
+
+      for (const key of Object.keys(normalized)) {
+        if (key === "time" || key === "attributes") {
+          // Converted on the way: a ClickHouse DateTime64, a sanitized map.
+          continue;
+        }
+
+        expect({ key, value: row[key] }).toEqual({
+          key,
+          value: (normalized as unknown as JSONObject)[key],
+        });
+      }
     });
 
     test("projectId and primaryEntityId are stringified", () => {

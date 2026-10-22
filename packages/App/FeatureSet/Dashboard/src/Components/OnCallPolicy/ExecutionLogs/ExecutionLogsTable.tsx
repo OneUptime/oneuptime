@@ -7,6 +7,10 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import {
+  ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN,
+  isOnCallPageAgainRun,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import OnCallDutyPolicyStatus from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -67,6 +71,16 @@ export const ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME: string =
   "mt-1 max-w-[14rem] whitespace-normal text-xs text-gray-500";
 
 /*
+ * Under a page again's pill (OnCallAcknowledgementTimeout): that its policy
+ * paged again because the record stayed acknowledged without being
+ * resolved, and which time - "Paged again (1 of 5)". What sets the row apart
+ * from the run before it, which paged about the same record.
+ */
+export const ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(
+  "Paged again ({{number}} of {{max}})",
+);
+
+/*
  * What a run that paged nobody says on hover. A policy went through its
  * escalation rules; a direct page has none, and names what it found empty.
  */
@@ -88,6 +102,68 @@ export const POLICY_HAS_NOT_RUN_MESSAGE: string = translationKey(
 export const NOBODY_PAGED_YET_MESSAGE: string = translationKey(
   "Nobody has been paged so far.",
 );
+
+/*
+ * A run's status, as a pill: green when it completed, amber while it pages
+ * or when it paged nobody, blue while it waits, red when it failed.
+ */
+const getStatusPill: (item: OnCallDutyPolicyExecutionLog) => ReactElement = (
+  item: OnCallDutyPolicyExecutionLog,
+): ReactElement => {
+  if (item["status"] === OnCallDutyPolicyStatus.Completed) {
+    return <Pill color={Green} text={OnCallDutyPolicyStatus.Completed} />;
+  } else if (
+    item["status"] === OnCallDutyPolicyStatus.CompletedWithNoNotifications
+  ) {
+    /*
+     * A completed execution that paged nobody is not a success. Rendering
+     * it in the same green as a successful page is how a policy that
+     * silently notified no one goes unnoticed for weeks.
+     */
+    return (
+      <Pill
+        color={Yellow}
+        text={OnCallDutyPolicyStatus.CompletedWithNoNotifications}
+        tooltip={
+          isOnCallDirectPage(item)
+            ? DIRECT_PAGE_PAGED_NOBODY_TOOLTIP
+            : POLICY_PAGED_NOBODY_TOOLTIP
+        }
+      />
+    );
+  } else if (item["status"] === OnCallDutyPolicyStatus.Waiting) {
+    /*
+     * Paging nobody yet, on purpose: an on-call rule held it until
+     * working hours (OnCallDutyPolicyRunWait). Its status message says
+     * what it waits for and when paging starts - the words the
+     * record's feed says too - so the row says it, not only a click
+     * on View Status Message.
+     */
+    return (
+      <div>
+        <Pill color={Blue} text={OnCallDutyPolicyStatus.Waiting} />
+        {item.statusMessage ? (
+          <p
+            className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+            data-testid="execution-log-waiting-message"
+          >
+            {item.statusMessage}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
+    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Started} />;
+  } else if (item["status"] === OnCallDutyPolicyStatus.Scheduled) {
+    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Scheduled} />;
+  } else if (item["status"] === OnCallDutyPolicyStatus.Executing) {
+    return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Executing} />;
+  }
+
+  return <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />;
+};
 
 export interface ComponentProps {
   onCallDutyPolicyId?: ObjectID | undefined; // if this is undefined. then it'll show logs for all policies.
@@ -325,63 +401,26 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
       type: FieldType.Element,
 
       getElement: (item: OnCallDutyPolicyExecutionLog): ReactElement => {
-        if (item["status"] === OnCallDutyPolicyStatus.Completed) {
-          return <Pill color={Green} text={OnCallDutyPolicyStatus.Completed} />;
-        } else if (
-          item["status"] === OnCallDutyPolicyStatus.CompletedWithNoNotifications
-        ) {
-          /*
-           * A completed execution that paged nobody is not a success. Rendering
-           * it in the same green as a successful page is how a policy that
-           * silently notified no one goes unnoticed for weeks.
-           */
-          return (
-            <Pill
-              color={Yellow}
-              text={OnCallDutyPolicyStatus.CompletedWithNoNotifications}
-              tooltip={
-                isOnCallDirectPage(item)
-                  ? DIRECT_PAGE_PAGED_NOBODY_TOOLTIP
-                  : POLICY_PAGED_NOBODY_TOOLTIP
-              }
-            />
-          );
-        } else if (item["status"] === OnCallDutyPolicyStatus.Waiting) {
-          /*
-           * Paging nobody yet, on purpose: an on-call rule held it until
-           * working hours (OnCallDutyPolicyRunWait). Its status message says
-           * what it waits for and when paging starts - the words the
-           * record's feed says too - so the row says it, not only a click
-           * on View Status Message.
-           */
-          return (
-            <div>
-              <Pill color={Blue} text={OnCallDutyPolicyStatus.Waiting} />
-              {item.statusMessage ? (
-                <p
-                  className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
-                  data-testid="execution-log-waiting-message"
-                >
-                  {item.statusMessage}
-                </p>
-              ) : (
-                <></>
-              )}
-            </div>
-          );
-        } else if (item["status"] === OnCallDutyPolicyStatus.Started) {
-          return <Pill color={Yellow} text={OnCallDutyPolicyStatus.Started} />;
-        } else if (item["status"] === OnCallDutyPolicyStatus.Scheduled) {
-          return (
-            <Pill color={Yellow} text={OnCallDutyPolicyStatus.Scheduled} />
-          );
-        } else if (item["status"] === OnCallDutyPolicyStatus.Executing) {
-          return (
-            <Pill color={Yellow} text={OnCallDutyPolicyStatus.Executing} />
-          );
+        const status: ReactElement = getStatusPill(item);
+
+        if (!isOnCallPageAgainRun(item)) {
+          return status;
         }
 
-        return <Pill color={Red} text={OnCallDutyPolicyStatus.Error} />;
+        return (
+          <div>
+            {status}
+            <p
+              className={ON_CALL_LOGS_WAITING_MESSAGE_CLASS_NAME}
+              data-testid="execution-log-paged-again"
+            >
+              {translator.translateTemplate(ON_CALL_LOGS_PAGED_AGAIN, {
+                number: Number(item.pageAgainNumber),
+                max: ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN,
+              })}
+            </p>
+          </div>
+        );
       },
     },
     {
@@ -422,6 +461,8 @@ const ExecutionLogsTable: FunctionComponent<ComponentProps> = (
         }}
         selectMoreFields={{
           statusMessage: true,
+          // A page again says so under its status.
+          pageAgainNumber: true,
           // Read with every row: a row with none is a direct page.
           onCallDutyPolicyId: true,
           // What started a direct page: a workflow, or a person.

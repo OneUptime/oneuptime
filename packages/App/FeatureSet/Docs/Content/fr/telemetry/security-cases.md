@@ -5,6 +5,7 @@
 :::cards
 - [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés et les personnes.
 - [Traiter un dossier](#traiter-un-dossier): L'assigner, enquêter sur ses entités, le fermer avec un verdict.
+- [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution et d'une étape en attente d'approbation.
 - [Playbooks](#playbooks): Des étapes qui s'exécutent sur un dossier, avec une approbation là où elle compte.
 - [La vue d'ensemble](#la-vue-densemble): Ce qui demande une intervention maintenant, et la rapidité de traitement des dossiers.
 :::
@@ -49,7 +50,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Polling** de la connexion |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
-Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **High and above**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
+Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
 
 ### Comment les détections sont regroupées
 
@@ -83,6 +84,7 @@ Un dossier passe par quatre statuts. Il peut en sauter un, comme un faux positif
 La page du dossier réunit tout ce qu'il faut pour le traiter :
 
 - En haut : **Assign to Me**, **Run Playbook**, **Déclarer un incident** et **Close Case**, les étapes de statut, et la priorité, dans le menu à côté.
+- **OneUptime AI** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **MITRE ATT&CK** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
@@ -104,9 +106,56 @@ Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'att
 
 Les verdicts sont comptabilisés sur la vue d'ensemble. Une règle dont les dossiers se ferment sans cesse en faux positif est une règle à ajuster.
 
+Un dossier ouvert à partir d'alertes Google SecOps les ferme aussi dans Google SecOps, avec le verdict et la note de clôture, quand sa connexion a **Fermer les alertes quand leur dossier est fermé** activé : voir [Google SecOps](/docs/integrations/google-secops#fermer-les-alertes-quand-leur-dossier-est-fermé).
+
 ### Déclarer un incident
 
 **Déclarer un incident** ouvre un incident OneUptime pour le dossier, avec la gravité de votre choix, et les relie dans les deux sens : la description de l'incident nomme le dossier, et l'en-tête du dossier renvoie vers l'incident. L'astreinte, les pages de statut et le post-mortem prennent ensuite le relais. Il faut un rôle qui puisse à la fois traiter des dossiers et créer des incidents.
+
+## Notifications
+
+OneUptime prévient les personnes concernées de trois choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
+
+| Notification | Qui est prévenu | Par défaut |
+| --- | --- | --- |
+| Nouveau dossier de sécurité | Toutes les personnes qui peuvent voir les dossiers du projet, quand un dossier s'ouvre ou monte en priorité, à partir de la priorité qu'elles ont choisie | Par e-mail et par push, pour les dossiers de priorité Élevé et Critique |
+| Dossier de sécurité qui m'est attribué | La personne à qui le dossier est attribué, et les membres de l'équipe à laquelle il est attribué | Par e-mail et par push |
+| Étape de playbook en attente de mon approbation | Les personnes du dossier qui peuvent approuver l'étape : la personne à qui il est attribué et les membres de son équipe. Quand aucune d'elles ne peut l'approuver, toutes les personnes du projet qui le peuvent | Par e-mail et par push |
+
+- Seules les personnes qui peuvent voir le dossier en sont prévenues : Project Owner, Project Admin, et les rôles Security Admin, Security Member et Security Viewer. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
+- Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
+- Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
+- L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
+- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup).
+- La **Chronologie** du dossier indique qui a été prévenu, et quand.
+
+### Choisir ce dont vous êtes prévenu
+
+Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Paramètres de notification → Sécurité** : les canaux de chaque notification (e-mail, SMS, appel, push, Telegram, Slack, Microsoft Teams ou webhook), et, sous **Nouveau dossier de sécurité**, la priorité à partir de laquelle elle est prévenue :
+
+| Choix | Prévient des dossiers de priorité |
+| --- | --- |
+| Critique uniquement | Critique |
+| Élevé et Critique | Élevé et Critique (le choix par défaut) |
+| Moyen et au-dessus | Critique, Élevé et Medium |
+| Faible et au-dessus | Toutes sauf Informatifs |
+| Tous les dossiers | Toutes |
+
+Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre l'application OneUptime, et son lien ouvre le dossier dans le navigateur.
+
+### Publier dans des canaux Slack et Microsoft Teams
+
+Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter Slack ou Teams**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
+
+| Condition | Correspond à |
+| --- | --- |
+| Priorité du dossier de sécurité | Critique, Élevé, Medium, Low ou Informatifs |
+| Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
+| Statut du dossier de sécurité | Nouveau, Investigation en cours, Confiné ou Fermé |
+| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product ou Manuel |
+| Étiquettes du dossier de sécurité | Les étiquettes du dossier |
+
+Les trois notifications sont chacune publiées dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
 
 ## Playbooks
 
@@ -118,6 +167,7 @@ Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en u
 | --- | --- |
 | Dossier ouvert | Une fois, à l'ouverture d'un dossier |
 | Détection ajoutée | Chaque fois qu'une nouvelle détection rejoint un dossier ouvert |
+| Qualifié probablement malveillant | Une fois, quand la qualification de OneUptime AI lit le dossier comme Probablement malveillant |
 | Manuel | Seulement quand quelqu'un l'exécute depuis un dossier |
 
 Tout playbook activé peut aussi être lancé à la main, avec **Run Playbook** sur un dossier. Un playbook qui s'exécute de lui-même peut être restreint :
@@ -252,6 +302,10 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 Vérifiez **Open a Case on Match** à l'étape **En cas de correspondance** de la règle. Une détection portant sur une entité qui a déjà un dossier ouvert s'ajoute à ce dossier au lieu d'en ouvrir un autre : cherchez-la sous **Détections** dans le dossier ouvert.
 :::
 
+:::details Personne n'a été prévenu d'un dossier
+Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et Critique**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
+:::
+
 :::details Un playbook ne s'est pas exécuté
 Vérifiez qu'il est activé, que son réglage **Déclencheur** convient (avec Dossier ouvert, il ne s'exécute qu'une fois, à l'ouverture d'un dossier), et que le dossier remplit ses conditions **For Cases At Least**, **Only For Detections From** et **Only For These Detection Rules**. Un dossier ouvert à la main n'a pas de détection, donc un playbook limité à une source ou à des règles ne s'exécute pas dessus.
 :::
@@ -269,5 +323,6 @@ Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adre
 :::cards
 - [Événements de sécurité](/docs/telemetry/security-events): Envoyer des événements, écrire des règles de détection et connecter des produits de sécurité.
 - [Renseignement sur les menaces](/docs/telemetry/threat-intelligence): Confronter vos événements à des flux STIX/TAXII.
+- [OneUptime AI dans la sécurité](/docs/telemetry/security-ai): Qualifier les dossiers, rédiger des règles de détection et poser des questions sur la sécurité, avec l'IA.
 - [Référence des autorisations](/docs/permissions/reference): Les rôles de sécurité, et ce que chacun peut faire.
 :::

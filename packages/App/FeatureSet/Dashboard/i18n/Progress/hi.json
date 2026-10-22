@@ -1,20 +1,24 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16554
+    "keys": 32601,
+    "untranslated": 16476
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Goroutines",
     "ICMP (ping)",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Runbook: {{name}}",
     "Runner",
     "VMware vCenter",
     "kubectl set image deployment/web * -n web",
     "syslog",
+    "vCenters",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB"

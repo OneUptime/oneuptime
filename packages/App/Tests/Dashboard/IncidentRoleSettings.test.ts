@@ -371,9 +371,13 @@ describe("the page's wiring", () => {
   test("Allow Multiple Users is folded under the shared More fields section", () => {
     expect(PAGE_SOURCE).toContain("getAdvancedFormSection<IncidentRole>()");
 
+    // From the switch's field to the next one, the icon's.
+    const fieldStart: number = PAGE_SOURCE.indexOf(
+      "canAssignMultipleUsers: true,",
+    );
     const field: string = PAGE_SOURCE.slice(
-      PAGE_SOURCE.indexOf("canAssignMultipleUsers: true,"),
-      PAGE_SOURCE.indexOf("roleIcon: true,"),
+      fieldStart,
+      PAGE_SOURCE.indexOf("roleIcon: true,", fieldStart),
     );
 
     expect(field).toContain("collapsibleSection: advancedSection");

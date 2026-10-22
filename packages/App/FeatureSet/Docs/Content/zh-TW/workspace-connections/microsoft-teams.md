@@ -4,6 +4,7 @@
 
 :::cards
 - [連接 Microsoft Teams](#連接-microsoft-teams): 管理員同意、您的登入，以及每個團隊中的應用程式。
+- [請所有人連接帳戶](#請所有人連接帳戶): 一次傳送訊息給每位尚未連接帳戶的成員。
 - [通知規則](#通知規則): 決定哪些事件發布到哪裡，以及哪些事件擁有專屬頻道。
 - [與 OneUptime 機器人對話](#與-oneuptime-機器人對話): 在與機器人的聊天中使用指令、提問和表單。
 - [待命標籤](#待命標籤): 讓團隊的標籤與待命人員保持一致，並呼叫它。
@@ -27,6 +28,8 @@ flowchart TB
 - **專案的連接** 只需建立一次：Microsoft 365 管理員為您的組織同意 OneUptime 應用程式。
 - **每個團隊中的 OneUptime 應用程式**，也就是您希望接收通知的每個團隊。Microsoft 只允許機器人在已新增它的團隊中發布訊息。
 - **每個人自己的連接**：此人的 Microsoft Teams 帳戶連結到其 OneUptime 帳戶。按鈕、指令和回應都以此人的身分、依其在專案中的權限執行。
+
+一個 Microsoft 365 組織可以連接到多個專案，例如正式環境與測試環境。卡片上的按鈕會在卡片所涉及紀錄的專案中執行。傳給機器人的訊息會在其傳送所在頻道（例如事件的頻道）的專案中執行，否則會在傳送者的 Microsoft Teams 帳戶所連接的唯一專案中執行。如果無法據此判斷，機器人會列出此人所在的專案，並請此人從目標專案的頻道中重試。
 
 ## 開始之前
 
@@ -57,7 +60,7 @@ flowchart TB
 
 ### 連接其他所有人
 
-每個人都在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結自己的 Microsoft Teams 帳戶，以便以本人身分處理事件並接收私人訊息。專案連接到 Microsoft Teams 後，該區段就會出現。
+每個人都在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結自己的 Microsoft Teams 帳戶，以便以本人身分處理事件並接收私人訊息。專案連接到 Microsoft Teams 後，該區段就會出現。如需讓整個團隊一次完成連接，請參閱 [請所有人連接帳戶](#請所有人連接帳戶)。
 
 ### 新增通知規則
 
@@ -66,6 +69,14 @@ flowchart TB
 
 > [!NOTE]
 > 為您自己安裝 OneUptime，或將其新增到聊天中，是另一種安裝，並不能讓它向團隊的頻道發布訊息。 **私人頻道** 需要將應用程式新增到頻道本身：開啟頻道 > "..." > **Manage channel** > **Apps** > **Add an app**。 **共用頻道** 無法接收通知：Microsoft Teams 不支援在共用頻道中使用機器人。
+
+## 請所有人連接帳戶
+
+任何人都無法替他人連接 Microsoft Teams 帳戶，管理員也不例外：每個人都必須親自登入自己的帳戶。若要讓整個團隊完成連接，可由 **Project Owner** 或 **Project Admin** 在 **專案設定** > **工作區** > **Microsoft Teams** 中一次請所有人連接。 **Members' Microsoft Teams accounts** 卡片會顯示已有多少成員完成連接。 **Ask everyone to connect** 會讓 OneUptime 機器人傳送一則訊息給每位尚未連接的成員，並附上一個 **Connect Microsoft Teams account** 按鈕，只要按一下即可連接其帳戶。
+
+- **誰會收到訊息。** 專案中每位尚未連接 Microsoft Teams 帳戶、且所在團隊已新增 OneUptime 應用程式的成員，在該團隊中透過其電子郵件地址或使用者主體名稱（UPN）找到。過去 24 小時內已請求過的人不會再次收到請求，因此隔天再請一次時，只會提醒仍未連接的人。
+- **卡片顯示的內容。** 訊息傳送期間顯示傳送進度，之後顯示是誰提出請求，以及有多少成員收到訊息。OneUptime 找不到的成員會在卡片上列出姓名：請將應用程式新增到他們所在的團隊，或請他們自行在 **使用者設定** > **工作區** > **Microsoft Teams** 中連接。
+- **按鈕連接的帳戶。** 按下按鈕並登入的人的 Microsoft Teams 帳戶，會連接到此人自己的 OneUptime 帳戶。轉給他人的訊息，不會為原本收到訊息的成員連接任何帳戶。
 
 ## 通知規則
 
@@ -91,6 +102,8 @@ flowchart TB
 規則建立的頻道以其紀錄命名：事件 INC-42 得到 `inc-42`，警示 ALT-7 得到 `alt-7`；在沒有編號前綴的專案中，事件 42 得到 `incident-42`。 **頻道名稱前綴** 中的文字放在名稱前面，因此 `prod-` 會得到 `prod-inc-42`，表單會在您輸入時顯示名稱。對於排定維護事件，前綴會取代其編號前綴：SM-5 得到 `sm-5`，`maint-` 會得到 `maint-5`。OneUptime 只保留字母、數字、空格、`-` 和 `_`，最多為 Microsoft Teams 接受的 50 個字元。如果團隊中已有同名頻道（例如其他專案的頻道或最近 30 天內刪除的頻道），OneUptime 會加上 `-2`、`-3` 等。
 
 規則的頻道會在事件首次符合該規則時建立：在事件建立時，或之後在事件仍未結束時，由某次更新使其符合時。針對已確認事件的規則會在事件被確認時建立頻道。Microsoft Teams 會向團隊中的每個人顯示團隊的頻道，因此 OneUptime 不會逐一把人加入頻道：您選擇的團隊中的每個人都可以開啟頻道，正如規則表單在 **誰會加入頻道** 下所說。私人事件、警示或片段會獲得私人頻道，只有其成員可見；請在 Microsoft Teams 中新增人員。
+
+若要讓待命人員參與進來，請在 **提及待命人員** 下選擇他們的待命排程。建立頻道時，OneUptime 會緊接在紀錄的第一則訊息之後，在頻道中發布一則訊息，在其中 @提及這些待命排程中正在待命的人，因此 Microsoft Teams 會通知他們。不會呼叫任何人。OneUptime 會根據每個人連接到 OneUptime 的 Microsoft Teams 帳戶在團隊中找到此人，否則根據其電子郵件地址尋找。不在該團隊中的人無法開啟團隊的頻道，因此訊息中會改為列出其姓名並說明原因。私人頻道只有其成員才能開啟，因此請在 Microsoft Teams 中將待命人員新增到該頻道。
 
 此後紀錄的每次更新（狀態變化、備註、新擁有者）都會發布到它的頻道，並在規則的條件符合期間發布到其規則指定的現有頻道和聊天。OneUptime 無法封存 Microsoft Teams 頻道，因此紀錄結束後，規則的頻道會保留；請在 Microsoft Teams 中封存或刪除它。
 
@@ -195,7 +208,7 @@ flowchart TB
 - **立即被呼叫的人。** 您 @提及的人，以及您 @提及的標籤所連結待命排程中正在待命的人，前提是其後跟有訊息（請參閱 [待命標籤](#待命標籤)）。OneUptime 透過此人的 Microsoft Teams 帳戶所連接的 OneUptime 帳戶識別此人，否則透過此人在 Microsoft Teams 中的電子郵件地址識別。專案以外的人不會被呼叫。
 - **其他情況會收到卡片。** 如果沒有 @提及任何人（例如在與機器人的個人聊天中）、沒有訊息、提及了未連結您可見待命排程的標籤，或有 OneUptime 無法識別的人，機器人會以 **Page someone** 卡片回覆，其中已填入您輸入的內容，並說明哪些人無法選取。選擇人員、團隊、待命排程（呼叫此刻在該排程中待命的人）或待命策略（依其上報規則呼叫），然後提交。對話中的任何人都可以以自己的身分提交該卡片。呼叫完成後，卡片會被移除，以免有人用它重複呼叫。
 - **顯示位置。** 對話會以一張持續更新的卡片顯示這次呼叫：呼叫了誰、如何呼叫，以及誰已確認。機器人無法張貼它時，它的回覆會告訴您呼叫了誰，並附上警示的連結。
-- **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。
+- **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 方案：低於此方案時，OneUptime 會說明所需的方案，並且不會呼叫任何人。
 
 ## 待命標籤
 
@@ -242,7 +255,7 @@ flowchart TB
 OneUptime 卡片上的按鈕以按下者的身分執行，無論是在個人聊天、頻道還是群組聊天中：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分，依該帳戶在專案中的權限執行。事件、警示或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及排定維護活動上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自會做出與 OneUptime 中相同操作一樣的變更，並在那裡記在此人名下：紀錄的狀態時間軸和動態會顯示是誰變更了其狀態，備註也歸此人所有。透過回應從訊息儲存的備註也以同樣方式發布。
 
 - **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。與 OneUptime 中的狀態面板一樣，它們不要求編輯事件或警示本身的權限。其他任何人都會收到告知，並且不會有任何變更。
-- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄或其他專案的紀錄上的按鈕，都會得到該紀錄 "was not found in this project, or you do not have access to it." 的回覆，並且不會有任何變更。在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
+- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄上的按鈕都會說明原因，並且不會有任何變更：對於此人的角色無法觸及的事件，回覆 "your access in this project does not include this incident. Ask a project admin for access to it."；對於此人不是負責人的私人事件，回覆 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；對於之後已刪除的事件，回覆 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供此人可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果此人一個都無法讀取，機器人會說 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，則會說 "There is no later state to move this incident to."。這兩種情況都不會顯示空白卡片。
 - **私人事件上的 Add Note。** 私人事件不能新增公開備註，因此它的卡片不會詢問備註類型，而是新增一則私人備註。在它設為私人之前送出的卡片也會新增私人備註，並說明這一點。請參閱[私人事件只能新增私人備註](/docs/incidents/notes-owners-and-feed#私人事件只能新增私人備註)。
 - **Escalate.** 卡片上的 **Escalate** 會針對卡片所涉及的事件、警示或片段執行其待命策略，以按下者的身分，並使用與 **Execute On-Call Policy** 相同的權限。不涉及其中任何一種的卡片會得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回覆，並且不會呼叫任何人。

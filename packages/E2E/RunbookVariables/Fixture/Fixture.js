@@ -7,21 +7,22 @@
  *     runbook's own;
  *   - a runbook's Steps (Pages/Runbook/View/Steps): the SSH step (machine,
  *     sign-in variable, bash script) and the kubectl step (kubeconfig
- *     variable, script), each with its More fields;
- *   - Runbooks -> Runners -> AI Access (Pages/Runbook/Runners/
- *     RunnerCredentials): what OneUptime AI's commands reach.
+ *     variable, script), each with its More fields.
+ *
+ * (Runbooks -> Runners -> AI Access, the runbook credentials OneUptime AI's
+ * commands reached a host or a cluster with, is gone.)
  *
  * Only the ModelAPI / API data boundary and the synthetic user's
  * permissions are replaced. The pages, their tables, forms, folds and
  * pickers are the production ones from this branch.
  *
  * Steered by the query string:
- *   - page=variables | runbook-variables | steps | ai-access   (default:
- *                            variables)
+ *   - page=variables | runbook-variables | steps   (default: variables)
  *   - variables=none         the project has no variables yet
  *   - steps=none             the runbook has no steps yet (the step cards)
  *   - legacy=1               the runbook also has an SSH and a Kubernetes
- *                            step written with a credential, through the API
+ *                            step written with a runbook credential through
+ *                            the API before credentials were removed
  *   - custom=<n>             how many Runners of its own the project has
  *                            (1 by default, at most 2)
  *   - global=0               the server runs no global Runner
@@ -52,11 +53,9 @@ import { initReactI18next } from "react-i18next";
 import GlobalVariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Variables";
 import RunbookVariablesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Variables";
 import StepsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/View/Steps";
-import AiAccessPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -64,7 +63,6 @@ import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import {
   BUNDLED_GLOBAL_RUNNER_DESCRIPTION,
   BUNDLED_GLOBAL_RUNNER_ID,
@@ -342,23 +340,11 @@ const runbook = record(Runbook, {
   steps: STEPS,
 });
 
-const CREDENTIALS = [
-  record(RunbookCredential, {
-    _id: CREDENTIAL_ID,
-    projectId: new ObjectID(PROJECT_ID),
-    name: "cache-hosts",
-    credentialType: RunbookCredentialType.SSH,
-    description: "OneUptime AI's diagnostics on the cache hosts.",
-    runners: RUNNERS.slice(0, 1),
-  }),
-];
-
 const TABLES = {
   Project: [project],
   Runbook: [runbook],
   Runner: RUNNERS,
   RunbookVariable: VARIABLES,
-  RunbookCredential: CREDENTIALS,
 };
 
 window.__fixture.addVariable = (name) => {
@@ -522,7 +508,6 @@ const target = {
   variables: `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
   "runbook-variables": `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/variables`,
   steps: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`,
-  "ai-access": `/dashboard/${PROJECT_ID}/runbooks/runner-credentials`,
 }[page];
 
 if (target && window.location.pathname !== target) {
@@ -540,10 +525,6 @@ createRoot(document.getElementById("root")).render(
             trail="Settings / Global Variables"
           />
         }
-      />
-      <PageRoute
-        path="/dashboard/:projectId/runbooks/runner-credentials"
-        element={<Shell component={AiAccessPage} trail="Runners / AI Access" />}
       />
       <PageRoute
         path="/dashboard/:projectId/runbooks/:id/variables"

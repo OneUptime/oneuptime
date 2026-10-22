@@ -376,6 +376,38 @@
       background-color: rgb(52 211 153 / 0.12);
    }
 
+   /* The browser refused the copy: said in red, on the dark code surface. */
+   .copy-btn.copy-failed {
+      color: rgb(252 165 165);
+      border-color: rgb(248 113 113 / 0.5);
+      background-color: rgb(248 113 113 / 0.12);
+   }
+
+   /*
+    * The endpoint chip's icon button, on the page's own surface: green once
+    * copied, red when the copy failed - hovered too, where its own hover
+    * colour would otherwise take the state's colour away.
+    */
+   button.copied:not(.copy-btn),
+   button.copied:not(.copy-btn):hover {
+      color: rgb(5 150 105);
+   }
+
+   .dark button.copied:not(.copy-btn),
+   .dark button.copied:not(.copy-btn):hover {
+      color: rgb(52 211 153);
+   }
+
+   button.copy-failed:not(.copy-btn),
+   button.copy-failed:not(.copy-btn):hover {
+      color: rgb(220 38 38);
+   }
+
+   .dark button.copy-failed:not(.copy-btn),
+   .dark button.copy-failed:not(.copy-btn):hover {
+      color: rgb(248 113 113);
+   }
+
    /*
     * Floating copy button. Hidden until hover on a pointer device; always shown
     * on touch, where there is no hover to reveal it with.

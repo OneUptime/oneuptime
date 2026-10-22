@@ -1501,6 +1501,11 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
   await noHorizontalOverflow(page);
   await screenshot(page, "session-replay-details-mobile");
 
+  /*
+   * Without the async clipboard - a self-hosted install on plain http - the
+   * value is copied through the browser's older copy command instead
+   * (Clipboard.copyToClipboard, issue #5132), and the button says so.
+   */
   await page.evaluate((): void => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -1508,6 +1513,23 @@ test("the mobile list, filters, recording and event search fit a narrow viewport
     });
   });
   const exitUrl: Locator = page.getByTestId("replay-details-exit-url");
+  await exitUrl
+    .getByRole("button", { name: "Copy Exit URL", exact: true })
+    .click();
+  await expect(
+    exitUrl.getByRole("button", { name: "Copied", exact: true }),
+  ).toBeVisible();
+
+  /*
+   * Only when the browser refuses that command too is the value offered to
+   * copy by hand - in front of everything, even at a phone's width. The
+   * click waits for the button to read Copy Exit URL again.
+   */
+  await page.evaluate((): void => {
+    document.execCommand = (): boolean => {
+      return false;
+    };
+  });
   await exitUrl
     .getByRole("button", { name: "Copy Exit URL", exact: true })
     .click();

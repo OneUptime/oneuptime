@@ -1,7 +1,8 @@
 # Update-phase config: the runner copies this over main.tf after the initial
 # apply + drift gate. Changed vs main.tf:
 # - basic: description updated
-# - repeat: repeat_policy_if_no_one_acknowledges toggled off
+# - repeat: repeat_policy_if_no_one_acknowledges toggled off, and
+#   acknowledgement_timeout_in_minutes changed from 30 to 45
 # - with_labels: name updated
 terraform {
   required_providers {
@@ -36,6 +37,7 @@ resource "oneuptime_on_call_policy" "repeat" {
   name                                 = "TF Repeat OnCall Policy ${random_id.suffix.hex}"
   description                          = "On-call policy with repeat settings"
   repeat_policy_if_no_one_acknowledges = false
+  acknowledgement_timeout_in_minutes   = 45
 }
 
 # Test Case 3: On-Call Policy with labels

@@ -1602,4 +1602,84 @@ describe("GitHubConversation", () => {
       expect(pullRequest.headRefName).toBe("oneuptime-ai/fix");
     });
   });
+
+  /*
+   * Whether a production review may show production in the pull request
+   * depends on whether anyone on the internet reads it. Asked of GitHub every
+   * time, and every way of not knowing reads as public - the safe answer.
+   */
+  describe("isRepositoryPublic", () => {
+    test.each([
+      [{ visibility: "public", private: false }, true],
+      [{ visibility: "private", private: true }, false],
+      [{ visibility: "internal", private: true }, false],
+      [{ visibility: "PUBLIC" }, true],
+      [{ private: false }, true],
+      [{ private: true }, false],
+      [{}, null],
+      [{ visibility: "something-new" }, null],
+    ])(
+      "reads %p as %p",
+      async (repository: JSONObject, expected: boolean | null) => {
+        getMock.mockResolvedValue(okJson(repository));
+
+        expect(await GitHubConversation.isRepositoryPublic(REPO)).toBe(
+          expected,
+        );
+        expect(getCall(1).url.toString()).toBe(
+          "https://api.github.com/repos/acme/checkout",
+        );
+        expect(getCall(1).headers["Authorization"]).toBe(
+          "Bearer ghs_installation_1",
+        );
+      },
+    );
+
+    test("GitHub answering with an error is not knowing", async () => {
+      getMock.mockResolvedValue(errorResponse(404, { message: "Not Found" }));
+
+      expect(await GitHubConversation.isRepositoryPublic(REPO)).toBeNull();
+    });
+
+    test("a token that cannot be minted is not knowing, and never throws", async () => {
+      tokenSpy.mockRejectedValue(new Error("installation gone"));
+
+      expect(await GitHubConversation.isRepositoryPublic(REPO)).toBeNull();
+    });
+  });
+
+  describe("listPullRequestFiles - a renamed file's old name", () => {
+    test("keeps previous_filename, and no name when there was none", async () => {
+      getMock.mockResolvedValue(
+        okArray([
+          {
+            filename: "lib/charge.ts",
+            previous_filename: "src/charge.ts",
+            status: "renamed",
+            additions: 1,
+            deletions: 1,
+            patch: "@@ -1 +1 @@",
+          },
+          {
+            filename: "lib/refund.ts",
+            status: "modified",
+            additions: 1,
+            deletions: 0,
+          },
+        ]),
+      );
+
+      const files: Awaited<
+        ReturnType<typeof GitHubConversation.listPullRequestFiles>
+      > = await GitHubConversation.listPullRequestFiles({
+        ...REPO,
+        pullRequestNumber: 42,
+        maxFiles: 10,
+      });
+
+      expect(files[0]!.previousFilename).toBe("src/charge.ts");
+      expect(files[1]!.previousFilename).toBeNull();
+      expect(files[1]!.patch).toBeNull();
+    });
+  });
 });

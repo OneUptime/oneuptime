@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ObjectID from "../../../../Types/ObjectID";
 
 /*
  * WHERE A SLACK FORM WAS OPENED, CARRIED IN THE FORM ITSELF.
@@ -13,6 +14,11 @@ import { JSONObject } from "../../../../Types/JSON";
  * along with the value it always carried (the record's id), so the
  * submission is answered there, like the press that opened it.
  *
+ * It carries the project the form was opened in, too: a Slack workspace
+ * can be connected to more than one project, and a submission names only
+ * the workspace, so the form says which project it belongs to - where its
+ * submission is read (WorkspaceProjectResolution).
+ *
  * A form opened before this was written carries the bare value: read as the
  * value, with nowhere known to answer.
  */
@@ -26,6 +32,8 @@ export interface SlackModalOrigin {
    * does: its submission is answered with what it did.
    */
   isFromPrivateMessage?: boolean | undefined;
+  // The project the form was opened in: an id, or nothing.
+  projectId?: string | undefined;
 }
 
 export interface SlackModalMetadataValue {
@@ -49,9 +57,17 @@ export default class SlackModalMetadata {
     value: string,
     origin: SlackModalOrigin | undefined,
   ): string {
+    const projectId: string | undefined =
+      origin?.projectId && ObjectID.isValidUUID(origin.projectId)
+        ? origin.projectId
+        : undefined;
+
     if (
       !origin ||
-      (!origin.channelId && !origin.threadTs && !origin.isFromPrivateMessage)
+      (!origin.channelId &&
+        !origin.threadTs &&
+        !origin.isFromPrivateMessage &&
+        !projectId)
     ) {
       return value;
     }
@@ -71,6 +87,10 @@ export default class SlackModalMetadata {
 
     if (origin.isFromPrivateMessage) {
       envelope["private"] = 1;
+    }
+
+    if (projectId) {
+      envelope["projectId"] = projectId;
     }
 
     const written: string = JSON.stringify(envelope);
@@ -107,6 +127,13 @@ export default class SlackModalMetadata {
 
           if (read["private"] === 1) {
             origin.isFromPrivateMessage = true;
+          }
+
+          if (
+            typeof read["projectId"] === "string" &&
+            ObjectID.isValidUUID(read["projectId"])
+          ) {
+            origin.projectId = read["projectId"];
           }
 
           return {

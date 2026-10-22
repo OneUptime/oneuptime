@@ -45,6 +45,7 @@ import IncidentsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/In
 import MonitorsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu";
 import OnCallDutySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/SideMenu";
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
+import SecurityEventsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/SideMenu";
 import ProjectSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/SideMenu";
 import UserSettingsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/UserSettings/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -123,6 +124,15 @@ const PRODUCT_MENUS: Array<ProductMenu> = [
     slack: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_SLACK,
     microsoftTeams: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
     connect: PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS,
+  },
+  {
+    name: "Security Events",
+    Menu: SecurityEventsSideMenu as FunctionComponent<Record<string, unknown>>,
+    landing: PageMap.SECURITY_EVENTS_OVERVIEW,
+    slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+    microsoftTeams:
+      PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+    connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
   },
 ];
 

@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime에서 어레이 찾기
 
-**제품 → 인프라 → Storage Arrays → All Storage Arrays** 메뉴를 여세요. 첫 스크레이프(약 1분) 후에 어레이가 용량, 성능, 열린 알림, 하드웨어와 함께 표시됩니다. 볼륨, 호스트, 포드는 2분 안에, FlashBlade의 파일 시스템과 버킷은 5분 안에, FlashArray 디렉터리는 30분 안에 뒤따릅니다.
+**제품 → 인프라 → Storage Arrays → All Storage Arrays** 메뉴를 여세요. 첫 스크레이프(약 1분) 후에 어레이가 용량, 성능, 열린 알림, 하드웨어와 함께 표시됩니다. 볼륨, 호스트, 포드는 2분 안에, FlashBlade의 파일 시스템과 버킷은 5분 안에, FlashArray 디렉터리는 30분 안에 뒤따릅니다. 어레이의 **토폴로지** 페이지는 호스트, 볼륨, 파일 시스템, 하드웨어를 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
 ## 환경 변수

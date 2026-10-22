@@ -5,6 +5,7 @@ Security Events gör det som dina detektionsregler, hotunderrättelser och anslu
 :::cards
 - [Var ärenden kommer ifrån](#var-ärenden-kommer-ifrån): Detektionsregler, hotunderrättelser, anslutna produkter och personer.
 - [Arbeta med ett ärende](#arbeta-med-ett-ärende): Tilldela det, utred dess entiteter och stäng det med en bedömning.
+- [Aviseringar](#aviseringar): Vem som får veta om ett nytt ärende, en tilldelning och ett steg som väntar på godkännande.
 - [Playbooks](#playbooks): Steg som körs på ett ärende, med godkännande där det spelar roll.
 - [Översikten](#översikten): Vad som behöver någon just nu, och hur snabbt ärenden hanteras.
 :::
@@ -49,7 +50,7 @@ Var och en av dessa behörigheter kan också ges för sig, från att skapa ett �
 | Anslutna produkter | Ett larm från produkten själv importeras på eller över anslutningens tröskel | **Open Cases From** satt till **Aldrig**, i anslutningens steg **Polling** |
 | Personer | Någon öppnar ett från **Säkerhetsärenden**, eller med **Open Case** i en händelses panel | Går inte |
 
-Alla källor är påslagna som standard. En anslutning öppnar ärenden för **High and above** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
+Alla källor är påslagna som standard. En anslutning öppnar ärenden för **Hög och högre** om du inte väljer en annan nivå; larmen under den nivån importeras ändå som händelser.
 
 ### Så grupperas detektioner
 
@@ -83,6 +84,7 @@ Ett ärende går igenom fyra statusar. Det kan hoppa över en, till exempel när
 Ärendets sida har allt som behövs för att arbeta med det:
 
 - Överst: **Assign to Me**, **Run Playbook**, **Deklarera incident** och **Close Case**, statusstegen, och prioriteten i menyn bredvid dem.
+- **OneUptime AI**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
 - **Detections**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **MITRE ATT&CK**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
@@ -104,9 +106,56 @@ För att arbeta med flera ärenden samtidigt markerar du dem i kön och använde
 
 Bedömningarna räknas på översikten. En regel vars ärenden gång på gång stängs som False Positive är en regel som behöver finjusteras.
 
+Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google SecOps, med utlåtandet och avslutningsanteckningen, när dess anslutning har **Stäng varningar när deras ärende stängs** påslaget: se [Google SecOps](/docs/integrations/google-secops#stäng-varningar-när-deras-ärende-stängs).
+
 ### Deklarera en incident
 
 **Deklarera incident** öppnar en OneUptime-incident för ärendet, med den allvarlighetsgrad du väljer, och länkar dem åt båda hållen: incidentens beskrivning nämner ärendet, och ärendets rubrik länkar till incidenten. Därifrån tar jour, statussidor och postmortem över. Det kräver en roll som både kan arbeta med ärenden och skapa incidenter.
+
+## Aviseringar
+
+OneUptime berättar för personer om tre saker som händer i ett ärende. Ingen behöver ställa in något: ett projekt som bara har klickat på **Slå på rekommenderat** får veta om sina ärenden med High och Critical via e-post och push.
+
+| Avisering | Vem som får veta | Som standard |
+| --- | --- | --- |
+| Nytt säkerhetsärende | Alla som kan se projektets ärenden, när ett ärende öppnas med, eller stiger till, den prioritet de har valt eller högre | E-post och push, för ärenden med High och Critical |
+| Säkerhetsärende tilldelat mig | Personen som ärendet är tilldelat, och medlemmarna i teamet som det är tilldelat | E-post och push |
+| Playbook-steg väntar på mitt godkännande | De personer i ärendet som kan godkänna steget: personen som ärendet är tilldelat och medlemmarna i dess team. När ingen av dem kan godkänna, alla i projektet som kan | E-post och push |
+
+- Bara personer som kan se ärendet får veta om det: Project Owner, Project Admin och rollerna Security Admin, Security Member och Security Viewer. Den som har en roll som är begränsad till vissa etiketter får bara veta om ärenden med de etiketterna.
+- Ingen får veta om det den själv har gjort: den som öppnar ett ärende manuellt, tilldelar det eller startar en körning aviseras inte om det.
+- Varje person får bara veta om ett ärende en gång. Ett ärende som öppnas med Medium och senare stiger till Critical når dem som valde High eller Critical när det stiger, men inte igen dem som valde Medium, som fick veta om det när det öppnades.
+- Testattacken från **Skicka en testattack** öppnar ett ärende som inte aviserar någon.
+- Ett ärende med Critical och ett steg som väntar på godkännande skickas direkt och hålls aldrig kvar i en [e-postsammanfattning](/docs/emails/notification-rollup).
+- Ärendets **Tidslinje** visar vem som fick veta, och när.
+
+### Välj vad du får veta
+
+Var och en väljer själv, under **Användarinställningar → Aviseringsinställningar → Säkerhet**: kanalerna för varje avisering (e-post, SMS, samtal, push, Telegram, Slack, Microsoft Teams eller webhook) och, under **Nytt säkerhetsärende**, från vilken prioritet de aviseras:
+
+| Val | Aviserar om ärenden med |
+| --- | --- |
+| Endast Kritisk | Critical |
+| Hög och Kritisk | High och Critical (standard) |
+| Medel och högre | Critical, High och Medium |
+| Låg och högre | Alla prioriteter utom Informational |
+| Alla ärenden | Alla prioriteter |
+
+WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öppnar OneUptime-appen, och dess länk öppnar ärendet i webbläsaren.
+
+### Posta i kanaler i Slack och Microsoft Teams
+
+För att posta i en kanal lägger du till en regel under **Produkter → Security Events → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+
+| Villkor | Matchar på |
+| --- | --- |
+| Prioritet för säkerhetsärende | Critical, High, Medium, Low eller Informational |
+| Titel på säkerhetsärende, Beskrivning av säkerhetsärende | Text som ärendets titel eller beskrivning innehåller, börjar med eller slutar med |
+| Status för säkerhetsärende | New, Investigating, Contained eller Closed |
+| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Etiketter för säkerhetsärende | Ärendets etiketter |
+
+Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **High** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
 
 ## Playbooks
 
@@ -118,6 +167,7 @@ En playbook är en lista med steg som körs på ett ärende. Skapa en under **Pr
 | --- | --- |
 | Case Opened | En gång, när ett ärende öppnas |
 | Detection Added | Varje gång en ny detektion läggs till i ett öppet ärende |
+| Bedömd som troligen skadlig | En gång, när OneUptime AI:s bedömning läser ärendet som Troligen skadlig |
 | Manual | Bara när någon kör den från ett ärende |
 
 Alla aktiverade playbooks kan också köras manuellt, med **Run Playbook** på ett ärende. En playbook som körs av sig själv kan begränsas:
@@ -252,6 +302,10 @@ Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ä
 Kontrollera **Open a Case on Match** i regelns steg **Vid träff**. En detektion om en entitet som redan har ett öppet ärende läggs till i det ärendet i stället för att öppna ett nytt: leta efter den under **Detections** i det öppna ärendet.
 :::
 
+:::details Ingen fick veta om ett ärende
+Titta på ärendets **Tidslinje**, som visar vem som aviserades. En avisering om **Nytt säkerhetsärende** går till de personer vars valda prioritet ärendet når, så ett ärende med Medium aviserar ingen som har kvar standardvalet, **Hög och Kritisk**. Kontrollera att de som borde få veta kan se säkerhetsärenden (en Security-roll, eller Project Owner eller Project Admin), och att aviseringen är påslagen för dem under **Användarinställningar → Aviseringsinställningar → Säkerhet**.
+:::
+
 :::details En playbook kördes inte
 Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (Case Opened körs en gång, när ett ärende öppnas), och att ärendet uppfyller dess inställningar **For Cases At Least**, **Only For Detections From** och **Only For These Detection Rules**. Ett ärende som öppnats manuellt har ingen detektion, så en playbook som är begränsad till en källa eller till regler körs inte på det.
 :::
@@ -269,5 +323,6 @@ Kontrollera att den är aktiverad, att dess inställning **Utlösare** passar (C
 :::cards
 - [Säkerhetshändelser](/docs/telemetry/security-events): Skicka händelser, skriv detektionsregler och anslut säkerhetsprodukter.
 - [Hotunderrättelser](/docs/telemetry/threat-intelligence): Matcha dina händelser mot STIX/TAXII-flöden.
+- [OneUptime AI i säkerhet](/docs/telemetry/security-ai): Bedöm ärenden, skriv utkast till detektionsregler och fråga om säkerhet, med AI.
 - [Behörighetsreferens](/docs/permissions/reference): Security-rollerna, och vad var och en kan göra.
 :::

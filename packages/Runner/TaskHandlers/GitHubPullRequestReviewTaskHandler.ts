@@ -94,6 +94,8 @@ export default class GitHubPullRequestReviewTaskHandler extends GitHubTaskHandle
       repositoryPath: cloneResult.repositoryPath,
       prompt: this.buildPrompt(details),
       productionTelemetry: true,
+      // A review builds and tests nothing: it changes nothing.
+      skipsChangeChecks: true,
     });
 
     if (agentResult.filesModified.length > 0) {

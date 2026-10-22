@@ -12,10 +12,12 @@ import RunbooksExecutions from "../Pages/Runbook/Executions";
 import RunbookGlobalVariables from "../Pages/Runbook/Variables";
 import RunbookVariables from "../Pages/Runbook/View/Variables";
 import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
-import { MOVED_RUNBOOK_SECRETS_PATH } from "./MovedPagePaths";
+import {
+  MOVED_RUNBOOK_SECRETS_PATH,
+  MOVED_RUNNER_CREDENTIALS_PATH,
+} from "./MovedPagePaths";
 import RunbookRunners from "../Pages/Runbook/Runners/Runners";
 import RunbookRunnerView from "../Pages/Runbook/Runners/RunnerView";
-import RunbookRunnerCredentials from "../Pages/Runbook/Runners/RunnerCredentials";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
@@ -45,6 +47,14 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
       <PageRoute
         path={MOVED_RUNBOOK_SECRETS_PATH}
         element={<MovedPageRedirect pageMap={PageMap.RUNBOOKS_VARIABLES} />}
+      />
+      {/*
+       * AI Access (runbook credentials) is gone. Its address forwards to the
+       * Runners, the section it lived in.
+       */}
+      <PageRoute
+        path={MOVED_RUNNER_CREDENTIALS_PATH}
+        element={<MovedPageRedirect pageMap={PageMap.RUNBOOKS_RUNNERS} />}
       />
 
       <PageRoute path="/" element={<RunbooksLayout {...props} />}>
@@ -90,15 +100,6 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbookRunnerView
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] || ""}
-          element={
-            <RunbookRunnerCredentials
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS] as Route}
             />
           }
         />

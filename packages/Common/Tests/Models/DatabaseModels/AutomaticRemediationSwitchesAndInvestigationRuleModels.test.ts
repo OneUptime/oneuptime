@@ -1,6 +1,7 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../Models/DatabaseModels/Project";
 import RuleBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/RuleBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -21,6 +22,12 @@ import type { JoinTableMetadataArgs } from "typeorm/metadata-args/JoinTableMetad
  *     enableAutomaticAlertRemediation: Boolean, off by default, changed by
  *     a Project Owner or Admin like every other AI switch;
  *   - AutoRemediationRule.remediationAction: what a rule fixes with;
+ *   - AutoRemediationRule.openCodeFixPullRequests and
+ *     openTelemetryPullRequests: the two pull requests fixing opens, on by
+ *     default, per rule - the project's own switches for them are gone;
+ *   - AutoRemediationRule.codeRepositories and
+ *     AIInvestigationRule.codeRepositories: the code repositories OneUptime
+ *     AI may use for what a rule matches (none named: all of them);
  *   - AIInvestigationRule: which new incidents and alerts are investigated,
  *     a project-scoped rule with the same conditions as the auto
  *     remediation rules, changed by a Project Owner or Admin.
@@ -75,6 +82,111 @@ describe("the automatic-fix switches on Project", () => {
       );
       // The creator of a project may set it on the create request.
       expect(accessControl?.create).toEqual([Permission.User]);
+    },
+  );
+});
+
+describe("the project's fix pull request switches are gone", () => {
+  it.each([
+    ["enableAutomaticIncidentCodeFixes"],
+    ["enableIncidentInstrumentationFixTasks"],
+    ["enableAutomaticAlertCodeFixes"],
+    ["enableAlertInstrumentationFixTasks"],
+  ])("Project has no %s column", (column: string) => {
+    expect(new Project().hasColumn(column)).toBe(false);
+  });
+});
+
+/*
+ * "Both of these toggles should be inside of Remediation Rule, inside of
+ * More, and they should be checked by default. They should be true by
+ * default" - the maintainer.
+ */
+describe("AutoRemediationRule's pull requests", () => {
+  const model: AutoRemediationRule = new AutoRemediationRule();
+
+  it.each([
+    ["openCodeFixPullRequests", "Open Fix Pull Requests"],
+    ["openTelemetryPullRequests", "Open Telemetry Pull Requests"],
+  ])(
+    "%s is a required Boolean that starts on",
+    (column: string, title: string) => {
+      const metadata: ReturnType<
+        AutoRemediationRule["getTableColumnMetadata"]
+      > = model.getTableColumnMetadata(column);
+
+      expect(metadata.type).toBe(TableColumnType.Boolean);
+      expect(metadata.title).toBe(title);
+      expect(metadata.defaultValue).toBe(true);
+      expect(metadata.required).toBe(true);
+      expect(metadata.isDefaultValueColumn).toBe(true);
+    },
+  );
+
+  it.each([["openCodeFixPullRequests"], ["openTelemetryPullRequests"]])(
+    "%s is written by whoever may write the rule's execution mode",
+    (column: string) => {
+      expect(model.getColumnAccessControlFor(column)).toEqual(
+        model.getColumnAccessControlFor("executionMode"),
+      );
+    },
+  );
+});
+
+/*
+ * "There should be a dropdown here to select the code repo for remediation
+ * and also investigation rules, if no code repo is selected - it should be
+ * able to read and investigate all the repos that are connected" - the
+ * maintainer. A list on each rule, kept in a join table of its own.
+ */
+describe("the code repositories a rule names", () => {
+  function joinTableOf(target: { new (): BaseModel }, name: string): string {
+    const joinTable: JoinTableMetadataArgs | undefined =
+      getMetadataArgsStorage().joinTables.find(
+        (candidate: JoinTableMetadataArgs): boolean => {
+          return candidate.target === target && candidate.name === name;
+        },
+      );
+
+    return `${joinTable?.name} ${joinTable?.joinColumns?.[0]?.name} ${joinTable?.inverseJoinColumns?.[0]?.name}`;
+  }
+
+  it.each([
+    [
+      "AutoRemediationRule",
+      new AutoRemediationRule() as BaseModel,
+      AutoRemediationRule as unknown as { new (): BaseModel },
+      "AutoRemediationRuleCodeRepository autoRemediationRuleId codeRepositoryId",
+    ],
+    [
+      "AIInvestigationRule",
+      new AIInvestigationRule() as BaseModel,
+      AIInvestigationRule as unknown as { new (): BaseModel },
+      "AIInvestigationRuleCodeRepository aiInvestigationRuleId codeRepositoryId",
+    ],
+  ])(
+    "%s.codeRepositories is an optional list of the project's code repositories",
+    (
+      _name: string,
+      model: BaseModel,
+      type: { new (): BaseModel },
+      joinTable: string,
+    ) => {
+      const metadata: ReturnType<BaseModel["getTableColumnMetadata"]> =
+        model.getTableColumnMetadata("codeRepositories");
+
+      expect(metadata.type).toBe(TableColumnType.EntityArray);
+      expect(metadata.modelType).toBe(CodeRepository);
+      expect(metadata.title).toBe("Code Repositories");
+      expect(metadata.required).toBe(false);
+      expect(joinTableOf(type, joinTable.split(" ")[0]!)).toBe(joinTable);
+      // Written by whoever may write the rule's other allow-list.
+      expect(model.getColumnAccessControlFor("codeRepositories")).toEqual(
+        model.getColumnAccessControlFor("externalMcpServers"),
+      );
+      expect(
+        model.getColumnAccessControlFor("codeRepositories")?.update,
+      ).toEqual(expect.arrayContaining(OWNER_OR_ADMIN));
     },
   );
 });
@@ -173,8 +285,9 @@ describe("AIInvestigationRule", () => {
   });
 
   /*
-   * And the MCP servers OneUptime AI may use for what the rule matches (an
-   * allow-list under More fields, not a condition): a join table too.
+   * And the MCP servers and code repositories OneUptime AI may use for what
+   * the rule matches (allow-lists under More fields, not conditions): join
+   * tables too.
    */
   it("keeps each condition list in a join table of its own", () => {
     const joinTables: Array<JoinTableMetadataArgs> =
@@ -192,6 +305,7 @@ describe("AIInvestigationRule", () => {
         .sort(),
     ).toEqual([
       "AIInvestigationRuleAlertSeverity aiInvestigationRuleId alertSeverityId",
+      "AIInvestigationRuleCodeRepository aiInvestigationRuleId codeRepositoryId",
       "AIInvestigationRuleExternalMcpServer aiInvestigationRuleId externalMcpServerId",
       "AIInvestigationRuleIncidentSeverity aiInvestigationRuleId incidentSeverityId",
       "AIInvestigationRuleLabel aiInvestigationRuleId labelId",

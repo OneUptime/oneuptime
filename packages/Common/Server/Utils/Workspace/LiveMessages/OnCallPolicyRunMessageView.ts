@@ -4,6 +4,7 @@ import FeedMarkdown, {
 } from "../../../../Utils/Markdown/FeedMarkdown";
 import ProductBrandingText from "../../ProductBrandingText";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
+import { getOnCallPageAgainChatReason } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 
 /*
  * WHAT ONE ON-CALL POLICY RUN LOOKS LIKE IN SLACK AND MICROSOFT TEAMS.
@@ -99,16 +100,16 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  * policy or a workflow stops paging itself ("so PolicyX stopped paging");
  * "so Simon Lee stopped paging" read as if Simon had called his page off.
  *
- * SOMEBODY WHO CANNOT TAKE A PAGE can pass it on (OnCallPagePassOn). Their
+ * SOMEBODY WHO CANNOT TAKE A PAGE can escalate it (OnCallPagePassOn). Their
  * line says so, and the run's progress says where it moved on to - straight
  * away, when nobody else on the rule was left:
  *
- *   • Alex: passed it on · paged once · by SMS
+ *   • Alex: escalated · paged once · by SMS
  *   • Sam (next in the Primary rotation): paged once · by push
  *
- * When everybody it paged passed it on, the run ends with nobody on the
+ * When everybody it paged escalated it, the run ends with nobody on the
  * record, and that is loud: "⚠️ Nobody can take Incident INC-8: everybody
- * paged by PolicyX passed it on (Alex and Sam). Someone needs to take it."
+ * paged by PolicyX escalated it (Alex and Sam). Someone needs to take it."
  *
  * A RUN THAT WAITS TO PAGE - an on-call rule's, until its working hours
  * (OnCallDutyPolicyRunWait) - pages nobody yet, and its message says so and
@@ -160,7 +161,7 @@ export enum OnCallPolicyRunOutcome {
   // Every escalation rule ran and none of them reached anybody.
   NobodyReached = "NobodyReached",
   /*
-   * Everybody the run paged passed the page on (OnCallPagePassOn): nobody
+   * Everybody the run paged escalated the page (OnCallPagePassOn): nobody
    * was left to page, and nobody took it.
    */
   EverybodyPassedOn = "EverybodyPassedOn",
@@ -181,7 +182,7 @@ export interface OnCallPolicyRunPagedPerson {
   // A page to them is still going out.
   isBeingPaged: boolean;
   acknowledged: boolean;
-  // They could not take it, and passed it on (OnCallPagePassOn).
+  // They could not take it, and escalated it (OnCallPagePassOn).
   passedOn?: boolean | undefined;
   // How their pages reached them: "email", "SMS", "call", ...
   methods: Array<string>;
@@ -269,6 +270,12 @@ export interface OnCallPolicyRun {
    * (WaitingRunsOnRecordChange).
    */
   startedEarlyReason?: string | undefined;
+  /*
+   * A page again (OnCallAcknowledgementTimeout): which time its policy
+   * pages again because the record stayed acknowledged without being
+   * resolved. Unset for every other run.
+   */
+  pageAgainNumber?: number | undefined;
   acknowledgedByName?: string | undefined;
   ruleCount: number;
   // The escalation rule the run is on (or ended on).
@@ -401,6 +408,17 @@ export default class OnCallPolicyRunMessageView {
       parts.push(mdText`**Started early.** ${startedEarlyReason}`);
     }
 
+    /*
+     * A page again: why the policy pages about a record somebody had
+     * acknowledged already - said for as long as the run is told, as a
+     * start that came early is.
+     */
+    if (run.pageAgainNumber && run.pageAgainNumber > 0) {
+      parts.push(
+        mdText`**Paged again** ${getOnCallPageAgainChatReason(run.pageAgainNumber)}`,
+      );
+    }
+
     // A direct page pages everybody at once: there is no rule it is on.
     if (run.outcome === OnCallPolicyRunOutcome.Paging && !run.directPage) {
       parts.push(this.getProgress(run));
@@ -499,7 +517,9 @@ export default class OnCallPolicyRunMessageView {
           ? `${run.recordLabel} moved to ${run.outcomeDetail}, so ${pagerNameInSentence} did not page anyone`
           : `${pagerName} did not page anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Paging:
-        return `${pagerName} is paging for ${run.recordLabel}`;
+        return run.pageAgainNumber
+          ? `${pagerName} is paging again for ${run.recordLabel}`
+          : `${pagerName} is paging for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Acknowledged:
         return `${run.acknowledgedByName || "Someone"} acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.RecordHandled:
@@ -515,9 +535,12 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.PolicyArchived:
         return `${pagerName} stopped paging for ${run.recordLabel}: the policy was archived`;
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
-        return `Nobody acknowledged ${run.recordLabel}`;
+        // A page again's record was acknowledged earlier: its page was not.
+        return run.pageAgainNumber
+          ? `Nobody answered the page again for ${run.recordLabel}`
+          : `Nobody acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} passed it on`;
+        return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return `${pagerName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -582,7 +605,21 @@ export default class OnCallPolicyRunMessageView {
     }
 
     switch (run.outcome) {
+      /*
+       * A page again (OnCallAcknowledgementTimeout) about a record somebody
+       * acknowledged earlier, which nobody answered: nobody is on it now.
+       */
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
+        if (run.pageAgainNumber) {
+          alarms.push({
+            key: ON_CALL_RUN_ALARM_OUTCOME,
+            markdown:
+              mdText`⚠️ Nobody answered the page again for ${record}: it is still not resolved. ${policy} paged ${this.getPagedNames(run)}, went through every escalation rule${this.getRepeatsDoneClause(run)} and has stopped paging. Someone needs to take it.`.toString(),
+            text: `Nobody answered the page again for ${run.recordLabel}: someone needs to take it`,
+          });
+          break;
+        }
+
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown: run.directPage
@@ -596,7 +633,7 @@ export default class OnCallPolicyRunMessageView {
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
-            mdText`⚠️ Nobody can take ${record}: everybody paged by ${this.getPager(run, { isInSentence: true })} passed it on (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
+            mdText`⚠️ Nobody can take ${record}: everybody paged by ${this.getPager(run, { isInSentence: true })} escalated it (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
           text: `Nobody can take ${run.recordLabel}: someone needs to take it`,
         });
         break;
@@ -683,7 +720,10 @@ export default class OnCallPolicyRunMessageView {
           ? mdText`✅ ${record} moved to **${run.outcomeDetail}**, so ${policyInSentence} did not page anyone`
           : mdText`✅ ${record} is being handled, so ${policyInSentence} did not page anyone`;
       case OnCallPolicyRunOutcome.Paging:
-        return mdText`📟 ${policy} is paging for ${record}`;
+        // A page again (OnCallAcknowledgementTimeout) says it is one.
+        return run.pageAgainNumber
+          ? mdText`📟 ${policy} is paging again for ${record}`
+          : mdText`📟 ${policy} is paging for ${record}`;
       case OnCallPolicyRunOutcome.Acknowledged:
         return mdText`✅ **${run.acknowledgedByName || "Someone"}** acknowledged ${record}, ${soPagingStopped}`;
       case OnCallPolicyRunOutcome.RecordHandled:
@@ -697,12 +737,17 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.PolicyArchived:
         return mdText`⏹️ ${policy} stopped paging for ${record}: the policy was archived`;
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
+        // A page again's record was acknowledged earlier: its page was not.
+        if (run.pageAgainNumber) {
+          return mdText`⚠️ ${policy} paged again for ${record} and nobody answered`;
+        }
+
         // A direct page has no escalation rules to have gone through.
         return run.directPage
           ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
           : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} passed it on`;
+        return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -841,7 +886,7 @@ export default class OnCallPolicyRunMessageView {
     if (person.acknowledged) {
       facts.push(mdText`acknowledged`);
     } else if (person.passedOn) {
-      facts.push(mdText`passed it on`);
+      facts.push(mdText`escalated`);
     }
 
     if (person.timesPaged > 0) {

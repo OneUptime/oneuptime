@@ -99,6 +99,28 @@ export function buildSecurityEventOverviewFields(
       facetKey: "principalIp",
     },
     { label: "Principal Process", value: text(event.principalProcess) },
+    /*
+     * The process the event is about - the one started, in a process
+     * launch - and the one that started it. Names filter the list; paths
+     * and command lines are as good as unique.
+     */
+    {
+      label: "Process",
+      value: text(event.processName),
+      facetKey: "processName",
+    },
+    { label: "Process Path", value: text(event.processPath) },
+    { label: "Command Line", value: text(event.processCommandLine) },
+    {
+      label: "Parent Process",
+      value: text(event.parentProcessName),
+      facetKey: "parentProcessName",
+    },
+    { label: "Parent Process Path", value: text(event.parentProcessPath) },
+    {
+      label: "Parent Command Line",
+      value: text(event.parentProcessCommandLine),
+    },
     {
       label: "Target User",
       value: text(event.targetUser),
@@ -161,6 +183,12 @@ export function buildSecurityEventJson(event: SecurityEvent): JSONObject {
     principalHost: event.principalHost || "",
     principalIp: event.principalIp || "",
     principalProcess: event.principalProcess || "",
+    processName: event.processName || "",
+    processPath: event.processPath || "",
+    processCommandLine: event.processCommandLine || "",
+    parentProcessName: event.parentProcessName || "",
+    parentProcessPath: event.parentProcessPath || "",
+    parentProcessCommandLine: event.parentProcessCommandLine || "",
     targetUser: event.targetUser || "",
     targetHost: event.targetHost || "",
     targetIp: event.targetIp || "",

@@ -154,3 +154,75 @@ describe("SlackModalMetadata", () => {
     expect(SlackModalMetadata.write(long, { channelId: "C0INC2" })).toBe(long);
   });
 });
+
+/*
+ * A Slack workspace can be connected to more than one OneUptime project, and
+ * a submission names only the workspace: a form carries the project it was
+ * opened in, and its submission is read in that project
+ * (WorkspaceProjectResolution) - a New Incident form opened from a command,
+ * say, which names no record.
+ */
+describe("SlackModalMetadata: the project a form was opened in", () => {
+  const PROJECT_ID: string = "c0000000-0000-4000-8000-0000000000aa";
+
+  test("is carried beside the value and the channel, and read back", () => {
+    const written: string = SlackModalMetadata.write(INCIDENT_ID, {
+      channelId: "C0INC2",
+      projectId: PROJECT_ID,
+    });
+
+    expect(JSON.parse(written)).toEqual({
+      oneuptime: 1,
+      value: INCIDENT_ID,
+      channelId: "C0INC2",
+      projectId: PROJECT_ID,
+    });
+    expect(SlackModalMetadata.read(written)).toEqual({
+      value: INCIDENT_ID,
+      origin: { channelId: "C0INC2", projectId: PROJECT_ID },
+    });
+  });
+
+  test("alone, it is worth an envelope: the app's Home carries only its project", () => {
+    const written: string = SlackModalMetadata.write("", {
+      projectId: PROJECT_ID,
+    });
+
+    expect(JSON.parse(written)).toEqual({
+      oneuptime: 1,
+      value: "",
+      projectId: PROJECT_ID,
+    });
+    expect(SlackModalMetadata.read(written).origin).toEqual({
+      projectId: PROJECT_ID,
+    });
+  });
+
+  test("anything but an id is neither written nor read as one", () => {
+    expect(
+      SlackModalMetadata.write(INCIDENT_ID, { projectId: "not-an-id" }),
+    ).toBe(INCIDENT_ID);
+    expect(
+      SlackModalMetadata.read(
+        JSON.stringify({
+          oneuptime: 1,
+          value: INCIDENT_ID,
+          projectId: "../../other-project",
+        }),
+      ),
+    ).toEqual({ value: INCIDENT_ID, origin: {} });
+    expect(
+      SlackModalMetadata.read(
+        JSON.stringify({ oneuptime: 1, value: INCIDENT_ID, projectId: 7 }),
+      ),
+    ).toEqual({ value: INCIDENT_ID, origin: {} });
+  });
+
+  test("a form opened before forms carried their project reads with none", () => {
+    expect(
+      SlackModalMetadata.read(
+        JSON.stringify({ oneuptime: 1, value: INCIDENT_ID, channelId: "C0" }),
+      ).origin.projectId,
+    ).toBeUndefined();
+  });
+});

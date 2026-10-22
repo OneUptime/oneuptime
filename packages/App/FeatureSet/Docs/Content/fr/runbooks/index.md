@@ -36,7 +36,7 @@ flowchart TB
 
 Chaque exécution d'un runbook est une **exécution**. Au démarrage, les étapes du runbook y sont copiées, et OneUptime les traite dans l'ordre. Une étape Manual, ou une étape qui exige une approbation, met l'exécution en pause jusqu'à ce que quelqu'un agisse.
 
-Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes Bash, SSH et kubectl s'exécutent sur un [agent Runbook](/docs/runbooks/agents) que vous installez dans votre propre infrastructure, de sorte que ces scripts ne s'exécutent jamais sur les serveurs d'OneUptime. Une étape JavaScript s'exécute elle aussi sur l'un de vos agents ou, si elle n'en choisit aucun, sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), dans un bac à sable qui n'atteint qu'Internet. Le statut, la sortie et le message d'erreur de chaque étape sont enregistrés sur l'exécution, qui reste attachée à l'incident, à l'alerte ou à l'événement pour lequel elle a tourné.
+Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes Bash, SSH et kubectl s'exécutent sur un [agent Runbook](/docs/runbooks/agents) que vous installez dans votre propre infrastructure, de sorte que ces scripts ne s'exécutent jamais sur les serveurs d'OneUptime. Une étape JavaScript s'exécute elle aussi sur l'un de vos agents ou, si elle n'en choisit aucun et que le projet n'a pas d'[agent Runbook par défaut](/docs/runbooks/agents#lagent-runbook-par-défaut-du-projet), sur un [agent Runbook global](/docs/runbooks/agents#agents-runbook-globaux), dans un bac à sable qui n'atteint qu'Internet. Le statut, la sortie et le message d'erreur de chaque étape sont enregistrés sur l'exécution, qui reste attachée à l'incident, à l'alerte ou à l'événement pour lequel elle a tourné.
 
 ## Concepts clés
 
@@ -47,7 +47,7 @@ Les étapes HTTP et IA s'exécutent sur le Worker OneUptime. Les étapes Bash, S
 | **Règle de runbook** | Une règle qui attache automatiquement un ou plusieurs runbooks aux incidents, alertes ou événements de maintenance planifiée qui remplissent ses conditions : leurs moniteurs, leur gravité, leurs étiquettes, les étiquettes de leurs moniteurs, leur titre ou leur description. |
 | **Exécution** | Une exécution d'un runbook. Elle est créée quand une règle se déclenche, quand quelqu'un clique sur **Exécuter le Runbook** sur un événement, ou quand quelqu'un clique sur **Run Now** sur le runbook lui-même. Elle contient un instantané des étapes ainsi que le statut et la sortie de chaque étape. |
 | **Instantané** | La copie figée des étapes du runbook qui vit sur chaque exécution. Vous pouvez modifier le runbook plus tard sans réécrire l'historique des exécutions passées. |
-| **Agent Runbook** | Un petit agent que vous faites tourner sur un hôte de votre propre infrastructure. Il exécute les étapes JavaScript, Bash, SSH et kubectl qui le désignent. Aussi appelé Runner. Un agent Runbook global, l'un de ceux qu'OneUptime fait tourner pour chaque projet, exécute les étapes JavaScript qui n'en nomment aucun. |
+| **Agent Runbook** | Un petit agent que vous faites tourner sur un hôte de votre propre infrastructure. Il exécute les étapes JavaScript, Bash, SSH et kubectl qui le désignent. Aussi appelé Runner. Un agent Runbook global, l'un de ceux qu'OneUptime fait tourner pour chaque projet, exécute les étapes JavaScript qui n'en nomment aucun, sauf si le projet a un agent Runbook par défaut. |
 | **Variable** | Une valeur que les étapes utilisent par son nom, comme un hôte ou une URL : `{{global.variables.NAME}}` pour une variable du projet, que chaque runbook peut utiliser, ou `{{local.variables.NAME}}` pour une variable propre au runbook. |
 | **Secret** | Une variable dont la valeur est chiffrée au repos, n'est plus jamais affichée et est masquée dans ce que les étapes affichent, comme une clé SSH, un mot de passe, un kubeconfig ou un jeton d'API. Remis uniquement aux agents Runbook que vous autorisez à l'utiliser ; les agents Runbook globaux ne le reçoivent que si vous les y autorisez. |
 
@@ -95,7 +95,7 @@ Runbooks se trouve sous **Produits**, dans le groupe **Tableaux de bord et autom
 | Les **Propriétaires** d'un runbook | Ajouter les personnes et les équipes qui en sont responsables. |
 | Les **Paramètres** d'un runbook | Désactiver **Exécuter ce runbook** sans supprimer le runbook. |
 | **Runbooks → Exécutions** | Toutes les exécutions de tous les runbooks du projet. |
-| **Runbooks → Agents de runbook** et **Runbooks → Agents de runbook → Accès de l'IA** | Installer des [agents Runbook](/docs/runbooks/agents), et gérer l'[accès](/docs/runbooks/credentials) que les commandes de OneUptime AI ont à travers eux. |
+| **Runbooks → Agents de runbook** | Installer les [agents Runbook](/docs/runbooks/agents) sur lesquels s'exécutent les étapes de vos runbooks. |
 | **Runbooks → Paramètres** | Gérer, sous **Variables globales**, les variables que chaque runbook peut [utiliser](/docs/runbooks/variables), ainsi que les **Règles de propriétaire** et les **Règles d'étiquettes** qui ajoutent des propriétaires et des étiquettes aux nouveaux runbooks. |
 | **Incidents / Alertes / Maintenance planifiée → Règles → Règles de runbook** | Créer les règles qui lancent des runbooks automatiquement. |
 | Un incident, une alerte ou un événement de maintenance → **Runbooks** | Voir les exécutions qui y sont attachées, et cliquer sur **Exécuter le Runbook** pour en lancer une. |
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 Un moniteur ouvre l'incident `INC-4821 · db-primary connection timeout`. La règle correspond et une exécution démarre :
 
-- L'étape 1 (JavaScript) s'exécute sur l'agent Runbook que vous avez choisi pour elle. Sa valeur de retour, par exemple `{ lagMs: 412 }`, est capturée. Une étape qui ne choisit aucun agent s'exécute sur un agent Runbook global.
+- L'étape 1 (JavaScript) s'exécute sur l'agent Runbook que vous avez choisi pour elle. Sa valeur de retour, par exemple `{ lagMs: 412 }`, est capturée. Une étape qui ne choisit aucun agent s'exécute sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, sur un agent Runbook global.
 - L'étape 2 (Manual) met l'exécution en pause, qui affiche **En attente de votre part**. La personne d'astreinte vérifie le tableau de bord et clique sur **Marquer comme terminé**.
 - L'étape 3 (HTTP request) s'exécute, et la réponse au `POST` est capturée.
 - L'étape 4 (Manual) remet l'exécution en pause jusqu'à ce que quelqu'un la termine.

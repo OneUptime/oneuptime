@@ -12,7 +12,7 @@ Sie schreiben ein Runbook als geordnete Liste von Schritten auf seiner Seite **S
 ## Bevor Sie beginnen
 
 - **Eine Rolle, die Runbooks schreibt.** Project Owner, Project Admin und Runbook Admin erstellen Runbooks und speichern ihre Schritte. Mit granularen Berechtigungen brauchen Sie **Create Runbook** und **Edit Runbook**. Siehe [Berechtigungen](/docs/runbooks/configuration#berechtigungen).
-- **Ein Runner, für Bash-, SSH- und kubectl-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein JavaScript-Schritt läuft auf einem [globalen Runner](/docs/runbooks/agents#globale-runner), es sei denn, Sie wählen einen Ihrer eigenen.
+- **Ein Runner, für Bash-, SSH- und kubectl-Schritte.** Diese Schritte laufen auf einem [Runner](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur, nie auf dem OneUptime Worker. Installieren Sie zuerst einen. Ein Schritt, der keinen Runner wählt, läuft auf dem [Standard-Runner des Projekts](/docs/runbooks/agents#der-standard-runner-des-projekts), wenn Sie einen festgelegt haben; ein JavaScript-Schritt läuft sonst auf einem [globalen Runner](/docs/runbooks/agents#globale-runner).
 - **Eine geheime Variable, für SSH- und kubectl-Schritte.** Der Schlüssel, das Passwort oder die kubeconfig, mit denen sich ein Schritt anmeldet, ist eine geheime [Runbook-Variable](/docs/runbooks/variables). Project Owner und Project Admin erstellen Variablen, und Runbook Admin wählt sie in den Schritten aus, die er schreibt. Ein kubectl-Schritt kann stattdessen den eigenen Zugriff des Runners verwenden.
 - **Ein LLM-Anbieter, für KI-Schritte.** Siehe [LLM-Anbieter](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
 
-In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port und Passphrase des Schlüssels eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts.
+In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port und Passphrase des Schlüssels eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Ein JavaScript-Snippet, das in einer `isolated-vm`-Sandbox auf einem [Runbook-Ag
 
 | Feld | Was es tut | Standard |
 | --- | --- | --- |
-| **Runner** | Der Runner, der den Schritt ausführt: **Globaler Runner** oder einer Ihrer eigenen. Nur der Runner, den Sie wählen, darf den Job übernehmen; einen Schritt auf **Globaler Runner** darf jeder globale Runner übernehmen. | **Globaler Runner**, wenn es einen gibt |
+| **Runner** | Unter **Weitere Felder**. Der Runner, der den Schritt ausführt: **Globaler Runner** oder einer Ihrer eigenen. Nur der Runner, den Sie wählen, darf den Job übernehmen; einen Schritt auf **Globaler Runner** darf jeder globale Runner übernehmen. | Der [Standard-Runner des Projekts](/docs/runbooks/agents#der-standard-runner-des-projekts), wenn Sie einen festgelegt haben; sonst **Globaler Runner**, wenn es einen gibt |
 | **Skript** | Das auszuführende JavaScript. Geben Sie mit `return` einen Wert zurück, um ihn zu erfassen; jede Zeile aus `console.log` wird ebenfalls erfasst. Ein geworfener Fehler lässt den Schritt fehlschlagen. | — |
 | **Ausführungs-Timeout** | Wie lange der Runner das Snippet laufen lässt, bevor er die Sandbox abbaut. Ein globaler Runner lässt es höchstens 5 Minuten laufen. | 30 Sekunden |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. | 2 Minuten |
@@ -117,7 +117,7 @@ Ein Bash-Skript, ausgeführt mit `bash -c <script>` auf einem [Runbook-Agent](/d
 
 | Feld | Was es tut | Standard |
 | --- | --- | --- |
-| **Runner** | Der Runner, der den Schritt ausführt. Nur dieser Runner darf den Job übernehmen. | — |
+| **Runner** | Unter **Weitere Felder**. Der Runner, der den Schritt ausführt. Nur dieser Runner darf den Job übernehmen. Globale Runner führen nur JavaScript-Schritte aus. | Der Standard-Runner des Projekts, wenn Sie einen festgelegt haben |
 | **Bash-Skript** | Das Skript. Die Ausgabe (stdout und stderr) wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. | — |
 | **Ausführungs-Timeout** | Wie lange der Runner das Skript laufen lässt, bevor er es mit `SIGKILL` beendet. Erhöhen Sie ihn für Schritte, die zu Recht Minuten dauern. | 30 Sekunden |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. | 2 Minuten |
@@ -146,7 +146,7 @@ Sich per SSH an einem Rechner anmelden und dort ein Bash-Skript ausführen. Der 
 
 | Feld | Was es tut |
 | --- | --- |
-| **Runner** | Der Runner, der die Verbindung öffnet. Er muss den Rechner über das Netz erreichen können. |
+| **Runner** | Unter **Weitere Felder**. Der Runner, der die Verbindung öffnet. Er muss den Rechner über das Netz erreichen können. Ein Schritt, der keinen wählt, läuft auf dem Standard-Runner des Projekts. |
 | **SSH zu** | Der Benutzer und der Rechner, so wie Sie sie nach `ssh` schreiben würden: `deploy@10.0.4.21`. |
 | **Anmelden mit** | Die geheime Variable, die den privaten Schlüssel oder das Passwort enthält; der Wert sagt, was es ist. Es werden nur geheime Variablen angeboten, und der Schritt sagt, wenn sein Runner die gewählte nicht nutzen darf. |
 | **Bash-Skript** | Läuft mit `bash` auf dem Rechner, als der Benutzer, mit dem sich der Schritt anmeldet. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
@@ -168,7 +168,7 @@ kubectl-Befehle gegen einen Cluster ausführen. Das Skript läuft mit bash auf d
 
 | Feld | Was es tut |
 | --- | --- |
-| **Runner** | Der Runner, der kubectl ausführt. Er muss den API-Server des Clusters erreichen können. |
+| **Runner** | Unter **Weitere Felder**. Der Runner, der kubectl ausführt. Er muss den API-Server des Clusters erreichen können. Ein Schritt, der keinen wählt, läuft auf dem Standard-Runner des Projekts. |
 | **Kubeconfig** | Die geheime Variable, die die kubeconfig des Clusters enthält, oder **Der eigene Zugriff des Runners**: die eigene kubeconfig des Runners oder sein Dienstkonto, wenn er im Cluster läuft. Der Runner schreibt eine kubeconfig in eine Datei, die nur er lesen kann, und entfernt sie, wenn das Skript endet. |
 | **Skript** | Die kubectl-Befehle. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
 | **Ausführungs-Timeout** | Wie lange der Runner das Skript laufen lässt, bevor er es mit `SIGKILL` stoppt. Standard 30 Sekunden. |

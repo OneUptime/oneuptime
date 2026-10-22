@@ -6,6 +6,7 @@ La topología dibuja cómo se conectan sus sistemas: qué servicios llaman a cu�
 - [Abrir la topología](#abrir-la-topología): Tres vistas de una misma página.
 - [Leer el mapa de servicios](#leer-el-mapa-de-servicios): Quién llama a quién, y lo sanas que son las llamadas.
 - [Explorar su infraestructura](#explorar-su-infraestructura): Dónde se ejecuta cada servicio.
+- [Abrir el mapa propio de un recurso](#abrir-el-mapa-propio-de-un-recurso): Un vCenter, un clúster o un host en detalle.
 - [Ver su red](#ver-su-red): Los dispositivos y sus enlaces, en directo.
 :::
 
@@ -80,6 +81,14 @@ Haga clic en una flecha para ver su tasa de solicitudes, su tasa de errores y su
 - **Recórrala a su manera.** Muéstrela como **Lista** o como **Mapa**, desde toda su infraestructura hasta un solo pod. Las cifras de encima dicen cuántos recursos y cargas de trabajo dibuja, cuántos servicios puede ubicar y cuántos recursos en silencio deja fuera.
 - **Encuentre un recurso.** Búsquelo por nombre y haga clic en **Ver detalles** para abrir su página.
 - **Pase de una vista a otra.** Un servicio listado en un recurso se abre en el **Service Map**, y los recursos en los que se ejecuta un servicio se abren en **Infraestructura**.
+
+## Abrir el mapa propio de un recurso
+
+Un vCenter, un clúster de Kubernetes, un host, un host de Docker o Podman, un clúster de Docker Swarm, Proxmox o Ceph y una cabina de almacenamiento tienen cada uno su propia página **Topología**. Dibuja ese recurso en detalle, a partir de su propio inventario: qué está dentro de qué, cada parte coloreada según su estado, y cada incidente y alerta abiertos en la parte a la que se refieren.
+
+- **Encuentre lo que requiere atención.** **Requiere atención** deja solo las partes con problemas y el camino hasta cada una, y la búsqueda encuentra una parte en cualquier lugar del recurso.
+- **Mire más de cerca.** Haga clic en una parte para ver qué es y un enlace a su propia página, y en **Enfocar esto** para dibujar solo esa parte, lo que contiene y aquello con lo que se relaciona.
+- **Vaya en ambos sentidos.** **Abrir en Topología** abre el recurso en **Infraestructura**, y su botón **Abrir la topología del vCenter**, **Abrir la topología del clúster**, **Abrir la topología del host** o **Abrir la topología de la cabina de almacenamiento** lleva de vuelta.
 
 ## Ver su red
 

@@ -46,10 +46,11 @@ flowchart TB
 | **승인 대기 중** | Playbooks | 누군가 승인하거나 거부하기를 기다리는 플레이북 단계 |
 | **플레이북 실행** | Playbooks | 각 플레이북이 한 일을 단계별로 |
 | **Protected Entities** | Playbooks | 어떤 플레이북도 봉쇄하지 않는 사용자와 호스트 |
+| **설정** | AI | OneUptime AI가 새 케이스마다 트리아지할지 여부 |
 | **Connections** | Connections | 로그, OneUptime이 가져오는 보안 제품, 그리고 이벤트를 보내는 SIEM |
 | **설정 가이드** | Connections | 이벤트를 보내는 스니펫. 수집 키가 미리 채워져 있음 |
 
-한 번 설정하면 되는 **Detections** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
+한 번 설정하면 되는 **Detections**, **AI** 와 **Connections** 는 열기 전까지 접혀 있습니다. 보안이 처음이라면 [보안 시작하기](/docs/telemetry/security-getting-started)에서 두 번의 클릭으로 설정할 수 있습니다.
 
 ## 시작하기 전에
 
@@ -135,6 +136,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 심각도를 나타내는 단어는 OCSF 수준이 됩니다. `info` 는 Informational, `warning` 은 Low, `error` 는 Medium, `alert` 는 Critical, `emergency` 는 Fatal로 읽힙니다.
 
@@ -179,7 +186,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | AWS Security Hub | Finding을 Detection Finding과 Compliance Finding으로 | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 로그인, MFA, 계정, 정책 이벤트 | [Okta System Log](/docs/integrations/okta) |
 
-- 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **High and above**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
+- 제품 자체의 알림 중 **Open Cases From**(다른 수준을 고르지 않는 한 **높음 이상**, 또는 **없음**) 이상인 것은 그 대상인 사용자, 호스트, 주소별로 묶여 [케이스](/docs/telemetry/security-cases) 를 엽니다.
 - 연결은 레코드가 설명하는 활동 시각이 아니라, 제품이 레코드를 만든 시각을 기준으로 읽습니다. 매시간 실행되는 SIEM 규칙은 일치한 이벤트보다 한참 뒤에 탐지를 만들지만, 그것도 가져옵니다.
 - 첫 폴링은 24시간 전까지 거슬러 올라가므로, 새 연결에서 최근 레코드가 바로 보입니다.
 - 연결 행의 **연결 테스트** 는 제품에 대한 접근과 OneUptime 자체 워커의 실행 여부를 확인하며, 아무것도 가져오지 않습니다. **Run now** 는 즉시 폴링합니다.
@@ -194,6 +201,7 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | 심각도 | `severityName`(Unknown, Informational, Low, Medium, High, Critical, Fatal, Other 중 하나)과 `severityId` |
 | 누가 했는지 | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | 무엇에 영향을 주었는지 | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| 프로세스 | `processName`, `processPath`, `processCommandLine`: 프로세스 실행에서는 시작된 프로세스, 그 밖에는 동작한 프로세스. `parentProcessName`, `parentProcessPath`, `parentProcessCommandLine`: 그 프로세스를 시작한 프로세스 |
 | 소스 | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | 내용 | `message`, `mitreTactics`, `mitreTechniques`, `observables`: 이벤트에서 뽑아낸 모든 사용자, 호스트, IP 주소, 도메인, 해시 |
 | 속성 | 소스의 페이로드 전체를 점으로 구분한 키로 평탄화한 것 |
@@ -218,11 +226,11 @@ auditd, syslog, Falco처럼 이미 수집하고 있는 보안 로그를 보내�
 | `@<attribute>:*` | 속성이 있음 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 속성이 텍스트를 포함함 | `@finding_info.title:~ransom` |
 
-필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
+필드는 짧은 이름(`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`)이거나, `severityName` 이나 `principalHost` 같은 필드 자체의 이름입니다. 그 밖의 이름은 소스 속성으로 읽힙니다. `observable:<value>` 는 활동의 어느 쪽에 있었든 그 값을 언급하는 모든 이벤트를 찾습니다.
 
 ### 패싯
 
-사이드바는 창 안의 이벤트를 **소스**, **심각도**, **이벤트 클래스**, **Category**, **활동**, **상태**, **공급업체**, **제품**, **Detection Rule**, **원본 사용자**, **원본 호스트** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
+사이드바는 창 안의 이벤트를 **소스**, **심각도**, **이벤트 클래스**, **Category**, **활동**, **상태**, **공급업체**, **제품**, **Detection Rule**, **원본 사용자**, **원본 호스트**, **프로세스**, **부모 프로세스** 별로 셉니다. 값을 클릭하면 그 이벤트만 남기고, 옆의 빼기 표시를 클릭하면 제외합니다. 다시 클릭하면 취소됩니다. 차트와 모든 개수는 목록에 있는 이벤트를 정확히 나타냅니다.
 
 ### 상관 분석
 
@@ -278,9 +286,67 @@ OneUptime은 Sigma의 불리언 핵심을 실행합니다.
 - 조건은 `and`, `or`, `not` 과 괄호, 또는 `1 of selection_*`, `all of selection_*`, `any of them`, `all of them` 으로 셀렉션을 결합합니다.
 - 필드 수식어: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists`, `windash`. 텍스트는 `cased` 를 붙이지 않는 한 대소문자를 구분하지 않고 비교합니다.
 - 필드는 타입이 지정된 필드(`principalUser`), 그 필드의 흔한 Sigma 표기(`CommandLine`, `src_ip`, `Hostname`), 또는 이벤트에 적힌 그대로의 모든 속성 키(`threat.matched`)입니다.
+- `Image`와 `CommandLine`은 이벤트의 대상인 프로세스, 즉 프로세스 실행에서는 시작된 프로세스(`processPath`, `processCommandLine`)를 읽고, `ParentImage`와 `ParentCommandLine`은 그 프로세스를 시작한 프로세스(`parentProcessPath`, `parentProcessCommandLine`)를 읽습니다. `principalProcess`는 동작한 프로세스로, 실행에서는 부모 프로세스입니다.
 - `level` 은 심각도를 정합니다. `informational`, `low`, `medium`, `high`, `critical` 중 하나이며, 없으면 `medium` 입니다. `tags` 의 ATT&CK ID(`attack.t1110`, `attack.ta0006`)는 탐지 결과의 MITRE 필드를 채웁니다.
 
-`| count() by principalIp > 5` 같은 집계는 저장할 때 거부됩니다. 대신 **Group By Field** 와 **Match Count Threshold** 를 사용하세요. `logsource` 는 참고용일 뿐 아무것도 좁히지 않습니다. 그 필터는 `className: Authentication` 처럼 셀렉션에 넣으세요. `timeframe` 은 무시됩니다. 윈도우는 규칙의 간격이 정하기 때문입니다.
+`| count() by principalIp > 5` 같은 집계는 저장할 때 거부됩니다. 대신 [상관 규칙](#상관-규칙) 이나 **Group By Field** 와 **Match Count Threshold** 를 사용하세요. `logsource` 는 참고용일 뿐 아무것도 좁히지 않습니다. 그 필터는 `className: Authentication` 처럼 셀렉션에 넣으세요. `timeframe` 은 무시됩니다. 윈도우는 규칙의 간격이 정하기 때문입니다.
+
+### 상관 규칙
+
+[Sigma 상관](https://sigmahq.io/docs/meta/correlations.html) 은 하나가 아니라 여러 이벤트가 함께 일어날 때 발동합니다. 읽는 규칙과 함께 `---` 로 구분한 YAML 문서로 **Sigma Rule (YAML)** 에 붙여 넣거나, 프로젝트에 이미 있는 규칙을 Sigma `name` 이나 `id` 로 지정합니다. **Rule Library** 에는 로그인 실패 뒤에 성공이 이어지는 것처럼 바로 쓸 수 있는 규칙이 있습니다.
+
+| 유형 | 발동 조건 | 표시 이름 |
+| --- | --- | --- |
+| `event_count` | 한 그룹이 `timespan` 안에 일정 수의 이벤트에 도달 | 이벤트 수 |
+| `value_count` | 한 그룹이 `timespan` 안에 필드의 서로 다른 값을 일정 수만큼 보임 | 고유 값 |
+| `temporal` | `timespan` 안에 같은 그룹에서 모든 규칙이 순서와 관계없이 일치 | 함께 일어나는 이벤트 |
+| `temporal_ordered` | `timespan` 안에 같은 그룹에서 규칙이 순서대로 일치 | Sequence |
+| `new_value` | 그룹이 `timespan` 안에 보이지 않았던 필드 값을 보임 | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- 그룹은 `group-by` 필드의 값으로, 예를 들면 주소 하나입니다. 개수는 롤링으로 셉니다. 두 번의 실행에 나뉜 급증도 그 `timespan` 안에서는 통째로 세며, 이 기간은 최대 24시간입니다.
+- `new_value` 는 OneUptime 고유의 유형입니다. Sigma에는 "처음 본" 상관이 없기 때문이며, 최대 30일의 기록과 비교합니다. `value_sum`, `value_avg`, `value_percentile`, `value_median` 은 저장할 때 거부됩니다.
+- **Detection Rules** 의 **유형** 열은 각 규칙의 종류를 보여 주며, 양식은 규칙이 무엇을 찾는지 한 문장으로 알려 줍니다.
 
 ### 평가 설정
 
@@ -379,7 +445,7 @@ Detection Finding은 제품 `OneUptime Detections` 에서 나온 `Detection Find
 :::
 
 :::details 규칙이 전혀 일치하지 않음
-규칙이 **활성화됨** 상태인지 확인하고, 그 행의 **Last Evaluated** 와 **마지막 오류** 를 읽어 보세요. 일치할 것으로 예상한 이벤트를 열어 규칙과 필드별로 비교하세요. 일반 값은 필드 전체와 같아야 하므로, 일부만 맞추려면 `contains` 나 `*` 를 쓰세요. 속성은 이벤트에 적힌 이름 그대로 씁니다(`attributes.threat.matched` 가 아니라 `threat.matched`). 임곗값이 1보다 크면 일치가 한 번의 실행 안에 들어가야 합니다.
+규칙의 **상태** 를 확인하세요. **비활성화** 이면 실행되지 않고, **실행 실패** 이면 그 행의 **오류 보기** 에서 이유를 확인할 수 있습니다. 일치할 것으로 예상한 이벤트를 열어 규칙과 필드별로 비교하세요. 일반 값은 필드 전체와 같아야 하므로, 일부만 맞추려면 `contains` 나 `*` 를 쓰세요. 속성은 이벤트에 적힌 이름 그대로 씁니다(`attributes.threat.matched` 가 아니라 `threat.matched`). 임곗값이 1보다 크면 일치가 한 번의 실행 안에 들어가야 합니다.
 :::
 
 :::details 규칙이 일치했는데 알림이 열리지 않음

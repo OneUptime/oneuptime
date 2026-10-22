@@ -1,10 +1,11 @@
 # Runbook 代理
 
-**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。 未选择 Runner 的 JavaScript 步骤改为在 [全局 Runner](#全局-runner) 上运行，即 OneUptime 为所有项目运行的 Runner。
+**Runbook 代理** 在仪表板中称为 **Runner** ，是一个小型的自托管进程，它 **在你自己的基础设施中** 运行 Runbook 的 JavaScript、Bash、SSH 和 kubectl 步骤。OneUptime Worker 从不运行你的脚本：它把脚本放入队列，由步骤作者选择的 Runner 领取每个作业、运行它并发回结果。本页面向安装和运维 Runner 的人员。 未选择 Runner 的步骤在你设置的 [项目默认 Runner](#项目默认-runner) 上运行；如果没有设置，JavaScript 步骤会在 [全局 Runner](#全局-runner) 上运行，即 OneUptime 为所有项目运行的 Runner。
 
 :::cards
 - [安装 Runner](#安装-runner): 五步完成，从仪表板到已连接的容器。
 - [为步骤指定 Runner](#为步骤指定-runner): 把步骤绑定到应运行它的 Runner。
+- [项目默认 Runner](#项目默认-runner): 未选择 Runner 的步骤运行所在的 Runner。
 - [全局 Runner](#全局-runner): OneUptime 为所有项目运行的 Runner，以及它们运行什么。
 - [超时](#超时): 领取超时和执行超时，以及两者如何配合。
 - [环境变量](#环境变量): 容器启动时读取的内容。
@@ -26,14 +27,14 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"出站 HTTPS，Runner ID 和密钥"| ingest
-    ingest -->|"已领取的作业及其密钥或凭据"| runner
+    ingest -->|"已领取的作业及其密钥"| runner
     runner -->|"脚本、SSH 或 Kubernetes API"| targets
 ```
 
 1. 你在 OneUptime 中创建一个 Runner。OneUptime 为它生成一个 ID 和一个密钥。
 2. 你在自己基础设施中的一台主机上运行 Runner 容器，并提供该 ID、密钥和你的 OneUptime URL。
 3. Runner 每 5 秒向 OneUptime 请求一次工作，每 60 秒报告一次自己仍在运行。
-4. 编写 JavaScript、Bash、SSH 或 kubectl 步骤时，你从下拉列表中选择 Runner。步骤会绑定到该 Runner。 JavaScript 步骤可以保留下拉列表为它选择的 **全局 Runner** 。
+4. 编写 JavaScript、Bash、SSH 或 kubectl 步骤时，你从步骤 **更多字段** 中的下拉列表选择 Runner。步骤会绑定到该 Runner。 未选择 Runner 的步骤会在你设置的项目默认 Runner 上运行；如果没有设置，JavaScript 步骤会在 **全局 Runner** 上运行。
 5. 步骤运行时，Worker 会把一个 `targetAgentId` 设置为该 Runner 的作业放入队列。只有该 Runner 能领取它。
 6. Runner 在本地运行该任务（Bash 和 kubectl 使用 `bash -c <script>`，JavaScript 使用 `isolated-vm` 沙箱，SSH 使用在机器上用 bash 运行脚本的 SSH 连接），记录结果，隐藏其中步骤的机密，然后回传。Worker 用该结果继续运行 Runbook。
 
@@ -52,7 +53,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 
 ## 全局 Runner
 
-全局 Runner 是 OneUptime 为所有项目运行的 Runner。未选择自己 Runner 的 JavaScript 步骤会在其中一个上运行，因此你可以在安装任何东西之前就编写它。 **运行手册 → Runbook 代理** 在 **全局 Runner** 下列出它们，位于你自己的 Runner 上方；JavaScript 步骤的 **Runner** 下拉列表会首先提供 **全局 Runner** 。
+全局 Runner 是 OneUptime 为所有项目运行的 Runner。未选择自己 Runner 的 JavaScript 步骤会在其中一个上运行（除非项目有 [默认 Runner](#项目默认-runner) ），因此你可以在安装任何东西之前就编写它。 **运行手册 → Runbook 代理** 在 **全局 Runner** 下列出它们，位于你自己的 Runner 上方；JavaScript 步骤的 **Runner** 下拉列表会首先提供 **全局 Runner** ，或紧跟在项目默认 Runner 之后提供。 Bash、SSH 或 kubectl 步骤的下拉列表把它灰显在最后，并显示 **仅运行 JavaScript 步骤。** 这些步骤在你自己网络内的 Runner 上运行，绝不会在所有项目共享的 Runner 上运行。
 
 | | 全局 Runner | 你自己的 Runner |
 | --- | --- | --- |
@@ -60,16 +61,15 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | 步骤可以访问的地址 | 公共互联网地址 | 其主机可以访问的地址 |
 | 步骤的最长运行时间 | 5 分钟 | 1 小时 |
 | 机密变量 | 你允许全局 Runner 使用的那些 | 列出了它的那些 |
-| 凭据 | 无 | 你分配给它的凭据 |
 
 全局 Runner 运行许多项目的步骤，因此每个步骤都与其他所有步骤相互隔离：
 
 - 每个步骤都在自己的 `isolated-vm` 沙箱中运行，该沙箱为这个步骤创建，并在步骤结束后丢弃：没有文件、没有进程、没有环境变量，也不会从一个步骤保留任何东西到下一个步骤。
 - 它的 HTTP 请求只能到达公共互联网地址，绝不会到达私有地址、环回地址、链路本地地址或云元数据端点，因此全局 Runner 永远无法访问你的网络。
-- 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。它永远不会收到凭据。
+- 只有当机密变量的 **全局 Runner 可以使用** 开关开启时，它才会收到该变量，而且只用于该变量所属项目的步骤。
 - 一个项目在全局 Runner 上同时最多运行三个步骤，因此没有项目能独占它们。
 
-对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
+对于需要访问你的网络的步骤，或者要让步骤留在你掌控的主机上，请为它选择你自己的 Runner。要让每个步骤都在你自己的 Runner 上运行，请在 **运行手册 → Runbook 代理** 底部关闭 **使用全局 Runner** 。之后，未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置默认 Runner，它会失败并说明原因，直到它选择你的某个 Runner；选择了你的某个 Runner 的步骤无论如何都会保留它。在代码的设置中没有选择 Runner 的代码存储库同样在全局 Runner 上工作，而在关闭该开关时需要你的某个 Runner；参见 [代码](/docs/ai/ai-agent#选择存储库的-runner)。
 
 ### 全局 Runner 从哪里来
 
@@ -97,7 +97,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | **执行运行手册** | **更多字段** 下 | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
 | **标签** | **更多字段** 下 | 可选。 |
 
-Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。自动补救规则选择 OneUptime AI 运行其命令所用的 Runner，Kubernetes 集群的 AI 设置选择其 kubectl 所运行的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。选择持有 SSH 凭据的 Runner 需要读取 Runbook 凭据的权限；参见 [运行 OneUptime AI 命令的 Runner](/docs/runbooks/credentials#运行-oneuptime-ai-命令的-runner)。
+Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。自动补救规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。
 
 ### 2. 复制安装命令
 
@@ -142,7 +142,7 @@ docker rm -f oneuptime-runner
 
 ### 选择 Runner
 
-步骤的 **Runner** 下拉列表会列出项目中的所有 Runner 以及它们是否已连接。如果项目中还没有 Runner，步骤会提示这一点，并引导你前往 **Runbooks › Runners** 。 JavaScript 步骤的下拉列表还会首先提供 **全局 Runner** ，并在你选择自己的 Runner 之前一直选中它。
+打开步骤的 **更多字段** ：其中的 **Runner** 下拉列表会列出项目中的所有 Runner 以及它们是否已连接，折叠后的那一行会显示步骤运行所在的 Runner。如果项目中还没有 Runner，步骤会提示这一点，并引导你前往 **Runbooks › Runners** 。 第一个选项就是未选择 Runner 的步骤运行所在的位置：标有 **项目默认** 的 [项目默认 Runner](#项目默认-runner) ；如果没有，对于 JavaScript 步骤则是 **全局 Runner** 。
 
 ### 保存步骤
 
@@ -152,6 +152,26 @@ docker rm -f oneuptime-runner
 Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱中运行，无法访问文件系统或进程；它可以用 `axios` 调用公开的 HTTP API，但不能调用私有网络上的地址。SSH 和 kubectl 步骤使用机密 [Runbook 变量](/docs/runbooks/variables) 登录，该变量必须在 **可以使用它的 Runner** 中列出步骤的 Runner。
 
 需要多个 Runner？分别创建，并为每个步骤指定合适的 Runner。若要冗余，可以再运行一个 Runner 并把步骤分配给两者，或者准备一个步骤指向另一个 Runner 的备用 Runbook。
+
+## 项目默认 Runner
+
+项目可以把自己的某个 Runner 设为默认，就像把某个 Twilio 配置设为默认一样。之后，所有未选择 Runner 的运行手册步骤都会在它上面运行：Bash、SSH 和 kubectl 步骤，以及原本会在全局 Runner 上运行的 JavaScript 步骤。
+
+要把某个 Runner 设为默认，请前往 **运行手册 → Runbook 代理** ，打开该 Runner 所在行的 **⋯** 菜单，点击 **设为项目默认** ，然后在对话框中确认。也可以打开该 Runner，在它的 **项目默认值** 卡片上打开 **用作项目默认** 。列表会在默认 Runner 的名称旁标出 **项目默认** ，步骤的 **Runner** 下拉列表也会在第一个选项上这样标出。一个项目只有一个默认 Runner：把另一个 Runner 设为默认会替换它。同一菜单中的 **不再用作项目默认** ，或 Runner 页面上的开关，可以停止使用它。
+
+未选择 Runner 的步骤在哪里运行：
+
+| 项目 | JavaScript 步骤 | Bash、SSH 或 kubectl 步骤 |
+| --- | --- | --- |
+| 有默认 Runner | 默认 Runner | 默认 Runner |
+| 没有，并且使用全局 Runner | 全局 Runner | 无处可运行：步骤失败，并说明它没有 Runner |
+| 没有，并且不使用全局 Runner | 无处可运行：步骤失败并说明原因 | 无处可运行：步骤失败，并说明它没有 Runner |
+
+选择了 Runner 的步骤无论默认是什么都会保留它，JavaScript 步骤仍然可以自己选择 **全局 Runner** 。设置默认 Runner 不会更改任何已保存的步骤。
+
+默认 Runner 必须是项目自己的、运行运行手册步骤的 Runner：不能是全局 Runner，不能是 Kubernetes 代理安装的集群内 Runner，也不能是关闭了 **执行运行手册** 的 Runner。只要某个 Runner 是默认 Runner，它的 **执行运行手册** 就保持开启。默认 Runner 未连接时，步骤的下拉列表会提示这一点，在它上面的步骤会像对待任何 Runner 一样等待它，直到 claim timeout 结束。
+
+只有运行手册步骤使用默认 Runner。代码存储库在代码的设置中选择自己的 Runner，自动补救规则也选择自己的 Runner。
 
 ## 运维说明
 

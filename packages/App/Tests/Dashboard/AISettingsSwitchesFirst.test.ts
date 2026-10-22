@@ -3,6 +3,7 @@ import {
   AI_LANE_ADVANCED_CARDS,
   AI_LANE_ADVANCED_COLUMNS,
   AI_LANE_PAGE_COPY,
+  AI_LANE_RULES_COPY,
   AI_LANE_SWITCHES,
   AI_LANE_SWITCHES_TEST_ID,
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -37,6 +38,8 @@ import {
   isAiLaneRulesCard,
   recordAiLaneAdvancedCard,
   recordAiLaneAdvancedRules,
+  SECURITY_AI_SWITCHES,
+  SecurityAiSettingsCopy,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getSwitchesInDrawnOrder } from "Common/UI/Components/ModelSwitch/ModelSwitchOrder";
@@ -113,6 +116,7 @@ const OTHER_LOCALES: Array<string> = [
 const INCIDENT_PAGE: string = "Pages/Incidents/Settings/IncidentAISettings.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/Settings/AlertAISettings.tsx";
 const INSIGHTS_PAGE: string = "Pages/AIInsights/Settings.tsx";
+const SECURITY_PAGE: string = "Pages/SecurityEvents/AISettings.tsx";
 const AI_FEATURES_PAGE: string = "Pages/Settings/AIFeatures.tsx";
 const NOTICE: string = "Components/AISettings/ProjectAiNotice.tsx";
 const SWITCHES_CARD: string = "Components/AISettings/ProjectAiSwitchesCard.tsx";
@@ -164,20 +168,18 @@ const ENABLE_OR_DISABLE: RegExp = /\b(enable|disable)/i;
 
 const PULL_REQUEST: RegExp = /pull request/;
 
-const CODE_FIXES_COLUMN: RegExp = /CodeFixes$/;
+// The fix pull request switches' columns, before the rules held them.
+const PULL_REQUEST_SWITCH_COLUMN: RegExp =
+  /(CodeFixes|InstrumentationFixTasks)$/;
 
 /*
  * The switches a new project starts without: fixing new incidents and
  * alerts changes infrastructure, so a project turns it on itself - and the
- * pull requests under it are part of fixing, so they start off with it.
+ * pull requests it opens open only while it is on.
  */
 const OFF_FOR_NEW_PROJECTS: Array<string> = [
   "enableAutomaticIncidentRemediation",
   "enableAutomaticAlertRemediation",
-  "enableAutomaticIncidentCodeFixes",
-  "enableIncidentInstrumentationFixTasks",
-  "enableAutomaticAlertCodeFixes",
-  "enableAlertInstrumentationFixTasks",
 ];
 
 /*
@@ -190,11 +192,15 @@ const COLUMN_CARDS: Array<AiLaneAdvancedCard> = AI_LANE_ADVANCED_CARDS[
   return !isAiLaneRulesCard(card);
 });
 
-// Every switch on the pages, the ones under a switch too.
+/*
+ * Every switch on the pages, the ones under a switch too: Incidents, Alerts,
+ * AI Insights, and Security Events → AI → Settings (triaging new cases).
+ */
 const ALL_SWITCHES: Array<ProjectAiSwitchDefinition<string>> = [
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Incident]),
   ...getSwitchesInDrawnOrder(AI_LANE_SWITCHES[AiLane.Alert]),
   ...AI_INSIGHTS_SWITCHES,
+  ...SECURITY_AI_SWITCHES,
 ];
 
 function columnsOf(
@@ -275,9 +281,15 @@ describe("every AI behaviour is a switch", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
 
-      // What fixes: the AI agent where it happens, or one of the runbooks.
+      /*
+       * What fixes: the AI agent where it happens, one of the runbooks, or
+       * a pull request - one of the ways it fixes, not a switch of its own.
+       */
       expect(fix.description).toContain("through the AI agent");
-      expect(fix.description).toContain("or with one of your runbooks");
+      expect(fix.description).toContain(
+        "with one of your runbooks, or with a pull request.",
+      );
+      expect(fix.children).toBeUndefined();
       /*
        * Who decides whether a fix waits, in one sentence: that agent's
        * settings, or a rule (one that fixes without asking and names a
@@ -369,18 +381,9 @@ describe("every AI behaviour is a switch", () => {
       ),
     ).toEqual(["Investigate new alerts", "Fix new alerts automatically"]);
 
-    // The pull requests, under fixing on each page.
+    // No switch under fixing: its pull requests are each rule's.
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
-      expect(
-        (AI_LANE_SWITCHES[lane][1]!.children || []).map(
-          (definition: ProjectAiSwitchDefinition<string>): string => {
-            return definition.title;
-          },
-        ),
-      ).toEqual([
-        "Open a fix pull request when an investigation finds a code change",
-        "Open a pull request that adds missing telemetry",
-      ]);
+      expect(AI_LANE_SWITCHES[lane][1]!.children || []).toEqual([]);
     }
     expect(
       AI_INSIGHTS_SWITCHES.map(
@@ -425,26 +428,69 @@ describe("every AI behaviour is a switch", () => {
     }
   });
 
-  test("the fix pull request switches say what they need, and that nothing merges by itself", () => {
-    for (const definition of ALL_SWITCHES) {
-      if (PULL_REQUEST.test(definition.title)) {
-        expect([definition.title, definition.note]).toEqual([
-          definition.title,
-          expect.stringContaining("GitHub App"),
-        ]);
+  test("the one pull request switch left, AI Insights', says what it needs, and that nothing merges by itself", () => {
+    const pullRequestSwitches: Array<ProjectAiSwitchDefinition<string>> =
+      ALL_SWITCHES.filter(
+        (definition: ProjectAiSwitchDefinition<string>): boolean => {
+          return PULL_REQUEST.test(definition.title);
+        },
+      );
+
+    expect(
+      pullRequestSwitches.map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableInsightFixTasks"]);
+
+    for (const definition of pullRequestSwitches) {
+      expect([definition.title, definition.note]).toEqual([
+        definition.title,
+        "Needs a repository connected through the GitHub App.",
+      ]);
+      expect(definition.description).toContain(
+        "Nothing is merged automatically.",
+      );
+    }
+  });
+
+  /*
+   * "Both of these toggles should be inside of Remediation Rule, inside of
+   * More, and they should be checked by default ... You can remove these
+   * toggles from the main card" - the maintainer. The incident and alert
+   * pages draw no pull request switch; the rules table under More settings
+   * says that, with no rule, fixing opens them.
+   */
+  test("fixing's pull requests are no switches of the incident and alert pages: the rules hold them", () => {
+    for (const lane of [AiLane.Incident, AiLane.Alert]) {
+      for (const definition of getSwitchesInDrawnOrder(
+        AI_LANE_SWITCHES[lane],
+      )) {
+        expect([
+          definition.column,
+          PULL_REQUEST_SWITCH_COLUMN.test(definition.column),
+        ]).toEqual([definition.column, false]);
+        expect([definition.title, PULL_REQUEST.test(definition.title)]).toEqual(
+          [definition.title, false],
+        );
       }
+
+      expect(AI_LANE_RULES_COPY[lane].remediationRulesDescription).toContain(
+        "while fixing is on, pull requests included.",
+      );
     }
 
-    for (const lane of [AiLane.Incident, AiLane.Alert]) {
-      const codeFix: ProjectAiSwitchDefinition<string> | undefined =
-        getSwitchesInDrawnOrder(AI_LANE_SWITCHES[lane]).find(
-          (definition: ProjectAiSwitchDefinition<string>): boolean => {
-            return CODE_FIXES_COLUMN.test(definition.column);
-          },
-        );
+    // A project's switch columns are gone from the model, too.
+    const project: Project = new Project();
 
-      expect(codeFix?.description).toContain("Nothing is merged.");
-      expect(codeFix?.note).toContain("a Runner that can fix code");
+    for (const retired of [
+      "enableAutomaticIncidentCodeFixes",
+      "enableIncidentInstrumentationFixTasks",
+      "enableAutomaticAlertCodeFixes",
+      "enableAlertInstrumentationFixTasks",
+    ]) {
+      expect([retired, project.hasColumn(retired)]).toEqual([retired, false]);
     }
   });
 
@@ -540,6 +586,36 @@ describe("the pages draw switches first, and fold the limits", () => {
       );
     },
   );
+
+  test("Security Events → AI → Settings is the notice and its one switch, triaging new cases", () => {
+    const page: string = readDashboard(SECURITY_PAGE);
+
+    expect(page).toContain(
+      "<ProjectAiNotice context={ProjectAiNoticeContext.SecurityEvents} />",
+    );
+    expect(page).toContain("switches={SECURITY_AI_SWITCHES}");
+    expect(page).toContain("cardTitle={SecurityAiSettingsCopy.cardTitle}");
+    expect(page).not.toContain("CardModelDetail");
+    expect(
+      SECURITY_AI_SWITCHES.map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableAutomaticSecurityCaseTriage"]);
+    /*
+     * The card says what the Incidents' and Alerts' AI settings say: their
+     * title, and that it works on its own and can be turned off. It used to
+     * say a person runs every playbook, which a Triaged as Likely Malicious
+     * playbook does not wait for.
+     */
+    expect(SecurityAiSettingsCopy.cardTitle).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
+    expect(SecurityAiSettingsCopy.cardDescription).toBe(
+      "It works on security cases on its own. Turn off anything you do not want it to do.",
+    );
+  });
 
   test("AI → Insights → Settings is the notice and its three switches", () => {
     const page: string = readDashboard(INSIGHTS_PAGE);

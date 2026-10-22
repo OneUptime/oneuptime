@@ -36,7 +36,7 @@ flowchart TB
 
 Every run is an **execution**. When it starts, the runbook's steps are copied onto it, and OneUptime works through them in order. A Manual step, or a step that needs approval, pauses the run until someone acts on it.
 
-HTTP and AI steps run on the OneUptime Worker. Bash, SSH and kubectl steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none, on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
+HTTP and AI steps run on the OneUptime Worker. Bash, SSH and kubectl steps run on a [Runner](/docs/runbooks/agents) you install in your own infrastructure, so those scripts never run on OneUptime's servers. A JavaScript step runs on one of your Runners too or, if it picks none and the project has no [default Runner](/docs/runbooks/agents#the-projects-default-runner), on a [global Runner](/docs/runbooks/agents#global-runners), in a sandbox that reaches the internet only. Each step's status, output and error message are recorded on the execution, which stays with the incident, alert or event it ran for.
 
 ## Key concepts
 
@@ -47,7 +47,7 @@ HTTP and AI steps run on the OneUptime Worker. Bash, SSH and kubectl steps run o
 | **Runbook Rule** | A rule that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events that match its conditions: their monitors, severity, labels, monitor labels, title or description. |
 | **Execution** | One run of a runbook. Created when a rule fires, when someone clicks **Run Runbook** on an event, or when someone clicks **Run Now** on the runbook itself. It holds a snapshot of the steps and each step's status and output. |
 | **Snapshot** | The frozen copy of the runbook's steps that lives on each execution. You can edit the runbook later without rewriting the history of past runs. |
-| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and kubectl steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none. |
+| **Runner** | A small agent you run on a host in your own infrastructure. It runs the JavaScript, Bash, SSH and kubectl steps that name it. Also called a Runbook Agent. A global Runner, one OneUptime runs for every project, runs the JavaScript steps that name none, unless the project has a default Runner. |
 | **Variable** | A value steps use by name, such as a host or a URL: `{{global.variables.NAME}}` for one of the project's, which every runbook can use, or `{{local.variables.NAME}}` for one of the runbook's own. |
 | **Secret** | A variable whose value is encrypted at rest, never shown again and hidden in what steps print, such as an SSH key, a password, a kubeconfig or an API token. Handed only to the Runners you let use it; global Runners get it only if you let them. |
 
@@ -95,7 +95,7 @@ Runbooks is under **Products**, in the **Dashboards & Automation** group.
 | A runbook's **Owners** | Add the people and teams responsible for it. |
 | A runbook's **Settings** | Turn **Run this runbook** off without deleting the runbook. |
 | **Runbooks → Executions** | Every run of every runbook in the project. |
-| **Runbooks → Runners** and **Runbooks → Runners → AI Access** | Install [Runners](/docs/runbooks/agents), and manage the [access](/docs/runbooks/credentials) OneUptime AI's commands have through them. |
+| **Runbooks → Runners** | Install the [Runners](/docs/runbooks/agents) your runbook steps run on. |
 | **Runbooks → Settings** | Manage the **Global Variables** every runbook can [use](/docs/runbooks/variables), and the **Owner Rules** and **Label Rules** that add owners and labels to new runbooks. |
 | **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the rules that start runbooks automatically. |
 | An incident, alert or maintenance event → **Runbooks** | See the runs attached to it, and click **Run Runbook** to start one. |
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 A monitor opens incident `INC-4821 · db-primary connection timeout`. The rule matches and an execution starts:
 
-- Step 1 (JavaScript) runs on the Runner you picked for it. Its return value, such as `{ lagMs: 412 }`, is captured. A step that picks no Runner runs on a global Runner.
+- Step 1 (JavaScript) runs on the Runner you picked for it. Its return value, such as `{ lagMs: 412 }`, is captured. A step that picks no Runner runs on the project's default Runner or, with none set, on a global Runner.
 - Step 2 (Manual) pauses the run, which shows **Waiting for you**. The on-call checks the dashboard and clicks **Mark complete**.
 - Step 3 (HTTP request) runs, and the `POST` response is captured.
 - Step 4 (Manual) pauses the run again until someone completes it.

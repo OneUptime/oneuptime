@@ -147,6 +147,28 @@ Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
+## Skicka säkerhetshändelser till Splunk
+
+OneUptime kan också skicka det den hittar till Splunk, via dess HTTP Event Collector (HEC), så att dina sökningar och instrumentpaneler ser OneUptimes upptäckter bredvid dina egna. Varje säkerhetshändelse är en HEC-händelse med sourcetypen `oneuptime:security`, och fälten heter det som Splunks Common Information Model kallar dem: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` och `severity`.
+
+:::steps
+### Skapa en HEC-token
+
+Öppna **Settings → Data inputs → HTTP Event Collector** i Splunk Web och klicka på **New Token**. Namnge den, välj de index den får skriva till och dess standardindex, och kopiera tokenvärdet. På Splunk Cloud lyssnar HEC på `https://http-inputs-<stack>.splunkcloud.com`; på Splunk Enterprise på port `8088` när **Global Settings** har slagit på tokens.
+
+### Lägg till målet
+
+Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Splunk under **SIEM** och klicka på **Nästa**. Fyll i **HEC-URL** och klistra in token i **HEC-token**. **Index** och **Källtyp** är valfria: lämnas de tomma går händelserna till tokenens standardindex med sourcetypen `oneuptime:security`.
+
+### Skicka en testhändelse och börja skicka
+
+Klicka på **Skicka en testhändelse**: en informativ händelse går till Splunk med inställningarna i formuläret, och inget sparas. Sök efter den med `sourcetype="oneuptime:security"`. Behåll sedan **Endast upptäckter** under **Vad som ska skickas**, eller välj **Alla säkerhetshändelser**, och klicka på **Börja skicka**.
+:::
+
+- **HEC-URL** måste använda `https`, med ett certifikat som OneUptime litar på: certifikatkontroller hoppas aldrig över.
+- Händelser skickas i omgångar om upp till 500. En händelse som Splunk avvisar utelämnas och nämns i **Visa fel**, en upptagen collector (`503`) försöks igen, och en avvisad token eller ett avvisat index stoppar sändningen tills du rättar det.
+- Notable events som OneUptime har importerat från Splunk skickas aldrig tillbaka dit.
+
 ## Felsökning
 
 Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.

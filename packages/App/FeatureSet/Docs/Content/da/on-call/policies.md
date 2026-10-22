@@ -66,6 +66,19 @@ Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper 
 
 En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Policy at a glance** på **Oversigt** siger det samme med ord.
 
+## Tilkald igen, hvis den ikke bliver løst
+
+En bekræftelse stopper en politiks tilkald for altid, også selv om ingen løser hændelsen eller advarslen bagefter. En politik kan i stedet tilkalde igen: åbn dens side **Eskaleringsregler**, åbn **Yderligere indstillinger** nederst, og klik på **Rediger** på kortet **Timeout efter bekræftelse**. **Rediger timeout efter bekræftelse** spørger **Hvis den er bekræftet, men ikke løst**:
+
+| Svar | Hvad det gør |
+| --- | --- |
+| **Tilkald ikke igen** | En bekræftelse stopper tilkaldet for altid. En ny politik starter med dette svar. |
+| **Tilkald igen** | Tilkalder den, der bekræftede, og den, der har vagt nu. **Efter hvor mange minutter?** siger hvornår: fra 5 til 1440, først 30. |
+
+Minutterne tælles fra hver bekræftelse, og en politik tilkalder højst 5 gange igen om den samme hændelse, advarsel eller episode. Et nyt tilkald starter på det niveau, der tilkaldte, da der blev bekræftet, tilkalder den, der har vagt der nu, og fortsætter gennem niveauerne som den første kørsel. Hændelsen eller advarslen forbliver bekræftet: det nye tilkald er en kørsel for sig, i dens feed og i politikkens udførelseslogs, hvor dens **Status** siger "Tilkaldt igen (1 af 5)".
+
+Den, der tilkaldes igen, bekræfter fra beskeden eller med **Bekræft igen** på hændelsens eller advarslens side, og minutterne starter forfra; **Eskalér** sender tilkaldet videre til næste niveau. Hvis hændelsen eller advarslen løses eller slettes, politikken arkiveres eller slettes, eller nogen vælger **Tilkald ikke igen**, stopper det. Kortets række **Efter en bekræftelse** siger, hvad politikken gør, og **Yderligere indstillinger** viser minutterne, mens det er foldet sammen. **Policy at a glance** på **Oversigt** og **Escalation summary** siger det samme med ord.
+
 ## Udførelseslogs
 
 Hver gang en politik kører, skriver den en udførelseslog, og loggen går gennem sine statusser, efterhånden som kørslen skrider frem:
@@ -122,9 +135,12 @@ Vagtpolitikker er ressourcen `/api/on-call-duty-policy`, og ressourcen `oneuptim
 | **Beskrivelse** | `description` |
 | **Hvis ingen bekræfter efter det sidste niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hvor mange gange mere?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Efter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
 | Arkiveret | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` er `false` for **Stop tilkald** og `true` for **Start forfra fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gentages en politik aldrig, og dashboardet viser den som **Stop tilkald**.
+
+`acknowledgementTimeoutInMinutes` er `null` for **Tilkald ikke igen** og et helt antal minutter fra 5 til 1440 for **Tilkald igen**. OneUptime afviser alt andet.
 
 Se [Opret regler med API'et eller Terraform](/docs/on-call/escalation-rules#opret-regler-med-apiet-eller-terraform) for at oprette en politik med dens første niveau i én forespørgsel.
 

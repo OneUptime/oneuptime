@@ -88,13 +88,19 @@ flowchart TB
 | 팀 | `Team` |
 | 사용자 정의 역할과 그 역할을 받은 팀 | `Custom Role`, `Team Custom Role` |
 | 레이블 | `Label` |
+| 인시던트 상태 및 심각도 | `Incident State`, `Incident Severity` |
+| 알림 상태 및 심각도 | `Alert State`, `Alert Severity` |
+| 모니터 상태 | `Monitor Status` |
+| 예정된 유지 관리 상태 | `Scheduled Maintenance State` |
+| 인시던트 역할 | `Incident Role` |
+| 포스트모템 상태 | `Postmortem Status` |
 | API 키 | `API Key` |
 | 사람들이 연결하는 MCP 클라이언트 | `MCP Client Authorization` |
 | 인벤토리 항목 | `Inventory Item` |
 | 컬렉터 구성 | `Collector Config` |
 | vCenter 서버 | `vCenter` |
 | 패킷 캡처와 그 다운로드 | `Packet Capture` |
-| 보안 케이스와 플레이북 | `Security Case`, `Security Playbook` |
+| 보안 케이스, 플레이북과 그 실행, 보호 대상 엔터티 | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 관리자가 다른 사람의 계정에서 알림 방법이나 개인 온콜 규칙을 추가하거나 제거한 경우에도 기록되며, 주소나 번호 자체는 기록되지 않습니다.
 

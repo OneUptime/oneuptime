@@ -39,7 +39,7 @@ flowchart TB
 - **نگهداری زمان‌بندی‌شده**: رویدادهای نگهداری را بسازید و مدیریت کنید.
 - **تله‌متری**: لاگ‌ها، متریک‌ها، ردیابی‌ها، استثناها، لاگ‌های مانیتور، رویدادهای امنیتی و موارد دیگر را، فقط به‌صورت خواندنی، جست‌وجو کنید.
 
-برای ۲۷ نوع رکورد ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش وجود دارد، برای ۹ نوع تله‌متری ابزارهای فهرست و شمارش، و ابزارهایی هم برای پاسخ به حادثه ساخته شده‌اند. ابزارهای فقط‌خواندنی `readOnlyHint` دارند، هر ابزاری که چیزی را تغییر می‌دهد `destructiveHint` دارد و فقط ابزارهای صفحهٔ وضعیت عمومی `openWorldHint` دارند، بنابراین کلاینت می‌تواند فراخوانی‌های فقط‌خواندنی را خودش اجرا کند و پیش از هر تغییری از شما بپرسد. یک فراخوانی ناموفق ابزار، نه به‌صورت خطای پروتکل MCP، بلکه به‌صورت نتیجهٔ ابزار (`isError: true`) همراه با `statusCode`، جزئیات و یک پیشنهاد برمی‌گردد، تا عامل بتواند خطا را بخواند و خودش را اصلاح کند.
+برای ۲۸ نوع رکورد ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش وجود دارد، برای ۹ نوع تله‌متری ابزارهای فهرست و شمارش، و ابزارهایی هم برای پاسخ به حادثه ساخته شده‌اند. ابزارهای فقط‌خواندنی `readOnlyHint` دارند، هر ابزاری که چیزی را تغییر می‌دهد `destructiveHint` دارد و فقط ابزارهای صفحهٔ وضعیت عمومی `openWorldHint` دارند، بنابراین کلاینت می‌تواند فراخوانی‌های فقط‌خواندنی را خودش اجرا کند و پیش از هر تغییری از شما بپرسد. یک فراخوانی ناموفق ابزار، نه به‌صورت خطای پروتکل MCP، بلکه به‌صورت نتیجهٔ ابزار (`isError: true`) همراه با `statusCode`، جزئیات و یک پیشنهاد برمی‌گردد، تا عامل بتواند خطا را بخواند و خودش را اصلاح کند.
 
 ## پیش از شروع
 
@@ -471,7 +471,7 @@ curl https://oneuptime.com/mcp/tools
 | حوزه | رکوردهایی با ابزارهای ساخت، دریافت، فهرست، به‌روزرسانی، حذف و شمارش |
 | --- | --- |
 | مانیتورینگ | Monitor, Monitor Status, Monitor Status Event |
-| حادثه‌ها | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| حادثه‌ها | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | هشدارها | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | صفحه‌های وضعیت | Status Page, Status Page Announcement |
 | نگهداری زمان‌بندی‌شده | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

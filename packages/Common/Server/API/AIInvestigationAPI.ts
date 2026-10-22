@@ -61,8 +61,6 @@ import {
   KubernetesClusterAiAccessStatus,
   getKubernetesAiAccessTargetKind,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
-import CallerPermission from "../Utils/Permission/CallerPermission";
-import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import {
   TracePerformanceFixSuggestion,
@@ -81,19 +79,22 @@ import {
 import {
   buildInvestigationEvidence,
   EVIDENCE_CITATION_ID_REGEX,
-  findInvestigationToolCall,
-  InvestigationToolCallRecord,
-  isRerunnableEvidenceTool,
 } from "../Utils/AI/SRE/InvestigationEvidence";
 import { resolveInvestigationReferences } from "../Utils/AI/SRE/InvestigationReferences";
-import AIToolbox, { ToolCallOutcome } from "../Utils/AI/Toolbox/Index";
 import {
-  ObservabilityTool,
-  ToolExecutionResult,
-} from "../Utils/AI/Toolbox/ToolTypes";
+  MAX_EVIDENCE_TEXT_LENGTH,
+  pinEvidenceArgumentsToInvestigationTime,
+  rerunInvestigationEvidence,
+} from "../Utils/AI/SRE/InvestigationEvidenceRerun";
 import { AIRunEventResultSummary } from "../../Types/AI/AIChatTypes";
 import logger from "../Utils/Logger";
-import OneUptimeDate from "../../Types/Date";
+
+// Where they lived before; tests and callers still import them from here.
+export {
+  MAX_EVIDENCE_TEXT_LENGTH,
+  pinEvidenceArgumentsToInvestigationTime,
+  rerunInvestigationEvidence,
+};
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -338,9 +339,6 @@ export async function getWaitingInvestigationForPanel(data: {
   };
 }
 
-// Plain-text rows returned by the evidence route are clipped to this size.
-export const MAX_EVIDENCE_TEXT_LENGTH: number = 20000;
-
 /*
  * The event JSON the panel receives keeps its long-standing shape. The run's
  * tool arguments and citation metadata are read only to build `evidence`
@@ -448,8 +446,8 @@ async function sendLatestInvestigation(
    * reader "we investigated with OneUptime data only; here is what is
    * missing and where to fix it". Enrichment: a failure yields no rows.
    * Present, possibly empty, in every response shape. How much of each row
-   * the viewer gets follows THEIR read access to the cluster (and to
-   * credentials), not their access to the incident or alert.
+   * the viewer gets follows THEIR read access to the cluster, not their
+   * access to the incident or alert.
    */
   const clusterAccess: Array<InvestigationPanelClusterAccess> =
     await getClusterAccessForPanel({
@@ -618,11 +616,9 @@ async function sendLatestInvestigation(
  *    through the incident's own cluster relation);
  *  - a viewer who can also read the cluster gets the rest the cluster's AI
  *    page would show them: the Runner and its posture, the allowlist, the
- *    last verification and error, and each gap's full description;
- *  - the credential's name additionally needs credential read — the same
- *    rule the cluster AI page's credential picker applies.
+ *    last verification and error, and each gap's full description.
  *
- * The credential id and anything else the jobs themselves use never leave.
+ * Anything else the jobs themselves use never leaves.
  */
 export type InvestigationPanelClusterAccess = Pick<
   KubernetesClusterAiAccessStatus,
@@ -634,12 +630,12 @@ export type InvestigationPanelClusterAccess = Pick<
   | "gaps"
   | "evaluatedAt"
 > &
-  Partial<Omit<KubernetesClusterAiAccessStatus, "credentialId">>;
+  Partial<KubernetesClusterAiAccessStatus>;
 
 /*
  * Stands in for a gap description on a row whose viewer cannot read the
- * cluster: descriptions name the Runner, the credential and the cluster
- * identifier the Runner reported.
+ * cluster: descriptions name the Runner and the cluster identifier the
+ * Runner reported.
  */
 export const RESTRICTED_GAP_DESCRIPTION: string =
   "Someone who can view this Kubernetes cluster can see the details on its AI agent page (AI → Agent).";
@@ -647,8 +643,8 @@ export const RESTRICTED_GAP_DESCRIPTION: string =
 /*
  * Stand in for a gap's next step on a row whose viewer cannot read the
  * cluster. The service's next steps are written for the cluster's AI agent
- * page and may name the Runner, the credential, the agent's namespace or
- * the cluster identifier — none of which such a viewer is shown — and
+ * page and may name the Runner, the agent's namespace or the cluster
+ * identifier — none of which such a viewer is shown — and
  * point at a page they cannot open. A project-level gap is fixed in
  * Project Settings instead.
  */
@@ -687,14 +683,6 @@ export function getRestrictedGapNextStep(code: string): string {
     : RESTRICTED_GAP_NEXT_STEP;
 }
 
-/*
- * Stands in for a credential_missing gap description when the viewer can
- * read the cluster but not credentials: those descriptions name the
- * credential.
- */
-export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
-  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on the cluster's AI agent page (AI → Agent).";
-
 function toPanelRunnerSummary(
   runner: KubernetesAiAccessRunnerSummary | null,
 ): KubernetesAiAccessRunnerSummary | null {
@@ -729,7 +717,6 @@ function toPanelRunnerSummary(
 // What the viewer may see of one cluster's row.
 export interface PanelClusterAccessVisibility {
   canReadCluster: boolean;
-  canReadCredentials: boolean;
 }
 
 export function toPanelClusterAccess(
@@ -743,13 +730,10 @@ export function toPanelClusterAccess(
         title: gap.title,
         description: !visibility.canReadCluster
           ? RESTRICTED_GAP_DESCRIPTION
-          : gap.code === "credential_missing" && !visibility.canReadCredentials
-            ? RESTRICTED_CREDENTIAL_GAP_DESCRIPTION
-            : gap.description,
+          : gap.description,
         /*
-         * A reader of the cluster keeps the actionable step — it names the
-         * Runner they would select, and no credential. Everyone else gets
-         * a generic one: the step can name what the row withholds.
+         * A reader of the cluster keeps the actionable step. Everyone else
+         * gets a generic one: the step can name what the row withholds.
          */
         nextStep: !visibility.canReadCluster
           ? getRestrictedGapNextStep(gap.code)
@@ -779,9 +763,6 @@ export function toPanelClusterAccess(
     clusterIdentifier: status.clusterIdentifier,
     runner: toPanelRunnerSummary(status.runner),
     accessMethod: status.accessMethod,
-    ...(visibility.canReadCredentials
-      ? { credentialName: status.credentialName }
-      : {}),
     kubectlAllowlist: [...(status.kubectlAllowlist || [])],
     isInvestigationEnabled: status.isInvestigationEnabled,
     lastVerifiedAt: status.lastVerifiedAt,
@@ -832,30 +813,6 @@ async function getClusterIdsReadableByViewer(data: {
   }
 }
 
-/*
- * Whether the viewer may read Runner credentials in this project: one of
- * the permissions that read runbook credentials
- * (RunbookCredentialReaders.getReadPermissions), the list the cluster AI
- * page's credential picker applies, read the way every permission check
- * reads it (CallerPermission). A block row is a denial, never a grant —
- * even one limited to some labels, since the row cannot tell which
- * credential the name belongs to.
- */
-export function canViewerReadCredentialNames(
-  viewerProps: DatabaseCommonInteractionProps,
-  projectId: ObjectID,
-): boolean {
-  if (viewerProps.isRoot || viewerProps.isMasterAdmin) {
-    return true;
-  }
-
-  return CallerPermission.holdsAnyOf(
-    viewerProps,
-    RunbookCredentialReaders.getReadPermissions(),
-    { projectId: projectId, labelledBlocksRefuse: true },
-  );
-}
-
 async function getClusterAccessForPanel(data: {
   projectId: ObjectID;
   incidentId?: ObjectID | undefined;
@@ -888,10 +845,6 @@ async function getClusterAccessForPanel(data: {
     projectId: data.projectId,
     viewerProps: data.viewerProps,
   });
-  const canReadCredentials: boolean = canViewerReadCredentialNames(
-    data.viewerProps,
-    data.projectId,
-  );
 
   return statuses.map(
     (
@@ -899,7 +852,6 @@ async function getClusterAccessForPanel(data: {
     ): InvestigationPanelClusterAccess => {
       return toPanelClusterAccess(status, {
         canReadCluster: readableClusterIds.has(status.clusterId),
-        canReadCredentials,
       });
     },
   );
@@ -1120,52 +1072,6 @@ router.post(
 );
 
 /*
- * The original arguments of a cited tool call, with its time window pinned to
- * when the investigation ran: a tool whose schema accepts endTime (or atTime)
- * but whose call omitted it defaulted to "now" at investigation time, so the
- * re-run passes that moment explicitly. Returns a copy; the event's JSON is
- * never mutated.
- */
-export function pinEvidenceArgumentsToInvestigationTime(data: {
-  tool: ObservabilityTool;
-  rawArguments: JSONObject;
-  investigatedAt: Date | undefined;
-}): { args: JSONObject; isPinnedToInvestigationTime: boolean } {
-  const args: JSONObject = { ...data.rawArguments };
-
-  const schemaProperties: unknown = data.tool.inputSchema?.["properties"];
-  const properties: JSONObject =
-    schemaProperties &&
-    typeof schemaProperties === "object" &&
-    !Array.isArray(schemaProperties)
-      ? (schemaProperties as JSONObject)
-      : {};
-
-  const hasArgument: (key: string) => boolean = (key: string): boolean => {
-    const value: unknown = args[key];
-    return typeof value === "string" && value.trim().length > 0;
-  };
-
-  let isPinnedToInvestigationTime: boolean = false;
-
-  for (const timeKey of ["endTime", "atTime"]) {
-    if (!Object.prototype.hasOwnProperty.call(properties, timeKey)) {
-      continue;
-    }
-
-    if (!hasArgument(timeKey) && data.investigatedAt) {
-      args[timeKey] = data.investigatedAt.toISOString();
-    }
-
-    if (hasArgument(timeKey)) {
-      isPinnedToInvestigationTime = true;
-    }
-  }
-
-  return { args, isPinnedToInvestigationTime };
-}
-
-/*
  * "Load rows" for one piece of evidence in the investigation panel: re-runs
  * the query behind a report citation ([C#]) with the VIEWER's permissions.
  *
@@ -1294,85 +1200,13 @@ router.post(
         props: { isRoot: true },
       });
 
-      const toolCall: InvestigationToolCallRecord | null =
-        findInvestigationToolCall({ events, citationId });
-
-      if (!toolCall) {
-        throw new BadDataException("This evidence is no longer available.");
-      }
-
-      const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
-        toolCall.item.toolName,
-      );
-
-      // Re-checked here rather than trusted from the item: defense in depth.
-      if (
-        !tool ||
-        !toolCall.item.canLoadRows ||
-        !isRerunnableEvidenceTool(toolCall.item.toolName)
-      ) {
-        throw new BadDataException("This evidence can't be re-run.");
-      }
-
-      const investigatedAt: Date | undefined = toolCall.item.executedAt
-        ? new Date(toolCall.item.executedAt)
-        : undefined;
-
-      const pinned: { args: JSONObject; isPinnedToInvestigationTime: boolean } =
-        pinEvidenceArgumentsToInvestigationTime({
-          tool,
-          rawArguments: toolCall.rawArguments,
-          investigatedAt: toolCall.startedAt || investigatedAt,
-        });
-
-      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-        name: toolCall.item.toolName,
-        args: pinned.args,
-        ctx: {
-          projectId: tenantId,
-          props: viewerProps,
-        },
-      });
-
-      if (!outcome.success || !outcome.result) {
-        throw new BadDataException(
-          outcome.errorMessage || "This evidence could not be loaded.",
-        );
-      }
-
-      const result: ToolExecutionResult = outcome.result;
-
-      const rowsResponse: InvestigationEvidenceRowsResponse = {
-        citationId,
-        toolName: toolCall.item.toolName,
-        label: result.citationLabel || toolCall.item.label,
-        rowCount: result.rowCount,
-        isTruncated: result.isTruncated,
-        executedAt: OneUptimeDate.getCurrentDate().toISOString(),
-        isPinnedToInvestigationTime: pinned.isPinnedToInvestigationTime,
-      };
-
-      if (result.widget) {
-        // Mirror ChatAgentRunner: widgets carry their own id + citation.
-        rowsResponse.widget = {
-          ...result.widget,
-          id: result.widget.id || "W1",
+      const rowsResponse: InvestigationEvidenceRowsResponse =
+        await rerunInvestigationEvidence({
+          events,
           citationId,
-        };
-      } else {
-        const text: string = result.dataForLlm || "";
-
-        if (text.length > MAX_EVIDENCE_TEXT_LENGTH) {
-          rowsResponse.text = text.substring(0, MAX_EVIDENCE_TEXT_LENGTH);
-          rowsResponse.isTruncated = true;
-        } else {
-          rowsResponse.text = text;
-        }
-      }
-
-      if (toolCall.item.executedAt) {
-        rowsResponse.investigatedAt = toolCall.item.executedAt;
-      }
+          tenantId,
+          viewerProps,
+        });
 
       Response.sendJsonObjectResponse(
         req,

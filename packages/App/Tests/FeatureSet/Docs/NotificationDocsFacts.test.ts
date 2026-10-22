@@ -740,7 +740,8 @@ describe("what a new member starts with", () => {
       "Common/Server/API/UserCallAPI.ts",
       "Common/Server/API/UserWhatsAppAPI.ts",
       "Common/Server/API/UserPushAPI.ts",
-      "App/FeatureSet/Notification/API/Telegram.ts",
+      // A Telegram account, linked by webhook or by polling.
+      "Common/Server/Utils/TelegramBotUpdates.ts",
       "Common/Server/Services/UserSlackService.ts",
       "Common/Server/Services/UserMicrosoftTeamsService.ts",
       "Common/Server/Services/UserWebhookService.ts",
@@ -1678,7 +1679,7 @@ describe("personal on-call rules", () => {
       "introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,",
     );
     // A text's one link acknowledges the page (Utils/Sms/OnCallPageSms).
-    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or pass it on:");
+    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or escalate:");
     expect(ruleService).toContain(
       "link: await this.buildOnCallAcknowledgeShortUrl(",
     );
@@ -1691,28 +1692,29 @@ describe("personal on-call rules", () => {
   });
 
   /*
-   * "Can't take it? Pass it on" (task oncall-page-pass-on): the same
-   * messages pass the page on to the policy's next level, and a call asks
-   * for 2. The page says so beside acknowledging, and links to where the
-   * Escalation Rules page says what passing on does.
+   * "Can't take it? Escalate" (tasks oncall-page-pass-on and
+   * escalate-incident-copy): the same messages escalate the page to the
+   * policy's next level, and a call asks for 2. The page says so beside
+   * acknowledging, and links to where the Escalation Rules page says what
+   * escalating does.
    */
-  it("lets the messages pass a page on: the same messages, and a key to press in a call", () => {
+  it("lets the messages escalate a page: the same messages, and a key to press in a call", () => {
     const ruleService: string = readCommonSource(
       "Server/Services/UserNotificationRuleService.ts",
     );
 
     expect(ON_CALL_PAGE_CALL_PASS_ON_DIGIT).toBe("2");
     expect(getOnCallPageCallPassOnPrompt()).toBe(
-      `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to pass it on.`,
+      `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
     expect(ruleService).toContain(
-      '`⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`',
+      '`⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`',
     );
     expect(ruleService).toContain(
-      "mdText`⏭️ [${CANT_TAKE_IT_PASS_IT_ON}](${data.passOnUrl.toString()})`",
+      "mdText`⬆️ [${CANT_TAKE_IT_ESCALATE}](${data.passOnUrl.toString()})`",
     );
     expect(rules).toContain(
-      `When you cannot take a page, the same messages let you pass it on, and a call asks you to press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT}: the policy pages its next level straight away, and you are not paged about it again. See [Passing a page on](/docs/on-call/escalation-rules#passing-a-page-on).`,
+      `When you cannot take a page, the same messages let you escalate it, and a call asks you to press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT}: the policy pages its next level straight away, and you are not paged again for it. See [Escalating a page](/docs/on-call/escalation-rules#escalating-a-page).`,
     );
   });
 
@@ -1852,6 +1854,7 @@ describe("notification settings", () => {
     { name: "Status Pages", constant: "statusPages" },
     { name: "Scheduled Maintenance", constant: "scheduledMaintenance" },
     { name: "On-Call", constant: "onCall" },
+    { name: "Security", constant: "security" },
   ];
 
   /*
@@ -2029,7 +2032,7 @@ describe("notification settings", () => {
       }
     }
 
-    // The two shift reminders start on by push too, and they alone.
+    // The two shift reminders and the three security case events start on by push too, and they alone.
     const byPush: Array<string> = Array.from(push).map(
       (type: string): string => {
         return labels[type] as string;
@@ -2040,10 +2043,16 @@ describe("notification settings", () => {
       [
         "Before my on-call shift starts",
         "My upcoming on-call shift is reassigned",
+        "New security case",
+        "Security case assigned to me",
+        "Playbook step waiting for my approval",
       ].sort(),
     );
     expect(settings).toContain(
       "and by push too: **Before my on-call shift starts**, **My upcoming on-call shift is reassigned**",
+    );
+    expect(settings).toContain(
+      "| **Security** | By push too: **New security case** (High and Critical cases), **Security case assigned to me**, **Playbook step waiting for my approval** | None |",
     );
   });
 

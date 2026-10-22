@@ -84,8 +84,9 @@ export default function OnCallPageCard({
   const isAcknowledged: boolean = Boolean(page.acknowledgedAt);
   const isError: boolean = page.status === "Error";
   /*
-   * They could not take it and passed it on: the policy paged its next
-   * escalation rule, and nothing is waiting on them - not "Not acknowledged".
+   * They could not take it and escalated it: the policy paged its next
+   * level, and nothing is waiting on them - not "Not acknowledged". The
+   * server stores it as "Passed On"; it reads "Escalated".
    */
   const isPassedOn: boolean = page.status === PASS_ON_TEXT.passedOnStatus;
   const tone: StatusTone = isAcknowledged
@@ -101,7 +102,7 @@ export default function OnCallPageCard({
     : isError
       ? "Failed to notify"
       : isPassedOn
-        ? "Passed on"
+        ? PASS_ON_TEXT.passedOnLabel
         : "Not acknowledged";
   const isPressable: boolean = Boolean(onPress && subject.id);
 

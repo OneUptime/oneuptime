@@ -1,6 +1,5 @@
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
 import Permission, {
   PermissionHelper,
   PermissionProps,
@@ -10,16 +9,11 @@ import {
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
 } from "Common/Utils/AiRemediation/KubectlPolicy";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
-import Runner from "Common/Models/DatabaseModels/Runner";
-import type { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { isKubernetesAgentRunnerRow } from "./KubernetesAgentRunner";
 import {
   capitalizeFirst,
   formatNameList,
@@ -41,10 +35,9 @@ import {
  * The pure pieces behind "What AI may do" on the cluster's AI agent page
  * and its Change modal: the words for each fixes mode, who may loosen what
  * (relative to the saved settings, as the server decides it), what an edit
- * actually sends, when a save is confirmed first, how the kubectl allowlist
- * is read and checked (by KubectlPolicy, the matcher's own rules), and —
- * only for a cluster bound to a Runner outside the chart — which Runners
- * and credentials the pickers offer.
+ * actually sends, when a save is confirmed first, and how the kubectl
+ * allowlist is read and checked (by KubectlPolicy, the matcher's own
+ * rules).
  *
  * The words are the Dashboard's translation keys (src/Locales/README.md). A
  * constant or a map's label is the English key, looked up where the page
@@ -363,21 +356,6 @@ export interface KubernetesAiAccessSavedSettings {
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: KubernetesAiRemediationMode;
   aiKubectlCommandAllowlist: unknown;
-  aiAccessRunnerId: string | null;
-  aiAccessRunnerName: string | null;
-  aiAccessCredentialId: string | null;
-  aiAccessCredentialName: string | null;
-}
-
-function readRelationId(
-  id: ObjectID | string | undefined | null,
-  relation: { _id?: unknown; id?: unknown } | undefined | null,
-): string | null {
-  if (id) {
-    return id.toString();
-  }
-  const relationId: unknown = relation?._id || relation?.id;
-  return relationId ? String(relationId) : null;
 }
 
 /*
@@ -392,33 +370,17 @@ export function readKubernetesAiAccessSavedSettings(
     isAiInvestigationEnabled: cluster.isAiInvestigationEnabled !== false,
     aiRemediationMode: readRemediationMode(cluster.aiRemediationMode),
     aiKubectlCommandAllowlist: cluster.aiKubectlCommandAllowlist,
-    aiAccessRunnerId: readRelationId(
-      cluster.aiAccessRunnerId,
-      cluster.aiAccessRunner,
-    ),
-    aiAccessRunnerName: cluster.aiAccessRunner?.name || null,
-    aiAccessCredentialId: readRelationId(
-      cluster.aiAccessCredentialId,
-      cluster.aiAccessCredential,
-    ),
-    aiAccessCredentialName: cluster.aiAccessCredential?.name || null,
   };
 }
 
 /*
  * The Change modal's values. The allowlist is edited as text, one pattern
- * per line; an unbound Runner or credential is the empty string. The two
- * clear switches are offered to users who may unbind but not pick (see
- * KubernetesAiAccessOfferedFields).
+ * per line.
  */
 export interface KubernetesAiAccessSettingsFormValues {
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: string;
   kubectlAllowlistText: string;
-  aiAccessRunnerId: string;
-  aiAccessCredentialId: string;
-  clearAiAccessRunner: boolean;
-  clearAiAccessCredential: boolean;
 }
 
 export function getKubernetesAiAccessSettingsInitialValues(
@@ -430,10 +392,6 @@ export function getKubernetesAiAccessSettingsInitialValues(
     kubectlAllowlistText: normalizeSavedKubectlAllowlist(
       saved.aiKubectlCommandAllowlist,
     ).patterns.join("\n"),
-    aiAccessRunnerId: saved.aiAccessRunnerId || "",
-    aiAccessCredentialId: saved.aiAccessCredentialId || "",
-    clearAiAccessRunner: false,
-    clearAiAccessCredential: false,
   };
 }
 
@@ -446,19 +404,6 @@ export function getKubernetesAiAccessSettingsInitialValues(
  * allowlist:           an admin edits it freely; a cluster editor without
  *                      the admin set gets it only when there is something
  *                      to remove, and may only remove (allowlistRemoveOnly).
- * runner / credential: the pickers. Only for a cluster already bound to a
- *                      Runner outside the chart (advanced binding) — every
- *                      other cluster is reached through its Kubernetes AI
- *                      agent and has nothing to pick — and only for the
- *                      admin set with permission to list the rows.
- * runnerClear /
- * credentialClear:     an "Unbind" switch for a bound Runner / credential
- *                      of an advanced binding when its picker is not
- *                      offered. Unbinding moves the cluster to its AI agent
- *                      when it has one — a different access target, so a
- *                      loosening only the admin set may make; without an
- *                      agent it only takes access away, which every editor
- *                      may do.
  * investigationAndFixes: false while the cluster's Kubernetes AI agent
  *                      sets the investigation switch and the fixes modes
  *                      (its chart does; the server refuses a change here):
@@ -469,30 +414,17 @@ export interface KubernetesAiAccessOfferedFields {
   investigationAndFixes?: boolean | undefined;
   allowlist: boolean;
   allowlistRemoveOnly: boolean;
-  runner: boolean;
-  credential: boolean;
-  runnerClear: boolean;
-  credentialClear: boolean;
 }
 
 export function getKubernetesAiAccessOfferedFields(data: {
   saved: KubernetesAiAccessSavedSettings;
   canConfigureUnattended: boolean;
-  isRunnerPickerAvailable: boolean;
-  isCredentialPickerAvailable: boolean;
-  isAdvancedBinding: boolean;
-  hasAiAgent: boolean;
   // The cluster's Kubernetes AI agent sets investigation and fixes.
   isSetByAgent?: boolean | undefined;
 }): KubernetesAiAccessOfferedFields {
   const savedAllowlist: SavedKubectlAllowlist = normalizeSavedKubectlAllowlist(
     data.saved.aiKubectlCommandAllowlist,
   );
-  const runner: boolean =
-    data.isAdvancedBinding && data.isRunnerPickerAvailable;
-  const credential: boolean =
-    data.isAdvancedBinding && data.isCredentialPickerAvailable;
-  const mayUnbind: boolean = data.canConfigureUnattended || !data.hasAiAgent;
 
   return {
     ...(data.isSetByAgent ? { investigationAndFixes: false } : {}),
@@ -501,18 +433,6 @@ export function getKubernetesAiAccessOfferedFields(data: {
       savedAllowlist.patterns.length > 0 ||
       !savedAllowlist.isClean,
     allowlistRemoveOnly: !data.canConfigureUnattended,
-    runner,
-    credential,
-    runnerClear:
-      data.isAdvancedBinding &&
-      !runner &&
-      mayUnbind &&
-      data.saved.aiAccessRunnerId !== null,
-    credentialClear:
-      data.isAdvancedBinding &&
-      !credential &&
-      mayUnbind &&
-      data.saved.aiAccessCredentialId !== null,
   };
 }
 
@@ -644,37 +564,6 @@ export function getKubernetesAiAccessSettingsChanges(data: {
     }
   }
 
-  if (data.offered.runner) {
-    const runnerId: string | null = readDropdownId(
-      data.values.aiAccessRunnerId,
-    );
-    if (runnerId !== data.saved.aiAccessRunnerId) {
-      changes["aiAccessRunnerId"] = runnerId;
-    }
-  } else if (
-    data.offered.runnerClear &&
-    data.values.clearAiAccessRunner === true &&
-    data.saved.aiAccessRunnerId !== null
-  ) {
-    // A clear switch can only ever send null.
-    changes["aiAccessRunnerId"] = null;
-  }
-
-  if (data.offered.credential) {
-    const credentialId: string | null = readDropdownId(
-      data.values.aiAccessCredentialId,
-    );
-    if (credentialId !== data.saved.aiAccessCredentialId) {
-      changes["aiAccessCredentialId"] = credentialId;
-    }
-  } else if (
-    data.offered.credentialClear &&
-    data.values.clearAiAccessCredential === true &&
-    data.saved.aiAccessCredentialId !== null
-  ) {
-    changes["aiAccessCredentialId"] = null;
-  }
-
   return changes;
 }
 
@@ -721,11 +610,7 @@ export function isRemediationModeOpenToEveryEditor(
  * - mode: any move up, Off -> Ask for approval included (Bypass approval ->
  *   Automatic and every move down tighten);
  * - allowlist: a pattern the stored list does not already hold, compared
- *   the way the server compares them (trimmed stored strings);
- * - Runner or credential: binding one other than the bound one; and, when
- *   the cluster has a Kubernetes AI agent, clearing either one — that
- *   changes which identity AI reaches the cluster through (the agent may
- *   hold broader write RBAC than the Runner's credential).
+ *   the way the server compares them (trimmed stored strings).
  *
  * Each entry names the change for the refusal (getAiAccessLooseningRefusal),
  * in `translator`'s language; empty when nothing loosens.
@@ -734,7 +619,6 @@ export function getKubernetesAiAccessLooseningChanges(
   data: {
     saved: KubernetesAiAccessSavedSettings;
     changes: JSONObject;
-    hasAiAgent: boolean;
   },
   translator: Translator = getGlobalTranslator(),
 ): Array<string> {
@@ -791,47 +675,6 @@ export function getKubernetesAiAccessLooseningChanges(
     }
   }
 
-  if ("aiAccessRunnerId" in data.changes) {
-    const runnerId: unknown = data.changes["aiAccessRunnerId"];
-
-    if (runnerId && String(runnerId) !== data.saved.aiAccessRunnerId) {
-      loosening.push(
-        translator.translateTemplate("binding a different Runner"),
-      );
-    } else if (
-      !runnerId &&
-      data.saved.aiAccessRunnerId !== null &&
-      data.hasAiAgent
-    ) {
-      loosening.push(
-        translator.translateTemplate(
-          "switching this cluster to its Kubernetes AI agent",
-        ),
-      );
-    }
-  }
-
-  if ("aiAccessCredentialId" in data.changes) {
-    const credentialId: unknown = data.changes["aiAccessCredentialId"];
-
-    if (
-      credentialId &&
-      String(credentialId) !== data.saved.aiAccessCredentialId
-    ) {
-      loosening.push(
-        translator.translateTemplate("binding a Kubernetes credential"),
-      );
-    } else if (
-      !credentialId &&
-      data.saved.aiAccessCredentialId !== null &&
-      data.hasAiAgent
-    ) {
-      loosening.push(
-        translator.translateTemplate("removing the Kubernetes credential"),
-      );
-    }
-  }
-
   return loosening;
 }
 
@@ -878,13 +721,6 @@ export interface KubernetesAiAccessConfirmation {
 const RISKIER_CHANGE_EXAMPLES: string = translationKey(
   "riskier changes such as kubectl set image, patch, scale to zero and deleting workloads",
 );
-
-// What a sentence calls a Runner or credential whose name it does not know.
-const BOUND_RUNNER: string = translationKey("The bound Runner");
-
-const BOUND_CREDENTIAL: string = translationKey("The bound credential");
-
-const CHOSEN_RUNNER: string = translationKey("the chosen Runner");
 
 /*
  * Saving Bypass approval, or a broad allowlist pattern while Automatic mode
@@ -996,413 +832,6 @@ export function getKubernetesAiAccessConfirmation(data: {
             descriptionValues,
           ),
   };
-}
-
-/*
- * The Runners the Change modal lists for an advanced binding, with what
- * the pickers need to know about each: its name, and whether it is a
- * kubernetes-agent Runner — by the server's rule (isKubernetesAgentRunnerRow:
- * the name marker, compared case-insensitively, or an agent posture).
- */
-export interface KubernetesAiRunnerDirectoryEntry {
-  name: string;
-  isAgent: boolean;
-}
-
-export function buildKubernetesAiRunnerDirectory(
-  runners: Array<Runner>,
-): Record<string, KubernetesAiRunnerDirectoryEntry> {
-  const directory: Record<string, KubernetesAiRunnerDirectoryEntry> = {};
-
-  for (const runner of runners) {
-    const id: string | null = runner._id ? String(runner._id) : null;
-
-    if (!id) {
-      continue;
-    }
-
-    const name: string = runner.name || id;
-    directory[id] = { name, isAgent: isKubernetesAgentRunnerRow(runner) };
-  }
-
-  return directory;
-}
-
-/*
- * The Runner picker's options for an advanced binding: the project's
- * Runners outside the chart. Choosing one is what lets OneUptime AI run
- * kubectl on it - a Runner has no "Runs AI Remediation Commands" switch any
- * more (RunnerAiCommandsPick on the server). A kubernetes-agent Runner is
- * never offered — the cluster's Kubernetes AI agent replaces the chart's
- * previous in-cluster Runner, and another cluster's can only reach its own
- * cluster. The bound Runner is always kept, labelled with why it cannot
- * serve the cluster when it cannot, so the form shows the binding it would
- * otherwise silently hide.
- */
-export function buildKubernetesAiRunnerOptions(data: {
-  runners: Array<Runner>;
-  boundRunnerId: string | null;
-  boundRunnerName: string | null;
-}): Array<DropdownOption> {
-  const options: Array<DropdownOption> = [];
-  let isBoundRunnerListed: boolean = false;
-
-  for (const runner of data.runners) {
-    const id: string | null = runner._id ? String(runner._id) : null;
-    if (!id) {
-      continue;
-    }
-
-    const name: string = runner.name || id;
-    const isBound: boolean = id === data.boundRunnerId;
-
-    // Why a listed Runner cannot be picked, as its whole option label.
-    let unusableLabel: string | null = null;
-    if (isKubernetesAgentRunnerRow(runner)) {
-      unusableLabel = translationKey(
-        "{{name}} (currently bound — installed by the Kubernetes agent chart, which now uses the Kubernetes AI agent)",
-      );
-    }
-
-    if (unusableLabel && !isBound) {
-      continue;
-    }
-
-    if (isBound) {
-      isBoundRunnerListed = true;
-    }
-
-    options.push({
-      value: id,
-      label: unusableLabel
-        ? translateTemplate(unusableLabel, { name: name })
-        : name,
-    });
-  }
-
-  if (data.boundRunnerId && !isBoundRunnerListed) {
-    options.unshift({
-      value: data.boundRunnerId,
-      label: translateTemplate("{{name}} (currently bound)", {
-        name: data.boundRunnerName || translatableTerm(BOUND_RUNNER),
-      }),
-    });
-  }
-
-  return options;
-}
-
-/*
- * The Runner the credential would be used through: its id and name, and
- * whether it is a kubernetes-agent Runner when the picker read its row.
- * Without the row — a bound Runner the list did not return — its name
- * decides.
- */
-export interface KubernetesAiCredentialRunner {
-  id: string | null;
-  name: string | null;
-  isAgent?: boolean | undefined;
-}
-
-// Fails closed: the row's verdict when read, and its name marker in any case.
-function isAgentCredentialRunner(
-  runner: KubernetesAiCredentialRunner,
-): boolean {
-  return (
-    runner.isAgent === true || isKubernetesAgentRunnerRow({ name: runner.name })
-  );
-}
-
-// The Runners a credential row is assigned to; undefined when not read.
-function readCredentialRunnerIds(
-  credential: RunbookCredential,
-): Array<string> | undefined {
-  if (!Array.isArray(credential.runners)) {
-    return undefined;
-  }
-
-  return credential.runners
-    .map((runner: Runner): string => {
-      return String(runner?._id || runner?.id || "");
-    })
-    .filter((id: string): boolean => {
-      return id.length > 0;
-    });
-}
-
-/*
- * The credential picker's options: Kubernetes credentials (the server
- * refuses anything else on save) assigned to the Runner the form has
- * chosen — the Runner uses a credential only when the credential is
- * assigned to it. None for a kubernetes-agent Runner, which is never given
- * a credential, and none before a Runner is chosen. The bound credential is
- * always kept, labelled with why it does not fit when it does not.
- */
-export function buildKubernetesAiCredentialOptions(data: {
-  credentials: Array<RunbookCredential>;
-  boundCredentialId: string | null;
-  boundCredentialName: string | null;
-  runner: KubernetesAiCredentialRunner;
-}): Array<DropdownOption> {
-  const options: Array<DropdownOption> = [];
-  const runnerName: string | TranslatableTerm =
-    data.runner.name || translatableTerm(CHOSEN_RUNNER);
-  const isAgentRunner: boolean = isAgentCredentialRunner(data.runner);
-
-  for (const credential of data.credentials) {
-    const id: string | null = credential._id ? String(credential._id) : null;
-    if (!id) {
-      continue;
-    }
-
-    const isBound: boolean = id === data.boundCredentialId;
-    const name: string = credential.name || id;
-
-    if (
-      credential.credentialType &&
-      credential.credentialType !== RunbookCredentialType.Kubernetes
-    ) {
-      if (isBound) {
-        options.push({
-          value: id,
-          label: translateTemplate(
-            "{{name}} (currently bound — not a Kubernetes credential)",
-            { name: name },
-          ),
-        });
-      }
-      continue;
-    }
-
-    const runnerIds: Array<string> | undefined =
-      readCredentialRunnerIds(credential);
-
-    // Why the credential cannot be picked, as its whole option label.
-    let unusableLabel: string | null = null;
-    if (isAgentRunner) {
-      unusableLabel = translationKey(
-        "{{name}} (currently bound — {{runner}} is an in-cluster Runner and is never given a credential)",
-      );
-    } else if (!data.runner.id) {
-      unusableLabel = translationKey(
-        "{{name}} (currently bound — no Runner is chosen to use it)",
-      );
-    } else if (runnerIds && !runnerIds.includes(data.runner.id)) {
-      unusableLabel = translationKey(
-        "{{name}} (currently bound — not assigned to {{runner}})",
-      );
-    }
-
-    if (unusableLabel) {
-      if (isBound) {
-        options.push({
-          value: id,
-          label: translateTemplate(unusableLabel, {
-            name: name,
-            runner: runnerName,
-          }),
-        });
-      }
-      continue;
-    }
-
-    options.push({ value: id, label: name });
-  }
-
-  if (
-    data.boundCredentialId &&
-    !options.some((option: DropdownOption): boolean => {
-      return option.value === data.boundCredentialId;
-    })
-  ) {
-    options.unshift({
-      value: data.boundCredentialId,
-      label: translateTemplate("{{name}} (currently bound)", {
-        name: data.boundCredentialName || translatableTerm(BOUND_CREDENTIAL),
-      }),
-    });
-  }
-
-  return options;
-}
-
-// The credential field's help, for the Runner the form has chosen.
-export function getKubernetesAiCredentialFieldDescription(
-  runner: KubernetesAiCredentialRunner,
-): string {
-  if (runner.id && isAgentCredentialRunner(runner)) {
-    return translateTemplate(
-      'No credential can be chosen: "{{runner}}" is an in-cluster Runner installed by the Kubernetes agent chart and is never given a credential.',
-      { runner: runner.name || "" },
-    );
-  }
-
-  if (!runner.id) {
-    return translateTemplate(
-      "Choose the Runner first: only Kubernetes credentials (API server URL + ServiceAccount token) assigned to it are listed.",
-    );
-  }
-
-  return translateTemplate(
-    'The Kubernetes credentials (API server URL + ServiceAccount token) assigned to "{{runner}}". Assign one under Runbooks → AI Access.',
-    { runner: runner.name || translatableTerm(CHOSEN_RUNNER) },
-  );
-}
-
-/*
- * Why the Runner and credential the form would save cannot work together,
- * or null. The status would report the pairing as a gap that blocks
- * investigation and remediation, so the save is refused with the reason
- * instead. Only a credential that is being set, or kept while a new Runner
- * is bound, is checked: unbinding either one never is.
- */
-export function getKubernetesAiCredentialAssignmentError(data: {
-  runner: KubernetesAiCredentialRunner;
-  credentialId: string | null;
-  credentialName: string | null;
-  // The Runners the credential is assigned to; undefined when not known.
-  credentialRunnerIds: Array<string> | undefined;
-}): string | null {
-  if (!data.credentialId) {
-    return null;
-  }
-
-  if (data.runner.id && isAgentCredentialRunner(data.runner)) {
-    return translateTemplate(
-      '"{{runner}}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Runbooks → Runners.',
-      { runner: data.runner.name || "" },
-    );
-  }
-
-  // A named credential is quoted; without its name the sentence says which.
-  const credentialName: string = data.credentialName || "";
-
-  if (!data.runner.id) {
-    return translateTemplate(
-      credentialName
-        ? '"{{credential}}" is only used through a Runner it is assigned to: choose that Runner, or clear the credential.'
-        : "The Kubernetes credential is only used through a Runner it is assigned to: choose that Runner, or clear the credential.",
-      { credential: credentialName },
-    );
-  }
-
-  if (
-    data.credentialRunnerIds &&
-    !data.credentialRunnerIds.includes(data.runner.id)
-  ) {
-    return translateTemplate(
-      credentialName
-        ? '"{{credential}}" is not assigned to Runner "{{runner}}". Assign it under Runbooks → AI Access, or choose a credential assigned to that Runner.'
-        : 'The Kubernetes credential is not assigned to Runner "{{runner}}". Assign it under Runbooks → AI Access, or choose a credential assigned to that Runner.',
-      {
-        credential: credentialName,
-        runner: data.runner.name || data.runner.id,
-      },
-    );
-  }
-
-  return null;
-}
-
-// The credential rows the picker read, by id: name and assigned Runners.
-export interface KubernetesAiCredentialDirectoryEntry {
-  name: string;
-  runnerIds: Array<string> | undefined;
-}
-
-export function buildKubernetesAiCredentialDirectory(
-  credentials: Array<RunbookCredential>,
-): Record<string, KubernetesAiCredentialDirectoryEntry> {
-  const directory: Record<string, KubernetesAiCredentialDirectoryEntry> = {};
-
-  for (const credential of credentials) {
-    const id: string | null = credential._id ? String(credential._id) : null;
-
-    if (!id) {
-      continue;
-    }
-
-    directory[id] = {
-      name: credential.name || id,
-      runnerIds: readCredentialRunnerIds(credential),
-    };
-  }
-
-  return directory;
-}
-
-/*
- * The Runner the form would bind: the picker's value when the picker is
- * offered, nothing once the clear switch is on, otherwise the saved one.
- */
-export function getKubernetesAiAccessChosenRunnerId(data: {
-  saved: KubernetesAiAccessSavedSettings;
-  values: FormValues<KubernetesAiAccessSettingsFormValues>;
-  offered: KubernetesAiAccessOfferedFields;
-}): string | null {
-  if (data.offered.runner) {
-    return readDropdownId(data.values.aiAccessRunnerId);
-  }
-
-  if (data.offered.runnerClear && data.values.clearAiAccessRunner === true) {
-    return null;
-  }
-
-  return data.saved.aiAccessRunnerId;
-}
-
-/*
- * Why the Runner and credential this save leaves bound cannot work
- * together (getKubernetesAiCredentialAssignmentError), or null. Checked
- * only when the save sets a credential, or binds a new Runner while a
- * credential stays bound — unbinding either one is never refused here.
- */
-export function getKubernetesAiAccessBindingError(data: {
-  saved: KubernetesAiAccessSavedSettings;
-  changes: JSONObject;
-  runners: Record<string, KubernetesAiRunnerDirectoryEntry>;
-  credentials: Record<string, KubernetesAiCredentialDirectoryEntry>;
-}): string | null {
-  const isRunnerChanged: boolean = "aiAccessRunnerId" in data.changes;
-  const isCredentialChanged: boolean = "aiAccessCredentialId" in data.changes;
-  const runnerId: string | null = isRunnerChanged
-    ? readDropdownId(data.changes["aiAccessRunnerId"])
-    : data.saved.aiAccessRunnerId;
-  const credentialId: string | null = isCredentialChanged
-    ? readDropdownId(data.changes["aiAccessCredentialId"])
-    : data.saved.aiAccessCredentialId;
-
-  const isChecked: boolean =
-    (isCredentialChanged && credentialId !== null) ||
-    (isRunnerChanged && runnerId !== null && credentialId !== null);
-
-  if (!isChecked) {
-    return null;
-  }
-
-  const runnerName: string | null = runnerId
-    ? data.runners[runnerId]?.name ||
-      (runnerId === data.saved.aiAccessRunnerId
-        ? data.saved.aiAccessRunnerName
-        : null)
-    : null;
-  const credential: KubernetesAiCredentialDirectoryEntry | undefined =
-    credentialId ? data.credentials[credentialId] : undefined;
-
-  return getKubernetesAiCredentialAssignmentError({
-    runner: {
-      id: runnerId,
-      name: runnerName,
-      isAgent: runnerId ? data.runners[runnerId]?.isAgent : undefined,
-    },
-    credentialId,
-    credentialName:
-      credential?.name ||
-      (credentialId === data.saved.aiAccessCredentialId
-        ? data.saved.aiAccessCredentialName
-        : null),
-    credentialRunnerIds: credential?.runnerIds,
-  });
 }
 
 // The allowlist the policy actually uses, as the status reports it.

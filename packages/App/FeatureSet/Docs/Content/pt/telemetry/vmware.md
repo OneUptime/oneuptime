@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Encontrar o vCenter no OneUptime
 
-Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos.
+Nada é enviado até a primeira passagem completa pelo inventário terminar, então aguarde um intervalo de coleta (2 minutos por padrão). Depois abra **Produtos → Infraestrutura → VMware → Todos os vCenters**: o vCenter está lá, com seus datacenters, clusters, hosts ESXi, máquinas virtuais, datastores e pools de recursos. A sua página **Topologia** desenha tudo em um único mapa, marcando o que requer atenção: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Variáveis de ambiente
@@ -239,6 +239,17 @@ A página **Visão geral** responde primeiro "este vCenter está saudável?": os
 ### Hosts ESXi
 
 ![A página de hosts listando cada host ESXi com o cluster, o datacenter e a utilização de CPU e memória dele](/docs/static/images/VMwareHosts.png)
+
+Selecione um host para abrir a página dele. Ela responde ao que a página de um host fora do VMware responde, com o que o vCenter sabe de um hipervisor:
+
+- **Visão geral**: CPU, memória, a latência do disco mais lento e a taxa de transferência de rede no intervalo de tempo que você escolher, em blocos e gráficos (arraste sobre um gráfico para ampliar); os incidentes e alertas abertos no host; as máquinas virtuais mais ocupadas dele, marcadas as que esperam uma CPU física; os adaptadores de rede físicos e os dispositivos de armazenamento dele, marcados os erros de pacotes e os discos lentos; quais alertas do host estão ativados; e os detalhes do host.
+- **Máquinas virtuais**: as VMs e os modelos do host, com status, pool de recursos, CPU ready, CPU e memória.
+- **Métricas**: as séries de CPU, memória, rede e disco do host em gráficos, por adaptador de rede e dispositivo de armazenamento, cada um aberto no explorador de métricas.
+- **Registros**: o syslog do próprio host, assim que ele o enviar (veja [Enviar o syslog do ESXi](#opcional-enviar-o-syslog-do-esxi)). Até lá, a aba mostra os comandos que apontam este host, ou todo o cluster dele, para o agente. Um vCenter coletado por uma sonda não tem syslog, porque uma sonda não o recebe.
+
+Quando o vCenter para de informar um host, a página diz isso acima das abas, com quando o vCenter o informou pela última vez. Depois de 15 minutos sem informe, o host sai do inventário: a página dele então diz isso e continua mostrando as métricas anteriores.
+
+Os cinco alertas do host (saturação de CPU e de memória, latência de disco alta, erros de pacotes de rede e pacotes descartados) observam, cada um, todos os hosts do vCenter e disparam para cada host que ultrapassa o limite. O cartão **Alertas do host** na página de um host mostra quais estão ativados, e o botão dele abre as **Recommendations** do vCenter com os que faltam já selecionados: crie-os ali, uma vez, para todos os hosts.
 
 ### Máquinas virtuais
 

@@ -10,8 +10,8 @@ import { StatementContext, WriteStep } from "./StatementOutcome";
  * helper before or after it - is around the write, and applied nothing of
  * it (StatementOutcome). The error hooks are handed which it was
  * (getFailedStatement), so a service holding a lock for the write
- * (ProjectSsoProviderChanges, AiCommandCredentialReach) keeps it only while
- * the write itself may still land.
+ * (ProjectSsoProviderChanges) keeps it only while the write itself may
+ * still land.
  *
  * One per create, update or delete: their statements run one after another.
  */

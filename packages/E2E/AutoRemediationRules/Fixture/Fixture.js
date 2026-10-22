@@ -36,16 +36,43 @@
  *                     prod-eu-runner connected and office-runner never
  *                     connected, beside the in-cluster Runner the Kubernetes
  *                     agent chart installed, which is never offered)
+ *   - defaultRunner=prod
+ *                     prod-eu-runner is the project's default Runner (none
+ *                     by default): a new rule starts on it
+ *   - repositories=0  the project has no code repository (two by default,
+ *                     checkout and billing, connected through the GitHub
+ *                     App)
+ *   - repositories=many
+ *                     six repositories, some with a short name and a long
+ *                     GitHub organization/name ("infra" is
+ *                     acme-platform-engineering/terraform-infrastructure-live)
+ *   - repositories=denied
+ *                     the project's plan cannot read code repositories:
+ *                     the list is refused, as on a plan without Code
+ *   - hiddenRepository=1
+ *                     the saved rule "Fix database incidents" also names a
+ *                     repository the reader may not read (not in the list)
  *   - runbooks=0      the project has no runbook (three by default)
  *   - role=viewer     may read the page only (Viewer); the default is a
  *                     project owner
+ *   - providers=project
+ *                     the project's own LLM providers, Azure GPT-4o (its
+ *                     default) and Claude Opus, beside the global OneUptime
+ *                     AI; providers=none for no provider at all,
+ *                     providers=denied for a reader who may not read them;
+ *                     the global OneUptime AI alone by default
+ *   - rulePick=opus   the saved rules ("Fix database incidents", and the
+ *                     investigation rule that investigates right away) pick
+ *                     Claude Opus; rulePick=gone, a provider the project can
+ *                     no longer use; none by default
  *   - lang=de         the Dashboard's German words
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * What the page sends is recorded on window.__fixture: `creates` (each
  * created record as JSON), `updates` (each update: model, id, data) and
  * `deletes` (model and id) - so the spec checks what was sent, not only
- * what was drawn.
+ * what was drawn. `window.__fixture.connectRepository(name)` connects a
+ * repository as someone would in another tab while a rule is edited.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -65,6 +92,7 @@ import AlertAISettings from "../../../App/FeatureSet/Dashboard/src/Pages/Alerts/
 import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -73,6 +101,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -103,15 +132,101 @@ const investigationRuleSet = ["saved", "many"].includes(
   : "none";
 const layout = params.get("layout") === "page" ? "page" : "alone";
 const runnerCount = params.get("runners") === "0" ? 0 : 2;
+const hasDefaultRunner = params.get("defaultRunner") === "prod";
+const repositorySet = ["0", "denied", "many"].includes(
+  params.get("repositories"),
+)
+  ? params.get("repositories")
+  : "two";
+const hasHiddenRepository = params.get("hiddenRepository") === "1";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const language = params.get("lang") === "de" ? "de" : "en";
+const providerSet = ["project", "none", "denied"].includes(
+  params.get("providers"),
+)
+  ? params.get("providers")
+  : "global";
+const rulePick = params.get("rulePick");
 
 window.__fixture = {
   creates: [],
   updates: [],
   deletes: [],
 };
+
+/*
+ * The project's LLM providers, as POST /ai-chat/providers answers them
+ * (?providers=): the global OneUptime AI alone, which the project uses (the
+ * default); its own Azure GPT-4o, the default, and Claude Opus, then the
+ * global one (project); none at all (none); or a refusal, for a reader who
+ * may not read them (denied). `window.__fixture.addProvider(name)` adds one
+ * of the project's own, as someone would on LLM Providers in another tab;
+ * `providerReads` counts the reads.
+ */
+const LLM_PROVIDER_IDS = {
+  oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
+  azure: "9d9d9d9d-0000-4000-8000-000000000002",
+  opus: "9d9d9d9d-0000-4000-8000-000000000003",
+  // A provider a rule picked that the project can no longer use.
+  gone: "9d9d9d9d-0000-4000-8000-0000000000ff",
+};
+
+const GLOBAL_LLM_PROVIDER = {
+  id: LLM_PROVIDER_IDS.oneUptimeAi,
+  name: "OneUptime AI",
+  modelName: null,
+  isGlobal: true,
+  isDefault: false,
+};
+
+const LLM_PROVIDERS =
+  providerSet === "project"
+    ? [
+        {
+          id: LLM_PROVIDER_IDS.azure,
+          name: "Azure GPT-4o",
+          modelName: "gpt-4o",
+          isGlobal: false,
+          isDefault: true,
+        },
+        {
+          id: LLM_PROVIDER_IDS.opus,
+          name: "Claude Opus",
+          modelName: "claude-opus-4-5",
+          isGlobal: false,
+          isDefault: false,
+        },
+        GLOBAL_LLM_PROVIDER,
+      ]
+    : providerSet === "none" || providerSet === "denied"
+      ? []
+      : [GLOBAL_LLM_PROVIDER];
+
+window.__fixture.providerReads = 0;
+window.__fixture.addProvider = (name) => {
+  // The project's own come before the global ones.
+  const firstGlobal = LLM_PROVIDERS.findIndex((provider) => provider.isGlobal);
+  LLM_PROVIDERS.splice(
+    firstGlobal === -1 ? LLM_PROVIDERS.length : firstGlobal,
+    0,
+    {
+      id: `9d9d9d9d-0000-4000-8000-0000000000${String(10 + LLM_PROVIDERS.length)}`,
+      name,
+      modelName: "gemini-2.5-pro",
+      isGlobal: false,
+      isDefault: false,
+    },
+  );
+};
+
+// The provider the saved rules pick (?rulePick=opus or gone); none by default.
+const RULE_PICK =
+  rulePick === "opus"
+    ? new ObjectID(LLM_PROVIDER_IDS.opus)
+    : rulePick === "gone"
+      ? new ObjectID(LLM_PROVIDER_IDS.gone)
+      : undefined;
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -171,10 +286,6 @@ const project = record(Project, {
   enableAutomaticAlertInvestigation: true,
   enableAutomaticAlertRemediation: true,
   enableAutomaticPostmortemDraft: true,
-  enableAutomaticIncidentCodeFixes: false,
-  enableIncidentInstrumentationFixTasks: false,
-  enableAutomaticAlertCodeFixes: false,
-  enableAlertInstrumentationFixTasks: false,
   useGlobalRunners: true,
 });
 
@@ -263,6 +374,7 @@ const ALL_RUNNERS = [
     // Heard from a moment ago: connected.
     lastAlive: new Date(),
     hostInfo: {},
+    isProjectDefault: hasDefaultRunner,
   }),
   record(Runner, {
     _id: RUNNER_IDS.office,
@@ -310,6 +422,65 @@ const MCP_SERVERS = [
   }),
 ];
 
+/*
+ * The project's code repositories, connected through the GitHub App, which
+ * both kinds of rule may name.
+ */
+const CODE_REPOSITORY_IDS = {
+  checkout: "d0000000-0000-4000-8000-000000000f01",
+  billing: "d0000000-0000-4000-8000-000000000f02",
+};
+
+const TWO_CODE_REPOSITORIES = [
+  record(CodeRepository, {
+    _id: CODE_REPOSITORY_IDS.checkout,
+    name: "checkout",
+    organizationName: "acme",
+    repositoryName: "checkout-service",
+    projectId: new ObjectID(PROJECT_ID),
+  }),
+  record(CodeRepository, {
+    _id: CODE_REPOSITORY_IDS.billing,
+    name: "billing",
+    organizationName: "acme",
+    repositoryName: "billing",
+    projectId: new ObjectID(PROJECT_ID),
+  }),
+];
+
+/*
+ * repositories=many: as an organization with several teams connects them,
+ * short names beside long GitHub organization/names.
+ */
+const MORE_CODE_REPOSITORIES = [
+  ["infra", "acme-platform-engineering", "terraform-infrastructure-live"],
+  ["web", "acme", "web-frontend"],
+  ["analytics", "acme-data", "analytics-pipelines"],
+  [
+    "payments-gateway-and-reconciliation-service",
+    "acme-platform-engineering",
+    "payments-gateway-and-reconciliation-service",
+  ],
+].map(([name, organizationName, repositoryName], index) => {
+  return record(CodeRepository, {
+    _id: `d0000000-0000-4000-8000-000000000f${String(11 + index)}`,
+    name,
+    organizationName,
+    repositoryName,
+    projectId: new ObjectID(PROJECT_ID),
+  });
+});
+
+const CODE_REPOSITORIES =
+  repositorySet === "two"
+    ? TWO_CODE_REPOSITORIES
+    : repositorySet === "many"
+      ? [...TWO_CODE_REPOSITORIES, ...MORE_CODE_REPOSITORIES]
+      : [];
+
+// A repository the reader may not read: no list returns it.
+const HIDDEN_CODE_REPOSITORY_ID = "d0000000-0000-4000-8000-000000000fff";
+
 const trigger = lane === "alert" ? "Alert" : "Incident";
 
 function runbooksNamed(ids) {
@@ -336,6 +507,9 @@ const SAVED_RULES = [
     aiComposesCommands: false,
     aiSelectsRunbook: false,
     runbooks: runbooksNamed([RUNBOOK_IDS.restartCheckout]),
+    // As the server keeps a rule saved before the switches: both on.
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: true,
     criteria: null,
   }),
   // OneUptime AI, allowed two runbooks, with a Runner for its commands.
@@ -354,6 +528,24 @@ const SAVED_RULES = [
       RUNBOOK_IDS.clearCache,
     ]),
     runnerId: new ObjectID(RUNNER_IDS.prodEu),
+    // The LLM provider it fixes with (?rulePick=): none by default.
+    llmProviderId: RULE_PICK,
+    /*
+     * It names one repository - and, with hiddenRepository=1, one the
+     * reader may not read, which the list never returns - and opens fix
+     * pull requests but not telemetry ones.
+     */
+    codeRepositories: hasHiddenRepository
+      ? [
+          ...CODE_REPOSITORIES.slice(0, 1),
+          record(CodeRepository, {
+            _id: HIDDEN_CODE_REPOSITORY_ID,
+            projectId: new ObjectID(PROJECT_ID),
+          }),
+        ]
+      : CODE_REPOSITORIES.slice(0, 1),
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: false,
     criteria: null,
   }),
   // Saved before rules were simplified: AI composes commands on Runners.
@@ -369,6 +561,8 @@ const SAVED_RULES = [
     aiSelectsRunbook: false,
     runbooks: [],
     runnerId: new ObjectID(RUNNER_IDS.office),
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: true,
     criteria: null,
   }),
   // Saved before rules were simplified: AI picks one of the runbooks.
@@ -383,6 +577,8 @@ const SAVED_RULES = [
     aiComposesCommands: false,
     aiSelectsRunbook: true,
     runbooks: [],
+    openCodeFixPullRequests: true,
+    openTelemetryPullRequests: true,
     criteria: null,
   }),
 ];
@@ -404,6 +600,8 @@ const SAVED_INVESTIGATION_RULES = [
     name: lane === "alert" ? "Production alerts" : "Production incidents",
     isEnabled: true,
     triggerEntityType: trigger,
+    // The LLM provider it investigates with (?rulePick=): none by default.
+    llmProviderId: RULE_PICK,
     criteria: null,
   }),
   record(AIInvestigationRule, {
@@ -486,8 +684,27 @@ const TABLES = {
         ? SAVED_INVESTIGATION_RULES
         : [],
   ExternalMcpServer: MCP_SERVERS,
+  CodeRepository: CODE_REPOSITORIES,
   AIPostmortemRule: [],
   IncidentPostmortemTemplate: [],
+};
+
+/*
+ * A repository connected in another tab while a rule is being edited: the
+ * next read of the list returns it.
+ */
+window.__fixture.connectRepository = (name) => {
+  TABLES.CodeRepository.push(
+    record(CodeRepository, {
+      _id: `d0000000-0000-4000-8000-000000000e${String(
+        10 + TABLES.CodeRepository.length,
+      )}`,
+      name,
+      organizationName: "acme",
+      repositoryName: name,
+      projectId: new ObjectID(PROJECT_ID),
+    }),
+  );
 };
 
 // ---- the API -----------------------------------------------------------------
@@ -540,6 +757,14 @@ function matchesQuery(item, query) {
 
 ModelAPI.getList = async (options) => {
   const name = tableName(options.modelType);
+
+  // A plan without Code: the repositories are refused (402).
+  if (name === "CodeRepository" && repositorySet === "denied") {
+    throw new Error(
+      "Please upgrade your plan to Growth to access this feature.",
+    );
+  }
+
   const items = sorted(
     (TABLES[name] || []).filter((item) => matchesQuery(item, options.query)),
     options.sort,
@@ -604,8 +829,12 @@ function applyRuleFields(item, json) {
       item.runbooks = relationList(value, Runbook);
     } else if (key === "externalMcpServers") {
       item.externalMcpServers = relationList(value, ExternalMcpServer);
+    } else if (key === "codeRepositories") {
+      item.codeRepositories = relationList(value, CodeRepository);
     } else if (key === "runnerId") {
       item.runnerId = value ? new ObjectID(idOf(value)) : null;
+    } else if (key === "llmProviderId") {
+      item.llmProviderId = value ? new ObjectID(idOf(value)) : null;
     } else if (key !== "_id") {
       item[key] = value;
     }
@@ -673,26 +902,38 @@ ModelAPI.deleteItem = async (options) => {
 };
 
 /*
- * POST /ai-chat/providers: the project has the global provider, so no
- * notice is drawn over the page.
+ * POST /ai-chat/providers: the project's LLM providers (?providers=). With
+ * the global provider, the default, no notice is drawn over the page.
  */
-API.post = async () =>
-  new HTTPResponse(
+API.post = async () => {
+  window.__fixture.providerReads++;
+
+  if (providerSet === "denied") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "You do not have permission to read this project's AI providers.",
+      },
+      {},
+    );
+  }
+
+  const defaultProvider =
+    LLM_PROVIDERS.find((provider) => provider.isDefault) ||
+    LLM_PROVIDERS.find((provider) => provider.isGlobal) ||
+    null;
+
+  return new HTTPResponse(
     200,
     {
       isAIEnabledForProject: true,
-      defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
-      providers: [
-        {
-          id: "9d9d9d9d-0000-4000-8000-000000000001",
-          name: "OneUptime AI",
-          isGlobal: true,
-          isDefault: false,
-        },
-      ],
+      defaultProviderId: defaultProvider ? defaultProvider.id : null,
+      providers: LLM_PROVIDERS.map((provider) => ({ ...provider })),
     },
     {},
   );
+};
 API.get = async () => new HTTPResponse(200, {}, {});
 
 /*

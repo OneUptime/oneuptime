@@ -75,7 +75,7 @@ Hver OneUptime leverer sine egne installationsprogrammer, så en selvhostet OneU
 
 ### Vent på værten
 
-Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første målinger ankommer, normalt inden for et minut, og derefter som forbundet, med sin collector **Kører**.
+Dialogens sidste trin viser, når værten forbinder, med et link til den. På listen vises den som **Starter**, indtil dens første målinger ankommer, normalt inden for et minut, og derefter som forbundet, med sin collector **Kører**. Værtens side **Topologi** tegner på ét kort, hvad der kører på den, hvad der kalder den, og hvad den kalder: se [Topologi](/docs/telemetry/topology#åbn-en-ressources-eget-kort).
 :::
 
 ## Sæt etiketter på værter

@@ -14,6 +14,7 @@ The OneUptime GitHub App is more than a connection to your code: you can talk to
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Every command starts with a mention of the app. The mention can be anywhere in t
 | Command | What happens | Also understood |
 | --- | --- | --- |
 | `@oneuptime review` | Clones the branch, reads the changed code and the code around it, checks what production says about it, and posts a review as a comment. Changes nothing. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Reviews the pull request against production now, whoever opened it: the exceptions, operations, incidents and deploys around the changed code, in one comment edited in place (see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests)). Clones nothing and runs nothing. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Clones the pull request's own branch, makes the change and pushes new commits to that branch. Never opens a second pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Anything you write after the mention that is not a known command is read as a revision request, because that is almost always what it is:
@@ -100,6 +102,8 @@ What it finds goes under a **Production context** heading of the review, each po
 
 It needs nothing set up: the services are those OneUptime finds this repository for, as it does for a fix (see [Production telemetry in a fix](/docs/ai/ai-agent#production-telemetry-in-a-fix)). The queries are read-only, run on the OneUptime server and read nothing of another service, project or private incident. A repository whose services send no telemetry to the project is reviewed from its code alone.
 
+To have every pull request reviewed against production on its own, turn on **Review Pull Requests Against Production** in the repository's settings: see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+
 ## Who is allowed to command it
 
 **Only people with write, maintain or admin access to the repository.** OneUptime asks GitHub for the commenter's permission on that repository every time; it does not trust the "contributor" badge GitHub shows beside a comment, which describes past activity rather than current access.
@@ -118,11 +122,11 @@ It also ignores every comment written by a bot, its own included, and mentions i
 
 ## What it costs, and how to bound it
 
-Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and your repository's build and test commands when you have set them. A review's production queries, at most 12, count against the same 40 calls.
+Every command that starts work is a full agent run: a clone, up to 40 LLM calls and 100,000 output tokens, and, on a Runner of your own, the build and test checks your repository's `AGENTS.md` describes. A review's production queries, at most 12, count against the same 40 calls.
 
 GitHub commands are AI work outside incidents and alerts, so no daily fix-task limit applies to them; the project's own daily AI limits do, when the project sets them. The one other limit is the one that already governs the tasks in [Code](/docs/ai/ai-agent):
 
-- **The cap on open pull requests** (**Max Open Fix Pull Requests**, on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
+- **The cap on open pull requests** (**Max Open Fix Pull Requests**, under **More settings** on the repository's **Settings** page). **AI Fix Pull Requests** is **No limit** until you choose **A limit**, or **None**, which blocks AI fix pull requests on that repository. Reviews and revisions are exempt: neither adds a pull request to your review queue.
 
 Only one run of a kind is live per issue or pull request at a time. Asking twice tells you it is already working; asking for a review while a revision runs starts both, since they are different requests.
 
@@ -130,9 +134,9 @@ If a run cannot start, the app says why in the thread: it never fails silently.
 
 ## Turning it off
 
-Each repository has a switch: **Respond to GitHub Commands**, on the repository's **Settings** page. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
+Each repository has a switch: **Respond to GitHub Commands**, on the repository's **Settings** page. It is on for every repository and saves the moment you flip it. With it off, the app ignores mentions, assignments and the trigger label in that repository, and tells anyone who asks where the switch is.
 
-The same page holds the **GitHub Trigger Label**, if you want a label other than `oneuptime`.
+The same page holds the **GitHub Trigger Label**, under **More settings**, if you want a label other than `oneuptime`.
 
 ## What to subscribe to
 
@@ -142,7 +146,7 @@ In your GitHub App's **Permissions & events** settings, subscribe to:
 | --- | --- |
 | **Issue comment** | `@mention` commands on issues and pull requests |
 | **Issues** | assigning an issue to the app, and the trigger label |
-| **Pull request** | a review requested from the app |
+| **Pull request** | a review requested from the app, and production reviews of pull requests as they open and change |
 | **Pull request review** | a mention in the body of a submitted review |
 | **Pull request review comment** | a mention in an inline comment on the diff |
 

@@ -122,6 +122,14 @@ export const AI_CODE_FIX_FEATURE: string = "AI Code Fix";
 export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
 
 /*
+ * The LlmLog feature name for OneUptime AI's read of a pull request's
+ * production review (ProductionReviewAI): one constrained call per review,
+ * started by every push to a pull request of a repository with Production
+ * Review on - storm-shaped, and with no human in the loop.
+ */
+export const AI_PRODUCTION_REVIEW_FEATURE: string = "AI Production Review";
+
+/*
  * The LlmLog feature name for OneUptime AI reading an incident call's
  * transcript (IncidentCallSummary): one request per part of the transcript,
  * started by a person adding it or asking for it to be read again. Not
@@ -163,6 +171,27 @@ export const AI_REMEDIATION_PLANNING_FEATURE: string =
  */
 export const AI_REMEDIATION_EXECUTION_FEATURE: string =
   "AI Remediation Execution";
+
+/*
+ * The LlmLog feature name for security case triage (SecurityCaseTriageRunner):
+ * the read-only Investigation AIRun that reads a security case and writes
+ * what it is, how likely it is to be real and what to do next. Fired when a
+ * detection opens a case, with no human in the loop, so a burst of
+ * detections is a burst of runs: the daily budget covers it. A person's
+ * "Triage with AI" runs the same unattended loop, so it counts the same way.
+ */
+export const AI_SECURITY_CASE_TRIAGE_FEATURE: string =
+  "AI Security Case Triage";
+
+/*
+ * The LlmLog feature name for drafting a detection rule from a description
+ * (DetectionRuleDraft): one request, started by a person on the Detection
+ * Rules form and answered while they wait. Not autonomous - the project's
+ * daily limits cover it like any other request, the autonomous budget does
+ * not.
+ */
+export const AI_DETECTION_RULE_DRAFT_FEATURE: string =
+  "AI Detection Rule Draft";
 
 /*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
@@ -270,6 +299,18 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * larger per-run tool budget — the daily subject lane must cover it.
    */
   AI_REMEDIATION_EXECUTION_FEATURE,
+  /*
+   * Security case triage (SecurityCaseTriageRunner). One read-only run per
+   * case a detection opens, with no human in the loop - a burst of
+   * detections opens a burst of cases.
+   */
+  AI_SECURITY_CASE_TRIAGE_FEATURE,
+  /*
+   * A pull request's production review (ProductionReviewAI): one
+   * constrained call per review, and every push to every pull request of a
+   * repository with Production Review on starts one.
+   */
+  AI_PRODUCTION_REVIEW_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

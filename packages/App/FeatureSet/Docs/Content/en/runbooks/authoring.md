@@ -12,7 +12,7 @@ You write a runbook as an ordered list of steps on its **Steps** page. This page
 ## Before you begin
 
 - **A role that writes runbooks.** Project Owner, Project Admin and Runbook Admin create runbooks and save their steps. With granular permissions, you need **Create Runbook** and **Edit Runbook**. See [Permissions](/docs/runbooks/configuration#permissions).
-- **A Runner, for Bash, SSH and kubectl steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first. A JavaScript step runs on a [global Runner](/docs/runbooks/agents#global-runners) unless you pick one of yours.
+- **A Runner, for Bash, SSH and kubectl steps.** These steps run on a [Runner](/docs/runbooks/agents) inside your own infrastructure, never on the OneUptime Worker. Install one first. A step that picks no Runner runs on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), if you set one; a JavaScript step otherwise runs on a [global Runner](/docs/runbooks/agents#global-runners).
 - **A secret variable, for SSH and kubectl steps.** The key, password or kubeconfig a step signs in with is a secret [runbook variable](/docs/runbooks/variables). Project Owner and Project Admin create variables, and Runbook Admin picks them in the steps it writes. A kubectl step can use the Runner's own access instead.
 - **An LLM provider, for AI steps.** See [LLM Providers](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Every step has these fields. An automated step shows its **Title** and its type'
 | [kubectl](#kubectl) | A Runner | A Runner, and a kubeconfig variable or the Runner's own access |
 | [AI](#ai) | The OneUptime Worker | An LLM provider |
 
-In every automated step below, the step's **More fields** holds **Require approval** and **Continue on failure** first, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts.
+In every automated step below, the step's **More fields** holds its **Runner** first, for a step that runs on one, then **Require approval** and **Continue on failure**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.
 
 ### Manual
 
@@ -78,7 +78,7 @@ A snippet of JavaScript, run in an `isolated-vm` sandbox on a [Runbook Agent](/d
 
 | Field | What it does | Default |
 | --- | --- | --- |
-| **Runner** | The Runner that runs the step: **Global Runner**, or one of yours. Only the Runner you pick may claim the job; any global Runner may claim a step on **Global Runner**. | **Global Runner**, when there is one |
+| **Runner** | Under **More fields**. The Runner that runs the step: **Global Runner**, or one of yours. Only the Runner you pick may claim the job; any global Runner may claim a step on **Global Runner**. | The project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), if you set one; otherwise **Global Runner**, when there is one |
 | **Script** | The JavaScript to run. `return` a value to capture it; each `console.log` line is captured too. Throwing an error fails the step. | — |
 | **Execution timeout** | How long the Runner lets the snippet run before tearing the sandbox down. A global Runner runs it for 5 minutes at most. | 30 seconds |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. | 2 minutes |
@@ -117,7 +117,7 @@ A bash script, run with `bash -c <script>` on a [Runbook Agent](/docs/runbooks/a
 
 | Field | What it does | Default |
 | --- | --- | --- |
-| **Runner** | The Runner that runs the step. Only that Runner may claim the job. | — |
+| **Runner** | Under **More fields**. The Runner that runs the step. Only that Runner may claim the job. Global Runners run JavaScript steps only. | The project's default Runner, if you set one |
 | **Bash script** | The script. Output (stdout and stderr) is captured up to 50 KB, and a non-zero exit code fails the step. | — |
 | **Execution timeout** | How long the Runner lets the script run before killing it with `SIGKILL`. Raise it for steps that legitimately take minutes. | 30 seconds |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. | 2 minutes |
@@ -146,7 +146,7 @@ Sign in to a machine over SSH and run a bash script there. The Runner opens the 
 
 | Field | What it does |
 | --- | --- |
-| **Runner** | The Runner that opens the connection. It must be able to reach the machine on the network. |
+| **Runner** | Under **More fields**. The Runner that opens the connection. It must be able to reach the machine on the network. A step that picks none runs on the project's default Runner. |
 | **SSH to** | The user and the machine, as you would write them after `ssh`: `deploy@10.0.4.21`. |
 | **Sign in with** | The secret variable that holds the private key or the password; the value says which it is. Only secret variables are offered, and the step says when its Runner may not use the one picked. |
 | **Bash script** | Runs with `bash` on the machine, as the user it signs in as. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
@@ -168,7 +168,7 @@ Run kubectl commands against a cluster. The script runs with bash on the Runner,
 
 | Field | What it does |
 | --- | --- |
-| **Runner** | The Runner that runs kubectl. It must be able to reach the cluster's API server. |
+| **Runner** | Under **More fields**. The Runner that runs kubectl. It must be able to reach the cluster's API server. A step that picks none runs on the project's default Runner. |
 | **Kubeconfig** | The secret variable that holds the cluster's kubeconfig, or **The Runner's own access**: the Runner's own kubeconfig, or its service account when it runs in the cluster. The Runner writes a kubeconfig to a file only it can read, and removes it when the script ends. |
 | **Script** | The kubectl commands. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
 | **Execution timeout** | How long the Runner lets the script run before stopping it with `SIGKILL`. Default 30 seconds. |

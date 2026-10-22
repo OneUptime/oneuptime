@@ -14,6 +14,11 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Incidents",
       "Active Incidents",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENT_POSTMORTEMS, [
+      "Project",
+      "Incidents",
+      "Postmortems",
+    ]),
 
     ...BuildBreadcrumbLinksByTitles(
       PageMap.INCIDENTS_WORKSPACE_CONNECTION_SLACK,
@@ -324,6 +329,10 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
         "Postmortem Templates",
         "View Template",
       ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES,
+      ["Project", "Incidents", "Settings", "Postmortem Statuses"],
     ),
     ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS, [
       "Project",

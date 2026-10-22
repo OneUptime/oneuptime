@@ -116,6 +116,8 @@ import OnCallDutyWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashb
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import ScheduledMaintenanceWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/WorkspaceConnectionMicrosoftTeams";
 import ScheduledMaintenanceWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/WorkspaceConnectionSlack";
+import SecurityEventsWorkspaceConnectionMicrosoftTeams from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionMicrosoftTeams";
+import SecurityEventsWorkspaceConnectionSlack from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/WorkspaceConnectionSlack";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ConnectedWorkspaces, {
   ConnectedWorkspacesFetcher,
@@ -299,6 +301,39 @@ describe("the Workspace page: which is connected, and the next step for each", (
     expect(screen.queryByText("Not connected")).not.toBeInTheDocument();
   });
 
+  // Security Events > Workspace, as its routes mount it.
+  test("Security Events' page sends each connected workspace to the security cases' rules", async () => {
+    connect(WorkspaceType.Slack, WorkspaceType.MicrosoftTeams);
+
+    await act(async () => {
+      render(
+        <WorkspaceConnectionsOverview
+          slackPage={PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK}
+          microsoftTeamsPage={
+            PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS
+          }
+        />,
+      );
+    });
+
+    expect(
+      within(tile(WorkspaceType.Slack)).getByRole("link", {
+        name: "Set up notifications →",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK),
+    );
+    expect(
+      within(tile(WorkspaceType.MicrosoftTeams)).getByRole("link", {
+        name: "Set up notifications →",
+      }),
+    ).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS),
+    );
+  });
+
   test("a click on a step goes there inside the app", async () => {
     connect();
     await renderOverview();
@@ -435,6 +470,19 @@ describe("a product's Slack or Microsoft Teams page", () => {
       workspaceType: WorkspaceType.MicrosoftTeams,
       firstEventType: NotificationRuleEventType.OnCallDutyPolicy,
     },
+    // Security Events > Workspace: the rules that post security cases.
+    {
+      name: "Security Events > Slack",
+      Page: SecurityEventsWorkspaceConnectionSlack,
+      workspaceType: WorkspaceType.Slack,
+      firstEventType: NotificationRuleEventType.SecurityCase,
+    },
+    {
+      name: "Security Events > Microsoft Teams",
+      Page: SecurityEventsWorkspaceConnectionMicrosoftTeams,
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      firstEventType: NotificationRuleEventType.SecurityCase,
+    },
   ];
 
   const PAGE_CASES: Array<[string, WorkspacePage]> = PAGES.map(
@@ -569,7 +617,7 @@ describe("a product's Slack or Microsoft Teams page", () => {
     },
   );
 
-  test("the monitor and on-call pages have no reaction tips: nothing there is saved as a note", async () => {
+  test("the monitor, on-call and security case pages have no reaction tips: nothing there is saved as a note", async () => {
     for (const page of PAGES.slice(6)) {
       connect(page.workspaceType);
       await renderPage(page);

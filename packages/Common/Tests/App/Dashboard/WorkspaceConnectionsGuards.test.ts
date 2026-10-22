@@ -153,7 +153,7 @@ describe("1. menus list only the connected workspaces", () => {
     expect(handWritten).toEqual([]);
   });
 
-  test("the menus that do list workspaces are the five products and User Settings", () => {
+  test("the menus that do list workspaces are the six products and User Settings", () => {
     const withWorkspaceSection: Array<string> = SIDE_MENUS.filter(
       (file: string): boolean => {
         return fs
@@ -170,6 +170,7 @@ describe("1. menus list only the connected workspaces", () => {
       "Pages/Monitor/SideMenu.tsx",
       "Pages/OnCallDuty/SideMenu.tsx",
       "Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
+      "Pages/SecurityEvents/SideMenu.tsx",
       "Pages/UserSettings/SideMenu.tsx",
     ]);
   });
@@ -200,6 +201,11 @@ describe("1. menus list only the connected workspaces", () => {
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_SLACK",
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
         "SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS",
+      ],
+      "Pages/SecurityEvents/SideMenu.tsx": [
+        "SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK",
+        "SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS",
+        "SECURITY_EVENTS_WORKSPACE_CONNECTIONS",
       ],
       // Linking your own account: no page to send a project with nothing connected to.
       "Pages/UserSettings/SideMenu.tsx": [
@@ -284,7 +290,8 @@ describe("2. whether a workspace is connected is asked in one place", () => {
       return PRODUCT_WORKSPACE_PAGE_FILE.test(relative(file));
     });
 
-    expect(pages).toHaveLength(10);
+    // Slack and Microsoft Teams for each of the six products.
+    expect(pages).toHaveLength(12);
 
     for (const file of pages) {
       const code: string = fs.readFileSync(file, "utf8");

@@ -11,6 +11,15 @@ export default interface CreateChannelNotificationRule
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
   /*
+   * On-call schedules whose on-call person joins each channel the rule
+   * creates: whoever each schedule's page names as on call when the channel
+   * is created, without paging them (WorkspaceScheduleOnCall). Slack adds
+   * them to the channel; Microsoft Teams, which adds nobody to a channel,
+   * @mentions them in it (ChannelMembersNotAddedNotice). Optional: a rule
+   * saved before it names none.
+   */
+  inviteOnCallSchedulesToNewChannel?: Array<ObjectID> | undefined;
+  /*
    * Who else joins the channel, as they join the record
    * (NotificationRuleInvites): its owners, and for an incident or an
    * incident episode the people given an incident role - the Incident

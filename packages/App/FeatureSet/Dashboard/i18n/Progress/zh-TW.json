@@ -1,13 +1,16 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16107
+    "keys": 32601,
+    "untranslated": 16033
   },
   "sameAsEnglish": [
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "Gemini for Google Workspace",
     "Goroutines",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Runner",
     "SNMP trap",
     "VMware vCenter",

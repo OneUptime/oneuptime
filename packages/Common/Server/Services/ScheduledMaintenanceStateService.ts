@@ -6,6 +6,11 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -35,6 +40,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     await StateOrderGuard.beforeCreate({
       service: this,
       definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+      createBy: createBy,
+    });
+
+    // Never created archived if it is a built-in one. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
       createBy: createBy,
     });
 
@@ -78,6 +91,14 @@ export class Service extends DatabaseService<ScheduledMaintenanceState> {
     await StateOrderGuard.beforeUpdate({
       service: this,
       definition: STATE_LISTS[StateListType.ScheduledMaintenanceState],
+      updateBy: updateBy,
+    });
+
+    // A built-in state is never archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeUpdate({
+      service: this,
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.ScheduledMaintenanceState],
       updateBy: updateBy,
     });
 

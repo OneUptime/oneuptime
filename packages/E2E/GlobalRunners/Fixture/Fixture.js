@@ -10,8 +10,9 @@
  *   - Runbooks -> Settings -> Global Variables (Pages/Runbook/Variables):
  *     whether global Runners may use a secret variable;
  *   - a Runner's own page (Pages/Runbook/Runners/RunnerView): its
- *     capabilities, and the code repositories that pick it (a repository
- *     picks its Runner in Code; a Runner has no AI code fix switch).
+ *     capabilities, the code repositories that pick it (a repository
+ *     picks its Runner in Code; a Runner has no AI code fix switch), and
+ *     whether it is the project's default Runner.
  *
  * Only the ModelAPI / API data boundary and the synthetic user's
  * permissions are replaced. The pages, their tables, cards, switches,
@@ -23,6 +24,10 @@
  *                            Variables page or the first Runner of the
  *                            project's own (custom=1 or more);
  *                            the default is Runbooks -> Runners
+ *   - runner=2               page=runner opens the second Runner of the
+ *                            project's own (office-runner; custom=2)
+ *   - longname=1             the first Runner of the project's own has a
+ *                            long name (production-eu-west-1-bastion-...)
  *   - picks=0                no code repository picks that Runner
  *                            (by default one does: checkout-service)
  *   - global=<n>             how many global Runners the server has: 0, 1
@@ -31,6 +36,13 @@
  *                            never: never heard from
  *   - custom=<n>             how many Runners of its own the project has
  *                            (0 by default, at most 2)
+ *   - default=<n>            which of them is the project's default Runner:
+ *                            1 (prod-eu-west-1) or 2 (office-runner); none
+ *                            by default
+ *   - jspick=global          the JavaScript step picks the Global Runner
+ *                            itself ("global"); bashpick=global the same for
+ *                            the Bash step (as an API client could)
+ *   - norunbooks=1           office-runner has Runs Runbooks off
  *   - uses=0                 the project turned global Runners off
  *   - admin=1                a master admin is signed in
  *   - role=viewer            may read runbooks and Runners only (Runbook
@@ -107,6 +119,15 @@ const role = params.get("role") || "owner";
 const delay = Math.max(0, Number(params.get("delay") || 0));
 const language = params.get("lang") === "de" ? "de" : "en";
 const repositoryPicksRunner = params.get("picks") !== "0";
+const defaultRunnerIndex = Math.min(
+  2,
+  Math.max(0, Number(params.get("default") || 0)),
+);
+const javaScriptPick = params.get("jspick") === "global" ? "global" : "";
+const bashPick = params.get("bashpick") === "global" ? "global" : "";
+const officeRunsRunbooks = params.get("norunbooks") !== "1";
+const runnerPageIndex = params.get("runner") === "2" ? 1 : 0;
+const longRunnerName = params.get("longname") === "1";
 
 const wait = (ms) => {
   return new Promise((resolve) => {
@@ -227,12 +248,15 @@ const CUSTOM_RUNNERS = [
   record(Runner, {
     _id: CUSTOM_RUNNER_IDS[0],
     projectId: new ObjectID(PROJECT_ID),
-    name: "prod-eu-west-1",
+    name: longRunnerName
+      ? "production-eu-west-1-bastion-primary-runner-for-databases"
+      : "prod-eu-west-1",
     description: "Production VPC; reaches the databases.",
     key: "a-key-only-admins-read-0123456789",
     isGlobalRunner: false,
     canRunRunbooks: true,
     canRunAiCommands: false,
+    isProjectDefault: defaultRunnerIndex === 1,
     lastAlive: lastAliveFor("connected"),
     labels: [PRODUCTION],
   }),
@@ -243,8 +267,9 @@ const CUSTOM_RUNNERS = [
     description: "Office network.",
     key: "another-key-only-admins-read-0123",
     isGlobalRunner: false,
-    canRunRunbooks: true,
+    canRunRunbooks: officeRunsRunbooks,
     canRunAiCommands: false,
+    isProjectDefault: defaultRunnerIndex === 2,
     lastAlive: lastAliveFor("disconnected"),
     labels: [],
   }),
@@ -263,7 +288,7 @@ const STEPS = [
     config: {
       script:
         'const response = await axios.get("https://status.example.com/api/v2/status.json");\nreturn response.data.status;',
-      agentId: "",
+      agentId: javaScriptPick,
     },
   },
   {
@@ -271,7 +296,7 @@ const STEPS = [
     order: 1,
     type: RunbookStepType.Bash,
     title: "Restart the web service",
-    config: { script: "systemctl restart web", agentId: "" },
+    config: { script: "systemctl restart web", agentId: bashPick },
   },
 ];
 
@@ -330,7 +355,6 @@ const TABLES = {
   Runbook: [runbook],
   Runner: CUSTOM_RUNNERS,
   RunbookVariable: VARIABLES,
-  RunbookCredential: [],
   Label: [PRODUCTION],
   CodeRepository: CODE_REPOSITORIES,
 };
@@ -345,6 +369,7 @@ window.__fixture.addCustomRunner = () => {
       isGlobalRunner: false,
       canRunRunbooks: true,
       canRunAiCommands: false,
+      isProjectDefault: false,
       lastAlive: lastAliveFor("connected"),
       labels: [],
     }),
@@ -394,6 +419,20 @@ ModelAPI.getList = async (options) => {
     );
   }
 
+  // The project's default Runner, as Runbooks -> Runners asks for it.
+  if (
+    name === "Runner" &&
+    options.query &&
+    options.query.isProjectDefault === true
+  ) {
+    return list(
+      TABLES.Runner.filter((runner) => {
+        return runner.isProjectDefault === true;
+      }).slice(0, options.limit || 1),
+      options.limit,
+    );
+  }
+
   return list(TABLES[name] || [], options.limit);
 };
 
@@ -423,6 +462,21 @@ ModelAPI.updateById = async (options) => {
   );
   if (item) {
     Object.assign(item, options.data || {});
+  }
+  /*
+   * A Runner made the project default takes it from the others, as the
+   * server does once the write succeeded (ProjectDefaultRow).
+   */
+  if (
+    tableName(options.modelType) === "Runner" &&
+    options.data &&
+    options.data.isProjectDefault === true
+  ) {
+    for (const runner of TABLES.Runner) {
+      if (idOf(runner._id) !== idOf(options.id)) {
+        runner.isProjectDefault = false;
+      }
+    }
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -490,7 +544,7 @@ const target = {
   runners: `/dashboard/${PROJECT_ID}/runbooks/runners`,
   steps: `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`,
   variables: `/dashboard/${PROJECT_ID}/runbooks/settings/variables`,
-  runner: `/dashboard/${PROJECT_ID}/runbooks/runners/${CUSTOM_RUNNER_IDS[0]}`,
+  runner: `/dashboard/${PROJECT_ID}/runbooks/runners/${CUSTOM_RUNNER_IDS[runnerPageIndex]}`,
 }[page];
 
 if (target && window.location.pathname !== target) {

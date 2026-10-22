@@ -21,6 +21,7 @@ import Entities from "../../../../Models/DatabaseModels/Index";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore, {
@@ -50,6 +51,7 @@ import MicrosoftTeamsOnCallDutyActions from "../../../../Server/Utils/Workspace/
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAuthAction, {
   SlackAction,
+  SlackAuthRefusalReason,
   SlackRequest,
 } from "../../../../Server/Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
@@ -59,6 +61,11 @@ import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/Wor
 import WorkspaceMemberActions, {
   WorkspaceEventType,
 } from "../../../../Server/Utils/Workspace/WorkspaceMemberActions";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectClues,
+  WorkspaceProjectEvidence,
+  WorkspaceProjectResolution,
+} from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../../Types/Dictionary";
@@ -108,11 +115,12 @@ import { DataSource, Logger } from "typeorm";
  *     changes the state of, notes and pages for the incidents carrying it:
  *     the row is stored with them as its creator (and as who triggered the
  *     page), exactly once;
- *   - the same buttons on an incident without that label, or on another
- *     project's incident, are refused like a record that is not there, and
- *     nothing is written - neither are they for a member who may only read;
- *     a refusal on Slack is told where the button was pressed, in a message
- *     only the presser sees, never in a direct message;
+ *   - the same buttons on an incident without that label are refused with
+ *     why - the member's access does not include it - and on another
+ *     project's incident as a record that is not there, with nothing about
+ *     it told; nothing is written - neither is it for a member who may only
+ *     read; a refusal on Slack is told where the button was pressed, in a
+ *     message only the presser sees, never in a direct message;
  *   - the change-state form offers the states the member may read, in the
  *     project's order, and says so when there are none;
  *   - Teams' Escalate pages for the card's incident with a policy the
@@ -126,7 +134,12 @@ import { DataSource, Logger } from "typeorm";
  *     them as its creator, and refused, with nothing written, for a record
  *     outside their labels, for a person who may edit incidents and alerts
  *     but not change their state, for one whose state changes are limited
- *     to other labels, and for a run that is no person at all.
+ *     to other labels, and for a run that is no person at all;
+ *   - a Slack workspace connected to a second project as well - connected
+ *     first, as a customer's production and non-production projects were -
+ *     reads each press in the project of the record it names, from the
+ *     stored rows: the incident's Acknowledge and Add Note are written in
+ *     the incident's project, and a private incident is refused as private.
  *
  * What follows a saved row - the incident's current state, the feed, the
  * page itself - is OneUptime's own write, made by each service's success
@@ -290,8 +303,14 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
   const archivedPaymentsPolicyId: ObjectID = ObjectID.generate();
   const otherPolicyId: ObjectID = ObjectID.generate();
 
-  const NOT_FOUND: string =
-    WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE;
+  /*
+   * How a press on a record of the project the member's access does not
+   * include is refused: what is wrong, and what to do about it
+   * (WorkspaceActionAuthorization.getUnreadableRefusal).
+   */
+  function notIncluded(action: string, noun: string): string {
+    return `You do not have permission to ${action}: ${WorkspaceActionAuthorization.getNotIncludedReason(noun)}`;
+  }
 
   let directMessageSpy: SpyInstance<typeof SlackUtil.sendDirectMessageToUser>;
   let ephemeralSpy: SpyInstance<typeof SlackUtil.sendEphemeralMessageToChannel>;
@@ -1053,13 +1072,13 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
     expect(ephemeralSpy).not.toHaveBeenCalled();
   }
 
-  // A button pressed on a Slack message, authorized from the stored rows.
-  async function pressSlackButton(
+  // A button pressed on a Slack message, as Slack sends it, read from the stored rows.
+  async function authorizeSlackPress(
     slackUserId: string,
     actionType: SlackActionType,
     value: string,
-  ): Promise<void> {
-    const slackRequest: SlackRequest = await SlackAuthAction.isAuthorized({
+  ): Promise<SlackRequest> {
+    return await SlackAuthAction.isAuthorized({
       req: {
         body: {
           payload: JSON.stringify({
@@ -1073,6 +1092,19 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         },
       } as unknown as ExpressRequest,
     });
+  }
+
+  // A button pressed on a Slack message, authorized from the stored rows.
+  async function pressSlackButton(
+    slackUserId: string,
+    actionType: SlackActionType,
+    value: string,
+  ): Promise<void> {
+    const slackRequest: SlackRequest = await authorizeSlackPress(
+      slackUserId,
+      actionType,
+      value,
+    );
     expect(slackRequest.isAuthorized).toBe(true);
 
     await SlackIncidentActions.handleIncidentAction({
@@ -1184,30 +1216,31 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       ]);
     });
 
-    test.each([
-      {
-        name: "an incident outside the member's label",
-        incidentId: searchIncidentId,
-      },
-      {
-        name: "another project's incident",
-        incidentId: otherIncidentId,
-      },
-    ])(
-      "on $name, is refused like a record that is not there, and nothing is written",
-      async (row: { incidentId: ObjectID }) => {
-        await pressSlackButton(
-          SLACK_RESPONDER,
-          SlackActionType.AcknowledgeIncident,
-          row.incidentId.toString(),
-        );
+    test("on an incident outside the member's label, is refused with why - their access does not include it - and nothing is written", async () => {
+      await pressSlackButton(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        searchIncidentId.toString(),
+      );
 
-        expect(answerTexts(SLACK_RESPONDER)).toEqual([
-          `You do not have permission to acknowledge this incident: the incident ${NOT_FOUND}`,
-        ]);
-        await nothingWritten();
-      },
-    );
+      expect(answerTexts(SLACK_RESPONDER)).toEqual([
+        notIncluded("acknowledge this incident", "incident"),
+      ]);
+      await nothingWritten();
+    });
+
+    test("on another project's incident, is answered as a record that is not there - nothing about it is told - and nothing is written", async () => {
+      await pressSlackButton(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        otherIncidentId.toString(),
+      );
+
+      expect(answerTexts(SLACK_RESPONDER)).toEqual([
+        `Could not acknowledge this incident: ${WorkspaceActionAuthorization.getNotFoundReason("incident")}`,
+      ]);
+      await nothingWritten();
+    });
 
     test("pressed by a member who may only read, is refused, and nothing is written", async () => {
       await pressSlackButton(
@@ -1254,7 +1287,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       ]);
     });
 
-    test("on an incident outside the member's label, is refused like a record that is not there, and no note is posted", async () => {
+    test("on an incident outside the member's label, is refused with why, and no note is posted", async () => {
       await submitSlackForm(
         SLACK_RESPONDER,
         SlackActionType.SubmitIncidentNote,
@@ -1264,7 +1297,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
 
       // Answered in the channel the form was opened from.
       expect(answerTexts(SLACK_RESPONDER)).toEqual([
-        `You do not have permission to add a private note to this incident: the incident ${NOT_FOUND}`,
+        notIncluded("add a private note to this incident", "incident"),
       ]);
       await nothingWritten();
     });
@@ -1388,7 +1421,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       ]);
     });
 
-    test("Resolve on an incident outside the member's label is refused like a record that is not there, and nothing is written", async () => {
+    test("Resolve on an incident outside the member's label is refused with why, and nothing is written", async () => {
       const turnContext: TurnContext = createTurnContext();
 
       await expect(
@@ -1398,9 +1431,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           searchIncidentId,
           turnContext,
         ),
-      ).rejects.toThrow(
-        `You do not have permission to resolve this incident: the incident ${NOT_FOUND}`,
-      );
+      ).rejects.toThrow(notIncluded("resolve this incident", "incident"));
 
       expect(sentActivities(turnContext)).toEqual([]);
       await nothingWritten();
@@ -1511,7 +1542,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
       ]);
     });
 
-    test("with a policy outside the member's label, is refused like a policy that is not there, and nobody is paged", async () => {
+    test("with a policy outside the member's label, is refused with why, and nobody is paged", async () => {
       const turnContext: TurnContext = createTurnContext();
 
       await expect(
@@ -1524,7 +1555,10 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           turnContext,
         ),
       ).rejects.toThrow(
-        `You do not have permission to execute this on-call policy for this incident: the on-call policy ${NOT_FOUND}`,
+        notIncluded(
+          "execute this on-call policy for this incident",
+          "on-call policy",
+        ),
       );
 
       await nothingWritten();
@@ -1543,7 +1577,10 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           turnContext,
         ),
       ).rejects.toThrow(
-        `You do not have permission to execute this on-call policy for this incident: the incident ${NOT_FOUND}`,
+        notIncluded(
+          "execute this on-call policy for this incident",
+          "incident",
+        ),
       );
 
       await nothingWritten();
@@ -1653,7 +1690,7 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
           },
           props: await memberProps(responderId),
         }),
-      ).rejects.toThrow(`The incident ${NOT_FOUND}`);
+      ).rejects.toThrow(notIncluded("change this incident", "incident"));
 
       await nothingWritten();
     });
@@ -1955,6 +1992,230 @@ describePostgres("Slack and Microsoft Teams buttons, on Postgres", () => {
         "Create On-Call Duty Policy Execution Log",
       );
       await nothingWritten();
+    });
+  });
+
+  /*
+   * A SLACK WORKSPACE CONNECTED TO A SECOND PROJECT AS WELL, connected a day
+   * before the payments project - as a customer's non-production project
+   * was, next to production. Slack names only the workspace, and every
+   * request used to be read in whichever connection the database returned
+   * first: an incident's own Acknowledge, pressed in its channel by a member
+   * who may acknowledge it, was refused there as "the incident was not found
+   * in this project, or you do not have access to it". Each press is read in
+   * the project of the record it names (WorkspaceProjectResolution), from
+   * the stored rows, and is then held to the member's own permissions there.
+   */
+  describe("a Slack workspace connected to a second project as well, connected first", () => {
+    const otherConnectionId: ObjectID = ObjectID.generate();
+    const OTHER_PROJECT_AUTH_TOKEN: string = "xoxb-synthetic-acme-token";
+    // A channel only the payments incident posts to.
+    const PAYMENTS_INCIDENT_CHANNEL: string = "C0CHECKOUTDOWN";
+    // A private payments incident, owned by nobody here.
+    const privateIncidentId: ObjectID = ObjectID.generate();
+
+    beforeAll(async () => {
+      await insert("WorkspaceProjectAuthToken", {
+        _id: otherConnectionId,
+        projectId: otherProjectId,
+        authToken: OTHER_PROJECT_AUTH_TOKEN,
+        workspaceType: WorkspaceType.Slack,
+        workspaceProjectId: SLACK_TEAM_ID,
+        miscData: JSON.stringify({
+          botUserId: "B0BOT",
+          teamId: SLACK_TEAM_ID,
+          teamName: "Payments",
+        }),
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        version: 1,
+      });
+
+      await seedIncident({
+        id: privateIncidentId,
+        project: projectId,
+        title: "Card fraud spike",
+        stateId: createdStateId,
+        labelIds: [paymentsLabelId],
+      });
+      await database.query(
+        `UPDATE "${schema}"."Incident" SET "isPrivate" = TRUE WHERE "_id" = $1`,
+        [privateIncidentId.toString()],
+      );
+    });
+
+    afterAll(async () => {
+      await database.query(
+        `DELETE FROM "${schema}"."WorkspaceProjectAuthToken" WHERE "_id" = $1`,
+        [otherConnectionId.toString()],
+      );
+    });
+
+    async function resolve(
+      clues: WorkspaceProjectClues,
+    ): Promise<WorkspaceProjectResolution> {
+      return await WorkspaceProjectResolver.resolve({
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: SLACK_TEAM_ID,
+        clues: clues,
+      });
+    }
+
+    test("Acknowledge on the payments incident is read in the payments project, with its own bot token, and written there once, as the member", async () => {
+      const slackRequest: SlackRequest = await authorizeSlackPress(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        paymentsIncidentId.toString(),
+      );
+
+      expect(slackRequest.isAuthorized).toBe(true);
+      expect(slackRequest.projectId?.toString()).toBe(projectId.toString());
+      expect(slackRequest.projectAuthToken).toBe(PROJECT_AUTH_TOKEN);
+      expect(slackRequest.userId?.toString()).toBe(responderId.toString());
+
+      await pressSlackButton(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        paymentsIncidentId.toString(),
+      );
+
+      expectNoAnswer();
+      expect(await newStateChanges()).toEqual([
+        {
+          incidentId: paymentsIncidentId.toString(),
+          incidentStateId: acknowledgedStateId.toString(),
+          projectId: projectId.toString(),
+          createdByUserId: responderId.toString(),
+        },
+      ]);
+    });
+
+    test("Add Note, submitted from a form opened on the payments incident, posts the note in the payments project, as the member", async () => {
+      await submitSlackForm(
+        SLACK_RESPONDER,
+        SlackActionType.SubmitIncidentNote,
+        paymentsIncidentId,
+        {
+          noteType: {
+            noteType: { selected_option: { value: "private" } },
+          },
+          note: { note: { value: "Rolled back the checkout deploy." } },
+        },
+      );
+
+      expectNoAnswer();
+      expect(await notes()).toEqual([
+        {
+          incidentId: paymentsIncidentId.toString(),
+          projectId: projectId.toString(),
+          note: "Rolled back the checkout deploy.",
+          createdByUserId: responderId.toString(),
+        },
+      ]);
+    });
+
+    test("the other project's incident is read in its own project, where the member's Slack account is not connected: they are asked to connect it there, and nothing is written", async () => {
+      const slackRequest: SlackRequest = await authorizeSlackPress(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        otherIncidentId.toString(),
+      );
+
+      expect(slackRequest.isAuthorized).toBe(false);
+      expect(slackRequest.refusal?.reason).toBe(
+        SlackAuthRefusalReason.NotConnected,
+      );
+      expect(slackRequest.refusal?.projectId.toString()).toBe(
+        otherProjectId.toString(),
+      );
+      await nothingWritten();
+    });
+
+    test("a private payments incident the member is not an owner of is refused as private, with whom to ask, and nothing is written", async () => {
+      await pressSlackButton(
+        SLACK_RESPONDER,
+        SlackActionType.AcknowledgeIncident,
+        privateIncidentId.toString(),
+      );
+
+      expect(answerTexts(SLACK_RESPONDER)).toEqual([
+        `You do not have permission to acknowledge this incident: ${WorkspaceActionAuthorization.getPrivateReason("incident")}`,
+      ]);
+      await nothingWritten();
+    });
+
+    test("the projects are told apart from the stored rows: a record's project, the person's, a record's own channel - and nothing is guessed", async () => {
+      // Nothing to tell them apart: both connections, the oldest first.
+      const unclued: WorkspaceProjectResolution = await resolve({});
+      expect(unclued.isAmbiguous).toBe(true);
+      expect(unclued.projectAuth).toBeNull();
+      expect(
+        unclued.connections.map(
+          (connection: WorkspaceProjectAuthToken): string => {
+            return connection.projectId!.toString();
+          },
+        ),
+      ).toEqual([otherProjectId.toString(), projectId.toString()]);
+
+      // The record a press names: an incident of each, an alert, a policy.
+      for (const [recordId, recordProjectId] of [
+        [paymentsIncidentId, projectId],
+        [otherIncidentId, otherProjectId],
+        [paymentsAlertId, projectId],
+        [otherPolicyId, otherProjectId],
+      ] as Array<[ObjectID, ObjectID]>) {
+        const byRecord: WorkspaceProjectResolution = await resolve({
+          recordIds: [recordId.toString()],
+        });
+
+        expect(byRecord.decidedBy).toBe(WorkspaceProjectEvidence.Record);
+        expect(byRecord.projectAuth?.projectId?.toString()).toBe(
+          recordProjectId.toString(),
+        );
+      }
+
+      // The person: connected in the payments project only, as a member.
+      const byPerson: WorkspaceProjectResolution = await resolve({
+        workspaceUserId: SLACK_RESPONDER,
+      });
+      expect(byPerson.decidedBy).toBe(WorkspaceProjectEvidence.Person);
+      expect(byPerson.projectAuth?.projectId?.toString()).toBe(
+        projectId.toString(),
+      );
+
+      // A record's own channel.
+      await database.query(
+        `UPDATE "${schema}"."Incident" SET "postUpdatesToWorkspaceChannels" = $1 WHERE "_id" = $2`,
+        [
+          JSON.stringify([
+            {
+              id: PAYMENTS_INCIDENT_CHANNEL,
+              name: "incident-checkout-is-down",
+              notificationRuleId: ObjectID.generate().toString(),
+            },
+          ]),
+          paymentsIncidentId.toString(),
+        ],
+      );
+
+      try {
+        const byChannel: WorkspaceProjectResolution = await resolve({
+          channelId: PAYMENTS_INCIDENT_CHANNEL,
+        });
+        expect(byChannel.decidedBy).toBe(WorkspaceProjectEvidence.Channel);
+        expect(byChannel.projectAuth?.projectId?.toString()).toBe(
+          projectId.toString(),
+        );
+
+        // A channel no record and no message of either project names.
+        expect((await resolve({ channelId: "C0NOBODY" })).isAmbiguous).toBe(
+          true,
+        );
+      } finally {
+        await database.query(
+          `UPDATE "${schema}"."Incident" SET "postUpdatesToWorkspaceChannels" = NULL WHERE "_id" = $1`,
+          [paymentsIncidentId.toString()],
+        );
+      }
     });
   });
 });

@@ -96,6 +96,11 @@ interface World {
   incidentResources: Array<LinkedAffectedResource>;
   incidentState: ObjectID;
   laneClosedBy: string | null;
+  /*
+   * What stops automatic investigation when asked about the LLM provider a
+   * rule picked (getDisabledReason with llmProviderId).
+   */
+  pickClosedBy: string | null;
   runs: Array<AIRun>;
   // The alerts on the incident's infrastructure, for a settled run's check.
   laterAlerts: Array<Alert>;
@@ -147,6 +152,7 @@ beforeEach(() => {
     incidentResources: [HOST],
     incidentState: OPEN_STATE,
     laneClosedBy: null,
+    pickClosedBy: null,
     // The first investigation: claimed at 14:30, done at 14:31.
     runs: [
       run({
@@ -195,9 +201,17 @@ beforeEach(() => {
     });
   jest
     .spyOn(AIInvestigationEngine, "getDisabledReason")
-    .mockImplementation(async () => {
-      return world.laneClosedBy as never;
-    });
+    .mockImplementation(
+      async (
+        _projectId: ObjectID,
+        _subjectType: unknown,
+        options?: { llmProviderId?: ObjectID | undefined },
+      ) => {
+        return (
+          options?.llmProviderId ? world.pickClosedBy : world.laneClosedBy
+        ) as never;
+      },
+    );
   jest
     .spyOn(IncidentStateService, "getUnresolvedIncidentStateIds")
     .mockResolvedValue([OPEN_STATE]);
@@ -942,5 +956,135 @@ describe("the window of an incident whose investigation waited", () => {
 
     expect(await alertOpens()).toEqual([]);
     expect(enqueue).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A follow-up check is a second look at the incident: it uses the LLM
+ * provider its first investigation's rule picked (AIRun.llmProviderId,
+ * Types/AI/LlmProviderChoice), and none when no rule picked one.
+ */
+describe("the LLM provider of a follow-up check", () => {
+  const OPUS: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  test("the incident is checked again with the provider its first investigation's rule picked", async () => {
+    world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+    await alertOpens();
+
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]!.llmProviderId?.toString()).toBe(OPUS);
+  });
+
+  test("a first investigation no rule picked a provider for: the follow-up picks none either", async () => {
+    await alertOpens();
+
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]).not.toHaveProperty("llmProviderId");
+  });
+
+  /*
+   * What stops automatic investigation for want of the project's provider -
+   * none, or no AI credits for it - is asked again of the provider the
+   * first investigation ran on, when a rule picked one: the follow-up runs
+   * on that one.
+   */
+  describe("when the project's provider stops the lane", () => {
+    function disabledReasonCalls(): Array<
+      Parameters<typeof AIInvestigationEngine.getDisabledReason>
+    > {
+      return (
+        AIInvestigationEngine.getDisabledReason as unknown as SpyInstance<
+          typeof AIInvestigationEngine.getDisabledReason
+        >
+      ).mock.calls;
+    }
+
+    test.each(["provider_missing", "insufficient_ai_balance"])(
+      "%s: an incident whose first investigation ran on a rule's pick is checked again, on that pick",
+      async (reason: string) => {
+        world.laneClosedBy = reason;
+        world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+        expect(await alertOpens()).toEqual([QUEUED_RUN_ID]);
+
+        expect(enqueued[0]!.llmProviderId?.toString()).toBe(OPUS);
+        expect(disabledReasonCalls()).toEqual([
+          [PROJECT_ID, "Incident"],
+          [PROJECT_ID, "Incident", { llmProviderId: new ObjectID(OPUS) }],
+        ]);
+      },
+    );
+
+    test("a first investigation no rule picked a provider for: nothing is checked again", async () => {
+      world.laneClosedBy = "provider_missing";
+
+      expect(await alertOpens()).toEqual([]);
+
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(disabledReasonCalls()).toHaveLength(1);
+    });
+
+    test("a pick that is stopped too: nothing is checked again", async () => {
+      world.laneClosedBy = "insufficient_ai_balance";
+      world.pickClosedBy = "insufficient_ai_balance";
+      world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+      expect(await alertOpens()).toEqual([]);
+
+      expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    test("any other reason stops it, whatever the first investigation ran on - and no pick is asked about", async () => {
+      world.laneClosedBy = "automatic_investigation_disabled";
+      world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+      expect(await alertOpens()).toEqual([]);
+
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(disabledReasonCalls()).toHaveLength(1);
+    });
+
+    test("an investigation that settles while an alert opened is checked again on its pick too", async () => {
+      world.laneClosedBy = "provider_missing";
+      world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+      world.laterAlerts = [newAlert(ALERT_ID, at(2), false)];
+
+      expect(
+        await IncidentFollowUpCheck.onInvestigationSettled({
+          projectId: PROJECT_ID,
+          incidentId: INCIDENT_ID,
+          aiRunId: FIRST_RUN_ID,
+        }),
+      ).toEqual(QUEUED_RUN_ID);
+
+      expect(enqueued[0]!.llmProviderId?.toString()).toBe(OPUS);
+    });
+
+    test("an open lane asks about no pick: the usual path reads nothing more", async () => {
+      world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+      await alertOpens();
+
+      expect(disabledReasonCalls()).toEqual([[PROJECT_ID, "Incident"]]);
+    });
+  });
+
+  test("the latest investigation is read with its pick", async () => {
+    await alertOpens();
+
+    const selects: Array<JSONObject> = (
+      AIRunService.findBy as unknown as SpyInstance<typeof AIRunService.findBy>
+    ).mock.calls.map(
+      (call: Parameters<typeof AIRunService.findBy>): JSONObject => {
+        return call[0].select as unknown as JSONObject;
+      },
+    );
+
+    expect(
+      selects.some((select: JSONObject): boolean => {
+        return select["llmProviderId"] === true;
+      }),
+    ).toBe(true);
   });
 });

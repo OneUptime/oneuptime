@@ -97,7 +97,11 @@ const LEGACY_RUNNER: KubernetesClusterAiAccessStatus["runner"] = {
   posture: { clusterIdentifier: "prod-east", inCluster: true },
 };
 
-const ADVANCED_RUNNER: KubernetesClusterAiAccessStatus["runner"] = {
+/*
+ * A Runner outside the cluster, which a server sent as the target until
+ * runbook credentials were removed (this one never does).
+ */
+const OUTSIDE_RUNNER: KubernetesClusterAiAccessStatus["runner"] = {
   id: "runner-2",
   name: "ops-runner",
   kind: "runner",
@@ -128,7 +132,7 @@ describe("which clusters can take their settings from the agent", () => {
     ).toBe(false);
     expect(
       canKubernetesAgentSetAiSettings(
-        agentStatus({ runner: ADVANCED_RUNNER, accessMethod: "credential" }),
+        agentStatus({ runner: OUTSIDE_RUNNER, accessMethod: "none" }),
       ),
     ).toBe(false);
   });

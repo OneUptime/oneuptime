@@ -14,6 +14,7 @@ La GitHub App de OneUptime es más que una conexión con tu código: puedes habl
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Cada comando empieza con una mención de la app. La mención puede estar en cual
 | Comando | Qué pasa | También entiende |
 | --- | --- | --- |
 | `@oneuptime review` | Clona la rama, lee el código cambiado y el que lo rodea, comprueba lo que dicen de él los datos de producción, y publica una reseña como comentario. No cambia nada. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Revisa la pull request frente a producción ahora, la haya abierto quien la haya abierto: las excepciones, operaciones, incidentes y despliegues en torno al código modificado, en un solo comentario que se edita en su sitio (consulta [Revisión de producción de pull requests](/docs/ai/ai-agent#revisión-de-producción-de-pull-requests)). No clona nada ni ejecuta nada. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Clona la rama del propio pull request, hace el cambio y sube commits nuevos a esa rama. Nunca abre un segundo pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Todo lo que escribas después de la mención que no sea un comando conocido se lee como una petición de revisión, porque casi siempre es eso:
@@ -100,6 +102,8 @@ Lo que encuentra va bajo un encabezado **Production context** de la reseña, cad
 
 No hay nada que configurar: los servicios son aquellos para los que OneUptime encuentra este repositorio, como hace con una corrección (consulta [Telemetría de producción en una corrección](/docs/ai/ai-agent#telemetría-de-producción-en-una-corrección)). Las consultas son de solo lectura, se ejecutan en el servidor de OneUptime y no leen nada de otro servicio, de otro proyecto ni de un incidente privado. Un repositorio cuyos servicios no envían telemetría al proyecto se reseña solo a partir de su código.
 
+Para que cada pull request se revise sola frente a producción, activa **Revisar pull requests frente a producción** en los ajustes del repositorio: consulta [Revisión de producción de pull requests](/docs/ai/ai-agent#revisión-de-producción-de-pull-requests).
+
 ## Quién puede darle órdenes
 
 **Solo las personas con acceso write, maintain o admin al repositorio.** OneUptime pregunta a GitHub cada vez por el permiso de quien comenta en ese repositorio; no se fía de la insignia "contributor" que GitHub muestra junto a un comentario, que describe la actividad pasada y no el acceso actual.
@@ -118,11 +122,11 @@ También ignora todos los comentarios escritos por un bot, incluidos los suyos, 
 
 ## Lo que cuesta y cómo limitarlo
 
-Cada comando que inicia trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100.000 tokens de salida, y los comandos de compilación y prueba de tu repositorio cuando los has definido. Las consultas a producción de una reseña, 12 como máximo, se descuentan de esas mismas 40 llamadas.
+Cada comando que inicia trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100.000 tokens de salida, y, en un Runner propio, las comprobaciones de compilación y prueba que describe el `AGENTS.md` de tu repositorio. Las consultas a producción de una reseña, 12 como máximo, se descuentan de esas mismas 40 llamadas.
 
 Los comandos de GitHub son trabajo de IA fuera de los incidentes y las alertas, así que no se les aplica ningún límite diario de tareas de corrección; sí se aplican los límites diarios de IA del propio proyecto, cuando el proyecto los fija. El único otro límite es el que ya rige las tareas de [Código](/docs/ai/ai-agent):
 
-- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
+- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en **Más ajustes** de la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
 
 Solo hay una ejecución de cada tipo activa a la vez por issue o pull request. Pedirlo dos veces te dice que ya está trabajando; pedir una reseña mientras corre una revisión inicia las dos, porque son peticiones distintas.
 
@@ -130,9 +134,9 @@ Si una ejecución no puede empezar, la app dice por qué en el hilo: nunca falla
 
 ## Desactivarla
 
-Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en la página **Ajustes** del repositorio. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
+Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en la página **Ajustes** del repositorio. Está activado en todos los repositorios y se guarda en cuanto lo cambias. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
 
-La misma página contiene la **Etiqueta de activación de GitHub**, si quieres una etiqueta distinta de `oneuptime`.
+La misma página contiene la **Etiqueta de activación de GitHub**, en **Más ajustes**, si quieres una etiqueta distinta de `oneuptime`.
 
 ## A qué suscribirse
 
@@ -142,7 +146,7 @@ En los ajustes **Permissions & events** de tu GitHub App, suscríbete a:
 | --- | --- |
 | **Issue comment** | los comandos con `@mention` en issues y pull requests |
 | **Issues** | asignar un issue a la app y la etiqueta de activación |
-| **Pull request** | una reseña solicitada a la app |
+| **Pull request** | una reseña solicitada a la app, y las revisiones de producción de las pull requests cuando se abren y cambian |
 | **Pull request review** | una mención en el cuerpo de una reseña enviada |
 | **Pull request review comment** | una mención en un comentario en línea sobre el diff |
 

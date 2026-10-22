@@ -1,16 +1,18 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16617
+    "keys": 32601,
+    "untranslated": 16541
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "Agenda",
     "App",
     "Budget",
+    "CPU Ready {{percent}}",
     "Client",
     "Cloud",
     "Collector",
+    "Container {{container}}: {{reason}}",
     "Embedding",
     "Failover",
     "Gateway",
@@ -19,8 +21,11 @@
     "ICMP (ping)",
     "Marketplace",
     "Monitor",
+    "Object Gateway",
     "Offline",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Pattern {{number}}: {{problem}}",
     "Peer",
     "Privacy",

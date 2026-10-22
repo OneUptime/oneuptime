@@ -186,7 +186,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     expect(payload.workspaceType).toBe(WorkspaceType.Slack);
     expect(payload.channelIds).toEqual([CHANNEL.id]);
     expect(postedText(0)).toBe(
-      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
+      `👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet, and it could not be found by their email address. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
     );
     expect(postedNotificationText(0)).toBe(
       "NB User 3 could not be added to this channel",
@@ -225,7 +225,7 @@ describe("ChannelMembersNotAddedNotice", () => {
       isChat: false,
     });
     expect(updatedText(0)).toBe(
-      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
+      `👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet, and they could not be found by their email addresses. Add them here yourself, or send them this link to connect in one click: [Connect Slack account](${CONNECT_LINK}).`,
     );
     expect(updateSpy.mock.calls[0]![0].text).toBe(
       "NB User 3 and Jane Doe could not be added to this channel",
@@ -240,7 +240,7 @@ describe("ChannelMembersNotAddedNotice", () => {
 
     expect(postSpy).toHaveBeenCalledTimes(1);
     expect(postedText(0)).toContain(
-      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet.",
+      "👥 **NB User 3**, **Jane Doe** and **noname@example.com** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet, and they could not be found by their email addresses.",
     );
     expect(postedNotificationText(0)).toBe(
       "NB User 3, Jane Doe and noname@example.com could not be added to this channel",
@@ -265,7 +265,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     await note([NB_USER_3]);
 
     expect(postedText(0)).toContain(
-      "they have not connected their Slack account to Acme Status yet.",
+      "they have not connected their Slack account to Acme Status yet, and it could not be found by their email address.",
     );
     expect(postedText(0)).not.toContain("OneUptime");
   });
@@ -302,7 +302,7 @@ describe("ChannelMembersNotAddedNotice", () => {
     await note([NB_USER_3]);
 
     expect(postedText(0)).toBe(
-      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to Acme Status yet. Add them here yourself, or ask them to connect Slack in Acme Status under **User Settings → Workspace → Slack**.",
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to Acme Status yet, and it could not be found by their email address. Add them here yourself, or ask them to connect Slack in Acme Status under **User Settings → Workspace → Slack**.",
     );
   });
 
@@ -407,13 +407,13 @@ describe("ChannelMembersNotAddedNotice.noteAll", () => {
       postSpy.mock.calls[0]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual([CHANNEL.id]);
     expect(postedText(0)).toContain(
-      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet.",
+      "👥 **NB User 3** could not be added to this channel: they have not connected their Slack account to OneUptime yet, and it could not be found by their email address.",
     );
     expect(
       postSpy.mock.calls[1]![0].messagePayloadsByWorkspace[0]!.channelIds,
     ).toEqual(["C0OTHER"]);
     expect(postedText(1)).toContain(
-      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet.",
+      "👥 **NB User 3** and **Jane Doe** could not be added to this channel: they have not connected their Slack accounts to OneUptime yet, and they could not be found by their email addresses.",
     );
   });
 

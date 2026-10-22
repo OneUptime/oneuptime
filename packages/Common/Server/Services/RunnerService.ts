@@ -1,13 +1,11 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { StatementContext } from "../Utils/Database/StatementOutcome";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import { BUNDLED_GLOBAL_RUNNER_ID } from "../../Types/Runner/BundledGlobalRunner";
-import Exception from "../../Types/Exception/Exception";
-import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ProjectReferencesService from "./ProjectReferencesService";
 import ObjectID from "../../Types/ObjectID";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Version from "../../Types/Version";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -21,16 +19,8 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
 import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
-import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
-import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
-import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
-import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import ComponentKeyWrite from "../Utils/ComponentKeyWrite";
 import { isShippedSecretValue } from "../EnvironmentConfig";
-import RunbookCredentialReaders from "../Utils/AutoRemediation/RunbookCredentialReaders";
-import AiCommandCredentialReach, {
-  CredentialReachHold,
-} from "../Utils/AutoRemediation/AiCommandCredentialReach";
 import {
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   KubernetesRunnerPosture,
@@ -46,6 +36,18 @@ import crypto from "crypto";
 import Select from "../Types/Database/Select";
 import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../Types/Database/Permissions/ColumnWriteRefusedException";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import Permission from "../../Types/Permission";
+import {
+  ProjectDefaultRunnerRefusal,
+  canBeProjectDefaultRunner,
+  describeDefaultRunnerStopsRunningRunbooks,
+  describeProjectDefaultRunnerRefusal,
+  getProjectDefaultRunnerRefusal,
+} from "../../Types/Runner/ProjectDefaultRunner";
 
 /*
  * What a global Runner row is, in the words every refusal about one uses.
@@ -75,7 +77,7 @@ export const BUNDLED_GLOBAL_RUNNER_DELETE_MESSAGE: string =
   "This global Runner comes with this server, which sets it up again on its next start. To turn it off, set globalRunner.enabled to false in the Helm chart, or GLOBAL_RUNNER_REPLICAS=0 in Docker Compose's config.env.";
 
 export const GLOBAL_RUNNER_CAPABILITY_MESSAGE: string =
-  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an auto remediation rule or a Kubernetes cluster's AI settings pick.";
+  "A global Runner runs runbook steps only, never OneUptime AI's commands: they act in a project's own systems, so they run on a Runner of that project's own that an auto remediation rule picks.";
 
 // The global Runner columns anyone signed in may read (RunnerAPI's listing).
 export const GLOBAL_RUNNER_PUBLIC_SELECT: Select<Model> = {
@@ -260,6 +262,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.holdToGlobalRunnerShape(createBy.data, createBy.props.tenantId);
 
+    // Created as the project's default Runner: only one that may be it.
+    Service.assertMayBeProjectDefault(createBy.data);
+
+    // And only by someone who may make a Runner the default.
+    Service.assertMayCreateAsProjectDefault(createBy.data, createBy.props);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -279,6 +287,131 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A Runner created as its project's default takes the default from the
+   * project's other Runners - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      createdItem: createdItem,
+    });
+
+    return await super.onCreateSuccess(onCreate, createdItem);
+  }
+
+  /*
+   * Refuses a Runner written as its project's default that may not be it
+   * (Types/Runner/ProjectDefaultRunner): a global Runner, the in-cluster
+   * Runner the Kubernetes agent chart installed, or one with "Runs
+   * Runbooks" off. `data` is the row as the write leaves it.
+   */
+  public static assertMayBeProjectDefault(data: {
+    isProjectDefault?: boolean | undefined;
+    isGlobalRunner?: boolean | undefined;
+    canRunRunbooks?: boolean | undefined;
+    name?: unknown;
+    hostInfo?: unknown;
+  }): void {
+    if (data.isProjectDefault !== true) {
+      return;
+    }
+
+    const refusal: ProjectDefaultRunnerRefusal | null =
+      getProjectDefaultRunnerRefusal(data);
+
+    if (refusal) {
+      throw new BadDataException(
+        describeProjectDefaultRunnerRefusal({
+          refusal,
+          ...(typeof data.name === "string" && data.name
+            ? { name: data.name }
+            : {}),
+        }),
+      );
+    }
+  }
+
+  /*
+   * A Runner created as its project's default is created by someone who may
+   * make a Runner the default: the column's update list, those who edit
+   * Runners. Every creator of a Runner may give the column a value - a
+   * client that sends what the API publishes sends false with every
+   * create - so its create list is the table's (Runner.isProjectDefault),
+   * and this refuses the one value that makes the new Runner the default,
+   * in the words the column check uses. Create Runner alone, like a Project
+   * Member, never makes the Runner it creates the one every runbook step
+   * that picks no Runner runs on. OneUptime and a master admin may.
+   */
+  public static assertMayCreateAsProjectDefault(
+    data: { isProjectDefault?: boolean | undefined },
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (data.isProjectDefault !== true || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: Model = new Model();
+
+    const mayMakeDefault: Array<Permission> =
+      model.getColumnAccessControlFor("isProjectDefault")?.update || [];
+
+    if (
+      CallerPermission.holdsAnyOf(props, mayMakeDefault, {
+        projectId: props.tenantId,
+      })
+    ) {
+      return;
+    }
+
+    throw new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "isProjectDefault",
+      modelName: model.singularName,
+      permissions: mayMakeDefault,
+    });
+  }
+
+  /*
+   * The project's default Runner, when it has one that may be it: what a
+   * step that picks no Runner runs on (Utils/Runner/GlobalRunnerChoice).
+   * Read as OneUptime. A default that may no longer be it - "Runs Runbooks"
+   * turned off by an older server, say - is no default at all: the step
+   * goes on by the default order rather than to a Runner that never takes
+   * it.
+   */
+  @CaptureSpan()
+  public async findProjectDefaultRunner(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const runner: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isProjectDefault: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        isGlobalRunner: true,
+        canRunRunbooks: true,
+        hostInfo: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!runner || !canBeProjectDefaultRunner(runner)) {
+      return null;
+    }
+
+    return runner;
+  }
+
+  /*
    * What a non-root write may not do to the kubernetes-agent marker and to
    * an agent row:
    *
@@ -293,34 +426,23 @@ export class Service extends ProjectReferencesService<Model> {
    *   since the pod keeps its key in memory only. (Nor may a code
    *   repository pick an agent row: CodeRepositoryService refuses that.)
    *
-   * And turning on "Runs AI Remediation Commands" for a Runner that holds SSH
-   * credentials takes the read of runbook credentials (see
-   * assertNoCredentialsForAiCommands). For someone who may not read runbook
-   * credentials:
+   * Nor may anyone turn on "Runs AI Remediation Commands" for a global
+   * Runner. (Only OneUptime and a master admin write that column at all: a
+   * Runner is picked for OneUptime AI's commands, RunnerAiCommandsPick.)
    *
-   *   - a save that posts the switch on while it is on already - every save
-   *     of the Runner form, which posts every field back - leaves it out of
-   *     the write (postsAiCommandsAsStored). The switch is not written, so a
-   *     form opened before someone turned it off cannot turn it back on, and
-   *     nothing it writes can put a credential within anyone's reach: it
-   *     takes no lock, and is saved whether or not Valkey can be reached;
-   *   - a save that turns it on - or gives no column but the switch a value,
-   *     on already, which dropping it would leave with nothing to write - holds
-   *     the project's lock that every checked write putting an SSH
-   *     credential within reach of OneUptime AI's commands holds
-   *     (AiCommandCredentialReach), from before whether the Runner's switch
-   *     is on and which SSH credentials it holds are read until the update
-   *     is written: an SSH credential assigned to it at the same moment is
-   *     either seen by this check, or sees the switch on in its own.
+   * And the project's default Runner (isProjectDefault) stays one that may
+   * be it (Types/Runner/ProjectDefaultRunner): an update may not make a
+   * global Runner, an agent row or one with "Runs Runbooks" off the
+   * default, nor turn "Runs Runbooks" off for the default while it stays
+   * the default - the steps that pick no Runner run on it.
    *
-   * Root writes (registration, heartbeats, sign-off) are the server's own.
+   * Root writes (registration, heartbeats, sign-off, and the default taken
+   * from a project's other Runners) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
    * unchanged name and a capability posted as false always pass: editing an
    * agent row's description or labels must still save. The Runners checked
-   * are the ones the update writes - the ones its caller may write - read
-   * once for the name, capability and switch checks, and again under the
-   * lock for a switch turned on, and the update is held to them
-   * (findRowsAndHoldUpdateToThem).
+   * are the ones the update writes - the ones its caller may write - and the
+   * update is held to them (findRowsAndHoldUpdateToThem).
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -360,10 +482,22 @@ export class Service extends ProjectReferencesService<Model> {
       turnsOnCapabilities.push('"Runs Runbooks"');
     }
 
+    // Whether the update makes Runners the project default.
+    const makesProjectDefault: boolean = data["isProjectDefault"] === true;
+
+    /*
+     * Whether it turns "Runs Runbooks" off for Runners it leaves the
+     * default - the ones it does not take the default from at once.
+     */
+    const stopsRunbooksOnDefault: boolean =
+      data["canRunRunbooks"] === false && data["isProjectDefault"] !== false;
+
     if (
       !isNameWritten &&
       turnsOnCapabilities.length === 0 &&
-      !writesAiCommandsOn
+      !writesAiCommandsOn &&
+      !makesProjectDefault &&
+      !stopsRunbooksOnDefault
     ) {
       return { updateBy, carryForward: null };
     }
@@ -378,15 +512,39 @@ export class Service extends ProjectReferencesService<Model> {
       updateBy,
       {
         _id: true,
-        projectId: true,
         name: true,
         hostInfo: true,
-        canRunAiCommands: true,
         isGlobalRunner: true,
+        canRunRunbooks: true,
+        isProjectDefault: true,
       },
     );
 
     for (const runner of runners) {
+      /*
+       * Made the project default: the Runner as the update leaves it may
+       * be it - a "Runs Runbooks" the same update turns on counts.
+       */
+      if (makesProjectDefault) {
+        Service.assertMayBeProjectDefault({
+          isProjectDefault: true,
+          isGlobalRunner: runner.isGlobalRunner,
+          canRunRunbooks:
+            typeof data["canRunRunbooks"] === "boolean"
+              ? (data["canRunRunbooks"] as boolean)
+              : runner.canRunRunbooks,
+          name: runner.name,
+          hostInfo: runner.hostInfo,
+        });
+      }
+
+      // The default keeps running the steps that pick no Runner.
+      if (stopsRunbooksOnDefault && runner.isProjectDefault === true) {
+        throw new BadDataException(
+          describeDefaultRunnerStopsRunningRunbooks(runner.name || undefined),
+        );
+      }
+
       /*
        * A global Runner runs runbook steps only (a master admin may pause
        * them with "Runs Runbooks"): AI commands act in one project's own
@@ -407,7 +565,7 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (renames && Service.isKubernetesAgentName(runner.name)) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps secrets and shell work away from it), so it cannot be renamed. Use its description instead, or upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner, and the Runner can then be deleted. ${getDeletedAgentRunnerRebindNote()}`,
         );
       }
 
@@ -427,101 +585,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
-    const written: Array<Model> = runners.filter((runner: Model): boolean => {
-      return Boolean(runner._id);
-    });
-
-    if (!writesAiCommandsOn || written.length === 0) {
-      return { updateBy, carryForward: null };
-    }
-
-    /*
-     * One who may read runbook credentials may turn the switch on whatever
-     * the Runners hold: nothing the update reads decides, so it takes no
-     * lock (see AiCommandCredentialReach).
-     */
-    if (RunbookCredentialReaders.mayRead(updateBy.props)) {
-      return { updateBy, carryForward: null };
-    }
-
-    // The switch posted as it is stored: left out of the write, with no lock.
-    if (Service.postsAiCommandsAsStored(data, written)) {
-      delete data["canRunAiCommands"];
-
-      return { updateBy, carryForward: null };
-    }
-
-    /*
-     * Anyone else's update that writes the switch on holds the projects'
-     * lock until it is written: it is the lock's to decide which Runners
-     * the update turns it on for. Whether each one's switch is on is read
-     * again under the lock - as it is now, not as it was before the lock
-     * was taken: another update may have turned it off since, and an SSH
-     * credential been assigned to the Runner while it was off.
-     */
-    const hold: CredentialReachHold = await AiCommandCredentialReach.take(
-      written.map((runner: Model): ObjectID | undefined => {
-        return runner.projectId || updateBy.props.tenantId;
-      }),
-    );
-
-    try {
-      const current: Array<Model> = await this.findRowsAndHoldUpdateToThem(
-        updateBy,
-        {
-          _id: true,
-          projectId: true,
-          name: true,
-          canRunAiCommands: true,
-        },
-      );
-
-      /*
-       * The Runners the update turns "Runs AI Remediation Commands" on for.
-       * A Runner already taking OneUptime AI's commands keeps what it has:
-       * the Runner form posts every field back.
-       */
-      const turnedOn: Array<Model> = current.filter(
-        (runner: Model): boolean => {
-          return Boolean(runner._id) && runner.canRunAiCommands !== true;
-        },
-      );
-
-      if (turnedOn.length > 0) {
-        await this.assertNoCredentialsForAiCommands(turnedOn, updateBy.props);
-      }
-    } catch (error) {
-      await AiCommandCredentialReach.giveBack(hold);
-      throw error;
-    }
-
-    return AiCommandCredentialReach.heldUpdate(updateBy, hold);
-  }
-
-  /*
-   * Whether an update by someone who may not read runbook credentials that
-   * posts "Runs AI Remediation Commands" on can leave it out: every Runner
-   * it writes (`runners`, as the update's hook read them) has it on already,
-   * and the update writes something else besides - a column it gives a
-   * value, not one left undefined, so the write is never left empty; the
-   * Runner form posts every field. Left out, the switch keeps whatever it
-   * holds when the update lands: a form opened before someone turned it off
-   * does not turn it back on, and nothing the update writes needs a lock.
-   */
-  public static postsAiCommandsAsStored(
-    data: JSONObject,
-    runners: Array<Model>,
-  ): boolean {
-    return (
-      data["canRunAiCommands"] === true &&
-      runners.length > 0 &&
-      runners.every((runner: Model): boolean => {
-        return runner.canRunAiCommands === true;
-      }) &&
-      Object.keys(data).some((column: string): boolean => {
-        return column !== "canRunAiCommands" && data[column] !== undefined;
-      })
-    );
+    return { updateBy, carryForward: null };
   }
 
   /*
@@ -562,147 +626,24 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  // Right before the write: the lock its check was made under is still the update's.
-  @CaptureSpan()
-  protected override async onUpdatePermitted(
-    updateBy: UpdateBy<Model>,
-  ): Promise<void> {
-    await super.onUpdatePermitted(updateBy);
-
-    await AiCommandCredentialReach.keepForUpdate(updateBy);
-  }
-
-  // The update is written: its lock is given back.
+  /*
+   * The update is written: a Runner it made the project default takes the
+   * default from the project's other Runners - only the Runners the update
+   * actually wrote (ProjectDefaultRow).
+   */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
-    await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
     return await super.onUpdateSuccess(onUpdate, updatedItemIds);
-  }
-
-  /*
-   * The update was refused or failed after its check: its lock is given
-   * back, unless the database may still write it.
-   */
-  @CaptureSpan()
-  protected override async onUpdateError(
-    error: Exception,
-    onUpdate?: OnUpdate<Model> | undefined,
-    failedStatement?: StatementContext | undefined,
-  ): Promise<Exception> {
-    await AiCommandCredentialReach.giveBackAfterFailedUpdate(
-      error,
-      onUpdate,
-      failedStatement,
-    );
-
-    return await super.onUpdateError(error, onUpdate, failedStatement);
-  }
-
-  /*
-   * Refuses a write, by a caller who may not read runbook credentials, that
-   * lets OneUptime AI's commands run on one of `turnedOn` - the Runners it
-   * turns canRunAiCommands on for: a master admin's update of the column, or
-   * an auto remediation rule or a Kubernetes cluster that picks the Runner
-   * (RunnerAiCommandsPick) - holding an SSH credential. OneUptime AI picks
-   * among a Runner's SSH credentials for the SSH commands it runs there,
-   * unattended for a rule that runs its commands without asking, so letting
-   * it take them is held to whoever may read the credentials, as approving
-   * such a plan and saving such a rule are (RunbookCredentialReaders). Only
-   * the Runners it turns on are asked about: a Runner already on keeps what
-   * it has. Read under the project's lock (AiCommandCredentialReach), so a
-   * credential assigned to one of them at the same moment is read here or
-   * refused there.
-   */
-  public async assertNoCredentialsForAiCommands(
-    turnedOn: Array<Model>,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<void> {
-    if (turnedOn.length === 0) {
-      return;
-    }
-
-    const credentials: Array<RunbookCredential> =
-      await ProjectScopedReferenceValidator.getLookupService(
-        RunbookCredential,
-      ).findBy({
-        query: {
-          runners: QueryHelper.inRelationArray(
-            turnedOn.map((runner: Model): ObjectID => {
-              return new ObjectID(runner._id!.toString());
-            }),
-          ),
-          credentialType: RunbookCredentialType.SSH,
-        },
-        select: {
-          _id: true,
-          runners: {
-            _id: true,
-          },
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    const holdingCredentials: Set<string> = new Set<string>();
-
-    for (const credential of credentials) {
-      for (const runner of credential.runners || []) {
-        if (runner._id) {
-          holdingCredentials.add(runner._id.toString().toLowerCase());
-        }
-      }
-    }
-
-    const holding: Model | undefined = turnedOn.find(
-      (runner: Model): boolean => {
-        return holdingCredentials.has(runner._id!.toString().toLowerCase());
-      },
-    );
-
-    if (holding) {
-      throw new NotAuthorizedException(
-        `Runner "${holding.name || holding._id!.toString()}" holds SSH credentials that OneUptime AI picks from for the commands it runs there, so letting it run OneUptime AI's commands takes permission to read runbook credentials: ${RunbookCredentialReaders.getTitles()}.${RunbookCredentialReaders.getWorkflowNote(props)}`,
-      );
-    }
-  }
-
-  /*
-   * Of the Runners `runnerIds` names in `projectId`, the ones that run
-   * OneUptime AI's commands ("Runs AI Remediation Commands" on) - read as
-   * OneUptime, for the check an SSH credential's assignment to them makes
-   * (RunbookCredentialService), under the project's lock
-   * (AiCommandCredentialReach).
-   */
-  @CaptureSpan()
-  public async findRunnersRunningAiCommands(data: {
-    runnerIds: Array<ObjectID>;
-    projectId: ObjectID;
-  }): Promise<Array<Model>> {
-    if (data.runnerIds.length === 0) {
-      return [];
-    }
-
-    return await this.findBy({
-      query: {
-        _id: QueryHelper.any(data.runnerIds),
-        projectId: data.projectId,
-        canRunAiCommands: true,
-      },
-      select: {
-        _id: true,
-        name: true,
-      },
-      limit: data.runnerIds.length,
-      skip: 0,
-      props: { isRoot: true },
-    });
   }
 
   /*
@@ -988,20 +929,20 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Refuses to assign credential material (a RunbookCredential or a secret
-   * RunbookVariable) to a kubernetes-agent Runner. Such a Runner row is minted
-   * and re-keyed with the project's telemetry ingestion key — a credential
-   * every collector and CI job holds — so whatever is assigned to it is
-   * reachable by anyone holding that key. It runs kubectl with its own
-   * ServiceAccount only and never needs a credential; the claim path would
-   * refuse to hand one over anyway, so the assignment is refused where it is
-   * made, with a message that says what to do instead. "Agent" is the one
-   * rule (isKubernetesAgentRunnerRow): the name marker or an agent posture.
+   * Refuses to assign secret material (a secret RunbookVariable) to a
+   * kubernetes-agent Runner. Such a Runner row is minted and re-keyed with
+   * the project's telemetry ingestion key — a credential every collector and
+   * CI job holds — so whatever is assigned to it is reachable by anyone
+   * holding that key. It runs kubectl with its own ServiceAccount only and
+   * never needs a secret; the claim path would refuse to hand one over
+   * anyway, so the assignment is refused where it is made, with a message
+   * that says what to do instead. "Agent" is the one rule
+   * (isKubernetesAgentRunnerRow): the name marker or an agent posture.
    */
   @CaptureSpan()
   public async assertNoKubernetesAgentRunners(data: {
     runners: unknown;
-    // What is being assigned, for the message: "credential" or "secret".
+    // What is being assigned, for the message: "secret".
     assignedWhat: string;
   }): Promise<void> {
     const agentRunner: Model | undefined = (

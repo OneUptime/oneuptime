@@ -51,24 +51,26 @@ import {
  *      work. With no capabilities left, the ingress answers { job: null }
  *      WITHOUT touching RunnerJobService, so a fully revoked Runner can never
  *      lease anything. The claim response carries the job's origin, omits
- *      runbookExecutionId for AiRemediation jobs (they have none), and still
- *      resolves SSH credentials at claim time exactly like runbook jobs. It
+ *      runbookExecutionId for AiRemediation jobs (they have none), and fails
+ *      a job that names a runbook credential - an SSH command, or kubectl
+ *      through a Runner outside its cluster, queued before runbook
+ *      credentials were removed - for every Runner, never serving it. It
  *      must ALSO never fill in runbook variables ({{global.variables.*}},
  *      {{local.variables.*}}, or the older {{runbookSecrets.*}}) in an
  *      AI-composed command — that substitution is for human-authored runbook
  *      scripts only, and doing it for AiRemediation jobs would be an
  *      exfiltration primitive.
  *
- *      Two more rules on the same claim: a credential-less Kubectl job runs
- *      with the claiming pod's own ServiceAccount, so it is served ONLY to
+ *      Two more rules on the same claim: a Kubectl job runs with the
+ *      claiming pod's own ServiceAccount, so it is served ONLY to
  *      the in-cluster Runner whose posture names the job's cluster (any
  *      other Runner gets the job failed, not served); and the Runner may
  *      narrow what it is served with `stepTypes`, while a kubernetes-agent
  *      Runner (by its server-owned name, or by its posture) is narrowed to
  *      kubectl by the server regardless, so an AI-composed shell command
  *      never reaches the agent pod. That Runner is also never handed
- *      credential material or runbook secrets: its identity can be minted
- *      with the telemetry ingestion key.
+ *      runbook secrets: its identity can be minted with the telemetry
+ *      ingestion key.
  *
  *      Registration (/register-kubernetes-agent) passes the Runner's
  *      previous key through so a live Runner can prove continuity, reports
@@ -78,14 +80,13 @@ import {
  *
  *   2. RunnerJobService.enqueueAiCommand — the server-side gate on the path
  *      an LLM's output takes to a shell. It must re-validate what the tool
- *      layer already checked (step type, non-empty command, the hard
- *      denylist, SSH credential requirement), refuse a target that is not
- *      one of the project's Runners or is a kubernetes-agent Runner,
- *      enforce the project-wide hourly ceiling on AI command jobs, and
- *      persist the job in the
- *      same layout the runbook executors use: Bash carries the command as
- *      the script; SSH carries an empty script plus a structured payload,
- *      never credential material.
+ *      layer already checked (step type - Bash only: SSH reached its host
+ *      with a runbook credential and went with them -, non-empty command,
+ *      the hard denylist), refuse a target that is not one of the
+ *      project's Runners or is a kubernetes-agent Runner, enforce the
+ *      project-wide hourly ceiling on AI command jobs, and persist the job
+ *      in the same layout the runbook executors use: Bash carries the
+ *      command as the script.
  * ---------------------------------------------------------------------------
  */
 
@@ -183,25 +184,12 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-/*
- * Credential resolution is a DB read scoped to the claiming Runner; mocked
- * at the module boundary so the SSH claim test controls exactly what the
- * ingress hands back on the wire.
- */
-jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
-  return {
-    __esModule: true,
-    default: {
-      resolveForJob: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
 import RunnerAuthorization from "../../FeatureSet/Runbook/Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
-import RunbookCredentialsUtil from "../../FeatureSet/Runbook/Utils/Credentials";
+import fs from "fs";
+import path from "path";
 
 const HEARTBEAT_ROUTE: string = "/heartbeat";
 const CLAIM_ROUTE: string = "/claim-next-job";
@@ -412,9 +400,6 @@ describe("AI command capability gating on the agent ingress", () => {
       .mockResolvedValue(false);
 
     stubVariableReads(agentId);
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -676,19 +661,14 @@ describe("AI command capability gating on the agent ingress", () => {
     });
 
     /*
-     * SSH AI jobs reuse the runbook credential machinery: the payload rides
-     * through to the Runner untouched, and the credential referenced by
-     * payload.credentialId is resolved at claim time, scoped to the
-     * claiming Runner and its project — never stored on the job row.
+     * SSH AI jobs reached their host with a runbook credential, resolved at
+     * claim time for the claiming Runner. Runbook credentials were removed:
+     * a job queued before that is failed, saying why, and never served.
      */
-    test("passes the SSH payload through and resolves the credential for the claiming Runner", async () => {
-      const credentialId: string = ObjectID.generate().toString();
-      const resolvedCredential: JSONObject = {
-        host: "10.0.0.5",
-        port: 22,
-        username: "deploy",
-        privateKey: "ssh-key-material",
-      };
+    test("fails an SSH job that names a runbook credential: never served, the Runner told why", async () => {
+      const submitResultSpy: jest.SpyInstance = jest
+        .spyOn(RunnerJobService, "submitResult")
+        .mockResolvedValue(true);
 
       claimNextJobSpy.mockResolvedValue(
         buildClaimedJob({
@@ -696,14 +676,11 @@ describe("AI command capability gating on the agent ingress", () => {
           stepType: RunbookStepType.SSH,
           script: "",
           payload: {
-            credentialId: credentialId,
+            credentialId: ObjectID.generate().toString(),
             command: "systemctl restart nginx",
           },
         }),
       );
-      (
-        RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-      ).mockResolvedValue(resolvedCredential);
 
       const result: RouteCallResult = await callRoute({
         uri: CLAIM_ROUTE,
@@ -711,32 +688,33 @@ describe("AI command capability gating on the agent ingress", () => {
       });
 
       expect(result.nextCallCount).toBe(0);
-
-      const resolveCall: {
-        credentialId: string;
+      expect(submitResultSpy).toHaveBeenCalledTimes(1);
+      const call: {
+        jobId: ObjectID;
         agentId: ObjectID;
-        projectId: ObjectID;
-      } = (RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock).mock
-        .calls[0]![0] as {
-        credentialId: string;
+        success: boolean;
+        errorMessage: string;
+      } = submitResultSpy.mock.calls[0]![0] as {
+        jobId: ObjectID;
         agentId: ObjectID;
-        projectId: ObjectID;
+        success: boolean;
+        errorMessage: string;
       };
+      expect(call.jobId.toString()).toBe(JOB_ID.toString());
+      expect(call.agentId.toString()).toBe(agentId.toString());
+      expect(call.success).toBe(false);
+      expect(call.errorMessage).toBe(
+        RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL,
+      );
+      expect(lastJsonResponse()).toEqual({ job: null });
+    });
 
-      expect(resolveCall.credentialId).toBe(credentialId);
-      expect(resolveCall.agentId.toString()).toBe(agentId.toString());
-      expect(resolveCall.projectId.toString()).toBe(projectId.toString());
-
-      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-
-      expect(job["origin"]).toBe(RunnerJobOrigin.AiRemediation);
-      expect(job).not.toHaveProperty("runbookExecutionId");
-      expect(job["stepType"]).toBe(RunbookStepType.SSH);
-      expect(job["payload"]).toEqual({
-        credentialId: credentialId,
-        command: "systemctl restart nginx",
-      });
-      expect(job["credential"]).toEqual(resolvedCredential);
+    test("the module that resolved a credential for a job is gone", () => {
+      expect(
+        fs.existsSync(
+          path.join(__dirname, "../../FeatureSet/Runbook/Utils/Credentials.ts"),
+        ),
+      ).toBe(false);
     });
   });
 
@@ -752,9 +730,8 @@ describe("AI command capability gating on the agent ingress", () => {
    * plaintext secret — a one-line exfiltration macro that also lands in the
    * job's captured output. So the placeholder must be served through
    * VERBATIM for AiRemediation jobs, and no variable may even be read
-   * (nothing to leak if nothing is loaded). AI commands reach credentials
-   * only via the credentialId path, which never exposes the material to the
-   * model.
+   * (nothing to leak if nothing is loaded). AI commands are handed no
+   * secret at all.
    */
   describe("POST /claim-next-job never substitutes secrets into AI-composed commands", () => {
     test.each([
@@ -789,12 +766,13 @@ describe("AI command capability gating on the agent ingress", () => {
     );
 
     /*
-     * Same guarantee for the SSH shape, where the command rides in the
-     * payload instead of the script: the payload is passed through as-is
-     * and the secrets util is still never consulted.
+     * Same guarantee for the SSH shape, where the command rode in the
+     * payload instead of the script: such a job (it names the runbook
+     * credential it reached its host with) is failed, and no variable is
+     * read for it - nothing reaches the wire, the placeholder least of all.
      */
-    test("passes an AiRemediation SSH payload command through with its placeholder intact", async () => {
-      const credentialId: string = ObjectID.generate().toString();
+    test("fails an AiRemediation SSH job with a placeholder in its command, reading no variable", async () => {
+      jest.spyOn(RunnerJobService, "submitResult").mockResolvedValue(true);
 
       claimNextJobSpy.mockResolvedValue(
         buildClaimedJob({
@@ -802,14 +780,11 @@ describe("AI command capability gating on the agent ingress", () => {
           stepType: RunbookStepType.SSH,
           script: "",
           payload: {
-            credentialId: credentialId,
+            credentialId: ObjectID.generate().toString(),
             command: SECRET_PLACEHOLDER_SCRIPT,
           },
         }),
       );
-      (
-        RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-      ).mockResolvedValue({ host: "10.0.0.5", username: "deploy" });
 
       await callRoute({
         uri: CLAIM_ROUTE,
@@ -817,11 +792,8 @@ describe("AI command capability gating on the agent ingress", () => {
       });
 
       expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
-
-      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-      const payload: JSONObject = job["payload"] as JSONObject;
-
-      expect(payload["command"]).toBe(SECRET_PLACEHOLDER_SCRIPT);
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(JSON.stringify(lastJsonResponse())).not.toContain("hunter2");
     });
 
     /*
@@ -941,7 +913,7 @@ describe("RunnerJobService.enqueueAiCommand", () => {
     jest.restoreAllMocks();
   });
 
-  test("rejects the Kubernetes step type — AI remediation only composes Bash and SSH", async () => {
+  test("rejects the Kubernetes step type — AI remediation only composes Bash here", async () => {
     await expect(
       RunnerJobService.enqueueAiCommand(
         enqueueData({ stepType: RunbookStepType.Kubernetes }),
@@ -981,15 +953,37 @@ describe("RunnerJobService.enqueueAiCommand", () => {
     expect(createSpy).not.toHaveBeenCalled();
   });
 
-  test("rejects an SSH command without a credentialId", async () => {
-    await expect(
-      RunnerJobService.enqueueAiCommand(
-        enqueueData({ stepType: RunbookStepType.SSH }),
-      ),
-    ).rejects.toThrow(BadDataException);
+  /*
+   * An SSH command reached its host with a runbook credential, which a
+   * command without one was refused for. Runbook credentials were removed:
+   * every SSH command is refused, with one or without, before anything is
+   * read.
+   */
+  test.each([
+    ["without a credentialId", {}],
+    [
+      "with a credentialId",
+      { credentialId: "77777777-7777-4777-8777-777777777777" },
+    ],
+  ] as Array<[string, JSONObject]>)(
+    "rejects an SSH command %s, before reading anything",
+    async (_label: string, extra: JSONObject) => {
+      await expect(
+        RunnerJobService.enqueueAiCommand(
+          enqueueData({
+            stepType: RunbookStepType.SSH,
+            ...extra,
+          } as Partial<
+            Parameters<typeof RunnerJobService.enqueueAiCommand>[0]
+          >),
+        ),
+      ).rejects.toThrow('AI remediation does not execute step type "SSH".');
 
-    expect(createSpy).not.toHaveBeenCalled();
-  });
+      expect(createSpy).not.toHaveBeenCalled();
+      expect(countBySpy).not.toHaveBeenCalled();
+      expect(RunnerService.findOneBy).not.toHaveBeenCalled();
+    },
+  );
 
   test("persists a Bash job with the command as the script, AiRemediation provenance, and no payload", async () => {
     await RunnerJobService.enqueueAiCommand(enqueueData({}));
@@ -1014,28 +1008,6 @@ describe("RunnerJobService.enqueueAiCommand", () => {
       .calls[0]![0] as { props: Record<string, unknown> };
 
     expect(createArgs.props).toEqual(expect.objectContaining({ isRoot: true }));
-  });
-
-  test("persists an SSH job with an empty script and the structured payload — never credential material", async () => {
-    const credentialId: string = ObjectID.generate().toString();
-
-    await RunnerJobService.enqueueAiCommand(
-      enqueueData({
-        stepType: RunbookStepType.SSH,
-        credentialId: credentialId,
-        command: "systemctl restart nginx",
-      }),
-    );
-
-    const row: RunnerJob = createdRow();
-
-    expect(row.script).toBe("");
-    expect(row.origin).toBe(RunnerJobOrigin.AiRemediation);
-    expect(row.stepType).toBe(RunbookStepType.SSH);
-    expect(row.payload).toEqual({
-      credentialId: credentialId,
-      command: "systemctl restart nginx",
-    });
   });
 
   test("honors claimTimeoutInMs when stamping the claim deadline", async () => {
@@ -1160,14 +1132,16 @@ describe("RunnerJobService.enqueueAiCommand", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Credential-less kubectl runs with the claiming pod's OWN ServiceAccount,
- * which reaches exactly the cluster that pod lives in. So the claim path
- * serves such a job only to the in-cluster Runner whose posture names the
- * job's cluster — and FAILS the job (visible to the AI run and the cluster's
- * AI page) for any other Runner rather than handing it over.
+ * kubectl runs with the claiming pod's OWN ServiceAccount, which reaches
+ * exactly the cluster that pod lives in. So the claim path serves a Kubectl
+ * job only to the in-cluster Runner whose posture names the job's cluster —
+ * and FAILS the job (visible to the AI run and the cluster's AI page) for
+ * any other Runner rather than handing it over. (A Runner outside the
+ * cluster reached it with a Kubernetes runbook credential the job named,
+ * until runbook credentials were removed.)
  * ---------------------------------------------------------------------------
  */
-describe("POST /claim-next-job serves credential-less Kubectl jobs only to the in-cluster Runner of the job's cluster", () => {
+describe("POST /claim-next-job serves Kubectl jobs only to the in-cluster Runner of the job's cluster", () => {
   let agentId: ObjectID;
   let projectId: ObjectID;
   let claimNextJobSpy: jest.SpyInstance;
@@ -1199,9 +1173,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
     } as unknown as RunnerJob;
   }
 
-  function credentialLessJobFor(
-    clusterIdentifier?: string | undefined,
-  ): RunnerJob {
+  function kubectlJobFor(clusterIdentifier?: string | undefined): RunnerJob {
     return kubectlJob({
       args: KUBECTL_ARGS,
       displayCommand: "kubectl get pods -n web",
@@ -1252,9 +1224,6 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
       .mockResolvedValue(true);
 
     stubVariableReads(agentId);
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -1262,7 +1231,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("serves the job to the in-cluster Runner whose posture names the job's cluster", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("prod-us"));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("prod-us"));
 
     const result: RouteCallResult = await callRoute({
       uri: CLAIM_ROUTE,
@@ -1285,7 +1254,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("matches the cluster identifier case-insensitively", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("prod-us"));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("prod-us"));
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -1302,7 +1271,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("fails the job for a Runner that is not in-cluster at all", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("prod-us"));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("prod-us"));
 
     const result: RouteCallResult = await callRoute({
       uri: CLAIM_ROUTE,
@@ -1310,7 +1279,9 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
     });
 
     expect(result.nextCallCount).toBe(0);
-    expect(failedJobMessage()).toContain("not the in-cluster Runner");
+    expect(failedJobMessage()).toBe(
+      "This kubectl command can only run on the in-cluster Runner of its cluster, and this Runner is not one, so it was not run. OneUptime AI reaches a cluster through its Kubernetes AI agent, which the Kubernetes agent chart installs.",
+    );
     expect(lastJsonResponse()).toEqual({ job: null });
   });
 
@@ -1319,7 +1290,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
    * for cluster A, whatever the dashboard was told.
    */
   test("fails the job for the in-cluster Runner of a DIFFERENT cluster, naming both", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("prod-us"));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("prod-us"));
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -1336,7 +1307,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("fails the job for a pod Runner that never said which cluster it is in", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("prod-us"));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("prod-us"));
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -1348,7 +1319,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("fails closed on a job whose payload does not name its cluster", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor(undefined));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor(undefined));
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -1363,7 +1334,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
   });
 
   test("never lets a blank payload identifier match a blank posture identifier", async () => {
-    claimNextJobSpy.mockResolvedValue(credentialLessJobFor("   "));
+    claimNextJobSpy.mockResolvedValue(kubectlJobFor("   "));
 
     await callRoute({
       uri: CLAIM_ROUTE,
@@ -1374,70 +1345,53 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
     expect(lastJsonResponse()).toEqual({ job: null });
   });
 
-  test("a Kubectl job WITH a credential skips the posture rule and resolves the credential for the claiming Runner", async () => {
-    const credentialId: string = ObjectID.generate().toString();
-    const resolved: JSONObject = {
-      apiServerUrl: "https://10.0.0.1:6443",
-      token: "sa-token",
-    };
+  /*
+   * A Kubectl job that named a Kubernetes runbook credential skipped the
+   * posture rule: a Runner outside the cluster ran it with that credential.
+   * Runbook credentials were removed, and such a job (queued before) is
+   * failed for every Runner - its own cluster's in-cluster Runner too.
+   */
+  test.each([
+    ["a Runner outside the cluster", undefined],
+    [
+      "the in-cluster Runner of the job's cluster",
+      { inCluster: true, clusterIdentifier: "prod-us" },
+    ],
+  ] as Array<[string, JSONObject | undefined]>)(
+    "fails a Kubectl job that still names a runbook credential, for %s",
+    async (_label: string, posture: JSONObject | undefined) => {
+      claimNextJobSpy.mockResolvedValue(
+        kubectlJob({
+          args: KUBECTL_ARGS,
+          displayCommand: "kubectl get pods -n web",
+          tier: "Read",
+          kubernetesClusterId: ObjectID.generate().toString(),
+          clusterIdentifier: "prod-us",
+          credentialId: ObjectID.generate().toString(),
+        }),
+      );
 
-    claimNextJobSpy.mockResolvedValue(
-      kubectlJob({
-        args: KUBECTL_ARGS,
-        displayCommand: "kubectl get pods -n web",
-        tier: "Read",
-        kubernetesClusterId: ObjectID.generate().toString(),
-        clusterIdentifier: "prod-us",
-        credentialId,
-      }),
-    );
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue(resolved);
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: agentWithPosture(posture),
+      });
 
-    /*
-     * An external Runner created in the dashboard: no posture at all. (It
-     * used to be the agent-named row with its posture dropped — which is
-     * exactly the identity that must never receive a credential; see the
-     * block below.)
-     */
-    await callRoute({
-      uri: CLAIM_ROUTE,
-      agent: {
-        ...agentWithPosture(undefined),
-        name: "office-runner",
-      } as unknown as Runner,
-    });
-
-    expect(submitResultSpy).not.toHaveBeenCalled();
-
-    const resolveCall: {
-      credentialId: string;
-      agentId: ObjectID;
-      projectId: ObjectID;
-    } = (RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock).mock
-      .calls[0]![0] as {
-      credentialId: string;
-      agentId: ObjectID;
-      projectId: ObjectID;
-    };
-    expect(resolveCall.credentialId).toBe(credentialId);
-    expect(resolveCall.agentId.toString()).toBe(agentId.toString());
-    expect(resolveCall.projectId.toString()).toBe(projectId.toString());
-
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job["credential"]).toEqual(resolved);
-  });
+      expect(failedJobMessage()).toBe(
+        RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL,
+      );
+      expect(lastJsonResponse()).toEqual({ job: null });
+    },
+  );
 });
 
 /*
  * ---------------------------------------------------------------------------
  * The credential-exfiltration fix. A kubernetes-agent Runner row is minted,
  * and while offline re-keyed, with the project's telemetry ingestion key —
- * a credential every collector and CI job holds. So that identity is NEVER
- * handed credential material, whatever an operator assigned to it: a job
- * that names a credential is failed for it (the same refusal shape as the
- * credential-less rule) and the credential is never resolved.
+ * a credential every collector and CI job holds. So that identity was NEVER
+ * handed credential material, whatever an operator assigned to it. Runbook
+ * credentials were removed since: a job that names one is failed for every
+ * Runner, the agent's identity included, and nothing reaches the wire.
  *
  * "Agent" is decided from the row NAME, which only the server writes —
  * never from hostInfo posture, which the Runner rewrites on every
@@ -1445,7 +1399,7 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
  * must not unlock credentials or shell work.
  * ---------------------------------------------------------------------------
  */
-describe("POST /claim-next-job never hands a kubernetes-agent Runner credential material", () => {
+describe("POST /claim-next-job never hands a kubernetes-agent Runner credential material, or anyone else", () => {
   let agentId: ObjectID;
   let projectId: ObjectID;
   let claimNextJobSpy: jest.SpyInstance;
@@ -1504,12 +1458,6 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       .mockResolvedValue(true);
 
     stubVariableReads(agentId);
-    (
-      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
-    ).mockResolvedValue({
-      apiServerUrl: "https://prod-b.internal:6443",
-      token: "PROD-B-WRITE-SA-TOKEN",
-    });
   });
 
   afterEach(() => {
@@ -1520,7 +1468,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
     label: string,
     hostInfo: JSONObject | undefined,
   ): void {
-    test(`fails a credentialed job for an agent Runner ${label}, never resolving the credential`, async () => {
+    test(`fails a credentialed job for an agent Runner ${label}`, async () => {
       claimNextJobSpy.mockResolvedValue(
         credentialedKubectlJob(ObjectID.generate().toString()),
       );
@@ -1531,7 +1479,6 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       });
 
       expect(result.nextCallCount).toBe(0);
-      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
 
       expect(submitResultSpy).toHaveBeenCalledTimes(1);
       const call: {
@@ -1549,7 +1496,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       expect(call.agentId.toString()).toBe(agentId.toString());
       expect(call.success).toBe(false);
       expect(call.errorMessage).toBe(
-        RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL,
+        RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL,
       );
 
       // Nothing on the wire: no job, and certainly no token.
@@ -1590,7 +1537,6 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
     });
 
-    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
     expect(submitResultSpy).toHaveBeenCalledTimes(1);
     expect(lastJsonResponse()).toEqual({ job: null });
   });
@@ -1637,7 +1583,12 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
     expect(lastJsonResponse()).toEqual({ job: null });
   });
 
-  test("negative control: a dashboard Runner with the same assignment still receives the credential", async () => {
+  /*
+   * A dashboard Runner with the same credential assigned to it received
+   * it. Runbook credentials were removed: it is failed the same way now,
+   * with nothing for anyone to hand over.
+   */
+  test("a dashboard Runner is failed the same way: there is no credential to hand anyone", async () => {
     claimNextJobSpy.mockResolvedValue(
       credentialedKubectlJob(ObjectID.generate().toString()),
     );
@@ -1647,16 +1598,15 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       agent: runnerRow({ name: "office-runner", hostInfo: {} }),
     });
 
-    expect(submitResultSpy).not.toHaveBeenCalled();
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
-    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
-    expect(job["credential"]).toEqual({
-      apiServerUrl: "https://prod-b.internal:6443",
-      token: "PROD-B-WRITE-SA-TOKEN",
-    });
+    expect(submitResultSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (submitResultSpy.mock.calls[0]![0] as { errorMessage: string })
+        .errorMessage,
+    ).toBe(RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL);
+    expect(lastJsonResponse()).toEqual({ job: null });
   });
 
-  test("negative control: a name that only resembles the prefix is not an agent", async () => {
+  test("negative control: a name that only resembles the prefix is not an agent (it is not narrowed)", async () => {
     claimNextJobSpy.mockResolvedValue(
       credentialedKubectlJob(ObjectID.generate().toString()),
     );
@@ -1666,11 +1616,11 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       agent: runnerRow({ name: "kubernetes-agent-office", hostInfo: {} }),
     });
 
-    expect(submitResultSpy).not.toHaveBeenCalled();
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
     const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
       .calls[0]![0] as Record<string, unknown>;
     expect(claimArgs).not.toHaveProperty("allowedStepTypes");
+    // Its credentialed job is failed like everyone's.
+    expect(submitResultSpy).toHaveBeenCalledTimes(1);
   });
 
   /*
@@ -1691,7 +1641,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
   ];
 
   test.each(RENAMED_AGENT_ROWS)(
-    "refuses credential material to a row with %s, never resolving the credential",
+    "refuses credential material to a row with %s",
     async (_label: string, name: string, hostInfo: JSONObject) => {
       claimNextJobSpy.mockResolvedValue(
         credentialedKubectlJob(ObjectID.generate().toString()),
@@ -1702,12 +1652,11 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
         agent: runnerRow({ name, hostInfo }),
       });
 
-      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
       expect(submitResultSpy).toHaveBeenCalledTimes(1);
       expect(
         (submitResultSpy.mock.calls[0]![0] as { errorMessage: string })
           .errorMessage,
-      ).toBe(RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL);
+      ).toBe(RunnerIngressAPI.REMOVED_CREDENTIAL_COMMAND_REFUSAL);
       expect(lastJsonResponse()).toEqual({ job: null });
       expect(JSON.stringify(lastJsonResponse())).not.toContain(
         "PROD-B-WRITE-SA-TOKEN",
@@ -1752,7 +1701,7 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
     },
   );
 
-  test("negative control: an ordinary Runner in a pod (no cluster identity) receives the credential, un-narrowed", async () => {
+  test("negative control: an ordinary Runner in a pod (no cluster identity) is not narrowed, and its credentialed job is failed", async () => {
     claimNextJobSpy.mockResolvedValue(
       credentialedKubectlJob(ObjectID.generate().toString()),
     );
@@ -1765,11 +1714,8 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
       }),
     });
 
-    expect(submitResultSpy).not.toHaveBeenCalled();
-    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
-    expect(
-      (lastJsonResponse()["job"] as JSONObject)["credential"],
-    ).toBeDefined();
+    expect(submitResultSpy).toHaveBeenCalledTimes(1);
+    expect(lastJsonResponse()).toEqual({ job: null });
     const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
       .calls[0]![0] as Record<string, unknown>;
     expect(claimArgs).not.toHaveProperty("allowedStepTypes");

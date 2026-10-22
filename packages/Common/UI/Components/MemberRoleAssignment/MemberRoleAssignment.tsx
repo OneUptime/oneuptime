@@ -19,6 +19,7 @@ import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import { ButtonStyleType } from "../Button/Button";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 
 export interface MemberRole {
   id: ObjectID;
@@ -27,6 +28,11 @@ export interface MemberRole {
   isPrimaryRole?: boolean;
   icon?: IconProp;
   canAssignMultipleUsers?: boolean;
+  /*
+   * An archived role (Common/Utils/ArchivableValues): its people keep it and
+   * can be taken off, and nobody new is given it - no Assign or Add More.
+   */
+  isArchived?: boolean;
 }
 
 export interface AssignedMember {
@@ -372,7 +378,8 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                 const availableUsers: Array<DropdownOption> =
                   getAvailableUsersForRole(role.id);
                 const canAddMore: boolean =
-                  role.canAssignMultipleUsers || members.length === 0;
+                  !role.isArchived &&
+                  (role.canAssignMultipleUsers || members.length === 0);
 
                 return (
                   <div
@@ -419,6 +426,9 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
                                 {translator.translateText("Primary")}
                               </span>
+                            )}
+                            {role.isArchived && (
+                              <ArchivedTag dataTestId="member-role-archived-tag" />
                             )}
                             {/*
                              * No "Multiple" tag: a role that takes several

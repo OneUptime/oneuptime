@@ -36,6 +36,7 @@
     "or": "oppure",
     "copy": "Copia",
     "copied": "Copiato!",
+    "copyFailed": "Copia non riuscita",
     "copyCode": "Copia codice",
     "copyRequest": "Copia richiesta",
     "headers": "Intestazioni",

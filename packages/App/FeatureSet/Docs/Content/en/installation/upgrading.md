@@ -1248,7 +1248,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `lastSavedByUserId` column on workflows. That column is dropped on start,
   the API and Terraform no longer return it, and a step is refused whoever
   saved the workflow. See
-  [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
+  [Runbook credentials are removed](#runbook-credentials-are-removed)
   and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - **An LLM provider's Additional Parameters are read like its API key,
   and its Base URL is changed only by those who may read them.** A
@@ -1518,13 +1518,15 @@ API, SSO, or the Slack and Microsoft Teams apps.
   secret variable, and a Kubernetes step is now a kubectl step that runs a
   script of kubectl commands with a kubeconfig variable. Every stored step
   was moved to that shape, with what its credential held copied into secret
-  global variables, and does what it did. The credentials stay, under
-  **Runbooks → Runners → AI Access**, for OneUptime AI's own commands. A
-  moved Kubernetes step also keeps its credential and action, so a Runner
-  older than this release still runs it as it did. A new kubectl step, and a
-  moved one once its script or kubeconfig is changed, needs a Runner of this
-  release: an older one fails such a step and says so, so update your
-  Runners. See [Runbook Variables](/docs/runbooks/variables).
+  global variables, and does what it did. The credentials stayed, on the
+  **AI Access** page under **Runbooks → Runners**, for OneUptime AI's own
+  commands, and a moved Kubernetes step kept its credential and action, so a
+  Runner older than this release still ran it as it did, until
+  [runbook credentials were removed](#runbook-credentials-are-removed). A
+  new kubectl step, and a moved one once its script or kubeconfig is
+  changed, needs a Runner of this release: an older one fails such a step
+  and says so, so update your Runners. See
+  [Runbook Variables](/docs/runbooks/variables).
 - **Visitors keep their own address in more setups.** OneUptime counts a
   visitor by the address they connect from, for its sign-in limits, its other
   limits per address and its IP allowlists. Its ingress now listens on IPv6 as
@@ -1756,6 +1758,41 @@ command for each option instead of saving anything.
 and [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)
 have the commands.
 
+### Runbook credentials are removed
+
+The **AI Access** page under **Runbooks → Runners** is gone, and the runbook
+credentials it held with it. They were how OneUptime AI's own commands reached a server
+over SSH, or a Kubernetes cluster from a Runner outside it. Hosts and
+Kubernetes clusters have AI agents of their own now, which run OneUptime
+AI's commands with their own access, and runbook steps sign in with
+[runbook variables](/docs/runbooks/variables).
+
+What changes after the upgrade:
+
+- **The credentials are deleted.** A runbook step that still named one is
+  moved to secret runbook variables first, the way the move to variables
+  moved the others, and runs as it did. A Kubernetes step moved earlier
+  keeps no credential or action for an older Runner any more: every kubectl
+  step needs a Runner of 14.0.79 or later.
+- **OneUptime AI runs no SSH command.** A plan that holds one is no longer
+  approved, and a command queued before the upgrade fails, saying why. A
+  host is fixed through its [AI agent](/docs/ai/infrastructure-ai-agents),
+  or by a runbook whose SSH step signs in with a variable.
+- **A cluster bound to a Runner outside it is cleared.** OneUptime AI reaches
+  it through its Kubernetes AI agent, which the Kubernetes agent chart
+  installs, and its AI settings follow that agent's configuration like any
+  other cluster's. A cluster still bound to its previous in-cluster Runner
+  keeps it until the chart is upgraded.
+- **The four Runbook Credential permissions are removed** from every team,
+  API key and custom role that held them. Nothing else they hold changes.
+- **API and Terraform.** `RunbookCredential` and the Terraform resource
+  `oneuptime_runbook_credential` are gone, and so is a Kubernetes cluster's
+  `aiAccessCredentialId` (`ai_access_credential_id`). A save that gives a
+  runbook step a `credentialId` is refused: write the step as a script that
+  signs in with a variable.
+
+The **AI Access** page's old address opens **Runbooks → Runners**.
+
 ### Enable AI is the only AI switch
 
 **Project Settings → AI → AI Features** had three switches. **Enable
@@ -1797,8 +1834,8 @@ not only automatic incident and alert investigation: postmortem drafts
 (Incidents → AI → Settings), and AI Insights with its fix pull requests and
 auto-archiving of expected-denial exceptions (AI → Insights → Settings). The
 pull requests OneUptime AI opens for incidents and alerts are part of fixing,
-which starts off; see [The pull-request switches are part of
-fixing](#the-pull-request-switches-are-part-of-fixing).
+which starts off; see [The pull-request switches moved into the auto
+remediation rules](#the-pull-request-switches-moved-into-the-auto-remediation-rules).
 
 Projects that already exist keep the settings they have; the upgrade switches
 nothing on. On also does not mean running: each feature still needs an LLM
@@ -1929,38 +1966,50 @@ with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
 without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
 would have run before.
 
-### The pull-request switches are part of fixing
+### The pull-request switches moved into the auto remediation rules
 
 **Open a fix pull request when an investigation finds a code change** and
-**Open a pull request that adds missing telemetry** (Incidents or Alerts →
-AI → Settings) now sit under **Fix new incidents automatically** (or
-**Fix new alerts automatically**). They are shown only while fixing is on,
-turning fixing on turns both on, and turning it off turns both off. While
-fixing is on, either one can be turned off on its own.
+**Open a pull request that adds missing telemetry** are no longer switches
+on **Incidents → AI → Settings** and **Alerts → AI → Settings**. Each auto
+remediation rule has them instead, as **Fix pull requests** and **Telemetry
+pull requests** under its **More fields**, both on for a new rule. A pull
+request still opens on its own only while **Fix new incidents
+automatically** (or **Fix new alerts automatically**) is on:
 
-What changes after the upgrade:
+- With no rule, both pull requests open, in any connected repository.
+- With rules, a pull request opens only for an incident (or alert) a rule
+  matches, when a matching rule has it on, and only in the repositories the
+  matching rules name under **Code Repositories**. A rule that names none
+  allows every connected repository; investigation rules name the
+  repositories OneUptime AI may read the same way.
 
-- A pull request opens on its own only while fixing is on as well as its
-  own switch. A project that had a pull-request switch on and fixing off
-  stops opening those pull requests by itself. Turn fixing on to get them
-  back. To keep OneUptime AI from changing your clusters or hosts, keep
-  **Fixes** off on their **AI agent** pages (the default) and add no auto
-  remediation rule.
-- The upgrade changes no stored setting. A pull-request switch that was on
-  under fixing that was off stays on and waits; the settings page shows it
-  once fixing is turned on, and turning fixing on turns it on anyway.
-- A new project starts with the pull-request switches off, like fixing.
-  Investigations, postmortem drafts and AI Insights still start on.
-- **Open Fix PR from this analysis** on an investigation is unchanged: it
-  needs neither switch.
+Every project keeps its choice:
 
-API clients and Terraform configurations keep their fields
-(`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
-`enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, or
-`enable_automatic_incident_code_fixes` and the rest in Terraform). The
-server stores what they write, and does not turn the pull-request fields on
-or off with `enableAutomaticIncidentRemediation` (or the alert field): set
-all three in one request to turn fixing on with its pull requests.
+- A project with fixing off, or with both switches on, keeps its rules as
+  they are, and their switches start on.
+- A project with fixing on and a switch off has that switch turned off in
+  each of its rules of that kind. With no enabled rule of that kind, it gets
+  one, **All incidents** (or **All alerts**): it matches every one, fixes
+  without asking the way OneUptime AI fixed with no rule, and holds the two
+  switches as the project had them. Turn a switch on in it, or delete it,
+  to open those pull requests.
+- **Open Fix PR from this analysis** on an investigation is unchanged.
+
+A rule's **Runner** lists your own Runners only. **AI agent on the cluster or
+host** is gone from it: commands on the affected cluster or host always go
+through its AI agent, whatever the rule picks. A rule that picked none reads
+**No Runner** and fixes as before.
+
+API clients and Terraform configurations lose the project fields
+`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
+`enableAutomaticAlertCodeFixes` and `enableAlertInstrumentationFixTasks`
+(`enable_automatic_incident_code_fixes` and the rest in Terraform): remove
+them from your configuration. An auto remediation rule's
+`openCodeFixPullRequests` and `openTelemetryPullRequests`
+(`open_code_fix_pull_requests` and `open_telemetry_pull_requests`) are `true`
+unless you set them, and a rule of either kind names its repositories in
+`codeRepositories` (`code_repositories`), empty for every connected
+repository.
 
 ### Verify the edition and the license
 

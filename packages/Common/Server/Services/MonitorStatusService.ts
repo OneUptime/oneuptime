@@ -1,8 +1,14 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import StateOrderGuard from "../Utils/Database/StateOrderGuard";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -42,10 +48,34 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
     });
 
+    // The operational and offline statuses are never archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.MonitorStatus],
+      createBy: createBy,
+    });
+
     return {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Archiving retires a value without touching the records that have it
+   * (Common/Utils/ArchivableValues). The operational and offline statuses are never archived.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await ArchivableValueGuard.beforeUpdate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.MonitorStatus],
+      updateBy: updateBy,
+    });
+
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()

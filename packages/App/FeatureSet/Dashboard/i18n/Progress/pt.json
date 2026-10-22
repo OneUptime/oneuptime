@@ -1,13 +1,14 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16591
+    "keys": 32601,
+    "untranslated": 16514
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "Agenda",
     "App",
     "Apps",
+    "CPU Ready {{percent}}",
     "Chats",
     "Embedding",
     "Failover",
@@ -23,6 +24,8 @@
     "Monitor",
     "Offline",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Pull request #{{number}}",
     "Runbook: {{name}}",
     "Runner",
@@ -37,6 +40,7 @@
     "host",
     "kubectl set image deployment/web * -n web",
     "syslog",
+    "vCenters",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

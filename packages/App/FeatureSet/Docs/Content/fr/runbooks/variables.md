@@ -97,9 +97,9 @@ Les variables de runbook ont pris la place des secrets de runbook, et des identi
 - chaque identifiant qu'une étape nommait est devenu des variables globales secrètes avec les mêmes agents Runbook, nommées d'après lui : `<name>-ssh-key` (et `<name>-ssh-key-passphrase`, pour une clé qui en avait une), `<name>-ssh-password` ou `<name>-kubeconfig` ;
 - chaque étape SSH qui nommait un identifiant se connecte à sa machine avec elles et exécute sa commande comme son script, et chaque étape Kubernetes est devenue une étape kubectl qui exécute le `kubectl patch` que faisait son action, sans avoir besoin de plus d'accès que l'étape n'en avait.
 
-Un agent Runbook antérieur à cette version ne peut pas exécuter de script kubectl. Chaque étape Kubernetes ainsi transformée a donc aussi gardé son identifiant et son action, et un agent plus ancien exécute l'étape avec eux, comme il le faisait. Dès que vous modifiez le script ou le kubeconfig de l'étape, elle ne les garde plus : comme toute nouvelle étape kubectl, elle nécessite alors un agent Runbook de cette version, et un agent plus ancien la fait échouer en indiquant qu'il faut le mettre à jour.
+Un agent Runbook antérieur à cette version (14.0.79) ne peut pas exécuter de script kubectl : il fait échouer une étape kubectl en indiquant qu'il faut le mettre à jour. Chaque étape Kubernetes ainsi transformée a d'abord gardé son identifiant et son action à côté de son script, pour un tel agent ; ils sont partis avec les identifiants de runbook, si bien que chaque étape kubectl nécessite un agent Runbook de la version 14.0.79 ou ultérieure.
 
-Une étape écrite par l'API avec un identifiant s'exécute toujours avec lui, et sa page des étapes propose **Transformer en étape de script**. Les identifiants restent aussi, pour ce que les commandes de OneUptime AI atteignent : voir [Accès de l'IA](/docs/runbooks/credentials).
+Les identifiants de runbook ont depuis été supprimés, et une étape qui en nommait encore un a d'abord été transformée de la même façon. Une étape qui nomme un identifiant ne s'exécute plus, et sa page des étapes propose **Transformer en étape de script** ; un enregistrement par l'API ou Terraform qui en donne un à une étape est refusé. Voir [Les identifiants de runbook sont supprimés](/docs/installation/upgrading#les-identifiants-de-runbook-sont-supprimés).
 
 ## Étapes suivantes
 

@@ -375,7 +375,7 @@ export default class NetworkSnmpCredentialProfile extends BaseModel {
    * is salted base64, two to three times the length of the plaintext, so
    * the device's varchar(100) would overflow on a long community string -
    * which is why this column, like every other encrypted text column in the
-   * schema (MonitorSecret.secretValue, RunbookCredential.*), is `text`.
+   * schema (MonitorSecret.secretValue, RunbookVariable.secretValue), is `text`.
    *
    * The device's own snmpCommunityString predates encryption and still holds
    * plaintext in a varchar(100). Bringing it in line means re-encrypting

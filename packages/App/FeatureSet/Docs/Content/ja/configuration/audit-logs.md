@@ -88,13 +88,19 @@ flowchart TB
 | チーム | `Team` |
 | カスタムロールと、それを付与されたチーム | `Custom Role`、`Team Custom Role` |
 | ラベル | `Label` |
+| インシデントの状態と重大度 | `Incident State`、`Incident Severity` |
+| アラートの状態と重大度 | `Alert State`、`Alert Severity` |
+| モニターステータス | `Monitor Status` |
+| 定期メンテナンスの状態 | `Scheduled Maintenance State` |
+| インシデントロール | `Incident Role` |
+| ポストモーテムのステータス | `Postmortem Status` |
 | API キー | `API Key` |
 | ユーザーが接続する MCP クライアント | `MCP Client Authorization` |
 | インベントリ項目 | `Inventory Item` |
 | コレクター設定 | `Collector Config` |
 | vCenter サーバー | `vCenter` |
 | パケットキャプチャとそのダウンロード | `Packet Capture` |
-| セキュリティケースとプレイブック | `Security Case`、`Security Playbook` |
+| セキュリティケース、プレイブックとその実行、保護対象のエンティティ | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。
 

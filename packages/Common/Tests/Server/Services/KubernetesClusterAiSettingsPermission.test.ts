@@ -2,14 +2,14 @@ import KubernetesClusterService, {
   AiAccessLoosening,
   AiAccessSettingsSnapshot,
   getAiAccessAdminRefusal,
-  getAiAccessCredentialRefusal,
 } from "../../../Server/Services/KubernetesClusterService";
 import logger from "../../../Server/Utils/Logger";
 import { JSONObject } from "../../../Types/JSON";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunnerService from "../../../Server/Services/RunnerService";
+import RunnerService, {
+  getKubernetesAgentRunnerNameForCluster,
+} from "../../../Server/Services/RunnerService";
 import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -19,13 +19,8 @@ import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import CallerPermission from "../../../Server/Utils/Permission/CallerPermission";
-import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
-import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
-import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
-import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
@@ -35,7 +30,6 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { getJestSpyOn } from "../../Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -78,15 +72,16 @@ beforeEach(() => {
  * - LOOSENING (ANY move of the mode up — turning fixes on from Off, even to
  *   Ask for approval, since no project opt-in stands behind a cluster
  *   reached through its Kubernetes AI agent any more — adding an allowlist
- *   pattern, binding a Runner or credential other than the current one, or
- *   clearing the Runner or credential while the cluster has a Kubernetes AI
- *   agent, which hands the cluster to the agent) needs a GRANT of Project
- *   Owner, Project Admin or Edit Auto Remediation Rule — the permissions
- *   that may author a FullAuto rule — and binding a credential also needs
- *   credential read;
- * - TIGHTENING (Off, moving down, removing patterns, clearing the Runner or
- *   credential of a cluster without an AI agent) and the investigation
- *   switch stay open to everyone who may edit the cluster;
+ *   pattern, or binding a Runner other than the current one) needs a GRANT
+ *   of Project Owner, Project Admin or Edit Auto Remediation Rule — the
+ *   permissions that may author a FullAuto rule;
+ * - TIGHTENING (Off, moving down, removing patterns, clearing the Runner)
+ *   and the investigation switch stay open to everyone who may edit the
+ *   cluster. Clearing the Runner is a tightening whether or not the cluster
+ *   has a Kubernetes AI agent: the only Runner a cluster can hold is its
+ *   own in-cluster one, which the agent goes before anyway;
+ * - runbook credentials are gone (Runbooks > Runners > AI Access): a
+ *   cluster holds no credential, and nothing here binds or reads one;
  * - an unchanged value re-posted by the AI page's form is not a change;
  * - root (the in-cluster Runner's registration) and master admins are not
  *   gated.
@@ -110,12 +105,10 @@ const RUNNER_ID: ObjectID = new ObjectID(
 const OTHER_RUNNER_ID: ObjectID = new ObjectID(
   "77777777-7777-4777-8777-777777777777",
 );
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
-);
-const OTHER_CREDENTIAL_ID: ObjectID = new ObjectID(
-  "88888888-8888-4888-8888-888888888888",
-);
+// The cluster's name, and its in-cluster Runner's (the only bindable one).
+const CLUSTER_IDENTIFIER: string = "prod-east";
+const IN_CLUSTER_RUNNER_NAME: string =
+  getKubernetesAgentRunnerNameForCluster(CLUSTER_IDENTIFIER);
 
 // Roles that may edit a cluster but may not author a FullAuto rule.
 const CLUSTER_EDITOR_ROLES: Array<Permission> = [
@@ -211,8 +204,8 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     isAiInvestigationEnabled: false,
     aiRemediationMode: KubernetesAiRemediationMode.Disabled,
     aiKubectlCommandAllowlist: null,
+    clusterIdentifier: CLUSTER_IDENTIFIER,
     aiAccessRunnerId: null,
-    aiAccessCredentialId: null,
     ...overrides,
   } as unknown as KubernetesCluster;
 }
@@ -257,18 +250,7 @@ const LOOSENING_WRITES: Array<[string, Record<string, unknown>]> = [
     "bind a Runner through the relation the dashboard posts",
     { aiAccessRunner: { _id: RUNNER_ID.toString() } },
   ],
-  ["bind a credential by id", { aiAccessCredentialId: CREDENTIAL_ID }],
-  [
-    "bind a credential through the relation the dashboard posts",
-    { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
-  ],
 ];
-
-const LOOSENING_WRITES_WITHOUT_CREDENTIAL: Array<
-  [string, Record<string, unknown>]
-> = LOOSENING_WRITES.filter(([, data]: [string, Record<string, unknown>]) => {
-  return !("aiAccessCredentialId" in data) && !("aiAccessCredential" in data);
-});
 
 // Writes that make AI do less, or only flip the investigation switch.
 const TIGHTENING_WRITES: Array<[string, Record<string, unknown>]> = [
@@ -281,8 +263,6 @@ const TIGHTENING_WRITES: Array<[string, Record<string, unknown>]> = [
   ["clear the allowlist text field", { aiKubectlCommandAllowlist: "" }],
   ["clear the Runner by id", { aiAccessRunnerId: null }],
   ["clear the Runner relation", { aiAccessRunner: null }],
-  ["clear the credential by id", { aiAccessCredentialId: null }],
-  ["clear the credential relation", { aiAccessCredential: null }],
   ["turn AI investigation on", { isAiInvestigationEnabled: true }],
   ["turn AI investigation off", { isAiInvestigationEnabled: false }],
   ["rename the cluster", { name: "prod-us-east" }],
@@ -291,7 +271,6 @@ const TIGHTENING_WRITES: Array<[string, Record<string, unknown>]> = [
 describe("KubernetesCluster AI access: who may make AI do more", () => {
   let clusterLookup: jest.SpyInstance;
   let runnerLookup: jest.SpyInstance;
-  let credentialLookup: jest.SpyInstance;
   let agentLookup: jest.SpyInstance;
 
   beforeEach(() => {
@@ -311,15 +290,12 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       KubernetesClusterService,
       jest.spyOn(KubernetesClusterService, "findBy"),
     );
-    runnerLookup = jest
-      .spyOn(RunnerService, "findOneBy")
-      .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
-    credentialLookup = jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue({
-        id: CREDENTIAL_ID,
-        credentialType: RunbookCredentialType.Kubernetes,
-      } as unknown as RunbookCredential);
+    // The cluster's own in-cluster Runner: the only one a cluster may hold.
+    runnerLookup = jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
+      id: RUNNER_ID,
+      _id: RUNNER_ID.toString(),
+      name: IN_CLUSTER_RUNNER_NAME,
+    } as unknown as Runner);
     stubProjectDirectory({});
   });
 
@@ -408,9 +384,8 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
             hooks().onBeforeUpdate(updateBy(data, propsWith(role))),
           ).rejects.toThrow(getAiAccessAdminRefusal());
 
-          // Refused on who is asking, before any Runner/credential lookup.
+          // Refused on who is asking, before any Runner lookup.
           expect(runnerLookup).not.toHaveBeenCalled();
-          expect(credentialLookup).not.toHaveBeenCalled();
         },
       );
 
@@ -428,7 +403,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
   describe.each(AI_ACCESS_ADMIN_ROLES)(
     "a caller holding %s",
     (role: Permission) => {
-      it.each(LOOSENING_WRITES_WITHOUT_CREDENTIAL)(
+      it.each(LOOSENING_WRITES)(
         "may %s",
         async (_label: string, data: Record<string, unknown>) => {
           await expect(
@@ -461,186 +436,30 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     );
   });
 
-  describe("binding a credential", () => {
-    it("needs credential read on top of Edit Auto Remediation Rule", async () => {
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            propsWith(Permission.EditAutoRemediationRule),
-          ),
-        ),
-      ).rejects.toThrow(getAiAccessCredentialRefusal());
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            propsWith(
-              Permission.EditAutoRemediationRule,
-              Permission.ReadRunbookCredential,
-            ),
-          ),
-        ),
-      ).resolves.toBeDefined();
-    });
-
-    it("is not enough with credential read alone", async () => {
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            propsWith(Permission.ReadRunbookCredential),
-          ),
-        ),
-      ).rejects.toThrow(getAiAccessAdminRefusal());
-    });
-
-    it.each([Permission.ProjectOwner, Permission.ProjectAdmin])(
-      "is allowed for %s, which covers both",
-      async (role: Permission) => {
+  /*
+   * Runbook credentials are gone, and with them the cluster's credential
+   * column: a write that still names one binds nothing, and asks nobody
+   * for anything.
+   */
+  describe("a write that still names a runbook credential", () => {
+    it("is judged on what else it writes: the credential is no setting of a cluster", async () => {
+      for (const data of [
+        { aiAccessCredentialId: ObjectID.generate() },
+        { aiAccessCredential: { _id: ObjectID.generate().toString() } },
+      ]) {
         await expect(
           hooks().onBeforeUpdate(
-            updateBy(
-              { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
-              propsWith(role),
-            ),
+            updateBy(data, propsWith(Permission.SettingsMember)),
           ),
         ).resolves.toBeDefined();
-      },
-    );
-  });
-
-  /*
-   * ONE RULE FOR PEOPLE AND STEPS. Binding a credential asks
-   * RunbookCredentialReaders - RunbookCredential's own read list - whoever
-   * binds it. A workflow's step acts as a Project Admin, who may read
-   * credentials, but that read is never lent to it: the binding is refused,
-   * with a refusal that says a person has to make it, and nobody is looked
-   * up to answer it.
-   */
-  describe("binding a credential from a workflow's step", () => {
-    const WORKFLOW_ID: ObjectID = new ObjectID(
-      "12121212-1212-4121-8121-121212121212",
-    );
-
-    function step(): DatabaseCommonInteractionProps {
-      return WorkflowPrincipal.getPropsWithoutPlan({
-        projectId: PROJECT_ID,
-        workflowId: WORKFLOW_ID,
-        workflowName: "Point the cluster at the new credential",
-      });
-    }
-
-    it("is refused, though the step acts as a Project Admin, and says a person has to bind it", async () => {
-      const lookUp: jest.SpyInstance = jest.spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      );
-
-      for (const data of [
-        { aiAccessCredentialId: CREDENTIAL_ID },
-        { aiAccessCredential: { _id: CREDENTIAL_ID.toString() } },
-      ]) {
-        const refusal: Promise<unknown> = hooks().onBeforeUpdate(
-          updateBy(data, step()),
-        );
-
-        await expect(refusal).rejects.toThrow(NotAuthorizedException);
-        await expect(refusal).rejects.toThrow(getAiAccessCredentialRefusal());
-        await expect(refusal).rejects.toThrow(
-          "Workflow steps never have this permission, so a person who has it has to make this change.",
-        );
       }
 
-      expect(lookUp).not.toHaveBeenCalled();
-    });
-
-    it("is refused whatever the step's props carry, even Read Runbook Credential", async () => {
-      const props: DatabaseCommonInteractionProps = step();
-
-      props.userTenantAccessPermission![
-        PROJECT_ID.toString()
-      ]!.permissions.push(
-        permissionRow(Permission.ReadRunbookCredential),
-        permissionRow(Permission.ProjectOwner),
-      );
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, props),
-        ),
-      ).rejects.toThrow(getAiAccessCredentialRefusal());
-    });
-
-    it("asks nothing of a write that binds no credential", async () => {
-      for (const data of LOOSENING_WRITES_WITHOUT_CREDENTIAL.map(
-        ([, write]: [string, Record<string, unknown>]) => {
-          return write;
-        },
-      )) {
-        await expect(
-          hooks().onBeforeUpdate(updateBy(data, step())),
-        ).resolves.toBeDefined();
-      }
-    });
-
-    it("leaves a person's binding to their own permissions", async () => {
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: CREDENTIAL_ID },
-            propsWith(Permission.ProjectAdmin),
-          ),
-        ),
-      ).resolves.toBeDefined();
-    });
-
-    it("asks RunbookCredentialReaders for people and steps alike, and no second list", async () => {
-      const mayRead: jest.SpyInstance = jest.spyOn(
-        RunbookCredentialReaders,
-        "mayRead",
-      );
-      const holdsAnyOf: jest.SpyInstance = jest.spyOn(
-        CallerPermission,
-        "holdsAnyOf",
-      );
-
-      const person: DatabaseCommonInteractionProps = propsWith(
-        Permission.EditAutoRemediationRule,
-        Permission.ReadRunbookCredential,
-      );
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, person),
-        ),
-      ).resolves.toBeDefined();
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy({ aiAccessCredentialId: CREDENTIAL_ID }, step()),
-        ),
-      ).rejects.toThrow(getAiAccessCredentialRefusal());
-
-      const asked: Array<DatabaseCommonInteractionProps> =
-        mayRead.mock.calls.map(
-          (call: Array<unknown>): DatabaseCommonInteractionProps => {
-            return call[0] as DatabaseCommonInteractionProps;
-          },
-        );
-
-      expect(asked).toContain(person);
       expect(
-        asked.some((props: DatabaseCommonInteractionProps): boolean => {
-          return WorkflowPrincipal.isWorkflow(props);
-        }),
-      ).toBe(true);
-
-      // CallerPermission answers only who may loosen AI access, never who may read credentials.
-      for (const call of holdsAnyOf.mock.calls) {
-        expect(call[1]).toEqual(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS);
-      }
+        new KubernetesCluster().isTableColumn("aiAccessCredentialId"),
+      ).toBe(false);
+      expect(new KubernetesCluster().isTableColumn("aiAccessCredential")).toBe(
+        false,
+      );
     });
   });
 
@@ -652,7 +471,6 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         "kubectl patch deployment/web *",
       ],
       aiAccessRunnerId: RUNNER_ID,
-      aiAccessCredentialId: CREDENTIAL_ID,
       isAiInvestigationEnabled: true,
     };
 
@@ -662,9 +480,9 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     });
 
     /*
-     * The AI page's form posts every field, so a Settings Member who only
-     * turns investigation off re-posts the mode, allowlist, Runner and
-     * credential an admin chose. That save must go through.
+     * A form or a Terraform plan may post every field, so a Settings Member
+     * who only turns investigation off re-posts the mode, allowlist and
+     * Runner an admin chose. That save must go through.
      */
     it("lets a Settings Member re-post every unchanged setting while flipping investigation", async () => {
       await expect(
@@ -678,7 +496,6 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
                 "kubectl patch deployment/web *",
               ],
               aiAccessRunner: { _id: RUNNER_ID.toString() },
-              aiAccessCredential: { _id: CREDENTIAL_ID.toString() },
             },
             propsWith(Permission.SettingsMember),
           ),
@@ -857,7 +674,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       ).resolves.toBeDefined();
     });
 
-    it("refuses a Settings Member swapping in a different Runner or credential", async () => {
+    it("refuses a Settings Member swapping in a different Runner", async () => {
       await expect(
         hooks().onBeforeUpdate(
           updateBy(
@@ -866,38 +683,26 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
           ),
         ),
       ).rejects.toThrow(NotAuthorizedException);
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessCredentialId: OTHER_CREDENTIAL_ID },
-            propsWith(Permission.SettingsMember),
-          ),
-        ),
-      ).rejects.toThrow(NotAuthorizedException);
     });
   });
 
   /*
-   * Clearing an advanced Runner (or its credential) on a cluster that has a
-   * Kubernetes AI agent hands the cluster to the agent
-   * (resolveKubernetesAiAccessTarget) and to whatever RBAC its chart
-   * granted, so it is a loosening. Without an agent it leaves AI nothing to
-   * reach the cluster through, and stays a tightening anyone may make.
+   * Clearing the Runner used to hand a cluster bound to a Runner outside it
+   * (through a Kubernetes runbook credential) to its Kubernetes AI agent, so
+   * with an agent it was a loosening. Runbook credentials are gone: the only
+   * Runner a cluster can hold is its own in-cluster one, which the agent
+   * goes before whenever it is online, so clearing it leaves AI the agent
+   * at most - a tightening anyone who may edit the cluster may make.
    */
-  describe("clearing the Runner or credential of a cluster that has a Kubernetes AI agent", () => {
+  describe("clearing the Runner", () => {
     const bound: Record<string, unknown> = {
       aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
       aiAccessRunnerId: RUNNER_ID,
-      aiAccessCredentialId: CREDENTIAL_ID,
     };
 
     const CLEARING_WRITES: Array<[string, Record<string, unknown>]> = [
       ["clear the Runner by id", { aiAccessRunnerId: null }],
       ["clear the Runner relation", { aiAccessRunner: null }],
-      ["clear the credential by id", { aiAccessCredentialId: null }],
-      ["clear the credential relation", { aiAccessCredential: null }],
-      ["clear both", { aiAccessRunnerId: null, aiAccessCredentialId: null }],
     ];
 
     function withAgent(): Map<string, KubernetesAiAgent> {
@@ -915,7 +720,7 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
     });
 
     it.each(CLEARING_WRITES)(
-      "refuses a Settings Member who would %s",
+      "lets a Settings Member %s of a cluster with a Kubernetes AI agent",
       async (_label: string, data: Record<string, unknown>) => {
         agentLookup.mockResolvedValue(withAgent());
 
@@ -923,25 +728,12 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
           hooks().onBeforeUpdate(
             updateBy(data, propsWith(Permission.SettingsMember)),
           ),
-        ).rejects.toThrow(getAiAccessAdminRefusal());
-      },
-    );
-
-    it.each(CLEARING_WRITES)(
-      "lets a Project Admin %s",
-      async (_label: string, data: Record<string, unknown>) => {
-        agentLookup.mockResolvedValue(withAgent());
-
-        await expect(
-          hooks().onBeforeUpdate(
-            updateBy(data, propsWith(Permission.ProjectAdmin)),
-          ),
         ).resolves.toBeDefined();
       },
     );
 
     it.each(CLEARING_WRITES)(
-      "negative control: without an agent a Settings Member may %s",
+      "lets a Settings Member %s of a cluster without one",
       async (_label: string, data: Record<string, unknown>) => {
         await expect(
           hooks().onBeforeUpdate(
@@ -951,23 +743,12 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
       },
     );
 
-    it("negative control: clearing a binding the cluster does not have is no change", async () => {
-      agentLookup.mockResolvedValue(withAgent());
-      clusterLookup.mockResolvedValue([
-        cluster({ aiRemediationMode: KubernetesAiRemediationMode.Disabled }),
-      ]);
-
-      await expect(
-        hooks().onBeforeUpdate(
-          updateBy(
-            { aiAccessRunnerId: null, aiAccessCredentialId: null },
-            propsWith(Permission.SettingsMember),
-          ),
-        ),
-      ).resolves.toBeDefined();
-    });
-
-    it("fails closed: when the agent rows cannot be read, clearing needs the admin permissions", async () => {
+    /*
+     * The agent rows decide whether the agent sets investigation and fixes.
+     * When they cannot be read, a change to either is refused (fails
+     * closed); clearing the Runner changes neither, so it still goes through.
+     */
+    it("still lets a Settings Member clear the Runner when the agent rows cannot be read", async () => {
       jest.spyOn(logger, "error").mockImplementation((): void => {
         return undefined;
       });
@@ -980,24 +761,24 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
             propsWith(Permission.SettingsMember),
           ),
         ),
-      ).rejects.toThrow(getAiAccessAdminRefusal());
+      ).resolves.toBeDefined();
 
+      // Negative control: the same failure refuses a change of the mode.
       await expect(
         hooks().onBeforeUpdate(
           updateBy(
-            { aiAccessRunnerId: null },
-            propsWith(Permission.ProjectAdmin),
+            { aiRemediationMode: KubernetesAiRemediationMode.Disabled },
+            propsWith(Permission.SettingsMember),
           ),
         ),
-      ).resolves.toBeDefined();
+      ).rejects.toThrow(/set by its Kubernetes AI agent/);
     });
 
     /*
      * Every operator write of an AI setting reads the cluster's agent row
      * once — whether the agent sets investigation and fixes decides what the
-     * write may change, and, for a write that clears a binding, whether the
-     * cluster has an agent at all. One query, scoped to the cluster's
-     * project, whatever the write touches.
+     * write may change. One query, scoped to the cluster's project, whatever
+     * the write touches.
      */
     it("reads the agent rows once per AI write, scoped to the cluster's project", async () => {
       const writes: Array<Record<string, unknown>> = [
@@ -1093,75 +874,6 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         ),
       ).rejects.toThrow(NotAuthorizedException);
     });
-
-    /*
-     * The credential read is asked in the project of the cluster the write
-     * binds it on - the project the admin check two lines above asks about
-     * - not in whichever project the request named, or none.
-     */
-    describe("the credential read", () => {
-      function holding(
-        tenantId: ObjectID | null,
-        rows: Array<[ObjectID, Array<Permission>]>,
-      ): DatabaseCommonInteractionProps {
-        const access: Record<string, UserTenantAccessPermission> = {};
-
-        for (const [projectId, permissions] of rows) {
-          access[projectId.toString()] = {
-            _type: "UserTenantAccessPermission",
-            projectId: projectId,
-            permissions: permissions.map((permission: Permission) => {
-              return permissionRow(permission);
-            }),
-          };
-        }
-
-        return {
-          userId: ObjectID.generate(),
-          ...(tenantId ? { tenantId } : {}),
-          userTenantAccessPermission: access,
-        } as DatabaseCommonInteractionProps;
-      }
-
-      beforeEach(() => {
-        clusterLookup.mockResolvedValue([
-          cluster({ projectId: OTHER_PROJECT_ID }),
-        ]);
-      });
-
-      it("is the cluster's project's, when the request names no project", async () => {
-        await expect(
-          hooks().onBeforeUpdate(
-            updateBy(
-              { aiAccessCredentialId: CREDENTIAL_ID },
-              holding(null, [
-                [
-                  OTHER_PROJECT_ID,
-                  [
-                    Permission.EditAutoRemediationRule,
-                    Permission.ReadRunbookCredential,
-                  ],
-                ],
-              ]),
-            ),
-          ),
-        ).resolves.toBeDefined();
-      });
-
-      it("is not one held in the project the request names, when the cluster is another's", async () => {
-        await expect(
-          hooks().onBeforeUpdate(
-            updateBy(
-              { aiAccessCredentialId: CREDENTIAL_ID },
-              holding(PROJECT_ID, [
-                [OTHER_PROJECT_ID, [Permission.EditAutoRemediationRule]],
-                [PROJECT_ID, [Permission.ReadRunbookCredential]],
-              ]),
-            ),
-          ),
-        ).rejects.toThrow(getAiAccessCredentialRefusal());
-      });
-    });
   });
 
   describe("callers the check does not apply to", () => {
@@ -1171,7 +883,6 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
           updateBy(
             {
               aiAccessRunnerId: RUNNER_ID,
-              aiAccessCredentialId: CREDENTIAL_ID,
               isAiInvestigationEnabled: true,
               aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
               // Was "kubectl *", no longer a valid entry for anyone.
@@ -1340,10 +1051,11 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
         "aiRemediationMode",
         "aiKubectlCommandAllowlist",
         "aiAccessRunnerId",
-        "aiAccessCredentialId",
       ]) {
         expect(args.select[column]).toBe(true);
       }
+      // The credential column is gone: nothing selects it.
+      expect(args.select["aiAccessCredentialId"]).toBeUndefined();
     });
   });
 });
@@ -1446,7 +1158,7 @@ describe("KubernetesCluster AI access through updateOneById", () => {
     expect(repositoryUpdate).not.toHaveBeenCalled();
   });
 
-  it("refuses a Settings Member clearing the Runner of a cluster with an AI agent before anything is written", async () => {
+  it("writes a Settings Member's clearing of the Runner of a cluster with an AI agent", async () => {
     getJestSpyOn(KubernetesClusterService, "_findBy").mockResolvedValue([
       cluster({
         _id: CLUSTER_ID.toString(),
@@ -1470,9 +1182,13 @@ describe("KubernetesCluster AI access through updateOneById", () => {
         data: { aiAccessRunnerId: null } as never,
         props: propsWith(Permission.SettingsMember),
       }),
-    ).rejects.toThrow(NotAuthorizedException);
+    ).resolves.toBe(1);
 
-    expect(repositoryUpdate).not.toHaveBeenCalled();
+    expect(
+      (repositoryUpdate.mock.calls[0]![1] as Record<string, unknown>)[
+        "aiAccessRunnerId"
+      ],
+    ).toBeNull();
   });
 
   it("writes a Project Admin's Bypass approval, marks the cluster configured and records who did it", async () => {
@@ -1533,7 +1249,6 @@ describe("KubernetesClusterService.getAiAccessLoosening", () => {
     aiRemediationMode: KubernetesAiRemediationMode.Disabled,
     aiKubectlCommandAllowlist: [],
     aiAccessRunnerId: null,
-    aiAccessCredentialId: null,
   };
 
   function loosens(
@@ -1568,46 +1283,43 @@ describe("KubernetesClusterService.getAiAccessLoosening", () => {
     }
   });
 
-  it("clearing a bound Runner or credential loosens only when the cluster has an AI agent", () => {
-    const bound: Partial<AiAccessSettingsSnapshot> = {
-      aiAccessRunnerId: RUNNER_ID.toString(),
-      aiAccessCredentialId: CREDENTIAL_ID.toString(),
-    };
-
+  it("binding a Runner other than the bound one loosens; re-binding it never does", () => {
     for (const data of [
-      { aiAccessRunnerId: null },
-      { aiAccessRunner: null },
-      { aiAccessCredentialId: null },
-      { aiAccessCredential: null },
+      { aiAccessRunnerId: RUNNER_ID },
+      { aiAccessRunner: { _id: RUNNER_ID.toString() } },
     ]) {
-      expect(loosens(data, { ...bound, hasKubernetesAiAgent: true })).toEqual({
-        loosens: true,
-        bindsCredential: false,
-      });
+      expect(loosens(data)).toEqual({ loosens: true });
       expect(
-        loosens(data, { ...bound, hasKubernetesAiAgent: false }).loosens,
-      ).toBe(false);
-      // Not read (the write did not clear anything the check asked about).
-      expect(loosens(data, bound).loosens).toBe(false);
+        loosens(data, { aiAccessRunnerId: OTHER_RUNNER_ID.toString() }),
+      ).toEqual({ loosens: true });
+      expect(loosens(data, { aiAccessRunnerId: RUNNER_ID.toString() })).toEqual(
+        { loosens: false },
+      );
     }
   });
 
-  it("clearing what is already empty is not a change, agent or not", () => {
-    expect(
-      loosens(
-        { aiAccessRunnerId: null, aiAccessCredentialId: null },
-        { hasKubernetesAiAgent: true },
-      ).loosens,
-    ).toBe(false);
+  /*
+   * The only Runner a cluster can hold is its own in-cluster Runner, which
+   * its Kubernetes AI agent goes before whenever it is online: clearing it
+   * leaves AI the agent at most.
+   */
+  it("clearing the Runner never loosens, bound or not", () => {
+    for (const data of [{ aiAccessRunnerId: null }, { aiAccessRunner: null }]) {
+      expect(loosens(data, { aiAccessRunnerId: RUNNER_ID.toString() })).toEqual(
+        { loosens: false },
+      );
+      expect(loosens(data)).toEqual({ loosens: false });
+    }
   });
 
-  it("binding a credential still loosens and needs credential read, agent or not", () => {
-    expect(
-      loosens(
-        { aiAccessCredentialId: CREDENTIAL_ID },
-        { hasKubernetesAiAgent: true },
-      ),
-    ).toEqual({ loosens: true, bindsCredential: true });
+  it("a runbook credential in the write is no setting it judges", () => {
+    for (const data of [
+      { aiAccessCredentialId: ObjectID.generate() },
+      { aiAccessCredential: { _id: ObjectID.generate().toString() } },
+      { aiAccessCredentialId: null },
+    ]) {
+      expect(loosens(data)).toEqual({ loosens: false });
+    }
   });
 
   it("negative control: flipping investigation or re-posting unchanged values loosens nothing", () => {
@@ -1621,7 +1333,6 @@ describe("KubernetesClusterService.getAiAccessLoosening", () => {
         {
           aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
           aiAccessRunnerId: RUNNER_ID.toString(),
-          hasKubernetesAiAgent: true,
         },
       ).loosens,
     ).toBe(false);

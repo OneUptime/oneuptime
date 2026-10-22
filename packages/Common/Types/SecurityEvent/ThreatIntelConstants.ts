@@ -71,6 +71,15 @@ export enum ThreatIntelIndicatorType {
 }
 
 /*
+ * A STIX indicator's id (indicator--<uuid>), which a TAXII feed's
+ * indicators carry; a list's or Google SecOps's carry their source's name
+ * instead, and are not called STIX indicators.
+ */
+export function isStixIndicatorId(id: string | undefined): boolean {
+  return typeof id === "string" && id.startsWith("indicator--");
+}
+
+/*
  * STIX confidence (0-100, 0 meaning "not specified") -> OCSF severity for
  * finding rows and for alert-severity name matching. Unknown confidence
  * reads as Medium: an indicator a feed did not score is still an

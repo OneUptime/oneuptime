@@ -1,4 +1,8 @@
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
+import {
+  OnCallPageAgainNotice,
+  getOnCallPageAgainNoticeReason,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 
 export default class PushNotificationUtil {
   public static readonly DEFAULT_ICON =
@@ -23,6 +27,8 @@ export default class PushNotificationUtil {
     incidentNumberWithPrefix?: string;
     incidentId?: string;
     projectId?: string;
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): PushNotificationMessage {
     const {
       incidentTitle,
@@ -39,8 +45,12 @@ export default class PushNotificationUtil {
       ? `${displayNumber} (${incidentTitle})`
       : incidentTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Incident${displayNumber ? ` ${displayNumber}` : ""}: ${incidentTitle}`,
-      body: `A new incident has been created: ${incidentIdentifier} in ${projectName}. Click to view details.`,
+      title: params.pageAgain
+        ? `Incident${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentTitle}`
+        : `New Incident${displayNumber ? ` ${displayNumber}` : ""}: ${incidentTitle}`,
+      body: params.pageAgain
+        ? `Incident ${incidentIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
+        : `A new incident has been created: ${incidentIdentifier} in ${projectName}. Click to view details.`,
       clickAction: incidentViewLink,
       url: incidentViewLink,
       tag: "incident-created",
@@ -162,6 +172,8 @@ export default class PushNotificationUtil {
     alertNumberWithPrefix?: string;
     alertId?: string;
     projectId?: string;
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): PushNotificationMessage {
     const {
       alertTitle,
@@ -178,8 +190,12 @@ export default class PushNotificationUtil {
       ? `${displayNumber} (${alertTitle})`
       : alertTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Alert${displayNumber ? ` ${displayNumber}` : ""}: ${alertTitle}`,
-      body: `A new alert has been created: ${alertIdentifier} in ${projectName}. Click to view details.`,
+      title: params.pageAgain
+        ? `Alert${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertTitle}`
+        : `New Alert${displayNumber ? ` ${displayNumber}` : ""}: ${alertTitle}`,
+      body: params.pageAgain
+        ? `Alert ${alertIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
+        : `A new alert has been created: ${alertIdentifier} in ${projectName}. Click to view details.`,
       clickAction: alertViewLink,
       url: alertViewLink,
       tag: "alert-created",
@@ -204,6 +220,8 @@ export default class PushNotificationUtil {
     episodeNumberWithPrefix?: string;
     alertEpisodeId?: string;
     projectId?: string;
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): PushNotificationMessage {
     const {
       alertEpisodeTitle,
@@ -220,8 +238,12 @@ export default class PushNotificationUtil {
       ? `${displayNumber} (${alertEpisodeTitle})`
       : alertEpisodeTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Alert Episode${displayNumber ? ` ${displayNumber}` : ""}: ${alertEpisodeTitle}`,
-      body: `A new alert episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
+      title: params.pageAgain
+        ? `Alert Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${alertEpisodeTitle}`
+        : `New Alert Episode${displayNumber ? ` ${displayNumber}` : ""}: ${alertEpisodeTitle}`,
+      body: params.pageAgain
+        ? `Alert Episode ${episodeIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
+        : `A new alert episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
       clickAction: alertEpisodeViewLink,
       url: alertEpisodeViewLink,
       tag: "alert-episode-created",
@@ -246,6 +268,8 @@ export default class PushNotificationUtil {
     episodeNumberWithPrefix?: string;
     incidentEpisodeId?: string;
     projectId?: string;
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): PushNotificationMessage {
     const {
       incidentEpisodeTitle,
@@ -262,8 +286,12 @@ export default class PushNotificationUtil {
       ? `${displayNumber} (${incidentEpisodeTitle})`
       : incidentEpisodeTitle;
     return PushNotificationUtil.applyDefaults({
-      title: `New Incident Episode${displayNumber ? ` ${displayNumber}` : ""}: ${incidentEpisodeTitle}`,
-      body: `A new incident episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
+      title: params.pageAgain
+        ? `Incident Episode${displayNumber ? ` ${displayNumber}` : ""} still not resolved: ${incidentEpisodeTitle}`
+        : `New Incident Episode${displayNumber ? ` ${displayNumber}` : ""}: ${incidentEpisodeTitle}`,
+      body: params.pageAgain
+        ? `Incident Episode ${episodeIdentifier} in ${projectName} is ${getOnCallPageAgainNoticeReason(params.pageAgain)}. Click to view details.`
+        : `A new incident episode has been created: ${episodeIdentifier} in ${projectName}. Click to view details.`,
       clickAction: incidentEpisodeViewLink,
       url: incidentEpisodeViewLink,
       tag: "incident-episode-created",
@@ -560,6 +588,41 @@ export default class PushNotificationUtil {
     }
 
     return PushNotificationUtil.applyDefaults(notification);
+  }
+
+  /*
+   * A security case that needs the person: it opened or rose at their
+   * priority, it was assigned to them or their team, or one of its playbook
+   * steps waits for their approval (SecurityCaseNotifications). The mobile
+   * app has no case screen yet, so the page opens the app and the link opens
+   * the case in the browser.
+   */
+  public static createSecurityCaseNotification(params: {
+    title: string;
+    body: string;
+    caseViewLink: string;
+    // security-case-opened, security-case-assigned, security-playbook-approval
+    type: string;
+    securityCaseId: string;
+    projectId: string;
+    requireInteraction: boolean;
+  }): PushNotificationMessage {
+    return PushNotificationUtil.applyDefaults({
+      title: params.title,
+      body: params.body,
+      clickAction: params.caseViewLink,
+      url: params.caseViewLink,
+      // One per case: a newer page about the case replaces the older one.
+      tag: `security-case-${params.securityCaseId}`,
+      requireInteraction: params.requireInteraction,
+      data: {
+        type: params.type,
+        entityType: "security-case",
+        entityId: params.securityCaseId,
+        projectId: params.projectId,
+        url: params.caseViewLink,
+      },
+    });
   }
 
   public static createAIAgentStatusChangedNotification(params: {

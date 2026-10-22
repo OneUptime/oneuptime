@@ -369,7 +369,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-两个或更多 OneUptime 项目连接了同一个 Microsoft 租户。机器人消息只携带租户 ID，因此 OneUptime 无法知道你指的是哪个项目，于是选择拒绝而不是猜测。请从除一个项目之外的所有项目中断开 Microsoft Teams。
+两个或更多 OneUptime 项目连接了同一个 Microsoft 365 组织，而消息中没有任何内容能区分它们。卡片上的按钮在卡片所涉及记录的项目中执行，消息在其发送所在频道的项目中执行，否则在发送者的 Microsoft Teams 账户所连接的唯一项目中执行。请从目标项目的频道（例如其某个事件频道）中再次发送。如果发送者的账户在任何一个项目中都未连接，会先请其连接账户。
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

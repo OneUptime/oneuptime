@@ -203,6 +203,11 @@ export default class PostmortemTemplatePick {
     projectId: ObjectID;
     incidentId: ObjectID;
     templates: Array<PostmortemRuleTemplate>;
+    /*
+     * The LLM provider the draft is written with, when its rule picked one
+     * (Server/Utils/AI/LlmProviderChoice); else the project's provider.
+     */
+    llmProviderId?: ObjectID | undefined;
   }): Promise<PostmortemRuleTemplate | null> {
     const templates: Array<PostmortemRuleTemplate> = data.templates;
 
@@ -226,6 +231,7 @@ export default class PostmortemTemplatePick {
         projectId: data.projectId,
         feature: POSTMORTEM_TEMPLATE_PICK_FEATURE,
         incidentId: data.incidentId,
+        llmProviderId: data.llmProviderId,
         messages: this.buildMessages({ incident, templates }),
         maxTokens: POSTMORTEM_TEMPLATE_PICK_MAX_TOKENS,
         temperature: 0,

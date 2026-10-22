@@ -70,11 +70,12 @@ import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnectio
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
 import NotificationRuleVideoCallForm from "./NotificationRuleForm/NotificationRuleVideoCallForm";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleInvites from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
 import {
+  getNotificationRuleDestinationDescription,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
-  NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
   NOTIFICATION_RULE_DESTINATION_TITLES,
   NOTIFICATION_RULES_CARD_DESCRIPTIONS,
   NOTIFICATION_RULES_CARD_TITLE,
@@ -83,6 +84,7 @@ import {
   VIDEO_CALL_STEP_DESCRIPTIONS,
   VIDEO_CALL_STEP_TITLE,
 } from "./NotificationRuleForm/NotificationRuleCopy";
+import { canRuleCreateChannel } from "./NotificationRuleForm/NotificationRuleOwnChannel";
 
 /*
  * How each step of the rule wizard opens: with its question as a heading
@@ -153,6 +155,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     Array<MicrosoftTeamsChat>
   >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
+  const [onCallSchedules, setOnCallSchedules] = React.useState<
+    Array<OnCallDutyPolicySchedule>
+  >([]);
   const [videoCallConnections, setVideoCallConnections] = React.useState<
     Array<VideoCallConnection>
   >([]);
@@ -446,6 +451,34 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setUsers(uniqueUsers);
 
       /*
+       * The on-call schedules, by name, for a rule's summary to name those
+       * whose on-call person joins its channel. A member who may not read
+       * them still edits the rule, so a refusal leaves them unnamed.
+       */
+      try {
+        const schedules: ListResult<OnCallDutyPolicySchedule> =
+          await ModelAPI.getList({
+            modelType: OnCallDutyPolicySchedule,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              _id: true,
+              name: true,
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT,
+            sort: {
+              name: SortOrder.Ascending,
+            },
+          });
+
+        setOnCallSchedules(schedules.data);
+      } catch {
+        setOnCallSchedules([]);
+      }
+
+      /*
        * What the name of the channel a rule creates is made of: the
        * project's number prefixes (incident INC-42's channel is inc-42),
        * and for an on-call policy rule, one of the project's policies. The
@@ -634,6 +667,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
         users={users}
+        onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
         exampleRecordName={exampleRecordName}
       />
@@ -725,12 +759,20 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
          * owners (NotificationRuleInvites.getNewRuleSwitches). The boxes are
          * ticked from the start; they count only once the rule creates a
          * channel.
+         *
+         * A rule that can only post (a security case's: it creates no
+         * channel) starts posting to channels the project has, the one
+         * destination every such rule needs: its step opens on the channels
+         * to name.
          */
         createInitialValues={{
           notificationRule: {
             filterCondition: FilterCondition.All,
             filters: [],
             ...NotificationRuleInvites.getNewRuleSwitches(props.eventType),
+            ...(canRuleCreateChannel(props.eventType)
+              ? {}
+              : { shouldPostToExistingChannel: true }),
           },
         }}
         isCreateable={true}
@@ -852,7 +894,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             title: NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
             sectionTitle:
               NOTIFICATION_RULE_DESTINATION_TITLES[props.workspaceType],
-            sectionDescription: NOTIFICATION_RULE_DESTINATION_DESCRIPTION,
+            // Where it posts, and - for a rule that creates one - who joins its channel.
+            sectionDescription: getNotificationRuleDestinationDescription({
+              eventType: props.eventType,
+              workspaceType: props.workspaceType,
+            }),
             ...STEP_HEADING,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
@@ -1024,6 +1070,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           monitorStatus: monitorStatus,
           teams: teams,
           users: users,
+          onCallSchedules: onCallSchedules,
           microsoftTeamsTeams: microsoftTeamsTeams,
           microsoftTeamsChats: microsoftTeamsChats,
           videoCallConnections: videoCallConnections,

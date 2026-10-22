@@ -54,7 +54,7 @@ flowchart TB
 
 ### 值
 
-一个带迷你趋势线的大数字：查询在整个时间范围内的值，求和或计数时取总和，最大值时取最高值，最小值时取最低值，其他情况取平均值。箭头会把范围的后半段与前半段比较，并按 **Trend Direction** 着色：数值越高越好还是越差，或根据指标名称判断。值达到 **Warning Threshold** 时背景变黄，达到 **Critical Threshold** 时变红。
+一个带迷你趋势线的大数字：查询在整个时间范围内的值，求和或计数时取总和，最大值时取最高值，最小值时取最低值，其他情况取平均值。箭头会把范围的后半段与前半段比较（两段按同样的方式计算），并按 **Trend Direction** 着色：数值越高越好还是越差，或根据指标名称判断。将指针悬停在箭头上可查看两段各自的值，悬停在迷你趋势线上可读取任意点的值和时间。值达到 **Warning Threshold** 时背景变黄，达到 **Critical Threshold** 时变红。
 
 当一个数字就能回答问题时使用它：错误率、P95 延迟或今天处理的请求数。
 
@@ -178,7 +178,7 @@ SLO 小部件可以在 [公开仪表板](/docs/dashboards/sharing) 上使用。�
 | **Docker Swarm** | **节点**、**服务** | Docker Swarm 代理 |
 | **Podman** | **主机**、**容器**、**镜像**、**网络**、**卷** | Podman 代理 |
 | **Proxmox** | **节点**、**Guests** | Proxmox 代理 |
-| **VMware** | **主机**、**Virtual Machines** | VMware 代理，或你连接的 vCenter |
+| **VMware** | **主机**、**虚拟机** | VMware 代理，或你连接的 vCenter |
 | **Ceph** | 以按状态着色的墙显示的 **OSDs** ，以及 **Pools** | Ceph 代理 |
 | **存储阵列** | **卷**，以及以按状态着色的墙显示的 **Hardware** | Storage Array 代理 |
 

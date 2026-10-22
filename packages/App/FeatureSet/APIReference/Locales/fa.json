@@ -36,6 +36,7 @@
     "or": "یا",
     "copy": "کپی",
     "copied": "کپی شد!",
+    "copyFailed": "کپی ناموفق بود",
     "copyCode": "کپی کد",
     "copyRequest": "کپی درخواست",
     "headers": "هدرها",

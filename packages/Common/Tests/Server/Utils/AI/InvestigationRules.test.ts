@@ -2,6 +2,8 @@ import InvestigationRules, {
   InvestigationRuleScope,
 } from "../../../../Server/Utils/AI/SRE/InvestigationRules";
 import AIInvestigationRuleService from "../../../../Server/Services/AIInvestigationRuleService";
+import AlertService from "../../../../Server/Services/AlertService";
+import IncidentService from "../../../../Server/Services/IncidentService";
 import logger from "../../../../Server/Utils/Logger";
 import IncidentAlertRuleMatcher from "../../../../Server/Utils/Rules/IncidentAlertRuleMatcher";
 import AIInvestigationRule from "../../../../Models/DatabaseModels/AIInvestigationRule";
@@ -514,5 +516,313 @@ describe("InvestigationRules - a rule's wait", () => {
         alert: alert(),
       }),
     ).toEqual({ isInScope: true, rulesChecked: 2, waitMinutes: 15 });
+  });
+});
+
+/*
+ * A rule may pick the LLM provider OneUptime AI investigates with
+ * (Types/AI/LlmProviderChoice): the first matching rule by name that picks
+ * one decides, for the run the rules start and for one someone starts by
+ * hand. No rule, no matching rule that picks one, or rules that cannot be
+ * read: none - the project's default provider, else the global one.
+ */
+describe("InvestigationRules - the LLM provider a rule picks", () => {
+  const OPUS: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+  const AZURE: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc2";
+
+  test("reads each rule's pick with its conditions", async () => {
+    const findBy: SpyInstance<typeof AIInvestigationRuleService.findBy> =
+      mockRules([]);
+
+    await InvestigationRules.getIncidentScope({
+      projectId: PROJECT_ID,
+      incident: incident(),
+    });
+
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      select: { name: true, llmProviderId: true },
+    });
+  });
+
+  test("a matching rule that picks a provider: the scope says which", async () => {
+    mockRules([rule({ llmProviderId: new ObjectID(OPUS) })]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({
+      isInScope: true,
+      rulesChecked: 1,
+      llmProviderId: new ObjectID(OPUS),
+    });
+  });
+
+  test("no rule picks one: none, as before rules could pick one", async () => {
+    mockRules([rule({}), rule({ name: "Another" })]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: true, rulesChecked: 2 });
+  });
+
+  test("a rule the incident does not match lends it no provider", async () => {
+    mockRules([
+      rule({
+        name: "Payments",
+        monitors: [ref(Monitor, MONITOR_B)],
+        llmProviderId: new ObjectID(OPUS),
+      }),
+      rule({ name: "Everything" }),
+    ]);
+
+    const scope: InvestigationRuleScope =
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      });
+
+    expect(scope.isInScope).toBe(true);
+    expect(scope.llmProviderId).toBeUndefined();
+  });
+
+  test("of several matching rules that pick one, the first by name decides", async () => {
+    mockRules([
+      rule({ name: "Zeta", llmProviderId: new ObjectID(AZURE) }),
+      rule({ name: "alpha", llmProviderId: new ObjectID(OPUS) }),
+    ]);
+
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      ).llmProviderId?.toString(),
+    ).toBe(OPUS);
+  });
+
+  test("a catch-all rule that picks none never hides a matching rule's pick", async () => {
+    mockRules([
+      rule({ name: "A catch-all" }),
+      rule({
+        name: "Critical",
+        incidentSeverities: [ref(IncidentSeverity, SEVERITY_HIGH)],
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+
+    expect(
+      (
+        await InvestigationRules.getIncidentScope({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      ).llmProviderId?.toString(),
+    ).toBe(OPUS);
+  });
+
+  test("the wait is decided as before, the provider beside it", async () => {
+    mockRules([
+      rule({
+        name: "Waits",
+        onlyIfOpenAfterMinutes: 10,
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({
+      isInScope: true,
+      rulesChecked: 1,
+      waitMinutes: 10,
+      llmProviderId: new ObjectID(OPUS),
+    });
+  });
+
+  test("out of scope: no provider", async () => {
+    mockRules([
+      rule({
+        monitors: [ref(Monitor, MONITOR_B)],
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+
+    expect(
+      await InvestigationRules.getIncidentScope({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toEqual({ isInScope: false, rulesChecked: 1 });
+  });
+
+  test("only the rules that pick a provider are matched again for it", async () => {
+    const matcher: SpyInstance<
+      typeof IncidentAlertRuleMatcher.doesIncidentMatch
+    > = jest.spyOn(IncidentAlertRuleMatcher, "doesIncidentMatch");
+
+    mockRules([
+      rule({ name: "now" }),
+      rule({ name: "later", onlyIfOpenAfterMinutes: 10 }),
+      rule({ name: "picks", llmProviderId: new ObjectID(OPUS) }),
+    ]);
+
+    await InvestigationRules.getIncidentScope({
+      projectId: PROJECT_ID,
+      incident: incident(),
+    });
+
+    expect(
+      matcher.mock.calls.map(
+        (
+          call: Parameters<typeof IncidentAlertRuleMatcher.doesIncidentMatch>,
+        ) => {
+          return (call[1] as AIInvestigationRule).name;
+        },
+      ),
+    ).toEqual(["now", "picks"]);
+  });
+
+  test("an alert's rules decide its provider the same way", async () => {
+    mockRules([
+      rule({
+        alertSeverities: [ref(AlertSeverity, SEVERITY_LOW)],
+        llmProviderId: new ObjectID(AZURE),
+      }),
+    ]);
+
+    expect(
+      (
+        await InvestigationRules.getAlertScope({
+          projectId: PROJECT_ID,
+          alert: alert(),
+        })
+      ).llmProviderId?.toString(),
+    ).toBe(AZURE);
+  });
+
+  test("getIncidentLlmProviderId: what the rules pick for an incident, whatever their waits", async () => {
+    mockRules([
+      rule({
+        name: "Waits",
+        onlyIfOpenAfterMinutes: 120,
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+
+    expect(
+      (
+        await InvestigationRules.getIncidentLlmProviderId({
+          projectId: PROJECT_ID,
+          incident: incident(),
+        })
+      )?.toString(),
+    ).toBe(OPUS);
+  });
+
+  test("rules that cannot be read pick no provider", async () => {
+    mockRules(new Error("database is down"));
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    expect(
+      await InvestigationRules.getIncidentLlmProviderId({
+        projectId: PROJECT_ID,
+        incident: incident(),
+      }),
+    ).toBeUndefined();
+    expect(
+      await InvestigationRules.getAlertLlmProviderId({
+        projectId: PROJECT_ID,
+        alert: alert(),
+      }),
+    ).toBeUndefined();
+  });
+
+  test("getSubjectLlmProviderId reads the incident with what a rule matches on, in its project", async () => {
+    mockRules([rule({ llmProviderId: new ObjectID(OPUS) })]);
+    const findIncident: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockResolvedValue(incident());
+    const incidentId: ObjectID = ObjectID.generate();
+
+    expect(
+      (
+        await InvestigationRules.getSubjectLlmProviderId({
+          projectId: PROJECT_ID,
+          incidentId,
+        })
+      )?.toString(),
+    ).toBe(OPUS);
+    expect(findIncident.mock.calls[0]![0]).toMatchObject({
+      query: { _id: incidentId.toString(), projectId: PROJECT_ID },
+      select: {
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        labels: { _id: true },
+        monitors: { _id: true },
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("getSubjectLlmProviderId reads an alert the same way", async () => {
+    mockRules([rule({ llmProviderId: new ObjectID(AZURE) })]);
+    const findAlert: SpyInstance<typeof AlertService.findOneBy> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alert());
+
+    expect(
+      (
+        await InvestigationRules.getSubjectLlmProviderId({
+          projectId: PROJECT_ID,
+          alertId: ObjectID.generate(),
+        })
+      )?.toString(),
+    ).toBe(AZURE);
+    expect(findAlert.mock.calls[0]![0]).toMatchObject({
+      select: { alertSeverityId: true, monitorId: true },
+    });
+  });
+
+  test("getSubjectLlmProviderId: a subject that is gone, or cannot be read, picks none", async () => {
+    mockRules([rule({ llmProviderId: new ObjectID(OPUS) })]);
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+
+    expect(
+      await InvestigationRules.getSubjectLlmProviderId({
+        projectId: PROJECT_ID,
+        incidentId: ObjectID.generate(),
+      }),
+    ).toBeUndefined();
+
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockRejectedValue(new Error("database is down"));
+
+    expect(
+      await InvestigationRules.getSubjectLlmProviderId({
+        projectId: PROJECT_ID,
+        incidentId: ObjectID.generate(),
+      }),
+    ).toBeUndefined();
+    expect(
+      await InvestigationRules.getSubjectLlmProviderId({
+        projectId: PROJECT_ID,
+      }),
+    ).toBeUndefined();
   });
 });

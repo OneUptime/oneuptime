@@ -1,5 +1,6 @@
 import { CodeRepositoryListItem } from "./CodeApi";
 import { getRepositoryFullName } from "./CodePaths";
+import { orderRepositoriesForPicker } from "./CodeRepositoriesList";
 import CodePicker, { CodePickerOption } from "./CodePicker";
 import { CODE_PICKER_COPY } from "./CodeTaskCopy";
 import { GitHubMark } from "./GitHubConnect";
@@ -15,10 +16,11 @@ export interface ComponentProps {
 }
 
 /*
- * The repositories a request can go to, as the picker lists them: by name,
- * GitHub's organization/name under it when it says more, and "Not
- * connected", quieter, on one AI cannot reach - it can still be picked, and
- * the box then says what connects it.
+ * The repositories a request can go to, as the picker lists them: those AI
+ * can work in first, then those it cannot (orderRepositoriesForPicker) -
+ * each by name, GitHub's organization/name under it when it says more, and
+ * "Not connected", quieter, on one AI cannot reach: it can still be picked,
+ * and the box then says what connects it.
  */
 export const getRepositoryOptions: (
   repositories: Array<CodeRepositoryListItem>,
@@ -27,7 +29,7 @@ export const getRepositoryOptions: (
   repositories: Array<CodeRepositoryListItem>,
   translator: Translator,
 ): Array<CodePickerOption> => {
-  return repositories.map(
+  return orderRepositoriesForPicker(repositories).map(
     (repository: CodeRepositoryListItem): CodePickerOption => {
       const fullName: string = getRepositoryFullName(repository);
       const option: CodePickerOption = {

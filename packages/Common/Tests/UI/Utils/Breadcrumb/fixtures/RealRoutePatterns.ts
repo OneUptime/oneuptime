@@ -234,6 +234,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/code/repositories/:id",
   "/dashboard/:projectId/code/repositories/:id/delete",
   "/dashboard/:projectId/code/repositories/:id/settings",
+  "/dashboard/:projectId/code/repositories/:id/production-reviews",
   "/dashboard/:projectId/code/tasks/:id",
   "/dashboard/:projectId/code/tasks/:id/log",
   "/dashboard/:projectId/ai/agents/*",

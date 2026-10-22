@@ -1,14 +1,17 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16109
+    "keys": 32601,
+    "untranslated": 16036
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "CPU Ready {{percent}}",
     "Gemini for Google Workspace",
     "Grafana OnCall API URL",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Runner",
     "Splunk On-Call API ID",
     "VMware vCenter",

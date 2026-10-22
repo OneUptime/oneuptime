@@ -29,6 +29,7 @@ import React, {
   useState,
 } from "react";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import Navigation from "Common/UI/Utils/Navigation";
 import { getDeveloperSideMenuSection } from "../../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../../Components/DeveloperDocs/DeveloperDocsPages";
 
@@ -51,6 +52,24 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
   const counts: ResourceCounts = props.resourceCounts || {};
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+  /*
+   * A host's, VM's, datastore's or cluster's own page is one of the rows
+   * its list shows, so that list stays the marked entry there (and the
+   * phone menu's button names it rather than "Navigation"). Matching on the
+   * detail route only while that page is open keeps the list marked on its
+   * own page too.
+   */
+  const getDetailActiveRoute: (detailPage: PageMap) => Route | undefined = (
+    detailPage: PageMap,
+  ): Route | undefined => {
+    const detailRoute: Route = RouteUtil.populateRouteParams(
+      RouteMap[detailPage] as Route,
+      { modelId: props.modelId },
+    );
+
+    return Navigation.isOnThisPage(detailRoute) ? detailRoute : undefined;
+  };
 
   const [unresolvedIncidentStates, setUnresolvedIncidentStates] = useState<
     Array<IncidentState>
@@ -126,6 +145,16 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        <SideMenuItem
+          link={{
+            title: "Topology",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW_TOPOLOGY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.FlowDiagram}
         />
         <SideMenuItem
           link={{
@@ -230,6 +259,9 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
+          activeRoute={getDetailActiveRoute(
+            PageMap.VMWARE_VCENTER_VIEW_HOST_DETAIL,
+          )}
           icon={IconProp.ServerStack}
           badge={counts.hosts}
         />
@@ -241,6 +273,9 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
+          activeRoute={getDetailActiveRoute(
+            PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL,
+          )}
           icon={IconProp.Cube}
           badge={counts.virtualMachines}
         />
@@ -252,6 +287,9 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
+          activeRoute={getDetailActiveRoute(
+            PageMap.VMWARE_VCENTER_VIEW_DATASTORE_DETAIL,
+          )}
           icon={IconProp.Database}
           badge={counts.datastores}
         />
@@ -263,6 +301,9 @@ const VMwareVCenterSideMenu: FunctionComponent<ComponentProps> = (
               { modelId: props.modelId },
             ),
           }}
+          activeRoute={getDetailActiveRoute(
+            PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL,
+          )}
           icon={IconProp.SquareStack}
           badge={counts.clusters}
         />

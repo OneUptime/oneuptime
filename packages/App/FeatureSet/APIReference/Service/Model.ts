@@ -413,6 +413,35 @@ const TypeToDocPath: Dictionary<string> = DataTypeUtil.getTypeToDocPathMap();
 const PermissionDictionary: Dictionary<PermissionProps> =
   PermissionHelper.getAllPermissionPropsAsDictionary();
 
+// A permission as a resource's page lists it.
+export interface DocumentedPermission {
+  permission: Permission;
+  title: string;
+  description: string;
+}
+
+/*
+ * The permissions that allow an operation on a resource, as its page lists
+ * them. Every one is listed - the page documents an operation only when some
+ * permission allows it - and one the permission catalogue has no entry for is
+ * listed by its key: AuthenticatedRequest, which OneUptime grants any
+ * signed-in request and a File's create allows, has none by design. It used
+ * to reach the page as undefined, and /reference/en/file answered 500.
+ */
+export function getDocumentedPermissions(
+  permissions: Array<Permission>,
+): Array<DocumentedPermission> {
+  return permissions.map((permission: Permission): DocumentedPermission => {
+    const props: PermissionProps | undefined = PermissionDictionary[permission];
+
+    return {
+      permission: permission,
+      title: props ? props.title : permission,
+      description: props ? props.description : "",
+    };
+  });
+}
+
 export default class ServiceHandler {
   // Execute response for a given page
   public static async executeResponse(
@@ -540,18 +569,10 @@ export default class ServiceHandler {
       : (model as BaseModel).createRecordPermissions;
 
     pageData["tablePermissions"] = {
-      read: readPermissions.map((permission: Permission) => {
-        return PermissionDictionary[permission];
-      }),
-      update: updatePermissions.map((permission: Permission) => {
-        return PermissionDictionary[permission];
-      }),
-      delete: deletePermissions.map((permission: Permission) => {
-        return PermissionDictionary[permission];
-      }),
-      create: createPermissions.map((permission: Permission) => {
-        return PermissionDictionary[permission];
-      }),
+      read: getDocumentedPermissions(readPermissions),
+      update: getDocumentedPermissions(updatePermissions),
+      delete: getDocumentedPermissions(deletePermissions),
+      create: getDocumentedPermissions(createPermissions),
     };
 
     // Cache the list request data

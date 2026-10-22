@@ -507,6 +507,15 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
   { file: "Common/Server/Utils/AI/SRE/ConfidenceSignal.ts", delivery: "skip" },
   { file: "Common/Server/Utils/AI/SRE/InvestigationTldr.ts", delivery: "skip" },
   /*
+   * Draft with AI on the Detection Rules form: the person waits on the
+   * request (POST /detection-rule/draft-with-ai), and a refusal is the
+   * message the form shows under the description.
+   */
+  {
+    file: "Common/Server/Utils/AI/Security/DetectionRuleDraft.ts",
+    delivery: "throw",
+  },
+  /*
    * Picking which of a postmortem rule's templates an automatic draft
    * follows: the draft is gated on the switch before it starts
    * (IncidentPostmortemRunner.isEnabledForProject), and a refusal here takes
@@ -514,6 +523,17 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
    */
   {
     file: "Common/Server/Utils/AI/SRE/PostmortemTemplatePick.ts",
+    delivery: "skip",
+  },
+  /*
+   * A pull request's production review asks OneUptime AI for its What to
+   * watch only after the runner has read the switch
+   * (ProductionReviewRunner: isProjectAIEnabled, else the review notes AI is
+   * off), and a refusal while it reads becomes the review's AI note: the
+   * comment still goes out with the production facts, without the AI part.
+   */
+  {
+    file: "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts",
     delivery: "skip",
   },
   /*

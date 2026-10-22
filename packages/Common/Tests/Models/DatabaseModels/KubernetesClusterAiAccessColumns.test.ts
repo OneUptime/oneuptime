@@ -1,6 +1,5 @@
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
   KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
@@ -16,7 +15,6 @@ import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
-import RunbookCredentialReaders from "../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   PermissionHelper,
@@ -49,8 +47,6 @@ const projectId: ObjectID = ObjectID.generate();
 const AI_SETTING_COLUMNS: Array<string> = [
   "aiAccessRunner",
   "aiAccessRunnerId",
-  "aiAccessCredential",
-  "aiAccessCredentialId",
   "isAiInvestigationEnabled",
   "aiRemediationMode",
   "aiKubectlCommandAllowlist",
@@ -68,8 +64,6 @@ const SERVER_WRITTEN_COLUMNS: Array<string> = [
 const LOOSENABLE_COLUMNS: Array<string> = [
   "aiAccessRunner",
   "aiAccessRunnerId",
-  "aiAccessCredential",
-  "aiAccessCredentialId",
   "aiRemediationMode",
   "aiKubectlCommandAllowlist",
 ];
@@ -285,11 +279,18 @@ describe("KubernetesCluster AI access columns", () => {
       }
     });
 
-    it("binding a credential takes the permissions that may read credentials", () => {
-      // One rule: RunbookCredential's own read list (RunbookCredentialReaders).
-      expect(sorted(RunbookCredentialReaders.getReadPermissions())).toEqual(
-        sorted(new RunbookCredential().getReadPermissions()),
-      );
+    /*
+     * A cluster bound a Kubernetes runbook credential too, for a Runner
+     * outside it. Runbook credentials are gone, and the column and its
+     * relation with them: there is nothing to bind, read or document.
+     */
+    it("holds no runbook credential: the column and its relation are gone", () => {
+      const columns: Array<string> = new KubernetesCluster().getTableColumns()
+        .columns;
+
+      expect(columns).not.toContain("aiAccessCredential");
+      expect(columns).not.toContain("aiAccessCredentialId");
+      expect(columns).toContain("aiAccessRunnerId");
     });
   });
 
@@ -442,17 +443,6 @@ describe("KubernetesCluster AI access columns", () => {
       },
     );
 
-    it.each(["aiAccessCredential", "aiAccessCredentialId"])(
-      "%s also names the permission to read credentials",
-      (column: string) => {
-        for (const title of PermissionHelper.getPermissionTitles(
-          RunbookCredentialReaders.getReadPermissions(),
-        )) {
-          expect(description(column)).toContain(title);
-        }
-      },
-    );
-
     it("isAiInvestigationEnabled says every cluster editor may flip it and nothing is changed", () => {
       const text: string = description("isAiInvestigationEnabled");
 
@@ -495,17 +485,12 @@ describe("KubernetesCluster AI access columns", () => {
       );
     });
 
-    it("aiAccessRunner says another cluster's in-cluster Runner cannot be bound", () => {
+    it("aiAccessRunner says only this cluster's own in-cluster Runner can be bound, and names no credential", () => {
       for (const column of ["aiAccessRunner", "aiAccessRunnerId"]) {
         expect(description(column)).toMatch(
-          /Another cluster's in-cluster Runner cannot be bound/,
+          /Only this cluster's own in-cluster Runner can be bound/,
         );
-      }
-    });
-
-    it("aiAccessCredential says the credential must be assigned to the Runner", () => {
-      for (const column of ["aiAccessCredential", "aiAccessCredentialId"]) {
-        expect(description(column)).toMatch(/assigned to that Runner/);
+        expect(description(column)).not.toMatch(/credential/i);
       }
     });
 

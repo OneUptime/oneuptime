@@ -1706,13 +1706,18 @@ describe("switching entities and ranges", () => {
 });
 
 describe("best-effort links from the full row", () => {
-  function serviceLookups(): Array<unknown> {
+  // The list reads of one model, by its class name.
+  function lookupsOf(modelName: string): Array<Array<unknown>> {
     return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
       return (
         (call[0] as { modelType: { name: string } }).modelType.name ===
-        "Service"
+        modelName
       );
     });
+  }
+
+  function serviceLookups(): Array<unknown> {
+    return lookupsOf("Service");
   }
 
   test("the traces link uses the row's own Service pointer, with no lookup", async () => {
@@ -1776,7 +1781,8 @@ describe("best-effort links from the full row", () => {
     expect(serviceLookups()).toHaveLength(1);
   });
 
-  test("a host is matched to the network device of the same name", async () => {
+  test("a host is matched to the network device of the same name, and opens into its own topology", async () => {
+    const hostRowId: string = "40404040-0000-4000-8000-000000000001";
     serveEntity(
       entityResponse(
         entityRow({
@@ -1788,19 +1794,24 @@ describe("best-effort links from the full row", () => {
         }),
       ),
     );
-    getListMock.mockImplementation(async () => {
-      return {
-        data: [
-          { _id: "d0d0d0d0-0000-4000-8000-000000000001", name: "core-sw" },
-          {
-            _id: "d0d0d0d0-0000-4000-8000-000000000002",
-            name: "rack-7",
-            hostname: "WEB-1",
-          },
-        ],
-        count: 2,
-      };
-    });
+    getListMock.mockImplementation(
+      async (options: { modelType: { name: string } }) => {
+        if (options.modelType.name === "Host") {
+          return { data: [{ _id: hostRowId }], count: 1 };
+        }
+        return {
+          data: [
+            { _id: "d0d0d0d0-0000-4000-8000-000000000001", name: "core-sw" },
+            {
+              _id: "d0d0d0d0-0000-4000-8000-000000000002",
+              name: "rack-7",
+              hostname: "WEB-1",
+            },
+          ],
+          count: 2,
+        };
+      },
+    );
 
     renderPanel({
       entity: { entityKey: "host-key", entityType: EntityType.Host },
@@ -1808,7 +1819,25 @@ describe("best-effort links from the full row", () => {
 
     const link: HTMLElement = await screen.findByText(/Network device:/);
     expect(link).toHaveTextContent("Network device: rack-7");
-    expect(getListMock).toHaveBeenCalledTimes(1);
+
+    /*
+     * The host's own row is looked up by its name for its Topology page
+     * (ResourceTopologyLinks): one read for that and one for the network
+     * devices, each once.
+     */
+    const topology: HTMLElement = await screen.findByText("Open host topology");
+    expect(topology.closest("a")?.getAttribute("href")).toContain(
+      `${hostRowId}/topology`,
+    );
+    expect(lookupsOf("NetworkDevice")).toHaveLength(1);
+    const hostLookups: Array<Array<unknown>> = lookupsOf("Host");
+    expect(hostLookups).toHaveLength(1);
+    expect(
+      (hostLookups[0]![0] as { query: Record<string, unknown> }).query[
+        "hostIdentifier"
+      ],
+    ).toBe("web-1.example.com");
+    expect(getListMock).toHaveBeenCalledTimes(2);
   });
 
   test("the inventory link opens the row the server returned", async () => {

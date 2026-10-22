@@ -24,6 +24,7 @@ import { JSONArray } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import SecurityCaseAiVerdict from "../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus from "../../Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
@@ -649,6 +650,29 @@ export default class SecurityCase extends BaseModel {
   })
   public groupingKey?: string = undefined;
 
+  /*
+   * The highest priority people have been told about this case at
+   * (SecurityCaseNotifications): the New Security Case notification goes out
+   * again only when the case rises above it, and then only to the people
+   * whose chosen priority it now reaches. Empty until the case first reaches
+   * somebody's priority. Written by OneUptime in one compare-and-set, so two
+   * workers handed the same rise tell people once.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "Notified Priority",
+    description:
+      "The highest priority people have been told about this case at. They are told again only when it rises above it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public notifiedPriority?: SecurityCasePriority = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "incidentId",
@@ -685,6 +709,107 @@ export default class SecurityCase extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incidentId?: ObjectID = undefined;
+
+  /*
+   * OneUptime AI's triage of the case (SecurityCaseTriageRunner): its read
+   * of what the case is, the priority it suggests, the playbook that fits,
+   * and the report it wrote, with when. Written only by OneUptime, the
+   * moment a triage finishes; never the case's own verdict or priority,
+   * which a person sets (the case card offers each suggestion as one
+   * click). Empty until a triage has finished.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "AI Verdict",
+    description:
+      "What OneUptime AI made of the case when it triaged it: Likely Malicious, Likely Benign, Likely False Positive or Inconclusive. A suggestion; a person sets the case's verdict.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiVerdict?: SecurityCaseAiVerdict = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    title: "AI Suggested Priority",
+    description:
+      "The priority OneUptime AI suggested when it triaged the case. The case's own priority changes only when a person sets it.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiSuggestedPriority?: SecurityCasePriority = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "AI Suggested Playbook ID",
+    description:
+      "ID of the project's playbook OneUptime AI suggested running when it triaged the case. It runs only when a person runs it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiSuggestedPlaybookId?: ObjectID = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Markdown,
+    computed: true,
+    title: "AI Triage Report",
+    description:
+      "The report OneUptime AI wrote when it last triaged the case: what happened, its read and the evidence for it, and the next steps.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Markdown,
+  })
+  public aiTriageReport?: string = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Triaged At",
+    description: "When OneUptime AI last finished triaging the case.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public aiTriagedAt?: Date = undefined;
+
+  /*
+   * Whether the case's data held text written to steer an AI - "ignore
+   * previous instructions", a chat template's tokens, the triage's own
+   * answer lines (Common/Utils/AI/InstructionLikeText). A triage that found
+   * some never reads the case as benign or a false positive: it reads
+   * Inconclusive, and the card says why.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    title: "AI Triage Prompt Injection Suspected",
+    description:
+      "Whether OneUptime AI found text in the case's data written to steer an AI when it triaged the case. It then leaves the call to a person.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public aiTriagePromptInjectionSuspected?: boolean = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

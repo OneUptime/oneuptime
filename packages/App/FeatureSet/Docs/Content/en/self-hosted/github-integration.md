@@ -97,7 +97,7 @@ OneUptime uses two sets of events, and they do different jobs.
 | --- | --- |
 | **Issue comment** | `@mention` commands on issues **and** on pull requests |
 | **Issues** | assigning an issue to the app, and the repository's trigger label |
-| **Pull request** | requesting a review from the app |
+| **Pull request** | requesting a review from the app, and production reviews of pull requests as they open and change |
 | **Pull request review** | a mention written in the body of a submitted review |
 | **Pull request review comment** | a mention on an inline comment in the diff |
 

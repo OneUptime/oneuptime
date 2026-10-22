@@ -1,6 +1,8 @@
+import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   SECURITY_EVENTS_MENU,
+  SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE,
   SecurityEventsMenuItem,
   SecurityEventsMenuSection,
 } from "../../Utils/SecurityEventsNavigation";
@@ -8,6 +10,7 @@ import {
   SecurityEventsBadgeCount,
   getSecurityEventsBadgeCount,
 } from "../../Components/SecurityEvents/SecurityEventsBadgeCount";
+import { useWorkspaceSideMenuSection } from "../../Components/Workspace/WorkspaceSideMenuSection";
 import Route from "Common/Types/API/Route";
 import SideMenu, {
   SideMenuItemProps,
@@ -21,8 +24,21 @@ import React, { FunctionComponent, ReactElement } from "react";
  * own, lit on its page. The counts beside Open Cases, Assigned to Me and
  * Waiting for Approval come from SecurityEventsBadgeCount, each counting
  * what its page lists.
+ *
+ * Before Connections, the Workspace section: the security cases' Slack and
+ * Microsoft Teams pages, only for the workspaces the project has connected,
+ * or one entry to connect one when it has none (WorkspaceSideMenuSection.ts),
+ * as every product's menu draws it.
  */
 const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
+  const workspaceSection: SideMenuSectionProps | null =
+    useWorkspaceSideMenuSection({
+      slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+      microsoftTeams:
+        PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+      connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
+    });
+
   const sections: Array<SideMenuSectionProps> = SECURITY_EVENTS_MENU.map(
     (section: SecurityEventsMenuSection): SideMenuSectionProps => {
       return {
@@ -54,6 +70,20 @@ const SecurityEventsSideMenu: FunctionComponent = (): ReactElement => {
       };
     },
   );
+
+  if (workspaceSection) {
+    const before: number = sections.findIndex(
+      (section: SideMenuSectionProps): boolean => {
+        return section.title === SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE;
+      },
+    );
+
+    sections.splice(
+      before === -1 ? sections.length : before,
+      0,
+      workspaceSection,
+    );
+  }
 
   return <SideMenu sections={sections} />;
 };

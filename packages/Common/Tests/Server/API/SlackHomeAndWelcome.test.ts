@@ -23,9 +23,13 @@ import User from "../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
+import AlertEpisodeService from "../../../Server/Services/AlertEpisodeService";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
+import IncidentEpisodeService from "../../../Server/Services/IncidentEpisodeService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
+import WorkspaceNotificationLogService from "../../../Server/Services/WorkspaceNotificationLogService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import ProjectService from "../../../Server/Services/ProjectService";
@@ -341,6 +345,17 @@ beforeEach(() => {
       projectAuth.authToken = SLACK_PROJECT_TOKEN;
       projectAuth.miscData = { botUserId: ONEUPTIME } as never;
       return projectAuth;
+    }) as never);
+  // The workspace's connections, as WorkspaceProjectResolution reads them.
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+    .mockImplementation((async (...args: Array<unknown>) => {
+      const projectAuth: unknown = await (
+        WorkspaceProjectAuthTokenService.findOneBy as unknown as (
+          ...args: Array<unknown>
+        ) => Promise<unknown>
+      )(...args);
+      return projectAuth ? [projectAuth] : [];
     }) as never);
   jest
     .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
@@ -1002,5 +1017,186 @@ describe("a hello in a channel somebody adds the app to", () => {
     expect(
       WorkspaceMessageTime.toSlack(WorkspaceMessageTime.time(NOW).toString()),
     ).toContain(`<!date^${Math.floor(NOW.getTime() / 1000)}^{time}|17:15 UTC>`);
+  });
+});
+
+/*
+ * A SLACK WORKSPACE CONNECTED TO MORE THAN ONE PROJECT.
+ *
+ * The Home and the hellos used to be drawn for whichever of the workspace's
+ * connections a lookup returned first: somebody connected only in the other
+ * project saw a Home asking them to connect, and the Home's buttons acted in
+ * that project too. Now the Home shows the project the person is in
+ * (WorkspaceProjectResolution) and carries it, so its buttons act there.
+ */
+describe("a workspace connected to more than one project", () => {
+  const OTHER_PROJECT: ObjectID = new ObjectID(
+    "d0000000-0000-4000-8000-0000000000ee",
+  );
+
+  function connection(projectId: ObjectID): WorkspaceProjectAuthToken {
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.projectId = projectId;
+    projectAuth.authToken = SLACK_PROJECT_TOKEN;
+    projectAuth.miscData = { botUserId: ONEUPTIME } as never;
+    return projectAuth;
+  }
+
+  beforeEach(() => {
+    // The other project was connected first: the one a lookup returned first.
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([connection(OTHER_PROJECT), connection(PROJECT_ID)]);
+
+    // Who is connected in which project: Alice in this one only.
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findBy")
+      .mockImplementation((async (findBy: {
+        query: { workspaceUserId: string };
+      }) => {
+        const userId: ObjectID | undefined = linked.get(
+          findBy.query.workspaceUserId,
+        );
+
+        if (!userId) {
+          return [];
+        }
+
+        const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+        link.projectId = PROJECT_ID;
+        link.userId = userId;
+        return [link];
+      }) as never);
+
+    // No record owns the channels, and no project has posted in them.
+    for (const service of [
+      IncidentEpisodeService,
+      AlertEpisodeService,
+      ScheduledMaintenanceService,
+    ] as unknown as Array<{ findBy: () => Promise<unknown> }>) {
+      jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+    }
+
+    jest
+      .spyOn(WorkspaceNotificationLogService, "findOneBy")
+      .mockResolvedValue(null);
+  });
+
+  test("the Home shows the project the person is in, and carries it for its buttons", async () => {
+    await deliverEvent(openHome(ALICE));
+    await until((): boolean => {
+      return calls("views.publish").length === 1;
+    }, "the Home drawn");
+
+    const view: JSONObject = calls("views.publish")[0]!.data[
+      "view"
+    ] as JSONObject;
+
+    expect(JSON.parse(view["private_metadata"] as string)).toEqual({
+      oneuptime: 1,
+      value: "",
+      projectId: PROJECT_ID.toString(),
+    });
+    // Her Home, read in her project.
+    expect(blockTexts(publishedBlocks()).join("\n")).toContain(
+      "Acme Production",
+    );
+    expect(onCallReads.length).toBeGreaterThan(0);
+  });
+
+  test("somebody connected in neither: where to connect - no one project's Connect button", async () => {
+    await deliverEvent(openHome(CAROL));
+    await until((): boolean => {
+      return calls("views.publish").length === 1;
+    }, "the Home drawn");
+
+    const blocks: Array<JSONObject> = publishedBlocks();
+
+    expect(buttonsOf(blocks)).toEqual([]);
+    expect(blockTexts(blocks).join("\n")).toContain(
+      "User Settings → Workspace → Slack",
+    );
+    // No button, so no "one click" promised.
+    expect(blockTexts(blocks).join("\n")).not.toContain("one click");
+    expect(JSON.stringify(blocks)).not.toContain(DASHBOARD_URL);
+  });
+
+  test("the hello in a channel nothing ties to a project, added by somebody in neither: no one project's rules linked", async () => {
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+
+    await deliverEvent(
+      eventCallback({
+        type: "member_joined_channel",
+        user: ONEUPTIME,
+        channel: "C0NEWCHANNEL",
+        channel_type: "C",
+        team: TEAM_ID,
+        inviter: CAROL,
+        event_ts: "1760000000.000300",
+      }),
+    );
+    await until((): boolean => {
+      return calls("chat.postMessage").length === 1;
+    }, "the hello posted");
+
+    const blocks: Array<JSONObject> = calls("chat.postMessage")[0]!.data[
+      "blocks"
+    ] as Array<JSONObject>;
+
+    expect(blockTexts(blocks)[1]).toContain("Incidents → Workspace → Slack");
+    expect(buttonsOf(blocks)).toEqual([]);
+  });
+
+  test("the hello, added by somebody in one of the projects: that project's rules linked", async () => {
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+
+    await deliverEvent(
+      eventCallback({
+        type: "member_joined_channel",
+        user: ONEUPTIME,
+        channel: "C0NEWCHANNEL",
+        channel_type: "C",
+        team: TEAM_ID,
+        inviter: ALICE,
+        event_ts: "1760000000.000301",
+      }),
+    );
+    await until((): boolean => {
+      return calls("chat.postMessage").length === 1;
+    }, "the hello posted");
+
+    const buttons: Array<JSONObject> = buttonsOf(
+      calls("chat.postMessage")[0]!.data["blocks"] as Array<JSONObject>,
+    );
+
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]!["url"]).toBe(
+      `${DASHBOARD_URL}/${PROJECT_ID.toString()}/incidents/workspace-connection-slack`,
+    );
+  });
+
+  test("a press of the Home's button acts in the project the Home carries", async () => {
+    const button: JSONObject = homeButton("ShowOnCall");
+    (button["view"] as JSONObject)["private_metadata"] = JSON.stringify({
+      oneuptime: 1,
+      value: "",
+      projectId: PROJECT_ID.toString(),
+    });
+
+    await press(button);
+    await until((): boolean => {
+      return calls("views.open").length === 1;
+    }, "the answer opened");
+
+    const getMemberProps: unknown =
+      WorkspaceActionAuthorization.getProjectMemberProps;
+    const projectIds: Array<string> = (
+      getMemberProps as { mock: { calls: Array<Array<unknown>> } }
+    ).mock.calls.map((call: Array<unknown>): string => {
+      return String((call[0] as { projectId: ObjectID }).projectId);
+    });
+
+    expect(projectIds).toEqual([PROJECT_ID.toString()]);
   });
 });

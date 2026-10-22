@@ -489,9 +489,11 @@ export default class Runner extends BaseModel {
    * anyone turns: picking the Runner for OneUptime AI's commands is the
    * consent, and OneUptime turns this on when that happens
    * (Server/Utils/Runner/RunnerAiCommandsPick) - an auto remediation rule
-   * picks it as its Runner, or a Kubernetes cluster's AI settings bind it.
-   * The in-cluster Runner the Kubernetes agent chart registers has it on for
-   * its own cluster, and a global Runner never has it. Which Runners a
+   * picks it as its Runner. (A Kubernetes cluster's AI settings binding one
+   * did too, while a Runner outside a cluster reached it with a Kubernetes
+   * runbook credential; runbook credentials were removed.) The in-cluster
+   * Runner the Kubernetes agent chart registers has it on for its own
+   * cluster, and a global Runner never has it. Which Runners a
    * rule's commands target is read from the rule (its Runner), never from
    * this column, so a Runner it is on for runs commands only for what picked
    * it.
@@ -515,7 +517,7 @@ export default class Runner extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Runs AI Remediation Commands",
     description:
-      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner or a Kubernetes cluster's AI settings bind it, and on for the in-cluster Runner the Kubernetes agent chart installs.",
+      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner, and on for the in-cluster Runner the Kubernetes agent chart installs.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })
@@ -571,6 +573,68 @@ export default class Runner extends BaseModel {
     default: false,
   })
   public isGlobalRunner?: boolean = undefined;
+
+  /*
+   * The project's default Runner: a runbook step that picks no Runner of
+   * its own runs on it, in place of the Global Runner (Types/Runner/
+   * RunnerChoice, the default order). One per project at most: making a
+   * Runner the default takes it from the project's other Runners, once the
+   * write succeeded (RunnerService, ProjectDefaultRow). Only a Runner that
+   * runs runbook steps may be it - never a global Runner, nor the
+   * in-cluster Runner the Kubernetes agent chart installed
+   * (Types/Runner/ProjectDefaultRunner). Off for every Runner until someone
+   * makes one the default, so no step moves by itself; written by those who
+   * edit Runners, from Runbooks -> Runners and the Runner's own page.
+   *
+   * Every creator of a Runner may give it a value on create - the table's
+   * create list: a client that sends what the API publishes sends false
+   * with every create, as the Terraform provider does. A Runner is created
+   * AS the default only by someone who may make one the default, the
+   * update list below (RunnerService.assertMayCreateAsProjectDefault):
+   * Create Runner alone, like a Project Member, never makes the Runner it
+   * creates the one every step that picks no Runner runs on.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.CreateRunner,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunner,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Project Default",
+    description:
+      "Whether this is the project's default Runner: runbook steps that pick no Runner run on it instead of the Global Runner.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isProjectDefault?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

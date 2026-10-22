@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Find the vCenter in OneUptime
 
-Nothing is sent until the first full inventory walk completes, so give it one collection interval (2 minutes by default). Then open **Products → Infrastructure → VMware → All vCenters**: the vCenter is there, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools.
+Nothing is sent until the first full inventory walk completes, so give it one collection interval (2 minutes by default). Then open **Products → Infrastructure → VMware → All vCenters**: the vCenter is there, with its datacenters, clusters, ESXi hosts, virtual machines, datastores and resource pools. Its **Topology** page draws them all as one map, with what needs attention marked: see [Topology](/docs/telemetry/topology#open-a-resources-own-map).
 :::
 
 ## Environment variables
@@ -239,6 +239,17 @@ The **Overview** answers "is this vCenter healthy" first: the effective hosts, h
 ### ESXi hosts
 
 ![The Hosts page listing every ESXi host with its cluster, datacenter, CPU and memory utilization](/docs/static/images/VMwareHosts.png)
+
+Select a host to open its page. It answers what a host's page outside VMware answers, with what vCenter knows about a hypervisor:
+
+- **Overview**: CPU, memory, the slowest disk's latency and network throughput over the time range you pick, as tiles and charts (drag across a chart to zoom in); the incidents and alerts open on the host; its busiest virtual machines, with the ones waiting for a physical CPU marked; its physical network adapters and storage devices, with packet errors and slow disks marked; which host alerts are on; and the host's details.
+- **Virtual Machines**: the VMs and templates on the host, with their status, resource pool, CPU ready, CPU and memory.
+- **Metrics**: the host's CPU, memory, network and disk series as charts, per network adapter and storage device, each of which opens in the metrics explorer.
+- **Logs**: the host's own syslog, once it sends it (see [Ship ESXi syslog](#optional-ship-esxi-syslog)). Until then the tab gives the commands that point this host, or its whole cluster, at the agent. A vCenter that a probe collects has no syslog, since a probe does not receive it.
+
+When vCenter stops reporting a host, the page says so above its tabs, with when vCenter last reported it. After 15 minutes without a report the host leaves the inventory: its page then says so, and still shows its earlier metrics.
+
+The five host alerts (CPU and memory saturation, high disk latency, network packet errors and packet drops) each watch every host of the vCenter and fire for each host that crosses them. The **Host alerts** card on a host's page shows which are on, and its button opens the vCenter's **Recommendations** with the missing ones already selected: create them there, once, for every host.
 
 ### Virtual machines
 

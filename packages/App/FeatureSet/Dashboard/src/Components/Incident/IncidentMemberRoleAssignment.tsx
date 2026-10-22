@@ -74,6 +74,7 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
               isPrimaryRole: true,
               roleIcon: true,
               canAssignMultipleUsers: true,
+              isArchived: true,
             },
             sort: {
               isPrimaryRole: SortOrder.Descending,
@@ -112,24 +113,43 @@ const IncidentMemberRoleAssignment: FunctionComponent<ComponentProps> = (
           ProjectUser.fetchProjectUsersAsDropdownOptions(projectId),
         ]);
 
+        /*
+         * The roles the card draws: every role not archived, and an archived
+         * one only while someone holds it on this incident.
+         */
+        const heldRoleIds: Set<string> = new Set<string>(
+          (membersResult.data as Array<IncidentMember>).map(
+            (member: IncidentMember): string => {
+              return member.incidentRoleId?.toString() || "";
+            },
+          ),
+        );
+
         // Transform roles
         const transformedRoles: Array<MemberRole> = (
           rolesResult.data as Array<IncidentRole>
-        ).map((role: IncidentRole): MemberRole => {
-          const memberRole: MemberRole = {
-            id: role.id!,
-            name: role.name || "Unknown Role",
-            color: role.color || Color.fromString("#6b7280"),
-            isPrimaryRole: role.isPrimaryRole || false,
-            canAssignMultipleUsers: role.canAssignMultipleUsers || false,
-          };
+        )
+          .filter((role: IncidentRole): boolean => {
+            return (
+              !role.isArchived || heldRoleIds.has(role.id?.toString() || "")
+            );
+          })
+          .map((role: IncidentRole): MemberRole => {
+            const memberRole: MemberRole = {
+              id: role.id!,
+              name: role.name || "Unknown Role",
+              color: role.color || Color.fromString("#6b7280"),
+              isPrimaryRole: role.isPrimaryRole || false,
+              canAssignMultipleUsers: role.canAssignMultipleUsers || false,
+              isArchived: Boolean(role.isArchived),
+            };
 
-          if (role.roleIcon) {
-            memberRole.icon = role.roleIcon;
-          }
+            if (role.roleIcon) {
+              memberRole.icon = role.roleIcon;
+            }
 
-          return memberRole;
-        });
+            return memberRole;
+          });
 
         // Transform assigned members
         const transformedMembers: Array<AssignedMember> = (

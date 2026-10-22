@@ -3,10 +3,9 @@
 An offline harness for the pages runbook variables changed: Runbooks →
 Settings → Global Variables
 (`packages/App/FeatureSet/Dashboard/src/Pages/Runbook/Variables.tsx`), a
-runbook's own Variables page (`Pages/Runbook/View/Variables.tsx`), a
+runbook's own Variables page (`Pages/Runbook/View/Variables.tsx`) and a
 runbook's Steps page with its SSH and kubectl steps
-(`Pages/Runbook/View/Steps.tsx`) and Runbooks → Runners → AI Access
-(`Pages/Runbook/Runners/RunnerCredentials.tsx`). It bundles the production
+(`Pages/Runbook/View/Steps.tsx`). It bundles the production
 pages with esbuild, replaces only the `ModelAPI` / `API` data boundary and the
 synthetic user's permissions, and serves them on `127.0.0.1:4383`
 (`RUNBOOK_VARIABLES_FIXTURE_PORT` to change it). No Docker, no database, no
@@ -40,9 +39,9 @@ The suite drives the pages the way a person does:
   a script of kubectl commands; a script naming a variable that is not there
   says so; a variable added in another tab
   (`window.__fixture.addVariable(name)`) is offered on coming back;
-- steps written with a credential through the API (`?legacy=1`) show as they
-  are, and one button turns each into a script step that does the same;
-- AI Access is what OneUptime AI's commands reach through the Runners;
+- steps written with a runbook credential through the API (`?legacy=1`) say
+  they no longer run, as runbook credentials were removed, and one button
+  turns each into a script step that does the same;
 - a phone (nothing runs off the screen), dark mode (`?theme=dark`) and German
   (`?lang=de`).
 

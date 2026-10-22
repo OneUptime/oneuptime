@@ -593,7 +593,7 @@ describe("the legacy in-cluster Runner, in the Runner README", () => {
 
   it("says a Runner rolled back after its row was removed must be bound again", () => {
     for (const expected of [
-      "After a week offline, OneUptime removes the old Runner's row if nothing else uses it (no credentials or secrets, runbooks, code fixes or remediation rules).",
+      "After a week offline, OneUptime removes the old Runner's row if nothing else uses it (no secret runbook variables, runbooks, code fixes or remediation rules).",
       "A Runner rolled back after that registers again but is not bound to its cluster: bind it with the API or Terraform (the cluster's **AI Access Runner**), or upgrade the chart again.",
     ]) {
       expect({

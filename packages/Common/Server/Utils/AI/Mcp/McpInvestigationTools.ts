@@ -2,6 +2,7 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import ExternalMcpServer from "../../../../Models/DatabaseModels/ExternalMcpServer";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import {
+  EVERY_EXTERNAL_MCP_SERVER,
   ExternalMcpServerAllowance,
   allowsAnyExternalMcpServer,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
@@ -120,6 +121,36 @@ export default class McpInvestigationTools {
     } catch (error) {
       logger.error(
         `AI: could not offer external MCP servers for alert ${data.alertId.toString()}; investigating it without them: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * A security case's triage (SecurityCaseTriageRunner): every server of
+   * the project that is on - no investigation rule names servers for
+   * security cases - and, as for every investigation, only their tools that
+   * read. A threat intel or EDR server a team connected is exactly what a
+   * triage should be able to ask.
+   */
+  public static async forSecurityCase(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    aiRunId: ObjectID;
+    outputPager: ToolOutputPager;
+    runDeadlineAtMs?: number | undefined;
+  }): Promise<McpRunToolkit | null> {
+    try {
+      return await this.buildToolkit({
+        projectId: data.projectId,
+        aiRunId: data.aiRunId,
+        outputPager: data.outputPager,
+        runDeadlineAtMs: data.runDeadlineAtMs,
+        allowance: EVERY_EXTERNAL_MCP_SERVER,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not offer external MCP servers for security case ${data.securityCaseId.toString()}; triaging it without them: ${error}`,
       );
       return null;
     }

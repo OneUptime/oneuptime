@@ -108,6 +108,7 @@ Selecione **Test these settings** em **Testar antes de salvar** antes de salvar.
 | --- | --- | --- |
 | **Região** | O endpoint regional do Google SecOps (`us`, `europe`, `asia-southeast1`, ...) que corresponde à localização no nome do recurso da sua instância. Não há padrão, para que um locatário fora dos EUA não salve o endpoint errado por acidente. | Sim |
 | **Nome do recurso da instância** | No Google SecOps, **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Sim |
+| **Fechar os alertas quando o caso deles for fechado** | Na última etapa do formulário, desativado até você ativá-lo. Ativado, fechar um caso fecha os alertas do Google SecOps dele: veja [Fechar os alertas quando o caso deles for fechado](#fechar-os-alertas-quando-o-caso-deles-for-fechado). | Não |
 | **JSON da conta de serviço** | Google Cloud, a aba **Keys** da conta de serviço. Cole o arquivo de chave JSON inteiro. Somente gravação: criptografado em repouso, nunca devolvido pela API, nunca mais mostrado na página. Use **Update credentials** na conexão para trocá-lo. | Sim |
 | **Data to import** | Os **Alertas** são sempre importados, porque a API de alertas do Google sempre os devolve. Selecione **Detections** para importar também as correspondências de regras que não geraram alerta. Isso não encaminha eventos UDM brutos: encaminhe-os você mesmo, como acima. | Alertas sempre |
 
@@ -119,7 +120,7 @@ As novas detecções são importadas como eventos Detection Finding atribuídos 
 
 A lista de conexões mostra **Nome**, **Provedor** (com a seleção Data to import da conexão embaixo), **Status** (Enabled ou Disabled), **Health**, **Interval (Minutes)**, **Last Polled**, **Last Successful Poll** e **Last Event Imported**. Quando uma conexão tem um erro, **Ver erro** aparece na coluna **Ações** dela, ao lado de **Testar conexão**, **Run now**, **Diagnostics**, **Editar** e **Update credentials**. Enabled significa que a consulta automática está configurada. Last Polled registra uma tentativa; uma janela vazia bem-sucedida não comprova que uma detecção específica foi importada.
 
-**Health** mostra **Last poll succeeded** só depois que um evento é importado. Até lá, uma conexão que funciona mostra **Polling, no events imported yet**, o estado a investigar com Testar conexão. Os outros estados são **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** e **Waiting for first poll**; passe o mouse sobre um estado para ver o que ele significa.
+**Health** mostra **Last poll succeeded** só depois que um evento é importado. Até lá, uma conexão que funciona mostra **Polling, no events imported yet**, o estado a investigar com Testar conexão. Os outros estados são **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** e **Aguardando a primeira consulta**; passe o mouse sobre um estado para ver o que ele significa.
 
 > [!NOTE]
 > O conector usa as APIs legadas de detecções e alertas `v1alpha` do Chronicle, que o Google entrega como pré-GA. Quando uma consulta falha, o campo **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou, inclusive no caso em que o Chronicle responde `200` e põe a recusa no corpo. Selecione **Ver erro** na coluna **Ações** da conexão para ler a mensagem e depois **Copiar erro** na caixa de diálogo para copiá-la para o suporte.
@@ -213,6 +214,17 @@ O Google SecOps guarda a gravidade de uma detecção em lugares diferentes confo
 
 Uma detecção que nenhum desses classifica aparece como Unknown. Para classificar uma regra personalizada, adicione uma gravidade à seção `meta` dela no Google SecOps, por exemplo `severity = "High"`, ou defina `$risk_score` na seção `outcome` dela. As detecções que a regra criar depois disso são importadas com essa gravidade.
 
+## Fechar os alertas quando o caso deles for fechado
+
+Com **Fechar os alertas quando o caso deles for fechado** ativado, fechar um [caso de segurança](/docs/telemetry/security-cases#fechar-um-caso) fecha os alertas do Google SecOps de onde ele veio. Cada alerta é marcado como fechado com o veredito do caso, um True Positive como malicioso e um False Positive ou Benign Positive como não malicioso, junto com a nota de fechamento do caso e um link de volta para o caso. A linha do tempo do caso diz quantos alertas foram fechados.
+
+- A conta de serviço precisa de `chronicle.legacies.legacyUpdateAlert`, que o papel `roles/chronicle.editor` tem. O papel `roles/chronicle.viewer` lê alertas, mas não consegue fechá-los, e um `403` aparece no caso.
+- Um alerta que o Google SecOps não tem mais é ignorado. Quando o Google SecOps não pode ser alcançado, o OneUptime tenta de novo por cerca de uma hora e depois escreve no caso o que não conseguiu fechar.
+
+## Vigie seus outros eventos em busca dos indicadores dele
+
+Um [feed de inteligência de ameaças](/docs/telemetry/threat-intelligence#como-o-google-secops-é-lido) cuja **Origem** é **Google SecOps** lê, por esta conexão, os indicadores que a inteligência de ameaças do Google SecOps encontrou nos eventos dele, e vigia o resto dos eventos do seu projeto em busca deles: os logins, os fluxos de rede e os eventos de endpoint que o Google SecOps nunca viu.
+
 ## Enviar eventos de segurança ao Google SecOps
 
 O OneUptime também pode enviar o que encontra ao Google SecOps, para que o SIEM em que sua equipe trabalha veja as detecções do OneUptime ao lado das próprias. Cada evento de segurança é importado como um evento UDM: um login como `USER_LOGIN`, a inicialização de um processo como `PROCESS_LAUNCH`, uma conexão de rede como `NETWORK_CONNECTION` e todo o resto como `GENERIC_EVENT`, com sua severidade, suas tags do MITRE ATT&CK e a regra que o encontrou.
@@ -224,7 +236,7 @@ No Google Cloud, crie uma conta de serviço no projeto ao qual sua instância do
 
 ### Adicionar o destino
 
-Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**. Escolha a **Região**, preencha o **Nome do recurso da instância** como para o conector acima e cole a chave em **JSON da conta de serviço**.
+Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Google SecOps em **SIEM** e clique em **Próximo**. Escolha a **Região**, preencha o **Nome do recurso da instância** como para o conector acima e cole a chave em **JSON da conta de serviço**.
 
 ### Enviar um evento de teste
 

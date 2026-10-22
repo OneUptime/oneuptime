@@ -31,6 +31,11 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import { formatNameList, getListSeparator } from "../AiAccess/AiAccessModes";
+import {
+  LlmProviderActivity,
+  isLlmProviderActivityWarning,
+} from "Common/Types/AI/LlmProviderChoice";
+import { describeRuleLlmProviderActivity } from "../AI/RuleLlmProviderCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -257,6 +262,18 @@ const friendlyToolNames: { [key: string]: string } = {
   query_telemetry_resources: translationKey("Listing infrastructure resources"),
   query_resource_telemetry: translationKey("Reading a resource's telemetry"),
   query_containers: translationKey("Checking the host's containers"),
+  /*
+   * Security Events: the events, the cases, what threat intel knows and how
+   * unusual an entity is - what a security case's triage reads.
+   */
+  search_security_events: translationKey("Searching security events"),
+  security_event_summary: translationKey("Summarizing security events"),
+  query_security_cases: translationKey("Reading security cases"),
+  lookup_threat_intel: translationKey("Checking threat intel"),
+  security_entity_activity: translationKey("Checking how unusual an entity is"),
+  query_security_playbooks: translationKey("Listing playbooks"),
+  add_security_case_note: translationKey("Adding a note to the case"),
+  run_security_playbook: translationKey("Starting a playbook"),
   /*
    * What every investigation reads besides telemetry: past incidents like
    * this one, what changed just before it, and its own timeline.
@@ -743,6 +760,26 @@ function buildSteps(
             text: describeRecentChanges(recentChanges, translator),
             status: "done",
             kind: "log",
+          });
+          break;
+        }
+
+        /*
+         * The LLM provider a run its rule picked one for used, or why it
+         * used another: drawn from the data, in the reader's language.
+         */
+        const llmProvider: LlmProviderActivity | undefined =
+          event.resultSummary?.llmProvider;
+
+        if (llmProvider) {
+          steps.push({
+            key,
+            text: describeRuleLlmProviderActivity(llmProvider, translator),
+            status: "done",
+            kind: "log",
+            severity: isLlmProviderActivityWarning(llmProvider)
+              ? "Warning"
+              : undefined,
           });
           break;
         }

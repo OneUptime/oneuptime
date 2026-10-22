@@ -20,6 +20,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
+| **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
 | **Hændelsesroller**          | Definere de roller, du tildeler dem, der reagerer, som Hændelsesleder.                       |
 | **Målinger**                 | Måle, hvor lang tid tingene tager, som tiden til bekræftelse eller løsning, på hver hændelse. |
@@ -27,7 +28,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Medlemskab af episoder**   | Vælge, om en hændelse kun kan være i én episode. Slået fra som standard. |
 | **Nummerering**              | Teksten foran hændelses- og episodenumre, som `INC-` i `INC-42`, og det nummer, den næste får. |
 
-Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), med de pull requests til rettelser og manglende telemetri, der hører til rettelsen, samlet under den, og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der indsnævrer, hvilke hændelser der undersøges og rettes, postmortem-reglerne, der vælger, hvilke løste hændelser der får et udkast, og hvilke skabeloner det følger, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der indsnævrer, hvilke hændelser der undersøges og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglerne, der vælger, hvilke løste hændelser der får et udkast, og hvilke skabeloner det følger, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hændelsesstatus** og **Hændelsesalvor** gennemgås grundigt i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side fortsætter fra **Hændelsesskabeloner**. Formularer, der lader folk uden for dit team melde hændelser, er et produkt for sig: se [Formularer](/docs/forms/index). Værktøjer, der selv åbner hændelser, som [Huntress](/docs/integrations/huntress), sættes op som workflows.
 
@@ -169,10 +170,16 @@ En postmortem-skabelon er skelettet til den rapport, du laver efter en hændelse
 :::steps
 1. Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**.
 2. Klik på **Opret Hændelse Postmortem Skabelon**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter **Postmortem-skabelon**, selve teksten, i Markdown, påkrævet.
-3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**.
+3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**. Så længe intet er skrevet, hedder knappen **Start fra skabelon**; når postmortem er skrevet, ligger **Anvend skabelon** i kortets menu **⋯**.
 :::
 
 Du anvender en fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner en dialog **Anvend postmortem-skabelon** med en rullemenu **Vælg skabelon**; vælger du en, indlæses skabelonens tekst i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme side **Postmortem** og trækker på det samme skabelonbibliotek. **Anvend skabelon** vises kun, når projektet har en postmortem-skabelon; er der kun én, er den allerede valgt. Editoren åbner på hændelsens postmortem, som den er, med skabelonen som note, så om den er på statussiden, hvornår den blev offentliggjort, og dens vedhæftninger forbliver, som de var.
+
+## Postmortem-statusser
+
+Hver hændelses postmortem har en af projektets postmortem-statusser, så **Hændelser → Postmortem-analyser** kan vise, hvilke postmortems der stadig mangler. Rediger dem under **Hændelser → Indstillinger → Postmortem-statusser** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): et nyt projekt har **Ikke startet**, **Kladde**, **Fuldført** og **Ikke nødvendig**, og du tilføjer dine egne, for eksempel **Til gennemgang**, med **Opret Postmortem-status**.
+
+**Ikke startet**, **Kladde** og **Fuldført** er indbyggede: OneUptime flytter postmortems til dem, efterhånden som de skrives og offentliggøres, så de kan omdøbes, men ikke slettes eller arkiveres. Hvor en status står, afgør, om en postmortem i den stadig mangler, vist under **Tæller som**. Se [Postmortem-analyser](/docs/incidents/postmortems#følg-hvor-langt-hver-postmortem-er).
 
 ## Brugerdefinerede felter
 
@@ -431,7 +438,7 @@ Det er netop pointen. `Declared At` registrerer, hvornår OneUptime fandt ud af 
 
 **Tid til bekræftelse** tæller fra, at hændelsen erklæres, så en hændelse, hvor ingen bliver tilkaldt før om morgenen, viser timers ventetid, som ingen vagthavende så. **Tid til bekræftelse efter tilkald** tæller i stedet fra **Nogen bliver tilkaldt første gang**: første gang en vagtpolitik eller et direkte tilkald gav nogen besked om hændelsen. Den slutter, når hændelsen bliver bekræftet, efter samme regel som tid til bekræftelse.
 
-OneUptime registrerer det øjeblik på hændelsen, og på advarslen, som `First Paged At`, én gang, og flytter det aldrig. Kun et tilkald, der faktisk blev sendt, tæller: på **Tidslinje for udførelsen** for en vagtpolitik eller et direkte tilkald, en person, hvis tilkald blev sendt, bekræftet eller sendt videre. Et trin, der blev **Sprunget over** eller endte med **Fejl**, tæller ikke, og det gør en politik, der startede, men ikke tilkaldte nogen, heller ikke, for eksempel en, hvor ingen havde vagt i vagtplanen. Hændelser, hvor nogen blev tilkaldt, før `First Paged At` fandtes, får tidspunktet fra deres vagtudførelser.
+OneUptime registrerer det øjeblik på hændelsen, og på advarslen, som `First Paged At`, én gang, og flytter det aldrig. Kun et tilkald, der faktisk blev sendt, tæller: på **Tidslinje for udførelsen** for en vagtpolitik eller et direkte tilkald, en person, hvis tilkald blev sendt, bekræftet eller eskaleret. Et trin, der blev **Sprunget over** eller endte med **Fejl**, tæller ikke, og det gør en politik, der startede, men ikke tilkaldte nogen, heller ikke, for eksempel en, hvor ingen havde vagt i vagtplanen. Hændelser, hvor nogen blev tilkaldt, før `First Paged At` fandtes, får tidspunktet fra deres vagtudførelser.
 
 En hændelse, hvor ingen blev tilkaldt, har ingen værdi: **Ikke startet endnu**, mens den er åben, og **Ikke nået**, når den er løst. Diagrammet kan opdeles efter alvorsgrad, så du kan se, hvor hurtigt der bliver svaret for hver alvorsgrad, når nogen er tilkaldt. Hændelsens side siger det også: under dens tid til bekræftelse tilføjer den, hvor længe efter det første tilkald den blev bekræftet, for eksempel **4 minutter efter tilkald**. Metrikken for tid til bekræftelse og MTTA i opsummeringerne i Slack og Microsoft Teams tæller stadig fra, at hændelsen blev erklæret.
 
@@ -476,6 +483,10 @@ Et nyt projekt starter med én rolle, **Hændelsesleder**, den person, der har a
 Tilføj de andre roller, dit team bruger, som Responder, Communications Lead eller Scribe, med **Opret Hændelse Rolle**. Formularen er én side: et navn og en beskrivelse og derefter **Flere felter**, foldet sammen, med **Tillad flere brugere**, rollens ikon og dens farve. En ny rolles farve er allerede valgt, en farve, som rollerne i listen ikke bruger endnu, og ikonet er valgfrit, så du åbner kun **Flere felter** for at ændre dem. En rolle besiddes af én person pr. hændelse, medmindre du slår **Tillad flere brugere** til. Projekter, der blev oprettet af tidligere versioner af OneUptime, startede også med Responder, Communications Lead og Observer. De beholder dem, indtil du sletter dem.
 
 Roller er kun definitioner. Du tildeler folk til dem pr. hændelse — erklæringsguiden spørger på sit trin **Vagt og roller** med et felt **Tildel hændelsesroller**, og hver hændelse har en side **Roller** i sin sidemenu. En monitors kriterier og en grupperingsregel for hændelser kan vælge folk til dem på forhånd. Hver af de formularer spørger med de samme kort, ét pr. rolle: en rolle med mærket **Primær** er Hændelsesleder eller en anden primær rolle, og en rolle til én person fjerner sin vælger, når den har en. På en hændelses kort **Roller** tilbyder en rolle til flere personer **Add More**.
+
+### Arkivér en rolle
+
+Arkivér en rolle, som dit team ikke længere bruger, fra rækkens menu **⋯** i stedet for at slette den. De, der har den på en hændelse, beholder den, men ingen kan få den igen: Rollevælgerne udelader den eller viser den kun med de personer, der har den, og API'et afviser den. Den primære rolle og enhver rolle, der ikke kan slettes, kan ikke arkiveres. Arkiverede roller vises for sig, i den sammenfoldede sektion **Arkiverede hændelsesroller**, hvor **Fjern fra arkiv** sætter en tilbage.
 
 ## Nummerpræfikser
 

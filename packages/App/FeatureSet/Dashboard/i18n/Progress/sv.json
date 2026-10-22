@@ -1,16 +1,19 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16602
+    "keys": 32601,
+    "untranslated": 16526
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Adapter",
     "Agenda",
     "Agent",
     "App",
     "Budget",
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
+    "Container {{container}}: {{reason}}",
     "Diagram",
     "Embedding",
     "Failover",
@@ -23,8 +26,12 @@
     "Incident {{number}}: {{title}}",
     "Information",
     "Null",
+    "Object Gateway",
+    "Object Gateways",
     "Offline",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Peer",
     "Person",
     "Plan",
@@ -47,6 +54,7 @@
     "port {{port}}",
     "samples",
     "syslog",
+    "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

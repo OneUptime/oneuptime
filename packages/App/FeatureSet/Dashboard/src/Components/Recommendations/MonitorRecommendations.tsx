@@ -2,6 +2,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -57,7 +58,9 @@ import {
 
 import RecommendationsList from "./RecommendationsList";
 import RecommendationToolbar from "./RecommendationToolbar";
-import RecommendationFilterUtil from "./RecommendationFilterUtil";
+import RecommendationFilterUtil, {
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "./RecommendationFilterUtil";
 import RecommendationDismissalUtil from "./RecommendationDismissalUtil";
 import MonitorRecommendationCreateSideOver from "./MonitorRecommendationCreateSideOver";
 import MonitorRecommendationCreateProgressPanel from "./MonitorRecommendationCreateProgress";
@@ -183,9 +186,21 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
   const [dismissals, setDismissals] = useState<Array<RecommendationDismissal>>(
     [],
   );
+  /*
+   * `?select=<id>,<id>` ticks those recommendations as the page opens, so a
+   * link can hand over a batch that is one button away from created: an ESXi
+   * host's "Turn on N alerts" opens its vCenter's list with the host alerts
+   * not yet on ticked. Ids that are not on the list, or that are created or
+   * dismissed by then, are never counted (getSelectableViewModels). The
+   * first render only, like `?search=` and `?status=` below.
+   */
   const [selectedRecommendationIds, setSelectedRecommendationIds] = useState<
     Set<string>
-  >(new Set<string>());
+  >((): Set<string> => {
+    return RecommendationFilterUtil.parseSelectionQuery(
+      Navigation.getQueryStringByName(RECOMMENDATION_SELECTION_QUERY_PARAM),
+    );
+  });
 
   /*
    * `?search=` pre-fills the search box and `?status=` the status filter, so
@@ -294,7 +309,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const monitorStatusList: ListResult<MonitorStatus> =
         await ModelAPI.getList({
           modelType: MonitorStatus,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
@@ -320,7 +336,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const incidentSeverityList: ListResult<IncidentSeverity> =
         await ModelAPI.getList({
           modelType: IncidentSeverity,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: { name: true, order: true, color: true },
@@ -330,7 +347,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const alertSeverityList: ListResult<AlertSeverity> =
         await ModelAPI.getList({
           modelType: AlertSeverity,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: { name: true, order: true, color: true },
@@ -423,7 +441,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       const labelList: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
-        query: {},
+        // A new monitor is set up with values that can be picked.
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: { name: true },
@@ -759,6 +778,50 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * A link that ticks recommendations (`?select=`) lands on them. The page
+   * opens at the scroll position the link was clicked from - an ESXi host's
+   * "Turn on N alerts" sits far down the host's page - which showed the
+   * datacenter cards with the ticked host alerts out of sight above. So once
+   * the list is first drawn, the first ticked card is brought into view.
+   * Nothing can be ticked by hand before the list is drawn, so what is
+   * ticked then is what the link ticked (none without one).
+   */
+  const hasShownLinkedSelection: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  useEffect(() => {
+    if (isLoading || hasShownLinkedSelection.current) {
+      return;
+    }
+
+    hasShownLinkedSelection.current = true;
+
+    const linked: Set<string> = selectedRecommendationIds;
+
+    if (linked.size === 0) {
+      return;
+    }
+
+    /*
+     * The first card, in the page's order, of a ticked recommendation. Read
+     * by comparing each card's own id - never a selector built from the
+     * address, which a pasted link could fill with anything.
+     */
+    const prefix: string = "recommendation-card-";
+    const firstCard: HTMLElement | undefined = Array.from(
+      document.querySelectorAll<HTMLElement>(`[data-testid^="${prefix}"]`),
+    ).find((card: HTMLElement): boolean => {
+      return linked.has(
+        (card.getAttribute("data-testid") || "").slice(prefix.length),
+      );
+    });
+
+    if (firstCard && typeof firstCard.scrollIntoView === "function") {
+      firstCard.scrollIntoView({ block: "center" });
+    }
+  }, [isLoading]);
+
   if (isLoading) {
     return <ComponentLoader />;
   }
@@ -1025,10 +1088,18 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
        * scrolls out of view on a cluster with eighteen recommendations across
        * five categories, and the moment a user has finished choosing is
        * exactly when they are at the bottom of the page.
+       *
+       * On a phone the count and Clear share the first line and Create
+       * takes the whole second one: all on one line, the two full-width
+       * buttons left the count a column one word wide - "monitors" ran
+       * under Clear - and wrapped Create onto three lines.
        */}
       {selectedRecommendations.length > 0 ? (
-        <div className="sticky bottom-4 z-10 mb-5 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg">
-          <div className="flex min-w-0 items-center gap-2">
+        <div
+          className="sticky bottom-4 z-10 mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-lg sm:flex-nowrap"
+          data-testid="recommendations-selection-bar"
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-gray-900">
               {translator.translatePlural(
                 {
@@ -1065,7 +1136,7 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
               <></>
             )}
           </div>
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-none items-center [&>button]:w-auto">
             <Button
               title="Clear"
               buttonStyle={ButtonStyleType.NORMAL}
@@ -1073,6 +1144,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
                 setSelectedRecommendationIds(new Set<string>());
               }}
             />
+          </div>
+          <div className="w-full sm:w-auto sm:flex-none">
             <Button
               title={translator.translatePlural(
                 {

@@ -19,6 +19,7 @@ import {
   AiRemediationCommandPlanUtil,
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
+  isRemovedSshCommand,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   ExternalMcpToolCallPlan,
@@ -120,17 +121,31 @@ const STATUS_VISUAL: Record<AutoRemediationSuggestionStatus, StatusVisual> = {
   },
 };
 
+/*
+ * A plan waiting for approval that can no longer be approved: it holds an
+ * SSH command, composed before runbook credentials were removed. "Waiting
+ * for approval" would wait for what nobody can give.
+ */
+const UNAPPROVABLE_PLAN_VISUAL: StatusVisual = {
+  label: translationKey("Can't be approved"),
+  badge: "bg-gray-100 text-gray-700 ring-gray-200",
+  dot: "bg-gray-400",
+};
+
 function StatusPill({
   status,
   isCommandPlan,
+  isUnapprovable,
 }: {
   status: AutoRemediationSuggestionStatus;
   isCommandPlan?: boolean | undefined;
+  isUnapprovable?: boolean | undefined;
 }): ReactElement {
   const translator: Translator = useTranslator();
-  const v: StatusVisual =
-    STATUS_VISUAL[status] ||
-    STATUS_VISUAL[AutoRemediationSuggestionStatus.Planning]!;
+  const v: StatusVisual = isUnapprovable
+    ? UNAPPROVABLE_PLAN_VISUAL
+    : STATUS_VISUAL[status] ||
+      STATUS_VISUAL[AutoRemediationSuggestionStatus.Planning]!;
   // A command plan is composed, not picked from runbooks.
   const label: string = translator.translateText(
     isCommandPlan && status === AutoRemediationSuggestionStatus.Planning
@@ -473,15 +488,32 @@ export enum CommandApprovalPillKind {
   RanWithoutApproval = "RanWithoutApproval",
   // Nothing runs until a human approves the plan it belongs to.
   NeedsApproval = "NeedsApproval",
+  /*
+   * An SSH command of a plan composed before runbook credentials were
+   * removed, which never ran: its plan cannot be approved any more, so
+   * "needs approval" would ask for what nobody can give.
+   */
+  NoLongerRuns = "NoLongerRuns",
 }
 
 export function getCommandApprovalPillKind(
-  command: Pick<AiRemediationCommand, "wasAutoExecuted">,
+  command: Pick<AiRemediationCommand, "wasAutoExecuted"> &
+    Partial<Pick<AiRemediationCommand, "stepType" | "execution">>,
   suggestionStatus: AutoRemediationSuggestionStatus,
 ): CommandApprovalPillKind | null {
   // A FullAuto / Automatic run executed this inline during planning.
   if (command.wasAutoExecuted === true) {
     return CommandApprovalPillKind.RanWithoutApproval;
+  }
+
+  if (
+    command.stepType !== undefined &&
+    isRemovedSshCommand({ stepType: command.stepType }) &&
+    !command.execution &&
+    (suggestionStatus === AutoRemediationSuggestionStatus.Suggested ||
+      suggestionStatus === AutoRemediationSuggestionStatus.Planning)
+  ) {
+    return CommandApprovalPillKind.NoLongerRuns;
   }
 
   switch (suggestionStatus) {
@@ -523,7 +555,33 @@ const APPROVAL_VISUAL: Record<CommandApprovalPillKind, ApprovalVisual> = {
     badge: "bg-amber-50 text-amber-700 ring-amber-200",
     dot: "bg-amber-500",
   },
+  [CommandApprovalPillKind.NoLongerRuns]: {
+    label: "no longer runs",
+    badge: "bg-gray-100 text-gray-700 ring-gray-200",
+    dot: "bg-gray-400",
+  },
 };
+
+/*
+ * Under a plan waiting for approval that holds an SSH command (composed
+ * before runbook credentials were removed), in place of "Approve & Run":
+ * the server refuses to approve it, so the card says so before anyone
+ * clicks, and Dismiss is the one thing left to do.
+ */
+export const REMOVED_SSH_PLAN_NOTE: string = translationKey(
+  "This plan can't be approved: OneUptime AI no longer runs SSH commands.",
+);
+
+// Whether a plan holds an SSH command, which no longer runs (isRemovedSshCommand).
+export function hasRemovedSshCommand(
+  plan: Pick<AiRemediationCommandPlan, "commands"> | null,
+): boolean {
+  return Boolean(
+    plan?.commands.some((command: AiRemediationCommand): boolean => {
+      return isRemovedSshCommand(command);
+    }),
+  );
+}
 
 function CommandApprovalPill({
   kind,
@@ -1041,10 +1099,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
     } catch (err) {
       /*
        * The server re-checks a kubectl plan at approval time — the cluster's
-       * remediation may have been switched off, or its Runner or
-       * credential changed, since the plan was composed — and refuses the
-       * click with the reason and what to do. It also refuses a click that
-       * lost to someone else's; the reload below says which.
+       * remediation may have been switched off, or what runs its kubectl
+       * changed, since the plan was composed — and refuses the click with
+       * the reason and what to do. It also refuses a click that lost to
+       * someone else's; the reload below says which.
        */
       refusal = API.getFriendlyMessage(err);
     }
@@ -1163,6 +1221,14 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                   suggestion.mcpToolCallPlan || null,
                 )
               : null;
+            /*
+             * A plan waiting for approval that holds an SSH command can no
+             * longer be approved: the card says so in place of "Approve &
+             * Run", and leaves Dismiss.
+             */
+            const isUnapprovablePlan: boolean =
+              status === AutoRemediationSuggestionStatus.Suggested &&
+              hasRemovedSshCommand(plan);
             const runbookTitle: string =
               suggestion.runbookNameSnapshot ||
               (translator.translateText(
@@ -1241,6 +1307,7 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                     <StatusPill
                       status={status}
                       isCommandPlan={isCommandPlan || isMcpFix}
+                      isUnapprovable={isUnapprovablePlan}
                     />
                     {suggestion.verificationStatus ? (
                       <VerificationPill
@@ -1298,8 +1365,19 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                           const commandKey: string = `${suggestionId}:command:${command.sequence}`;
                           const isOutputExpanded: boolean =
                             expandedIds.has(commandKey);
-                          const approvalPillKind: CommandApprovalPillKind | null =
+                          const commandPillKind: CommandApprovalPillKind | null =
                             getCommandApprovalPillKind(command, status);
+                          /*
+                           * Nothing in a plan that can't be approved waits
+                           * for an approval: only its SSH command's "no
+                           * longer runs" is said.
+                           */
+                          const approvalPillKind: CommandApprovalPillKind | null =
+                            isUnapprovablePlan &&
+                            commandPillKind ===
+                              CommandApprovalPillKind.NeedsApproval
+                              ? null
+                              : commandPillKind;
 
                           return (
                             <li
@@ -1493,8 +1571,20 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
 
+                {isUnapprovablePlan ? (
+                  <p
+                    className="mt-3 text-xs text-gray-600"
+                    data-testid="remediation-removed-ssh-note"
+                  >
+                    {translator.translateText(REMOVED_SSH_PLAN_NOTE)}
+                  </p>
+                ) : (
+                  <></>
+                )}
+
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {status === AutoRemediationSuggestionStatus.Suggested ? (
+                  {status === AutoRemediationSuggestionStatus.Suggested &&
+                  !isUnapprovablePlan ? (
                     <Button
                       title="Approve & Run"
                       icon={IconProp.Check}
