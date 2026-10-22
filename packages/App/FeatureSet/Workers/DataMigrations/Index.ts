@@ -149,6 +149,7 @@ import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -807,6 +808,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * for itself.
    */
   new AddProcessColumnsToSecurityEvent(),
+  /*
+   * Postmortem statuses (Incidents > Postmortems): every project from before
+   * them gets the four a new project starts with, then every incident the
+   * status its postmortem is in - Completed when published on a status page,
+   * Draft when it has a note, Not Started otherwise. After the schema
+   * migration AddIncidentPostmortemStatus, which adds the table and the
+   * column (data migrations run after every schema migration).
+   * Postgres-only and idempotent; no ordering requirement among data
+   * migrations, so it sits above the runbook moves, which keep their places
+   * right before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddDefaultPostmortemStatusesToExistingProjects(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

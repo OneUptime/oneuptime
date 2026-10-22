@@ -189,7 +189,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | Область | Команды |
 | --- | --- |
 | Мониторинг | `monitor`, `monitor-status`, `monitor-status-event` |
-| Инциденты | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Инциденты | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Оповещения | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Страницы состояния | `status-page`, `status-page-announcement` |
 | Плановое обслуживание | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

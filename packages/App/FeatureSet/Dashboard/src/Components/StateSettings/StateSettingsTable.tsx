@@ -68,9 +68,15 @@ export const StateSettingsNameCell: FunctionComponent<
     ? translateString(props.builtInTooltip) || props.builtInTooltip
     : undefined;
 
+  /*
+   * The tag keeps the name's line in a table row: wrapping, it fell under
+   * the longer names only ("Not Started" and "Completed" but not "Draft"),
+   * so the built-in rows of one page had two heights. The column makes room
+   * instead. On a phone's card it may still wrap.
+   */
   return (
     <div
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-2 md:flex-nowrap"
       data-testid="state-settings-name"
     >
       <Pill isMinimal={true} color={props.color} text={props.name} />

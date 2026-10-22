@@ -93,6 +93,7 @@ Monitors, incidenten, waarschuwingen, statuspagina's, SLO's en veel andere resou
 | Monitorstatussen | `Monitor Status` |
 | Statussen van gepland onderhoud | `Scheduled Maintenance State` |
 | Incidentrollen | `Incident Role` |
+| Postmortem-statussen | `Postmortem Status` |
 | API-sleutels | `API Key` |
 | MCP-clients die mensen koppelen | `MCP Client Authorization` |
 | Inventarisitems | `Inventory Item` |

@@ -20,6 +20,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
+| **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
 | **Hændelsesroller**          | Definere de roller, du tildeler dem, der reagerer, som Hændelsesleder.                       |
 | **Målinger**                 | Måle, hvor lang tid tingene tager, som tiden til bekræftelse eller løsning, på hver hændelse. |
@@ -169,10 +170,16 @@ En postmortem-skabelon er skelettet til den rapport, du laver efter en hændelse
 :::steps
 1. Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**.
 2. Klik på **Opret Hændelse Postmortem Skabelon**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter **Postmortem-skabelon**, selve teksten, i Markdown, påkrævet.
-3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**.
+3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**. Så længe intet er skrevet, hedder knappen **Start fra skabelon**; når postmortem er skrevet, ligger **Anvend skabelon** i kortets menu **⋯**.
 :::
 
 Du anvender en fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner en dialog **Anvend postmortem-skabelon** med en rullemenu **Vælg skabelon**; vælger du en, indlæses skabelonens tekst i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme side **Postmortem** og trækker på det samme skabelonbibliotek. **Anvend skabelon** vises kun, når projektet har en postmortem-skabelon; er der kun én, er den allerede valgt. Editoren åbner på hændelsens postmortem, som den er, med skabelonen som note, så om den er på statussiden, hvornår den blev offentliggjort, og dens vedhæftninger forbliver, som de var.
+
+## Postmortem-statusser
+
+Hver hændelses postmortem har en af projektets postmortem-statusser, så **Hændelser → Postmortem-analyser** kan vise, hvilke postmortems der stadig mangler. Rediger dem under **Hændelser → Indstillinger → Postmortem-statusser** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): et nyt projekt har **Ikke startet**, **Kladde**, **Fuldført** og **Ikke nødvendig**, og du tilføjer dine egne, for eksempel **Til gennemgang**, med **Opret Postmortem-status**.
+
+**Ikke startet**, **Kladde** og **Fuldført** er indbyggede: OneUptime flytter postmortems til dem, efterhånden som de skrives og offentliggøres, så de kan omdøbes, men ikke slettes eller arkiveres. Hvor en status står, afgør, om en postmortem i den stadig mangler, vist under **Tæller som**. Se [Postmortem-analyser](/docs/incidents/postmortems#følg-hvor-langt-hver-postmortem-er).
 
 ## Brugerdefinerede felter
 

@@ -45,6 +45,7 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
+import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
 import IncidentRoleService from "./IncidentRoleService";
 import MailService from "./MailService";
 import MonitorStatusService from "./MonitorStatusService";
@@ -119,6 +120,11 @@ import NextNumberUtil, {
 } from "../../Utils/Project/NextNumber";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
+import IncidentPostmortemStatus from "../../Models/DatabaseModels/IncidentPostmortemStatus";
+import {
+  DEFAULT_POSTMORTEM_STATUSES,
+  DefaultPostmortemStatus,
+} from "../../Utils/Incident/PostmortemStatus";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import NetworkSiteType from "../../Models/DatabaseModels/NetworkSiteType";
@@ -2767,6 +2773,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
       this.addDefaultProjectTeams(createdItem),
       this.addDefaultMonitorStatus(createdItem),
       this.addDefaultIncidentState(createdItem),
+      this.addDefaultIncidentPostmortemStatuses(createdItem),
       this.addDefaultScheduledMaintenanceState(createdItem),
       this.addDefaultAlertState(createdItem),
       this.addDefaultIncidentRoles(createdItem),
@@ -2905,6 +2912,96 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     return createdItem;
+  }
+
+  /*
+   * The project's postmortem statuses (Common/Utils/Incident/PostmortemStatus):
+   * Not Started, Draft and Completed, which OneUptime moves postmortems into
+   * by itself, and Not Needed, after Completed so it counts as done. Made one
+   * after another, top first, so each takes its place. Idempotent: a status
+   * whose name the project has is not made again, nor a built-in one the
+   * project has under another name - the backfill for projects from before
+   * statuses (AddDefaultPostmortemStatusesToExistingProjects) runs this too.
+   */
+  @CaptureSpan()
+  public async addDefaultIncidentPostmortemStatuses(
+    createdItem: Model,
+  ): Promise<Model> {
+    const projectId: ObjectID = createdItem.id!;
+
+    const existing: Array<IncidentPostmortemStatus> =
+      await IncidentPostmortemStatusService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          name: true,
+          isNotStartedStatus: true,
+          isDraftStatus: true,
+          isCompletedStatus: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const existingNames: Set<string> = new Set(
+      existing.map((status: IncidentPostmortemStatus): string => {
+        return status.name || "";
+      }),
+    );
+
+    const existingFlags: Set<string> = new Set();
+
+    for (const status of existing) {
+      for (const flag of [
+        "isNotStartedStatus",
+        "isDraftStatus",
+        "isCompletedStatus",
+      ]) {
+        if ((status as unknown as Record<string, unknown>)[flag] === true) {
+          existingFlags.add(flag);
+        }
+      }
+    }
+
+    for (const defaultStatus of DEFAULT_POSTMORTEM_STATUSES) {
+      if (existingNames.has(defaultStatus.name)) {
+        continue;
+      }
+
+      if (defaultStatus.flag && existingFlags.has(defaultStatus.flag)) {
+        continue;
+      }
+
+      await IncidentPostmortemStatusService.create({
+        data: this.buildDefaultPostmortemStatus(projectId, defaultStatus),
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    return createdItem;
+  }
+
+  private buildDefaultPostmortemStatus(
+    projectId: ObjectID,
+    defaultStatus: DefaultPostmortemStatus,
+  ): IncidentPostmortemStatus {
+    const status: IncidentPostmortemStatus = new IncidentPostmortemStatus();
+    status.projectId = projectId;
+    status.name = defaultStatus.name;
+    status.description = defaultStatus.description;
+    status.color = defaultStatus.color;
+    status.order = defaultStatus.order;
+    status.isNotStartedStatus = defaultStatus.flag === "isNotStartedStatus";
+    status.isDraftStatus = defaultStatus.flag === "isDraftStatus";
+    status.isCompletedStatus = defaultStatus.flag === "isCompletedStatus";
+
+    return status;
   }
 
   @CaptureSpan()

@@ -27,6 +27,7 @@ import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateService";
+import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
 import IncidentNoteTemplateService from "./IncidentNoteTemplateService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
@@ -561,6 +562,7 @@ const services: Array<BaseService> = [
   IncidentOnCallRuleService,
   IncidentPrivacyRuleService,
   IncidentPostmortemTemplateService,
+  IncidentPostmortemStatusService,
   IncidentNoteTemplateService,
   IncidentLabelRuleService,
   IncidentGroupingRuleService,

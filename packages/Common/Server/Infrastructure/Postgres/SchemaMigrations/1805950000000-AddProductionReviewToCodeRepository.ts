@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * .getNewRepositoryDefaults). An empty productionReviewPullRequestContent
  * is Review. Adding a nullable column without a default rewrites no row.
  */
-export class AddProductionReviewToCodeRepository1805900000000
+export class AddProductionReviewToCodeRepository1805950000000
   implements MigrationInterface
 {
-  public name: string = "AddProductionReviewToCodeRepository1805900000000";
+  public name: string = "AddProductionReviewToCodeRepository1805950000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

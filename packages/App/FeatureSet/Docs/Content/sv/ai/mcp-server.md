@@ -39,7 +39,7 @@ Servern är tillståndslös: den utfärdar inga sessions-id:n och varje begäran
 - **Planerat underhåll**: skapa och hantera underhållshändelser.
 - **Telemetri**: fråga efter loggar, mätvärden, spår, undantag, monitorloggar, säkerhetshändelser med mera, endast läsning.
 
-Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 27 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
+Det finns verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för 28 sorters poster, verktyg för att lista och räkna för 9 sorters telemetri, och verktyg gjorda för incidenthantering. Skrivskyddade verktyg har `readOnlyHint`, varje verktyg som ändrar något har `destructiveHint`, och bara verktygen för publika statussidor har `openWorldHint`, så att en klient själv kan köra skrivskyddade anrop och fråga dig före varje ändring. Ett misslyckat verktygsanrop kommer tillbaka som ett verktygsresultat (`isError: true`) med en `statusCode`, detaljerna och ett förslag, inte som ett fel i MCP-protokollet, så att agenten kan läsa felet och rätta sig själv.
 
 ## Innan du börjar
 
@@ -471,7 +471,7 @@ MCP-servern är tillståndslös: den varken utfärdar eller spårar sessions-id:
 | Område | Poster med verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna |
 | --- | --- |
 | Övervakning | Monitor, Monitor Status, Monitor Status Event |
-| Incidenter | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| Incidenter | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | Larm | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | Statussidor | Status Page, Status Page Announcement |
 | Planerat underhåll | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

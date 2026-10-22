@@ -9,9 +9,9 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * What the settings pages of the values records pick from say about
  * archiving them (Common/Utils/ArchivableValues): Incident State, Incident
  * Severity, Alert State, Alert Severity, Monitor Status, Event State,
- * Labels and Incident Roles.
+ * Labels, Incident Roles and Postmortem Statuses.
  *
- * Archiving is one idea for all eight - nobody can pick the value again,
+ * Archiving is one idea for all nine - nobody can pick the value again,
  * and everything that has it keeps it - but what "has it" means differs: an
  * incident is in a state, a monitor has a status, a person holds a role. So
  * each value says it in its own words, written to make sense on its own,
@@ -110,6 +110,15 @@ export const ARCHIVABLE_VALUE_COPY: Record<
       "People who hold these roles on incidents keep them. Nobody can be given them again.",
     ),
   },
+  [ArchivableValueType.IncidentPostmortemStatus]: {
+    archiveMessage: translationKey(
+      "Nobody can move a postmortem to an archived status again. Postmortems in it stay in it until someone moves them, and you can still filter by it. You can unarchive it at any time.",
+    ),
+    archivedTitle: translationKey("Archived Postmortem Statuses"),
+    archivedDescription: translationKey(
+      "Postmortems in these statuses stay in them. Nobody can move a postmortem to them again.",
+    ),
+  },
 };
 
 /*
@@ -151,6 +160,15 @@ export const ARCHIVE_LOCKED_REASONS: Array<string> = [
   ),
   translationKey(
     "Every incident needs someone in charge, so this role can't be archived.",
+  ),
+  translationKey(
+    "A new incident's postmortem starts in this status, so it can't be archived.",
+  ),
+  translationKey(
+    "Writing a postmortem moves it to this status, so it can't be archived.",
+  ),
+  translationKey(
+    "Publishing a postmortem on a status page moves it to this status, so it can't be archived.",
   ),
   translationKey(
     "Every new incident needs a severity, so keep at least one that is not archived.",

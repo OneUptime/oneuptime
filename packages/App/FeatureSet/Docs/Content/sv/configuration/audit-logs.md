@@ -93,6 +93,7 @@ Monitorer, incidenter, varningar, statussidor, SLO:er och många andra resurser 
 | Monitorstatusar | `Monitor Status` |
 | Statusar för schemalagt underhåll | `Scheduled Maintenance State` |
 | Incidentroller | `Incident Role` |
+| Efteranalysstatusar | `Postmortem Status` |
 | API-nycklar | `API Key` |
 | MCP-klienter som personer ansluter | `MCP Client Authorization` |
 | Inventarieobjekt | `Inventory Item` |
