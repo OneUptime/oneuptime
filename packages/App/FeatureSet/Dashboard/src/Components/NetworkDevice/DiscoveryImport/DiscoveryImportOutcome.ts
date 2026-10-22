@@ -3,6 +3,8 @@ import {
   DiscoveryImportAlerting,
   DiscoveryImportSettings,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import { isDeviceAddressMonitorType } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { MonitorTemplateAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import { isPingOnlyDiscoveredHost } from "Common/Utils/NetworkDiscovery/DiscoveryImportEligibility";
 
@@ -23,14 +25,38 @@ import { isPingOnlyDiscoveredHost } from "Common/Utils/NetworkDiscovery/Discover
  * every combination is tested on its own.
  */
 
-// A Network Device monitor template the reader can pick, as the step knows it.
+/*
+ * A monitor template the reader can pick, as the step knows it: a Network
+ * Device template, whose monitor reads each device's polls, or a Ping, IP,
+ * Port or NTP template, whose monitor checks each device's address (issue
+ * #5145).
+ */
 export interface DiscoveryImportTemplateChoice {
   // Empty for the recommended template the import would create.
   id: string;
+  // As someone named it; empty for a template with no name.
   name: string;
+  monitorType: MonitorType;
   summary: MonitorTemplateAlertSummary;
+  /*
+   * How often an address monitor made from it checks, as the template's
+   * cron. A Network Device monitor is judged on every poll instead.
+   */
+  monitoringInterval?: string | undefined;
+  // The ports a Port template's steps check, each once.
+  ports?: Array<number> | undefined;
   // Not in the project yet: Import creates it first.
   isCreatedOnImport?: boolean | undefined;
+}
+
+/*
+ * Whether the template's monitors check each device's address (Ping, IP,
+ * Port, NTP) rather than read its polls (Network Device).
+ */
+export function checksDeviceAddress(
+  choice: DiscoveryImportTemplateChoice | null | undefined,
+): boolean {
+  return Boolean(choice && isDeviceAddressMonitorType(choice.monitorType));
 }
 
 // The value the recommended template Import would create is picked by.
@@ -76,13 +102,18 @@ export interface DiscoveryImportOutcome {
   monitorsBeyondRoom: number;
   template: DiscoveryImportTemplateChoice | null;
   reach: DiscoveryImportAlertReach;
-  // The template opens incidents / creates alerts on ANY of the devices.
+  /*
+   * The template opens incidents / creates alerts on ANY of the devices
+   * imported: on a device that answers ping only, only what its ping-only
+   * checks raise.
+   */
   raisesIncidents: boolean;
   raisesAlerts: boolean;
   /*
    * Ping-only devices whose monitor can raise nothing: every check of the
    * template that opens an incident or an alert reads an SNMP walk, and
-   * these devices are only pinged.
+   * these devices are only pinged. Never any for a Ping, IP, Port or NTP
+   * template: its monitors check the address themselves.
    */
   pingOnlyHostsWithoutAlerts: number;
   // Enabled policies that cover every device, by name.
@@ -145,11 +176,38 @@ export function getDiscoveryImportOutcome(data: {
     },
   ).length;
 
-  const raisesIncidents: boolean = Boolean(template?.summary.raisesIncidents);
-  const raisesAlerts: boolean = Boolean(template?.summary.raisesAlerts);
+  /*
+   * What the monitors raise on THESE devices. When every one of them
+   * answers ping only - issue #5145's 516 kitchen displays and registers -
+   * a Network Device template's checks that read an SNMP walk raise nothing
+   * on any of them, so what it raises is what its ping-only checks raise:
+   * the summary must not promise alerts only an SNMP device could create.
+   */
+  const isEveryHostPingOnly: boolean =
+    hostCount > 0 && pingOnlyHostCount === hostCount;
+  const readsWalks: boolean = Boolean(
+    template && !checksDeviceAddress(template),
+  );
+  const raisesIncidents: boolean = Boolean(
+    template &&
+      (isEveryHostPingOnly && readsWalks
+        ? template.summary.raisesIncidentsOnPingOnlyDevices
+        : template.summary.raisesIncidents),
+  );
+  const raisesAlerts: boolean = Boolean(
+    template &&
+      (isEveryHostPingOnly && readsWalks
+        ? template.summary.raisesAlertsOnPingOnlyDevices
+        : template.summary.raisesAlerts),
+  );
+  /*
+   * A monitor that checks the address itself fires on a device that only
+   * answers ping as much as on any other.
+   */
   const raisesOnPingOnly: boolean = Boolean(
     template &&
-      (template.summary.raisesIncidentsOnPingOnlyDevices ||
+      (checksDeviceAddress(template) ||
+        template.summary.raisesIncidentsOnPingOnlyDevices ||
         template.summary.raisesAlertsOnPingOnlyDevices),
   );
 

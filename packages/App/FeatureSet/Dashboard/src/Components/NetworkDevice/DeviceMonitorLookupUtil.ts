@@ -4,8 +4,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "Common/Types/ObjectID";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { DEVICE_ADDRESS_MONITOR_TYPES } from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /** What a device's own row says about who reports its health. */
@@ -23,8 +26,9 @@ export interface DeviceMonitorContext {
 /*
  * Finds the monitors that report on a given network device.
  *
- * There are TWO ways a monitor relates to a device, and this util has to
- * return both or the device's own pages contradict its status pill.
+ * There are THREE ways a monitor relates to a device, and this util has to
+ * return all of them or the device's own pages contradict its status pill,
+ * or the import that just gave it a monitor.
  *
  * 1. A Network Device monitor WATCHES the device: the reference lives inside
  *    the monitor's monitorSteps JSON column
@@ -38,6 +42,11 @@ export interface DeviceMonitorContext {
  *    status. It is an ordinary Ping or IP monitor, so it is not of type
  *    NetworkDevice and its steps say nothing about the device — the query in
  *    (1) can never find it.
+ *
+ * 3. A monitor was MADE FOR the device (Monitor.autoProvisionedNetworkDeviceId)
+ *    from a Ping, IP, Port or NTP template, by a discovery import
+ *    (OneUptime issue #5145): it checks the device's address, so it too is
+ *    not of type NetworkDevice. Its provenance is queryable and indexed.
  *
  * Returning only (1) is what made a ping-only device that HAS a bound monitor
  * still render "No monitors are alerting on this device yet" next to a green
@@ -156,63 +165,100 @@ export default class DeviceMonitorLookupUtil {
     const networkDeviceId: ObjectID = data.networkDeviceId;
     const boundMonitor: Monitor | null = data.boundMonitor;
 
-    const result: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
-      modelType: Monitor,
-      query: {
-        monitorType: MonitorType.NetworkDevice,
-      },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: {
-        _id: true,
+    const select: Select<Monitor> = {
+      _id: true,
+      name: true,
+      monitorType: true,
+      /*
+       * Whether an alert policy owns this monitor — the id only, not the
+       * policy row. The `networkAlertPolicy` RELATION carries no
+       * `canReadOnRelationQuery` (same reason the status pill above reads
+       * the way it does), and widening a shared model's read surface to
+       * put a policy's name on one card is the wrong trade. The id is
+       * enough for what the operator needs to know here: that editing or
+       * deleting this monitor by hand will be undone by the engine.
+       */
+      networkAlertPolicyId: true,
+      currentMonitorStatus: {
         name: true,
-        monitorType: true,
-        monitorSteps: true,
-        /*
-         * Whether an alert policy owns this monitor — the id only, not the
-         * policy row. The `networkAlertPolicy` RELATION carries no
-         * `canReadOnRelationQuery` (same reason the status pill above reads
-         * the way it does), and widening a shared model's read surface to
-         * put a policy's name on one card is the wrong trade. The id is
-         * enough for what the operator needs to know here: that editing or
-         * deleting this monitor by hand will be undone by the engine.
-         */
-        networkAlertPolicyId: true,
-        currentMonitorStatus: {
-          name: true,
-          color: true,
+        color: true,
+      },
+    };
+
+    const [networkDeviceMonitors, madeForDevice]: [
+      ListResult<Monitor>,
+      ListResult<Monitor>,
+    ] = await Promise.all([
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          monitorType: MonitorType.NetworkDevice,
         },
-      },
-      sort: {
-        name: SortOrder.Ascending,
-      },
-    });
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: { ...select, monitorSteps: true },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      }),
+      /*
+       * 3. A monitor made FOR the device from a Ping, IP, Port or NTP
+       *    template - a discovery import gives each device one (OneUptime
+       *    issue #5145) - checks the device's address. Its steps name an
+       *    address, not the device; its provenance names the device: the
+       *    column that finds it again and deletes it with the device.
+       */
+      ModelAPI.getList<Monitor>({
+        modelType: Monitor,
+        query: {
+          autoProvisionedNetworkDeviceId: networkDeviceId,
+          monitorType: new Includes([...DEVICE_ADDRESS_MONITOR_TYPES]),
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: select,
+        sort: {
+          name: SortOrder.Ascending,
+        },
+      }),
+    ]);
 
-    const watching: Array<Monitor> = result.data.filter((monitor: Monitor) => {
-      return DeviceMonitorLookupUtil.monitorWatchesDevice(
-        monitor,
-        networkDeviceId,
-      );
-    });
-
-    if (!boundMonitor) {
-      return watching;
-    }
-
-    /*
-     * Deduped by id, not by identity: the bound monitor arrives from a
-     * different request than the watchers, so the same monitor bound to a
-     * device AND watching it is two distinct objects. Without this it would
-     * render twice.
-     */
-    const boundMonitorId: string = boundMonitor._id?.toString() || "";
-
-    const watchingWithoutBound: Array<Monitor> = watching.filter(
+    const watching: Array<Monitor> = networkDeviceMonitors.data.filter(
       (monitor: Monitor) => {
-        return !boundMonitorId || monitor._id?.toString() !== boundMonitorId;
+        return DeviceMonitorLookupUtil.monitorWatchesDevice(
+          monitor,
+          networkDeviceId,
+        );
       },
     );
 
-    return [boundMonitor, ...watchingWithoutBound];
+    /*
+     * Deduped by id, not by identity: the bound monitor arrives from a
+     * different request than the rest, so the same monitor bound to a
+     * device AND made for it is two distinct objects. Without this it would
+     * render twice. The bound monitor leads: it decides the device's state.
+     */
+    const listed: Array<Monitor> = [];
+    const listedIds: Set<string> = new Set<string>();
+
+    for (const monitor of [
+      ...(boundMonitor ? [boundMonitor] : []),
+      ...watching,
+      ...madeForDevice.data,
+    ]) {
+      const monitorId: string = monitor._id?.toString() || "";
+
+      if (monitorId && listedIds.has(monitorId)) {
+        continue;
+      }
+
+      if (monitorId) {
+        listedIds.add(monitorId);
+      }
+
+      listed.push(monitor);
+    }
+
+    return listed;
   }
 }

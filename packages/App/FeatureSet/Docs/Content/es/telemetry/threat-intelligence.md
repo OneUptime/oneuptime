@@ -195,7 +195,7 @@ Lee **Resumen del último sondeo**. Ningún objeto traído: la colección está 
 :::
 
 :::details Hay indicadores, pero nada coincide
-El cotejo compara el valor de un indicador con los observables de un evento, no con cada campo: abre en **Eventos** un evento que esperabas que coincidiera y comprueba que sus observables contienen el valor. Solo coinciden los indicadores con el estado **Activo**. Revisa **Error de la última coincidencia** en el feed.
+El cotejo compara el valor de un indicador con los observables de un evento, no con cada campo: abre en **Eventos** un evento que esperabas que coincidiera y comprueba que sus observables contienen el valor. Solo coinciden los indicadores con el estado **Activo**. Si el **Estado** del feed dice **La comparación falló**, **Ver error** en su fila muestra por qué.
 :::
 
 :::details Una coincidencia no abrió una alerta

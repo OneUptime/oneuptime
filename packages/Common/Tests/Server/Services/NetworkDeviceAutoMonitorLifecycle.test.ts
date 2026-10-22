@@ -10,10 +10,18 @@ import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorS
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
+import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
+import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
+import IP from "../../../Types/IP/IP";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import DeviceMonitorTemplateUtil from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import {
@@ -393,6 +401,194 @@ function rawSqlOf(operator: unknown): string {
     ? findOperator.getSql("column")
     : String(operator);
 }
+
+/*
+ * A Ping, IP, Port or NTP monitor a discovery import made for a device
+ * (issue #5145) carries the same provenance as a Network Device one: the
+ * template it came from and the device it was made for. What it must keep
+ * is different - an address to check in every step, not a step naming the
+ * device - and no other kind of monitor may carry a device's provenance.
+ */
+describe("a Ping, IP, Port or NTP monitor made for a device", () => {
+  function addressSteps(destinations: Array<string | null>): MonitorSteps {
+    const steps: MonitorSteps = new MonitorSteps();
+    steps.data = {
+      monitorStepsInstanceArray: destinations.map(
+        (destination: string | null): MonitorStep => {
+          const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+            monitorName: "Kitchen display",
+            monitorType: MonitorType.Ping,
+            onlineMonitorStatusId: ObjectID.generate(),
+            offlineMonitorStatusId: ObjectID.generate(),
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: ObjectID.generate(),
+          });
+
+          if (destination) {
+            step.setMonitorDestination(IP.fromString(destination));
+          }
+
+          return step;
+        },
+      ),
+    };
+    return steps;
+  }
+
+  function addressMonitor(
+    monitorType: MonitorType = MonitorType.Ping,
+  ): Monitor {
+    const monitor: Monitor = new Monitor();
+    monitor.id = ObjectID.generate();
+    monitor.projectId = PROJECT_ID;
+    monitor.monitorType = monitorType;
+    monitor.monitorTemplateId = TEMPLATE_ID;
+    monitor.autoProvisionedNetworkDeviceId = DEVICE_ID;
+    monitor.monitorSteps = addressSteps(["10.48.24.33"]);
+    return monitor;
+  }
+
+  // The template a create names is the project's, of the monitor's own type.
+  function templateOfType(monitorType: MonitorType): void {
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.id = TEMPLATE_ID;
+    template.projectId = PROJECT_ID;
+    template.monitorType = monitorType;
+    jest.spyOn(MonitorTemplateService, "findOneBy").mockResolvedValue(template);
+  }
+
+  beforeEach(() => {
+    /*
+     * CI runs with billing on: the plan checks a create asks before the
+     * provenance one are answered here, as a paying project's would be.
+     */
+    jest
+      .spyOn(PayAsYouGoBillingService, "requirePayAsYouGo")
+      .mockResolvedValue(undefined as never);
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+      isFreePlan: false,
+    } as never);
+    jest
+      .spyOn(ActiveMonitorLimit, "assertRoomFor")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(
+        MonitorStepsProjectValidator,
+        "validateMonitorStepsBelongToProject",
+      )
+      .mockResolvedValue(undefined);
+  });
+
+  it("an edit that keeps an address in every step goes on: there is no device step to keep", async () => {
+    jest.spyOn(MonitorService, "findBy").mockResolvedValue([addressMonitor()]);
+
+    await expect(
+      (MonitorService as any).onBeforeUpdate({
+        query: { _id: ObjectID.generate() },
+        data: { monitorSteps: addressSteps(["10.48.24.34", "10.48.24.34"]) },
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("an edit that leaves a step checking nothing, or clears the steps, is refused", async () => {
+    for (const monitorSteps of [addressSteps(["10.48.24.34", null]), null]) {
+      jest
+        .spyOn(MonitorService, "findBy")
+        .mockResolvedValue([addressMonitor(MonitorType.Port)]);
+
+      await expect(
+        (MonitorService as any).onBeforeUpdate({
+          query: { _id: ObjectID.generate() },
+          data: { monitorSteps: monitorSteps },
+          limit: 1,
+          skip: 0,
+          props: { isRoot: true, tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(
+        "A Ping, IP, Port or NTP monitor made for a network device must check the device's address in every step.",
+      );
+    }
+  });
+
+  it("a create checks it like a Network Device one: an address in every step, or it is refused", async () => {
+    templateOfType(MonitorType.Ping);
+    const monitor: Monitor = addressMonitor();
+    monitor.monitorSteps = addressSteps([null]);
+
+    await expect(
+      (MonitorService as any).onBeforeCreate({
+        data: monitor,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "A Ping, IP, Port or NTP monitor made for a network device must check the device's address in every step.",
+    );
+  });
+
+  it("a create of any other kind of monitor may not carry a device's provenance", async () => {
+    templateOfType(MonitorType.Website);
+    const monitor: Monitor = addressMonitor(MonitorType.Website);
+
+    await expect(
+      (MonitorService as any).onBeforeCreate({
+        data: monitor,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(
+      "Only Network Device, Ping, IP, Port and NTP monitors can carry auto-provisioning provenance.",
+    );
+  });
+
+  it("the monitor a discovery import builds for a device passes the create's checks", async () => {
+    templateOfType(MonitorType.Ping);
+    jest
+      .spyOn(MonitorService as any, "validateLinkedResourcesBelongToProject")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(MonitorService, "validateDependencyConfiguration")
+      .mockResolvedValue(undefined as never);
+    const operational: MonitorStatus = new MonitorStatus();
+    operational.id = ObjectID.generate();
+    jest
+      .spyOn(MonitorStatusService, "findOneBy")
+      .mockResolvedValue(operational);
+
+    const template: MonitorTemplate = new MonitorTemplate();
+    template.id = TEMPLATE_ID;
+    template.projectId = PROJECT_ID;
+    template.monitorType = MonitorType.Ping;
+    template.monitorSteps = addressSteps(["192.0.2.10"]);
+    template.monitoringInterval = "*/5 * * * *";
+    const device: NetworkDevice = new NetworkDevice();
+    device.id = DEVICE_ID;
+    device.projectId = PROJECT_ID;
+    device.name = "WB0024KDS03";
+    device.hostname = "10.48.24.33";
+
+    const monitor: Monitor = DeviceMonitorTemplateUtil.buildMonitor({
+      template: template,
+      networkDevice: device,
+    });
+
+    await expect(
+      (MonitorService as any).onBeforeCreate({
+        data: monitor,
+        props: { isRoot: true, tenantId: PROJECT_ID },
+      }),
+    ).resolves.toBeDefined();
+    expect(monitor.autoProvisionedNetworkDeviceId?.toString()).toBe(
+      DEVICE_ID.toString(),
+    );
+    expect(
+      monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.monitorDestination?.toString(),
+    ).toBe("10.48.24.33");
+  });
+});
 
 describe("Network Device deletion with automatic monitors", () => {
   /*

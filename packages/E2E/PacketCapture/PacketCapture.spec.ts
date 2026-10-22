@@ -868,11 +868,20 @@ test.describe("at phone width, in the dark and in Japanese", () => {
       .locator(".ou-select__single-value");
 
     await expect(protocol).toHaveText("すべてのプロトコル");
-    expect(
-      await protocol.evaluate((element: Element) => {
-        return element.scrollWidth - element.clientWidth;
-      }),
-    ).toBeLessThanOrEqual(1);
+    /*
+     * The picked name truncates itself (Dropdown, #5145), so a box too
+     * narrow shows on the name - an ellipsis - not on the value's box.
+     */
+    for (const element of [
+      protocol,
+      protocol.getByTestId("dropdown-value-label"),
+    ]) {
+      expect(
+        await element.evaluate((node: Element) => {
+          return node.scrollWidth - node.clientWidth;
+        }),
+      ).toBeLessThanOrEqual(1);
+    }
     await expect(page.getByTestId("modal-footer-submit-button")).toHaveText(
       "キャプチャを開始",
     );

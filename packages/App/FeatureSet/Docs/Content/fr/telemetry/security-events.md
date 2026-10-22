@@ -387,7 +387,7 @@ Vérifiez la clé dans `x-oneuptime-token` et le chemin, `/security-events/v1/in
 :::
 
 :::details Une règle ne correspond jamais
-Vérifiez qu'elle est **Activé**, et lisez **Dernière évaluation** et **Dernière erreur** dans sa ligne. Ouvrez un événement auquel elle aurait dû correspondre et comparez-le à la règle, champ par champ : une valeur simple doit égaler tout le champ, donc utilisez `contains` ou `*` pour une partie. Un attribut se nomme comme dans l'événement (`threat.matched`, pas `attributes.threat.matched`). Avec un seuil supérieur à 1, les correspondances doivent tomber dans une seule exécution.
+Vérifiez son **Statut** : avec **Désactivé**, la règle ne s'exécute pas, et avec **Échec de l'exécution**, **Voir l'erreur** dans sa ligne en donne la raison. Ouvrez un événement auquel elle aurait dû correspondre et comparez-le à la règle, champ par champ : une valeur simple doit égaler tout le champ, donc utilisez `contains` ou `*` pour une partie. Un attribut se nomme comme dans l'événement (`threat.matched`, pas `attributes.threat.matched`). Avec un seuil supérieur à 1, les correspondances doivent tomber dans une seule exécution.
 :::
 
 :::details Une règle a correspondu, mais aucune alerte ne s'est ouverte
