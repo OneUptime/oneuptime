@@ -173,7 +173,8 @@ export default class WebVitalsPage {
       holder.library = require("web-vitals") as WebVitalsLibrary;
     });
 
-    const library: WebVitalsLibrary = holder.library as unknown as WebVitalsLibrary;
+    const library: WebVitalsLibrary =
+      holder.library as unknown as WebVitalsLibrary;
 
     for (const subscribe of [
       library.onTTFB,
@@ -222,7 +223,12 @@ export default class WebVitalsPage {
   /* ---- What the browser records ---- */
 
   public paint(name: string, startTime: number): void {
-    this.add({ entryType: "paint", name: name, startTime: startTime, duration: 0 });
+    this.add({
+      entryType: "paint",
+      name: name,
+      startTime: startTime,
+      duration: 0,
+    });
   }
 
   public contentfulPaint(startTime: number): void {
@@ -231,7 +237,11 @@ export default class WebVitalsPage {
   }
 
   /* An LCP candidate rendered at renderTime (0: an image without TAO). */
-  public largestPaint(startTime: number, size: number, renderTime?: number): void {
+  public largestPaint(
+    startTime: number,
+    size: number,
+    renderTime?: number,
+  ): void {
     this.add({
       entryType: "largest-contentful-paint",
       name: "",
@@ -243,7 +253,11 @@ export default class WebVitalsPage {
     });
   }
 
-  public layoutShift(value: number, startTime: number, hadRecentInput: boolean = false): void {
+  public layoutShift(
+    value: number,
+    startTime: number,
+    hadRecentInput: boolean = false,
+  ): void {
     this.add({
       entryType: "layout-shift",
       name: "",
@@ -259,7 +273,11 @@ export default class WebVitalsPage {
    * with the interaction's duration, and the first-input entry when it is
    * the page's first. Event timing reports durations in 8 ms steps.
    */
-  public interaction(startTime: number, duration: number, isFirst: boolean = false): void {
+  public interaction(
+    startTime: number,
+    duration: number,
+    isFirst: boolean = false,
+  ): void {
     const interactionId: number = this.nextInteractionId;
 
     this.nextInteractionId += 7;
@@ -615,7 +633,10 @@ class TimelineObserver {
     }
 
     /* The threshold applies to event entries; first-input always arrives. */
-    if (entry["entryType"] === "event" && (entry["duration"] as number) < threshold) {
+    if (
+      entry["entryType"] === "event" &&
+      (entry["duration"] as number) < threshold
+    ) {
       return;
     }
 

@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "時間範囲の前半の 0 から増加",
   "Up {{percent}} from the first half of the time range": "時間範囲の前半より {{percent}} 増加",
   "Value Widget": "値ウィジェット",
-  "from 0": "0 から"
+  "from 0": "0 から",
+  "Prerendered page load (timed from when it was opened)": "事前レンダリングされたページ読み込み（開かれた時点から計測）"
 }

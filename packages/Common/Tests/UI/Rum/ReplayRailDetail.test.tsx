@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 /*
  * See ReplayRail.test.tsx: react is pinned to Common's copy for every
  * importer so Dashboard components render with the same React instance.
@@ -1100,6 +1106,50 @@ describe("ReplayRailDetail performance wording", () => {
     expect(screen.getByText("Processing")).toBeInTheDocument();
     expect(screen.getByText("Presentation")).toBeInTheDocument();
     expect(screen.getByText("305ms")).toBeInTheDocument();
+  });
+
+  /*
+   * Issue #5181: a vital names the kind of page view it describes. A
+   * prerendered page is timed from when the visitor opened it - which is
+   * what makes a 68 ms FCP on a page whose navigation began seconds
+   * earlier make sense - and a page back from the back/forward cache has
+   * vitals of its own.
+   */
+  it("says which kind of page view each vital describes", () => {
+    const views: Array<[string, string, string]> = [
+      [
+        "FCP",
+        "prerender",
+        "Prerendered page load (timed from when it was opened)",
+      ],
+      ["TTFB", "back-forward-cache", "Restored from back/forward cache"],
+      ["LCP", "hard", "Page load"],
+      ["INP", "soft", "Route change (single-page app)"],
+    ];
+
+    for (const [metric, navigationType, words] of views) {
+      renderDetail(
+        performanceSignal({
+          kind: "web-vital",
+          durationMs: null,
+          budgetMs: null,
+          isOverBudget: false,
+          metric: metric,
+          value: 68,
+          rating: "good",
+          url: null,
+          atUnixMs: null,
+          navigationType: navigationType,
+        }),
+      );
+
+      expect(screen.getByText("View")).toBeInTheDocument();
+      expect(screen.getByText(words)).toBeInTheDocument();
+      expect(screen.getByText("68ms")).toBeInTheDocument();
+      expect(screen.queryByText(navigationType)).toBeNull();
+
+      cleanup();
+    }
   });
 
   it("shows none of the INP rows for a recording that predates them", () => {

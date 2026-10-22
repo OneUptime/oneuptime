@@ -702,6 +702,51 @@ describe("performance rows", () => {
     expect(detail.processingDurationMs).toBeNull();
     expect(detail.presentationDelayMs).toBeNull();
   });
+
+  /*
+   * Issue #5181: the FCP of a page Chrome prerendered, measured from when
+   * the visitor opened it. The row reads the recorder's number and rating
+   * as they are - the player never re-times or re-rates a vital - and the
+   * detail keeps the kind of page view that explains the number.
+   */
+  it("shows a prerendered page's FCP as recorded, with its kind of page view", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "FCP",
+        value: 68,
+        rating: "good",
+        navigationType: "prerender",
+      }),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayPerformanceSignalDetail =
+      signal.detail as ReplayPerformanceSignalDetail;
+
+    expect(signal.title).toBe("FCP 68ms good");
+    expect(signal.severity).toBe("success");
+    expect(detail.isOverBudget).toBe(false);
+    expect(detail.value).toBe(68);
+    expect(detail.rating).toBe("good");
+    expect(detail.navigationType).toBe("prerender");
+  });
+
+  it("keeps a restored page's vitals apart by their kind of page view", () => {
+    for (const metric of ["TTFB", "FCP", "LCP", "CLS", "INP"] as const) {
+      const detail: ReplayPerformanceSignalDetail = fromTimelineEvent(
+        makeEvent("performance", {
+          performanceKind: "web-vital",
+          metric: metric,
+          value: 0,
+          rating: "good",
+          navigationType: "back-forward-cache",
+        }),
+        { startTimeUnixMs: null },
+      ).detail as ReplayPerformanceSignalDetail;
+
+      expect(detail.navigationType).toBe("back-forward-cache");
+    }
+  });
 });
 
 describe("custom and marker rows", () => {

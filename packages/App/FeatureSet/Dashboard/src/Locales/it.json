@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "In aumento da 0 nella prima metà dell'intervallo di tempo",
   "Up {{percent}} from the first half of the time range": "{{percent}} in più rispetto alla prima metà dell'intervallo di tempo",
   "Value Widget": "Widget valore",
-  "from 0": "da 0"
+  "from 0": "da 0",
+  "Prerendered page load (timed from when it was opened)": "Caricamento di pagina pre-renderizzata (misurato da quando è stata aperta)"
 }

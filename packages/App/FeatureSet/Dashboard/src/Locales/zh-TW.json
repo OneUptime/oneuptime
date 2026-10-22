@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "從時間範圍前半段的 0 上升",
   "Up {{percent}} from the first half of the time range": "比時間範圍前半段上升 {{percent}}",
   "Value Widget": "數值小工具",
-  "from 0": "從 0 起"
+  "from 0": "從 0 起",
+  "Prerendered page load (timed from when it was opened)": "預先轉譯的頁面載入（從開啟時開始計時）"
 }

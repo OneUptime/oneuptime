@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "Рост с 0 в первой половине периода",
   "Up {{percent}} from the first half of the time range": "На {{percent}} больше, чем в первой половине периода",
   "Value Widget": "Виджет значения",
-  "from 0": "с 0"
+  "from 0": "с 0",
+  "Prerendered page load (timed from when it was opened)": "Загрузка заранее отрисованной страницы (отсчёт с момента открытия)"
 }

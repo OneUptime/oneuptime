@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "Steget fra 0 i første halvdel af tidsrummet",
   "Up {{percent}} from the first half of the time range": "{{percent}} højere end i første halvdel af tidsrummet",
   "Value Widget": "Værdi-widget",
-  "from 0": "fra 0"
+  "from 0": "fra 0",
+  "Prerendered page load (timed from when it was opened)": "Forhåndsgengivet sideindlæsning (målt fra den blev åbnet)"
 }

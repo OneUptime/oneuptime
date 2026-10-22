@@ -1408,7 +1408,10 @@ export default class PerformanceRecorder {
   }
 
   private drainInteractionRecords(): void {
-    for (const observer of [this.interactionObserver, this.firstInputObserver]) {
+    for (const observer of [
+      this.interactionObserver,
+      this.firstInputObserver,
+    ]) {
       this.drainRecords(observer, (entries: Array<PerformanceEntry>): void => {
         this.onInteractionEntries(entries);
       });

@@ -747,8 +747,9 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
   });
 
   describe("the visitor's input, not a script's, settles LCP", (): void => {
-    for (const type of ["keydown", "pointerdown", "click"]) {
-      it(`ignores a synthetic ${type}, and settles on the visitor's`, async (): Promise<void> => {
+    it.each(["keydown", "pointerdown", "click"])(
+      "ignores a synthetic %s, and settles on the visitor's",
+      async (type: string): Promise<void> => {
         page = new WebVitalsPage({ responseStart: 100 });
         page.now = 400;
         page.largestPaint(390, 1000);
@@ -766,8 +767,8 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
         page.input(type);
 
         expect(only(page, "LCP")?.value).toBe(2350);
-      });
-    }
+      },
+    );
   });
 
   describe("navigation timing the browser left unusable", (): void => {

@@ -712,11 +712,20 @@ const PerformanceDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
           {detail.url}
         </Fact>
       )}
+      {/*
+       * The kind of page view the vital describes. A prerendered page is
+       * timed from when the visitor opened it, which is why its FCP can
+       * read 68 ms when its navigation began seconds before (issue #5181).
+       */}
       {detail.navigationType && (
         <Fact label="View">
           {detail.navigationType === "soft"
             ? "Route change (single-page app)"
-            : "Page load"}
+            : detail.navigationType === "prerender"
+              ? "Prerendered page load (timed from when it was opened)"
+              : detail.navigationType === "back-forward-cache"
+                ? "Restored from back/forward cache"
+                : "Page load"}
         </Fact>
       )}
       {detail.interactionType && (

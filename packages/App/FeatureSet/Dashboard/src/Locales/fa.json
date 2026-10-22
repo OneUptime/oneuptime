@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "افزایش از ۰ در نیمهٔ اول بازه زمانی",
   "Up {{percent}} from the first half of the time range": "{{percent}} بیشتر از نیمهٔ اول بازه زمانی",
   "Value Widget": "ویجت مقدار",
-  "from 0": "از ۰"
+  "from 0": "از ۰",
+  "Prerendered page load (timed from when it was opened)": "بارگذاری صفحهٔ پیش‌رندرشده (اندازه‌گیری از زمانی که باز شد)"
 }

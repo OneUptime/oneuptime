@@ -146,7 +146,10 @@ export interface ReplayTimelineEvent {
   value?: number;
   rating?: SessionReplayWebVitalRating;
 
-  /* performance (INP attribution, newer recorders only) */
+  /*
+   * performance: the kind of page view a vital describes (every vital from
+   * newer recorders, INP only from older ones), then INP attribution.
+   */
   navigationType?: SessionReplayNavigationType;
   interactionType?: SessionReplayInteractionType;
   interactionTarget?: string;

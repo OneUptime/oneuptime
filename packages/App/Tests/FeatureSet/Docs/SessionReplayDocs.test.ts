@@ -55,6 +55,8 @@ const PAGE_URL: string = "/docs/telemetry/session-replay";
 const NAV_GROUP_TITLE: string = "Real User Monitoring";
 
 const FENCE_LINE: RegExp = /^\s*```/;
+/* A dependency pinned to one version: no range, no tag. */
+const EXACT_VERSION: RegExp = /^\d+\.\d+\.\d+$/;
 // The title line right after a form field's column: `title: "Consent",`.
 const POLICY_FIELD_TITLE: RegExp = /^\s*title: "([^"]+)",/;
 const CADENCE_CLAIM: RegExp = /every 15 seconds/;
@@ -1217,5 +1219,81 @@ describe("Session Replay docs page", (): void => {
     expect(sealedFalse).toBeGreaterThan(sealedTrue);
     expect(row.slice(sealedTrue, sealedFalse)).toContain("empty final chunk");
     expect(row.slice(sealedFalse)).toContain("stays open with a gap");
+  });
+
+  /*
+   * Issue #5181: the page promises that a recording's vitals are the ones
+   * the web-vitals library reports for the same visit, and names the three
+   * kinds of page load timed differently from an ordinary one. Each
+   * promise is held to the recorder that keeps it: the library is the
+   * recorder's own test oracle (pinned to an exact version, with the suite
+   * that holds the recorder to it), a prerendered page waits for its
+   * activation and counts from activationStart, a page hidden before it
+   * painted reports nothing for that paint, a restored page reports TTFB 0
+   * and a frame-timed FCP and LCP, and the rail names each kind.
+   */
+  it("describes the vitals' timing the way the recorder times them", (): void => {
+    const vitals: string = section(
+      readPage(),
+      "## Performance capture triggers",
+    );
+    const recorderPackage: { devDependencies: Record<string, string> } =
+      JSON.parse(readRepo("App/FeatureSet/BrowserRecorder/package.json")) as {
+        devDependencies: Record<string, string>;
+      };
+    const performance: string = fs.readFileSync(
+      path.join(RECORDER_SRC, "PerformanceRecorder.ts"),
+      "utf8",
+    );
+    const railDetail: string = fs.readFileSync(
+      path.join(DASHBOARD_REPLAY_DIR, "Rail/ReplayRailDetail.tsx"),
+      "utf8",
+    );
+
+    expect(vitals).toContain(
+      "The recorder times every vital the way Google's `web-vitals` library does",
+    );
+    expect(recorderPackage.devDependencies["web-vitals"]).toMatch(
+      EXACT_VERSION,
+    );
+    expect(
+      fs.existsSync(
+        path.join(
+          REPO_ROOT,
+          "App/FeatureSet/BrowserRecorder/Tests/WebVitalsParity.test.ts",
+        ),
+      ),
+    ).toBe(true);
+
+    /* Prerendered: nothing until the activation, then from activationStart. */
+    expect(vitals).toContain("is timed from the moment it was opened");
+    expect(vitals).toContain("and so does the LCP budget");
+    expect(performance).toContain('"prerenderingchange"');
+    expect(performance).toContain('"activationStart"');
+
+    /* Hidden first: no paint vitals, and so no CLS. */
+    expect(vitals).toContain(
+      "A page opened in a background tab reports no FCP, LCP or CLS.",
+    );
+    expect(performance).toContain("renderTimeMs >= this.firstHiddenMs");
+    expect(performance).toContain("this.hasReportedLoadFcp");
+
+    /* Restored: a set of its own. */
+    expect(vitals).toContain(
+      "TTFB 0, FCP and LCP up to its first frame back on screen, then CLS and INP for that visit",
+    );
+    expect(performance).toContain('this.reportVital("TTFB", 0,');
+
+    /* "a vital's details say which kind it was": the rail's View row. */
+    expect(vitals).toContain("a vital's details say which kind it was");
+
+    for (const words of [
+      "Prerendered page load (timed from when it was opened)",
+      "Restored from back/forward cache",
+      "Route change (single-page app)",
+      "Page load",
+    ]) {
+      expect([words, railDetail.includes(`"${words}"`)]).toEqual([words, true]);
+    }
   });
 });

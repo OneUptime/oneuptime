@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "समय सीमा के पहले आधे में 0 से बढ़ा",
   "Up {{percent}} from the first half of the time range": "समय सीमा के पहले आधे से {{percent}} अधिक",
   "Value Widget": "मान विजेट",
-  "from 0": "0 से"
+  "from 0": "0 से",
+  "Prerendered page load (timed from when it was opened)": "पहले से रेंडर किया गया पेज लोड (खोले जाने के समय से मापा गया)"
 }

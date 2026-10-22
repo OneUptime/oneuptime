@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "기간 전반부의 0에서 증가",
   "Up {{percent}} from the first half of the time range": "기간 전반부보다 {{percent}} 증가",
   "Value Widget": "값 위젯",
-  "from 0": "0에서"
+  "from 0": "0에서",
+  "Prerendered page load (timed from when it was opened)": "미리 렌더링된 페이지 로드(열린 시점부터 측정)"
 }

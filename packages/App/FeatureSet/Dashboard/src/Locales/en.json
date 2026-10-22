@@ -33326,5 +33326,6 @@
   "Up from 0 in the first half of the time range": "Up from 0 in the first half of the time range",
   "Up {{percent}} from the first half of the time range": "Up {{percent}} from the first half of the time range",
   "Value Widget": "Value Widget",
-  "from 0": "from 0"
+  "from 0": "from 0",
+  "Prerendered page load (timed from when it was opened)": "Prerendered page load (timed from when it was opened)"
 }
