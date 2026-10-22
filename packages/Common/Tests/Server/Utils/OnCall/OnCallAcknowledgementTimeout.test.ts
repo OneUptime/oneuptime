@@ -22,7 +22,16 @@ import AcknowledgementTimeoutWorld, {
   RESOLVED,
   SCHEDULE_ID,
 } from "./AcknowledgementTimeoutWorld";
-import { ANA, BOB, CARL, DANA, RUN_ID, START } from "./PassOnWorld";
+import {
+  ANA,
+  BOB,
+  CARL,
+  DANA,
+  POLICY_ID,
+  PROJECT_ID,
+  RUN_ID,
+  START,
+} from "./PassOnWorld";
 import {
   afterEach,
   beforeEach,
@@ -196,7 +205,9 @@ describe("acknowledged and not resolved in time: the policy pages again", () => 
     world.advance(LEVEL_WAIT_IN_MINUTES);
     pageAgainRun(await world.pageAgainTick());
 
-    const policyLink: string = `[Payments](${DASHBOARD_URL}/`;
+    // The links the world's policy and people are given, compared whole.
+    const policyUrl: string = `${DASHBOARD_URL}/${PROJECT_ID.toString()}/on-call-duty/policies/${POLICY_ID.toString()}`;
+    const danaUrl: string = `${DASHBOARD_URL}/users/${DANA.toString()}`;
 
     const entry: string | undefined = world.feed
       .map((item: { markdown: string }) => {
@@ -206,12 +217,9 @@ describe("acknowledged and not resolved in time: the policy pages again", () => 
         return markdown.includes("is paging again");
       });
 
-    expect(entry).toBeDefined();
-    expect(entry!.startsWith(`On-call policy **${policyLink}`)).toBe(true);
-    expect(entry).toContain(
-      "is paging again (1 of 5): the incident is still not resolved 30 minutes after **[Dana Kim](",
+    expect(entry).toBe(
+      `On-call policy **[Payments](${policyUrl})** is paging again (1 of 5): the incident is still not resolved 30 minutes after **[Dana Kim](${danaUrl})** acknowledged it.`,
     );
-    expect(entry!.endsWith(")** acknowledged it.")).toBe(true);
   });
 
   test("its run says why it pages while it pages", async () => {

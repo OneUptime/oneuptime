@@ -251,9 +251,12 @@ describe("the record's header, for the person paged again", () => {
     await flush();
 
     expect(posts).toHaveLength(1);
-    expect(posts[0]).toContain(
-      `/on-call-page/acknowledge/incident/${RECORD_ID.toString()}`,
-    );
+    // Read as an address, never as text: the route it names, at its end.
+    expect(
+      new globalThis.URL(posts[0]!).pathname.endsWith(
+        `/on-call-page/acknowledge/incident/${RECORD_ID.toString()}`,
+      ),
+    ).toBe(true);
     // No dialog: answering a page is one step on every channel.
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
     expect(onPassedOn).toHaveBeenCalledTimes(1);
