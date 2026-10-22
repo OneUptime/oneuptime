@@ -39,6 +39,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 
 /*
  * "Send to your SIEM": the table's card and columns, the form that adds or
@@ -253,7 +254,7 @@ describe("the Send to your SIEM table", () => {
     expect(props.query).toEqual({ projectId: PROJECT_ID });
   });
 
-  test("its empty state says nothing is sent yet, names the SIEM it supports and opens the form", async () => {
+  test("its empty state says nothing is sent yet, names the SIEMs it supports and opens the form", async () => {
     await act(async () => {
       render(
         <MemoryRouter>
@@ -276,19 +277,21 @@ describe("the Send to your SIEM table", () => {
 
     // The card already asks who it is for; the empty state says what is true now.
     expect(empty).toHaveTextContent("Nothing is sent to a SIEM yet");
-    expect(empty).toHaveTextContent("Google SecOps is supported today.");
+    expect(empty).toHaveTextContent(
+      "Google SecOps, Splunk, Microsoft Sentinel and Elastic Security are supported.",
+    );
     expect(empty).not.toHaveTextContent("Already use a SIEM?");
     // Drawn like every other empty table.
     expect(empty).toHaveAttribute("data-empty-state-kind", "empty");
 
     await act(async () => {
       fireEvent.click(
-        within(empty).getByRole("button", { name: "Send to Google SecOps" }),
+        within(empty).getByRole("button", { name: "Send to your SIEM" }),
       );
     });
 
     expect(
-      await screen.findByRole("dialog", { name: "Send to Google SecOps" }),
+      await screen.findByRole("dialog", { name: "Send to your SIEM" }),
     ).toBeInTheDocument();
   });
 
@@ -322,7 +325,7 @@ describe("the Send to your SIEM table", () => {
     });
 
     expect(
-      screen.getByRole("button", { name: "Send to Google SecOps" }),
+      screen.getByRole("button", { name: "Send to your SIEM" }),
     ).toBeDisabled();
     expect(
       screen.getByTestId("security-event-destinations-empty-note"),
@@ -432,17 +435,43 @@ describe("the Send to your SIEM table", () => {
   });
 });
 
+// The SIEM step: one card per SIEM OneUptime sends to, then on to its settings.
+async function pickSiem(title: string): Promise<void> {
+  await act(async () => {
+    fireEvent.click(
+      within(dialog()).getByRole("radio", {
+        name: new RegExp(`^${escapeRegExp(title)}`),
+      }),
+    );
+  });
+  await next();
+}
+
 describe("adding a Google SecOps destination", () => {
-  test("walks the SIEM's settings, then what to send; nothing is sent to test until the key is pasted", async () => {
+  test("picks the SIEM, walks its settings, then what to send; nothing is sent to test until the key is pasted", async () => {
     await renderForm();
 
-    /*
-     * One SIEM today, so no step to pick it: its connection, then what to
-     * send. The dialog's title names the SIEM.
-     */
+    // Four SIEMs: a step to pick one, then its connection, then what to send.
+    expect(within(progress()).getByText("SIEM")).toBeInTheDocument();
     expect(within(progress()).getByText("Connection")).toBeInTheDocument();
     expect(within(progress()).getByText("What to send")).toBeInTheDocument();
-    expect(within(progress()).queryByText("SIEM")).toBeNull();
+    expect(activeStep()).toBe("SIEM");
+
+    for (const title of [
+      "Google SecOps",
+      "Splunk",
+      "Microsoft Sentinel",
+      "Elastic Security",
+    ]) {
+      expect(
+        within(dialog()).getByRole("radio", {
+          name: new RegExp(`^${escapeRegExp(title)}`),
+        }),
+      ).toBeInTheDocument();
+    }
+
+    await pickSiem("Google SecOps");
+
     expect(activeStep()).toBe("Connection");
     expect(sendTestButton()).toBeDisabled();
     expect(
@@ -453,6 +482,8 @@ describe("adding a Google SecOps destination", () => {
   test("tests the settings as typed, never saved, then saves them and starts sending detections only", async () => {
     const user: UserEvent = userEvent.setup({ delay: null });
     const { onSaved } = await renderForm();
+
+    await pickSiem("Google SecOps");
 
     await pickRegion(user, "europe");
     fireEvent.change(screen.getByLabelText(/^Instance resource name/), {
@@ -489,7 +520,8 @@ describe("adding a Google SecOps destination", () => {
 
     await next();
     expect(activeStep()).toBe("What to send");
-    expect(screen.getByLabelText(/^Name/)).toHaveValue("Google SecOps");
+    // Left empty, the destination is listed under the SIEM's name.
+    expect(screen.getByLabelText(/^Name/)).toHaveValue("");
     // What to send first, then the name it is listed under.
     expect(
       screen
@@ -538,6 +570,7 @@ describe("adding a Google SecOps destination", () => {
     const user: UserEvent = userEvent.setup({ delay: null });
     await renderForm();
 
+    await pickSiem("Google SecOps");
     await pickRegion(user, "europe");
     fireEvent.change(screen.getByLabelText(/^Instance resource name/), {
       target: { value: INSTANCE },
@@ -569,6 +602,191 @@ describe("adding a Google SecOps destination", () => {
     expect(
       screen.queryByTestId("security-event-destination-test-result"),
     ).toBeNull();
+  });
+});
+
+describe("adding a Splunk destination", () => {
+  test("asks only for Splunk's HEC settings, tests them as typed and saves them", async () => {
+    const { onSaved } = await renderForm();
+
+    await pickSiem("Splunk");
+
+    // Splunk's fields, none of Google SecOps's.
+    expect(screen.queryByLabelText(/^Instance resource name/)).toBeNull();
+
+    fireEvent.change(screen.getByLabelText(/^HEC URL/), {
+      target: { value: "https://splunk.example.com:8088" },
+    });
+    // The index waits under More fields: most tokens write to their default.
+    await openMoreFields();
+    fireEvent.change(screen.getByLabelText(/^Index/), {
+      target: { value: "security" },
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/^HEC token/), {
+        target: { value: "00000000-1111-2222-3333-444444444444" },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(sendTestButton());
+    });
+
+    expect(postBodies()[0]).toEqual({
+      provider: "splunk",
+      config: { hecUrl: "https://splunk.example.com:8088", index: "security" },
+      secrets: { hecToken: "00000000-1111-2222-3333-444444444444" },
+    });
+
+    await next();
+    fireEvent.change(screen.getByLabelText(/^Name/), {
+      target: { value: "Splunk Cloud" },
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog()).getByRole("button", { name: "Start sending" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(onSaved).toHaveBeenCalledTimes(1);
+    });
+
+    const saved: SecurityEventDestination = jest.mocked(ModelAPI.create).mock
+      .calls[0]![0].model as SecurityEventDestination;
+
+    expect(saved.provider).toBe("splunk");
+    expect(saved.name).toBe("Splunk Cloud");
+    expect(saved.config).toEqual({
+      hecUrl: "https://splunk.example.com:8088",
+      index: "security",
+    });
+    expect(JSON.parse(saved.secrets!)).toEqual({
+      hecToken: "00000000-1111-2222-3333-444444444444",
+    });
+  });
+});
+
+// The settings a SIEM's form folds away, as the More fields header names them.
+function moreFields(): HTMLElement {
+  return within(dialog()).getByRole("button", { name: /^More fields/ });
+}
+
+async function openMoreFields(): Promise<void> {
+  await act(async () => {
+    fireEvent.click(moreFields());
+  });
+}
+
+describe("the settings most SIEMs leave at their defaults", () => {
+  test.each([
+    ["Splunk", ["HEC URL", "HEC token"], ["Index", "Source type"]],
+    [
+      "Microsoft Sentinel",
+      [
+        "Directory (tenant) ID",
+        "Application (client) ID",
+        "Logs ingestion endpoint",
+        "Data collection rule immutable ID",
+        "Client secret",
+      ],
+      ["Stream", "Cloud"],
+    ],
+    ["Elastic Security", ["Elasticsearch URL", "API key"], ["Data stream"]],
+  ])(
+    "%s asks first for what it cannot do without, the rest folded under More fields",
+    async (siem: string, asked: Array<string>, folded: Array<string>) => {
+      await renderForm();
+      await pickSiem(siem);
+
+      for (const title of asked) {
+        expect(screen.getByText(title, { exact: true })).toBeVisible();
+      }
+
+      expect(moreFields()).toHaveAttribute("aria-expanded", "false");
+      // The fold's header names what it holds, none of it set yet.
+      const items: Array<HTMLElement> = within(dialog()).getAllByTestId(
+        "folded-section-item",
+      );
+      expect(
+        items.map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+      ).toEqual(folded);
+      for (const item of items) {
+        expect(item).toHaveAttribute("data-item-set", "false");
+      }
+      for (const title of folded) {
+        // Mounted, so a value carries over, but neither shown nor focusable.
+        expect(
+          screen.getByLabelText(new RegExp(`^${escapeRegExp(title)}`)),
+        ).not.toBeVisible();
+      }
+
+      await openMoreFields();
+
+      expect(moreFields()).toHaveAttribute("aria-expanded", "true");
+      for (const title of folded) {
+        expect(
+          screen.getByLabelText(new RegExp(`^${escapeRegExp(title)}`)),
+        ).toBeVisible();
+      }
+    },
+  );
+
+  test("Google SecOps folds nothing: every setting it has, it needs", async () => {
+    await renderForm();
+    await pickSiem("Google SecOps");
+
+    expect(
+      screen.getByText("Instance resource name", { exact: true }),
+    ).toBeVisible();
+    expect(
+      within(dialog()).queryByRole("button", { name: /^More fields/ }),
+    ).toBeNull();
+  });
+
+  test("a new Sentinel destination is in the public cloud unless someone picks Azure Government", async () => {
+    await renderForm();
+    await pickSiem("Microsoft Sentinel");
+
+    fireEvent.change(screen.getByLabelText(/^Directory \(tenant\) ID/), {
+      target: { value: "11111111-2222-4333-8444-555555555555" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Application \(client\) ID/), {
+      target: { value: "66666666-7777-4888-9999-000000000000" },
+    });
+    fireEvent.change(screen.getByLabelText(/^Logs ingestion endpoint/), {
+      target: { value: "https://acme-dce.eastus-1.ingest.monitor.azure.com" },
+    });
+    fireEvent.change(
+      screen.getByLabelText(/^Data collection rule immutable ID/),
+      { target: { value: "dcr-0123456789abcdef0123456789abcdef" } },
+    );
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/^Client secret/), {
+        target: { value: "client-secret-value" },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(sendTestButton());
+    });
+
+    // The cloud, never shown, is sent as the public cloud it starts at.
+    expect(postBodies()[0]).toEqual({
+      provider: "microsoft-sentinel",
+      config: {
+        tenantId: "11111111-2222-4333-8444-555555555555",
+        clientId: "66666666-7777-4888-9999-000000000000",
+        logsIngestionEndpoint:
+          "https://acme-dce.eastus-1.ingest.monitor.azure.com",
+        dcrImmutableId: "dcr-0123456789abcdef0123456789abcdef",
+        cloud: "public",
+      },
+      secrets: { clientSecret: "client-secret-value" },
+    });
   });
 });
 

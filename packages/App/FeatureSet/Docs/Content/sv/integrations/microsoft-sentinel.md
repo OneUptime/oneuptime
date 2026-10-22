@@ -159,6 +159,75 @@ Klicka på **Diagnostics** på en anslutning för att se dess senaste körningar
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra.
 
+## Skicka säkerhetshändelser till Microsoft Sentinel
+
+OneUptime kan också skicka det den hittar till Microsoft Sentinel, via Logs Ingestion API i Azure Monitor, till en anpassad tabell i arbetsytan som Sentinel körs på. Dina analysregler, jaktfrågor och arbetsböcker frågar sedan `OneUptimeSecurityEvents_CL` bredvid dina andra tabeller.
+
+:::steps
+### Skapa tabellen och dess datainsamlingsregel
+
+Öppna arbetsytans **Tables → Create → New custom log (DCR-based)** i Azure-portalen. Döp tabellen till `OneUptimeSecurityEvents`, skapa en ny datainsamlingsregel, och en slutpunkt för datainsamling om formuläret ber om en. Ladda upp exemplet nedan som exempelfil, behåll transformationen som den är och skapa tabellen.
+
+### Låt ett program skicka till den
+
+Registrera ett program och ge det en klienthemlighet, som i [Registrera ett program](#registrera-ett-program). Öppna sedan datainsamlingsregeln, **Access control (IAM) → Add → Add role assignment**, välj **Monitoring Metrics Publisher** och välj programmet.
+
+### Lägg till målet
+
+Öppna **Produkter → Security Events → Connections**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Microsoft Sentinel under **SIEM** och klicka på **Nästa**. Fyll i **Katalog-ID (tenant)**, **Program-ID (klient)** och **Client secret**, **Slutpunkt för logginmatning** från datainsamlingsslutpunktens (eller regelns) **Overview**, och **Oföränderligt ID för datainsamlingsregeln** från regelns **JSON View**. **Ström** är valfri: lämnas den tom är den `Custom-OneUptimeSecurityEvents_CL`.
+
+### Skicka en testhändelse och börja skicka
+
+Klicka på **Skicka en testhändelse**: en rad når tabellen inom några minuter. Behåll sedan **Endast upptäckter** under **Vad som ska skickas**, eller välj **Alla säkerhetshändelser**, och klicka på **Börja skicka**.
+:::
+
+Exempelfilen, en rad med varje kolumn i tabellen:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API tar emot upp till 1 MB per anrop, så rader skickas i omgångar om upp till 500. En omgång som Azure avvisar delas tills raden den inte tar emot har hittats och utelämnats, och strypning (`429`) försöks igen.
+- En `403` betyder att programmet saknar **Monitoring Metrics Publisher** på regeln, och en `404` ett felaktigt oföränderligt ID eller en felaktig ström.
+- Incidenter som OneUptime har importerat från Microsoft Sentinel skickas aldrig tillbaka dit.
+
 ## Felsökning
 
 Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.

@@ -50,12 +50,12 @@ flowchart TB
 | 工具 | 方向 | 作用 |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | 傳入 | 針對 Huntress 事件報告呼叫待命人員，並在報告關閉時解決事件。 |
-| [Google SecOps](/docs/integrations/google-secops) | 傳入 | 把 Google SecOps 偵測結果匯入安全性事件。 |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 傳入 | 把 Microsoft Sentinel 事件匯入安全性事件。 |
+| [Google SecOps](/docs/integrations/google-secops) | 雙向 | 把 Google SecOps 偵測結果與指標匯入安全性事件，並把 OneUptime 的發現傳送給 Google SecOps。 |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 雙向 | 把 Microsoft Sentinel 事件匯入安全性事件，並把 OneUptime 的發現傳送給 Microsoft Sentinel。 |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | 傳入 | 把 Microsoft Defender XDR 警示匯入安全性事件。 |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | 傳入 | 把 CrowdStrike Falcon 警示匯入安全性事件。 |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | 傳入 | 把 Splunk 重要事件（notable event）匯入安全性事件。 |
-| [Elastic Security](/docs/integrations/elastic-security) | 傳入 | 把 Elastic Security 偵測警示匯入安全性事件。 |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | 雙向 | 把 Splunk 重要事件（notable event）匯入安全性事件，並把 OneUptime 的發現傳送給 Splunk。 |
+| [Elastic Security](/docs/integrations/elastic-security) | 雙向 | 把 Elastic Security 偵測警示匯入安全性事件，並把 OneUptime 的發現傳送給 Elastic Security。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | 傳入 | 把 AWS Security Hub 發現結果匯入安全性事件。 |
 | [Okta System Log](/docs/integrations/okta) | 傳入 | 把 Okta 登入、帳戶變更和威脅偵測匯入安全性事件。 |
 

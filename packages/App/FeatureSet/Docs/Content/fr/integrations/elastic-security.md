@@ -142,6 +142,48 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 
+## Envoyer des événements de sécurité à Elastic Security
+
+OneUptime peut aussi envoyer ce qu'il trouve à Elasticsearch, sous forme de documents Elastic Common Schema (ECS) dans un flux de données, pour que les alertes, chronologies et règles de détection d'Elastic Security voient les détections de OneUptime à côté des vôtres. Une détection est un document avec `event.kind` `alert`, et tout autre événement a `event.kind` `event`.
+
+:::steps
+### Créer une clé d'API qui peut écrire
+
+Dans Kibana, ouvrez **Stack Management → API keys**, cliquez sur **Create API key**, donnez-lui les privilèges ci-dessous et copiez sa valeur **Encoded**.
+
+### Ajouter la destination
+
+Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**, choisissez Elastic Security sous **SIEM** et cliquez sur **Suivant**. Renseignez l'**URL Elasticsearch**, le point de terminaison Elasticsearch du déploiement et non celui de Kibana, et collez la clé dans **Clé API**. **Flux de données** est facultatif : vide, les documents vont dans `logs-oneuptime.security-default`, qu'Elasticsearch crée à la première écriture.
+
+### Envoyer un événement de test et commencer l'envoi
+
+Cliquez sur **Envoyer un événement de test** : un document arrive dans le flux de données. Puis, sous **Ce qu'il faut envoyer**, gardez **Détections uniquement** ou choisissez **Tous les événements de sécurité**, et cliquez sur **Commencer l'envoi**.
+:::
+
+Les privilèges de la clé, pour le flux de données par défaut :
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Les documents partent par lots de 500 au plus, chacun avec l'id propre de son événement, si bien qu'un événement envoyé deux fois est stocké une seule fois.
+- Un document qu'Elasticsearch ne peut pas mapper est laissé de côté et nommé dans **Voir l'erreur**, et un document qu'il ne peut pas accepter pour l'instant (`429`) est renvoyé.
+- Les alertes que OneUptime a importées d'Elastic Security ne lui sont jamais renvoyées.
+
 ## Dépannage
 
 La **Dernière erreur** de la connexion conserve le message d'erreur complet, identifiants masqués, derrière un préfixe qui nomme l'étape en échec. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Lisez d'abord le préfixe.

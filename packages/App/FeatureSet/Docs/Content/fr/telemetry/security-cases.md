@@ -105,6 +105,8 @@ Pour traiter plusieurs dossiers à la fois, sélectionnez-les dans la file d'att
 
 Les verdicts sont comptabilisés sur la vue d'ensemble. Une règle dont les dossiers se ferment sans cesse en faux positif est une règle à ajuster.
 
+Un dossier ouvert à partir d'alertes Google SecOps les ferme aussi dans Google SecOps, avec le verdict et la note de clôture, quand sa connexion a **Fermer les alertes quand leur dossier est fermé** activé : voir [Google SecOps](/docs/integrations/google-secops#fermer-les-alertes-quand-leur-dossier-est-fermé).
+
 ### Déclarer un incident
 
 **Déclarer un incident** ouvre un incident OneUptime pour le dossier, avec la gravité de votre choix, et les relie dans les deux sens : la description de l'incident nomme le dossier, et l'en-tête du dossier renvoie vers l'incident. L'astreinte, les pages de statut et le post-mortem prennent ensuite le relais. Il faut un rôle qui puisse à la fois traiter des dossiers et créer des incidents.

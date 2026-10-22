@@ -159,6 +159,75 @@ Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela 
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
+## Enviar eventos de segurança ao Microsoft Sentinel
+
+O OneUptime também pode enviar o que encontra ao Microsoft Sentinel, pela Logs Ingestion API do Azure Monitor, para uma tabela personalizada do workspace em que o Sentinel roda. As suas regras de análise, consultas de hunting e pastas de trabalho passam a consultar `OneUptimeSecurityEvents_CL` ao lado das suas outras tabelas.
+
+:::steps
+### Crie a tabela e a regra de coleta de dados dela
+
+No portal do Azure, abra **Tables → Create → New custom log (DCR-based)** do workspace. Dê à tabela o nome `OneUptimeSecurityEvents`, crie uma nova regra de coleta de dados, e um endpoint de coleta de dados se o formulário pedir. Envie o exemplo abaixo como arquivo de exemplo, mantenha a transformação como está e crie a tabela.
+
+### Deixe um aplicativo enviar para ela
+
+Registre um aplicativo e dê a ele um segredo do cliente, como em [Registrar um aplicativo](#registrar-um-aplicativo). Depois abra a regra de coleta de dados, **Access control (IAM) → Add → Add role assignment**, escolha **Monitoring Metrics Publisher** e selecione o aplicativo.
+
+### Adicione o destino
+
+Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Microsoft Sentinel em **SIEM** e clique em **Próximo**. Preencha o **ID do diretório (tenant)**, o **ID do aplicativo (cliente)** e o **Client secret**, o **Endpoint de ingestão de logs** da página **Overview** do endpoint de coleta de dados (ou da regra), e o **ID imutável da regra de coleta de dados** da **JSON View** da regra. **Fluxo** é opcional: vazio, ele é `Custom-OneUptimeSecurityEvents_CL`.
+
+### Envie um evento de teste e comece a enviar
+
+Clique em **Enviar um evento de teste**: uma linha chega à tabela em poucos minutos. Depois, em **O que enviar**, mantenha **Somente detecções** ou escolha **Todos os eventos de segurança**, e clique em **Começar a enviar**.
+:::
+
+O arquivo de exemplo, uma linha com todas as colunas da tabela:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- A Logs Ingestion API aceita até 1 MB por chamada, então as linhas vão em lotes de até 500. Um lote que o Azure recusa é dividido até que a linha que ele não aceita seja encontrada e deixada de fora, e a limitação (`429`) é tentada de novo.
+- Um `403` significa que falta ao aplicativo o **Monitoring Metrics Publisher** na regra, e um `404`, um ID imutável ou um fluxo errado.
+- Os incidentes que o OneUptime importou do Microsoft Sentinel nunca são enviados de volta a ele.
+
 ## Solução de problemas
 
 O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.

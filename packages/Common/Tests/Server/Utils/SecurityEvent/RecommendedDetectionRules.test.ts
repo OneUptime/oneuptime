@@ -10,7 +10,9 @@ import {
   isRecommendedDetectionRule,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
-import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+} from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 
 /*
  * The recommended rules are what one click turns on for a new project, so
@@ -84,7 +86,9 @@ describe("the recommended detection rules", () => {
 
   test("each carries its library id in its Sigma YAML, which is how a project's copy is recognized", () => {
     for (const entry of getRecommendedDetectionRules()) {
-      const rule: SigmaRule = SigmaRuleParser.parse(entry.sigmaRuleYaml);
+      const rule: SigmaRule = detectionRuleHeader(
+        SigmaRuleSetParser.parse(entry.sigmaRuleYaml),
+      );
 
       expect(rule.id).toBe(entry.id);
     }

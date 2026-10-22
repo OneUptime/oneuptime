@@ -108,6 +108,7 @@ Wählen Sie vor dem Speichern **Diese Einstellungen testen** unter **Vor dem Spe
 | --- | --- | --- |
 | **Region** | Der regionale Endpunkt von Google SecOps (`us`, `europe`, `asia-southeast1`, ...), der zum Standort in Ihrem Instanz-Ressourcennamen passt. Es gibt keinen Standard, damit ein Mandant außerhalb der USA nicht versehentlich den falschen Endpunkt speichert. | Ja |
 | **Ressourcenname der Instanz** | In Google SecOps unter **SIEM Settings → Profile**: `projects/{project}/locations/{location}/instances/{instance}`. | Ja |
+| **Warnungen schließen, wenn ihr Fall geschlossen wird** | Im letzten Schritt des Formulars, aus, bis Sie es einschalten. Eingeschaltet schließt das Schließen eines Falls dessen Google SecOps-Warnungen: siehe [Warnungen schließen, wenn ihr Fall geschlossen wird](#warnungen-schließen-wenn-ihr-fall-geschlossen-wird). | Nein |
 | **JSON des Dienstkontos** | Google Cloud, Tab **Keys** des Dienstkontos. Fügen Sie die ganze JSON-Schlüsseldatei ein. Nur schreibbar: im Ruhezustand verschlüsselt, nie von der API zurückgegeben, nie wieder auf der Seite angezeigt. Nutzen Sie **Anmeldedaten aktualisieren** an der Verbindung, um ihn zu wechseln. | Ja |
 | **Data to import** | **Warnungen** werden immer importiert, weil die Warnungs-API von Google sie immer zurückgibt. Wählen Sie **Erkennungen**, um auch Regeltreffer zu importieren, die keine Warnung erzeugt haben. Das leitet keine rohen UDM-Ereignisse weiter: Die leiten Sie selbst weiter, wie oben. | Warnungen immer |
 
@@ -119,7 +120,7 @@ Neue Erkennungen werden als Ereignisse Detection Finding importiert, die einem T
 
 Die Liste der Verbindungen zeigt **Name**, **Anbieter** (mit der Auswahl Data to import der Verbindung darunter), **Status** (Enabled oder Disabled), **Integrität**, **Intervall (Minuten)**, **Zuletzt abgefragt**, **Letzte erfolgreiche Abfrage** und **Letztes importiertes Ereignis**. Hat eine Verbindung einen Fehler, erscheint **Fehler anzeigen** in ihrer Spalte **Aktionen**, neben **Verbindung testen**, **Jetzt ausführen**, **Diagnose**, **Bearbeiten** und **Anmeldedaten aktualisieren**. Enabled heißt, dass automatisches Abfragen eingerichtet ist. Zuletzt abgefragt hält einen Versuch fest; ein erfolgreiches leeres Zeitfenster belegt nicht, dass eine bestimmte Erkennung importiert wurde.
 
-**Integrität** zeigt **Last poll succeeded** erst, sobald ein Ereignis importiert wurde. Bis dahin zeigt eine erfolgreich abfragende Verbindung **Polling, no events imported yet**, und das ist der Zustand, den Sie mit Verbindung testen untersuchen. Die anderen Zustände sind **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** und **Waiting for first poll**; fahren Sie mit der Maus über einen Zustand, um zu sehen, was er bedeutet.
+**Integrität** zeigt **Last poll succeeded** erst, sobald ein Ereignis importiert wurde. Bis dahin zeigt eine erfolgreich abfragende Verbindung **Polling, no events imported yet**, und das ist der Zustand, den Sie mit Verbindung testen untersuchen. Die anderen Zustände sind **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** und **Wartet auf erste Abfrage**; fahren Sie mit der Maus über einen Zustand, um zu sehen, was er bedeutet.
 
 > [!NOTE]
 > Der Connector nutzt die alten Erkennungs- und Warnungs-APIs `v1alpha` von Chronicle, die Google als Vorabversion ausliefert. Schlägt eine Abfrage fehl, speichert das Feld **Letzter Fehler** der Verbindung die vollständige Fehlermeldung mit geschwärzten Anmeldedaten, hinter einem Präfix, das den fehlgeschlagenen Schritt nennt, auch für den Fall, dass Chronicle mit `200` antwortet und die Ablehnung in den Text legt. Wählen Sie **Fehler anzeigen** in der Spalte **Aktionen** der Verbindung, um die Meldung zu lesen, und dann **Fehler kopieren** im Dialog, um sie für den Support zu kopieren.
@@ -213,6 +214,17 @@ Google SecOps legt den Schweregrad einer Erkennung an verschiedenen Stellen ab, 
 
 Eine Erkennung, die keine dieser Stellen einstuft, wird als Unknown angezeigt. Um eine eigene Regel einzustufen, fügen Sie ihrem Abschnitt `meta` in Google SecOps einen Schweregrad hinzu, etwa `severity = "High"`, oder setzen Sie `$risk_score` in ihrem Abschnitt `outcome`. Erkennungen, die die Regel danach erzeugt, werden mit diesem Schweregrad importiert.
 
+## Warnungen schließen, wenn ihr Fall geschlossen wird
+
+Ist **Warnungen schließen, wenn ihr Fall geschlossen wird** eingeschaltet, schließt das Schließen eines [Sicherheitsfalls](/docs/telemetry/security-cases#einen-fall-schließen) die Google SecOps-Warnungen, aus denen er entstanden ist. Jede Warnung wird mit dem Urteil des Falls als geschlossen markiert, ein True Positive als bösartig und ein False Positive oder Benign Positive als nicht bösartig, zusammen mit der Abschlussnotiz des Falls und einem Link zurück zum Fall. Die Zeitleiste des Falls sagt, wie viele Warnungen geschlossen wurden.
+
+- Das Dienstkonto braucht `chronicle.legacies.legacyUpdateAlert`, das die Rolle `roles/chronicle.editor` hat. Die Rolle `roles/chronicle.viewer` liest Warnungen, kann sie aber nicht schließen, und ein `403` steht dann am Fall.
+- Eine Warnung, die Google SecOps nicht mehr hat, wird übersprungen. Ist Google SecOps nicht erreichbar, versucht OneUptime es etwa eine Stunde lang erneut und schreibt dann an den Fall, was es nicht schließen konnte.
+
+## Ihre anderen Ereignisse auf seine Indikatoren prüfen
+
+Ein [Threat-Intel-Feed](/docs/telemetry/threat-intelligence#wie-google-secops-gelesen-wird), dessen **Quelle** auf **Google SecOps** steht, liest über diese Verbindung die Indikatoren, die die Threat Intelligence von Google SecOps in seinen Ereignissen gefunden hat, und prüft den Rest der Ereignisse Ihres Projekts auf sie: die Anmeldungen, Netzwerkflüsse und Endpunktereignisse, die Google SecOps nie gesehen hat.
+
 ## Sicherheitsereignisse an Google SecOps senden
 
 OneUptime kann seine Funde auch an Google SecOps senden, damit das SIEM, in dem Ihr Team arbeitet, die Erkennungen von OneUptime neben den eigenen sieht. Jedes Sicherheitsereignis wird als UDM-Ereignis importiert: eine Anmeldung als `USER_LOGIN`, ein Prozessstart als `PROCESS_LAUNCH`, eine Netzwerkverbindung als `NETWORK_CONNECTION` und alles andere als `GENERIC_EVENT`, mit seinem Schweregrad, seinen MITRE-ATT&CK-Tags und der Regel, die es gefunden hat.
@@ -224,7 +236,7 @@ Legen Sie in Google Cloud ein Dienstkonto in dem Projekt an, an das Ihre SecOps-
 
 ### Das Ziel hinzufügen
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen**. Klicken Sie unter **An Ihr SIEM senden** auf **Ziel hinzufügen**. Wählen Sie die **Region**, tragen Sie den **Ressourcenname der Instanz** wie beim Connector oben ein und fügen Sie den Schlüssel in **JSON des Dienstkontos** ein.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen**. Klicken Sie unter **An Ihr SIEM senden** auf **Ziel hinzufügen**, wählen Sie Google SecOps unter **SIEM** und klicken Sie auf **Weiter**. Wählen Sie die **Region**, tragen Sie den **Ressourcenname der Instanz** wie beim Connector oben ein und fügen Sie den Schlüssel in **JSON des Dienstkontos** ein.
 
 ### Ein Testereignis senden
 

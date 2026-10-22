@@ -147,6 +147,28 @@ Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela 
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
+## Enviar eventos de segurança ao Splunk
+
+O OneUptime também pode enviar o que encontra ao Splunk, pelo HTTP Event Collector (HEC) dele, para que as suas pesquisas e dashboards vejam as detecções do OneUptime ao lado das suas. Cada evento de segurança é um evento HEC com o sourcetype `oneuptime:security`, com os campos nomeados como o Common Information Model do Splunk os nomeia: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` e `severity`.
+
+:::steps
+### Crie um token HEC
+
+No Splunk Web, abra **Settings → Data inputs → HTTP Event Collector** e clique em **New Token**. Dê um nome a ele, escolha os índices em que ele pode gravar e o índice padrão dele, e copie o valor do token. No Splunk Cloud, o HEC escuta em `https://http-inputs-<stack>.splunkcloud.com`; no Splunk Enterprise, na porta `8088` depois que **Global Settings** ativa os tokens.
+
+### Adicione o destino
+
+Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Splunk em **SIEM** e clique em **Próximo**. Preencha a **URL do HEC** e cole o token em **Token do HEC**. **Index** e **Tipo de origem** são opcionais: vazios, os eventos vão para o índice padrão do token com o sourcetype `oneuptime:security`.
+
+### Envie um evento de teste e comece a enviar
+
+Clique em **Enviar um evento de teste**: um evento informativo vai para o Splunk com as configurações do formulário, e nada é salvo. Pesquise-o com `sourcetype="oneuptime:security"`. Depois, em **O que enviar**, mantenha **Somente detecções** ou escolha **Todos os eventos de segurança**, e clique em **Começar a enviar**.
+:::
+
+- A **URL do HEC** precisa usar `https`, com um certificado em que o OneUptime confie: as verificações de certificado nunca são ignoradas.
+- Os eventos vão em lotes de até 500. Um evento que o Splunk recusa fica de fora e é citado em **Ver erro**, um coletor ocupado (`503`) é tentado de novo, e um token ou índice recusado interrompe o envio até você corrigi-lo.
+- Os notable events que o OneUptime importou do Splunk nunca são enviados de volta a ele.
+
 ## Solução de problemas
 
 O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.

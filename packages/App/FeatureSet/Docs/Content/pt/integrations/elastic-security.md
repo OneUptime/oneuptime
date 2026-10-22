@@ -142,6 +142,48 @@ Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela 
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
+## Enviar eventos de segurança ao Elastic Security
+
+O OneUptime também pode enviar o que encontra ao Elasticsearch, como documentos do Elastic Common Schema (ECS) em um fluxo de dados, para que os alertas, linhas do tempo e regras de detecção do Elastic Security vejam as detecções do OneUptime ao lado das suas. Uma detecção é um documento com `event.kind` `alert`, e todos os outros eventos têm `event.kind` `event`.
+
+:::steps
+### Crie uma chave de API que possa gravar
+
+No Kibana, abra **Stack Management → API keys**, clique em **Create API key**, dê a ela os privilégios abaixo e copie o valor **Encoded** dela.
+
+### Adicione o destino
+
+Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Elastic Security em **SIEM** e clique em **Próximo**. Preencha a **URL do Elasticsearch**, o endpoint do Elasticsearch da implantação e não o do Kibana, e cole a chave em **Chave de API**. **Fluxo de dados** é opcional: vazio, os documentos vão para `logs-oneuptime.security-default`, que o Elasticsearch cria na primeira gravação.
+
+### Envie um evento de teste e comece a enviar
+
+Clique em **Enviar um evento de teste**: um documento chega ao fluxo de dados. Depois, em **O que enviar**, mantenha **Somente detecções** ou escolha **Todos os eventos de segurança**, e clique em **Começar a enviar**.
+:::
+
+Os privilégios da chave, para o fluxo de dados padrão:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Os documentos vão em lotes de até 500, cada um com o id do próprio evento, então um evento enviado duas vezes é armazenado uma vez.
+- Um documento que o Elasticsearch não consegue mapear fica de fora e é citado em **Ver erro**, e um que ele não pode aceitar agora (`429`) é enviado de novo.
+- Os alertas que o OneUptime importou do Elastic Security nunca são enviados de volta a ele.
+
 ## Solução de problemas
 
 O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Leia o prefixo primeiro.

@@ -50,12 +50,12 @@ Beginnen Sie oben in der Tabelle: Je weiter oben ein Weg steht, desto weniger gi
 | Werkzeug | Richtung | Was es tut |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Eingehend | Alarmiert die Bereitschaft bei Huntress-Vorfallberichten und behebt den Vorfall, wenn der Bericht geschlossen wird. |
-| [Google SecOps](/docs/integrations/google-secops) | Eingehend | Bringt Google-SecOps-Erkennungen in die Sicherheitsereignisse. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Eingehend | Bringt Microsoft-Sentinel-Vorfälle in die Sicherheitsereignisse. |
+| [Google SecOps](/docs/integrations/google-secops) | Beide | Bringt Google-SecOps-Erkennungen und -Indikatoren in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Beide | Bringt Microsoft-Sentinel-Vorfälle in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Eingehend | Bringt Microsoft-Defender-XDR-Alarme in die Sicherheitsereignisse. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Eingehend | Bringt CrowdStrike-Falcon-Alarme in die Sicherheitsereignisse. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Eingehend | Bringt Splunk-Notable-Events in die Sicherheitsereignisse. |
-| [Elastic Security](/docs/integrations/elastic-security) | Eingehend | Bringt Erkennungsalarme von Elastic Security in die Sicherheitsereignisse. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Beide | Bringt Splunk-Notable-Events in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
+| [Elastic Security](/docs/integrations/elastic-security) | Beide | Bringt Erkennungsalarme von Elastic Security in die Sicherheitsereignisse und sendet dorthin, was OneUptime findet. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Eingehend | Bringt Befunde von AWS Security Hub in die Sicherheitsereignisse. |
 | [Okta System Log](/docs/integrations/okta) | Eingehend | Bringt Okta-Anmeldungen, Kontoänderungen und Bedrohungserkennungen in die Sicherheitsereignisse. |
 

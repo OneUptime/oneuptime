@@ -159,6 +159,75 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 
 Every request in a test has a 20 second deadline. A test never imports anything or moves the cursor, and each failed check says what to change.
 
+## Send security events to Microsoft Sentinel
+
+OneUptime can also send what it finds to Microsoft Sentinel, through the Azure Monitor Logs Ingestion API, into a custom table of the workspace Sentinel runs on. Your analytics rules, hunting queries and workbooks then query `OneUptimeSecurityEvents_CL` beside your other tables.
+
+:::steps
+### Create the table and its data collection rule
+
+In the Azure portal, open the workspace's **Tables → Create → New custom log (DCR-based)**. Name the table `OneUptimeSecurityEvents`, create a new data collection rule, and a data collection endpoint if the form asks for one. Upload the sample below as the sample file, keep the transformation as it is, and create the table.
+
+### Let an application send to it
+
+Register an application and give it a client secret, as in [Register an application](#register-an-application). Then open the data collection rule, **Access control (IAM) → Add → Add role assignment**, choose **Monitoring Metrics Publisher**, and select the application.
+
+### Add the destination
+
+Open **Products → Security Events → Connections**. Under **Send to your SIEM**, click **Add destination**, choose Microsoft Sentinel under **SIEM** and click **Next**. Fill in the **Directory (tenant) ID**, the **Application (client) ID** and the **Client secret**, the **Logs ingestion endpoint** from the data collection endpoint's (or the rule's) **Overview**, and the **Data collection rule immutable ID** from the rule's **JSON View**. **Stream** is optional: left empty, it is `Custom-OneUptimeSecurityEvents_CL`.
+
+### Send a test event and start sending
+
+Click **Send a test event**: one row reaches the table within a few minutes. Then under **What to send** keep **Detections only** or choose **All security events**, and click **Start sending**.
+:::
+
+The sample file, one row with every column of the table:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- The Logs Ingestion API takes up to 1 MB a call, so rows go in batches of up to 500. A batch Azure refuses is split until the row it will not take is found and left out, and throttling (`429`) is tried again.
+- A `403` means the application lacks **Monitoring Metrics Publisher** on the rule, and a `404` a wrong immutable ID or stream.
+- Incidents OneUptime imported from Microsoft Sentinel are never sent back to it.
+
 ## Troubleshooting
 
 The connection's **Last Error** keeps the complete error message, with credentials redacted, behind a prefix that names the step that failed. When a connection has an error, select **View Error** in its **Actions** column to read it, and **Copy Error** in the dialog to copy it. Read the prefix first.

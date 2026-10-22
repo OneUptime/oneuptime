@@ -363,6 +363,75 @@ export class ThreatIntelIndicatorService extends AnalyticsDatabaseService<Threat
   }
 
   /*
+   * The values of one feed's identity (a list feed's single stixId) that
+   * are active right now, resolved version-aware like every read here. The
+   * list poller reads them before it writes a new copy of the list, to let
+   * go of the values the list no longer has.
+   */
+  public async findActiveValuesForFeed(data: {
+    projectId: ObjectID;
+    feedId: ObjectID;
+    stixId: string;
+    now: Date;
+    limit: number;
+  }): Promise<Array<{ indicatorValue: string; indicatorType: string }>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT
+      indicatorValue,
+      argMax(indicatorType, version) AS indicatorTypeLatest,
+      argMax(revoked, version) AS revokedLatest,
+      argMax(validFrom, version) AS validFromLatest,
+      argMax(validUntil, version) AS validUntilLatest
+    FROM `;
+
+    statement.append(`${databaseName}.${this.model.tableName}`);
+
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND feedId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.feedId,
+      }} AND stixId = ${{
+        type: TableColumnType.Text,
+        value: data.stixId,
+      }} GROUP BY indicatorValue`,
+    );
+
+    appendActiveHavingClause(statement, data.now);
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: data.limit,
+      }}`,
+    );
+
+    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []).map(
+      (row: JSONObject): { indicatorValue: string; indicatorType: string } => {
+        return {
+          indicatorValue: String(row["indicatorValue"] ?? ""),
+          indicatorType: String(row["indicatorTypeLatest"] ?? ""),
+        };
+      },
+    );
+  }
+
+  /*
    * The poller's pre-ingest read: the latest stored version of every
    * (stixId, indicatorValue) identity for the given STIX objects in one
    * feed — revoked or not, active or not. The poller uses it to

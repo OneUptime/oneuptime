@@ -159,6 +159,75 @@ Klikk på **Diagnostics** på en tilkobling for å se de siste kjøringene og ar
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre.
 
+## Send sikkerhetshendelser til Microsoft Sentinel
+
+OneUptime kan også sende det den finner til Microsoft Sentinel, gjennom Logs Ingestion API i Azure Monitor, inn i en egendefinert tabell i arbeidsområdet Sentinel kjører på. Analyseregler, jaktspørringer og arbeidsbøker spør deretter `OneUptimeSecurityEvents_CL` ved siden av de andre tabellene dine.
+
+:::steps
+### Opprett tabellen og datainnsamlingsregelen dens
+
+Åpne arbeidsområdets **Tables → Create → New custom log (DCR-based)** i Azure-portalen. Kall tabellen `OneUptimeSecurityEvents`, opprett en ny datainnsamlingsregel, og et datainnsamlingsendepunkt hvis skjemaet ber om det. Last opp eksemplet nedenfor som eksempelfil, behold transformasjonen som den er, og opprett tabellen.
+
+### La et program sende til den
+
+Registrer et program og gi det en klienthemmelighet, som i [Registrer et program](#registrer-et-program). Åpne deretter datainnsamlingsregelen, **Access control (IAM) → Add → Add role assignment**, velg **Monitoring Metrics Publisher**, og velg programmet.
+
+### Legg til målet
+
+Åpne **Produkter → Security Events → Connections**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Microsoft Sentinel under **SIEM**, og klikk på **Neste**. Fyll inn **Katalog-ID (tenant)**, **Program-ID (klient)** og **Client secret**, **Endepunkt for logginntak** fra **Overview** for datainnsamlingsendepunktet (eller regelen), og **Uforanderlig ID for datainnsamlingsregelen** fra regelens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
+
+### Send en testhendelse og begynn å sende
+
+Klikk på **Send en testhendelse**: én rad når tabellen i løpet av noen minutter. Behold deretter **Bare deteksjoner** under **Hva som skal sendes**, eller velg **Alle sikkerhetshendelser**, og klikk på **Begynn å sende**.
+:::
+
+Eksempelfilen, én rad med hver kolonne i tabellen:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API tar opptil 1 MB per kall, så rader sendes i bunter på opptil 500. En bunt Azure avviser, deles til raden den ikke vil ta, er funnet og utelatt, og struping (`429`) prøves på nytt.
+- En `403` betyr at programmet mangler **Monitoring Metrics Publisher** på regelen, og en `404` en feil uforanderlig ID eller strøm.
+- Hendelser OneUptime har importert fra Microsoft Sentinel, sendes aldri tilbake dit.
+
 ## Feilsøking
 
 **Siste feil** for tilkoblingen lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Kopier feil** i dialogboksen for å kopiere den. Les prefikset først.
