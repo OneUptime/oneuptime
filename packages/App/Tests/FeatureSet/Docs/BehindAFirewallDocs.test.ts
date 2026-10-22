@@ -6,6 +6,7 @@ import {
   boldSpans,
   cardLines,
   cardTargets,
+  escapeRegExp,
   inlineCode,
   navTitle,
   tableShape,
@@ -131,7 +132,7 @@ describe("Behind a VPN or Firewall, in English", () => {
       ["post", "/call/gather-input/:itemId"],
     ] as Array<[string, string]>) {
       const registered: RegExp = new RegExp(
-        `this\\.router\\.${method}\\(\\s*\`\\$\\{new this\\.entityType\\(\\)\\s*\\.getCrudApiPath\\(\\)\\s*\\?\\.toString\\(\\)\\}${route.replace(/\//g, "\\/")}\``,
+        `this\\.router\\.${method}\\(\\s*\`\\$\\{new this\\.entityType\\(\\)\\s*\\.getCrudApiPath\\(\\)\\s*\\?\\.toString\\(\\)\\}${escapeRegExp(route)}\``,
       );
 
       expect({

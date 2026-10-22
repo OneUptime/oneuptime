@@ -152,7 +152,7 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Turn on when Telegram can't reach this server, such as one behind a VPN or firewall. OneUptime then fetches the bot's messages from Telegram over outbound HTTPS, and needs no webhook.",
+              "Turn on if Telegram can't reach this server (a VPN or firewall). OneUptime then fetches the bot's messages over outbound HTTPS, with no webhook.",
           },
           {
             field: {
