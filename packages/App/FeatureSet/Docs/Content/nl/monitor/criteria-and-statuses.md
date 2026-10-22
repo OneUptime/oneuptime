@@ -171,6 +171,15 @@ Elke statuswijziging blijft bewaard in de **Statustijdlijn** van de monitor: wan
 
 Een statuswijziging brengt de eigenaren van de monitor alleen op de hoogte als zij **Monitorstatus gewijzigd** in hun meldingsinstellingen hebben ingeschakeld: het staat in het begin uit. Een monitor die teruggaat naar zijn **Standaard monitorstatus** omdat geen criterium overeenkwam, brengt niemand op de hoogte. Zie [Wat aan staat voor een nieuw lid](/docs/notifications/notification-settings#wat-er-aanstaat-voor-een-nieuw-lid).
 
+## Een monitorstatus archiveren
+
+Archiveer een status die uw team niet meer moet gebruiken, in plaats van die te verwijderen. Archiveren wijzigt geen enkele monitor: een monitor in die status blijft erin tot zijn status verandert, en de statustijdlijn toont hem nog.
+
+- **Archiveren** staat in het menu **⋯** van de rij. Het vraagt eerst om bevestiging en toont de monitorcriteria, sjablonen en statuspagina's die zijn ingesteld om de status te gebruiken: die blijven hem gebruiken tot u ze wijzigt.
+- **Niemand kan hem nog kiezen.** Een criterium, het statusmenu van een monitor, de monitorstatus van een incident of onderhoudsgebeurtenis en de downtimestatussen van een statuspagina laten hem weg. De API, Terraform en MCP weigeren hem.
+- **Gearchiveerde statussen staan apart**, in de ingeklapte sectie **Gearchiveerde monitorstatussen** onder de tabel. **Uit archief halen** zet er een terug zoals hij was.
+- **De ingebouwde statussen kunnen niet worden gearchiveerd.** Nieuwe monitoren beginnen in de operationele status, en OneUptime beschouwt een monitor in de offline status als uitgevallen. Hun **Archiveren** is vergrendeld, met de reden.
+
 ## Problemen oplossen
 
 :::details De site is uitgevallen, maar de monitor blijft Operationeel

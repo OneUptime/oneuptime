@@ -21,6 +21,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
+import { stubArchivedValues } from "../TestingUtils/ArchivedValues";
 import {
   afterEach,
   beforeEach,
@@ -247,6 +248,9 @@ describe("DatabaseService.checkCallerMayCreate", () => {
           });
         },
       );
+
+    // None of the alert states a row names is archived.
+    stubArchivedValues();
 
     // Records read by OneUptime in the project: the project's alerts, and any other record asked about.
     jest

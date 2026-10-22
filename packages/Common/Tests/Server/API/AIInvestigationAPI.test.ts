@@ -2,11 +2,9 @@ import { mockRouter } from "./Helpers";
 import {
   ANALYSIS_COMPLETION_CLOCK_SKEW_MS,
   ANALYSIS_FINALIZATION_TIMEOUT_MS,
-  canViewerReadCredentialNames,
   getRestrictedGapNextStep,
   InvestigationPanelClusterAccess,
   isAnalysisPendingForRun,
-  RESTRICTED_CREDENTIAL_GAP_DESCRIPTION,
   RESTRICTED_GAP_DESCRIPTION,
   RESTRICTED_GAP_NEXT_STEP,
   RESTRICTED_PROJECT_GAP_NEXT_STEP,
@@ -151,13 +149,12 @@ function investigationEvent(eventType: AIRunEventType): AIRunEvent {
 
 const CLUSTER_ID: string = "56565656-5656-4565-8565-565656565656";
 const RUNNER_ID: string = "67676767-6767-4676-8676-676767676767";
-const CREDENTIAL_ID: string = "78787878-7878-4787-8787-787878787878";
 const RUNNER_KEY: string = "runner-secret-key-89898989";
 
 /*
- * What the access service answers with — including the credential id the
- * jobs name and, defensively, a runner key a future summary might carry.
- * Neither may reach the panel.
+ * What the access service answers with — and, defensively, a runner key a
+ * future summary might carry, which may never reach the panel. (A status
+ * named a runbook credential too, until runbook credentials were removed.)
  */
 function clusterAccessStatus(): KubernetesClusterAiAccessStatus {
   return {
@@ -170,14 +167,16 @@ function clusterAccessStatus(): KubernetesClusterAiAccessStatus {
       isOnline: true,
       lastAliveAt: "2026-09-14T18:00:00.000Z",
       canRunAiCommands: true,
-      posture: { inCluster: false, allowWrites: false },
+      posture: {
+        inCluster: true,
+        allowWrites: false,
+        clusterIdentifier: "prod-us",
+      },
       key: RUNNER_KEY,
     } as KubernetesClusterAiAccessStatus["runner"],
-    accessMethod: "credential",
+    accessMethod: "in_cluster",
     aiAgent: null,
     automaticInvestigation: { incidents: false, alerts: false },
-    credentialId: CREDENTIAL_ID,
-    credentialName: "prod-sa-token",
     kubectlAllowlist: ["kubectl rollout restart deployment/*"],
     isInvestigationEnabled: true,
     isInvestigationReady: true,
@@ -1306,16 +1305,13 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     /*
-     * By default the viewer can read the cluster and Runner credentials:
-     * the full row. The viewer-permission cases below narrow this.
+     * By default the viewer can read the cluster: the full row. The
+     * viewer-permission cases below narrow this.
      */
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
       .mockResolvedValue(
-        viewerWithPermissions([
-          Permission.ReadKubernetesCluster,
-          Permission.ReadRunbookCredential,
-        ]),
+        viewerWithPermissions([Permission.ReadKubernetesCluster]),
       );
     clusterFindBy = jest
       .spyOn(KubernetesClusterService, "findBy")
@@ -1354,7 +1350,7 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
     return sentPayload()["clusterAccess"] as Array<JSONObject>;
   }
 
-  it("never carries credential ids or Runner keys to the panel", async () => {
+  it("never carries a credential or a Runner key to the panel", async () => {
     await callIncidentRoute({
       run: investigationRun({
         status: AIRunStatus.Completed,
@@ -1369,15 +1365,15 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
 
     const row: JSONObject = rows[0]!;
     expect(row).not.toHaveProperty("credentialId");
+    expect(row).not.toHaveProperty("credentialName");
     expect(row["runner"]).not.toHaveProperty("key");
 
     const serialized: string = JSON.stringify(rows);
-    expect(serialized).not.toContain(CREDENTIAL_ID);
     expect(serialized).not.toContain(RUNNER_KEY);
 
     /*
-     * A viewer who can read the cluster and Runner credentials gets the
-     * row the cluster's AI page would show them — nothing more.
+     * A viewer who can read the cluster gets the row the cluster's AI page
+     * would show them — nothing more.
      */
     expect(row).toEqual({
       clusterId: CLUSTER_ID,
@@ -1391,10 +1387,13 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
         isOnline: true,
         lastAliveAt: "2026-09-14T18:00:00.000Z",
         canRunAiCommands: true,
-        posture: { inCluster: false, allowWrites: false },
+        posture: {
+          inCluster: true,
+          allowWrites: false,
+          clusterIdentifier: "prod-us",
+        },
       },
-      accessMethod: "credential",
-      credentialName: "prod-sa-token",
+      accessMethod: "in_cluster",
       kubectlAllowlist: ["kubectl rollout restart deployment/*"],
       isInvestigationEnabled: true,
       isInvestigationReady: true,
@@ -1414,10 +1413,17 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
     });
   });
 
+  /*
+   * A status from an older server named the cluster's runbook credential.
+   * The panel's row is an allowlist, so neither field is forwarded.
+   */
   it("drops unknown fields on the status and the runner summary rather than forwarding them", async () => {
     const status: KubernetesClusterAiAccessStatus = clusterAccessStatus();
     (status as unknown as JSONObject)["runnerKey"] = RUNNER_KEY;
     (status as unknown as JSONObject)["kubeconfig"] = "apiVersion: v1";
+    (status as unknown as JSONObject)["credentialId"] =
+      "78787878-7878-4787-8787-787878787878";
+    (status as unknown as JSONObject)["credentialName"] = "prod-sa-token";
     getStatuses.mockResolvedValue([status]);
 
     await callIncidentRoute();
@@ -1426,7 +1432,8 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
     expect(serialized).not.toContain("runnerKey");
     expect(serialized).not.toContain("kubeconfig");
     expect(serialized).not.toContain(RUNNER_KEY);
-    expect(serialized).not.toContain(CREDENTIAL_ID);
+    expect(serialized).not.toContain("78787878-7878-4787-8787-787878787878");
+    expect(serialized).not.toContain("prod-sa-token");
   });
 
   it("keeps a cluster with no Runner bound as an explicit null runner", async () => {
@@ -1435,8 +1442,6 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
         ...clusterAccessStatus(),
         runner: null,
         accessMethod: "none",
-        credentialId: undefined,
-        credentialName: undefined,
         isInvestigationReady: false,
         isRemediationReady: false,
         gaps: [
@@ -1488,7 +1493,7 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
       });
 
       expect(sentClusterAccess()).toHaveLength(1);
-      expect(JSON.stringify(sentClusterAccess())).not.toContain(CREDENTIAL_ID);
+      expect(JSON.stringify(sentClusterAccess())).not.toContain(RUNNER_KEY);
     },
   );
 
@@ -1600,12 +1605,12 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
         isInvestigationReady: false,
         gaps: [
           {
-            code: "credential_missing",
-            title: "The Kubernetes credential is not usable by the Runner",
+            code: "runner_offline",
+            title: "The previous in-cluster Runner is offline",
             description:
-              '"prod-sa-token" is not assigned to Runner "kubernetes-agent/prod-us".',
+              'Runner "kubernetes-agent/prod-us" was last seen at 18:00, in namespace "payments-team".',
             nextStep:
-              "Create a Kubernetes credential, assign it to the Runner, and select it on this cluster's AI page.",
+              "Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces Runner kubernetes-agent/prod-us.",
             blocks: "both",
           },
           {
@@ -1625,13 +1630,12 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
     function expectNoClusterDetails(row: JSONObject): void {
       const serialized: string = JSON.stringify(row);
       for (const secretish of [
-        "prod-sa-token",
+        "payments-team",
         "kubernetes-agent/prod-us",
         "rollout restart",
         LAST_ERROR,
         "staging-eu",
         "v1.31.2",
-        CREDENTIAL_ID,
         RUNNER_ID,
       ]) {
         expect(serialized).not.toContain(secretish);
@@ -1683,8 +1687,8 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
          */
         gaps: [
           {
-            code: "credential_missing",
-            title: "The Kubernetes credential is not usable by the Runner",
+            code: "runner_offline",
+            title: "The previous in-cluster Runner is offline",
             description: RESTRICTED_GAP_DESCRIPTION,
             nextStep: RESTRICTED_GAP_NEXT_STEP,
             blocks: "both",
@@ -1823,60 +1827,41 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
       expectNoClusterDetails(unreadable);
     });
 
-    it("keeps the credential name from a cluster reader who cannot read credentials", async () => {
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockResolvedValue(
-          viewerWithPermissions([Permission.ReadKubernetesCluster]),
+    /*
+     * Reading runbook credentials decided whether a cluster reader saw the
+     * cluster's credential name. Runbook credentials are gone: reading the
+     * cluster is the one thing that decides the row, whatever else the
+     * viewer may or may not read.
+     */
+    it("decides the row by cluster read alone: no credential read is asked", async () => {
+      for (const permissions of [
+        [Permission.ReadKubernetesCluster],
+        [Permission.ProjectAdmin],
+        [Permission.ProjectMember],
+      ]) {
+        jest
+          .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+          .mockResolvedValue(viewerWithPermissions(permissions));
+        getStatuses.mockResolvedValue([detailedStatus()]);
+        clusterFindBy.mockResolvedValue([readableCluster(CLUSTER_ID)]);
+
+        await callIncidentRoute();
+
+        const row: JSONObject = sentClusterAccess()[0]!;
+        expect((row["runner"] as JSONObject)["name"]).toBe(
+          "kubernetes-agent/prod-us",
         );
-      getStatuses.mockResolvedValue([
-        clusterAccessStatus(),
-        detailedStatus({ clusterId: OTHER_CLUSTER_ID }),
-      ]);
-      clusterFindBy.mockResolvedValue([
-        readableCluster(CLUSTER_ID),
-        readableCluster(OTHER_CLUSTER_ID),
-      ]);
-
-      await callIncidentRoute();
-
-      const rows: Array<JSONObject> = sentClusterAccess();
-      const usable: JSONObject = rows[0]!;
-      const broken: JSONObject = rows[1]!;
-      // The cluster itself is theirs to read...
-      expect((usable["runner"] as JSONObject)["name"]).toBe(
-        "kubernetes-agent/prod-us",
-      );
-      expect(usable["kubectlAllowlist"]).toEqual([
-        "kubectl rollout restart deployment/*",
-      ]);
-      // ...the credential's name is not.
-      expect(usable).not.toHaveProperty("credentialName");
-      expect(JSON.stringify(sentClusterAccess())).not.toContain(
-        "prod-sa-token",
-      );
-
-      const gaps: Array<JSONObject> = broken["gaps"] as Array<JSONObject>;
-      expect(gaps[0]!["description"]).toBe(
-        RESTRICTED_CREDENTIAL_GAP_DESCRIPTION,
-      );
-      // Gaps that do not name the credential keep their description.
-      expect(gaps[1]!["description"]).toContain("staging-eu");
-    });
-
-    it("treats a block row on credentials as a denial, not a grant", async () => {
-      jest
-        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-        .mockResolvedValue(
-          viewerWithPermissions(
-            [Permission.ProjectAdmin],
-            [Permission.ReadRunbookCredential],
-          ),
+        expect(
+          (row["gaps"] as Array<JSONObject>).map((gap: JSONObject): unknown => {
+            return gap["description"];
+          }),
+        ).toEqual(
+          detailedStatus().gaps.map((gap: KubernetesAiAccessGap): string => {
+            return gap.description;
+          }),
         );
-
-      await callIncidentRoute();
-
-      expect(sentClusterAccess()[0]).not.toHaveProperty("credentialName");
+        expect(row).not.toHaveProperty("credentialName");
+      }
     });
 
     it("falls back to the summary, and still sends, when the readability check fails", async () => {
@@ -1946,59 +1931,6 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
         expectNoClusterDetails(sentClusterAccess()[0]!);
       },
     );
-  });
-});
-
-describe("canViewerReadCredentialNames", () => {
-  it.each<[string, DatabaseCommonInteractionProps, boolean]>([
-    ["root", { isRoot: true } as DatabaseCommonInteractionProps, true],
-    [
-      "a master admin",
-      { isMasterAdmin: true } as DatabaseCommonInteractionProps,
-      true,
-    ],
-    ["a project owner", viewerWithPermissions([Permission.ProjectOwner]), true],
-    ["a project admin", viewerWithPermissions([Permission.ProjectAdmin]), true],
-    [
-      "a viewer granted credential read",
-      viewerWithPermissions([Permission.ReadRunbookCredential]),
-      true,
-    ],
-    [
-      "an incident viewer",
-      viewerWithPermissions([Permission.IncidentViewer]),
-      false,
-    ],
-    [
-      "a project member (cluster read, no credential read)",
-      viewerWithPermissions([Permission.ProjectMember]),
-      false,
-    ],
-    [
-      "an admin with credential read blocked",
-      viewerWithPermissions(
-        [Permission.ProjectAdmin],
-        [Permission.ReadRunbookCredential],
-      ),
-      false,
-    ],
-    ["a viewer with no tenant permissions", props, false],
-  ])(
-    "%s",
-    (
-      _label: string,
-      viewer: DatabaseCommonInteractionProps,
-      expected: boolean,
-    ) => {
-      expect(canViewerReadCredentialNames(viewer, PROJECT_ID)).toBe(expected);
-    },
-  );
-
-  it("only counts the grants of the project asked about", () => {
-    const viewer: DatabaseCommonInteractionProps = viewerWithPermissions([
-      Permission.ProjectOwner,
-    ]);
-    expect(canViewerReadCredentialNames(viewer, OTHER_PROJECT_ID)).toBe(false);
   });
 });
 
@@ -2273,7 +2205,7 @@ describe("toPanelClusterAccess gap next steps", () => {
   it("replaces every next step for a viewer who cannot read the cluster", () => {
     const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
       statusWithGaps([RUNNER_NAMING_GAP, PROJECT_GAP]),
-      { canReadCluster: false, canReadCredentials: false },
+      { canReadCluster: false },
     );
 
     expect(
@@ -2284,19 +2216,17 @@ describe("toPanelClusterAccess gap next steps", () => {
     expect(JSON.stringify(row)).not.toContain("kubernetes-agent/prod-us");
   });
 
-  it("keeps every next step for a viewer who can read the cluster, with or without credential read", () => {
-    for (const canReadCredentials of [true, false]) {
-      const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
-        statusWithGaps([RUNNER_NAMING_GAP, PROJECT_GAP]),
-        { canReadCluster: true, canReadCredentials },
-      );
+  it("keeps every next step for a viewer who can read the cluster", () => {
+    const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
+      statusWithGaps([RUNNER_NAMING_GAP, PROJECT_GAP]),
+      { canReadCluster: true },
+    );
 
-      expect(
-        row.gaps.map((gap: KubernetesAiAccessGap): string => {
-          return gap.nextStep;
-        }),
-      ).toEqual([RUNNER_NAMING_GAP.nextStep, PROJECT_GAP.nextStep]);
-    }
+    expect(
+      row.gaps.map((gap: KubernetesAiAccessGap): string => {
+        return gap.nextStep;
+      }),
+    ).toEqual([RUNNER_NAMING_GAP.nextStep, PROJECT_GAP.nextStep]);
   });
 
   it("gives a project-level gap the project-settings step and everything else the cluster step", () => {
@@ -2319,6 +2249,10 @@ describe("toPanelClusterAccess gap next steps", () => {
     for (const code of [
       "no_runner_bound",
       "runner_offline",
+      /*
+       * Retired with runbook credentials and never produced now; a status
+       * from an older server still gets the step that names nothing.
+       */
       "credential_missing",
       "credential_on_agent_runner",
       // A code added later falls back to the step that names nothing.
@@ -2392,7 +2326,6 @@ describe("toPanelClusterAccess gap next steps", () => {
         JSON.stringify(
           toPanelClusterAccess(agentStatus, {
             canReadCluster: false,
-            canReadCredentials: false,
           }),
         ),
       ).not.toContain("payments-team-agent-namespace");
@@ -2427,7 +2360,6 @@ describe("toPanelClusterAccess gap next steps", () => {
         JSON.stringify(
           toPanelClusterAccess(runnerStatus, {
             canReadCluster: false,
-            canReadCredentials: false,
           }),
         ),
       ).not.toContain("kubernetes-agent/prod-us-identifier");
@@ -2446,7 +2378,6 @@ describe("toPanelClusterAccess gap next steps", () => {
 
     const row: InvestigationPanelClusterAccess = toPanelClusterAccess(status, {
       canReadCluster: true,
-      canReadCredentials: true,
     });
 
     expect(row.runner?.kind).toBe("ai_agent");
@@ -2489,7 +2420,7 @@ describe("toPanelClusterAccess gap next steps", () => {
           blocks: "both",
         },
       ]),
-      { canReadCluster: false, canReadCredentials: false },
+      { canReadCluster: false },
     );
 
     expect(

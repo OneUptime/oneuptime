@@ -1,17 +1,19 @@
 # Efteranalyser
 
-En efteranalys är genomgången efter en incident: vad som hände, varför, vad det kostade dina användare och vad som ändras nu. I OneUptime skriver du den på själva incidenten. Den kan börja från din egen mall eller från ett utkast av OneUptime AI, och den kan publiceras på din statussida som incidentens avslutande uppdatering.
+En efteranalys är genomgången efter en incident: vad som hände, varför, vad det kostade dina användare och vad som ändras nu. I OneUptime skriver du den på själva incidenten. Den kan börja från din egen mall eller från ett utkast av OneUptime AI, och den kan publiceras på din statussida som incidentens avslutande uppdatering. Varje efteranalys har också en status, och **Incidenter → Efteranalyser** visar efteranalysen för varje incident, så att du ser vilka som fortfarande saknas.
 
 :::cards
 - [Skriv en efteranalys](#skriv-en-efteranalys): På incidentens sida Efteranalys, i fem steg.
 - [Börja från en mall eller ett AI-utkast](#börja-från-en-mall-eller-ett-ai-utkast): Din disposition, eller en som OneUptime AI fyller i.
 - [Publicera den på din statussida](#publicera-den-på-din-statussida): Visa den för kunderna och meddela prenumeranter en gång.
+- [Följ hur långt varje efteranalys har kommit](#följ-hur-långt-varje-efteranalys-har-kommit): Inte påbörjad, Utkast, Slutförd eller en egen status.
+- [Se alla efteranalyser](#se-alla-efteranalyser): Filtrera på ägare, allvarlighetsgrad och status för att hitta dem som fortfarande saknas.
 - [Efteranalyser för episoder](#efteranalyser-för-episoder): En genomgång för en grupp incidenter.
 :::
 
 ## Hur en efteranalys kommer till
 
-En efteranalys har tre delar, alla på incidenten: anteckningen, skriven i Markdown; dess bilagor, som skärmbilder och rapporter; och om den visas på din statussida. De finns på incidentens sida **Efteranalys**, under **Utredning** i dess sidomeny.
+En efteranalys har tre delar, alla på incidenten: anteckningen, skriven i Markdown; dess bilagor, som skärmbilder och rapporter; och om den visas på din statussida. De finns på incidentens sida **Efteranalys**, under **Utredning** i dess sidomeny. En efteranalys har också en status, som säger hur långt den har kommit, och ägare: incidentens ägare.
 
 ```mermaid title="Från en löst incident till en publicerad efteranalys"
 flowchart TB
@@ -30,11 +32,11 @@ flowchart TB
 :::steps
 ### Öppna efteranalysen
 
-Öppna incidenten och klicka på **Efteranalys** under **Utredning** i dess sidomeny. Kortet **Anteckning för efteranalys** visar anteckningen, bilagorna och om efteranalysen visas på statussidan.
+Öppna incidenten och klicka på **Efteranalys** under **Utredning** i dess sidomeny. Kortet **Efteranalys** visar efteranalysens **Status** och **Ägare**, anteckningen, bilagorna och om efteranalysen visas på statussidan.
 
-### Klicka på Redigera obduktionsanteckning
+### Klicka på Skriv efteranalys
 
-Dialogen **Redigera obduktionsanteckning** öppnas på sitt första steg, **Efteranalys**.
+Dialogen **Skriv efteranalys** öppnas på sitt första steg, **Efteranalys**. När efteranalysen är skriven heter kortets knapp **Redigera obduktionsanteckning**, och den öppnar samma steg.
 
 ### Skriv anteckningen och bifoga filer
 
@@ -46,7 +48,7 @@ Klicka på **Nästa**. På steget **Statussida** är **Publicera på statussidan
 
 ### Spara efteranalysen
 
-Klicka på **Spara ändringar**. Kortet visar anteckningen och bilagorna.
+Klicka på **Spara ändringar**. Kortet visar anteckningen och bilagorna. Efteranalysens status flyttas från **Inte påbörjad** till **Utkast**: se [Så flyttas en efteranalys](#så-flyttas-en-efteranalys).
 :::
 
 Varje ändring av anteckningen registreras i incidentens flöde och postas i incidentens Slack- eller Microsoft Teams-kanal om den har en. Så länge efteranalysen inte är publicerad får ingen prenumerant på statussidan höra om den.
@@ -55,13 +57,13 @@ Att skriva en efteranalys kräver rollen Project Owner, Project Admin, Project M
 
 ## Börja från en mall eller ett AI-utkast
 
-Två knappar på kortet fyller i anteckningen åt dig: **Generate with AI**, och **Tillämpa mall** så snart projektet har en mall för efteranalys. Båda öppnar samma redigerare som **Redigera obduktionsanteckning**, med anteckningen ifylld och resten av efteranalysen oförändrad. Ingenting sparas förrän du klickar på **Spara ändringar**, så läs anteckningen och rätta den först.
+Två knappar fyller i anteckningen åt dig. Så länge inget är skrivet står de bredvid **Skriv efteranalys**: **Börja från mall**, så snart projektet har en mall för efteranalys, och **Generate with AI**. När efteranalysen är skriven finns de i menyn **⋯** bredvid **Redigera obduktionsanteckning**, som **Tillämpa mall** och **Generate with AI**. Båda öppnar samma redigerare, med anteckningen ifylld och resten av efteranalysen oförändrad. Ingenting sparas förrän du klickar på **Spara ändringar**, så läs anteckningen och rätta den först.
 
 ### Tillämpa en mall
 
 **Tillämpa mall** visas så snart projektet har en mall för efteranalys. Du skapar dem under **Incidenter → Inställningar → Postmortem-mallar**: se [Postmortem-mallar](/docs/incidents/settings#mallar-för-efteranalys). På OneUptime Cloud kräver mallar Growth-planen.
 
-Klicka på **Tillämpa mall**, välj en under **Välj mall** i dialogen **Tillämpa mall för efteranalys** och klicka på **Tillämpa mall**. Har projektet bara en mall är den redan vald.
+Klicka på **Börja från mall**, eller på **Tillämpa mall** i menyn **⋯**, välj en under **Välj mall** i dialogen **Tillämpa mall för efteranalys** och klicka på **Tillämpa mall**. Har projektet bara en mall är den redan vald.
 
 ### Generera den med AI
 
@@ -123,11 +125,54 @@ Det som avgör om kunderna ser den och hör om den:
 
 **Efteranalys publicerad** är också den tidpunkt då efteranalysen räknas som publicerad för mätningen **Tid till efteranalys**: se [Färdiga mätningar](/docs/incidents/settings#färdiga-mätningar).
 
+## Följ hur långt varje efteranalys har kommit
+
+Varje incidents efteranalys har en av projektets efteranalysstatusar, som visas under **Status** högst upp på kortet **Efteranalys**. Ett nytt projekt har fyra. En efteranalys i **Inte påbörjad** eller **Utkast** saknas fortfarande; en i **Slutförd** eller **Behövs inte** gör det inte:
+
+| Status | Vad den betyder | Saknas fortfarande |
+| --- | --- | --- |
+| **Inte påbörjad** | Ingen har skrivit den här efteranalysen ännu. | Ja |
+| **Utkast** | Efteranalysen skrivs. | Ja |
+| **Slutförd** | Efteranalysen är skriven och klar. | Nej |
+| **Behövs inte** | Den här incidenten behöver ingen efteranalys. | Nej |
+
+### Så flyttas en efteranalys
+
+OneUptime flyttar en efteranalys av sig själv vid tre tillfällen:
+
+- Efteranalysen för en ny incident börjar i **Inte påbörjad**, eller i **Utkast** när incidenten deklareras med en anteckning, eller i **Slutförd** när den anteckningen publiceras samtidigt.
+- Den första anteckningen i en efteranalys i **Inte påbörjad** flyttar den till **Utkast**, oavsett om någon skriver den, tillämpar en mall eller OneUptime AI skriver ett utkast.
+- När den publiceras på statussidan flyttas den till **Slutförd**, om den inte redan är klar.
+
+Den flyttas aldrig tillbaka: att tömma anteckningen, eller ta bort efteranalysen från statussidan, låter statusen stå kvar där den är. En status som någon väljer i samma sparning gäller alltid.
+
+### Flytta den själv
+
+Klicka på statusen, på incidentens sida **Efteranalys** eller på dess rad i listan över efteranalyser, och välj en under **Flytta efteranalysen till**. Efteranalysen flyttas direkt. Att flytta en efteranalys kräver de roller som skriver en, och alla som kan läsa incidenten ser hur långt dess efteranalys har kommit.
+
+### Skapa egna statusar
+
+Har din process ett eget steg, till exempel en granskning, lägger du till en status för det. Öppna **Incidenter → Inställningar → Efteranalysstatusar**, klicka på **Skapa Efteranalysstatus** och ge den ett namn, till exempel **Under granskning**, en färg och en beskrivning. En ny status hamnar precis ovanför **Slutförd**; dra en status för att ändra var den står.
+
+Var en status står avgör vad den räknas som, vilket visas under **Räknas som**: ovanför **Utkast** som **Inte påbörjad**, från **Utkast** och nedåt som **Pågår**, från **Slutförd** och nedåt som **Klar**, och då saknas den inte längre. **Under granskning**, mellan dem, saknas fortfarande; **Behövs inte**, under **Slutförd**, gör det inte.
+
+**Inte påbörjad**, **Utkast** och **Slutförd** är inbyggda, eftersom OneUptime flyttar efteranalyser till dem: du kan byta namn och färg på dem, men inte ta bort eller arkivera dem, och de behåller sin ordning. Arkivera en status som du inte använder längre från menyn **⋯** på dess rad: ingen kan flytta en efteranalys dit igen, efteranalyserna i den stannar kvar tills någon flyttar dem, och listan filtrerar fortfarande på den. **Arkiverade efteranalysstatusar**, hopfällt under tabellen, visar dem, med **Avarkivera** för att hämta tillbaka en. Att skapa, redigera och ta bort statusar kräver rollen Project Owner, Project Admin eller Incident Admin, eller en anpassad roll med motsvarande behörighet för efteranalysstatusar.
+
+## Se alla efteranalyser
+
+**Incidenter → Efteranalyser** visar efteranalysen för varje incident i projektet, den nyaste först, med kolumnerna **Incident**, **Titel**, **Efteranalysstatus**, **Allvarlighetsgrad**, **Ägare** och **Deklarerad**. **Visa** på en rad öppnar incidentens sida **Efteranalys**.
+
+Ovanför listan räknar en ruta per status efteranalyserna i den. Klicka på en ruta för att bara visa dem, och klicka igen för att visa alla.
+
+Filtrera listan med chippen ovanför: **Ägare**, en person eller ett team; **Allvarlighetsgrad**; **Efteranalysstatus**; **Incidentstatus**; **Etiketter**; och **Berörda resurser**. För att se vilka efteranalyser ett team fortfarande är skyldigt för dina allvarligaste incidenter väljer du teamet under **Ägare**, allvarlighetsgraden under **Allvarlighetsgrad**, och **Inte påbörjad** och **Utkast** under **Efteranalysstatus**. Filtren står i sidans adress, så du kan spara listan som bokmärke eller dela den.
+
+För att ändra många samtidigt markerar du dem och öppnar **Massåtgärder**: **Ändra efteranalysstatus** flyttar alla till en status, till exempel **Behövs inte** för incidenter som inte behöver någon, och **Add Owner** och **Remove Owner** ändrar vem som äger dem.
+
 ## Efteranalyser för episoder
 
 En incidentepisod har också en sida **Efteranalys**, under **Utredning**: en genomgång för varje incident i episoden. Klicka på **Redigera obduktion** för att skriva den. **Tillämpa mall** och **Generate with AI** fungerar som på en incident, och AI läser episoden och dess medlemsincidenter.
 
-En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident Episode.
+En episods efteranalys är bara anteckningen: den har inga bilagor, och ingen statussida visar den. OneUptime AI skriver inget utkast av sig själv när en episod löses. Att generera en kräver rollen Project Owner eller Project Admin, eller en anpassad roll med behörigheten Edit Incident Episode. Den har inte heller någon status, och listan över efteranalyser utelämnar den.
 
 Varningar och schemalagda underhållshändelser har ingen efteranalys.
 
@@ -141,8 +186,9 @@ En efteranalys är en uppsättning fält på incidenten, som läses och skrivs v
 | `showPostmortemOnStatusPage` | Om efteranalysen är publicerad på dina statussidor. Börjar som `false`. |
 | `notifySubscribersOnPostmortemPublished` | Om prenumeranter får besked när den publiceras. Börjar som `true`. |
 | `postmortemPostedAt` | Tiden som statussidan visar bredvid den. |
+| `postmortemStatusId` | Efteranalysens status: en av projektets statusar, under `/api/incident-postmortem-status`. |
 
-Att skriva `showPostmortemOnStatusPage` som `true` över en skriven `postmortemNote` publicerar efteranalysen, precis som dialogen gör.
+Att skriva `showPostmortemOnStatusPage` som `true` över en skriven `postmortemNote` publicerar efteranalysen, precis som dialogen gör. Det flyttar också efteranalysen till **Slutförd**, om inte samma skrivning sätter `postmortemStatusId`.
 
 ## Felsökning
 
@@ -164,6 +210,10 @@ Kontrollera tre saker: **Publicera på statussidan** är påslaget, anteckningen
 
 :::details Inget AI-utkast dök upp när incidenten löstes
 Incidenten hade redan en anteckning, efteranalysen var redan publicerad, ingen postmortem-regel matchade den, eller så är **Skriv ett utkast till efteranalys när en incident är löst** avstängt. AI måste vara påslaget för projektet, och projektet får inte ha nått sina dagliga AI-gränser. När incidentens samtal har en transkription på väg kommer utkastet först när OneUptime AI har läst den.
+:::
+
+:::details Efteranalysens status flyttades inte när anteckningen skrevs
+Bara en efteranalys i **Inte påbörjad**, eller i en egen status ovanför **Utkast**, flyttas av sig själv, vid sin första anteckning. En som redan pågår eller är klar stannar där den är, och det gör även en status som någon valde i samma sparning. Flytta den själv via dess status: se [Flytta den själv](#flytta-den-själv).
 :::
 
 ## Nästa steg

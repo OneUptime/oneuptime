@@ -118,7 +118,10 @@ export default class SlackActionAuthorization {
 
   /*
    * A check of the Slack user behind a request; a refusal of it is told to
-   * them where they pressed, and null comes back.
+   * them where they pressed, and null comes back. A refusal for the plan -
+   * a press of something the project's plan does not include - is told
+   * too, as "Could not <action>: <the plan it needs>": it used to escape
+   * the press unanswered.
    */
   private static async refuseInPlace<T>(data: {
     requester: SlackActionRequester;
@@ -136,7 +139,10 @@ export default class SlackActionAuthorization {
 
       return await data.run(requester.userId, requester.projectId);
     } catch (err) {
-      if (!(err instanceof NotAuthorizedException)) {
+      if (
+        !(err instanceof NotAuthorizedException) &&
+        !(err instanceof PaymentRequiredException)
+      ) {
         throw err;
       }
 
@@ -147,7 +153,10 @@ export default class SlackActionAuthorization {
 
       await this.sendRefusal({
         requester: requester,
-        message: err.message,
+        message:
+          err instanceof PaymentRequiredException
+            ? `Could not ${data.action}: ${err.message}`
+            : err.message,
       });
 
       return null;

@@ -27,11 +27,13 @@ import { PROJECT_ID } from "./SideMenuHarness";
  * replaced by a marker that records its props, and pins what reading the
  * route table cannot:
  *
- *  - the three Runner pages render inside the Runbooks layout (so under the
+ *  - the two Runner pages render inside the Runbooks layout (so under the
  *    Runbooks side menu and breadcrumbs), each with its own pageRoute;
  *  - "runners" and "runner-credentials" are never read as a runbook id — they
  *    sit next to `/runbooks/:id`, and losing that race would open the runbook
- *    view layout for a runbook called "runners";
+ *    view layout for a runbook called "runners". "runner-credentials" was
+ *    the third Runner page (Runner Credentials, later AI Access): it went
+ *    with runbook credentials, and its address forwards to Runners;
  *  - nothing that was already in the group moved while they were added.
  */
 
@@ -50,7 +52,6 @@ const PAGE_MODULES: Record<string, string> = {
   Variables: "GlobalVariables",
   "Runners/Runners": "Runners",
   "Runners/RunnerView": "RunnerView",
-  "Runners/RunnerCredentials": "RunnerCredentials",
   "Settings/OwnerRules": "OwnerRules",
   "Settings/LabelRules": "LabelRules",
   "View/Index": "Overview",
@@ -152,11 +153,6 @@ describe("the Runner pages are routed inside Runbooks", () => {
   test.each([
     [`${BASE}/runners`, "Runners", PageMap.RUNBOOKS_RUNNERS],
     [`${BASE}/runners/${ID}`, "RunnerView", PageMap.RUNBOOKS_RUNNER_VIEW],
-    [
-      `${BASE}/runner-credentials`,
-      "RunnerCredentials",
-      PageMap.RUNBOOKS_RUNNER_CREDENTIALS,
-    ],
   ])(
     "%s renders %s under the Runbooks layout",
     (url: string, page: string, key: string) => {
@@ -170,11 +166,26 @@ describe("the Runner pages are routed inside Runbooks", () => {
     },
   );
 
+  /*
+   * AI Access - Runner Credentials before it - went with runbook
+   * credentials. Its address lands on Runners, the section it lived in, in
+   * the Runbooks layout.
+   */
+  test("the AI Access address forwards to Runners, in the Runbooks layout", () => {
+    visit(`${BASE}/runner-credentials`);
+
+    expect(screen.getByTestId("product-layout")).toBeInTheDocument();
+    expect(screen.getAllByTestId("page")).toHaveLength(1);
+    expect(screen.getByTestId("page")).toHaveTextContent("Runners");
+    expect(routedProps("Runners")["pageRoute"]).toBe(
+      RouteMap[PageMap.RUNBOOKS_RUNNERS],
+    );
+  });
+
   test("the page shell's props reach each Runner page", () => {
     for (const [url, page] of [
       [`${BASE}/runners`, "Runners"],
       [`${BASE}/runners/${ID}`, "RunnerView"],
-      [`${BASE}/runner-credentials`, "RunnerCredentials"],
     ] as Array<[string, string]>) {
       visit(url);
       expect(routedProps(page)["hasPaymentMethod"]).toBe(true);
@@ -233,7 +244,7 @@ describe("the Runner pages are routed inside Runbooks", () => {
   ])("%s is not a page", (url: string) => {
     visit(url);
 
-    for (const page of ["Runners", "RunnerView", "RunnerCredentials"]) {
+    for (const page of ["Runners", "RunnerView"]) {
       expect(routedPagesMock).not.toHaveBeenCalledWith(page, expect.anything());
     }
   });
@@ -363,24 +374,20 @@ describe("the rest of the Runbooks route group is where it was", () => {
 });
 
 describe("the route table puts Runners under Runbooks and nowhere else", () => {
-  test("the three Runner pages have Runbooks URLs", () => {
+  test("the two Runner pages have Runbooks URLs, and AI Access has no page key", () => {
     expect(RouteMap[PageMap.RUNBOOKS_RUNNERS]!.toString()).toBe(
       "/dashboard/:projectId/runbooks/runners",
     );
     expect(RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW]!.toString()).toBe(
       "/dashboard/:projectId/runbooks/runners/:id",
     );
-    expect(RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]!.toString()).toBe(
-      "/dashboard/:projectId/runbooks/runner-credentials",
-    );
+    expect(Object.keys(PageMap)).not.toContain("RUNBOOKS_RUNNER_CREDENTIALS");
   });
 
   test("the Runbooks path table carries them", () => {
     expect(RunbookRoutePath[PageMap.RUNBOOKS_RUNNERS]).toBe("runners");
     expect(RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_VIEW]).toBe("runners/:id");
-    expect(RunbookRoutePath[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]).toBe(
-      "runner-credentials",
-    );
+    expect(Object.values(RunbookRoutePath)).not.toContain("runner-credentials");
   });
 
   test("no page key, and no Settings path, still names a Runner page", () => {
@@ -410,7 +417,6 @@ describe("the route table puts Runners under Runbooks and nowhere else", () => {
       });
 
     expect(runnerRoutes.sort()).toEqual([
-      "/dashboard/:projectId/runbooks/runner-credentials",
       "/dashboard/:projectId/runbooks/runners",
       "/dashboard/:projectId/runbooks/runners/:id",
     ]);

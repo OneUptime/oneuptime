@@ -135,6 +135,12 @@ Um evento genérico é lido por nomes de campo comuns:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Uma palavra de gravidade vira um nível OCSF: `info` é lido como Informational, `warning` como Low, `error` como Medium, `alert` como Critical e `emergency` como Fatal.
 
@@ -194,6 +200,7 @@ Cada evento é salvo com campos tipados e o payload de origem:
 | Gravidade | `severityName`, um de Unknown, Informational, Low, Medium, High, Critical, Fatal ou Other, e `severityId` |
 | Quem fez | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | O que foi afetado | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| O processo | `processName`, `processPath` e `processCommandLine`: na inicialização de um processo, o processo que iniciou; nos demais casos, o processo que agiu. `parentProcessName`, `parentProcessPath` e `parentProcessCommandLine`: o processo que o iniciou |
 | Origem | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Conteúdo | `message`, `mitreTactics`, `mitreTechniques` e `observables`: cada usuário, host, endereço IP, domínio e hash extraído do evento |
 | Atributos | O payload de origem inteiro, achatado em chaves com pontos |
@@ -218,11 +225,11 @@ A barra de pesquisa fala a mesma linguagem dos outros exploradores de telemetria
 | `@<attribute>:*` | O atributo está presente | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | O atributo contém o texto | `@finding_info.title:~ransom` |
 
-Um campo é um nome curto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) ou o nome próprio do campo, como `severityName` ou `principalHost`. Qualquer outro nome é lido como atributo de origem. `observable:<value>` encontra cada evento que menciona um valor, de qualquer lado da atividade em que ele estivesse.
+Um campo é um nome curto (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) ou o nome próprio do campo, como `severityName` ou `principalHost`. Qualquer outro nome é lido como atributo de origem. `observable:<value>` encontra cada evento que menciona um valor, de qualquer lado da atividade em que ele estivesse.
 
 ### Facetas
 
-A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Classe de evento**, **Category**, **Atividade**, **Status**, **Fornecedor**, **Produto**, **Detection Rule**, **Usuário de origem** e **Host de origem**. Clique em um valor para manter só os eventos dele, ou no sinal de menos ao lado para excluí-los. Clique de novo para desfazer. O gráfico e cada contagem descrevem exatamente os eventos da lista.
+A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Classe de evento**, **Category**, **Atividade**, **Status**, **Fornecedor**, **Produto**, **Detection Rule**, **Usuário de origem**, **Host de origem**, **Processo** e **Processo pai**. Clique em um valor para manter só os eventos dele, ou no sinal de menos ao lado para excluí-los. Clique de novo para desfazer. O gráfico e cada contagem descrevem exatamente os eventos da lista.
 
 ### Correlacionar
 
@@ -278,9 +285,67 @@ O OneUptime roda o núcleo booleano do Sigma:
 - As condições combinam seleções com `and`, `or`, `not` e parênteses, ou com `1 of selection_*`, `all of selection_*`, `any of them` e `all of them`.
 - Modificadores de campo: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` e `windash`. O texto é comparado sem diferenciar maiúsculas, a menos que você acrescente `cased`.
 - Um campo é um campo tipado (`principalUser`), uma grafia Sigma comum de um deles (`CommandLine`, `src_ip`, `Hostname`) ou qualquer chave de atributo, escrita como está no evento (`threat.matched`).
+- `Image` e `CommandLine` leem o processo de que o evento trata, o que foi iniciado na inicialização de um processo (`processPath`, `processCommandLine`), e `ParentImage` e `ParentCommandLine` o processo que o iniciou (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` é o processo que agiu, que em uma inicialização é o processo pai.
 - `level` define a gravidade: `informational`, `low`, `medium`, `high` ou `critical`, e `medium` quando falta. Os IDs ATT&CK em `tags` (`attack.t1110`, `attack.ta0006`) preenchem os campos MITRE do achado.
 
-Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use **Group By Field** e **Match Count Threshold**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
+Agregações como `| count() by principalIp > 5` são recusadas ao salvar: use uma [regra de correlação](#regras-de-correlação), ou **Group By Field** e **Match Count Threshold**. `logsource` é apenas informativo e não restringe nada: coloque esse filtro em uma seleção, como `className: Authentication`. Um `timeframe` é ignorado, porque o intervalo da regra define a janela dela.
+
+### Regras de correlação
+
+Uma [correlação do Sigma](https://sigmahq.io/docs/meta/correlations.html) dispara com vários eventos juntos, e não com um só. Cole-a em **Sigma Rule (YAML)** com as regras que ela lê, como documentos YAML separados por `---`, ou cite regras que o projeto já tem pelo `name` ou pelo `id` do Sigma. A **Rule Library** tem algumas prontas, como logins com falha seguidos de um bem-sucedido.
+
+| Tipo | Dispara quando | Exibido como |
+| --- | --- | --- |
+| `event_count` | Um grupo atinge um número de eventos dentro do `timespan` | Contagem de eventos |
+| `value_count` | Um grupo mostra um número de valores diferentes de um campo dentro do `timespan` | Valores distintos |
+| `temporal` | Todas as regras correspondem para o mesmo grupo dentro do `timespan`, em qualquer ordem | Eventos juntos |
+| `temporal_ordered` | As regras correspondem na ordem delas para o mesmo grupo dentro do `timespan` | Sequence |
+| `new_value` | Um grupo mostra um valor de um campo que não mostrou dentro do `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- Um grupo é o valor dos campos de `group-by`, como um endereço. As contagens são móveis: uma rajada que duas execuções dividem ainda é contada inteira dentro do seu `timespan`, que é de no máximo 24 horas.
+- `new_value` é um tipo próprio do OneUptime, já que o Sigma não tem uma correlação de "visto pela primeira vez": ele compara com até 30 dias de histórico. `value_sum`, `value_avg`, `value_percentile` e `value_median` são recusados ao salvar.
+- A coluna **Tipo** de **Detection Rules** nomeia o tipo de cada regra, e o formulário diz em uma frase o que a regra procura.
 
 ### Configurações de avaliação
 
@@ -379,7 +444,7 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Último erro** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

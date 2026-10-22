@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import DockerSwarmLayout from "../Pages/DockerSwarm/Layout";
 import DockerSwarmClusterViewLayout from "../Pages/DockerSwarm/View/Layout";
+import DockerSwarmClusterTopology from "../Pages/DockerSwarm/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, DockerSwarmRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -159,6 +160,20 @@ const DockerSwarmRoutes: FunctionComponent<ComponentProps> = (
             <DockerSwarmClusterOverview
               {...props}
               pageRoute={RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY,
+          )}
+          element={
+            <DockerSwarmClusterTopology
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DOCKER_SWARM_CLUSTER_VIEW_TOPOLOGY] as Route
+              }
             />
           }
         />

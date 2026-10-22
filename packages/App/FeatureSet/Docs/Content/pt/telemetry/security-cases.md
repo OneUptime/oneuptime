@@ -105,6 +105,8 @@ Para tratar vários casos de uma vez, selecione-os na fila e use **Assign to Me*
 
 Os vereditos são contados na visão geral. Uma regra cujos casos continuam sendo fechados como False Positive é uma regra a ajustar.
 
+Um caso aberto a partir de alertas do Google SecOps também os fecha no Google SecOps, com o veredito e a nota de fechamento, quando a conexão dele tem **Fechar os alertas quando o caso deles for fechado** ativado: veja [Google SecOps](/docs/integrations/google-secops#fechar-os-alertas-quando-o-caso-deles-for-fechado).
+
 ### Declarar um incidente
 
 **Declarar incidente** abre um incidente do OneUptime para o caso, com a severidade que você escolher, e liga os dois nos dois sentidos: a descrição do incidente cita o caso, e o cabeçalho do caso tem um link para o incidente. A partir daí, o plantão, as páginas de status e o postmortem assumem. É preciso um papel que possa tanto tratar casos quanto criar incidentes.

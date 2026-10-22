@@ -21,6 +21,18 @@
  *   /dashboard/<project>/network-devices/settings/roles
  *                                                Device Roles, a list put in
  *                                                order by dragging its rows
+ *   /dashboard/<project>/runbooks               Runbooks: the list of the
+ *                                                maintainer's screenshot of
+ *                                                the gap under a card's
+ *                                                title, in the real Runbooks
+ *                                                layout (its side menu and
+ *                                                breadcrumbs), full width as
+ *                                                the Dashboard draws it
+ *   /dashboard/<project>/card-headers           every card header shape
+ *                                                (CardHeaders.js): a table's
+ *                                                toolbar header, the default
+ *                                                header and the stacked one
+ *                                                of an overview's side column
  *   /dashboard/<project>/tables                 the gallery: every kind of
  *                                                column (?table=kinds), a
  *                                                table with many columns
@@ -70,6 +82,9 @@ import MonitorsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Mo
 import StatusPagesPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/StatusPages";
 import TeamsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Teams/Index";
 import DeviceRolesPage from "../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Settings/DeviceRoles";
+import RunbooksLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Layout";
+import RunbooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runbooks";
+import CardHeadersPage from "./CardHeaders";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -96,6 +111,7 @@ import UserModel from "Common/Models/DatabaseModels/User";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -763,6 +779,41 @@ const DEVICE_ROLES = isEmpty
       deviceRole(5, "Printer", "printer", "square", false, false),
     ];
 
+// --------------------------------------------------------------- runbooks
+
+function runbook(index, name, description, isEnabled) {
+  const record = withProject(new Runbook());
+  record._id = uuid("90000000", index);
+  record.name = name;
+  record.description = description;
+  record.isEnabled = isEnabled;
+  record.labels = [];
+  return record;
+}
+
+// The one runbook of the maintainer's screenshot, and more with data=rich.
+const RUNBOOKS = isEmpty
+  ? []
+  : [
+      runbook(1, "Runbook", "Runbook", true),
+      ...(isRich
+        ? [
+            runbook(
+              2,
+              "Database failover",
+              "Promote the replica and point the API at it.",
+              true,
+            ),
+            runbook(
+              3,
+              "Clear the CDN cache",
+              "Purge every edge after a bad deploy.",
+              false,
+            ),
+          ]
+        : []),
+    ];
+
 // ------------------------------------------------------------ the records
 
 const RECORDS = {
@@ -791,6 +842,9 @@ const RECORDS = {
   Label: LABELS,
   User: PEOPLE,
   NetworkDeviceRole: DEVICE_ROLES,
+  Runbook: RUNBOOKS,
+  RunbookOwnerUser: [],
+  RunbookOwnerTeam: [],
 };
 
 /*
@@ -1383,6 +1437,42 @@ function Shell(props) {
   );
 }
 
+/*
+ * A page in its product's real layout - the Page with its side menu and
+ * breadcrumbs - drawn across the window as the Dashboard draws it, not in
+ * the gallery's narrower column: the card is as wide as it is in the
+ * product.
+ */
+function LayoutShell(props) {
+  const navigate = useNavigate();
+  Navigation.setNavigateHook((to, options) => {
+    window.__fixture.navigations.push(to.toString());
+    return navigate(to, options);
+  });
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  const Layout = props.layout;
+  return (
+    <Layout
+      pageRoute={Navigation.getCurrentRoute()}
+      currentProject={null}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
+// One of the layout's pages, where its <Outlet /> is.
+function InLayout(props) {
+  const Page = props.page;
+  return (
+    <Page
+      pageRoute={Navigation.getCurrentRoute()}
+      currentProject={null}
+      hasPaymentMethod={true}
+    />
+  );
+}
+
 function GalleryPage() {
   const Table = GALLERY[galleryTable] || GalleryKinds;
   return <Table />;
@@ -1437,6 +1527,20 @@ createRoot(document.getElementById("root")).render(
       <PageRoute
         path={`${BASE}/tables`}
         element={<Shell page={GalleryPage} trail="Tables" />}
+      />
+      <PageRoute
+        path={`${BASE}/runbooks`}
+        element={<LayoutShell layout={RunbooksLayout} />}
+      >
+        <PageRoute index element={<InLayout page={RunbooksPage} />} />
+      </PageRoute>
+      <PageRoute
+        path={`${BASE}/runbooks/:modelId`}
+        element={<Shell page={() => <p>Runbook</p>} trail="Runbook" />}
+      />
+      <PageRoute
+        path={`${BASE}/card-headers`}
+        element={<Shell page={CardHeadersPage} trail="Card headers" />}
       />
       <PageRoute
         path="*"

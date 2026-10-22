@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentEpisodeElement from "./IncidentEpisode";
 import { Black } from "Common/Types/BrandColors";
@@ -105,6 +106,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 color: true,
                 order: true,
+                isArchived: true,
                 isResolvedState: true,
                 isAcknowledgedState: true,
                 isCreatedState: true,
@@ -539,7 +541,8 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
           description="Select the state to change episodes to. Episodes already at or past the selected state will be skipped. Member incidents will also be updated."
           stateFieldKey="incidentStateId"
           stateOptions={DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: incidentStates,
+            // Archived states are never offered as one to move to.
+            array: ArchivedValuePicker.getLiveValues(incidentStates),
             labelField: "name",
             valueField: "_id",
           })}

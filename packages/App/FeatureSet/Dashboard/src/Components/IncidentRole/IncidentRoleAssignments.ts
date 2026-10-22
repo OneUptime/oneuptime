@@ -51,6 +51,11 @@ export interface IncidentRoleChoice {
    * listed first. Declaring an incident, you take one you leave empty.
    */
   isPrimaryRole?: boolean | undefined;
+  /*
+   * An archived role (Common/Utils/ArchivableValues): nobody is given it
+   * again, so the picker shows it only where someone already holds it.
+   */
+  isArchived?: boolean | undefined;
 }
 
 /*
@@ -65,6 +70,7 @@ export const INCIDENT_ROLE_CHOICE_SELECT: Select<IncidentRole> = {
   roleIcon: true,
   canAssignMultipleUsers: true,
   isPrimaryRole: true,
+  isArchived: true,
 };
 
 export const toIncidentRoleChoice: (
@@ -85,7 +91,38 @@ export const toIncidentRoleChoice: (
     choice.icon = role.roleIcon;
   }
 
+  if (role.isArchived) {
+    choice.isArchived = true;
+  }
+
   return choice;
+};
+
+/*
+ * The roles a picker draws: every role not archived, and an archived one
+ * only while someone holds it in `assignments` - so a form keeps showing,
+ * and saving, the people who hold it, and nobody new is given it.
+ */
+export const getPickableIncidentRoleChoices: (data: {
+  roles: Array<IncidentRoleChoice>;
+  assignments: Array<RoleAssignment>;
+}) => Array<IncidentRoleChoice> = (data: {
+  roles: Array<IncidentRoleChoice>;
+  assignments: Array<RoleAssignment>;
+}): Array<IncidentRoleChoice> => {
+  const heldRoleIds: Set<string> = new Set<string>(
+    data.assignments
+      .filter((assignment: RoleAssignment): boolean => {
+        return assignment.userIds.length > 0;
+      })
+      .map((assignment: RoleAssignment): string => {
+        return assignment.roleId.toLowerCase();
+      }),
+  );
+
+  return data.roles.filter((role: IncidentRoleChoice): boolean => {
+    return !role.isArchived || heldRoleIds.has(role.id.toLowerCase());
+  });
 };
 
 // Primary roles first, then by name - whatever order they arrive in.

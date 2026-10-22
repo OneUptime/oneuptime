@@ -152,14 +152,15 @@ export default class AIAgentTaskAPI {
            * The queued code-fix runs this agent may take, by the same rule
            * as the claim: a project-scoped Runner autoscales on its OWN
            * queue depth - the runs of the repositories that pick it - never
-           * on other tenants' or another Runner's. Every recipe is counted
-           * unless the request names the ones it has handlers for, as the
-           * count always did.
+           * on other tenants' or another Runner's. Every recipe a Runner
+           * may be handed is counted unless the request names the ones it
+           * has handlers for, as the count always did; the recipes the
+           * server runs itself (a production review) are never a Runner's.
            */
           const claimableTaskTypes: Array<CodeFixTaskType> =
             CodeFixTaskTypeHelper.readSupportedTaskTypes(
               (req.body as JSONObject | undefined)?.["supportedTaskTypes"],
-            ) || Object.values(CodeFixTaskType);
+            ) || CodeFixTaskTypeHelper.getRunnerTaskTypes();
 
           const count: number = await AIRunService.countClaimableCodeFixRuns({
             worker: CodeFixAgentAuth.getCodeWorker(aiAgent),

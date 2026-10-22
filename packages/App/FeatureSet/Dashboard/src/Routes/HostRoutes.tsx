@@ -1,6 +1,7 @@
 import ComponentProps from "../Pages/PageComponentProps";
 import HostLayout from "../Pages/Host/Layout";
 import HostViewLayout from "../Pages/Host/View/Layout";
+import HostTopology from "../Pages/Host/View/Topology";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, HostRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -153,6 +154,16 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostOverview
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_TOPOLOGY)}
+          element={
+            <HostTopology
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_TOPOLOGY] as Route}
             />
           }
         />

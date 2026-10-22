@@ -73,10 +73,16 @@ export interface JsonReferenceColumn {
 // A reference and the column it was written to.
 type ColumnReference = ProjectScopedReference & { column: string };
 
-// Relations the server stamps itself, never a reference the caller picks.
+/*
+ * Relations the server stamps itself, never a reference the caller picks.
+ * Who archived a record is stamped from the write that turns its archive
+ * switch (ATTRIBUTED_SWITCHES), and a write's own value is taken out of it
+ * before any hook reads it (UserAttribution).
+ */
 const SERVER_STAMPED_ID_COLUMNS: Array<string> = [
   "createdByUserId",
   "deletedByUserId",
+  "archivedByUserId",
 ];
 
 // Postgres renders a uuid lower-cased, whatever case the payload used.

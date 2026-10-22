@@ -13,8 +13,6 @@ import {
   AiAgentCardCommand,
   AiAgentGapAction,
   AiAgentStatusPill,
-  canSwitchToAiAgent,
-  describeAiAgentWriteAccess,
   AiAgentMeta,
   getAiAgentAttention,
   getAiAgentCardCommand,
@@ -32,7 +30,6 @@ import {
   getAutomaticInvestigationTurnOnChanges,
   getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
-  isAdvancedRunnerTarget,
   parseStatus,
   shouldShowWriteAccessCommands,
 } from "../../Utils/KubernetesAiAgentStatus";
@@ -56,31 +53,21 @@ import {
   KubernetesAiAccessOfferedFields,
   KubernetesAiAccessSavedSettings,
   KubernetesAiAccessSettingsFormValues,
-  KubernetesAiCredentialDirectoryEntry,
-  KubernetesAiCredentialRunner,
-  KubernetesAiRunnerDirectoryEntry,
   INVESTIGATION_ON_SENTENCE,
   KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
   REMEDIATION_MODE_OPTION_DESCRIPTIONS,
   REMEDIATION_MODE_SHORT_NAMES,
   REMEDIATION_MODE_SUMMARIES,
-  buildKubernetesAiCredentialDirectory,
-  buildKubernetesAiCredentialOptions,
-  buildKubernetesAiRunnerDirectory,
-  buildKubernetesAiRunnerOptions,
   getAllowlistInEffect,
   getEveryModeProtections,
   getKubectlAllowlistRemovalOnlyError,
   getKubernetesAiAccessAdminPermissionTitles,
-  getKubernetesAiAccessBindingError,
-  getKubernetesAiAccessChosenRunnerId,
   getKubernetesAiAccessConfirmation,
   getKubernetesAiAccessLooseningChanges,
   getKubernetesAiAccessOfferedFields,
   getKubernetesAiAccessSettingsChanges,
   getKubernetesAiAccessSettingsInitialValues,
   getKubernetesAiAccessSubmittedFields,
-  getKubernetesAiCredentialFieldDescription,
   isAllowlistFieldShown,
   isRemediationModeOpenToEveryEditor,
   readKubernetesAiAccessSavedSettings,
@@ -97,14 +84,11 @@ import {
   KubernetesAiAccessEditCapabilities,
   canChangeProjectAiSettings,
   canConfigureUnattendedKubernetesAiAccess,
-  canPickKubernetesRunner,
   canResetKubernetesAiAgent,
   getAccessTestPermissionGate,
   getAccessTestPermissionMessage,
   getAccessTestPermissionRequirement,
   getKubernetesAiAccessEditCapabilities,
-  getKubernetesCredentialPermissionTitles,
-  getKubernetesRunnerPermissionTitles,
 } from "../../Utils/KubernetesAiAccessPermissions";
 import {
   AI_ACCESS_FIXES_ROW_TITLE,
@@ -152,9 +136,6 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ExceptionCode from "Common/Types/Exception/ExceptionCode";
 import Color from "Common/Types/Color";
 import { Gray500, Green500, Red500 } from "Common/Types/BrandColors";
@@ -166,12 +147,8 @@ import {
   KubernetesClusterAiAccessStatus,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Project from "Common/Models/DatabaseModels/Project";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
-import Runner from "Common/Models/DatabaseModels/Runner";
-import RunnerChoicesLoader from "../../../../Components/Runner/RunnerChoices";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -190,16 +167,10 @@ import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicForm, {
   BasicFormHandle,
 } from "Common/UI/Components/Forms/BasicForm";
-import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import {
-  SteppedModalFooter,
-  getSteppedModalFooter,
-} from "Common/UI/Components/Forms/Utils/SteppedFormFooter";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -228,9 +199,7 @@ import React, {
 import { Navigate, useParams } from "react-router-dom";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
-  ComposedValue,
   composedValue,
-  translatableTerm,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -241,8 +210,7 @@ import {
  *
  *  A. "Kubernetes AI agent": the connection, with the one command that
  *     fixes a missing or offline agent. Its status sits in the header with
- *     one ⋯ beside it for the connection test and the admin actions (move
- *     an advanced Runner binding over to the agent; reset the agent) -
+ *     one ⋯ beside it for the connection test and resetting the agent -
  *     Components/AiAccess/AiAgentActions.ts.
  *  B. "Needs attention": the server's gaps as ONE item, only when there
  *     are any — a headline saying what AI cannot do here, then one short
@@ -271,14 +239,7 @@ interface AccessTestResult {
 }
 
 // The confirmations the page asks for before an action.
-type PendingConfirmation = "reset" | "switch" | "automatic_investigation";
-
-// What an unbind field's sentence calls a binding whose name is unknown.
-const UNNAMED_BOUND_RUNNER: string = translationKey("a Runner");
-
-const UNNAMED_BOUND_CREDENTIAL: string = translationKey(
-  "a Kubernetes credential",
-);
+type PendingConfirmation = "reset" | "automatic_investigation";
 
 const PILL_COLORS: Record<AiAgentStatusPill["tone"], Color> = {
   success: Green500,
@@ -356,7 +317,7 @@ function AdminPermissionNote(): ReactElement {
     <AiAccessPermissionNote
       canText="You can turn investigation on or off, lower fixes and remove allowlist patterns."
       cannotText={translator.translateTemplate(
-        "Turning fixes on or up, adding allowlist patterns, or choosing a Runner needs {{permissions}}.",
+        "Turning fixes on or up, or adding allowlist patterns, needs {{permissions}}.",
         {
           permissions: composedValue((sentence: Translator): string => {
             return formatNameList(
@@ -375,10 +336,6 @@ function AdminPermissionNote(): ReactElement {
 interface SettingsModalProps {
   clusterId: ObjectID;
   capabilities: KubernetesAiAccessEditCapabilities;
-  // The cluster is bound to a Runner outside the chart (see isAdvancedRunnerTarget).
-  isAdvancedBinding: boolean;
-  // The cluster has a Kubernetes AI agent row (status.aiAgent).
-  hasAiAgent: boolean;
   /*
    * The cluster's Kubernetes AI agent sets investigation and fixes: the
    * form edits the kubectl allowlist alone (the server refuses the rest).
@@ -395,26 +352,14 @@ interface SettingsModalProps {
  * refuses unless they hold the admin set. This form sends only what
  * changed, offers what the user may do (every cluster editor may tighten;
  * only the admin set may loosen), validates the allowlist as patterns, and
- * asks before a save that lets riskier changes run unattended. The Runner
- * and credential pickers exist only for a cluster already bound to a
- * Runner outside the chart.
+ * asks before a save that lets riskier changes run unattended.
  */
 const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   props: SettingsModalProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const [saved, setSaved] = useState<KubernetesAiAccessSavedSettings | null>(
     null,
   );
-  const [runners, setRunners] = useState<Array<Runner>>([]);
-  const [credentials, setCredentials] = useState<Array<RunbookCredential>>([]);
-  const [isRunnerPickerAvailable, setIsRunnerPickerAvailable] =
-    useState<boolean>(false);
-  const [isCredentialPickerAvailable, setIsCredentialPickerAvailable] =
-    useState<boolean>(false);
-  // The Runner the form has chosen; the credential options follow it.
-  const [chosenRunnerId, setChosenRunnerId] = useState<string | null>(null);
-  const [pickerErrors, setPickerErrors] = useState<Array<string>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -425,20 +370,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   } | null>(null);
   const formRef: MutableRefObject<any> = useRef<any>(null);
 
-  /*
-   * Whether the form is on its last step: Next is offered until it is, and
-   * Save only there (SteppedFormFooter).
-   */
-  const [isOnLastFormStep, setIsOnLastFormStep] = useState<boolean>(true);
   // Blocks a second save while one is in flight (double click, Enter + click).
   const isSavingRef: MutableRefObject<boolean> = useRef<boolean>(false);
 
   const canConfigureUnattended: boolean =
     props.capabilities.canConfigureUnattended;
-  const canPickRunner: boolean =
-    props.isAdvancedBinding && props.capabilities.canPickRunner;
-  const canPickCredential: boolean =
-    props.isAdvancedBinding && props.capabilities.canPickCredential;
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -456,11 +392,6 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               isAiInvestigationEnabled: true,
               aiRemediationMode: true,
               aiKubectlCommandAllowlist: true,
-              aiAccessRunnerId: true,
-              aiAccessCredentialId: true,
-              // Names only: the ids come from the FK columns above.
-              aiAccessRunner: { name: true },
-              aiAccessCredential: { name: true },
             },
           });
 
@@ -482,87 +413,11 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         return;
       }
 
-      /*
-       * Each picker loads on its own: one list failing must not take the
-       * other picker — or the rest of the form — down with it. A picker
-       * whose list failed is left out, which leaves its binding as it is.
-       */
-      const errors: Array<string> = [];
-
-      const loadRunners: () => Promise<Array<Runner> | null> =
-        async (): Promise<Array<Runner> | null> => {
-          if (!canPickRunner) {
-            return null;
-          }
-          try {
-            /*
-             * The one loader of Runners (RunnerChoicesLoader): choosing one
-             * of them is what lets OneUptime AI run kubectl on it.
-             */
-            return await RunnerChoicesLoader.loadForKubernetesCluster(
-              ProjectUtil.getCurrentProjectId()!,
-              LIMIT_PER_PROJECT,
-            );
-          } catch (err) {
-            errors.push(
-              translator.translateTemplate(
-                "The Runner list could not be loaded, so the Runner binding is left as it is: {{error}}",
-                { error: API.getFriendlyMessage(err) },
-              ),
-            );
-            return null;
-          }
-        };
-
-      const loadCredentials: () => Promise<Array<RunbookCredential> | null> =
-        async (): Promise<Array<RunbookCredential> | null> => {
-          if (!canPickCredential) {
-            return null;
-          }
-          try {
-            const result: ListResult<RunbookCredential> =
-              await ModelAPI.getList<RunbookCredential>({
-                modelType: RunbookCredential,
-                query: { credentialType: RunbookCredentialType.Kubernetes },
-                limit: LIMIT_PER_PROJECT,
-                skip: 0,
-                select: {
-                  _id: true,
-                  name: true,
-                  credentialType: true,
-                  // Which Runners may use each one: the picker follows the Runner.
-                  runners: { _id: true },
-                },
-                sort: { name: SortOrder.Ascending },
-              });
-            return result.data || [];
-          } catch (err) {
-            errors.push(
-              translator.translateTemplate(
-                "The credential list could not be loaded, so the credential binding is left as it is: {{error}}",
-                { error: API.getFriendlyMessage(err) },
-              ),
-            );
-            return null;
-          }
-        };
-
-      const [runnerRows, credentialRows]: [
-        Array<Runner> | null,
-        Array<RunbookCredential> | null,
-      ] = await Promise.all([loadRunners(), loadCredentials()]);
-
       if (!isMounted) {
         return;
       }
 
       setSaved(settings);
-      setChosenRunnerId(settings.aiAccessRunnerId);
-      setRunners(runnerRows || []);
-      setIsRunnerPickerAvailable(runnerRows !== null);
-      setCredentials(credentialRows || []);
-      setIsCredentialPickerAvailable(credentialRows !== null);
-      setPickerErrors(errors);
       setIsLoading(false);
     };
 
@@ -583,66 +438,13 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     return getKubernetesAiAccessOfferedFields({
       saved,
       canConfigureUnattended,
-      isRunnerPickerAvailable,
-      isCredentialPickerAvailable,
-      isAdvancedBinding: props.isAdvancedBinding,
-      hasAiAgent: props.hasAiAgent,
       isSetByAgent: props.isSetByAgent,
     });
-  }, [
-    saved,
-    canConfigureUnattended,
-    isRunnerPickerAvailable,
-    isCredentialPickerAvailable,
-    props.isAdvancedBinding,
-    props.hasAiAgent,
-    props.isSetByAgent,
-  ]);
-
-  const runnerDirectory: Record<string, KubernetesAiRunnerDirectoryEntry> =
-    useMemo(() => {
-      return buildKubernetesAiRunnerDirectory(runners);
-    }, [runners]);
-
-  const credentialDirectory: Record<
-    string,
-    KubernetesAiCredentialDirectoryEntry
-  > = useMemo(() => {
-    return buildKubernetesAiCredentialDirectory(credentials);
-  }, [credentials]);
-
-  const runnerOptions: Array<DropdownOption> = useMemo(() => {
-    if (!saved) {
-      return [];
-    }
-
-    return buildKubernetesAiRunnerOptions({
-      runners,
-      boundRunnerId: saved.aiAccessRunnerId,
-      boundRunnerName: saved.aiAccessRunnerName,
-    });
-  }, [saved, runners]);
-
-  const chosenRunner: KubernetesAiCredentialRunner = useMemo(() => {
-    if (!chosenRunnerId) {
-      return { id: null, name: null };
-    }
-
-    return {
-      id: chosenRunnerId,
-      name:
-        runnerDirectory[chosenRunnerId]?.name ||
-        (chosenRunnerId === saved?.aiAccessRunnerId
-          ? saved.aiAccessRunnerName
-          : null),
-      isAgent: runnerDirectory[chosenRunnerId]?.isAgent,
-    };
-  }, [chosenRunnerId, runnerDirectory, saved]);
+  }, [saved, canConfigureUnattended, props.isSetByAgent]);
 
   /*
-   * Built once everything has loaded — BasicForm reads its initial values
-   * once, on the first render in which the fields exist — and again when
-   * the chosen Runner changes, so the credential options follow it.
+   * Built once everything has loaded: BasicForm reads its initial values
+   * once, on the first render in which the fields exist.
    */
   const fields: Fields<KubernetesAiAccessSettingsFormValues> = useMemo(() => {
     if (!saved || !offered) {
@@ -736,114 +538,8 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       });
     }
 
-    if (offered.runner) {
-      result.push({
-        field: { aiAccessRunnerId: true },
-        title: "Runner",
-        stepId: "runner-and-credential",
-        description:
-          "The Runner OneUptime AI uses for kubectl on this cluster. Leave empty to use the cluster's Kubernetes AI agent.",
-        fieldType: FormFieldSchemaType.Dropdown,
-        required: false,
-        placeholder: "None — use the Kubernetes AI agent",
-        dataTestId: "ai-access-runner-field",
-        dropdownOptions: runnerOptions,
-      });
-    } else if (offered.runnerClear) {
-      result.push({
-        field: { clearAiAccessRunner: true },
-        title: "Unbind the Runner",
-        stepId: "runner-and-credential",
-        description: props.hasAiAgent
-          ? translator.translateTemplate(
-              "Bound now: {{runner}}. Unbinding moves this cluster to its Kubernetes AI agent. Choosing a Runner needs: {{permissions}}.",
-              {
-                runner:
-                  saved.aiAccessRunnerName ||
-                  translatableTerm(UNNAMED_BOUND_RUNNER),
-                permissions: getKubernetesRunnerPermissionTitles().join(", "),
-              },
-            )
-          : translator.translateTemplate(
-              "Bound now: {{runner}}. Unbinding stops AI from running kubectl here until there is an AI agent. Choosing a Runner needs: {{permissions}}.",
-              {
-                runner:
-                  saved.aiAccessRunnerName ||
-                  translatableTerm(UNNAMED_BOUND_RUNNER),
-                permissions: getKubernetesRunnerPermissionTitles().join(", "),
-              },
-            ),
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        dataTestId: "ai-access-clear-runner-field",
-      });
-    }
-
-    if (offered.credential) {
-      result.push({
-        field: { aiAccessCredentialId: true },
-        title: "Kubernetes credential",
-        stepId: "runner-and-credential",
-        description: getKubernetesAiCredentialFieldDescription(chosenRunner),
-        fieldType: FormFieldSchemaType.Dropdown,
-        required: false,
-        placeholder: "No credential",
-        dataTestId: "ai-access-credential-field",
-        dropdownOptions: buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: saved.aiAccessCredentialId,
-          boundCredentialName: saved.aiAccessCredentialName,
-          runner: chosenRunner,
-        }),
-      });
-    } else if (offered.credentialClear) {
-      result.push({
-        field: { clearAiAccessCredential: true },
-        title: "Unbind the Kubernetes credential",
-        stepId: "runner-and-credential",
-        description: translator.translateTemplate(
-          "Bound now: {{credential}}. A Runner outside the cluster needs one to reach it. Choosing a credential needs: {{permissions}}.",
-          {
-            credential:
-              saved.aiAccessCredentialName ||
-              translatableTerm(UNNAMED_BOUND_CREDENTIAL),
-            permissions: getKubernetesCredentialPermissionTitles().join(", "),
-          },
-        ),
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-        dataTestId: "ai-access-clear-credential-field",
-      });
-    }
-
     return result;
-  }, [saved, offered, runnerOptions, credentials, chosenRunner]);
-
-  /*
-   * What AI may do, then where its commands run. The second step is there
-   * only when this person is offered a Runner or credential question (an
-   * admin, with the permission to read them); otherwise it is one page.
-   */
-  const steps:
-    | Array<FormStep<KubernetesAiAccessSettingsFormValues>>
-    | undefined = useMemo(() => {
-    if (
-      !offered ||
-      !(
-        offered.runner ||
-        offered.runnerClear ||
-        offered.credential ||
-        offered.credentialClear
-      )
-    ) {
-      return undefined;
-    }
-
-    return [
-      { title: "Investigation & Fixes", id: "investigation-and-fixes" },
-      { title: "Runner & Credential", id: "runner-and-credential" },
-    ];
-  }, [offered]);
+  }, [saved, offered]);
 
   const initialValues: FormValues<KubernetesAiAccessSettingsFormValues> =
     useMemo(() => {
@@ -903,7 +599,7 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         sentence?: Translator,
       ): Array<string> => {
         return getKubernetesAiAccessLooseningChanges(
-          { saved, changes, hasAiAgent: props.hasAiAgent },
+          { saved, changes },
           sentence,
         );
       };
@@ -919,18 +615,6 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       }
     }
 
-    const bindingError: string | null = getKubernetesAiAccessBindingError({
-      saved,
-      changes,
-      runners: runnerDirectory,
-      credentials: credentialDirectory,
-    });
-
-    if (bindingError) {
-      setSaveError(bindingError);
-      return;
-    }
-
     const confirmation: KubernetesAiAccessConfirmation | null =
       getKubernetesAiAccessConfirmation({ saved, changes });
 
@@ -943,58 +627,6 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       // handled inside save
     });
   };
-
-  // Why a Runner or credential picker is missing, for an admin.
-  const notes: Array<ReactElement> = [];
-
-  if (canConfigureUnattended && props.isAdvancedBinding) {
-    if (!props.capabilities.canPickRunner) {
-      notes.push(
-        <p
-          key="runner"
-          className="text-xs leading-5 text-gray-500"
-          data-testid="kubernetes-runner-picker-permission-note"
-        >
-          {translator.translateTemplate(
-            "The Runner picker is not shown: choosing a Runner needs permission to read Runners (one of: {{permissions}}).",
-            { permissions: getKubernetesRunnerPermissionTitles().join(", ") },
-          )}
-        </p>,
-      );
-    }
-    if (!props.capabilities.canPickCredential) {
-      notes.push(
-        <p
-          key="credential"
-          className="text-xs leading-5 text-gray-500"
-          data-testid="kubernetes-credential-picker-permission-note"
-        >
-          {translator.translateTemplate(
-            "The credential picker is not shown: choosing a credential needs permission to read Runner credentials (one of: {{permissions}}).",
-            {
-              permissions: getKubernetesCredentialPermissionTitles().join(", "),
-            },
-          )}
-        </p>,
-      );
-    }
-  }
-
-  /*
-   * Save on the last step only, after checking every step; a plain Next on
-   * the first. Every question here already holds the saved answer, and the
-   * step list opens either step, so Save is one click away from both.
-   */
-  const footer: SteppedModalFooter = getSteppedModalFooter({
-    hasSteps: Boolean(steps),
-    isOnLastStep: isOnLastFormStep,
-    onAction: () => {
-      (formRef.current as BasicFormHandle | null)?.submitAllSteps();
-    },
-    onNext: () => {
-      (formRef.current as BasicFormHandle | null)?.goToNextStep();
-    },
-  });
 
   return (
     <>
@@ -1010,8 +642,9 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         isLoading={isSaving}
         disableSubmitButton={isLoading || !saved || isSaving}
         onClose={props.onClose}
-        onSubmit={footer.onSubmit}
-        secondaryButton={footer.secondaryButton}
+        onSubmit={() => {
+          (formRef.current as BasicFormHandle | null)?.submitForm();
+        }}
       >
         <div className="space-y-4">
           {!canConfigureUnattended && !props.isSetByAgent ? (
@@ -1019,20 +652,6 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           ) : (
             <></>
           )}
-
-          {notes.length > 0 ? (
-            <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-              {notes}
-            </div>
-          ) : (
-            <></>
-          )}
-
-          {pickerErrors.map((message: string): ReactElement => {
-            return (
-              <Alert key={message} type={AlertType.WARNING} title={message} />
-            );
-          })}
 
           {loadError ? (
             <ErrorMessage message={loadError} />
@@ -1044,27 +663,9 @@ const AiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               id="kubernetes-cluster-ai-access-form"
               name="Change what AI may do"
               fields={fields}
-              steps={steps}
-              allowAnyStepNavigation={true}
-              onIsLastFormStep={(isLastFormStep: boolean) => {
-                setIsOnLastFormStep(isLastFormStep);
-              }}
               initialValues={initialValues}
               hideSubmitButton={true}
               footer={<></>}
-              onChange={(
-                values: FormValues<KubernetesAiAccessSettingsFormValues>,
-              ) => {
-                const runnerId: string | null =
-                  getKubernetesAiAccessChosenRunnerId({
-                    saved,
-                    values,
-                    offered,
-                  });
-                setChosenRunnerId((previous: string | null): string | null => {
-                  return previous === runnerId ? previous : runnerId;
-                });
-              }}
               onSubmit={onSubmit}
             />
           )}
@@ -1410,7 +1011,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
     meta.showsAgentVersion && Boolean(aiAgent?.agentVersion);
   const refusedWarning: string | null = getRefusedRegistrationWarning(aiAgent);
   const attention: AiAgentAttention | null = getAiAgentAttention(status);
-  const isAdvanced: boolean = isAdvancedRunnerTarget(status);
   const hasTarget: boolean = status.runner !== null;
   const remediationMode: KubernetesAiRemediationMode = readRemediationMode(
     status.remediationMode,
@@ -1545,54 +1145,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         ) : (
           <></>
         );
-      case "view_runner":
-        return status.runner && canPickKubernetesRunner() ? (
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW] as Route,
-              { modelId: new ObjectID(status.runner.id) },
-            )}
-            className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            <span>{translator.translateText("View Runner")}</span>
-            <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-          </Link>
-        ) : (
-          renderAsk()
-        );
-      case "choose_runner_again":
-        return status.runner && settingsGate.isAllowed ? (
-          <Button
-            title="Choose it again"
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            isLoading={isActing}
-            disabled={isActing}
-            dataTestId="ai-agent-gap-choose-runner-again"
-            onClick={() => {
-              const runnerId: string = status.runner!.id;
-
-              runPageAction({
-                run: async (): Promise<void> => {
-                  /*
-                   * The Runner the cluster is bound to, chosen again: what
-                   * lets OneUptime AI run kubectl on it now, with the same
-                   * check a new choice gets (RunnerAiCommandsPick).
-                   */
-                  await updateCluster({ aiAccessRunnerId: runnerId });
-                },
-                notice: translationKey(
-                  "OneUptime AI may now run kubectl on this Runner.",
-                ),
-                isConfirmed: false,
-              }).catch(() => {
-                // handled inside runPageAction
-              });
-            }}
-          />
-        ) : (
-          renderAsk()
-        );
       case "test_connection":
         return testGate.isAllowed ? (
           <Button
@@ -1618,8 +1170,7 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
 
   /*
    * The agent card's ⋯. There is nothing to test before anything can reach
-   * the cluster; switching needs an advanced binding and an online agent,
-   * and resetting a registered agent.
+   * the cluster, and nothing to reset before an agent registered.
    */
   const agentActions: Array<AiAgentAction> = getAiAgentActions({
     testConnection: {
@@ -1631,13 +1182,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         runTest().catch(() => {
           // handled inside runTest
         });
-      },
-    },
-    switchToAgent: {
-      isOffered: canSwitchToAiAgent(status) && canConfigureUnattended,
-      onClick: (): void => {
-        setConfirmationError("");
-        setPendingConfirmation("switch");
       },
     },
     resetAgent: {
@@ -1713,76 +1257,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
               },
               notice: translationKey(
                 "The AI agent was reset. It reconnects on its own within a few minutes.",
-              ),
-              isConfirmed: true,
-            }).catch(() => {
-              // handled inside runPageAction
-            });
-          }}
-        />
-      );
-    }
-
-    if (pendingConfirmation === "switch") {
-      // What the agent may change, in the language of the sentence it ends.
-      const writeAccess: ComposedValue | null = describeAiAgentWriteAccess(
-        aiAgent?.posture,
-      )
-        ? composedValue((sentence: Translator): string => {
-            return describeAiAgentWriteAccess(aiAgent?.posture, sentence) || "";
-          })
-        : null;
-      return (
-        <ConfirmModal
-          title="Switch to the AI agent?"
-          description={
-            status.credentialName
-              ? writeAccess
-                ? translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and uses this cluster\'s AI agent, with its access ({{writeAccess}}).',
-                    {
-                      runner: status.runner?.name || "",
-                      credential: status.credentialName,
-                      writeAccess: writeAccess,
-                    },
-                  )
-                : translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and credential "{{credential}}" and uses this cluster\'s AI agent and its access.',
-                    {
-                      runner: status.runner?.name || "",
-                      credential: status.credentialName,
-                    },
-                  )
-              : writeAccess
-                ? translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and uses this cluster\'s AI agent, with its access ({{writeAccess}}).',
-                    {
-                      runner: status.runner?.name || "",
-                      writeAccess: writeAccess,
-                    },
-                  )
-                : translator.translateTemplate(
-                    'AI stops using Runner "{{runner}}" and uses this cluster\'s AI agent and its access.',
-                    { runner: status.runner?.name || "" },
-                  )
-          }
-          // Not "Switch": that key is a network switch elsewhere.
-          submitButtonText="Switch to the AI agent"
-          isLoading={isActing}
-          error={confirmationError || undefined}
-          onClose={() => {
-            setPendingConfirmation(null);
-          }}
-          onSubmit={() => {
-            runPageAction({
-              run: async (): Promise<void> => {
-                await updateCluster({
-                  aiAccessRunnerId: null,
-                  aiAccessCredentialId: null,
-                });
-              },
-              notice: translationKey(
-                "AI now reaches this cluster through its AI agent.",
               ),
               isConfirmed: true,
             }).catch(() => {
@@ -2287,17 +1761,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
                 }}
               />
             ) : null}
-            {isAdvanced &&
-            remediationMode !== KubernetesAiRemediationMode.Disabled ? (
-              <p
-                className="text-xs leading-5 text-gray-500"
-                data-testid="ai-access-credential-rbac-note"
-              >
-                {translator.translateText(
-                  "What a fix may change is limited by the Runner's credential.",
-                )}
-              </p>
-            ) : null}
             {shouldShowWriteAccessCommands(status) ? (
               <AiAccessActionPanel
                 title="Give the agent write access"
@@ -2351,8 +1814,6 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
         <AiAccessSettingsModal
           clusterId={modelId}
           capabilities={editCapabilities}
-          isAdvancedBinding={isAdvanced}
-          hasAiAgent={aiAgent !== null}
           isSetByAgent={isSetByAgent}
           onClose={() => {
             setIsEditingSettings(false);

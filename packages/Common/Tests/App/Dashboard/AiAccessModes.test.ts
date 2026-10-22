@@ -461,12 +461,12 @@ describe("the sentences both pages share", () => {
     expect(
       getAiAccessLooseningRefusal({
         getChanges: (): Array<string> => {
-          return ["switching fixes to Automatic", "binding a different Runner"];
+          return ["switching fixes to Automatic", "adding allowlist patterns"];
         },
         permissionTitles: TITLES,
       }),
     ).toBe(
-      "Switching fixes to Automatic, binding a different Runner needs one of these permissions: Project Owner, Project Admin.",
+      "Switching fixes to Automatic, adding allowlist patterns needs one of these permissions: Project Owner, Project Admin.",
     );
   });
 
@@ -644,12 +644,16 @@ describe("in the reader's language", () => {
     expect(
       getAiAccessLooseningRefusal({
         getChanges: (translator: Translator): Array<string> => {
-          return [translator.translateTemplate("binding a different Runner")];
+          return [
+            translator.translateTemplate("switching fixes to {{mode}}", {
+              mode: "Automatic",
+            }),
+          ];
         },
         permissionTitles: ["Project Owner"],
       }),
     ).toBe(
-      "‹‹binding a different Runner› needs one of these permissions: Project Owner.›",
+      "‹‹switching fixes to Automatic› needs one of these permissions: Project Owner.›",
     );
   });
 
@@ -663,12 +667,16 @@ describe("in the reader's language", () => {
     expect(
       getAiAccessLooseningRefusal({
         getChanges: (translator: Translator): Array<string> => {
-          return [translator.translateTemplate("binding a different Runner")];
+          return [
+            translator.translateTemplate("switching fixes to {{mode}}", {
+              mode: "Automatic",
+            }),
+          ];
         },
         permissionTitles: ["Project Owner"],
       }),
     ).toBe(
-      "Binding a different Runner needs one of these permissions: Project Owner.",
+      "Switching fixes to Automatic needs one of these permissions: Project Owner.",
     );
     expect(
       getAiAccessTestPermissionMessage({

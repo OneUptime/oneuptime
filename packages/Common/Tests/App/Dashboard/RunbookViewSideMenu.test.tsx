@@ -154,12 +154,6 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials",
-  () => {
-    return mockPageModule("RunnerCredentials");
-  },
-);
-jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Pages/Runbook/Settings/OwnerRules",
   () => {
     return mockPageModule("OwnerRules");

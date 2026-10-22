@@ -369,7 +369,7 @@ Komen ze niet overeen, dan is de gebruiker die de bot berichten stuurt aangemeld
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Twee of meer OneUptime-projecten hebben dezelfde Microsoft-tenant verbonden. Een botbericht bevat alleen een tenant-ID, dus OneUptime kan niet weten welk project je bedoelt en weigert in plaats van te gokken. Koppel Microsoft Teams los van alle projecten op één na.
+Twee of meer OneUptime-projecten zijn aan dezelfde Microsoft 365-organisatie gekoppeld, en niets in het bericht maakte duidelijk welk project bedoeld was. De knop van een kaart handelt in het project van het record waar de kaart over gaat, en een bericht in het project van het kanaal waarin het wordt verstuurd, of anders in het enige project waarin het Microsoft Teams-account van de afzender gekoppeld is. Verstuur het opnieuw vanuit een kanaal van het project dat je bedoelt, zoals een van de incidentkanalen ervan. Wie zijn account in geen van de projecten heeft gekoppeld, wordt eerst gevraagd het te koppelen.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

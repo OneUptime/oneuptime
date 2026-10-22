@@ -1,4 +1,5 @@
 import URL from "../../../../../Types/API/URL";
+import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
 import {
   WorkspaceMessageBlock,
@@ -87,6 +88,11 @@ export interface SlackAnswerPlaceSource {
    * so the form's submission is answered with what it did.
    */
   isFromPrivateMessage?: boolean | undefined;
+  /*
+   * The project the press was read in: a form it opens carries it, so the
+   * form's submission is read in the same project.
+   */
+  projectId?: ObjectID | undefined;
 }
 
 export default class SlackActionAnswer {
@@ -284,8 +290,9 @@ export default class SlackActionAnswer {
   }
 
   /*
-   * Opens a form for a press, carrying where the press was made
-   * (SlackModalMetadata), so the form's submission is answered there too.
+   * Opens a form for a press, carrying where the press was made, and the
+   * project it was read in (SlackModalMetadata), so the form's submission is
+   * answered there too, and read in the same project.
    */
   @CaptureSpan()
   public static async showModal(data: {
@@ -301,6 +308,7 @@ export default class SlackActionAnswer {
           channelId: data.source.slackChannelId,
           threadTs: data.source.slackThreadTs,
           isFromPrivateMessage: data.source.isFromPrivateMessage,
+          projectId: data.source.projectId?.toString(),
         }),
       },
     });

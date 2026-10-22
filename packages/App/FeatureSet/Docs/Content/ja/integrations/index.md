@@ -50,12 +50,12 @@ Jira や Dynamics 365 のような双方向のインテグレーションは、�
 | ツール | 方向 | 機能 |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | インバウンド | Huntress のインシデントレポートでオンコールを呼び出し、レポートがクローズされるとインシデントを解決します。 |
-| [Google SecOps](/docs/integrations/google-secops) | インバウンド | Google SecOps の検出をセキュリティイベントに取り込みます。 |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | インバウンド | Microsoft Sentinel のインシデントをセキュリティイベントに取り込みます。 |
+| [Google SecOps](/docs/integrations/google-secops) | 双方向 | Google SecOps の検出とインジケーターをセキュリティイベントに取り込み、OneUptime が見つけたものを Google SecOps に送ります。 |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | 双方向 | Microsoft Sentinel のインシデントをセキュリティイベントに取り込み、OneUptime が見つけたものを Microsoft Sentinel に送ります。 |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | インバウンド | Microsoft Defender XDR のアラートをセキュリティイベントに取り込みます。 |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | インバウンド | CrowdStrike Falcon のアラートをセキュリティイベントに取り込みます。 |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | インバウンド | Splunk の notable event をセキュリティイベントに取り込みます。 |
-| [Elastic Security](/docs/integrations/elastic-security) | インバウンド | Elastic Security の検出アラートをセキュリティイベントに取り込みます。 |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | 双方向 | Splunk の notable event をセキュリティイベントに取り込み、OneUptime が見つけたものを Splunk に送ります。 |
+| [Elastic Security](/docs/integrations/elastic-security) | 双方向 | Elastic Security の検出アラートをセキュリティイベントに取り込み、OneUptime が見つけたものを Elastic Security に送ります。 |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | インバウンド | AWS Security Hub の検出結果をセキュリティイベントに取り込みます。 |
 | [Okta System Log](/docs/integrations/okta) | インバウンド | Okta のサインイン、アカウントの変更、脅威の検出をセキュリティイベントに取り込みます。 |
 

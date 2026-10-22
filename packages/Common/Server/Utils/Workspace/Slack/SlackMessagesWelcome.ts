@@ -14,7 +14,9 @@ import FeedMarkdown, {
   mdText,
 } from "../../../../Utils/Markdown/FeedMarkdown";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
-import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectResolution,
+} from "../WorkspaceProjectResolution";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
@@ -112,20 +114,25 @@ export default class SlackMessagesWelcome {
     }
 
     try {
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await WorkspaceProjectAuthTokenService.findOneBy({
-          query: {
-            workspaceProjectId: open.teamId,
-            workspaceType: WorkspaceType.Slack,
-          },
-          select: {
-            projectId: true,
-            authToken: true,
-          },
-          props: {
-            isRoot: true,
+      /*
+       * The project the person is in - a workspace can be connected to more
+       * than one (WorkspaceProjectResolution) - or, connected in none of
+       * several, where to connect rather than one project's button.
+       */
+      const resolution: WorkspaceProjectResolution =
+        await WorkspaceProjectResolver.resolve({
+          workspaceType: WorkspaceType.Slack,
+          workspaceId: open.teamId,
+          clues: {
+            workspaceUserId: open.slackUserId,
           },
         });
+
+      const personProject: WorkspaceProjectAuthToken | null =
+        WorkspaceProjectResolver.getPersonProject(resolution);
+
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        personProject || resolution.connections[0] || null;
 
       // No project to welcome them to, nor a token to say it with: later.
       if (!projectAuth?.projectId || !projectAuth.authToken) {
@@ -144,9 +151,10 @@ export default class SlackMessagesWelcome {
       const welcome: SlackMessagesWelcomeMessage =
         SlackMessagesWelcome.getWelcome({
           isConnected: isConnected,
-          connectUrl: isConnected
-            ? null
-            : await SlackHome.getConnectUrl(projectAuth.projectId),
+          connectUrl:
+            isConnected || !personProject
+              ? null
+              : await SlackHome.getConnectUrl(projectAuth.projectId),
         });
 
       await SlackUtil.sendDirectMessageToUser({
@@ -195,9 +203,12 @@ export default class SlackMessagesWelcome {
     ];
 
     if (!data.isConnected) {
+      const connect: MarkdownText = mdText`🔗 **Connect your Slack account** first, so ${productName} can act as you, with your permissions in the project.`;
+
+      // One click only with the button; without it, where to connect.
       blocks.push(
         SlackMessagesWelcome.markdown(
-          mdText`🔗 **Connect your Slack account** first, so ${productName} can act as you, with your permissions in the project. It takes one click.`,
+          data.connectUrl ? mdText`${connect} It takes one click.` : connect,
         ),
       );
 

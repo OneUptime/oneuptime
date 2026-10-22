@@ -66,6 +66,19 @@ Quando l'attesa dell'ultimo livello scade senza che nessuno riconosca, una polic
 
 Una policy che ricomincia altre tre volte percorre i suoi livelli quattro volte in tutto. La riga **Dopo l'ultimo livello** della scheda dice che cosa fa la policy, e **Policy at a glance** nella **Panoramica** dice la stessa cosa a parole.
 
+## Avvisare di nuovo se non è risolto
+
+Il riconoscimento interrompe definitivamente gli avvisi di una policy, anche se poi nessuno risolve l'incidente o l'avviso. Una policy può invece avvisare di nuovo: aprite la sua pagina **Regole di escalation**, aprite **Altre impostazioni** in fondo e fate clic su **Modifica** nella scheda **Timeout dopo il riconoscimento**. **Modifica timeout dopo il riconoscimento** chiede **Se è riconosciuto ma non risolto**:
+
+| Risposta | Che cosa fa |
+| --- | --- |
+| **Non avvisare di nuovo** | Il riconoscimento interrompe gli avvisi definitivamente. Una nuova policy parte con questa risposta. |
+| **Avvisa di nuovo** | Avvisa chi l'ha riconosciuto e chi è reperibile ora. **Dopo quanti minuti?** indica quando: da 5 a 1440, 30 all'inizio. |
+
+I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al massimo 5 volte per uno stesso incidente, avviso o episodio. Un nuovo avviso parte dal livello che stava avvisando al momento del riconoscimento, avvisa chi è reperibile ora a quel livello e prosegue per i livelli come la prima esecuzione. L'incidente o l'avviso resta riconosciuto: il nuovo avviso è un'esecuzione a sé, nel suo feed e nei registri di esecuzione della policy, dove il suo **Stato** dice «Avvisato di nuovo (1 di 5)».
+
+Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **Policy at a glance** nella **Panoramica** ed **Escalation summary** dicono la stessa cosa a parole.
+
 ## Registri di esecuzione
 
 Ogni volta che una policy viene eseguita, scrive un registro di esecuzione, e il registro attraversa i suoi stati man mano che l'esecuzione prosegue:
@@ -122,9 +135,12 @@ Le policy di reperibilità sono la risorsa `/api/on-call-duty-policy`, e la riso
 | **Descrizione** | `description` |
 | **Se nessuno riconosce dopo l'ultimo livello** | `repeatPolicyIfNoOneAcknowledges` |
 | **Quante volte ancora?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Dopo quanti minuti?** | `acknowledgementTimeoutInMinutes` |
 | Archiviata | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` è `false` per **Interrompi gli avvisi** e `true` per **Ricomincia da Level 1**. Con `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` a `0`, una policy non si ripete mai, e la dashboard la mostra come **Interrompi gli avvisi**.
+
+`acknowledgementTimeoutInMinutes` è `null` per **Non avvisare di nuovo**, e un numero intero di minuti da 5 a 1440 per **Avvisa di nuovo**. OneUptime rifiuta qualsiasi altro valore.
 
 Per creare una policy con il suo primo livello in una sola richiesta, vedi [Creare regole con l'API o Terraform](/docs/on-call/escalation-rules#creare-regole-con-lapi-o-terraform).
 

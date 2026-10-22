@@ -15,6 +15,12 @@ export function getProxmoxBreadcrumbs(path: string): Array<Link> | undefined {
       "Proxmox",
       "View Cluster",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_TOPOLOGY, [
+      "Project",
+      "Proxmox",
+      "View Cluster",
+      "Topology",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.PROXMOX_CLUSTER_VIEW_NODES, [
       "Project",
       "Proxmox",

@@ -13,6 +13,9 @@ import Card from "Common/UI/Components/Card/Card";
 import CodeEditor from "Common/UI/Components/CodeEditor/CodeEditor";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
+import useClipboardCopy, {
+  ClipboardCopy,
+} from "Common/UI/Utils/UseClipboardCopy";
 import { APP_API_URL } from "Common/UI/Config";
 import HealthLicenseRequired, {
   isHealthLicenseRequiredError,
@@ -294,6 +297,12 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [result, setResult] = useState<ConsoleResult | null>(null);
   const [history, setHistory] = useState<Array<HistoryEntry>>([]);
+  /*
+   * Copy JSON says "Copied!" once the rows are on the clipboard and "Copy
+   * failed" when the browser refused. It used to say nothing either way, and
+   * do nothing at all on a page served over plain http (issue #5132).
+   */
+  const resultClipboard: ClipboardCopy = useClipboardCopy();
 
   const config: EngineConfig = getEngineConfig(engine);
 
@@ -617,16 +626,27 @@ const QueryConsoleContent: FunctionComponent = (): ReactElement => {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              title="Copy JSON"
-              icon={IconProp.Copy}
+              title={
+                resultClipboard.isCopied
+                  ? "Copied!"
+                  : resultClipboard.isFailed
+                    ? "Copy failed"
+                    : "Copy JSON"
+              }
+              icon={
+                resultClipboard.isCopied
+                  ? IconProp.Check
+                  : resultClipboard.isFailed
+                    ? IconProp.Alert
+                    : IconProp.Copy
+              }
               buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
+              dataTestId="query-console-copy-json"
               onClick={() => {
-                navigator.clipboard
-                  ?.writeText(JSON.stringify(tableResult.rows, null, 2))
-                  .catch(() => {
-                    // clipboard may be unavailable — non-critical.
-                  });
+                void resultClipboard.copy(
+                  JSON.stringify(tableResult.rows, null, 2),
+                );
               }}
             />
             <Button

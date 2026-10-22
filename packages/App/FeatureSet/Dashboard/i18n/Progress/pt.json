@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 16508
+    "keys": 32601,
+    "untranslated": 16514
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -24,6 +24,8 @@
     "Monitor",
     "Offline",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Pull request #{{number}}",
     "Runbook: {{name}}",
     "Runner",
@@ -38,6 +40,7 @@
     "host",
     "kubectl set image deployment/web * -n web",
     "syslog",
+    "vCenters",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

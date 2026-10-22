@@ -135,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 表示严重程度的词会变成 OCSF 级别：`info` 读作 Informational，`warning` 读作 Low，`error` 读作 Medium，`alert` 读作 Critical，`emergency` 读作 Fatal。
 
@@ -194,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 严重程度 | `severityName`，取值为 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 谁做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什么 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| 进程 | `processName`、`processPath` 和 `processCommandLine`：在进程启动事件中是被启动的进程，其他事件中是执行操作的进程。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：启动它的进程 |
 | 来源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：从事件中提取的每个用户、主机、IP 地址、域名和哈希 |
 | 属性 | 完整的来源负载，展平为以点分隔的键 |
@@ -218,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在该属性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性包含该文本 | `@finding_info.title:~ransom` |
 
-字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
+字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
 
 ### 分面
 
-侧栏按 **来源**、**严重程度**、**事件类别**、**Category**、**活动**、**状态**、**供应商**、**产品**、**Detection Rule**、**源用户** 和 **源主机** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
+侧栏按 **来源**、**严重程度**、**事件类别**、**Category**、**活动**、**状态**、**供应商**、**产品**、**Detection Rule**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
 
 ### 关联分析
 
@@ -278,9 +285,67 @@ OneUptime 运行 Sigma 的布尔核心：
 - 条件用 `and`、`or`、`not` 和括号，或用 `1 of selection_*`、`all of selection_*`、`any of them` 和 `all of them` 组合选择项。
 - 字段修饰符：`contains`、`startswith`、`endswith`、`all`、`re`、`cased`、`gt`、`gte`、`lt`、`lte`、`cidr`、`exists` 和 `windash`。除非你加上 `cased`，否则文本比较不区分大小写。
 - 字段可以是类型化字段（`principalUser`）、它在 Sigma 中的常见写法（`CommandLine`、`src_ip`、`Hostname`），或任何属性键，按它在事件中的写法拼写（`threat.matched`）。
+- `Image` 和 `CommandLine` 读取事件所涉及的进程，在进程启动事件中即被启动的进程（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 读取启动它的进程（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是执行操作的进程，在进程启动中即父进程。
 - `level` 设置严重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺省时为 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）会填入检测结果的 MITRE 字段。
 
-像 `| count() by principalIp > 5` 这样的聚合会在保存时被拒绝：请改用 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只起说明作用，不会缩小任何范围：请把这种过滤放进选择项，例如 `className: Authentication`。`timeframe` 会被忽略，因为规则的间隔决定了它的时间窗口。
+像 `| count() by principalIp > 5` 这样的聚合会在保存时被拒绝：请改用 [关联规则](#关联规则)，或 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只起说明作用，不会缩小任何范围：请把这种过滤放进选择项，例如 `className: Authentication`。`timeframe` 会被忽略，因为规则的间隔决定了它的时间窗口。
+
+### 关联规则
+
+[Sigma 关联](https://sigmahq.io/docs/meta/correlations.html) 在多个事件一起出现时触发，而不是在单个事件上。把它和它读取的规则一起粘贴到 **Sigma Rule (YAML)** 中，作为用 `---` 分隔的 YAML 文档，或者按 Sigma 的 `name` 或 `id` 指定项目中已有的规则。**Rule Library** 中有现成的规则，例如登录失败后紧跟一次成功登录。
+
+| 类型 | 触发条件 | 显示为 |
+| --- | --- | --- |
+| `event_count` | 一个分组在 `timespan` 内达到一定数量的事件 | 事件数 |
+| `value_count` | 一个分组在 `timespan` 内出现某字段一定数量的不同值 | 不同值 |
+| `temporal` | 在 `timespan` 内同一分组的每条规则都匹配，顺序不限 | 同时发生的事件 |
+| `temporal_ordered` | 在 `timespan` 内同一分组的规则按顺序匹配 | Sequence |
+| `new_value` | 一个分组出现了它在 `timespan` 内没有出现过的字段值 | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- 分组是 `group-by` 字段的值，例如一个地址。计数是滚动的：被两次运行分开的一阵突发，在其 `timespan` 内仍会被完整计数，该时间跨度最长 24 小时。
+- `new_value` 是 OneUptime 自有的类型，因为 Sigma 没有“首次出现”关联：它会与最多 30 天的历史比较。`value_sum`、`value_avg`、`value_percentile` 和 `value_median` 会在保存时被拒绝。
+- **Detection Rules** 的 **类型** 列会写出每条规则的种类，表单会用一句话说明规则在找什么。
 
 ### 评估设置
 
@@ -379,7 +444,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 :::
 
 :::details 规则从不匹配
-检查它是否处于 **已启用** 状态，并查看它所在行中的 **Last Evaluated** 和 **最近错误** 。打开一个你预期会匹配的事件，逐个字段与规则进行比较：普通值必须等于整个字段，所以匹配其中一部分时请使用 `contains` 或 `*`。属性按它在事件中的名称书写（写 `threat.matched`，而不是 `attributes.threat.matched`）。阈值大于 1 时，这些匹配必须落在同一次运行中。
+检查它的 **状态** ： **已禁用** 的规则不会运行；显示 **运行失败** 时，可以通过它所在行的 **查看错误** 查看原因。打开一个你预期会匹配的事件，逐个字段与规则进行比较：普通值必须等于整个字段，所以匹配其中一部分时请使用 `contains` 或 `*`。属性按它在事件中的名称书写（写 `threat.matched`，而不是 `attributes.threat.matched`）。阈值大于 1 时，这些匹配必须落在同一次运行中。
 :::
 
 :::details 规则匹配了，但没有打开警报

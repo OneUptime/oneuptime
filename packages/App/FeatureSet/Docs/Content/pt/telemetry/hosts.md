@@ -75,7 +75,7 @@ Cada instância do OneUptime fornece os próprios instaladores, então uma inst�
 
 ### Aguarde o host
 
-A última etapa da caixa de diálogo informa quando o host se conecta, com um link para ele. Na lista, ele aparece como **Iniciando** até chegarem as primeiras métricas, geralmente em até um minuto, e depois como conectado, com o coletor **Em execução**.
+A última etapa da caixa de diálogo informa quando o host se conecta, com um link para ele. Na lista, ele aparece como **Iniciando** até chegarem as primeiras métricas, geralmente em até um minuto, e depois como conectado, com o coletor **Em execução**. A página **Topologia** do host desenha em um único mapa o que roda nele, o que o chama e o que ele chama: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Rotular hosts

@@ -12,7 +12,7 @@ U schrijft een runbook als een geordende lijst stappen op de pagina **Stappen** 
 ## Voordat u begint
 
 - **Een rol die runbooks schrijft.** Project Owner, Project Admin en Runbook Admin maken runbooks en slaan de stappen op. Met gedetailleerde machtigingen hebt u **Create Runbook** en **Edit Runbook** nodig. Zie [Machtigingen](/docs/runbooks/configuration#machtigingen).
-- **Een Runner, voor Bash-, SSH- en kubectl-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een JavaScript-stap loopt op een [globale Runner](/docs/runbooks/agents#globale-runners), tenzij u een van uw eigen Runners kiest.
+- **Een Runner, voor Bash-, SSH- en kubectl-stappen.** Deze stappen lopen op een [Runner](/docs/runbooks/agents) in uw eigen infrastructuur, nooit op de OneUptime Worker. Installeer er eerst een. Een stap die geen Runner kiest, loopt op de [standaard-Runner van het project](/docs/runbooks/agents#de-standaard-runner-van-het-project), als u er een hebt ingesteld; anders loopt een JavaScript-stap op een [globale Runner](/docs/runbooks/agents#globale-runners).
 - **Een geheime variabele, voor SSH- en kubectl-stappen.** De sleutel, het wachtwoord of de kubeconfig waarmee een stap zich aanmeldt, is een geheime [runbookvariabele](/docs/runbooks/variables). Project Owner en Project Admin maken variabelen aan, en Runbook Admin kiest ze in de stappen die hij schrijft. Een kubectl-stap kan in plaats daarvan de eigen toegang van de Runner gebruiken.
 - **Een LLM-provider, voor AI-stappen.** Zie [LLM-providers](/docs/ai/llm-provider).
 
@@ -64,7 +64,7 @@ Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en d
 | [kubectl](#kubectl) | Een Runner | Een Runner, en een kubeconfig-variabele of de eigen toegang van de Runner |
 | [AI](#ai) | De OneUptime Worker | Een LLM-provider |
 
-In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort en de wachtwoordzin van de sleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs.
+In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst zijn **Runner**, voor een stap die op een Runner loopt, dan **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort en de wachtwoordzin van de sleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs. Ingeklapt noemt het de Runner van de stap, zodat u ziet waar een stap loopt zonder hem te openen.
 
 ### Manual
 
@@ -78,7 +78,7 @@ Een stukje JavaScript, uitgevoerd in een `isolated-vm`-sandbox op een [runbook-a
 
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
-| **Runner** | De Runner die de stap uitvoert: **Globale Runner**, of een van uw eigen. Alleen de Runner die u kiest, mag de taak oppakken; elke globale Runner mag een stap op **Globale Runner** oppakken. | **Globale Runner**, als er een is |
+| **Runner** | Onder **Meer velden**. De Runner die de stap uitvoert: **Globale Runner**, of een van uw eigen. Alleen de Runner die u kiest, mag de taak oppakken; elke globale Runner mag een stap op **Globale Runner** oppakken. | De [standaard-Runner van het project](/docs/runbooks/agents#de-standaard-runner-van-het-project), als u er een hebt ingesteld; anders **Globale Runner**, als er een is |
 | **Script** | Het JavaScript dat wordt uitgevoerd. Geef met `return` een waarde terug om die vast te leggen; elke regel van `console.log` wordt ook vastgelegd. Een gegooide fout laat de stap mislukken. | — |
 | **Uitvoeringstime-out** | Hoe lang de Runner het stukje laat lopen voordat hij de sandbox afbreekt. Een globale Runner laat het hooguit 5 minuten lopen. | 30 seconden |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
@@ -117,7 +117,7 @@ Een bashscript, uitgevoerd met `bash -c <script>` op een [runbook-agent](/docs/r
 
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
-| **Runner** | De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. | — |
+| **Runner** | Onder **Meer velden**. De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. Globale Runners voeren alleen JavaScript-stappen uit. | De standaard-Runner van het project, als u er een hebt ingesteld |
 | **Bash-script** | Het script. De uitvoer (stdout en stderr) wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. | — |
 | **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Verhoog dit voor stappen die terecht minuten duren. | 30 seconden |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
@@ -146,7 +146,7 @@ Meld u via SSH aan op een machine en voer daar een bash-script uit. De Runner op
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Runner** | De Runner die de verbinding opent. Hij moet de machine via het netwerk kunnen bereiken. |
+| **Runner** | Onder **Meer velden**. De Runner die de verbinding opent. Hij moet de machine via het netwerk kunnen bereiken. Een stap die er geen kiest, loopt op de standaard-Runner van het project. |
 | **SSH naar** | De gebruiker en de machine, zoals u ze na `ssh` zou schrijven: `deploy@10.0.4.21`. |
 | **Aanmelden met** | De geheime variabele die de privésleutel of het wachtwoord bevat; de waarde zegt welke het is. Alleen geheime variabelen worden aangeboden, en de stap meldt het wanneer zijn Runner de gekozen variabele niet mag gebruiken. |
 | **Bash-script** | Loopt met `bash` op de machine, als de gebruiker waarmee de stap zich aanmeldt. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
@@ -168,7 +168,7 @@ Voer kubectl-opdrachten uit op een cluster. Het script loopt met bash op de Runn
 
 | Veld | Wat het doet |
 | --- | --- |
-| **Runner** | De Runner die kubectl uitvoert. Hij moet de API-server van het cluster kunnen bereiken. |
+| **Runner** | Onder **Meer velden**. De Runner die kubectl uitvoert. Hij moet de API-server van het cluster kunnen bereiken. Een stap die er geen kiest, loopt op de standaard-Runner van het project. |
 | **Kubeconfig** | De geheime variabele die de kubeconfig van het cluster bevat, of **De eigen toegang van de Runner**: de eigen kubeconfig van de Runner, of zijn serviceaccount als hij in het cluster draait. De Runner schrijft een kubeconfig naar een bestand dat alleen hij kan lezen, en verwijdert het als het script eindigt. |
 | **Script** | De kubectl-opdrachten. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
 | **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Standaard 30 seconden. |
@@ -190,7 +190,7 @@ Laat AI halverwege de uitvoering iets analyseren, samenvatten of beslissen. Het 
 | Veld | Wat het doet |
 | --- | --- |
 | **Prompt** | Wat de AI moet doen. Bijvoorbeeld: "Bekijk de uitvoer van de vorige stappen en zeg of het veilig is om met het herstel door te gaan." |
-| **LLM provider** | Optioneel. **Project default** gebruikt de standaardprovider van het project. Leg een provider vast wanneer de stap een bepaald model nodig heeft, zoals een zelf gehost model voor gegevens die uw netwerk niet mogen verlaten. Zie [LLM-providers](/docs/ai/llm-provider). |
+| **LLM provider** | Optioneel. **Projectstandaard** gebruikt de standaardprovider van het project. Leg een provider vast wanneer de stap een bepaald model nodig heeft, zoals een zelf gehost model voor gegevens die uw netwerk niet mogen verlaten. Zie [LLM-providers](/docs/ai/llm-provider). |
 | **Include previous step context** | Als dit aan staat, ziet de AI alles over de stappen die vóór deze stap liepen: titel, type, status, uitvoer en foutmeldingen. Hij krijgt tot 4.000 tekens van de uitvoer van elke stap. |
 | **Include trigger context** | Als dit aan staat, ziet de AI wat de uitvoering startte: het gekoppelde incident, de waarschuwing of het geplande onderhoudsevenement (beschrijving, ernst, huidige status, getroffen monitoren, grondoorzaak, statustijdlijn en openbare notities), of wie het runbook met de hand startte. |
 

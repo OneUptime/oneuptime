@@ -338,24 +338,30 @@ describe("ClusterAccessContext names the access target by its kind", () => {
     }
   });
 
-  it("names a Runner reached with a credential and its credential", () => {
+  /*
+   * A Runner outside the cluster was named with the runbook credential it
+   * reached the cluster with, until runbook credentials were removed. The
+   * section names no credential now, whatever the status carries.
+   */
+  it("names no credential, even for a status that still carries one", () => {
     const section: string = ClusterAccessContext.buildContextSection([
-      status({
-        runner: {
-          id: "44444444-4444-4444-8444-444444444444",
-          name: "platform-ops-runner",
-          kind: "runner",
-          isOnline: true,
-          canRunAiCommands: true,
-        },
-        accessMethod: "credential",
+      {
+        ...status({
+          runner: {
+            id: "44444444-4444-4444-8444-444444444444",
+            name: "platform-ops-runner",
+            kind: "runner",
+            isOnline: true,
+            canRunAiCommands: true,
+          },
+          accessMethod: "none",
+        }),
         credentialName: "prod-us kubeconfig",
-      }),
+      } as KubernetesClusterAiAccessStatus,
     ]);
 
-    expect(section).toContain(
-      '(Runner "platform-ops-runner" with credential "prod-us kubeconfig")',
-    );
+    expect(section).not.toContain("credential");
+    expect(section).not.toContain("prod-us kubeconfig");
   });
 
   it("the describers: the agent by role, a Runner by name", () => {

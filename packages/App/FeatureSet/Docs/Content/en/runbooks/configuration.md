@@ -40,12 +40,12 @@ flowchart TB
 
 ## How Runner steps are dispatched
 
-JavaScript, Bash, SSH and kubectl steps **never execute on the OneUptime Worker**. They are dispatched as jobs to a specific [Runbook Agent](/docs/runbooks/agents): a small process you install on a host inside your own infrastructure. A JavaScript step that picks none goes to the [global Runners](/docs/runbooks/agents#global-runners) OneUptime runs for every project.
+JavaScript, Bash, SSH and kubectl steps **never execute on the OneUptime Worker**. They are dispatched as jobs to a specific [Runbook Agent](/docs/runbooks/agents): a small process you install on a host inside your own infrastructure. A step that picks none goes to the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), if it has one; a JavaScript step otherwise goes to the [global Runners](/docs/runbooks/agents#global-runners) OneUptime runs for every project.
 
 The dispatch model:
 
 1. The runbook step author picks a Runner from the dropdown when writing the step.
-2. When the step runs, the Worker inserts a row in `RunnerJob` with `targetAgentId` set to that Runner's ID and status `Pending`. A JavaScript step that picked none, in a project that uses global Runners, gets `runsOnGlobalRunner` instead.
+2. When the step runs, the Worker inserts a row in `RunnerJob` with `targetAgentId` set to that Runner's ID, or to the project's default Runner's for a step that picked none, and status `Pending`. A JavaScript step that picked none, in a project with no default Runner that uses global Runners, gets `runsOnGlobalRunner` instead.
 3. That specific Runner (and only that Runner) atomically claims the job, runs it locally — Bash and kubectl via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox, SSH through a connection to the machine, each with the variables it names filled in — and posts the result back. Any global Runner may claim a job with `runsOnGlobalRunner`.
 4. The Worker resumes the runbook with the result.
 
@@ -78,7 +78,7 @@ A role runs the runbooks its scope reaches. A `RunbookMember`, `RunbookAdmin` or
 
 A runbook's schedule and webhook start runs with nobody there, so setting either up takes permission to edit the runbook and to run it, and so does seeing its webhook URL. Turning either off takes only permission to edit it. See [Runbook Triggers](/docs/runbooks/triggers#who-may-set-up-triggers).
 
-Runbook variables and credentials sit outside `RunbookAdmin`, which only reads variables, to pick them in the steps it writes. Managing variables takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` and `ReadRunbookSecret` permissions: the runbook secret permissions, which kept their names when secrets became variables. Managing credentials takes `ProjectOwner` or `ProjectAdmin`, or `CreateRunbookCredential`, `EditRunbookCredential`, `DeleteRunbookCredential` and `ReadRunbookCredential`. See [Runbook Variables](/docs/runbooks/variables) and [AI Access](/docs/runbooks/credentials).
+Runbook variables sit outside `RunbookAdmin`, which only reads them, to pick them in the steps it writes. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` and `ReadRunbookSecret` permissions: the runbook secret permissions, which kept their names when secrets became variables. See [Runbook Variables](/docs/runbooks/variables).
 
 The owner rules and label rules under **Runbooks → Settings** sit outside `RunbookAdmin` too. Managing them takes `ProjectOwner` or `ProjectAdmin`, or the `CreateRunbookOwnerRule` and `CreateRunbookLabelRule` permissions and their edit, delete and read counterparts.
 
@@ -92,12 +92,12 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 
 ## Hardening notes
 
-- **JavaScript, Bash, SSH and kubectl** run on a Runner host you control, not on the OneUptime Worker. JavaScript runs in a separate `isolated-vm` isolate with 128 MB of memory and no access to the Runner's filesystem or processes; it can make HTTP requests with `axios`, but requests to private networks, loopback and link-local addresses are refused. Bash runs via `bash -c`, with its timeout enforced on the Runner. A JavaScript step that picks none runs on a global Runner instead.
+- **JavaScript, Bash, SSH and kubectl** run on a Runner host you control, not on the OneUptime Worker. JavaScript runs in a separate `isolated-vm` isolate with 128 MB of memory and no access to the Runner's filesystem or processes; it can make HTTP requests with `axios`, but requests to private networks, loopback and link-local addresses are refused. Bash runs via `bash -c`, with its timeout enforced on the Runner. A JavaScript step that picks none runs on the project's default Runner or, with none set, on a global Runner.
 - **HTTP steps** use a permissive status validator, so a 4xx or 5xx response is recorded as a failed step rather than thrown, and the captured output reflects what the upstream actually returned. Redirects are not followed. The Worker never calls loopback or link-local addresses, such as a cloud metadata endpoint; on OneUptime Cloud it also refuses private network addresses, and a self-hosted OneUptime refuses them with `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true`.
 - **AI steps** never see private incident notes or Slack and Microsoft Teams messages, and earlier step output is scanned for secrets, which are redacted, before it reaches the model. Embedded images and long encoded data are left out of the prompt. See [AI](/docs/runbooks/authoring#ai).
-- **Global Runners** run JavaScript steps only, each in a sandbox made for that step and thrown away after it, reaching public internet addresses only, for 5 minutes at most, and at most three of one project's steps at once. They are handed only the secret variables of the step's own project that are switched on for global Runners, and never a credential; the bundled one holds its own key and nothing else of the server's. See [Global Runners](/docs/runbooks/agents#global-runners).
+- **Global Runners** run JavaScript steps only, each in a sandbox made for that step and thrown away after it, reaching public internet addresses only, for 5 minutes at most, and at most three of one project's steps at once. They are handed only the secret variables of the step's own project that are switched on for global Runners; the bundled one holds its own key and nothing else of the server's. See [Global Runners](/docs/runbooks/agents#global-runners).
 - **Runner auth** is by ID and secret key, set on the Runner container as environment variables. Server-side, the authoritative Runner identity comes from the database row keyed by the presented ID and key: a client cannot impersonate a different Runner even with a compromised key.
-- **Secret variables and credentials** are encrypted at rest, never returned by the API, and handed only to the Runners they list, when those claim a step or a command that names them. A secret variable is also handed to a global Runner that claims a step of the variable's own project, when the variable lets global Runners use it. The Runner replaces each secret a step was handed with `[REDACTED]` in what the step prints, and OneUptime does again before it stores the output.
+- **Secret variables** are encrypted at rest, never returned by the API, and handed only to the Runners they list, when those claim a step that names them. A secret variable is also handed to a global Runner that claims a step of the variable's own project, when the variable lets global Runners use it. The Runner replaces each secret a step was handed with `[REDACTED]` in what the step prints, and OneUptime does again before it stores the output.
 
 ## Database tables
 
@@ -106,9 +106,8 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 | `Runbook` | The template: name, slug, description, `isEnabled`, labels and the steps as JSON. |
 | `RunbookExecution` | One row per run, with nullable `incidentId`, `alertId` and `scheduledMaintenanceId` foreign keys and a JSON `stepExecutions` array snapshotting the steps and each step's state. |
 | `RunbookRule` | Auto-trigger rules, with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance), a many-to-many relationship to runbooks to start, and what they match on: a JSON `criteria` column (the conditions) plus many-to-many links to monitors, incident severities, alert severities, labels and monitor labels, and title, description, monitor name and monitor description patterns. |
-| `Runner` | One row per installed Runner: name, secret key, `lastAlive`, `connectionStatus`, host info and capabilities. A global Runner has `isGlobalRunner` set and no project. |
+| `Runner` | One row per installed Runner: name, secret key, `lastAlive`, `connectionStatus`, host info and capabilities. A global Runner has `isGlobalRunner` set and no project; the project's default Runner has `isProjectDefault` set. |
 | `RunnerJob` | One row per step dispatched to a Runner: `targetAgentId` (the Runner the step author picked), step type, script or payload, status (`Pending` → `Claimed` → `Running` → `Succeeded`, `Failed`, `TimedOut` or `Cancelled`), claim deadline, lease, output and exit code. `runsOnGlobalRunner` marks a step any global Runner may claim. |
-| `RunbookCredential` | The SSH and Kubernetes credentials OneUptime AI's commands use, with their secret fields encrypted, and the Runners they are assigned to. |
 | `RunbookVariable` | Runbook variables: the project's global ones, and a runbook's own, which name it in `runbookId`; a secret's value encrypted, and the Runners that may receive a secret. |
 
 ## Operational tips

@@ -1,4 +1,6 @@
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
+import IncidentPostmortemStatusService from "../../../Server/Services/IncidentPostmortemStatusService";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
@@ -47,7 +49,10 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
  *     acknowledged one is refused before anything is written;
  *   - a monitor status's priority can be changed by a signed-in caller (it
  *     used to be refused outright);
- *   - the project's last resolved state cannot be deleted.
+ *   - the project's last resolved state cannot be deleted;
+ *   - a new postmortem status lands just above the completed status, the
+ *     built-in ones keep their order and stay, and a project's own can go
+ *     anywhere or be deleted.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -140,15 +145,21 @@ const stub: (service: any, modelType: any) => Harness = (
     return harness.rows.map(toModel);
   }) as never);
 
-  // The rows a write targets, and the row an update reads before writing.
+  /*
+   * The rows a write targets, and the row an update reads before writing.
+   * A read of archived values (a create's look for an archived namesake,
+   * ArchivableValueGuard) finds none: no row here is archived.
+   */
   getJestSpyOn(service, "_findBy").mockImplementation((async (args: {
     query: Record<string, unknown>;
   }) => {
     return harness.rows
       .filter((row: Record<string, unknown>) => {
         return (
-          args.query["_id"] === undefined ||
-          String(row["_id"]) === String(args.query["_id"])
+          (args.query["_id"] === undefined ||
+            String(row["_id"]) === String(args.query["_id"])) &&
+          (args.query["isArchived"] === undefined ||
+            Boolean(row["isArchived"]) === args.query["isArchived"])
         );
       })
       .map(toModel);
@@ -451,5 +462,114 @@ describe("MonitorStatusService", () => {
       expect.objectContaining({ priority: 3 }),
     ]);
     expect(harness.written).toEqual([{ id: id(3), data: { priority: 2 } }]);
+  });
+});
+
+describe("IncidentPostmortemStatusService", () => {
+  let harness: Harness;
+
+  beforeEach(() => {
+    harness = stub(IncidentPostmortemStatusService, IncidentPostmortemStatus);
+    harness.rows = [
+      state(1, "Not Started", 1, { isNotStartedStatus: true }),
+      state(2, "Draft", 2, { isDraftStatus: true }),
+      state(3, "Completed", 3, { isCompletedStatus: true }),
+      state(4, "Not Needed", 4),
+    ];
+  });
+
+  test("a new status lands just above Completed, which steps down with Not Needed", async () => {
+    const created: IncidentPostmortemStatus = new IncidentPostmortemStatus();
+    created.name = "In Review";
+    created.color = Green;
+
+    await IncidentPostmortemStatusService.create({
+      data: created,
+      props: SIGNED_IN,
+    });
+
+    expect(harness.saved).toHaveLength(1);
+    expect(harness.saved[0]!["order"]).toBe(3);
+    expect(harness.written).toEqual([
+      { id: id(3), data: { order: 4 } },
+      { id: id(4), data: { order: 5 } },
+    ]);
+  });
+
+  test("a drag that would put Completed above Draft is refused, saying why", async () => {
+    await expect(
+      IncidentPostmortemStatusService.updateOneById({
+        id: new ObjectID(id(3)),
+        data: { order: 2 },
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      'A postmortem is started, drafted and then completed, so the completed status ("Completed") has to stay below the draft status ("Draft").',
+    );
+
+    expect(harness.repositoryUpdates).toEqual([]);
+    expect(harness.written).toEqual([]);
+  });
+
+  test("Not Needed is the project's own: it can be dragged above Completed", async () => {
+    await IncidentPostmortemStatusService.updateOneById({
+      id: new ObjectID(id(4)),
+      data: { order: 3 },
+      props: SIGNED_IN,
+    });
+
+    expect(harness.repositoryUpdates).toEqual([
+      expect.objectContaining({ order: 3 }),
+    ]);
+    expect(harness.written).toEqual([{ id: id(3), data: { order: 4 } }]);
+  });
+
+  test("renaming a built-in status is just an edit", async () => {
+    await IncidentPostmortemStatusService.updateOneById({
+      id: new ObjectID(id(2)),
+      data: { name: "Writing" },
+      props: SIGNED_IN,
+    });
+
+    expect(harness.repositoryUpdates).toEqual([
+      expect.objectContaining({ name: "Writing" }),
+    ]);
+  });
+
+  test("the project's only draft status cannot be deleted", async () => {
+    await expect(
+      IncidentPostmortemStatusService.deleteOneById({
+        id: new ObjectID(id(2)),
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      '"Draft" is the draft status of this project, and postmortems need one. It can be renamed, but not deleted.',
+    );
+
+    expect(harness.deleted).toBe(0);
+  });
+
+  test("Not Needed can be deleted, and nothing is renumbered", async () => {
+    await IncidentPostmortemStatusService.deleteOneById({
+      id: new ObjectID(id(4)),
+      props: SIGNED_IN,
+    });
+
+    expect(harness.deleted).toBe(1);
+    expect(harness.written).toEqual([]);
+  });
+
+  test("a built-in status is never archived", async () => {
+    await expect(
+      IncidentPostmortemStatusService.updateOneById({
+        id: new ObjectID(id(3)),
+        data: { isArchived: true },
+        props: SIGNED_IN,
+      }),
+    ).rejects.toThrow(
+      "Publishing a postmortem on a status page moves it to this status, so it can't be archived.",
+    );
+
+    expect(harness.repositoryUpdates).toEqual([]);
   });
 });

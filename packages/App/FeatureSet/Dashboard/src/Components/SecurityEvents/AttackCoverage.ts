@@ -7,7 +7,9 @@ import {
   resolveMitreTechniqueId,
 } from "Common/Types/SecurityEvent/MitreAttack";
 import SigmaRule from "Common/Types/SecurityEvent/SigmaRule";
-import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  detectionRuleHeader,
+} from "Common/Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 
 /*
  * Which parts of the ATT&CK matrix the project's detection rules cover, and
@@ -46,14 +48,18 @@ export interface RuleAttackTags {
   techniques: Array<string>;
 }
 
-// A rule's ATT&CK tags as matrix cells: parent techniques and tactic ids.
+/*
+ * A rule's ATT&CK tags as matrix cells: parent techniques and tactic ids.
+ * A correlation covers what its own tags name, or - without any - what the
+ * rules it reads do.
+ */
 export function readRuleAttackTags(
   sigmaRuleYaml: string,
 ): RuleAttackTags | null {
   let rule: SigmaRule;
 
   try {
-    rule = SigmaRuleParser.parse(sigmaRuleYaml);
+    rule = detectionRuleHeader(SigmaRuleSetParser.parse(sigmaRuleYaml));
   } catch {
     return null;
   }

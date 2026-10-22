@@ -111,7 +111,7 @@ As opções disponíveis dependem do tipo de monitor. Elas incluem destinos e po
 - As exclusões valem para sincronizações em massa e individuais. Elas são salvas no modelo, não escolhidas separadamente a cada sincronização.
 - Monitores novos continuam começando com os valores de campo do modelo. As exclusões afetam apenas a sincronização de monitores existentes.
 - Os critérios sempre são sincronizados. Uma sincronização só de critérios deixa como estão o intervalo de monitoramento, os rótulos e outras configurações no nível do monitor.
-- Modelos existentes não têm exclusões de campo até você configurá-las. Monitores de dispositivo de rede continuam mantendo automaticamente a própria vinculação ao dispositivo.
+- Modelos existentes não têm exclusões de campo até você configurá-las. Monitores de dispositivo de rede continuam mantendo automaticamente a própria vinculação ao dispositivo, e os monitores Ping, IP, Porta e NTP que uma importação da descoberta de rede criou para dispositivos continuam verificando o endereço de cada dispositivo.
 
 Em modelos com várias etapas, os valores protegidos são associados pelos IDs das etapas. Monitores de etapa única criados de forma independente também podem receber um modelo de etapa única. Se uma etapa protegida não puder ser associada, a sincronização é rejeitada antes de qualquer monitor ser atualizado, para que uma etapa nova ou reordenada não copie por engano o destino ou as credenciais de outra etapa.
 

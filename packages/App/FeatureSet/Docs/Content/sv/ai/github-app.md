@@ -14,6 +14,7 @@ OneUptime GitHub App är mer än en anslutning till din kod: du kan prata med de
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Varje kommando börjar med ett omnämnande av appen. Omnämnandet kan stå var s
 | Kommando | Vad som händer | Förstås också |
 | --- | --- | --- |
 | `@oneuptime review` | Klonar branchen, läser den ändrade koden och koden runt den, kontrollerar vad produktionen säger om den, och publicerar en granskning som en kommentar. Ändrar inget. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Granskar pull requesten mot produktion nu, oavsett vem som öppnade den: undantagen, operationerna, incidenterna och driftsättningarna kring den ändrade koden, i en kommentar som redigeras på plats (se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests)). Klonar ingenting och kör ingenting. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Klonar pull requestens egen branch, gör ändringen och pushar nya commits till den branchen. Öppnar aldrig en andra pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Allt du skriver efter omnämnandet som inte är ett känt kommando läses som en begäran om revidering, eftersom det nästan alltid är vad det är:
@@ -100,6 +102,8 @@ Det den hittar hamnar under en rubrik **Production context** i granskningen, var
 
 Inget behöver ställas in: tjänsterna är de som OneUptime hittar det här repositoriet för, precis som för en åtgärd (se [Produktionstelemetri i en åtgärd](/docs/ai/ai-agent#produktionstelemetri-i-en-åtgärd)). Frågorna läser bara, körs på OneUptime-servern och läser inget från en annan tjänst, ett annat projekt eller en privat incident. Ett repository vars tjänster inte skickar någon telemetri till projektet granskas utifrån enbart koden.
 
+Slå på **Granska pull-förfrågningar mot produktion** i repositoriets inställningar för att få varje pull request granskad mot produktion av sig själv: se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
+
 ## Vem som får ge den kommandon
 
 **Bara personer med write-, maintain- eller admin-behörighet till repositoriet.** OneUptime frågar GitHub om kommentatorns behörighet till det repositoriet varje gång; det litar inte på märket "contributor" som GitHub visar bredvid en kommentar, eftersom det beskriver tidigare aktivitet snarare än nuvarande behörighet.
@@ -118,11 +122,11 @@ Den ignorerar också alla kommentarer som en bot har skrivit, dess egna inräkna
 
 ## Vad det kostar och hur du begränsar det
 
-Varje kommando som startar arbete är en fullständig agentkörning: en klon, upp till 40 LLM-anrop och 100 000 utdatatokens, och ditt repositorys bygg- och testkommandon när du har satt dem. En gransknings frågor mot produktionen, högst 12, räknas mot samma 40 anrop.
+Varje kommando som startar arbete är en fullständig agentkörning: en klon, upp till 40 LLM-anrop och 100 000 utdatatokens, och, på en egen Runner, de bygg- och testkontroller som ditt repositorys `AGENTS.md` beskriver. En gransknings frågor mot produktionen, högst 12, räknas mot samma 40 anrop.
 
 GitHub-kommandon är AI-arbete utanför incidenter och larm, så ingen daglig gräns för åtgärdsuppgifter gäller för dem; projektets egna dagliga AI-gränser gäller, när projektet sätter dem. Den enda andra gränsen är den som redan styr uppgifterna i [Kod](/docs/ai/ai-agent):
 
-- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, på repositoriets sida **Inställningar**). **AI-rättnings-pull requests** står på **Ingen gräns** tills du väljer **En gräns**, eller **Inga**, som blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
+- **Taket för öppna pull requests** (**Max Open Fix Pull Requests**, under **Fler inställningar** på repositoriets sida **Inställningar**). **AI-rättnings-pull requests** står på **Ingen gräns** tills du väljer **En gräns**, eller **Inga**, som blockerar AI-åtgärds-pull-requests i det repositoriet. Granskningar och revideringar är undantagna: ingen av dem lägger till en pull request i din granskningskö.
 
 Bara en körning av ett slag är aktiv åt gången per issue eller pull request. Frågar du två gånger får du veta att den redan arbetar; ber du om en granskning medan en revidering körs startar båda, eftersom det är olika begäranden.
 
@@ -130,9 +134,9 @@ Om en körning inte kan starta säger appen varför i tråden: den fallerar aldr
 
 ## Stänga av den
 
-Varje repository har en brytare: **Respond to GitHub Commands**, på repositoriets sida **Inställningar**. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och talar om för alla som frågar var brytaren finns.
+Varje repository har en brytare: **Respond to GitHub Commands**, på repositoriets sida **Inställningar**. Den är på för alla repositorier och sparas så fort du slår om den. När den är av ignorerar appen omnämnanden, tilldelningar och utlösaretiketten i det repositoriet, och talar om för alla som frågar var brytaren finns.
 
-Samma sida har **GitHub Trigger Label**, om du vill ha en annan etikett än `oneuptime`.
+Samma sida har **GitHub Trigger Label** under **Fler inställningar**, om du vill ha en annan etikett än `oneuptime`.
 
 ## Vad du ska prenumerera på
 
@@ -142,7 +146,7 @@ Prenumerera i inställningarna **Permissions & events** för din GitHub App på:
 | --- | --- |
 | **Issue comment** | `@mention`-kommandon i issues och pull requests |
 | **Issues** | att tilldela en issue till appen, och utlösaretiketten |
-| **Pull request** | en granskning som begärts av appen |
+| **Pull request** | en granskning som begärts av appen, och produktionsgranskningar av pull requests när de öppnas och ändras |
 | **Pull request review** | ett omnämnande i texten i en inskickad granskning |
 | **Pull request review comment** | ett omnämnande i en inbäddad kommentar till diffen |
 

@@ -112,15 +112,13 @@ const RUNNER_LOADS: RegExp =
 // Every Dashboard and Admin Dashboard file that loads Runners, and why.
 const LOADS_RUNNERS: Record<string, string> = {
   "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts":
-    "the one picker's choices: the project's own Runners, the global ones, the switch; and the Runners a cluster's AI settings may bind",
+    "the one picker's choices: the project's own Runners, the global ones, the switch",
   "App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersTable.tsx":
     "Runbooks -> Runners: the global Runners, read-only",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners.tsx":
     "Runbooks -> Runners: the project's own",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView.tsx":
     "one Runner's own page",
-  "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials.tsx":
-    "which of the project's Runners may use a credential; a global Runner never gets one",
   "App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
     "which of the project's own Runners may use a secret variable; the global Runners have their own switch",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
@@ -160,6 +158,112 @@ describe("where a step runs is decided by one rule", () => {
     expect(decided).toBeGreaterThan(0);
     expect(written).not.toBeNull();
     expect(decided).toBeLessThan(written!.index);
+  });
+});
+
+/*
+ * The default order - the work's own Runner, its project's default Runner,
+ * the Global Runner where the work allows it - is read in one place on the
+ * server: GlobalRunnerChoice, which reads the project's default through
+ * RunnerService.findProjectDefaultRunner (only a Runner that may be the
+ * default: ProjectDefaultRunner). A second reading of it would send a step
+ * that picked no Runner somewhere the step editor does not show, or to a
+ * default the server passes over. Other work that picks a Runner (an auto
+ * remediation or investigation rule) asks
+ * GlobalRunnerChoice.decideByDefaultOrder, never the order itself.
+ */
+const CALLS_THE_DEFAULT_ORDER: RegExp = /\bdecideRunnerByDefaultOrder\(/;
+const READS_THE_PROJECT_DEFAULT: RegExp = /\.findProjectDefaultRunner\(/;
+const WRITES_THE_PROJECT_DEFAULT: RegExp =
+  /defaultColumn:\s*"isProjectDefault"/;
+// A query of the default Runner by its column.
+const QUERIES_THE_PROJECT_DEFAULT: RegExp = /isProjectDefault\s*:/;
+
+describe("where work that picked no Runner runs is decided by one default order", () => {
+  test("only the rule and its server reader call the default order on the server", () => {
+    const calling: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        // The Dashboard's picker reads it too: the last test here.
+        return (
+          !file.startsWith("App/FeatureSet/Dashboard/") &&
+          CALLS_THE_DEFAULT_ORDER.test(read(file))
+        );
+      },
+    ).sort();
+
+    expect(calling).toEqual([
+      "Common/Server/Utils/Runner/GlobalRunnerChoice.ts",
+      "Common/Types/Runner/RunnerChoice.ts",
+    ]);
+  });
+
+  test("only the server reader reads the project's default Runner", () => {
+    const reading: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return READS_THE_PROJECT_DEFAULT.test(read(file));
+      },
+    ).sort();
+
+    expect(reading).toEqual([
+      "Common/Server/Utils/Runner/GlobalRunnerChoice.ts",
+    ]);
+  });
+
+  test("RunnerService keeps one default per project, once the write succeeded, and reads it by the eligibility rule", () => {
+    const service: string = read("Common/Server/Services/RunnerService.ts");
+
+    // Twice: once from onCreateSuccess, once from onUpdateSuccess.
+    expect(
+      service.match(new RegExp(WRITES_THE_PROJECT_DEFAULT, "g")),
+    ).toHaveLength(2);
+    expect(service).toContain("ProjectDefaultRow.afterCreate({");
+    expect(service).toContain("ProjectDefaultRow.afterUpdate({");
+
+    const reader: string = service.slice(
+      service.indexOf("public async findProjectDefaultRunner("),
+    );
+
+    expect(reader).toContain("canBeProjectDefaultRunner(runner)");
+  });
+
+  test("the step editor's picker follows the same order, from the Dashboard", () => {
+    const model: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel.ts",
+    );
+
+    expect(CALLS_THE_DEFAULT_ORDER.test(model)).toBe(true);
+  });
+
+  /*
+   * A repository the GitHub App imports starts on the project's default
+   * Runner when the project has one: a pick written once, when it is
+   * imported, through GlobalRunnerChoice - never a second reading of the
+   * default. Once imported, the repository's own pick decides where its AI
+   * work runs (Types/Runner/CodeRepositoryRunner), as every pick does.
+   */
+  test("a repository the GitHub App imports starts on the project's default Runner, read through GlobalRunnerChoice", () => {
+    const service: string = read(
+      "Common/Server/Services/CodeRepositoryService.ts",
+    );
+    const defaults: string = service.slice(
+      service.indexOf("public static async getNewRepositoryDefaults("),
+    );
+    const body: string = defaults.slice(0, defaults.indexOf("\n  }\n"));
+
+    expect(body).toContain("GlobalRunnerChoice.findProjectDefaultRunnerId(");
+    expect(READS_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+    // Never a query of its own for the default (a comment may name it).
+    expect(QUERIES_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+
+    // Only new repositories: an import reads it where it creates one.
+    const importer: string = service.slice(
+      service.indexOf("public async importReposFromInstallation("),
+    );
+    expect(
+      importer.indexOf("Service.getNewRepositoryDefaults("),
+    ).toBeGreaterThan(
+      importer.indexOf("const codeRepository: Model = new Model();") - 400,
+    );
   });
 });
 
@@ -291,8 +395,9 @@ describe("a Runner is picked with one picker", () => {
     // The rule's choices hold no global Runner.
     const remediationChoices: string = loader.slice(
       loader.indexOf("public static async loadForRemediation("),
-      loader.indexOf("public static async loadForKubernetesCluster("),
+      loader.indexOf("public static async loadProjectRunners("),
     );
+    expect(remediationChoices.length).toBeGreaterThan(0);
     expect(remediationChoices).toContain("globalRunners: [],");
     expect(remediationChoices).not.toContain("loadGlobalRunners");
 
@@ -302,11 +407,13 @@ describe("a Runner is picked with one picker", () => {
   });
 
   /*
-   * A Kubernetes cluster's AI settings bind a Runner through the same
-   * loader (RunnerChoicesLoader.loadForKubernetesCluster): the project's own
-   * Runners only - a global Runner never runs OneUptime AI's commands.
+   * A Kubernetes cluster's AI settings bound a Runner through the same
+   * loader (RunnerChoicesLoader.loadForKubernetesCluster), with a runbook
+   * credential beside it. Runbook credentials were removed, and the
+   * cluster's Runner picker with them: the cluster's Kubernetes AI agent
+   * reaches it, and no Runner is picked there.
    */
-  test("a Kubernetes cluster's AI settings read the project's own Runners through the loader", () => {
+  test("a Kubernetes cluster's AI settings load no Runner at all", () => {
     const page: string = read(
       "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx",
     );
@@ -314,17 +421,9 @@ describe("a Runner is picked with one picker", () => {
       "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts",
     );
 
-    expect(page).toContain("RunnerChoicesLoader.loadForKubernetesCluster(");
+    expect(page).not.toContain("RunnerChoicesLoader");
+    expect(page).not.toContain("RunnerPicker");
     expect(RUNNER_LOADS.test(page)).toBe(false);
-
-    const clusterChoices: string = loader.slice(
-      loader.indexOf("public static async loadForKubernetesCluster("),
-    );
-    const body: string = clusterChoices.slice(
-      0,
-      clusterChoices.indexOf("\n  }\n"),
-    );
-    expect(body).toMatch(/query:\s*\{\s*projectId: projectId,?\s*\}/);
-    expect(body).not.toContain("global");
+    expect(loader).not.toContain("loadForKubernetesCluster");
   });
 });

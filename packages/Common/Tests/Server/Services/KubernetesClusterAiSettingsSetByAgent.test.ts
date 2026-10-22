@@ -4,7 +4,6 @@ import KubernetesClusterService, {
 } from "../../../Server/Services/KubernetesClusterService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import RunnerService from "../../../Server/Services/RunnerService";
-import RunnerAiCommandsPick from "../../../Server/Utils/Runner/RunnerAiCommandsPick";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
@@ -39,17 +38,21 @@ import { stubRowsCallerMayWriteLikeFindBy } from "../TestingUtils/RowsCallerMayW
  *  - re-posting the value the cluster has is no change (Terraform and the
  *    page post every field);
  *  - the kubectl allowlist and the Runner binding stay OneUptime's;
- *  - a cluster whose agent reports nothing (older than these settings), a
- *    cluster an operator configured while its agent uses its defaults, and
- *    a cluster bound to a Runner an operator chose keep OneUptime's
- *    settings, editable as before;
+ *  - a cluster whose agent reports nothing (older than these settings), and
+ *    a cluster an operator configured while its agent uses its defaults,
+ *    keep OneUptime's settings, editable as before;
+ *  - a cluster still bound to a Runner outside it is its agent's like any
+ *    other (such a Runner reached it with a Kubernetes runbook credential,
+ *    and kept OneUptime's settings, until runbook credentials were
+ *    removed), and no Runner is read to decide it;
  *  - the server's own (root) writes are never refused — that is how the
  *    agent's settings reach the cluster;
  *  - when the agents cannot be read, a change is refused (fail closed);
  *  - a write on an agent-set cluster marks nothing configured, so the
  *    agent's defaults keep deciding;
- *  - clearing the Runner binding hands the cluster back to its agent, whose
- *    reported settings apply at once.
+ *  - clearing the Runner binding applies the agent's reported settings at
+ *    once (a cluster that was bound to a Runner outside it may still hold
+ *    the settings an operator chose while that Runner ran its kubectl).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -181,7 +184,6 @@ function cluster(
     aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     aiKubectlCommandAllowlist: null,
     aiAccessRunnerId: null,
-    aiAccessCredentialId: null,
     aiAccessConfiguredAt: null,
     ...overrides,
   } as unknown as KubernetesCluster;
@@ -214,6 +216,7 @@ function agents(
   );
 }
 
+// A Runner outside every cluster, still bound to one (before the removal).
 function advancedRunner(): Runner {
   return {
     id: RUNNER_ID,
@@ -233,15 +236,6 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
-  /*
-   * Binding a Runner lets it run OneUptime AI's commands
-   * (RunnerAiCommandsPick): a write of the Runner, read from the database,
-   * which these unit tests do not have.
-   */
-  jest
-    .spyOn(RunnerAiCommandsPick, "allowPickedRunners")
-    .mockResolvedValue(undefined);
-
   clusterLookup = jest
     .spyOn(KubernetesClusterService, "findBy")
     .mockResolvedValue([cluster()]);
@@ -487,14 +481,6 @@ describe("clusters whose settings stay OneUptime's", () => {
           ]);
         },
       ],
-      [
-        "a cluster bound to a Runner an operator chose",
-        (): void => {
-          clusterLookup.mockResolvedValue([
-            cluster({ aiAccessRunnerId: RUNNER_ID }),
-          ]);
-        },
-      ],
     ];
 
   it.each(CASES)(
@@ -514,22 +500,25 @@ describe("clusters whose settings stay OneUptime's", () => {
     },
   );
 
-  it("a cluster bound to a Runner reads that Runner once, in its project", async () => {
+  /*
+   * A cluster bound to a Runner an operator chose kept OneUptime's settings:
+   * that Runner, not the agent, ran AI's kubectl, with the cluster's
+   * Kubernetes runbook credential. Runbook credentials were removed, and
+   * such a binding with them: the agent decides, and no Runner is read.
+   */
+  it("a cluster still bound to a Runner outside it is its agent's: a change is refused, and no Runner is read", async () => {
     clusterLookup.mockResolvedValue([cluster({ aiAccessRunnerId: RUNNER_ID })]);
 
-    await refusalOf(
-      { isAiInvestigationEnabled: false },
-      propsWith(Permission.ProjectAdmin),
-    );
-
-    expect(boundRunnerLookup).toHaveBeenCalledTimes(1);
-    const query: Record<string, unknown> = (
-      boundRunnerLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
-    ).query;
-    expect(query["projectId"]!.toString()).toBe(PROJECT_ID.toString());
+    expect(
+      await refusalOf(
+        { isAiInvestigationEnabled: false },
+        propsWith(Permission.ProjectAdmin),
+      ),
+    ).toBe(getAgentSetAiAccessRefusal("agent_configuration"));
+    expect(boundRunnerLookup).not.toHaveBeenCalled();
   });
 
-  it("the chart's own previous Runner is no operator's choice: the agent still decides", async () => {
+  it("the chart's own previous Runner: the agent decides too", async () => {
     clusterLookup.mockResolvedValue([cluster({ aiAccessRunnerId: RUNNER_ID })]);
     boundRunnerLookup.mockResolvedValue([
       {
@@ -586,7 +575,7 @@ describe("when the agents cannot be read", () => {
   });
 });
 
-describe("clearing the Runner binding hands the cluster back to its agent", () => {
+describe("clearing the Runner binding applies what the agent reports at once", () => {
   beforeEach(() => {
     clusterLookup.mockResolvedValue([cluster({ aiAccessRunnerId: RUNNER_ID })]);
   });
@@ -607,13 +596,9 @@ describe("clearing the Runner binding hands the cluster back to its agent", () =
     expect(call.kubernetesClusterId.toString()).toBe(CLUSTER_ID.toString());
   });
 
-  it("negative control: binding a Runner, or clearing only the credential, does not", async () => {
+  it("negative control: re-posting the Runner bound does not", async () => {
     await runUpdate(
       { aiAccessRunnerId: RUNNER_ID },
-      propsWith(Permission.ProjectAdmin),
-    );
-    await runUpdate(
-      { aiAccessCredentialId: null },
       propsWith(Permission.ProjectAdmin),
     );
 

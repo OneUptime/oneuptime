@@ -32,7 +32,8 @@ import {
  *      reaches them, so a new member hears about High and Critical cases
  *      without setting anything up;
  *   3. a setting's priority choice is a priority, and only the New Security
- *      Case setting has one.
+ *      Case setting has one - judged, on an update, by the rows the update
+ *      writes (findRowsAndHoldUpdateToThem), never by a read of its query.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -191,23 +192,37 @@ describe("UserNotificationSettingService security case priority choice", () => {
     } as unknown as UpdateBy<UserNotificationSetting>;
   }
 
-  let otherEventRows: number;
+  /*
+   * The events of the rows an update writes, as findRowsAndHoldUpdateToThem
+   * reads them - the rows the caller may write that the update names, the
+   * update held to them.
+   */
+  let eventsWritten: Array<NotificationSettingEventType>;
 
   beforeEach(() => {
-    otherEventRows = 0;
+    eventsWritten = [
+      NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+    ];
 
+    // The duplicate check on create: no row of the event yet.
     jest
       .spyOn(UserNotificationSettingService, "countBy")
-      .mockImplementation(((args: {
-        query: JSONObject;
-      }): Promise<PositiveNumber> => {
-        // The duplicate check on create asks without an eventType filter of its own.
-        if (args.query["_id"]) {
-          return Promise.resolve(new PositiveNumber(otherEventRows));
-        }
+      .mockResolvedValue(new PositiveNumber(0));
 
-        return Promise.resolve(new PositiveNumber(0));
-      }) as never);
+    jest
+      .spyOn(UserNotificationSettingService, "findRowsAndHoldUpdateToThem")
+      .mockImplementation(async (): Promise<Array<UserNotificationSetting>> => {
+        return eventsWritten.map(
+          (
+            eventType: NotificationSettingEventType,
+          ): UserNotificationSetting => {
+            const row: UserNotificationSetting = new UserNotificationSetting();
+            row._id = ROW_ID.toString();
+            row.eventType = eventType;
+            return row;
+          },
+        );
+      });
   });
 
   afterEach(() => {
@@ -269,7 +284,9 @@ describe("UserNotificationSettingService security case priority choice", () => {
     );
 
     // The row updated is another event's.
-    otherEventRows = 1;
+    eventsWritten = [
+      NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
+    ];
     await expect(
       service.onBeforeUpdate(
         updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
@@ -277,6 +294,52 @@ describe("UserNotificationSettingService security case priority choice", () => {
     ).rejects.toThrow(
       "Only the New Security Case setting has a priority to choose.",
     );
+
+    // One row of another event among those the update writes is enough.
+    eventsWritten = [
+      NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+    ];
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+      ),
+    ).rejects.toThrow(
+      "Only the New Security Case setting has a priority to choose.",
+    );
+  });
+
+  test("judges the rows the update writes: the update itself is handed to findRowsAndHoldUpdateToThem", async () => {
+    const update: UpdateBy<UserNotificationSetting> = updateBy({
+      minimumSecurityCasePriority: SecurityCasePriority.High,
+    });
+
+    await service.onBeforeUpdate(update);
+
+    expect(
+      UserNotificationSettingService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledTimes(1);
+    // The update itself, so it is held to the rows read.
+    expect(
+      jest.mocked(UserNotificationSettingService.findRowsAndHoldUpdateToThem)
+        .mock.calls[0]![0],
+    ).toBe(update);
+    expect(
+      jest.mocked(UserNotificationSettingService.findRowsAndHoldUpdateToThem)
+        .mock.calls[0]![1],
+    ).toEqual({ eventType: true });
+    // No count of its own over the update's query.
+    expect(UserNotificationSettingService.countBy).not.toHaveBeenCalled();
+  });
+
+  test("an update that writes no row goes through", async () => {
+    eventsWritten = [];
+
+    await expect(
+      service.onBeforeUpdate(
+        updateBy({ minimumSecurityCasePriority: SecurityCasePriority.Low }),
+      ),
+    ).resolves.toEqual(expect.objectContaining({ carryForward: null }));
   });
 
   test("an update of the New Security Case row, or of channels only, goes through", async () => {
@@ -290,6 +353,8 @@ describe("UserNotificationSettingService security case priority choice", () => {
       service.onBeforeUpdate(updateBy({ alertByEmail: false })),
     ).resolves.toBeDefined();
     // A channel switch asks nothing of the database.
-    expect(UserNotificationSettingService.countBy).toHaveBeenCalledTimes(1);
+    expect(
+      UserNotificationSettingService.findRowsAndHoldUpdateToThem,
+    ).toHaveBeenCalledTimes(1);
   });
 });

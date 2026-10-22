@@ -19,6 +19,10 @@ import {
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import {
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
@@ -48,19 +52,19 @@ import {
  * The approval-time re-check of a CommandPlan's kubectl commands
  * (Common/Server/API/AutoRemediationAPI.ts, POST /auto-remediation/approve).
  *
- * A plan names the cluster, the Runner and the credential each kubectl
- * command was composed for. Between composition and the Approve click an
- * operator may have switched the cluster's remediation off, re-pointed it
- * at another Runner, swapped its credential, or the agent may have gone
- * offline. CommandPlanExecutor hard-stops on exactly these conditions right
+ * A plan names the cluster and the Runner (or agent) each kubectl command
+ * was composed for. Between composition and the Approve click an operator
+ * may have switched the cluster's remediation off, re-pointed it at
+ * another Runner, or the agent may have gone offline. (A plan named the
+ * runbook credential too, until runbook credentials were removed: one a
+ * stored command still names is not read.) CommandPlanExecutor hard-stops on exactly these conditions right
  * before each command runs; the route re-reads the cluster's AI access
  * status so the click itself fails, with the first blocking gap named,
  * instead of claiming the plan and stopping one command in.
  *
  * Pinned here:
- * - a cluster that is gone, not remediation-ready, bound to a different
- *   Runner or reached with a different credential rejects the plan BEFORE
- *   the CAS claim and the executor;
+ * - a cluster that is gone, not remediation-ready, or bound to a different
+ *   Runner rejects the plan BEFORE the CAS claim and the executor;
  * - the refusal names the cluster and, for a readiness gap, the gap;
  * - the check runs after the project's Enable AI check (the only project
  *   switch: with it off no cluster is read at all) and the Runner consent
@@ -68,9 +72,10 @@ import {
  * - a plan whose clusters all still match proceeds to the claim;
  * - each cluster is read once however many commands target it, and
  *   non-kubectl commands never trigger a cluster read;
- * - a Bash/SSH step aimed at a cluster's in-cluster kubectl agent (by its
+ * - a Bash step aimed at a cluster's in-cluster kubectl agent (by its
  *   server-owned name or its posture) fails the click, while a Kubectl
- *   step naming that same Runner passes.
+ *   step naming that same Runner passes; an SSH step fails it whatever it
+ *   aims at.
  * ---------------------------------------------------------------------------
  */
 
@@ -574,32 +579,14 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     expect(error.message).toContain("no longer reached through Runner");
   });
 
-  test("rejects when the cluster's credential differs from the command's — in either direction", async () => {
-    // Plan composed in-cluster; the cluster now uses a credential.
-    statusSpy.mockResolvedValue(
-      readyStatus({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-    );
-
-    let error: BadDataException = expectRefusedBeforeClaim(await callApprove());
-    expect(error.message).toContain(
-      "no longer reached with the credential this plan was composed for",
-    );
-
-    // Plan composed with a credential; the cluster now has none (or another).
-    jest.clearAllMocks();
+  /*
+   * A plan composed before runbook credentials were removed may name one on
+   * a kubectl command. Nothing reads it: the command is judged by its
+   * cluster and Runner alone.
+   */
+  test("a credential a stored kubectl command still names is not read: the Runner decides", async () => {
     mockCommands([kubectlCommandJson({ credentialId: CREDENTIAL_ID })]);
     statusSpy.mockResolvedValue(readyStatus());
-
-    error = expectRefusedBeforeClaim(await callApprove());
-    expect(error.message).toContain(
-      "no longer reached with the credential this plan was composed for",
-    );
-
-    // Same credential on both sides: fine.
-    jest.clearAllMocks();
-    statusSpy.mockResolvedValue(
-      readyStatus({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-    );
 
     const ok: RouteCallResult = await callApprove();
     expect(ok.nextCallCount).toBe(0);
@@ -721,15 +708,12 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     ).toEqual(expect.objectContaining({ name: true, hostInfo: true }));
   });
 
-  test("rejects an SSH step on a Runner whose posture says it is a cluster's in-cluster agent", async () => {
-    /*
-     * An approver who may read runbook credentials, so what refuses is the
-     * Runner the step aims at rather than the credential it runs with.
-     */
-    jest
-      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockResolvedValue(buildUserProps([Permission.ReadRunbookCredential]));
-
+  /*
+   * An SSH step reached its host with a runbook credential, and runbook
+   * credentials were removed: whatever Runner it aims at, the click fails
+   * with the removal's reason, before any Runner or cluster is read.
+   */
+  test("rejects an SSH step whatever Runner it aims at: runbook credentials were removed", async () => {
     mockCommands([
       bashCommandJson({
         stepType: RunbookStepType.SSH,
@@ -748,7 +732,10 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
       await callApprove(),
     );
 
-    expect(error.message).toContain("Command 1 is a SSH step");
+    expect(error.message).toBe(
+      `Command 1 of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
+    );
+    expect(runnerFindSpy).not.toHaveBeenCalled();
     expect(statusSpy).not.toHaveBeenCalled();
   });
 

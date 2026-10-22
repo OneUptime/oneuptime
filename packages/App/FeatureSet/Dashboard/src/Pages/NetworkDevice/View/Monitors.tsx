@@ -17,10 +17,12 @@ import React, {
 } from "react";
 
 /*
- * Monitors page for one device: the monitor bound to it plus every Network
- * Device monitor watching it, with current status and a create path when
- * none exist. Monitors are how a device gets metrics, alerting, and incident
- * automation - and for a monitor-backed device, its status at all.
+ * Monitors page for one device: the monitor bound to it, every Network
+ * Device monitor watching it, and the Ping, IP, Port and NTP monitors a
+ * discovery import made for it (OneUptime issue #5145), with current status
+ * and a create path when none exist. Monitors are how a device gets metrics,
+ * alerting, and incident automation - and for a monitor-backed device, its
+ * status at all.
  */
 const NetworkDeviceMonitors: FunctionComponent<
   PageComponentProps

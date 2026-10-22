@@ -35,20 +35,32 @@ import {
   ocsfSeverityForConfidence,
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+  RecommendedThreatIntelList,
+  THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS,
+  THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS,
+  THREAT_INTEL_LIST_MAX_INDICATORS,
+  THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES,
+  THREAT_INTEL_LIST_VALID_DAYS,
+} from "Common/Types/SecurityEvent/ThreatIntelFeedType";
+import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
+  SecurityEventsGuideTemplate,
+  fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
 
 /*
- * What a customer needs to know to trust a threat intel feed: what is
- * polled, which indicators are kept, how they reach events, what a match
- * opens, and how an indicator's confidence becomes a threat level. Every
- * claim mirrors ThreatIntelFeedPoller, StixPatternParser,
- * ThreatIntelEnricher and ThreatIntelMatcher; numbers come from the
- * constants those files run on, and the example patterns, confidence
- * bands and Sigma rule are exported so tests can check them against the
- * real parser and severity mapping.
+ * What a customer needs to know to trust a threat intel feed: where its
+ * indicators come from (a list, a TAXII collection or Google SecOps), which
+ * are kept, how they reach events, what a match opens, and how an
+ * indicator's confidence becomes a threat level. Every claim mirrors
+ * ThreatIntelFeedPoller, ThreatIntelListSource, GoogleSecOpsIndicatorSource,
+ * StixPatternParser, ThreatIntelEnricher and ThreatIntelMatcher; numbers
+ * come from the constants those files run on, and the example patterns,
+ * confidence bands and Sigma rule are exported so tests can check them
+ * against the real parser and severity mapping.
  */
 
 const LOOKBACK_IN_HOURS: number =
@@ -174,32 +186,90 @@ const indicatorTypeRows: Array<Array<string>> = (
 });
 
 const overviewMarkdown: string = `
-A threat intel feed subscribes one **TAXII 2.1** collection — your own MISP or OpenCTI instance, or a commercial provider's — and turns its **STIX 2.1** indicators (known-bad IP addresses, domains, URLs, email addresses and file hashes) into matches against your security events. OneUptime ships no feed content of its own: you bring the collections, the same way you bring the Sigma rules.
+A threat intel feed reads one source of known-bad IP addresses, domains, URLs, email addresses and file hashes, and turns them into matches against your security events. Its **Source** is one of:
+
+- **List of indicators**: a list at an https address, one value a line. **Free Lists**, above the feeds, add the free blocklists most teams start with in one click.
+- **TAXII collection**: the **STIX 2.1** indicators of a **TAXII 2.1** collection — your own MISP or OpenCTI instance, an ISAC, or a commercial provider.
+- **Google SecOps**: the indicators Google SecOps's threat intelligence found in your events there, read through a Google SecOps connection.
 
 #### From indicator to alert
 
-1. **Poll.** Every *Poll Interval* minutes (default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES}), OneUptime fetches the objects added to the collection since the last poll.
-2. **Keep the indicators.** Supported indicator patterns become indicators — one per value — each with its confidence and an expiry date. Indicators below the feed's *Minimum Confidence* are skipped.
+1. **Read the source.** Every *Poll Interval* minutes (default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES}), OneUptime downloads the list, fetches the objects added to the collection since the last poll, or reads the matches Google SecOps recorded since then.
+2. **Keep the indicators.** Each value becomes an indicator with its confidence and an expiry date. Indicators below the feed's *Minimum Confidence* are skipped.
 3. **Check events.** New events that mention an active indicator are tagged with \`threat.*\` attributes as they arrive, and every minute a matcher checks recent events against the feed.
-4. **Act on matches.** A match records a **Threat Intel finding** in the event stream and opens one alert per indicator value (deduplicated while it stays open), optionally an incident.
+4. **Act on matches.** A match records a **Threat Intel finding** in the event stream, opens a **case** about the indicator (or joins the open one), and opens one alert per indicator value (deduplicated while it stays open), optionally an incident.
 
 #### Reading the table
 
-The columns split into the **polling** side and the **matching** side, so a broken TAXII server and a broken match are easy to tell apart.
-
 | Column | What it tells you |
 | --- | --- |
-| **Last Polled** | When the collection was last fetched. |
-| **Last Poll Summary** | What that poll did: objects fetched, indicator values stored, and how many were skipped as unsupported, below minimum confidence, or already inactive. It says so when more pages remain. |
-| **Last Error** | Why the last poll failed — the failing step and the start of the server's response. It clears on the next successful poll. |
-| **Last Evaluated** | When the feed's indicators were last matched against events. |
+| **Source** | Where the feed's indicators come from: a list, a TAXII collection or Google SecOps. |
+| **Status** | Whether the feed works: **Enabled** when its last poll and check came back clean, **Poll failed** or **Matching failed** when one of them failed, **Needs attention** when a check left a note, **Waiting for first poll** while a new feed waits for its first poll, and **Disabled**. |
+| **Last Polled** | When the source was last read. |
 | **Last Match** | The last check that found at least one match. |
-| **Last Match Error** | Why the last match check failed. It clears on the next successful check. |
+| **Last Poll Summary** | What that poll did: the indicators read and stored, and how many were skipped as unsupported, below minimum confidence, or already inactive. It says so when more pages remain. |
+
+When there is something to read, **View Error** in the feed's row shows it in full: **Last Error** for the polling side (the failing step and the start of the server's response) and **Last Match Error** for the matching side, so a source that cannot be read and a broken match are easy to tell apart. Each clears on the next successful poll or check.
+
+**Interval (Minutes)**, **Last Error**, **Last Evaluated** (when the indicators were last matched against events) and **Last Match Error** start hidden: turn them on under the table's **Columns**.
 
 The **Indicators** table below the feeds lists every indicator that has been ingested — see **Indicators**.
 `;
 
+// How often a free list is read, as its tile says it: every day, every hour.
+export function describeListSchedule(minutes: number): string {
+  const MINUTES_IN_DAY: number = 24 * 60;
+
+  if (minutes % MINUTES_IN_DAY === 0) {
+    const days: number = minutes / MINUTES_IN_DAY;
+    return days === 1 ? "Every day" : `Every ${days} days`;
+  }
+
+  if (minutes % 60 === 0) {
+    const hours: number = minutes / 60;
+    return hours === 1 ? "Every hour" : `Every ${hours} hours`;
+  }
+
+  return minutes === 1 ? "Every minute" : `Every ${minutes} minutes`;
+}
+
+const recommendedListRows: Array<Array<string>> =
+  RECOMMENDED_THREAT_INTEL_LISTS.map(
+    (list: RecommendedThreatIntelList): Array<string> => {
+      return [
+        list.title,
+        list.provider,
+        describeListSchedule(list.pollIntervalInMinutes),
+        String(list.indicatorConfidence),
+        list.raisesAlerts ? "A case and an alert" : "A case",
+      ];
+    },
+  );
+
 const feedsAndPollingMarkdown: string = `
+#### Adding a free list
+
+**Free Lists**, above the feeds, adds a free blocklist in one click: **Add List** creates a list feed that downloads it on the list's schedule. A list the project reads already says **Added**.
+
+${markdownTable(["List", "Published by", "Read", "Confidence", "A match opens"], recommendedListRows)}
+
+#### Subscribing a list
+
+| Field | What to enter |
+| --- | --- |
+| **List URL** | An \`https\` address that downloads a text file with one IP address, domain, URL or file hash a line. |
+| **Confidence** | How sure the list is, 1–100. Every indicator on the list gets it, and it sets their threat level; empty is Medium. |
+
+Each poll downloads the whole list and reads it a line at a time: the first value on a line, up to a space, tab, comma or semicolon. Comment lines (\`#\`, \`;\`, \`//\`) and address ranges are skipped. A list holds at most ${THREAT_INTEL_LIST_MAX_INDICATORS.toLocaleString("en-US")} indicators, and it is read every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES} minutes at most. A value stays active for ${THREAT_INTEL_LIST_VALID_DAYS} days after the poll that last read it, and a value the list drops stops matching at the next poll.
+
+#### Reading Google SecOps
+
+| Field | What to enter |
+| --- | --- |
+| **Google SecOps Connection** | The Google SecOps connection whose key reads the indicators. Its service account needs the Chronicle API Viewer role. |
+
+Each poll reads the indicator matches Google SecOps recorded since the previous poll; the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS} days. An indicator stays active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS} days after Google SecOps last saw it, and one an analyst muted there stops matching here too.
+
 #### Subscribing a collection
 
 | Field | What to enter |
@@ -214,9 +284,9 @@ Any TAXII 2.1 server that publishes STIX 2.1 \`indicator\` objects works — MIS
 
 #### Credentials
 
-Tokens and passwords are encrypted and are never shown again after you save them. To change them, use the row's **Update Credentials** action, which asks the feed's **Sign-in** again. Choosing a method there replaces the feed's sign-in: saving a token clears a stored basic-auth password and vice versa, and **No sign-in** clears both.
+A list is public, and Google SecOps signs in with its connection's key: only a TAXII feed has a sign-in of its own. Tokens and passwords are encrypted and are never shown again after you save them. To change them, use the row's **Update Credentials** action, which asks the feed's **Sign-in** again. Choosing a method there replaces the feed's sign-in: saving a token clears a stored basic-auth password and vice versa, and **No sign-in** clears both.
 
-#### Polling
+#### Polling a collection
 
 Each poll picks up where the last one stopped, so only new objects are fetched. A large collection syncs over several polls — **Last Poll Summary** says when more pages remain. To finish a big first sync sooner, shorten the poll interval (down to ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES} minute) until it catches up.
 
@@ -374,7 +444,20 @@ Minimum Confidence filters on the same number. For example, a minimum of 70 keep
 `;
 
 const troubleshootingMarkdown: string = `
-#### Last Error is set after a poll
+#### A list feed fails
+
+- The address must start with \`https://\`. On OneUptime Cloud it must also be a public address.
+- *The list URL answered with a web page*: the address opens a page (a sign-in or error page) rather than downloading the list.
+- *No IP address, domain, URL or file hash OneUptime can match*: the file is not one indicator a line.
+
+#### A Google SecOps feed fails
+
+- The connection was deleted, or is not a Google SecOps connection: edit the feed and choose one.
+- \`Google SecOps IOC matches search failed (HTTP 403)\`: the connection's service account cannot read indicator matches. Grant it the Chronicle API Viewer role. **View Error** quotes the rest of Google's answer.
+
+#### The Status reads Poll failed
+
+**View Error** in the feed's row shows the poll's message:
 
 - \`401\` or \`403\`: the credentials are wrong or missing — replace them with **Update Credentials**. A \`403\` can also be the provider's firewall blocking the user agent (see **Feeds & Polling**).
 - \`404\`: check the API Root URL — it usually ends in a path such as \`/api1/\` — and the Collection ID.
@@ -393,7 +476,7 @@ Read **Last Poll Summary**:
 
 - Matching compares indicator values with an event's **observables**, not with every field. Open an event you expected to match in **Events** and check its observables contain the value.
 - Only **Active** indicators match — check the Status column in the Indicators table.
-- Check **Last Match Error** on the feed.
+- If the feed's **Status** reads **Matching failed**, **View Error** in its row shows why.
 - Events whose timestamps fall before the feed's previous check are not matched on schedule.
 
 #### A match did not open an alert
@@ -406,8 +489,17 @@ Read **Last Poll Summary**:
 const threatLevels: Array<SecurityEventsGuideLevel> = [
   ...THREAT_LEVEL_BANDS.map(
     (band: ThreatLevelBand): SecurityEventsGuideLevel => {
+      const labelTemplate: SecurityEventsGuideTemplate = {
+        sentence: "Confidence {{from}}–{{to}}",
+        values: {
+          from: band.minimumConfidence,
+          to: band.maximumConfidence,
+        },
+      };
+
       return {
-        label: `Confidence ${formatBand(band)}`,
+        label: fillGuideTemplate(labelTemplate),
+        labelTemplate,
         severity: threatLevelForBand(band),
       };
     },
@@ -415,16 +507,28 @@ const threatLevels: Array<SecurityEventsGuideLevel> = [
   { label: "Not scored", severity: UNSCORED_THREAT_LEVEL },
 ];
 
+// The first step's sentence, as the card looks it up in the reader's language.
+const READ_THE_SOURCE: SecurityEventsGuideTemplate = {
+  sentence:
+    "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.",
+  values: {
+    min: THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
+    max: THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
+    default: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
+  },
+};
+
 const ThreatIntelGuide: SecurityEventsGuide = {
   id: "threat-intel",
   title: "How threat intel works",
   summary:
-    "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from STIX/TAXII collections, and alert when your security events mention them.",
+    "Threat intel feeds bring in known-bad IPs, domains, URLs, email addresses and file hashes from lists, TAXII collections and Google SecOps, and alert when your security events mention them.",
   steps: [
     {
-      title: "Poll the feed",
+      title: "Read the source",
       icon: IconProp.CloudArrowDown,
-      description: `Every ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES}–${THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES} minutes (default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES}), OneUptime fetches new STIX 2.1 indicators from your TAXII 2.1 collection.`,
+      description: fillGuideTemplate(READ_THE_SOURCE),
+      descriptionTemplate: READ_THE_SOURCE,
     },
     {
       title: "Keep the indicators",
@@ -442,19 +546,21 @@ const ThreatIntelGuide: SecurityEventsGuide = {
       title: "Alert on matches",
       icon: IconProp.BellAlert,
       description:
-        "Each matched indicator opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.",
+        "Each matched indicator opens or joins a case, opens one alert (deduplicated while it is open), optionally an incident, and records a Threat Intel finding.",
     },
   ],
   levels: {
     title: "Threat levels",
     description:
-      "An indicator's STIX confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.",
+      "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.",
+    linkText: "How threat levels are chosen",
     items: threatLevels,
     sectionId: "threat-levels",
   },
+  // Keys in SecurityEventsGuideCopy, which the card looks up when it opens.
   guideTitle: "Threat Intel Guide",
   guideDescription:
-    "How feeds are polled, how indicators reach your events, and how confidence becomes a threat level.",
+    "Where feeds come from, how indicators reach your events, and how confidence becomes a threat level.",
   sections: [
     { id: "overview", title: "Overview", markdown: overviewMarkdown },
     {

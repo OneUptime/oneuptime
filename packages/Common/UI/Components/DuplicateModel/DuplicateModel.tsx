@@ -18,6 +18,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
@@ -171,21 +172,33 @@ const DuplicateModel: <TBaseModel extends BaseModel>(
 
   type CreateCopyFunction = (partialModel: TBaseModel) => Promise<TBaseModel>;
 
-  // Reads the original, puts in what the dialog asked, and saves it as new.
+  /*
+   * Reads the original, puts in what the dialog asked, and saves it as new.
+   * An archived label (state, status) the original has stays with it: a new
+   * record never takes one (ArchivedValuePicker.withoutArchivedValues).
+   */
   const createCopy: CreateCopyFunction = async (
     partialModel: TBaseModel,
   ): Promise<TBaseModel> => {
-    const item: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
+    const original: TBaseModel | null = await ModelAPI.getItem<TBaseModel>({
       modelType: props.modelType,
       id: props.modelId,
-      select: props.fieldsToDuplicate,
+      select: ArchivedValuePicker.getCopySelect(
+        props.modelType,
+        props.fieldsToDuplicate,
+      ),
     });
 
-    if (!item) {
+    if (!original) {
       throw new Error(
         `Could not find ${model.singularName} with id ${props.modelId}`,
       );
     }
+
+    const item: TBaseModel = ArchivedValuePicker.withoutArchivedValues(
+      original,
+      props.fieldsToDuplicate,
+    );
 
     for (const field of props.fieldsToChange) {
       const key: string | undefined = Object.keys(field.field || {})[0];

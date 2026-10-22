@@ -8,6 +8,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 - [How a fix run works](#how-a-fix-run-works): From a click to a pull request, step by step.
 - [Where fix tasks start](#where-fix-tasks-start): The tasks OneUptime starts, and what each pull request does.
 - [Production telemetry in a fix](#production-telemetry-in-a-fix): What a fix reads of production while it writes the change.
+- [Production review of pull requests](#production-review-of-pull-requests): What production says about the code each pull request changes.
 - [Before you begin](#before-you-begin): A model, a connected repository and a Runner.
 - [When a fix fails](#when-a-fix-fails): What happens to a run that errors, stalls or waits.
 :::
@@ -20,7 +21,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 :::steps
 ### Open Code
 
-Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the connected repositories, and each repository's page has the same box for that repository.
+Open **Products → Code**. It opens on **What should AI do?**: the box where you ask, with every task under it, newest first. With no repository yet, it offers **Connect GitHub** instead (see [Before you begin](#before-you-begin)). **Repositories**, in its side menu, lists the repositories AI can work in, and folds those the GitHub App no longer reaches under **Not connected**. Each repository's page has the same box for that repository.
 
 ### Pick the repository and the branch
 
@@ -89,7 +90,7 @@ flowchart TB
 3. The Runner fetches the task's context. For a request, that is its words, the context added and the conversation so far; for an exception, its type, its message and its stack trace.
 4. It clones the repository into a workspace of its own and makes a branch. A fix of an exception is named `oneuptime-fix-exception-` followed by the first characters of the run's id. A request starts from the branch picked when it was asked, and its pull request opens into it. A reply works on the branch of the task's open pull request instead.
 5. A code agent, powered by your project's LLM provider, reads the code and writes the change. The OneUptime server makes the LLM calls, so the Runner never holds your provider's API key, and every call is metered and listed in the AI Logs. A fix of an exception, a slow trace or an incident also reads production while it works: the exceptions, traces, logs and metrics of the repository's services (see [Production telemetry in a fix](#production-telemetry-in-a-fix)).
-6. If the repository has verification commands, a Runner of your own builds and tests the change before committing anything, and hands a failure back to the code agent to repair (see [Verification before the pull request](#verification-before-the-pull-request)).
+6. On a Runner of your own, the code agent builds and tests its change the way the repository's `AGENTS.md` says before anything is committed, and repairs what fails (see [Verification before the pull request](#verification-before-the-pull-request)).
 7. The Runner commits, pushes the branch, opens the pull request (for a request, only when it changed code), and deletes the workspace.
 
 The page the task was started from shows its live status. Every task is listed in its repository under **Products → Code**: its page is its conversation, and each turn's **Log** has a line for every file the Runner read or wrote and every command it ran.
@@ -146,17 +147,41 @@ What the agent can read is decided by the OneUptime server, from the task itself
 
 When no service maps to the repository, the task runs without production telemetry, as before.
 
+## Production review of pull requests
+
+OneUptime holds what your code does in production, so it can review a pull request with what no one reading the diff can see. Turn on **Review Pull Requests Against Production** on a repository's **Settings** page in Code, and each pull request someone with write access opens or pushes to gets one comment saying what production shows of the code it changes. The comment is edited in place on every push, and the repository's **Production Reviews** page in Code keeps each review, with **Review again**.
+
+| It reads | Of the code the pull request changes |
+| --- | --- |
+| **Exceptions** | The exceptions thrown in the changed lines, functions and files in the last 7 days, new and unhandled ones marked. |
+| **Operations** | The traced operations that run the changed code in the last hour: their spans, errors and p95. |
+| **Hot functions** | The functions of the changed code that take a share of the services' profiles in the last hour. |
+| **Incidents** | The services' incidents of the last 30 days that are still open, or whose root cause or postmortem names the changed code. Never a private incident. |
+| **Deploys** | The services' deploys of the last 7 days that OneUptime suspects of a regression. |
+
+When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts nothing.
+
+- **Aggregates only.** The comment holds counts, durations and the names of code: never an exception's message, a log line, an incident's title or personal data.
+- **Public repositories get a link.** Anyone can read a public repository's pull requests, so there the comment only links to the review in OneUptime, which only the project's members can open. **Production Review Comment**, under **More settings** on the repository's **Settings** page, can post **Only a link to the review** everywhere, or **The review, even on a public repository**.
+- **Outside contributors cannot start one.** A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository. One from anyone else - an outside contributor, a fork, a bot - is reviewed when someone with write access comments `@oneuptime production review` on it, or presses **Review again** in Code.
+- **Read only.** A review clones nothing and runs nothing of the pull request. Its diff and title are data to OneUptime AI, never instructions: the AI has no tools, and what it writes is placed in the comment as text.
+
+The switch is on for the repositories the GitHub App connects from now on. A repository connected before it existed keeps it off until you turn it on.
+
 ## Verification before the pull request
 
-A repository can carry up to three verification commands on its **Settings** page in Code:
+A repository says how it is built and tested in an `AGENTS.md` at its root, the file coding agents read. Before the code agent changes anything, it reads the repository's `AGENTS.md` (or its `CLAUDE.md`, when it has no `AGENTS.md`) from the branch the task starts from, and works the way it says. With neither, it learns how from the repository's `CONTRIBUTING.md`, README, package scripts, `Makefile` or CI workflows. There is nothing to set up in OneUptime.
 
-| Command | Example | When it runs |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | First, to install dependencies. |
-| **Build Command** | `npm run build` | After setup. |
-| **Test Command** | `npm test` | Last. |
+| Where AI works | What it does with the repository's build and tests |
+| --- | --- |
+| One of your Runners | Builds and tests its change before the pull request opens, fixes what fails and checks again, and says in its summary which checks it ran. Each command it runs gets up to 2 minutes, without the Runner's own credentials in its environment. |
+| **Global Runner** | Runs no command: it writes the change and opens the pull request, and your repository's own CI checks it. |
 
-When any of them is set, every fix run checks its change before the pull request opens:
+Nothing from a pull request that comes from a fork is ever read as the repository's instructions: a revision refuses such a pull request, and a review reads the base branch.
+
+### Commands set on a repository
+
+Code no longer asks for setup, build and test commands, but a repository that has them, set before or through the API or Terraform, keeps them. They show read-only on the **Build and Test Commands** card, under **More settings** on the repository's **Settings** page, and **Remove Commands** removes all three. While any of them is set, every fix run on a Runner of your own also checks its change with them before the pull request opens:
 
 1. When the code agent finishes, the commands run in order at the root of the repository, on the Runner, in the cloned workspace. Each one gets up to 15 minutes and runs with `CI=true`, so nothing waits on a prompt; the first failure stops the pass.
 2. On a failure, the end of the failing command's output goes back to the same code agent as a repair task, with instructions to fix its own change rather than weaken or skip tests, and the commands run again. It makes at most **2** repair attempts. They share the run's LLM budget, and their edits land in the same commit as the fix.
@@ -205,12 +230,12 @@ You do not map repositories to services. When a task starts, OneUptime finds the
 
 ### Pick the repository's Runner
 
-Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit Settings** and pick one on the **Runner** step. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, click **Edit** on the **Runner** card and pick one. A repository the GitHub App imports starts on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), when it has one. A repository that picks none works on **Global Runner**, which OneUptime runs for every project.
 
 | Runner | What it does with a task |
 | --- | --- |
-| **Global Runner** | Writes the change and opens the pull request, without your setup, build and test commands: your repository's own CI checks the change. |
-| One of your Runners | Also runs your setup, build and test commands, on a host you control. |
+| **Global Runner** | Writes the change and opens the pull request without building or testing it: your repository's own CI checks the change. |
+| One of your Runners | Also builds and tests the change the way the repository's `AGENTS.md` says, on a host you control. |
 
 Only the Runner a repository picks is handed its tasks and a token for it. In a project that turns **Use global Runners** off under **Runbooks → Runners**, every repository needs one of the project's own Runners. A Runner's page lists the repositories that pick it.
 
@@ -233,7 +258,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Pick it for the repository
 
-On the repository's **Settings** page in Code, click **Edit Settings** and pick the Runner on the **Runner** step. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
+On the repository's **Settings** page in Code, click **Edit** on the **Runner** card and pick the Runner. The Runner picks the change up with its next heartbeat, within about a minute; there is nothing to restart.
 
 ### Check that it connects
 
@@ -253,13 +278,13 @@ Any way of running the container works (Docker Compose, Kubernetes and so on), a
 
 ## Automatic code fixes from investigations
 
-When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the investigation card offers **Open Fix PR from this analysis**: a fix task whose whole context is the posted analysis. The button is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while the switch **Open a fix pull request when an investigation finds a code change** is on. It is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings** (and under **Fix new alerts automatically** on **Alerts → AI → Settings**), comes on when fixing is turned on, and opens pull requests only while fixing is on. Both start off, for new projects too.
+When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or an alert, and its careful classification recommends a change to the code, the investigation card offers **Open Fix PR from this analysis**: a fix task whose whole context is the posted analysis. The button is hidden when the remedy is operational, infrastructure-only, external, an expected denial, a user error, or inconclusive. Eligible fixes happen without the click while **Fix new incidents automatically** is on, on **Incidents → AI → Settings** (and **Fix new alerts automatically** on **Alerts → AI → Settings**). Fixing starts off, for new projects too. With no auto remediation rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **Fix pull requests** on (a new rule does), in the code repositories it names.
 
-While it is on, an investigation that ends with a confident, evidenced root cause that a code change can fix queues the same fix task the button creates. The decision is a constrained classification the server checks, never a pattern matched against the analysis's text: only a positive code-fix verdict opens a pull request. Missing evidence, a remedy outside the code and a failed classification all end in doing nothing.
+While fixing is on, an investigation that ends with a confident, evidenced root cause that a code change can fix queues the same fix task the button creates. The decision is a constrained classification the server checks, never a pattern matched against the analysis's text: only a positive code-fix verdict opens a pull request. Missing evidence, a remedy outside the code and a failed classification all end in doing nothing.
 
 Everything else matches the button:
 
-- The pull request opens ready for review, written from the posted analysis, and needs a repository connected through the GitHub App and a Runner online to work in it: the one the repository picks, or a global Runner.
+- The pull request opens ready for review, written from the posted analysis, and needs a repository connected through the GitHub App, one the matching rules name when they name some, and a Runner online to work in it: the one the repository picks, or a global Runner.
 - It counts toward that signal's daily fix-task limit (**Daily Incident AI Fix Task Limit** or **Daily Alert AI Fix Task Limit**, under **More settings** on its AI settings page) and toward the repository's cap on open pull requests, when either is set. Unset, neither limits anything.
 - Every trigger first looks for a fix task already queued or running for the same incident or alert, so an automatic trigger and a click normally become one task, not two pull requests. The check is a read before the write, not a lock, so two triggers at the very same moment can still both get through.
 - The run is written by the system, not credited to anyone, and nothing merges on its own.

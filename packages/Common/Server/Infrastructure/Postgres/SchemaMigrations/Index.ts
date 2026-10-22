@@ -153,7 +153,21 @@ import { AddHostCollectorManagementIndexesAndKeys1805550000000 } from "./1805550
 import { AddSecurityProtectedEntity1805600000000 } from "./1805600000000-AddSecurityProtectedEntity";
 import { AddAIRunHandedBackCount1805650000000 } from "./1805650000000-AddAIRunHandedBackCount";
 import { AddSecurityCaseNotifications1805700000000 } from "./1805700000000-AddSecurityCaseNotifications";
-import { AddTelegramPollForUpdates1805750000000 } from "./1805750000000-AddTelegramPollForUpdates";
+import { AddRunnerProjectDefault1805720000000 } from "./1805720000000-AddRunnerProjectDefault";
+import { TurnOnGitHubCommandsByDefault1805760000000 } from "./1805760000000-TurnOnGitHubCommandsByDefault";
+import { TurnOnUnsetGitHubCommands1805770000000 } from "./1805770000000-TurnOnUnsetGitHubCommands";
+import { RemoveRunbookCredentials1805780000000 } from "./1805780000000-RemoveRunbookCredentials";
+import { AddArchiveToValues1805800000000 } from "./1805800000000-AddArchiveToValues";
+import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArchiveToValuesUserKeys";
+import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
+import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./1805830000000-MoveFixPullRequestSwitchesIntoRules";
+import { AddThreatIntelFeedConnectionIndexAndKey1805840000000 } from "./1805840000000-AddThreatIntelFeedConnectionIndexAndKey";
+import { AddIncidentPostmortemStatus1805900000000 } from "./1805900000000-AddIncidentPostmortemStatus";
+import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "./1805910000000-AddIncidentPostmortemStatusIndexesAndKey";
+import { AddProductionReviewToCodeRepository1805950000000 } from "./1805950000000-AddProductionReviewToCodeRepository";
+import { AddOnCallAcknowledgementTimeout1805960000000 } from "./1805960000000-AddOnCallAcknowledgementTimeout";
+import { AddOnCallAcknowledgementTimeoutIndex1805970000000 } from "./1805970000000-AddOnCallAcknowledgementTimeoutIndex";
+import { AddTelegramPollForUpdates1805980000000 } from "./1805980000000-AddTelegramPollForUpdates";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1509,5 +1523,19 @@ export default [
   AddSecurityProtectedEntity1805600000000,
   AddAIRunHandedBackCount1805650000000,
   AddSecurityCaseNotifications1805700000000,
-  AddTelegramPollForUpdates1805750000000,
+  AddRunnerProjectDefault1805720000000,
+  TurnOnGitHubCommandsByDefault1805760000000,
+  TurnOnUnsetGitHubCommands1805770000000,
+  RemoveRunbookCredentials1805780000000,
+  AddArchiveToValues1805800000000,
+  AddArchiveToValuesUserKeys1805810000000,
+  AddThreatIntelFeedSources1805820000000,
+  MoveFixPullRequestSwitchesIntoRules1805830000000,
+  AddThreatIntelFeedConnectionIndexAndKey1805840000000,
+  AddIncidentPostmortemStatus1805900000000,
+  AddIncidentPostmortemStatusIndexesAndKey1805910000000,
+  AddProductionReviewToCodeRepository1805950000000,
+  AddOnCallAcknowledgementTimeout1805960000000,
+  AddOnCallAcknowledgementTimeoutIndex1805970000000,
+  AddTelegramPollForUpdates1805980000000,
 ];

@@ -372,6 +372,15 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       codeAgentTask.productionTelemetry = true;
     }
 
+    /*
+     * A recipe out of the verification loop is out of the agent's own
+     * checks too: a regression test is written to fail, and "fix what
+     * fails" would undo it.
+     */
+    if (!this.runsVerification) {
+      codeAgentTask.skipsChangeChecks = true;
+    }
+
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
 
     /*

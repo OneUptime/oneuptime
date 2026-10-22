@@ -24,6 +24,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
+import { ProductionReviewPullRequestContent } from "../../Types/CodeRepository/ProductionReview";
 import URL from "../../Types/API/URL";
 import {
   Column,
@@ -476,7 +477,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Setup Command",
     description:
-      "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
+      "Optional. Leave it empty: the code agent learns how to set up, build and test the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root, in the cloned workspace, to install dependencies before the build and test commands check an AI-authored fix (e.g. 'npm ci').",
     example: "npm ci",
   })
   @Column({
@@ -519,7 +520,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Build Command",
     description:
-      "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
+      "Optional. Leave it empty: the code agent learns how to build the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root to check that an AI-authored fix builds (e.g. 'npm run build'); a failure is fed back to the code agent for bounded repair attempts before the pull request opens.",
     example: "npm run build",
   })
   @Column({
@@ -562,7 +563,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Test Command",
     description:
-      "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
+      "Optional. Leave it empty: the code agent learns how to test the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'); a failure is fed back to the code agent for bounded repair attempts before the pull request opens.",
     example: "npm test",
   })
   @Column({
@@ -574,8 +575,10 @@ export default class CodeRepository extends BaseModel {
 
   /*
    * The Runner AI works in this repository on (Types/Runner/
-   * CodeRepositoryRunner): it clones the repository, makes the change, runs
-   * the setup, build and test commands above and opens the pull request.
+   * CodeRepositoryRunner): it clones the repository, makes the change, builds
+   * and tests it the way the repository says to (its AGENTS.md first, and the
+   * setup, build and test commands above when an operator set them) and
+   * opens the pull request.
    * Only that Runner is handed the repository's AI work and a token for it.
    * Empty means a global Runner - the one OneUptime runs for every project -
    * while the project uses global Runners (Project.useGlobalRunners).
@@ -751,17 +754,28 @@ export default class CodeRepository extends BaseModel {
       Permission.EditCodeRepository,
     ],
   })
+  /*
+   * On for every repository unless someone turns it off. Nothing happens in
+   * a repository until a person with write access deliberately mentions the
+   * app, so the safe default and the useful one are the same. A null (a
+   * row from before the column had a default, or an API write of null)
+   * still means on: GitHubCommandAuthorizer.areCommandsEnabled reads
+   * `!== false`, and the Dashboard's switch reads the column's default.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: true,
     title: "Respond to GitHub Commands",
     description:
-      "Whether the OneUptime GitHub App acts on mentions, assignments and trigger labels in this repository. Only people with write access to the repository can command it, and it never merges anything. Unset means enabled.",
+      "Whether the OneUptime GitHub App acts on mentions, assignments and trigger labels in this repository. Only people with write access to the repository can command it, and it never merges anything. On by default.",
     example: true,
   })
   @Column({
     nullable: true,
     type: ColumnType.Boolean,
+    default: true,
   })
   public isGitHubCommandsEnabled?: boolean = undefined;
 
@@ -807,6 +821,102 @@ export default class CodeRepository extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public gitHubTriggerLabel?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  /*
+   * Whether OneUptime reviews this repository's pull requests against
+   * production on its own: when one opens, is pushed to, reopens or is
+   * marked ready for review, by someone who can write to the repository
+   * (Common/Server/Utils/CodeRepository/ProductionReview). On for the
+   * repositories the GitHub App connects from now on
+   * (CodeRepositoryService.getNewRepositoryDefaults); unset - every
+   * repository connected before it existed - is off: their pull requests
+   * never had a comment from OneUptime, and do not get one unasked.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Review Pull Requests Against Production",
+    description:
+      "Whether OneUptime comments on this repository's pull requests with what production says about the code they change: the exceptions thrown in it, how busy and slow the operations it runs are, and the incidents and deploys around it. Only pull requests from people who can write to the repository are reviewed on their own.",
+    example: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isProductionReviewEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Production Review Comment",
+    description:
+      "What a production review posts on a pull request. Review (the default): the review, or only a link to it in OneUptime on a public repository. Link: only a link, whatever the repository. ReviewEvenIfPublic: the review, even on a public repository.",
+    example: "Review",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public productionReviewPullRequestContent?: ProductionReviewPullRequestContent =
+    undefined;
 
   @ColumnAccessControl({
     create: [

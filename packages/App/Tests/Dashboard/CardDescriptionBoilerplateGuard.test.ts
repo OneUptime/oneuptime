@@ -110,6 +110,12 @@ const ALLOWED: Array<AllowedString> = [
     reason:
       "Says what a template variable holds - a list - in the variables reference, not what a card is for.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelSourcesCopy.ts",
+    text: "List of indicators",
+    reason:
+      "Names one of a threat intel feed's three sources - a plain list of indicators at an https address, beside TAXII collection and Google SecOps - in the feed form's Source step and the feeds table, not what a card is for.",
+  },
 ];
 
 interface FoundString {

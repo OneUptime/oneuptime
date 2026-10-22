@@ -27,6 +27,7 @@ import {
   MAX_ANSWER_CONTINUATIONS,
 } from "./AgentContextCompactor";
 import AIAgentRunLimitsHelper from "../../../../Types/AI/AIAgentRunLimits";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AiTokenCount from "../../../../Types/AI/AiTokenCount";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -130,6 +131,12 @@ export interface ObservabilityAssistantRequest {
    * burns budget on a status that cannot resolve until this run finishes.
    */
   excludeToolNames?: Array<string> | undefined;
+  /*
+   * The code repositories the run's code tools may read
+   * (ToolContext.codeRepositoryAllowance): left out, every one the caller
+   * may read.
+   */
+  codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
 }
 
 /*
@@ -206,6 +213,9 @@ export default class ObservabilityAssistant {
     const toolContext: ToolContext = {
       projectId: request.projectId,
       props: request.props,
+      ...(request.codeRepositoryAllowance
+        ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
+        : {}),
     };
 
     /*

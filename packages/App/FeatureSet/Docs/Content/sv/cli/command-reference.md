@@ -189,7 +189,7 @@ Poster tar `list`, `get`, `create`, `update`, `delete` och `count`:
 | Område | Kommandon |
 | --- | --- |
 | Övervakning | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidenter | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Incidenter | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Varningar | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Statussidor | `status-page`, `status-page-announcement` |
 | Planerat underhåll | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

@@ -175,7 +175,7 @@ Everything is ready. Begin running and processing data.
 
 ### Das vCenter in OneUptime finden
 
-Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools.
+Es wird nichts gesendet, bis der erste vollständige Durchlauf des Inventars abgeschlossen ist; warten Sie also ein Erfassungsintervall ab (standardmäßig 2 Minuten). Öffnen Sie dann **Produkte → Infrastruktur → VMware → Alle vCenter**: Das vCenter ist da, mit seinen Rechenzentren, Clustern, ESXi-Hosts, virtuellen Maschinen, Datastores und Ressourcenpools. Seine Seite **Topologie** zeichnet alles als eine Karte und markiert, was Aufmerksamkeit erfordert: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
 
 ## Umgebungsvariablen

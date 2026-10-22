@@ -14,6 +14,7 @@ De OneUptime GitHub App is meer dan een koppeling met je code: je kunt er in je 
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Elke opdracht begint met een vermelding van de app. De vermelding mag overal in 
 | Opdracht | Wat er gebeurt | Ook begrepen |
 | --- | --- | --- |
 | `@oneuptime review` | Kloont de branch, leest de gewijzigde code en de code eromheen, controleert wat productie erover zegt, en plaatst een review als opmerking. Verandert niets. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Beoordeelt de pull request nu aan de hand van productie, wie hem ook opende: de uitzonderingen, operaties, incidenten en deploys rond de gewijzigde code, in één opmerking die ter plekke wordt bijgewerkt (zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests)). Kloont niets en voert niets uit. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Kloont de eigen branch van de pull request, maakt de wijziging en pusht nieuwe commits naar die branch. Opent nooit een tweede pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles wat je na de vermelding schrijft en geen bekende opdracht is, wordt gelezen als een verzoek om herziening, omdat het dat bijna altijd is:
@@ -100,6 +102,8 @@ Wat het vindt, komt in de review onder een kop **Production context**, elk punt 
 
 Er hoeft niets te worden ingesteld: de services zijn die waarvoor OneUptime deze repository vindt, net als bij een herstel (zie [Productietelemetrie in een herstel](/docs/ai/ai-agent#productietelemetrie-in-een-herstel)). De query's lezen alleen, draaien op de OneUptime-server en lezen niets van een andere service, een ander project of een privé-incident. Een repository waarvan de services geen telemetrie naar het project sturen, wordt alleen op basis van de code beoordeeld.
 
+Om elke pull request vanzelf aan de hand van productie te laten beoordelen, zet je **Pull requests beoordelen aan de hand van productie** aan in de instellingen van de repository: zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests).
+
 ## Wie hem opdrachten mag geven
 
 **Alleen mensen met write-, maintain- of admin-toegang tot de repository.** OneUptime vraagt GitHub elke keer naar de machtiging van de schrijver van de opmerking op die repository; het vertrouwt de badge "contributor" niet die GitHub naast een opmerking toont, want die beschrijft eerdere activiteit, niet de huidige toegang.
@@ -118,11 +122,11 @@ Hij negeert ook elke opmerking die een bot schreef, zijn eigen inbegrepen, en ve
 
 ## Wat het kost en hoe je het begrenst
 
-Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en de build- en testopdrachten van je repository als je die hebt ingesteld. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
+Elke opdracht die werk start, is een volledige agent-run: een kloon, tot 40 LLM-aanroepen en 100.000 uitvoertokens, en, op een eigen Runner, de build- en testcontroles die de `AGENTS.md` van je repository beschrijft. De productiequery's van een review, hoogstens 12, tellen mee voor dezelfde 40 aanroepen.
 
 GitHub-opdrachten zijn AI-werk buiten incidenten en waarschuwingen, dus er geldt geen dagelijkse limiet voor hersteltaken; de eigen dagelijkse AI-limieten van het project gelden wel, als het project die instelt. De enige andere limiet is die al geldt voor de taken in [Code](/docs/ai/ai-agent):
 
-- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
+- **Het maximum aan open pull requests** (**Max Open Fix Pull Requests**, onder **Meer instellingen** op de pagina **Instellingen** van de repository). **AI-fix-pullrequests** staat op **Geen limiet** tot je **Een limiet** kiest, of **Geen**, dat AI-pull-requests met een fix op die repository blokkeert. Reviews en herzieningen zijn uitgezonderd: geen van beide voegt een pull request toe aan je reviewwachtrij.
 
 Per issue of pull request is er steeds maar één run van een soort actief. Twee keer vragen vertelt je dat hij er al mee bezig is; om een review vragen terwijl een herziening loopt, start ze allebei, omdat het verschillende verzoeken zijn.
 
@@ -130,9 +134,9 @@ Als een run niet kan starten, zegt de app in de thread waarom: hij mislukt nooit
 
 ## Uitzetten
 
-Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
+Elke repository heeft een schakelaar: **Respond to GitHub Commands**, op de pagina **Instellingen** van de repository. Hij staat aan voor elke repository en slaat op zodra je hem omzet. Staat die uit, dan negeert de app vermeldingen, toewijzingen en het triggerlabel in die repository, en vertelt hij iedereen die het vraagt waar de schakelaar zit.
 
-Dezelfde pagina bevat het **GitHub Trigger Label**, als je een ander label dan `oneuptime` wilt.
+Dezelfde pagina bevat het **GitHub Trigger Label**, onder **Meer instellingen**, als je een ander label dan `oneuptime` wilt.
 
 ## Waarop je je abonneert
 
@@ -142,7 +146,7 @@ Abonneer je in de instellingen **Permissions & events** van je GitHub App op:
 | --- | --- |
 | **Issue comment** | `@mention`-opdrachten in issues en pull requests |
 | **Issues** | een issue aan de app toewijzen, en het triggerlabel |
-| **Pull request** | een review die bij de app is aangevraagd |
+| **Pull request** | een review die bij de app is aangevraagd, en productiebeoordelingen van pull requests wanneer ze openen en veranderen |
 | **Pull request review** | een vermelding in de tekst van een ingediende review |
 | **Pull request review comment** | een vermelding in een inline-opmerking bij de diff |
 

@@ -66,6 +66,19 @@ När den sista nivåns väntetid går ut utan att någon har bekräftat slutar e
 
 En policy som börjar om tre gånger till går igenom sina nivåer fyra gånger totalt. Kortets rad **Efter den sista nivån** säger vad policyn gör, och **Policy at a glance** på **Översikt** säger samma sak i ord.
 
+## Larma igen om den inte blir löst
+
+En bekräftelse stoppar en policys larm för gott, även om ingen löser incidenten eller larmet efteråt. En policy kan i stället larma igen: öppna dess sida **Eskaleringsregler**, öppna **Fler inställningar** längst ned och klicka på **Redigera** på kortet **Tidsgräns efter bekräftelse**. **Redigera tidsgräns efter bekräftelse** frågar **Om den är bekräftad men inte löst**:
+
+| Svar | Vad det gör |
+| --- | --- |
+| **Larma inte igen** | En bekräftelse stoppar larmen för gott. En ny policy börjar med det här svaret. |
+| **Larma igen** | Larmar den som bekräftade och den som har jour nu. **Efter hur många minuter?** anger när: från 5 till 1440, först 30. |
+
+Minuterna räknas från varje bekräftelse, och en policy larmar igen högst 5 gånger om samma incident, larm eller episod. Ett nytt larm börjar på den nivå som larmade när det bekräftades, larmar den som har jour där nu och fortsätter genom nivåerna som den första körningen. Incidenten eller larmet förblir bekräftat: det nya larmet är en egen körning, i flödet och i policyns exekveringsloggar, där dess **Status** säger "Larmad igen (1 av 5)".
+
+Den som larmas igen bekräftar från meddelandet eller med **Bekräfta igen** på incidentens eller larmets sida, och minuterna börjar om; **Eskalera** skickar larmet vidare till nästa nivå. Att lösa eller ta bort incidenten eller larmet, arkivera eller ta bort policyn eller välja **Larma inte igen** stoppar det. Kortets rad **Efter en bekräftelse** säger vad policyn gör, och **Fler inställningar** visar minuterna medan det är hopfällt. **Policy at a glance** på **Översikt** och **Escalation summary** säger samma sak i ord.
+
 ## Exekveringsloggar
 
 Varje gång en policy körs skriver den en exekveringslogg, och loggen går igenom sina statusar medan körningen pågår:
@@ -122,9 +135,12 @@ Jourpolicyer är resursen `/api/on-call-duty-policy`, och resursen `oneuptime_on
 | **Beskrivning** | `description` |
 | **Om ingen bekräftar efter den sista nivån** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hur många gånger till?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Efter hur många minuter?** | `acknowledgementTimeoutInMinutes` |
 | Arkiverad | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` är `false` för **Sluta larma** och `true` för **Börja om från Level 1**. Med `true` och `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` upprepas en policy aldrig, och instrumentpanelen visar den som **Sluta larma**.
+
+`acknowledgementTimeoutInMinutes` är `null` för **Larma inte igen** och ett helt antal minuter från 5 till 1440 för **Larma igen**. OneUptime avvisar allt annat.
 
 Se [Skapa regler med API:et eller Terraform](/docs/on-call/escalation-rules#skapa-regler-med-apiet-eller-terraform) för att skapa en policy med dess första nivå i en enda begäran.
 

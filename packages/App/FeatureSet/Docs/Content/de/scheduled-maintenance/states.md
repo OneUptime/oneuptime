@@ -130,6 +130,15 @@ Halten Sie Ihre Status unterhalb von **Geplant**: Jedes neue Ereignis beginnt do
 > [!NOTE]
 > In OneUptime Cloud erfordert das Hinzufügen oder Ändern von Wartungsstatus den Plan **Growth** oder höher. Jeder Plan kann sie lesen, verwenden und einen von Ihnen hinzugefügten Status löschen.
 
+## Einen Status archivieren
+
+Archivieren Sie einen eigenen Status, den Ihr Team nicht mehr verwenden soll, statt ihn zu löschen. Das Archivieren ändert kein Ereignis: Ein Ereignis in diesem Status bleibt darin und geht wie gewohnt weiter, und seine Statuszeitachse zeigt ihn weiterhin.
+
+- **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Messungen und Workflows auf, die so eingerichtet sind, dass sie den Status verwenden.
+- **Niemand kann ihn erneut auswählen.** Die Kopfzeile des Ereignisses, **Status ändern**, Slack und Microsoft Teams lassen ihn weg, und die API, Terraform und MCP lehnen ihn ab. Sie können Ereignisse weiterhin danach filtern.
+- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Status der geplanten Wartung** unter der Tabelle. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Die vier eingebauten Status lassen sich nicht archivieren**: OneUptime bewegt Ereignisse in sie hinein. Ihr **Archivieren** ist gesperrt, mit Begründung.
+
 ## Die Zustands-Zeitachse
 
 Die Seite **Zustands-Zeitachse** des Ereignisses verzeichnet jeden Status, in dem es war. Ihre Karte, **Status-Zeitachse**, zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er gedauert hat, und darunter jede Änderung, die neueste zuerst. **Tabelle**, in der Kopfzeile der Karte, listet sie stattdessen als Zeilen, mit **Status der geplanten Wartung**, **Beginnt am**, **Endet am**, **Dauer**, ob die Abonnenten informiert werden sollten und wie ihre Benachrichtigung verlief.

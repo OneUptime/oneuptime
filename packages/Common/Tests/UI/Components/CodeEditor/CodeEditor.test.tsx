@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import CodeEditor, {
@@ -1150,7 +1151,7 @@ describe("CodeEditor — Copy", () => {
     expect(writeText).toHaveBeenCalledWith("[1]");
   });
 
-  test("confirms the copy in the button and to assistive technology, then resets", () => {
+  test("confirms the copy in the button and to assistive technology, then resets", async () => {
     jest.useFakeTimers();
 
     render(<CodeEditor type={CodeType.YAML} value="a: 1" />);
@@ -1159,7 +1160,9 @@ describe("CodeEditor — Copy", () => {
 
     expect(button).toHaveAttribute("aria-label", "Copy YAML to clipboard");
 
-    fireEvent.click(button);
+    await act(async () => {
+      fireEvent.click(button);
+    });
 
     expect(button).toHaveTextContent("Copied");
     // WCAG 2.5.3: the accessible name contains the visible label.
@@ -1178,7 +1181,7 @@ describe("CodeEditor — Copy", () => {
     expect(button).not.toHaveTextContent("Copied");
   });
 
-  test("falls back to execCommand('copy') where there is no async clipboard", () => {
+  test("falls back to execCommand('copy') where there is no async clipboard", async () => {
     Object.defineProperty(navigator, "clipboard", {
       value: undefined,
       configurable: true,
@@ -1199,7 +1202,9 @@ describe("CodeEditor — Copy", () => {
     focusInput();
     setSelection(1, 2);
 
-    fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
 
     expect(execCommand).toHaveBeenCalledWith("copy");
     expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
@@ -1209,7 +1214,7 @@ describe("CodeEditor — Copy", () => {
     expect(selectionOf()).toEqual([1, 2]);
   });
 
-  test("with no way to copy at all, it neither throws nor claims success", () => {
+  test("with no way to copy at all, it neither throws nor claims success: it says Copy failed", async () => {
     Object.defineProperty(navigator, "clipboard", {
       value: undefined,
       configurable: true,
@@ -1217,18 +1222,25 @@ describe("CodeEditor — Copy", () => {
 
     render(<CodeEditor type={CodeType.JSON} value="[]" />);
 
-    expect(() => {
-      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
-    }).not.toThrow();
-    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
-      "Copy",
-    );
-    expect(screen.getByTestId("code-editor-copy-button")).not.toHaveTextContent(
-      "Copied",
-    );
+    const button: HTMLElement = screen.getByTestId("code-editor-copy-button");
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(button).not.toHaveTextContent("Copied");
+    expect(button).toHaveTextContent("Copy failed");
+    expect(button).toHaveAttribute("data-copy-state", "failed");
+    // The button keeps its name: pressing it again tries again.
+    expect(button).toHaveAttribute("aria-label", "Copy JSON to clipboard");
+    expect(
+      screen.getAllByRole("status").some((region: HTMLElement): boolean => {
+        return (region.textContent || "") === "Copy failed";
+      }),
+    ).toBe(true);
   });
 
-  test("a denied clipboard permission does not throw", () => {
+  test("a denied clipboard permission does not throw, and says Copy failed when nothing else can copy", async () => {
     Object.defineProperty(navigator, "clipboard", {
       value: {
         writeText: jest.fn(() => {
@@ -1240,9 +1252,205 @@ describe("CodeEditor — Copy", () => {
 
     render(<CodeEditor type={CodeType.JSON} value="[]" />);
 
-    expect(() => {
+    await act(async () => {
       fireEvent.click(screen.getByTestId("code-editor-copy-button"));
-    }).not.toThrow();
+    });
+
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copy failed",
+    );
+  });
+
+  test("a denied clipboard permission falls back to the copy command, and only then says Copied", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: jest.fn(() => {
+          return Promise.reject(
+            new DOMException("Document is not focused.", "NotAllowedError"),
+          );
+        }),
+      },
+      configurable: true,
+    });
+
+    let copiedText: string = "";
+    const execCommand: jest.Mock = jest.fn(() => {
+      copiedText =
+        (
+          document.querySelector(
+            "textarea[aria-hidden='true']",
+          ) as HTMLTextAreaElement | null
+        )?.value || "";
+      return true;
+    });
+
+    Object.defineProperty(document, "execCommand", {
+      value: execCommand,
+      configurable: true,
+      writable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value='{"a": 1}' />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(execCommand).toHaveBeenCalledWith("copy");
+    expect(copiedText).toBe('{"a": 1}');
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copied",
+    );
+  });
+
+  test("never says Copied before the clipboard has taken the text", async () => {
+    let finishWrite: () => void = (): void => {};
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: jest.fn((): Promise<void> => {
+          return new Promise<void>((resolve: () => void) => {
+            finishWrite = resolve;
+          });
+        }),
+      },
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value="[1]" />);
+
+    const button: HTMLElement = screen.getByTestId("code-editor-copy-button");
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    // The write is still in flight: nothing is claimed yet.
+    expect(button).not.toHaveTextContent("Copied");
+    expect(button).toHaveAttribute("data-copy-state", "idle");
+
+    await act(async () => {
+      finishWrite();
+    });
+
+    expect(button).toHaveTextContent("Copied");
+  });
+
+  test("Copy failed goes back to Copy after four seconds", async () => {
+    jest.useFakeTimers();
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value="[]" />);
+
+    const button: HTMLElement = screen.getByTestId("code-editor-copy-button");
+
+    await act(async () => {
+      fireEvent.click(button);
+    });
+
+    expect(button).toHaveTextContent("Copy failed");
+
+    advance(3999);
+    expect(button).toHaveTextContent("Copy failed");
+
+    advance(1);
+    expect(button).toHaveTextContent("Copy");
+    expect(button).not.toHaveTextContent("Copy failed");
+  });
+
+  test("the editor keeps the keyboard focus after a copy through the copy command", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    // As browsers do: selecting the scratch field focuses it.
+    const execCommand: jest.Mock = jest.fn(() => {
+      (
+        document.querySelector(
+          "textarea[aria-hidden='true']",
+        ) as HTMLTextAreaElement | null
+      )?.focus();
+      return true;
+    });
+
+    Object.defineProperty(document, "execCommand", {
+      value: execCommand,
+      configurable: true,
+      writable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value="[1, 2]" />);
+
+    focusInput();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(execCommand).toHaveBeenCalledWith("copy");
+    expect(document.activeElement).toBe(getInput());
+  });
+
+  test("a read-only editor selects all of its text when the copy is refused, to copy by hand", async () => {
+    const value: string = '{"apiKey": "kept-out-of-the-clipboard"}';
+
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value={value} readOnly={true} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copy failed",
+    );
+    expect(document.activeElement).toBe(getInput());
+    expect(selectionOf()).toEqual([0, value.length]);
+  });
+
+  test("an editor being edited keeps its caret when the copy is refused: the next key must not replace the document", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: undefined,
+      configurable: true,
+    });
+
+    render(<CodeEditor type={CodeType.JSON} value="[1, 2]" />);
+
+    focusInput();
+    setSelection(1, 1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copy failed",
+    );
+    expect(selectionOf()).toEqual([1, 1]);
+    expect(getInput().value).toBe("[1, 2]");
+  });
+
+  test("a read-only editor whose copy works leaves the selection alone", async () => {
+    render(<CodeEditor type={CodeType.JSON} value="[1, 2]" readOnly={true} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("code-editor-copy-button"));
+    });
+
+    expect(writeText).toHaveBeenCalledWith("[1, 2]");
+    expect(screen.getByTestId("code-editor-copy-button")).toHaveTextContent(
+      "Copied",
+    );
+    expect(document.activeElement).not.toBe(getInput());
   });
 
   test("there is nothing to copy from an empty editor", () => {
@@ -1686,6 +1894,30 @@ describe("CodeEditor — read-only", () => {
       "Read-only",
     );
     expect(getInput()).toHaveAttribute("readonly");
+  });
+
+  test("its Read-only words give way to a long button label instead of being drawn under it", () => {
+    render(<CodeEditor type={CodeType.JSON} value="{}" readOnly={true} />);
+
+    const readOnlyLabel: HTMLElement = screen.getByTestId(
+      "code-editor-read-only",
+    );
+    const leftSide: HTMLElement = readOnlyLabel.parentElement as HTMLElement;
+
+    /*
+     * A German "Copy failed" ("Kopieren fehlgeschlagen") is wider than a
+     * phone's toolbar leaves: the left side clips, and the words shorten
+     * with an ellipsis, rather than run on under the button.
+     */
+    expect(leftSide).toHaveClass("min-w-0");
+    expect(leftSide).toHaveClass("overflow-hidden");
+    expect(readOnlyLabel).toHaveClass("min-w-0");
+    expect(readOnlyLabel).not.toHaveClass("shrink-0");
+    expect(within(readOnlyLabel).getByText("Read-only")).toHaveClass(
+      "truncate",
+    );
+    // The language badge keeps its size.
+    expect(screen.getByTestId("code-editor-language")).toHaveClass("shrink-0");
   });
 
   test("ignores every editing key and traps neither Tab nor Escape", () => {

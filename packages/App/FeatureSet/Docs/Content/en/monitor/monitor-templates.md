@@ -111,7 +111,7 @@ The available options depend on the monitor type. These include destinations and
 - Exclusions apply to bulk and individual syncs. They are saved on the template, not selected separately for each sync.
 - New monitors still start with the template's field values. Exclusions only affect syncing to existing monitors.
 - Criteria always sync. Criteria-only sync leaves monitoring interval, labels, and other monitor-level settings alone.
-- Existing templates have no field exclusions until you configure them. Network Device monitors continue to retain their own device binding automatically.
+- Existing templates have no field exclusions until you configure them. Network Device monitors continue to retain their own device binding automatically, and the Ping, IP, Port and NTP monitors a network discovery import made for devices keep checking each device's own address.
 
 For templates with multiple steps, protected values are matched using the step IDs. Independently created single-step monitors can also receive a single-step template. If a protected step cannot be matched, the sync is rejected before any monitor updates, so a new or reordered step cannot accidentally copy another step's destination or credentials.
 

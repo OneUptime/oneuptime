@@ -13,6 +13,13 @@ import {
   isLibraryRuleAdded,
 } from "../../Components/SecurityEvents/RuleLibraryUtil";
 import SecurityCaseApi from "../../Components/SecurityCase/SecurityCaseApi";
+import DetectionRuleSummary, {
+  DetectionRuleTypeLabel,
+} from "../../Components/SecurityEvents/DetectionRuleSummary";
+import {
+  DetectionRuleShape,
+  readDetectionRuleShape,
+} from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -105,6 +112,45 @@ const LibraryRuleDetails: FunctionComponent<{
 }> = (props: { entry: DetectionRuleLibraryEntry }): ReactElement => {
   const translator: Translator = useTranslator();
   const viewing: DetectionRuleLibraryEntry = props.entry;
+  const shape: DetectionRuleShape | null = readDetectionRuleShape(
+    viewing.sigmaRuleYaml,
+  );
+
+  if (shape && shape.isCorrelation) {
+    return (
+      <div className="space-y-3">
+        <DetectionRuleSummary
+          shape={shape}
+          dataTestId="rule-library-details-summary"
+        />
+        {/* On the single rule's grid, so the two read alike side by side. */}
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <div>
+            <dt className="text-xs text-gray-500">
+              {translator.translateText("Runs every")}
+            </dt>
+            <dd className="text-gray-900">
+              {translator.translatePlural(
+                { one: "{{count}} minute", other: "{{count}} minutes" },
+                viewing.evaluationIntervalInMinutes,
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-gray-500">
+              {translator.translateText("Grouped by")}
+            </dt>
+            <dd className="font-mono text-gray-900">
+              {shape.groupBy.length > 0 ? shape.groupBy.join(" / ") : "-"}
+            </dd>
+          </div>
+        </dl>
+        <pre className="max-h-96 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs text-gray-800">
+          {viewing.sigmaRuleYaml}
+        </pre>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -216,6 +262,17 @@ const RuleLibraryPage: FunctionComponent<
       existingRuleNames: existing,
     });
   }, [category, search, existing]);
+
+  // Each rule's kind: a correlation is marked on its card.
+  const shapesById: Map<string, DetectionRuleShape | null> = useMemo(() => {
+    const map: Map<string, DetectionRuleShape | null> = new Map();
+
+    for (const view of views) {
+      map.set(view.entry.id, readDetectionRuleShape(view.entry.sigmaRuleYaml));
+    }
+
+    return map;
+  }, [views]);
 
   const tagsById: Map<string, RuleAttackTags | null> = useMemo(() => {
     const map: Map<string, RuleAttackTags | null> = new Map();
@@ -417,6 +474,8 @@ const RuleLibraryPage: FunctionComponent<
                 const tags: RuleAttackTags | null | undefined = tagsById.get(
                   view.entry.id,
                 );
+                const shape: DetectionRuleShape | null | undefined =
+                  shapesById.get(view.entry.id);
                 const isAdding: boolean = addingIds.includes(view.entry.id);
 
                 return (
@@ -445,6 +504,14 @@ const RuleLibraryPage: FunctionComponent<
                               <Icon icon={IconProp.Star} className="h-3 w-3" />
                               {translator.translateText("Recommended")}
                             </div>
+                          ) : (
+                            <></>
+                          )}
+                          {shape && shape.isCorrelation ? (
+                            <DetectionRuleTypeLabel
+                              shape={shape}
+                              dataTestId={`rule-library-type-${view.entry.id}`}
+                            />
                           ) : (
                             <></>
                           )}

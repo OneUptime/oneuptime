@@ -159,6 +159,75 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 
 Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais rien et ne déplace jamais le curseur, et chaque vérification en échec dit ce qu'il faut changer.
 
+## Envoyer des événements de sécurité à Microsoft Sentinel
+
+OneUptime peut aussi envoyer ce qu'il trouve à Microsoft Sentinel, par l'API Logs Ingestion d'Azure Monitor, dans une table personnalisée de l'espace de travail sur lequel Sentinel s'exécute. Vos règles d'analyse, requêtes de chasse et classeurs interrogent alors `OneUptimeSecurityEvents_CL` à côté de vos autres tables.
+
+:::steps
+### Créer la table et sa règle de collecte de données
+
+Dans le portail Azure, ouvrez **Tables → Create → New custom log (DCR-based)** de l'espace de travail. Nommez la table `OneUptimeSecurityEvents`, créez une nouvelle règle de collecte de données, et un point de terminaison de collecte de données si le formulaire en demande un. Chargez l'exemple ci-dessous comme fichier d'exemple, gardez la transformation telle quelle et créez la table.
+
+### Laisser une application y envoyer
+
+Inscrivez une application et donnez-lui un secret client, comme dans [Inscrire une application](#inscrire-une-application). Ouvrez ensuite la règle de collecte de données, **Access control (IAM) → Add → Add role assignment**, choisissez **Monitoring Metrics Publisher** et sélectionnez l'application.
+
+### Ajouter la destination
+
+Ouvrez **Produits → Événements de sécurité → Connexions**. Sous **Envoyer vers votre SIEM**, cliquez sur **Ajouter une destination**, choisissez Microsoft Sentinel sous **SIEM** et cliquez sur **Suivant**. Renseignez l'**ID de l'annuaire (tenant)**, l'**ID d'application (client)** et le **Secret client**, le **Point de terminaison d'ingestion des journaux** depuis la page **Overview** du point de terminaison de collecte de données (ou de la règle), et l'**ID immuable de la règle de collecte de données** depuis la **JSON View** de la règle. **Flux** est facultatif : vide, c'est `Custom-OneUptimeSecurityEvents_CL`.
+
+### Envoyer un événement de test et commencer l'envoi
+
+Cliquez sur **Envoyer un événement de test** : une ligne arrive dans la table en quelques minutes. Puis, sous **Ce qu'il faut envoyer**, gardez **Détections uniquement** ou choisissez **Tous les événements de sécurité**, et cliquez sur **Commencer l'envoi**.
+:::
+
+Le fichier d'exemple, une ligne avec chaque colonne de la table :
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- L'API Logs Ingestion accepte jusqu'à 1 Mo par appel, donc les lignes partent par lots de 500 au plus. Un lot qu'Azure refuse est divisé jusqu'à trouver la ligne qu'il n'accepte pas, qui est laissée de côté, et la limitation (`429`) est réessayée.
+- Un `403` signifie que l'application n'a pas **Monitoring Metrics Publisher** sur la règle, et un `404` un ID immuable ou un flux erroné.
+- Les incidents que OneUptime a importés de Microsoft Sentinel ne lui sont jamais renvoyés.
+
 ## Dépannage
 
 La **Dernière erreur** de la connexion conserve le message d'erreur complet, identifiants masqués, derrière un préfixe qui nomme l'étape en échec. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Lisez d'abord le préfixe.

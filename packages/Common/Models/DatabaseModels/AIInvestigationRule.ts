@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import CodeRepository from "./CodeRepository";
 import ExternalMcpServer from "./ExternalMcpServer";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
@@ -39,9 +40,13 @@ import {
  * enabled rule are - a rule's conditions are the same ones the project's
  * other incident and alert rules offer (Match Criteria). A rule may also
  * make OneUptime AI wait, and investigate only an incident still open after
- * the wait (onlyIfOpenAfterMinutes). Changing what AI does is the AI
- * settings' business, so a rule takes what changing those takes: Project
- * Owner or Project Admin.
+ * the wait (onlyIfOpenAfterMinutes), and name the external MCP servers and
+ * the code repositories OneUptime AI may read while it investigates what
+ * the rule matches (none named: all of them). An investigation reads code
+ * through the repository's GitHub App from OneUptime itself - it clones
+ * nothing and runs nothing - so a rule picks no Runner. Changing what AI
+ * does is the AI settings' business, so a rule takes what changing those
+ * takes: Project Owner or Project Admin.
  */
 @EnableDocumentation()
 @TenantColumn("projectId")
@@ -531,6 +536,50 @@ export default class AIInvestigationRule extends RuleBaseModel {
     },
   })
   public externalMcpServers?: Array<ExternalMcpServer> = undefined;
+
+  /*
+   * The code repositories OneUptime AI may read while it investigates what
+   * this rule matches (its code tools: list, search and read). None named
+   * is every repository the project has connected
+   * (CodeRepositoryAllowance). Only the project's own repositories can be
+   * named (ProjectReferencesService), each one its caller may read.
+   */
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CodeRepository,
+    title: "Code Repositories",
+    description:
+      "The code repositories OneUptime AI may read while it investigates what this rule matches. Leave empty to let it read every repository the project has connected.",
+  })
+  @ManyToMany(
+    () => {
+      return CodeRepository;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AIInvestigationRuleCodeRepository",
+    inverseJoinColumn: {
+      name: "codeRepositoryId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "aiInvestigationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public codeRepositories?: Array<CodeRepository> = undefined;
 
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],

@@ -16,7 +16,9 @@ import FeedMarkdown, {
 } from "../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseConfig from "../../../DatabaseConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
-import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectResolution,
+} from "../WorkspaceProjectResolution";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -77,21 +79,24 @@ export default class SlackWelcome {
         return false;
       }
 
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await WorkspaceProjectAuthTokenService.findOneBy({
-          query: {
-            workspaceProjectId: join.teamId,
-            workspaceType: WorkspaceType.Slack,
-          },
-          select: {
-            projectId: true,
-            authToken: true,
-            miscData: true,
-          },
-          props: {
-            isRoot: true,
+      /*
+       * The project the welcome is for: the channel's, or the one the
+       * person who added the app is in (WorkspaceProjectResolution) - a
+       * workspace can be connected to more than one. Not told apart, the
+       * welcome links to no project's rules.
+       */
+      const resolution: WorkspaceProjectResolution =
+        await WorkspaceProjectResolver.resolve({
+          workspaceType: WorkspaceType.Slack,
+          workspaceId: join.teamId,
+          clues: {
+            channelId: join.channelId,
+            workspaceUserId: join.inviterUserId,
           },
         });
+
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        resolution.projectAuth || resolution.connections[0] || null;
 
       if (!projectAuth?.projectId || !projectAuth.authToken) {
         return false;
@@ -116,7 +121,9 @@ export default class SlackWelcome {
       }
 
       const welcome: { blocks: Array<WorkspaceMessageBlock>; text: string } =
-        await SlackWelcome.getWelcome(projectAuth.projectId);
+        await SlackWelcome.getWelcome(
+          resolution.projectAuth ? projectAuth.projectId : null,
+        );
 
       await SlackUtil.sendPayloadBlocksToChannel({
         authToken: projectAuth.authToken,
@@ -157,7 +164,7 @@ export default class SlackWelcome {
   }
 
   // What the welcome says, and its notification (see the header).
-  public static async getWelcome(projectId: ObjectID): Promise<{
+  public static async getWelcome(projectId: ObjectID | null): Promise<{
     blocks: Array<WorkspaceMessageBlock>;
     text: string;
   }> {
@@ -177,7 +184,9 @@ export default class SlackWelcome {
       } as WorkspacePayloadMarkdown,
     ];
 
-    const rulesLink: string | null = await SlackWelcome.getRulesLink(projectId);
+    const rulesLink: string | null = projectId
+      ? await SlackWelcome.getRulesLink(projectId)
+      : null;
 
     if (rulesLink) {
       blocks.push({

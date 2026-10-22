@@ -189,7 +189,7 @@ Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 | Area | Commands |
 | --- | --- |
 | Monitoring | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidents | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Incidents | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Alerts | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Status pages | `status-page`, `status-page-announcement` |
 | Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

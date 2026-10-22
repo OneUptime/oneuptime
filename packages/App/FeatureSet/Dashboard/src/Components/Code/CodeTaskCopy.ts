@@ -119,6 +119,8 @@ export const CODE_TASK_RECIPE_LABELS: Record<string, string> = {
   [CodeFixTaskType.GitHubPullRequestReview]: translationKey(
     "Review GitHub Pull Request",
   ),
+  [CodeFixTaskType.GitHubPullRequestProductionReview]:
+    translationKey("Production Review"),
   [CodeFixTaskType.CodeRequest]: translationKey("Request"),
 };
 
@@ -538,9 +540,13 @@ export const CODE_TASK_START_FOOTER: string = translationKey(
   "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
 );
 
-// A project whose GitHub connection is gone, said once over its repositories.
+/*
+ * A project whose GitHub connection is gone, said once, in the empty list
+ * of the repositories AI can work in - its repositories are folded under
+ * Not connected, below it, not in sight.
+ */
 export const CODE_GITHUB_NOT_CONNECTED: string = translationKey(
-  "GitHub is not connected to this project, so AI cannot work in these repositories. Connect GitHub again to use them.",
+  "GitHub is not connected to this project, so AI cannot work in its repositories. Connect GitHub again to use them.",
 );
 
 /*

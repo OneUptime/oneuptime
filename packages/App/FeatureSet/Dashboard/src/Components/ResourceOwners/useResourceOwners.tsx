@@ -1,5 +1,9 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "Common/Models/DatabaseModels/Label";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../ArchivableValue/ArchivedValueFacetOptions";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
@@ -1407,16 +1411,27 @@ const useResourceOwners: <TResource extends BaseModel>(
           query: query,
           limit: PICKER_PAGE_SIZE,
           skip: 0,
-          select: { _id: true, name: true, color: true },
+          select: {
+            _id: true,
+            name: true,
+            color: true,
+            ...ARCHIVED_FACET_SELECT,
+          },
           sort: { name: SortOrder.Ascending },
         });
-        return result.data.map((l: Label) => {
-          const label: string = l.name?.toString() || "";
-          return {
-            value: l._id as string,
-            label: label,
-            color: l.color?.toString() || "#9ca3af",
-          };
+        /*
+         * Archived labels too - records keep them, and stay findable by
+         * them - listed last, under Archived.
+         */
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (l: Label): FilterChipDropdownOption => {
+            return {
+              value: l._id as string,
+              label: l.name?.toString() || "",
+              color: l.color?.toString() || "#9ca3af",
+            };
+          },
         });
       } catch {
         return [];

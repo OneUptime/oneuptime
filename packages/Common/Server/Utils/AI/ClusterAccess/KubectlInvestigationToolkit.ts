@@ -438,7 +438,6 @@ export default class KubectlInvestigationToolkit {
         origin: RunnerJobOrigin.AiInvestigation,
         kubernetesClusterId: new ObjectID(cluster.clusterId),
         targetRunnerId: new ObjectID(cluster.runner.id),
-        credentialId: cluster.credentialId,
         command: policy.displayCommand,
         stepId: `ai-investigation-kubectl-${this.commandsRun}`,
         timeoutInMs: budget.plan.timeoutInMs,

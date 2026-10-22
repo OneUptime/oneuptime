@@ -134,7 +134,7 @@ Der Schalter **Dieses Runbook ausführen** des Runbooks ist auf seiner Seite **E
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil ihm ein Runner fehlt
-Die Meldung lautet zum Beispiel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert. Ein JavaScript-Schritt braucht nur dann einen eigenen Runner, wenn kein [globaler Runner](/docs/runbooks/agents#globale-runner) ihn ausführen kann. Öffnen Sie die **Schritte** des Runbooks, wählen Sie den Runner des Schritts, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
+Die Meldung lautet zum Beispiel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Der Schritt wurde ohne **Runner** gespeichert, und das Projekt hat keinen [Standard-Runner](/docs/runbooks/agents#der-standard-runner-des-projekts). Ein JavaScript-Schritt braucht nur dann einen eigenen Runner, wenn kein [globaler Runner](/docs/runbooks/agents#globale-runner) ihn ausführen kann. Öffnen Sie die **Schritte** des Runbooks, wählen Sie den Runner des Schritts unter **Weitere Felder**, klicken Sie auf **Schritte speichern** und führen Sie das Runbook erneut aus.
 :::
 
 :::details Ein Schritt ist fehlgeschlagen, weil er Variablen nennt, die er nicht verwenden kann

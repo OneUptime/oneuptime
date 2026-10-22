@@ -159,12 +159,27 @@ const REMOVED_SETTINGS: Array<string> = [
   "AI command execution",
   // A code repository picks its Runner in Code instead.
   "Runs AI Code Fixes",
+  /*
+   * Runbooks > Runners > AI Access, the page that held the runbook
+   * credentials: it is gone, and so is its Dashboard label.
+   */
+  "AI Access",
+  /*
+   * The AI card's two pull-request switches, which moved into the auto
+   * remediation rules, and the Runner choice a rule no longer offers.
+   */
+  "Open a fix pull request when an investigation finds a code change",
+  "Open a pull request that adds missing telemetry",
+  "AI agent on the cluster or host",
 ];
 
 // The names the upgrade gives the rules it adds.
 const RULES_THE_UPGRADE_ADDS: Array<string> = [
   "Fix every incident with OneUptime AI",
   "Fix every alert with OneUptime AI",
+  // The rules that keep a project's pull request choice.
+  "All incidents",
+  "All alerts",
 ];
 
 /*
@@ -380,6 +395,11 @@ const PROSE_LEADS: Array<string> = [
   "Settings you chose stay.",
   "A configuration that names them wins.",
   "Nothing chosen yet: the agent's defaults.",
+  "The credentials are deleted.",
+  "OneUptime AI runs no SSH command.",
+  "A cluster bound to a Runner outside it is cleared.",
+  "The four Runbook Credential permissions are removed",
+  "API and Terraform.",
   "edition label in the Admin Dashboard header",
   "Compose:",
   "Helm:",

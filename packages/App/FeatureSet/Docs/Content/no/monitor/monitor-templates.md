@@ -111,7 +111,7 @@ Hvilke alternativer som finnes, avhenger av monitortypen. De omfatter mål og po
 - Unntak gjelder for samlede og enkeltvise synkroniseringer. De lagres på malen og velges ikke separat for hver synkronisering.
 - Nye monitorer starter fortsatt med malens feltverdier. Unntak påvirker bare synkronisering av eksisterende monitorer.
 - Kriterier synkroniseres alltid. En synkronisering av bare kriterier lar overvåkingsintervallet, etikettene og andre innstillinger på monitornivå være.
-- Eksisterende maler har ingen feltunntak før du setter dem opp. Monitorer for nettverksenheter beholder fortsatt automatisk sin egen enhetskobling.
+- Eksisterende maler har ingen feltunntak før du setter dem opp. Monitorer for nettverksenheter beholder fortsatt automatisk sin egen enhetskobling, og Ping-, IP-, Port- og NTP-monitorene som en import fra nettverksoppdagelse har opprettet for enheter, fortsetter å sjekke hver enhets egen adresse.
 
 For maler med flere trinn matches beskyttede verdier via trinn-ID-ene. Selvstendig opprettede monitorer med ett trinn kan også motta en mal med ett trinn. Kan et beskyttet trinn ikke matches, avvises synkroniseringen før noen monitor oppdateres, slik at et nytt eller omordnet trinn ikke ved et uhell kan kopiere et annet trinns mål eller påloggingsdata.
 

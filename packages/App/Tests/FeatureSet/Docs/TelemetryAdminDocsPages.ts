@@ -132,6 +132,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Browse it your way.",
     "Find a resource.",
     "Move between views.",
+    // Open a resource's own map.
+    "Find what needs attention.",
+    "Look closer.",
+    "Go both ways.",
   ],
   [DROP_FILTERS_AND_SCRUB_RULES]: [
     "They act on new records only.",

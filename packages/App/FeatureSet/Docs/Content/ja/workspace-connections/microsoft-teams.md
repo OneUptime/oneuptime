@@ -28,6 +28,8 @@ flowchart TB
 - **各チームの OneUptime アプリ** は、通知を受け取りたいチームごとに必要です。Microsoft は、ボットが追加されたチームにしか投稿を許可しません。
 - **各メンバー自身の接続** は、その人の Microsoft Teams アカウントを OneUptime アカウントにリンクしたものです。ボタン、コマンド、リアクションは、その人として、プロジェクトでのその人の権限で動作します。
 
+1 つの Microsoft 365 組織を、本番環境とステージング環境のように複数のプロジェクトに接続できます。カードのボタンは、そのカードのレコードのプロジェクトで動作します。ボットへのメッセージは、送信されたチャネル (インシデントのチャネルなど) のプロジェクトで動作し、それ以外では、送信者の Microsoft Teams アカウントが接続されている唯一のプロジェクトで動作します。どれとも判断できない場合、ボットはその人が参加しているプロジェクトを示し、目的のプロジェクトのチャネルからもう一度試すよう求めます。
+
 ## 始める前に
 
 - **プロジェクトを接続できるロール:** **Project Owner**、 **Project Admin**、 **Project Member** のいずれか。アンインストールには **Project Owner** または **Project Admin** が必要です。
@@ -195,7 +197,7 @@ OneUptime ボットに `incident` または `maintenance` と入力すると、�
 - **すぐに呼び出される人。** @メンションした人と、@メンションしたタグが連動するスケジュールでオンコール中の人で、その後にメッセージが続く場合です ( [オンコールタグ](#オンコールタグ) を参照)。OneUptime は、その人の Microsoft Teams アカウントが接続されている OneUptime アカウントで、それがなければ Microsoft Teams でのその人のメールアドレスで、人を特定します。プロジェクト外の人が呼び出されることはありません。
 - **それ以外はカードが届きます。** 誰も @メンションしていない (ボットとの個人チャットなど)、メッセージがない、表示できるオンコールスケジュールに連動していないタグを指定した、または OneUptime が特定できない人がいる場合は、ボットが **Page someone** カードで応答します。カードには入力した内容が記入され、選べなかった人が示されます。人、チーム、オンコールスケジュール (今その中でオンコールの人を呼び出します)、またはオンコールポリシー (エスカレーションルールに従って呼び出します) を選んで送信します。会話にいる人なら誰でも、自分としてカードを送信できます。呼び出しが済むとカードは削除されるので、同じカードで二度呼び出されることはありません。
 - **表示される場所。** 会話には、呼び出しが 1 つのカードとして表示され、最新の状態に保たれます。誰がどのように呼び出されたか、誰が確認したかがわかります。ボットがそれを投稿できない場合は、ボットの返信で、誰が呼び出されたかがアラートへのリンクとともに伝えられます。
-- **呼び出せる人。** オンコールポリシーの実行とアラートの作成の両方ができる人です。 **Project Owner**、 **Project Admin**、 **Project Member**、または **On-Call Member** と **Alert Member** の組み合わせ (カスタムロールでは **Create On-Call Duty Policy Execution Log** と **Create Alert** ) です。オンコールポリシーを介さずに人、チーム、スケジュールを直接呼び出すには、さらにプロジェクトのすべてのオンコールポリシーへのアクセスが必要です。それ以外の人には返信でそう伝えられ、誰も呼び出されません。
+- **呼び出せる人。** オンコールポリシーの実行とアラートの作成の両方ができる人です。 **Project Owner**、 **Project Admin**、 **Project Member**、または **On-Call Member** と **Alert Member** の組み合わせ (カスタムロールでは **Create On-Call Duty Policy Execution Log** と **Create Alert** ) です。オンコールポリシーを介さずに人、チーム、スケジュールを直接呼び出すには、さらにプロジェクトのすべてのオンコールポリシーへのアクセスが必要です。それ以外の人には返信でそう伝えられ、誰も呼び出されません。OneUptime Cloud では、呼び出しには Growth プランが必要です。それより下のプランでは、OneUptime が必要なプランを示し、誰も呼び出されません。
 
 ## オンコールタグ
 
@@ -242,7 +244,7 @@ OneUptime ボットに `incident` または `maintenance` と入力すると、�
 OneUptime のカードのボタンは、個人チャット、チャネル、グループチャットのどこでも、押した人として動作します。その人の Microsoft Teams アカウントが接続されている OneUptime アカウントとして、そのアカウントのプロジェクトでの権限で動作します。インシデント、アラート、エピソードの **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note**、 **Execute On-Call Policy**、そして定期メンテナンスイベントの **Mark as Ongoing**、 **Mark as Complete**、 **Change State**、 **Add Note** は、それぞれ OneUptime で同じ操作を行ったときと同じ変更を行い、その変更は OneUptime でその人の操作として記録されます。レコードの状態タイムラインとフィードには誰が状態を変更したかが表示され、メモもその人のものになります。リアクションでメッセージから保存したメモも、同じように投稿されます。
 
 - **使える人。** OneUptime で同じ変更を行える人です。インシデントの確認、解決、状態の変更には、その状態を変更する権限が必要です。 **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin**、 **Incident Member**、またはカスタムロールの **Create Incident State Timeline** です。アラート、エピソード、定期メンテナンスイベントには、それぞれの種類に対応する同じ権限 (たとえば **Create Alert State Timeline** ) が必要で、メモにはその種類のメモを投稿する権限が必要です。OneUptime の状態パネルと同じく、インシデントやアラート自体を編集する権限は求めません。それ以外の人にはそう伝えられ、何も変わりません。
-- **対象のレコード。** OneUptime と同じく、その人が読めるレコードです。一部のラベルに限定されたロールなら、それらのラベルが付いたインシデント、アラート、エピソード、イベントです。ほかのレコードや別のプロジェクトのレコードのボタンには、そのレコードが "was not found in this project, or you do not have access to it." と返され、何も変わりません。OneUptime Cloud では、プロジェクトのプランに含まれない変更は、必要なプランを示して拒否されます。
+- **対象のレコード。** OneUptime と同じく、その人が読めるレコードです。一部のラベルに限定されたロールなら、それらのラベルが付いたインシデント、アラート、エピソード、イベントです。ほかのレコードのボタンは理由を伝え、何も変わりません。その人のロールが及ばないインシデントでは "your access in this project does not include this incident. Ask a project admin for access to it."、その人がオーナーではないプライベートなインシデントでは "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."、その後削除されたインシデントでは "the incident was not found. It may have been deleted." と返されます。OneUptime Cloud では、プロジェクトのプランに含まれない変更は、必要なプランを示して拒否されます。
 - **Change State が提示するもの。** その人が読める状態のうち、レコードが次に移れる状態を、プロジェクトの順序で提示します。今の状態より前の状態は提示されません。これはインシデント、アラート、定期メンテナンスイベントと同様にエピソードでも同じです。状態の変更でレコードが一覧の上に戻ることはないからです ([順序は表示上の好みではなく、実際の制約](/docs/incidents/states-and-severities#順序は表示上の好みではなく実際の制約) を参照)。読める状態が 1 つもない場合、ボットは "No incident states are available to you in this project. Ask a project admin for access to them." と伝え、レコードが到達できる最後の状態にある場合は "There is no later state to move this incident to." と伝えます。どちらの場合も空のカードは表示されません。
 - **プライベートインシデントでの Add Note。** プライベートインシデントには公開メモを追加できないため、カードはメモの種類を尋ねず、非公開メモを追加します。プライベートになる前に送られたカードも非公開メモを追加し、そのことを伝えます。[プライベートインシデントには非公開メモだけ](/docs/incidents/notes-owners-and-feed#プライベートインシデントには非公開メモだけ) を参照してください。
 - **Escalate.** カードの **Escalate** は、カードの対象のインシデント、アラート、エピソードについて、そのオンコールポリシーを、押した人として、 **Execute On-Call Policy** と同じ権限で実行します。どれも対象にしていないカードには "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." と返され、誰も呼び出されません。

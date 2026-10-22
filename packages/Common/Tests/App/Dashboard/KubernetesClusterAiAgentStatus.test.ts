@@ -25,7 +25,6 @@ import {
   CHOICE_GAP_CODES,
   KUBERNETES_AGENT_SET_INVESTIGATION_STEP_TEXT,
   REFUSED_REGISTRATION_WARNING_WINDOW_MS,
-  canSwitchToAiAgent,
   describeAiAgentNodeOperations,
   describeAiAgentWriteAccess,
   getAiAgentAttention,
@@ -53,7 +52,6 @@ import {
   getAutomaticRemediationLine,
   getKubernetesAiSettingsSource,
   getRefusedRegistrationWarning,
-  isAdvancedRunnerTarget,
   isInClusterTarget,
   isKubernetesAiSettingsSetByAgent,
   isLegacyRunnerTarget,
@@ -67,7 +65,6 @@ import {
   KubernetesAiAgentSummary,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
-  KUBECTL_ALLOW_WRITES_ENV,
   KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -80,7 +77,7 @@ import {
  * The pure reading of the server's access status behind the cluster's AI
  * agent page and the Overview's "AI agent" card: which of its states the
  * card is in (the agent connected or offline, not installed, the previous
- * in-cluster Runner, an advanced Runner), the words and the one command for
+ * in-cluster Runner), the words and the one command for
  * each, the meta line, the refused-registration warning, which server gaps
  * the "Needs attention" card holds — as ONE item: a headline, then a short
  * step per gap with what it offers — when the write-access commands show,
@@ -89,7 +86,7 @@ import {
 
 const AGENT_ID: string = "99999999-0000-4000-8000-000000000009";
 const LEGACY_RUNNER_ID: string = "55555555-0000-4000-8000-000000000005";
-const ADVANCED_RUNNER_ID: string = "55555555-0000-4000-8000-000000000006";
+const OUTSIDE_RUNNER_ID: string = "55555555-0000-4000-8000-000000000006";
 
 const NOW: Date = new Date();
 
@@ -232,25 +229,25 @@ function legacyStatus(
   });
 }
 
-// Bound to a Runner outside the chart, with a Kubernetes credential.
-function advancedStatus(
-  overrides: Partial<KubernetesClusterAiAccessStatus> = {},
-  isOnline: boolean = true,
-): KubernetesClusterAiAccessStatus {
+/*
+ * A Runner outside the cluster as the target. A server sent this for an
+ * "advanced" binding, reached with a Kubernetes runbook credential, until
+ * runbook credentials were removed; this one never does (such a Runner is
+ * no access target any more). Kept for the negative controls: nothing on
+ * the page reads it as the cluster's own Runner.
+ */
+function outsideRunnerStatus(): KubernetesClusterAiAccessStatus {
   return agentStatus({
     runner: {
-      id: ADVANCED_RUNNER_ID,
+      id: OUTSIDE_RUNNER_ID,
       name: "ops-runner",
       kind: "runner",
-      isOnline,
+      isOnline: true,
       lastAliveAt: minutesAgo(3),
       canRunAiCommands: true,
       posture: { inCluster: false, kubectlVersion: "v1.29.1" },
     },
-    accessMethod: "credential",
-    credentialId: "cred-1",
-    credentialName: "prod token",
-    ...overrides,
+    accessMethod: "none",
   });
 }
 
@@ -321,16 +318,6 @@ describe("the card's state", () => {
       status: legacyStatus({}, false),
       state: "legacy_runner_offline",
     },
-    {
-      name: "an advanced Runner, online",
-      status: advancedStatus(),
-      state: "advanced_runner",
-    },
-    {
-      name: "an advanced Runner, offline",
-      status: advancedStatus({}, false),
-      state: "advanced_runner_offline",
-    },
     // Defensive: a row but no target reads as the agent's own state.
     {
       name: "an agent row without a target",
@@ -351,9 +338,41 @@ describe("the card's state", () => {
   }
 
   /*
-   * The legacy Runner is told apart from an advanced one the server's way:
-   * the name marker, an agent posture, or the in-cluster access method —
-   * never by the kind alone (both are "runner").
+   * The card had two more states for a Runner outside the cluster (an
+   * "advanced" binding through a Kubernetes runbook credential). Runbook
+   * credentials are gone, so the server never resolves to such a Runner:
+   * these five are every state there is.
+   */
+  test("five states: the agent's three and the previous in-cluster Runner's two", () => {
+    expect(
+      Array.from(
+        new Set(
+          CASES.map(
+            (testCase: {
+              name: string;
+              status: KubernetesClusterAiAccessStatus;
+              state: AiAgentCardState;
+            }): AiAgentCardState => {
+              return testCase.state;
+            },
+          ),
+        ),
+      ).sort(),
+    ).toEqual(
+      [
+        "connected",
+        "legacy_runner",
+        "legacy_runner_offline",
+        "not_installed",
+        "offline",
+      ].sort(),
+    );
+  });
+
+  /*
+   * The legacy Runner is told apart from any other Runner the server's
+   * way: the name marker, an agent posture, or the in-cluster access method
+   * — never by the kind alone (every Runner is "runner").
    */
   test("the previous in-cluster Runner is recognised by name, posture or access method", () => {
     expect(isLegacyRunnerTarget(legacyStatus())).toBe(true);
@@ -383,37 +402,15 @@ describe("the card's state", () => {
       ),
     ).toBe(true);
     // Negative controls.
-    expect(isLegacyRunnerTarget(advancedStatus())).toBe(false);
+    expect(isLegacyRunnerTarget(outsideRunnerStatus())).toBe(false);
     expect(isLegacyRunnerTarget(agentStatus())).toBe(false);
     expect(isLegacyRunnerTarget(notInstalledStatus())).toBe(false);
   });
 
-  test("an advanced Runner is a Runner target that is not the chart's", () => {
-    expect(isAdvancedRunnerTarget(advancedStatus())).toBe(true);
-    // A Runner with no credential (credential_missing) is still advanced.
-    expect(
-      isAdvancedRunnerTarget(
-        advancedStatus({ accessMethod: "none", credentialName: undefined }),
-      ),
-    ).toBe(true);
-    // A summary without `kind` is a Runner (the field's documented default).
-    const withoutKind: KubernetesClusterAiAccessStatus = advancedStatus();
-    delete withoutKind.runner!.kind;
-    expect(isAdvancedRunnerTarget(withoutKind)).toBe(true);
-
-    for (const status of [
-      agentStatus(),
-      legacyStatus(),
-      notInstalledStatus(),
-    ]) {
-      expect(isAdvancedRunnerTarget(status)).toBe(false);
-    }
-  });
-
-  test("the agent and the previous Runner run kubectl in the cluster; an advanced Runner does not", () => {
+  test("the agent and the previous Runner run kubectl in the cluster; a Runner outside it does not", () => {
     expect(isInClusterTarget(agentStatus())).toBe(true);
     expect(isInClusterTarget(legacyStatus())).toBe(true);
-    expect(isInClusterTarget(advancedStatus())).toBe(false);
+    expect(isInClusterTarget(outsideRunnerStatus())).toBe(false);
     expect(isInClusterTarget(notInstalledStatus())).toBe(false);
   });
 });
@@ -436,14 +433,6 @@ describe("the pill and the sentence", () => {
       tone: "success",
     });
     expect(getAiAgentStatusPill(legacyStatus({}, false))).toEqual({
-      text: "Offline",
-      tone: "danger",
-    });
-    expect(getAiAgentStatusPill(advancedStatus())).toEqual({
-      text: "Connected through Runner ops-runner (advanced)",
-      tone: "success",
-    });
-    expect(getAiAgentStatusPill(advancedStatus({}, false))).toEqual({
       text: "Offline",
       tone: "danger",
     });
@@ -500,50 +489,6 @@ describe("the pill and the sentence", () => {
     expect(getAiAgentStateSentence(legacyStatus())).toContain("Works today");
     // Offline or not, the same single command moves it to the agent.
     expect(getAiAgentCardCommand(legacyStatus({}, false))).toBe("install");
-  });
-
-  test("an advanced binding is display-only: which Runner, which credential", () => {
-    expect(getAiAgentStateSentence(advancedStatus())).toBe(
-      'Reached through Runner "ops-runner" with credential "prod token".',
-    );
-    expect(
-      getAiAgentStateSentence(advancedStatus({ credentialName: undefined })),
-    ).toBe('Reached through Runner "ops-runner".');
-    expect(getAiAgentStateSentence(advancedStatus({}, false))).toBe(
-      'Reached through Runner "ops-runner" with credential "prod token". The Runner is offline.',
-    );
-    expect(
-      getAiAgentStateSentence(
-        advancedStatus({ credentialName: undefined }, false),
-      ),
-    ).toBe('Reached through Runner "ops-runner". The Runner is offline.');
-  });
-
-  test("a Runner without a name reads as (unnamed), in the sentence and the pill", () => {
-    const unnamed: KubernetesClusterAiAccessStatus = advancedStatus({
-      runner: { ...advancedStatus().runner!, name: "" },
-    });
-
-    expect(getAiAgentStateSentence(unnamed)).toBe(
-      'Reached through Runner "(unnamed)" with credential "prod token".',
-    );
-    expect(getAiAgentStatusPill(unnamed).text).toBe(
-      "Connected through Runner (unnamed) (advanced)",
-    );
-  });
-
-  // Names are the user's: they go in as written, never read as slots.
-  test("a Runner's and a credential's names go into the sentence as written", () => {
-    expect(
-      getAiAgentStateSentence(
-        advancedStatus({
-          runner: { ...advancedStatus().runner!, name: "ops {{runner}}" },
-          credentialName: "token {{credential}}",
-        }),
-      ),
-    ).toBe(
-      'Reached through Runner "ops {{runner}}" with credential "token {{credential}}".',
-    );
   });
 
   test("the agent's own states", () => {
@@ -777,8 +722,6 @@ describe("why the agent is offline", () => {
       notInstalledStatus(),
       legacyStatus(),
       legacyStatus({}, false),
-      advancedStatus(),
-      advancedStatus({}, false),
     ]) {
       const sentence: string = getAiAgentStateSentence(status, NOW_DATE);
       for (const offline of [
@@ -800,13 +743,7 @@ describe("the card's one command", () => {
     expect(
       getAiAgentCardCommand(agentStatus({}, makeAgent({ isOnline: false }))),
     ).toBe("logs");
-    for (const status of [
-      agentStatus(),
-      advancedStatus(),
-      advancedStatus({}, false),
-    ]) {
-      expect(getAiAgentCardCommand(status)).toBeNull();
-    }
+    expect(getAiAgentCardCommand(agentStatus())).toBeNull();
   });
 
   test("the logs go to the namespace the agent reported, else the install namespace", () => {
@@ -905,7 +842,6 @@ describe("the meta line", () => {
 
   test("the version is the agent's own: never shown for a Runner the cluster is reached through", () => {
     expect(getAiAgentMeta(legacyStatus()).showsAgentVersion).toBe(false);
-    expect(getAiAgentMeta(advancedStatus()).showsAgentVersion).toBe(false);
     expect(getAiAgentMeta(notInstalledStatus())).toEqual({
       lastSeen: null,
       showsAgentVersion: false,
@@ -949,13 +885,6 @@ describe("the meta line", () => {
       "last seen 2 minutes ago",
       "kubectl v1.30.0",
       "Read-only",
-    ]);
-  });
-
-  test("an advanced Runner shows no write scope: its credential's RBAC decides", () => {
-    expect(getAiAgentMetaParts(advancedStatus())).toEqual([
-      "last seen 3 minutes ago",
-      "kubectl v1.29.1",
     ]);
   });
 
@@ -1162,33 +1091,31 @@ describe("the Needs attention card", () => {
     }
   });
 
-  test("Runner gaps link to the Runner only for an advanced binding", () => {
+  /*
+   * A Runner gap linked to the Runner (or chose it again) for a Runner
+   * outside the cluster. That Runner is no target any more: the only Runner
+   * a gap is about is the previous in-cluster one, which upgrading the
+   * chart replaces, so no Runner gap offers an action of its own.
+   */
+  test("Runner gaps offer no action: the previous in-cluster Runner is replaced by upgrading the chart", () => {
     for (const code of [
       "runner_offline",
       "runner_cluster_mismatch",
+      "runner_ai_commands_disabled",
       "credential_missing",
       "credential_on_agent_runner",
     ] as Array<KubernetesAiAccessGapCode>) {
-      expect(getAiAgentGapAction(gap(code), advancedStatus())).toBe(
-        "view_runner",
-      );
-      // The previous in-cluster Runner is replaced by upgrading the chart.
-      expect(getAiAgentGapAction(gap(code), legacyStatus())).toBeNull();
+      for (const status of [
+        legacyStatus(),
+        legacyStatus({}, false),
+        outsideRunnerStatus(),
+      ]) {
+        expect({
+          code,
+          action: getAiAgentGapAction(gap(code), status),
+        }).toEqual({ code, action: null });
+      }
     }
-  });
-
-  /*
-   * A Runner bound before choosing one was what let OneUptime AI run
-   * kubectl on it: nothing on the Runner's page turns that on any more, so
-   * the step chooses it again in one click, not a link to the Runner.
-   */
-  test("a bound Runner that does not run AI commands yet is chosen again in one click", () => {
-    expect(
-      getAiAgentGapAction(gap("runner_ai_commands_disabled"), advancedStatus()),
-    ).toBe("choose_runner_again");
-    expect(
-      getAiAgentGapAction(gap("runner_ai_commands_disabled"), legacyStatus()),
-    ).toBeNull();
   });
 
   test("nothing to test before anything can reach the cluster", () => {
@@ -1223,7 +1150,6 @@ const SERVER_BLOCKS: Record<
   runner_offline: "both",
   runner_ai_commands_disabled: "both",
   runner_cluster_mismatch: "both",
-  credential_missing: "both",
   investigation_disabled: "investigation",
   remediation_disabled: "remediation",
   remediation_write_access_missing: "remediation",
@@ -1233,6 +1159,8 @@ const SERVER_BLOCKS: Record<
   project_auto_remediation_disabled: "remediation",
   project_ai_command_execution_disabled: "remediation",
   no_runner_bound: "both",
+  // Retired with runbook credentials.
+  credential_missing: "both",
   credential_on_agent_runner: "both",
   last_access_check_failed: "both",
 };
@@ -1264,8 +1192,6 @@ function stepCodes(
 const AGENT_NAME: string = KUBERNETES_AI_AGENT_DISPLAY_NAME;
 
 const UPGRADE_STEP: string = `Upgrade the Kubernetes agent chart with the command above. The ${AGENT_NAME} replaces the previous in-cluster Runner.`;
-
-const CHOOSE_CREDENTIAL_STEP: string = `With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the ${AGENT_NAME}.`;
 
 describe("Needs attention, as one item", () => {
   test("nothing to show without gaps, or with only the fixes-off choice", () => {
@@ -1354,29 +1280,6 @@ describe("Needs attention, as one item", () => {
       );
     }
     expect(attention.title).toBe(getAiAgentAttentionTitle(status));
-  });
-
-  test("an advanced Runner's steps link to the Runner", () => {
-    const attention: AiAgentAttention | null = getAiAgentAttention(
-      advancedStatus(
-        {
-          isInvestigationReady: false,
-          gaps: [
-            serverGap("runner_offline"),
-            serverGap("runner_ai_commands_disabled"),
-            serverGap("credential_missing"),
-          ],
-        },
-        false,
-      ),
-      NOW,
-    );
-
-    expect(
-      attention?.steps.map((step: AiAgentAttentionStep): string | null => {
-        return step.action;
-      }),
-    ).toEqual(["view_runner", "choose_runner_again", "view_runner"]);
   });
 
   test("one gap is one step", () => {
@@ -1475,7 +1378,7 @@ describe("Needs attention's headline", () => {
   test("retired project switches that only stopped fixes name only fixes", () => {
     expect(
       getAiAgentAttentionTitle(
-        advancedStatus({
+        legacyStatus({
           remediationMode: KubernetesAiRemediationMode.RequireApproval,
           gaps: [
             serverGap("project_auto_remediation_disabled"),
@@ -1545,7 +1448,6 @@ describe("Needs attention's headline", () => {
     for (const status of [
       agentStatus({ gaps: [serverGap("ai_agent_offline")] }, silentAgent()),
       legacyStatus({ gaps: [serverGap("runner_offline")] }, false),
-      advancedStatus({ gaps: [serverGap("credential_missing")] }),
       notInstalledStatus(),
     ]) {
       expect(getAiAgentAttentionTitle(status)).toBe(
@@ -1692,75 +1594,40 @@ describe("Needs attention's steps", () => {
     });
   });
 
-  describe("a Runner an operator bound", () => {
-    test("offline: start it", () => {
-      expect(
-        getAiAgentAttentionStepText(
-          serverGap("runner_offline"),
-          advancedStatus({}, false),
-          NOW,
-        ),
-      ).toBe("Start the Runner and make sure it can reach your OneUptime URL.");
-    });
-
-    /*
-     * A Runner has no switch for OneUptime AI's commands any more: choosing
-     * it on this page is what lets OneUptime AI run kubectl on it, and the
-     * step's own button does that (choose_runner_again).
-     */
-    test("not accepting AI commands: choose the Runner again", () => {
-      expect(
-        getAiAgentAttentionStepText(
-          serverGap("runner_ai_commands_disabled"),
-          advancedStatus(),
-          NOW,
-        ),
-      ).toBe("Choose the Runner again to let OneUptime AI run kubectl on it.");
-    });
-
-    test("without a credential, or not saying which cluster it is in: choose a credential or clear it", () => {
-      for (const code of [
-        "credential_missing",
-        "runner_cluster_mismatch",
-      ] as Array<KubernetesAiAccessGapCode>) {
-        expect(
-          getAiAgentAttentionStepText(serverGap(code), advancedStatus(), NOW),
-        ).toBe(CHOOSE_CREDENTIAL_STEP);
-      }
-    });
-
-    test("an old server's credential_on_agent_runner: choose a dashboard Runner or clear it", () => {
-      expect(
-        getAiAgentAttentionStepText(
-          serverGap("credential_on_agent_runner"),
-          advancedStatus(),
-          NOW,
-        ),
-      ).toBe(
-        "With Change below, choose a Runner created in the dashboard, or clear the Runner to use the Kubernetes AI agent.",
-      );
-    });
-
-    test("read-only with fixes on: the setting on the Runner's host, not the chart's commands", () => {
-      const status: KubernetesClusterAiAccessStatus = advancedStatus({
-        ...fixesOn,
-        runner: {
-          ...advancedStatus().runner!,
-          posture: { inCluster: true, allowWrites: false },
-        },
-      });
-
-      expect(shouldShowWriteAccessCommands(status)).toBe(false);
-      expect(
-        getAiAgentAttentionStepText(
-          serverGap("remediation_write_access_missing"),
+  /*
+   * A Runner outside the cluster had steps of its own (start it, choose it
+   * again, choose a credential, set its host's write switch). It is no
+   * target any more: its Runner gaps read as the server wrote them, and
+   * nothing sends the reader to Change or to a Runner's host.
+   */
+  test("no step sends the reader to Change or to a Runner's host", () => {
+    for (const code of [
+      "runner_offline",
+      "runner_ai_commands_disabled",
+      "runner_cluster_mismatch",
+      "credential_missing",
+      "credential_on_agent_runner",
+      "remediation_write_access_missing",
+    ] as Array<KubernetesAiAccessGapCode>) {
+      for (const status of [
+        legacyStatus(fixesOn),
+        legacyStatus({}, false),
+        outsideRunnerStatus(),
+      ]) {
+        const text: string = getAiAgentAttentionStepText(
+          serverGap(code),
           status,
           NOW,
-        ),
-      ).toBe(
-        `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it.`,
-      );
-    });
+        );
+
+        expect({ code, text }).toEqual({
+          code,
+          text: expect.not.stringMatching(
+            /With Change below|Runner's host|Choose the Runner again|Start the Runner/,
+          ),
+        });
+      }
+    }
   });
 
   describe("the agent", () => {
@@ -1887,27 +1754,17 @@ describe("Needs attention's steps", () => {
             agentStatus({}, goneAgent()),
           ];
         case "runner_offline":
-          return [legacyStatus({}, false), advancedStatus({}, false)];
+          return [legacyStatus({}, false)];
         case "runner_ai_commands_disabled":
         case "credential_missing":
         case "credential_on_agent_runner":
-          return [legacyStatus(), advancedStatus()];
+          return [legacyStatus()];
         case "runner_cluster_mismatch":
-          return [agentStatus(), legacyStatus(), advancedStatus()];
+          return [agentStatus(), legacyStatus()];
         case "remediation_write_access_missing":
-          return [
-            agentStatus(fixesOn),
-            legacyStatus(fixesOn),
-            advancedStatus({
-              ...fixesOn,
-              runner: {
-                ...advancedStatus().runner!,
-                posture: { inCluster: true, allowWrites: false },
-              },
-            }),
-          ];
+          return [agentStatus(fixesOn), legacyStatus(fixesOn)];
         default:
-          return [agentStatus(), legacyStatus(), advancedStatus()];
+          return [agentStatus(), legacyStatus()];
       }
     };
 
@@ -1955,7 +1812,7 @@ describe("the write-access commands", () => {
     }
   });
 
-  test("never while fixes are off, the agent already writes, or the target is advanced or missing", () => {
+  test("never while fixes are off, the agent already writes, or the target is outside the cluster or missing", () => {
     expect(shouldShowWriteAccessCommands(agentStatus())).toBe(false);
     expect(
       shouldShowWriteAccessCommands(
@@ -1966,11 +1823,10 @@ describe("the write-access commands", () => {
       ),
     ).toBe(false);
     expect(
-      shouldShowWriteAccessCommands(
-        advancedStatus({
-          remediationMode: KubernetesAiRemediationMode.Automatic,
-        }),
-      ),
+      shouldShowWriteAccessCommands({
+        ...outsideRunnerStatus(),
+        remediationMode: KubernetesAiRemediationMode.Automatic,
+      }),
     ).toBe(false);
     expect(
       shouldShowWriteAccessCommands(
@@ -2207,23 +2063,6 @@ describe("the automatic-investigation footer", () => {
   });
 });
 
-describe("switching an advanced binding to the AI agent", () => {
-  test("is offered only while the agent is online", () => {
-    expect(canSwitchToAiAgent(advancedStatus())).toBe(true);
-    expect(
-      canSwitchToAiAgent(
-        advancedStatus({ aiAgent: makeAgent({ isOnline: false }) }),
-      ),
-    ).toBe(false);
-    expect(canSwitchToAiAgent(advancedStatus({ aiAgent: null }))).toBe(false);
-    // Not an advanced binding: nothing to switch.
-    expect(canSwitchToAiAgent(agentStatus())).toBe(false);
-    expect(canSwitchToAiAgent(legacyStatus({ aiAgent: makeAgent() }))).toBe(
-      false,
-    );
-  });
-});
-
 describe("the Overview's AI agent card", () => {
   test("Connected, Offline or Not installed", () => {
     expect(getAiAgentOverviewState(agentStatus())).toEqual({
@@ -2234,14 +2073,9 @@ describe("the Overview's AI agent card", () => {
       text: "Connected",
       tone: "success",
     });
-    expect(getAiAgentOverviewState(advancedStatus())).toEqual({
-      text: "Connected",
-      tone: "success",
-    });
     for (const status of [
       agentStatus({}, makeAgent({ isOnline: false })),
       legacyStatus({}, false),
-      advancedStatus({}, false),
     ]) {
       expect(getAiAgentOverviewState(status)).toEqual({
         text: "Offline",
@@ -2296,18 +2130,6 @@ describe("in the reader's language", () => {
     notInstalledStatus(),
     legacyStatus(fixesOn),
     legacyStatus({}, false),
-    advancedStatus(fixesOn),
-    advancedStatus({}, false),
-    advancedStatus({ credentialName: undefined }),
-    advancedStatus({ credentialName: undefined }, false),
-    advancedStatus({ runner: { ...advancedStatus().runner!, name: "" } }),
-    advancedStatus({
-      ...fixesOn,
-      runner: {
-        ...advancedStatus().runner!,
-        posture: { inCluster: true, allowWrites: false },
-      },
-    }),
   ];
 
   beforeAll(async () => {
@@ -2365,17 +2187,9 @@ describe("in the reader's language", () => {
       });
     }
 
-    // The window goes in as a value; the unnamed Runner is translated too.
+    // The window goes in as a value.
     expect(getAiAgentStateSentence(agentStatus({}, silentAgent()), NOW)).toBe(
       "‹The AI agent has not checked in for over 5 minutes. Check its pod:›",
-    );
-    expect(
-      getAiAgentStateSentence(
-        advancedStatus({ runner: { ...advancedStatus().runner!, name: "" } }),
-        NOW,
-      ),
-    ).toBe(
-      '‹Reached through Runner "‹(unnamed)›" with credential "prod token".›',
     );
   });
 

@@ -88,13 +88,19 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Equipes | `Team` |
 | Funções personalizadas, e as equipes que recebem uma | `Custom Role`, `Team Custom Role` |
 | Rótulos | `Label` |
+| Estados e severidades de incidente | `Incident State`, `Incident Severity` |
+| Estados e severidades de alerta | `Alert State`, `Alert Severity` |
+| Status de monitor | `Monitor Status` |
+| Estados de manutenção programada | `Scheduled Maintenance State` |
+| Funções de incidente | `Incident Role` |
+| Status de post-mortem | `Postmortem Status` |
 | Chaves de API | `API Key` |
 | Clientes MCP que as pessoas conectam | `MCP Client Authorization` |
 | Itens do inventário | `Inventory Item` |
 | Configurações do coletor | `Collector Config` |
 | vCenters | `vCenter` |
 | Capturas de pacotes, e os downloads delas | `Packet Capture` |
-| Casos de segurança e playbooks | `Security Case`, `Security Playbook` |
+| Casos de segurança, playbooks e as suas execuções, e entidades protegidas | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Também fica registrado quando um administrador adiciona ou remove um método de notificação ou uma regra de plantão pessoal na conta de outra pessoa, sem o endereço ou o número em si.
 

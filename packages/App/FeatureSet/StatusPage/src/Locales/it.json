@@ -147,6 +147,7 @@
       "copyHint": "Incollalo in qualsiasi app di calendario che possa iscriversi a un calendario tramite URL.",
       "copy": "Copia link",
       "copied": "Copiato!",
+      "copyFailed": "Il tuo browser non ha permesso a questa pagina di copiare il link. È selezionato qui sopra, così puoi copiarlo tu.",
       "done": "Fatto",
       "refreshNote": "Le app di calendario controllano le modifiche con i propri tempi, quindi un aggiornamento può richiedere qualche ora per comparire."
     }

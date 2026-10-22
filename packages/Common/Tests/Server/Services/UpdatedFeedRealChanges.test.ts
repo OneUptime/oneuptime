@@ -449,6 +449,8 @@ const KINDS: Array<Kind> = [
         postmortemNote: true,
         showPostmortemOnStatusPage: true,
         subscriberNotificationStatusOnPostmortemPublished: true,
+        // The postmortem's status, which writing its note may move.
+        postmortemStatusId: true,
       },
     },
     stub: stubIncident,

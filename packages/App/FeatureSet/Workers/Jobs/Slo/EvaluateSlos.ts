@@ -2350,6 +2350,8 @@ async function createBurnRateAlert(data: {
       {
         query: {
           projectId: context.projectId,
+          // A default OneUptime picks itself: never an archived severity.
+          isArchived: false,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -2566,6 +2568,8 @@ async function declareBurnRateIncident(data: {
       await IncidentSeverityService.findOneBy({
         query: {
           projectId: context.projectId,
+          // A default OneUptime picks itself: never an archived severity.
+          isArchived: false,
         },
         sort: {
           order: SortOrder.Ascending,

@@ -144,10 +144,13 @@ describe("the Global Runners section of runbooks/agents", () => {
     for (const sentence of [
       "Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it",
       "Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.",
-      "It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.",
+      "It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.",
     ]) {
       expect(SECTION).toContain(sentence);
     }
+
+    // Runbook credentials are gone: no Runner is handed one, global or not.
+    expect(SECTION).not.toContain("credential");
 
     // The secrets a global Runner is handed: its step's own project's, switched on.
     expect(VARIABLE_RESOLVER).toContain(
@@ -156,8 +159,11 @@ describe("the Global Runners section of runbooks/agents", () => {
     expect(VARIABLE_RESOLVER).toContain(
       "return toStoredBoolean(data.row.isAvailableToGlobalRunners) === true",
     );
-    // A credential is failed, not handed over.
-    expect(RUNNER_INGRESS).toContain("GLOBAL_RUNNER_CREDENTIAL_REFUSAL");
+    // A job that still names a runbook credential is failed, not handed over.
+    expect(RUNNER_INGRESS).toContain(
+      "errorMessage: RunnerIngressAPI.getRemovedCredentialRefusal(job),",
+    );
+    expect(RUNNER_INGRESS).not.toContain("GLOBAL_RUNNER_CREDENTIAL_REFUSAL");
   });
 
   it("names the Dashboard's words as the Dashboard draws them", () => {
@@ -282,9 +288,21 @@ describe("the other runbook pages", () => {
     );
   });
 
-  it("say a JavaScript step's Runner starts on Global Runner", () => {
+  it("say a JavaScript step's Runner, under More fields, starts on the project's default Runner, else on Global Runner", () => {
     expect(AUTHORING).toContain(
-      "| **Runner** | The Runner that runs the step: **Global Runner**, or one of yours.",
+      "| **Runner** | Under **More fields**. The Runner that runs the step: **Global Runner**, or one of yours.",
+    );
+    expect(AUTHORING).toContain(
+      "| The project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), if you set one; otherwise **Global Runner**, when there is one |",
+    );
+  });
+
+  it("say a Bash, SSH or kubectl step's dropdown shows the Global Runner, greyed out, with why", () => {
+    expect(RUNNER_PICKER_MODEL).toContain(
+      'translationKey(\n  "Runs JavaScript steps only.",\n)',
+    );
+    expect(SECTION).toContain(
+      "A Bash, SSH or kubectl step's dropdown shows it last, greyed out, saying **Runs JavaScript steps only.** Those steps run on a Runner of your own, inside your network, never on one every project shares.",
     );
   });
 

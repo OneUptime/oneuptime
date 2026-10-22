@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### Finn arrayet i OneUptime
 
-Åpne **Produkter → Infrastruktur → Storage Arrays → All Storage Arrays**. Etter den første scrapen (omtrent ett minutt) er arrayet der med kapasitet, ytelse, åpne varsler og maskinvare. Volumer, verter og pods følger innen 2 minutter, en FlashBlades filsystemer og buckets innen 5, og FlashArray-kataloger innen 30.
+Åpne **Produkter → Infrastruktur → Storage Arrays → All Storage Arrays**. Etter den første scrapen (omtrent ett minutt) er arrayet der med kapasitet, ytelse, åpne varsler og maskinvare. Volumer, verter og pods følger innen 2 minutter, en FlashBlades filsystemer og buckets innen 5, og FlashArray-kataloger innen 30. Arrayets side **Topologi** tegner vertene, volumene, filsystemene og maskinvaren på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
 ## Miljøvariabler

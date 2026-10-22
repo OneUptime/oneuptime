@@ -242,7 +242,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
             decision === "approve"
               ? protectedTargets.length > 0
                 ? translator.translateTemplate(
-                    "The run carries on from this step. It never acts on protected entities: {{values}}. Your decision is kept on the step, on the case's timeline and in the audit log.",
+                    "The run carries on and never acts on protected entities: {{values}}. Your decision is kept on the step, the case's timeline and the audit log.",
                     {
                       values: protectedTargets
                         .map((target: SecurityPlaybookTarget): string => {

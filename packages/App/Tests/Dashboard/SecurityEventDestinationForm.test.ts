@@ -1,7 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  SECURITY_EVENT_CONNECTION_OPTION_TEXTS,
   SECURITY_EVENT_DESTINATION_FIELD_TEXTS,
   SECURITY_EVENT_DESTINATION_SCOPE_TEXTS,
+  SECURITY_EVENT_DESTINATION_TEXTS,
   SECURITY_LOG_FORMAT_TEXTS,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityConnectionsCopy";
 import {
@@ -22,7 +24,11 @@ import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import HashedString from "Common/Types/HashedString";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ConnectorField } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import {
+  ConnectorField,
+  SecurityEventConnectorCatalog,
+  SecurityEventConnectorDefinition,
+} from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   SecurityEventDestinationCatalog,
   SecurityEventDestinationDefinition,
@@ -309,6 +315,85 @@ describe("the words the Connections page marks for translation", () => {
         description: option.description,
       });
     }
+  });
+
+  /*
+   * The picker draws each SIEM's catalog line under its name: a German
+   * reader saw four English sentences there until these were keys.
+   */
+  test("every SIEM's line in the picker, as the catalog defines it", () => {
+    expect(
+      SecurityEventDestinationCatalog.map(
+        (definition: SecurityEventDestinationDefinition) => {
+          return [
+            definition.provider,
+            SECURITY_EVENT_DESTINATION_TEXTS[definition.provider],
+          ];
+        },
+      ),
+    ).toEqual(
+      SecurityEventDestinationCatalog.map(
+        (definition: SecurityEventDestinationDefinition) => {
+          return [definition.provider, definition.description];
+        },
+      ),
+    );
+    expect(Object.keys(SECURITY_EVENT_DESTINATION_TEXTS)).toHaveLength(
+      SecurityEventDestinationCatalog.length,
+    );
+  });
+
+  /*
+   * What is sent - detections, or every event - is the form's own last
+   * question: no SIEM's line says it again, so the four lines tell the
+   * SIEMs apart rather than repeat one sentence four times.
+   */
+  test("no SIEM's line repeats what the form asks on its last step", () => {
+    for (const definition of SecurityEventDestinationCatalog) {
+      expect([definition.provider, definition.description]).not.toEqual([
+        definition.provider,
+        expect.stringContaining("detections"),
+      ]);
+      expect(definition.description.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  /*
+   * A connection's own options (Close alerts when their case closes) sit on
+   * the connection form's last step in the catalog's words: these keys put
+   * the same words in the locale files.
+   */
+  test("every connection option, as the connector catalog defines it", () => {
+    const options: Array<ConnectorField> =
+      SecurityEventConnectorCatalog.flatMap(
+        (definition: SecurityEventConnectorDefinition) => {
+          return definition.configFields.filter(
+            (field: ConnectorField): boolean => {
+              return Boolean(field.isOption);
+            },
+          );
+        },
+      );
+
+    expect(options.length).toBeGreaterThan(0);
+
+    for (const field of options) {
+      expect([
+        field.key,
+        SECURITY_EVENT_CONNECTION_OPTION_TEXTS[field.key],
+      ]).toEqual([
+        field.key,
+        { title: field.title, description: field.description },
+      ]);
+    }
+
+    expect(Object.keys(SECURITY_EVENT_CONNECTION_OPTION_TEXTS).sort()).toEqual(
+      options
+        .map((field: ConnectorField): string => {
+          return field.key;
+        })
+        .sort(),
+    );
   });
 
   test("every field of every SIEM's form, as the catalog defines it", () => {

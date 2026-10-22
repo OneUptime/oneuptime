@@ -132,6 +132,7 @@ import IncidentCustomField from "./IncidentCustomField";
 import IncidentInternalNote from "./IncidentInternalNote";
 import IncidentNoteTemplate from "./IncidentNoteTemplate";
 import IncidentPostmortemTemplate from "./IncidentPostmortemTemplate";
+import IncidentPostmortemStatus from "./IncidentPostmortemStatus";
 import IncidentOwnerTeam from "./IncidentOwnerTeam";
 import IncidentOwnerUser from "./IncidentOwnerUser";
 import IncidentRole from "./IncidentRole";
@@ -372,7 +373,6 @@ import Runner from "./Runner";
 import RunnerJob from "./RunnerJob";
 import RunnerOwnerTeam from "./RunnerOwnerTeam";
 import RunnerOwnerUser from "./RunnerOwnerUser";
-import RunbookCredential from "./RunbookCredential";
 import RunbookVariable from "./RunbookVariable";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
@@ -651,6 +651,7 @@ const AllModelTypes: Array<{
   IncidentSeverity,
   IncidentNoteTemplate,
   IncidentPostmortemTemplate,
+  IncidentPostmortemStatus,
   Form,
   FormSubmission,
 
@@ -813,7 +814,6 @@ const AllModelTypes: Array<{
   RunnerJob,
   RunnerOwnerTeam,
   RunnerOwnerUser,
-  RunbookCredential,
   RunbookVariable,
 
   ProjectSSO,

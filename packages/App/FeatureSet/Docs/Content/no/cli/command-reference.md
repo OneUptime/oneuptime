@@ -189,7 +189,7 @@ Poster tar `list`, `get`, `create`, `update`, `delete` og `count`:
 | Område | Kommandoer |
 | --- | --- |
 | Overvåking | `monitor`, `monitor-status`, `monitor-status-event` |
-| Hendelser | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Hendelser | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Varsler | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Statussider | `status-page`, `status-page-announcement` |
 | Planlagt vedlikehold | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

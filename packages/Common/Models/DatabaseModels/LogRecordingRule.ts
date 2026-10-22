@@ -320,6 +320,7 @@ export default class LogRecordingRule extends BaseModel {
     description:
       "Whether this rule is evaluated by the log recording rule cron, every minute.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

@@ -170,7 +170,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in seven groups
+  # own fixture server on its own port - so they run here in nine groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -182,7 +182,8 @@ jobs:
   # each group near 20 minutes on a slow runner, well under the job's 30. When
   # one passes about 22, move a suite or add a group. When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
-  # groups with Playwright's --shard.
+  # groups with Playwright's --shard. Playwright shards whole spec files
+  # unless fullyParallel is on, and Event Overview is one spec file.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -234,6 +235,17 @@ jobs:
           # and a half with its bundle, Chromium only) beside it. Rules Menu
           # Section (about half a minute with its bundle, Chromium only: the
           # status page's and an SLO's side menus) joined it on 2026-10-20.
+          # Model Tables (about 4 minutes with its bundle locally, Chromium
+          # only: every table's look and, in CardHeaders.spec.ts, where every
+          # card header puts its description - about a minute of it) moved
+          # here from group 6 on 2026-10-21, when group 6 took 21.9 minutes
+          # and this group 17.3, the lightest that holds several suites once
+          # group 8 took three of group 5's: about 21.5 for the twelve. On
+          # the next run the same day the group ran past the job's 30 minutes
+          # (28.5 of suites; the job was cancelled two specs from the end of
+          # Model Tables), so Model Tables and Runbook Variables moved to
+          # group 5, Security Events Empty States to group 8 and Global
+          # Runners to group 6: about 9.5 minutes, 20.5 left for the eight.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -241,12 +253,9 @@ jobs:
               test-value-picker-ui
               test-event-notes-ui
               test-trace-detail-ui
-              test-security-events-empty-states-ui
               test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
-              test-global-runners-ui
-              test-runbook-variables-ui
               test-rules-menu-section-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
@@ -271,6 +280,11 @@ jobs:
           # grown with the Security pages to about 3.5 minutes, and the job
           # was cancelled in Code, with Public Addresses never run), so those
           # three moved to group 8: about 10 minutes of the group's 29.5.
+          # Model Tables and Runbook Variables (about 4 minutes and 1, both
+          # Chromium only) moved here from group 3 later that day, when this
+          # group took 14.7 minutes, the lightest: about 19.5. The next run
+          # took 24.9 (the same suites ran about 40% slower on its runner),
+          # so Model Tables and Home Overview moved on to group 9: about 19.
           - group: 5
             browsers: chromium
             suites: >-
@@ -282,11 +296,11 @@ jobs:
               test-custom-field-options-ui
               test-pagination-ui
               test-topology-ui
-              test-home-overview-ui
               test-status-timeline-ui
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
+              test-runbook-variables-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -296,7 +310,11 @@ jobs:
           # Calendar grew by 22 specs on 2026-10-20 (the calendar's own page,
           # its external calendars and Calendar Settings): about 45 seconds
           # more locally, 2 minutes 10 with its bundle, after Custom Roles
-          # (about 3 minutes) had left for group 7 the same day.
+          # (about 3 minutes) had left for group 7 the same day. Model Tables
+          # left for group 3 on 2026-10-21, when this group took 21.9 minutes
+          # and its card header specs would have taken it past 22. Global
+          # Runners (about 2 minutes, Chromium only) moved here from group 3
+          # later that day, when this group took 18.6: about 20.5.
           - group: 6
             browsers: chromium
             suites: >-
@@ -306,9 +324,9 @@ jobs:
               test-sign-in-options-ui
               test-maintenance-calendar-ui
               test-detail-cards-ui
-              test-model-tables-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
+              test-global-runners-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a
           # phone) and LLM Connect (about 2 minutes with its bundle: AI /
           # LLM's Connect and Usage at desktop and phone width), both
@@ -330,6 +348,19 @@ jobs:
           # groups are kept to. External MCP Servers (about a minute with its
           # bundle locally, Chromium only: Project Settings > AI > External
           # MCP Servers and a server's page) joined them too: about 18.
+          # Resource Topology (about 1.5 minutes with its bundle locally:
+          # every resource's Topology page - a vCenter, a Kubernetes cluster,
+          # a host and six more - and the master Topology's links into them,
+          # at a laptop's and a phone's width, dark and German, Chromium
+          # only) joined them on 2026-10-21: about 20 for the eight. It moved
+          # on to group 9 the same day, when this group took 20 minutes
+          # without it on a slow runner.
+          # Archivable Values (about 1.5 minutes with its bundle locally,
+          # Chromium only: archiving a severity and a state on their settings
+          # pages, the dialogs while what uses a value is still read, and a
+          # create form that never offers an archived one, at a laptop's and a
+          # phone's width, light and dark) joined them on 2026-10-21: about 21
+          # on a slow runner.
           - group: 7
             browsers: chromium
             suites: >-
@@ -340,6 +371,7 @@ jobs:
               test-public-dashboard-theme-ui
               test-dashboard-templates-ui
               test-external-mcp-servers-ui
+              test-archivable-values-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -365,7 +397,10 @@ jobs:
           # too. Security Operations, Code and Public Addresses (about 10
           # minutes together, all Chromium) moved here from group 5 the same
           # day, when it ran past the job's 30 minutes: about 20.5 minutes for
-          # the eight.
+          # the eight. Security Events Empty States (about 3 minutes, Chromium
+          # only) moved here from group 3 later that day, when this group took
+          # 15 to 17 minutes: about 20 for the nine. Code moved on to group 9
+          # when this group took 22.6 minutes on the next run.
           - group: 8
             browsers: chromium
             suites: >-
@@ -375,8 +410,37 @@ jobs:
               test-host-collectors-ui
               test-vmware-host-page-ui
               test-security-operations-ui
-              test-code-ui
               test-public-addresses-ui
+              test-security-events-empty-states-ui
+          # Added on 2026-10-21, when every group took 20 to 26 minutes on one
+          # run (groups 1 and 5 near 25) and Resource Topology would have
+          # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
+          # and a phone) from group 8, Model Tables (3.9) and Home Overview
+          # (2.2) from group 5, and Resource Topology (about 2) from group 7.
+          # All Chromium only: about 16 minutes for the four, with room for
+          # the next suites. Runbooks Menu (about 25 seconds locally, a minute
+          # with its bundle, Chromium only: the Runbooks side menu at 1280 and
+          # 390 pixels after AI Access went) joined them the same day: about
+          # 17 for the five. Postmortems (about 40 seconds locally, a minute
+          # and a half with its bundle, Chromium only: Incidents > Postmortems,
+          # an incident's Postmortem page and Postmortem Statuses, at a
+          # laptop's and a phone's width, dark and German) joined them on
+          # 2026-10-22: about 18.5 for the six. Acknowledgement Timeout (about
+          # 20 seconds locally with its bundle, Chromium only: an on-call
+          # policy's Escalation Rules page with the setting folded under More
+          # settings, its dialog and what a save sends, at 1280 and 390
+          # pixels, dark and German) joined them the same day: about 19.5 for
+          # the seven.
+          - group: 9
+            browsers: chromium
+            suites: >-
+              test-code-ui
+              test-model-tables-ui
+              test-home-overview-ui
+              test-resource-topology-ui
+              test-runbooks-menu-ui
+              test-postmortems-ui
+              test-acknowledgement-timeout-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -504,6 +568,8 @@ jobs:
             output/playwright/home-overview-ui/test-results
             output/playwright/list-delete-ui/*.png
             output/playwright/list-delete-ui/test-results
+            output/playwright/archivable-values-ui/*.png
+            output/playwright/archivable-values-ui/test-results
             output/playwright/status-timeline-ui/*.png
             output/playwright/status-timeline-ui/test-results
             output/playwright/episode-bulk-add-ui/*.png
@@ -516,6 +582,8 @@ jobs:
             output/playwright/auto-remediation-rules-ui/test-results
             output/playwright/external-mcp-servers-ui/*.png
             output/playwright/external-mcp-servers-ui/test-results
+            output/playwright/resource-topology-ui/*.png
+            output/playwright/resource-topology-ui/test-results
             output/playwright/runbook-variables-ui/*.png
             output/playwright/runbook-variables-ui/test-results
             output/playwright/runbook-steps-ui/*.png
@@ -539,10 +607,14 @@ jobs:
             output/playwright/model-tables-ui/test-results
             output/playwright/postmortem-rules-ui/*.png
             output/playwright/postmortem-rules-ui/test-results
+            output/playwright/postmortems-ui/*.png
+            output/playwright/postmortems-ui/test-results
             output/playwright/public-addresses-ui/*.png
             output/playwright/public-addresses-ui/test-results
             output/playwright/rules-menu-section-ui/*.png
             output/playwright/rules-menu-section-ui/test-results
+            output/playwright/runbooks-menu-ui/*.png
+            output/playwright/runbooks-menu-ui/test-results
             output/playwright/llm-connect-ui/*.png
             output/playwright/llm-connect-ui/test-results
             output/playwright/public-dashboard-theme-ui/*.png
@@ -561,4 +633,6 @@ jobs:
             output/playwright/host-collectors-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
+            output/playwright/acknowledgement-timeout-ui/*.png
+            output/playwright/acknowledgement-timeout-ui/test-results
           retention-days: 7

@@ -159,6 +159,18 @@ Where severity does more than describe: on **Incidents → Rules → On-Call Rul
 
 **Changing an incident's severity** — under **Edit** on the incident's **Incident Details** card, through the API or Terraform (`incidentSeverityId`), with a workflow or with the AI tools — does the same four things whichever way it is sent: the incident feed gets an **Incident updated** entry that names the new severity, the incident's SLA deadlines are worked out again, its reminder rule is matched again, and the incident metrics count one severity change. Saving the severity the incident already has does none of them, so editing only the title of an incident leaves its SLA deadlines, reminders and severity-change count as they were. An alert's severity works the same way for its feed entry and its reminders.
 
+## Archiving a state or severity
+
+Archive a state or severity that your team should stop using, instead of deleting it. Archiving changes no incident. Deleting a state takes its rows out of every incident's history, and a severity can't be deleted while incidents have it.
+
+- **Archive** is in the row's **⋯** menu. It asks first, and lists the rules, templates, measurements, monitor criteria and workflows set up to use the value: they keep using it until you change them.
+- **Nobody can pick it again.** The declare form, **Change State**, the incident's header, Slack, Microsoft Teams, rules, templates and monitor criteria leave it out. The API, Terraform and MCP refuse it, naming the value and where to unarchive it.
+- **Incidents keep it.** An incident that has it keeps it through every later edit, its state timeline still shows it, and you can still filter by it.
+- **Archived values are listed apart**, in the folded **Archived Incident States** or **Archived Incident Severities** section under the table, with who archived each and when. **Unarchive** puts one back as it was.
+- **Some can't be archived.** The created, acknowledged and resolved states, and the project's last severity that is not archived. Their **Archive** is locked, with the reason.
+
+**Delete** says what it would do first. While incidents or episodes have the value, the delete is refused and the dialog lists them. Otherwise it lists what the delete would change and offers **Archive instead**.
+
 ## Moving an incident through its states
 
 There are four ways an incident changes state:

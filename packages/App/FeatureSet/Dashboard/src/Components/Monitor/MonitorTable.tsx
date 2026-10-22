@@ -1,4 +1,8 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  ARCHIVED_FACET_SELECT,
+  getArchivableValueFacetOptions,
+} from "../ArchivableValue/ArchivedValueFacetOptions";
 import MonitorTypeUtil from "../../Utils/MonitorType";
 import ProjectUtil from "Common/UI/Utils/Project";
 
@@ -316,15 +320,25 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             query: query,
             limit: 50,
             skip: 0,
-            select: { _id: true, name: true, priority: true, color: true },
+            select: {
+              _id: true,
+              name: true,
+              priority: true,
+              color: true,
+              ...ARCHIVED_FACET_SELECT,
+            },
             sort: { priority: SortOrder.Ascending },
           });
-        return result.data.map((s: MonitorStatus) => {
-          return {
-            value: s.id?.toString() || "",
-            label: s.name?.toString() || "",
-            color: s.color?.toString() || "#9ca3af",
-          };
+        // Archived statuses too - monitors can still be in them - listed last.
+        return getArchivableValueFacetOptions({
+          values: result.data,
+          toOption: (s: MonitorStatus): FilterChipDropdownOption => {
+            return {
+              value: s.id?.toString() || "",
+              label: s.name?.toString() || "",
+              color: s.color?.toString() || "#9ca3af",
+            };
+          },
         });
       },
       resolveOptions: async (

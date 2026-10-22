@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 32602,
-    "untranslated": 16604
+    "keys": 32601,
+    "untranslated": 16610
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -23,6 +23,7 @@
     "CloudWatch Metric Streams",
     "Collector",
     "Component",
+    "Container {{container}}: {{reason}}",
     "Context",
     "Details",
     "Diagram",
@@ -34,6 +35,7 @@
     "Goroutines",
     "Hardware",
     "ICMP (ping)",
+    "In quorum",
     "Incident",
     "Incident {{number}}: {{title}}",
     "Interface",
@@ -45,8 +47,12 @@
     "Model",
     "Monitor",
     "Null",
+    "Object Gateway",
+    "Object Gateways",
     "Offline",
     "PR #{{number}}",
+    "PV",
+    "PVC",
     "Peer",
     "Privacy",
     "Protocol",
@@ -86,12 +92,14 @@
     "syslog",
     "tag",
     "teams",
+    "vCenters",
     "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",
     "{{count}} alarm",
     "{{count}} incident",
+    "{{count}} open incident",
     "{{count}} open pull requests",
     "{{count}} product",
     "{{count}} repository",

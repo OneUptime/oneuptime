@@ -309,7 +309,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const monitorStatusList: ListResult<MonitorStatus> =
         await ModelAPI.getList({
           modelType: MonitorStatus,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
@@ -335,7 +336,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const incidentSeverityList: ListResult<IncidentSeverity> =
         await ModelAPI.getList({
           modelType: IncidentSeverity,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: { name: true, order: true, color: true },
@@ -345,7 +347,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
       const alertSeverityList: ListResult<AlertSeverity> =
         await ModelAPI.getList({
           modelType: AlertSeverity,
-          query: {},
+          // A new monitor is set up with values that can be picked.
+          query: { isArchived: false },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: { name: true, order: true, color: true },
@@ -438,7 +441,8 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       const labelList: ListResult<Label> = await ModelAPI.getList({
         modelType: Label,
-        query: {},
+        // A new monitor is set up with values that can be picked.
+        query: { isArchived: false },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
         select: { name: true },

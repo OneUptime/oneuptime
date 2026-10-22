@@ -47,15 +47,20 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  *   - Manual: its title and the instructions the responder reads, nothing
  *     folded;
- *   - JavaScript and Bash: the Runner and the script;
+ *   - JavaScript and Bash: the script;
  *   - HTTP request: the method, the URL and - for a method that sends one -
  *     the body; its headers folded;
- *   - SSH: the Runner, the machine (user@host), the secret it signs in
- *     with, and the bash script - its port and key passphrase folded;
- *   - kubectl: the Runner, the cluster's kubeconfig and the script;
+ *   - SSH: the machine (user@host), the secret it signs in with, and the
+ *     bash script - its port and key passphrase folded;
+ *   - kubectl: the cluster's kubeconfig and the script;
  *   - AI: the prompt - its provider and the context it reads folded;
- *   - every automated step folds, first, Require approval before running
- *     this step and Continue on failure, then its notes and its timeouts.
+ *   - every step that runs on a Runner folds its Runner first, named on
+ *     the folded line whatever it is ("Runner: Global Runner") - the
+ *     maintainer: "have this runner drop down, hidden in More, and by
+ *     default select the global runner unless I have custom runner set to
+ *     default runner for the project";
+ *   - every automated step folds Require approval before running this step
+ *     and Continue on failure, then its notes and its timeouts.
  *
  * A step that asks for approval says so on its header too ("Needs
  * approval"), so the list reads where the run stops for a person: the
@@ -221,6 +226,9 @@ test -z "$pods"`,
 
 // -------------------------------------------------------- More fields
 
+// The step's Runner, as its folded line names it ("Runner: Global Runner").
+export const RUNNER_FIELD_TITLE: string = translationKey("Runner");
+
 export const MORE_FIELDS_DESCRIPTION_TITLE: string =
   translationKey("Description");
 export const MORE_FIELDS_TIMEOUTS_TITLE: string = translationKey("Timeouts");
@@ -245,6 +253,13 @@ export const REQUIRE_APPROVAL_FOLDED_TITLE: string =
   translationKey("Require approval");
 // On the header of a step that asks for approval, as a playbook step says it.
 export const NEEDS_APPROVAL_LABEL: string = translationKey("Needs approval");
+/*
+ * On the header of a step written with a runbook credential, open or
+ * folded: runbook credentials were removed, so it no longer runs
+ * (isLegacyCredentialStep). Without it a folded runbook read as if every
+ * step still ran.
+ */
+export const NO_LONGER_RUNS_LABEL: string = translationKey("No longer runs");
 export const LLM_PROVIDER_TITLE: string = translationKey("LLM provider");
 export const INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE: string = translationKey(
   "Include previous step context",
@@ -264,17 +279,31 @@ function isSetTimeout(value: unknown, defaultValue: number): boolean {
   return typeof value === "number" && value !== defaultValue;
 }
 
+export interface StepMoreFieldsOptions {
+  /*
+   * Where a step that runs on a Runner runs, as the folded line names it -
+   * already in the reader's words: "Global Runner", a Runner's own name
+   * ("prod-eu-west-1", with "· Disconnected" when it is not connected), or
+   * "None" while the step cannot run as it is. Left out for a step that
+   * runs on no Runner, or folds no Runner field.
+   */
+  runner?: string | undefined;
+}
+
 /*
  * What a step's More fields fold holds, in order, and which of it is set -
- * so the folded line says "More fields · Require approval: On, Port: 2222"
- * and nothing in force is hidden. The two switches every automated step has
- * come first: they change how the run goes, and the line names them before
- * it runs out of room. Empty for a Manual step, which folds nothing: its
- * instructions are what the responder reads, and it stops the run for a
- * person already.
+ * so the folded line says "More fields · Runner: Global Runner, Require
+ * approval: On, Port: 2222" and nothing in force is hidden. A step that
+ * runs on a Runner names it first, always with what it is: where the step
+ * runs is what a reader most needs from the fold. The two switches every
+ * automated step has come next: they change how the run goes, and the line
+ * names them before it runs out of room. Empty for a Manual step, which
+ * folds nothing: its instructions are what the responder reads, and it
+ * stops the run for a person already.
  */
 export function getStepMoreFieldsItems(
   step: RunbookStep,
+  options: StepMoreFieldsOptions = {},
 ): Array<FoldedSectionItem> {
   if (step.type === RunbookStepType.Manual) {
     return [];
@@ -286,6 +315,19 @@ export function getStepMoreFieldsItems(
   >;
 
   const items: Array<FoldedSectionItem> = [];
+
+  /*
+   * Named with what it is whatever it is - the default included - so it
+   * reads as set: the one item the line always says the value of.
+   */
+  if (options.runner) {
+    items.push({
+      key: "runner",
+      title: RUNNER_FIELD_TITLE,
+      isSet: true,
+      value: options.runner,
+    });
+  }
 
   const requiresApproval: boolean = stepRequiresApprovalBeforeRunning(step);
 
@@ -505,10 +547,24 @@ export function setStepRequiresApproval(
 
 /*
  * Whether a step was written before runbook variables - an SSH or
- * Kubernetes step that names a credential (only through the API since the
- * data migration rewrote every stored one). The editor shows such a step as
- * it is, with a button that turns it into a script step.
+ * Kubernetes step that names a runbook credential (the data migrations
+ * rewrote every stored one). Runbook credentials were removed, so such a
+ * step no longer runs: the editor shows it as it is, with a button that
+ * turns it into a script step.
  */
+/*
+ * What such a step's body says above its one button: the fact first, then
+ * what turning it into a script step leaves to its author - an SSH step's
+ * machine and the secret it signs in with (its credential held them), a
+ * Kubernetes step's kubeconfig.
+ */
+export const LEGACY_SSH_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
+);
+export const LEGACY_KUBERNETES_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+);
+
 export function isLegacyCredentialStep(step: RunbookStep): boolean {
   if (step.type === RunbookStepType.SSH) {
     return isLegacySSHStepConfig(step.config);
@@ -587,13 +643,14 @@ function isChanged(
 /*
  * A step with `patch` written over its config, as the editor changes it.
  *
- * A kubectl step the data migration moved from a Kubernetes action keeps
- * that action and its credential beside its script, so a Runner older than
- * kubectl scripts still runs it (RunbookLegacySteps) - only while its
- * script and kubeconfig are the ones it was moved with. A change to either
- * drops them here, as every save does on the server (RunbookService): the
- * step then needs a Runner that runs kubectl scripts, as every new one
- * does. Its Runner, timeouts and notes change nothing it does.
+ * A kubectl step the 14.0.79 data migration moved from a Kubernetes action
+ * kept that action and its credential beside its script, for Runners older
+ * than kubectl scripts. Runbook credentials are gone, so nothing reads them
+ * now, and the data migration that removed the credentials dropped them
+ * (RemoveRunbookCredentials). A step opened before that migration ran may
+ * still hold them: a change to its script or kubeconfig drops them here,
+ * so the save names no runbook credential. Its Runner, timeouts and notes
+ * change nothing it does.
  */
 export function applyStepConfigChange(
   step: RunbookStep,

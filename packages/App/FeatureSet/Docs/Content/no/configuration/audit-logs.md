@@ -88,13 +88,19 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Team | `Team` |
 | Egendefinerte roller, og teamene som får en | `Custom Role`, `Team Custom Role` |
 | Etiketter | `Label` |
+| Statuser og alvorlighetsgrader for hendelser | `Incident State`, `Incident Severity` |
+| Statuser og alvorlighetsgrader for varsler | `Alert State`, `Alert Severity` |
+| Monitorstatuser | `Monitor Status` |
+| Statuser for planlagt vedlikehold | `Scheduled Maintenance State` |
+| Hendelsesroller | `Incident Role` |
+| Statuser for etteranalyse | `Postmortem Status` |
 | API-nøkler | `API Key` |
 | MCP-klienter som folk kobler til | `MCP Client Authorization` |
 | Inventarelementer | `Inventory Item` |
 | Innsamlerkonfigurasjoner | `Collector Config` |
 | vCenter-servere | `vCenter` |
 | Pakkeopptak og nedlastingene av dem | `Packet Capture` |
-| Sikkerhetssaker og playbooks | `Security Case`, `Security Playbook` |
+| Sikkerhetssaker, playbooks og kjøringene deres, og beskyttede enheter | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Det registreres også når en administrator legger til eller fjerner en varslingsmetode eller en personlig vaktregel på en annens konto, uten selve adressen eller nummeret.
 

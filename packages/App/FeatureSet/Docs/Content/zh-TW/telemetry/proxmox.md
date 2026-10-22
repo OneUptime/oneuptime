@@ -137,7 +137,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到叢集
 
-開啟 **產品 → 基礎設施 → Proxmox → 所有叢集**。在第一次抓取後大約一分鐘，叢集會以其 `PROXMOX_CLUSTER_NAME` 出現，並帶有其節點、客體和儲存空間。
+開啟 **產品 → 基礎設施 → Proxmox → 所有叢集**。在第一次抓取後大約一分鐘，叢集會以其 `PROXMOX_CLUSTER_NAME` 出現，並帶有其節點、客體和儲存空間。它的 **拓撲** 頁面將這些繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
 ## 環境變數

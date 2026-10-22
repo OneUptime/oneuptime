@@ -5,28 +5,38 @@ import { canGlobalRunnersRunStepType } from "../../../Types/Runner/GlobalRunnerW
 import {
   ChosenRunnerKind,
   RunnerChoiceDecision,
-  decideRunnerChoice,
+  RunnerDefaultOrderResult,
+  decideRunnerByDefaultOrder,
   getChosenRunnerId,
+  isGlobalRunnerChoice,
   isRunnerId,
+  toRunnerChoiceDecision,
 } from "../../../Types/Runner/RunnerChoice";
 import ProjectService from "../../Services/ProjectService";
 import RunnerService from "../../Services/RunnerService";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
- * Where a step runs, on the server: the facts the one "global by default"
- * rule needs (Types/Runner/RunnerChoice), read as OneUptime, then the rule.
+ * Where work runs, on the server: the facts the one rule needs
+ * (Types/Runner/RunnerChoice, the default order), read as OneUptime, then
+ * the rule.
  *
- *   - the Runner the step picked, if it picked one: one of the step's own
- *     project's Runners (a custom pick wins), a global Runner (the global
- *     Runners, as if it picked none), or neither - deleted, or another
- *     project's, which is refused rather than waited on;
- *   - for a step that picked none and that global Runners can run: whether
- *     its project uses global Runners, and whether the server has one.
+ *   - the Runner the work picked, if it picked one: one of the work's own
+ *     project's Runners (a pick wins), a global Runner (the Global Runner,
+ *     as if it picked GLOBAL_RUNNER_CHOICE_ID), or neither - deleted, or
+ *     another project's, which is refused rather than waited on;
+ *   - for work that picked none: its project's default Runner
+ *     (RunnerService.findProjectDefaultRunner), which runs it when there is
+ *     one;
+ *   - for work that ends up on the global Runners: whether global Runners
+ *     may run it, whether its project uses them, and whether the server has
+ *     one.
  *
- * Every Runner-run step is routed through this once, when the Worker
- * reaches it (Runbook/Services/StepExecutors), and anything else that picks
- * a Runner the same way can ask it too.
+ * Every Runner-run step is routed through decideForStep once, when the
+ * Worker reaches it (Runbook/Services/StepExecutors). Anything else that
+ * picks a Runner - an auto remediation or investigation rule - asks
+ * decideByDefaultOrder with whether global Runners may run its work, and
+ * words the answer itself.
  */
 export default class GlobalRunnerChoice {
   @CaptureSpan()
@@ -35,42 +45,93 @@ export default class GlobalRunnerChoice {
     stepType: string;
     chosenRunnerId: unknown;
   }): Promise<RunnerChoiceDecision> {
+    const result: RunnerDefaultOrderResult =
+      await GlobalRunnerChoice.decideByDefaultOrder({
+        projectId: data.projectId,
+        chosenRunnerId: data.chosenRunnerId,
+        canGlobalRunnersRunWork: canGlobalRunnersRunStepType(data.stepType),
+      });
+
+    return toRunnerChoiceDecision({
+      result,
+      stepType: data.stepType,
+      chosenRunnerId: getChosenRunnerId(data.chosenRunnerId),
+    });
+  }
+
+  /*
+   * The default order for any work of a project that picks a Runner: its
+   * own pick, its project's default Runner, the Global Runner where
+   * `canGlobalRunnersRunWork` - otherwise none, with the reason. Each fact
+   * is read only when the order reaches it.
+   */
+  @CaptureSpan()
+  public static async decideByDefaultOrder(data: {
+    projectId: ObjectID;
+    // As stored: "", GLOBAL_RUNNER_CHOICE_ID or a Runner's id.
+    chosenRunnerId: unknown;
+    canGlobalRunnersRunWork: boolean;
+  }): Promise<RunnerDefaultOrderResult> {
     const chosenRunnerId: string = getChosenRunnerId(data.chosenRunnerId);
+    const picksGlobalRunner: boolean = isGlobalRunnerChoice(chosenRunnerId);
 
     let chosenRunnerKind: ChosenRunnerKind | undefined = undefined;
 
-    if (chosenRunnerId && isRunnerId(chosenRunnerId)) {
+    if (chosenRunnerId && !picksGlobalRunner && isRunnerId(chosenRunnerId)) {
       chosenRunnerKind = await GlobalRunnerChoice.getChosenRunnerKind({
         projectId: data.projectId,
         runnerId: new ObjectID(chosenRunnerId),
       });
     }
 
-    /*
-     * The project's switch and the server's global Runners decide only a
-     * step that ends up on the global Runners, so they are read only for
-     * one: a custom pick, or a step global Runners never run, needs neither.
-     */
-    const mayGoGlobal: boolean =
-      canGlobalRunnersRunStepType(data.stepType) &&
-      (!chosenRunnerId || chosenRunnerKind === ChosenRunnerKind.GlobalRunner);
+    // Read only for work that picked none: a pick never follows it.
+    const projectDefaultRunnerId: string = chosenRunnerId
+      ? ""
+      : await GlobalRunnerChoice.findProjectDefaultRunnerId(data.projectId);
 
-    const projectUsesGlobalRunners: boolean = mayGoGlobal
+    /*
+     * The project's switch and the server's global Runners decide only
+     * work that ends up on the global Runners, so they are read only for
+     * such work: a pick of the project's own, a project default, or work
+     * global Runners never run needs neither.
+     */
+    const goesGlobal: boolean =
+      data.canGlobalRunnersRunWork &&
+      (picksGlobalRunner ||
+        chosenRunnerKind === ChosenRunnerKind.GlobalRunner ||
+        (!chosenRunnerId && !projectDefaultRunnerId));
+
+    const projectUsesGlobalRunners: boolean = goesGlobal
       ? await GlobalRunnerChoice.doesProjectUseGlobalRunners(data.projectId)
       : false;
 
     const hasGlobalRunner: boolean =
-      mayGoGlobal && projectUsesGlobalRunners
+      goesGlobal && projectUsesGlobalRunners
         ? await RunnerService.hasGlobalRunnerForRunbooks()
         : false;
 
-    return decideRunnerChoice({
-      stepType: data.stepType,
+    return decideRunnerByDefaultOrder({
       chosenRunnerId,
       ...(chosenRunnerKind ? { chosenRunnerKind } : {}),
+      projectDefaultRunnerId,
+      canGlobalRunnersRunWork: data.canGlobalRunnersRunWork,
       projectUsesGlobalRunners,
       hasGlobalRunner,
     });
+  }
+
+  /*
+   * The id of the project's default Runner, or "" when it has none that
+   * may be it (RunnerService.findProjectDefaultRunner).
+   */
+  @CaptureSpan()
+  public static async findProjectDefaultRunnerId(
+    projectId: ObjectID,
+  ): Promise<string> {
+    const runner: Runner | null =
+      await RunnerService.findProjectDefaultRunner(projectId);
+
+    return runner?._id?.toString() || "";
   }
 
   /*

@@ -134,7 +134,7 @@ Everything is ready. Begin running and processing data.
 
 ### Het array in OneUptime vinden
 
-Open **Producten → Infrastructuur → Storage Arrays → All Storage Arrays**. Na de eerste scrape (ongeveer een minuut) staat het array er met zijn capaciteit, prestaties, open waarschuwingen en hardware. Volumes, hosts en pods volgen binnen 2 minuten, de bestandssystemen en buckets van een FlashBlade binnen 5, en FlashArray-directory's binnen 30.
+Open **Producten → Infrastructuur → Storage Arrays → All Storage Arrays**. Na de eerste scrape (ongeveer een minuut) staat het array er met zijn capaciteit, prestaties, open waarschuwingen en hardware. Volumes, hosts en pods volgen binnen 2 minuten, de bestandssystemen en buckets van een FlashBlade binnen 5, en FlashArray-directory's binnen 30. De pagina **Topologie** van de array tekent haar hosts, volumes, bestandssystemen en hardware op één kaart: zie [Topologie](/docs/telemetry/topology#de-eigen-kaart-van-een-resource-openen).
 :::
 
 ## Omgevingsvariabelen

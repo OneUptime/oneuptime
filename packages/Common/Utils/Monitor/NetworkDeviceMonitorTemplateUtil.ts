@@ -312,7 +312,12 @@ export default class NetworkDeviceMonitorTemplateUtil {
     }
   }
 
-  private static buildDeviceIdentifiableName(data: {
+  /*
+   * The name a monitor made for a device from a template carries, whichever
+   * kind of template it is (DeviceMonitorTemplateUtil names Ping, IP and
+   * Port monitors with it too), so a device's monitors read alike.
+   */
+  public static buildDeviceIdentifiableName(data: {
     monitorTemplate: MonitorTemplate;
     networkDevice: NetworkDevice;
   }): string {

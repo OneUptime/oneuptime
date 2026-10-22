@@ -2,15 +2,19 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { readAwayUntil } from "../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
-  ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
   ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+  isOnCallPolicyRunEverybodyPassedOnMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { isOnCallPagePassedOnStatusMessage } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import {
   ON_CALL_POLICY_RUN_ENDED_WHILE_WAITING_MESSAGE_START,
   isOnCallPolicyRunEndedWhileWaiting,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  describeOnCallAcknowledgementTimeout,
+  getOnCallPageAgainPlaceWithLast,
+} from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -72,15 +76,18 @@ import ProductBrandingText from "../ProductBrandingText";
  * is acknowledged or resolved." ("Simon Lee stopped paging" read as if he
  * had called it off.)
  *
- * Somebody who cannot take a page can pass it on (OnCallPagePassOn). That is
- * one entry, in their name, and the entries after it say what the run did
- * next - paged the next rule, or stopped:
+ * Somebody who cannot take a page can escalate it (OnCallPagePassOn). That
+ * is one entry, in their name, and the entries after it say what the run
+ * did next - paged the next level, or stopped:
  *
- *   Ana Lopez passed on the page from on-call policy PolicyX at escalation
+ *   Ana Lopez escalated the page from on-call policy PolicyX at escalation
  *     rule Level 1.
  *   On-call policy PolicyX paged Sam Lee at escalation rule Level 2.
- *   On-call policy PolicyX stopped paging: everybody it paged passed the
- *     page on.
+ *   On-call policy PolicyX stopped paging: everybody it paged escalated it,
+ *     and nobody was left to page.
+ *
+ * Runs whose people escalated before the action was renamed from "Pass it
+ * on" wrote their messages in those words; they are read back the same.
  */
 export interface OnCallStepFeedTextInput {
   status: OnCallDutyExecutionLogTimelineStatus;
@@ -211,14 +218,14 @@ const asSentence: (message: string) => MarkdownText = (
  * What a step said about itself, as its own sentence, or nothing. A person
  * away with nobody to cover gets their return time as a moment the
  * Dashboard shows in each reader's own zone, rather than the UTC the run
- * writes it in. A page passed on says so in its headline already.
+ * writes it in. A page escalated says so in its headline already.
  */
 const getStepMessageSentence: (
   statusMessage: string | undefined,
 ) => MarkdownText = (statusMessage: string | undefined): MarkdownText => {
   const message: string = (statusMessage || "").trim();
 
-  if (!message || message === ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE) {
+  if (!message || isOnCallPagePassedOnStatusMessage(message)) {
     return FeedMarkdown.empty();
   }
 
@@ -257,9 +264,9 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
         input.policyLink,
         { isInSentence: true },
       )} at ${rule}.`;
-    // They could not take it, and passed it on (OnCallPagePassOn).
+    // They could not take it, and escalated it (OnCallPagePassOn).
     case OnCallDutyExecutionLogTimelineStatus.PassedOn:
-      return mdText`${recipient} passed on the page from ${getPolicy(
+      return mdText`${recipient} escalated the page from ${getPolicy(
         input.policyLink,
         { isInSentence: true },
       )} at ${rule}.`;
@@ -321,10 +328,10 @@ const getRunStatusSentences: (
         ];
       }
 
-      // Nobody was left: everybody it paged passed the page on.
-      if (message === ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE) {
+      // Nobody was left: everybody it paged escalated it.
+      if (isOnCallPolicyRunEverybodyPassedOnMessage(message)) {
         return [
-          mdText`${policy} stopped paging: everybody it paged passed the page on.`,
+          mdText`${policy} stopped paging: everybody it paged escalated it, and nobody was left to page.`,
         ];
       }
 
@@ -448,9 +455,9 @@ const getDirectPageStepHeadline: (
         input.pager,
         { isInSentence: true },
       )}.`;
-    // They could not take it, and passed it on (OnCallPagePassOn).
+    // They could not take it, and escalated it (OnCallPagePassOn).
     case OnCallDutyExecutionLogTimelineStatus.PassedOn:
-      return mdText`${recipient} passed on the page from ${getDirectPagePager(
+      return mdText`${recipient} escalated the page from ${getDirectPagePager(
         input.pager,
         { isInSentence: true },
       )}.`;
@@ -502,9 +509,11 @@ const getDirectPageStatusSentences: (
         return [mdText`${stopped}: nobody acknowledged.`];
       }
 
-      // Nobody was left: everybody it paged passed the page on.
-      if (message === ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE) {
-        return [mdText`${stopped}: everybody it paged passed the page on.`];
+      // Nobody was left: everybody it paged escalated it.
+      if (isOnCallPolicyRunEverybodyPassedOnMessage(message)) {
+        return [
+          mdText`${stopped}: everybody it paged escalated it, and nobody was left to page.`,
+        ];
       }
 
       if (
@@ -597,6 +606,36 @@ export default class OnCallFeedText {
     }
 
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
+  }
+
+  /*
+   * A page again (OnCallAcknowledgementTimeout), as it starts: the record
+   * stayed acknowledged without being resolved, so the policy pages again.
+   *
+   *   On-call policy PolicyX is paging again (1 of 5): the incident is still
+   *     not resolved 30 minutes after Ana Lopez acknowledged it.
+   *
+   * Without anybody to name - acknowledged through the API, say - "after it
+   * was acknowledged". The last page again says it is the last.
+   */
+  public static getRunPagedAgainMarkdown(data: {
+    policyLink: MarkdownText;
+    pageAgainNumber: number;
+    minutes: number;
+    // "incident", "alert", "incident episode" or "alert episode".
+    recordKind: string;
+    // Who acknowledged it last, as a link to them, when somebody did.
+    acknowledgedBy?: MarkdownText | undefined;
+  }): string {
+    const place: string = getOnCallPageAgainPlaceWithLast(data.pageAgainNumber);
+    const after: string = describeOnCallAcknowledgementTimeout(data.minutes);
+    const recordKind: string = (data.recordKind || "").trim() || "record";
+
+    const acknowledged: MarkdownText = hasMarkdown(data.acknowledgedBy)
+      ? mdText`**${data.acknowledgedBy!}** acknowledged it`
+      : mdText`it was acknowledged`;
+
+    return mdText`${getPolicy(data.policyLink)} is paging again (${place}): the ${recordKind} is still not resolved ${after} after ${acknowledged}.`.toString();
   }
 
   /*

@@ -358,9 +358,18 @@ const VIRTUAL_MACHINES: Array<Record<string, unknown>> = [
   vm(4, { name: "ubuntu-24-template", isTemplate: true }),
 ];
 
-// Two buckets, and per device for the per-device reads.
+/*
+ * Two buckets, and per device for the per-device reads. The clock is read
+ * once: every row of one bucket carries that bucket's exact time, as the
+ * aggregate returns it. Read per row, a millisecond tick between two rows
+ * split one bucket in two - the host's own total in one, a NIC in the other
+ * - and the Network tile averaged them (23.5 MB/s instead of 31.5).
+ */
 function reportingSeries(): Record<string, Array<Record<string, unknown>>> {
-  const at: (minutes: number) => Date = minutesAgo;
+  const now: number = Date.now();
+  const at: (minutes: number) => Date = (minutes: number): Date => {
+    return new Date(now - minutes * 60 * 1000);
+  };
   return {
     "vcenter.host.cpu.utilization": [
       { timestamp: at(10), value: 80 },

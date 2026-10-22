@@ -30,6 +30,8 @@ import React, {
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { canPickByLabel, withLabels, withSearch } from "./EntityDropdownQuery";
+import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 
 /*
  * EntityDropdown is the generalized successor to react-select-based Dropdown.
@@ -354,11 +356,17 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
    * re-runs when its content changes - not when a caller hands in an equal
    * object on every render, which would search again on every render.
    */
-  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> = useRef<
-    Record<string, unknown>
-  >(props.query || {});
-  baseQueryRef.current = props.query || {};
-  const baseQueryKey: string = JSON.stringify(props.query || {});
+  /*
+   * A dropdown of values that can be archived lists the live ones only
+   * (ArchivedValuePicker); a value a record already has is read by its id
+   * below, archived or not.
+   */
+  const pickerQuery: Record<string, unknown> =
+    ArchivedValuePicker.getPickerQuery(modelType, props.query);
+  const baseQueryRef: React.MutableRefObject<Record<string, unknown>> =
+    useRef<Record<string, unknown>>(pickerQuery);
+  baseQueryRef.current = pickerQuery;
+  const baseQueryKey: string = JSON.stringify(pickerQuery);
   const hasLabelsAutoDetected: boolean = useMemo(() => {
     return detectLabelsField(modelType);
   }, [modelType]);
@@ -774,6 +782,9 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           option.color = colorRaw as NonNullable<DropdownOption["color"]>;
         }
       }
+      if (raw["isArchived"] === true) {
+        option.isArchived = true;
+      }
       return option;
     },
     [labelField, valueField, colorField],
@@ -879,6 +890,8 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         const baseSelect: Record<string, true> = {
           _id: true,
           [labelField]: true,
+          // An archived value a record still has is marked as one.
+          ...ArchivedValuePicker.getSelectedValueSelect(modelType),
         } as Record<string, true>;
         if (colorField) {
           baseSelect[colorField] = true;
@@ -1471,6 +1484,12 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                   />
                 )}
                 <span className="max-w-[14rem] truncate">{opt.label}</span>
+                {opt.isArchived && (
+                  <ArchivedTag
+                    isCompact={true}
+                    dataTestId="entity-dropdown-archived-tag"
+                  />
+                )}
                 {!props.disabled && (
                   <button
                     type="button"
@@ -1584,6 +1603,9 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 <span id={valueLabelId} className="font-medium text-gray-900">
                   {selectedOptions[0]!.label}
                 </span>
+                {selectedOptions[0]!.isArchived && (
+                  <ArchivedTag dataTestId="entity-dropdown-archived-tag" />
+                )}
               </span>
               <div className="flex items-center gap-1 text-gray-400">
                 {!props.disabled && (
@@ -1653,6 +1675,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                 setSearchQuery(event.target.value);
                 setIsOpen(true);
                 setHighlightedIndex(-1);
+              }}
+              /*
+               * A click opens the menu even when the box already has the
+               * focus: after Escape closed the menu (focus stays here, see
+               * closeMenuOnEscape) or after Clear, a click on the box did
+               * nothing, and picking a second item needed a click away
+               * first.
+               */
+              onClick={() => {
+                if (!props.disabled) {
+                  setIsOpen(true);
+                }
               }}
               onFocus={() => {
                 // Not when focus lands here after a clear (clearShownValue).
@@ -1918,10 +1952,18 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
                             style={{ backgroundColor: colorStr }}
                           />
                         )}
-                        <span className="truncate">{opt.label}</span>
+                        {/*
+                         * The name comes first: it takes the row, and the
+                         * line beside it never more than half of it. Both
+                         * shrinking alike cut a short name ("infra") to
+                         * "in..." beside a long description on a phone.
+                         */}
+                        <span className="min-w-0 flex-1 truncate">
+                          {opt.label}
+                        </span>
                         {opt.description && (
                           <span
-                            className={`ml-auto truncate text-xs ${
+                            className={`max-w-[50%] flex-none truncate text-xs ${
                               isHighlighted
                                 ? "text-indigo-100"
                                 : "text-gray-500"

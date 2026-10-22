@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
 import { createTranslator } from "../../Utils/TranslateTemplate";
@@ -55,6 +56,20 @@ export interface DropdownOption {
    * label is English to look up.
    */
   isUserContent?: boolean | undefined;
+  /*
+   * An archived value a record still has (Common/Utils/ArchivableValues):
+   * a picker never lists one, but shows the one already picked, marked
+   * Archived, so it can be kept or changed.
+   */
+  isArchived?: boolean | undefined;
+  /*
+   * Shown in the menu but never picked: a choice that is not open here,
+   * with its description saying why ("Runs JavaScript steps only."). The
+   * menu draws it muted and passes over it, mouse and keyboard alike, and
+   * a screen reader hears it as unavailable (react-select reads this
+   * field).
+   */
+  isDisabled?: boolean | undefined;
 }
 
 export interface DropdownOptionGroup {
@@ -541,13 +556,35 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
 
     if (meta.context === "value") {
+      /*
+       * A picked name longer than the control - a template's name on a
+       * phone - ends in an ellipsis, not cut off mid-letter: react-select's
+       * own ellipsis does not reach text inside these rows, so the rows may
+       * shrink (min-w-0) and the name truncates itself. dir="auto" keeps a
+       * name's start in view whichever way the page reads: an English name
+       * on a Persian page is cut at its end, not its beginning.
+       */
       return (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center gap-2">
             {renderOptionColorIndicator(option.color)}
-            <span className="text-sm font-medium text-gray-900">
+            <span
+              className="truncate text-sm font-medium text-gray-900"
+              dir="auto"
+              data-testid="dropdown-value-label"
+            >
               {getOptionLabelText(option)}
             </span>
+            {/*
+             * An archived value the record still has: kept, never offered
+             * again - the same tag the entity dropdowns draw.
+             */}
+            {option.isArchived ? (
+              <ArchivedTag
+                isCompact={Boolean(props.isMultiSelect)}
+                dataTestId="dropdown-archived-tag"
+              />
+            ) : null}
           </div>
           {renderAssociatedLabels(
             visibleLabels,
@@ -558,13 +595,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * An option that cannot be picked reads as such: its name a shade
+     * quieter, not the menu's dark - still legible, since its description
+     * says why it is not open.
+     */
     return (
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           {renderOptionColorIndicator(option.color)}
-          <span className="text-sm font-medium text-gray-900">
+          <span
+            className={`text-sm font-medium ${
+              option.isDisabled ? "text-gray-500" : "text-gray-900"
+            }`}
+          >
             {getOptionLabelText(option)}
           </span>
+          {option.isArchived ? (
+            <ArchivedTag dataTestId="dropdown-archived-tag" />
+          ) : null}
         </div>
         {option.description ? (
           <span className="text-xs text-gray-500">
@@ -743,7 +792,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             state: OptionProps<DropdownOption, boolean, GroupBase<any>>,
           ): string => {
             if (state.isDisabled) {
-              return "px-3 py-2 text-sm text-gray-300 cursor-not-allowed";
+              return "px-3 py-2 text-sm text-gray-500 cursor-not-allowed";
             }
 
             if (state.isSelected) {

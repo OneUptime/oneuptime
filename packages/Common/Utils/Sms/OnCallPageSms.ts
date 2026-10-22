@@ -8,11 +8,11 @@ import { countSmsSegments, SmsSegmentCount } from "./SmsSegments";
  * Somebody paged by SMS reads the text on a locked phone, often at night,
  * and every part of an SMS is billed (SmsSegments). So a page's text says
  * only what they need - who sends it, what happened and the one link to
- * acknowledge the page or pass it on - in one part of 160 characters
+ * acknowledge the page or escalate it - in one part of 160 characters
  * wherever it can:
  *
  *   OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
- *   Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+ *   Ack or escalate: https://oneuptime.com/l/XJlaZRsd
  *
  * (one line when sent). In order: the product, the severity with what
  * happened (an incident, an alert or an episode of either), its number, the
@@ -62,8 +62,11 @@ export const ON_CALL_PAGE_SMS_KIND_WORDS: Readonly<
   [OnCallPageSmsKind.AlertEpisode]: ["alert", "episode"],
 };
 
-// The words before the link, which opens the page to acknowledge or pass it on.
-export const ON_CALL_PAGE_SMS_ACTION: string = "Ack or pass it on:";
+/*
+ * The words before the link, which opens the page to acknowledge or escalate
+ * it: the same word as every other place says (OnCallPagePassOn).
+ */
+export const ON_CALL_PAGE_SMS_ACTION: string = "Ack or escalate:";
 
 // What a cut title ends with: three full stops, which GSM-7 has (… it has not).
 export const ON_CALL_PAGE_SMS_CUT_MARK: string = "...";
@@ -139,7 +142,7 @@ export interface OnCallPageSmsInput {
   number?: string | null | undefined;
   projectName?: string | null | undefined;
   title?: string | null | undefined;
-  // The page that acknowledges it or passes it on. Never cut.
+  // The page that acknowledges it or escalates it. Never cut.
   link: string;
   // What the send path does to the text before the provider gets it.
   sentAs?: ((text: string) => string) | undefined;

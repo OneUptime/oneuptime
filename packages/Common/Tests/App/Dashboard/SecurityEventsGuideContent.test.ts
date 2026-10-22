@@ -9,7 +9,14 @@ jest.mock("isolated-vm", () => {
 import { describe, expect, test } from "@jest/globals";
 import { Lexer, Token, Tokens } from "marked";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
+import {
+  DETECTION_RULE_TYPE_DEFINITIONS,
+  DetectionRuleType,
+  detectionRuleTypeOf,
+} from "../../../Types/SecurityEvent/SigmaCorrelation";
 import DetectionRulesGuide, {
+  CORRELATION_RULE_EXAMPLE_YAML,
+  NEW_VALUE_RULE_EXAMPLE_YAML,
   DETECTION_RULE_EXAMPLE_YAML,
   DETECTION_THRESHOLD_EXAMPLES,
   DetectionThresholdExample,
@@ -28,9 +35,21 @@ import ThreatIntelGuide, {
   ThreatLevelBand,
   UNSCORED_CONFIDENCE,
   UNSUPPORTED_PATTERN_EXAMPLES,
+  describeListSchedule,
   formatBand,
   threatLevelForBand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide";
+import {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+  RecommendedThreatIntelList,
+  THREAT_INTEL_FEED_TYPE_DEFINITIONS,
+  THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS,
+  THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS,
+  THREAT_INTEL_LIST_MAX_INDICATORS,
+  THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES,
+  THREAT_INTEL_LIST_VALID_DAYS,
+  ThreatIntelFeedTypeDefinition,
+} from "../../../Types/SecurityEvent/ThreatIntelFeedType";
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
@@ -40,6 +59,9 @@ import {
   markdownTable,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import SigmaRuleSetParser, {
+  sigmaRulesOf,
+} from "../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import SigmaClickhouseCompiler, {
   FIELD_ALIASES,
   buildSigmaDistinctCountExpression,
@@ -336,13 +358,58 @@ describe("Security Events guides: structure", () => {
 
       expect(blocks.length).toBeGreaterThan(0);
 
+      /*
+       * As a save checks it: one Sigma rule, or a correlation with the
+       * rules it reads (SigmaRuleSetParser), each of them compiled.
+       */
       for (const block of blocks) {
         expect(() => {
-          SigmaClickhouseCompiler.compileYaml(block);
+          for (const rule of sigmaRulesOf(SigmaRuleSetParser.parse(block))) {
+            SigmaClickhouseCompiler.compile(rule);
+          }
         }).not.toThrow();
       }
     },
   );
+
+  test("the correlation examples are the kinds the section says they are", () => {
+    const sequence: ReturnType<typeof SigmaRuleSetParser.parse> =
+      SigmaRuleSetParser.parse(CORRELATION_RULE_EXAMPLE_YAML);
+    const firstSeen: ReturnType<typeof SigmaRuleSetParser.parse> =
+      SigmaRuleSetParser.parse(NEW_VALUE_RULE_EXAMPLE_YAML);
+
+    expect(detectionRuleTypeOf(sequence)).toBe(
+      DetectionRuleType.TemporalOrdered,
+    );
+    expect(detectionRuleTypeOf(firstSeen)).toBe(DetectionRuleType.NewValue);
+
+    if (sequence.kind !== "correlation") {
+      throw new Error("expected a correlation");
+    }
+
+    // "five failed sign-ins ... within ten minutes", as the section says.
+    expect(sequence.steps[0]!.count?.correlation.condition.comparisons).toEqual(
+      [{ operator: "gte", value: 5 }],
+    );
+    expect(sequence.correlation.timespanInSeconds).toBe(600);
+
+    const section: SecurityEventsGuideSection | undefined = getGuideSection(
+      DetectionRulesGuide,
+      "correlations",
+    );
+
+    expect(section).toBeDefined();
+
+    // Every kind is in the types table, shown as the product names it.
+    for (const definition of DETECTION_RULE_TYPE_DEFINITIONS) {
+      if (definition.correlationType) {
+        expect(section!.markdown).toContain(
+          `| \`${definition.correlationType}\` |`,
+        );
+        expect(section!.markdown).toContain(`| ${definition.title} |`);
+      }
+    }
+  });
 
   test("the two guides use different ids, so their collapsed state is stored apart", () => {
     expect(DetectionRulesGuide.id).not.toBe(ThreatIntelGuide.id);
@@ -1164,6 +1231,14 @@ describe("Threat Intel guide: threat levels", () => {
     THREAT_LEVEL_BANDS.forEach((band: ThreatLevelBand, index: number) => {
       expect(ThreatIntelGuide.levels.items[index]).toEqual({
         label: `Confidence ${formatBand(band)}`,
+        // The card looks the label up with the band's numbers written in.
+        labelTemplate: {
+          sentence: "Confidence {{from}}–{{to}}",
+          values: {
+            from: band.minimumConfidence,
+            to: band.maximumConfidence,
+          },
+        },
         severity: threatLevelForBand(band),
       });
     });
@@ -1358,5 +1433,127 @@ describe("Threat Intel guide: feeds and polling", () => {
     expect(ThreatIntelGuide.steps[0]?.description).toContain(
       `${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES}–${THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES} minutes (default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES})`,
     );
+  });
+});
+
+describe("Threat Intel guide: every source a feed can read", () => {
+  test("the card and the overview name each source the feed form offers", () => {
+    const overview: string = sectionMarkdown(ThreatIntelGuide, "overview");
+
+    for (const definition of THREAT_INTEL_FEED_TYPE_DEFINITIONS) {
+      // Each source, by the name the form's Source step gives it, once.
+      const first: number = overview.indexOf(`**${definition.title}**`);
+      expect(first).toBeGreaterThan(-1);
+      expect(overview.indexOf(`**${definition.title}**`, first + 1)).toBe(-1);
+    }
+    expect(
+      THREAT_INTEL_FEED_TYPE_DEFINITIONS.map(
+        (definition: ThreatIntelFeedTypeDefinition): string => {
+          return definition.title;
+        },
+      ),
+    ).toEqual(["List of indicators", "TAXII collection", "Google SecOps"]);
+
+    // The card says where indicators come from, not only TAXII.
+    expect(ThreatIntelGuide.summary).toContain(
+      "lists, TAXII collections and Google SecOps",
+    );
+    expect(ThreatIntelGuide.steps[0]?.description).toContain(
+      "downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found",
+    );
+    // What the guide said when every feed was a TAXII collection is gone.
+    expect(ThreatIntelGuide.summary).not.toContain(
+      "from STIX/TAXII collections",
+    );
+    expect(overview).not.toContain("you bring the collections");
+  });
+
+  test("a match opens a case, as the feed's On Match step does by default", () => {
+    expect(ThreatIntelGuide.steps[3]?.description).toContain(
+      "opens or joins a case",
+    );
+    expect(sectionMarkdown(ThreatIntelGuide, "overview")).toContain(
+      "opens a **case** about the indicator",
+    );
+  });
+
+  test("the free lists table is the catalog Free Lists adds from, in its order", () => {
+    const rows: Array<Array<string>> = tableRowsUnder(
+      sectionMarkdown(ThreatIntelGuide, "feeds-and-polling"),
+      ["List", "Published by", "Read", "Confidence", "A match opens"],
+    );
+
+    expect(rows).toEqual(
+      RECOMMENDED_THREAT_INTEL_LISTS.map(
+        (list: RecommendedThreatIntelList): Array<string> => {
+          return [
+            list.title,
+            list.provider,
+            describeListSchedule(list.pollIntervalInMinutes),
+            String(list.indicatorConfidence),
+            list.raisesAlerts ? "A case and an alert" : "A case",
+          ];
+        },
+      ),
+    );
+    // The Tor exit nodes are worth a look, not a page.
+    expect(
+      rows.find((row: Array<string>): boolean => {
+        return row[0] === "Tor exit nodes";
+      })?.[4],
+    ).toBe("A case");
+  });
+
+  test("how a list is read: its cap, its schedule floor and how long a value stays", () => {
+    const feeds: string = sectionMarkdown(
+      ThreatIntelGuide,
+      "feeds-and-polling",
+    );
+
+    expect(feeds).toContain(
+      `at most ${THREAT_INTEL_LIST_MAX_INDICATORS.toLocaleString("en-US")} indicators`,
+    );
+    expect(feeds).toContain(
+      `every ${THREAT_INTEL_LIST_MIN_POLL_INTERVAL_IN_MINUTES} minutes at most`,
+    );
+    expect(feeds).toContain(
+      `active for ${THREAT_INTEL_LIST_VALID_DAYS} days after the poll that last read it`,
+    );
+  });
+
+  test("how Google SecOps is read: its first window and how long an indicator stays", () => {
+    const feeds: string = sectionMarkdown(
+      ThreatIntelGuide,
+      "feeds-and-polling",
+    );
+
+    expect(feeds).toContain(
+      `the first poll reads the last ${THREAT_INTEL_GOOGLE_SECOPS_MAX_WINDOW_IN_DAYS} days`,
+    );
+    expect(feeds).toContain(
+      `active for ${THREAT_INTEL_GOOGLE_SECOPS_VALID_DAYS} days after Google SecOps last saw it`,
+    );
+    expect(feeds).toContain("Chronicle API Viewer role");
+  });
+
+  test("troubleshooting covers a list and a Google SecOps feed that fail", () => {
+    const troubleshooting: string = sectionMarkdown(
+      ThreatIntelGuide,
+      "troubleshooting",
+    );
+
+    expect(troubleshooting).toContain("#### A list feed fails");
+    expect(troubleshooting).toContain("#### A Google SecOps feed fails");
+    // The words the list source's own error uses.
+    expect(troubleshooting).toContain("The list URL answered with a web page");
+  });
+
+  test("a schedule is said in its largest whole unit", () => {
+    expect(describeListSchedule(60)).toBe("Every hour");
+    expect(describeListSchedule(120)).toBe("Every 2 hours");
+    expect(describeListSchedule(1440)).toBe("Every day");
+    expect(describeListSchedule(2880)).toBe("Every 2 days");
+    expect(describeListSchedule(15)).toBe("Every 15 minutes");
+    expect(describeListSchedule(1)).toBe("Every minute");
   });
 });

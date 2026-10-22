@@ -1,10 +1,11 @@
 # Runbook-agenten
 
-Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf gehost proces dat de JavaScript-, Bash-, SSH- en kubectl-stappen van uw runbooks **in uw eigen infrastructuur** uitvoert. De OneUptime Worker voert uw scripts nooit uit: hij zet ze in de wachtrij, en de Runner die de schrijver van de stap koos, pakt elk script op, voert het uit en meldt het resultaat terug. Deze pagina is voor wie Runners installeert en beheert. Een JavaScript-stap die geen Runner kiest, loopt in plaats daarvan op een [globale Runner](#globale-runners), een van de Runners die OneUptime voor elk project draait.
+Een **runbook-agent**, in het dashboard **Runner** genoemd, is een klein zelf gehost proces dat de JavaScript-, Bash-, SSH- en kubectl-stappen van uw runbooks **in uw eigen infrastructuur** uitvoert. De OneUptime Worker voert uw scripts nooit uit: hij zet ze in de wachtrij, en de Runner die de schrijver van de stap koos, pakt elk script op, voert het uit en meldt het resultaat terug. Deze pagina is voor wie Runners installeert en beheert. Een stap die geen Runner kiest, loopt op de [standaard-Runner van het project](#de-standaard-runner-van-het-project), als u er een hebt ingesteld; anders loopt een JavaScript-stap op een [globale Runner](#globale-runners), een van de Runners die OneUptime voor elk project draait.
 
 :::cards
 - [Een Runner installeren](#een-runner-installeren): Van het dashboard naar een verbonden container, in vijf stappen.
 - [Een stap op een Runner richten](#een-stap-op-een-runner-richten): Een stap koppelen aan de Runner die hem moet uitvoeren.
+- [De standaard-Runner van het project](#de-standaard-runner-van-het-project): De Runner waarop een stap loopt die er geen kiest.
 - [Globale Runners](#globale-runners): De Runners die OneUptime voor elk project draait, en wat ze uitvoeren.
 - [Time-outs](#time-outs): Claim- en uitvoeringstime-outs, en hoe ze samenwerken.
 - [Omgevingsvariabelen](#omgevingsvariabelen): Wat de container bij het starten leest.
@@ -26,14 +27,14 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"Uitgaand HTTPS, Runner-ID en sleutel"| ingest
-    ingest -->|"Opgepakte taak, met zijn geheimen of inloggegeven"| runner
+    ingest -->|"Opgepakte taak, met zijn geheimen"| runner
     runner -->|"Script, SSH of Kubernetes-API"| targets
 ```
 
 1. U maakt een Runner in OneUptime. OneUptime genereert er een ID en een geheime sleutel voor.
 2. U draait de Runner-container op een host in uw infrastructuur, met dat ID, die sleutel en uw OneUptime-URL.
 3. De Runner vraagt OneUptime elke 5 seconden om werk en meldt elke 60 seconden dat hij leeft.
-4. Wanneer u een JavaScript-, Bash-, SSH- of kubectl-stap schrijft, kiest u de Runner uit een vervolgkeuzelijst. De stap is aan die Runner gekoppeld. Een JavaScript-stap kan **Globale Runner** houden, die de vervolgkeuzelijst voor hem kiest.
+4. Wanneer u een JavaScript-, Bash-, SSH- of kubectl-stap schrijft, kiest u de Runner uit een vervolgkeuzelijst onder **Meer velden** van de stap. De stap is aan die Runner gekoppeld. Een stap die er geen kiest, loopt op de standaard-Runner van het project, als u er een hebt ingesteld, en anders loopt een JavaScript-stap op **Globale Runner**.
 5. Wanneer de stap loopt, zet de Worker een taak in de wachtrij waarvan `targetAgentId` naar die Runner wijst. Alleen die Runner kan hem oppakken.
 6. De Runner voert de job lokaal uit — `bash -c <script>` voor Bash en kubectl, een `isolated-vm`-sandbox voor JavaScript, een SSH-verbinding die het script met bash op de machine uitvoert —, legt het resultaat vast, verbergt daarin de geheimen van de stap en stuurt het terug. De Worker hervat het runbook met het resultaat.
 
@@ -52,7 +53,7 @@ Met Runners lopen die stappen op een host die u beheert, en bepaalt u wat die ho
 
 ## Globale Runners
 
-Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaScript-stap die geen eigen Runner kiest, loopt op een daarvan, zodat u hem kunt schrijven voordat u iets installeert. **Runbooks → Runbook-agenten** toont ze onder **Globale Runners**, boven uw eigen Runners, en de vervolgkeuzelijst **Runner** van een JavaScript-stap biedt **Globale Runner** als eerste aan.
+Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaScript-stap die geen eigen Runner kiest, loopt op een daarvan, tenzij het project een [standaard-Runner](#de-standaard-runner-van-het-project) heeft, zodat u hem kunt schrijven voordat u iets installeert. **Runbooks → Runbook-agenten** toont ze onder **Globale Runners**, boven uw eigen Runners, en de vervolgkeuzelijst **Runner** van een JavaScript-stap biedt **Globale Runner** als eerste aan, of direct na de standaard-Runner van het project. De vervolgkeuzelijst van een Bash-, SSH- of kubectl-stap toont hem als laatste, grijs, met **Voert alleen JavaScript-stappen uit.** Die stappen lopen op een eigen Runner, binnen uw netwerk, nooit op een Runner die alle projecten delen.
 
 | | Globale Runner | Uw eigen Runner |
 | --- | --- | --- |
@@ -60,16 +61,15 @@ Globale Runners zijn de Runners die OneUptime voor elk project draait. Een JavaS
 | Wat een stap kan bereiken | Openbare internetadressen | Wat zijn host kan bereiken |
 | Langste looptijd van een stap | 5 minuten | 1 uur |
 | Geheime variabelen | Die u globale Runners laat gebruiken | Die hem vermelden |
-| Credentials | Geen | Die u eraan toewijst |
 
 Een globale Runner voert de stappen van veel projecten uit, dus elke stap wordt gescheiden gehouden van alle andere:
 
 - Elke stap loopt in een eigen `isolated-vm`-sandbox, gemaakt voor die stap en daarna weggegooid: geen bestanden, geen processen, geen omgevingsvariabelen en niets dat van de ene stap naar de volgende bewaard blijft.
 - Zijn HTTP-verzoeken bereiken alleen openbare internetadressen, nooit een privé-, loopback- of link-local-adres of een cloudmetadata-endpoint, zodat een globale Runner nooit uw netwerk bereikt.
-- Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele. Hij krijgt nooit een inloggegeven.
+- Hij krijgt een geheime variabele alleen als haar schakelaar **Globale Runners mogen het gebruiken** aan staat, en alleen voor een stap van het eigen project van de variabele.
 - Een project voert hooguit drie stappen tegelijk uit op globale Runners, zodat geen project ze voor zichzelf houdt.
 
-Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, mislukt dan met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
+Kies een van uw eigen Runners voor een stap die uw netwerk moet bereiken, of om de stap op hosts te houden die u beheert. Om elke stap op uw eigen Runners te houden, zet u **Globale Runners gebruiken** uit onderaan **Runbooks → Runbook-agenten**. Een JavaScript-stap die geen Runner kiest, loopt dan op de standaard-Runner van het project of mislukt, als er geen is ingesteld, met een melding, totdat hij een van uw Runners kiest; een stap die een van uw Runners kiest, houdt die in elk geval. Een code-repository die in zijn instellingen in Code geen Runner kiest, werkt ook op een globale Runner, en heeft een van uw Runners nodig zolang de schakelaar uit staat; zie [Code](/docs/ai/ai-agent#de-runner-van-de-repository-kiezen).
 
 ### Waar globale Runners vandaan komen
 
@@ -97,7 +97,7 @@ Ga naar **Runbooks → Runbook-agenten** en maak een nieuwe agent. Klik op **Run
 | **Voert Runbooks uit** | Onder **Meer velden** | Standaard aan. Laat deze Runner runbook-stappen oppakken. |
 | **Labels** | Onder **Meer velden** | Optioneel. |
 
-Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert, en de AI-instellingen van een Kubernetes-cluster de Runner waarop zijn kubectl draait: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien. Een Runner kiezen met SSH-inloggegevens vereist de machtiging om runbook-inloggegevens te lezen; zie [Runners die de opdrachten van OneUptime AI uitvoeren](/docs/runbooks/credentials#runners-die-de-opdrachten-van-oneuptime-ai-uitvoeren).
+Een Runner neemt een wijziging van zijn mogelijkheden over bij zijn volgende heartbeat; opnieuw starten is niet nodig. AI is geen mogelijkheid. Een code-repository kiest in zijn instellingen in Code de Runner waarop AI erin werkt, en de pagina van de Runner toont de repositories die hem kiezen. Een regel voor automatisch herstel kiest de Runner waarop OneUptime AI zijn opdrachten uitvoert: pas door een Runner daar te kiezen mogen de opdrachten van OneUptime AI erop draaien.
 
 ### 2. De installatieopdracht kopiëren
 
@@ -142,7 +142,7 @@ Voeg in de **Stappen** van uw runbook een JavaScript-, Bash-, SSH- of kubectl-st
 
 ### De Runner kiezen
 
-De vervolgkeuzelijst **Runner** van de stap toont elke Runner in het project, en of hij verbonden is. Heeft het project er nog geen, dan zegt de stap dat en verwijst hij u naar **Runbooks › Runners**. De vervolgkeuzelijst van een JavaScript-stap biedt ook **Globale Runner** aan, als eerste, en kiest die totdat u een van uw eigen Runners kiest.
+Open **Meer velden** van de stap: de vervolgkeuzelijst **Runner** toont elke Runner in het project, en of hij verbonden is, en de ingeklapte regel noemt de Runner waarop de stap loopt. Heeft het project er nog geen, dan zegt de stap dat en verwijst hij u naar **Runbooks › Runners**. De eerste keuze is waarop een stap loopt die geen Runner kiest: de [standaard-Runner van het project](#de-standaard-runner-van-het-project), gemarkeerd met **Projectstandaard**, of anders, voor een JavaScript-stap, **Globale Runner**.
 
 ### De stappen opslaan
 
@@ -152,6 +152,26 @@ Klik op **Save Steps**. Wanneer een uitvoering de stap bereikt, zet de Worker ee
 Bash wordt uitgevoerd met `bash -c`. JavaScript loopt in een `isolated-vm`-sandbox op de Runner, zonder toegang tot het bestandssysteem of processen; het kan openbare HTTP-API's aanroepen met `axios`, maar geen adressen in een privénetwerk. Een SSH- of kubectl-stap meldt zich aan met een geheime [runbookvariabele](/docs/runbooks/variables), die de Runner van de stap moet vermelden onder **Je Runners die het mogen gebruiken**.
 
 Meer dan één Runner nodig? Maak ze en richt elke stap op de juiste. Voor redundantie draait u een tweede Runner en verdeelt u de stappen over beide, of houdt u een reserve-runbook bij waarvan de stappen op de andere Runner zijn gericht.
+
+## De standaard-Runner van het project
+
+Een project kan een van zijn eigen Runners zijn standaard maken, zoals het een Twilio-configuratie zijn standaard maakt. Elke runbookstap die geen Runner kiest, loopt dan daarop: Bash-, SSH- en kubectl-stappen, en JavaScript-stappen, die anders op een globale Runner zouden lopen.
+
+Om een Runner de standaard te maken, gaat u naar **Runbooks → Runbook-agenten**, opent u het menu **⋯** in de rij van de Runner, klikt u op **Instellen als projectstandaard** en bevestigt u met **Projectstandaard maken**. Of open de Runner en zet op zijn kaart **Projectstandaard** de schakelaar **Als projectstandaard gebruiken** aan. De lijst markeert de standaard met **Projectstandaard**, naast zijn naam, en de vervolgkeuzelijst **Runner** van een stap doet dat ook, bij de eerste keuze. Een project heeft één standaard-Runner: een andere Runner de standaard maken vervangt hem. **Niet meer als projectstandaard gebruiken**, in hetzelfde menu, of de schakelaar op de pagina van de Runner, stopt het gebruik ervan.
+
+Waar een stap loopt die geen Runner kiest:
+
+| Het project | Een JavaScript-stap | Een Bash-, SSH- of kubectl-stap |
+| --- | --- | --- |
+| Heeft een standaard-Runner | De standaard-Runner | De standaard-Runner |
+| Heeft er geen, en gebruikt globale Runners | Een globale Runner | Nergens: de stap mislukt met de melding dat hij geen Runner heeft |
+| Heeft er geen, en gebruikt geen globale Runners | Nergens: de stap mislukt met een melding | Nergens: de stap mislukt met de melding dat hij geen Runner heeft |
+
+Een stap die een Runner heeft gekozen, houdt die, wat de standaard ook is, en een JavaScript-stap kan nog steeds zelf **Globale Runner** kiezen. Een standaard instellen verandert geen opgeslagen stap.
+
+De standaard is een van de eigen Runners van het project die runbookstappen uitvoert: geen globale Runner, niet de Runner in het cluster die de Kubernetes-agent heeft geïnstalleerd, en geen Runner waarbij **Voert Runbooks uit** uit staat. Zolang een Runner de standaard is, blijft zijn **Voert Runbooks uit** aan. Als de standaard niet verbonden is, zegt de vervolgkeuzelijst van een stap dat, en een stap erop wacht erop, zoals op elke Runner, tot zijn claim timeout verstrijkt.
+
+Alleen runbookstappen gebruiken de standaard. Een code-repository kiest zijn Runner in zijn instellingen in Code, en een regel voor automatisch herstel kiest zijn eigen Runner.
 
 ## Beheernotities
 

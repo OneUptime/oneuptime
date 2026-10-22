@@ -24,8 +24,10 @@ import path from "path";
  * the SSH step (the machine as user@host, the secret it signs in with, the
  * bash script, its port and passphrase folded under More fields) and the
  * kubectl step (the kubeconfig, or the Runner's own access, and the
- * script); steps written with a credential and turned into script steps;
- * AI Access; then a phone, dark mode and German. The fixture records every
+ * script); steps written with a runbook credential, which no longer run,
+ * turned into script steps; then a phone, dark mode and German. (AI Access,
+ * the runbook credentials OneUptime AI's commands used, is gone.) The
+ * fixture records every
  * save and create, so the tests check what was sent as well as what was
  * drawn.
  */
@@ -37,7 +39,6 @@ const BASTION_ID: string = "40000000-0000-4000-8000-0000000000d1";
 const VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/settings/variables`;
 const RUNBOOK_VARIABLES_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/variables`;
 const STEPS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/${RUNBOOK_ID}/steps`;
-const AI_ACCESS_PAGE: string = `/dashboard/${PROJECT_ID}/runbooks/runner-credentials`;
 
 const SSH_STEP: string = "Restart the database proxy";
 const KUBECTL_STEP: string = "Restart checkout";
@@ -733,20 +734,48 @@ test.describe("a kubectl step", () => {
 });
 
 test.describe("steps written with a credential", () => {
-  test("still show as they are, and one button turns each into a script step that does the same", async ({
+  test("say they no longer run, and one button turns each into a script step that does the same", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openSteps(page, [], "legacy=1");
 
-    // Folded, each says what it is.
+    /*
+     * Folded, each says what it is, and that it no longer runs - beside its
+     * title, where the approval lock goes - while no other step says so.
+     */
     await expect(
       header(page, "Clear the cache (written through the API)"),
     ).toContainText("SSH with a runbook credential");
     await expect(
       header(page, "Scale workers (written through the API)"),
     ).toContainText("Kubernetes action with a runbook credential");
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveText(
+      "No longer runs",
+    );
+    await expect(page.getByTestId("runbook-step-3-no-longer-runs")).toHaveText(
+      "No longer runs",
+    );
+    await expect(page.getByTestId("runbook-step-0-no-longer-runs")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("runbook-step-1-no-longer-runs")).toHaveCount(
+      0,
+    );
+    // The sign sits on the title's line, after the title.
+    const titleBox: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("runbook-step-2-title-text").boundingBox())!;
+    const signBox: { x: number; y: number; width: number; height: number } =
+      (await page.getByTestId("runbook-step-2-no-longer-runs").boundingBox())!;
+    expect(signBox.x).toBeGreaterThan(titleBox.x + titleBox.width - 1);
+    // At a laptop's width it says it in words.
+    expect(signBox.width).toBeGreaterThan(60);
+    expect(
+      Math.abs(
+        signBox.y + signBox.height / 2 - (titleBox.y + titleBox.height / 2),
+      ),
+    ).toBeLessThan(4);
 
     for (const title of [
       "Clear the cache (written through the API)",
@@ -758,11 +787,16 @@ test.describe("steps written with a credential", () => {
         .click();
     }
 
-    await expect(page.getByTestId("runbook-step-2-legacy")).toContainText(
-      "This step signs in with a runbook credential and runs one command. It still runs as it is.",
+    // The fact first, then what turning it into a script step leaves to do.
+    await expect(
+      page.getByTestId("runbook-step-2-legacy").locator("p"),
+    ).toHaveText(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
     );
-    await expect(page.getByTestId("runbook-step-3-legacy")).toContainText(
-      "This step restarts or scales one workload with a runbook credential.",
+    await expect(
+      page.getByTestId("runbook-step-3-legacy").locator("p"),
+    ).toHaveText(
+      "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
     );
     /*
      * Its More fields line names only what it folds: its credential holds
@@ -780,6 +814,12 @@ test.describe("steps written with a credential", () => {
     await page.getByTestId("runbook-step-3-legacy-convert").click();
 
     await expect(page.getByTestId("runbook-step-2-legacy")).toHaveCount(0);
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("runbook-step-3-no-longer-runs")).toHaveCount(
+      0,
+    );
     await expect(
       page.getByTestId("runbook-step-2-ssh-target-input"),
     ).toBeVisible();
@@ -798,19 +838,61 @@ test.describe("steps written with a credential", () => {
   });
 });
 
-test.describe("AI Access", () => {
-  test("is what OneUptime AI's commands reach through your Runners", async ({
+test.describe("steps written with a credential, on every screen", () => {
+  test("a phone keeps the sign alone beside the title; dark mode and German say it too", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await page.goto(`${AI_ACCESS_PAGE}?page=ai-access`);
+    // A phone: the sign alone, so the title keeps its room.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openSteps(page, [], "legacy=1");
 
-    await expect(page.getByTestId("card-details-heading").first()).toHaveText(
-      "OneUptime AI Access",
+    const sign: Locator = page.getByTestId("runbook-step-2-no-longer-runs");
+    await expect(sign).toBeVisible();
+    // The sign alone: its padding and the 12-pixel icon, the words read out only.
+    expect((await sign.boundingBox())!.width).toBeLessThanOrEqual(26);
+    expect(
+      (await sign.getByText("No longer runs").boundingBox())!.width,
+    ).toBeLessThanOrEqual(1);
+    await expect(sign).toHaveAttribute("title", "No longer runs");
+    expect(await noHorizontalScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "phone-legacy-steps");
+
+    // Dark mode, at a laptop's width: the sign and the notice read on dark.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${STEPS_PAGE}?page=steps&legacy=1&theme=dark`);
+    await header(page, "Clear the cache (written through the API)")
+      .getByRole("button", { expanded: false })
+      .first()
+      .click();
+    await expect(page.getByTestId("runbook-step-2-legacy")).toBeVisible();
+    const signColor: string = await page
+      .getByTestId("runbook-step-2-no-longer-runs")
+      .evaluate((element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      });
+    // Not the light amber-50 (rgb(255, 251, 235)) on a dark page.
+    expect(signColor).not.toBe("rgb(255, 251, 235)");
+    await screenshot(page, "dark-legacy-steps");
+
+    // German: the sign and the notice in the Dashboard's German words.
+    await page.goto(`${STEPS_PAGE}?page=steps&legacy=1&lang=de`);
+    await expect(page.getByTestId("runbook-step-2-no-longer-runs")).toHaveText(
+      GERMAN["No longer runs"]!,
     );
-    await expect(row(page, "cache-hosts")).toBeVisible();
-    await screenshot(page, "ai-access");
+    await header(page, "Clear the cache (written through the API)")
+      .getByRole("button", { expanded: false })
+      .first()
+      .click();
+    await expect(
+      page.getByTestId("runbook-step-2-legacy").locator("p"),
+    ).toHaveText(
+      GERMAN[
+        "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with."
+      ]!,
+    );
+    await screenshot(page, "german-legacy-steps");
   });
 });
 

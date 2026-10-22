@@ -1,23 +1,37 @@
 import { DiscoveredNetworkDevice } from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   DISCOVERY_IMPORT_POLLING_INTERVALS_IN_MINUTES,
   DiscoveryImportAlerting,
   DiscoveryImportSettings,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
 import ActiveMonitorLimitUtil from "Common/Types/Monitor/ActiveMonitorLimit";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorCriteriaAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ChoiceRows from "Common/UI/Components/ChoiceRows/ChoiceRows";
 import Dropdown, {
   DropdownOption,
+  DropdownOptionGroup,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import CompactLoader from "Common/UI/Components/ComponentLoader/CompactLoader";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Link from "Common/UI/Components/Link/Link";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { BILLING_ENABLED } from "Common/UI/Config";
+import {
+  TemplateValue,
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { getMonitoringIntervalLabel } from "../../../Utils/MonitorIntervalDropdownOptions";
 import { ActiveMonitorLimitAlert } from "../../Monitor/ActiveMonitorLimitNotice";
 import { IMPORT_VENDOR_TEMPLATES_TOGGLE_TITLE } from "../BulkDeviceActionTitles";
 import {
@@ -28,6 +42,7 @@ import {
   DiscoveryImportAlertReach,
   DiscoveryImportOutcome,
   DiscoveryImportTemplateChoice,
+  checksDeviceAddress,
   getDiscoveryImportOutcome,
   getTemplateChoiceValue,
 } from "./DiscoveryImportOutcome";
@@ -35,10 +50,17 @@ import {
   DiscoveryImportProjectFacts,
   NamedColor,
 } from "./DiscoveryImportProjectFacts";
+import {
+  ADDRESS_TEMPLATES_GROUP_TITLE,
+  LISTED_TEMPLATE_KINDS_RULE,
+  MANAGE_TEMPLATES_LINK_TITLE,
+  POLL_TEMPLATES_GROUP_TITLE,
+  UNNAMED_TEMPLATE_NAME,
+} from "./DiscoveryImportTemplateCopy";
 
 /*
  * THE IMPORT'S SECOND STEP: HOW THE DEVICES ARE MONITORED (OneUptime issues
- * #4811 and #4815).
+ * #4811, #4815 and #5145).
  *
  * Three questions, each answered before anything is created, and one plain
  * account of what the answers add up to:
@@ -46,11 +68,16 @@ import {
  *   - How often the scan's probe checks each device (its polling interval).
  *   - Whether each SNMP device gets its vendor's health template.
  *   - Who hears about a problem: nobody but the device's own status, or a
- *     monitor per device from a Network Device monitor template - the
- *     recommended alert pack, or any template of the project - previewed
- *     check by check: what it watches, whether it opens an incident or an
- *     alert and at what severity, and whether it can fire on a device that
- *     only answers ping.
+ *     monitor per device from a template - the recommended alert pack, or
+ *     any of the project's templates a device's monitor can be made from: a
+ *     Network Device one, whose monitor reads each device's polls, or a
+ *     Ping, IP, Port or NTP one, whose monitor checks each device's address
+ *     from the scan's probe (#5145: a customer's own Ping template never
+ *     showed). One line under the list says which kinds are listed, beside
+ *     a link to the templates. The picked one is previewed check by check:
+ *     what each device gets, when it is checked, what each check raises and
+ *     at what severity, and, for a Network Device template, which checks
+ *     need an SNMP walk a device that only answers ping does not get.
  *
  * The account on the right ("What this import does") is worked out from the
  * same choices the import is sent with (getDiscoveryImportOutcome), so it can
@@ -84,16 +111,136 @@ function names(
     .join(", ");
 }
 
+/*
+ * The probe an address monitor runs from, as a sentence names it: the
+ * scan's probe by name, or - when the dialog does not know its name - the
+ * probe that ran the scan, translated with the sentence it sits in.
+ */
+function probeValue(probeName: string | undefined): TemplateValue {
+  return (
+    probeName ||
+    translatableTerm("the probe that ran the scan", { inSentence: true })
+  );
+}
+
+// A template's name as the step draws it: as someone typed it.
+export function getTemplateChoiceName(
+  translator: Translator,
+  choice: DiscoveryImportTemplateChoice,
+): string {
+  return (
+    choice.name || (translator.translateText(UNNAMED_TEMPLATE_NAME) as string)
+  );
+}
+
+/*
+ * What a Ping, IP, Port or NTP template's monitor does, in the words its
+ * option in the list carries under its name.
+ */
+export function describeAddressTemplate(
+  translator: Translator,
+  choice: DiscoveryImportTemplateChoice,
+): string {
+  if (choice.monitorType === MonitorType.IP) {
+    return translator.translateText("Pings each device's IP address") as string;
+  }
+
+  if (choice.monitorType === MonitorType.Port) {
+    const ports: Array<number> = choice.ports || [];
+
+    if (ports.length === 1) {
+      return translator.translateTemplate(
+        "Checks port {{port}} on each device",
+        { port: String(ports[0]) },
+      );
+    }
+
+    if (ports.length > 1) {
+      return translator.translateTemplate(
+        "Checks ports {{ports}} on each device",
+        { ports: ports.join(", ") },
+      );
+    }
+
+    return translator.translateText("Checks a port on each device") as string;
+  }
+
+  if (choice.monitorType === MonitorType.NTP) {
+    return translator.translateText("Asks each device for the time") as string;
+  }
+
+  return translator.translateText("Pings each device") as string;
+}
+
+/*
+ * The first line of the picked template's preview: what each device gets.
+ */
+export function getTemplateLead(
+  translator: Translator,
+  choice: DiscoveryImportTemplateChoice,
+  probeName: string | undefined,
+): string {
+  const probe: TemplateValue = probeValue(probeName);
+
+  if (choice.monitorType === MonitorType.Ping) {
+    return translator.translateTemplate(
+      "Each device gets a Ping monitor that pings its own address from {{probe}}.",
+      { probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.IP) {
+    return translator.translateTemplate(
+      "Each device gets an IP monitor that pings its own IP address from {{probe}}.",
+      { probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.Port) {
+    const ports: Array<number> = choice.ports || [];
+
+    if (ports.length === 1) {
+      return translator.translateTemplate(
+        "Each device gets a Port monitor that checks port {{port}} on its own address from {{probe}}.",
+        { port: String(ports[0]), probe: probe },
+      );
+    }
+
+    if (ports.length > 1) {
+      return translator.translateTemplate(
+        "Each device gets a Port monitor that checks ports {{ports}} on its own address from {{probe}}.",
+        { ports: ports.join(", "), probe: probe },
+      );
+    }
+
+    return translator.translateTemplate(
+      "Each device gets a Port monitor that checks its own address from {{probe}}.",
+      { probe: probe },
+    );
+  }
+
+  if (choice.monitorType === MonitorType.NTP) {
+    return translator.translateTemplate(
+      "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.",
+      { probe: probe },
+    );
+  }
+
+  return translator.translateText(
+    "Each device gets a Network Device monitor that reads what its polls find.",
+  ) as string;
+}
+
 const TemplateCheckLine: FunctionComponent<{
   criterion: MonitorCriteriaAlertSummary;
   index: number;
   facts: DiscoveryImportProjectFacts | null;
-  hasPingOnlyHosts: boolean;
+  dataTestId?: string | undefined;
 }> = (props: {
   criterion: MonitorCriteriaAlertSummary;
   index: number;
   facts: DiscoveryImportProjectFacts | null;
-  hasPingOnlyHosts: boolean;
+  dataTestId?: string | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const criterion: MonitorCriteriaAlertSummary = props.criterion;
@@ -162,29 +309,254 @@ const TemplateCheckLine: FunctionComponent<{
 
   return (
     <li
-      className="flex flex-col gap-0.5 py-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
-      data-testid="discovery-import-template-check"
+      className="py-2"
+      data-testid={props.dataTestId || "discovery-import-template-check"}
     >
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-900">
-          {criterion.name ||
-            translator.translateTemplate("Check {{number}}", {
-              number: props.index + 1,
-            })}
-        </p>
-        <p className="text-xs text-gray-500">{actions.join(" · ")}</p>
-      </div>
-      {props.hasPingOnlyHosts && !criterion.isEvaluatedOnPingOnlyDevices && (
-        <span
-          className="inline-flex flex-shrink-0 items-center self-start rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-          title={translator.translateText(
-            "This check reads an SNMP walk. A device that answers ping only is pinged, not walked, so this check never fires on it until it has SNMP credentials.",
-          )}
-        >
-          {translator.translateText("SNMP devices only")}
-        </span>
-      )}
+      <p className="text-sm font-medium text-gray-900">
+        {criterion.name ||
+          translator.translateTemplate("Check {{number}}", {
+            number: props.index + 1,
+          })}
+      </p>
+      <p className="text-xs text-gray-500">{actions.join(" · ")}</p>
     </li>
+  );
+};
+
+/*
+ * The picked template, check by check, under one line that says what each
+ * device gets and one that says when its monitor checks.
+ *
+ * A Network Device template's checks that read an SNMP walk never fire on a
+ * device that only answers ping: when some of the hosts are like that, those
+ * checks are listed apart, under "SNMP devices only", and when every host is
+ * - the 516 kitchen displays and registers of #5145 - they are folded into
+ * one line that opens on request, so the checks that can fire on these
+ * devices are what the reader sees.
+ */
+const TemplatePreview: FunctionComponent<{
+  template: DiscoveryImportTemplateChoice;
+  facts: DiscoveryImportProjectFacts | null;
+  outcome: DiscoveryImportOutcome;
+  pollingIntervalInMinutes: number;
+  probeName?: string | undefined;
+}> = (props: {
+  template: DiscoveryImportTemplateChoice;
+  facts: DiscoveryImportProjectFacts | null;
+  outcome: DiscoveryImportOutcome;
+  pollingIntervalInMinutes: number;
+  probeName?: string | undefined;
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [showWalkChecks, setShowWalkChecks] = useState<boolean>(false);
+  const template: DiscoveryImportTemplateChoice = props.template;
+  const isAddressTemplate: boolean = checksDeviceAddress(template);
+
+  const enabledChecks: Array<MonitorCriteriaAlertSummary> =
+    template.summary.criteria.filter(
+      (criterion: MonitorCriteriaAlertSummary): boolean => {
+        return criterion.isEnabled;
+      },
+    );
+
+  const turnedOffChecks: number =
+    template.summary.criteria.length - enabledChecks.length;
+
+  const hasPingOnlyHosts: boolean = props.outcome.pingOnlyHostCount > 0;
+  const isEveryHostPingOnly: boolean =
+    hasPingOnlyHosts && props.outcome.snmpHostCount === 0;
+
+  // Every check fires on every device, unless it needs a walk some lack.
+  const firesOnEveryDevice: (
+    criterion: MonitorCriteriaAlertSummary,
+  ) => boolean = (criterion: MonitorCriteriaAlertSummary): boolean => {
+    return (
+      isAddressTemplate ||
+      !hasPingOnlyHosts ||
+      criterion.isEvaluatedOnPingOnlyDevices
+    );
+  };
+
+  const everywhereChecks: Array<MonitorCriteriaAlertSummary> =
+    enabledChecks.filter(firesOnEveryDevice);
+  const walkChecks: Array<MonitorCriteriaAlertSummary> = enabledChecks.filter(
+    (criterion: MonitorCriteriaAlertSummary): boolean => {
+      return !firesOnEveryDevice(criterion);
+    },
+  );
+
+  const intervalLabel: string | undefined = getMonitoringIntervalLabel(
+    template.monitoringInterval,
+  );
+
+  const renderChecks: (
+    checks: Array<MonitorCriteriaAlertSummary>,
+    dataTestId: string,
+  ) => ReactElement = (
+    checks: Array<MonitorCriteriaAlertSummary>,
+    dataTestId: string,
+  ): ReactElement => {
+    return (
+      <ul className="divide-y divide-gray-100">
+        {checks.map((criterion: MonitorCriteriaAlertSummary): ReactElement => {
+          return (
+            <TemplateCheckLine
+              key={criterion.id}
+              criterion={criterion}
+              index={enabledChecks.indexOf(criterion)}
+              facts={props.facts}
+              dataTestId={dataTestId}
+            />
+          );
+        })}
+      </ul>
+    );
+  };
+
+  return (
+    <div
+      className="rounded-lg border border-gray-200 bg-white px-3"
+      data-testid="discovery-import-template-preview"
+    >
+      <div className="border-b border-gray-100 py-3">
+        <p
+          className="text-sm text-gray-900"
+          data-testid="discovery-import-template-lead"
+        >
+          {getTemplateLead(translator, template, props.probeName)}
+        </p>
+        <p
+          className="mt-0.5 text-xs text-gray-500"
+          data-testid="discovery-import-template-schedule"
+        >
+          {isAddressTemplate
+            ? intervalLabel
+              ? translator.translateTemplate(
+                  "Checked on the template's schedule: {{interval}}.",
+                  {
+                    // "every 5 minutes", as the poll's line beside it reads.
+                    interval: translatableTerm(intervalLabel, {
+                      inSentence: true,
+                    }),
+                  },
+                )
+              : translator.translateText("Checked on the template's schedule.")
+            : translator.translateTemplate(
+                "Checked each time a device is polled: every {{minutes}} min.",
+                { minutes: props.pollingIntervalInMinutes },
+              )}
+        </p>
+      </div>
+      <p className="pt-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+        {translator.translateText("What each monitor checks")}
+      </p>
+      {enabledChecks.length === 0 ? (
+        <p
+          className="py-3 text-sm text-gray-500"
+          data-testid="discovery-import-template-no-checks"
+        >
+          {translator.translateText(
+            "This template has no checks turned on, so its monitors raise nothing.",
+          )}
+        </p>
+      ) : (
+        <>
+          {everywhereChecks.length > 0 ? (
+            renderChecks(everywhereChecks, "discovery-import-template-check")
+          ) : (
+            <p
+              className="py-3 text-sm text-gray-500"
+              data-testid="discovery-import-template-no-ping-checks"
+            >
+              {translator.translateText(
+                "None of its checks can fire on a device that answers ping only: each one reads an SNMP walk.",
+              )}
+            </p>
+          )}
+          {walkChecks.length > 0 && !isEveryHostPingOnly && (
+            <div
+              className="border-t border-gray-100 pt-3"
+              data-testid="discovery-import-template-walk-checks"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                {translator.translateText("SNMP devices only")}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {translator.translateText(
+                  "These read an SNMP walk, so they never fire on a device that answers ping only until it has SNMP credentials.",
+                )}
+              </p>
+              {renderChecks(walkChecks, "discovery-import-template-walk-check")}
+            </div>
+          )}
+          {walkChecks.length > 0 && isEveryHostPingOnly && (
+            <div
+              className="border-t border-gray-100 py-2"
+              data-testid="discovery-import-template-walk-checks"
+            >
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                <p
+                  className="text-xs text-gray-500"
+                  data-testid="discovery-import-template-walk-checks-folded"
+                >
+                  {translator.translatePlural(
+                    {
+                      one: "{{count}} more check reads an SNMP walk: it stays quiet until these devices have SNMP credentials.",
+                      other:
+                        "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.",
+                    },
+                    walkChecks.length,
+                    {
+                      count: translator.formatNumber(walkChecks.length),
+                    },
+                  )}
+                </p>
+                <button
+                  type="button"
+                  className="self-start whitespace-nowrap text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline sm:self-auto"
+                  aria-expanded={showWalkChecks}
+                  data-testid="discovery-import-template-walk-checks-toggle"
+                  onClick={() => {
+                    setShowWalkChecks(!showWalkChecks);
+                  }}
+                >
+                  {showWalkChecks
+                    ? translator.translateText("Hide them")
+                    : translator.translateText("Show them")}
+                </button>
+              </div>
+              {/*
+               * Opened, the checks sit under a rule of their own, apart
+               * from the line and the button that opened them.
+               */}
+              {showWalkChecks && (
+                <div className="mt-2 border-t border-gray-100">
+                  {renderChecks(
+                    walkChecks,
+                    "discovery-import-template-walk-check",
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+      {turnedOffChecks > 0 && (
+        <p
+          className="border-t border-gray-100 py-2 text-xs text-gray-500"
+          data-testid="discovery-import-template-turned-off"
+        >
+          {translator.translatePlural(
+            {
+              one: "{{count}} more check is turned off in this template.",
+              other: "{{count}} more checks are turned off in this template.",
+            },
+            turnedOffChecks,
+            { count: translator.formatNumber(turnedOffChecks) },
+          )}
+        </p>
+      )}
+    </div>
   );
 };
 
@@ -224,7 +596,7 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       : facts.templates.length === 0
         ? facts.templatesUnavailableReason ||
           (translator.translateText(
-            "This project has no Network Device monitor template to monitor the devices with.",
+            "This project has no Network Device, Ping, IP, Port or NTP monitor template to monitor the devices with.",
           ) as string)
         : undefined;
 
@@ -241,18 +613,63 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
         ) as string)
       : undefined);
 
-  const templateOptions: Array<DropdownOption> = (facts?.templates || []).map(
-    (choice: DiscoveryImportTemplateChoice): DropdownOption => {
-      return {
-        value: getTemplateChoiceValue(choice),
-        label: choice.isCreatedOnImport
-          ? translator.translateTemplate("{{name}} - created when you import", {
-              name: choice.name,
-            })
-          : choice.name,
-      };
-    },
-  );
+  const toTemplateOption: (
+    choice: DiscoveryImportTemplateChoice,
+  ) => DropdownOption = (
+    choice: DiscoveryImportTemplateChoice,
+  ): DropdownOption => {
+    return {
+      value: getTemplateChoiceValue(choice),
+      label: choice.isCreatedOnImport
+        ? translator.translateTemplate("{{name}} - created when you import", {
+            name: getTemplateChoiceName(translator, choice),
+          })
+        : getTemplateChoiceName(translator, choice),
+      // Drawn as named: a template called "Labels" is not translated.
+      isUserContent: true,
+      ...(checksDeviceAddress(choice)
+        ? { description: describeAddressTemplate(translator, choice) }
+        : {}),
+    };
+  };
+
+  const templates: Array<DiscoveryImportTemplateChoice> =
+    facts?.templates || [];
+  const pollTemplateOptions: Array<DropdownOption> = templates
+    .filter((choice: DiscoveryImportTemplateChoice): boolean => {
+      return !checksDeviceAddress(choice);
+    })
+    .map(toTemplateOption);
+  const addressTemplateOptions: Array<DropdownOption> = templates
+    .filter(checksDeviceAddress)
+    .map(toTemplateOption);
+  const templateOptions: Array<DropdownOption> = [
+    ...pollTemplateOptions,
+    ...addressTemplateOptions,
+  ];
+
+  /*
+   * Both kinds in one list are told apart under a heading each: the ones
+   * that read each device's polls, then the ones that check its address.
+   * One kind alone needs no heading.
+   */
+  const groupedTemplateOptions: Array<DropdownOption | DropdownOptionGroup> =
+    pollTemplateOptions.length > 0 && addressTemplateOptions.length > 0
+      ? [
+          {
+            label: translator.translateText(
+              POLL_TEMPLATES_GROUP_TITLE,
+            ) as string,
+            options: pollTemplateOptions,
+          },
+          {
+            label: translator.translateText(
+              ADDRESS_TEMPLATES_GROUP_TITLE,
+            ) as string,
+            options: addressTemplateOptions,
+          },
+        ]
+      : templateOptions;
 
   const selectedTemplateOption: DropdownOption | undefined = props.template
     ? templateOptions.find((option: DropdownOption): boolean => {
@@ -260,16 +677,9 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
       })
     : undefined;
 
-  const enabledChecks: Array<MonitorCriteriaAlertSummary> = (
-    props.template?.summary.criteria || []
-  ).filter((criterion: MonitorCriteriaAlertSummary): boolean => {
-    return criterion.isEnabled;
-  });
-
-  const turnedOffChecks: number =
-    (props.template?.summary.criteria.length || 0) - enabledChecks.length;
-
-  const minutes: number = settings.pollingIntervalInMinutes;
+  const templatesRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.MONITORS_SETTINGS_TEMPLATES] as Route,
+  );
 
   const templatePicker: ReactElement = (
     <div className="space-y-3" data-testid="discovery-import-template-picker">
@@ -278,13 +688,39 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
           title="Monitor template"
           required={true}
           hideOptionalLabel={true}
-          description="Edit a template under Monitors → Settings → Templates; monitors made from it follow."
+          description={
+            <span data-testid="discovery-import-template-rule">
+              {translator.translateText(LISTED_TEMPLATE_KINDS_RULE)}{" "}
+              {/*
+               * In a new tab, so the choices made here stay: a template
+               * added there is in this list on coming back (the dialog
+               * reads the templates again when its window is focused).
+               */}
+              <Link
+                to={templatesRoute}
+                openInNewTab={true}
+                className="inline-flex items-center gap-0.5 font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+                dataTestId="discovery-import-manage-templates"
+              >
+                {translator.translateText(MANAGE_TEMPLATES_LINK_TITLE)}
+                <Icon
+                  icon={IconProp.ExternalLink}
+                  className="h-3 w-3 flex-shrink-0"
+                />
+                {/* What the icon says to the eye, said to a screen reader. */}
+                <span className="sr-only">
+                  {" "}
+                  {translator.translateText("(opens in a new tab)")}
+                </span>
+              </Link>
+            </span>
+          }
         />
         <Dropdown
           id="discovery-import-template"
           dataTestId="discovery-import-template"
           ariaLabel={translator.translateText("Monitor template")}
-          options={templateOptions}
+          options={groupedTemplateOptions}
           value={selectedTemplateOption}
           isClearable={false}
           disabled={props.isDisabled}
@@ -302,56 +738,14 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
         />
       </div>
       {props.template && (
-        <div
-          className="rounded-lg border border-gray-200 bg-white px-3"
-          data-testid="discovery-import-template-preview"
-        >
-          <p className="pt-3 text-xs font-medium uppercase tracking-wide text-gray-500">
-            {translator.translateText("What each monitor checks")}
-          </p>
-          {enabledChecks.length === 0 ? (
-            <p className="py-3 text-sm text-gray-500">
-              {translator.translateText(
-                "This template has no checks turned on, so its monitors raise nothing.",
-              )}
-            </p>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {enabledChecks.map(
-                (
-                  criterion: MonitorCriteriaAlertSummary,
-                  index: number,
-                ): ReactElement => {
-                  return (
-                    <TemplateCheckLine
-                      key={criterion.id}
-                      criterion={criterion}
-                      index={index}
-                      facts={facts}
-                      hasPingOnlyHosts={outcome.pingOnlyHostCount > 0}
-                    />
-                  );
-                },
-              )}
-            </ul>
-          )}
-          <p className="border-t border-gray-100 py-2 text-xs text-gray-500">
-            {turnedOffChecks > 0
-              ? translator.translatePlural(
-                  {
-                    one: "Checked each time a device is polled: every {{minutes}} min. {{count}} more check is turned off in this template.",
-                    other:
-                      "Checked each time a device is polled: every {{minutes}} min. {{count}} more checks are turned off in this template.",
-                  },
-                  turnedOffChecks,
-                  { minutes: minutes },
-                )
-              : translator.translateTemplate(
-                  "Checked each time a device is polled: every {{minutes}} min.",
-                  { minutes: minutes },
-                )}
-          </p>
-        </div>
+        <TemplatePreview
+          key={getTemplateChoiceValue(props.template)}
+          template={props.template}
+          facts={facts}
+          outcome={outcome}
+          pollingIntervalInMinutes={settings.pollingIntervalInMinutes}
+          probeName={props.probeName}
+        />
       )}
     </div>
   );
@@ -494,8 +888,13 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                     {
                       value: DiscoveryImportAlerting.MonitorTemplate,
                       title: "A monitor for each device",
-                      description:
-                        "Each device gets a monitor from the template you pick. Each monitor counts towards your plan.",
+                      /*
+                       * A plan counts monitors only where there is a plan:
+                       * a self-hosted install (issue #5145's) has none.
+                       */
+                      description: BILLING_ENABLED
+                        ? "Each device gets a monitor from the template you pick. Each monitor counts towards your plan."
+                        : "Each device gets a monitor from the template you pick.",
                       dataTestId: "discovery-import-alerting-template",
                       details:
                         !choiceLockedReason &&
@@ -671,7 +1070,7 @@ export const OutcomeSummary: FunctionComponent<{
         outcome.monitorCount,
         {
           count: translator.formatNumber(outcome.monitorCount),
-          template: outcome.template.name,
+          template: getTemplateChoiceName(translator, outcome.template),
           raises: raises,
         },
       ),
@@ -680,6 +1079,12 @@ export const OutcomeSummary: FunctionComponent<{
         : { tone: "warning" as const }),
     });
 
+    /*
+     * Where a Ping, IP, Port or NTP template's monitors check from is said
+     * once, in the first line of the template's preview beside this
+     * summary ("Each device gets a Ping monitor that pings its own address
+     * from <probe>."), not again here.
+     */
     if (outcome.pingOnlyHostsWithoutAlerts > 0) {
       lines.push({
         key: "ping-silent",

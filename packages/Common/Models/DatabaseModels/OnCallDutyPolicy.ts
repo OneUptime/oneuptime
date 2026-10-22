@@ -723,6 +723,62 @@ export default class OnCallDutyPolicy extends BaseModel {
   })
   public repeatPolicyIfNoOneAcknowledgesNoOfTimes?: number = undefined;
 
+  /*
+   * The acknowledgement timeout (issue #5123): when an incident, alert or
+   * episode this policy paged about is acknowledged and still not resolved
+   * this many minutes later, the policy pages again - the person who
+   * acknowledged it and whoever is on call now at the escalation rule that
+   * was paging. Counted from every new acknowledgement, at most a few times
+   * for one record (Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout).
+   *
+   * Empty, as it is on every policy until somebody sets it: acknowledging
+   * stops the paging for good, as it always did. Only an empty value or a
+   * whole number of minutes in the allowed range is saved
+   * (OnCallDutyPolicyService).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.CreateProjectOnCallDutyPolicy,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicy,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditProjectOnCallDutyPolicy,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: false,
+    type: TableColumnType.Number,
+    title: "Acknowledgement Timeout In Minutes",
+    description:
+      "Page again when something this policy paged about is acknowledged but not resolved within this many minutes (5 to 1440). Empty: never.",
+    example: 30,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public acknowledgementTimeoutInMinutes?: number = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

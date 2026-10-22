@@ -469,7 +469,10 @@ describe("the CodeRequest recipe", () => {
     expect(given).not.toContain(CodeFixTaskType.CodeRequest);
     expect(given).toEqual(
       Object.values(CodeFixTaskType).filter((type: CodeFixTaskType) => {
-        return type !== CodeFixTaskType.CodeRequest;
+        return (
+          type !== CodeFixTaskType.CodeRequest &&
+          !CodeFixTaskTypeHelper.isRunByServer(type)
+        );
       }),
     );
   });

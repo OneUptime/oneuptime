@@ -12,6 +12,8 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import DirectPageLabel from "Common/UI/Components/OnCallDirectPage/DirectPageLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { PASS_ON_PAGE_TEXT } from "../../Components/OnCallPolicy/PassOn/PassOnPage";
+import { withEscalatedStatusLabel } from "../../Components/OnCallPolicy/PassOn/PassedOnStatus";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -130,8 +132,11 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Status",
             type: FieldType.Dropdown,
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              UserNotificationExecutionStatus,
+            // A page you escalated is stored "Passed On" and offered as Escalated.
+            filterDropdownOptions: withEscalatedStatusLabel(
+              DropdownUtil.getDropdownOptionsFromEnum(
+                UserNotificationExecutionStatus,
+              ),
             ),
           },
           {
@@ -251,13 +256,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   />
                 );
               } else if (
-                // You could not take it, and passed it on.
+                // You could not take it, and escalated it (stored "Passed On").
                 item["status"] === UserNotificationExecutionStatus.PassedOn
               ) {
                 return (
                   <Pill
                     color={Yellow}
-                    text={UserNotificationExecutionStatus.PassedOn}
+                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
                   />
                 );
               }

@@ -97,9 +97,9 @@ Las variables de runbook ocuparon el lugar de los secretos de runbook y de las c
 - cada credencial que nombraba un paso pasó a ser variables globales secretas con los mismos Runners, con nombres derivados de ella: `<name>-ssh-key` (y `<name>-ssh-key-passphrase`, para una clave que la tenía), `<name>-ssh-password` o `<name>-kubeconfig`;
 - cada paso SSH que nombraba una credencial inicia sesión en su máquina con ellas y ejecuta su comando como su script, y cada paso de Kubernetes pasó a ser un paso kubectl que ejecuta el `kubectl patch` que hacía su acción, sin necesitar más acceso del que tenía el paso.
 
-Un Runner anterior a esta versión no puede ejecutar un script de kubectl. Por eso cada paso de Kubernetes que pasó a esta forma también conservó su credencial y su acción, y un Runner anterior ejecuta el paso con ellas, como lo hacía. En cuanto cambias el script o el kubeconfig del paso, ya no las conserva: como cualquier paso kubectl nuevo, necesita entonces un Runner de esta versión, y uno más antiguo lo hace fallar e indica que hay que actualizar el Runner.
+Un Runner anterior a esta versión (14.0.79) no puede ejecutar un script de kubectl: hace fallar un paso kubectl e indica que hay que actualizar el Runner. Cada paso de Kubernetes que pasó a esta forma conservó primero su credencial y su acción junto a su script, para un Runner así; desaparecieron con las credenciales de runbook, así que cada paso kubectl necesita un Runner de la 14.0.79 o posterior.
 
-Un paso escrito mediante la API con una credencial sigue ejecutándose con ella, y su página de pasos ofrece **Convertir en paso de script**. Las credenciales también se mantienen, para lo que alcanzan los propios comandos de OneUptime AI: consulta [Acceso de la IA](/docs/runbooks/credentials).
+Las credenciales de runbook se eliminaron después, y un paso que todavía nombraba una se pasó antes de la misma forma. Un paso que nombra una credencial ya no se ejecuta, y su página de pasos ofrece **Convertir en paso de script**; un guardado mediante la API o Terraform que le da una a un paso se rechaza. Consulta [Las credenciales de runbook se eliminan](/docs/installation/upgrading#las-credenciales-de-runbook-se-eliminan).
 
 ## Próximos pasos
 

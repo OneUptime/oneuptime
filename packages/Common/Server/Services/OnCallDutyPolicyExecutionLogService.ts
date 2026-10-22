@@ -56,6 +56,11 @@ import {
   isOnCallDirectPage,
 } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
 import OneUptimeDate from "../../Types/Date";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import {
+  getOnCallPageAgainStatusMessage,
+  isOnCallPageAgainRun,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 
 /*
  * Who started a direct page, for its run to record: the person, or the
@@ -430,6 +435,290 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * STARTS A PAGE AGAIN (OnCallAcknowledgementTimeout): a record a policy
+   * paged about stayed acknowledged without being resolved past the
+   * policy's acknowledgement timeout, so the policy pages again - a run of
+   * its own, numbered (pageAgainNumber), that pages whoever is on call now
+   * at `startAtRuleId` (the rule that was paging when the record was
+   * acknowledged) and, first of all, the person who acknowledged it. From
+   * there it is a run like any other: it escalates through the policy's
+   * later rules, repeats as the policy repeats, and ends when somebody
+   * acknowledges it or the record is resolved.
+   *
+   * Its record's feed says why it pages ("is paging again (1 of 5): the
+   * incident is still not resolved 30 minutes after Ana Lopez acknowledged
+   * it."), and its status message says the same while it pages. This is
+   * OneUptime's own write; the caller decided the policy pages again.
+   * Returns the run, or null when it could not page (an archived policy
+   * says so on the run, as for any run).
+   */
+  @CaptureSpan()
+  public async startPageAgain(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+    triggeredByAlertEpisodeId?: ObjectID | undefined;
+    triggeredByIncidentEpisodeId?: ObjectID | undefined;
+    userNotificationEventType: UserNotificationEventType;
+    pageAgainNumber: number;
+    // The timeout that ran out, for the words.
+    minutes: number;
+    // "incident", "alert", "incident episode" or "alert episode".
+    recordKind: string;
+    // The escalation rule to start at; the policy's first when it is gone.
+    startAtRuleId?: ObjectID | undefined;
+    // Who acknowledged the record last: paged first.
+    acknowledgedByUserId?: ObjectID | undefined;
+  }): Promise<ObjectID | null> {
+    const log: Model = new Model();
+
+    log.projectId = data.projectId;
+    log.onCallDutyPolicyId = data.onCallDutyPolicyId;
+    log.userNotificationEventType = data.userNotificationEventType;
+    log.status = OnCallDutyPolicyStatus.Scheduled;
+    log.statusMessage = "Scheduled.";
+    log.pageAgainNumber = data.pageAgainNumber;
+
+    if (data.triggeredByIncidentId) {
+      log.triggeredByIncidentId = data.triggeredByIncidentId;
+    }
+
+    if (data.triggeredByAlertId) {
+      log.triggeredByAlertId = data.triggeredByAlertId;
+    }
+
+    if (data.triggeredByAlertEpisodeId) {
+      log.triggeredByAlertEpisodeId = data.triggeredByAlertEpisodeId;
+    }
+
+    if (data.triggeredByIncidentEpisodeId) {
+      log.triggeredByIncidentEpisodeId = data.triggeredByIncidentEpisodeId;
+    }
+
+    const run: Model = await this.create({
+      data: log,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const runId: ObjectID = run.id!;
+
+    // Archived meanwhile: the run says it was not executed, as any run does.
+    if (run.status === OnCallDutyPolicyStatus.Error) {
+      return null;
+    }
+
+    try {
+      const policyLink: MarkdownText | null = await this.getPolicyLink(run);
+
+      if (policyLink) {
+        await this.addToRecordFeed({
+          run: run,
+          feedInfoInMarkdown: OnCallFeedText.getRunPagedAgainMarkdown({
+            policyLink: policyLink,
+            pageAgainNumber: data.pageAgainNumber,
+            minutes: data.minutes,
+            recordKind: data.recordKind,
+            acknowledgedBy: data.acknowledgedByUserId
+              ? await UserService.getUserMarkdownString({
+                  userId: data.acknowledgedByUserId,
+                  projectId: data.projectId,
+                })
+              : undefined,
+          }),
+          displayColor: Yellow500,
+        });
+      }
+    } catch (err) {
+      // Nothing about the feed may stop the page.
+      logger.error(
+        `Could not say in the feed that on-call execution log ${runId.toString()} pages again; paging anyway.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      logger.error(err as Error);
+    }
+
+    try {
+      const rule: OnCallDutyPolicyEscalationRule | null =
+        await this.getPageAgainRule({
+          projectId: data.projectId,
+          onCallDutyPolicyId: data.onCallDutyPolicyId,
+          startAtRuleId: data.startAtRuleId,
+        });
+
+      if (!rule) {
+        await this.updateOneById({
+          id: runId,
+          data: {
+            status: OnCallDutyPolicyStatus.Error,
+            statusMessage:
+              "No Escalation Rules in Policy. Please add escalation rules to this policy.",
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return runId;
+      }
+
+      await this.updateOneById({
+        id: runId,
+        data: {
+          status: OnCallDutyPolicyStatus.Started,
+          statusMessage: "Execution started...",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(rule.id!, {
+        projectId: data.projectId,
+        triggeredByIncidentId: data.triggeredByIncidentId,
+        triggeredByAlertId: data.triggeredByAlertId,
+        triggeredByAlertEpisodeId: data.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId: data.triggeredByIncidentEpisodeId,
+        userNotificationEventType: data.userNotificationEventType,
+        onCallPolicyExecutionLogId: runId,
+        onCallPolicyId: data.onCallDutyPolicyId,
+        alsoPageUserIds: data.acknowledgedByUserId
+          ? [data.acknowledgedByUserId]
+          : [],
+      });
+
+      await this.updateOneById({
+        id: runId,
+        data: {
+          status: OnCallDutyPolicyStatus.Executing,
+          statusMessage: getOnCallPageAgainStatusMessage({
+            pageAgainNumber: data.pageAgainNumber,
+            minutes: data.minutes,
+          }),
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      // The run says what went wrong rather than sitting at "started".
+      await this.updateOneById({
+        id: runId,
+        data: {
+          status: OnCallDutyPolicyStatus.Error,
+          statusMessage:
+            (err as Error)?.message ||
+            "Error occurred while paging again about this record.",
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      throw err;
+    }
+
+    return runId;
+  }
+
+  /*
+   * The escalation rule a page again starts at: the one the run before it
+   * was on, while it is still the policy's - else the rule that is now at
+   * the same place, else the policy's first. Null when the policy has none.
+   */
+  private async getPageAgainRule(data: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    startAtRuleId?: ObjectID | undefined;
+  }): Promise<OnCallDutyPolicyEscalationRule | null> {
+    if (data.startAtRuleId) {
+      const rule: OnCallDutyPolicyEscalationRule | null =
+        await OnCallDutyPolicyEscalationRuleService.findOneBy({
+          query: {
+            _id: data.startAtRuleId,
+            projectId: data.projectId,
+            onCallDutyPolicyId: data.onCallDutyPolicyId,
+          },
+          select: {
+            _id: true,
+            order: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (rule) {
+        return rule;
+      }
+    }
+
+    return await OnCallDutyPolicyEscalationRuleService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        onCallDutyPolicyId: data.onCallDutyPolicyId,
+      },
+      select: {
+        _id: true,
+        order: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Starts (or starts again) a run's acknowledgement timeout clock at
+   * `startedAt` (OnCallAcknowledgementTimeout). A plain write of the one
+   * column, with no hooks: the clock is bookkeeping, not news - nothing in
+   * the run's feed or chat message changes.
+   */
+  @CaptureSpan()
+  public async startAcknowledgementTimeoutClock(data: {
+    executionLogId: ObjectID;
+    startedAt: Date;
+  }): Promise<void> {
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.executionLogId,
+      data: {
+        acknowledgementTimeoutStartedAt: data.startedAt,
+      },
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
+   * Stops a run's acknowledgement timeout clock - it ran out, or there is
+   * nothing left to count for - if it still reads `expectedStartedAt`: one
+   * atomic compare-and-set, so of two worker ticks (or replicas) that read
+   * the same clock exactly one stops it, and pages again; a clock started
+   * again meanwhile (a new acknowledgement) is left running. Says whether
+   * this call stopped it.
+   */
+  @CaptureSpan()
+  public async stopAcknowledgementTimeoutClock(data: {
+    executionLogId: ObjectID;
+    expectedStartedAt: Date;
+  }): Promise<boolean> {
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: data.executionLogId,
+      data: {
+        acknowledgementTimeoutStartedAt: null,
+      },
+      expectedData: {
+        acknowledgementTimeoutStartedAt: data.expectedStartedAt,
+      },
+      skipUpdateDateColumn: true,
+    });
+  }
+
+  /*
    * Ends a direct page whose pages are all over, and says whether it did.
    *
    * An on-call policy's run ends once it has gone through its escalation
@@ -585,6 +874,15 @@ export class Service extends ProjectReferencesService<Model> {
      * entry of the record's feed that names who started the page.
      */
     if (isOnCallDirectPage(createdItem)) {
+      return createdItem;
+    }
+
+    /*
+     * A page again starts at the escalation rule that was paging when its
+     * record was acknowledged, with the person who acknowledged it, and
+     * says why in the feed: whoever created it does that (startPageAgain).
+     */
+    if (isOnCallPageAgainRun(createdItem)) {
       return createdItem;
     }
 

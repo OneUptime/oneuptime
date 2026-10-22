@@ -42,6 +42,36 @@ function conditionFor(
   });
 }
 
+describe("CodeFixClaimQuery: never a recipe the server runs itself", () => {
+  test("a production review named among a worker's recipes is left out of the claim", () => {
+    for (const kind of Object.values(CodeWorkerKind)) {
+      const condition: CodeFixClaimCondition = CodeFixClaimQuery.getCondition({
+        worker: {
+          kind,
+          id: kind === CodeWorkerKind.ProjectRunner ? RUNNER_ID : AGENT_ID,
+        },
+        projectId: PROJECT_ID,
+        claimableTaskTypes: [
+          CodeFixTaskType.GitHubPullRequestProductionReview,
+          CodeFixTaskType.FixException,
+        ],
+      });
+
+      expect(condition.parameters[2]).toEqual([CodeFixTaskType.FixException]);
+    }
+  });
+
+  test("so does the count a worker autoscales on", () => {
+    const statement: CodeFixClaimStatement =
+      CodeFixClaimQuery.getCountStatement({
+        worker: { kind: CodeWorkerKind.GlobalRunner, id: AGENT_ID },
+        claimableTaskTypes: [CodeFixTaskType.GitHubPullRequestProductionReview],
+      });
+
+    expect(statement.parameters[2]).toEqual([]);
+  });
+});
+
 describe("CodeFixClaimQuery.getCondition", () => {
   test("every worker reads only queued code-fix runs of its recipes, not deleted", () => {
     for (const kind of Object.values(CodeWorkerKind)) {

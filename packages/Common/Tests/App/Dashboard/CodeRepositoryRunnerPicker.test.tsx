@@ -273,7 +273,7 @@ describe("a repository's Runner picker", () => {
     expect(help()).not.toHaveTextContent("sandbox");
   });
 
-  test("offers Global Runner first, saying it skips the repository's commands, then the project's own Runners", () => {
+  test("offers Global Runner first, saying it does not build or test AI's change, then the project's own Runners", () => {
     renderPicker();
 
     const options: Array<HTMLElement> = openMenu();
@@ -599,8 +599,15 @@ describe("what a repository's picker loads", () => {
     const runners: Array<{ name: string }> =
       await RunnerChoicesLoader.loadProjectRunners(new ObjectID(PROJECT_ID));
 
+    // The in-cluster Runner the Kubernetes agent chart installed included.
     expect(runners).toHaveLength(3);
-    expect(listCalls[0]!.select["hostInfo"]).toBeUndefined();
+    /*
+     * Read with what decides which of them may be the project's default
+     * Runner - the posture among it - for a step's picker as for a
+     * repository's.
+     */
+    expect(listCalls[0]!.select["isProjectDefault"]).toBe(true);
+    expect(listCalls[0]!.select["hostInfo"]).toBe(true);
   });
 });
 
@@ -690,16 +697,10 @@ describe("the Settings page's Runner field and value", () => {
   async function value(
     runnerId: unknown,
     loaded: RunnerChoices,
-    hasCommands?: boolean,
   ): Promise<HTMLElement> {
     loads(loaded);
 
-    render(
-      <CodeRepositoryRunnerValue
-        runnerId={runnerId}
-        hasCommands={hasCommands}
-      />,
-    );
+    render(<CodeRepositoryRunnerValue runnerId={runnerId} />);
 
     return await screen.findByTestId(CODE_REPOSITORY_RUNNER_VALUE_TEST_ID);
   }
@@ -745,36 +746,53 @@ describe("the Settings page's Runner field and value", () => {
   });
 
   /*
-   * Global Runner never runs a repository's setup, build and test
-   * commands: a repository that has some is told so under its Runner, right
-   * above the commands the card lists - and only then.
+   * Global Runner runs no command: AI's change is not built or tested
+   * before its pull request opens - what a Runner of the project's own
+   * does, the way the repository's AGENTS.md says. The value says so under
+   * "Global Runner" on every repository on it, commands set or not.
    */
-  test("on Global Runner, a repository with commands is told they are skipped", async () => {
-    const shownValue: HTMLElement = await value(null, choices(), true);
+  test("on Global Runner, the value says it does not build or test AI's change", async () => {
+    const shownValue: HTMLElement = await value(null, choices());
 
     expect(
       within(shownValue).getByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
     ).toHaveTextContent(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION);
+    expect(CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION).toBe(
+      "Run by OneUptime for every project. It does not build or test AI's change before the pull request opens.",
+    );
   });
 
-  test("negative controls: no commands, or one of the project's own Runners, and nothing is said about skipping", async () => {
-    await value(null, choices(), false);
+  test("negative controls: one of the project's own Runners, or no global Runner at all, and nothing is said about it", async () => {
+    await value(BASTION_ID, choices());
     expect(
       screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
     ).toBeNull();
     cleanup();
 
-    await value(BASTION_ID, choices(), true);
+    // No global Runner to run on: the value says that, not what one does.
+    await value(null, choices({ projectUsesGlobalRunners: false }));
     expect(
       screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
     ).toBeNull();
-    cleanup();
+  });
 
-    // No global Runner to run on: the value says that, not what one skips.
-    await value(null, choices({ projectUsesGlobalRunners: false }), true);
-    expect(
-      screen.queryByTestId(CODE_REPOSITORY_RUNNER_SKIPS_TEST_ID),
-    ).toBeNull();
+  test("the picker's words for a repository speak of the repository's AGENTS.md, never of commands typed into OneUptime", () => {
+    expect(CODE_OWN_RUNNER_HELPER_TEXT).toBe(
+      "AI clones the repository on this Runner, builds and tests its change there the way the repository's AGENTS.md says, and opens the pull request.",
+    );
+    expect(CODE_GLOBAL_RUNNER_HELPER_TEXT).toBe(
+      "AI works on a Runner OneUptime runs for every project, which does not build or test its change. Pick one of your Runners to have AI build and test it before the pull request opens.",
+    );
+
+    for (const words of [
+      CODE_OWN_RUNNER_HELPER_TEXT,
+      CODE_GLOBAL_RUNNER_HELPER_TEXT,
+      CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+    ]) {
+      expect(words).not.toContain("your setup, build and test commands");
+      // Nor a promise about CI a repository may not have.
+      expect(words).not.toContain("CI");
+    }
   });
 
   test("while the choices are on their way, a line's room - not the page loader", async () => {

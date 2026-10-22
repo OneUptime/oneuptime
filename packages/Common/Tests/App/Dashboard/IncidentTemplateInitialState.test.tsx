@@ -150,6 +150,8 @@ jest.mock("../../../UI/Utils/Translation", () => {
 import IncidentTemplates from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentTemplates";
 import IncidentTemplatesView from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentTemplatesView";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -426,5 +428,102 @@ describe("an existing incident template", () => {
 
     expect(screen.getByText("Investigating")).toBeInTheDocument();
     expect(screen.queryByText("The usual starting state.")).toBeNull();
+    // Not archived: nothing beside it.
+    expect(screen.queryByTestId("archivable-value-pill-archived")).toBeNull();
+  });
+
+  /*
+   * A state or severity archived since the template was saved
+   * (Common/Utils/ArchivableValues): the template keeps it, but an incident
+   * declared from the template does not take it, so its details card marks
+   * it - whoever reads the template sees why the declare form asks.
+   */
+  test("its details card marks a state or a severity archived since: a new incident does not take it", async () => {
+    await renderTemplateDetails();
+
+    // Every card's fields: the status monitors change to is with the monitors.
+    const detailFields: Array<RecordedDetailField> = recordedCards.flatMap(
+      (card: Record<string, unknown>): Array<RecordedDetailField> => {
+        return (
+          (card["modelDetailProps"] as
+            | { fields?: Array<RecordedDetailField> }
+            | undefined) || { fields: [] }
+        ).fields!;
+      },
+    );
+
+    const fieldFor: (key: string) => RecordedDetailField = (
+      key: string,
+    ): RecordedDetailField => {
+      const found: RecordedDetailField | undefined = detailFields.find(
+        (field: RecordedDetailField): boolean => {
+          return Object.keys(field.field || {})[0] === key;
+        },
+      );
+
+      expect({ key, found: Boolean(found) }).toEqual({ key, found: true });
+
+      return found!;
+    };
+
+    for (const key of [
+      "initialIncidentState",
+      "incidentSeverity",
+      "changeMonitorStatusTo",
+    ]) {
+      // Read with the archive switch.
+      expect({ key, select: fieldFor(key).field![key] }).toEqual({
+        key,
+        select: expect.objectContaining({ name: true, isArchived: true }),
+      });
+    }
+
+    const retiredState: IncidentState = new IncidentState();
+    retiredState.name = "Monitoring fix";
+    retiredState.isArchived = true;
+
+    cleanup();
+    render(
+      fieldFor("initialIncidentState").getElement!({
+        initialIncidentState: retiredState,
+      }),
+    );
+
+    expect(screen.getByText("Monitoring fix")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("archivable-value-pill-archived"),
+    ).toHaveTextContent("Archived");
+
+    const retiredSeverity: IncidentSeverity = new IncidentSeverity();
+    retiredSeverity.name = "[DONOTUSE] Very critical";
+    retiredSeverity.isArchived = true;
+
+    cleanup();
+    render(
+      fieldFor("incidentSeverity").getElement!({
+        incidentSeverity: retiredSeverity,
+      }),
+    );
+
+    expect(screen.getByText("[DONOTUSE] Very critical")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("archivable-value-pill-archived"),
+    ).toHaveTextContent("Archived");
+
+    const retiredStatus: MonitorStatus = new MonitorStatus();
+    retiredStatus.name = "Under maintenance (old)";
+    retiredStatus.isArchived = true;
+
+    cleanup();
+    render(
+      fieldFor("changeMonitorStatusTo").getElement!({
+        changeMonitorStatusTo: retiredStatus,
+      }),
+    );
+
+    expect(screen.getByText("Under maintenance (old)")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("change-monitor-status-to-archived"),
+    ).toHaveTextContent("Archived");
   });
 });

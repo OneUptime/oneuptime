@@ -251,6 +251,9 @@ export default class WorkspaceHome {
    * The Home of somebody whose chat account is not connected yet: what it
    * would show them, and one button to connect - a link to their own
    * settings page in OneUptime, which connects the account that opens it.
+   * Without a link (no dashboard address, or a workspace connected to
+   * several projects, none of which the person is connected in), where to
+   * connect in OneUptime instead - and no "one click" promised.
    */
   public static getNotConnectedBlocks(data: {
     workspaceType: WorkspaceType;
@@ -260,10 +263,12 @@ export default class WorkspaceHome {
     const workspaceName: string =
       data.workspaceType === WorkspaceType.Slack ? "Slack" : "Microsoft Teams";
 
+    const connect: MarkdownText = mdText`🔗 **Connect your ${workspaceName} account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from ${workspaceName}.`;
+
     const blocks: Array<WorkspaceMessageBlock> = [
       WorkspaceHome.header(`👋 Welcome to ${productName}`),
       WorkspaceHome.markdown(
-        mdText`🔗 **Connect your ${workspaceName} account** to see your on-call shifts and the open incidents and alerts here, and to declare incidents and page people from ${workspaceName}. It takes one click.`,
+        data.connectUrl ? mdText`${connect} It takes one click.` : connect,
       ),
     ];
 

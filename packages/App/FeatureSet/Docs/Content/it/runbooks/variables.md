@@ -97,9 +97,9 @@ Le variabili dei runbook hanno preso il posto dei segreti dei runbook e delle cr
 - ogni credenziale nominata da un passaggio è diventata variabili globali segrete con gli stessi Runner, chiamate come lei: `<name>-ssh-key` (e `<name>-ssh-key-passphrase`, per una chiave che ne aveva una), `<name>-ssh-password` o `<name>-kubeconfig`;
 - ogni passaggio SSH che nominava una credenziale accede alla sua macchina con esse ed esegue il suo comando come script, e ogni passaggio Kubernetes è diventato un passaggio kubectl che esegue il `kubectl patch` della sua azione, senza bisogno di più accesso di quanto ne avesse il passaggio.
 
-Un Runner precedente a questa versione non può eseguire uno script kubectl. Per questo ogni passaggio Kubernetes portato in questa forma ha conservato anche la sua credenziale e la sua azione, e un Runner più vecchio esegue il passaggio con esse, come faceva. Appena cambi lo script o il kubeconfig del passaggio, non le conserva più: come ogni nuovo passaggio kubectl, richiede allora un Runner di questa versione, e uno più vecchio lo fa fallire e dice di aggiornare il Runner.
+Un Runner precedente a questa versione (14.0.79) non può eseguire uno script kubectl: fa fallire un passaggio kubectl e dice di aggiornare il Runner. Ogni passaggio Kubernetes portato in questa forma ha prima conservato la sua credenziale e la sua azione accanto al suo script, per un Runner così; sono andate via con le credenziali dei runbook, quindi ogni passaggio kubectl richiede un Runner della 14.0.79 o successiva.
 
-Un passaggio scritto tramite l'API con una credenziale viene ancora eseguito con essa, e la sua pagina dei passaggi offre **Trasforma in passaggio di script**. Anche le credenziali restano, per ciò che raggiungono i comandi di OneUptime AI: vedi [Accesso dell'IA](/docs/runbooks/credentials).
+Le credenziali dei runbook sono state poi rimosse, e un passaggio che ne nominava ancora una è stato prima portato nella stessa forma. Un passaggio che nomina una credenziale non viene più eseguito, e la sua pagina dei passaggi offre **Trasforma in passaggio di script**; un salvataggio tramite l'API o Terraform che ne dà una a un passaggio viene rifiutato. Vedi [Le credenziali dei runbook sono rimosse](/docs/installation/upgrading#le-credenziali-dei-runbook-sono-rimosse).
 
 ## Passi successivi
 

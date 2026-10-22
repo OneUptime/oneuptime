@@ -33,6 +33,15 @@ export const DETECTION_GROUP_VALUE_ATTRIBUTE: string =
   "oneuptime.detection.group_value";
 export const DETECTION_SIGMA_ID_ATTRIBUTE: string =
   "oneuptime.detection.sigma_id";
+/*
+ * Present only on findings of correlation rules: the Sigma correlation type
+ * (event_count, value_count, temporal, temporal_ordered, new_value), and
+ * what happened, in a sentence.
+ */
+export const DETECTION_CORRELATION_TYPE_ATTRIBUTE: string =
+  "oneuptime.detection.correlation_type";
+export const DETECTION_SUMMARY_ATTRIBUTE: string =
+  "oneuptime.detection.summary";
 
 // Save-time bounds for DetectionRule.evaluationIntervalInMinutes.
 export const DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES: number = 1;

@@ -112,6 +112,18 @@ The rank decides which severity wins where OneUptime compares them: an episode's
 
 A severity pages nobody by itself. To page by severity, add an on-call rule whose **Alert Severities** match it: see [Alert Rules & Settings](/docs/alerts/settings). Changing an alert's severity writes an entry to its feed and matches its reminder rule again.
 
+## Archiving a state or severity
+
+Archive a state or severity that your team should stop using, instead of deleting it. Archiving changes no alert. Deleting a state takes its rows out of every alert's history, and a severity can't be deleted while alerts have it.
+
+- **Archive** is in the row's **⋯** menu. It asks first, and lists the rules, measurements, monitor criteria and workflows set up to use the value: they keep using it until you change them.
+- **Nobody can pick it again.** **Change State**, the alert's header, Slack, Microsoft Teams, rules and monitor criteria leave it out. The API, Terraform and MCP refuse it, naming the value and where to unarchive it.
+- **Alerts keep it.** An alert that has it keeps it through every later edit, its state timeline still shows it, and you can still filter by it.
+- **Archived values are listed apart**, in the folded **Archived Alert States** or **Archived Alert Severities** section under the table, with who archived each and when. **Unarchive** puts one back as it was.
+- **Some can't be archived.** The created, acknowledged and resolved states, and the project's last severity that is not archived. Their **Archive** is locked, with the reason.
+
+**Delete** says what it would do first. While alerts or episodes have the value, the delete is refused and the dialog lists them. Otherwise it lists what the delete would change and offers **Archive instead**.
+
 ## Moving an alert through its states
 
 | Way                  | Where                                                                                     | What it asks                                                                                                                         |

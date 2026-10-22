@@ -43,7 +43,8 @@ import {
  *     project: the runbook variables it names - plain ones, and the secrets
  *     that project lets global Runners use - and its run's inputs. A
  *     variable the step names that it may not have fails the step with its
- *     name, never its value; a credential is never handed over.
+ *     name, never its value; a step that still names a runbook credential
+ *     (they were removed) is failed, saying how to fix it.
  *
  * And a project's own Runner is served as before, its secrets held to its
  * own project and to the Runners each secret lists.
@@ -122,18 +123,8 @@ jest.mock("Common/Server/Utils/Response", () => {
   };
 });
 
-jest.mock("../../FeatureSet/Runbook/Utils/Credentials", () => {
-  return {
-    __esModule: true,
-    default: {
-      resolveForJob: jest.fn(),
-    },
-  };
-});
-
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
 import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
-import RunbookCredentialsUtil from "../../FeatureSet/Runbook/Utils/Credentials";
 import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
 
 const HEARTBEAT_ROUTE: string = "/heartbeat";
@@ -725,7 +716,12 @@ describe("the Runner ingress, for a global Runner", () => {
       expect(submitSpy).not.toHaveBeenCalled();
     });
 
-    test("a step carrying a credential is failed, and the credential is never resolved", async () => {
+    /*
+     * A global Runner was never handed a credential. Runbook credentials
+     * were removed since: a step that still names one is failed for every
+     * Runner, a global one too, saying how to fix the step.
+     */
+    test("a step carrying a credential is failed, saying how to fix the step", async () => {
       claimGlobalSpy.mockResolvedValue(
         claimedGlobalJob({
           payload: { credentialId: "b1000000-0000-4000-8000-0000000000e1" },
@@ -734,11 +730,14 @@ describe("the Runner ingress, for a global Runner", () => {
 
       await callRoute({ uri: CLAIM_ROUTE, agent: globalRunner() });
 
-      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
       expect(lastJsonResponse()).toEqual({ job: null });
+      expect(variablesSpy).not.toHaveBeenCalled();
       expect(
         (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
-      ).toBe(RunnerIngressAPI.GLOBAL_RUNNER_CREDENTIAL_REFUSAL);
+      ).toBe(RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL);
+      expect(RunnerIngressAPI.REMOVED_CREDENTIAL_STEP_REFUSAL).toContain(
+        "Turn into a script step",
+      );
     });
   });
 

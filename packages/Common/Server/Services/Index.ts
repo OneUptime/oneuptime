@@ -27,6 +27,7 @@ import IncidentCustomFieldService from "./IncidentCustomFieldService";
 import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
 import IncidentPrivacyRuleService from "./IncidentPrivacyRuleService";
 import IncidentPostmortemTemplateService from "./IncidentPostmortemTemplateService";
+import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
 import IncidentNoteTemplateService from "./IncidentNoteTemplateService";
 import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
@@ -158,7 +159,6 @@ import MonitorOwnerRuleService from "./MonitorOwnerRuleService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
-import RunbookCredentialService from "./RunbookCredentialService";
 import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
@@ -562,6 +562,7 @@ const services: Array<BaseService> = [
   IncidentOnCallRuleService,
   IncidentPrivacyRuleService,
   IncidentPostmortemTemplateService,
+  IncidentPostmortemStatusService,
   IncidentNoteTemplateService,
   IncidentLabelRuleService,
   IncidentGroupingRuleService,
@@ -679,7 +680,6 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
-  RunbookCredentialService,
   RunbookOwnerRuleService,
   RunbookOwnerUserService,
   RunbookOwnerTeamService,

@@ -135,7 +135,7 @@ kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 
 ### Encontre o cluster no OneUptime
 
-Abra **Produtos → Infraestrutura → Kubernetes → Todos os clusters**. O cluster aparece com o `clusterName` dele em poucos minutos, e os nós, pods e cargas de trabalho dele são preenchidos. O agente de IA do Kubernetes aparece como conectado na página **Agente** do cluster, em **IA**.
+Abra **Produtos → Infraestrutura → Kubernetes → Todos os clusters**. O cluster aparece com o `clusterName` dele em poucos minutos, e os nós, pods e cargas de trabalho dele são preenchidos. O agente de IA do Kubernetes aparece como conectado na página **Agente** do cluster, em **IA**. A página **Topologia** do cluster desenha os seus namespaces, cargas de trabalho, pods e nós em um único mapa, marcando o que requer atenção: veja [Topologia](/docs/telemetry/topology#abrir-o-mapa-próprio-de-um-recurso).
 :::
 
 ## Instale como complemento do Amazon EKS

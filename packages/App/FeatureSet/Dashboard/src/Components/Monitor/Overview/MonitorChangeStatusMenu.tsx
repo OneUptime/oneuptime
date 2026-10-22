@@ -201,8 +201,13 @@ const MonitorChangeStatusMenu: FunctionComponent<ComponentProps> = (
         const result: ListResult<MonitorStatus> =
           await ModelAPI.getList<MonitorStatus>({
             modelType: MonitorStatus,
+            /*
+             * The statuses a monitor can be changed to: an archived one is
+             * never offered (Common/Utils/ArchivableValues).
+             */
             query: {
               projectId: ProjectUtil.getCurrentProjectId()!,
+              isArchived: false,
             },
             select: {
               _id: true,

@@ -8,13 +8,11 @@ import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Cha
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRemediationSuggestionService";
-import RunbookCredentialService from "../../../../Server/Services/RunbookCredentialService";
 import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import RunnerService from "../../../../Server/Services/RunnerService";
 import logger from "../../../../Server/Utils/Logger";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
-import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import {
@@ -76,9 +74,6 @@ const RUNNER_ID: ObjectID = new ObjectID(
 );
 const OTHER_RUNNER_ID: ObjectID = new ObjectID(
   "44444444-4444-4444-8444-444444444444",
-);
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
 );
 const JOB_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
@@ -144,20 +139,6 @@ function fakeRunner(
   } as unknown as Runner;
 }
 
-function fakeSshCredential(
-  overrides: Partial<Record<string, unknown>> = {},
-): RunbookCredential {
-  return {
-    id: CREDENTIAL_ID,
-    _id: CREDENTIAL_ID.toString(),
-    name: "db ssh",
-    credentialType: "SSH",
-    sshHostname: "db01",
-    sshUsername: "root",
-    ...overrides,
-  } as unknown as RunbookCredential;
-}
-
 function fakeTerminalJob(
   overrides: Partial<Record<string, unknown>> = {},
 ): RunnerJob {
@@ -209,9 +190,6 @@ function mockHappyExecution(): void {
   jest
     .spyOn(RunnerService, "findOneBy")
     .mockResolvedValue(fakeRunner(RUNNER_ID));
-  jest
-    .spyOn(RunbookCredentialService, "findOneBy")
-    .mockResolvedValue(fakeSshCredential());
   jest
     .spyOn(RunnerJobService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
@@ -276,7 +254,6 @@ describe("RemediationCommandToolkit list_command_targets", () => {
         fakeRunner(RUNNER_ID, { name: "allowed-runner" }),
         fakeRunner(OTHER_RUNNER_ID, { name: "forbidden-runner" }),
       ]);
-    jest.spyOn(RunbookCredentialService, "findBy").mockResolvedValue([]);
 
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit({ allowedRunnerIds: [RUNNER_ID.toString()] }),
@@ -288,19 +265,15 @@ describe("RemediationCommandToolkit list_command_targets", () => {
     expect(outcome.textForLlm).not.toContain("forbidden-runner");
   });
 
-  it("lists SSH credentials as id/name/user@host and drops non-SSH credentials", async () => {
+  /*
+   * A Runner target listed the SSH runbook credentials assigned to it, for
+   * SSH commands to other hosts. Runbook credentials are gone: a Runner
+   * runs Bash on its own host, and nothing else is listed for it.
+   */
+  it("lists a Runner for Bash on its own host, and no credentials", async () => {
     jest
       .spyOn(RunnerService, "getOnlineAiCommandRunnersForProject")
       .mockResolvedValue([fakeRunner(RUNNER_ID)]);
-    jest.spyOn(RunbookCredentialService, "findBy").mockResolvedValue([
-      fakeSshCredential(),
-      fakeSshCredential({
-        id: OTHER_RUNNER_ID,
-        _id: OTHER_RUNNER_ID.toString(),
-        name: "an api key",
-        credentialType: "APIKey",
-      }),
-    ]);
 
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit(),
@@ -308,10 +281,10 @@ describe("RemediationCommandToolkit list_command_targets", () => {
     ).execute({});
 
     expect(outcome.result?.rowCount).toBe(1);
-    expect(outcome.textForLlm).toContain(CREDENTIAL_ID.toString());
-    expect(outcome.textForLlm).toContain("db ssh");
-    expect(outcome.textForLlm).toContain("root@db01");
-    expect(outcome.textForLlm).not.toContain("an api key");
+    expect(outcome.textForLlm).toContain("prod-runner-1");
+    expect(outcome.textForLlm).toContain("Bash");
+    expect(outcome.textForLlm).not.toContain("SSH");
+    expect(outcome.textForLlm).not.toMatch(/credential/i);
   });
 });
 
@@ -349,11 +322,12 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
         stepType: RunbookStepType.Bash,
         targetAgentId: RUNNER_ID,
         command: "systemctl restart nginx",
-        credentialId: undefined,
         timeoutInMs: DEFAULT_COMMAND_TIMEOUT_MS,
         claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
       }),
     );
+    // No job names a credential: runbook credentials were removed.
+    expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("credentialId");
 
     // The durable record lands before the side effect can happen.
     const firstPersistOrder: number = persist.mock.invocationCallOrder[0]!;
@@ -402,7 +376,12 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     );
   });
 
-  it("passes the credential through for an SSH command and snapshots its name", async () => {
+  /*
+   * An SSH command reached its host with a runbook credential assigned to
+   * the Runner. Runbook credentials are gone, and SSH with them: it is a
+   * step type no round offers.
+   */
+  it("refuses an SSH command: no round offers SSH any more", async () => {
     const enqueue: jest.SpyInstance = jest.spyOn(
       RunnerJobService,
       "enqueueAiCommand",
@@ -413,21 +392,37 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
       toolkit,
       "execute_remediation_command",
     ).execute(
-      bashArgs({ stepType: "SSH", credentialId: CREDENTIAL_ID.toString() }),
+      bashArgs({
+        stepType: "SSH",
+        credentialId: "55555555-5555-4555-8555-555555555555",
+      }),
+    );
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toBe("stepType must be one of: Bash, Kubectl.");
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(toolkit.getExecutedCommands()).toHaveLength(0);
+  });
+
+  it("runs a Bash command that names a credential without it: nothing reads one", async () => {
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(
+      bashArgs({ credentialId: "55555555-5555-4555-8555-555555555555" }),
     );
 
     expect(outcome.success).toBe(true);
-    expect(enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        stepType: RunbookStepType.SSH,
-        credentialId: CREDENTIAL_ID.toString(),
-      }),
-    );
-    expect(toolkit.getExecutedCommands()[0]).toEqual(
-      expect.objectContaining({
-        credentialId: CREDENTIAL_ID.toString(),
-        credentialNameSnapshot: "db ssh",
-      }),
+    expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("credentialId");
+    expect(toolkit.getExecutedCommands()[0]).not.toHaveProperty("credentialId");
+    expect(toolkit.getExecutedCommands()[0]).not.toHaveProperty(
+      "credentialNameSnapshot",
     );
   });
 
@@ -536,15 +531,13 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
 
     expect(outcome.success).toBe(false);
     // Exactly the step types a rule round offers — never ResourceCommand.
-    expect(outcome.textForLlm).toBe(
-      "stepType must be one of: Bash, SSH, Kubectl.",
-    );
+    expect(outcome.textForLlm).toBe("stepType must be one of: Bash, Kubectl.");
   });
 
   it("never runs a ResourceCommand step on a Runner", async () => {
     /*
      * ResourceCommand is an AI command step type, but it belongs to a
-     * resource's own AI agent: it must never fall through to the Bash/SSH
+     * resource's own AI agent: it must never fall through to the Bash
      * path, which would enqueue it for a Runner.
      */
     const enqueue: jest.SpyInstance = jest.spyOn(
@@ -561,9 +554,7 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
 
     expect(outcome.success).toBe(false);
     // This round never offered it: refused with the step types it offers.
-    expect(outcome.textForLlm).toBe(
-      "stepType must be one of: Bash, SSH, Kubectl.",
-    );
+    expect(outcome.textForLlm).toBe("stepType must be one of: Bash, Kubectl.");
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -682,34 +673,6 @@ describe("RemediationCommandToolkit execute_remediation_command", () => {
     );
   });
 
-  it("rejects an SSH command without a credentialId", async () => {
-    const outcome: ToolCallOutcome = await getTool(
-      buildToolkit(),
-      "execute_remediation_command",
-    ).execute(bashArgs({ stepType: "SSH" }));
-
-    expect(outcome.success).toBe(false);
-    expect(outcome.textForLlm).toContain(
-      "SSH commands need a valid credentialId",
-    );
-  });
-
-  it("rejects a credential that is not assigned to the target Runner", async () => {
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue(null);
-
-    const outcome: ToolCallOutcome = await getTool(
-      buildToolkit(),
-      "execute_remediation_command",
-    ).execute(
-      bashArgs({ stepType: "SSH", credentialId: CREDENTIAL_ID.toString() }),
-    );
-
-    expect(outcome.success).toBe(false);
-    expect(outcome.textForLlm).toContain(
-      "not an SSH credential assigned to that Runner",
-    );
-  });
-
   it("refuses a clean-but-unallowlisted command without enqueueing anything", async () => {
     const enqueue: jest.SpyInstance = jest.spyOn(
       RunnerJobService,
@@ -815,9 +778,6 @@ describe("RemediationCommandToolkit propose_remediation_commands", () => {
     jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue(fakeRunner(RUNNER_ID));
-    jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue(fakeSshCredential());
   });
 
   afterEach(() => {
@@ -1107,9 +1067,6 @@ describe("RemediationCommandToolkit rollback policy gate (Suggest)", () => {
     jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue(fakeRunner(RUNNER_ID));
-    jest
-      .spyOn(RunbookCredentialService, "findOneBy")
-      .mockResolvedValue(fakeSshCredential());
   });
 
   afterEach(() => {
@@ -1273,13 +1230,13 @@ describe("RemediationCommandToolkit persists the job id before waiting (Bash)", 
 /*
  * The in-cluster kubectl agent a kubernetes-agent chart registers is an
  * AI-command Runner (it runs kubectl for its cluster), but it only ever
- * claims Kubectl jobs. As a Bash or SSH target it could never serve the
+ * claims Kubectl jobs. As a Bash target it could never serve the
  * job: it would wait out its claim timeout and fail — after a human's
  * approval, or burning a FullAuto run's budget. So it is neither listed nor
  * accepted as a host target, whether it is known by its server-owned row
  * name or by the posture the claim path narrows to Kubectl.
  */
-describe("RemediationCommandToolkit never offers or accepts the in-cluster kubectl agent as a Bash/SSH target", () => {
+describe("RemediationCommandToolkit never offers or accepts the in-cluster kubectl agent as a Bash target", () => {
   const AGENT_RUNNER_ID: ObjectID = new ObjectID(
     "abababab-abab-4bab-8bab-abababababab",
   );
@@ -1315,9 +1272,6 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
         agentByName(),
         agentByPosture(),
       ]);
-    const credentialLookup: jest.SpyInstance = jest
-      .spyOn(RunbookCredentialService, "findBy")
-      .mockResolvedValue([]);
 
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit(),
@@ -1329,8 +1283,6 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
     expect(outcome.textForLlm).not.toContain(AGENT_RUNNER_ID.toString());
     expect(outcome.textForLlm).not.toContain(POSTURE_AGENT_ID.toString());
     expect(outcome.textForLlm).not.toContain("kubernetes-agent/prod-us");
-    // No credential lookups for a Runner that is not a target.
-    expect(credentialLookup).toHaveBeenCalledTimes(1);
   });
 
   it("negative control: an ordinary Runner that merely runs in a pod (no cluster identity) is still a host target", async () => {
@@ -1348,7 +1300,6 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
           },
         }),
       ]);
-    jest.spyOn(RunbookCredentialService, "findBy").mockResolvedValue([]);
 
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit(),
@@ -1357,7 +1308,8 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
 
     expect(outcome.result?.rowCount).toBe(2);
     expect(outcome.textForLlm).toContain("runner-in-a-pod");
-    expect(outcome.textForLlm).toContain("Bash, SSH");
+    expect(outcome.textForLlm).toContain("Bash");
+    expect(outcome.textForLlm).not.toContain("SSH");
   });
 
   it("reports no targets when the only online AI Runner is the agent", async () => {
@@ -1374,20 +1326,13 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
     expect(outcome.textForLlm).toContain("No online Runner");
   });
 
-  it.each([
-    ["Bash", undefined],
-    ["SSH", CREDENTIAL_ID.toString()],
-  ])(
-    "FullAuto refuses a %s step on the agent Runner before any job, brake count or credential lookup",
-    async (stepType: string, credentialId: string | undefined) => {
+  it.each([["Bash"]])(
+    "FullAuto refuses a %s step on the agent Runner before any job or brake count",
+    async (stepType: string) => {
       mockHappyExecution();
       const runnerLookup: jest.SpyInstance = jest
         .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(agentByName());
-      const credentialLookup: jest.SpyInstance = jest.spyOn(
-        RunbookCredentialService,
-        "findOneBy",
-      );
 
       const toolkit: RemediationCommandToolkit = buildToolkit();
       const outcome: ToolCallOutcome = await getTool(
@@ -1397,7 +1342,6 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
         bashArgs({
           stepType,
           runnerId: AGENT_RUNNER_ID.toString(),
-          credentialId,
         }),
       );
 
@@ -1410,7 +1354,6 @@ describe("RemediationCommandToolkit never offers or accepts the in-cluster kubec
         (runnerLookup.mock.calls[0]![0] as { select: Record<string, boolean> })
           .select,
       ).toEqual(expect.objectContaining({ name: true, hostInfo: true }));
-      expect(credentialLookup).not.toHaveBeenCalled();
       expect(RunnerJobService.countBy).not.toHaveBeenCalled();
       expect(RunnerJobService.enqueueAiCommand).not.toHaveBeenCalled();
       expect(

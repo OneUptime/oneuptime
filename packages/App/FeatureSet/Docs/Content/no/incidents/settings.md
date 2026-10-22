@@ -20,6 +20,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
 | **Postmortem-maler**         | Gjenbrukbare strukturer for etteranalyser.                                                   |
+| **Statuser for etteranalyse** | Statusene en etteranalyse går gjennom, fra Ikke startet til Fullført. |
 | **Egendefinerte felt**       | Definere ekstra felt som vises på hver hendelse.                                             |
 | **Hendelsesroller**          | Definere rollene du tildeler dem som responderer, som Hendelsesleder.                        |
 | **Målinger**                 | Måle hvor lang tid ting tar, som tiden til bekreftelse eller til løsning, på hver hendelse.  |
@@ -27,7 +28,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Medlemskap i episoder**    | Velge om en hendelse bare kan være i én episode. Slått av som standard. |
 | **Nummerering**              | Teksten foran hendelses- og episodenumre, som `INC-` i `INC-42`, og nummeret den neste får. |
 
-Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), med pull requestene for rettinger og manglende telemetri som hører til rettingen, samlet under den, og utkast til etteranalyser, og hver lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring som snevrer inn hvilke hendelser som undersøkes og rettes, postmortem-reglene som velger hvilke løste hendelser som får et utkast og hvilke maler det følger, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), og utkast til etteranalyser, og hver lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring som snevrer inn hvilke hendelser som undersøkes og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglene som velger hvilke løste hendelser som får et utkast og hvilke maler det følger, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hendelsesstatus** og **Hendelsesalvor** gjennomgås grundig i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden fortsetter fra **Hendelsesmaler**. Skjemaer som lar folk utenfor teamet ditt melde hendelser, er et eget produkt: se [Skjemaer](/docs/forms/index). Verktøy som selv åpner hendelser, som [Huntress](/docs/integrations/huntress), settes opp som arbeidsflyter.
 
@@ -169,10 +170,16 @@ En mal for etteranalyse er skjelettet til rapporten du lager etter en hendelse �
 :::steps
 1. Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-maler**.
 2. Klikk på **Opprett Hendelse Postmortem Mal**, og fyll ut den ene siden: **Malnavn** og **Malbeskrivelse**, begge påkrevd, og deretter **Mal for etteranalyse**, selve teksten, i Markdown, påkrevd.
-3. Lagre den. Siden **Etteranalyse** for hver hendelse tilbyr nå **Bruk mal**.
+3. Lagre den. Siden **Etteranalyse** for hver hendelse tilbyr nå **Bruk mal**. Så lenge ingenting er skrevet, heter knappen **Start fra mal**; når etteranalysen er skrevet, ligger **Bruk mal** i kortets meny **⋯**.
 :::
 
 Du bruker en fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner en dialog **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du en, lastes malens tekst inn i redigeringsverktøyet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme siden **Etteranalyse** og henter fra det samme malbiblioteket. **Bruk mal** vises bare når prosjektet har en mal for etteranalyse; finnes det bare én, er den allerede valgt. Redigeringsverktøyet åpner på hendelsens etteranalyse slik den er, med malen som notat, så om den er på statussiden, når den ble publisert og vedleggene forblir som de var.
+
+## Statuser for etteranalyse
+
+Etteranalysen for hver hendelse har en av prosjektets statuser for etteranalyse, slik at **Hendelser → Etteranalyser** kan vise hvilke etteranalyser som fortsatt mangler. Rediger dem under **Hendelser → Innstillinger → Statuser for etteranalyse** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): et nytt prosjekt har **Ikke startet**, **Utkast**, **Fullført** og **Ikke nødvendig**, og du legger til dine egne, for eksempel **Til gjennomgang**, med **Opprett Status for etteranalyse**.
+
+**Ikke startet**, **Utkast** og **Fullført** er innebygde: OneUptime flytter etteranalyser til dem etter hvert som de skrives og publiseres, så de kan gis nytt navn, men ikke slettes eller arkiveres. Hvor en status står, avgjør om en etteranalyse i den fortsatt mangler, vist under **Teller som**. Se [Etteranalyser](/docs/incidents/postmortems#følg-hvor-langt-hver-etteranalyse-har-kommet).
 
 ## Egendefinerte felt
 
@@ -431,7 +438,7 @@ Det er nettopp poenget. `Declared At` registrerer når OneUptime fikk vite om de
 
 **Tid til bekreftelse** teller fra hendelsen erklæres, så en hendelse der ingen blir tilkalt før om morgenen, viser timer med venting som ingen vakthavende så. **Tid til bekreftelse etter tilkalling** teller i stedet fra **Noen blir tilkalt for første gang**: første gang en vaktpolicy eller en direkte tilkalling ga noen beskjed om hendelsen. Den slutter når hendelsen blir bekreftet, etter samme regel som tid til bekreftelse.
 
-OneUptime registrerer det øyeblikket på hendelsen, og på varselet, som `First Paged At`, én gang, og flytter det aldri. Bare en tilkalling som faktisk ble sendt, teller: i **Tidslinje for utførelsen** for en vaktpolicy eller en direkte tilkalling, en person hvis tilkalling ble sendt, bekreftet eller sendt videre. Et steg som ble **Hoppet over** eller endte med **Feil**, teller ikke, og det gjør heller ikke en policy som startet, men ikke tilkalte noen, for eksempel en der ingen hadde vakt i vaktplanen. Hendelser der noen ble tilkalt før `First Paged At` fantes, får tidspunktet sitt fra vaktutførelsene sine.
+OneUptime registrerer det øyeblikket på hendelsen, og på varselet, som `First Paged At`, én gang, og flytter det aldri. Bare en tilkalling som faktisk ble sendt, teller: i **Tidslinje for utførelsen** for en vaktpolicy eller en direkte tilkalling, en person hvis tilkalling ble sendt, bekreftet eller eskalert. Et steg som ble **Hoppet over** eller endte med **Feil**, teller ikke, og det gjør heller ikke en policy som startet, men ikke tilkalte noen, for eksempel en der ingen hadde vakt i vaktplanen. Hendelser der noen ble tilkalt før `First Paged At` fantes, får tidspunktet sitt fra vaktutførelsene sine.
 
 En hendelse der ingen ble tilkalt, har ingen verdi: **Ikke startet ennå** mens den er åpen, og **Ikke nådd** når den er løst. Diagrammet kan deles opp etter alvorlighetsgrad, så du kan se hvor raskt det blir svart for hver alvorlighetsgrad når noen er tilkalt. Hendelsens side sier det også: under tiden til bekreftelse legger den til hvor lenge etter den første tilkallingen hendelsen ble bekreftet, for eksempel **4 minutter etter tilkalling**. Metrikken for tid til bekreftelse og MTTA i sammendragene i Slack og Microsoft Teams teller fortsatt fra hendelsen ble erklært.
 
@@ -476,6 +483,10 @@ Et nytt prosjekt starter med én rolle, **Hendelsesleder**, personen som har ans
 Legg til de andre rollene teamet ditt bruker, som Responder, Communications Lead eller Scribe, med **Opprett Hendelse Rolle**. Skjemaet er én side: et navn og en beskrivelse, og deretter **Flere felt**, sammenbrettet, med **Tillat flere brukere**, rollens ikon og farge. En ny rolles farge er allerede valgt, en farge rollene i listen ikke bruker ennå, og ikonet er valgfritt, så du åpner bare **Flere felt** for å endre dem. En rolle har én person per hendelse, med mindre du slår på **Tillat flere brukere**. Prosjekter som ble opprettet av tidligere versjoner av OneUptime, startet også med Responder, Communications Lead og Observer. De beholder dem til du sletter dem.
 
 Roller er bare definisjoner. Du tildeler folk til dem per hendelse — erklæringsveiviseren spør på trinnet **Vakt og roller**, med et felt **Tildel hendelsesroller**, og hver hendelse har en side **Roller** i sidemenyen. Kriteriene til en monitor og en grupperingsregel for hendelser kan velge folk til dem på forhånd. Hvert av disse skjemaene spør med de samme kortene, ett per rolle: en rolle med merket **Primær** er Hendelsesleder eller en annen primær rolle, og en rolle for én person fjerner velgeren når den har en. På kortet **Roller** for en hendelse tilbyr en rolle for flere personer **Add More**.
+
+### Arkivere en rolle
+
+Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkiv** setter en tilbake.
 
 ## Nummerprefikser
 

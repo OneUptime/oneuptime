@@ -36,7 +36,7 @@ flowchart TB
 
 Cada ejecución de un runbook es una **ejecución**. Al empezar, los pasos del runbook se copian en ella y OneUptime los recorre en orden. Un paso Manual, o un paso que necesita aprobación, pausa la ejecución hasta que alguien actúa.
 
-Los pasos HTTP y de IA se ejecutan en el Worker de OneUptime. Los pasos Bash, SSH y kubectl se ejecutan en un [Runner](/docs/runbooks/agents) que instalas en tu propia infraestructura, así que esos scripts nunca se ejecutan en los servidores de OneUptime. Un paso JavaScript también se ejecuta en uno de tus Runners o, si no elige ninguno, en un [Runner global](/docs/runbooks/agents#runners-globales), en un sandbox que solo alcanza internet. El estado, la salida y el mensaje de error de cada paso se registran en la ejecución, que queda unida al incidente, la alerta o el evento para el que se ejecutó.
+Los pasos HTTP y de IA se ejecutan en el Worker de OneUptime. Los pasos Bash, SSH y kubectl se ejecutan en un [Runner](/docs/runbooks/agents) que instalas en tu propia infraestructura, así que esos scripts nunca se ejecutan en los servidores de OneUptime. Un paso JavaScript también se ejecuta en uno de tus Runners o, si no elige ninguno y el proyecto no tiene un [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto), en un [Runner global](/docs/runbooks/agents#runners-globales), en un sandbox que solo alcanza internet. El estado, la salida y el mensaje de error de cada paso se registran en la ejecución, que queda unida al incidente, la alerta o el evento para el que se ejecutó.
 
 ## Conceptos clave
 
@@ -47,7 +47,7 @@ Los pasos HTTP y de IA se ejecutan en el Worker de OneUptime. Los pasos Bash, SS
 | **Regla de runbook** | Una regla que adjunta automáticamente uno o más runbooks a los incidentes, alertas o eventos de mantenimiento programado que cumplen sus condiciones: sus monitores, su gravedad, sus etiquetas, las etiquetas de sus monitores, su título o su descripción. |
 | **Ejecución** | Una ejecución de un runbook. Se crea cuando una regla se activa, cuando alguien hace clic en **Ejecutar runbook** en un evento o cuando alguien hace clic en **Ejecutar ahora** en el propio runbook. Guarda una instantánea de los pasos y el estado y la salida de cada paso. |
 | **Instantánea** | La copia congelada de los pasos del runbook que vive en cada ejecución. Puedes editar el runbook más tarde sin reescribir el historial de las ejecuciones anteriores. |
-| **Runner** | Un pequeño agente que ejecutas en un host de tu propia infraestructura. Ejecuta los pasos JavaScript, Bash, SSH y kubectl que lo nombran. También se llama agente de runbook. Un Runner global, uno de los que OneUptime ejecuta para todos los proyectos, ejecuta los pasos JavaScript que no nombran ninguno. |
+| **Runner** | Un pequeño agente que ejecutas en un host de tu propia infraestructura. Ejecuta los pasos JavaScript, Bash, SSH y kubectl que lo nombran. También se llama agente de runbook. Un Runner global, uno de los que OneUptime ejecuta para todos los proyectos, ejecuta los pasos JavaScript que no nombran ninguno, salvo que el proyecto tenga un Runner predeterminado. |
 | **Variable** | Un valor que los pasos usan por su nombre, como un host o una URL: `{{global.variables.NAME}}` para uno del proyecto, que cualquier runbook puede usar, o `{{local.variables.NAME}}` para uno propio del runbook. |
 | **Secreto** | Una variable cuyo valor se cifra en reposo, nunca se vuelve a mostrar y se oculta en lo que imprimen los pasos, como una clave SSH, una contraseña, un kubeconfig o un token de API. Se entrega solo a los Runners a los que permites usarlo; los Runners globales lo reciben solo si se lo permites. |
 
@@ -95,7 +95,7 @@ Runbooks está en **Productos**, en el grupo **Paneles y automatización**.
 | Los **Propietarios** de un runbook | Añadir las personas y los equipos responsables de él. |
 | Los **Ajustes** de un runbook | Desactivar **Ejecutar este runbook** sin eliminar el runbook. |
 | **Runbooks → Ejecuciones** | Todas las ejecuciones de todos los runbooks del proyecto. |
-| **Runbooks → Agentes de runbook** y **Runbooks → Agentes de runbook → Acceso de la IA** | Instalar [Runners](/docs/runbooks/agents), y gestionar el [acceso](/docs/runbooks/credentials) que tienen a través de ellos los comandos de OneUptime AI. |
+| **Runbooks → Agentes de runbook** | Instalar los [Runners](/docs/runbooks/agents) en los que se ejecutan los pasos de sus runbooks. |
 | **Runbooks → Ajustes** | Gestionar, en **Variables globales**, las variables que cualquier runbook puede [usar](/docs/runbooks/variables), y las **Reglas del propietario** y **Reglas de etiquetas** que añaden propietarios y etiquetas a los runbooks nuevos. |
 | **Incidentes / Alertas / Mantenimiento programado → Reglas → Reglas de runbook** | Crear las reglas que inician runbooks automáticamente. |
 | Un incidente, una alerta o un evento de mantenimiento → **Runbooks** | Ver las ejecuciones unidas a él, y hacer clic en **Ejecutar runbook** para iniciar una. |
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 Un monitor abre el incidente `INC-4821 · db-primary connection timeout`. La regla coincide y empieza una ejecución:
 
-- El paso 1 (JavaScript) se ejecuta en el Runner que elegiste para él. Su valor de retorno, por ejemplo `{ lagMs: 412 }`, queda capturado. Un paso que no elige ningún Runner se ejecuta en un Runner global.
+- El paso 1 (JavaScript) se ejecuta en el Runner que elegiste para él. Su valor de retorno, por ejemplo `{ lagMs: 412 }`, queda capturado. Un paso que no elige ningún Runner se ejecuta en el Runner predeterminado del proyecto o, si no hay ninguno, en un Runner global.
 - El paso 2 (Manual) pausa la ejecución, que muestra **Esperándote**. La persona de guardia revisa el panel y hace clic en **Marcar como completado**.
 - El paso 3 (HTTP request) se ejecuta y la respuesta al `POST` queda capturada.
 - El paso 4 (Manual) vuelve a pausar la ejecución hasta que alguien lo completa.

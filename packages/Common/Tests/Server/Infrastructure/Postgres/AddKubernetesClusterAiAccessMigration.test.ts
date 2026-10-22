@@ -1,10 +1,10 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
 import { AddKubernetesAiAgentAndAiDefaults1796100000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796100000000-AddKubernetesAiAgentAndAiDefaults";
+import { RemoveRunbookCredentials1805780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805780000000-RemoveRunbookCredentials";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
@@ -31,7 +31,10 @@ import type { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadat
  * every command AI ran on it.
  *
  * It pins that every column is added exactly as the model declares it (a
- * mismatch is a green deploy followed by a red Schema Drift job), that the
+ * mismatch is a green deploy followed by a red Schema Drift job) - or, for
+ * the credential binding, which RemoveRunbookCredentials dropped with
+ * runbook credentials, exactly as that later migration drops it and its
+ * down() puts it back - that the
  * indexes and foreign keys carry the names TypeORM would choose for the
  * model's own decorators, that the migration sits after every migration
  * already shipped, and that down() is the exact inverse of up().
@@ -144,6 +147,11 @@ interface ExpectedColumn {
   table: string;
   property: string;
   ddl: string;
+  /*
+   * A later migration that drops the column: the model no longer declares
+   * it, so it is compared with that migration instead.
+   */
+  droppedLater?: MigrationInterface | undefined;
 }
 
 /*
@@ -162,6 +170,7 @@ const EXPECTED_COLUMNS: Array<ExpectedColumn> = [
     table: "KubernetesCluster",
     property: "aiAccessCredentialId",
     ddl: "uuid",
+    droppedLater: new RemoveRunbookCredentials1805780000000(),
   },
   {
     model: KubernetesCluster,
@@ -224,8 +233,10 @@ interface ExpectedRelation {
   table: string;
   relation: string;
   column: string;
-  referencedModel: ModelClass;
+  // Absent for a relation a later migration dropped with its model.
+  referencedModel?: ModelClass | undefined;
   referencedTable: string;
+  droppedLater?: MigrationInterface | undefined;
 }
 
 const EXPECTED_RELATIONS: Array<ExpectedRelation> = [
@@ -242,8 +253,8 @@ const EXPECTED_RELATIONS: Array<ExpectedRelation> = [
     table: "KubernetesCluster",
     relation: "aiAccessCredential",
     column: "aiAccessCredentialId",
-    referencedModel: RunbookCredential,
     referencedTable: "RunbookCredential",
+    droppedLater: new RemoveRunbookCredentials1805780000000(),
   },
   {
     model: RunnerJob,
@@ -298,6 +309,28 @@ function declaredRelation(
 
   return declared;
 }
+
+// The columns and relations the models still declare.
+const DECLARED_COLUMNS: Array<ExpectedColumn> = EXPECTED_COLUMNS.filter(
+  (column: ExpectedColumn): boolean => {
+    return !column.droppedLater;
+  },
+);
+const DROPPED_COLUMNS: Array<ExpectedColumn> = EXPECTED_COLUMNS.filter(
+  (column: ExpectedColumn): boolean => {
+    return Boolean(column.droppedLater);
+  },
+);
+const DECLARED_RELATIONS: Array<ExpectedRelation> = EXPECTED_RELATIONS.filter(
+  (relation: ExpectedRelation): boolean => {
+    return !relation.droppedLater;
+  },
+);
+const DROPPED_RELATIONS: Array<ExpectedRelation> = EXPECTED_RELATIONS.filter(
+  (relation: ExpectedRelation): boolean => {
+    return Boolean(relation.droppedLater);
+  },
+);
 
 // Single-column indexes the model declares on one of the new columns.
 function declaredSingleColumnIndexes(): Array<{
@@ -425,7 +458,7 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
   });
 
   test("adds every AI access column the cluster model declares", () => {
-    const added: Array<string> = EXPECTED_COLUMNS.filter(
+    const added: Array<string> = DECLARED_COLUMNS.filter(
       (column: ExpectedColumn): boolean => {
         return column.model === KubernetesCluster;
       },
@@ -448,7 +481,7 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
     expect([...modelColumns].sort()).toEqual([...added].sort());
   });
 
-  test.each(EXPECTED_COLUMNS)(
+  test.each(DECLARED_COLUMNS)(
     "$table.$property matches the column the model declares",
     (column: ExpectedColumn) => {
       const declared: ColumnMetadataArgs = declaredColumn(
@@ -485,6 +518,38 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
       } else {
         expect(column.ddl).not.toContain("DEFAULT");
       }
+    },
+  );
+
+  /*
+   * Runbook credentials were removed: RemoveRunbookCredentials drops the
+   * cluster's credential binding, so the model no longer declares it. This
+   * migration has shipped and keeps its DDL; the later one drops exactly
+   * what it added, and its down() adds it back the same way.
+   */
+  test.each(DROPPED_COLUMNS)(
+    "$table.$property: a later migration drops it, and its down() adds it back as this one did",
+    async (column: ExpectedColumn) => {
+      expect(
+        getMetadataArgsStorage().columns.some(
+          (declared: ColumnMetadataArgs): boolean => {
+            return (
+              declared.target === column.model &&
+              declared.propertyName === column.property
+            );
+          },
+        ),
+      ).toBe(false);
+
+      expect(await recordQueries("up", column.droppedLater)).toContain(
+        `ALTER TABLE "${column.table}" DROP COLUMN "${column.property}"`,
+      );
+      expect(await recordQueries("down", column.droppedLater)).toContain(
+        addColumnStatement(column),
+      );
+      expect(
+        registeredNames.indexOf(column.droppedLater!.name!),
+      ).toBeGreaterThan(registeredNames.indexOf(OWN_CLASS_NAME));
     },
   );
 
@@ -577,7 +642,7 @@ describe("AddKubernetesClusterAiAccess migration - indexes and foreign keys", ()
     expect(created).toEqual(expected);
   });
 
-  test.each(EXPECTED_RELATIONS)(
+  test.each(DECLARED_RELATIONS)(
     "$table.$column references $referencedTable and is nulled when the target is deleted",
     async (relation: ExpectedRelation) => {
       const declared: RelationMetadataArgs = declaredRelation(
@@ -597,6 +662,34 @@ describe("AddKubernetesClusterAiAccess migration - indexes and foreign keys", ()
           [relation.column],
         )}" FOREIGN KEY ("${relation.column}") REFERENCES "${relation.referencedTable}"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
       );
+    },
+  );
+
+  test.each(DROPPED_RELATIONS)(
+    "$table.$column: the later migration drops the foreign key this one added, under the same name",
+    async (relation: ExpectedRelation) => {
+      const name: string = namingStrategy.foreignKeyName(relation.table, [
+        relation.column,
+      ]);
+      const added: string = `ALTER TABLE "${relation.table}" ADD CONSTRAINT "${name}" FOREIGN KEY ("${relation.column}") REFERENCES "${relation.referencedTable}"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`;
+
+      expect(await recordQueries("up")).toContain(added);
+      expect(await recordQueries("up", relation.droppedLater)).toContain(
+        `ALTER TABLE "${relation.table}" DROP CONSTRAINT "${name}"`,
+      );
+      expect(await recordQueries("down", relation.droppedLater)).toContain(
+        added,
+      );
+      expect(
+        getMetadataArgsStorage().relations.some(
+          (declared: RelationMetadataArgs): boolean => {
+            return (
+              declared.target === relation.model &&
+              declared.propertyName === relation.relation
+            );
+          },
+        ),
+      ).toBe(false);
     },
   );
 

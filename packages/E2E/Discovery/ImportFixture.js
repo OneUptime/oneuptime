@@ -9,6 +9,11 @@
  *
  * Nothing here draws random numbers: every host, name and outcome is worked
  * out from its position, so a test reads the same scan every run.
+ *
+ * The project's monitor templates are of every kind the import treats apart
+ * (issue #5145): two Network Device templates, a customer's Ping template
+ * for its kitchen displays, a Port and an NTP template, and a Website
+ * template the import must never offer.
  */
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -16,7 +21,13 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import Color from "Common/Types/Color";
+import Hostname from "Common/Types/API/Hostname";
+import URL from "Common/Types/API/URL";
+import IP from "Common/Types/IP/IP";
 import ObjectID from "Common/Types/ObjectID";
+import Port from "Common/Types/Port";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import NetworkAlertPolicyBootstrapUtil from "Common/Utils/NetworkDevice/NetworkAlertPolicyBootstrapUtil";
 import {
@@ -120,9 +131,14 @@ export function buildCampusHosts() {
   return hosts;
 }
 
-const TEMPLATE_IDS = {
+export const TEMPLATE_IDS = {
   recommended: "60000000-0000-4000-8000-000000000001",
   ping: "60000000-0000-4000-8000-000000000002",
+  kitchenDisplays: "60000000-0000-4000-8000-000000000003",
+  receiptPrinters: "60000000-0000-4000-8000-000000000004",
+  timeServers: "60000000-0000-4000-8000-000000000005",
+  storefront: "60000000-0000-4000-8000-000000000006",
+  backOffice: "60000000-0000-4000-8000-000000000007",
 };
 
 const STATUS_IDS = {
@@ -169,10 +185,90 @@ export function buildTemplates() {
   criteria.monitorCriteriaInstanceArray[0].data.name =
     "Register stops answering";
 
-  return [recommended, ping].map((template) => {
+  for (const template of [recommended, ping]) {
     template.monitorType = MonitorType.NetworkDevice;
-    return template;
+  }
+
+  return [
+    recommended,
+    ping,
+    addressTemplate({
+      id: TEMPLATE_IDS.kitchenDisplays,
+      name: "WB KDS Ping Monitor Template",
+      monitorType: MonitorType.Ping,
+      destination: IP.fromString("10.48.11.31"),
+      monitoringInterval: "*/5 * * * *",
+    }),
+    addressTemplate({
+      id: TEMPLATE_IDS.receiptPrinters,
+      name: "Receipt printers",
+      monitorType: MonitorType.Port,
+      destination: IP.fromString("10.48.11.32"),
+      port: 9100,
+      monitoringInterval: "* * * * *",
+    }),
+    addressTemplate({
+      id: TEMPLATE_IDS.timeServers,
+      name: "Store time servers",
+      monitorType: MonitorType.NTP,
+      destination: new Hostname("time.wbhq.com"),
+      monitoringInterval: "*/10 * * * *",
+    }),
+    // Checks a URL: nothing of a device's to check, so never offered.
+    addressTemplate({
+      id: TEMPLATE_IDS.storefront,
+      name: "Storefront website",
+      monitorType: MonitorType.Website,
+      destination: URL.fromString("https://shop.wbhq.com"),
+      monitoringInterval: "*/5 * * * *",
+    }),
+  ];
+}
+
+// A template someone makes in another tab while the import is open (#5145).
+export function buildBackOfficeTemplate() {
+  return addressTemplate({
+    id: TEMPLATE_IDS.backOffice,
+    name: "Back office printers",
+    monitorType: MonitorType.Port,
+    destination: IP.fromString("10.48.11.33"),
+    port: 515,
+    monitoringInterval: "*/5 * * * *",
   });
+}
+
+/*
+ * A template whose monitor checks an address, made the way the template
+ * form makes one: the type's default criteria - an incident when it stops
+ * answering - against an address of its own.
+ */
+function addressTemplate(data) {
+  const step = MonitorStep.getDefaultMonitorStep({
+    monitorName: data.name,
+    monitorType: data.monitorType,
+    onlineMonitorStatusId: new ObjectID(STATUS_IDS.operational),
+    offlineMonitorStatusId: new ObjectID(STATUS_IDS.offline),
+    defaultIncidentSeverityId: new ObjectID(SEVERITY_IDS.incident),
+    defaultAlertSeverityId: new ObjectID(SEVERITY_IDS.alert),
+  });
+  step.setMonitorDestination(data.destination);
+  if (data.port) {
+    step.setPort(new Port(data.port));
+  }
+
+  const steps = new MonitorSteps();
+  steps.data = {
+    monitorStepsInstanceArray: [step],
+    defaultMonitorStatusId: new ObjectID(STATUS_IDS.operational),
+  };
+
+  const template = new MonitorTemplate();
+  template._id = data.id;
+  template.templateName = data.name;
+  template.monitorType = data.monitorType;
+  template.monitorSteps = steps;
+  template.monitoringInterval = data.monitoringInterval;
+  return template;
 }
 
 function named(Model, id, fields) {

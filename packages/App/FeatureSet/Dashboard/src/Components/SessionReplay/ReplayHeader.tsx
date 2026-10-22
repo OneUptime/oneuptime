@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Clipboard from "Common/UI/Utils/Clipboard";
 import OneUptimeDate from "Common/Types/Date";
 import { formatReplayOffset, formatReplayWallClock } from "./ReplayTimeFormat";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
@@ -186,24 +187,14 @@ export const REPLAY_HEADER_COPIED_MS: number = 2000;
 /*
  * Clipboard write that reports failure instead of throwing or vanishing:
  * navigator.clipboard is absent on plain http and inside some sandboxed
- * frames, and writeText rejects when the document is not focused.
+ * frames, and writeText rejects when the document is not focused. It is the
+ * product's one clipboard writer (Common/UI/Utils/Clipboard), so a plain-http
+ * install copies through the browser's older copy command before the
+ * read-only field is offered (issue #5132); the field is for when that is
+ * refused too.
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
-  try {
-    if (
-      typeof navigator === "undefined" ||
-      !navigator.clipboard ||
-      typeof navigator.clipboard.writeText !== "function"
-    ) {
-      return false;
-    }
-
-    await navigator.clipboard.writeText(text);
-
-    return true;
-  } catch {
-    return false;
-  }
+  return await Clipboard.copyToClipboard(text);
 }
 
 /* What a copy was of, so the announcement and the fallback name it. */

@@ -3,6 +3,11 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/IncidentRole";
 
@@ -20,6 +25,13 @@ export class Service extends DatabaseService<Model> {
         "Primary roles cannot allow multiple users to be assigned.",
       );
     }
+
+    // The primary role is never created archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeCreate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentRole],
+      createBy: createBy,
+    });
 
     return { createBy, carryForward: null };
   }
@@ -49,6 +61,13 @@ export class Service extends DatabaseService<Model> {
         );
       }
     }
+
+    // The primary role is never archived. See ArchivableValueGuard.
+    await ArchivableValueGuard.beforeUpdate({
+      service: this,
+      definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentRole],
+      updateBy: updateBy,
+    });
 
     return { updateBy, carryForward: null };
   }

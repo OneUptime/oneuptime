@@ -21,6 +21,7 @@ import WorkspaceConnectPromptOnce, {
   WorkspaceConnectPromptClaim,
   WorkspaceConversationPerson,
 } from "../../WorkspaceConnectPromptOnce";
+import WorkspaceProjectResolver from "../../WorkspaceProjectResolution";
 import SlackActionType from "./ActionTypes";
 import SlackActionAnswer, {
   SlackAnswerDelivery,
@@ -461,7 +462,8 @@ export default class SlackConnectPrompt {
    * the project. The press is recorded to be finished once it is connected.
    * When it cannot be recorded (the cache is down), the answer still says to
    * connect, with a link to the settings page without the press
-   * (WorkspaceConnectRequest.getConnectLink).
+   * (WorkspaceConnectRequest.getConnectLink). In a workspace connected to
+   * more than one project, it names the project to connect in.
    */
   @CaptureSpan()
   public static async prompt(data: {
@@ -493,6 +495,13 @@ export default class SlackConnectPrompt {
       pendingAction: data.description.pendingAction,
       again: data.description.again,
       button: link.button,
+      projectName: await WorkspaceProjectResolver.getSharedWorkspaceProjectName(
+        {
+          workspaceType: WorkspaceType.Slack,
+          workspaceId: data.slackTeamId,
+          projectId: data.projectId,
+        },
+      ),
     });
 
     return await SlackActionAnswer.answer({

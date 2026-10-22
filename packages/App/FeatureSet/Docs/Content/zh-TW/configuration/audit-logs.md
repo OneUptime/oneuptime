@@ -88,13 +88,19 @@ flowchart TB
 | 團隊 | `Team` |
 | 自訂角色，以及獲得角色的團隊 | `Custom Role`、`Team Custom Role` |
 | 標籤 | `Label` |
+| 事件狀態和嚴重性 | `Incident State`、`Incident Severity` |
+| 警示狀態和嚴重性 | `Alert State`、`Alert Severity` |
+| 監測器狀態 | `Monitor Status` |
+| 排定維護狀態 | `Scheduled Maintenance State` |
+| 事件角色 | `Incident Role` |
+| 事後分析狀態 | `Postmortem Status` |
 | API 金鑰 | `API Key` |
 | 人們連接的 MCP 用戶端 | `MCP Client Authorization` |
 | 資產清單項目 | `Inventory Item` |
 | 收集器設定 | `Collector Config` |
 | vCenter 伺服器 | `vCenter` |
 | 封包擷取及其下載 | `Packet Capture` |
-| 安全案件與劇本 | `Security Case`、`Security Playbook` |
+| 安全案件、劇本及其執行，以及受保護的實體 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 當管理員在他人的帳戶上新增或移除通知方式或個人待命規則時，也會記錄，但不包含地址或號碼本身。
 
