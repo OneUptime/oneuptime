@@ -337,7 +337,7 @@ Varje OneUptime AI-regel – utredningsregler, regler för automatisk åtgärd o
 2. utan den, projektets standardleverantör, den som är inställd som standard under **Projektinställningar → AI → LLM-leverantörer**;
 3. utan standard, den globala leverantören.
 
-Ett tomt fält namnger den leverantör som det står för, och det gör även regelns hopfällda rad **Fler fält**.
+Ett tomt fält namnger den leverantör som det står för, och det gör även regelns hopfällda rad **Fler fält** när det finns fler än en leverantör att välja mellan.
 
 - **Allt som regeln startar.** Leverantören för en utredningsregel skriver utredningen, den nya kontrollen när ett nytt larm öppnas och bedömningen när incidenten löses; **Utred nu**, och att be OneUptime AI att starta en utredning, använder den också. Leverantören för en regel för automatisk åtgärd tar fram regelns åtgärder och öppnar dess pull-förfrågningar, och en senare omgång av en åtgärd använder leverantören från omgången före. Leverantören för en regel för efteranalys skriver utkastet och väljer dess mall.
 - **Flera regler.** När flera utredningsregler matchar avgör den första av dem efter namn som väljer en leverantör. När flera regler för automatisk åtgärd matchar tar var och en fram sina egna åtgärder med sin egen leverantör, och det som de delar – AI-agentens arbete på klustret eller värden, och pull-förfrågningarna – använder den första av dem efter namn som väljer en. En matchande regel som inte väljer någon döljer aldrig en annans val. För en efteranalys avgör den regel som avgör mallarna även leverantören.

@@ -234,7 +234,7 @@ describe("AIInvestigationEngine.executeRun: the run's LLM provider", () => {
 
     expect(events[1]!.resultSummary).toEqual({
       message:
-        "Using Azure GPT-4o, the project's default LLM provider: the rule's provider is no longer available",
+        "Using Azure GPT-4o, the project's default LLM provider, because the rule's provider is no longer available",
       severity: "Warning",
       llmProvider: {
         source: LlmProviderSource.ProjectDefault,

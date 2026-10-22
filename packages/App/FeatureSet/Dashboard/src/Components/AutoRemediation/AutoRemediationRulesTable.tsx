@@ -39,7 +39,6 @@ import React, {
 } from "react";
 import {
   RuleLlmProviderChoices,
-  RuleLlmProviderWork,
   withRuleLlmProviderSummary,
 } from "../AI/RuleLlmProviderCopy";
 import {
@@ -704,7 +703,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
          * first field, and this one comes and goes with the switch.
          */
         getRuleLlmProviderFormField<AutoRemediationRule>({
-          work: RuleLlmProviderWork.Fix,
           stepId: "remediation",
           collapsibleSection: moreFields,
           dataTestId: "auto-remediation-llm-provider-field",

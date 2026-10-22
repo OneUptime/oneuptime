@@ -41,7 +41,6 @@ import {
   RULE_LLM_PROVIDER_PICKER_TEST_ID,
   RULE_LLM_PROVIDER_WARNING_TEST_ID,
   RuleLlmProviderChoices,
-  RuleLlmProviderWork,
   UNREAD_RULE_LLM_PROVIDER_CHOICES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
 import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
@@ -81,7 +80,8 @@ import ProjectUtil from "../../../UI/Utils/Project";
  *   - a pick is stored by id, and cleared back to the default;
  *   - a pick the reader cannot see is kept, named for what it is; one the
  *     project can no longer use says OneUptime AI uses the default instead;
- *   - with nothing to pick the box is locked, and says why.
+ *   - with nothing to pick the box is locked, says why, and looks it: a
+ *     grey box that does not light up under the pointer.
  */
 
 const PROJECT_ID: string = "dddddddd-0000-4000-8000-000000000001";
@@ -376,6 +376,33 @@ describe("a rule's LLM provider", () => {
 
     expect(searchBox()).toBeDisabled();
     expect(placeholder()).toBe("No LLM provider yet");
+
+    /*
+     * It looks locked: one grey fill, not white with grey beside it (white
+     * won in light mode, so a locked box looked like one to click), and no
+     * border lighting up under the pointer.
+     */
+    const box: HTMLElement = within(picker()).getByTestId(
+      "entity-dropdown-box",
+    );
+
+    expect(box).toHaveClass("bg-gray-100");
+    expect(box).not.toHaveClass("bg-white");
+    expect(box).not.toHaveClass("hover:border-indigo-300");
+    cleanup();
+
+    // A box with something to pick is white, and lights up under the pointer.
+    answerWith(answer([AZURE, OPUS], AZURE_ID));
+    await renderPicker(undefined);
+
+    const open: HTMLElement = within(picker()).getByTestId(
+      "entity-dropdown-box",
+    );
+
+    expect(searchBox()).not.toBeDisabled();
+    expect(open).toHaveClass("bg-white");
+    expect(open).not.toHaveClass("bg-gray-100");
+    expect(open).toHaveClass("hover:border-indigo-300");
   });
 
   test("reads them again when the window takes the focus back: one added in another tab can be picked", async () => {
@@ -465,12 +492,10 @@ describe("the field, as a rule form lists it", () => {
     getAdvancedFormSection<AIInvestigationRule>({});
 
   function fieldFor(data: {
-    work: RuleLlmProviderWork;
     choices: RuleLlmProviderChoices | null;
     showIf?: (values: Values) => boolean;
   }): ModelField<AIInvestigationRule> {
     return getRuleLlmProviderFormField<AIInvestigationRule>({
-      work: data.work,
       stepId: "investigation",
       collapsibleSection: SECTION,
       dataTestId: "rule-llm-provider-field",
@@ -502,39 +527,36 @@ describe("the field, as a rule form lists it", () => {
     defaultProviderId: AZURE_ID,
   };
 
-  test("is the rule's llmProviderId, under its More fields, saying what it does for that kind of rule", () => {
-    for (const work of [
-      RuleLlmProviderWork.Investigate,
-      RuleLlmProviderWork.Fix,
-      RuleLlmProviderWork.DraftPostmortem,
-    ]) {
-      const field: ModelField<AIInvestigationRule> = fieldFor({
-        work,
-        choices: READ,
-      });
+  /*
+   * One line for every kind of rule: the provider does everything the rule
+   * starts - an investigation, a fix and its pull requests, a draft.
+   */
+  test("is the rule's llmProviderId, under its More fields, with the one line every rule has", () => {
+    const field: ModelField<AIInvestigationRule> = fieldFor({
+      choices: READ,
+    });
 
-      expect(field.field).toEqual({ llmProviderId: true });
-      expect(field.title).toBe("LLM Provider");
-      expect(field.description).toBe(
-        RULE_LLM_PROVIDER_FIELD_COPY.descriptions[work],
-      );
-      expect(field.stepId).toBe("investigation");
-      expect(field.collapsibleSection).toBe(SECTION);
-      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
-      expect(field.required).toBe(false);
-      // Empty is an answer of its own - the default - not "(Optional)".
-      expect(field.hideOptionalLabel).toBe(true);
-      expect(field.hideColumnDescription).toBe(true);
-      expect(field.dataTestId).toBe("rule-llm-provider-field");
-      expect(field.showIf).toBeUndefined();
-    }
+    expect(field.field).toEqual({ llmProviderId: true });
+    expect(field.title).toBe("LLM Provider");
+    expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
+    expect(field.description).toBe(
+      "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.",
+    );
+    expect(field.stepId).toBe("investigation");
+    expect(field.collapsibleSection).toBe(SECTION);
+    expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+    expect(field.required).toBe(false);
+    // Empty is an answer of its own - the default - not "(Optional)".
+    expect(field.hideOptionalLabel).toBe(true);
+    expect(field.hideColumnDescription).toBe(true);
+    expect(field.dataTestId).toBe("rule-llm-provider-field");
+    expect(field.showIf).toBeUndefined();
   });
 
   test("folded, names the provider a rule picks - by the providers as the table last read them", () => {
     let choices: RuleLlmProviderChoices | null = null;
     const field: ModelField<AIInvestigationRule> =
       getRuleLlmProviderFormField<AIInvestigationRule>({
-        work: RuleLlmProviderWork.Investigate,
         stepId: "investigation",
         collapsibleSection: SECTION,
         dataTestId: "rule-llm-provider-field",
@@ -559,7 +581,6 @@ describe("the field, as a rule form lists it", () => {
 
   test("hands the form what the picker picks", async () => {
     const field: ModelField<AIInvestigationRule> = fieldFor({
-      work: RuleLlmProviderWork.Investigate,
       choices: READ,
     });
     const handed: Array<unknown> = [];
@@ -587,7 +608,6 @@ describe("the field, as a rule form lists it", () => {
       return (values as { name?: string }).name !== "hidden";
     };
     const field: ModelField<AIInvestigationRule> = fieldFor({
-      work: RuleLlmProviderWork.Fix,
       choices: READ,
       showIf,
     });

@@ -337,7 +337,7 @@ Jede OneUptime-AI-Regel – Untersuchungsregeln, Regeln für automatische Behebu
 2. ohne ihn den Standardanbieter des Projekts, den unter **Projekteinstellungen → KI → LLM-Anbieter** als Standard festgelegten;
 3. ohne Standard den globalen Anbieter.
 
-Ein leeres Feld nennt den Anbieter, für den es steht, und die eingeklappte Zeile **Weitere Felder** der Regel ebenso.
+Ein leeres Feld nennt den Anbieter, für den es steht, und die eingeklappte Zeile **Weitere Felder** der Regel ebenso, wenn mehr als ein Anbieter zur Wahl steht.
 
 - **Alles, was die Regel startet.** Der Anbieter einer Untersuchungsregel schreibt die Untersuchung, die erneute Prüfung, wenn eine neue Warnung auftritt, und die Bewertung, wenn der Vorfall behoben wird; **Jetzt untersuchen** und die Bitte an OneUptime AI, eine Untersuchung zu starten, nutzen ihn ebenfalls. Der Anbieter einer Regel für automatische Behebung erarbeitet die Behebungen der Regel und öffnet ihre Pull-Requests, und eine spätere Runde einer Behebung nutzt den Anbieter der Runde davor. Der Anbieter einer Postmortem-Regel schreibt den Entwurf und wählt seine Vorlage.
 - **Mehrere Regeln.** Passen mehrere Untersuchungsregeln, entscheidet die erste von ihnen nach Namen, die einen Anbieter wählt. Passen mehrere Regeln für automatische Behebung, erarbeitet jede ihre eigenen Behebungen mit ihrem eigenen Anbieter, und was sie teilen – die Arbeit des KI-Agenten auf dem Cluster oder Host und die Pull-Requests – nutzt die erste von ihnen nach Namen, die einen wählt. Eine passende Regel, die keinen wählt, verdeckt nie die Wahl einer anderen. Bei einem Postmortem entscheidet die Regel, die über die Vorlagen entscheidet, auch über den Anbieter.

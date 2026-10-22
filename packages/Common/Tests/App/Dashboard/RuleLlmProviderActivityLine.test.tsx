@@ -133,7 +133,7 @@ describe("a run's line about its LLM provider", () => {
 
     expect(drawnSteps(container)).toEqual([
       [
-        "Using Azure GPT-4o, the project's default LLM provider: the rule's provider is no longer available",
+        "Using Azure GPT-4o, the project's default LLM provider, because the rule's provider is no longer available",
         "break-words text-amber-600",
       ],
     ]);
@@ -153,7 +153,7 @@ describe("a run's line about its LLM provider", () => {
 
     expect(
       screen.getByText(
-        "No LLM provider to use: the rule's provider is no longer available",
+        "The rule's LLM provider is no longer available, and there is no other to use",
       ),
     ).toHaveClass("text-amber-600");
   });

@@ -337,7 +337,7 @@ Toda regra da OneUptime AI — regras de investigação, de remediação automá
 2. sem ele, o provedor padrão do projeto, o definido como padrão em **Configurações do projeto → IA → Provedores LLM**;
 3. sem padrão, o provedor global.
 
-Um campo vazio nomeia o provedor que ele representa, e a linha recolhida de **Mais campos** da regra também.
+Um campo vazio nomeia o provedor que ele representa, e a linha recolhida de **Mais campos** da regra também, quando há mais de um provedor para escolher.
 
 - **Tudo o que a regra inicia.** O provedor de uma regra de investigação escreve a investigação, a nova verificação quando um novo alerta é aberto e a avaliação quando o incidente é resolvido; **Investigar agora**, e pedir à OneUptime AI que inicie uma investigação, também o usam. O provedor de uma regra de remediação automática elabora as correções da regra e abre os pull requests dela, e uma rodada posterior de uma correção usa o provedor da rodada anterior. O provedor de uma regra de post-mortem escreve o rascunho e escolhe o modelo dele.
 - **Várias regras.** Quando várias regras de investigação correspondem, decide a primeira delas por nome que escolhe um provedor. Quando várias regras de remediação automática correspondem, cada uma elabora as próprias correções com o próprio provedor, e o que elas compartilham — o trabalho do agente de IA no cluster ou host, e os pull requests — usa a primeira delas por nome que escolhe um. Uma regra correspondente que não escolhe nenhum nunca esconde a escolha de outra. Para um post-mortem, a regra que decide os modelos decide o provedor.

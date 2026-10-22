@@ -435,9 +435,10 @@ export default class AIIncidentPostmortemRunner {
       return mdText` It was written with **${choice.provider.name}**, the LLM provider of ${rule}.`;
     }
 
+    // What happened to the rule's provider: "The LLM provider of ... <why>."
     const why: string =
       choice.fallbackReason === LlmProviderFallbackReason.CreditsUsedUp
-        ? "uses AI credits, and they are used up"
+        ? "runs on AI credits, which are used up"
         : choice.fallbackReason === LlmProviderFallbackReason.SpendLimitReached
           ? "is stopped by the project's daily AI spend limit"
           : "is no longer available";
@@ -451,7 +452,7 @@ export default class AIIncidentPostmortemRunner {
         ? "the global LLM provider"
         : "the project's default LLM provider";
 
-    return mdText` It was written with **${choice.provider.name}**, ${used}: the LLM provider of ${rule} ${why}.`;
+    return mdText` It was written with **${choice.provider.name}**, ${used}, because the LLM provider of ${rule} ${why}.`;
   }
 
   // A postmortem the draft may be written into: none yet, and not on the status page.

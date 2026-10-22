@@ -98,10 +98,7 @@ import { DropdownChange } from "../../../UI/Components/Dropdown/DropdownChange";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import {
-  RULE_LLM_PROVIDER_FIELD_COPY,
-  RuleLlmProviderWork,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
 import {
   OPUS_PROVIDER,
   mockRuleLlmProviders,
@@ -676,16 +673,12 @@ describe("the LLM provider a postmortem rule drafts with", () => {
     return fieldNamed(props, "llmProviderId") as unknown as ProviderField;
   }
 
-  test("is first under More fields, with the description, saying what it does for a draft", () => {
+  test("is first under More fields, with the description, and the line every rule has", () => {
     const props: Record<string, unknown> = table();
     const field: ProviderField = providerField(props);
 
     expect(field.title).toBe("LLM Provider");
-    expect(field.description).toBe(
-      RULE_LLM_PROVIDER_FIELD_COPY.descriptions[
-        RuleLlmProviderWork.DraftPostmortem
-      ],
-    );
+    expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
     expect(field.hideOptionalLabel).toBe(true);
     expect(field.collapsibleSection).toBe(
       fieldNamed(props, "description")!.collapsibleSection,

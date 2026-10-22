@@ -337,7 +337,7 @@ Elke OneUptime AI-regel – onderzoeksregels, regels voor automatisch herstel en
 2. zonder die de standaardprovider van het project, de provider die als standaard is ingesteld onder **Projectinstellingen → AI → LLM-providers**;
 3. zonder standaard de globale provider.
 
-Een leeg veld noemt de provider waarvoor het staat, en de ingeklapte samenvatting van **Meer velden** doet dat ook.
+Een leeg veld noemt de provider waarvoor het staat, en de ingeklapte samenvatting van **Meer velden** doet dat ook als er meer dan één provider is om uit te kiezen.
 
 - **Alles wat de regel start.** De provider van een onderzoeksregel schrijft het onderzoek, de nieuwe controle wanneer een nieuwe waarschuwing opent, en de beoordeling wanneer het incident is opgelost; **Nu onderzoeken**, en OneUptime AI vragen een onderzoek te starten, gebruiken hem ook. De provider van een regel voor automatisch herstel werkt de herstellingen van de regel uit en opent haar pull requests, en een latere ronde van een herstelling gebruikt de provider van de ronde ervoor. De provider van een postmortem-regel schrijft het concept en kiest het sjabloon ervan.
 - **Meerdere regels.** Als meerdere onderzoeksregels passen, beslist de eerste ervan op naam die een provider kiest. Als meerdere regels voor automatisch herstel passen, werkt elke regel zijn eigen herstellingen uit met zijn eigen provider, en wat ze delen – het werk van de AI-agent op het cluster of de host, en de pull requests – gebruikt de eerste ervan op naam die er een kiest. Een passende regel die er geen kiest, verbergt nooit de keuze van een andere. Bij een postmortem beslist de regel die over de sjablonen beslist ook over de provider.

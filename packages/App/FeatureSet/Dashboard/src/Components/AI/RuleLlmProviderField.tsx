@@ -10,7 +10,6 @@ import {
   RuleLlmProviderChoices,
   RuleLlmProviderOption,
   RuleLlmProviderPickState,
-  RuleLlmProviderWork,
   UNREAD_RULE_LLM_PROVIDER_CHOICES,
   getRuleLlmProviderFoldedValue,
   getRuleLlmProviderOptionDescription,
@@ -280,20 +279,20 @@ export const RuleLlmProviderPicker: FunctionComponent<
  *
  *   - the column is the rule's llmProviderId (Common/Types/AI/
  *     LlmProviderChoice reads it); empty is the default provider, so the
- *     field never says "(Optional)", and its own line says what it does for
- *     this kind of rule (`work`) instead of the column's API description;
+ *     field never says "(Optional)", and its own line - the same on every
+ *     rule - says what it does instead of the column's API description;
  *   - folded, the More fields line names the provider a rule picks
- *     ("LLM Provider: Claude Opus"); while it picks none, the section's
- *     summary says which provider that is (getRuleLlmProviderSummary, which
- *     the form's getSummary adds) - both from `getChoices`, the providers
- *     as the table last read them (a form may hold on to the fields it was
- *     opened with, so they are read through a function);
+ *     ("LLM Provider: Claude Opus"); while it picks none and there is more
+ *     than one provider, the section's summary says which provider that is
+ *     (getRuleLlmProviderSummary, which the form's getSummary adds) - both
+ *     from `getChoices`, the providers as the table last read them (a form
+ *     may hold on to the fields it was opened with, so they are read
+ *     through a function);
  *   - open, RuleLlmProviderPicker, and the line to LLM Providers under it.
  */
 export function getRuleLlmProviderFormField<
   TBaseModel extends BaseModel,
 >(data: {
-  work: RuleLlmProviderWork;
   stepId: string;
   collapsibleSection: FormFieldCollapsibleSection<TBaseModel>;
   dataTestId: string;
@@ -305,7 +304,7 @@ export function getRuleLlmProviderFormField<
       llmProviderId: true,
     } as unknown as ModelField<TBaseModel>["field"],
     title: RULE_LLM_PROVIDER_FIELD_COPY.title,
-    description: RULE_LLM_PROVIDER_FIELD_COPY.descriptions[data.work],
+    description: RULE_LLM_PROVIDER_FIELD_COPY.description,
     stepId: data.stepId,
     collapsibleSection: data.collapsibleSection,
     fieldType: FormFieldSchemaType.CustomComponent,

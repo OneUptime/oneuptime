@@ -5,10 +5,10 @@ import {
   RuleLlmProviderChoices,
   RuleLlmProviderOption,
   RuleLlmProviderPickState,
-  RuleLlmProviderWork,
   UNREAD_RULE_LLM_PROVIDER_CHOICES,
   describeRuleLlmProviderActivity,
   getDefaultRuleLlmProvider,
+  hasRuleLlmProviderChoice,
   getRuleLlmProviderFoldedValue,
   getRuleLlmProviderOptionDescription,
   getRuleLlmProviderPickState,
@@ -361,6 +361,51 @@ describe("the folded More fields line", () => {
     ).toBe("No longer available");
   });
 
+  /*
+   * With one provider - most often the global provider alone, as on a new
+   * OneUptime Cloud project - there is nothing to pick between: the line
+   * would only grow on every rule. The open field's box still names it.
+   */
+  test("the summary says nothing while the project has just the one provider", () => {
+    const globalAlone: RuleLlmProviderChoices = choices(
+      [ONEUPTIME_AI],
+      ONEUPTIME_AI.id,
+    );
+    const ownAlone: RuleLlmProviderChoices = choices([AZURE], AZURE.id);
+
+    expect(hasRuleLlmProviderChoice(globalAlone)).toBe(false);
+    expect(hasRuleLlmProviderChoice(ownAlone)).toBe(false);
+    expect(getRuleLlmProviderSummary({}, globalAlone, ENGLISH)).toEqual([]);
+    expect(getRuleLlmProviderSummary({}, ownAlone, ENGLISH)).toEqual([]);
+    expect(
+      withRuleLlmProviderSummary(
+        ["Any runbook may be run."],
+        {},
+        globalAlone,
+        ENGLISH,
+      ),
+    ).toEqual(["Any runbook may be run."]);
+    expect(
+      withRuleLlmProviderSummary(undefined, {}, ownAlone, ENGLISH),
+    ).toBeUndefined();
+
+    // The box still says which one an empty field uses.
+    expect(getRuleLlmProviderPlaceholder(globalAlone, ENGLISH)).toBe(
+      "Global provider (OneUptime AI)",
+    );
+    expect(getRuleLlmProviderPlaceholder(ownAlone, ENGLISH)).toBe(
+      "Project default (Azure GPT-4o)",
+    );
+
+    // Two or more: a choice, and the line names the default.
+    expect(hasRuleLlmProviderChoice(WITH_PROJECT_DEFAULT)).toBe(true);
+    expect(hasRuleLlmProviderChoice(ON_THE_GLOBAL)).toBe(true);
+    expect(hasRuleLlmProviderChoice(null)).toBe(false);
+    expect(hasRuleLlmProviderChoice(UNREAD_RULE_LLM_PROVIDER_CHOICES)).toBe(
+      false,
+    );
+  });
+
   test("the summary says nothing while the rule picks one, or with no provider known", () => {
     expect(
       getRuleLlmProviderSummary(
@@ -486,7 +531,7 @@ describe("a run's line about its provider", () => {
 describe("every word the field adds is every language's own", () => {
   const SENTENCES: Array<string> = [
     RULE_LLM_PROVIDER_FIELD_COPY.title,
-    ...Object.values(RULE_LLM_PROVIDER_FIELD_COPY.descriptions),
+    RULE_LLM_PROVIDER_FIELD_COPY.description,
     RULE_LLM_PROVIDER_FIELD_COPY.projectDefaultPlaceholder,
     RULE_LLM_PROVIDER_FIELD_COPY.globalPlaceholder,
     RULE_LLM_PROVIDER_FIELD_COPY.defaultPlaceholder,
@@ -503,15 +548,15 @@ describe("every word the field adds is every language's own", () => {
     ...Object.values(RULE_LLM_PROVIDER_ACTIVITY_LINES),
   ];
 
-  test("the field's own line says what it does for each kind of rule", () => {
-    expect(RULE_LLM_PROVIDER_FIELD_COPY.descriptions).toEqual({
-      [RuleLlmProviderWork.Investigate]:
-        "OneUptime AI investigates with the default LLM provider. Pick one to use another for this rule.",
-      [RuleLlmProviderWork.Fix]:
-        "OneUptime AI fixes with the default LLM provider, pull requests included. Pick one to use another for this rule.",
-      [RuleLlmProviderWork.DraftPostmortem]:
-        "OneUptime AI drafts with the default LLM provider. Pick one to use another for this rule.",
-    });
+  /*
+   * One line for every kind of rule - investigation, auto remediation,
+   * postmortem and the telemetry products' rules after them: the provider
+   * does everything the rule starts, and the empty box names the default.
+   */
+  test("the field's own line is one sentence, the same on every rule", () => {
+    expect(RULE_LLM_PROVIDER_FIELD_COPY.description).toBe(
+      "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.",
+    );
   });
 
   test("English holds each as it is written", () => {

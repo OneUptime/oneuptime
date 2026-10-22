@@ -323,15 +323,15 @@ export const LLM_PROVIDER_ACTIVITY_TEMPLATES: {
 } = {
   rulePick: "Using {{provider}}, the rule's LLM provider",
   unavailableToProjectDefault:
-    "Using {{provider}}, the project's default LLM provider: the rule's provider is no longer available",
+    "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available",
   unavailableToGlobal:
-    "Using {{provider}}, the global LLM provider: the rule's provider is no longer available",
+    "Using {{provider}}, the global LLM provider, because the rule's provider is no longer available",
   unavailableToNone:
-    "No LLM provider to use: the rule's provider is no longer available",
+    "The rule's LLM provider is no longer available, and there is no other to use",
   creditsUsedUp:
-    "Using {{provider}}, the project's default LLM provider: the rule's provider uses AI credits, and they are used up",
+    "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up",
   spendLimitReached:
-    "Using {{provider}}, the project's default LLM provider: the daily AI spend limit stops the rule's provider",
+    "Using {{provider}}, the project's default LLM provider, because the daily AI spend limit stops the rule's provider",
 };
 
 // Which template says the activity (LLM_PROVIDER_ACTIVITY_TEMPLATES).

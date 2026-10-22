@@ -337,7 +337,7 @@ Hver OneUptime AI-regel – undersøkelsesregler, regler for automatisk utbedrin
 2. uten den, prosjektets standardleverandør, den som er satt som standard under **Prosjektinnstillinger → KI → LLM-leverandører**;
 3. uten standard, den globale leverandøren.
 
-Et tomt felt nevner leverandøren det står for, og det gjør også regelens sammenslåtte linje **Flere felt**.
+Et tomt felt nevner leverandøren det står for, og det gjør også regelens sammenslåtte linje **Flere felt** når det er mer enn én leverandør å velge mellom.
 
 - **Alt regelen starter.** Leverandøren til en undersøkelsesregel skriver undersøkelsen, den nye kontrollen når et nytt varsel åpnes, og vurderingen når hendelsen løses; **Undersøk nå**, og å be OneUptime AI starte en undersøkelse, bruker den også. Leverandøren til en regel for automatisk utbedring utarbeider regelens rettinger og åpner pull-forespørslene dens, og en senere runde av en retting bruker leverandøren fra runden før. Leverandøren til en etteranalyseregel skriver utkastet og velger malen.
 - **Flere regler.** Når flere undersøkelsesregler samsvarer, avgjør den første av dem etter navn som velger en leverandør. Når flere regler for automatisk utbedring samsvarer, utarbeider hver sine egne rettinger med sin egen leverandør, og det de deler – arbeidet til AI-agenten på klyngen eller verten, og pull-forespørslene – bruker den første av dem etter navn som velger en. En samsvarende regel som ikke velger noen, skjuler aldri en annens valg. For en etteranalyse avgjør regelen som avgjør malene, også leverandøren.

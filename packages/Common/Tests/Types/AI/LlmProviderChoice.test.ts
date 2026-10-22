@@ -629,7 +629,7 @@ describe("what a run says about its provider", () => {
     });
     expect(isLlmProviderActivityWarning(activity!)).toBe(true);
     expect(describeLlmProviderActivityInEnglish(activity!)).toBe(
-      "Using Azure GPT-4o, the project's default LLM provider: the rule's provider is no longer available",
+      "Using Azure GPT-4o, the project's default LLM provider, because the rule's provider is no longer available",
     );
   });
 
@@ -693,6 +693,34 @@ describe("what a run says about its provider", () => {
     expect(new Set(Object.values(LLM_PROVIDER_ACTIVITY_TEMPLATES)).size).toBe(
       Object.keys(LLM_PROVIDER_ACTIVITY_TEMPLATES).length,
     );
+  });
+
+  /*
+   * A line reads as a person would say it: the provider used, then - with
+   * "because" - why the rule's own was not. Not "X: Y", which read as a
+   * log line among the run's steps (the UI review of #5178).
+   */
+  test("each line is worded in full: the provider used, then why", () => {
+    expect(LLM_PROVIDER_ACTIVITY_TEMPLATES).toEqual({
+      rulePick: "Using {{provider}}, the rule's LLM provider",
+      unavailableToProjectDefault:
+        "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available",
+      unavailableToGlobal:
+        "Using {{provider}}, the global LLM provider, because the rule's provider is no longer available",
+      unavailableToNone:
+        "The rule's LLM provider is no longer available, and there is no other to use",
+      creditsUsedUp:
+        "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up",
+      spendLimitReached:
+        "Using {{provider}}, the project's default LLM provider, because the daily AI spend limit stops the rule's provider",
+    });
+
+    for (const template of Object.values(LLM_PROVIDER_ACTIVITY_TEMPLATES)) {
+      // One clause after another, never a colon between them.
+      expect(template).not.toContain(":");
+      // A step of the run's activity, as the others: no full stop.
+      expect(template.endsWith(".")).toBe(false);
+    }
   });
 
   test("with no provider to use at all, a Warning", () => {

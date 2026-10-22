@@ -132,10 +132,7 @@ import {
   MORE_FIELDS_SECTION_TITLE,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
-import {
-  RULE_LLM_PROVIDER_FIELD_COPY,
-  RuleLlmProviderWork,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
 import {
   OPUS_PROVIDER,
   mockRuleLlmProviders,
@@ -446,13 +443,11 @@ describe.each([
      * switch that turns AI off; empty is the default provider, which the
      * folded line names first.
      */
-    test("the LLM provider is under More fields, saying what it does for a fix", () => {
+    test("the LLM provider is under More fields, with the line every rule has", () => {
       const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
 
       expect(field.title).toBe("LLM Provider");
-      expect(field.description).toBe(
-        RULE_LLM_PROVIDER_FIELD_COPY.descriptions[RuleLlmProviderWork.Fix],
-      );
+      expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
       expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(field.hideOptionalLabel).toBe(true);
       expect(field.hideColumnDescription).toBe(true);

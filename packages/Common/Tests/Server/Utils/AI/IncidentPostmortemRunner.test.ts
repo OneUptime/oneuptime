@@ -1526,7 +1526,7 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
         .llmProviderId,
     ).toBeUndefined();
     expect(feedLine()).toContain(
-      "It was written with **Azure GPT-4o**, the project's default LLM provider: the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+      "It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
     );
   });
 
@@ -1729,22 +1729,22 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
       [
         LlmProviderFallbackReason.Unavailable,
         LlmProviderSource.ProjectDefault,
-        " It was written with **Azure GPT-4o**, the project's default LLM provider: the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
       ],
       [
         LlmProviderFallbackReason.Unavailable,
         LlmProviderSource.Global,
-        " It was written with **Azure GPT-4o**, the global LLM provider: the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+        " It was written with **Azure GPT-4o**, the global LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
       ],
       [
         LlmProviderFallbackReason.CreditsUsedUp,
         LlmProviderSource.ProjectDefault,
-        " It was written with **Azure GPT-4o**, the project's default LLM provider: the LLM provider of postmortem rule **Critical incidents** uses AI credits, and they are used up.",
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** runs on AI credits, which are used up.",
       ],
       [
         LlmProviderFallbackReason.SpendLimitReached,
         LlmProviderSource.ProjectDefault,
-        " It was written with **Azure GPT-4o**, the project's default LLM provider: the LLM provider of postmortem rule **Critical incidents** is stopped by the project's daily AI spend limit.",
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is stopped by the project's daily AI spend limit.",
       ],
     ])(
       "%s, then %s: the one used instead, and why",

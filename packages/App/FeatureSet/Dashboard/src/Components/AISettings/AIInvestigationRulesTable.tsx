@@ -33,7 +33,6 @@ import {
 } from "../ExternalMcpServer/ExternalMcpServerCopy";
 import {
   RuleLlmProviderChoices,
-  RuleLlmProviderWork,
   withRuleLlmProviderSummary,
 } from "../AI/RuleLlmProviderCopy";
 import {
@@ -476,7 +475,6 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
         },
         // The LLM provider OneUptime AI investigates with: none is the default.
         getRuleLlmProviderFormField<AIInvestigationRule>({
-          work: RuleLlmProviderWork.Investigate,
           stepId: "investigate",
           collapsibleSection: moreFields,
           dataTestId: "ai-investigation-rule-llm-provider-field",

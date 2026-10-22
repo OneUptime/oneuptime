@@ -22,8 +22,9 @@ import {
  * you can select the global LLM provider as well. If one is selected, use
  * that LLM provider to do everything." So the field starts empty, and empty
  * says which provider that is: "Project default (Azure GPT-4o)" in the box,
- * and the same on the folded More fields line. The rule itself - the pick,
- * else the project's default, else the global provider - is
+ * and the same on the folded More fields line while there is more than
+ * one provider to pick from. The rule itself - the pick, else the
+ * project's default, else the global provider - is
  * Common/Types/AI/LlmProviderChoice.
  *
  * The providers come from POST /ai-chat/providers (the chat's provider
@@ -31,16 +32,9 @@ import {
  * global ones, and which of them the project uses today.
  */
 
-// What the field's description says OneUptime AI does with the provider.
-export enum RuleLlmProviderWork {
-  Investigate = "Investigate",
-  Fix = "Fix",
-  DraftPostmortem = "DraftPostmortem",
-}
-
 export const RULE_LLM_PROVIDER_FIELD_COPY: {
   title: string;
-  descriptions: Record<RuleLlmProviderWork, string>;
+  description: string;
   projectDefaultPlaceholder: string;
   globalPlaceholder: string;
   defaultPlaceholder: string;
@@ -56,17 +50,15 @@ export const RULE_LLM_PROVIDER_FIELD_COPY: {
   globalSummary: string;
 } = {
   title: translationKey("LLM Provider"),
-  descriptions: {
-    [RuleLlmProviderWork.Investigate]: translationKey(
-      "OneUptime AI investigates with the default LLM provider. Pick one to use another for this rule.",
-    ),
-    [RuleLlmProviderWork.Fix]: translationKey(
-      "OneUptime AI fixes with the default LLM provider, pull requests included. Pick one to use another for this rule.",
-    ),
-    [RuleLlmProviderWork.DraftPostmortem]: translationKey(
-      "OneUptime AI drafts with the default LLM provider. Pick one to use another for this rule.",
-    ),
-  },
+  /*
+   * The field's own line, one for every kind of rule: the provider does
+   * everything the rule starts - an investigation and its follow-ups, a
+   * fix and its pull requests, a postmortem draft - and the empty box
+   * names the default it stands for.
+   */
+  description: translationKey(
+    "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.",
+  ),
   // In the empty box: the provider an empty field uses, by name.
   projectDefaultPlaceholder: translationKey("Project default ({{provider}})"),
   globalPlaceholder: translationKey("Global provider ({{provider}})"),
@@ -89,7 +81,10 @@ export const RULE_LLM_PROVIDER_FIELD_COPY: {
   unavailableWarning: translationKey(
     "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.",
   ),
-  // On the folded More fields line while the rule picks none.
+  /*
+   * On the folded More fields line while the rule picks none and there is
+   * more than one provider to pick from.
+   */
   projectDefaultSummary: translationKey(
     "The rule uses the project's default LLM provider, {{provider}}.",
   ),
@@ -332,18 +327,34 @@ export function getRuleLlmProviderFoldedValue(
 }
 
 /*
+ * Whether a rule has a provider to choose: more than one is listed. With
+ * one - most often the global provider alone, as on a new OneUptime Cloud
+ * project - there is nothing to pick between.
+ */
+export function hasRuleLlmProviderChoice(
+  choices: RuleLlmProviderChoices | null,
+): boolean {
+  return Boolean(choices && choices.isRead && choices.providers.length > 1);
+}
+
+/*
  * The sentence the folded More fields line says while the rule picks no
  * provider: which provider OneUptime AI uses instead, by name, in the
- * reader's language. Nothing while the rule picks one (the line names it),
- * or while there is no provider or it is not known: the AI settings page
- * says so at its top.
+ * reader's language. Nothing while the rule picks one (the line names it);
+ * while there is no provider or it is not known (the AI settings page says
+ * so at its top); or while the project has just the one provider - with
+ * nothing to pick between, the sentence would only lengthen every rule's
+ * line, and the open field's box still names it.
  */
 export function getRuleLlmProviderSummary(
   values: unknown,
   choices: RuleLlmProviderChoices | null,
   translator: Translator = getGlobalTranslator(),
 ): Array<string> {
-  if (getRulePickedLlmProviderId(values)) {
+  if (
+    getRulePickedLlmProviderId(values) ||
+    !hasRuleLlmProviderChoice(choices)
+  ) {
     return [];
   }
 
@@ -394,19 +405,19 @@ export const RULE_LLM_PROVIDER_ACTIVITY_LINES: typeof LLM_PROVIDER_ACTIVITY_TEMP
   {
     rulePick: translationKey("Using {{provider}}, the rule's LLM provider"),
     unavailableToProjectDefault: translationKey(
-      "Using {{provider}}, the project's default LLM provider: the rule's provider is no longer available",
+      "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available",
     ),
     unavailableToGlobal: translationKey(
-      "Using {{provider}}, the global LLM provider: the rule's provider is no longer available",
+      "Using {{provider}}, the global LLM provider, because the rule's provider is no longer available",
     ),
     unavailableToNone: translationKey(
-      "No LLM provider to use: the rule's provider is no longer available",
+      "The rule's LLM provider is no longer available, and there is no other to use",
     ),
     creditsUsedUp: translationKey(
-      "Using {{provider}}, the project's default LLM provider: the rule's provider uses AI credits, and they are used up",
+      "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up",
     ),
     spendLimitReached: translationKey(
-      "Using {{provider}}, the project's default LLM provider: the daily AI spend limit stops the rule's provider",
+      "Using {{provider}}, the project's default LLM provider, because the daily AI spend limit stops the rule's provider",
     ),
   };
 

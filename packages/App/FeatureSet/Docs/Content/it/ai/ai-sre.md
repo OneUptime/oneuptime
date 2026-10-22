@@ -337,7 +337,7 @@ Ogni regola di OneUptime AI (regole di indagine, di rimedio automatico e di post
 2. in sua assenza, il provider predefinito del progetto, quello impostato come predefinito in **Impostazioni del progetto → IA → Provider LLM**;
 3. senza un predefinito, il provider globale.
 
-Un campo vuoto indica il provider che rappresenta, e lo fa anche la riga ripiegata **Altri campi** della regola.
+Un campo vuoto indica il provider che rappresenta, e lo fa anche la riga ripiegata **Altri campi** della regola quando c'è più di un provider tra cui scegliere.
 
 - **Tutto ciò che la regola avvia.** Il provider di una regola di indagine scrive l'indagine, il nuovo controllo quando si apre un nuovo avviso e la valutazione quando l'incidente viene risolto; anche **Indaga ora**, e chiedere a OneUptime AI di avviare un'indagine, lo usano. Il provider di una regola di rimedio automatico elabora le correzioni della regola e apre le sue pull request, e un round successivo di una correzione usa il provider del round precedente. Il provider di una regola di post-mortem scrive la bozza e ne sceglie il modello.
 - **Più regole.** Quando corrispondono più regole di indagine, decide la prima di esse per nome che sceglie un provider. Quando corrispondono più regole di rimedio automatico, ciascuna elabora le proprie correzioni con il proprio provider, e ciò che condividono (il lavoro dell'agente IA sul cluster o sull'host e le pull request) usa la prima di esse per nome che ne sceglie uno. Una regola corrispondente che non ne sceglie nessuno non nasconde mai la scelta di un'altra. Per un post-mortem, la regola che decide i modelli decide il provider.

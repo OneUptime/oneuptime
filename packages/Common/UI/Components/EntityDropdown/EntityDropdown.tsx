@@ -1543,15 +1543,22 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
          *   - it keeps an empty place where the Clear button was, and the
          *     Clear button is laid over that place (right-8: the value
          *     button's px-3, the chevron's w-4 and the gap-1 between them).
+         *
+         * Either box has one fill. A disabled box used to carry bg-gray-100
+         * beside bg-white, and in light mode bg-white won (the stylesheet
+         * orders the two, not the class list), so a locked field looked
+         * like one to click; it also lit its border under the pointer.
          */}
         {showSingleSelectedText && (
           <div
             data-testid="entity-dropdown-value"
-            className={`relative rounded-lg border bg-white shadow-sm transition-colors ${
+            className={`relative rounded-lg border shadow-sm transition-colors ${
               props.error
                 ? "border-red-400"
-                : "border-gray-300 hover:border-indigo-300"
-            } ${props.disabled ? "bg-gray-100" : ""}`}
+                : props.disabled
+                  ? "border-gray-300"
+                  : "border-gray-300 hover:border-indigo-300"
+            } ${props.disabled ? "bg-gray-100" : "bg-white"}`}
           >
             <button
               ref={valueButtonRef}
@@ -1645,13 +1652,16 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
 
         {!showSingleSelectedText && (
           <div
-            className={`relative rounded-lg border bg-white shadow-sm transition-colors ${
+            data-testid="entity-dropdown-box"
+            className={`relative rounded-lg border shadow-sm transition-colors ${
               props.error
                 ? "border-red-400 ring-2 ring-red-100"
                 : isOpen
                   ? "border-indigo-400 ring-2 ring-indigo-100"
-                  : "border-gray-300 hover:border-indigo-300"
-            } ${props.disabled ? "bg-gray-100" : ""}`}
+                  : props.disabled
+                    ? "border-gray-300"
+                    : "border-gray-300 hover:border-indigo-300"
+            } ${props.disabled ? "bg-gray-100" : "bg-white"}`}
           >
             <input
               ref={inputRef}

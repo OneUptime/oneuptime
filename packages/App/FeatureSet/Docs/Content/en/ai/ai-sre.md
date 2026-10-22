@@ -337,7 +337,7 @@ Every OneUptime AI rule — investigation, auto remediation and postmortem rules
 2. with none, the project's default provider, the one set as the default on **Project Settings → AI → LLM Providers**;
 3. with no default, the global provider.
 
-An empty field names the provider it stands for, and so does the rule's folded **More fields** line.
+An empty field names the provider it stands for, and so does the rule's folded **More fields** line when there is more than one provider to pick from.
 
 - **Everything the rule starts.** An investigation rule's provider writes the investigation, the follow-up check when a new alert opens, and the grade when the incident resolves; **Investigate now**, and asking OneUptime AI to start an investigation, use it too. An auto remediation rule's provider works out the rule's fixes and opens its pull requests, and a later round of a fix uses the provider of the round before it. A postmortem rule's provider writes the draft and picks its template.
 - **Several rules.** When several investigation rules match, the first of them by name that picks a provider decides. When several auto remediation rules match, each works out its own fixes with its own provider, and what they share — the AI agent's work on the cluster or host, and the pull requests — uses the first of them by name that picks one. A matching rule that picks none never hides another's pick. For a postmortem, the rule that decides the templates decides the provider.

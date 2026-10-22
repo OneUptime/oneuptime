@@ -23,7 +23,6 @@ import React, {
 } from "react";
 import {
   RuleLlmProviderChoices,
-  RuleLlmProviderWork,
   withRuleLlmProviderSummary,
 } from "../AI/RuleLlmProviderCopy";
 import {
@@ -363,7 +362,6 @@ const AIPostmortemRulesTable: FunctionComponent<ComponentProps> = (
         },
         // The LLM provider OneUptime AI drafts with: none is the default.
         getRuleLlmProviderFormField<AIPostmortemRule>({
-          work: RuleLlmProviderWork.DraftPostmortem,
           stepId: "postmortem-draft",
           collapsibleSection: moreFields,
           dataTestId: "ai-postmortem-rule-llm-provider-field",

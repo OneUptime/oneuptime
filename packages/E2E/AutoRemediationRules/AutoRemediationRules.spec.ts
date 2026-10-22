@@ -101,15 +101,11 @@ const REPOSITORIES_SUMMARY: string =
 const INVESTIGATION_DEFAULTS_SUMMARY: string =
   "OneUptime AI may use any of your MCP servers and connected repositories.";
 /*
- * What the folded line says first while a rule picks no LLM provider: the
- * one it uses instead, by name. The fixture's project has the global
- * provider alone unless ?providers= says otherwise.
+ * The fixture's project has the global LLM provider alone unless
+ * ?providers= says otherwise: nothing to pick between, so the folded line
+ * says nothing of providers (the open box names it). With more than one,
+ * the line names the default first (PROJECT_DEFAULT_SUMMARY).
  */
-const GLOBAL_PROVIDER_SUMMARY: string =
-  "The rule uses the global LLM provider, OneUptime AI.";
-const withProvider: (summary: string) => string = (summary: string): string => {
-  return `${GLOBAL_PROVIDER_SUMMARY} ${summary}`;
-};
 const RUNBOOKS_DESCRIPTION: string =
   "OneUptime AI may run any of your runbooks. Pick some to let it run only those.";
 const RUNNER_DESCRIPTION: string =
@@ -515,9 +511,7 @@ test.describe("the Fix step", () => {
       "aria-expanded",
       "false",
     );
-    await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(DEFAULTS_SUMMARY),
-    );
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
     // One sentence for them all, not one per field, each "OneUptime AI may".
     await expect(foldedSummary(dialog)).not.toContainText(ANY_RUNBOOK_SUMMARY);
     await expect(foldedSummary(dialog)).not.toContainText(REPOSITORIES_SUMMARY);
@@ -898,9 +892,7 @@ test.describe("MCP servers", () => {
 
     // Not on the step itself: folded, its line says what the default does.
     await expect(mcpServersPicker(dialog)).toBeHidden();
-    await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(DEFAULTS_SUMMARY),
-    );
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
     await expect(mcpServersPicker(dialog)).toBeVisible();
@@ -1018,7 +1010,7 @@ test.describe("MCP servers", () => {
     // On the Investigate step, folded, with what the defaults do.
     await expect(mcpServersPicker(dialog)).toBeHidden();
     await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(INVESTIGATION_DEFAULTS_SUMMARY),
+      INVESTIGATION_DEFAULTS_SUMMARY,
     );
 
     await openMoreFields(dialog);
@@ -1482,9 +1474,7 @@ test.describe("code repositories and pull requests", () => {
     const dialog: Locator = await openFixStep(page, card);
 
     await expect(repositoriesPicker(dialog)).toBeHidden();
-    await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(DEFAULTS_SUMMARY),
-    );
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
     await expect(repositoriesPicker(dialog)).toBeVisible();
@@ -1599,9 +1589,7 @@ test.describe("code repositories and pull requests", () => {
 
     // Every other default kept: one sentence, with no pull request in it.
     await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(
-        "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.",
-      ),
+      "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.",
     );
     await expect(foldedSummary(dialog)).not.toContainText("pull request");
 
@@ -2097,7 +2085,7 @@ test.describe("code repositories and pull requests", () => {
       .fill("Investigate billing");
 
     await expect(foldedSummary(dialog)).toHaveText(
-      withProvider(INVESTIGATION_DEFAULTS_SUMMARY),
+      INVESTIGATION_DEFAULTS_SUMMARY,
     );
     await openMoreFields(dialog);
     await expect(dialog).toContainText(INVESTIGATION_REPOSITORIES_DESCRIPTION);
@@ -2220,7 +2208,9 @@ test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and 
  * selected, use that LLM provider to do everything." So the field sits under
  * More fields - after "Run them every time", which turns AI off - its empty
  * box names the provider a rule that picks none uses, and so does the
- * folded line; a pick is sent with the rule and named on the folded line.
+ * folded line while there is more than one to pick from; a pick is sent
+ * with the rule and named on the folded line. Every rule's field has the
+ * same one line, and a locked box looks locked.
  */
 const PROVIDER_IDS: Record<string, string> = {
   oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
@@ -2228,10 +2218,9 @@ const PROVIDER_IDS: Record<string, string> = {
   opus: "9d9d9d9d-0000-4000-8000-000000000003",
 };
 const PROVIDER_TITLE: string = "LLM Provider";
-const REMEDIATION_PROVIDER_DESCRIPTION: string =
-  "OneUptime AI fixes with the default LLM provider, pull requests included. Pick one to use another for this rule.";
-const INVESTIGATION_PROVIDER_DESCRIPTION: string =
-  "OneUptime AI investigates with the default LLM provider. Pick one to use another for this rule.";
+// The field's one line, the same on every kind of rule.
+const PROVIDER_DESCRIPTION: string =
+  "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.";
 const PROJECT_DEFAULT_PLACEHOLDER: string = "Project default (Azure GPT-4o)";
 const PROJECT_DEFAULT_SUMMARY: string =
   "The rule uses the project's default LLM provider, Azure GPT-4o.";
@@ -2315,7 +2304,7 @@ test.describe("the LLM provider a rule picks", () => {
     await expect(
       dialog.getByText(PROVIDER_TITLE, { exact: true }),
     ).toBeVisible();
-    await expect(dialog).toContainText(REMEDIATION_PROVIDER_DESCRIPTION);
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
     // Empty is an answer of its own - the default - not "(Optional)".
     await expect(dialog).not.toContainText(`${PROVIDER_TITLE} (Optional)`);
     await expect(providerBox(dialog)).toHaveAttribute(
@@ -2535,6 +2524,54 @@ test.describe("the LLM provider a rule picks", () => {
       "placeholder",
       "No LLM provider yet",
     );
+
+    /*
+     * And looks locked: its box is grey where the Runbooks box beside it is
+     * white. Both fills used to sit on a locked box, and white won in light
+     * mode, so it looked like one to click.
+     */
+    const fillOf: (box: Locator) => Promise<string> = async (
+      box: Locator,
+    ): Promise<string> => {
+      return box.evaluate((input: Element): string => {
+        return getComputedStyle(input.parentElement!).backgroundColor;
+      });
+    };
+
+    expect(await fillOf(runbooksPicker(dialog))).toBe("rgb(255, 255, 255)");
+    expect(await fillOf(providerBox(dialog))).not.toBe(
+      await fillOf(runbooksPicker(dialog)),
+    );
+  });
+
+  /*
+   * The fixture's project has the global provider alone: nothing to pick
+   * between, so the folded line says nothing of it - the line every rule
+   * shows stays as short as before rules could pick one. Open, the box
+   * still names it, and it can be picked.
+   */
+  test("with the global provider alone, the folded line says nothing of providers; the box names it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).not.toContainText("LLM provider");
+
+    await openMoreFields(dialog);
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      "Global provider (OneUptime AI)",
+    );
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
+    await providerBox(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await expect(page.getByRole("option").first()).toContainText(
+      "OneUptime AI",
+    );
   });
 
   test("a provider added on LLM Providers, in another tab, can be picked on return", async ({
@@ -2575,7 +2612,7 @@ test.describe("the LLM provider a rule picks", () => {
       `${PROJECT_DEFAULT_SUMMARY} ${INVESTIGATION_DEFAULTS_SUMMARY}`,
     );
     await openMoreFields(dialog);
-    await expect(dialog).toContainText(INVESTIGATION_PROVIDER_DESCRIPTION);
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
     // First under More fields, above the MCP servers.
     expect((await providerBox(dialog).boundingBox())!.y).toBeLessThan(
       (await mcpServersPicker(dialog).boundingBox())!.y,

@@ -337,7 +337,7 @@ Cada regla de OneUptime AI —reglas de investigación, de remediación automát
 2. si no hay, el proveedor predeterminado del proyecto, el que está marcado como predeterminado en **Ajustes del proyecto → IA → Proveedores de LLM**;
 3. si no hay predeterminado, el proveedor global.
 
-Un campo vacío nombra el proveedor que representa, y también lo hace la línea plegada de **Más campos** de la regla.
+Un campo vacío nombra el proveedor que representa, y también lo hace la línea plegada de **Más campos** de la regla cuando hay más de un proveedor entre los que elegir.
 
 - **Todo lo que inicia la regla.** El proveedor de una regla de investigación escribe la investigación, la comprobación posterior cuando se abre una alerta nueva y la calificación cuando se resuelve el incidente; **Investigar ahora**, y pedir a OneUptime AI que inicie una investigación, también lo usan. El proveedor de una regla de remediación automática elabora las correcciones de la regla y abre sus pull requests, y una ronda posterior de una corrección usa el proveedor de la ronda anterior. El proveedor de una regla de post mortem escribe el borrador y elige su plantilla.
 - **Varias reglas.** Cuando coinciden varias reglas de investigación, decide la primera de ellas por nombre que elige un proveedor. Cuando coinciden varias reglas de remediación automática, cada una elabora sus propias correcciones con su propio proveedor, y lo que comparten —el trabajo del agente de IA en el clúster o el host, y los pull requests— usa la primera de ellas por nombre que elige uno. Una regla coincidente que no elige ninguno nunca oculta la elección de otra. En un post mortem, la regla que decide las plantillas decide el proveedor.

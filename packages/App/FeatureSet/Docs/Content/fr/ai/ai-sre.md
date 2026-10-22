@@ -337,7 +337,7 @@ Chaque règle de OneUptime AI — règles d'investigation, de remédiation autom
 2. à défaut, le fournisseur par défaut du projet, celui défini par défaut dans **Paramètres du projet → IA → Fournisseurs LLM** ;
 3. sans fournisseur par défaut, le fournisseur global.
 
-Un champ vide nomme le fournisseur qu'il représente, et la ligne repliée **Plus de champs** de la règle aussi.
+Un champ vide nomme le fournisseur qu'il représente, et la ligne repliée **Plus de champs** de la règle aussi lorsqu'il y a plus d'un fournisseur au choix.
 
 - **Tout ce que la règle lance.** Le fournisseur d'une règle d'investigation écrit l'investigation, la nouvelle vérification quand une nouvelle alerte s'ouvre, et la note quand l'incident est résolu ; **Investiguer maintenant**, et demander à OneUptime AI de lancer une investigation, l'utilisent aussi. Le fournisseur d'une règle de remédiation automatique élabore les corrections de la règle et ouvre ses pull requests, et un tour suivant d'une correction utilise le fournisseur du tour précédent. Le fournisseur d'une règle de post-mortem écrit le brouillon et choisit son modèle.
 - **Plusieurs règles.** Quand plusieurs règles d'investigation correspondent, la première d'entre elles par nom qui choisit un fournisseur l'emporte. Quand plusieurs règles de remédiation automatique correspondent, chacune élabore ses propres corrections avec son propre fournisseur, et ce qu'elles partagent — le travail de l'agent IA sur le cluster ou l'hôte, et les pull requests — utilise la première d'entre elles par nom qui en choisit un. Une règle correspondante qui n'en choisit aucun ne masque jamais le choix d'une autre. Pour un post-mortem, la règle qui décide des modèles décide du fournisseur.

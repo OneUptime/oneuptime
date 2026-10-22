@@ -58,10 +58,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesField";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { MORE_FIELDS_SECTION_TITLE } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
-import {
-  RULE_LLM_PROVIDER_FIELD_COPY,
-  RuleLlmProviderWork,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
 import {
   ONEUPTIME_AI_PROVIDER,
   OPUS_PROVIDER,
@@ -396,15 +393,11 @@ describe.each([
      * LlmProviderChoice): first under More fields; empty is the default
      * provider, which the folded line names first.
      */
-    test("its LLM provider: first under More fields, saying what it does for an investigation", () => {
+    test("its LLM provider: first under More fields, with the line every rule has", () => {
       const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
 
       expect(field.title).toBe("LLM Provider");
-      expect(field.description).toBe(
-        RULE_LLM_PROVIDER_FIELD_COPY.descriptions[
-          RuleLlmProviderWork.Investigate
-        ],
-      );
+      expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
       expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
       expect(field.required).toBe(false);
       expect(field.hideOptionalLabel).toBe(true);
@@ -461,6 +454,31 @@ describe.each([
         "The rule uses the global LLM provider, OneUptime AI.",
         "OneUptime AI may use any of your MCP servers and connected repositories.",
       ]);
+    });
+
+    /*
+     * The global provider alone - a new OneUptime Cloud project: nothing to
+     * pick between, so the line says nothing of it, as before rules could
+     * pick one. The open field's box still names it.
+     */
+    test("folded, with the one provider only, the line says nothing of it", async () => {
+      mockRuleLlmProviders(
+        providersAnswer([ONEUPTIME_AI_PROVIDER], ONEUPTIME_AI_PROVIDER.id),
+      );
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const field: CapturedField = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!,
+        "llmProviderId",
+      );
+
+      expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
+      ]);
+      expect(field.getFoldedValue!({} as never)).toBeNull();
     });
 
     test("its conditions are the auto remediation rules' conditions", () => {

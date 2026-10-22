@@ -337,7 +337,7 @@ Hver OneUptime AI-regel – undersøgelsesregler, regler for automatisk afhjælp
 2. uden en sådan projektets standardudbyder, den der er sat som standard under **Projektindstillinger → AI → LLM-udbydere**;
 3. uden standard den globale udbyder.
 
-Et tomt felt nævner den udbyder, det står for, og det gør reglens sammenfoldede linje **Flere felter** også.
+Et tomt felt nævner den udbyder, det står for, og det gør reglens sammenfoldede linje **Flere felter** også, når der er mere end én udbyder at vælge imellem.
 
 - **Alt, hvad reglen starter.** Udbyderen for en undersøgelsesregel skriver undersøgelsen, den fornyede kontrol, når en ny advarsel åbner, og bedømmelsen, når hændelsen løses; **Undersøg nu**, og at bede OneUptime AI om at starte en undersøgelse, bruger den også. Udbyderen for en regel for automatisk afhjælpning udarbejder reglens rettelser og åbner dens pull requests, og en senere runde af en rettelse bruger udbyderen fra runden før. Udbyderen for en postmortem-regel skriver udkastet og vælger dets skabelon.
 - **Flere regler.** Når flere undersøgelsesregler matcher, afgør den første af dem efter navn, der vælger en udbyder. Når flere regler for automatisk afhjælpning matcher, udarbejder hver sine egne rettelser med sin egen udbyder, og det, de deler – AI-agentens arbejde på clusteret eller værten og pull requests – bruger den første af dem efter navn, der vælger en. En matchende regel, der ikke vælger nogen, skjuler aldrig en andens valg. For et postmortem afgør den regel, der afgør skabelonerne, også udbyderen.
