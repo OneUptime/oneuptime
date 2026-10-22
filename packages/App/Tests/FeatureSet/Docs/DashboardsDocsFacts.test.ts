@@ -1477,11 +1477,16 @@ describe("Dashboard Widgets, against the widget catalog and the widgets' setting
       200,
     ]);
 
-    // The arrow's tooltip names both halves; the sparkline's hover reads a point.
+    /*
+     * The arrow's tooltip names both halves; the sparkline's hover reads a
+     * point's time, named as precisely as its bucket.
+     */
     const view: string = readSource(VALUE_VIEW);
     expect(view).toContain('translator.translateTemplate("First half")');
     expect(view).toContain('translator.translateTemplate("Second half")');
-    expect(view).toContain("getDashboardDateTimeLabel(hoveredPoint.timestamp)");
+    expect(view).toContain(
+      "getDashboardBucketLabel(hoveredPoint.timestamp, bucketWidthMs)",
+    );
 
     const value: string = sectionOf(page, "### Value");
     expect(value).toContain(
