@@ -944,3 +944,46 @@ describe("the window of an incident whose investigation waited", () => {
     expect(enqueue).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A follow-up check is a second look at the incident: it uses the LLM
+ * provider its first investigation's rule picked (AIRun.llmProviderId,
+ * Types/AI/LlmProviderChoice), and none when no rule picked one.
+ */
+describe("the LLM provider of a follow-up check", () => {
+  const OPUS: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  test("the incident is checked again with the provider its first investigation's rule picked", async () => {
+    world.runs[0]!.llmProviderId = new ObjectID(OPUS);
+
+    await alertOpens();
+
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]!.llmProviderId?.toString()).toBe(OPUS);
+  });
+
+  test("a first investigation no rule picked a provider for: the follow-up picks none either", async () => {
+    await alertOpens();
+
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]).not.toHaveProperty("llmProviderId");
+  });
+
+  test("the latest investigation is read with its pick", async () => {
+    await alertOpens();
+
+    const selects: Array<JSONObject> = (
+      AIRunService.findBy as unknown as SpyInstance<typeof AIRunService.findBy>
+    ).mock.calls.map(
+      (call: Parameters<typeof AIRunService.findBy>): JSONObject => {
+        return call[0].select as unknown as JSONObject;
+      },
+    );
+
+    expect(
+      selects.some((select: JSONObject): boolean => {
+        return select["llmProviderId"] === true;
+      }),
+    ).toBe(true);
+  });
+});
