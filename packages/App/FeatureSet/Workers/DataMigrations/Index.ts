@@ -149,6 +149,7 @@ import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -841,6 +842,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * Postmortem statuses (Incidents > Postmortems): every project from before
+   * them gets the four a new project starts with, then every incident the
+   * status its postmortem is in - Completed when published on a status page,
+   * Draft when it has a note, Not Started otherwise. After the schema
+   * migration AddIncidentPostmortemStatus, which adds the table and the
+   * column. Postgres-only and idempotent; it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new AddDefaultPostmortemStatusesToExistingProjects(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
