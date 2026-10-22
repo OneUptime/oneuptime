@@ -99,16 +99,16 @@ import WorkspaceMessageTime from "../WorkspaceMessageTime";
  * policy or a workflow stops paging itself ("so PolicyX stopped paging");
  * "so Simon Lee stopped paging" read as if Simon had called his page off.
  *
- * SOMEBODY WHO CANNOT TAKE A PAGE can pass it on (OnCallPagePassOn). Their
+ * SOMEBODY WHO CANNOT TAKE A PAGE can escalate it (OnCallPagePassOn). Their
  * line says so, and the run's progress says where it moved on to - straight
  * away, when nobody else on the rule was left:
  *
- *   • Alex: passed it on · paged once · by SMS
+ *   • Alex: escalated · paged once · by SMS
  *   • Sam (next in the Primary rotation): paged once · by push
  *
- * When everybody it paged passed it on, the run ends with nobody on the
+ * When everybody it paged escalated it, the run ends with nobody on the
  * record, and that is loud: "⚠️ Nobody can take Incident INC-8: everybody
- * paged by PolicyX passed it on (Alex and Sam). Someone needs to take it."
+ * paged by PolicyX escalated it (Alex and Sam). Someone needs to take it."
  *
  * A RUN THAT WAITS TO PAGE - an on-call rule's, until its working hours
  * (OnCallDutyPolicyRunWait) - pages nobody yet, and its message says so and
@@ -160,7 +160,7 @@ export enum OnCallPolicyRunOutcome {
   // Every escalation rule ran and none of them reached anybody.
   NobodyReached = "NobodyReached",
   /*
-   * Everybody the run paged passed the page on (OnCallPagePassOn): nobody
+   * Everybody the run paged escalated the page (OnCallPagePassOn): nobody
    * was left to page, and nobody took it.
    */
   EverybodyPassedOn = "EverybodyPassedOn",
@@ -181,7 +181,7 @@ export interface OnCallPolicyRunPagedPerson {
   // A page to them is still going out.
   isBeingPaged: boolean;
   acknowledged: boolean;
-  // They could not take it, and passed it on (OnCallPagePassOn).
+  // They could not take it, and escalated it (OnCallPagePassOn).
   passedOn?: boolean | undefined;
   // How their pages reached them: "email", "SMS", "call", ...
   methods: Array<string>;
@@ -517,7 +517,7 @@ export default class OnCallPolicyRunMessageView {
       case OnCallPolicyRunOutcome.NobodyAcknowledged:
         return `Nobody acknowledged ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} passed it on`;
+        return `Nobody could take ${run.recordLabel}: everybody paged by ${pagerNameInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return `${pagerName} could not reach anyone for ${run.recordLabel}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -596,7 +596,7 @@ export default class OnCallPolicyRunMessageView {
         alarms.push({
           key: ON_CALL_RUN_ALARM_OUTCOME,
           markdown:
-            mdText`⚠️ Nobody can take ${record}: everybody paged by ${this.getPager(run, { isInSentence: true })} passed it on (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
+            mdText`⚠️ Nobody can take ${record}: everybody paged by ${this.getPager(run, { isInSentence: true })} escalated it (${this.getPagedNames(run)}). Someone needs to take it.`.toString(),
           text: `Nobody can take ${run.recordLabel}: someone needs to take it`,
         });
         break;
@@ -702,7 +702,7 @@ export default class OnCallPolicyRunMessageView {
           ? mdText`⚠️ ${policy} paged for ${record} and nobody acknowledged`
           : mdText`⚠️ ${policy} went through every escalation rule for ${record} and nobody acknowledged`;
       case OnCallPolicyRunOutcome.EverybodyPassedOn:
-        return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} passed it on`;
+        return mdText`⚠️ Nobody could take ${record}: everybody paged by ${policyInSentence} escalated it`;
       case OnCallPolicyRunOutcome.NobodyReached:
         return mdText`⚠️ ${policy} could not reach anyone for ${record}`;
       case OnCallPolicyRunOutcome.Failed:
@@ -841,7 +841,7 @@ export default class OnCallPolicyRunMessageView {
     if (person.acknowledged) {
       facts.push(mdText`acknowledged`);
     } else if (person.passedOn) {
-      facts.push(mdText`passed it on`);
+      facts.push(mdText`escalated`);
     }
 
     if (person.timesPaged > 0) {

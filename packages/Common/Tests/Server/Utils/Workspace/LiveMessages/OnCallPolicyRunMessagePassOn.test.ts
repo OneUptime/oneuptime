@@ -16,25 +16,29 @@ import OnCallPolicyRunMessageView, {
 import ObjectID from "../../../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
+  LEGACY_ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
   ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
+  LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
 } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 
 /*
- * A PAGE PASSED ON, IN THE RUN'S SLACK AND MICROSOFT TEAMS MESSAGE.
+ * A PAGE ESCALATED, IN THE RUN'S SLACK AND MICROSOFT TEAMS MESSAGE.
  *
  * The run is one message, edited as it goes (OnCallPolicyRunMessage). A
- * person who passed the page on is on its list once, saying so - never as
+ * person who escalated the page is on its list once, saying so - never as
  * "being paged now", and never again as "not paged" for every later rule
  * that passed them over. A rule only such people were on is no rule that
  * "reached nobody": the run moved past it at once, which is no alarm. And a
- * run everybody passed on ends loud: nobody can take the record.
+ * run everybody escalated ends loud: nobody can take the record. Runs from
+ * before the action was renamed from "Pass it on" wrote their lines and
+ * endings in those words; they read the same.
  */
 
 const RULE_1: ObjectID = ObjectID.generate();
@@ -166,8 +170,8 @@ const ANA_PASSED_BOB_PAGED: Array<OnCallDutyPolicyExecutionLogTimeline> = [
   }),
 ];
 
-describe("a person who passed the page on", () => {
-  test("is on the list once, as passed it on - paged, and not being paged now", () => {
+describe("a person who escalated the page", () => {
+  test("is on the list once, as escalated - paged, and not being paged now", () => {
     const run: OnCallPolicyRun = build({
       log: runOn(RULE_2, 2),
       timeline: ANA_PASSED_BOB_PAGED,
@@ -185,7 +189,7 @@ describe("a person who passed the page on", () => {
     expect(personNamed(run, "Bob Smith")?.passedOn).toBeUndefined();
   });
 
-  test("reads 'passed it on' in the message, before how often and how", () => {
+  test("reads 'escalated' in the message, before how often and how", () => {
     const run: OnCallPolicyRun = build({
       log: runOn(RULE_2, 2),
       timeline: ANA_PASSED_BOB_PAGED,
@@ -195,13 +199,13 @@ describe("a person who passed the page on", () => {
     const markdown: string = OnCallPolicyRunMessageView.getMarkdown(run);
 
     expect(markdown).toContain(
-      "**Ana Lopez**: passed it on · paged once · by email",
+      "**Ana Lopez**: escalated · paged once · by email",
     );
     expect(markdown).toContain("**Bob Smith**: being paged now");
     expect(markdown).not.toContain("Ana Lopez**: being paged now");
   });
 
-  test("a page still going out to them when they passed it on is not 'being paged now'", () => {
+  test("a page still going out to them when they escalated it is not 'being paged now'", () => {
     const run: OnCallPolicyRun = build({
       log: runOn(RULE_2, 2),
       timeline: [
@@ -227,7 +231,7 @@ describe("a person who passed the page on", () => {
     });
   });
 
-  test("who acknowledged after passing it on reads as acknowledged", () => {
+  test("who acknowledged after escalating it reads as acknowledged", () => {
     const acknowledged: OnCallDutyPolicyExecutionLogTimeline = step({
       status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
       ruleId: RULE_1,
@@ -250,6 +254,7 @@ describe("a person who passed the page on", () => {
     );
 
     expect(markdown).toContain("**Ana Lopez**: acknowledged");
+    expect(markdown).not.toContain("escalated ·");
     expect(markdown).not.toContain("passed it on");
   });
 
@@ -274,7 +279,28 @@ describe("a person who passed the page on", () => {
     );
   });
 
-  test("a rule only people who passed it on were on reached nobody it had to: no alarm", () => {
+  test("nor when the later rule wrote its line before the rename, in the old words", () => {
+    const run: OnCallPolicyRun = build({
+      log: runOn(RULE_2, 2),
+      timeline: [
+        ...ANA_PASSED_BOB_PAGED,
+        step({
+          status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+          ruleId: RULE_2,
+          userId: ANA,
+          userName: "Ana Lopez",
+          statusMessage: LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+        }),
+      ],
+    });
+
+    expect(run.notPaged).toEqual([]);
+    expect(OnCallPolicyRunMessageView.getMarkdown(run)).not.toContain(
+      "not paged",
+    );
+  });
+
+  test("a rule only people who escalated it were on reached nobody it had to: no alarm", () => {
     // Level 2 named only Ana, who passed it on at Level 1: the run went on to Level 3.
     const run: OnCallPolicyRun = build({
       log: runOn(RULE_3, 3),
@@ -305,7 +331,7 @@ describe("a person who passed the page on", () => {
     expect(OnCallPolicyRunMessageView.getAlarms(run)).toEqual([]);
   });
 
-  test("the notification they passed it on from still says how they were reached", () => {
+  test("the notification they escalated it from still says how they were reached", () => {
     const run: OnCallPolicyRun = build({
       log: runOn(RULE_2, 2),
       timeline: ANA_PASSED_BOB_PAGED,
@@ -324,7 +350,7 @@ describe("a person who passed the page on", () => {
   });
 });
 
-describe("a run everybody it paged passed on", () => {
+describe("a run everybody it paged escalated", () => {
   function endedRun(
     directPage?: OnCallPolicyRun["directPage"],
   ): OnCallPolicyRun {
@@ -389,6 +415,10 @@ describe("a run everybody it paged passed on", () => {
     expect(await ended(ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE)).toBe(
       OnCallPolicyRunOutcome.EverybodyPassedOn,
     );
+    // A run that ended before the rename, in the old words.
+    expect(
+      await ended(LEGACY_ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE),
+    ).toBe(OnCallPolicyRunOutcome.EverybodyPassedOn);
     expect(
       await ended(ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE),
     ).toBe(OnCallPolicyRunOutcome.NobodyAcknowledged);
@@ -396,17 +426,17 @@ describe("a run everybody it paged passed on", () => {
 
   test("says nobody could take the record, at the top of its message", () => {
     expect(OnCallPolicyRunMessageView.getMarkdown(endedRun())).toContain(
-      "⚠️ Nobody could take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** passed it on",
+      "⚠️ Nobody could take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** escalated it",
     );
   });
 
   test("and in the line a notification shows of it", () => {
     expect(OnCallPolicyRunMessageView.getPlainText(endedRun())).toBe(
-      "Nobody could take Incident INC-8: everybody paged by Payments passed it on",
+      "Nobody could take Incident INC-8: everybody paged by Payments escalated it",
     );
   });
 
-  test("is loud: an alarm that somebody needs to take it, naming who passed it on", () => {
+  test("is loud: an alarm that somebody needs to take it, naming who escalated it", () => {
     const alarms: Array<OnCallPolicyRunAlarm> =
       OnCallPolicyRunMessageView.getAlarms(endedRun());
 
@@ -414,7 +444,7 @@ describe("a run everybody it paged passed on", () => {
       {
         key: ON_CALL_RUN_ALARM_OUTCOME,
         markdown:
-          "⚠️ Nobody can take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** passed it on (Ana Lopez and Bob Smith). Someone needs to take it.",
+          "⚠️ Nobody can take **[Incident INC-8](https://oneuptime.test/incident)**: everybody paged by **[Payments](https://oneuptime.test/policy)** escalated it (Ana Lopez and Bob Smith). Someone needs to take it.",
         text: "Nobody can take Incident INC-8: someone needs to take it",
       },
     ]);
@@ -424,11 +454,32 @@ describe("a run everybody it paged passed on", () => {
     const run: OnCallPolicyRun = endedRun({ startedByPersonName: "Simon Lee" });
 
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nobody could take Incident INC-8: everybody paged by Simon Lee passed it on",
+      "Nobody could take Incident INC-8: everybody paged by Simon Lee escalated it",
     );
     expect(OnCallPolicyRunMessageView.getAlarms(run)[0]!.markdown).toContain(
-      "everybody paged by **Simon Lee** passed it on (Ana Lopez and Bob Smith)",
+      "everybody paged by **Simon Lee** escalated it (Ana Lopez and Bob Smith)",
     );
+  });
+
+  test("never says the old words, in the message, its line or its alarm", () => {
+    for (const run of [
+      endedRun(),
+      endedRun({ startedByPersonName: "Simon Lee" }),
+      endedRun({ startedByWorkflowName: "Page SRE" }),
+    ]) {
+      const said: string = [
+        OnCallPolicyRunMessageView.getMarkdown(run),
+        OnCallPolicyRunMessageView.getPlainText(run),
+        ...OnCallPolicyRunMessageView.getAlarms(run).map(
+          (alarm: OnCallPolicyRunAlarm): string => {
+            return `${alarm.markdown} ${alarm.text}`;
+          },
+        ),
+      ].join(" ");
+
+      expect(said).not.toContain("passed it on");
+      expect(said).not.toContain("passed the page on");
+    }
   });
 
   test("a direct page a workflow started names the workflow", () => {
@@ -437,7 +488,7 @@ describe("a run everybody it paged passed on", () => {
     });
 
     expect(OnCallPolicyRunMessageView.getPlainText(run)).toBe(
-      "Nobody could take Incident INC-8: everybody paged by workflow Page SRE passed it on",
+      "Nobody could take Incident INC-8: everybody paged by workflow Page SRE escalated it",
     );
   });
 });

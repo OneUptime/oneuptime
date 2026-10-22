@@ -1552,11 +1552,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       }
 
       /*
-       * They passed this run's page on: they said they cannot take it, and
+       * They escalated this run's page: they said they cannot take it, and
        * are not paged about it again - not by this rule, a later one or a
        * repeat. The line stays on the run's own page; the feed and the
-       * run's Slack and Microsoft Teams message said once that they passed
-       * it on.
+       * run's Slack and Microsoft Teams message said once that they
+       * escalated it.
        */
       if (hasPassedItOn(pagedUserId)) {
         // Said once per rule, whichever of its targets names them again.

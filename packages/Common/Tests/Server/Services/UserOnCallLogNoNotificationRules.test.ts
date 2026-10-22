@@ -1375,7 +1375,7 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
     [OnCallDutyExecutionLogTimelineStatus.Started],
     [OnCallDutyExecutionLogTimelineStatus.NotificationSent],
   ])(
-    "passing a page on marks a step that says %s, with the log's message",
+    "escalating a page marks a step that says %s, with the log's message",
     async (stepStatus: OnCallDutyExecutionLogTimelineStatus): Promise<void> => {
       logFindBySpy.mockResolvedValue([
         {
@@ -1386,12 +1386,12 @@ describe("UserOnCallLogService.onUpdateSuccess - status translation", () => {
 
       await callOnUpdateSuccess({
         status: UserNotificationExecutionStatus.PassedOn,
-        statusMessage: "Passed on: could not take this page.",
+        statusMessage: "Escalated: could not take this page.",
       });
 
       expect(timelineUpdates()[0]!.data).toEqual({
         status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
-        statusMessage: "Passed on: could not take this page.",
+        statusMessage: "Escalated: could not take this page.",
       });
     },
   );
