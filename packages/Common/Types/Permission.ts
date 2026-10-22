@@ -1108,6 +1108,12 @@ enum Permission {
   ReadIncidentState = "ReadIncidentState",
   DeleteIncidentState = "DeleteIncidentState",
 
+  // Postmortem Status Permissions (Owner + Admin Permission by default)
+  CreateIncidentPostmortemStatus = "CreateIncidentPostmortemStatus",
+  EditIncidentPostmortemStatus = "EditIncidentPostmortemStatus",
+  ReadIncidentPostmortemStatus = "ReadIncidentPostmortemStatus",
+  DeleteIncidentPostmortemStatus = "DeleteIncidentPostmortemStatus",
+
   CreateAlertState = "CreateAlertState",
   EditAlertState = "EditAlertState",
   ReadAlertState = "ReadAlertState",
@@ -3391,6 +3397,47 @@ export class PermissionHelper {
         title: "Read Incident State",
         description:
           "This permission can read incident states of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      {
+        permission: Permission.CreateIncidentPostmortemStatus,
+        title: "Create Postmortem Status",
+        description:
+          "This permission can create postmortem statuses of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentPostmortemStatus,
+        title: "Delete Postmortem Status",
+        description:
+          "This permission can delete postmortem statuses of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentPostmortemStatus,
+        title: "Edit Postmortem Status",
+        description:
+          "This permission can edit postmortem statuses of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentPostmortemStatus,
+        title: "Read Postmortem Status",
+        description:
+          "This permission can read postmortem statuses of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -2,9 +2,10 @@
  * THE VALUES RECORDS PICK FROM CAN BE ARCHIVED.
  *
  * A project's incident and alert states and severities, its monitor
- * statuses, its scheduled maintenance states, its labels and its incident
- * roles are values: an incident, an alert, a monitor or a maintenance event
- * picks one, and keeps pointing at it. Deleting one used to be the only way
+ * statuses, its scheduled maintenance states, its labels, its incident
+ * roles and its postmortem statuses are values: an incident, an alert, a
+ * monitor or a maintenance event picks one, and keeps pointing at it.
+ * Deleting one used to be the only way
  * to retire it, and a delete reaches every record that ever picked it - the
  * state history of old incidents goes with a state, a label comes off every
  * monitor that had it, a delete is refused while incidents still point at a
@@ -44,6 +45,7 @@ export enum ArchivableValueType {
   ScheduledMaintenanceState = "ScheduledMaintenanceState",
   Label = "Label",
   IncidentRole = "IncidentRole",
+  IncidentPostmortemStatus = "IncidentPostmortemStatus",
 }
 
 /*
@@ -229,6 +231,33 @@ export const ARCHIVABLE_VALUES: Record<
         value: false,
         reason:
           "Every incident needs someone in charge, so this role can't be archived.",
+      },
+    ],
+  },
+  [ArchivableValueType.IncidentPostmortemStatus]: {
+    type: ArchivableValueType.IncidentPostmortemStatus,
+    tableName: "IncidentPostmortemStatus",
+    singular: "postmortem status",
+    plural: "postmortem statuses",
+    settingsPath: "Incidents > Settings > Postmortem Statuses",
+    protections: [
+      {
+        column: "isNotStartedStatus",
+        value: true,
+        reason:
+          "A new incident's postmortem starts in this status, so it can't be archived.",
+      },
+      {
+        column: "isDraftStatus",
+        value: true,
+        reason:
+          "Writing a postmortem moves it to this status, so it can't be archived.",
+      },
+      {
+        column: "isCompletedStatus",
+        value: true,
+        reason:
+          "Publishing a postmortem on a status page moves it to this status, so it can't be archived.",
       },
     ],
   },

@@ -27,6 +27,7 @@ import AIRunStatus from "../../Types/AI/AIRunStatus";
 import IncidentOwnerTeamService from "./IncidentOwnerTeamService";
 import IncidentOwnerUserService from "./IncidentOwnerUserService";
 import IncidentStateService from "./IncidentStateService";
+import IncidentPostmortemStatusService from "./IncidentPostmortemStatusService";
 import IncidentStateTimelineService from "./IncidentStateTimelineService";
 import IncidentMeasurementValueService from "./IncidentMeasurementValueService";
 import MonitorService from "./MonitorService";
@@ -79,6 +80,8 @@ import IncidentPostmortemPublication, {
   IncidentPostmortemStoredState,
   PostmortemNotificationAction,
 } from "../../Types/StatusPage/IncidentPostmortemPublication";
+import PostmortemStatusUtil from "../../Utils/Incident/PostmortemStatus";
+import IncidentPostmortemStatus from "../../Models/DatabaseModels/IncidentPostmortemStatus";
 import StatusPageVisibility from "../../Types/StatusPage/StatusPageVisibility";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
 import IncidentScopeAddedPagesNotification, {
@@ -277,6 +280,15 @@ type UpdateCarryForward = Dictionary<{
    */
   postmortemBeforeUpdate?: IncidentPostmortemStoredState | undefined;
   /*
+   * The postmortem's status before the update (null: none yet), read when
+   * the update writes the status, the note or the Publish on Status Page
+   * switch: so a status the update picks records itself in the feed only
+   * when it changed, and so OneUptime moves the postmortem from where it was
+   * (Common/Utils/Incident/PostmortemStatus) - only while it is still there.
+   * Undefined when it was not read.
+   */
+  postmortemStatusIdBeforeUpdate?: string | null | undefined;
+  /*
    * The title, root cause, description, remediation notes, labels and Send
    * reminders switch the incident held before the update - those the update
    * writes, and no others - so its feed item and its reminder refresh follow
@@ -334,6 +346,10 @@ const CHANGE_MONITOR_STATUS_KEYS: Array<string> = [
 const TEMPLATE_KEYS: Array<string> = [
   "createdIncidentTemplateId",
   "createdIncidentTemplate",
+];
+const POSTMORTEM_STATUS_KEYS: Array<string> = [
+  "postmortemStatusId",
+  "postmortemStatus",
 ];
 
 // Where an incident's postmortem notification stands, as read.
@@ -1219,11 +1235,24 @@ export class Service extends ProjectReferencesService<Model> {
     const isCustomFieldsWritten: boolean =
       updateBy.data.customFields !== undefined;
 
+    /*
+     * The postmortem's status, when the update picks one (its feed line
+     * follows a real change) or writes the note or the switch (OneUptime
+     * moves the postmortem from where it was).
+     */
+    const isPostmortemStatusRead: boolean =
+      isPostmortemWritten ||
+      RelationIdUtil.isPresent(
+        updateBy.data as unknown as Record<string, unknown>,
+        POSTMORTEM_STATUS_KEYS,
+      );
+
     if (
       !writtenSeverityId &&
       !isPostmortemCompared &&
       !isFieldWritten &&
-      !isCustomFieldsWritten
+      !isCustomFieldsWritten &&
+      !isPostmortemStatusRead
     ) {
       return;
     }
@@ -1244,6 +1273,11 @@ export class Service extends ProjectReferencesService<Model> {
       ...(isPostmortemCompared
         ? {
             subscriberNotificationStatusOnPostmortemPublished: true,
+          }
+        : {}),
+      ...(isPostmortemStatusRead
+        ? {
+            postmortemStatusId: true,
           }
         : {}),
       ...(mayShowIncident
@@ -1283,6 +1317,13 @@ export class Service extends ProjectReferencesService<Model> {
           ? {
               severityIdBeforeUpdate: incident.incidentSeverityId
                 ? incident.incidentSeverityId.toString()
+                : null,
+            }
+          : {}),
+        ...(isPostmortemStatusRead
+          ? {
+              postmortemStatusIdBeforeUpdate: incident.postmortemStatusId
+                ? incident.postmortemStatusId.toString()
                 : null,
             }
           : {}),
@@ -3307,6 +3348,17 @@ export class Service extends ProjectReferencesService<Model> {
       alertIdsToAcknowledge: alertsToAcknowledge?.alertIdsToAcknowledge || [],
     };
 
+    /*
+     * Where its postmortem starts, when the create names no status (a
+     * status it names is the caller's to pick: checked like every reference
+     * above). Before the counter increment, like the reads above.
+     */
+    const startingPostmortemStatusId: ObjectID | null =
+      await this.getStartingPostmortemStatusId({
+        createBy: createBy,
+        projectId: projectId,
+      });
+
     const incidentCounterResult: {
       counter: number;
       prefix: string | undefined;
@@ -3318,6 +3370,14 @@ export class Service extends ProjectReferencesService<Model> {
       CURRENT_STATE_KEYS,
       initialIncidentStateId,
     );
+
+    if (startingPostmortemStatusId) {
+      RelationIdUtil.stamp(
+        createData,
+        POSTMORTEM_STATUS_KEYS,
+        startingPostmortemStatusId,
+      );
+    }
     createBy.data.incidentNumber = incidentCounterResult.counter;
     createBy.data.incidentNumberWithPrefix = NumberPrefixUtil.formatNumber(
       incidentCounterResult.prefix,
@@ -4838,6 +4898,145 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
     });
   }
 
+  /*
+   * Where a new incident's postmortem starts when its create names no
+   * status (Common/Utils/Incident/PostmortemStatus.getStartingStatus): the
+   * project's not started status, or its draft status when the incident is
+   * created with a note, its completed status when that note is published.
+   * Null when the create names a status - it stands - or the project has
+   * none yet (a project from before statuses, until its defaults are
+   * added): the incident then starts with none, which reads as not
+   * started. Written not to throw on a failed read: a postmortem status
+   * must never stop an incident from being declared.
+   */
+  private async getStartingPostmortemStatusId(data: {
+    createBy: CreateBy<Model>;
+    projectId: ObjectID;
+  }): Promise<ObjectID | null> {
+    const pickedStatusId: ObjectID | null = RelationIdUtil.readConsistent(
+      data.createBy.data as unknown as Record<string, unknown>,
+      POSTMORTEM_STATUS_KEYS,
+      "Postmortem Status",
+    );
+
+    if (pickedStatusId) {
+      return null;
+    }
+
+    let statuses: Array<IncidentPostmortemStatus> = [];
+
+    try {
+      statuses = await IncidentPostmortemStatusService.getProjectStatuses(
+        data.projectId,
+      );
+    } catch (error) {
+      logger.error(
+        `Reading the postmortem statuses failed in IncidentService.onBeforeCreate: ${error}`,
+        {
+          projectId: data.projectId.toString(),
+        } as LogAttributes,
+      );
+
+      return null;
+    }
+
+    const startingStatus: IncidentPostmortemStatus | null =
+      PostmortemStatusUtil.getStartingStatus({
+        statuses: statuses,
+        postmortem: {
+          showPostmortemOnStatusPage:
+            IncidentPostmortemPublication.isSwitchedOn(
+              data.createBy.data.showPostmortemOnStatusPage,
+            ),
+          postmortemNote: data.createBy.data.postmortemNote,
+        },
+      });
+
+    return startingStatus?.id || null;
+  }
+
+  /*
+   * Moves the postmortem once an update that writes its note or its Publish
+   * on Status Page switch is written: to the draft status for its first
+   * note, to the completed status once published
+   * (PostmortemStatusUtil.getAutomaticMove). A hook-free compare-and-set
+   * from the status it was in, so a status someone picked meanwhile is
+   * never written over. An incident the read before the write did not see
+   * is read now, and counts as unwritten and unpublished before the update.
+   */
+  private async movePostmortemStatusAfterUpdate(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+    written: Record<string, unknown>;
+    carryForward: UpdateCarryForward[string] | undefined;
+    statusesByProject: Map<string, Array<IncidentPostmortemStatus>>;
+  }): Promise<void> {
+    if (PostmortemStatusUtil.isStatusWrittenBy(data.written)) {
+      return;
+    }
+
+    let statusIdBefore: string | null | undefined =
+      data.carryForward?.postmortemStatusIdBeforeUpdate;
+
+    if (statusIdBefore === undefined) {
+      const current: Model | null = await this.findOneById({
+        id: data.incidentId,
+        select: {
+          postmortemStatusId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (!current) {
+        return;
+      }
+
+      statusIdBefore = current.postmortemStatusId
+        ? current.postmortemStatusId.toString()
+        : null;
+    }
+
+    const projectKey: string = data.projectId.toString();
+
+    let statuses: Array<IncidentPostmortemStatus> | undefined =
+      data.statusesByProject.get(projectKey);
+
+    if (!statuses) {
+      statuses = await IncidentPostmortemStatusService.getProjectStatuses(
+        data.projectId,
+      );
+      data.statusesByProject.set(projectKey, statuses);
+    }
+
+    const target: IncidentPostmortemStatus | null =
+      PostmortemStatusUtil.getAutomaticMove({
+        statuses: statuses,
+        stored: data.carryForward?.postmortemBeforeUpdate,
+        written: data.written,
+        statusIdBefore: statusIdBefore,
+      });
+
+    if (!target || !target.id) {
+      return;
+    }
+
+    // Only while it is still where it was: a null is matched as null.
+    const move: Record<string, unknown> = {
+      postmortemStatusId: target.id,
+    };
+    const expected: Record<string, unknown> = {
+      postmortemStatusId: statusIdBefore ? new ObjectID(statusIdBefore) : null,
+    };
+
+    await this.compareAndSetColumnsByIdWithoutHooks({
+      id: data.incidentId,
+      data: move as unknown as PartialEntity<Model>,
+      expectedData: expected as unknown as PartialEntity<Model>,
+    });
+  }
+
   @CaptureSpan()
   public async getIncidentLinkInDashboard(
     projectId: ObjectID,
@@ -5193,6 +5392,24 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         onUpdate.updateBy.data as unknown as Record<string, unknown>,
       );
 
+    /*
+     * The postmortem status the update picked, under either of its names:
+     * its feed line follows a real change, against the status the incident
+     * held before the write (recordStoredValuesBeforeUpdate).
+     */
+    const writtenPostmortemStatusId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        onUpdate.updateBy.data as unknown as Record<string, unknown>,
+        POSTMORTEM_STATUS_KEYS,
+        "Postmortem Status",
+      );
+
+    // Each project's postmortem statuses, read once for the whole update.
+    const postmortemStatusesByProject: Map<
+      string,
+      Array<IncidentPostmortemStatus>
+    > = new Map();
+
     if (updatedItemIds.length > 0) {
       for (const incidentId of updatedItemIds) {
         const incident: Model | null = await this.findOneById({
@@ -5242,6 +5459,38 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
               onUpdate.carryForward as UpdateCarryForward | undefined
             )?.[incidentId.toString()]?.postmortemBeforeUpdate,
           });
+        }
+
+        /*
+         * Writing the postmortem's first note moves it to the draft status,
+         * publishing it on a status page to the completed status, unless the
+         * update picked a status itself (Common/Utils/Incident/
+         * PostmortemStatus).
+         */
+        if (
+          IncidentPostmortemPublication.isWrittenBy(
+            updatedIncidentData as Record<string, unknown>,
+          )
+        ) {
+          try {
+            await this.movePostmortemStatusAfterUpdate({
+              incidentId: incidentId,
+              projectId: projectId,
+              written: updatedIncidentData as Record<string, unknown>,
+              carryForward: (
+                onUpdate.carryForward as UpdateCarryForward | undefined
+              )?.[incidentId.toString()],
+              statusesByProject: postmortemStatusesByProject,
+            });
+          } catch (postmortemStatusError) {
+            logger.error(
+              `Moving the postmortem's status failed in IncidentService.onUpdateSuccess: ${postmortemStatusError}`,
+              {
+                projectId: projectId?.toString(),
+                incidentId: incidentId?.toString(),
+              } as LogAttributes,
+            );
+          }
         }
 
         const isSeverityChanged: boolean = ReferenceChange.isChanged({
@@ -5434,6 +5683,44 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         if (!customFieldsMarkdown.isEmpty()) {
           feedInfoInMarkdown += customFieldsMarkdown.toString();
           shouldAddIncidentFeed = true;
+        }
+
+        /*
+         * The postmortem status someone picked - on the Postmortem page, the
+         * Postmortems list or through the API - when it really changed.
+         * OneUptime's own moves (a first note, a publish) are not lines of
+         * their own: the note's feed item says what happened.
+         */
+        if (
+          ReferenceChange.isChanged({
+            writtenId: writtenPostmortemStatusId,
+            idBeforeUpdate: (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()]?.postmortemStatusIdBeforeUpdate,
+          }) &&
+          writtenPostmortemStatusId
+        ) {
+          const postmortemStatus: IncidentPostmortemStatus | null =
+            await IncidentPostmortemStatusService.findOneBy({
+              query: {
+                _id: writtenPostmortemStatusId,
+                projectId: projectId,
+              },
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (postmortemStatus && postmortemStatus.name) {
+            feedInfoInMarkdown += mdText`\n\n**📘 Postmortem Status**:
+${postmortemStatus.name}
+`;
+
+            shouldAddIncidentFeed = true;
+          }
         }
 
         if (isSeverityChanged && writtenIncidentSeverityId) {

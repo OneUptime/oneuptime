@@ -93,6 +93,7 @@ Monitors, incidents, alerts, status pages, SLOs and many other resources also ha
 | Monitor statuses | `Monitor Status` |
 | Scheduled maintenance states | `Scheduled Maintenance State` |
 | Incident roles | `Incident Role` |
+| Postmortem statuses | `Postmortem Status` |
 | API keys | `API Key` |
 | MCP clients people connect | `MCP Client Authorization` |
 | Inventory items | `Inventory Item` |

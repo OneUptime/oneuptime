@@ -36,6 +36,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     Published At starts at now once it is switched on.
  *   - A template or an AI draft changes the note and nothing else: the
  *     editor it opens in starts from the incident's stored postmortem.
+ *   - The card says where the postmortem stands - its status, which moves
+ *     from a pill - and who owns it (the incident's owners).
+ *   - Nothing written yet, Write Postmortem is the one obvious next step,
+ *     with a template and an AI draft beside it; written, Edit Postmortem
+ *     Note is the card's button and the two fold into its ⋯.
  */
 
 const INCIDENT_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -152,6 +157,12 @@ import IncidentPostmortem from "../../../../App/FeatureSet/Dashboard/src/Pages/I
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentPostmortemTemplate from "../../../Models/DatabaseModels/IncidentPostmortemTemplate";
+import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
+import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import User from "../../../Models/DatabaseModels/User";
+import Color from "../../../Types/Color";
 import File from "../../../Models/DatabaseModels/File";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -187,7 +198,51 @@ const VIEWER: Array<string> = [
 
 const POSTED_AT: Date = new Date("2026-09-01T10:00:00.000Z");
 
+// The project's postmortem statuses, as a project starts with them.
+const NOT_STARTED_ID: string = "44444444-4444-4444-8444-444444444441";
+const DRAFT_ID: string = "44444444-4444-4444-8444-444444444442";
+const COMPLETED_ID: string = "44444444-4444-4444-8444-444444444443";
+const NOT_NEEDED_ID: string = "44444444-4444-4444-8444-444444444444";
+const ARCHIVED_ID: string = "44444444-4444-4444-8444-444444444445";
+
+function postmortemStatus(
+  id: string,
+  name: string,
+  order: number,
+  flags: Record<string, boolean> = {},
+): IncidentPostmortemStatus {
+  const status: IncidentPostmortemStatus = new IncidentPostmortemStatus();
+  status._id = id;
+  status.name = name;
+  status.order = order;
+  status.color = new Color("#6b7280");
+  status.isNotStartedStatus = Boolean(flags["isNotStartedStatus"]);
+  status.isDraftStatus = Boolean(flags["isDraftStatus"]);
+  status.isCompletedStatus = Boolean(flags["isCompletedStatus"]);
+  status.isArchived = Boolean(flags["isArchived"]);
+  return status;
+}
+
+const STATUSES: Array<IncidentPostmortemStatus> = [
+  postmortemStatus(NOT_STARTED_ID, "Not Started", 1, {
+    isNotStartedStatus: true,
+  }),
+  postmortemStatus(DRAFT_ID, "Draft", 2, { isDraftStatus: true }),
+  postmortemStatus(COMPLETED_ID, "Completed", 3, { isCompletedStatus: true }),
+  postmortemStatus(NOT_NEEDED_ID, "Not Needed", 4),
+  postmortemStatus(ARCHIVED_ID, "Old Process", 5, { isArchived: true }),
+];
+
+interface StoredOwners {
+  users: Array<string>;
+  teams: Array<string>;
+}
+
+let owners: StoredOwners = { users: [], teams: [] };
+
 interface StoredPostmortem {
+  // The status the postmortem is in: Draft, unless said.
+  statusId?: string | null;
   note: string;
   isPublished: boolean;
   notifySubscribers: boolean;
@@ -228,6 +283,14 @@ function storedIncident(): Incident {
   const incident: Incident = new Incident();
   incident._id = INCIDENT_ID;
   incident.postmortemNote = stored.note;
+
+  const statusId: string | null =
+    stored.statusId === undefined ? DRAFT_ID : stored.statusId;
+
+  if (statusId) {
+    incident.postmortemStatusId = new ObjectID(statusId);
+  }
+
   incident.showPostmortemOnStatusPage = stored.isPublished;
   incident.notifySubscribersOnPostmortemPublished = stored.notifySubscribers;
   incident.postmortemPostedAt = stored.postedAt as Date;
@@ -257,34 +320,75 @@ beforeEach(() => {
   stored = UNPUBLISHED;
   templates = [];
   templatesFail = false;
+  owners = { users: [], teams: [] };
   PermissionGate.clearPermissionPropsCache();
 
   getListMock.mockReset();
-  getListMock.mockImplementation(async (): Promise<unknown> => {
-    if (templatesFail) {
-      throw new Error("You do not have permission to read templates.");
-    }
+  getListMock.mockImplementation(
+    async (...args: Array<unknown>): Promise<unknown> => {
+      const modelType: unknown = (args[0] as { modelType: unknown }).modelType;
 
-    return {
-      data: templates.map(
-        (template: {
-          id: string;
-          name: string;
-          note: string;
-        }): IncidentPostmortemTemplate => {
-          const model: IncidentPostmortemTemplate =
-            new IncidentPostmortemTemplate();
-          model._id = template.id;
-          model.templateName = template.name;
-          model.postmortemNote = template.note;
-          return model;
-        },
-      ),
-      count: templates.length,
-      skip: 0,
-      limit: 100,
-    };
-  });
+      // The project's postmortem statuses, archived ones too.
+      if (modelType === IncidentPostmortemStatus) {
+        return { data: STATUSES, count: STATUSES.length, skip: 0, limit: 100 };
+      }
+
+      // The incident's owners: people, then teams.
+      if (modelType === IncidentOwnerUser) {
+        const rows: Array<IncidentOwnerUser> = owners.users.map(
+          (name: string, index: number): IncidentOwnerUser => {
+            const row: IncidentOwnerUser = new IncidentOwnerUser();
+            row._id = `55555555-5555-4555-8555-55555555555${index}`;
+            const user: User = new User();
+            user._id = `66666666-6666-4666-8666-66666666666${index}`;
+            user.name = name as never;
+            row.user = user;
+            return row;
+          },
+        );
+        return { data: rows, count: rows.length, skip: 0, limit: 100 };
+      }
+
+      if (modelType === IncidentOwnerTeam) {
+        const rows: Array<IncidentOwnerTeam> = owners.teams.map(
+          (name: string, index: number): IncidentOwnerTeam => {
+            const row: IncidentOwnerTeam = new IncidentOwnerTeam();
+            row._id = `77777777-7777-4777-8777-77777777777${index}`;
+            const team: Team = new Team();
+            team._id = `88888888-8888-4888-8888-88888888888${index}`;
+            team.name = name;
+            row.team = team;
+            return row;
+          },
+        );
+        return { data: rows, count: rows.length, skip: 0, limit: 100 };
+      }
+
+      if (templatesFail) {
+        throw new Error("You do not have permission to read templates.");
+      }
+
+      return {
+        data: templates.map(
+          (template: {
+            id: string;
+            name: string;
+            note: string;
+          }): IncidentPostmortemTemplate => {
+            const model: IncidentPostmortemTemplate =
+              new IncidentPostmortemTemplate();
+            model._id = template.id;
+            model.templateName = template.name;
+            model.postmortemNote = template.note;
+            return model;
+          },
+        ),
+        count: templates.length,
+        skip: 0,
+        limit: 100,
+      };
+    },
+  );
 
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<Incident> => {
@@ -314,10 +418,25 @@ async function renderPage(): Promise<void> {
     render(<IncidentPostmortem {...PAGE_PROPS} />);
   });
 
-  // The card has loaded the incident, and the templates have answered.
-  await screen.findByText("Postmortem visible on Status Page?", {}, WAIT);
+  /*
+   * The card has loaded the incident - its note, or the empty state while
+   * nothing is written - and the templates have answered.
+   */
+  if (stored.note.trim()) {
+    await screen.findByText("Postmortem visible on Status Page?", {}, WAIT);
+  } else {
+    await screen.findByText("No postmortem yet", {}, WAIT);
+  }
+
   await waitFor(() => {
-    expect(getListMock).toHaveBeenCalled();
+    expect(
+      getListMock.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType ===
+          IncidentPostmortemTemplate
+        );
+      }),
+    ).toBe(true);
   }, WAIT);
   await act(async () => {
     await Promise.resolve();
@@ -326,6 +445,26 @@ async function renderPage(): Promise<void> {
 
 function cardButton(name: string): HTMLElement | null {
   return screen.queryByRole("button", { name: name });
+}
+
+/*
+ * The ⋯ beside Edit Postmortem Note on a written postmortem, opened: the
+ * items it holds, by name.
+ */
+async function openMoreMenu(): Promise<void> {
+  fireEvent.click(
+    await screen.findByRole(
+      "button",
+      { name: "More postmortem options" },
+      WAIT,
+    ),
+  );
+
+  await screen.findByRole("menu", {}, WAIT);
+}
+
+function menuItem(name: string): HTMLElement | null {
+  return screen.queryByRole("menuitem", { name: name });
 }
 
 function dialog(): HTMLElement {
@@ -376,9 +515,12 @@ describe("Apply Template", () => {
 
     await renderPage();
 
-    expect(cardButton("Generate with AI")).toBeInTheDocument();
     expect(cardButton("Edit Postmortem Note")).toBeInTheDocument();
-    expect(cardButton("Apply Template")).not.toBeInTheDocument();
+
+    await openMoreMenu();
+
+    expect(menuItem("Generate with AI")).toBeInTheDocument();
+    expect(menuItem("Apply Template")).toBeNull();
 
     // Nothing to open, and no dialog pointing at a settings page.
     expect(screen.queryByText("No Postmortem Templates")).toBeNull();
@@ -389,18 +531,20 @@ describe("Apply Template", () => {
     templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
 
     await renderPage();
+    await openMoreMenu();
 
-    expect(
-      await screen.findByRole("button", { name: "Apply Template" }, WAIT),
-    ).toBeInTheDocument();
+    expect(menuItem("Apply Template")).toBeInTheDocument();
+    // Folded away: no button of its own beside Edit.
+    expect(cardButton("Apply Template")).toBeNull();
   });
 
   test("templates that cannot be read leave the button out, with no error over the page", async () => {
     templatesFail = true;
 
     await renderPage();
+    await openMoreMenu();
 
-    expect(cardButton("Apply Template")).not.toBeInTheDocument();
+    expect(menuItem("Apply Template")).toBeNull();
     expect(screen.queryByText("Error")).toBeNull();
     expect(
       screen.queryByText("You do not have permission to read templates."),
@@ -432,10 +576,9 @@ describe("Apply Template", () => {
     ];
 
     await renderPage();
+    await openMoreMenu();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Apply Template" }, WAIT),
-    );
+    fireEvent.click(menuItem("Apply Template")!);
 
     const picker: HTMLElement = await screen.findByTestId("modal", {}, WAIT);
 
@@ -463,10 +606,9 @@ describe("Apply Template", () => {
     ];
 
     await renderPage();
+    await openMoreMenu();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Apply Template" }, WAIT),
-    );
+    fireEvent.click(menuItem("Apply Template")!);
 
     const picker: HTMLElement = await screen.findByTestId("modal", {}, WAIT);
 
@@ -489,10 +631,9 @@ describe("Apply Template", () => {
     ];
 
     await renderPage();
+    await openMoreMenu();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Apply Template" }, WAIT),
-    );
+    fireEvent.click(menuItem("Apply Template")!);
     fireEvent.click(
       within(await screen.findByTestId("modal", {}, WAIT)).getByTestId(
         "modal-footer-submit-button",
@@ -531,10 +672,9 @@ describe("Generate with AI", () => {
     templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
 
     await renderPage();
+    await openMoreMenu();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Generate with AI" }, WAIT),
-    );
+    fireEvent.click(menuItem("Generate with AI")!);
 
     const names: Array<string> = (
       await screen.findAllByTestId("ai-template", {}, WAIT)
@@ -550,10 +690,9 @@ describe("Generate with AI", () => {
     stored = PUBLISHED;
 
     await renderPage();
+    await openMoreMenu();
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Generate with AI" }, WAIT),
-    );
+    fireEvent.click(menuItem("Generate with AI")!);
     fireEvent.click(await screen.findByText("Use the AI draft", {}, WAIT));
 
     await screen.findByText("Edit Postmortem Note", { selector: "h3" }, WAIT);
@@ -580,21 +719,40 @@ describe("for someone who may not edit the incident", () => {
 
     await renderPage();
 
-    const applyTemplate: HTMLElement = await screen.findByRole(
-      "button",
-      { name: "Apply Template" },
-      WAIT,
-    );
-
-    expect(applyTemplate).toBeDisabled();
-    expect(cardButton("Generate with AI")).toBeDisabled();
     expect(cardButton("Edit Postmortem Note")).toBeDisabled();
 
-    fireEvent.click(cardButton("Generate with AI")!);
+    await openMoreMenu();
+
+    const applyTemplate: HTMLElement = menuItem("Apply Template")!;
+    const generate: HTMLElement = menuItem("Generate with AI")!;
+
+    expect(applyTemplate).toHaveAttribute("aria-disabled", "true");
+    expect(generate).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(generate);
     fireEvent.click(applyTemplate);
 
     expect(screen.queryByTestId("ai-modal")).toBeNull();
     expect(screen.queryByTestId("modal")).toBeNull();
+  });
+
+  test("the status is drawn without its menu: they can read where it stands", async () => {
+    permissionsForTest = VIEWER;
+
+    await renderPage();
+
+    const pill: HTMLElement = await screen.findByTestId(
+      "postmortem-status-pill",
+      {},
+      WAIT,
+    );
+
+    await waitFor(() => {
+      expect(pill).toHaveTextContent("Draft");
+    }, WAIT);
+    expect(
+      screen.queryByRole("button", { name: /Postmortem status: Draft/ }),
+    ).toBeNull();
   });
 });
 
@@ -924,5 +1082,409 @@ describe("the Postmortem card", () => {
       attachments.compareDocumentPosition(visible) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+});
+
+describe("where the postmortem stands, and who owns it", () => {
+  test("its status is a pill in the card, read from the incident", async () => {
+    stored = { ...UNPUBLISHED, statusId: DRAFT_ID };
+
+    await renderPage();
+
+    const summary: HTMLElement = await screen.findByTestId(
+      "postmortem-summary",
+      {},
+      WAIT,
+    );
+
+    expect(within(summary).getByText("Status")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        within(summary).getByTestId("postmortem-status-pill"),
+      ).toHaveTextContent("Draft");
+    }, WAIT);
+
+    // The incident is read with its status.
+    const select: Record<string, unknown> = (
+      getItemMock.mock.calls[0]![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["postmortemStatusId"]).toBe(true);
+  });
+
+  test("an incident with no status yet reads as not started", async () => {
+    stored = { ...UNPUBLISHED, statusId: null };
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-status-pill")).toHaveTextContent(
+        "Not Started",
+      );
+    }, WAIT);
+  });
+
+  test("its menu offers every status not archived, the current one ticked, and moves it at once", async () => {
+    await renderPage();
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: /Postmortem status: Draft/ },
+        WAIT,
+      ),
+    );
+
+    const options: Array<HTMLElement> = await screen.findAllByTestId(
+      "postmortem-status-option",
+      {},
+      WAIT,
+    );
+
+    expect(
+      options.map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual(["Not Started", "Draft", "Completed", "Not Needed"]);
+    expect(
+      screen.getByRole("menuitemradio", { name: "Draft" }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Completed" }));
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalled();
+    }, WAIT);
+
+    const update: {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      modelType: unknown;
+    } = updateByIdMock.mock.calls[0]![0] as {
+      id: ObjectID;
+      data: Record<string, unknown>;
+      modelType: unknown;
+    };
+
+    expect(update.modelType).toBe(Incident);
+    expect(update.id.toString()).toBe(INCIDENT_ID);
+    expect((update.data["postmortemStatusId"] as ObjectID).toString()).toBe(
+      COMPLETED_ID,
+    );
+    // Nothing else is written: not the note, not the status page switch.
+    expect(Object.keys(update.data)).toEqual(["postmortemStatusId"]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-status-pill")).toHaveTextContent(
+        "Completed",
+      );
+    }, WAIT);
+  });
+
+  test("a move the server refuses is put back, with the reason", async () => {
+    updateByIdMock.mockRejectedValue(new Error("Not allowed to move it."));
+
+    await renderPage();
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: /Postmortem status: Draft/ },
+        WAIT,
+      ),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitemradio", { name: "Not Needed" }, WAIT),
+    );
+
+    expect(
+      await screen.findByTestId("postmortem-status-error", {}, WAIT),
+    ).toHaveTextContent("Could not change the postmortem's status.");
+    expect(screen.getByTestId("postmortem-status-pill")).toHaveTextContent(
+      "Draft",
+    );
+  });
+
+  test("its owners are the incident's, by name, with the way to change them", async () => {
+    owners = { users: ["Alice Smith"], teams: ["Database Team"] };
+
+    await renderPage();
+
+    const ownersElement: HTMLElement = await screen.findByTestId(
+      "postmortem-owners",
+      {},
+      WAIT,
+    );
+
+    await waitFor(() => {
+      expect(ownersElement).toHaveTextContent("Alice Smith, Database Team");
+    }, WAIT);
+
+    const summary: HTMLElement = screen.getByTestId("postmortem-summary");
+    const link: HTMLElement = within(summary).getByRole("link", {
+      name: "Change owners",
+    });
+
+    expect(link.getAttribute("href")).toContain(
+      `/incidents/${INCIDENT_ID}/owners`,
+    );
+
+    // Read for this incident, in this project.
+    const ownerRequest: Array<unknown> | undefined =
+      getListMock.mock.calls.find((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { modelType: unknown }).modelType === IncidentOwnerUser
+        );
+      });
+
+    expect(
+      (
+        (ownerRequest![0] as { query: Record<string, unknown> }).query[
+          "incidentId"
+        ] as ObjectID
+      ).toString(),
+    ).toBe(INCIDENT_ID);
+  });
+
+  test("someone who may not change the incident's owners sees them, with no Change owners link", async () => {
+    owners = { users: ["Alice Smith"], teams: [] };
+    permissionsForTest = VIEWER;
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-owners")).toHaveTextContent(
+        "Alice Smith",
+      );
+    }, WAIT);
+
+    const summary: HTMLElement = screen.getByTestId("postmortem-summary");
+
+    expect(
+      within(summary).queryByRole("link", { name: "Change owners" }),
+    ).toBeNull();
+    expect(
+      within(summary).queryByRole("link", { name: "Add owners" }),
+    ).toBeNull();
+  });
+
+  test("with no owners it says so, and offers to add them", async () => {
+    owners = { users: [], teams: [] };
+
+    await renderPage();
+
+    expect(
+      await screen.findByText("No owners yet.", {}, WAIT),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("postmortem-summary")).getByRole("link", {
+        name: "Add owners",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("more than three owners are named three, and how many more", async () => {
+    owners = {
+      users: ["Alice Smith", "Bob Jones", "Carol White", "Dan Brown"],
+      teams: ["SRE"],
+    };
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("postmortem-owners")).toHaveTextContent(
+        "Alice Smith, Bob Jones, Carol White and 2 more owners",
+      );
+    }, WAIT);
+  });
+});
+
+describe("nothing written yet", () => {
+  const EMPTY: StoredPostmortem = {
+    ...UNPUBLISHED,
+    note: "",
+    statusId: NOT_STARTED_ID,
+  };
+
+  test("Write Postmortem is the one obvious next step, with a template and AI beside it", async () => {
+    stored = EMPTY;
+    templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
+
+    await renderPage();
+
+    const empty: HTMLElement = screen.getByTestId("postmortem-empty-state");
+
+    expect(
+      within(empty).getByText(
+        "Write down what happened, its impact on your users, and what changes now.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(empty).getByRole("button", { name: "Write Postmortem" }),
+    ).toBeEnabled();
+    expect(
+      within(empty).getByRole("button", { name: "Start from Template" }),
+    ).toBeEnabled();
+    expect(
+      within(empty).getByRole("button", { name: "Generate with AI" }),
+    ).toBeEnabled();
+
+    // Not a second Edit in the header, nor a ⋯ holding the same two.
+    expect(cardButton("Edit Postmortem Note")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "More postmortem options" }),
+    ).toBeNull();
+  });
+
+  test("with no template, only Write Postmortem and Generate with AI", async () => {
+    stored = EMPTY;
+    templates = [];
+
+    await renderPage();
+
+    const empty: HTMLElement = screen.getByTestId("postmortem-empty-state");
+
+    expect(
+      within(empty).queryByRole("button", { name: "Start from Template" }),
+    ).toBeNull();
+    expect(
+      within(empty).getByRole("button", { name: "Write Postmortem" }),
+    ).toBeInTheDocument();
+  });
+
+  test("nothing about the status page is shown while there is nothing to publish", async () => {
+    stored = EMPTY;
+
+    await renderPage();
+
+    expect(screen.queryByText("Postmortem visible on Status Page?")).toBeNull();
+    expect(screen.queryByText("Postmortem Attachments")).toBeNull();
+  });
+
+  test("Write Postmortem opens the editor on the postmortem, publishing nothing by itself", async () => {
+    stored = EMPTY;
+
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Write Postmortem" }));
+
+    await screen.findByText("Write Postmortem", { selector: "h3" }, WAIT);
+
+    /*
+     * What to write, said once, ending in one full stop: the Markdown
+     * helper it came through added a second ("follow-up actions..") and
+     * left it untranslated.
+     */
+    const hint: HTMLElement = await within(dialog()).findByText(
+      "Capture what happened, impact, resolution, and follow-up actions.",
+      {},
+      WAIT,
+    );
+
+    expect(hint.textContent).not.toContain("..");
+    await goToStatusPageStep();
+
+    // Nothing published by writing it.
+    expect(publishSwitch()).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("Start from Template opens the picker, and the editor on what it picked", async () => {
+    stored = EMPTY;
+    templates = [
+      { id: "t-1", name: "Standard review", note: "## From the template" },
+    ];
+
+    await renderPage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Start from Template" }),
+    );
+
+    const picker: HTMLElement = await screen.findByTestId("modal", {}, WAIT);
+
+    fireEvent.click(within(picker).getByTestId("modal-footer-submit-button"));
+
+    await screen.findByText("Edit Postmortem Note", { selector: "h3" }, WAIT);
+    await goToStatusPageStep();
+
+    fireEvent.click(within(dialog()).getByTestId("modal-footer-submit-button"));
+
+    const saved: Record<string, unknown> = await savedIncident();
+
+    expect(saved["postmortemNote"]).toBe("## From the template");
+  });
+
+  test("for a viewer, Write Postmortem alone, locked, with why under it - not three locked buttons", async () => {
+    stored = EMPTY;
+    permissionsForTest = VIEWER;
+    templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
+
+    await renderPage();
+
+    const empty: HTMLElement = screen.getByTestId("postmortem-empty-state");
+
+    expect(
+      within(empty).getByRole("button", { name: "Write Postmortem" }),
+    ).toBeDisabled();
+
+    // The other two are only other ways to do what they cannot.
+    expect(
+      within(empty).queryByRole("button", { name: "Start from Template" }),
+    ).toBeNull();
+    expect(
+      within(empty).queryByRole("button", { name: "Generate with AI" }),
+    ).toBeNull();
+
+    // Why, in words under the button, as a list's locked Create says it.
+    expect(
+      within(empty).getByTestId("postmortem-empty-state-note"),
+    ).toHaveTextContent("permission");
+  });
+
+  test("the ways to start from something are buttons beside Write Postmortem, never bare words", async () => {
+    stored = EMPTY;
+    templates = [{ id: "t-1", name: "Standard review", note: "## Impact" }];
+
+    await renderPage();
+
+    const empty: HTMLElement = screen.getByTestId("postmortem-empty-state");
+    const write: HTMLElement = within(empty).getByRole("button", {
+      name: "Write Postmortem",
+    });
+
+    // The one obvious next step is the primary button.
+    expect(write.className).toContain("bg-indigo-600");
+
+    for (const name of ["Start from Template", "Generate with AI"]) {
+      const button: HTMLElement = within(empty).getByRole("button", {
+        name: name,
+      });
+
+      /*
+       * A white, bordered button: the outline style drew them as plain
+       * words with an icon, which read as text beside the primary button.
+       */
+      expect(button.className).toContain("border-gray-300");
+      expect(button.className).toContain("bg-white");
+      expect(button.className).not.toContain("btn-outline-secondary");
+    }
+
+    // Nothing locked, so nothing to explain.
+    expect(
+      within(empty).queryByTestId("postmortem-empty-state-note"),
+    ).toBeNull();
+
+    /*
+     * A column of full-width buttons on a phone, a row from sm up: the
+     * buttons' own left margin (a dialog footer's) is cleared, so the gap
+     * alone spaces them.
+     */
+    const actions: HTMLElement = within(empty).getByTestId(
+      "postmortem-empty-state-actions",
+    );
+
+    expect(actions.className).toContain("flex-col");
+    expect(actions.className).toContain("sm:flex-row");
+    expect(actions.className).toContain("[&>div>button]:md:ml-0");
   });
 });

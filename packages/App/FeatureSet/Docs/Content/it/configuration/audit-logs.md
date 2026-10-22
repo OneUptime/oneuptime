@@ -93,6 +93,7 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Stati del monitor | `Monitor Status` |
 | Stati della manutenzione programmata | `Scheduled Maintenance State` |
 | Ruoli incidente | `Incident Role` |
+| Stati del post-mortem | `Postmortem Status` |
 | Chiavi API | `API Key` |
 | Client MCP che le persone collegano | `MCP Client Authorization` |
 | Elementi dell'inventario | `Inventory Item` |

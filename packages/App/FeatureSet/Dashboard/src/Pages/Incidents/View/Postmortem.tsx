@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -10,8 +11,19 @@ import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import Incident from "Common/Models/DatabaseModels/Incident";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
 import { getModelIdString } from "../../../Utils/ModelId";
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
@@ -25,6 +37,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import URL from "Common/Types/API/URL";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -38,15 +51,42 @@ import {
   PostmortemTemplateOption,
   toAITemplates,
 } from "../../../Components/Postmortem/PostmortemTemplates";
-import { getPostmortemCardButtons } from "../../../Components/Postmortem/PostmortemCardButtons";
+import PostmortemMoreMenu, {
+  hasPostmortemMoreMenuItems,
+} from "../../../Components/Postmortem/PostmortemMoreMenu";
+import PostmortemEmptyState from "../../../Components/Postmortem/PostmortemEmptyState";
+import PostmortemSummary from "../../../Components/Postmortem/PostmortemSummary";
+import { useIncidentOwners } from "../../../Components/Postmortem/PostmortemOwners";
+import usePostmortemStatuses, {
+  PostmortemStatusesState,
+} from "../../../Components/Postmortem/usePostmortemStatuses";
 import useAiOffered from "../../../Utils/UseAiOffered";
 import ApplyPostmortemTemplateModal from "../../../Components/Postmortem/ApplyPostmortemTemplateModal";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
 
 // Whether the postmortem is on the status page, and so what it says there.
 const isPublished: (item: Incident) => boolean = (item: Incident): boolean => {
   return Boolean(item.showPostmortemOnStatusPage);
 };
 
+/*
+ * An incident's postmortem, in one card: where it stands and who owns it,
+ * then what it says, its files, and whether it is on the status page.
+ *
+ * - Its status - Not Started, Draft, Completed or one of the project's own -
+ *   is a pill that opens the project's statuses, and moves by itself as the
+ *   postmortem is written and published (Common/Utils/Incident/
+ *   PostmortemStatus). Its owners are the incident's owners.
+ * - Nothing written yet, the card's one obvious next step is Write
+ *   Postmortem, with the two ways to start from something beside it: a
+ *   template, once the project has one, and a draft by OneUptime AI, while
+ *   AI is on.
+ * - Written, Edit Postmortem Note is the card's button, and the template and
+ *   the AI draft fold into its ⋯ - they replace the note, which is rarely
+ *   what a written postmortem needs. Publishing on the status page stays the
+ *   editor's second step.
+ */
 const IncidentPostmortem: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -56,16 +96,65 @@ const IncidentPostmortem: FunctionComponent<
 
   const postmortemTemplates: PostmortemTemplatesState =
     usePostmortemTemplates();
+  const postmortemStatuses: PostmortemStatusesState = usePostmortemStatuses();
   const [showTemplateModal, setShowTemplateModal] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+  /*
+   * Whether the incident has a postmortem note, once it is read: what the
+   * card offers depends on it. Null until the incident is read.
+   */
+  const [hasNote, setHasNote] = useState<boolean | null>(null);
   /*
    * The note a template or AI wrote, while the postmortem's editor is open
    * on it. Everything else in that editor is what the incident holds.
    */
   const [draftNote, setDraftNote] = useState<string | null>(null);
+  // The editor, opened from Write Postmortem.
+  const [isWriting, setIsWriting] = useState<boolean>(false);
   const [showAIGenerateModal, setShowAIGenerateModal] =
     useState<boolean>(false);
+
+  // The incident's owners own its postmortem; re-read after every save.
+  const incidentOwners: ReturnType<typeof useIncidentOwners> =
+    useIncidentOwners({
+      incidentId: modelId,
+      refreshToken: refreshToggle,
+    });
+
+  const ownersRoute: Route = RouteUtil.populateRouteParams(
+    RouteMap[PageMap.INCIDENT_VIEW_OWNERS] as Route,
+    { modelId: modelId },
+  );
+
+  const incidentModel: Incident = useMemo((): Incident => {
+    return new Incident();
+  }, []);
+
+  /*
+   * Writing it takes what Edit Postmortem Note takes: the update of the
+   * incident and its postmortem's fields (PermissionGate.checkFormUpdate).
+   * Moving its status takes the update of the incident.
+   */
+  const writeGate: PermissionGateResult = PermissionGate.checkFormUpdate(
+    incidentModel,
+    INCIDENT_POSTMORTEM_FORM_FIELDS,
+  );
+  const statusGate: PermissionGateResult = PermissionGate.check(
+    incidentModel,
+    ModelAction.Update,
+  );
+  // Adding a person or a team as an owner, as the Owners page does.
+  const canChangeOwners: boolean =
+    PermissionGate.check(new IncidentOwnerUser(), ModelAction.Create)
+      .isAllowed ||
+    PermissionGate.check(new IncidentOwnerTeam(), ModelAction.Create).isAllowed;
+
+  const refresh: () => void = (): void => {
+    setRefreshToggle((previous: boolean) => {
+      return !previous;
+    });
+  };
 
   const handleResendPostmortemNotification: () => Promise<void> =
     async (): Promise<void> => {
@@ -83,9 +172,7 @@ const IncidentPostmortem: FunctionComponent<
         });
 
         // Refresh the data to show updated status
-        setRefreshToggle((previous: boolean) => {
-          return !previous;
-        });
+        refresh();
       } catch (err) {
         setError(API.getFriendlyMessage(err));
       }
@@ -145,62 +232,155 @@ const IncidentPostmortem: FunctionComponent<
     setDraftNote(template.note);
   };
 
+  const hasTemplates: boolean = postmortemTemplates.templates.length > 0;
+
   return (
     <>
       <CardModelDetail<Incident>
-        name="Postmortem Note"
+        name="Postmortem"
         cardProps={{
-          title: "Postmortem Note",
+          title: "Postmortem",
           description:
             "Document the summary, learnings, and follow-ups for this incident.",
-          buttons: getPostmortemCardButtons({
-            model: new Incident(),
-            hasTemplates: postmortemTemplates.templates.length > 0,
-            isAiOffered: isAiOffered,
-            onGenerateWithAI: () => {
-              setShowAIGenerateModal(true);
-            },
-            onApplyTemplate: () => {
-              setShowTemplateModal(true);
-            },
-          }),
+          /*
+           * Written, the template and the AI draft fold into the ⋯ beside
+           * Edit Postmortem Note. Not written, the card's body offers them
+           * beside Write Postmortem instead.
+           */
+          buttons:
+            hasNote &&
+            hasPostmortemMoreMenuItems({
+              writeGate: writeGate,
+              hasTemplates: hasTemplates,
+              isAiOffered: isAiOffered,
+            })
+              ? [
+                  <PostmortemMoreMenu
+                    key="postmortem-more-menu"
+                    writeGate={writeGate}
+                    hasTemplates={hasTemplates}
+                    isAiOffered={isAiOffered}
+                    onApplyTemplate={() => {
+                      setShowTemplateModal(true);
+                    }}
+                    onGenerateWithAI={() => {
+                      setShowAIGenerateModal(true);
+                    }}
+                  />,
+                ]
+              : [],
         }}
         refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}
-        isEditable={true}
+        isEditable={hasNote === true}
         editButtonText="Edit Postmortem Note"
         // The dialog names what it edits, as the button does - not "Edit Incident".
         editModalTitle="Edit Postmortem Note"
         onSaveSuccess={() => {
-          setRefreshToggle((previous: boolean) => {
-            return !previous;
-          });
+          refresh();
         }}
         formSteps={INCIDENT_POSTMORTEM_FORM_STEPS}
         formFields={INCIDENT_POSTMORTEM_FORM_FIELDS}
         modelDetailProps={{
-          showDetailsInNumberOfColumns: 1,
+          showDetailsInNumberOfColumns: 2,
           modelType: Incident,
           id: "model-detail-incident-postmortem-note",
           selectMoreFields: {
+            postmortemStatusId: true,
             subscriberNotificationStatusMessageOnPostmortemPublished: true,
             // Whether a skipped notification still waits for the incident to show.
             isVisibleOnStatusPage: true,
             isPrivate: true,
           },
+          onItemLoaded: (item: Incident) => {
+            setHasNote(
+              IncidentPostmortemPublication.hasNote(item.postmortemNote),
+            );
+          },
           /*
-           * The write-up and its files first, then the status page: whether
-           * the postmortem is on it and, only while it is, whether and when
-           * subscribers heard about it and the time it shows.
+           * Where it stands and who owns it, then the write-up and its
+           * files, then the status page: whether the postmortem is on it
+           * and, only while it is, whether and when subscribers heard about
+           * it and the time it shows.
            */
           fields: [
+            {
+              field: {
+                postmortemStatus: {
+                  _id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+              // Status and Owners, side by side, each with its own name.
+              title: "",
+              colSpan: 2,
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                return (
+                  <PostmortemSummary
+                    incidentId={modelId}
+                    statusId={
+                      item.postmortemStatusId?.toString() ||
+                      item.postmortemStatus?._id?.toString() ||
+                      null
+                    }
+                    choices={postmortemStatuses.choices}
+                    canChangeStatus={statusGate.isAllowed}
+                    onStatusChanged={() => {
+                      refresh();
+                    }}
+                    owners={incidentOwners.owners}
+                    hasLoadedOwners={incidentOwners.hasLoaded}
+                    ownersRoute={ownersRoute}
+                    canChangeOwners={canChangeOwners}
+                  />
+                );
+              },
+            },
             {
               field: {
                 postmortemNote: true,
               },
               title: "",
-              placeholder: "No postmortem note documented for this incident.",
-              fieldType: FieldType.Markdown,
+              colSpan: 2,
+              fieldType: FieldType.Element,
+              getElement: (item: Incident): ReactElement => {
+                if (
+                  IncidentPostmortemPublication.hasNote(item.postmortemNote)
+                ) {
+                  /*
+                   * The viewer spaces its paragraphs and lists apart; the
+                   * first's space above and the last's below would put the
+                   * text further from the rows around it than they are.
+                   */
+                  return (
+                    <div
+                      className="[&>div>*:first-child]:mt-0 [&>div>*:last-child]:mb-0"
+                      data-testid="postmortem-note"
+                    >
+                      <LazyMarkdownViewer text={item.postmortemNote || ""} />
+                    </div>
+                  );
+                }
+
+                return (
+                  <PostmortemEmptyState
+                    writeGate={writeGate}
+                    hasTemplates={hasTemplates}
+                    isAiOffered={isAiOffered}
+                    onWrite={() => {
+                      setIsWriting(true);
+                    }}
+                    onApplyTemplate={() => {
+                      setShowTemplateModal(true);
+                    }}
+                    onGenerateWithAI={() => {
+                      setShowAIGenerateModal(true);
+                    }}
+                  />
+                );
+              },
             },
             {
               field: {
@@ -212,7 +392,15 @@ const IncidentPostmortem: FunctionComponent<
                 },
               },
               title: "Postmortem Attachments",
+              colSpan: 2,
               fieldType: FieldType.Element,
+              // Nothing written and nothing attached: the empty state says it all.
+              showIf: (item: Incident): boolean => {
+                return (
+                  IncidentPostmortemPublication.hasNote(item.postmortemNote) ||
+                  Boolean(item.postmortemAttachments?.length)
+                );
+              },
               getElement: (item: Incident): ReactElement => {
                 const modelIdString: string | null = getModelIdString(item);
 
@@ -251,6 +439,13 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Postmortem visible on Status Page?",
               fieldType: FieldType.Boolean,
+              // Nothing written and nothing switched on: there is nothing to publish yet.
+              showIf: (item: Incident): boolean => {
+                return (
+                  IncidentPostmortemPublication.hasNote(item.postmortemNote) ||
+                  isPublished(item)
+                );
+              },
             },
             {
               field: {
@@ -329,13 +524,41 @@ const IncidentPostmortem: FunctionComponent<
         <></>
       )}
 
-      {showTemplateModal && postmortemTemplates.templates.length > 0 ? (
+      {showTemplateModal && hasTemplates ? (
         <ApplyPostmortemTemplateModal
           name="Incident > Apply Postmortem Template"
           templates={postmortemTemplates.templates}
           onPick={handleTemplatePicked}
           onClose={() => {
             setShowTemplateModal(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {isWriting ? (
+        <ModelFormModal<Incident>
+          title="Write Postmortem"
+          submitButtonText="Save Changes"
+          modalWidth={ModalWidth.Large}
+          onClose={() => {
+            setIsWriting(false);
+          }}
+          onSuccess={() => {
+            setIsWriting(false);
+            refresh();
+          }}
+          name="incident-postmortem-write"
+          modelType={Incident}
+          modelIdToEdit={modelId}
+          formProps={{
+            id: "incident-postmortem-write-form",
+            steps: INCIDENT_POSTMORTEM_FORM_STEPS,
+            fields: INCIDENT_POSTMORTEM_FORM_FIELDS,
+            formType: FormType.Update,
+            modelType: Incident,
+            name: "Postmortem Note",
           }}
         />
       ) : (
@@ -352,9 +575,7 @@ const IncidentPostmortem: FunctionComponent<
           }}
           onSuccess={() => {
             setDraftNote(null);
-            setRefreshToggle((previous: boolean) => {
-              return !previous;
-            });
+            refresh();
           }}
           name="incident-postmortem-note-from-template"
           modelType={Incident}

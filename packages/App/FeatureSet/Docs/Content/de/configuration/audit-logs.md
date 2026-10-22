@@ -93,6 +93,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | Monitor-Status | `Monitor Status` |
 | Status geplanter Wartungen | `Scheduled Maintenance State` |
 | Vorfallsrollen | `Incident Role` |
+| Postmortem-Status | `Postmortem Status` |
 | API-Schlüssel | `API Key` |
 | MCP-Clients, die Personen verbinden | `MCP Client Authorization` |
 | Inventareinträge | `Inventory Item` |

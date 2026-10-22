@@ -189,7 +189,7 @@ Datensätze nehmen `list`, `get`, `create`, `update`, `delete` und `count`:
 | Bereich | Befehle |
 | --- | --- |
 | Überwachung | `monitor`, `monitor-status`, `monitor-status-event` |
-| Vorfälle | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Vorfälle | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Warnungen | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Statusseiten | `status-page`, `status-page-announcement` |
 | Geplante Wartung | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

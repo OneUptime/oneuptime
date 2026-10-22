@@ -330,6 +330,25 @@ describe("the Incident States page", () => {
     ).toBeNull();
   });
 
+  test("keeps the Built-in tag on its name's line in a table row, so built-in rows are one height", async () => {
+    await renderPage();
+
+    /*
+     * Wrapping, the tag fell under the longer names only ("Acknowledged",
+     * not "Resolved"), and one page's built-in rows had two heights. From
+     * md - where rows are a table - the cell never wraps; a phone's card may.
+     */
+    for (const name of ["Identified", "Acknowledged", "Resolved"]) {
+      const cell: HTMLElement = within(rowOf(name)).getByTestId(
+        "state-settings-name",
+      );
+      const classes: Array<string> = cell.className.split(" ");
+
+      expect(classes).toContain("md:flex-nowrap");
+      expect(classes).toContain("flex-wrap");
+    }
+  });
+
   test("shows no raw ID, and no Add New Item between the rows", async () => {
     await renderPage();
 

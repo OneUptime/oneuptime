@@ -9,12 +9,12 @@ import {
 } from "./ListOrder";
 
 /*
- * What the order of a project's states, severities and monitor statuses
- * means, and what it has to keep. No database and no React in it, so the
- * server that guards these lists and the settings pages that show them read
- * the same rules.
+ * What the order of a project's states, severities, monitor statuses and
+ * postmortem statuses means, and what it has to keep. No database and no
+ * React in it, so the server that guards these lists and the settings pages
+ * that show them read the same rules.
  *
- * All six are drag-ordered lists (@ListOrderColumn, Common/Utils/ListOrder):
+ * All seven are drag-ordered lists (@ListOrderColumn, Common/Utils/ListOrder):
  * 1 is the top. On top of that:
  *
  *   - Incident, alert and scheduled maintenance states are a path. An
@@ -33,6 +33,14 @@ import {
  *     an outage still shows as an outage.
  *   - Severities are ranked, most severe first. Any order goes, and a new
  *     one goes to the end.
+ *   - Postmortem statuses are how far an incident's postmortem has come: not
+ *     started, then a draft, then completed. A status at or below the
+ *     completed one counts as done - the postmortem is no longer owed - so a
+ *     project's own "Not Needed" goes after it, and a new status goes just
+ *     above it, where it counts as in progress ("In Review"). Unlike a
+ *     state, a postmortem can move back up (reopened for another look); the
+ *     order only says what each status counts as
+ *     (Common/Utils/Incident/PostmortemStatus).
  *   - Every built-in row (the created, acknowledged and resolved states, the
  *     operational and offline statuses...) is something OneUptime itself
  *     moves things into, so a list keeps at least one of each kind.
@@ -45,6 +53,7 @@ export enum StateListType {
   MonitorStatus = "MonitorStatus",
   IncidentSeverity = "IncidentSeverity",
   AlertSeverity = "AlertSeverity",
+  IncidentPostmortemStatus = "IncidentPostmortemStatus",
 }
 
 export interface StateListBuiltIn {
@@ -78,6 +87,13 @@ export interface StateListDefinition {
    * row carrying this flag. Unset, it goes to the end of the list.
    */
   insertAboveFlag?: string | undefined;
+  /*
+   * Why the built-in rows keep their order, as the start of the sentence a
+   * refused move is answered with ("..., so the resolved state has to stay
+   * below the acknowledged state"). Unset, it is that the subjects only
+   * ever move down the list - true of every state, not of a postmortem.
+   */
+  orderReason?: string | undefined;
 }
 
 const INCIDENT_AND_ALERT_STATE_BUILT_INS: Array<StateListBuiltIn> = [
@@ -143,6 +159,19 @@ export const STATE_LISTS: Record<StateListType, StateListDefinition> = {
     subject: { singular: "alert", plural: "alerts" },
     builtIns: [],
     keepsBuiltInOrder: false,
+  },
+  [StateListType.IncidentPostmortemStatus]: {
+    type: StateListType.IncidentPostmortemStatus,
+    orderColumn: "order",
+    subject: { singular: "postmortem", plural: "postmortems" },
+    builtIns: [
+      { flag: "isNotStartedStatus", role: "not started status" },
+      { flag: "isDraftStatus", role: "draft status" },
+      { flag: "isCompletedStatus", role: "completed status" },
+    ],
+    keepsBuiltInOrder: true,
+    insertAboveFlag: "isCompletedStatus",
+    orderReason: "A postmortem is started, drafted and then completed",
   },
 };
 
@@ -633,7 +662,11 @@ export const getStateListOrderViolationMessage: (
   definition: StateListDefinition,
   violation: StateListOrderViolation,
 ): string => {
-  return `${capitalize(definition.subject.plural)} only ever move down this list, so the ${violation.laterBuiltIn.role} (${quoted(violation.later)}) has to stay below the ${violation.earlierBuiltIn.role} (${quoted(violation.earlier)}).`;
+  const reason: string =
+    definition.orderReason ||
+    `${capitalize(definition.subject.plural)} only ever move down this list`;
+
+  return `${reason}, so the ${violation.laterBuiltIn.role} (${quoted(violation.later)}) has to stay below the ${violation.earlierBuiltIn.role} (${quoted(violation.earlier)}).`;
 };
 
 /** Why deleting the last row of a built-in kind is refused. */

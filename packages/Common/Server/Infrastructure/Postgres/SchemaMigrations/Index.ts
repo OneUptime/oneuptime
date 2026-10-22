@@ -162,8 +162,10 @@ import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArch
 import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
 import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./1805830000000-MoveFixPullRequestSwitchesIntoRules";
 import { AddThreatIntelFeedConnectionIndexAndKey1805840000000 } from "./1805840000000-AddThreatIntelFeedConnectionIndexAndKey";
-import { AddRuleLlmProviders1805900000000 } from "./1805900000000-AddRuleLlmProviders";
-import { AddRuleLlmProviderIndexesAndKeys1805910000000 } from "./1805910000000-AddRuleLlmProviderIndexesAndKeys";
+import { AddIncidentPostmortemStatus1805900000000 } from "./1805900000000-AddIncidentPostmortemStatus";
+import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "./1805910000000-AddIncidentPostmortemStatusIndexesAndKey";
+import { AddRuleLlmProviders1805920000000 } from "./1805920000000-AddRuleLlmProviders";
+import { AddRuleLlmProviderIndexesAndKeys1805930000000 } from "./1805930000000-AddRuleLlmProviderIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1528,6 +1530,8 @@ export default [
   AddThreatIntelFeedSources1805820000000,
   MoveFixPullRequestSwitchesIntoRules1805830000000,
   AddThreatIntelFeedConnectionIndexAndKey1805840000000,
-  AddRuleLlmProviders1805900000000,
-  AddRuleLlmProviderIndexesAndKeys1805910000000,
+  AddIncidentPostmortemStatus1805900000000,
+  AddIncidentPostmortemStatusIndexesAndKey1805910000000,
+  AddRuleLlmProviders1805920000000,
+  AddRuleLlmProviderIndexesAndKeys1805930000000,
 ];

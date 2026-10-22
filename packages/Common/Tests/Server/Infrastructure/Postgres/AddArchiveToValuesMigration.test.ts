@@ -6,6 +6,7 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../../Models/DatabaseModels/AlertState";
+import IncidentPostmortemStatus from "../../../../Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
@@ -88,6 +89,27 @@ const TABLES: Array<ValueTable> = [
   { table: "IncidentRole", modelType: IncidentRole },
 ];
 
+/*
+ * A value table made after these two migrations is not altered by them: its
+ * own migration creates it archivable - the three columns in its CREATE
+ * TABLE, the key from who archived a value to the user beside them - as the
+ * migration generator wrote it from the model.
+ */
+interface LaterValueTable extends ValueTable {
+  // Its creating migration's file and class name.
+  file: string;
+  migrationName: string;
+}
+
+const CREATED_ARCHIVABLE_LATER: Array<LaterValueTable> = [
+  {
+    table: "IncidentPostmortemStatus",
+    modelType: IncidentPostmortemStatus,
+    file: "1805900000000-AddIncidentPostmortemStatus.ts",
+    migrationName: "AddIncidentPostmortemStatus1805900000000",
+  },
+];
+
 const COLUMNS: Array<string> = ["isArchived", "archivedAt", "archivedByUserId"];
 
 const declaredColumns: (modelType: unknown) => Array<string> = (
@@ -149,14 +171,97 @@ describe("registration", () => {
     expect(KEYS_FILE.split("-")[0]).toBe(KEYS_NAME.slice(-13));
   });
 
-  test("the tables are the archivable values, all eight", () => {
+  test("the tables are the archivable values that existed before them, all eight", () => {
+    // Every archivable value is either altered here or created archivable later.
     expect(
-      TABLES.map((entry: ValueTable): string => {
-        return entry.table;
-      }).sort(),
+      [...TABLES, ...CREATED_ARCHIVABLE_LATER]
+        .map((entry: ValueTable): string => {
+          return entry.table;
+        })
+        .sort(),
     ).toEqual([...ARCHIVABLE_VALUE_TABLE_NAMES].sort());
+
+    for (const later of CREATED_ARCHIVABLE_LATER) {
+      expect(
+        TABLES.map((entry: ValueTable): string => {
+          return entry.table;
+        }),
+      ).not.toContain(later.table);
+    }
   });
 });
+
+describe.each(CREATED_ARCHIVABLE_LATER)(
+  "$table, created archivable by its own migration",
+  ({ table, modelType, file, migrationName }: LaterValueTable) => {
+    const created: { up: string; down: string; source: string } = read(file);
+
+    // The CREATE TABLE statement, as the generator wrote it on one line.
+    const createTable: string =
+      created.up.split("\n").find((line: string): boolean => {
+        return line.includes(`CREATE TABLE "${table}"`);
+      }) || "";
+
+    test("is registered after both archive migrations", () => {
+      const names: Array<string> = Migrations.map(
+        (migration: { name: string }): string => {
+          return migration.name;
+        },
+      );
+
+      expect(names.indexOf(migrationName)).toBeGreaterThan(
+        names.indexOf(KEYS_NAME),
+      );
+      expect(file.split("-")[0]).toBe(migrationName.slice(-13));
+    });
+
+    test.each(COLUMNS)("%s is declared on the model", (column: string) => {
+      expect(declaredColumns(modelType)).toContain(column);
+    });
+
+    test("its CREATE TABLE holds the three columns as the archive migration adds them", () => {
+      expect(createTable).not.toBe("");
+      expect(createTable).toContain(
+        `"isArchived" boolean NOT NULL DEFAULT false`,
+      );
+      expect(createTable).toContain(`"archivedAt" TIMESTAMP WITH TIME ZONE,`);
+      expect(createTable).toContain(`"archivedByUserId" uuid,`);
+    });
+
+    test("is never altered by the archive migrations", () => {
+      expect(tablesTouched(COLUMNS_MIGRATION.source)).not.toContain(table);
+      expect(tablesTouched(KEYS_MIGRATION.source)).not.toContain(table);
+    });
+
+    test("the archivedByUser key carries TypeORM's name, is cleared when the user goes, and down() drops it", () => {
+      const expected: string = namingStrategy.foreignKeyName(table, [
+        "archivedByUserId",
+      ]);
+
+      expect(created.up).toContain(
+        `ALTER TABLE "${table}" ADD CONSTRAINT "${expected}" FOREIGN KEY ("archivedByUserId") REFERENCES "User"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
+      );
+      expect(created.down).toContain(
+        `ALTER TABLE "${table}" DROP CONSTRAINT "${expected}"`,
+      );
+    });
+
+    test("the model's archivedByUser relation is cleared when the user goes", () => {
+      const relation: RelationMetadataArgs | undefined =
+        getMetadataArgsStorage().relations.find(
+          (candidate: RelationMetadataArgs): boolean => {
+            return (
+              candidate.target === modelType &&
+              candidate.propertyName === "archivedByUser"
+            );
+          },
+        );
+
+      expect(relation).toBeDefined();
+      expect(relation!.options.onDelete).toBe("SET NULL");
+    });
+  },
+);
 
 describe.each(TABLES)("$table", ({ table, modelType }: ValueTable) => {
   test.each(COLUMNS)("%s is declared on the model", (column: string) => {

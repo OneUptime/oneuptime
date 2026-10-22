@@ -189,7 +189,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 領域 | 命令 |
 | --- | --- |
 | 監控 | `monitor`, `monitor-status`, `monitor-status-event` |
-| 事件 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| 事件 | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | 警示 | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | 狀態頁面 | `status-page`, `status-page-announcement` |
 | 排定維護 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

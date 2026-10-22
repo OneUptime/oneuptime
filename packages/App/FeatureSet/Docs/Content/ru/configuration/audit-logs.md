@@ -93,6 +93,7 @@ flowchart TB
 | Статусы мониторов | `Monitor Status` |
 | Состояния планового обслуживания | `Scheduled Maintenance State` |
 | Роли инцидента | `Incident Role` |
+| Статусы постмортема | `Postmortem Status` |
 | Ключи API | `API Key` |
 | Клиенты MCP, которые подключают люди | `MCP Client Authorization` |
 | Элементы инвентаря | `Inventory Item` |
