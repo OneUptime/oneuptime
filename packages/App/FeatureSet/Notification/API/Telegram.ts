@@ -1,7 +1,6 @@
-import { getTelegramConfig, TelegramConfig } from "../Config";
+import { getTelegramConfig } from "../Config";
 import TelegramService from "../Services/TelegramService";
 import BadDataException from "Common/Types/Exception/BadDataException";
-import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import TelegramMessage from "Common/Types/Telegram/TelegramMessage";
@@ -13,11 +12,7 @@ import VerificationCodeRateLimit, {
   VerificationCodeRateLimitOutcome,
 } from "Common/Server/Middleware/VerificationCodeRateLimit";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
-import UserTelegramService, {
-  TelegramVerificationOutcome,
-  TelegramVerificationResult,
-} from "Common/Server/Services/UserTelegramService";
-import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import TelegramBotUpdates from "Common/Server/Utils/TelegramBotUpdates";
 import TelegramVerificationToken from "Common/Server/Utils/TelegramVerificationToken";
 import Express, {
   ExpressRequest,
@@ -29,27 +24,20 @@ import logger, {
   getLogAttributesFromRequest,
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import API from "Common/Utils/API";
-import URL from "Common/Types/API/URL";
-import Protocol from "Common/Types/API/Protocol";
-import Route from "Common/Types/API/Route";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 const router: ExpressRouter = Express.getRouter();
 const WEBHOOK_CONFIG_LOG_INTERVAL_MS: number = 60 * 1000;
 /*
- * These values deliberately have bounded cardinality. VerificationCodeRateLimit
+ * This value deliberately has bounded cardinality. VerificationCodeRateLimit
  * creates an item counter before it decides whether the shared user/IP counter
- * is over budget. Deriving this segment from an untrusted header or command
- * would therefore let a caller allocate one Redis key per distinct guess.
+ * is over budget. Deriving this segment from an untrusted header would
+ * therefore let a caller allocate one Redis key per distinct guess.
  *
- * The limiter includes userKey in the item-counter key, so these constants are
- * still independently scoped per trusted client IP and Telegram chat.
+ * The limiter includes userKey in the item-counter key, so this constant is
+ * still independently scoped per trusted client IP.
  */
 const INVALID_WEBHOOK_SECRET_RATE_LIMIT_ITEM_KEY: string =
   "telegram-webhook-invalid-secret";
-const TELEGRAM_START_RATE_LIMIT_ITEM_KEY: string = "telegram-start";
 let lastWebhookConfigErrorLoggedAt: number = 0;
 
 function shouldLogWebhookConfigError(): boolean {
@@ -247,121 +235,16 @@ router.post(
         return;
       }
 
-      const update: JSONObject = req.body as JSONObject;
-      const telegramMessage: JSONObject | undefined =
-        (update["message"] as JSONObject | undefined) || undefined;
-
-      if (!telegramMessage) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      const text: string | undefined =
-        (telegramMessage["text"] as string | undefined) || undefined;
-      const chat: JSONObject | undefined =
-        (telegramMessage["chat"] as JSONObject | undefined) || undefined;
-
-      if (!text || !chat || chat["id"] === undefined) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      const chatId: string = String(chat["id"]);
-
-      if (!text.startsWith("/start")) {
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      const parts: Array<string> = text.trim().split(/\s+/);
-      const code: string | undefined = parts[1];
-
-      const rateLimitDecision: VerificationCodeRateLimitDecision =
-        await VerificationCodeRateLimit.consume({
-          itemKey: TELEGRAM_START_RATE_LIMIT_ITEM_KEY,
-          userKey: `telegram-chat:${chatId}`,
-          /*
-           * Telegram forwards every update from its own infrastructure, so the
-           * HTTP source address is shared by every user. The stable chat id is
-           * the meaningful client identity for this webhook.
-           */
-          clientIp: `telegram-chat:${chatId}`,
-          bucket: VerificationCodeRateLimitBucket.Verify,
-        });
-
-      if (
-        rateLimitDecision.outcome !== VerificationCodeRateLimitOutcome.Allowed
-      ) {
-        if (
-          rateLimitDecision.outcome ===
-            VerificationCodeRateLimitOutcome.RateLimited &&
-          rateLimitDecision.isFirstRejectionInWindow
-        ) {
-          await sendBotReply(
-            chatId,
-            "❌ Too many verification attempts. Please wait and open OneUptime to request a new link.",
-          );
-        }
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      if (!code) {
-        await sendBotReply(
-          chatId,
-          "ℹ️ Please include your verification code like this:\n\n/start <code>\n\nOpen OneUptime → User Settings → Notification Methods → Telegram to grab your link.",
-        );
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      const verificationResult: TelegramVerificationResult =
-        await UserTelegramService.claimVerificationCode({
-          verificationCode: code,
-          telegramChatId: chatId,
-        });
-
-      if (
-        verificationResult.outcome !== TelegramVerificationOutcome.Verified ||
-        !verificationResult.item
-      ) {
-        await sendBotReply(
-          chatId,
-          "❌ That verification link is invalid, expired, or has already been used. Please open OneUptime and request a new one.",
-        );
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      const match: UserTelegram = verificationResult.item;
-
-      if (
-        !match.projectId ||
-        !match.userId ||
-        !(await UserTelegramService.hasActiveProjectMembership({
-          projectId: match.projectId,
-          userId: match.userId,
-        }))
-      ) {
-        await sendBotReply(
-          chatId,
-          "❌ That verification link is invalid, expired, or has already been used. Please open OneUptime and request a new one.",
-        );
-        return Response.sendEmptySuccessResponse(req, res);
-      }
-
-      try {
-        await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
-          {
-            projectId: new ObjectID(match.projectId!.toString()),
-            userId: new ObjectID(match.userId!.toString()),
-            notificationMethod: {
-              userTelegramId: new ObjectID(match.id!.toString()),
-            },
-          },
-        );
-      } catch (e) {
-        logger.error(e);
-      }
-
-      await sendBotReply(
-        chatId,
-        "🎉 Verified! You'll now receive OneUptime alerts here.\n\n🔔 Head back to OneUptime to pick which events you want delivered.",
-      );
+      /*
+       * The same handling as a message fetched by polling
+       * (TelegramBotUpdates). The token is read only for a reply.
+       */
+      await TelegramBotUpdates.handleUpdate({
+        update: req.body as JSONObject,
+        getBotToken: async (): Promise<string> => {
+          return (await getTelegramConfig()).botToken;
+        },
+      });
 
       return Response.sendEmptySuccessResponse(req, res);
     } catch (err) {
@@ -369,36 +252,5 @@ router.post(
     }
   },
 );
-
-async function sendBotReply(chatId: string, text: string): Promise<void> {
-  try {
-    const config: TelegramConfig = await getTelegramConfig();
-
-    const url: URL = new URL(
-      Protocol.HTTPS,
-      "api.telegram.org",
-      new Route(`/bot${config.botToken}/sendMessage`),
-    );
-
-    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.post<JSONObject>({
-        url,
-        data: {
-          chat_id: chatId,
-          text,
-        },
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-    if (response instanceof HTTPErrorResponse) {
-      logger.error("Failed to send Telegram bot reply.");
-      logger.error(response);
-    }
-  } catch (err) {
-    logger.error(err);
-  }
-}
 
 export default router;

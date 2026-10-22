@@ -740,7 +740,8 @@ describe("what a new member starts with", () => {
       "Common/Server/API/UserCallAPI.ts",
       "Common/Server/API/UserWhatsAppAPI.ts",
       "Common/Server/API/UserPushAPI.ts",
-      "App/FeatureSet/Notification/API/Telegram.ts",
+      // A Telegram account, linked by webhook or by polling.
+      "Common/Server/Utils/TelegramBotUpdates.ts",
       "Common/Server/Services/UserSlackService.ts",
       "Common/Server/Services/UserMicrosoftTeamsService.ts",
       "Common/Server/Services/UserWebhookService.ts",

@@ -200,6 +200,13 @@ import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
  * page that first went to it says it was sent.
  */
 import "./Jobs/PushNotification/CheckExpoPushReceipts";
+
+/*
+ * Telegram messages, fetched by a server Telegram cannot reach. Without it,
+ * "Poll Telegram for Messages" fetches nothing, and nobody on such a server
+ * can link a Telegram account.
+ */
+import "./Jobs/Telegram/PollUpdates";
 import "./Jobs/Workflow/TimeoutJobs";
 
 /*
