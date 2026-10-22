@@ -33186,5 +33186,16 @@
   "Nothing was posted on the pull request.": "Non è stato pubblicato nulla sulla pull request.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Il suo autore non ha accesso in scrittura a questo repository, quindi viene rivista di nuovo solo quando lo chiede qualcuno con accesso in scrittura.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Questo repository non è collegato tramite la GitHub App, quindi le sue pull request non vengono riviste.",
-  "Last thrown {{time}}": "Ultima volta {{time}}"
+  "Last thrown {{time}}": "Ultima volta {{time}}",
+  "About the same in both halves of the time range": "About the same in both halves of the time range",
+  "Click to configure metric": "Click to configure metric",
+  "Data Source Value": "Data Source Value",
+  "Down from 0 in the first half of the time range": "Down from 0 in the first half of the time range",
+  "Down {{percent}} from the first half of the time range to the second half": "Down {{percent}} from the first half of the time range to the second half",
+  "First half": "First half",
+  "Second half": "Second half",
+  "Up from 0 in the first half of the time range": "Up from 0 in the first half of the time range",
+  "Up {{percent}} from the first half of the time range to the second half": "Up {{percent}} from the first half of the time range to the second half",
+  "Value Widget": "Value Widget",
+  "from 0": "from 0"
 }

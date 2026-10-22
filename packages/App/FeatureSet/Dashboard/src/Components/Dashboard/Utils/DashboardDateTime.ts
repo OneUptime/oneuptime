@@ -111,3 +111,94 @@ export function getDashboardDateTimeLabel(
 ): string {
   return getDashboardDateTime(date, options).label;
 }
+
+export interface DashboardSpanLabels {
+  start: string;
+  end: string;
+}
+
+const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
+
+/*
+ * Past this a day of the month says enough, and past the next the month
+ * does: the same steps the chart axes take (Common/UI/Components/Charts/
+ * Utils/XAxis.ts) as their buckets widen.
+ */
+const SPAN_LABELLED_BY_DAY_AND_TIME_IN_MS: number = 3 * DAY_IN_MS;
+const SPAN_LABELLED_BY_DAY_IN_MS: number = 183 * DAY_IN_MS;
+
+/**
+ * How to label an instant inside a stretch of time, as a chart's time axis
+ * labels its ticks, for a line too small to carry an axis of its own (the
+ * Value widget's sparkline) and for the halves its trend compares. Each label
+ * is as short as it can be while still telling the instants of the stretch
+ * apart:
+ *
+ *   within one day        "09:00"         "10:00"
+ *   up to three days      "21 Oct, 10:00" "22 Oct, 10:00"
+ *   up to half a year     "15 Oct"        "22 Oct"
+ *   longer                "Apr 2026"      "Oct 2026"
+ *
+ * Like the axis ticks, the clock is a 24-hour one and the wall clock the
+ * configured timezone's, so the labels read the way the charts beside the
+ * widget do. Null when either end is not a usable date.
+ */
+export function getDashboardSpanLabeller(
+  start: Date | string | null | undefined,
+  end: Date | string | null | undefined,
+): ((date: Date) => string) | null {
+  const startDate: Date | null = toDisplayableDate(start);
+  const endDate: Date | null = toDisplayableDate(end);
+
+  if (!startDate || !endDate) {
+    return null;
+  }
+
+  const spanInMs: number = Math.abs(endDate.getTime() - startDate.getTime());
+
+  if (
+    spanInMs < DAY_IN_MS &&
+    OneUptimeDate.getDateAsLocalDayMonthString(startDate) ===
+      OneUptimeDate.getDateAsLocalDayMonthString(endDate)
+  ) {
+    return (date: Date): string => {
+      return OneUptimeDate.getLocalTimeString(date);
+    };
+  }
+
+  if (spanInMs <= SPAN_LABELLED_BY_DAY_AND_TIME_IN_MS) {
+    return (date: Date): string => {
+      return OneUptimeDate.getDateAsLocalDayMonthTimeString(date);
+    };
+  }
+
+  if (spanInMs <= SPAN_LABELLED_BY_DAY_IN_MS) {
+    return (date: Date): string => {
+      return OneUptimeDate.getDateAsLocalDayMonthString(date);
+    };
+  }
+
+  return (date: Date): string => {
+    return OneUptimeDate.getDateAsLocalMonthYearString(date);
+  };
+}
+
+// The two ends of a stretch of time, labelled by getDashboardSpanLabeller.
+export function getDashboardSpanLabels(
+  start: Date | string | null | undefined,
+  end: Date | string | null | undefined,
+): DashboardSpanLabels | null {
+  const label: ((date: Date) => string) | null = getDashboardSpanLabeller(
+    start,
+    end,
+  );
+
+  if (!label) {
+    return null;
+  }
+
+  return {
+    start: label(toDisplayableDate(start) as Date),
+    end: label(toDisplayableDate(end) as Date),
+  };
+}

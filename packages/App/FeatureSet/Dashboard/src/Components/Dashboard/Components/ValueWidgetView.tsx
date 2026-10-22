@@ -4,14 +4,17 @@ import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
-import OneUptimeDate from "Common/Types/Date";
 import {
   getValueContentBox,
   getValueWidgetLayout,
@@ -20,21 +23,37 @@ import {
   ValueWidgetStackMode,
   VALUE_LINE_HEIGHT_RATIO,
 } from "Common/Utils/Dashboard/ValueWidgetLayout";
+import {
+  getValueWidgetSeries,
+  ValueWidgetPoint,
+  ValueWidgetTrend,
+  ValueWidgetTrendDirection,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
+import {
+  DashboardSpanLabels,
+  getDashboardDateTimeLabel,
+  getDashboardSpanLabeller,
+  getDashboardSpanLabels,
+} from "../Utils/DashboardDateTime";
 
 /*
  * The big-number widget's PRESENTATION, with no opinion about where its
  * number came from. Two widgets render through it: DashboardValueComponent
  * (a OneUptime metric query) and DashboardDataSourceValueComponent (an
  * external Data Source query). Each owns its own fetching, reduction, and
- * unit resolution, and hands the finished number down here — which is what
- * lets the two look identical on a board without either one carrying the
- * other's configuration surface.
+ * unit resolution, and hands the finished number - and the trend worked out
+ * the same way (Common/Utils/Dashboard/ValueWidgetSeries) - down here, which
+ * is what lets the two look identical on a board without either one carrying
+ * the other's configuration surface.
  */
 
-export interface SparklinePoint {
-  value: number;
-  timestamp: Date;
-}
+/*
+ * One point of the sparkline. The view draws its points oldest first and
+ * evenly spaced whatever order they are handed over in: it sorts them itself
+ * (getValueWidgetSeries), so no host depends on the order its API answered
+ * in. The metrics API answers newest first.
+ */
+export type SparklinePoint = ValueWidgetPoint;
 
 export interface SparklineSelectionWindow {
   startTime: Date;
@@ -282,6 +301,12 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   const maxVal: number = Math.max(...values);
   const range: number = maxVal - minVal || 1;
   /*
+   * A series that never moves is drawn across the middle of the line's box.
+   * Scaled like any other it sat on the bottom edge, where a steady 120 req/s
+   * read as a line of zeros.
+   */
+  const isFlat: boolean = maxVal === minVal;
+  /*
    * The hover marker is an r=3.5 circle with a 2px stroke drawn at
    * `x = width - padding`, so a 2px inset painted it past the svg's own edge
    * and relied on `overflow-visible` to show it. The row height is budgeted
@@ -300,10 +325,12 @@ export const Sparkline: FunctionComponent<SparklineProps> = (
   const pointAt: (index: number) => [number, number] = (index: number) => {
     const i: number = Math.max(0, Math.min(lastIndex, index));
     const x: number = padding + (i / lastIndex) * (props.width - padding * 2);
-    const y: number =
-      props.height -
-      padding -
-      ((dataPoints[i]!.value - minVal) / range) * (props.height - padding * 2);
+    const y: number = isFlat
+      ? props.height / 2
+      : props.height -
+        padding -
+        ((dataPoints[i]!.value - minVal) / range) *
+          (props.height - padding * 2);
     return [x, y];
   };
 
@@ -527,8 +554,18 @@ export interface ValueWidgetViewProps {
    * would be indistinguishable from a genuine measurement of zero.
    */
   value: number | null;
-  /** Every point, in time order, for the sparkline and the trend. */
+  /*
+   * Every point, for the sparkline: in any order (the view sorts them by
+   * time), one per bucket (a host combines the groups of a grouped query with
+   * its own reduction first - getValueWidgetSeries).
+   */
   points: Array<SparklinePoint>;
+  /*
+   * How the number moved: the second half of the time range against the
+   * first, each reduced the way the number is (getValueWidgetTrend). Null or
+   * absent when there is nothing to compare, and then no arrow is drawn.
+   */
+  trend?: ValueWidgetTrend | null | undefined;
   /** Shown instead of a number when `value` is null. */
   noDataMessage: string;
 
@@ -570,9 +607,273 @@ export interface ValueWidgetViewProps {
   onTimeRangeReset?: (() => void) | undefined;
 }
 
+export const TREND_TEST_ID: string = "value-widget-trend";
+export const TREND_DETAILS_TEST_ID: string = "value-widget-trend-details";
+export const SPARKLINE_START_LABEL_TEST_ID: string =
+  "value-widget-sparkline-start";
+export const SPARKLINE_END_LABEL_TEST_ID: string = "value-widget-sparkline-end";
+
+/*
+ * Whether a move is good news, bad news or neither. The chip carries it as
+ * data-tone too, so a reader of the page (or a test) need not know the palette.
+ */
+export type ValueWidgetTrendTone = "good" | "bad" | "neutral";
+
+/*
+ * Small text needs 4.5:1 against the tile. The 500 shades the chip used to
+ * be drawn in reached 2.5:1 (green) and 3.8:1 (red) on white; these reach
+ * 5.5:1 and 4.8:1, and Theme.css lightens all three for the dark theme.
+ */
+const TREND_TONE_CLASS_NAMES: Record<ValueWidgetTrendTone, string> = {
+  good: "text-emerald-700",
+  bad: "text-red-600",
+  neutral: "text-gray-500",
+};
+
+const TREND_ARROWS: Record<ValueWidgetTrendDirection, string> = {
+  [ValueWidgetTrendDirection.Up]: "↑",
+  [ValueWidgetTrendDirection.Down]: "↓",
+  [ValueWidgetTrendDirection.Flat]: "→",
+};
+
+/*
+ * The colour of a move. The widget's own Trend Direction setting decides
+ * whether a rise is good; "Auto" (or no setting) reads the metric's name, and
+ * external data, which has no metric name, therefore reads a rise as good.
+ * A move that is about nothing is neither.
+ */
+export const getValueWidgetTrendTone: (data: {
+  direction: ValueWidgetTrendDirection;
+  trendDirection: DashboardValueTrendDirection | undefined;
+  metricName: string;
+}) => ValueWidgetTrendTone = (data: {
+  direction: ValueWidgetTrendDirection;
+  trendDirection: DashboardValueTrendDirection | undefined;
+  metricName: string;
+}): ValueWidgetTrendTone => {
+  if (data.direction === ValueWidgetTrendDirection.Flat) {
+    return "neutral";
+  }
+
+  let higherIsWorse: boolean;
+
+  if (data.trendDirection === DashboardValueTrendDirection.HigherIsWorse) {
+    higherIsWorse = true;
+  } else if (
+    data.trendDirection === DashboardValueTrendDirection.HigherIsBetter
+  ) {
+    higherIsWorse = false;
+  } else {
+    higherIsWorse = ValueFormatter.isHigherWorseMetric(data.metricName);
+  }
+
+  const isRise: boolean = data.direction === ValueWidgetTrendDirection.Up;
+
+  return isRise !== higherIsWorse ? "good" : "bad";
+};
+
+/*
+ * The one sentence that says what the arrow means: which way, by how much,
+ * and against what. It is the chip's accessible name and the first line of
+ * its tooltip.
+ */
+export const getValueWidgetTrendSentence: (
+  trend: ValueWidgetTrend,
+  translator: Translator,
+) => string = (trend: ValueWidgetTrend, translator: Translator): string => {
+  const percent: string = `${Math.abs(trend.percent ?? 0)}%`;
+
+  if (trend.direction === ValueWidgetTrendDirection.Flat) {
+    return translator.translateTemplate(
+      "About the same as in the first half of the time range",
+    );
+  }
+
+  if (trend.percent === null) {
+    return trend.direction === ValueWidgetTrendDirection.Up
+      ? translator.translateTemplate(
+          "Up from 0 in the first half of the time range",
+        )
+      : translator.translateTemplate(
+          "Down from 0 in the first half of the time range",
+        );
+  }
+
+  return trend.direction === ValueWidgetTrendDirection.Up
+    ? translator.translateTemplate(
+        "Up {{percent}} from the first half of the time range",
+        { percent: percent },
+      )
+    : translator.translateTemplate(
+        "Down {{percent}} from the first half of the time range",
+        { percent: percent },
+      );
+};
+
+interface ValueWidgetTrendChipProps {
+  trend: ValueWidgetTrend;
+  tone: ValueWidgetTrendTone;
+  // The number as the widget writes it, unit and all.
+  formatValue: (value: number) => string;
+}
+
+/*
+ * The arrow and its percentage, and - on hover, focus or a tap - what they
+ * compare: the sentence, then each half of the time range with its number,
+ * so the percentage can be checked against the data it came from.
+ */
+export const ValueWidgetTrendChip: FunctionComponent<
+  ValueWidgetTrendChipProps
+> = (props: ValueWidgetTrendChipProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const trend: ValueWidgetTrend = props.trend;
+  const sentence: string = getValueWidgetTrendSentence(trend, translator);
+
+  const labelInstant: ((date: Date) => string) | null =
+    getDashboardSpanLabeller(trend.firstHalfStart, trend.secondHalfEnd);
+
+  const rangeOf: (start: Date, end: Date) => string | null = (
+    start: Date,
+    end: Date,
+  ): string | null => {
+    if (!labelInstant) {
+      return null;
+    }
+
+    return translator.translateTemplate("{{start}} – {{end}}", {
+      start: labelInstant(start),
+      end: labelInstant(end),
+    });
+  };
+
+  const halves: Array<{
+    key: string;
+    label: string;
+    range: string | null;
+    value: string;
+  }> = [
+    {
+      key: "first",
+      label: translator.translateTemplate("First half"),
+      range: rangeOf(trend.firstHalfStart, trend.midpoint),
+      value: props.formatValue(trend.firstHalfValue),
+    },
+    {
+      key: "second",
+      label: translator.translateTemplate("Second half"),
+      range: rangeOf(trend.midpoint, trend.secondHalfEnd),
+      value: props.formatValue(trend.secondHalfValue),
+    },
+  ];
+
+  const details: ReactElement = (
+    <div
+      data-testid={TREND_DETAILS_TEST_ID}
+      className="py-0.5 text-left text-xs"
+    >
+      <p className="font-medium leading-5 text-gray-900">{sentence}</p>
+      <div className="mt-2 space-y-1.5">
+        {halves.map(
+          (half: {
+            key: string;
+            label: string;
+            range: string | null;
+            value: string;
+          }): ReactElement => {
+            return (
+              <div
+                key={half.key}
+                data-half={half.key}
+                className="flex items-start justify-between gap-6"
+              >
+                <div className="min-w-0">
+                  <p className="leading-4 text-gray-600">{half.label}</p>
+                  {half.range ? (
+                    <p className="mt-0.5 leading-4 tabular-nums text-gray-500">
+                      {half.range}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+                <p className="shrink-0 font-semibold leading-4 tabular-nums text-gray-900">
+                  {half.value}
+                </p>
+              </div>
+            );
+          },
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <Tooltip richContent={details} interactive={false} isShownOnPress={true}>
+      <span
+        data-testid={TREND_TEST_ID}
+        data-tone={props.tone}
+        data-direction={trend.direction}
+        role="img"
+        aria-label={sentence}
+        className={`inline-flex items-center gap-0.5 ${TREND_TONE_CLASS_NAMES[props.tone]}`}
+      >
+        <span>{TREND_ARROWS[trend.direction]}</span>
+        <span className="font-medium tabular-nums">
+          {trend.percent === null
+            ? translator.translateTemplate("from 0")
+            : `${Math.abs(trend.percent)}%`}
+        </span>
+      </span>
+    </Tooltip>
+  );
+};
+
+/*
+ * A label at either end of the sparkline is drawn at this size, and only when
+ * both fit beside the line inside the tile: this much room per character is
+ * more than any of Inter's digits or letters takes at it.
+ */
+const SPAN_LABEL_FONT_SIZE_IN_PX: number = 10;
+const SPAN_LABEL_CHARACTER_WIDTH_RATIO: number = 0.62;
+const SPAN_LABEL_GAP_IN_PX: number = 6;
+
+export const getSparklineSpanLabelsFit: (data: {
+  labels: DashboardSpanLabels;
+  contentWidthInPx: number;
+  sparklineWidthInPx: number;
+}) => boolean = (data: {
+  labels: DashboardSpanLabels;
+  contentWidthInPx: number;
+  sparklineWidthInPx: number;
+}): boolean => {
+  const roomInPx: number =
+    (data.contentWidthInPx - data.sparklineWidthInPx) / 2 -
+    SPAN_LABEL_GAP_IN_PX;
+  const widest: number = Math.max(
+    data.labels.start.length,
+    data.labels.end.length,
+  );
+
+  return (
+    widest * SPAN_LABEL_CHARACTER_WIDTH_RATIO * SPAN_LABEL_FONT_SIZE_IN_PX <=
+    roomInPx
+  );
+};
+
 const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   props: ValueWidgetViewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  /*
+   * The line's points, oldest first, whatever order they were handed over in.
+   * Everything below reads these: the line, the hover read-out, and the
+   * window a drag zooms to.
+   */
+  const sparklineData: Array<SparklinePoint> = useMemo(() => {
+    return getValueWidgetSeries(props.points);
+  }, [props.points]);
+
   /*
    * While the cursor is over the sparkline, swap the big aggregated
    * number for the hovered data point's value and render its timestamp
@@ -619,6 +920,21 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * carries the meaning.
    */
   const showStateTitle: boolean = contentBox.heightInPx >= 60;
+
+  /*
+   * The states' words come from the hosts in English (each wraps them in
+   * translationKey so the extractor finds them) and are read out in the
+   * reader's language here. A connector's own error message has no entry, so
+   * it reads as the connector wrote it.
+   */
+  const setupTitle: string =
+    props.title?.trim() ||
+    translator.translateText(props.setupTitle) ||
+    props.setupTitle;
+  const setupMessage: string =
+    translator.translateText(props.setupMessage) || props.setupMessage;
+  const noDataMessage: string =
+    translator.translateText(props.noDataMessage) || props.noDataMessage;
 
   if (props.isLoading && !props.hasEverLoaded) {
     // Skeleton loading state - only on initial load
@@ -668,15 +984,15 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
         )}
         <p
           className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
-          title={props.title?.trim() || props.setupTitle}
+          title={setupTitle}
         >
-          {props.title?.trim() || props.setupTitle}
+          {setupTitle}
         </p>
         <p
           className="text-xs text-gray-400 text-center max-w-full line-clamp-1 px-1"
-          title={props.setupMessage}
+          title={setupMessage}
         >
-          {props.setupMessage}
+          {setupMessage}
         </p>
       </div>
     );
@@ -748,16 +1064,15 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
         )}
         <p
           className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
-          title={props.noDataMessage}
+          title={noDataMessage}
         >
-          {props.noDataMessage}
+          {noDataMessage}
         </p>
       </div>
     );
   }
 
   const aggregatedValue: number = props.value;
-  const sparklineData: Array<SparklinePoint> = props.points;
   const metricName: string = props.metricName;
   const rawUnit: string = props.rawUnit;
 
@@ -803,8 +1118,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       })
     : displayParts;
 
+  // In the date-and-time shape every dashboard widget writes a time in.
   const hoveredTimestamp: string | null = hoveredPoint
-    ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.timestamp)
+    ? getDashboardDateTimeLabel(hoveredPoint.timestamp)
     : null;
 
   /*
@@ -818,9 +1134,14 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     ? aggregatedValue * 100
     : aggregatedValue;
 
-  // Determine color based on thresholds
+  /*
+   * Determine color based on thresholds. The tile's wash is a class, not an
+   * inline colour: Theme.css turns these tints into a dark red and a dark
+   * amber in the dark theme, where the light pink gradient they replace sat
+   * on the dark card as a grey-pink box that washed out the title.
+   */
   let valueColorClass: string = "text-gray-900";
-  let bgStyle: React.CSSProperties = {};
+  let thresholdTintClass: string = "";
   let sparklineColor: string = "#6366f1"; // indigo
   let sparklineFill: string = "rgba(99, 102, 241, 0.08)";
   const warningThreshold: number | undefined = props.warningThreshold;
@@ -828,10 +1149,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   if (criticalThreshold !== undefined && thresholdValue >= criticalThreshold) {
     valueColorClass = "text-red-600";
-    bgStyle = {
-      background:
-        "linear-gradient(135deg, rgba(254, 226, 226, 0.4) 0%, rgba(254, 202, 202, 0.2) 100%)",
-    };
+    thresholdTintClass = "bg-red-50/60";
     sparklineColor = "#ef4444";
     sparklineFill = "rgba(239, 68, 68, 0.08)";
   } else if (
@@ -839,41 +1157,18 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     thresholdValue >= warningThreshold
   ) {
     valueColorClass = "text-amber-600";
-    bgStyle = {
-      background:
-        "linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(253, 230, 138, 0.2) 100%)",
-    };
+    thresholdTintClass = "bg-amber-50/60";
     sparklineColor = "#f59e0b";
     sparklineFill = "rgba(245, 158, 11, 0.08)";
   }
 
-  // Calculate trend (compare first half avg to second half avg)
-  let trendPercent: number | null = null;
-  let trendDirection: "up" | "down" | "flat" = "flat";
-
-  if (sparklineData.length >= 4) {
-    const rawValues: Array<number> = sparklineData.map((p: SparklinePoint) => {
-      return p.value;
-    });
-    const midpoint: number = Math.floor(rawValues.length / 2);
-    const firstHalf: Array<number> = rawValues.slice(0, midpoint);
-    const secondHalf: Array<number> = rawValues.slice(midpoint);
-    const firstAvg: number =
-      firstHalf.reduce((a: number, b: number) => {
-        return a + b;
-      }, 0) / firstHalf.length;
-    const secondAvg: number =
-      secondHalf.reduce((a: number, b: number) => {
-        return a + b;
-      }, 0) / secondHalf.length;
-
-    if (firstAvg !== 0) {
-      trendPercent =
-        Math.round(((secondAvg - firstAvg) / Math.abs(firstAvg)) * 1000) / 10;
-      trendDirection =
-        trendPercent > 0.5 ? "up" : trendPercent < -0.5 ? "down" : "flat";
-    }
-  }
+  /*
+   * The trend the host worked out (getValueWidgetTrend): the second half of
+   * the time range against the first. A flat one is drawn too - "about the
+   * same" is an answer, where no arrow at all looked like a widget that had
+   * not computed one.
+   */
+  const trend: ValueWidgetTrend | null = props.trend || null;
 
   /*
    * One arithmetic pass decides the whole layout: how big the number can be on
@@ -889,51 +1184,41 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     heightInPx: props.heightInPx,
     isEditMode: props.isEditMode,
     hasTitle: Boolean(props.title?.trim()),
-    hasTrend: trendPercent !== null && trendDirection !== "flat",
+    hasTrend: trend !== null,
     hasSparklineData: sparklineData.length >= 2,
     valueText: sizingParts.value || "0",
     unitText: props.hideUnit ? "" : sizingParts.unit,
   });
 
   /*
-   * Trend indicator — colour depends on whether a rising value is good or bad
-   * for this metric. The widget config takes precedence; when it says "Auto"
-   * (or is unset) we fall back to a metric-name heuristic so legacy widgets
-   * get sensible defaults without re-saving. External data has no metric name,
-   * so the heuristic there always answers "higher is better".
+   * The number as the widget writes it, for the halves the trend's tooltip
+   * lists: the same formatter, unit and scale as the big number above it.
    */
-  const trendElement: ReactElement | null =
-    trendPercent !== null && trendDirection !== "flat"
-      ? (() => {
-          const configured: DashboardValueTrendDirection | undefined =
-            props.trendDirection;
-          let higherIsWorse: boolean;
-          if (configured === DashboardValueTrendDirection.HigherIsWorse) {
-            higherIsWorse = true;
-          } else if (
-            configured === DashboardValueTrendDirection.HigherIsBetter
-          ) {
-            higherIsWorse = false;
-          } else {
-            higherIsWorse = ValueFormatter.isHigherWorseMetric(metricName);
-          }
-          const trendIsGood: boolean = higherIsWorse
-            ? trendDirection === "down"
-            : trendDirection === "up";
-          return (
-            <span
-              className={`inline-flex items-center gap-0.5 ${
-                trendIsGood ? "text-emerald-500" : "text-red-500"
-              }`}
-            >
-              <span>{trendDirection === "up" ? "↑" : "↓"}</span>
-              <span className="font-medium tabular-nums">
-                {Math.abs(trendPercent)}%
-              </span>
-            </span>
-          );
-        })()
-      : null;
+  const formatValue: (value: number) => string = (value: number): string => {
+    const parts: FormattedValue = ValueFormatter.formatValueCompact(
+      value,
+      rawUnit,
+      { metricName },
+    );
+
+    return props.hideUnit ? parts.value : parts.formatted;
+  };
+
+  /*
+   * Trend indicator — colour depends on whether a rising value is good or bad
+   * for this metric (getValueWidgetTrendTone).
+   */
+  const trendElement: ReactElement | null = trend ? (
+    <ValueWidgetTrendChip
+      trend={trend}
+      tone={getValueWidgetTrendTone({
+        direction: trend.direction,
+        trendDirection: props.trendDirection,
+        metricName: metricName,
+      })}
+      formatValue={formatValue}
+    />
+  ) : null;
 
   /*
    * The hovered timestamp takes the trend indicator's slot while the cursor is
@@ -942,16 +1227,39 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * move anything below it.
    */
   const statusElement: ReactElement | null = hoveredTimestamp ? (
-    <span className="text-gray-400 font-medium tabular-nums truncate">
+    <span className="text-gray-500 font-medium tabular-nums truncate">
       {hoveredTimestamp}
     </span>
   ) : (
     trendElement
   );
 
+  /*
+   * While the pointer is on the line, its two ends say when it starts and
+   * ends - oldest on the left, newest on the right, as on every chart - in
+   * the room beside it, when there is room for both.
+   */
+  const spanLabels: DashboardSpanLabels | null =
+    sparklineData.length >= 2
+      ? getDashboardSpanLabels(
+          sparklineData[0]!.timestamp,
+          sparklineData[sparklineData.length - 1]!.timestamp,
+        )
+      : null;
+
+  const showSpanLabels: boolean = Boolean(
+    hoveredPoint &&
+      spanLabels &&
+      getSparklineSpanLabelsFit({
+        labels: spanLabels,
+        contentWidthInPx: layout.contentWidthInPx,
+        sparklineWidthInPx: layout.sparklineWidthInPx,
+      }),
+  );
+
   const titleElement: ReactElement = (
     <span
-      className="font-medium text-gray-400 truncate uppercase tracking-wider"
+      className="font-medium text-gray-500 truncate uppercase tracking-wider"
       style={{ fontSize: `${layout.titleFontSizeInPx}px` }}
       title={props.title}
     >
@@ -961,9 +1269,8 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   return (
     <div
-      className="w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden"
+      className={`w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden ${thresholdTintClass}`}
       style={{
-        ...bgStyle,
         opacity: props.isLoading ? 0.5 : 1,
         transition: "opacity 0.2s ease-in-out",
       }}
@@ -1040,22 +1347,48 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
 
-      {/* Sparkline */}
+      {/* Sparkline. Time runs left to right in every language, as on the
+          charts, so the line and its end labels are laid out left to right
+          even on a right-to-left page. */}
       {layout.showSparkline && (
         <div
           className="w-full shrink-0 overflow-hidden flex items-center justify-center"
           style={{ height: `${layout.sparklineRowHeightInPx}px` }}
         >
-          <Sparkline
-            data={sparklineData}
-            width={layout.sparklineWidthInPx}
-            height={layout.sparklineHeightInPx}
-            color={sparklineColor}
-            fillColor={sparklineFill}
-            onHoverIndex={handleHoverIndex}
-            onTimeRangeSelect={props.onTimeRangeSelect}
-            onTimeRangeReset={props.onTimeRangeReset}
-          />
+          <div className="relative" dir="ltr">
+            {showSpanLabels && spanLabels ? (
+              <span
+                data-testid={SPARKLINE_START_LABEL_TEST_ID}
+                className="pointer-events-none absolute right-full top-1/2 mr-1.5 -translate-y-1/2 whitespace-nowrap leading-none tabular-nums text-gray-500"
+                style={{ fontSize: `${SPAN_LABEL_FONT_SIZE_IN_PX}px` }}
+              >
+                {spanLabels.start}
+              </span>
+            ) : (
+              <></>
+            )}
+            <Sparkline
+              data={sparklineData}
+              width={layout.sparklineWidthInPx}
+              height={layout.sparklineHeightInPx}
+              color={sparklineColor}
+              fillColor={sparklineFill}
+              onHoverIndex={handleHoverIndex}
+              onTimeRangeSelect={props.onTimeRangeSelect}
+              onTimeRangeReset={props.onTimeRangeReset}
+            />
+            {showSpanLabels && spanLabels ? (
+              <span
+                data-testid={SPARKLINE_END_LABEL_TEST_ID}
+                className="pointer-events-none absolute left-full top-1/2 ml-1.5 -translate-y-1/2 whitespace-nowrap leading-none tabular-nums text-gray-500"
+                style={{ fontSize: `${SPAN_LABEL_FONT_SIZE_IN_PX}px` }}
+              >
+                {spanLabels.end}
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       )}
     </div>
