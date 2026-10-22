@@ -2022,7 +2022,7 @@ test.describe("detection rules and threat intel", () => {
    * Last Evaluated wait in Customize Columns; what a poll did wraps in a
    * width of its own.
    */
-  test("the feeds table shows what most people read, each row a line or two tall", async ({
+  test("the feeds table shows what most people read, each healthy row one line", async ({
     page,
   }: {
     page: Page;
@@ -2056,9 +2056,10 @@ test.describe("detection rules and threat intel", () => {
       expect(headers.join(" | ")).not.toContain(hidden);
     }
 
+    // A healthy feed's row is one line: what its poll did, cut short, whole on hover.
     for (const row of await feeds.locator("tbody tr").all()) {
       const box: Box = await boxOf(row);
-      expect(box.height).toBeLessThanOrEqual(80);
+      expect(box.height).toBeLessThanOrEqual(64);
     }
   });
 

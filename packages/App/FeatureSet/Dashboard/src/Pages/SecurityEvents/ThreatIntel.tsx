@@ -81,13 +81,6 @@ const advancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
 const listAdvancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
   getAdvancedFormSection<ThreatIntelFeed>();
 
-/*
- * What a feed's last poll did is a sentence on every row: it wraps within
- * this width, not the few words a table of ten columns left it, which stood
- * every row five lines tall.
- */
-const POLL_SUMMARY_COLUMN_CLASS_NAME: string = "min-w-[16rem]";
-
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
@@ -767,10 +760,14 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               lastPollSummary: true,
             },
             title: "Last Poll Summary",
-            type: FieldType.LongText,
+            /*
+             * What the last poll did is a sentence on every row: one line,
+             * cut short with the whole of it on hover. Wrapped in the few
+             * words a ten-column table left it, it stood every row five
+             * lines tall.
+             */
+            type: FieldType.Text,
             noValueMessage: "-",
-            wrapContent: true,
-            contentClassName: POLL_SUMMARY_COLUMN_CLASS_NAME,
           },
           {
             field: {
@@ -779,6 +776,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            // An error is read whole: it wraps, so a failing feed's row stands out.
             wrapContent: true,
           },
           /*

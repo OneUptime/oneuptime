@@ -474,17 +474,13 @@ describe("the feeds table", () => {
       });
     };
 
-    for (const title of [
-      "Last Poll Summary",
-      "Last Error",
-      "Last Match Error",
-    ]) {
+    // An error is read whole, so a failing feed's row stands out.
+    for (const title of ["Last Error", "Last Match Error"]) {
       expect([title, byTitle(title)?.wrapContent]).toEqual([title, true]);
     }
 
-    expect(byTitle("Last Poll Summary")?.contentClassName).toBe(
-      "min-w-[16rem]",
-    );
+    // What a poll did, on every row: one line, the whole of it on hover.
+    expect(byTitle("Last Poll Summary")?.wrapContent).toBeUndefined();
   });
 
   // A project with no feed has Free Lists right above the empty table.
