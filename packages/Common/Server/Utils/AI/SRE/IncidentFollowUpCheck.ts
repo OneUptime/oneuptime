@@ -178,8 +178,15 @@ export default class IncidentFollowUpCheck {
         return [];
       }
 
-      // What stops automatic investigation for the project stops this too.
-      if (!(await IncidentFollowUpCheck.isLaneOpen(data.projectId))) {
+      /*
+       * What stops automatic investigation for the project stops this too -
+       * but the project's provider only for an incident whose investigation
+       * did not run on a provider a rule picked (enqueueIfDue).
+       */
+      const laneReason: InvestigationNotStartedCode | null =
+        await IncidentFollowUpCheck.getLaneReason(data.projectId);
+
+      if (!IncidentFollowUpCheck.mayLaneOpenFor(laneReason)) {
         return [];
       }
 
@@ -199,6 +206,7 @@ export default class IncidentFollowUpCheck {
             incidentId,
             alertId: data.alertId,
             alertOpenedAt: alert.createdAt,
+            laneReason,
           },
         );
 
@@ -303,7 +311,10 @@ export default class IncidentFollowUpCheck {
         return null;
       }
 
-      if (!(await IncidentFollowUpCheck.isLaneOpen(data.projectId))) {
+      const laneReason: InvestigationNotStartedCode | null =
+        await IncidentFollowUpCheck.getLaneReason(data.projectId);
+
+      if (!IncidentFollowUpCheck.mayLaneOpenFor(laneReason)) {
         return null;
       }
 
@@ -312,6 +323,7 @@ export default class IncidentFollowUpCheck {
         incidentId: data.incidentId,
         alertId: alert.id,
         alertOpenedAt: alert.createdAt,
+        laneReason,
       });
     } catch (error) {
       logger.error(
@@ -334,6 +346,12 @@ export default class IncidentFollowUpCheck {
     incidentId: ObjectID;
     alertId: ObjectID;
     alertOpenedAt: Date;
+    /*
+     * What stops automatic investigation in the project, as the caller read
+     * it (getLaneReason): none, or the project's provider's - which the
+     * provider of the investigation before it may still answer.
+     */
+    laneReason?: InvestigationNotStartedCode | null | undefined;
   }): Promise<ObjectID | null> {
     const incident: Incident | null = await IncidentService.findOneBy({
       query: { _id: data.incidentId.toString(), projectId: data.projectId },
@@ -377,6 +395,17 @@ export default class IncidentFollowUpCheck {
         latestRun: latest,
         alertOpenedAt: data.alertOpenedAt,
       })
+    ) {
+      return null;
+    }
+
+    if (
+      data.laneReason &&
+      !(await IncidentFollowUpCheck.isOpenOnProviderOf({
+        projectId: data.projectId,
+        latestRun: latest,
+        laneReason: data.laneReason,
+      }))
     ) {
       return null;
     }
@@ -652,12 +681,55 @@ export default class IncidentFollowUpCheck {
       .join(", ");
   }
 
-  // Whether automatic incident investigation can run in the project now.
-  private static async isLaneOpen(projectId: ObjectID): Promise<boolean> {
-    const disabled: InvestigationNotStartedCode | null =
-      await AIInvestigationEngine.getDisabledReason(projectId, "Incident");
+  // What stops automatic incident investigation in the project now: null for nothing.
+  private static async getLaneReason(
+    projectId: ObjectID,
+  ): Promise<InvestigationNotStartedCode | null> {
+    return await AIInvestigationEngine.getDisabledReason(projectId, "Incident");
+  }
 
-    return disabled === null;
+  /*
+   * Whether a follow-up may still run for some incident. A follow-up runs on
+   * the LLM provider of the investigation before it - the one a rule picked,
+   * when one did (Types/AI/LlmProviderChoice) - so what stops the lane for
+   * want of the project's provider (none, or no AI credits for it) is asked
+   * again of that pick, incident by incident (isOpenOnProviderOf). Every
+   * other reason is the project's, whatever a rule picked.
+   */
+  private static mayLaneOpenFor(
+    laneReason: InvestigationNotStartedCode | null,
+  ): boolean {
+    return (
+      laneReason === null ||
+      laneReason === "provider_missing" ||
+      laneReason === "insufficient_ai_balance"
+    );
+  }
+
+  /*
+   * A follow-up the project's provider stops runs on the provider the
+   * investigation before it was started with, when a rule picked one and
+   * nothing stops that one.
+   */
+  private static async isOpenOnProviderOf(data: {
+    projectId: ObjectID;
+    latestRun: AIRun;
+    laneReason: InvestigationNotStartedCode;
+  }): Promise<boolean> {
+    if (
+      !IncidentFollowUpCheck.mayLaneOpenFor(data.laneReason) ||
+      !data.latestRun.llmProviderId
+    ) {
+      return false;
+    }
+
+    return (
+      (await AIInvestigationEngine.getDisabledReason(
+        data.projectId,
+        "Incident",
+        { llmProviderId: data.latestRun.llmProviderId },
+      )) === null
+    );
   }
 
   // Inside the subject lock: no follow-up yet, and no run still going.
