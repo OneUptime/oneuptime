@@ -421,7 +421,11 @@ jobs:
           # the next suites. Runbooks Menu (about 25 seconds locally, a minute
           # with its bundle, Chromium only: the Runbooks side menu at 1280 and
           # 390 pixels after AI Access went) joined them the same day: about
-          # 17 for the five.
+          # 17 for the five. Acknowledgement Timeout (about 20 seconds
+          # locally with its bundle, Chromium only: an on-call policy's
+          # Escalation Rules page with the setting folded under More settings,
+          # its dialog and what a save sends, at 1280 and 390 pixels, dark and
+          # German) joined them on 2026-10-22: about 18 for the six.
           - group: 9
             browsers: chromium
             suites: >-
@@ -430,6 +434,7 @@ jobs:
               test-home-overview-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
+              test-acknowledgement-timeout-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -620,4 +625,6 @@ jobs:
             output/playwright/host-collectors-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
+            output/playwright/acknowledgement-timeout-ui/*.png
+            output/playwright/acknowledgement-timeout-ui/test-results
           retention-days: 7

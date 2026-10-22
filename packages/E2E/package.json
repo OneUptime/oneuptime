@@ -81,7 +81,8 @@
     "test-dashboard-templates-ui": "playwright test --config playwright.dashboard-templates-ui.config.ts",
     "test-dashboard-time-range-ui": "playwright test --config playwright.dashboard-time-range-ui.config.ts",
     "test-dashboard-widget-sort-ui": "playwright test --config playwright.dashboard-widget-sort-ui.config.ts",
-    "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts"
+    "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
+    "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts"
   },
   "keywords": [],
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
