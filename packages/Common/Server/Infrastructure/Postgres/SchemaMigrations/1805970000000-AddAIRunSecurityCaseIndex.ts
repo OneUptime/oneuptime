@@ -3,17 +3,17 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddSecurityCaseAiTriage1805940000000, and moved into a migration of its
+ * AddSecurityCaseAiTriage1805960000000, and moved into a migration of its
  * own: "AIRun" already holds every investigation, chat and code fix, and
  * the AI queue writes it all the time, so the index on its new
  * "triggeredBySecurityCaseId" column - how a case's AI card finds its
  * triage - is built online, without blocking those writes. Safe to run
  * again after a stop part way.
  */
-export class AddAIRunSecurityCaseIndex1805950000000
+export class AddAIRunSecurityCaseIndex1805970000000
   implements MigrationInterface
 {
-  public name: string = "AddAIRunSecurityCaseIndex1805950000000";
+  public name: string = "AddAIRunSecurityCaseIndex1805970000000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

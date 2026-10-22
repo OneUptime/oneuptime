@@ -14,6 +14,7 @@ OneUptime GitHub App er mere end en forbindelse til din kode: du kan tale med de
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Hver kommando starter med en omtale af appen. Omtalen kan stå hvor som helst i 
 | Kommando | Hvad der sker | Forstås også |
 | --- | --- | --- |
 | `@oneuptime review` | Kloner branchen, læser den ændrede kode og koden omkring den, tjekker, hvad produktionen siger om den, og slår en gennemgang op som en kommentar. Ændrer intet. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Gennemgår pull requesten i forhold til produktion nu, uanset hvem der åbnede den: undtagelserne, operationerne, hændelserne og udrulningerne omkring den ændrede kode, i én kommentar, der redigeres på stedet (se [Produktionsgennemgang af pull requests](/docs/ai/ai-agent#produktionsgennemgang-af-pull-requests)). Kloner intet og kører intet. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Kloner pull requestens egen branch, laver ændringen og pusher nye commits til den branch. Åbner aldrig en anden pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alt, hvad du skriver efter omtalen, og som ikke er en kendt kommando, læses som en anmodning om revision, fordi det næsten altid er det, det er:
@@ -100,6 +102,8 @@ Det, den finder, kommer under en overskrift **Production context** i gennemgange
 
 Der skal intet sættes op: tjenesterne er dem, OneUptime finder dette repositorie for, som den gør for en rettelse (se [Produktionstelemetri i en rettelse](/docs/ai/ai-agent#produktionstelemetri-i-en-rettelse)). Forespørgslerne læser kun, kører på OneUptime-serveren og læser intet fra en anden tjeneste, et andet projekt eller en privat hændelse. Et repositorie, hvis tjenester ikke sender telemetri til projektet, gennemgås ud fra koden alene.
 
+Slå **Gennemgå pull requests i forhold til produktion** til i repositoriets indstillinger, så hver pull request gennemgås i forhold til produktion af sig selv: se [Produktionsgennemgang af pull requests](/docs/ai/ai-agent#produktionsgennemgang-af-pull-requests).
+
 ## Hvem der må give den kommandoer
 
 **Kun personer med write-, maintain- eller admin-adgang til repositoriet.** OneUptime spørger GitHub om kommentatorens tilladelse til det repositorie hver gang; den stoler ikke på mærket "contributor", som GitHub viser ved siden af en kommentar, for det beskriver tidligere aktivitet og ikke nuværende adgang.
@@ -142,7 +146,7 @@ Abonnér under indstillingerne **Permissions & events** for din GitHub App på:
 | --- | --- |
 | **Issue comment** | `@mention`-kommandoer i issues og pull requests |
 | **Issues** | tildeling af et issue til appen og udløseretiketten |
-| **Pull request** | en gennemgang, der anmodes om fra appen |
+| **Pull request** | en gennemgang, der anmodes om fra appen, og produktionsgennemgange af pull requests, når de åbnes og ændres |
 | **Pull request review** | en omtale i teksten i en indsendt gennemgang |
 | **Pull request review comment** | en omtale i en inline-kommentar til diffen |
 

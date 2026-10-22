@@ -97,7 +97,7 @@ OneUptime använder två uppsättningar händelser, och de gör olika jobb.
 | --- | --- |
 | **Issue comment** | `@mention`-kommandon i issues **och** i pull requests |
 | **Issues** | att tilldela appen en issue, och repositoryts utlösaretikett |
-| **Pull request** | att be appen om en granskning |
+| **Pull request** | att be appen om en granskning, och produktionsgranskningar av pull requests när de öppnas och ändras |
 | **Pull request review** | ett omnämnande i texten till en inskickad granskning |
 | **Pull request review comment** | ett omnämnande i en inbäddad kommentar i diffen |
 

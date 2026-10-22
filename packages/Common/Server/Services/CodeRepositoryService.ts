@@ -54,6 +54,12 @@ export interface NewRepositoryDefaults {
   // "Respond to GitHub Commands": on.
   isGitHubCommandsEnabled: boolean;
   /*
+   * "Review pull requests against production": on. A repository connected
+   * from now on has its pull requests reviewed against production unless
+   * someone turns it off; those connected before keep it off.
+   */
+  isProductionReviewEnabled: boolean;
+  /*
    * The project's default Runner (Runner.isProjectDefault), when it has
    * one: a Runner of the project's own, which builds and tests a change
    * before its pull request opens. None otherwise: a global Runner takes
@@ -225,10 +231,10 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * Connecting asks nothing, so a new repository starts with what most
    * teams want (getNewRepositoryDefaults): its main branch is GitHub's
-   * default branch, GitHub commands are on, AI may open fix pull requests
-   * without a limit, and AI works on the project's default Runner when the
-   * project has one - otherwise it picks none, and a global Runner takes
-   * its work.
+   * default branch, GitHub commands are on, its pull requests are reviewed
+   * against production, AI may open fix pull requests without a limit, and
+   * AI works on the project's default Runner when the project has one -
+   * otherwise it picks none, and a global Runner takes its work.
    */
   @CaptureSpan()
   public async importReposFromInstallation(data: {
@@ -373,6 +379,8 @@ export class Service extends ProjectReferencesService<Model> {
       codeRepository.gitHubAppInstallationId = data.installationId;
       codeRepository.isGitHubCommandsEnabled =
         newRepositoryDefaults.isGitHubCommandsEnabled;
+      codeRepository.isProductionReviewEnabled =
+        newRepositoryDefaults.isProductionReviewEnabled;
 
       if (newRepositoryDefaults.runnerId) {
         codeRepository.runnerId = newRepositoryDefaults.runnerId;
@@ -439,6 +447,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     return {
       isGitHubCommandsEnabled: true,
+      isProductionReviewEnabled: true,
       runnerId,
     };
   }

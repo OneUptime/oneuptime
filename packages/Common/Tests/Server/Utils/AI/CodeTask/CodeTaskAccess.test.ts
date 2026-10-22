@@ -296,6 +296,45 @@ describe("who may read a repository's tasks", () => {
     ).toBeUndefined();
   });
 
+  /*
+   * Read as the caller: a column someone who may only read repositories
+   * cannot read would be dropped from the row, or refuse it. Every column
+   * the Code pages show - whether production review is on among them - is
+   * one a Read Code Repository reader may read.
+   */
+  test("asks only for columns every reader of a repository may read", () => {
+    const model: CodeRepository = new CodeRepository();
+
+    for (const column of Object.keys(CODE_TASK_REPOSITORY_SELECT)) {
+      if (column === "_id") {
+        continue;
+      }
+
+      const readers: Array<Permission> =
+        model.getColumnAccessControlFor(column)?.read || [];
+
+      expect({
+        column,
+        readable: readers.includes(Permission.ReadCodeRepository),
+      }).toEqual({
+        column,
+        readable: true,
+      });
+    }
+
+    expect(
+      (CODE_TASK_REPOSITORY_SELECT as Record<string, unknown>)[
+        "isProductionReviewEnabled"
+      ],
+    ).toBe(true);
+    // Whether the GitHub App answers commands, for the reviews page.
+    expect(
+      (CODE_TASK_REPOSITORY_SELECT as Record<string, unknown>)[
+        "isGitHubCommandsEnabled"
+      ],
+    ).toBe(true);
+  });
+
   test("a repository the caller may not read is not found - the same answer as one that does not exist", async () => {
     (
       CodeRepositoryService.findOneBy as unknown as jest.Mock

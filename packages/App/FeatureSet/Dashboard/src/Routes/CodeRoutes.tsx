@@ -16,6 +16,7 @@ import CodePage from "../Pages/Code/Code";
 import CodeRepositoriesPage from "../Pages/Code/Repositories";
 import CodeRepositoryTasks from "../Pages/Code/Repository/Tasks";
 import CodeRepositorySettings from "../Pages/Code/Repository/Settings";
+import CodeRepositoryProductionReviews from "../Pages/Code/Repository/ProductionReviews";
 import CodeRepositoryDelete from "../Pages/Code/Repository/Delete";
 import CodeTaskConversation from "../Pages/Code/Task/Conversation";
 import CodeTaskLog from "../Pages/Code/Task/Log";
@@ -24,8 +25,8 @@ import CodeTaskLog from "../Pages/Code/Task/Log";
  * Code, under /code: the request box and every task (the mount itself) and
  * the connected repositories (repositories), with their Developer pages; a
  * repository's pages (repositories/:id - its request box and tasks, its
- * settings, removing it); and a task's (tasks/:id - its conversation and
- * its log).
+ * pull requests' production reviews, its settings, removing it); and a
+ * task's (tasks/:id - its conversation and its log).
  */
 const CodeRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -81,6 +82,22 @@ const CodeRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS,
+          )}
+          element={
+            <CodeRepositoryProductionReviews
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS
+                ] as Route
               }
             />
           }

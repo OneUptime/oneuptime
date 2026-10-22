@@ -164,8 +164,9 @@ import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./180583000000
 import { AddThreatIntelFeedConnectionIndexAndKey1805840000000 } from "./1805840000000-AddThreatIntelFeedConnectionIndexAndKey";
 import { AddIncidentPostmortemStatus1805900000000 } from "./1805900000000-AddIncidentPostmortemStatus";
 import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "./1805910000000-AddIncidentPostmortemStatusIndexesAndKey";
-import { AddSecurityCaseAiTriage1805940000000 } from "./1805940000000-AddSecurityCaseAiTriage";
-import { AddAIRunSecurityCaseIndex1805950000000 } from "./1805950000000-AddAIRunSecurityCaseIndex";
+import { AddProductionReviewToCodeRepository1805950000000 } from "./1805950000000-AddProductionReviewToCodeRepository";
+import { AddSecurityCaseAiTriage1805960000000 } from "./1805960000000-AddSecurityCaseAiTriage";
+import { AddAIRunSecurityCaseIndex1805970000000 } from "./1805970000000-AddAIRunSecurityCaseIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1532,6 +1533,7 @@ export default [
   AddThreatIntelFeedConnectionIndexAndKey1805840000000,
   AddIncidentPostmortemStatus1805900000000,
   AddIncidentPostmortemStatusIndexesAndKey1805910000000,
-  AddSecurityCaseAiTriage1805940000000,
-  AddAIRunSecurityCaseIndex1805950000000,
+  AddProductionReviewToCodeRepository1805950000000,
+  AddSecurityCaseAiTriage1805960000000,
+  AddAIRunSecurityCaseIndex1805970000000,
 ];

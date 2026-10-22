@@ -36,6 +36,17 @@ import logger from "../Utils/Logger";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import AIRunType from "../../Types/AI/AIRunType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../Types/AI/CodeFixTaskType";
+import {
+  getGitHubTaskContext,
+  getProductionReviewTaskContext,
+  GitHubTaskContext,
+  ProductionReviewTaskContext,
+} from "../../Types/AI/CodeFixTaskContext";
+import { ProductionReviewTrigger } from "../../Types/CodeRepository/ProductionReview";
+import ProductionReviewQueue from "../Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import {
   CODE_TASK_LIMITS,
   CodeRepositoryBranchesJSON,
@@ -45,6 +56,7 @@ import {
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
+  CodeTaskListKind,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
@@ -76,6 +88,8 @@ import PositiveNumber from "../../Types/PositiveNumber";
  *   POST /code-task/reply/:taskId         reply in a task: its next turn
  *   POST /code-task/retry/:taskId         ask a failed turn again
  *   POST /code-task/stop/:taskId          stop the turn in progress
+ *   POST /code-task/review-again/:taskId  review a pull request against
+ *                                         production again, now
  *   POST /code-task/source-links          where running code's files live in
  *                                         the repositories, with links
  *
@@ -88,6 +102,15 @@ import PositiveNumber from "../../Types/PositiveNumber";
 
 export const CODE_TASK_STOP_REFUSED_MESSAGE: string =
   "Stopping AI takes permission to edit this task's repository - ask a project admin for it.";
+
+export const CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE: string =
+  "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.";
+
+export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
+  "Only a pull request's production review can be reviewed again.";
+
+// Which of a repository's tasks a list reads (Types/AI/CodeTask).
+export { CodeTaskListKind };
 
 export const CODE_TASK_BRANCHES_UNREADABLE_MESSAGE: string =
   "OneUptime could not read this repository's branches from GitHub. Try again in a moment.";
@@ -120,6 +143,7 @@ export default class CodeTaskAPI {
     this.route("/code-task/reply/:taskId", this.replyToTask);
     this.route("/code-task/retry/:taskId", this.retryTask);
     this.route("/code-task/stop/:taskId", this.stopTask);
+    this.route("/code-task/review-again/:taskId", this.reviewAgain);
     this.route("/code-task/source-links", this.getSourceLinks);
   }
 
@@ -386,11 +410,24 @@ export default class CodeTaskAPI {
       codeRepositoryQuery = repositoryId;
     }
 
+    const isProductionReviews: boolean =
+      body["kind"] === CodeTaskListKind.ProductionReviews;
+
     const query: JSONObject = {
       projectId: projectId,
       runType: AIRunType.CodeFix,
       codeTaskId: QueryHelper.isNull(),
       codeRepositoryId: codeRepositoryQuery,
+      /*
+       * A repository's pull requests' production reviews have a page of
+       * their own: one task per pull request, which would otherwise bury
+       * the work people asked for.
+       */
+      codeFixTaskType: isProductionReviews
+        ? CodeFixTaskType.GitHubPullRequestProductionReview
+        : QueryHelper.notInOrNull(
+            CodeFixTaskTypeHelper.getServerRunTaskTypes(),
+          ),
     } as unknown as JSONObject;
 
     const [tasks, count]: [Array<AIRun>, PositiveNumber] = await Promise.all([
@@ -736,6 +773,83 @@ export default class CodeTaskAPI {
     return { stopped };
   }
 
+  /*
+   * Review a pull request against production again, now: its production
+   * review task is asked again (ProductionReviewQueue), as a push or a
+   * command asks. For those who may ask AI in the repository; the
+   * repository must still be reached through the GitHub App.
+   */
+  private async reviewAgain(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const { task, repository } = await this.getReadableTask(
+      req,
+      props,
+      projectId,
+    );
+
+    if (!CodeFixTaskTypeHelper.isProductionReview(task.codeFixTaskType)) {
+      throw new BadDataException(CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE);
+    }
+
+    if (
+      !repository ||
+      !(await CodeTaskAccess.canAskInRepository({
+        props,
+        projectId,
+        repositoryId: repository.id!,
+      }))
+    ) {
+      throw new NotAuthorizedException(CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE);
+    }
+
+    const installationId: string | null =
+      await CodeTaskGate.getReachableInstallationId({
+        projectId,
+        repositoryId: repository.id!,
+      });
+
+    if (!installationId) {
+      throw new BadDataException(CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE);
+    }
+
+    const stored: AIRun | null = await AIRunService.findOneById({
+      id: task.id!,
+      select: { _id: true, title: true, taskContext: true },
+      props: { isRoot: true },
+    });
+
+    const github: GitHubTaskContext | null = getGitHubTaskContext(
+      stored?.taskContext,
+    );
+    const review: ProductionReviewTaskContext | null =
+      getProductionReviewTaskContext(stored?.taskContext);
+
+    if (!github || !review || github.pullRequestNumber === undefined) {
+      throw new BadDataException(CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE);
+    }
+
+    await ProductionReviewQueue.request({
+      projectId,
+      codeRepositoryId: repository.id!,
+      installationId,
+      organizationName: repository.organizationName || github.organizationName,
+      repositoryName: repository.repositoryName || github.repositoryName,
+      pullRequestNumber: github.pullRequestNumber,
+      pullRequestTitle: stored?.title || "",
+      headSha: review.headSha,
+      isFromFork: Boolean(github.isPullRequestFromFork),
+      trigger: ProductionReviewTrigger.OneUptime,
+      isAuthorTrusted: review.isAuthorTrusted,
+      requestedByUserId: props.userId,
+      isImmediate: true,
+    });
+
+    return { taskId: task.id!.toString() };
+  }
+
   // The task, when the caller may read it, and its repository.
   private async getReadableTask(
     req: ExpressRequest,
@@ -849,6 +963,21 @@ export default class CodeTaskAPI {
 
     if (repository.repositoryUrl) {
       json.repositoryUrl = repository.repositoryUrl.toString();
+    }
+
+    // Read with the repository: unset (null) is off, as the server has it.
+    if (repository.isProductionReviewEnabled !== undefined) {
+      json.isProductionReviewEnabled =
+        repository.isProductionReviewEnabled === true;
+    }
+
+    /*
+     * Unset (null) is on, as GitHubCommandAuthorizer.areCommandsEnabled
+     * reads it: the production review command is answered only while it is.
+     */
+    if (repository.isGitHubCommandsEnabled !== undefined) {
+      json.isGitHubCommandsEnabled =
+        repository.isGitHubCommandsEnabled !== false;
     }
 
     return json;

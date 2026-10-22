@@ -122,6 +122,14 @@ export const AI_CODE_FIX_FEATURE: string = "AI Code Fix";
 export const WORKFLOW_AI_FEATURE: string = "Workflow AI";
 
 /*
+ * The LlmLog feature name for OneUptime AI's read of a pull request's
+ * production review (ProductionReviewAI): one constrained call per review,
+ * started by every push to a pull request of a repository with Production
+ * Review on - storm-shaped, and with no human in the loop.
+ */
+export const AI_PRODUCTION_REVIEW_FEATURE: string = "AI Production Review";
+
+/*
  * The LlmLog feature name for OneUptime AI reading an incident call's
  * transcript (IncidentCallSummary): one request per part of the transcript,
  * started by a person adding it or asking for it to be read again. Not
@@ -297,6 +305,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * detections opens a burst of cases.
    */
   AI_SECURITY_CASE_TRIAGE_FEATURE,
+  /*
+   * A pull request's production review (ProductionReviewAI): one
+   * constrained call per review, and every push to every pull request of a
+   * repository with Production Review on starts one.
+   */
+  AI_PRODUCTION_REVIEW_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

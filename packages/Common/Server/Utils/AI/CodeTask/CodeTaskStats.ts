@@ -3,6 +3,7 @@ import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
+import { CodeFixTaskTypeHelper } from "../../../../Types/AI/CodeFixTaskType";
 import { CodeRepositoryTaskStatsJSON } from "../../../../Types/AI/CodeTask";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
@@ -16,7 +17,14 @@ import ObjectID from "../../../../Types/ObjectID";
  * Three grouped reads for every repository on the page at once, as root and
  * pinned to the project - the caller was allowed to read these repositories
  * before their ids got here. Every value is a bound parameter.
+ *
+ * A pull request's production review is not one of a repository's tasks
+ * here: it is OneUptime's, it has its own page, and a review in progress is
+ * not AI working for someone.
  */
+
+// The recipes left out of a repository's tasks: the server's own.
+const NOT_TASKS: Array<string> = CodeFixTaskTypeHelper.getServerRunTaskTypes();
 
 // The statuses of a turn still in progress.
 export const WORKING_STATUSES: Array<AIRunStatus> = [
@@ -80,8 +88,15 @@ export default class CodeTaskStats {
         FROM "AIRun"
         WHERE "projectId" = $1 AND "runType" = $4 AND "deletedAt" IS NULL
           AND "codeRepositoryId" = ANY($2::uuid[])
+          AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))
         GROUP BY "codeRepositoryId"`,
-        [projectId, repositoryIds, WORKING_STATUSES, AIRunType.CodeFix],
+        [
+          projectId,
+          repositoryIds,
+          WORKING_STATUSES,
+          AIRunType.CodeFix,
+          NOT_TASKS,
+        ],
       ),
       /*
        * A task waits for its person when its LATEST turn ended asking them
@@ -96,11 +111,18 @@ export default class CodeTaskStats {
           FROM "AIRun"
           WHERE "projectId" = $1 AND "runType" = $3 AND "deletedAt" IS NULL
             AND "codeRepositoryId" = ANY($2::uuid[])
+            AND ("codeFixTaskType" IS NULL OR "codeFixTaskType" <> ALL($5::text[]))
           ORDER BY COALESCE("codeTaskId", "_id"), "createdAt" DESC
         ) AS "latest"
         WHERE "latest"."status" = $4 AND "latest"."needsUserInput" = true
         GROUP BY "latest"."codeRepositoryId"`,
-        [projectId, repositoryIds, AIRunType.CodeFix, AIRunStatus.Completed],
+        [
+          projectId,
+          repositoryIds,
+          AIRunType.CodeFix,
+          AIRunStatus.Completed,
+          NOT_TASKS,
+        ],
       ),
       query(
         `SELECT "codeRepositoryId", COUNT(*)::int AS "openPullRequests"

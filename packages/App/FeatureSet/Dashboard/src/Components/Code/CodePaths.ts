@@ -11,6 +11,7 @@ import ObjectID from "Common/Types/ObjectID";
  *   Code (…/code)                     ask AI, and every task
  *   Repositories (…/code/repositories) the connected repositories
  *   a repository (…/repositories/:id) its own request box and tasks
+ *   …/repositories/:id/production-reviews its pull requests' reviews
  *   a task (…/tasks/:id)              its conversation
  */
 
@@ -32,6 +33,26 @@ export const getRepositoryRoute: (repositoryId: string) => Route = (
 ): Route => {
   return RouteUtil.populateRouteParams(
     RouteMap[PageMap.CODE_REPOSITORY_VIEW] as Route,
+    { modelId: new ObjectID(repositoryId) },
+  );
+};
+
+// A repository's pull requests, reviewed against production.
+export const getProductionReviewsRoute: (repositoryId: string) => Route = (
+  repositoryId: string,
+): Route => {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS] as Route,
+    { modelId: new ObjectID(repositoryId) },
+  );
+};
+
+// A repository's settings in Code.
+export const getRepositorySettingsRoute: (repositoryId: string) => Route = (
+  repositoryId: string,
+): Route => {
+  return RouteUtil.populateRouteParams(
+    RouteMap[PageMap.CODE_REPOSITORY_VIEW_SETTINGS] as Route,
     { modelId: new ObjectID(repositoryId) },
   );
 };
