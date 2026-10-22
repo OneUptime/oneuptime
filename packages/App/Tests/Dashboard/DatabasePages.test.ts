@@ -685,7 +685,10 @@ describe("Archived", () => {
   });
 
   test("lists archived rows only and offers unarchive", () => {
-    expect(code).toContain("query={{ isArchived: true, }}");
+    // The archived rows, with what the Owner and Labels chips pick.
+    expect(code).toContain(
+      "query={mergeFiltersIntoQuery({ isArchived: true, })}",
+    );
     expect(code).toContain("buttons: [...unarchiveBulkActions]");
     expect(code).toContain("isCreateable={false}");
   });
