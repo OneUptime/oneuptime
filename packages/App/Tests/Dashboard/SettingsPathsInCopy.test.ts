@@ -485,10 +485,39 @@ describe("the no-templates dialogs", () => {
 
       expect(source).not.toContain("No Postmortem Templates");
       expect(source).not.toContain("Project Settings");
-      expect(source).toContain("getPostmortemCardButtons(");
-      expect(source).toMatch(
-        /hasTemplates: postmortemTemplates\.templates\.length > 0/,
-      );
+    }
+
+    // An episode's card offers it among its buttons.
+    const episode: string = readSource(
+      "Pages/Incidents/EpisodeView/Postmortem.tsx",
+    );
+
+    expect(episode).toContain("getPostmortemCardButtons(");
+    expect(episode).toMatch(
+      /hasTemplates: postmortemTemplates\.templates\.length > 0/,
+    );
+
+    /*
+     * An incident's: as Start from Template beside Write Postmortem while
+     * nothing is written, and as Apply Template in the card's ⋯ once it
+     * is - both handed whether the project has a template.
+     */
+    const incident: string = readSource("Pages/Incidents/View/Postmortem.tsx");
+
+    expect(incident).toMatch(
+      /const hasTemplates: boolean = postmortemTemplates\.templates\.length > 0;/,
+    );
+    expect(incident).toMatch(/<PostmortemEmptyState[^>]*hasTemplates=\{hasTemplates\}/);
+    expect(incident).toMatch(/<PostmortemMoreMenu[^>]*hasTemplates=\{hasTemplates\}/);
+
+    for (const file of [
+      "Components/Postmortem/PostmortemEmptyState.tsx",
+      "Components/Postmortem/PostmortemMoreMenu.tsx",
+    ]) {
+      const source: string = readSource(file);
+
+      expect(source).not.toContain("No Postmortem Templates");
+      expect(source).toMatch(/props\.hasTemplates\b/);
     }
   });
 });
