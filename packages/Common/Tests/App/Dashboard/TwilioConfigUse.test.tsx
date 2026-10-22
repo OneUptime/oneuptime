@@ -12,13 +12,16 @@ import {
   cleanup,
   fireEvent,
   render,
+  RenderResult,
   screen,
   waitFor,
   within,
 } from "@testing-library/react";
 import fs from "fs";
+import { createInstance, i18n } from "i18next";
 import path from "path";
 import React, { ReactElement } from "react";
+import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import { JSONObject } from "../../../Types/JSON";
 import Permission from "../../../Types/Permission";
@@ -250,6 +253,7 @@ import CustomCallSMSTable from "../../../../App/FeatureSet/Dashboard/src/Compone
 import TwilioConfigUseCopy, {
   getFormTwilioConfigUse,
   getTwilioConfigUseOptions,
+  getTwilioConfigUseTitle,
   isFormUsedFor,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigUseCopy";
 import TwilioConfigNumbersCopy, {
@@ -268,6 +272,7 @@ import {
 } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import Phone from "../../../Types/Phone";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
+import Column from "../../../UI/Components/ModelTable/Column";
 
 const PRIMARY: string = "Twilio Primary Phone Number";
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
@@ -846,6 +851,158 @@ describe("the Twilio Config table", () => {
       [TwilioConfigUse.SmsOnly, "SMS only"],
       [TwilioConfigUse.CallsOnly, "Calls only"],
     ]);
+  });
+});
+
+/*
+ * What a config is used for is the one answer that decides what it sends,
+ * so its row says it in a column of its own, beside the name, in the words
+ * of the form's answers - not only through the icons of its numbers. The
+ * Twilio Account SID, cut to half under the row's actions beside the side
+ * menu, starts hidden: one switch away in Customize Columns.
+ */
+describe("the table's Used For column", () => {
+  function columns(): Array<Column<ProjectCallSMSConfig>> {
+    return lastTableProps()["columns"] as Array<Column<ProjectCallSMSConfig>>;
+  }
+
+  function columnOf(key: string): Column<ProjectCallSMSConfig> {
+    return columns().find((column: Column<ProjectCallSMSConfig>): boolean => {
+      return Object.keys(column.field || {})[0] === key;
+    })!;
+  }
+
+  function configUsedFor(value: unknown): ProjectCallSMSConfig {
+    const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+
+    if (value !== undefined) {
+      (config as unknown as Record<string, unknown>)["usedFor"] = value;
+    }
+
+    config.twilioPrimaryPhoneNumber = new Phone(US);
+    return config;
+  }
+
+  // The cell a config's row draws under Used For, as its text.
+  function cellText(value: unknown): string {
+    const cell: RenderResult = render(
+      columnOf("usedFor").getElement!(configUsedFor(value)),
+    );
+    const text: string =
+      screen.getByTestId("twilio-config-used-for").textContent || "";
+    cell.unmount();
+    return text;
+  }
+
+  test("comes right after the name, before the numbers and the default", async () => {
+    await renderCard();
+
+    expect(
+      columns().map((column: Column<ProjectCallSMSConfig>): string => {
+        return column.title;
+      }),
+    ).toEqual([
+      "Name",
+      "Used For",
+      "Phone Numbers",
+      "Project Default",
+      "Twilio Account SID",
+    ]);
+    expect(columnOf("usedFor").isHiddenByDefault).toBeFalsy();
+  });
+
+  test("names each use as the form's answers do", async () => {
+    await renderCard();
+
+    expect(cellText(TwilioConfigUse.SmsOnly)).toBe("SMS only");
+    expect(cellText(TwilioConfigUse.CallsOnly)).toBe("Calls only");
+    expect(cellText(TwilioConfigUse.CallsAndSms)).toBe("Calls and SMS");
+
+    // The answers' own titles, one for one.
+    for (const option of getTwilioConfigUseOptions()) {
+      expect(getTwilioConfigUseTitle(option.value)).toBe(option.title);
+    }
+  });
+
+  test("reads a config saved before the choice, or holding no use, as calls and SMS", async () => {
+    await renderCard();
+
+    expect(cellText(undefined)).toBe("Calls and SMS");
+    expect(cellText("nonsense")).toBe("Calls and SMS");
+    expect(getTwilioConfigUseTitle(null)).toBe("Calls and SMS");
+  });
+
+  test("exports the use as the API and the Used For filter name it", async () => {
+    await renderCard();
+
+    const exportValue: (item: ProjectCallSMSConfig) => string =
+      columnOf("usedFor").getExportValue!;
+
+    expect(exportValue(configUsedFor(TwilioConfigUse.SmsOnly))).toBe(
+      "SMS only",
+    );
+    expect(exportValue(configUsedFor(TwilioConfigUse.CallsOnly))).toBe(
+      "Calls only",
+    );
+    expect(exportValue(configUsedFor(undefined))).toBe("Calls and SMS");
+  });
+
+  test.each([
+    ["de", "Nur SMS", "Nur Anrufe"],
+    ["ja", "SMS のみ", "通話のみ"],
+  ])(
+    "says it in the reader's language (%s)",
+    async (language: string, smsOnly: string, callsOnly: string) => {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: readLocale("en") },
+          [language]: { translation: readLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+      });
+
+      render(
+        <I18nextProvider i18n={instance}>
+          <MemoryRouter>
+            <CustomCallSMSTable />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+      await settle();
+
+      expect(readLocale(language)["SMS only"]).toBe(smsOnly);
+      expect(readLocale(language)["Calls only"]).toBe(callsOnly);
+      expect(cellText(TwilioConfigUse.SmsOnly)).toBe(smsOnly);
+      expect(cellText(TwilioConfigUse.CallsOnly)).toBe(callsOnly);
+    },
+  );
+
+  test("leaves the Twilio account SID one switch away: last, and hidden to start with", async () => {
+    await renderCard();
+
+    const sid: Column<ProjectCallSMSConfig> = columnOf("twilioAccountSID");
+
+    expect(columns()[columns().length - 1]).toBe(sid);
+    expect(sid.isHiddenByDefault).toBe(true);
+    // Not pinned: Customize Columns can switch it on.
+    expect(sid.isNotCustomizable).toBeFalsy();
+    expect(lastTableProps()["userPreferencesKey"]).toBe("call-sms-table");
+    expect(lastTableProps()["disableColumnCustomization"]).toBeFalsy();
+
+    // Every other column is shown.
+    expect(
+      columns()
+        .filter((column: Column<ProjectCallSMSConfig>): boolean => {
+          return Boolean(column.isHiddenByDefault);
+        })
+        .map((column: Column<ProjectCallSMSConfig>): string => {
+          return column.title;
+        }),
+    ).toEqual(["Twilio Account SID"]);
   });
 });
 

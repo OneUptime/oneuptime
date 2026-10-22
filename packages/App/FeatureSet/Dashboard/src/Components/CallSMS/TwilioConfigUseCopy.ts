@@ -100,6 +100,28 @@ export const getTwilioConfigUseOptions: () => Array<TwilioConfigUseOption> =
   };
 
 /*
+ * What a config is used for, in the words of the answer the form offers for
+ * it - "SMS only" - as its row in the Twilio Config table says it. A config
+ * saved before the choice, or holding a value that is not a use, is used
+ * for calls and SMS (TwilioConfigUses.getUse). English: the cell translates
+ * it.
+ */
+export const getTwilioConfigUseTitle: (use: unknown) => string = (
+  use: unknown,
+): string => {
+  const chosen: TwilioConfigUse = TwilioConfigUses.getUse(use);
+
+  const option: TwilioConfigUseOption | undefined =
+    getTwilioConfigUseOptions().find(
+      (candidate: TwilioConfigUseOption): boolean => {
+        return candidate.value === chosen;
+      },
+    );
+
+  return option ? option.title : TwilioConfigUseCopy.callsAndSmsTitle;
+};
+
+/*
  * What a form's values say the config is used for: calls and SMS while
  * nothing is picked, as on a config made before the choice.
  */

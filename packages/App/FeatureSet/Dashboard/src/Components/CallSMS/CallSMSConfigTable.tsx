@@ -37,6 +37,7 @@ import TwilioConfigNumbersCopy, {
 } from "./TwilioConfigNumbersCopy";
 import TwilioConfigUseCopy, {
   getTwilioConfigUseOptions,
+  getTwilioConfigUseTitle,
   isFormUsedFor,
   TwilioConfigUseOption,
 } from "./TwilioConfigUseCopy";
@@ -116,10 +117,11 @@ const isUsedForCalls: (values: FormValues<ProjectCallSMSConfig>) => boolean =
   isFormUsedFor(TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly);
 
 /*
- * How wide a config's Twilio Account SID may be drawn in its row: cut short
- * with an ellipsis, whole under the pointer (the table's FullValueTitle) and
- * in the config's Edit dialog. A SID is 34 characters, the widest value in
- * the row, and drawn whole it made the table wider than its card: beside the
+ * How wide a config's Twilio Account SID may be drawn in its row, once
+ * someone switches its column on (it starts hidden): cut short with an
+ * ellipsis, whole under the pointer (the table's FullValueTitle) and in the
+ * config's Edit dialog. A SID is 34 characters, the widest value in the
+ * row, and drawn whole it made the table wider than its card: beside the
  * page's side menu the table has 938px at a 1280px window, and the other
  * columns of a config with SMS numbers take some 700px of it. Whole from
  * 1536px on, where the table has 1194px.
@@ -717,16 +719,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
         ]}
         /*
-         * What tells the configs apart at a glance: the name, the numbers
-         * it sends from - its primary number, and its first SMS number
-         * beside it when SMS have their own - whether it is the project's
-         * default, and the Twilio account. Description and the other
-         * numbers are in the config's Edit dialog (and in the filters).
+         * What tells the configs apart at a glance: the name, what it is
+         * used for - Calls and SMS, SMS only or Calls only, as the form's
+         * first question words it - the numbers it sends from - its
+         * primary number, and its first SMS number beside it when SMS have
+         * their own - and whether it is the project's default. Description
+         * and the other numbers are in the config's Edit dialog (and in the
+         * filters).
          *
-         * The account comes last: a SID is 34 characters, the widest value
-         * in the row, and when a long name makes the table wider than its
-         * card it scrolls sideways under the row's actions - the column cut
-         * short is then the account, not the numbers or the default.
+         * The Twilio account starts hidden, in the table's Customize
+         * Columns: a SID is 34 characters, the widest value in the row, and
+         * beside the side menu at 1280px it was cut to half under the row's
+         * actions, while what a config is used for - the one answer that
+         * decides what it sends - had no column at all.
          */
         columns={[
           {
@@ -735,6 +740,27 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              usedFor: true,
+            },
+            title: "Used For",
+            type: FieldType.Text,
+            // The answer's own words, in the reader's language.
+            getElement: (item: ProjectCallSMSConfig): ReactElement => {
+              const useTitle: string = getTwilioConfigUseTitle(item.usedFor);
+
+              return (
+                <span data-testid="twilio-config-used-for">
+                  {translator.translateText(useTitle) || useTitle}
+                </span>
+              );
+            },
+            // As the API and the Used For filter name it.
+            getExportValue: (item: ProjectCallSMSConfig): string => {
+              return TwilioConfigUses.getUse(item.usedFor);
+            },
           },
           {
             field: {
@@ -771,6 +797,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             title: "Twilio Account SID",
             type: FieldType.Text,
             contentClassName: TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+            // One switch away in Customize Columns, last when switched on.
+            isHiddenByDefault: true,
           },
         ]}
       />

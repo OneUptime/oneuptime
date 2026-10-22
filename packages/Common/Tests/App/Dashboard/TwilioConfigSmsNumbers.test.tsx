@@ -983,10 +983,11 @@ describe("the Twilio Config table's columns", () => {
    * A SID is 34 characters, the widest value in a row. Drawn whole in the
    * second column it made the table wider than its card beside the side
    * menu at 1280px, and the Project Default column ran under the row's
-   * actions. Last and capped, the numbers and the default stay in view,
-   * and a table a long name still widens loses the account first.
+   * actions. What a config is used for (calls and SMS, SMS only or calls
+   * only) now has the column beside the name, and the account starts
+   * hidden: last, and one switch away in Customize Columns.
    */
-  test("show the name, the numbers, the default, then the account", async () => {
+  test("show the name, what it is used for, the numbers and the default, with the account last and hidden", async () => {
     await renderCard();
 
     expect(
@@ -995,10 +996,21 @@ describe("the Twilio Config table's columns", () => {
       }),
     ).toEqual([
       "Name",
+      "Used For",
       "Phone Numbers",
       "Project Default",
       "Twilio Account SID",
     ]);
+
+    expect(
+      columns()
+        .filter((column: Column<ProjectCallSMSConfig>): boolean => {
+          return Boolean(column.isHiddenByDefault);
+        })
+        .map((column: Column<ProjectCallSMSConfig>): string => {
+          return column.title;
+        }),
+    ).toEqual(["Twilio Account SID"]);
   });
 
   test("cut the account SID short below 1536px, and show it whole from there", async () => {
