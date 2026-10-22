@@ -7,6 +7,9 @@ import useRefreshProbesOnFocus from "../../Components/NetworkDevice/useRefreshPr
 import Route from "Common/Types/API/Route";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import NetworkDeviceOwnerTeam from "Common/Models/DatabaseModels/NetworkDeviceOwnerTeam";
+import NetworkDeviceOwnerUser from "Common/Models/DatabaseModels/NetworkDeviceOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import NetworkDeviceRole from "Common/Models/DatabaseModels/NetworkDeviceRole";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import NetworkDeviceOidTemplate from "Common/Models/DatabaseModels/NetworkDeviceOidTemplate";
@@ -606,6 +609,9 @@ const NetworkDevices: FunctionComponent<
   }, [probes]);
 
   const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
     filterBar,
     emptyState: facetEmptyState,
     mergeFiltersIntoQuery,
@@ -617,11 +623,15 @@ const NetworkDevices: FunctionComponent<
     restoreFacetState,
   } = useResourceOwners<NetworkDevice>({
     /*
-     * Devices have owner users and teams, but this table shows no owner column —
-     * a chip filtering on something invisible in the rows would be unexplainable.
-     * Enabling it belongs with adding that column.
+     * The Owner chip, with the Owners column that explains it: a device can
+     * be found by the person or the team that owns it - the server answers
+     * the chip in the list's own query. The column is hidden by default,
+     * like Labels beside its chip, so the list still fits a laptop's width;
+     * Customize Columns shows it.
      */
-    showOwnerFacet: false,
+    ownerUserModelType: NetworkDeviceOwnerUser,
+    ownerTeamModelType: NetworkDeviceOwnerTeam,
+    resourceIdField: "networkDeviceId",
     showLabelsFacet: true,
     extraFacets: deviceFacets,
     persistKey: NETWORK_DEVICES_TABLE_ID,
@@ -991,6 +1001,9 @@ const NetworkDevices: FunctionComponent<
         userPreferencesKey={NETWORK_DEVICES_TABLE_ID}
         refreshToggle={refreshToggle}
         query={mergeFiltersIntoQuery(BASE_DEVICE_QUERY)}
+        onFetchSuccess={(data: Array<NetworkDevice>) => {
+          onResourcesFetched(data);
+        }}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         /*
@@ -1955,6 +1968,24 @@ const NetworkDevices: FunctionComponent<
             isHiddenByDefault: true,
             getElement: (item: NetworkDevice): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            // Hidden by default like Labels: the Owner chip above still has it.
+            isHiddenByDefault: true,
+            getElement: (item: NetworkDevice): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

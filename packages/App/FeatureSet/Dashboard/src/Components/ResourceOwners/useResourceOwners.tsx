@@ -56,6 +56,12 @@ import {
   resolveFacetOperator,
   sanitizeFacetSelectionState,
 } from "./FacetSelectionState";
+import {
+  OWNER_KEY_PREFIX,
+  OwnerKey,
+  mergeOwnerFacetIntoQuery,
+  parseOwnerKey,
+} from "./OwnerFacetQuery";
 
 const PICKER_PAGE_SIZE: number = 50;
 
@@ -222,26 +228,6 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   restoreFacetState: (state: JSONObject | null) => void;
 }
 
-type OwnerSelectionKind = "user" | "team";
-
-const OWNER_KEY_PREFIX: { user: "user:"; team: "team:" } = {
-  user: "user:",
-  team: "team:",
-};
-
-const parseOwnerKey: (key: string) => {
-  kind: OwnerSelectionKind;
-  id: string;
-} | null = (key: string): { kind: OwnerSelectionKind; id: string } | null => {
-  if (key.startsWith(OWNER_KEY_PREFIX.user)) {
-    return { kind: "user", id: key.slice(OWNER_KEY_PREFIX.user.length) };
-  }
-  if (key.startsWith(OWNER_KEY_PREFIX.team)) {
-    return { kind: "team", id: key.slice(OWNER_KEY_PREFIX.team.length) };
-  }
-  return null;
-};
-
 const useResourceOwners: <TResource extends BaseModel>(
   options: UseResourceOwnersOptions,
 ) => UseResourceOwnersResult<TResource> = <TResource extends BaseModel>(
@@ -314,9 +300,6 @@ const useResourceOwners: <TResource extends BaseModel>(
     [facetKey: string]: Array<string> | null;
   }>({});
 
-  const [matchingResourceIds, setMatchingResourceIds] =
-    useState<Array<string> | null>(null);
-
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId) {
@@ -369,134 +352,6 @@ const useResourceOwners: <TResource extends BaseModel>(
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!showOwnerFacet) {
-      return;
-    }
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    if (selectedOwnerKeys.length === 0) {
-      setMatchingResourceIds(null);
-      return;
-    }
-
-    if (!ownerUserModelType || !ownerTeamModelType || !resourceIdField) {
-      return;
-    }
-
-    const userIds: Array<string> = [];
-    const teamIds: Array<string> = [];
-    for (const key of selectedOwnerKeys) {
-      const parsed: { kind: OwnerSelectionKind; id: string } | null =
-        parseOwnerKey(key);
-      if (parsed?.kind === "user") {
-        userIds.push(parsed.id);
-      } else if (parsed?.kind === "team") {
-        teamIds.push(parsed.id);
-      }
-    }
-
-    let cancelled: boolean = false;
-
-    const computeMatching: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const fetches: Array<Promise<Array<string>>> = [];
-
-        if (userIds.length > 0) {
-          fetches.push(
-            ModelAPI.getList<OwnerJunctionModel>({
-              modelType: ownerUserModelType,
-              query: {
-                userId: new Includes(
-                  userIds.map((id: string) => {
-                    return new ObjectID(id);
-                  }),
-                ),
-                projectId: projectId,
-              } as Query<OwnerJunctionModel>,
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: { [resourceIdField]: true } as Record<string, true>,
-              sort: {},
-            }).then((result: ListResult<OwnerJunctionModel>) => {
-              return result.data
-                .map((item: OwnerJunctionModel) => {
-                  const value: unknown = (
-                    item as unknown as Record<string, unknown>
-                  )[resourceIdField];
-                  return value !== undefined && value !== null
-                    ? (value as { toString: () => string }).toString()
-                    : undefined;
-                })
-                .filter((id: string | undefined): id is string => {
-                  return Boolean(id);
-                });
-            }),
-          );
-        }
-
-        if (teamIds.length > 0) {
-          fetches.push(
-            ModelAPI.getList<OwnerJunctionModel>({
-              modelType: ownerTeamModelType,
-              query: {
-                teamId: new Includes(
-                  teamIds.map((id: string) => {
-                    return new ObjectID(id);
-                  }),
-                ),
-                projectId: projectId,
-              } as Query<OwnerJunctionModel>,
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              select: { [resourceIdField]: true } as Record<string, true>,
-              sort: {},
-            }).then((result: ListResult<OwnerJunctionModel>) => {
-              return result.data
-                .map((item: OwnerJunctionModel) => {
-                  const value: unknown = (
-                    item as unknown as Record<string, unknown>
-                  )[resourceIdField];
-                  return value !== undefined && value !== null
-                    ? (value as { toString: () => string }).toString()
-                    : undefined;
-                })
-                .filter((id: string | undefined): id is string => {
-                  return Boolean(id);
-                });
-            }),
-          );
-        }
-
-        const results: Array<Array<string>> = await Promise.all(fetches);
-        const union: Set<string> = new Set();
-        for (const list of results) {
-          for (const id of list) {
-            union.add(id);
-          }
-        }
-
-        if (!cancelled) {
-          setMatchingResourceIds(Array.from(union));
-        }
-      } catch {
-        if (!cancelled) {
-          setMatchingResourceIds([]);
-        }
-      }
-    };
-
-    computeMatching();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedOwnerKeys]);
 
   /*
    * Pre-fetch matching parent IDs for facets that filter across multiple
@@ -860,13 +715,13 @@ const useResourceOwners: <TResource extends BaseModel>(
   ) => Query<TResource> = (
     base: Query<TResource> | undefined,
   ): Query<TResource> => {
-    const merged: Query<TResource> = {
+    let merged: Query<TResource> = {
       ...((base || {}) as Query<TResource>),
     } as Query<TResource>;
 
     /*
-     * Several filters (owner, plus any facet with `computeMatchingResourceIds`)
-     * narrow on `_id`. They can't each write to `_id` directly — the last one
+     * Several filters (any facet with `computeMatchingResourceIds`) narrow on
+     * `_id`. They can't each write to `_id` directly — the last one
      * would win. So we collect every contributing set first, then combine:
      *   - "is" sets are intersected (a row must be in all of them)
      *   - "is_not" sets are unioned and subtracted from the intersection,
@@ -876,23 +731,17 @@ const useResourceOwners: <TResource extends BaseModel>(
     const positiveIdSets: Array<Set<string>> = [];
     const negativeIdSets: Array<Set<string>> = [];
 
-    // Owner contribution.
+    /*
+     * Owner: one filter under "owners" that the server answers in this very
+     * query, through the owner tables' indexes (OwnerFacetQuery, OwnedBy) -
+     * people and teams as picked, a team never standing for its members.
+     */
     if (showOwnerFacet) {
-      if (ownerOperator === "is_empty") {
-        // No owners exist on any of our resources → force empty.
-        positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
-      } else if (matchingResourceIds !== null) {
-        if (matchingResourceIds.length === 0) {
-          if (ownerOperator !== "is_not") {
-            positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
-          }
-          // is_not with empty set → no constraint (everything matches "not in empty")
-        } else if (ownerOperator === "is_not") {
-          negativeIdSets.push(new Set(matchingResourceIds));
-        } else {
-          positiveIdSets.push(new Set(matchingResourceIds));
-        }
-      }
+      merged = mergeOwnerFacetIntoQuery({
+        query: merged,
+        operator: ownerOperator,
+        ownerKeys: selectedOwnerKeys,
+      });
     }
 
     // Labels.
@@ -1302,7 +1151,7 @@ const useResourceOwners: <TResource extends BaseModel>(
       const userIds: Array<string> = [];
       const teamIds: Array<string> = [];
       for (const k of keys) {
-        const parsed: { kind: OwnerSelectionKind; id: string } | null =
+        const parsed: OwnerKey | null =
           parseOwnerKey(k);
         if (parsed?.kind === "user") {
           userIds.push(parsed.id);
