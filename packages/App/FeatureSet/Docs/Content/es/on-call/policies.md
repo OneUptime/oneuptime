@@ -66,6 +66,19 @@ Cuando la espera del último nivel termina sin que nadie lo reconozca, una polí
 
 Una política que empieza de nuevo tres veces más recorre sus niveles cuatro veces en total. La fila **Después del último nivel** de la tarjeta dice lo que hace la política, y **La política de un vistazo** en la **Vista general** dice lo mismo con palabras.
 
+## Volver a avisar si no se resuelve
+
+Reconocer detiene los avisos de una política para siempre, aunque después nadie resuelva el incidente o la alerta. En su lugar, una política puede volver a avisar: abre su página **Reglas de escalado**, abre **Más ajustes** abajo y haz clic en **Editar** en la tarjeta **Tiempo límite tras el reconocimiento**. **Editar tiempo límite tras el reconocimiento** pregunta **Si se reconoce pero no se resuelve**:
+
+| Respuesta | Qué hace |
+| --- | --- |
+| **No volver a avisar** | Reconocerlo detiene los avisos para siempre. Una política nueva empieza con esta respuesta. |
+| **Volver a avisar** | Avisa a quien lo reconoció y a quien está de guardia ahora. **¿Después de cuántos minutos?** indica cuándo: de 5 a 1440, 30 al principio. |
+
+Los minutos se cuentan desde cada reconocimiento, y una política vuelve a avisar como máximo 5 veces por un mismo incidente, alerta o episodio. Un nuevo aviso empieza en el nivel que estaba avisando cuando se reconoció, avisa a quien está de guardia ahora en ese nivel y sigue por los niveles como la primera ejecución. El incidente o la alerta sigue reconocido: el nuevo aviso es una ejecución propia, en su feed y en los registros de ejecución de la política, donde su **Estado** dice «Avisado de nuevo (1 de 5)».
+
+Quien recibe el nuevo aviso lo reconoce desde su mensaje, o con **Reconocer de nuevo** en la página del incidente o de la alerta, y los minutos empiezan de nuevo; **Escalar** lo pasa al siguiente nivel. Resolver o eliminar el incidente o la alerta, archivar o eliminar la política, o elegir **No volver a avisar** lo detiene. La fila **Después de un reconocimiento** de la tarjeta dice qué hace la política, y **Más ajustes** muestra los minutos mientras está plegado. **La política de un vistazo** en la **Vista general** y el **Resumen del escalado** dicen lo mismo con palabras.
+
 ## Registros de ejecución
 
 Cada vez que una política se ejecuta, escribe un registro de ejecución, y el registro pasa por sus estados a medida que avanza la ejecución:
@@ -122,9 +135,12 @@ Las políticas de guardia son el recurso `/api/on-call-duty-policy`, y el recurs
 | **Descripción** | `description` |
 | **Si nadie lo reconoce después del último nivel** | `repeatPolicyIfNoOneAcknowledges` |
 | **¿Cuántas veces más?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **¿Después de cuántos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Archivada | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` es `false` para **Dejar de avisar** y `true` para **Empezar de nuevo desde Level 1**. Con `true` y `repeatPolicyIfNoOneAcknowledgesNoOfTimes` en `0`, una política nunca se repite, y el panel la muestra como **Dejar de avisar**.
+
+`acknowledgementTimeoutInMinutes` es `null` para **No volver a avisar**, y un número entero de minutos de 5 a 1440 para **Volver a avisar**. OneUptime rechaza cualquier otro valor.
 
 Para crear una política con su primer nivel en una sola petición, consulta [Crear reglas con la API o Terraform](/docs/on-call/escalation-rules#crear-reglas-con-la-api-o-terraform).
 

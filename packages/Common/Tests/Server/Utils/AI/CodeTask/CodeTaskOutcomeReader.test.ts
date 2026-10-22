@@ -250,4 +250,22 @@ describe("the diff a turn committed", () => {
     expect(read({ changes: [] }).changes).toBeNull();
     expect(read({ changes: null }).changes).toBeNull();
   });
+
+  /*
+   * A production review is the server's to write: a Runner's report can
+   * never put one on a turn, whatever it sends.
+   */
+  test("a Runner cannot report a production review", () => {
+    const outcome: CodeTaskOutcomeRead = read({
+      summary: "Done.",
+      filesChanged: [],
+      productionReview: {
+        exceptions: [{ type: "Forged" }],
+        posting: "Review",
+      },
+    });
+
+    expect(outcome.outcome.productionReview).toBeUndefined();
+    expect(JSON.stringify(outcome)).not.toContain("Forged");
+  });
 });

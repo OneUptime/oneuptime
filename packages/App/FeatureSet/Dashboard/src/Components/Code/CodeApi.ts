@@ -3,6 +3,7 @@ import {
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
+  CodeTaskListKind,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
@@ -112,15 +113,21 @@ export default class CodeApi {
 
   /*
    * A repository's tasks, the tasks with none, or every task the reader may
-   * read - newest first.
+   * read - newest first. With `kind` ProductionReviews, the production
+   * reviews of a repository's pull requests instead: the tasks leave them
+   * out.
    */
   public static async listTasks(data: {
     scope: CodeTaskListScope;
     skip: number;
     limit: number;
+    kind?: CodeTaskListKind | undefined;
   }): Promise<CodeTaskListResponse> {
     const response: JSONObject = await CodeApi.post("/list", {
       ...getTaskListScopeBody(data.scope),
+      ...(data.kind && data.kind !== CodeTaskListKind.Tasks
+        ? { kind: data.kind }
+        : {}),
       skip: data.skip,
       limit: data.limit,
     });
@@ -217,6 +224,11 @@ export default class CodeApi {
 
   public static async stop(taskId: string): Promise<void> {
     await CodeApi.post(`/stop/${taskId}`, {});
+  }
+
+  // Review a pull request against production again, now.
+  public static async reviewAgain(taskId: string): Promise<void> {
+    await CodeApi.post(`/review-again/${taskId}`, {});
   }
 
   private static async post(

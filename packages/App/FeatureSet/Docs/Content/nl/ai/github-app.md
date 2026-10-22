@@ -14,6 +14,7 @@ De OneUptime GitHub App is meer dan een koppeling met je code: je kunt er in je 
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Elke opdracht begint met een vermelding van de app. De vermelding mag overal in 
 | Opdracht | Wat er gebeurt | Ook begrepen |
 | --- | --- | --- |
 | `@oneuptime review` | Kloont de branch, leest de gewijzigde code en de code eromheen, controleert wat productie erover zegt, en plaatst een review als opmerking. Verandert niets. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Beoordeelt de pull request nu aan de hand van productie, wie hem ook opende: de uitzonderingen, operaties, incidenten en deploys rond de gewijzigde code, in één opmerking die ter plekke wordt bijgewerkt (zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests)). Kloont niets en voert niets uit. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Kloont de eigen branch van de pull request, maakt de wijziging en pusht nieuwe commits naar die branch. Opent nooit een tweede pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles wat je na de vermelding schrijft en geen bekende opdracht is, wordt gelezen als een verzoek om herziening, omdat het dat bijna altijd is:
@@ -100,6 +102,8 @@ Wat het vindt, komt in de review onder een kop **Production context**, elk punt 
 
 Er hoeft niets te worden ingesteld: de services zijn die waarvoor OneUptime deze repository vindt, net als bij een herstel (zie [Productietelemetrie in een herstel](/docs/ai/ai-agent#productietelemetrie-in-een-herstel)). De query's lezen alleen, draaien op de OneUptime-server en lezen niets van een andere service, een ander project of een privé-incident. Een repository waarvan de services geen telemetrie naar het project sturen, wordt alleen op basis van de code beoordeeld.
 
+Om elke pull request vanzelf aan de hand van productie te laten beoordelen, zet je **Pull requests beoordelen aan de hand van productie** aan in de instellingen van de repository: zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests).
+
 ## Wie hem opdrachten mag geven
 
 **Alleen mensen met write-, maintain- of admin-toegang tot de repository.** OneUptime vraagt GitHub elke keer naar de machtiging van de schrijver van de opmerking op die repository; het vertrouwt de badge "contributor" niet die GitHub naast een opmerking toont, want die beschrijft eerdere activiteit, niet de huidige toegang.
@@ -142,7 +146,7 @@ Abonneer je in de instellingen **Permissions & events** van je GitHub App op:
 | --- | --- |
 | **Issue comment** | `@mention`-opdrachten in issues en pull requests |
 | **Issues** | een issue aan de app toewijzen, en het triggerlabel |
-| **Pull request** | een review die bij de app is aangevraagd |
+| **Pull request** | een review die bij de app is aangevraagd, en productiebeoordelingen van pull requests wanneer ze openen en veranderen |
 | **Pull request review** | een vermelding in de tekst van een ingediende review |
 | **Pull request review comment** | een vermelding in een inline-opmerking bij de diff |
 

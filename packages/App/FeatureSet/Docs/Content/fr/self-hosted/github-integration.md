@@ -97,7 +97,7 @@ OneUptime utilise deux ensembles d'événements, qui remplissent des rôles diff
 | --- | --- |
 | **Issue comment** | les commandes `@mention` dans les issues **et** dans les pull requests |
 | **Issues** | assigner une issue à l'application, et le label déclencheur du dépôt |
-| **Pull request** | demander une revue à l'application |
+| **Pull request** | demander une revue à l'application, et les revues de production des pull requests quand elles s'ouvrent et changent |
 | **Pull request review** | une mention écrite dans le corps d'une revue soumise |
 | **Pull request review comment** | une mention dans un commentaire en ligne du diff |
 

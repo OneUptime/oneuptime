@@ -111,6 +111,8 @@ export default class GitHubCommandAuthorizer {
           gitHubAppInstallationId: true,
           isGitHubCommandsEnabled: true,
           gitHubTriggerLabel: true,
+          isProductionReviewEnabled: true,
+          productionReviewPullRequestContent: true,
         },
         sort: { createdAt: SortOrder.Ascending },
         limit: MAX_CONNECTED_REPOSITORY_CANDIDATES,

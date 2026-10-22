@@ -14,6 +14,7 @@ Die OneUptime GitHub App ist mehr als eine Verbindung zu Ihrem Code: Sie können
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Jeder Befehl beginnt mit einer Erwähnung der App. Die Erwähnung kann irgendwo 
 | Befehl | Was passiert | Ebenfalls verstanden |
 | --- | --- | --- |
 | `@oneuptime review` | Klont den Branch, liest den geänderten Code und den Code drumherum, prüft, was die Produktion darüber sagt, und veröffentlicht ein Review als Kommentar. Ändert nichts. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Prüft den Pull Request jetzt gegen die Produktion, egal wer ihn geöffnet hat: die Ausnahmen, Vorgänge, Vorfälle und Deploys rund um den geänderten Code, in einem Kommentar, der an Ort und Stelle aktualisiert wird (siehe [Produktionsprüfung von Pull Requests](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests)). Klont nichts und führt nichts aus. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Klont den eigenen Branch des Pull Requests, nimmt die Änderung vor und pusht neue Commits auf diesen Branch. Öffnet nie einen zweiten Pull Request. | `revise`, `please revise`, `rework`, `redo` |
 
 Alles, was Sie nach der Erwähnung schreiben und kein bekannter Befehl ist, wird als Überarbeitungsanfrage gelesen, weil es fast immer genau das ist:
@@ -100,6 +102,8 @@ Was es findet, steht im Review unter einer Überschrift **Production context**, 
 
 Es muss nichts eingerichtet werden: Die Dienste sind die, für die OneUptime dieses Repository findet, wie bei einer Korrektur (siehe [Produktionstelemetrie in einer Korrektur](/docs/ai/ai-agent#produktionstelemetrie-in-einer-korrektur)). Die Abfragen lesen nur, laufen auf dem OneUptime-Server und lesen nichts aus einem anderen Dienst, einem anderen Projekt oder einem privaten Vorfall. Ein Repository, dessen Dienste keine Telemetrie an das Projekt senden, wird allein anhand seines Codes geprüft.
 
+Damit jeder Pull Request von selbst gegen die Produktion geprüft wird, schalten Sie **Pull Requests gegen die Produktion prüfen** in den Einstellungen des Repositorys ein: siehe [Produktionsprüfung von Pull Requests](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests).
+
 ## Wer ihr Befehle geben darf
 
 **Nur Personen mit Write-, Maintain- oder Admin-Zugriff auf das Repository.** OneUptime fragt GitHub jedes Mal nach der Berechtigung der kommentierenden Person für dieses Repository; dem Abzeichen "contributor", das GitHub neben einem Kommentar zeigt, vertraut es nicht, denn es beschreibt frühere Aktivität, nicht den aktuellen Zugriff.
@@ -142,7 +146,7 @@ Abonnieren Sie in den Einstellungen **Permissions & events** Ihrer GitHub App:
 | --- | --- |
 | **Issue comment** | `@mention`-Befehle in Issues und Pull Requests |
 | **Issues** | das Zuweisen eines Issues an die App und das Auslöser-Label |
-| **Pull request** | ein bei der App angefragtes Review |
+| **Pull request** | ein bei der App angefragtes Review, und Produktionsprüfungen von Pull Requests, wenn sie geöffnet werden und sich ändern |
 | **Pull request review** | eine Erwähnung im Text eines abgeschickten Reviews |
 | **Pull request review comment** | eine Erwähnung in einem Inline-Kommentar zum Diff |
 

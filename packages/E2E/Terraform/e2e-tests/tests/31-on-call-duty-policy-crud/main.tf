@@ -34,11 +34,13 @@ resource "oneuptime_on_call_policy" "basic" {
   description = "Basic on-call policy for testing"
 }
 
-# Test Case 2: On-Call Policy with repeat settings
+# Test Case 2: On-Call Policy with repeat settings, paging again 30 minutes
+# after an acknowledgement when nothing is resolved (issue #5123)
 resource "oneuptime_on_call_policy" "repeat" {
   name                                 = "TF Repeat OnCall Policy ${random_id.suffix.hex}"
   description                          = "On-call policy with repeat settings"
   repeat_policy_if_no_one_acknowledges = true
+  acknowledgement_timeout_in_minutes   = 30
 }
 
 # Test Case 3: On-Call Policy with labels

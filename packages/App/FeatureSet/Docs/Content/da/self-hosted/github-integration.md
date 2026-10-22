@@ -97,7 +97,7 @@ OneUptime bruger to sæt events, og de har forskellige opgaver.
 | --- | --- |
 | **Issue comment** | `@mention`-kommandoer i issues **og** i pull requests |
 | **Issues** | at tildele appen et issue, og repositoryets trigger-label |
-| **Pull request** | at anmode appen om et review |
+| **Pull request** | at anmode appen om et review, og produktionsgennemgange af pull requests, når de åbnes og ændres |
 | **Pull request review** | en omtale skrevet i teksten til et indsendt review |
 | **Pull request review comment** | en omtale i en inline-kommentar i diffet |
 

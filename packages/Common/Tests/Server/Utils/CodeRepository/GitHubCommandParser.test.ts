@@ -1413,7 +1413,7 @@ describe("GitHubCommandParser.isSupportedOnSurface", () => {
     const commandTypes: Array<GitHubCommandType> =
       Object.values(GitHubCommandType);
 
-    expect(commandTypes.length).toBe(6);
+    expect(commandTypes.length).toBe(7);
 
     for (const commandType of commandTypes) {
       expect(
@@ -1470,5 +1470,80 @@ describe("commands that never start an agent run", () => {
     );
 
     expect(isConversationalCommand(command.commandType)).toBe(false);
+  });
+});
+
+/*
+ * "@oneuptime production review": a production review of the pull request,
+ * done by the server. Its phrases are read before the plain "review" verb,
+ * whose own phrases they start with ("review production"), so a production
+ * review is never read as a full code review on a Runner - and "code review"
+ * or a bare "review" never become a production review.
+ */
+describe("the production review command", () => {
+  test.each([
+    ["@oneuptime production review"],
+    ["@oneuptime review production"],
+    ["@oneuptime review against production"],
+    ["@oneuptime review in production"],
+    ["@oneuptime check production"],
+    ["@oneuptime production check"],
+    ["@oneuptime Production Review, please"],
+    ["Hey @oneuptime production review: did this break checkout?"],
+  ])("%p asks for a production review", (body: string) => {
+    expect(commandOnPullRequest(body).commandType).toBe(
+      GitHubCommandType.ProductionReview,
+    );
+  });
+
+  test.each([
+    ["@oneuptime review"],
+    ["@oneuptime code review"],
+    ["@oneuptime review this"],
+    ["@oneuptime please review"],
+  ])("%p is still a code review", (body: string) => {
+    expect(commandOnPullRequest(body).commandType).toBe(
+      GitHubCommandType.Review,
+    );
+  });
+
+  test("a production phrase run into another word is no production review", () => {
+    expect(
+      commandOnPullRequest("@oneuptime productionreview").commandType,
+    ).toBe(GitHubCommandType.Revise);
+  });
+
+  test("it is a pull request command: on an issue it parses, so it can be answered, but is not supported", () => {
+    expect(commandOnIssue("@oneuptime production review").commandType).toBe(
+      GitHubCommandType.ProductionReview,
+    );
+    expect(
+      GitHubCommandParser.isSupportedOnSurface({
+        commandType: GitHubCommandType.ProductionReview,
+        surface: GitHubCommandSurface.Issue,
+      }),
+    ).toBe(false);
+    expect(
+      GitHubCommandParser.isSupportedOnSurface({
+        commandType: GitHubCommandType.ProductionReview,
+        surface: GitHubCommandSurface.PullRequest,
+      }),
+    ).toBe(true);
+  });
+
+  test("quoted, fenced or in a code span, it is no command", () => {
+    expect(parseOnPullRequest("> @oneuptime production review")).toBeNull();
+    expect(
+      parseOnPullRequest("```\n@oneuptime production review\n```"),
+    ).toBeNull();
+    expect(
+      parseOnPullRequest("Ask with `@oneuptime production review`."),
+    ).toBeNull();
+  });
+
+  test("it is not conversational: the review itself answers it", () => {
+    expect(isConversationalCommand(GitHubCommandType.ProductionReview)).toBe(
+      false,
+    );
   });
 });

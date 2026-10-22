@@ -128,7 +128,7 @@ describe("Code's side menu", () => {
 });
 
 describe("a repository's side menu", () => {
-  test("puts its tasks first, then its settings, its Developer pages and, apart, deleting it", async () => {
+  test("puts its tasks first, then its pull requests' production reviews, its settings, its Developer pages and, apart, deleting it", async () => {
     goTo(`/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}`);
     await renderMenu(
       <CodeRepositorySideMenu modelId={new ObjectID(REPOSITORY_ID)} />,
@@ -141,6 +141,10 @@ describe("a repository's side menu", () => {
     ]);
     expect(linksIn("Repository")).toEqual([
       { title: "Tasks", href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW) },
+      {
+        title: "Production Reviews",
+        href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS),
+      },
       {
         title: "Settings",
         href: repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_SETTINGS),
@@ -161,6 +165,11 @@ describe("a repository's side menu", () => {
     expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_SETTINGS)).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
     );
+    expect(
+      repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS),
+    ).toBe(
+      `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/production-reviews`,
+    );
     expect(repositoryRoute(PageMap.CODE_REPOSITORY_VIEW_DELETE)).toBe(
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/delete`,
     );
@@ -168,6 +177,11 @@ describe("a repository's side menu", () => {
 
   test.each([
     ["its tasks", "", "Tasks"],
+    [
+      "its pull requests' production reviews",
+      "/production-reviews",
+      "Production Reviews",
+    ],
     ["its settings", "/settings", "Settings"],
   ])(
     "marks the page you are on (%s)",
@@ -198,6 +212,10 @@ describe("the navbar names Code as the product on every Code page", () => {
     ["the repositories", "code/repositories"],
     ["a repository's tasks", `code/repositories/${REPOSITORY_ID}`],
     ["a repository's settings", `code/repositories/${REPOSITORY_ID}/settings`],
+    [
+      "a repository's production reviews",
+      `code/repositories/${REPOSITORY_ID}/production-reviews`,
+    ],
     ["a task's conversation", `code/tasks/${TASK_ID}`],
     ["a task's log", `code/tasks/${TASK_ID}/log`],
   ])("%s", (_page: string, path: string) => {

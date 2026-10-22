@@ -20,6 +20,7 @@ import {
   isOnCallPassOnTimeToday,
   readOnCallPassOnResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -178,6 +179,8 @@ export function readOpenPages(json: unknown): Array<OnCallOpenPage> {
         preview: readOnCallPassOnResult(
           item["preview"] as unknown as OnCallPassOnResult,
         ),
+        // A page again: acknowledged as the page it is (PAGE_AGAIN_TEXT).
+        ...(item["isPageAgain"] === true ? { isPageAgain: true as const } : {}),
       };
     });
 }
@@ -227,6 +230,77 @@ export async function fetchOpenPages(data: {
   }
 
   return readOpenPages(response.jsonData);
+}
+
+/*
+ * A PAGE AGAIN (OnCallAcknowledgementTimeout) ON A RECORD'S PAGE.
+ *
+ * The policy paged again because the record stayed acknowledged without
+ * being resolved. The record was acknowledged all along, so its own
+ * Acknowledge is not in its header; the person paged again gets an
+ * "Acknowledge again" of their own there, beside Escalate, that answers
+ * their page as its link, a call's 1 or a text would: their notifications
+ * stop, and the policy counts its time again from now.
+ *
+ * "Again", because the header says the record is Acknowledged already: a
+ * bare "Acknowledge" beside that read as a button that did nothing, or as
+ * a mistake. If it cannot be acknowledged, a dialog says so, under a title
+ * that says what went wrong rather than the button's words, and says what
+ * that means for them: the page goes on.
+ */
+export const PAGE_AGAIN_TEXT: {
+  button: string;
+  failedTitle: string;
+  failed: string;
+} = {
+  button: translationKey("Acknowledge again"),
+  failedTitle: translationKey("Could not acknowledge"),
+  failed: translationKey("You are still being paged. Please try again."),
+};
+
+// Whether any of the signed-in person's open pages is a page again.
+export function hasPageAgain(pages: Array<OnCallOpenPage>): boolean {
+  return pages.some((page: OnCallOpenPage): boolean => {
+    return page.isPageAgain === true;
+  });
+}
+
+// <api>/on-call-page/acknowledge/<record type>/<record id>
+export function getPageAgainAcknowledgeRoute(data: {
+  recordType: OnCallPageRecordType;
+  recordId: ObjectID;
+}): string {
+  return `${ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE}/${data.recordType}/${data.recordId.toString()}`;
+}
+
+/*
+ * Acknowledges the signed-in person's pages again about the record, and
+ * says how many. An answer that is not a success throws.
+ */
+export async function acknowledgePagesAgain(data: {
+  recordType: OnCallPageRecordType;
+  recordId: ObjectID;
+}): Promise<number> {
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+    await API.post<JSONObject>({
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        getPageAgainAcknowledgeRoute(data),
+      ),
+      data: {},
+      headers: ModelAPI.getCommonHeaders(),
+    });
+
+  if (response instanceof HTTPErrorResponse || !response.isSuccess()) {
+    throw response;
+  }
+
+  const acknowledged: unknown = (response.jsonData as JSONObject | undefined)?.[
+    "acknowledged"
+  ];
+
+  return typeof acknowledged === "number" && acknowledged > 0
+    ? acknowledged
+    : 0;
 }
 
 // Escalates the signed-in person's open pages about the record.

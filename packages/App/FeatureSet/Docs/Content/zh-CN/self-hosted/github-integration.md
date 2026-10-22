@@ -97,7 +97,7 @@ OneUptime 使用两组事件，它们承担不同的工作。
 | --- | --- |
 | **Issue comment** | 在 issue **和** pull request 上的 `@mention` 命令 |
 | **Issues** | 把 issue 分配给应用，以及仓库的触发标签 |
-| **Pull request** | 请求应用进行评审 |
+| **Pull request** | 请求应用进行评审，以及拉取请求打开和变更时的生产审查 |
 | **Pull request review** | 已提交评审正文中的提及 |
 | **Pull request review comment** | diff 中行内评论里的提及 |
 

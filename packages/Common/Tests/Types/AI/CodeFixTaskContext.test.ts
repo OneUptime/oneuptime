@@ -7,10 +7,13 @@
 import CodeFixTaskContext, {
   GitHubTaskContext,
   InvestigationCodeFixTaskSnapshot,
+  ProductionReviewTaskContext,
   getGitHubConversationNumber,
   getGitHubTaskContext,
   getInvestigationCodeFixTaskSnapshot,
+  getProductionReviewTaskContext,
 } from "../../../Types/AI/CodeFixTaskContext";
+import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import { describe, expect, test } from "@jest/globals";
 
@@ -254,5 +257,81 @@ describe("getGitHubConversationNumber", () => {
         github({ issueNumber: 5, pullRequestNumber: 0 }),
       ),
     ).toBe(0);
+  });
+});
+
+/*
+ * A production review task's context is whole only when it names a pull
+ * request (in `github`) and an ask to review it: a run that cannot say
+ * which pull request, or what was asked, is not reviewed at all.
+ */
+describe("getProductionReviewTaskContext", () => {
+  const review: ProductionReviewTaskContext = {
+    requestNumber: 1,
+    requestedAt: "2026-10-22T10:00:00.000Z",
+    headSha: "abc1234",
+    trigger: ProductionReviewTrigger.PullRequestChanged,
+    isAuthorTrusted: true,
+  };
+
+  const pullRequest: GitHubTaskContext = github({
+    commandType: GitHubCommandType.ProductionReview,
+    instruction: "",
+    issueNumber: undefined,
+    pullRequestNumber: 42,
+  });
+
+  test("reads a whole one back", () => {
+    expect(
+      getProductionReviewTaskContext({
+        github: pullRequest,
+        productionReview: review,
+      }),
+    ).toBe(review);
+  });
+
+  test.each([
+    ["no context", undefined],
+    ["no ask", { github: pullRequest }],
+    ["no pull request", { productionReview: review }],
+    [
+      "an issue instead of a pull request",
+      {
+        github: github({ issueNumber: 7 }),
+        productionReview: review,
+      },
+    ],
+    [
+      "an ask number that is not one",
+      {
+        github: pullRequest,
+        productionReview: { ...review, requestNumber: 0 },
+      },
+    ],
+    [
+      "an ask number that is a fraction",
+      {
+        github: pullRequest,
+        productionReview: { ...review, requestNumber: 1.5 },
+      },
+    ],
+    [
+      "no time it was asked",
+      {
+        github: pullRequest,
+        productionReview: { ...review, requestedAt: 5 as unknown as string },
+      },
+    ],
+    [
+      "no head",
+      {
+        github: pullRequest,
+        productionReview: { ...review, headSha: null as unknown as string },
+      },
+    ],
+  ])("%s is no review", (_name: string, context: unknown) => {
+    expect(
+      getProductionReviewTaskContext(context as CodeFixTaskContext),
+    ).toBeNull();
   });
 });

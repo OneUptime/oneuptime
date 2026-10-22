@@ -53,3 +53,16 @@ export function getOnCallPolicyRunRecordHandledMessage(
 ): string {
   return `${ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START}${recordKind} is acknowledged or resolved.`;
 }
+
+/*
+ * "Execution completed because incident is resolved." - how a page again
+ * ends when its record is resolved (OnCallAcknowledgementTimeout). Its
+ * record was acknowledged all along, so "acknowledged or resolved" would not
+ * say why it stopped. It starts as every handled ending does, so the feed
+ * and the run's chat message read it the same way.
+ */
+export function getOnCallPolicyRunRecordResolvedMessage(
+  recordKind: string,
+): string {
+  return `${ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START}${recordKind} is resolved.`;
+}

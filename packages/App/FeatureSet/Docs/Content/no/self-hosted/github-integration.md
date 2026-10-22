@@ -97,7 +97,7 @@ OneUptime bruker to sett med hendelser, og de gjør ulike jobber.
 | --- | --- |
 | **Issue comment** | `@mention`-kommandoer i issues **og** i pull requests |
 | **Issues** | å tildele appen en issue, og repositoriets utløser-etikett |
-| **Pull request** | å be appen om en gjennomgang |
+| **Pull request** | å be appen om en gjennomgang, og produksjonsgjennomganger av pull requests når de åpnes og endres |
 | **Pull request review** | en omtale skrevet i teksten til en innsendt gjennomgang |
 | **Pull request review comment** | en omtale i en innebygd kommentar i diffen |
 

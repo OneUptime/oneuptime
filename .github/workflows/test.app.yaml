@@ -425,7 +425,12 @@ jobs:
           # and a half with its bundle, Chromium only: Incidents > Postmortems,
           # an incident's Postmortem page and Postmortem Statuses, at a
           # laptop's and a phone's width, dark and German) joined them on
-          # 2026-10-22: about 18.5 for the six.
+          # 2026-10-22: about 18.5 for the six. Acknowledgement Timeout (about
+          # 20 seconds locally with its bundle, Chromium only: an on-call
+          # policy's Escalation Rules page with the setting folded under More
+          # settings, its dialog and what a save sends, at 1280 and 390
+          # pixels, dark and German) joined them the same day: about 19.5 for
+          # the seven.
           - group: 9
             browsers: chromium
             suites: >-
@@ -435,6 +440,7 @@ jobs:
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-postmortems-ui
+              test-acknowledgement-timeout-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -627,4 +633,6 @@ jobs:
             output/playwright/host-collectors-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
+            output/playwright/acknowledgement-timeout-ui/*.png
+            output/playwright/acknowledgement-timeout-ui/test-results
           retention-days: 7
