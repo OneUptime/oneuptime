@@ -22,6 +22,8 @@ import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -300,6 +302,21 @@ export class Service extends DatabaseService<Model> {
             item.triggeredByIncidentEpisodeId!,
             item.userId!,
           );
+        }
+
+        /*
+         * A new acknowledgement: when the run's policy pages again after an
+         * acknowledgement, its clock starts again from now - how a page
+         * again is answered, since its record was acknowledged all along
+         * (OnCallAcknowledgementTimeout). Never throws.
+         */
+        if (item.onCallDutyPolicyExecutionLogId) {
+          await OnCallAcknowledgementTimeout.onPageAcknowledged({
+            executionLogId: item.onCallDutyPolicyExecutionLogId,
+            acknowledgedAt: OneUptimeDate.fromString(
+              onUpdate.updateBy.data.acknowledgedAt as Date,
+            ),
+          });
         }
       }
     }

@@ -104,32 +104,33 @@ export function isOnCallAcknowledgementTimeoutOn(
 }
 
 /*
- * Why a value cannot be a policy's timeout, or null when it can: empty (the
+ * Why a value cannot be a policy's timeout, or null when it can: null (the
  * timeout is off) or a whole number of minutes in the allowed range. What
- * the API, Terraform and the Dashboard are told.
+ * the API, Terraform and a workflow are told; the Dashboard never sends
+ * anything else.
  */
+export const ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_REFUSAL: string = `The acknowledgement timeout is a whole number of minutes from ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} to ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} (24 hours), or null to turn it off.`;
+
 export function getOnCallAcknowledgementTimeoutRefusal(
   value: unknown,
 ): string | null {
-  if (value === null || value === undefined || value === "") {
+  if (value === null || value === undefined) {
     return null;
   }
 
-  const minutes: number = typeof value === "number" ? value : Number(value);
+  // A number, or the text of one ("30"): what a JSON body may carry.
+  const isNumberLike: boolean =
+    typeof value === "number" ||
+    (typeof value === "string" && value.trim().length > 0);
+
+  const minutes: number = isNumberLike ? Number(value) : NaN;
 
   if (
-    typeof value === "boolean" ||
-    !Number.isFinite(minutes) ||
-    !Number.isInteger(minutes)
-  ) {
-    return "The acknowledgement timeout is a whole number of minutes. Leave it empty to turn it off.";
-  }
-
-  if (
+    !Number.isInteger(minutes) ||
     minutes < MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES ||
     minutes > MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES
   ) {
-    return `The acknowledgement timeout is between ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} and ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} minutes (24 hours). Leave it empty to turn it off.`;
+    return ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_REFUSAL;
   }
 
   return null;
@@ -259,15 +260,27 @@ export function isOnCallPageAgainStatusMessage(
 }
 
 /*
- * What a page again's Slack and Microsoft Teams message says first, under
- * its headline: "Paged again (1 of 5): still not resolved after it was
- * acknowledged." The last one says it is the last.
+ * Which page again of how many, saying so when it is the last: "1 of 5",
+ * "5 of 5, the last time" - in the feed and in the run's chat message.
  */
-export function getOnCallPageAgainChatLine(pageAgainNumber: number): string {
+export function getOnCallPageAgainPlaceWithLast(
+  pageAgainNumber: number,
+): string {
   const isLast: boolean =
     pageAgainNumber >= ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN;
 
-  return `Paged again (${getOnCallPageAgainPlace(pageAgainNumber)}${
+  return `${getOnCallPageAgainPlace(pageAgainNumber)}${
     isLast ? ", the last time" : ""
-  }): still not resolved after it was acknowledged.`;
+  }`;
+}
+
+/*
+ * What a page again's Slack and Microsoft Teams message says under its
+ * headline, the words after "Paged again" (bold there): "(1 of 5): still
+ * not resolved after it was acknowledged."
+ */
+export function getOnCallPageAgainChatReason(pageAgainNumber: number): string {
+  return `(${getOnCallPageAgainPlaceWithLast(
+    pageAgainNumber,
+  )}): still not resolved after it was acknowledged.`;
 }

@@ -46,6 +46,11 @@ import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceKind,
   OnCallEscalationAdvanceResult,
 } from "./OnCallEscalationAdvance";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordState,
+} from "./OnCallAcknowledgementTimeout";
+import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -98,6 +103,9 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
     name: true,
     email: true,
   },
+  // A page again is taken when it is acknowledged, not its record.
+  pageAgainNumber: true,
+  acknowledgedAt: true,
   onCallDutyPolicy: {
     _id: true,
     name: true,
@@ -537,10 +545,35 @@ export default class OnCallPagePassOn {
   /*
    * Whether the record a run pages about is acknowledged or resolved:
    * somebody has taken it, and the run stops at its next tick.
+   *
+   * A page again (OnCallAcknowledgementTimeout) pages about a record that
+   * was acknowledged all along: it is taken once somebody acknowledges the
+   * page again itself, or the record is resolved (or gone). Until then its
+   * people can escalate it like any page.
    */
   private static async isRecordAcknowledged(
     run: OnCallDutyPolicyExecutionLog,
   ): Promise<boolean> {
+    if (isOnCallPageAgainRun(run)) {
+      if (run.acknowledgedAt) {
+        return true;
+      }
+
+      const record: {
+        kind: OnCallTimeoutRecordKind;
+        recordId: ObjectID;
+      } | null = OnCallAcknowledgementTimeout.getRunRecord(run);
+
+      if (!record) {
+        return false;
+      }
+
+      const state: OnCallTimeoutRecordState | null =
+        await OnCallAcknowledgementTimeout.readRecordState(record);
+
+      return !state || state.isResolved;
+    }
+
     if (run.triggeredByIncidentId) {
       return await IncidentService.isIncidentAcknowledged({
         incidentId: run.triggeredByIncidentId,
