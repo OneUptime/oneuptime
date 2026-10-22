@@ -1,4 +1,8 @@
 import FixProductionReport from "./FixProductionReport";
+import {
+  ProductionReviewReport,
+  ProductionReviewSummaryJSON,
+} from "../CodeRepository/ProductionReview";
 import AIRunStatus from "./AIRunStatus";
 import BadDataException from "../Exception/BadDataException";
 import ObjectID from "../ObjectID";
@@ -208,6 +212,12 @@ export interface CodeTaskOutcome {
   pullRequestUrl?: string | undefined;
   // True when this turn opened the pull request; false when it added to it.
   openedPullRequest?: boolean | undefined;
+  /*
+   * A production review of a pull request (the
+   * GitHubPullRequestProductionReview recipe): what production says about
+   * the code it changes. Written by the server, never by a Runner.
+   */
+  productionReview?: ProductionReviewReport | undefined;
 }
 
 // One file's diff, as the turn committed it.
@@ -394,6 +404,8 @@ export interface CodeTaskSummaryJSON {
    * when it changed anything: the "+23 −1" a list row shows.
    */
   changes?: CodeTaskChangeStatsJSON | undefined;
+  // A production review's latest findings, at a glance.
+  productionReview?: ProductionReviewSummaryJSON | undefined;
 }
 
 // How much a task changed: its files, and the lines added and taken out.
