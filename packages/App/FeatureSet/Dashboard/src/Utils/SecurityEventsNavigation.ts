@@ -18,6 +18,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Playbooks        what responds when a case opens: Playbooks, the runs
  *                    Waiting for Approval, every Playbook Run, and the
  *                    Protected Entities no playbook may contain
+ *   AI               whether OneUptime AI triages each new case (Settings),
+ *                    as the Incidents' and Alerts' menus have it; the
+ *                    triage itself is on each case's AI card
  *   Workspace        the Slack and Microsoft Teams channels cases are
  *                    posted to (SECURITY_EVENTS_WORKSPACE_PAGES)
  *   Connections      where events come from and where they are sent:
@@ -28,7 +31,7 @@ import IconProp from "Common/Types/Icon/IconProp";
  * the views along the top of the case queue and the runs): "Can we create
  * side menu sections instead and have different pages for these things?"
  *
- * Detections, Workspace and Connections are set up once and visited
+ * Detections, AI, Workspace and Connections are set up once and visited
  * rarely, so they start folded to their titles; each opens by itself on
  * its own pages.
  *
@@ -182,6 +185,21 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_PROTECTED_ENTITIES,
         title: "Protected Entities",
         icon: IconProp.Lock,
+      },
+    ],
+  },
+  {
+    /*
+     * What OneUptime AI does on its own as cases open, like the AI section
+     * of the Incidents' and Alerts' menus. Set once, so folded.
+     */
+    title: "AI",
+    startsCollapsed: true,
+    items: [
+      {
+        page: PageMap.SECURITY_EVENTS_SETTINGS_AI,
+        title: "Settings",
+        icon: IconProp.Settings,
       },
     ],
   },

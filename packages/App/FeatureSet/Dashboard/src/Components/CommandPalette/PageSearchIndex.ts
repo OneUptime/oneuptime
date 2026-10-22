@@ -1793,6 +1793,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
         ],
       },
+      {
+        title: "AI",
+        pages: [
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_AI,
+            title: "Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "ai triage",
+              "triage new cases",
+              "oneuptime ai security",
+              "automatic triage",
+            ],
+          },
+        ],
+      },
       workspaceSection({
         slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
         microsoftTeams:

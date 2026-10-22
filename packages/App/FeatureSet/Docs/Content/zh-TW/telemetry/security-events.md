@@ -46,10 +46,11 @@ flowchart TB
 | **等待核准** | Playbooks | 等待有人核准或拒絕的劇本步驟 |
 | **劇本執行記錄** | Playbooks | 每個劇本逐步做了什麼 |
 | **Protected Entities** | Playbooks | 任何劇本都不會圍堵的使用者和主機 |
+| **設定** | 人工智慧 | OneUptime AI 是否研判每個新案件 |
 | **Connections** | Connections | 您的日誌、OneUptime 輪詢的安全產品，以及它傳送到的 SIEM |
 | **設定指南** | Connections | 傳送事件的程式碼片段，已填入你的擷取金鑰 |
 
-只需設定一次的 **Detections** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
+只需設定一次的 **Detections**、**人工智慧** 和 **Connections** 會保持摺疊，直到你開啟它們。剛開始使用安全性功能？[安全性入門](/docs/telemetry/security-getting-started) 按兩下即可完成設定。
 
 ## 開始之前
 

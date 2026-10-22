@@ -141,6 +141,8 @@ export interface QueuedRunRef {
   triggeredByAlertId?: ObjectID | undefined;
   triggeredByAiInsightId?: ObjectID | undefined;
   triggeredByAutoRemediationSuggestionId?: ObjectID | undefined;
+  // Set on a security case's triage (SecurityCaseTriageRunner).
+  triggeredBySecurityCaseId?: ObjectID | undefined;
   // Set on an incident's follow-up check (IncidentFollowUpCheck).
   followUpForAlertId?: ObjectID | undefined;
   /*
@@ -186,6 +188,12 @@ export default class AIInvestigationQueue {
     subjectAlertId?: ObjectID | undefined;
     subjectMonitorId?: ObjectID | undefined;
     subjectAIInsightId?: ObjectID | undefined;
+    /*
+     * A security case to triage (SecurityCaseTriageRunner): an
+     * Investigation run with no incident or alert, in the subjectless lane
+     * with insight triage.
+     */
+    subjectSecurityCaseId?: ObjectID | undefined;
     onNotEnqueued?:
       | ((
           code: InvestigationNotStartedCode,
@@ -260,6 +268,23 @@ export default class AIInvestigationQueue {
     }
 
     /*
+     * A security case's triage is its own subject: it is never also an
+     * incident's or an alert's run, whose lanes, budgets and remediation
+     * hand-off it would otherwise be counted in.
+     */
+    if (
+      data.subjectSecurityCaseId &&
+      (data.subjectIncidentId ||
+        data.subjectAlertId ||
+        data.subjectAutoRemediationSuggestionId)
+    ) {
+      logger.error(
+        `AI: not enqueueing investigation for project ${projectId.toString()} — a security case triage cannot also belong to an incident, an alert or a remediation.`,
+      );
+      return null;
+    }
+
+    /*
      * Budget quiet-skip at enqueue: when the daily budget is already
      * exhausted there is no point recording intent that the TTL would
      * expire anyway. Fails cheap (skip) like all the cost gates.
@@ -328,6 +353,9 @@ export default class AIInvestigationQueue {
     }
     if (data.subjectAIInsightId) {
       run.triggeredByAiInsightId = data.subjectAIInsightId;
+    }
+    if (data.subjectSecurityCaseId) {
+      run.triggeredBySecurityCaseId = data.subjectSecurityCaseId;
     }
     if (data.subjectAutoRemediationSuggestionId) {
       run.triggeredByAutoRemediationSuggestionId =
@@ -407,6 +435,7 @@ export default class AIInvestigationQueue {
       triggeredByAiInsightId: data.subjectAIInsightId,
       triggeredByAutoRemediationSuggestionId:
         data.subjectAutoRemediationSuggestionId,
+      triggeredBySecurityCaseId: data.subjectSecurityCaseId,
       followUpForAlertId: data.followUpForAlertId,
       ruleWaitMinutes: run.ruleWaitMinutes,
     });
@@ -659,6 +688,7 @@ export default class AIInvestigationQueue {
         triggeredByAlertId: true,
         triggeredByAiInsightId: true,
         triggeredByAutoRemediationSuggestionId: true,
+        triggeredBySecurityCaseId: true,
         followUpForAlertId: true,
         ruleWaitMinutes: true,
       },
@@ -680,6 +710,7 @@ export default class AIInvestigationQueue {
         triggeredByAiInsightId: queued.triggeredByAiInsightId,
         triggeredByAutoRemediationSuggestionId:
           queued.triggeredByAutoRemediationSuggestionId,
+        triggeredBySecurityCaseId: queued.triggeredBySecurityCaseId,
         followUpForAlertId: queued.followUpForAlertId,
         ruleWaitMinutes: queued.ruleWaitMinutes,
       });
@@ -895,13 +926,16 @@ export default class AIInvestigationQueue {
   }
 
   /*
-   * Background work — insight triage, remediation plans and remediation
-   * executions — is storm-shaped, and nobody is waiting for it. Incident and
-   * alert RCAs are the work a paged human waits for.
+   * Background work — insight triage, security case triage, remediation
+   * plans and remediation executions — is storm-shaped (a burst of
+   * detections opens a burst of cases), so a worker takes the incident and
+   * alert RCAs a paged human waits for first. With a worker free, a
+   * background run starts as soon as it is queued all the same.
    */
   private static isBackgroundRun(run: QueuedRunRef): boolean {
     return (
       Boolean(run.triggeredByAiInsightId) ||
+      Boolean(run.triggeredBySecurityCaseId) ||
       run.runType === AIRunType.RemediationPlan ||
       run.runType === AIRunType.RemediationExecution
     );
@@ -924,6 +958,7 @@ export default class AIInvestigationQueue {
       aiInsightId: run.triggeredByAiInsightId?.toString() || null,
       autoRemediationSuggestionId:
         run.triggeredByAutoRemediationSuggestionId?.toString() || null,
+      securityCaseId: run.triggeredBySecurityCaseId?.toString() || null,
       followUpForAlertId: run.followUpForAlertId?.toString() || null,
       ruleWaitMinutes: run.ruleWaitMinutes || null,
     };
@@ -969,6 +1004,7 @@ export default class AIInvestigationQueue {
       triggeredByAutoRemediationSuggestionId: readId(
         "autoRemediationSuggestionId",
       ),
+      triggeredBySecurityCaseId: readId("securityCaseId"),
       followUpForAlertId: readId("followUpForAlertId"),
       ruleWaitMinutes: ruleWaitMinutes > 0 ? ruleWaitMinutes : undefined,
     };
@@ -1376,6 +1412,25 @@ export default class AIInvestigationQueue {
         ...(run.ruleWaitMinutes
           ? { ruleWaitMinutes: run.ruleWaitMinutes }
           : {}),
+      });
+      return;
+    }
+
+    /*
+     * A security case's triage: read-only, its report posted to the case
+     * (SecurityCaseTriageRunner). Subject-bearing like insight triage, so
+     * it must be routed before the subject-less fallthrough below.
+     */
+    if (run.triggeredBySecurityCaseId) {
+      const securityCaseTriageRunner: typeof import("../Security/SecurityCaseTriageRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Security/SecurityCaseTriageRunner").default;
+
+      await securityCaseTriageRunner.executeTriage({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        securityCaseId: run.triggeredBySecurityCaseId,
+        attemptCount: attempt,
       });
       return;
     }

@@ -84,6 +84,7 @@ Un dossier passe par quatre statuts. Il peut en sauter un, comme un faux positif
 La page du dossier réunit tout ce qu'il faut pour le traiter :
 
 - En haut : **Assign to Me**, **Run Playbook**, **Déclarer un incident** et **Close Case**, les étapes de statut, et la priorité, dans le menu à côté.
+- **OneUptime AI** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **MITRE ATT&CK** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
@@ -166,6 +167,7 @@ Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en u
 | --- | --- |
 | Dossier ouvert | Une fois, à l'ouverture d'un dossier |
 | Détection ajoutée | Chaque fois qu'une nouvelle détection rejoint un dossier ouvert |
+| Qualifié probablement malveillant | Une fois, quand la qualification de OneUptime AI lit le dossier comme Probablement malveillant |
 | Manuel | Seulement quand quelqu'un l'exécute depuis un dossier |
 
 Tout playbook activé peut aussi être lancé à la main, avec **Run Playbook** sur un dossier. Un playbook qui s'exécute de lui-même peut être restreint :
@@ -321,5 +323,6 @@ Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adre
 :::cards
 - [Événements de sécurité](/docs/telemetry/security-events): Envoyer des événements, écrire des règles de détection et connecter des produits de sécurité.
 - [Renseignement sur les menaces](/docs/telemetry/threat-intelligence): Confronter vos événements à des flux STIX/TAXII.
+- [OneUptime AI dans la sécurité](/docs/telemetry/security-ai): Qualifier les dossiers, rédiger des règles de détection et poser des questions sur la sécurité, avec l'IA.
 - [Référence des autorisations](/docs/permissions/reference): Les rôles de sécurité, et ce que chacun peut faire.
 :::

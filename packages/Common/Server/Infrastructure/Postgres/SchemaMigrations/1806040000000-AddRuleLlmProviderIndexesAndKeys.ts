@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddRuleLlmProviders1805980000000, and moved into a migration of its own:
+ * AddRuleLlmProviders1806030000000, and moved into a migration of its own:
  * AutoRemediationRule, AIInvestigationRule and AIPostmortemRule already
  * exist and are written while incidents and alerts are created, so each
  * index on its new "llmProviderId" column is built online, and each foreign
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * validation finds nothing to refuse. Safe to run again after a stop part
  * way: an index or key that is already there is left as it is.
  */
-export class AddRuleLlmProviderIndexesAndKeys1805990000000
+export class AddRuleLlmProviderIndexesAndKeys1806040000000
   implements MigrationInterface
 {
-  public name: string = "AddRuleLlmProviderIndexesAndKeys1805990000000";
+  public name: string = "AddRuleLlmProviderIndexesAndKeys1806040000000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

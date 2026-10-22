@@ -8,6 +8,7 @@ import {
   DeclareIncidentFromCaseModal,
   RunSecurityPlaybookModal,
 } from "../../Components/SecurityCase/SecurityCaseActionModals";
+import SecurityCaseAiCard from "../../Components/SecurityCase/SecurityCaseAiCard";
 import SecurityCaseDetections from "../../Components/SecurityCase/SecurityCaseDetections";
 import SecurityCaseEntitiesCard from "../../Components/SecurityCase/SecurityCaseEntitiesCard";
 import SecurityCaseFeed from "../../Components/SecurityCase/SecurityCaseFeed";
@@ -99,6 +100,8 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
   const [actionError, setActionError] = useState<string>("");
   const [isWorking, setIsWorking] = useState<boolean>(false);
   const [dialog, setDialog] = useState<CaseDialog>(null);
+  // The playbook Run Playbook starts on: the one OneUptime AI suggested.
+  const [playbookToRun, setPlaybookToRun] = useState<ObjectID | null>(null);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
@@ -148,6 +151,13 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
             name: true,
             color: true,
           },
+          // OneUptime AI's triage of the case, for its AI card.
+          aiVerdict: true,
+          aiSuggestedPriority: true,
+          aiSuggestedPlaybookId: true,
+          aiTriageReport: true,
+          aiTriagedAt: true,
+          aiTriagePromptInjectionSuspected: true,
         },
       });
 
@@ -282,6 +292,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
             void updateCase({ priority });
           }}
           onRunPlaybook={() => {
+            setPlaybookToRun(null);
             setDialog("runPlaybook");
           }}
           onDeclareIncident={() => {
@@ -338,6 +349,23 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="min-w-0 space-y-6 xl:col-span-2">
+            {/*
+              What OneUptime AI made of the case, first: the read an analyst
+              starts from. Not drawn at all with the project's AI off.
+            */}
+            <SecurityCaseAiCard
+              securityCase={securityCase}
+              refreshToggle={refreshToggle}
+              isWorking={isWorking}
+              onTriaged={refreshAll}
+              onSetPriority={(priority: SecurityCasePriority) => {
+                void updateCase({ priority });
+              }}
+              onRunPlaybook={(playbookId: ObjectID) => {
+                setPlaybookToRun(playbookId);
+                setDialog("runPlaybook");
+              }}
+            />
             <SecurityCaseDetections
               securityCaseId={caseId}
               refreshToggle={refreshToggle}
@@ -346,6 +374,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
               securityCaseId={caseId}
               refreshToggle={refreshToggle}
               onRunPlaybook={() => {
+                setPlaybookToRun(null);
                 setDialog("runPlaybook");
               }}
               onRunsChanged={refreshAll}
@@ -390,6 +419,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
       {dialog === "runPlaybook" ? (
         <RunSecurityPlaybookModal
           securityCase={securityCase}
+          initialPlaybookId={playbookToRun || undefined}
           onClose={() => {
             setDialog(null);
           }}

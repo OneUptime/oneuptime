@@ -525,12 +525,17 @@ describe("the Detection Rules page", () => {
     expect(yamlField.description).toBe(
       "One Sigma rule, or a Sigma correlation with the rules it reads, in YAML.",
     );
-    expect(yamlField.getFooterElement!({ sigmaRuleYaml: FAILED })).toBe(
-      undefined,
-    );
-    expect(yamlField.getFooterElement!({ sigmaRuleYaml: "title: [" })).toBe(
-      undefined,
-    );
+    /*
+     * A single rule, or YAML that does not parse yet, gets no summary: the
+     * footer holds Draft with AI alone (DetectionRuleAiDraft).
+     */
+    for (const yaml of [FAILED, "title: ["]) {
+      const { unmount } = render(
+        yamlField.getFooterElement!({ sigmaRuleYaml: yaml })!,
+      );
+      expect(screen.queryByTestId("detection-rule-summary")).toBeNull();
+      unmount();
+    }
 
     render(yamlField.getFooterElement!({ sigmaRuleYaml: SEQUENCE })!);
 

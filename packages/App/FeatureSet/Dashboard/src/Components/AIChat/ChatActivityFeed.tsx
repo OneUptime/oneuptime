@@ -263,6 +263,18 @@ const friendlyToolNames: { [key: string]: string } = {
   query_resource_telemetry: translationKey("Reading a resource's telemetry"),
   query_containers: translationKey("Checking the host's containers"),
   /*
+   * Security Events: the events, the cases, what threat intel knows and how
+   * unusual an entity is - what a security case's triage reads.
+   */
+  search_security_events: translationKey("Searching security events"),
+  security_event_summary: translationKey("Summarizing security events"),
+  query_security_cases: translationKey("Reading security cases"),
+  lookup_threat_intel: translationKey("Checking threat intel"),
+  security_entity_activity: translationKey("Checking how unusual an entity is"),
+  query_security_playbooks: translationKey("Listing playbooks"),
+  add_security_case_note: translationKey("Adding a note to the case"),
+  run_security_playbook: translationKey("Starting a playbook"),
+  /*
    * What every investigation reads besides telemetry: past incidents like
    * this one, what changed just before it, and its own timeline.
    */

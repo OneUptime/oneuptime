@@ -84,6 +84,7 @@ Een zaak doorloopt vier statussen. Ze kan er een overslaan, bijvoorbeeld een fal
 De pagina van de zaak heeft alles om haar af te handelen:
 
 - Bovenaan: **Assign to Me**, **Run Playbook**, **Incident melden** en **Close Case**, de statusstappen, en de prioriteit onder het menu ernaast.
+- **OneUptime AI**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
 - **Detections**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **MITRE ATT&CK**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
@@ -166,6 +167,7 @@ Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan o
 | --- | --- |
 | Case Opened | Eén keer, wanneer een zaak wordt geopend |
 | Detection Added | Telkens wanneer een nieuwe detectie aan een open zaak wordt toegevoegd |
+| Beoordeeld als waarschijnlijk kwaadaardig | Eén keer, wanneer de beoordeling van OneUptime AI de zaak als Waarschijnlijk kwaadaardig leest |
 | Manual | Alleen wanneer iemand het vanuit een zaak uitvoert |
 
 Elk ingeschakeld playbook kan ook met de hand worden uitgevoerd, met **Run Playbook** op een zaak. Een playbook dat vanzelf draait, kun je beperken:
@@ -321,5 +323,6 @@ De zaak gaat over geen enkele gebruiker of host, bijvoorbeeld alleen over een ad
 :::cards
 - [Beveiligingsgebeurtenissen](/docs/telemetry/security-events): Stuur gebeurtenissen, schrijf detectieregels en koppel beveiligingsproducten.
 - [Dreigingsinformatie](/docs/telemetry/threat-intelligence): Vergelijk je gebeurtenissen met STIX/TAXII-feeds.
+- [OneUptime AI in beveiliging](/docs/telemetry/security-ai): Zaken beoordelen, detectieregels laten opstellen en vragen stellen over beveiliging, met AI.
 - [Machtigingsreferentie](/docs/permissions/reference): De Security-rollen, en wat elk ervan kan.
 :::

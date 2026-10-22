@@ -208,4 +208,5 @@ Dit openzetten verandert echt wat uw OneUptime-instantie kan worden gemaakt te b
 - [Workflowconfiguratie](/docs/workflows/configuration): Wat workflowstappen kunnen bereiken en doen.
 - [LLM-providers](/docs/ai/llm-provider): Verbind OneUptime AI met een model in uw netwerk.
 - [Architectuur](/docs/self-hosted/architecture): Welk deel van een zelf gehoste installatie welke verbinding maakt.
+- [Achter een VPN of firewall](/docs/self-hosted/behind-a-firewall): Andersom: wat uw server van buitenaf bereikt.
 :::

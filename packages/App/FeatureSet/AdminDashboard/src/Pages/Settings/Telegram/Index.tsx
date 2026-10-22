@@ -146,6 +146,16 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
+              telegramPollForUpdates: true,
+            },
+            title: "Poll Telegram for Messages",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description:
+              "Turn on when Telegram can't reach this server, such as one behind a VPN or firewall. OneUptime then fetches the bot's messages from Telegram over outbound HTTPS, and needs no webhook.",
+          },
+          {
+            field: {
               telegramWebhookSecretToken: true,
             },
             title: "Webhook Secret Token",
@@ -158,6 +168,10 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
               minLength: 32,
               maxLength: 100,
               noSpaces: true,
+            },
+            // Only the webhook uses it: a polling server is never called.
+            showIf: (values: FormValues<GlobalConfig>): boolean => {
+              return !values.telegramPollForUpdates;
             },
           },
         ]}
@@ -183,11 +197,22 @@ const SettingsTelegram: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                telegramPollForUpdates: true,
+              },
+              title: "Poll Telegram for Messages",
+              fieldType: FieldType.Boolean,
+              placeholder: t("common.notEnabled"),
+            },
+            {
+              field: {
                 telegramWebhookSecretToken: true,
               },
               title: "Webhook Secret Token",
               fieldType: FieldType.HiddenText,
               placeholder: t("common.notConfigured"),
+              showIf: (item: GlobalConfig): boolean => {
+                return !item.telegramPollForUpdates;
+              },
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

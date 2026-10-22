@@ -1,5 +1,5 @@
-import { AddRuleLlmProviders1805980000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805980000000-AddRuleLlmProviders";
-import { AddRuleLlmProviderIndexesAndKeys1805990000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805990000000-AddRuleLlmProviderIndexesAndKeys";
+import { AddRuleLlmProviders1806030000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806030000000-AddRuleLlmProviders";
+import { AddRuleLlmProviderIndexesAndKeys1806040000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806040000000-AddRuleLlmProviderIndexesAndKeys";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
@@ -228,8 +228,8 @@ describePostgres("AddRuleLlmProviders against Postgres", () => {
     }
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddRuleLlmProviders1805980000000().up(queryRunner);
-      await new AddRuleLlmProviderIndexesAndKeys1805990000000().up(queryRunner);
+      await new AddRuleLlmProviders1806030000000().up(queryRunner);
+      await new AddRuleLlmProviderIndexesAndKeys1806040000000().up(queryRunner);
     });
   });
 
@@ -291,7 +291,7 @@ describePostgres("AddRuleLlmProviders against Postgres", () => {
 
   test("running the online migration again changes nothing", async () => {
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new AddRuleLlmProviderIndexesAndKeys1805990000000().up(queryRunner);
+      await new AddRuleLlmProviderIndexesAndKeys1806040000000().up(queryRunner);
     });
 
     for (const table of RULE_TABLES) {

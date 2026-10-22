@@ -46,10 +46,11 @@ Open **Producten → Security Events**, onder **Observability**. Het menu heeft 
 | **Wacht op goedkeuring** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Playbook-uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
 | **Protected Entities** | Playbooks | De gebruikers en hosts die geen enkel playbook inperkt |
+| **Instellingen** | AI | Of OneUptime AI elke nieuwe zaak beoordeelt |
 | **Connections** | Connections | Uw logs, de beveiligingsproducten die OneUptime opvraagt en de SIEM's waarnaar het verstuurt |
 | **Installatiegids** | Connections | Snippets om gebeurtenissen te sturen, ingevuld met je ingestiesleutel |
 
-**Detections** en **Connections**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
+**Detections**, **AI** en **Connections**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
 ## Voordat je begint
 

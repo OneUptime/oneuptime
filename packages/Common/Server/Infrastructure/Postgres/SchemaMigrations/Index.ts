@@ -167,8 +167,11 @@ import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "./1805910
 import { AddProductionReviewToCodeRepository1805950000000 } from "./1805950000000-AddProductionReviewToCodeRepository";
 import { AddOnCallAcknowledgementTimeout1805960000000 } from "./1805960000000-AddOnCallAcknowledgementTimeout";
 import { AddOnCallAcknowledgementTimeoutIndex1805970000000 } from "./1805970000000-AddOnCallAcknowledgementTimeoutIndex";
-import { AddRuleLlmProviders1805980000000 } from "./1805980000000-AddRuleLlmProviders";
-import { AddRuleLlmProviderIndexesAndKeys1805990000000 } from "./1805990000000-AddRuleLlmProviderIndexesAndKeys";
+import { AddSecurityCaseAiTriage1805980000000 } from "./1805980000000-AddSecurityCaseAiTriage";
+import { AddAIRunSecurityCaseIndex1805990000000 } from "./1805990000000-AddAIRunSecurityCaseIndex";
+import { AddTelegramPollForUpdates1806020000000 } from "./1806020000000-AddTelegramPollForUpdates";
+import { AddRuleLlmProviders1806030000000 } from "./1806030000000-AddRuleLlmProviders";
+import { AddRuleLlmProviderIndexesAndKeys1806040000000 } from "./1806040000000-AddRuleLlmProviderIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1538,6 +1541,9 @@ export default [
   AddProductionReviewToCodeRepository1805950000000,
   AddOnCallAcknowledgementTimeout1805960000000,
   AddOnCallAcknowledgementTimeoutIndex1805970000000,
-  AddRuleLlmProviders1805980000000,
-  AddRuleLlmProviderIndexesAndKeys1805990000000,
+  AddSecurityCaseAiTriage1805980000000,
+  AddAIRunSecurityCaseIndex1805990000000,
+  AddTelegramPollForUpdates1806020000000,
+  AddRuleLlmProviders1806030000000,
+  AddRuleLlmProviderIndexesAndKeys1806040000000,
 ];
