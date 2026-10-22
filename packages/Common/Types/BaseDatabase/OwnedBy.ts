@@ -53,7 +53,7 @@ export interface OwnedByData {
   match?: OwnedByMatch | undefined;
 }
 
-export default class OwnedBy extends QueryOperator<JSONObject> {
+export default class OwnedBy extends QueryOperator<string> {
   private readonly _userIds: Array<string>;
   private readonly _teamIds: Array<string>;
   private readonly _match: OwnedByMatch;
