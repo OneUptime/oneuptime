@@ -42,7 +42,6 @@ export const POSTMORTEMS_EMPTY_TITLE: string =
 export const POSTMORTEMS_EMPTY_DESCRIPTION: string = translationKey(
   "Every incident has a postmortem to write. Once an incident is declared, its postmortem is listed here.",
 );
-export const VIEW_POSTMORTEM: string = translationKey("View Postmortem");
 
 // An incident's Postmortem page, where its postmortem is written.
 export const getIncidentPostmortemRoute: (incidentId: ObjectID) => Route = (
@@ -175,7 +174,12 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
         isCreateable={false}
         showCreateForm={false}
         isViewable={true}
-        viewButtonText={VIEW_POSTMORTEM}
+        /*
+         * A row opens the incident's Postmortem page: "View Incident" would
+         * promise its overview, and the shortest word leaves the columns
+         * their room beside the side menu.
+         */
+        viewButtonText="View"
         onViewPage={async (item: Incident): Promise<Route> => {
           return getIncidentPostmortemRoute(new ObjectID(item._id as string));
         }}
@@ -236,6 +240,8 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Incident",
             type: FieldType.Text,
+            // The row's name: always shown, so a list never loses which incident a row is.
+            isNotCustomizable: true,
             getElement: (item: Incident): ReactElement => {
               const numberLabel: string =
                 item.incidentNumberWithPrefix ||
@@ -263,6 +269,12 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Title",
             type: FieldType.Element,
+            /*
+             * A title is anyone's sentence: it wraps, capped so the status,
+             * severity and owners keep their room beside the side menu.
+             */
+            wrapContent: true,
+            wrapMaxWidthClassName: "max-w-[16rem] 2xl:max-w-md",
             getElement: (item: Incident): ReactElement => {
               const title: string = item.title?.toString() || "";
 
@@ -377,6 +389,8 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            // Filtered by with the Labels chip; shown from Columns when wanted.
+            isHiddenByDefault: true,
             getElement: (item: Incident): ReactElement => {
               return <LabelsElement labels={item.labels || []} />;
             },

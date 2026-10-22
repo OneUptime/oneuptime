@@ -159,9 +159,11 @@ export const getPostmortemStatusTileCountClassName: (
 };
 
 /*
- * The tiles' grid: one column per status up to four from md up, so the
- * four statuses a project starts with share one line, and more wrap. Class
- * names are written out whole, as Tailwind finds them.
+ * The tiles' grid: two to a line on a phone, and one line on a wide screen
+ * for up to six statuses - the four a project starts with share one line
+ * from md up, and a project's own fifth or sixth joins them from xl up
+ * rather than wrapping alone. Class names are written out whole, as
+ * Tailwind finds them.
  */
 export const getPostmortemStatusTilesGridClassName: (
   tileCount: number,
@@ -174,5 +176,13 @@ export const getPostmortemStatusTilesGridClassName: (
     return "grid grid-cols-2 gap-4 md:grid-cols-3";
   }
 
-  return "grid grid-cols-2 gap-4 md:grid-cols-4";
+  if (tileCount === 4) {
+    return "grid grid-cols-2 gap-4 md:grid-cols-4";
+  }
+
+  if (tileCount === 5) {
+    return "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5";
+  }
+
+  return "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6";
 };

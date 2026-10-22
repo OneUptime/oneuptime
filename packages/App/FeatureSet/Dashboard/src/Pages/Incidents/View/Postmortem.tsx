@@ -53,10 +53,8 @@ import PostmortemMoreMenu, {
   hasPostmortemMoreMenuItems,
 } from "../../../Components/Postmortem/PostmortemMoreMenu";
 import PostmortemEmptyState from "../../../Components/Postmortem/PostmortemEmptyState";
-import PostmortemStatusPicker from "../../../Components/Postmortem/PostmortemStatusPicker";
-import PostmortemOwners, {
-  useIncidentOwners,
-} from "../../../Components/Postmortem/PostmortemOwners";
+import PostmortemSummary from "../../../Components/Postmortem/PostmortemSummary";
+import { useIncidentOwners } from "../../../Components/Postmortem/PostmortemOwners";
 import usePostmortemStatuses, {
   PostmortemStatusesState,
 } from "../../../Components/Postmortem/usePostmortemStatuses";
@@ -305,11 +303,13 @@ const IncidentPostmortem: FunctionComponent<
                   color: true,
                 },
               },
-              title: "Status",
+              // Status and Owners, side by side, each with its own name.
+              title: "",
+              colSpan: 2,
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
                 return (
-                  <PostmortemStatusPicker
+                  <PostmortemSummary
                     incidentId={modelId}
                     statusId={
                       item.postmortemStatusId?.toString() ||
@@ -317,22 +317,12 @@ const IncidentPostmortem: FunctionComponent<
                       null
                     }
                     choices={postmortemStatuses.choices}
-                    isEditable={statusGate.isAllowed}
-                    onChanged={() => {
+                    canChangeStatus={statusGate.isAllowed}
+                    onStatusChanged={() => {
                       refresh();
                     }}
-                  />
-                );
-              },
-            },
-            {
-              title: "Owners",
-              fieldType: FieldType.Element,
-              getElement: (): ReactElement => {
-                return (
-                  <PostmortemOwners
                     owners={incidentOwners.owners}
-                    hasLoaded={incidentOwners.hasLoaded}
+                    hasLoadedOwners={incidentOwners.hasLoaded}
                     ownersRoute={ownersRoute}
                   />
                 );
@@ -437,6 +427,13 @@ const IncidentPostmortem: FunctionComponent<
               },
               title: "Postmortem visible on Status Page?",
               fieldType: FieldType.Boolean,
+              // Nothing written and nothing switched on: there is nothing to publish yet.
+              showIf: (item: Incident): boolean => {
+                return (
+                  IncidentPostmortemPublication.hasNote(item.postmortemNote) ||
+                  isPublished(item)
+                );
+              },
             },
             {
               field: {

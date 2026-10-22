@@ -1,6 +1,5 @@
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
-import Route from "Common/Types/API/Route";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -17,7 +16,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import AppLink from "../AppLink/AppLink";
 import { ResourceOwnerEntry } from "../ResourceOwners/OwnerEntry";
 import OwnersCell from "../ResourceOwners/OwnersCell";
 
@@ -154,14 +152,13 @@ export function useIncidentOwners(data: {
 export interface ComponentProps {
   owners: Array<ResourceOwnerEntry>;
   hasLoaded: boolean;
-  // The incident's Owners page, where owners are added and removed.
-  ownersRoute: Route;
 }
 
 /*
- * Who owns the postmortem: the incident's owners, as avatars and by name,
- * with the way to change them - the incident's Owners page, where they are
- * picked as everywhere else. With none, it says so and offers to add them.
+ * Who owns the postmortem: the incident's owners, as avatars and by name.
+ * With none, it says so. The way to change them - the incident's Owners
+ * page, where they are picked as everywhere else - is the link beside the
+ * field's name (PostmortemSummary).
  */
 const PostmortemOwners: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -187,14 +184,6 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
       >
         <span className="text-gray-500">
           {translator.translateText(POSTMORTEM_NO_OWNERS)}
-        </span>
-        <span data-testid="postmortem-owners-link">
-          <AppLink
-            to={props.ownersRoute}
-            className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-          >
-            {translator.translateText(POSTMORTEM_ADD_OWNERS) || POSTMORTEM_ADD_OWNERS}
-          </AppLink>
         </span>
       </span>
     );
@@ -223,14 +212,6 @@ const PostmortemOwners: FunctionComponent<ComponentProps> = (
     >
       <OwnersCell owners={props.owners} maxVisible={NAMED_OWNERS} />
       <span className="min-w-0 truncate text-gray-700">{namesText}</span>
-      <span data-testid="postmortem-owners-link">
-        <AppLink
-          to={props.ownersRoute}
-          className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-        >
-          {translator.translateText(POSTMORTEM_CHANGE_OWNERS) || POSTMORTEM_CHANGE_OWNERS}
-        </AppLink>
-      </span>
     </span>
   );
 };
