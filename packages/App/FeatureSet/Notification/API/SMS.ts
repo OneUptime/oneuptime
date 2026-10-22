@@ -6,6 +6,9 @@ import TwilioPhoneNumbers, {
   TEST_SEND_FROM_PHONE_NUMBER_FIELD,
 } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 import { PROJECT_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
 import TwilioSendError from "../Utils/TwilioSendError";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -361,7 +364,11 @@ router.post(
         );
       }
 
-      if (!config.twilioPrimaryPhoneNumber) {
+      // A config used for SMS only has no number to make calls from, and needs none.
+      if (
+        !config.twilioPrimaryPhoneNumber &&
+        TwilioConfigUses.getUse(config.usedFor) !== TwilioConfigUse.SmsOnly
+      ) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -371,6 +378,26 @@ router.post(
 
       const twilioConfig: TwilioConfig | undefined =
         ProjectCallSMSConfigService.toTwilioConfig(config);
+
+      /*
+       * A config used for calls only sends no SMS (TwilioConfigUse): its
+       * test says so, rather than going out through the server's own
+       * account as a real SMS of its project would.
+       */
+      const cannotSendReason: string | null = twilioConfig
+        ? TwilioPhoneNumbers.getCannotSendReason(
+            twilioConfig,
+            TwilioMessageKind.SMS,
+          )
+        : null;
+
+      if (cannotSendReason) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(cannotSendReason),
+        );
+      }
 
       let fromPhoneNumber: Phone | null = null;
 

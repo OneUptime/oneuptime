@@ -13,9 +13,10 @@ import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import GlobalConfig, {
   EmailServerType,
 } from "Common/Models/DatabaseModels/GlobalConfig";
-import Phone from "Common/Types/Phone";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import { GLOBAL_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
+import { toServerTwilioConfig } from "Common/Server/Utils/ServerTwilioConfig";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
@@ -250,10 +251,19 @@ export const getSendgridConfig: GetSendgridConfigFunction =
     return null;
   };
 
-type GetTwilioConfigFunction = () => Promise<TwilioConfig | null>;
+type GetTwilioConfigFunction = (
+  kind?: TwilioMessageKind | undefined,
+) => Promise<TwilioConfig | null>;
 
-export const getTwilioConfig: GetTwilioConfigFunction =
-  async (): Promise<TwilioConfig | null> => {
+/*
+ * The OneUptime server's own Twilio account, or null while it is not set up
+ * (ServerTwilioConfig) - and, given a kind of message, while it is not used
+ * for that kind: an account used for SMS only makes no calls, and one used
+ * for calls only sends no SMS (Types/CallAndSMS/TwilioConfigUse).
+ */
+export const getTwilioConfig: GetTwilioConfigFunction = async (
+  kind?: TwilioMessageKind | undefined,
+): Promise<TwilioConfig | null> => {
     const globalConfig: GlobalConfig | null =
       await GlobalConfigService.findOneBy({
         query: {
@@ -270,30 +280,16 @@ export const getTwilioConfig: GetTwilioConfigFunction =
       throw new BadDataException("Global Config not found");
     }
 
-    if (
-      !globalConfig.twilioAccountSID ||
-      !globalConfig.twilioAuthToken ||
-      !globalConfig.twilioPrimaryPhoneNumber
-    ) {
+    // Its SMS numbers and what it is used for too: read whole.
+    const twilioConfig: TwilioConfig | null =
+      toServerTwilioConfig(globalConfig);
+
+    if (!twilioConfig) {
       return null;
     }
 
-    const twilioConfig: TwilioConfig = {
-      accountSid: globalConfig.twilioAccountSID,
-      authToken: globalConfig.twilioAuthToken,
-      primaryPhoneNumber: globalConfig.twilioPrimaryPhoneNumber,
-      secondaryPhoneNumbers: TwilioPhoneNumbers.parseList(
-        globalConfig.twilioSecondaryPhoneNumbers,
-      ),
-    };
-
-    // Every SMS goes out from one of these, when the server lists them.
-    const smsPhoneNumbers: Array<Phone> = TwilioPhoneNumbers.parseList(
-      globalConfig.twilioSmsPhoneNumbers,
-    );
-
-    if (smsPhoneNumbers.length > 0) {
-      twilioConfig.smsPhoneNumbers = smsPhoneNumbers;
+    if (kind && !TwilioPhoneNumbers.canSend(twilioConfig, kind)) {
+      return null;
     }
 
     return twilioConfig;

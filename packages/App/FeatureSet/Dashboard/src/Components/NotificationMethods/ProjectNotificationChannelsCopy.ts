@@ -94,12 +94,20 @@ export const ProjectNotificationChannelsCopy: {
 /*
  * SMS and calls go through the project's own Twilio account, and are not
  * paid from the balance, only when one of its Twilio configs is the project
- * default (ProjectCallSMSConfigService.getProjectDefaultTwilioConfig). A
- * project's first config becomes the default; a config that is not the
- * default sends nothing to the project's members.
+ * default (ProjectCallSMSConfigService.getProjectDefaultTwilioConfig) - and
+ * only the ones that config is used for: a default used for SMS only makes
+ * no calls, and its project's calls are paid from the balance, as are the
+ * SMS of a project whose default is used for calls only
+ * (Common/Types/CallAndSMS/TwilioConfigUse). A project's first config becomes
+ * the default; a config that is not the default sends nothing to the
+ * project's members.
  */
-const TWILIO_BALANCE_NOTE: string = translationKey(
-  "Paid from the project's balance, unless the project has a default Twilio Config.",
+const TWILIO_SMS_BALANCE_NOTE: string = translationKey(
+  "Paid from the project's balance, unless the project's default Twilio Config sends SMS.",
+);
+
+const TWILIO_CALL_BALANCE_NOTE: string = translationKey(
+  "Paid from the project's balance, unless the project's default Twilio Config makes calls.",
 );
 
 const BALANCE_NOTE: string = translationKey("Paid from the project's balance.");
@@ -114,7 +122,7 @@ export const PROJECT_NOTIFICATION_CHANNELS: ReadonlyArray<ProjectNotificationCha
       description: translationKey(
         "Text messages to the phone numbers people add. Numbers for incoming calls are verified by SMS too.",
       ),
-      balanceNote: TWILIO_BALANCE_NOTE,
+      balanceNote: TWILIO_SMS_BALANCE_NOTE,
       isCodeResendRefusedWhileOff: true,
     },
     {
@@ -124,7 +132,7 @@ export const PROJECT_NOTIFICATION_CHANNELS: ReadonlyArray<ProjectNotificationCha
       description: translationKey(
         "Voice calls to the phone numbers people add.",
       ),
-      balanceNote: TWILIO_BALANCE_NOTE,
+      balanceNote: TWILIO_CALL_BALANCE_NOTE,
       isCodeResendRefusedWhileOff: true,
     },
     {

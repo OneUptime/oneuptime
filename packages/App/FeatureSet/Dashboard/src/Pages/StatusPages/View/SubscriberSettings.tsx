@@ -9,6 +9,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import { TwilioConfigUse } from "Common/Types/CallAndSMS/TwilioConfigUse";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
@@ -384,12 +386,23 @@ const StatusPageSubscriberSettings: FunctionComponent<
               },
               title: "Twilio Config",
               description:
-                "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications.",
+                "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.",
               fieldType: FormFieldSchemaType.Dropdown,
+              /*
+               * Only the configs that send SMS: a page sends its
+               * subscribers SMS, and a config used for calls only sends
+               * none (Common/Types/CallAndSMS/TwilioConfigUse).
+               */
               dropdownModal: {
                 type: ProjectCallSMSConfig,
                 labelField: "name",
                 valueField: "_id",
+                query: {
+                  usedFor: new Includes([
+                    TwilioConfigUse.CallsAndSms,
+                    TwilioConfigUse.SmsOnly,
+                  ]),
+                },
               },
               required: false,
               placeholder: "Twilio Config",

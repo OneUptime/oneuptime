@@ -20,6 +20,11 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "../../Types/CallAndSMS/TwilioPhoneNumbers";
+import {
+  DEFAULT_TWILIO_CONFIG_USE,
+  TwilioConfigUse,
+  USED_FOR_TITLE,
+} from "../../Types/CallAndSMS/TwilioConfigUse";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TableBillingAccessControl({
@@ -383,6 +388,62 @@ export default class ProjectCallSMSConfig extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public deletedByUserId?: ObjectID = undefined;
+
+  /*
+   * What the config is used for: calls and SMS, SMS only or calls only
+   * (Types/CallAndSMS/TwilioConfigUse). A config used for SMS only needs no
+   * number to make calls from - an account a project keeps for SMS made
+   * people type one in anyway - and makes no call; one used for calls only
+   * sends no SMS. What a config is not used for goes as it would without
+   * it: the calls of a project whose default config is used for SMS only go
+   * through the OneUptime server's own account, as a project's without a
+   * config do. Every config made before the choice is used for calls and
+   * SMS, as it always was: the column starts there, and the migration that
+   * added it gave every existing row that value.
+   *
+   * ProjectCallSMSConfigService refuses a value that is not a use, and a
+   * config that would not have the numbers its use needs.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectCallSMSConfig,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectCallSMSConfig,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectCallSMSConfig,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: USED_FOR_TITLE,
+    description:
+      'What this Twilio config is used for: "Calls and SMS" (the default), "SMS only" or "Calls only". Calls and SMS and Calls only need a Twilio Primary Phone Number; SMS only needs Twilio SMS Phone Numbers. A config used for SMS only makes no calls, and one used for calls only sends no SMS: those go through OneUptime\'s own Twilio account, as for a project without a config.',
+    defaultValue: DEFAULT_TWILIO_CONFIG_USE,
+    example: TwilioConfigUse.SmsOnly,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    unique: false,
+    default: DEFAULT_TWILIO_CONFIG_USE,
+  })
+  public usedFor?: TwilioConfigUse = undefined;
 
   // Twilio config.
 
