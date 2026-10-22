@@ -459,7 +459,7 @@ const IncidentView: FunctionComponent<
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Incident,
     recordId: modelId,
-    // Passing it on is a new feed entry.
+    // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
   });
 

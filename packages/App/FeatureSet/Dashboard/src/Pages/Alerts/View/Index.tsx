@@ -448,7 +448,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Alert,
     recordId: modelId,
-    // Passing it on is a new feed entry.
+    // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
