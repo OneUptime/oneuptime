@@ -890,7 +890,7 @@ describe("the Value widget's view", () => {
       return container.firstElementChild as HTMLElement;
     };
 
-    expect(tile()).toHaveClass("bg-red-50/60");
+    expect(tile()).toHaveClass("bg-red-50/50");
     expect(tile().getAttribute("style") || "").not.toContain("gradient");
 
     rerender(
@@ -901,11 +901,11 @@ describe("the Value widget's view", () => {
         criticalThreshold={50}
       />,
     );
-    expect(tile()).toHaveClass("bg-amber-50/60");
+    expect(tile()).toHaveClass("bg-amber-50/50");
 
     rerender(<ValueWidgetView {...baseViewProps} value={42} />);
-    expect(tile()).not.toHaveClass("bg-red-50/60");
-    expect(tile()).not.toHaveClass("bg-amber-50/60");
+    expect(tile()).not.toHaveClass("bg-red-50/50");
+    expect(tile()).not.toHaveClass("bg-amber-50/50");
   });
 });
 

@@ -607,6 +607,20 @@ export interface ValueWidgetViewProps {
   onTimeRangeReset?: (() => void) | undefined;
 }
 
+/*
+ * The widget's root in each of its states, with the state it is in, so a
+ * reader of the page can find a Value widget and tell what it is showing.
+ */
+export const VALUE_WIDGET_TEST_ID: string = "value-widget";
+
+export enum ValueWidgetState {
+  Loading = "loading",
+  Setup = "setup",
+  Error = "error",
+  NoData = "no-data",
+  Value = "value",
+}
+
 export const TREND_TEST_ID: string = "value-widget-trend";
 export const TREND_DETAILS_TEST_ID: string = "value-widget-trend-details";
 export const SPARKLINE_START_LABEL_TEST_ID: string =
@@ -939,7 +953,11 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   if (props.isLoading && !props.hasEverLoaded) {
     // Skeleton loading state - only on initial load
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center rounded-md overflow-hidden gap-1.5 animate-pulse">
+      <div
+        data-testid={VALUE_WIDGET_TEST_ID}
+        data-state={ValueWidgetState.Loading}
+        className="w-full h-full flex flex-col items-center justify-center rounded-md overflow-hidden gap-1.5 animate-pulse"
+      >
         <div
           className="w-16 bg-gray-100 rounded shrink-0"
           style={{ height: `${Math.min(contentBox.heightInPx * 0.12, 12)}px` }}
@@ -964,7 +982,11 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    */
   if (!props.isConfigured) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+      <div
+        data-testid={VALUE_WIDGET_TEST_ID}
+        data-state={ValueWidgetState.Setup}
+        className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden"
+      >
         {showStateIcon && (
           <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
             <svg
@@ -989,7 +1011,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           {setupTitle}
         </p>
         <p
-          className="text-xs text-gray-400 text-center max-w-full line-clamp-1 px-1"
+          className="text-xs text-gray-500 text-center max-w-full line-clamp-1 px-1"
           title={setupMessage}
         >
           {setupMessage}
@@ -1000,7 +1022,11 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   if (props.error) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+      <div
+        data-testid={VALUE_WIDGET_TEST_ID}
+        data-state={ValueWidgetState.Error}
+        className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden"
+      >
         {showStateIcon && (
           <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
             <div className="h-5 w-5 text-gray-300">
@@ -1009,7 +1035,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         <p
-          className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
+          className="text-xs text-gray-500 text-center max-w-full line-clamp-2 px-1"
           title={props.error}
         >
           {props.error}
@@ -1040,6 +1066,8 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
      */
     return (
       <div
+        data-testid={VALUE_WIDGET_TEST_ID}
+        data-state={ValueWidgetState.NoData}
         className={`flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden ${
           props.onTimeRangeReset ? "select-none" : ""
         }`}
@@ -1063,7 +1091,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
+          className="text-xs text-gray-500 text-center max-w-full line-clamp-2 px-1"
           title={noDataMessage}
         >
           {noDataMessage}
@@ -1149,7 +1177,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   if (criticalThreshold !== undefined && thresholdValue >= criticalThreshold) {
     valueColorClass = "text-red-600";
-    thresholdTintClass = "bg-red-50/60";
+    thresholdTintClass = "bg-red-50/50";
     sparklineColor = "#ef4444";
     sparklineFill = "rgba(239, 68, 68, 0.08)";
   } else if (
@@ -1157,7 +1185,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     thresholdValue >= warningThreshold
   ) {
     valueColorClass = "text-amber-600";
-    thresholdTintClass = "bg-amber-50/60";
+    thresholdTintClass = "bg-amber-50/50";
     sparklineColor = "#f59e0b";
     sparklineFill = "rgba(245, 158, 11, 0.08)";
   }
@@ -1269,6 +1297,8 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   return (
     <div
+      data-testid={VALUE_WIDGET_TEST_ID}
+      data-state={ValueWidgetState.Value}
       className={`w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden ${thresholdTintClass}`}
       style={{
         opacity: props.isLoading ? 0.5 : 1,
@@ -1321,7 +1351,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           {displayParts.value || "0"}
           {layout.showUnit && displayParts.unit && (
             <span
-              className="text-gray-400 font-normal"
+              className="text-gray-500 font-normal"
               style={{ fontSize: `${layout.unitFontSizeInPx}px` }}
             >
               {displayParts.unit === "%"
