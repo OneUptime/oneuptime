@@ -17,8 +17,8 @@ export interface ComponentProps {
 
 /*
  * A repository's menu in Code: its tasks first - that is where AI is asked
- * and where its work is read - then its settings, its Developer pages and,
- * apart, removing it.
+ * and where its work is read - then its pull requests' production reviews,
+ * its settings, its Developer pages and, apart, removing it.
  */
 const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -35,6 +35,18 @@ const CodeRepositorySideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Sparkles}
+        />
+        <SideMenuItem
+          link={{
+            title: "Production Reviews",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.DocumentMagnifyingGlass}
         />
         <SideMenuItem
           link={{

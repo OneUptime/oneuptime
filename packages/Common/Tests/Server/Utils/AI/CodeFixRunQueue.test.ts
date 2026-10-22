@@ -12,6 +12,8 @@ import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import { CodeRepositoryRunnerChoiceKind } from "../../../../Types/Runner/CodeRepositoryRunner";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
@@ -318,6 +320,33 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
         select: expect.objectContaining({ codeRepositoryId: true }),
       }),
     );
+  });
+
+  /*
+   * A pull request's production review is the server's own work: no
+   * Runner takes one, so no Runner being online says nothing about it - and
+   * its task is queued again, in place, every time its pull request
+   * changes, long after the task was first made.
+   */
+  test("never sweeps a production review: the server runs those itself", async () => {
+    const notInOrNull: jest.SpyInstance = jest.spyOn(
+      QueryHelper,
+      "notInOrNull",
+    );
+    const findBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue([]);
+
+    await CodeFixRunQueue.failOrphanedQueuedRuns();
+
+    expect(notInOrNull).toHaveBeenCalledWith([
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    ]);
+    expect(
+      (findBy.mock.calls[0]![0] as { query: Record<string, unknown> }).query[
+        "codeFixTaskType"
+      ],
+    ).toBe(notInOrNull.mock.results[0]!.value);
   });
 
   /*

@@ -14,6 +14,7 @@ The OneUptime GitHub App is more than a connection to your code: you can talk to
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Every command starts with a mention of the app. The mention can be anywhere in t
 | Command | What happens | Also understood |
 | --- | --- | --- |
 | `@oneuptime review` | Clones the branch, reads the changed code and the code around it, checks what production says about it, and posts a review as a comment. Changes nothing. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Reviews the pull request against production now, whoever opened it: the exceptions, operations, incidents and deploys around the changed code, in one comment edited in place (see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests)). Clones nothing and runs nothing. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Clones the pull request's own branch, makes the change and pushes new commits to that branch. Never opens a second pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Anything you write after the mention that is not a known command is read as a revision request, because that is almost always what it is:
@@ -100,6 +102,8 @@ What it finds goes under a **Production context** heading of the review, each po
 
 It needs nothing set up: the services are those OneUptime finds this repository for, as it does for a fix (see [Production telemetry in a fix](/docs/ai/ai-agent#production-telemetry-in-a-fix)). The queries are read-only, run on the OneUptime server and read nothing of another service, project or private incident. A repository whose services send no telemetry to the project is reviewed from its code alone.
 
+To have every pull request reviewed against production on its own, turn on **Review Pull Requests Against Production** in the repository's settings: see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+
 ## Who is allowed to command it
 
 **Only people with write, maintain or admin access to the repository.** OneUptime asks GitHub for the commenter's permission on that repository every time; it does not trust the "contributor" badge GitHub shows beside a comment, which describes past activity rather than current access.
@@ -142,7 +146,7 @@ In your GitHub App's **Permissions & events** settings, subscribe to:
 | --- | --- |
 | **Issue comment** | `@mention` commands on issues and pull requests |
 | **Issues** | assigning an issue to the app, and the trigger label |
-| **Pull request** | a review requested from the app |
+| **Pull request** | a review requested from the app, and production reviews of pull requests as they open and change |
 | **Pull request review** | a mention in the body of a submitted review |
 | **Pull request review comment** | a mention in an inline comment on the diff |
 

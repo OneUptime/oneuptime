@@ -8,6 +8,7 @@ Code ist der Ort, an dem Sie OneUptime AI bitten, in Ihren Repositorys zu arbeit
 - [Wie ein Korrekturlauf abläuft](#wie-ein-korrekturlauf-abläuft): Vom Klick bis zum Pull Request, Schritt für Schritt.
 - [Wo Korrekturaufgaben starten](#wo-korrekturaufgaben-starten): Die Aufgaben, die OneUptime startet, und was jeder Pull Request tut.
 - [Produktionstelemetrie in einer Korrektur](#produktionstelemetrie-in-einer-korrektur): Was eine Korrektur aus der Produktion liest, während sie die Änderung schreibt.
+- [Produktionsprüfung von Pull Requests](#produktionsprüfung-von-pull-requests): Was die Produktion über den Code sagt, den jeder Pull Request ändert.
 - [Bevor Sie beginnen](#bevor-sie-beginnen): Ein Modell, ein verbundenes Repository und ein Runner.
 - [Wenn eine Korrektur fehlschlägt](#wenn-eine-korrektur-fehlschlägt): Was mit einem Lauf passiert, der fehlschlägt, hängen bleibt oder wartet.
 :::
@@ -145,6 +146,27 @@ Was der Agent lesen darf, entscheidet der OneUptime-Server anhand der Aufgabe se
 - **Begrenzt.** Höchstens **12** Abfragen pro Lauf, von denen jede zu den 40 Aufrufen des Laufs zählt.
 
 Wenn kein Dienst zum Repository gehört, läuft die Aufgabe wie bisher ohne Produktionstelemetrie.
+
+## Produktionsprüfung von Pull Requests
+
+OneUptime weiß, was Ihr Code in der Produktion tut, und kann einen Pull Request deshalb mit dem prüfen, was niemand beim Lesen des Diffs sieht. Schalten Sie **Pull Requests gegen die Produktion prüfen** auf der Seite **Einstellungen** eines Repositorys in Code ein, und jeder Pull Request, den jemand mit Schreibzugriff öffnet oder in den er pusht, erhält einen Kommentar, der sagt, was die Produktion über den geänderten Code zeigt. Der Kommentar wird bei jedem Push an Ort und Stelle aktualisiert, und die Seite **Produktionsprüfungen** des Repositorys in Code bewahrt jede Prüfung auf, mit **Erneut prüfen**.
+
+| Sie liest | Aus dem Code, den der Pull Request ändert |
+| --- | --- |
+| **Ausnahmen** | Die Ausnahmen, die in den letzten 7 Tagen in den geänderten Zeilen, Funktionen und Dateien geworfen wurden, neue und unbehandelte markiert. |
+| **Vorgänge** | Die getraceten Vorgänge, die den geänderten Code in der letzten Stunde ausführen: ihre Spans, Fehler und ihr p95. |
+| **Rechenintensive Funktionen** | Die Funktionen des geänderten Codes, die in der letzten Stunde einen Anteil an den Profilen der Dienste haben. |
+| **Vorfälle** | Die Vorfälle der Dienste aus den letzten 30 Tagen, die noch offen sind oder deren Grundursache oder Postmortem den geänderten Code nennt. Nie ein privater Vorfall. |
+| **Deploys** | Die Deploys der Dienste aus den letzten 7 Tagen, die OneUptime einer Regression verdächtigt. |
+
+Wenn die Produktion etwas zeigt, liest OneUptime AI es neben dem Diff und ergänzt **Worauf zu achten ist**: ein paar kurze Punkte, die jeweils auf den Fakten beruhen. Das läuft nur, solange KI für das Projekt eingeschaltet ist, höchstens 10 Mal am Tag für einen Pull Request und 100 Mal für ein Repository, und wird wie jeder KI-Aufruf abgerechnet; die Fakten werden jedes Mal ohne KI gelesen. Wenn die Produktion nichts über die Änderung zeigt, veröffentlicht OneUptime nichts.
+
+- **Nur Aggregate.** Der Kommentar enthält Anzahlen, Dauern und die Namen von Code: nie die Meldung einer Ausnahme, eine Logzeile, den Titel eines Vorfalls oder personenbezogene Daten.
+- **Öffentliche Repositorys bekommen einen Link.** Jeder kann die Pull Requests eines öffentlichen Repositorys lesen, daher verlinkt der Kommentar dort nur auf die Prüfung in OneUptime, die nur Mitglieder des Projekts öffnen können. **Kommentar der Produktionsprüfung** unter **Weitere Einstellungen** auf der Seite **Einstellungen** des Repositorys kann überall **Nur ein Link zur Prüfung** veröffentlichen oder **Die Prüfung, auch in einem öffentlichen Repository**.
+- **Externe Mitwirkende können keine starten.** Ein Pull Request wird nur dann von selbst geprüft, wenn sein Autor und jeder, der in ihn gepusht hat, in das Repository schreiben dürfen. Einer von allen anderen - einem externen Mitwirkenden, einem Fork, einem Bot - wird geprüft, wenn jemand mit Schreibzugriff `@oneuptime production review` darin kommentiert oder in Code auf **Erneut prüfen** klickt.
+- **Nur lesend.** Eine Prüfung klont nichts und führt nichts aus dem Pull Request aus. Sein Diff und sein Titel sind für OneUptime AI Daten, nie Anweisungen: Die KI hat keine Werkzeuge, und was sie schreibt, wird als Text in den Kommentar gesetzt.
+
+Der Schalter ist für die Repositorys eingeschaltet, die die GitHub App ab jetzt verbindet. Ein Repository, das verbunden wurde, bevor es ihn gab, behält ihn ausgeschaltet, bis Sie ihn einschalten.
 
 ## Prüfung vor dem Pull Request
 

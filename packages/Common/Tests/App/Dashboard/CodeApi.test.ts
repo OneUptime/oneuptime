@@ -5,6 +5,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   CodeRepositoryBranchesJSON,
   CodeTaskContextType,
+  CodeTaskListKind,
   CodeTaskState,
 } from "../../../Types/AI/CodeTask";
 import { APP_API_URL } from "../../../UI/Config";
@@ -181,6 +182,48 @@ describe("a repository's tasks", () => {
       skip: 0,
       limit: 20,
     });
+  });
+
+  /*
+   * A repository's pull requests' production reviews are a list of their
+   * own (POST /code-task/list with kind productionReviews): the tasks leave
+   * them out. Asking for the tasks sends no kind at all, as before.
+   */
+  test("a repository's production reviews are asked for as such; its tasks send no kind", async () => {
+    postMock.mockResolvedValue(
+      answer({ tasks: [], totalCount: 3, skip: 0, limit: 20 }) as never,
+    );
+
+    const list: CodeTaskListResponse = await CodeApi.listTasks({
+      scope: { repositoryId: REPOSITORY_ID },
+      skip: 0,
+      limit: 20,
+      kind: CodeTaskListKind.ProductionReviews,
+    });
+
+    expect(list.count).toBe(3);
+    expect(lastCall().url).toBe(apiUrl("/list"));
+    expect(lastCall().data).toEqual({
+      repositoryId: REPOSITORY_ID,
+      kind: "productionReviews",
+      skip: 0,
+      limit: 20,
+    });
+
+    for (const kind of [undefined, CodeTaskListKind.Tasks]) {
+      await CodeApi.listTasks({
+        scope: { repositoryId: REPOSITORY_ID },
+        skip: 0,
+        limit: 20,
+        kind,
+      });
+
+      expect(lastCall().data).toEqual({
+        repositoryId: REPOSITORY_ID,
+        skip: 0,
+        limit: 20,
+      });
+    }
   });
 
   test("each scope is one body, with nothing of the others", () => {
@@ -437,6 +480,29 @@ describe("every Code route", () => {
 
     await CodeApi.stop(TASK_ID);
     expect(lastCall().url).toBe(apiUrl(`/stop/${TASK_ID}`));
+  });
+
+  test("Review again names the review's task in the address, and sends nothing else", async () => {
+    postMock.mockResolvedValue(answer({ taskId: TASK_ID }) as never);
+
+    await CodeApi.reviewAgain(TASK_ID);
+
+    expect(lastCall().url).toBe(apiUrl(`/review-again/${TASK_ID}`));
+    expect(lastCall().data).toEqual({});
+  });
+
+  test("a refused Review again is thrown, for the page to say why", async () => {
+    const refusal: HTTPErrorResponse = new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "Reviewing a pull request again takes permission to edit its repository - ask a project admin for it.",
+      },
+      {},
+    );
+    postMock.mockResolvedValue(refusal as never);
+
+    await expect(CodeApi.reviewAgain(TASK_ID)).rejects.toBe(refusal);
   });
 
   test("a refusal is thrown as the server's answer, for the page to say", async () => {

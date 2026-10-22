@@ -5,6 +5,7 @@ import { CODE_COLUMN_CLASS_NAME } from "../../../Components/Code/CodeAskBox";
 import CodeBlockerNotice from "../../../Components/Code/CodeBlockerNotice";
 import CodeComposer from "../../../Components/Code/CodeComposer";
 import CodeDiffStat from "../../../Components/Code/CodeDiffStat";
+import CodeProductionReviewTask from "../../../Components/Code/CodeProductionReviewTask";
 import { GitBranchMark } from "../../../Components/Code/CodeMarks";
 import {
   getRepositoryFullName,
@@ -106,6 +107,7 @@ const CodeTaskConversation: FunctionComponent<
   const [actionError, setActionError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState<boolean>(false);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
+  const [isAskingAgain, setIsAskingAgain] = useState<boolean>(false);
   const bottomRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
 
@@ -177,6 +179,41 @@ const CodeTaskConversation: FunctionComponent<
 
   if (!data) {
     return <PageLoader isVisible={true} />;
+  }
+
+  /*
+   * A pull request's production review is not a conversation: its page is
+   * the latest review, with Review again where the reply box would be.
+   */
+  if (data.task.recipe === CodeFixTaskType.GitHubPullRequestProductionReview) {
+    const reviewAgain: () => Promise<void> = async (): Promise<void> => {
+      setIsAskingAgain(true);
+      setActionError(null);
+
+      try {
+        await CodeApi.reviewAgain(taskId);
+        await load();
+      } catch (err) {
+        setActionError(API.getFriendlyMessage(err));
+      }
+
+      setIsAskingAgain(false);
+    };
+
+    return (
+      <div className={CODE_COLUMN_CLASS_NAME}>
+        <CodeProductionReviewTask
+          data={data}
+          isAskingAgain={isAskingAgain}
+          actionError={actionError}
+          onReviewAgain={() => {
+            void reviewAgain();
+          }}
+          footerStyle={STICKY_FOOTER_STYLE}
+          fadeStyle={STICKY_FADE_STYLE}
+        />
+      </div>
+    );
   }
 
   const turns: Array<CodeTaskTurnJSON> = data.turns;

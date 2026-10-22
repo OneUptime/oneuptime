@@ -8,6 +8,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 - [Så går en åtgärdskörning till](#så-går-en-åtgärdskörning-till): Från ett klick till en pull request, steg för steg.
 - [Var åtgärdsuppgifter startar](#var-åtgärdsuppgifter-startar): Uppgifterna som OneUptime startar, och vad varje pull request gör.
 - [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd): Vad en åtgärd läser från produktionen medan den skriver ändringen.
+- [Produktionsgranskning av pull requests](#produktionsgranskning-av-pull-requests): Vad produktionen säger om koden som varje pull request ändrar.
 - [Innan du börjar](#innan-du-börjar): En modell, ett anslutet repository och en Runner.
 - [När en åtgärd misslyckas](#när-en-åtgärd-misslyckas): Vad som händer med en körning som fallerar, fastnar eller väntar.
 :::
@@ -145,6 +146,27 @@ Vad agenten får läsa avgörs av OneUptime-servern, utifrån själva uppgiften:
 - **Begränsat.** Högst **12** frågor per körning, som var och en räknas mot körningens 40 anrop.
 
 När ingen tjänst hör till repositoriet körs uppgiften utan produktionstelemetri, som tidigare.
+
+## Produktionsgranskning av pull requests
+
+OneUptime vet vad din kod gör i produktion, så den kan granska en pull request med det som ingen ser när de läser diffen. Slå på **Granska pull-förfrågningar mot produktion** på ett repositorys sida **Inställningar** i Kod, så får varje pull request som någon med skrivbehörighet öppnar eller pushar till en kommentar som säger vad produktionen visar om koden den ändrar. Kommentaren redigeras på plats vid varje push, och repositoriets sida **Produktionsgranskningar** i Kod sparar varje granskning, med **Granska igen**.
+
+| Den läser | Om koden som pull requesten ändrar |
+| --- | --- |
+| **Undantag** | Undantagen som kastats i de ändrade raderna, funktionerna och filerna de senaste 7 dagarna, med nya och ohanterade markerade. |
+| **Operationer** | De spårade operationerna som kör den ändrade koden den senaste timmen: deras spans, fel och p95. |
+| **Tunga funktioner** | Den ändrade kodens funktioner som tar en del av tjänsternas profiler den senaste timmen. |
+| **Incidenter** | Tjänsternas incidenter från de senaste 30 dagarna som fortfarande är öppna, eller vars grundorsak eller efteranalys nämner den ändrade koden. Aldrig en privat incident. |
+| **Driftsättningar** | Tjänsternas driftsättningar från de senaste 7 dagarna som OneUptime misstänker för en regression. |
+
+När produktionen visar något läser OneUptime AI det bredvid diffen och lägger till **Vad du bör hålla koll på**: några korta punkter som var och en vilar på fakta. Det körs bara medan AI är påslaget för projektet, högst 10 gånger om dagen för en pull request och 100 för ett repository, och mäts som varje AI-anrop; fakta läses varje gång utan det. När produktionen inte visar något om ändringen publicerar OneUptime ingenting.
+
+- **Bara sammanställda värden.** Kommentaren innehåller antal, varaktigheter och namn på kod: aldrig ett undantags meddelande, en loggrad, en incidents titel eller personuppgifter.
+- **Offentliga repositorier får en länk.** Vem som helst kan läsa ett offentligt repositorys pull requests, så där länkar kommentaren bara till granskningen i OneUptime, som bara projektets medlemmar kan öppna. **Kommentar från produktionsgranskning** under **Fler inställningar** på repositoriets sida **Inställningar** kan publicera **Bara en länk till granskningen** överallt, eller **Granskningen, även i ett offentligt arkiv**.
+- **Externa bidragsgivare kan inte starta en.** En pull request granskas bara av sig själv när dess författare, och den som pushade till den, kan skriva till repositoriet. En från någon annan - en extern bidragsgivare, en fork, en bot - granskas när någon med skrivbehörighet kommenterar `@oneuptime production review` på den, eller klickar på **Granska igen** i Kod.
+- **Endast läsning.** En granskning klonar ingenting och kör ingenting från pull requesten. Dess diff och titel är data för OneUptime AI, aldrig instruktioner: AI:n har inga verktyg, och det den skriver läggs in i kommentaren som text.
+
+Brytaren är påslagen för de repositorier som GitHub App ansluter från och med nu. Ett repository som anslöts innan den fanns behåller den avstängd tills du slår på den.
 
 ## Kontroll före pull requesten
 

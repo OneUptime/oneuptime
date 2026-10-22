@@ -2,6 +2,10 @@ import GitHubCommandType, {
   GitHubCommentKind,
 } from "../CodeRepository/GitHubCommand";
 import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
+import {
+  ProductionReviewPosting,
+  ProductionReviewTrigger,
+} from "../CodeRepository/ProductionReview";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -171,6 +175,49 @@ export interface GitHubTaskContext {
   reportedToGitHubAt?: string | undefined;
 }
 
+/*
+ * A pull request's production review task (the
+ * GitHubPullRequestProductionReview recipe): what it was asked to review,
+ * and what it keeps between one review of the pull request and the next.
+ * One task per pull request, reviewed again in place: every push, command
+ * or Review again asks for a new review (requestNumber), and a review that
+ * finishes while a newer one was asked for is queued again rather than
+ * marked done. Written by the server only (ProductionReviewQueue).
+ */
+export interface ProductionReviewTaskContext {
+  // Bumped by every request for a review.
+  requestNumber: number;
+  // The request the review in progress (or the last one) answers.
+  reviewingRequestNumber?: number | undefined;
+  /*
+   * When the latest request came. A review waits a little after it, so a
+   * burst of pushes is reviewed once, at the last of them.
+   */
+  requestedAt: string;
+  // The pull request's head when it was asked; the review reads it again.
+  headSha: string;
+  trigger: ProductionReviewTrigger;
+  // The GitHub login that pushed or asked. Attribution, never authority.
+  requestedByLogin?: string | undefined;
+  /*
+   * Whether the pull request's author can write to the repository: only
+   * then are its later pushes reviewed on their own. Anyone else's pull
+   * request is reviewed only when someone who can write asks.
+   */
+  isAuthorTrusted: boolean;
+  // The one comment the review keeps on the pull request, edited in place.
+  commentId?: number | undefined;
+  commentUrl?: string | undefined;
+  commentPosting?: ProductionReviewPosting | undefined;
+  reviewedHeadSha?: string | undefined;
+  // OneUptime AI's reads of this pull request today (UTC), and the input of the last.
+  aiReadDay?: string | undefined;
+  aiReadsToday?: number | undefined;
+  aiInputHash?: string | undefined;
+  // Attempts at the latest request that failed (a GitHub or database blip).
+  failedAttempts?: number | undefined;
+}
+
 export interface CodeFixTaskContext {
   /*
    * FixFromIncident: the exact investigation whose published RootCause is
@@ -211,6 +258,12 @@ export interface CodeFixTaskContext {
    */
   request?: CodeTaskRequest | undefined;
   /*
+   * GitHubPullRequestProductionReview: what the pull request's review was
+   * asked to do, and what it keeps between reviews. `github` names the
+   * pull request.
+   */
+  productionReview?: ProductionReviewTaskContext | undefined;
+  /*
    * ImproveInstrumentation / FixFromIncident opened on their own: the code
    * repositories the auto remediation rules that opened the run allow it to
    * be made in (Types/CodeRepository/CodeRepositoryAllowance). Absent - on
@@ -220,6 +273,37 @@ export interface CodeFixTaskContext {
    * these only, when it is queued and again when it starts.
    */
   allowedCodeRepositoryIds?: Array<string> | undefined;
+}
+
+/*
+ * A production review task's context, when it is whole: a pull request
+ * named in `github` and a request to review it. Null otherwise.
+ */
+export function getProductionReviewTaskContext(
+  taskContext: CodeFixTaskContext | null | undefined,
+): ProductionReviewTaskContext | null {
+  const review: ProductionReviewTaskContext | undefined =
+    taskContext?.productionReview;
+
+  if (
+    !review ||
+    typeof review !== "object" ||
+    typeof review.requestNumber !== "number" ||
+    !Number.isSafeInteger(review.requestNumber) ||
+    review.requestNumber < 1 ||
+    typeof review.requestedAt !== "string" ||
+    typeof review.headSha !== "string"
+  ) {
+    return null;
+  }
+
+  const github: GitHubTaskContext | null = getGitHubTaskContext(taskContext);
+
+  if (!github || typeof github.pullRequestNumber !== "number") {
+    return null;
+  }
+
+  return review;
 }
 
 /*

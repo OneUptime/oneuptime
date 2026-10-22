@@ -8,6 +8,7 @@ Code is where you ask OneUptime AI to work in your repositories, the way you wou
 - [How a fix run works](#how-a-fix-run-works): From a click to a pull request, step by step.
 - [Where fix tasks start](#where-fix-tasks-start): The tasks OneUptime starts, and what each pull request does.
 - [Production telemetry in a fix](#production-telemetry-in-a-fix): What a fix reads of production while it writes the change.
+- [Production review of pull requests](#production-review-of-pull-requests): What production says about the code each pull request changes.
 - [Before you begin](#before-you-begin): A model, a connected repository and a Runner.
 - [When a fix fails](#when-a-fix-fails): What happens to a run that errors, stalls or waits.
 :::
@@ -145,6 +146,27 @@ What the agent can read is decided by the OneUptime server, from the task itself
 - **Bounded.** At most **12** queries per run, each counted against the run's 40 calls.
 
 When no service maps to the repository, the task runs without production telemetry, as before.
+
+## Production review of pull requests
+
+OneUptime holds what your code does in production, so it can review a pull request with what no one reading the diff can see. Turn on **Review Pull Requests Against Production** on a repository's **Settings** page in Code, and each pull request someone with write access opens or pushes to gets one comment saying what production shows of the code it changes. The comment is edited in place on every push, and the repository's **Production Reviews** page in Code keeps each review, with **Review again**.
+
+| It reads | Of the code the pull request changes |
+| --- | --- |
+| **Exceptions** | The exceptions thrown in the changed lines, functions and files in the last 7 days, new and unhandled ones marked. |
+| **Operations** | The traced operations that run the changed code in the last hour: their spans, errors and p95. |
+| **Hot functions** | The functions of the changed code that take a share of the services' profiles in the last hour. |
+| **Incidents** | The services' incidents of the last 30 days that are still open, or whose root cause or postmortem names the changed code. Never a private incident. |
+| **Deploys** | The services' deploys of the last 7 days that OneUptime suspects of a regression. |
+
+When production says something, OneUptime AI reads it beside the diff and adds **What to watch**: a few short points, each resting on the facts. It runs only while AI is on for the project, at most 10 times a day for a pull request and 100 for a repository, and is metered like every AI call; the facts are read every time without it. When production shows nothing about the change, OneUptime posts nothing.
+
+- **Aggregates only.** The comment holds counts, durations and the names of code: never an exception's message, a log line, an incident's title or personal data.
+- **Public repositories get a link.** Anyone can read a public repository's pull requests, so there the comment only links to the review in OneUptime, which only the project's members can open. **Production Review Comment**, under **More settings** on the repository's **Settings** page, can post **Only a link to the review** everywhere, or **The review, even on a public repository**.
+- **Outside contributors cannot start one.** A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository. One from anyone else - an outside contributor, a fork, a bot - is reviewed when someone with write access comments `@oneuptime production review` on it, or presses **Review again** in Code.
+- **Read only.** A review clones nothing and runs nothing of the pull request. Its diff and title are data to OneUptime AI, never instructions: the AI has no tools, and what it writes is placed in the comment as text.
+
+The switch is on for the repositories the GitHub App connects from now on. A repository connected before it existed keeps it off until you turn it on.
 
 ## Verification before the pull request
 
