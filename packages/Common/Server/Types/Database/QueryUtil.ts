@@ -22,6 +22,10 @@ import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import Search from "../../../Types/BaseDatabase/Search";
 import MultiSearch from "../../../Types/BaseDatabase/MultiSearch";
+import OwnedBy, {
+  OWNED_BY_QUERY_KEY,
+} from "../../../Types/BaseDatabase/OwnedBy";
+import OwnedByFilter from "./OwnedByFilter";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
@@ -106,6 +110,40 @@ export default class QueryUtil {
     const groupedRelationFilters: Array<FindOperator<unknown>> = [];
 
     /*
+     * Conditions on the record's id that a key of its own stands for - a
+     * multi-field search, a filter by owners - added after the id's own
+     * filter has been serialized (at the end), beside it.
+     */
+    const conditionsOnId: Array<FindOperator<unknown>> = [];
+
+    /*
+     * Who owns the records (OwnedBy, under "owners"): a subquery on the
+     * kind's owner tables, held on `_id` (QueryHelper.ownedBy). The key is
+     * no column, so TypeORM never sees it. A kind without owners is refused
+     * rather than listed in full (OwnedByFilter). QueryPermission has held
+     * the caller to the owner tables' read before this.
+     */
+    for (const key in query) {
+      const value: unknown = query[key];
+
+      if (!(value instanceof OwnedBy)) {
+        continue;
+      }
+
+      if (key !== OWNED_BY_QUERY_KEY) {
+        throw new BadDataException(
+          `A filter by owners goes under "${OWNED_BY_QUERY_KEY}", not "${key}".`,
+        );
+      }
+
+      delete query[key];
+
+      conditionsOnId.push(
+        OwnedByFilter.getIdCondition(modelType, value) as FindOperator<unknown>,
+      );
+    }
+
+    /*
      * Multi-field text search:
      * A MultiSearch operator on any key fans out into an ILIKE OR across the
      * listed entity fields. We hang the Raw expression off `_id` so it lands
@@ -160,25 +198,18 @@ export default class QueryUtil {
         continue;
       }
 
-      const rawFilter: any = QueryHelper.multiSearch(
-        validPropertyNames,
-        ms.value,
+      /*
+       * Beside the id's own filter, once that is serialized (below): an id
+       * filtered by a list (Includes) or by one ObjectID is not yet a
+       * FindOperator here, and taking its place dropped it - a search on a
+       * list narrowed to some records searched all of them.
+       */
+      conditionsOnId.push(
+        QueryHelper.multiSearch(
+          validPropertyNames,
+          ms.value,
+        ) as FindOperator<unknown>,
       );
-
-      const existingIdFilter: any = (query as any)._id;
-      if (existingIdFilter instanceof FindOperator) {
-        (query as any)._id = And(existingIdFilter, rawFilter);
-      } else if (
-        existingIdFilter &&
-        typeof existingIdFilter === Typeof.String
-      ) {
-        (query as any)._id = And(
-          QueryHelper.equalTo(existingIdFilter as string),
-          rawFilter,
-        );
-      } else {
-        (query as any)._id = rawFilter;
-      }
     }
 
     for (const key in query) {
@@ -755,7 +786,13 @@ export default class QueryUtil {
       }
     }
 
-    if (groupedRelationFilters.length > 0) {
+    // Groups of related records first, then searches and owners.
+    const idFilters: Array<FindOperator<unknown>> = [
+      ...groupedRelationFilters,
+      ...conditionsOnId,
+    ];
+
+    if (idFilters.length > 0) {
       /*
        * Apply these only after scalar operators have been serialized, so an
        * existing id condition survives regardless of the query's key order.
@@ -763,18 +800,18 @@ export default class QueryUtil {
       const existingIdFilter: unknown = query._id;
       if (existingIdFilter !== undefined) {
         if (existingIdFilter instanceof FindOperator) {
-          groupedRelationFilters.unshift(existingIdFilter);
+          idFilters.unshift(existingIdFilter);
         } else if (typeof existingIdFilter === "string") {
-          groupedRelationFilters.unshift(
+          idFilters.unshift(
             QueryHelper.equalTo(existingIdFilter) as FindOperator<unknown>,
           );
         } else {
           throw new BadDataException(
-            "IncludesAnyOfGroups cannot combine an unsupported id filter.",
+            "The filter on _id cannot be combined with the other filters of the query.",
           );
         }
       }
-      query._id = And(...groupedRelationFilters) as any;
+      query._id = And(...idFilters) as any;
     }
 
     return query;

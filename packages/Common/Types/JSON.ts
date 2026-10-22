@@ -89,6 +89,7 @@ export enum ObjectType {
   NotContains = "NotContains",
   Wildcard = "Wildcard",
   NotWildcard = "NotWildcard",
+  OwnedBy = "OwnedBy",
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
 }
