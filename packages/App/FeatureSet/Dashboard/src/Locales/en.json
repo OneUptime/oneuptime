@@ -33315,5 +33315,16 @@
   "Search on-call schedules...": "Search on-call schedules...",
   "Search people, teams or schedules...": "Search people, teams or schedules...",
   "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged."
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
+  "About the same as in the first half of the time range": "About the same as in the first half of the time range",
+  "Click to configure metric": "Click to configure metric",
+  "Data Source Value": "Data Source Value",
+  "Down from 0 in the first half of the time range": "Down from 0 in the first half of the time range",
+  "Down {{percent}} from the first half of the time range": "Down {{percent}} from the first half of the time range",
+  "First half": "First half",
+  "Second half": "Second half",
+  "Up from 0 in the first half of the time range": "Up from 0 in the first half of the time range",
+  "Up {{percent}} from the first half of the time range": "Up {{percent}} from the first half of the time range",
+  "Value Widget": "Value Widget",
+  "from 0": "from 0"
 }

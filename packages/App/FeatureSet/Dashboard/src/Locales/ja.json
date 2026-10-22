@@ -33315,5 +33315,16 @@
   "Search on-call schedules...": "オンコールスケジュールを検索...",
   "Search people, teams or schedules...": "ユーザー、チーム、またはスケジュールを検索...",
   "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "これらのユーザーとチームは、ルールが作成するすべてのチャネルに参加します。チャネルの作成時点でこれらのスケジュールのオンコール担当者も参加します。誰も呼び出されません。",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "チャネルの作成時点でこれらのスケジュールのオンコール担当者がチャネル内で @メンションされ、Microsoft Teams がその人に通知します。誰も呼び出されません。"
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "チャネルの作成時点でこれらのスケジュールのオンコール担当者がチャネル内で @メンションされ、Microsoft Teams がその人に通知します。誰も呼び出されません。",
+  "About the same as in the first half of the time range": "時間範囲の前半とほぼ同じ",
+  "Click to configure metric": "クリックしてメトリクスを設定",
+  "Data Source Value": "データソースの値",
+  "Down from 0 in the first half of the time range": "時間範囲の前半の 0 から減少",
+  "Down {{percent}} from the first half of the time range": "時間範囲の前半より {{percent}} 減少",
+  "First half": "前半",
+  "Second half": "後半",
+  "Up from 0 in the first half of the time range": "時間範囲の前半の 0 から増加",
+  "Up {{percent}} from the first half of the time range": "時間範囲の前半より {{percent}} 増加",
+  "Value Widget": "値ウィジェット",
+  "from 0": "0 から"
 }

@@ -12,13 +12,22 @@ import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
-import DashboardDataSourceValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceValueComponent";
+import DashboardDataSourceValueComponentType, {
+  DataSourceValueReduce,
+} from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceValueComponent";
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
 import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReducer";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
+import {
+  getValueWidgetSeries,
+  getValueWidgetTrend,
+  ValueWidgetReduce,
+  ValueWidgetTrend,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ValueWidgetView, { SparklinePoint } from "./ValueWidgetView";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
@@ -46,6 +55,11 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
   ComponentProps
 > = (props: ComponentProps): ReactElement => {
   const [results, setResults] = useState<Array<AggregatedResult>>([]);
+  // The time range the results on screen were asked for: the trend's halves.
+  const [resultsWindow, setResultsWindow] = useState<{
+    startDate: Date;
+    endDate: Date;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -126,6 +140,7 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
         return;
       }
       setResults([result]);
+      setResultsWindow({ startDate: state.startDate, endDate: state.endDate });
       setError("");
     } catch (err: unknown) {
       if (fetchId !== fetchSequenceRef.current) {
@@ -151,27 +166,55 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
     fetchResults,
   ]);
 
+  const reduceSetting: DataSourceValueReduce | undefined =
+    props.component.arguments.reduce;
+
   const reducedValue: number | null = DataSourceValueReducer.reduce(
     DataSourceValueReducer.getNumericValues(results),
-    props.component.arguments.reduce,
+    reduceSetting,
+  );
+
+  // The widget's Reduce setting, for the trend's halves and a bucket's series.
+  const reduceValues: ValueWidgetReduce = useCallback(
+    (values: Array<number>): number | null => {
+      return DataSourceValueReducer.reduce(values, reduceSetting);
+    },
+    [reduceSetting],
   );
 
   /*
    * Sparkline points, in time order — a hand-written SQL query with no
-   * ORDER BY would otherwise draw a scribble.
+   * ORDER BY would otherwise draw a scribble — and one per bucket, the
+   * series of a query that returns several combined by the Reduce setting.
    */
-  const sparklineData: Array<SparklinePoint> =
-    DataSourceValueReducer.sortPointsByTime(results).map(
-      (item: AggregatedModel): SparklinePoint => {
-        return {
-          value: item.value,
-          timestamp:
-            item.timestamp instanceof Date
-              ? item.timestamp
-              : new Date(item.timestamp as unknown as string),
-        };
-      },
-    );
+  const sparklineData: Array<SparklinePoint> = useMemo(() => {
+    const points: Array<AggregatedModel> = [];
+
+    for (const result of results) {
+      points.push(...result.data);
+    }
+
+    return getValueWidgetSeries(points, reduceValues);
+  }, [results, reduceValues]);
+
+  /*
+   * The arrow: the second half of the time range against the first, each
+   * reduced by the Reduce setting - the same comparison the metric Value
+   * widget makes.
+   */
+  const trend: ValueWidgetTrend | null = useMemo(() => {
+    if (!resultsWindow) {
+      return null;
+    }
+
+    return getValueWidgetTrend({
+      points: sparklineData,
+      reduce: reduceValues,
+      isAdditive: reduceSetting === DataSourceValueReduce.Sum,
+      windowStart: resultsWindow.startDate,
+      windowEnd: resultsWindow.endDate,
+    });
+  }, [sparklineData, reduceValues, reduceSetting, resultsWindow]);
 
   /*
    * A drag across the sparkline retimes the whole board, like a drag on
@@ -194,13 +237,14 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
       error={error}
       value={reducedValue}
       points={sparklineData}
+      trend={trend}
       noDataMessage={
         DataSourceValueReducer.getResultsErrorMessage(results) ||
-        "No data for the selected time range"
+        translationKey("No data for the selected time range")
       }
       isConfigured={isConfigured}
-      setupTitle="Data Source Value"
-      setupMessage="Click to configure a query"
+      setupTitle={translationKey("Data Source Value")}
+      setupMessage={translationKey("Click to configure a query")}
       title={props.component.arguments.title}
       rawUnit={props.component.arguments.unit || ""}
       /*

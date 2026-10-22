@@ -54,7 +54,7 @@ Nutzen Sie es, wenn die Form der Linie die Geschichte erzählt: Latenz, Fehler, 
 
 ### Wert
 
-Eine große Zahl mit einer Sparkline: der Wert der Abfrage über den ganzen Zeitbereich, summiert bei einer Summe oder Anzahl, der höchste bei einem Maximum, der niedrigste bei einem Minimum und sonst der Mittelwert. Ein Pfeil vergleicht die zweite Hälfte des Bereichs mit der ersten, gefärbt nach **Trend Direction**: ob ein höherer Wert besser oder schlechter ist, oder abgeleitet aus dem Namen der Metrik. **Warnschwelle** färbt den Hintergrund gelb und **Kritischer Schwellenwert** rot, sobald der Wert sie erreicht.
+Eine große Zahl mit einer Sparkline: der Wert der Abfrage über den ganzen Zeitbereich, summiert bei einer Summe oder Anzahl, der höchste bei einem Maximum, der niedrigste bei einem Minimum und sonst der Mittelwert. Ein Pfeil vergleicht die zweite Hälfte des Bereichs mit der ersten, jede Hälfte auf dieselbe Weise berechnet, gefärbt nach **Trend Direction**: ob ein höherer Wert besser oder schlechter ist, oder abgeleitet aus dem Namen der Metrik. Zeigen Sie auf den Pfeil, um die Werte beider Hälften zu sehen, und auf die Sparkline, um Wert und Zeit eines beliebigen Punkts abzulesen. **Warnschwelle** färbt den Hintergrund gelb und **Kritischer Schwellenwert** rot, sobald der Wert sie erreicht.
 
 Nutzen Sie es, wenn eine Zahl die Frage beantwortet: die Fehlerquote, die P95-Latenz oder die heute bedienten Anfragen.
 

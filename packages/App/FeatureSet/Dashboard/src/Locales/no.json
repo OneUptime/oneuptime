@@ -33315,5 +33315,16 @@
   "Search on-call schedules...": "Søk etter vaktplaner ...",
   "Search people, teams or schedules...": "Søk etter personer, team eller vaktplaner ...",
   "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Disse personene og teamene blir med i hver kanal regelen oppretter, og det samme gjør de som har vakt i disse vaktplanene når kanalen opprettes. Ingen blir varslet.",
-  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt."
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt.",
+  "About the same as in the first half of the time range": "Omtrent det samme som i første halvdel av tidsrommet",
+  "Click to configure metric": "Klikk for å konfigurere en metrikk",
+  "Data Source Value": "Datakildeverdi",
+  "Down from 0 in the first half of the time range": "Falt fra 0 i første halvdel av tidsrommet",
+  "Down {{percent}} from the first half of the time range": "{{percent}} lavere enn i første halvdel av tidsrommet",
+  "First half": "Første halvdel",
+  "Second half": "Andre halvdel",
+  "Up from 0 in the first half of the time range": "Steg fra 0 i første halvdel av tidsrommet",
+  "Up {{percent}} from the first half of the time range": "{{percent}} høyere enn i første halvdel av tidsrommet",
+  "Value Widget": "Verdi-widget",
+  "from 0": "fra 0"
 }

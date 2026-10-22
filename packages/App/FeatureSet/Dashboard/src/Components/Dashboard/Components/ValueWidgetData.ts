@@ -1,6 +1,11 @@
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import {
+  getValueWidgetSeries,
+  ValueWidgetPoint,
+  ValueWidgetReduce,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
 
 /*
  * Pure, React-free data helpers for the value widget. Kept out of the .tsx so
@@ -9,7 +14,11 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
  * in the node test environment.
  */
 
-// Flatten every result's buckets into one list, in result then bucket order.
+/*
+ * Flatten every result's buckets into one list, in result then bucket order -
+ * which is NOT time order: the metrics API answers newest first. Read the
+ * points through getMetricValueWidgetSeries wherever their order matters.
+ */
 export function collectDataPoints(
   results: Array<AggregatedResult>,
 ): Array<AggregatedModel> {
@@ -83,6 +92,49 @@ export function aggregateValues(
         }, 0) / values.length
       );
   }
+}
+
+/*
+ * The widget's own reduction as a function of a list of values: what each
+ * half of the time range is reduced with for the trend, and how the points a
+ * grouped query returns for one bucket are combined into the one point the
+ * sparkline draws there.
+ */
+export function getMetricValueWidgetReduce(
+  aggregationType: AggregationType,
+): ValueWidgetReduce {
+  return (values: Array<number>): number | null => {
+    return aggregateValues(values, aggregationType);
+  };
+}
+
+/*
+ * A sum or a count adds its buckets up, so the two halves of the time range
+ * are compared as totals over equal lengths of time. Every other aggregation
+ * reads as a level, and a bucket counts once, in one half.
+ */
+export function isAdditiveAggregation(
+  aggregationType: AggregationType,
+): boolean {
+  return (
+    aggregationType === AggregationType.Sum ||
+    aggregationType === AggregationType.Count
+  );
+}
+
+/*
+ * The sparkline's points: oldest first whatever order the API answered in
+ * (newest first, for the metrics API), one point per bucket, and only the
+ * buckets with a number in them.
+ */
+export function getMetricValueWidgetSeries(
+  results: Array<AggregatedResult>,
+  aggregationType: AggregationType,
+): Array<ValueWidgetPoint> {
+  return getValueWidgetSeries(
+    collectDataPoints(results),
+    getMetricValueWidgetReduce(aggregationType),
+  );
 }
 
 /*
