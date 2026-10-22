@@ -408,6 +408,20 @@ export function getOnCallPassOnLevelLabel(
 }
 
 /*
+ * A level's label, or nothing when the level is not known: no rule, or one
+ * whose place could not be read (order 0) - "the next level" says it then,
+ * as the Dashboard does.
+ */
+function getKnownLevelLabel(
+  rule: OnCallPassOnRule | undefined,
+  ruleCount: number,
+): string | undefined {
+  return rule && rule.order
+    ? getOnCallPassOnLevelLabel(rule, ruleCount)
+    : undefined;
+}
+
+/*
  * Whether `at` falls on the day `now` does, as the reader's clock reads both
  * - in `timezone`, or the server's or browser's zone without one.
  */
@@ -493,9 +507,10 @@ export function getOnCallPassOnSentence(
   result: OnCallPassOnResult,
   wording: OnCallPassOnWording = {},
 ): string {
-  const level: string | undefined = result.rule
-    ? getOnCallPassOnLevelLabel(result.rule, result.ruleCount)
-    : undefined;
+  const level: string | undefined = getKnownLevelLabel(
+    result.rule,
+    result.ruleCount,
+  );
 
   switch (result.outcome) {
     case OnCallPassOnOutcome.NextRulePaged: {
@@ -538,12 +553,13 @@ export function getOnCallPassOnSentence(
       }
 
       const time: string = getOnCallPassOnTime(result.nextStepAt, wording);
+      const next: string | undefined = getKnownLevelLabel(
+        result.nextRule,
+        result.ruleCount,
+      );
 
-      return result.nextRule
-        ? `${still} If nobody acknowledges by ${time}, the policy pages ${getOnCallPassOnLevelLabel(
-            result.nextRule,
-            result.ruleCount,
-          )} next.`
+      return next
+        ? `${still} If nobody acknowledges by ${time}, the policy pages ${next} next.`
         : `${still} If nobody acknowledges by ${time}, the policy moves on.`;
     }
     case OnCallPassOnOutcome.AlreadyEscalated:

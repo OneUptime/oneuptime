@@ -5,15 +5,17 @@ import path from "path";
 import { htmlAsText } from "../../Helpers/HtmlText";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" - THE PAGES A MESSAGE'S LINKS OPEN, RENDERED.
+ * "CAN'T TAKE IT? ESCALATE" - THE PAGES A MESSAGE'S LINKS OPEN, RENDERED.
  *
  * Somebody woken by a page who cannot take it follows a link from the email,
  * the text or the chat message. These render the real templates and read
- * the HTML a browser is handed: the acknowledge page offers passing on
+ * the HTML a browser is handed: the acknowledge page offers escalating
  * beside Acknowledge, for a link that carries the page's own token; the
- * pass-on page asks first, with what passing on would do. Both pass it on
- * with a form, not a link - mail scanners follow every link in a message,
- * and a page they passed on would wake the next person for nothing.
+ * escalate page asks first ("Escalate Incident INC-42?"), with what
+ * escalating would do. Both escalate with a form, not a link - mail
+ * scanners follow every link in a message, and a page they escalated would
+ * wake the next person for nothing. The words are the server's
+ * (UserOnCallLogTimelineAPI); the templates draw no words of their own.
  */
 
 const VIEWS: string = path.resolve(
@@ -56,16 +58,15 @@ const ACKNOWLEDGE_BASE: Record<string, unknown> = {
 
 const PASS_ON_BLOCK: Record<string, unknown> = {
   lead: "Can't take it?",
-  explanation:
-    "You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-  buttonText: "Pass it on",
+  explanation: "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+  buttonText: "Escalate",
   formUrl: FORM_URL,
   tokenParam: "pageToken",
   token: TOKEN,
 };
 
 describe("the acknowledge page", () => {
-  test("offers Can't take it? Pass it on under Acknowledge, as a form that posts the token", () => {
+  test("offers Can't take it? Escalate under Acknowledge, as a form that posts the token", () => {
     const html: string = render(ACKNOWLEDGE_VIEW, {
       ...ACKNOWLEDGE_BASE,
       passOn: PASS_ON_BLOCK,
@@ -83,10 +84,8 @@ describe("the acknowledge page", () => {
     const text: string = htmlAsText(html);
 
     expect(text).toContain("Can't take it?");
-    expect(text).toContain(
-      "You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-    );
-    expect(text).toContain("Pass it on");
+    expect(text).toContain("This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.");
+    expect(text).toContain("Escalate");
   });
 
   test("puts Acknowledge first: it is still what most people do", () => {
@@ -103,7 +102,7 @@ describe("the acknowledge page", () => {
     ).toBeLessThan(html.indexOf('data-testid="pass-on"'));
   });
 
-  test("passing on is the quieter button: outlined, not the page's yellow", () => {
+  test("escalating is the quieter button: outlined, not the page's yellow", () => {
     const html: string = render(ACKNOWLEDGE_VIEW, {
       ...ACKNOWLEDGE_BASE,
       passOn: PASS_ON_BLOCK,
@@ -122,6 +121,7 @@ describe("the acknowledge page", () => {
     const html: string = render(ACKNOWLEDGE_VIEW, ACKNOWLEDGE_BASE);
 
     expect(html).not.toContain("<form");
+    expect(html).not.toContain("Escalate");
     expect(html).not.toContain("Pass it on");
     expect(html).toContain("Acknowledge Incident");
   });
@@ -142,12 +142,11 @@ describe("the acknowledge page", () => {
   });
 });
 
-describe("the pass-on page", () => {
+describe("the escalate page", () => {
   const PASS_ON_BASE: Record<string, unknown> = {
-    title: "Pass on Incident INC-42?",
-    message:
-      "Can't take it? You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-    passOnText: "Pass it on",
+    title: "Escalate Incident INC-42?",
+    message: "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+    passOnText: "Escalate",
     passOnFormUrl: FORM_URL,
     pageTokenParam: "pageToken",
     pageToken: TOKEN,
@@ -158,13 +157,11 @@ describe("the pass-on page", () => {
     resourceTitle: "Checkout is down",
   };
 
-  test("says what passing on would do, about which record", () => {
+  test("says what escalating would do, about which record", () => {
     const text: string = htmlAsText(render(PASS_ON_VIEW, PASS_ON_BASE));
 
-    expect(text).toContain("Pass on Incident INC-42?");
-    expect(text).toContain(
-      "Can't take it? You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-    );
+    expect(text).toContain("Escalate Incident INC-42?");
+    expect(text).toContain("This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.");
     expect(text).toContain("INC-42");
     expect(text).toContain("Checkout is down");
   });
@@ -206,10 +203,11 @@ describe("the pass-on page", () => {
 });
 
 /*
- * "Nobody else is left to page": passing on that leaves nobody being paged
+ * "Nobody else is left to page": escalating that leaves nobody being paged
  * is said as a warning of its own (Partials/OnCallPassOnWarning.ejs) - on
- * the acknowledge page, the pass-on page and the page after it - not in the
- * grey line beside the button, where a person woken at 3 a.m. reads past it.
+ * the acknowledge page, the escalate page and the page after it - not in
+ * the grey line beside the button, where a person woken at 3 a.m. reads
+ * past it.
  */
 describe("the warning when nobody is left to page", () => {
   const MESSAGE_VIEW: string = path.join(VIEWS, "ViewMessage.ejs");
@@ -228,12 +226,12 @@ describe("the warning when nobody is left to page", () => {
     return html.slice(start, html.indexOf("</div>", marker));
   }
 
-  test("the acknowledge page draws it apart, above the Pass it on button", () => {
+  test("the acknowledge page draws it apart, above the Escalate button", () => {
     const html: string = render(ACKNOWLEDGE_VIEW, {
       ...ACKNOWLEDGE_BASE,
       passOn: {
         ...PASS_ON_BLOCK,
-        explanation: "You won't be paged about it again.",
+        explanation: "You will not be paged again for this incident.",
         warning: STOPS,
       },
     });
@@ -248,12 +246,12 @@ describe("the warning when nobody is left to page", () => {
     );
   });
 
-  test("the pass-on page draws it under its question", () => {
+  test("the escalate page draws it under its question", () => {
     const html: string = render(PASS_ON_VIEW, {
-      title: "Pass on Incident INC-42?",
-      message: "You won't be paged about it again.",
+      title: "Escalate Incident INC-42?",
+      message: "You will not be paged again for this incident.",
       warning: STOPS,
-      passOnText: "Pass it on",
+      passOnText: "Escalate",
       passOnFormUrl: FORM_URL,
       pageTokenParam: "pageToken",
       pageToken: TOKEN,
@@ -264,15 +262,15 @@ describe("the warning when nobody is left to page", () => {
     });
 
     expect(htmlAsText(warningOf(html))).toContain(STOPS);
-    expect(html.indexOf("You won't be paged about it again.")).toBeLessThan(
+    expect(html.indexOf("You will not be paged again for this incident.")).toBeLessThan(
       html.indexOf('data-testid="pass-on-warning"'),
     );
   });
 
-  test("the page after passing on draws it too", () => {
+  test("the page after escalating draws it too", () => {
     const html: string = render(MESSAGE_VIEW, {
-      title: "You passed it on - Checkout is down",
-      message: "You won't be paged about it again.",
+      title: "Incident escalated - Checkout is down",
+      message: "You will not be paged again for this incident.",
       warning:
         "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
       viewDetailsText: "View Incident",
@@ -301,8 +299,8 @@ describe("the warning when nobody is left to page", () => {
 
   test("escapes what it is handed", () => {
     const html: string = render(MESSAGE_VIEW, {
-      title: "You passed it on",
-      message: "You won't be paged about it again.",
+      title: "Incident escalated",
+      message: "You will not be paged again for this incident.",
       warning: "<img src=x onerror=alert(1)>",
       viewDetailsText: "View Incident",
       viewDetailsUrl: "https://oneuptime.example.com/dashboard/p/incidents/1",
@@ -310,5 +308,37 @@ describe("the warning when nobody is left to page", () => {
 
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img src=x");
+  });
+});
+
+describe("the templates themselves", () => {
+  test("draw no words of the action of their own: the server hands them every word", () => {
+    for (const view of [
+      ACKNOWLEDGE_VIEW,
+      PASS_ON_VIEW,
+      path.join(VIEWS, "ViewMessage.ejs"),
+      path.join(VIEWS, "Partials", "OnCallPassOnForm.ejs"),
+      path.join(VIEWS, "Partials", "OnCallPassOnWarning.ejs"),
+    ]) {
+      // Comments say what each block is for; the markup must not say it.
+      const markup: string = htmlAsText(
+        fs
+          .readFileSync(view, "utf8")
+          .split("<%#")
+          .map((part: string, index: number): string => {
+            return index === 0 ? part : part.slice(part.indexOf("%>") + 2);
+          })
+          .join(""),
+      );
+
+      expect({ view, says: markup.includes("Pass it on") }).toEqual({
+        view,
+        says: false,
+      });
+      expect({ view, says: markup.includes("Escalate") }).toEqual({
+        view,
+        says: false,
+      });
+    }
   });
 });

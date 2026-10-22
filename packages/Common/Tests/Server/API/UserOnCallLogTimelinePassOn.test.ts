@@ -38,15 +38,18 @@ import Timezone from "../../../Types/Timezone";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" FROM A PERSON'S OWN MESSAGES.
+ * "CAN'T TAKE IT? ESCALATE" FROM A PERSON'S OWN MESSAGES.
  *
  * Every message a page sends leads, through its links, to pages about that
  * one notification (UserOnCallLogTimelineAPI). These pin what those pages
- * do with passing on: the acknowledge page offers it beside Acknowledge for
- * a link that carries the page's own token; the pass-on page asks first and
- * posts a form; the form passes the page on and says what came of it; and a
- * call's second key passes it on. Every way in refuses a link whose token
- * was not signed for that notification.
+ * do with escalating: the acknowledge page offers it beside Acknowledge for
+ * a link that carries the page's own token; the escalate page asks first -
+ * "Escalate this incident?", what it does, then that the person is not
+ * paged again, in the order of the Dashboard's dialog - and posts a form;
+ * the form escalates the page and says what came of it; and a call's second
+ * key escalates it. Every way in refuses a link whose token was not signed
+ * for that notification. The addresses keep the action's first name,
+ * pass-on, so links already sent work.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -197,7 +200,7 @@ beforeEach(() => {
 });
 
 describe("the acknowledge page", () => {
-  test("offers Can't take it? Pass it on, for a link with the page's token", async () => {
+  test("offers Can't take it? Escalate, for a link with the page's token", async () => {
     const token: string = VALID_TOKEN();
 
     await call({
@@ -211,8 +214,8 @@ describe("the acknowledge page", () => {
     expect(variables["passOn"]).toEqual({
       lead: "Can't take it?",
       explanation:
-        "You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-      buttonText: "Pass it on",
+        "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
+      buttonText: "Escalate",
       formUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       tokenParam: "pageToken",
       token: token,
@@ -259,7 +262,7 @@ describe("the acknowledge page", () => {
     expect(rendered().variables["passOn"]).toBeUndefined();
   });
 
-  test("passing on that would leave nobody paged is a warning beside the button", async () => {
+  test("escalating that would leave nobody paged is a warning beside the button", async () => {
     previewSpy.mockResolvedValue({
       passedOn: false,
       result: preview(OnCallPassOnOutcome.PagingStopped),
@@ -273,13 +276,13 @@ describe("the acknowledge page", () => {
 
     expect(rendered().variables["passOn"]).toMatchObject({
       lead: "Can't take it?",
-      explanation: "You won't be paged about it again.",
+      explanation: "You will not be paged again for this incident.",
       warning:
         "Nobody else is left to page: paging stops, and somebody needs to take it.",
     });
   });
 
-  test("a page that cannot be passed on any more offers nothing", async () => {
+  test("a page that cannot be escalated any more offers nothing", async () => {
     previewSpy.mockResolvedValue({
       passedOn: false,
       refusal: OnCallPassOnRefusal.AlreadyPassedOn,
@@ -295,8 +298,8 @@ describe("the acknowledge page", () => {
   });
 });
 
-describe("the pass-on page", () => {
-  test("asks first: what passing on would do, and a form that does it", async () => {
+describe("the escalate page", () => {
+  test("asks first: what escalating would do, and a form that does it", async () => {
     const token: string = VALID_TOKEN();
 
     await call({
@@ -311,11 +314,10 @@ describe("the pass-on page", () => {
       "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
     );
     expect(variables).toMatchObject({
-      title: "Pass on this incident?",
-      // They followed "Can't take it? Pass it on" here: it is not asked again.
-      message:
-        "You won't be paged about it again. Escalation rule 2 of 2 (Level 2) is paged right away, without waiting.",
-      passOnText: "Pass it on",
+      title: "Escalate this incident?",
+      // They followed "Can't take it? Escalate" here: it is not asked again.
+      message: "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
+      passOnText: "Escalate",
       passOnFormUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       pageTokenParam: "pageToken",
       pageToken: token,
@@ -326,7 +328,55 @@ describe("the pass-on page", () => {
     expect(passOnSpy).not.toHaveBeenCalled();
   });
 
-  test("without a valid token, says the link cannot pass the page on - and passes nothing on", async () => {
+  test("names the next level as the maintainer's dialog does: its name, then its place", async () => {
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: {
+        ...preview(OnCallPassOnOutcome.NextRulePaged),
+        rule: { order: 2, name: "Platform leads" },
+      },
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    expect(rendered().variables).toMatchObject({
+      title: "Escalate this incident?",
+      message:
+        "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+      passOnText: "Escalate",
+    });
+  });
+
+  test("never says the old words, whatever escalating would do", async () => {
+    for (const outcome of Object.values(OnCallPassOnOutcome)) {
+      previewSpy.mockResolvedValue({
+        passedOn: false,
+        result: preview(outcome),
+      });
+      (Response.render as unknown as jest.Mock).mockClear();
+
+      await call({
+        method: "GET",
+        uri: `${BASE}/pass-on-page/:itemId`,
+        query: { pageToken: VALID_TOKEN() },
+      });
+
+      const said: string = JSON.stringify(rendered().variables).toLowerCase();
+
+      expect({ outcome, says: said.includes("pass it on") }).toEqual({
+        outcome,
+        says: false,
+      });
+      expect(said).not.toContain("pass on");
+      expect(said).not.toContain("passed");
+    }
+  });
+
+  test("without a valid token, says the link cannot escalate the page - and escalates nothing", async () => {
     for (const query of [
       {},
       { pageToken: "nonsense" },
@@ -352,7 +402,7 @@ describe("the pass-on page", () => {
         "This link has expired - Checkout is down",
       );
       expect(variables["message"]).toBe(
-        "This link cannot pass the page on: it is not valid, or it has expired. Use the link in the newest message you were paged with.",
+        "This link cannot escalate the page: it is not valid, or it has expired. Use the link in the newest message you were paged with.",
       );
     }
 
@@ -377,7 +427,7 @@ describe("the pass-on page", () => {
 
     expect(variables["title"]).toBe("Already acknowledged - Checkout is down");
     expect(variables["message"]).toBe(
-      "This incident was already acknowledged by Bob Smith, so there is nothing to pass on.",
+      "This incident was already acknowledged by Bob Smith, so there is nothing to escalate.",
     );
     expect(variables["viewDetailsText"]).toBe("View Incident");
     expect(variables["viewDetailsUrl"]).toBe(
@@ -399,13 +449,13 @@ describe("the pass-on page", () => {
 
     const { variables } = rendered();
 
-    expect(variables["title"]).toBe("Nothing to pass on - Checkout is down");
+    expect(variables["title"]).toBe("Nothing to escalate - Checkout is down");
     expect(variables["message"]).toBe(
       "This page is over: the on-call policy has stopped paging.",
     );
   });
 
-  test("passing on that would leave nobody paged is a warning of its own", async () => {
+  test("escalating that would leave nobody paged is a warning of its own", async () => {
     previewSpy.mockResolvedValue({
       passedOn: false,
       result: preview(OnCallPassOnOutcome.PagingStopped),
@@ -422,7 +472,7 @@ describe("the pass-on page", () => {
     expect(path).toBe(
       "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
     );
-    expect(variables["message"]).toBe("You won't be paged about it again.");
+    expect(variables["message"]).toBe("You will not be paged again for this incident.");
     expect(variables["warning"]).toBe(
       "Nobody else is left to page: paging stops, and somebody needs to take it.",
     );
@@ -486,8 +536,8 @@ describe("the pass-on page", () => {
   });
 });
 
-describe("the pass-on button", () => {
-  test("passes the person's page on, from this notification, and says what came of it", async () => {
+describe("the Escalate button", () => {
+  test("escalates the person's page, from this notification, and says what came of it", async () => {
     await call({
       method: "POST",
       uri: `${BASE}/pass-on/:itemId`,
@@ -503,14 +553,14 @@ describe("the pass-on button", () => {
     const { path, variables } = rendered();
 
     expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
-    expect(variables["title"]).toBe("You passed it on - Checkout is down");
+    expect(variables["title"]).toBe("Incident escalated - Checkout is down");
     expect(variables["message"]).toBe(
-      "Escalation rule 2 of 2 (Level 2) is paging Bob Smith now. You won't be paged about it again.",
+      "The policy is now paging Level 2 of 2: Bob Smith. You will not be paged again for this incident.",
     );
     expect(variables["viewDetailsText"]).toBe("View Incident");
   });
 
-  test("passed on with nobody left to page: says so as a warning", async () => {
+  test("escalated with nobody left to page: says so as a warning", async () => {
     passOnSpy.mockResolvedValue({
       passedOn: true,
       result: {
@@ -528,8 +578,8 @@ describe("the pass-on button", () => {
     const { path, variables } = rendered();
 
     expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
-    expect(variables["title"]).toBe("You passed it on - Checkout is down");
-    expect(variables["message"]).toBe("You won't be paged about it again.");
+    expect(variables["title"]).toBe("Incident escalated - Checkout is down");
+    expect(variables["message"]).toBe("You will not be paged again for this incident.");
     expect(variables["warning"]).toBe(
       "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
     );
@@ -577,9 +627,9 @@ describe("the pass-on button", () => {
 
     const { variables } = rendered();
 
-    expect(variables["title"]).toBe("Already passed on - Checkout is down");
+    expect(variables["title"]).toBe("Already escalated - Checkout is down");
     expect(variables["message"]).toBe(
-      "You passed this page on already. You won't be paged about it again.",
+      "You escalated it already, so you will not be paged again for it.",
     );
   });
 });
@@ -608,7 +658,7 @@ describe("a call's second key", () => {
     });
   }
 
-  test("passes the page on, and says what came of it", async () => {
+  test("escalates the page, and says what came of it", async () => {
     await press("2", VALID_TOKEN());
 
     expect(passOnSpy).toHaveBeenCalledWith({
@@ -617,7 +667,7 @@ describe("a call's second key", () => {
       viaUserOnCallLogTimelineId: ITEM,
     });
     expect(sayOf()).toContain(
-      "You passed this incident on. Escalation rule 2 of 2 (Level 2) is paging Bob Smith now. Good bye.",
+      "You escalated this incident. The policy is now paging Level 2 of 2: Bob Smith. Good bye.",
     );
   });
 
@@ -656,7 +706,7 @@ describe("a call's second key", () => {
       (findSpy.mock.calls[0]![0] as { select: JSONObject }).select["user"],
     ).toEqual({ timezone: true });
     expect(sayOf()).toContain(
-      "You passed this incident on. Bob Smith is still being paged. If nobody acknowledges by 5:30 AM CEST, escalation rule 2 of 2 (Level 2) is next. Good bye.",
+      "You escalated this incident. Bob Smith is still being paged. If nobody acknowledges by 5:30 AM CEST, the policy pages Level 2 of 2 next. Good bye.",
     );
   });
 
@@ -669,7 +719,7 @@ describe("a call's second key", () => {
     await press("2", VALID_TOKEN());
 
     expect(sayOf()).toContain(
-      "This incident is already acknowledged, so there is nothing to pass on. Good bye.",
+      "This incident is already acknowledged, so there is nothing to escalate. Good bye.",
     );
   });
 

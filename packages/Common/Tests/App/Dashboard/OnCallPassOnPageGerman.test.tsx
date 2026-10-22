@@ -21,24 +21,29 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 
 /*
- * "PASS IT ON" IN THE READER'S LANGUAGE, FROM THE REAL LOCALE FILES.
+ * "ESCALATE" IN THE READER'S LANGUAGE, FROM THE REAL LOCALE FILES.
  *
- * The header button, the dialog's question and its answer, the sentences
- * saying what passing on does - in German the way a German reader sees
- * them, and in Japanese for a language with no "one" form and its own way
- * of joining names. Then every language the Dashboard ships: each has its
- * own words for every Pass it on sentence, so no reader gets an English
- * sentence in the middle of their own language.
+ * The header button, the dialog's question - "Escalate Incident?" in the
+ * maintainer's English - and its answer, the sentences saying what
+ * escalating does, with the level named by its name and place: in German
+ * the way a German reader sees them, in French for a language that puts the
+ * article in the level ("le niveau 2 sur 3"), and in Japanese for a
+ * language with no "one" form and its own way of joining names. Then every
+ * language the Dashboard ships: each has its own words for every Escalate
+ * sentence, so no reader gets an English sentence in the middle of their
+ * own language - and none of them still says the old "Pass it on".
  */
 
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import frenchLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fr.json";
 import japaneseLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import EventStatusPanel, {
   EventStateItem,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
 import {
   PASS_ON_PAGE_TEXT,
+  PASS_ON_RECORD_TEXT,
   describePassOnResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PassOn/PassOnPage";
 import usePassOnPage, {
@@ -75,6 +80,10 @@ const DE: Record<string, string> = germanLocale as unknown as Record<
   string,
   string
 >;
+const FR: Record<string, string> = frenchLocale as unknown as Record<
+  string,
+  string
+>;
 const JA: Record<string, string> = japaneseLocale as unknown as Record<
   string,
   string
@@ -108,38 +117,66 @@ const LANGUAGES: Array<string> = [
 // Languages with no "one" form: their _one keys are never read.
 const NO_ONE_FORM: Array<string> = ["ja", "ko", "zh-CN", "zh-TW"];
 
-// Every sentence Pass it on puts on the Dashboard.
-const PASS_ON_KEYS: Array<string> = [
+// Every sentence Escalate puts on the Dashboard.
+const ESCALATE_KEYS: Array<string> = [
+  "Escalate",
+  "Escalate Incident?",
+  "Escalate Alert?",
+  "Escalate Episode?",
+  "Incident escalated",
+  "Alert escalated",
+  "Episode escalated",
+  "Already acknowledged",
+  "Already escalated",
+  "Nothing to escalate",
+  "Could not escalate. Please try again.",
+  "Escalated",
+  "You will not be paged again for this incident.",
+  "You will not be paged again for this alert.",
+  "You will not be paged again for this episode.",
+  "{{name}} (Level {{order}} of {{count}})",
+  "Level {{order}} of {{count}}",
+  "This will immediately page {{level}}, without waiting.",
+  "This will immediately page the next level, without waiting.",
+  "The policy is now paging {{level}}: {{names}}.",
+  "The policy is now paging {{level}}.",
+  "The policy is now paging the next level.",
+  "There is no level after yours, so this will immediately page {{level}} again, without waiting.",
+  "There is no level after yours, so this will immediately page the first level again, without waiting.",
+  "There was no level after yours, so the policy started over and is paging {{level}} again.",
+  "There was no level after yours, so the policy started over and is paging the first level again.",
+  "If nobody acknowledges by {{time}}, the policy pages {{level}} next.",
+  "If nobody acknowledges by {{time}}, the policy moves on.",
+  "The policy has moved on already and is paging {{level}} now.",
+  "The policy has moved on already and is paging a later level now.",
+  "Nobody else is being paged: paging stops, and somebody needs to take it.",
+  "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
+  "Nobody else is left to page: paging stops, and somebody needs to take it.",
+  "Somebody acknowledged it already, so there is nothing to escalate.",
+  "{{name}} acknowledged it already, so there is nothing to escalate.",
+  "You escalated it already, so you will not be paged again for it.",
+  "This page is over: the on-call policy has stopped paging.",
+  "You are not being paged about this right now.",
+  "{{names}} are still being paged.",
+  "{{names}} are still being paged._one",
+];
+
+/*
+ * The keys the action had while it was called "Pass it on": none of them is
+ * left in any locale - a key no code reads is a translation nobody sees.
+ */
+const RETIRED_KEYS: Array<string> = [
   "Pass it on",
   "Pass it on?",
   "You passed it on",
-  "Already acknowledged",
   "Already passed on",
   "Nothing to pass on",
   "You won't be paged about it again.",
   "Could not pass it on. Please try again.",
   "Passed On",
-  "Escalation rule {{order}} of {{count}} ({{name}}) is next, and is being paged now.",
   "Escalation rule {{order}} of {{count}} ({{name}}) is paged right away, without waiting.",
   "Escalation rule {{order}} of {{count}} ({{name}}) is paging {{names}} now.",
-  "If nobody acknowledges by {{time}}, escalation rule {{order}} of {{count}} ({{name}}) is next.",
-  "If nobody acknowledges by {{time}}, the policy moves on.",
-  "Nobody else is being paged: paging stops, and somebody needs to take it.",
-  "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
-  "Nobody else is left to page: paging stops, and somebody needs to take it.",
-  "Somebody acknowledged it already, so there is nothing to pass on.",
-  "That was the policy's last escalation rule, so the policy started again from escalation rule 1.",
-  "The next escalation rule is being paged now.",
-  "The next escalation rule is paged right away, without waiting.",
-  "The policy has moved on already: a later escalation rule is paging now.",
-  "The policy has moved on already: escalation rule {{order}} of {{count}} ({{name}}) is paging now.",
-  "This is the policy's last escalation rule, so the policy starts again from escalation rule 1 right away.",
-  "This page is over: the on-call policy has stopped paging.",
-  "You are not being paged about this right now.",
   "You passed this page on already.",
-  "{{names}} are still being paged.",
-  "{{names}} are still being paged._one",
-  "{{name}} acknowledged it already, so there is nothing to pass on.",
 ];
 
 const RECORD_ID: ObjectID = new ObjectID(
@@ -152,7 +189,7 @@ function result(overrides: Partial<OnCallPassOnResult>): OnCallPassOnResult {
     isPreview: true,
     isDirectPage: false,
     policyName: "Critical",
-    rule: { order: 2, name: "Level 2" },
+    rule: { order: 2, name: "Plattform-Leads" },
     pagedNames: [],
     stillPagedNames: [],
     ruleCount: 3,
@@ -202,9 +239,21 @@ afterEach(() => {
 describe("in German", () => {
   const GERMAN: Translator = translatorFor("de", DE);
 
-  test("what passing on will do, in a German sentence with the rule's place and name", () => {
+  test("what escalating will do, with the level's name and its place, in German", () => {
     expect(describePassOnResult(result({}), GERMAN)).toBe(
-      "Eskalationsregel 2 von 3 (Level 2) wird sofort alarmiert, ohne zu warten.",
+      "Damit wird sofort Plattform-Leads (Stufe 2 von 3) alarmiert, ohne zu warten.",
+    );
+  });
+
+  test("a level with no name of its own is its place, in German", () => {
+    expect(
+      describePassOnResult(
+        result({ rule: { order: 2, name: "Level 2" } }),
+        GERMAN,
+      ),
+    ).toBe("Damit wird sofort Stufe 2 von 3 alarmiert, ohne zu warten.");
+    expect(describePassOnResult(result({ rule: undefined }), GERMAN)).toBe(
+      "Damit wird sofort die nächste Stufe alarmiert, ohne zu warten.",
     );
   });
 
@@ -215,7 +264,7 @@ describe("in German", () => {
         GERMAN,
       ),
     ).toBe(
-      "Eskalationsregel 2 von 3 (Level 2) alarmiert jetzt Bob Smith und Carl Diaz.",
+      "Die Richtlinie alarmiert jetzt Plattform-Leads (Stufe 2 von 3): Bob Smith und Carl Diaz.",
     );
   });
 
@@ -240,14 +289,17 @@ describe("in German", () => {
     ).toBe("Bob Smith und Carl Diaz werden weiterhin alarmiert.");
   });
 
-  test("the last rule and the end of paging", () => {
+  test("the last level and the end of paging", () => {
     expect(
       describePassOnResult(
-        result({ outcome: OnCallPassOnOutcome.PolicyStartedAgain }),
+        result({
+          outcome: OnCallPassOnOutcome.PolicyStartedAgain,
+          rule: { order: 1, name: "Level 1" },
+        }),
         GERMAN,
       ),
     ).toBe(
-      "Dies ist die letzte Eskalationsregel der Richtlinie, daher beginnt die Richtlinie sofort wieder mit Eskalationsregel 1.",
+      "Nach Ihrer Stufe kommt keine weitere, daher wird sofort wieder Stufe 1 von 3 alarmiert, ohne zu warten.",
     );
     expect(
       describePassOnResult(
@@ -305,18 +357,20 @@ describe("in German", () => {
       });
     };
 
-    function Header(): ReactElement {
+    function Header(props: {
+      recordType?: OnCallPageRecordType;
+    }): ReactElement {
       const passOn: PassOnPageControls = usePassOnPage({
-        recordType: OnCallPageRecordType.Alert,
+        recordType: props.recordType || OnCallPageRecordType.Incident,
         recordId: RECORD_ID,
       });
 
       return (
         <div>
           <EventStatusPanel
-            stateList={StateListType.AlertState}
+            stateList={StateListType.IncidentState}
             states={STATES}
-            identifier="#42"
+            identifier="INC-42"
             currentStateId="created"
             actions={[
               {
@@ -324,7 +378,7 @@ describe("in German", () => {
                 label: "Acknowledge",
                 icon: IconProp.Check,
                 buttonStyle: ButtonStyleType.PRIMARY,
-                id: "alert-acknowledge-btn",
+                id: "incident-acknowledge-btn",
               },
             ]}
             onActionClick={(): void => {}}
@@ -346,7 +400,15 @@ describe("in German", () => {
       );
     };
 
-    test("Weitergeben in the header, asked and answered in German", async () => {
+    const eskalieren: () => HTMLElement = (): HTMLElement => {
+      return within(
+        screen.getByRole("group", {
+          name: DE["Event actions"] || "Event actions",
+        }),
+      ).getByRole("button", { name: "Eskalieren" });
+    };
+
+    test("Eskalieren in the header; the maintainer's dialog, asked and answered in German", async () => {
       getAnswers.push({
         pages: [
           {
@@ -371,24 +433,18 @@ describe("in German", () => {
       );
       await flush();
 
-      const button: HTMLElement = within(
-        screen.getByRole("group", {
-          name: DE["Event actions"] || "Event actions",
-        }),
-      ).getByRole("button", { name: "Weitergeben" });
-
-      fireEvent.click(button);
+      fireEvent.click(eskalieren());
 
       expect(screen.getByTestId("modal-title")).toHaveTextContent(
-        "Weitergeben?",
+        "Vorfall eskalieren?",
       );
       expect(lines("pass-on-preview")).toEqual([
-        "Sie werden dazu nicht mehr alarmiert.",
-        "Eskalationsregel 2 von 3 (Level 2) wird sofort alarmiert, ohne zu warten.",
+        "Damit wird sofort Plattform-Leads (Stufe 2 von 3) alarmiert, ohne zu warten.",
+        "Sie werden zu diesem Vorfall nicht mehr alarmiert.",
       ]);
       expect(
         screen.getByTestId("modal-footer-submit-button"),
-      ).toHaveTextContent("Weitergeben");
+      ).toHaveTextContent("Eskalieren");
       expect(screen.getByTestId("modal-footer-close-button")).toHaveTextContent(
         DE["Cancel"]!,
       );
@@ -397,18 +453,56 @@ describe("in German", () => {
       await flush();
 
       expect(screen.getByTestId("modal-title")).toHaveTextContent(
-        "Sie haben es weitergegeben",
+        "Vorfall eskaliert",
       );
       expect(lines("pass-on-answer")).toEqual([
-        "Eskalationsregel 2 von 3 (Level 2) alarmiert jetzt Carl Diaz.",
-        "Sie werden dazu nicht mehr alarmiert.",
+        "Die Richtlinie alarmiert jetzt Plattform-Leads (Stufe 2 von 3): Carl Diaz.",
+        "Sie werden zu diesem Vorfall nicht mehr alarmiert.",
       ]);
       expect(
         screen.getByTestId("modal-footer-submit-button"),
       ).toHaveTextContent(DE["Close"]!);
     });
 
-    test("nothing passed on: why, in a few German words over the sentence", async () => {
+    test("an alert and an episode are named as German names them", async () => {
+      for (const [recordType, title, notPagedAgain] of [
+        [
+          OnCallPageRecordType.Alert,
+          "Warnung eskalieren?",
+          "Sie werden zu dieser Warnung nicht mehr alarmiert.",
+        ],
+        [
+          OnCallPageRecordType.AlertEpisode,
+          "Episode eskalieren?",
+          "Sie werden zu dieser Episode nicht mehr alarmiert.",
+        ],
+      ] as Array<[OnCallPageRecordType, string, string]>) {
+        getAnswers.push({
+          pages: [
+            {
+              executionLogId: "a1b2c3d4-0000-4000-8000-000000000001",
+              preview: result({}),
+            },
+          ] as unknown as JSONObject["pages"],
+        });
+
+        render(
+          <I18nextProvider i18n={german}>
+            <Header recordType={recordType} />
+          </I18nextProvider>,
+        );
+        await flush();
+
+        fireEvent.click(eskalieren());
+
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(title);
+        expect(lines("pass-on-preview")[1]).toBe(notPagedAgain);
+
+        cleanup();
+      }
+    });
+
+    test("nothing escalated: why, in a few German words over the sentence", async () => {
       getAnswers.push({
         pages: [
           {
@@ -434,13 +528,7 @@ describe("in German", () => {
       );
       await flush();
 
-      fireEvent.click(
-        within(
-          screen.getByRole("group", {
-            name: DE["Event actions"] || "Event actions",
-          }),
-        ).getByRole("button", { name: "Weitergeben" }),
-      );
+      fireEvent.click(eskalieren());
       fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
       await flush();
 
@@ -448,7 +536,7 @@ describe("in German", () => {
         "Bereits bestätigt",
       );
       expect(lines("pass-on-answer")).toEqual([
-        "Ana Lopez hat es bereits bestätigt, daher gibt es nichts weiterzugeben.",
+        "Ana Lopez hat es bereits bestätigt, daher gibt es nichts zu eskalieren.",
       ]);
     });
 
@@ -469,21 +557,28 @@ describe("in German", () => {
       );
       await flush();
 
-      fireEvent.click(
-        within(
-          screen.getByRole("group", {
-            name: DE["Event actions"] || "Event actions",
-          }),
-        ).getByRole("button", { name: "Weitergeben" }),
-      );
+      fireEvent.click(eskalieren());
 
       expect(screen.getByTestId("pass-on-warning")).toHaveTextContent(
         "Es ist niemand mehr übrig, der alarmiert werden kann: Die Alarmierung endet, und jemand muss sich darum kümmern.",
       );
       expect(lines("pass-on-preview")).toEqual([
-        "Sie werden dazu nicht mehr alarmiert.",
+        "Sie werden zu diesem Vorfall nicht mehr alarmiert.",
       ]);
     });
+  });
+});
+
+describe("in French", () => {
+  const FRENCH: Translator = translatorFor("fr", FR);
+
+  test("a level with no name of its own takes its article, as the object of the sentence", () => {
+    expect(
+      describePassOnResult(result({ rule: { order: 2 } }), FRENCH),
+    ).toBe("Cela alertera immédiatement le niveau 2 sur 3, sans attendre.");
+    expect(describePassOnResult(result({}), FRENCH)).toBe(
+      "Cela alertera immédiatement Plattform-Leads (niveau 2 sur 3), sans attendre.",
+    );
   });
 });
 
@@ -511,24 +606,51 @@ describe("in Japanese", () => {
     ).toBe("Bob Smith、Carl Diaz は引き続き呼び出されています。");
   });
 
+  test("the level, with its name and place in full-width brackets", () => {
+    expect(describePassOnResult(result({}), JAPANESE)).toBe(
+      "待たずにすぐ Plattform-Leads（レベル 2/3） を呼び出します。",
+    );
+  });
+
   test("a question ends with a full-width question mark", () => {
-    expect(JA[PASS_ON_PAGE_TEXT.dialogTitle]).toBe("パスしますか？");
+    for (const text of Object.values(PASS_ON_RECORD_TEXT)) {
+      expect(JA[text.question]!.endsWith("？")).toBe(true);
+    }
   });
 });
 
 describe("in every language the Dashboard ships", () => {
-  test("the list of sentences is every Pass it on key en.json has", () => {
-    for (const key of PASS_ON_KEYS) {
-      expect(EN[key]).toBeDefined();
+  test("the list of sentences is every Escalate key en.json has", () => {
+    for (const key of ESCALATE_KEYS) {
+      expect({ key, inEnglish: EN[key] !== undefined }).toEqual({
+        key,
+        inEnglish: true,
+      });
     }
 
-    for (const text of Object.values(PASS_ON_PAGE_TEXT)) {
-      expect(PASS_ON_KEYS).toContain(text);
+    for (const text of [
+      ...Object.values(PASS_ON_PAGE_TEXT),
+      ...Object.values(PASS_ON_RECORD_TEXT).flatMap(
+        (each: { question: string; doneTitle: string; notPagedAgain: string }) => {
+          return [each.question, each.doneTitle, each.notPagedAgain];
+        },
+      ),
+    ]) {
+      expect(ESCALATE_KEYS).toContain(text);
+    }
+  });
+
+  test("the keys of the old Pass it on are gone from en.json", () => {
+    for (const key of RETIRED_KEYS) {
+      expect({ key, inEnglish: EN[key] !== undefined }).toEqual({
+        key,
+        inEnglish: false,
+      });
     }
   });
 
   test.each(LANGUAGES)(
-    "%s has its own words for every Pass it on sentence, keeping its placeholders",
+    "%s has its own words for every Escalate sentence, keeping its placeholders",
     (language: string) => {
       const locale: Record<string, string> = JSON.parse(
         fs.readFileSync(path.join(LOCALES_DIRECTORY, `${language}.json`), {
@@ -542,7 +664,7 @@ describe("in every language the Dashboard ships", () => {
         return (text.match(/\{\{[a-zA-Z]+\}\}/g) || []).sort();
       };
 
-      for (const key of PASS_ON_KEYS) {
+      for (const key of ESCALATE_KEYS) {
         const value: string | undefined = locale[key];
 
         expect(typeof value).toBe("string");
@@ -554,6 +676,14 @@ describe("in every language the Dashboard ships", () => {
         // Not the English: the reader's own words.
         expect({ key, value }).not.toEqual({ key, value: EN[key] });
         expect(placeholders(value!)).toEqual(placeholders(EN[key]!));
+      }
+
+      for (const key of RETIRED_KEYS) {
+        expect({ language, key, kept: key in locale }).toEqual({
+          language,
+          key,
+          kept: false,
+        });
       }
     },
   );

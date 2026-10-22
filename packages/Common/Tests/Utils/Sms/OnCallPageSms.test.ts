@@ -18,7 +18,7 @@ import { seededRandom, SeededRandom } from "../../Helpers/SeededRandom";
  * THE TEXT MESSAGE A PAGE SENDS (Utils/Sms/OnCallPageSms).
  *
  * Who sends it, the severity and what happened, its number, the project,
- * the title and the one link to acknowledge or pass it on - in one part of
+ * the title and the one link to acknowledge or escalate it - in one part of
  * 160 characters wherever it can be. When everything does not fit, the
  * project goes first, then the title is cut and ends with "...", never
  * below MIN_TITLE_CHARACTERS; the product, the severity, the number and the
@@ -100,23 +100,84 @@ const tail: (link: string) => string = (link: string): string => {
 
 describe("the words", () => {
   test("are the ones the docs quote", () => {
-    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or pass it on:");
+    expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or escalate:");
     expect(ON_CALL_PAGE_SMS_CUT_MARK).toBe("...");
     expect(MIN_TITLE_CHARACTERS).toBe(20);
     expect(MAX_PAGE_SMS_SEGMENTS).toBe(10);
   });
+
+  test("name the action as every other place does: Escalate, never the old words", () => {
+    expect(ON_CALL_PAGE_SMS_ACTION.toLowerCase()).toContain("escalate");
+    expect(ON_CALL_PAGE_SMS_ACTION.toLowerCase()).not.toContain("pass");
+    // Two characters fewer than "Ack or pass it on:": more room for the title.
+    expect(ON_CALL_PAGE_SMS_ACTION).toHaveLength(16);
+    expect(countSmsSegments(ON_CALL_PAGE_SMS_ACTION).encoding).toBe(
+      SmsEncoding.Gsm7,
+    );
+  });
+});
+
+describe("Escalate in a text: still one part", () => {
+  // Titles of the kind real incidents and alerts have.
+  const TYPICAL_TITLES: ReadonlyArray<string> = [
+    "API is down",
+    "Checkout API is offline",
+    "High error rate on payments-service",
+    "Database replication lag above 30 seconds",
+    "Disk usage above 90% on db-primary-01",
+    "SSL certificate for www.acme.com expires in 7 days",
+    "p99 latency of /api/orders is above 2 seconds in eu-west-1",
+    "[FIRING:3] KubePodCrashLooping production/checkout-7d9f",
+    "Synthetic check \"Login flow\" failed from 3 probes",
+    "Memory usage of cache-redis-02 is at 97% and still climbing fast",
+  ];
+
+  test.each(KINDS)(
+    "a %s page with a typical title takes one GSM-7 part on Cloud and on self-hosted addresses",
+    (kind: OnCallPageSmsKind) => {
+      for (const title of TYPICAL_TITLES) {
+        for (const link of LINKS) {
+          const sms: OnCallPageSms = page({ kind, title, link });
+
+          expect({ title, link, sent: sms.sent }).toEqual({
+            title,
+            link,
+            sent: {
+              encoding: SmsEncoding.Gsm7,
+              length: sms.sent.length,
+              segments: 1,
+            },
+          });
+          expect(sms.text.endsWith(`Ack or escalate: ${link}`)).toBe(true);
+        }
+      }
+    },
+  );
+
+  test("the shorter words leave the title two more characters before it is cut", () => {
+    const sms: OnCallPageSms = page({ title: "x".repeat(300) });
+    const kept: number = sms.text.split("x").length - 1;
+
+    // 65 kept with "Ack or pass it on:", 67 now.
+    expect(kept).toBe(67);
+    expect(sms.sent).toEqual({
+      encoding: SmsEncoding.Gsm7,
+      length: 160,
+      segments: 1,
+    });
+  });
 });
 
 describe("what a page's text says", () => {
-  test("the issue's example: one part of 117 characters instead of two of 225", () => {
+  test("the issue's example: one part of 115 characters instead of two of 225", () => {
     const sms: OnCallPageSms = page({});
 
     expect(sms.text).toBe(
-      "OneUptime: Critical Incident INC-21033 in Acme Prod: API is down. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd",
+      "OneUptime: Critical Incident INC-21033 in Acme Prod: API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
     );
     expect(sms.sent).toEqual({
       encoding: SmsEncoding.Gsm7,
-      length: 117,
+      length: 115,
       segments: 1,
     });
     expect(sms.isProjectLeftOut).toBe(false);
@@ -126,19 +187,19 @@ describe("what a page's text says", () => {
   test.each([
     [
       OnCallPageSmsKind.Incident,
-      "OneUptime: Critical Incident INC-21033 in Acme Prod: Checkout API is offline. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd",
+      "OneUptime: Critical Incident INC-21033 in Acme Prod: Checkout API is offline. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
     ],
     [
       OnCallPageSmsKind.Alert,
-      "OneUptime: High alert ALT-512 in Acme Prod: Checkout API is offline. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd",
+      "OneUptime: High alert ALT-512 in Acme Prod: Checkout API is offline. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
     ],
     [
       OnCallPageSmsKind.IncidentEpisode,
-      "OneUptime: Critical Incident episode IE-7 in Acme Prod: Checkout API is offline. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd",
+      "OneUptime: Critical Incident episode IE-7 in Acme Prod: Checkout API is offline. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
     ],
     [
       OnCallPageSmsKind.AlertEpisode,
-      "OneUptime: High alert episode AE-3 in Acme Prod: Checkout API is offline. Ack or pass it on: https://oneuptime.com/l/XJlaZRsd",
+      "OneUptime: High alert episode AE-3 in Acme Prod: Checkout API is offline. Ack or escalate: https://oneuptime.com/l/XJlaZRsd",
     ],
   ])("a %s", (kind: OnCallPageSmsKind, text: string) => {
     const sms: OnCallPageSms = page({
@@ -264,9 +325,10 @@ describe("the fitting rule", () => {
     expect(sms.text).toBe(
       `OneUptime: Critical Incident INC-21033: Database replication lag on db-primary-01 is above 30 seconds and...${tail(CLOUD_LINK)}`,
     );
+    // "still" would end two characters past the part: the cut stays at a word.
     expect(sms.sent).toEqual({
       encoding: SmsEncoding.Gsm7,
-      length: 160,
+      length: 158,
       segments: 1,
     });
     expect(sms.isProjectLeftOut).toBe(true);
@@ -276,10 +338,10 @@ describe("the fitting rule", () => {
   test("a word longer than the room left is cut where the room ends", () => {
     const sms: OnCallPageSms = page({ title: "x".repeat(300) });
 
-    // 40 before the title, 3 for the mark, 52 for the words and the link.
+    // 40 before the title, 3 for the mark, 50 for the words and the link.
     expect(sms.sent.length).toBe(160);
     expect(sms.text).toBe(
-      `OneUptime: Critical Incident INC-21033: ${"x".repeat(65)}...${tail(CLOUD_LINK)}`,
+      `OneUptime: Critical Incident INC-21033: ${"x".repeat(67)}...${tail(CLOUD_LINK)}`,
     );
   });
 
@@ -308,7 +370,7 @@ describe("the fitting rule", () => {
   });
 
   test("reading well never costs a part: when the cut at a word would not fit as sent, the plain cut goes out", () => {
-    // 65 characters of title fit; the 66th is inside a word, which starts at 63.
+    // 67 characters of title fit; the 68th is inside a word, which starts at 63.
     const title: string = "abcdefgh ".repeat(12).trim();
     const atAWord: OnCallPageSms = page({ title: title });
 
@@ -434,7 +496,7 @@ describe("the fitting rule", () => {
   });
 
   test("keeps at least MIN_TITLE_CHARACTERS of a title: else it takes a second part and says it all", () => {
-    // A long installation name and a long address leave a title 15 characters.
+    // A long installation name and a long address leave a title 17 characters.
     const renamed: (text: string) => string = (text: string): string => {
       return ProductBrandingUtil.replaceProductName(
         text,
@@ -581,7 +643,7 @@ describe("characters outside GSM-7", () => {
     );
     expect(sms.sent).toEqual({
       encoding: SmsEncoding.Ucs2,
-      length: 118,
+      length: 116,
       segments: 2,
     });
   });
@@ -608,7 +670,7 @@ describe("characters outside GSM-7", () => {
     );
     expect(sms.sent).toEqual({
       encoding: SmsEncoding.Gsm7,
-      length: 104,
+      length: 102,
       segments: 1,
     });
     expect(sms.isProjectLeftOut).toBe(true);

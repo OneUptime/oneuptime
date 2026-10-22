@@ -278,7 +278,7 @@ describe("the pass-on routes", () => {
       expect(sentence).toContain(
         "Bob Smith is still being paged. If nobody acknowledges by ",
       );
-      expect(sentence).toContain(", escalation rule 2 of 2 (Level 2) is next.");
+      expect(sentence).toContain(", the policy pages Level 2 of 2 next.");
       // 03:30 UTC is 05:30 in Berlin in October.
       expect(sentence).toContain("5:30");
       expect(sentence).not.toContain("3:30");
@@ -386,7 +386,7 @@ describe("the pass-on routes", () => {
       expect(
         (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
           .sentence,
-      ).toBe("Escalation rule 2 of 2 (Level 2) is paging Carl Diaz now.");
+      ).toBe("The policy is now paging Level 2 of 2: Carl Diaz.");
 
       const asked: Arguments = mockPassOn.mock.calls[0]![0];
 
@@ -433,7 +433,7 @@ describe("the pass-on routes", () => {
         (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
           .sentence,
       ).toBe(
-        "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+        "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
       );
     });
   });
