@@ -1117,6 +1117,8 @@ describe("a workspace connected to more than one project", () => {
     expect(blockTexts(blocks).join("\n")).toContain(
       "User Settings → Workspace → Slack",
     );
+    // No button, so no "one click" promised.
+    expect(blockTexts(blocks).join("\n")).not.toContain("one click");
     expect(JSON.stringify(blocks)).not.toContain(DASHBOARD_URL);
   });
 

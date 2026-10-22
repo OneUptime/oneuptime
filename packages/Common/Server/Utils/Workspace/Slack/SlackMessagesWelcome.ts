@@ -203,9 +203,12 @@ export default class SlackMessagesWelcome {
     ];
 
     if (!data.isConnected) {
+      const connect: MarkdownText = mdText`🔗 **Connect your Slack account** first, so ${productName} can act as you, with your permissions in the project.`;
+
+      // One click only with the button; without it, where to connect.
       blocks.push(
         SlackMessagesWelcome.markdown(
-          mdText`🔗 **Connect your Slack account** first, so ${productName} can act as you, with your permissions in the project. It takes one click.`,
+          data.connectUrl ? mdText`${connect} It takes one click.` : connect,
         ),
       );
 

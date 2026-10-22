@@ -97,6 +97,7 @@ import SlackActionAnswer, {
 } from "../Utils/Workspace/Slack/Actions/Answer";
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
 import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetryKind,
   WorkspaceProjectResolution,
 } from "../Utils/Workspace/WorkspaceProjectResolution";
 import { WorkspaceAnswer } from "../Utils/Workspace/WorkspaceActionAnswers";
@@ -2382,9 +2383,11 @@ export default class SlackAPI {
         projectAuthToken: projectAuth.authToken,
         botUserId: (projectAuth.miscData as SlackMiscData)?.botUserId,
         userId: undefined,
+        // A question for OneUptime AI: asked again where it can be told apart.
         ambiguousAnswer: await WorkspaceProjectResolver.getAmbiguousAnswer({
           workspaceType: WorkspaceType.Slack,
           resolution: resolution,
+          retry: { kind: WorkspaceAmbiguousRetryKind.Question },
         }),
       };
     }

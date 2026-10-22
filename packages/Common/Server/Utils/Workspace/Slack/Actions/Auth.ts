@@ -29,15 +29,28 @@ import SlackOverflowMenu, {
   SlackOverflowChoice,
 } from "../SlackOverflowMenu";
 import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetry,
+  WorkspaceAmbiguousRetryKind,
   WorkspaceProjectResolution,
 } from "../../WorkspaceProjectResolution";
 import { WorkspaceAnswer } from "../../WorkspaceActionAnswers";
+import WorkspaceCommands, {
+  WorkspaceCommandName,
+} from "../../WorkspaceCommands";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
   SlackActionType.SubmitNewIncident,
   SlackActionType.SubmitNewScheduledMaintenance,
 ];
+
+// The app's shortcuts (its manifest), and the commands that do the same.
+const SHORTCUT_COMMANDS: Partial<
+  Record<SlackActionType, WorkspaceCommandName>
+> = {
+  [SlackActionType.NewIncident]: WorkspaceCommandName.Incident,
+  [SlackActionType.NewScheduledMaintenance]: WorkspaceCommandName.Maintenance,
+};
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -187,6 +200,35 @@ export default class SlackAuthAction {
         actionType!,
       )
     );
+  }
+
+  /*
+   * How somebody makes a press that could be about more than one project
+   * again where it can be told apart (WorkspaceProjectResolution): from a
+   * channel of the project they mean - except a shortcut from Slack's
+   * shortcuts menu, which never says where it was used: it is pointed to
+   * the command that does the same, "/oneuptime incident".
+   */
+  public static getAmbiguousRetry(data: {
+    payloadType: string | undefined;
+    actionType: string | undefined;
+  }): WorkspaceAmbiguousRetry {
+    const command: WorkspaceCommandName | undefined =
+      data.payloadType === "shortcut"
+        ? SHORTCUT_COMMANDS[data.actionType as SlackActionType]
+        : undefined;
+
+    if (!command) {
+      return { kind: WorkspaceAmbiguousRetryKind.Again };
+    }
+
+    return {
+      kind: WorkspaceAmbiguousRetryKind.Command,
+      command: WorkspaceCommands.getUsage({
+        workspaceType: WorkspaceType.Slack,
+        command: command,
+      }),
+    };
   }
 
   /*
@@ -656,6 +698,10 @@ export default class SlackAuthAction {
           await WorkspaceProjectResolver.getAmbiguousAnswer({
             workspaceType: WorkspaceType.Slack,
             resolution: refusal.resolution,
+            retry: SlackAuthAction.getAmbiguousRetry({
+              payloadType: slackRequest.payloadType,
+              actionType: refusal.action.actionType,
+            }),
           });
 
         return await SlackActionAnswer.answer({

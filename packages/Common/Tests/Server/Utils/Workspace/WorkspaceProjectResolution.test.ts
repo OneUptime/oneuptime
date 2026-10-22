@@ -27,6 +27,8 @@ import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetry,
+  WorkspaceAmbiguousRetryKind,
   WorkspaceProjectEvidence,
   WorkspaceProjectResolution,
 } from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
@@ -715,10 +717,12 @@ describe("WorkspaceProjectResolution", () => {
   describe("getAmbiguousAnswer: what the person is told", () => {
     async function answerFor(
       workspaceType: WorkspaceType,
+      retry?: WorkspaceAmbiguousRetry | undefined,
     ): Promise<WorkspaceAnswer> {
       return await WorkspaceProjectResolver.getAmbiguousAnswer({
         workspaceType: workspaceType,
         resolution: await resolve({ workspaceUserId: "U0DEANE" }),
+        retry: retry,
       });
     }
 
@@ -729,7 +733,7 @@ describe("WorkspaceProjectResolution", () => {
       const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack);
 
       expect(answer.text).toBe(
-        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: try it again from a channel of the one you mean, such as one of its incident channels.",
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: try it again in a channel of the project you mean, such as one of its incident channels.",
       );
       expect(answer.markdown).toContain("**IRM Platform**");
       expect(answer.markdown).toContain("Non");
@@ -775,6 +779,23 @@ describe("WorkspaceProjectResolution", () => {
       ).toBe(true);
       expect(answer.text).toContain("so I can't tell which one you mean here.");
       expect(answer.text).toContain("You're in IRM Platform and IRM Non-Prod:");
+      expect(answer.text).toContain(
+        "try it again in a channel of the project you mean",
+      );
+    });
+
+    test("Microsoft Teams: a question is asked again, in the bot's own words", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+
+      const answer: WorkspaceAnswer = await answerFor(
+        WorkspaceType.MicrosoftTeams,
+        { kind: WorkspaceAmbiguousRetryKind.Question },
+      );
+
+      expect(answer.text).toBe(
+        `${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, so I can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: ask again in a channel of the project you mean, such as one of its incident channels.`,
+      );
     });
 
     test("Microsoft Teams, connected in none: where to connect", async () => {
@@ -791,7 +812,121 @@ describe("WorkspaceProjectResolution", () => {
         .mockRejectedValue(new Error("database is away"));
 
       expect((await answerFor(WorkspaceType.Slack)).text).toBe(
-        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. Try it again from a channel of the one you mean, such as one of its incident channels.",
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. Try it again in a channel of the project you mean, such as one of its incident channels.",
+      );
+    });
+
+    test("a question for OneUptime AI is asked again there - as told by default when nothing says how", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+
+      const asked: WorkspaceAnswer = await answerFor(WorkspaceType.Slack, {
+        kind: WorkspaceAmbiguousRetryKind.Question,
+      });
+
+      expect(asked.text).toBe(
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: ask again in a channel of the project you mean, such as one of its incident channels.",
+      );
+      expect(asked.markdown).toContain(
+        "ask again in a channel of the project you mean",
+      );
+
+      // Again, the default, says what no retry said.
+      expect(
+        (
+          await answerFor(WorkspaceType.Slack, {
+            kind: WorkspaceAmbiguousRetryKind.Again,
+          })
+        ).text,
+      ).toBe((await answerFor(WorkspaceType.Slack)).text);
+    });
+
+    test("a Slack shortcut, which no channel tells apart, is pointed to its command - never to try the shortcut again", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+
+      const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack, {
+        kind: WorkspaceAmbiguousRetryKind.Command,
+        command: "/oneuptime incident",
+      });
+
+      expect(answer.text).toBe(
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: use /oneuptime incident in a channel of the project you mean instead.",
+      );
+      // The command reads as typed, in bold, as every command the answers name.
+      expect(answer.markdown).toContain(
+        "use **/oneuptime incident** in a channel of the project you mean instead.",
+      );
+      expect(answer.text).not.toContain("try it again");
+    });
+
+    test("the command, without the names to start the sentence with, starts it", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("database is away"));
+
+      const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack, {
+        kind: WorkspaceAmbiguousRetryKind.Command,
+        command: "/oneuptime maintenance",
+      });
+
+      expect(answer.text).toBe(
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. Use /oneuptime maintenance in a channel of the project you mean instead.",
+      );
+      expect(answer.markdown).toContain(
+        "Use **/oneuptime maintenance** in a channel",
+      );
+
+      // A question, the same way: capitalized where it starts the sentence.
+      expect(
+        (
+          await answerFor(WorkspaceType.Slack, {
+            kind: WorkspaceAmbiguousRetryKind.Question,
+          })
+        ).text,
+      ).toContain(
+        "which one you mean here. Ask again in a channel of the project you mean, such as one of its incident channels.",
+      );
+    });
+
+    test("a Command retry without a command is tried again, as by default", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+
+      expect(
+        (
+          await answerFor(WorkspaceType.Slack, {
+            kind: WorkspaceAmbiguousRetryKind.Command,
+          })
+        ).text,
+      ).toBe((await answerFor(WorkspaceType.Slack)).text);
+    });
+
+    test("a command is text in Markdown: it cannot bold or link anything", async () => {
+      link(PLATFORM);
+      link(NONPRD);
+
+      const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack, {
+        kind: WorkspaceAmbiguousRetryKind.Command,
+        command: "/irm *incident* [x](https://evil.example)",
+      });
+
+      expect(answer.markdown).not.toContain("[x](https://evil.example)");
+      expect(answer.text).toContain(
+        "/irm *incident* [x](https://evil.example)",
+      );
+    });
+
+    test("connected in none: where to connect, whatever the retry", async () => {
+      const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack, {
+        kind: WorkspaceAmbiguousRetryKind.Command,
+        command: "/oneuptime incident",
+      });
+
+      expect(answer.text).toBe(
+        "This Slack workspace is connected to more than one OneUptime project, and your Slack account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under User Settings → Workspace → Slack, then try again.",
       );
     });
 
@@ -821,6 +956,90 @@ describe("WorkspaceProjectResolution", () => {
         expect(answer.text).toContain("*Prod* [click](https://evil.example)");
       } finally {
         NAMES[PLATFORM.toString()] = "IRM Platform";
+      }
+    });
+  });
+
+  /*
+   * A Connect prompt in a workspace connected to more than one project names
+   * the project (WorkspaceActionAnswers.getConnectPrompt): an account is
+   * connected in each project on its own, so somebody connected in another
+   * of them sees why they are asked again.
+   */
+  describe("getSharedWorkspaceProjectName: the project a Connect prompt names", () => {
+    function nameOf(projectId: ObjectID): Promise<string | null> {
+      return WorkspaceProjectResolver.getSharedWorkspaceProjectName({
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: TEAM_ID,
+        projectId: projectId,
+      });
+    }
+
+    test("a workspace connected to two projects: the project's name", async () => {
+      expect(await nameOf(NONPRD)).toBe("IRM Non-Prod");
+      expect(await nameOf(PLATFORM)).toBe("IRM Platform");
+    });
+
+    test("a workspace connected to one project: none - nothing to tell apart, and its name is never read", async () => {
+      connections = [connectionOf(NONPRD)];
+      const nameReads: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ProjectService,
+        "findBy",
+      );
+
+      expect(await nameOf(NONPRD)).toBeNull();
+      expect(nameReads).not.toHaveBeenCalled();
+    });
+
+    test("one project connected twice is one project: none", async () => {
+      connections = [connectionOf(NONPRD), connectionOf(NONPRD)];
+
+      expect(await nameOf(NONPRD)).toBeNull();
+    });
+
+    test("no workspace id: none, and nothing is read", async () => {
+      for (const workspaceId of [undefined, ""]) {
+        expect(
+          await WorkspaceProjectResolver.getSharedWorkspaceProjectName({
+            workspaceType: WorkspaceType.Slack,
+            workspaceId: workspaceId,
+            projectId: NONPRD,
+          }),
+        ).toBeNull();
+      }
+
+      expect(connectionReads).toEqual([]);
+    });
+
+    test("the connections or the name cannot be read: none, never a throw - the prompt stands without it", async () => {
+      jest
+        .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+        .mockRejectedValue(new Error("database is away"));
+
+      expect(await nameOf(NONPRD)).toBeNull();
+
+      jest.restoreAllMocks();
+      jest
+        .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+        .mockResolvedValue([
+          connectionOf(PLATFORM),
+          connectionOf(NONPRD),
+        ] as never);
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("database is away"));
+
+      expect(await nameOf(NONPRD)).toBeNull();
+    });
+
+    test("a project whose name is blank: none", async () => {
+      const name: string = NAMES[NONPRD.toString()]!;
+      NAMES[NONPRD.toString()] = "   ";
+
+      try {
+        expect(await nameOf(NONPRD)).toBeNull();
+      } finally {
+        NAMES[NONPRD.toString()] = name;
       }
     });
   });

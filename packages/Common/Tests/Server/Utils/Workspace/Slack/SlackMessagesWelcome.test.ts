@@ -71,6 +71,9 @@ const HOW_TO_START: string = [
 ].join("\n");
 const CONNECT_FIRST: string =
   "🔗 **Connect your Slack account** first, so OneUptime can act as you, with your permissions in the project. It takes one click.";
+// With no Connect button to press: no click is promised.
+const CONNECT_FIRST_IN_ONEUPTIME: string =
+  "🔗 **Connect your Slack account** first, so OneUptime can act as you, with your permissions in the project.";
 const NOTIFICATION: string =
   "Hi, I'm OneUptime. Type /oneuptime help to see what I can do, or send me a question here.";
 
@@ -465,7 +468,7 @@ describe("SlackMessagesWelcome.getWelcome", () => {
     expect(markdownOf(welcome.blocks)).toEqual([
       HELLO,
       HOW_TO_START,
-      CONNECT_FIRST,
+      CONNECT_FIRST_IN_ONEUPTIME,
       "In OneUptime, go to **User Settings → Workspace → Slack** and press **Connect my account with Slack**.",
     ]);
     expect(buttonsOf(welcome.blocks)).toEqual([]);

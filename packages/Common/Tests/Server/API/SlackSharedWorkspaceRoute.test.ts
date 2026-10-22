@@ -1385,7 +1385,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
   });
 
   describe("who presses: refused only for what is actually wrong, and told what", () => {
-    test("Priya, connected only in the other project, is asked to connect in INC-12's project - and nothing is written", async () => {
+    test("Priya, connected only in the other project, is asked to connect in INC-12's project, named - and nothing is written", async () => {
       await press(
         buttonPress({
           slackUserId: "U0PRIYA",
@@ -1398,11 +1398,18 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
       await settle();
 
       expect(timelines).toEqual([]);
+      /*
+       * Her account is connected - in the platform project: the prompt says
+       * which project it asks her to connect it in, so she sees why.
+       */
       expect(answers()).toEqual([
         expect.stringContaining(
-          "Connect your Slack account to acknowledge this incident",
+          "Connect your Slack account in IRM Non-Prod to acknowledge this incident",
         ),
       ]);
+      expect(answerBlocks()).toContain(
+        "Connect your Slack account in IRM Non-Prod to acknowledge this incident.",
+      );
       // The Connect button connects her account in INC-12's project.
       expect(answerBlocks()).toContain(
         `${DASHBOARD_URL}/${NONPRD.toString()}/`,
@@ -1482,7 +1489,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(timelines).toHaveLength(1);
       expect(answers()).toEqual([
-        "You do not have permission to resolve this incident: this incident is private: only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
+        "You do not have permission to resolve this incident: this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
       ]);
     });
 
@@ -1573,7 +1580,7 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(onCallReads).toEqual([]);
       expect(answers()).toEqual([
-        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: try it again from a channel of the one you mean, such as one of its incident channels.",
+        "This Slack workspace is connected to more than one OneUptime project, so OneUptime can't tell which one you mean here. You're in IRM Platform and IRM Non-Prod: try it again in a channel of the project you mean, such as one of its incident channels.",
       ]);
     });
 
@@ -1632,6 +1639,153 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
 
       expect(onCallReads).toHaveLength(1);
       expect(onCallReads[0]!.projectId.toString()).toBe(PLATFORM.toString());
+    });
+  });
+
+  /*
+   * Where somebody is told to make a request again, it has to be somewhere
+   * it can be told apart: a question is asked again in a project's channel,
+   * and a shortcut from Slack's shortcuts menu - which never says where it
+   * was used, so trying it again anywhere is ambiguous again - is pointed to
+   * the command that does the same.
+   */
+  describe("how somebody in several projects is told to try again", () => {
+    // Slack's shortcuts menu: Create New Incident (the app's manifest).
+    function globalShortcut(slackUserId: string): Record<string, string> {
+      return {
+        payload: JSON.stringify({
+          type: "shortcut",
+          token: "verification-token",
+          action_ts: "1760000001.000300",
+          team: { id: SLACK_TEAM_ID, domain: "avepoint" },
+          user: {
+            id: slackUserId,
+            username: slackUserId.toLowerCase(),
+            team_id: SLACK_TEAM_ID,
+          },
+          is_enterprise_install: false,
+          callback_id: "/incident",
+          trigger_id: TRIGGER_ID,
+        }),
+      };
+    }
+
+    // What views.open was sent: a shortcut has no channel to answer in.
+    function openedViews(): string {
+      return JSON.stringify(
+        slackCalls
+          .filter((call: SlackCall): boolean => {
+            return call.url === "https://slack.com/api/views.open";
+          })
+          .map((call: SlackCall): unknown => {
+            return call.data["view"];
+          }),
+      )
+        .split(ZERO_WIDTH_SPACE)
+        .join("");
+    }
+
+    test("Deane uses the shortcut Create New Incident: pointed to /oneuptime incident in a channel of the project he means - no form opens", async () => {
+      await press(globalShortcut("U0DEANE"));
+
+      await slackCallsAfter(1);
+      await settle();
+
+      const views: string = openedViews();
+
+      expect(views).toContain(
+        "/oneuptime incident* in a channel of the project you mean instead.",
+      );
+      expect(views).toContain("IRM Platform");
+      expect(views).not.toContain("try it again");
+      // The answer, not the New Incident form.
+      expect(views).not.toContain("SubmitNewIncident");
+    });
+
+    test("somebody connected in neither uses the shortcut: where to connect", async () => {
+      await press(globalShortcut("U0NOBODY"));
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(openedViews()).toContain(
+        "your Slack account isn't connected in any of them yet",
+      );
+    });
+
+    test("Deane asks OneUptime AI in #general (/oneuptime ask): told to ask again in a channel of the project he means - nothing is read in either", async () => {
+      await command(
+        slashCommand({
+          slackUserId: "U0DEANE",
+          text: "ask which monitors are down?",
+          channelId: GENERAL_CHANNEL_ID,
+        }),
+      );
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(answers()).toHaveLength(1);
+      expect(answers()[0]).toContain(
+        "ask again in a channel of the project you mean, such as one of its incident channels.",
+      );
+      expect(answers()[0]).toContain("IRM Platform");
+      expect(answers()[0]).toContain("IRM Non-Prod");
+    });
+
+    test("Nitin, a member of both but connected only in the platform project, presses Acknowledge on INC-12: asked to connect in IRM Non-Prod, named", async () => {
+      links = links.filter((link: WorkspaceUserAuthToken): boolean => {
+        return link.workspaceUserId !== "U0NITIN";
+      });
+      links.push(linkOf("U0NITIN", PLATFORM));
+      memberships.push({
+        userId: NITIN,
+        projectId: PLATFORM,
+        permissions: [Permission.ProjectMember],
+      });
+
+      await press(
+        buttonPress({
+          slackUserId: "U0NITIN",
+          actionId: "AcknowledgeIncident",
+          value: INCIDENT_ID.toString(),
+        }),
+      );
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(timelines).toEqual([]);
+      expect(answers()).toEqual([
+        expect.stringContaining(
+          "Connect your Slack account in IRM Non-Prod to acknowledge this incident",
+        ),
+      ]);
+    });
+
+    test("a workspace connected to one project names no project in its Connect prompt", async () => {
+      connections = [connectionOf(NONPRD)];
+      links = links.filter((link: WorkspaceUserAuthToken): boolean => {
+        return link.workspaceUserId !== "U0NITIN";
+      });
+
+      await press(
+        buttonPress({
+          slackUserId: "U0NITIN",
+          actionId: "AcknowledgeIncident",
+          value: INCIDENT_ID.toString(),
+        }),
+      );
+
+      await slackCallsAfter(1);
+      await settle();
+
+      expect(answers()).toEqual([
+        expect.stringContaining(
+          "Connect your Slack account to acknowledge this incident",
+        ),
+      ]);
+      expect(answers()[0]).not.toContain("IRM Non-Prod");
     });
   });
 

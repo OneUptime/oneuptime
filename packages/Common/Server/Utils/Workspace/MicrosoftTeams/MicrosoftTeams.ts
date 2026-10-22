@@ -140,6 +140,8 @@ import {
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
 import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
 import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetry,
+  WorkspaceAmbiguousRetryKind,
   WorkspaceProjectClues,
   WorkspaceProjectResolution,
 } from "../WorkspaceProjectResolution";
@@ -3876,9 +3878,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         !tenantResolution.projectAuth ||
         !tenantResolution.projectAuth.projectId
       ) {
+        /*
+         * The help, and the answer to a misspelt command, read nothing in
+         * any project: an organization connected to several projects, with
+         * nothing to tell which, still gets them - as Slack answers
+         * /oneuptime help at once.
+         */
+        if (tenantResolution.isAmbiguous && !listCommand) {
+          if (input.command === WorkspaceCommandName.Help) {
+            await MicrosoftTeamsCommands.replyHelp({
+              turnContext: data.turnContext,
+            });
+            return;
+          }
+
+          if (!input.command && input.misspelt) {
+            await MicrosoftTeamsCommands.replyMisspelling({
+              turnContext: data.turnContext,
+              misspelt: input.misspelt,
+            });
+            return;
+          }
+        }
+
+        // A question for OneUptime AI is asked again; a command run again.
+        const isQuestion: boolean =
+          !listCommand &&
+          !MicrosoftTeamsHome.isHomeCommand(cleanText) &&
+          (!input.command || input.command === WorkspaceCommandName.Ask);
+
         await this.answerTenantResolutionFailure({
           turnContext: data.turnContext,
           resolution: tenantResolution,
+          retry: {
+            kind: isQuestion
+              ? WorkspaceAmbiguousRetryKind.Question
+              : WorkspaceAmbiguousRetryKind.Again,
+          },
         });
         return;
       }
@@ -5255,7 +5291,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     resolution: MicrosoftTeamsTenantResolution,
   ): string {
     if (resolution.isAmbiguous) {
-      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean here. Try it again from a channel of the one you mean, such as one of its incident channels.";
+      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean here. Try it again in a channel of the project you mean, such as one of its incident channels.";
     }
 
     return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings.";
@@ -5266,12 +5302,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * (getTenantResolutionFailureMessage) - saying more when its clues were
    * read: the projects they are in, by name, or that their account is
    * connected in none of them (WorkspaceProjectResolution), in a reply that
-   * mentions them, as every refusal is (MicrosoftTeamsActionAnswer).
+   * mentions them, as every refusal is (MicrosoftTeamsActionAnswer). `retry`
+   * says how they make it again there: a question is asked again.
    */
   @CaptureSpan()
   public static async answerTenantResolutionFailure(data: {
     turnContext: TurnContext;
     resolution: MicrosoftTeamsTenantResolution;
+    retry?: WorkspaceAmbiguousRetry | undefined;
   }): Promise<void> {
     if (data.resolution.isAmbiguous && data.resolution.resolution) {
       await MicrosoftTeamsActionAnswer.reply({
@@ -5279,6 +5317,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         answer: await WorkspaceProjectResolver.getAmbiguousAnswer({
           workspaceType: WorkspaceType.MicrosoftTeams,
           resolution: data.resolution.resolution,
+          retry: data.retry,
         }),
       });
       return;

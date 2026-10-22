@@ -6,6 +6,7 @@ import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceActionAnswers from "../WorkspaceActionAnswers";
+import WorkspaceProjectResolver from "../WorkspaceProjectResolution";
 import WorkspaceConnectRequest, {
   WorkspaceConnectButton,
   WorkspaceConnectLink,
@@ -517,6 +518,15 @@ export default class MicrosoftTeamsConnectPrompt {
         })
       : await MicrosoftTeamsConnectPrompt.getSettingsLink(data.projectId);
 
+    // In an organization connected to more than one project: which one.
+    const tenantId: unknown =
+      (
+        (activity["channelData"] as JSONObject | undefined)?.["tenant"] as
+          | JSONObject
+          | undefined
+      )?.["id"] ||
+      (activity["conversation"] as JSONObject | undefined)?.["tenantId"];
+
     return await MicrosoftTeamsActionAnswer.reply({
       turnContext: data.turnContext,
       answer: WorkspaceActionAnswers.getConnectPrompt({
@@ -525,6 +535,12 @@ export default class MicrosoftTeamsConnectPrompt {
         pendingAction: data.description.pendingAction,
         again: data.description.again,
         button: link.button,
+        projectName:
+          await WorkspaceProjectResolver.getSharedWorkspaceProjectName({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            workspaceId: typeof tenantId === "string" ? tenantId : undefined,
+            projectId: data.projectId,
+          }),
       }),
       connectUrl: link.url,
     });

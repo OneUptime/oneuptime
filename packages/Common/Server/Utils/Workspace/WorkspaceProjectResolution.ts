@@ -97,6 +97,26 @@ export interface WorkspaceProjectClues {
   workspaceUserId?: string | undefined;
 }
 
+/*
+ * How somebody whose request could be about more than one project makes it
+ * again where it can be told apart (getAmbiguousAnswer): the same again, in
+ * a channel of the project they mean - a command, a button; asked again
+ * there, for a question to OneUptime AI; or, for a Slack shortcut from the
+ * shortcuts menu, which never says where it was used, the command that does
+ * the same, there.
+ */
+export enum WorkspaceAmbiguousRetryKind {
+  Again = "Again",
+  Question = "Question",
+  Command = "Command",
+}
+
+export interface WorkspaceAmbiguousRetry {
+  kind: WorkspaceAmbiguousRetryKind;
+  // For Command: the command to use instead, "/oneuptime incident".
+  command?: string | undefined;
+}
+
 export interface WorkspaceProjectResolution {
   // The connection of the project the request is about; null for none.
   projectAuth: WorkspaceProjectAuthToken | null;
@@ -628,15 +648,18 @@ export default class WorkspaceProjectResolver {
   /*
    * What a person whose request could be about more than one project is
    * told, where they made it: that the workspace is connected to more than
-   * one project, and how to say which - from a channel of the one they mean
-   * when they are in several (named: they are a member of each), or to
-   * connect their account first when it is connected in none. Microsoft
-   * Teams' bot speaks as itself ("I"), as all its answers do.
+   * one project, and how to say which - from a channel of the project they
+   * mean when they are in several (named: they are a member of each), or to
+   * connect their account first when it is connected in none. `retry` says
+   * how they make the request again there (a question is asked again, a
+   * Slack shortcut becomes its command); trying it again by default.
+   * Microsoft Teams' bot speaks as itself ("I"), as all its answers do.
    */
   @CaptureSpan()
   public static async getAmbiguousAnswer(data: {
     workspaceType: WorkspaceType;
     resolution: WorkspaceProjectResolution;
+    retry?: WorkspaceAmbiguousRetry | undefined;
   }): Promise<WorkspaceAnswer> {
     const productName: string = ProductBrandingText.getProductName();
     const isTeams: boolean =
@@ -663,18 +686,25 @@ export default class WorkspaceProjectResolver {
     const notSure: string = isTeams
       ? "so I can't tell which one you mean here."
       : `so ${productName} can't tell which one you mean here.`;
-    const again: string =
-      "try it again from a channel of the one you mean, such as one of its incident channels.";
 
     if (names.length < 2) {
-      const sentence: string = `${lead}, ${notSure} ${again.charAt(0).toUpperCase()}${again.substring(1)}`;
+      const again: { markdown: MarkdownText; text: string } =
+        WorkspaceProjectResolver.getRetryPhrase({
+          retry: data.retry,
+          isSentenceStart: true,
+        });
 
       return {
-        markdown: mdText`${sentence}`.toString(),
-        text: sentence,
+        markdown: mdText`${lead}, ${notSure} ${again.markdown}`.toString(),
+        text: `${lead}, ${notSure} ${again.text}`,
       };
     }
 
+    const again: { markdown: MarkdownText; text: string } =
+      WorkspaceProjectResolver.getRetryPhrase({
+        retry: data.retry,
+        isSentenceStart: false,
+      });
     const bold: Array<MarkdownText> = names.map(
       (name: string): MarkdownText => {
         return mdText`**${name}**`;
@@ -685,9 +715,86 @@ export default class WorkspaceProjectResolver {
 
     return {
       markdown:
-        mdText`${lead}, ${notSure} You're in ${boldList}: ${again}`.toString(),
-      text: `${lead}, ${notSure} You're in ${plainList}: ${again}`,
+        mdText`${lead}, ${notSure} You're in ${boldList}: ${again.markdown}`.toString(),
+      text: `${lead}, ${notSure} You're in ${plainList}: ${again.text}`,
     };
+  }
+
+  /*
+   * How the ambiguous answer ends: where and how to make the request again
+   * (WorkspaceAmbiguousRetry) - "try it again in a channel of the project
+   * you mean, such as one of its incident channels." A shortcut, which no
+   * channel can tell apart, is pointed to its command instead.
+   */
+  private static getRetryPhrase(data: {
+    retry: WorkspaceAmbiguousRetry | undefined;
+    isSentenceStart: boolean;
+  }): { markdown: MarkdownText; text: string } {
+    const where: string =
+      "in a channel of the project you mean, such as one of its incident channels.";
+    const kind: WorkspaceAmbiguousRetryKind =
+      data.retry?.kind || WorkspaceAmbiguousRetryKind.Again;
+
+    if (kind === WorkspaceAmbiguousRetryKind.Command && data.retry?.command) {
+      const verb: string = data.isSentenceStart ? "Use" : "use";
+
+      return {
+        markdown: mdText`${verb} **${data.retry.command}** in a channel of the project you mean instead.`,
+        text: `${verb} ${data.retry.command} in a channel of the project you mean instead.`,
+      };
+    }
+
+    const lead: string =
+      kind === WorkspaceAmbiguousRetryKind.Question
+        ? "ask again"
+        : "try it again";
+    const phrase: string = `${data.isSentenceStart ? lead.charAt(0).toUpperCase() + lead.substring(1) : lead} ${where}`;
+
+    return {
+      markdown: mdText`${phrase}`,
+      text: phrase,
+    };
+  }
+
+  /*
+   * The name of `projectId`, when the workspace is connected to more than
+   * one project: what a Connect prompt names, so somebody whose account is
+   * connected in another of them sees why they are asked again, and where.
+   * Null for a workspace connected to one project, and when the name cannot
+   * be read - the prompt stands without it. Never throws.
+   */
+  @CaptureSpan()
+  public static async getSharedWorkspaceProjectName(data: {
+    workspaceType: WorkspaceType;
+    workspaceId: string | undefined;
+    projectId: ObjectID;
+  }): Promise<string | null> {
+    if (!data.workspaceId) {
+      return null;
+    }
+
+    try {
+      const connections: Array<WorkspaceProjectAuthToken> =
+        await WorkspaceProjectResolver.findConnections({
+          workspaceType: data.workspaceType,
+          workspaceId: data.workspaceId,
+        });
+
+      if (connections.length < 2) {
+        return null;
+      }
+
+      const names: Array<string> =
+        await WorkspaceProjectResolver.getProjectNames([data.projectId]);
+
+      return names[0] || null;
+    } catch (err) {
+      logger.debug(
+        "Could not tell whether a workspace is connected to more than one project.",
+      );
+      logger.debug(err);
+      return null;
+    }
   }
 
   /*

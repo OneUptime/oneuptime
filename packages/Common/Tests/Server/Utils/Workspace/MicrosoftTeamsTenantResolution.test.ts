@@ -827,10 +827,11 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
   test("a tenant connected to two projects replies with the AMBIGUOUS message and serves nothing", async () => {
     mockFindBy([buildProjectAuthRow(), buildProjectAuthRow()]);
     const findOneBySpy: jest.SpyInstance = spyOnFindOneBy();
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
     const context: FakeTurnContext = buildTurnContext();
 
     await MicrosoftTeamsUtil.handleBotMessageActivity({
-      activity: messageActivity(),
+      activity: messageActivity({ text: "show active incidents" }),
       turnContext: context.turnContext,
     });
 
@@ -839,9 +840,47 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
     expect(sent).toContain(AMBIGUOUS_FRAGMENT);
     // Refusing must not look like "not connected" - the remedies differ.
     expect(sent).not.toContain(NOT_FOUND_FRAGMENT);
-    // ...and the user must not get the other project's answer.
-    expect(sent).not.toContain(HELP_FRAGMENT);
+    // ...and the user must not get either project's answer.
+    expect(listSpy).not.toHaveBeenCalled();
     expect(findOneBySpy).not.toHaveBeenCalled();
+  });
+
+  test("help, in a tenant connected to two projects with nothing to tell which: answered - it reads nothing in either, as Slack answers /oneuptime help", async () => {
+    mockFindBy([buildProjectAuthRow(), buildProjectAuthRow()]);
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "help" }),
+      turnContext: context.turnContext,
+    });
+
+    expect(context.sendActivity).toHaveBeenCalledTimes(1);
+    const sent: string = joinedSentText(context.sendActivity);
+    expect(sent).toContain(HELP_FRAGMENT);
+    expect(sent).not.toContain(AMBIGUOUS_FRAGMENT);
+  });
+
+  test("a misspelt command, in a tenant connected to two projects: answered with the command it looks like, not refused", async () => {
+    mockFindBy([buildProjectAuthRow(), buildProjectAuthRow()]);
+    const misspellingSpy: jest.SpyInstance = jest.spyOn(
+      MicrosoftTeamsCommands,
+      "replyMisspelling",
+    );
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "incidnet Checkout is down" }),
+      turnContext: context.turnContext,
+    });
+
+    expect(misspellingSpy).toHaveBeenCalledTimes(1);
+    expect(joinedSentText(context.sendActivity)).not.toContain(
+      AMBIGUOUS_FRAGMENT,
+    );
+    expect(answerSpy).not.toHaveBeenCalled();
   });
 
   test("a tenant whose only row has no projectId replies with the not-found message", async () => {
@@ -1394,9 +1433,47 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
     expect(sent).toContain("Production");
     expect(sent).toContain("Staging");
     expect(sent).toContain(
-      "try it again from a channel of the one you mean, such as one of its incident channels.",
+      "try it again in a channel of the project you mean, such as one of its incident channels.",
     );
     expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member of both asks a question in a personal chat: told to ask again in a channel of the project they mean - AI is not asked", async () => {
+    mockFindBy([
+      buildProjectAuthRow({ projectId: PRODUCTION }),
+      buildProjectAuthRow({ projectId: STAGING }),
+    ]);
+    linkSender([PRODUCTION, STAGING]);
+    jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+      return [
+        [PRODUCTION, "Production"],
+        [STAGING, "Staging"],
+      ].map((entry: Array<ObjectID | string>): Project => {
+        const project: Project = new Project();
+        project.id = entry[0] as ObjectID;
+        project.name = entry[1] as string;
+        return project;
+      });
+    }) as never);
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    stubChatCapture();
+
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "which monitors are down?" }),
+      turnContext: context.turnContext,
+    });
+
+    const sent: string = joinedSentText(context.sendActivity);
+    expect(sent).toContain(AMBIGUOUS_FRAGMENT);
+    expect(sent).toContain(
+      "ask again in a channel of the project you mean, such as one of its incident channels.",
+    );
+    expect(sent).not.toContain("try it again");
+    expect(answerSpy).not.toHaveBeenCalled();
   });
 
   test("getTenantResolutionFailureMessage says what to do, not to disconnect a project", () => {
@@ -1409,7 +1486,7 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
 
     expect(message).toContain(AMBIGUOUS_FRAGMENT);
     expect(message).toContain(
-      "Try it again from a channel of the one you mean",
+      "Try it again in a channel of the project you mean",
     );
     expect(message).not.toContain("disconnect");
   });
@@ -1436,9 +1513,11 @@ describe("MicrosoftTeamsUtil bot entry points - both go through resolveProjectBy
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockResolvedValue(ObjectID.generate());
 
+    // A command, not the help: the help reads nothing, and is answered.
+    stubListCommand("a list");
     const messageContext: FakeTurnContext = buildTurnContext();
     await MicrosoftTeamsUtil.handleBotMessageActivity({
-      activity: messageActivity(),
+      activity: messageActivity({ text: "show active incidents" }),
       turnContext: messageContext.turnContext,
     });
 

@@ -393,7 +393,7 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
       }),
     ).rejects.toThrow(
-      "You do not have permission to acknowledge this incident: this incident is private: only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
+      "You do not have permission to acknowledge this incident: this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
     );
   });
 
