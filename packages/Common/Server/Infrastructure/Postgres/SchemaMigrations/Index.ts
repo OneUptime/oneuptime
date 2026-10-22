@@ -160,6 +160,8 @@ import { RemoveRunbookCredentials1805780000000 } from "./1805780000000-RemoveRun
 import { AddArchiveToValues1805800000000 } from "./1805800000000-AddArchiveToValues";
 import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArchiveToValuesUserKeys";
 import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
+import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./1805830000000-MoveFixPullRequestSwitchesIntoRules";
+import { AddThreatIntelFeedConnectionIndexAndKey1805840000000 } from "./1805840000000-AddThreatIntelFeedConnectionIndexAndKey";
 import { AddIncidentPostmortemStatus1805900000000 } from "./1805900000000-AddIncidentPostmortemStatus";
 import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "./1805910000000-AddIncidentPostmortemStatusIndexesAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1524,6 +1526,8 @@ export default [
   AddArchiveToValues1805800000000,
   AddArchiveToValuesUserKeys1805810000000,
   AddThreatIntelFeedSources1805820000000,
+  MoveFixPullRequestSwitchesIntoRules1805830000000,
+  AddThreatIntelFeedConnectionIndexAndKey1805840000000,
   AddIncidentPostmortemStatus1805900000000,
   AddIncidentPostmortemStatusIndexesAndKey1805910000000,
 ];

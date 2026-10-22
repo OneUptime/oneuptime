@@ -31,7 +31,7 @@ import {
 import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
 } from "Common/Types/AI/AIChatPermissionMode";
-import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixSwitches";
+import { AUTOMATIC_FIX_SWITCH_COLUMNS } from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   CODE_TASK_LIMITS,
@@ -1749,7 +1749,7 @@ describe("AI SRE and the infrastructure AI agents", () => {
       AutoRemediationTriggerEntity.Alert,
     ]) {
       expect(defaults).not.toContain(
-        `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal].fix}"`,
+        `"${AUTOMATIC_FIX_SWITCH_COLUMNS[signal]}"`,
       );
     }
 

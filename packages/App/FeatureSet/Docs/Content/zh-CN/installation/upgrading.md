@@ -400,7 +400,7 @@ Kubernetes 集群或基础设施资源上的调查和修复，现在是 AI 代�
 
 ### 新项目开始时所有 AI 功能都已开启
 
-升级后创建的项目开始时所有 AI 功能都已开启，而不仅仅是事件和警报的自动调查：事后分析草稿（事件 → 人工智能 → 设置），以及带有修复拉取请求和预期拒绝异常自动归档的 AI Insights（人工智能 → 洞察 → 设置）。OneUptime AI 为事件和警报打开的拉取请求属于修复的一部分，而修复开始时是关闭的；请参阅 [拉取请求开关属于修复的一部分](#拉取请求开关属于修复的一部分)。
+升级后创建的项目开始时所有 AI 功能都已开启，而不仅仅是事件和警报的自动调查：事后分析草稿（事件 → 人工智能 → 设置），以及带有修复拉取请求和预期拒绝异常自动归档的 AI Insights（人工智能 → 洞察 → 设置）。OneUptime AI 为事件和警报打开的拉取请求属于修复的一部分，而修复开始时是关闭的；请参阅 [拉取请求开关已移到自动补救规则中](#拉取请求开关已移到自动补救规则中)。
 
 已存在的项目保留其现有设置；升级不会开启任何东西。开启也不意味着正在运行：每个功能仍然需要 LLM 提供商（在 OneUptime Cloud 上还需要 AI 积分），而打开拉取请求的功能还需要已连接的仓库和具备代码修复能力的 Runner。可以在各自的设置页面上关闭其中任何一个，或用 **启用 AI** 关闭全部。
 
@@ -453,18 +453,22 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
 
 API 客户端和 Terraform 配置可以用项目的 `enableAutomaticIncidentRemediation` 和 `enableAutomaticAlertRemediation`（Terraform 中为 `enable_automatic_incident_remediation` 和 `enable_automatic_alert_remediation`）开启修复，并在规则的 `remediationAction` 中说明它用什么修复（`OneUptimeAI` 或 `Runbooks`）。在不指定它的情况下创建、带有运行手册且没有 AI 设置的规则，是 **运行手册** 规则，与以前的运行方式相同。
 
-### 拉取请求开关属于修复的一部分
+### 拉取请求开关已移到自动补救规则中
 
-**当调查发现代码更改时打开修复拉取请求** 和 **打开补充缺失遥测的拉取请求**（事件或警报 → 人工智能 → 设置）现在位于 **自动修复新事件**（或 **自动修复新警报**）之下。只有在修复开启时它们才会显示；开启修复会同时开启两者，关闭修复会同时关闭两者。修复开启期间，两者都可以单独关闭。
+**Open a fix pull request when an investigation finds a code change** 和 **Open a pull request that adds missing telemetry** 不再是 **事件 → 人工智能 → 设置** 和 **警报 → 人工智能 → 设置** 上的开关。现在由每条自动补救规则拥有它们，即 **更多字段** 中的 **修复拉取请求** 和 **遥测拉取请求**，新规则中两者都默认开启。拉取请求仍然只在 **自动修复新事件** （或 **自动修复新警报**）开启期间才会自动打开：
 
-升级后会发生的变化：
+- 没有规则时，两种拉取请求都会打开，在任意已连接的存储库中。
+- 有规则时，拉取请求只会为规则匹配的事件（或警报）打开，前提是匹配的规则开启了它，并且只在匹配的规则于 **代码存储库** 中指定的存储库中打开。未指定任何存储库的规则允许所有已连接的存储库；调查规则以同样的方式指定 OneUptime AI 可以读取的存储库。
 
-- 只有在其自身开关之外修复也处于开启状态时，拉取请求才会自动打开。曾开启拉取请求开关但关闭修复的项目，会停止自动打开这些拉取请求。开启修复即可恢复。要阻止 OneUptime AI 更改你的集群或主机，请在它们的 **AI 代理** 页面上保持 **修复** 关闭（默认设置），并且不要添加自动补救规则。
-- 升级不会更改任何已存储的设置。在关闭的修复之下处于开启状态的拉取请求开关会保持开启并等待；修复开启后设置页面就会显示它，而开启修复无论如何都会开启它。
-- 新项目开始时拉取请求开关处于关闭状态，与修复一样。调查、事后分析草稿和 AI Insights 开始时仍处于开启状态。
-- 调查上的 **Open Fix PR from this analysis** 不变：它不需要这两个开关中的任何一个。
+每个项目都保留自己的选择：
 
-API 客户端和 Terraform 配置保留其字段（`enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes`、`enableAlertInstrumentationFixTasks`，或 Terraform 中的 `enable_automatic_incident_code_fixes` 等）。服务器会存储它们写入的内容，不会随 `enableAutomaticIncidentRemediation`（或警报字段）开启或关闭拉取请求字段：要连同拉取请求一起开启修复，请在一个请求中设置全部三个字段。
+- 修复关闭、或两个开关都开启的项目，规则保持原样，规则中的开关以开启状态开始。
+- 修复开启且某个开关关闭的项目，该类型的每条规则中的这个开关都会关闭。如果没有该类型的已启用规则，项目会得到一条规则 **All incidents** （或 **All alerts**）：它匹配所有对象，像没有规则时的 OneUptime AI 一样无需询问直接修复，并按项目原来的设置保持两个开关。要打开这些拉取请求，请在其中开启开关，或删除这条规则。
+- 调查上的 **Open Fix PR from this analysis** 保持不变。
+
+规则的 **Runner** 只列出你自己的 Runner。**AI agent on the cluster or host** 已被移除：受影响的集群或主机上的命令无论规则选择什么，始终通过其 AI 代理运行。之前没有选择任何 Runner 的规则显示为 **无 Runner**，并像以前一样修复。
+
+API 客户端和 Terraform 配置不再有项目字段 `enableAutomaticIncidentCodeFixes`、`enableIncidentInstrumentationFixTasks`、`enableAutomaticAlertCodeFixes` 和 `enableAlertInstrumentationFixTasks`（Terraform 中的 `enable_automatic_incident_code_fixes` 等）：请从配置中删除它们。自动补救规则的 `openCodeFixPullRequests` 和 `openTelemetryPullRequests`（`open_code_fix_pull_requests` 和 `open_telemetry_pull_requests`）除非你设置，否则都为 `true`，两种规则都在 `codeRepositories`（`code_repositories`）中指定存储库，为空表示所有已连接的存储库。
 
 ### 验证版本和许可证
 

@@ -16,6 +16,12 @@ import {
   NO_EXTERNAL_MCP_SERVER,
   getExternalMcpServerAllowance,
 } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+  getCodeRepositoryAllowance,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 
 /*
  * Investigation rules: which new incidents (or alerts) OneUptime AI
@@ -41,6 +47,12 @@ import {
  * matching rules that name some, those. That one fails the other way: rules
  * that cannot be read let OneUptime AI use no outside server, since a rule
  * might have kept one out.
+ *
+ * The code repositories it may read are named the same way
+ * (getIncidentCodeRepositoryAllowance, CodeRepositoryAllowance): with no
+ * rule, or a matching rule that names none, every connected repository; with
+ * matching rules that name some, those - and none when the rules cannot be
+ * read, for the same reason.
  */
 export interface InvestigationRuleScope {
   isInScope: boolean;
@@ -190,6 +202,87 @@ export default class InvestigationRules {
     });
   }
 
+  /*
+   * The code repositories OneUptime AI may read while it investigates this
+   * incident: see CodeRepositoryAllowance.
+   */
+  @RuleEvaluation()
+  public static async getIncidentCodeRepositoryAllowance(data: {
+    projectId: ObjectID;
+    incident: Incident;
+  }): Promise<CodeRepositoryAllowance> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+    });
+
+    if (!rules) {
+      return NO_CODE_REPOSITORY;
+    }
+
+    if (rules.length === 0) {
+      return EVERY_CODE_REPOSITORY;
+    }
+
+    const matchingRules: Array<AIInvestigationRule> = [];
+
+    for (const rule of rules) {
+      if (
+        await IncidentAlertRuleMatcher.doesIncidentMatch(
+          data.incident,
+          rule,
+          "investigation rule",
+        )
+      ) {
+        matchingRules.push(rule);
+      }
+    }
+
+    return getCodeRepositoryAllowance({
+      rulesSetUp: true,
+      matchingRules,
+    });
+  }
+
+  // The same, for an alert.
+  @RuleEvaluation()
+  public static async getAlertCodeRepositoryAllowance(data: {
+    projectId: ObjectID;
+    alert: Alert;
+  }): Promise<CodeRepositoryAllowance> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+    });
+
+    if (!rules) {
+      return NO_CODE_REPOSITORY;
+    }
+
+    if (rules.length === 0) {
+      return EVERY_CODE_REPOSITORY;
+    }
+
+    const matchingRules: Array<AIInvestigationRule> = [];
+
+    for (const rule of rules) {
+      if (
+        await IncidentAlertRuleMatcher.doesAlertMatch(
+          data.alert,
+          rule,
+          "investigation rule",
+        )
+      ) {
+        matchingRules.push(rule);
+      }
+    }
+
+    return getCodeRepositoryAllowance({
+      rulesSetUp: true,
+      matchingRules,
+    });
+  }
+
   // The same, for an alert.
   @RuleEvaluation()
   public static async getAlertMcpServerAllowance(data: {
@@ -256,6 +349,7 @@ export default class InvestigationRules {
             // How long the rule waits before investigating: none when empty.
             onlyIfOpenAfterMinutes: true,
             externalMcpServers: { _id: true },
+            codeRepositories: { _id: true },
           },
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,

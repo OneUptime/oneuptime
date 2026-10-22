@@ -222,10 +222,9 @@ export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
  * projects get it off - which is what fixing wants: the two automatic-fix
  * switches (enableAutomaticIncidentRemediation,
  * enableAutomaticAlertRemediation) change infrastructure, so a project turns
- * them on itself, and the pull-request switches under them
- * (enableAutomaticIncidentCodeFixes, enableIncidentInstrumentationFixTasks
- * and their alert twins) are part of fixing: they open pull requests only
- * while fixing is on, and come on with it (Types/AI/AutomaticFixSwitches).
+ * them on itself. The pull requests OneUptime AI opens are part of fixing:
+ * they open only while fixing is on, as each auto remediation rule says -
+ * on by default, and on with no rule (Types/AI/AutomaticFixPullRequests).
  */
 export type NewProjectAiDefaultColumn =
   | "enableAutomaticIncidentInvestigation"

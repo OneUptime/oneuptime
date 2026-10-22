@@ -99,6 +99,8 @@ import AutoRemediationRuleEngineService, {
   parseResourceRoundNumber,
 } from "../../../Services/AutoRemediationRuleEngineService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
+import RemediationCodeRepositories from "./RemediationCodeRepositories";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
 import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
@@ -1413,6 +1415,16 @@ export default class RemediationExecutionRunner {
           ? FULLAUTO_PERSONA
           : SUGGEST_PERSONA;
 
+    /*
+     * The code repositories the run may read: its rule's, or every
+     * connected one for a cluster's or host's own round.
+     */
+    const codeRepositoryAllowance: CodeRepositoryAllowance =
+      await RemediationCodeRepositories.forRule({
+        projectId,
+        autoRemediationRuleId: suggestion!.autoRemediationRuleId,
+      });
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -1422,6 +1434,7 @@ export default class RemediationExecutionRunner {
         incidentId: suggestion!.incidentId,
         alertId: suggestion!.alertId,
         contextSummary,
+        codeRepositoryAllowance,
         personaOverride: persona,
         questionOverride: resolvedClusterTarget
           ? resolvedMode === "FullAuto"

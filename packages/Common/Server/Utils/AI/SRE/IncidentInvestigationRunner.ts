@@ -52,6 +52,8 @@ import ResourceAccessContext from "../ResourceAccess/ResourceAccessContext";
 import NetworkTransceiverContext from "./NetworkTransceiverContext";
 import InfrastructureInvestigationToolkit from "../ResourceAccess/InfrastructureInvestigationToolkit";
 import McpInvestigationTools from "../Mcp/McpInvestigationTools";
+import InvestigationCodeRepositories from "./InvestigationCodeRepositories";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import McpRunToolkit from "../Mcp/McpRunToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -819,6 +821,17 @@ export default class AIIncidentInvestigationRunner {
       extraTools.push(...mcpToolkit.buildTools());
     }
 
+    /*
+     * The code repositories the investigation rules allow for this incident:
+     * its code tools read only those (every connected one with no rule, or a
+     * matching rule that names none).
+     */
+    const codeRepositoryAllowance: CodeRepositoryAllowance =
+      await InvestigationCodeRepositories.forIncident({
+        projectId,
+        incidentId,
+      });
+
     // Long command output is paged, never cut: offer the reader with the commands.
     if (extraTools.length > 0) {
       extraTools.push(outputPager.buildReadTool());
@@ -857,6 +870,7 @@ export default class AIIncidentInvestigationRunner {
         runLimits,
         additionalInstructions,
         extraTools,
+        codeRepositoryAllowance,
       });
     } finally {
       // Every session the run opened ends with it.
@@ -880,6 +894,7 @@ export default class AIIncidentInvestigationRunner {
     runLimits: AIAgentRunLimits;
     additionalInstructions: Array<string>;
     extraTools: Array<ObservabilityAssistantExtraTool>;
+    codeRepositoryAllowance: CodeRepositoryAllowance;
   }): Promise<void> {
     const {
       aiRunId,
@@ -895,6 +910,7 @@ export default class AIIncidentInvestigationRunner {
       runLimits,
       additionalInstructions,
       extraTools,
+      codeRepositoryAllowance,
     } = data;
 
     await AIInvestigationEngine.executeRun({
@@ -916,6 +932,7 @@ export default class AIIncidentInvestigationRunner {
           ? { additionalInstructions: additionalInstructions.join("\n\n") }
           : {}),
         ...(extraTools.length > 0 ? { extraTools } : {}),
+        codeRepositoryAllowance,
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
         postAnalysis: async (postData: {
@@ -1006,11 +1023,12 @@ export default class AIIncidentInvestigationRunner {
           }
 
           /*
-           * Inconclusive means the telemetry was insufficient — for
-           * projects with the incident instrumentation-fix setting on, under
-           * "Fix new incidents automatically" (Types/AI/AutomaticFixSwitches),
-           * queue an ImproveInstrumentation fix task that opens a PR adding
-           * the missing observability. Runs strictly
+           * Inconclusive means the telemetry was insufficient — while "Fix
+           * new incidents automatically" is on and the auto remediation
+           * rules have telemetry pull requests on for this incident (on with
+           * no rule; Types/AI/AutomaticFixPullRequests), queue an
+           * ImproveInstrumentation fix task that opens a PR adding the
+           * missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
            * the investigation can neither be blocked nor failed by it.
            * Fail direction (G6): only a POSITIVE inconclusive verdict
@@ -1034,9 +1052,9 @@ export default class AIIncidentInvestigationRunner {
          * The engine calls this only after it atomically persists Recommended
          * with the exact posted analysis snapshot. That durable decision is
          * the prerequisite for the optional automatic FixFromIncident task;
-         * the trigger then applies the incident lane's opt-in - its code-fix
-         * switch, under its fixing switch - and the remaining repository,
-         * budget and dedupe gates.
+         * the trigger then applies the incident lane's fixing switch and its
+         * auto remediation rules' fix pull requests, and the remaining
+         * repository, budget and dedupe gates.
          */
         onCodeFixRecommended: async (data: {
           analysisMarkdown: string;

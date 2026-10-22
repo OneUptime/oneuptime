@@ -15,6 +15,7 @@ import AutoRemediationAction, {
 import { readAutoRemediationIds } from "../../Types/AutoRemediation/AutoRemediationFix";
 import RunnerAiCommandsPick from "../Utils/Runner/RunnerAiCommandsPick";
 import { getRuleExternalMcpServersProblem } from "../../Types/AI/ExternalMcpServer/ExternalMcpServerAllowance";
+import { getRuleCodeRepositoriesProblem } from "../../Types/CodeRepository/CodeRepositoryAllowance";
 
 // The keys a write names the rule's Runner by: the id, or the relation.
 const RUNNER_KEYS: Array<string> = ["runnerId", "runner"];
@@ -26,13 +27,15 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * A rule names at most as many external MCP servers as a project may
-   * have: answered before any reference is read. Whether each is the
-   * project's own is checked with every other reference the rule writes.
+   * have, and at most MAX_CODE_REPOSITORIES_PER_RULE code repositories:
+   * answered before any reference is read. Whether each is the project's
+   * own is checked with every other reference the rule writes.
    */
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
     this.assertMcpServersFit(createBy.data.externalMcpServers);
+    this.assertCodeRepositoriesFit(createBy.data.codeRepositories);
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -43,16 +46,26 @@ export class Service extends ProjectReferencesService<Model> {
       unknown
     >;
 
-    // An edit that leaves the servers alone is not judged on them.
-    if (data["externalMcpServers"] === undefined) {
-      return;
+    // An edit that leaves a list alone is not judged on it.
+    if (data["externalMcpServers"] !== undefined) {
+      this.assertMcpServersFit(data["externalMcpServers"]);
     }
 
-    this.assertMcpServersFit(data["externalMcpServers"]);
+    if (data["codeRepositories"] !== undefined) {
+      this.assertCodeRepositoriesFit(data["codeRepositories"]);
+    }
   }
 
   private assertMcpServersFit(servers: unknown): void {
     const problem: string | null = getRuleExternalMcpServersProblem(servers);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  private assertCodeRepositoriesFit(repositories: unknown): void {
+    const problem: string | null = getRuleCodeRepositoriesProblem(repositories);
 
     if (problem) {
       throw new BadDataException(problem);
@@ -309,7 +322,7 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   public static getAgentCommandRunnerRefusal(runner: Runner): string {
-    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash commands a rule composes, so it cannot be this rule's Runner. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page). Pick a Runner you created under Runbooks → Runners, or none: OneUptime AI then fixes through the AI agent on the affected cluster or host.`;
+    return `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl for its own cluster only, never the Bash commands a rule composes, so it cannot be this rule's Runner. OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page), whatever Runner the rule picks. Pick a Runner you created under Runbooks → Runners, or none.`;
   }
 }
 

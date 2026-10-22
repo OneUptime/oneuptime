@@ -1,4 +1,5 @@
 import AlertSeverity from "./AlertSeverity";
+import CodeRepository from "./CodeRepository";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
 import Monitor from "./Monitor";
@@ -71,7 +72,7 @@ import {
   pluralName: "Auto Remediation Rules",
   icon: IconProp.Bolt,
   tableDescription:
-    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some), commands on a Runner the rule picks, and the tools of the project's external MCP servers (only the rule's, when it names some). With no rule, OneUptime AI fixes every one while automatic fixing is on.",
+    "Which new incidents or alerts OneUptime AI fixes automatically, and whether it asks first. It may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI fixes every one while automatic fixing is on, pull requests included.",
 })
 export default class AutoRemediationRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -925,20 +926,29 @@ export default class AutoRemediationRule extends RuleBaseModel {
    * on the Runner's own host, inside the project's network - the per-rule
    * choice that replaced a Runner's "Runs AI Remediation Commands" switch.
    * (SSH commands to another host, with a runbook credential, went with
-   * runbook credentials.) Empty means no Runner:
-   * OneUptime AI fixes through the AI agent on the affected Kubernetes
-   * cluster or host, as it always has, and runs no commands of its own
-   * anywhere else. The global Runners are never a choice here: they run
-   * JavaScript steps in a sandbox every project shares, never one project's
-   * commands.
+   * runbook credentials.) Empty means no Runner: OneUptime AI runs no
+   * commands of its own for the rule.
+   *
+   * The AI agent on the affected Kubernetes cluster or host is not a Runner
+   * and never was a choice here: commands on the affected cluster or host
+   * always go through its AI agent, whatever Runner the rule picks. "Why does
+   * it see an AI agent on the cluster or host? That doesn't make any sense"
+   * - the maintainer, on the picker that offered it as one. The global
+   * Runners are never a choice either: they run JavaScript steps in a
+   * sandbox every project shares, never one project's commands.
+   *
+   * A new rule starts on the project's default Runner when it has one
+   * (Runner.isProjectDefault), the way a new step does - the rule's form
+   * picks it, so the pick is the person's, saved with the rule. Changing
+   * the project's default later does not move a rule: picking a Runner is
+   * what lets OneUptime AI's commands run on it (RunnerAiCommandsPick).
    *
    * Only one of the project's own Runners may be picked
    * (ProjectReferencesService refuses another project's Runner and a global
    * one; AutoRemediationRuleService refuses an in-cluster Runner the
    * Kubernetes agent chart installed, which runs kubectl for its own
-   * cluster only). Picking one lets OneUptime AI's commands reach it
-   * (RunnerAiCommandsPick). A Runner that is deleted leaves the rule with
-   * none (SET NULL).
+   * cluster only). A Runner that is deleted leaves the rule with none (SET
+   * NULL).
    */
   @ColumnAccessControl({
     create: [
@@ -965,7 +975,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     modelType: Runner,
     title: "Runner",
     description:
-      "The Runner OneUptime AI runs this rule's Bash commands on, inside your network. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+      "The Runner OneUptime AI runs this rule's Bash commands on, inside your network. Empty means none: OneUptime AI runs no commands of its own for the rule. Commands on the affected Kubernetes cluster or host always go through its AI agent.",
   })
   @ManyToOne(
     () => {
@@ -1007,7 +1017,7 @@ export default class AutoRemediationRule extends RuleBaseModel {
     canReadOnRelationQuery: true,
     title: "Runner ID",
     description:
-      "ID of the Runner OneUptime AI runs this rule's commands on: one of the project's own Runners. Empty means none: OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host.",
+      "ID of the Runner OneUptime AI runs this rule's Bash commands on: one of the project's own Runners. Empty means none: OneUptime AI runs no commands of its own for the rule. Commands on the affected Kubernetes cluster or host always go through its AI agent.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1015,6 +1025,149 @@ export default class AutoRemediationRule extends RuleBaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public runnerId?: ObjectID = undefined;
+
+  /*
+   * The code repositories OneUptime AI may use while it fixes what this rule
+   * matches: read their code, and open this rule's pull requests in them.
+   * None named is every repository the project has connected
+   * (CodeRepositoryAllowance) - "if no code repo is selected - it should be
+   * able to read and investigate all the repos that are connected", the
+   * maintainer. Only the project's own repositories can be named
+   * (ProjectReferencesService), each one its caller may read
+   * (RelationListPermission: a repository is read by its labels).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: CodeRepository,
+    title: "Code Repositories",
+    description:
+      "The code repositories OneUptime AI may read while it fixes what this rule matches, and open the rule's pull requests in. Leave empty to let it use every repository the project has connected.",
+  })
+  @ManyToMany(
+    () => {
+      return CodeRepository;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AutoRemediationRuleCodeRepository",
+    inverseJoinColumn: {
+      name: "codeRepositoryId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "autoRemediationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public codeRepositories?: Array<CodeRepository> = undefined;
+
+  /*
+   * Whether OneUptime AI opens a fix pull request when an investigation of
+   * an incident (or alert) this rule matches is confident the cause is in
+   * the code. On by default - with no rule at all it is on too - and only
+   * while "Fix new incidents automatically" (or alerts) is on
+   * (Types/AI/AutomaticFixPullRequests). It used to be one switch for the
+   * whole project, on the AI settings page; the migration that moved it
+   * here (MoveFixPullRequestSwitchesIntoRules) kept each project's choice.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Open Fix Pull Requests",
+    description:
+      "When an investigation of an incident or alert this rule matches finds the cause in your code, OneUptime AI opens a pull request with the fix, for review. Nothing is merged. Acts only while fixing new incidents (or alerts) automatically is on. On by default.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public openCodeFixPullRequests?: boolean = undefined;
+
+  /*
+   * Whether OneUptime AI opens a pull request that adds missing logs, traces
+   * or metrics when an investigation of an incident (or alert) this rule
+   * matches ends inconclusive because they were not there. On by default,
+   * like the fix pull request above, under the same rule.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Open Telemetry Pull Requests",
+    description:
+      "When missing logs, traces or metrics stop an investigation of an incident or alert this rule matches, OneUptime AI opens a pull request that adds them, for review. Nothing is merged. Acts only while fixing new incidents (or alerts) automatically is on. On by default.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public openTelemetryPullRequests?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [
