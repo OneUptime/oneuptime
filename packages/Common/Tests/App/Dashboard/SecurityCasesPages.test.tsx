@@ -188,6 +188,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
+import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus, {
   OPEN_SECURITY_CASE_STATUSES,
@@ -833,6 +834,65 @@ describe("the list a person sees", () => {
 
     expect(teamColumn).toBeGreaterThan(-1);
     expect(noTeamRow?.children[teamColumn]?.textContent?.trim()).toBe("-");
+  });
+
+  test("a case OneUptime AI has read shows the read beside its title, with the AI mark", async () => {
+    const read: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000151",
+      "CASE-151",
+      "Brute force against web-1 ended in a sign-in",
+      undefined,
+    );
+    read.aiVerdict = SecurityCaseAiVerdict.LikelyMalicious;
+    listedRows = [
+      read,
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000152",
+        "CASE-152",
+        "Port scan from a lab host",
+        undefined,
+      ),
+    ];
+
+    const table: CapturedTable = await capture("open");
+
+    // The list asks for each case's read with the rest of the row.
+    expect(
+      (table as unknown as { selectMoreFields: Record<string, unknown> })
+        .selectMoreFields,
+    ).toMatchObject({ aiVerdict: true });
+
+    await drawTable(table);
+    await screen.findByText("Brute force against web-1 ended in a sign-in");
+
+    const pills: Array<HTMLElement> = screen.getAllByTestId(
+      "security-case-row-ai-verdict",
+    );
+
+    expect(pills).toHaveLength(1);
+    expect(pills[0]).toHaveTextContent("Likely Malicious");
+    expect(pills[0]!.closest("tr")).toHaveTextContent("CASE-151");
+  });
+
+  test("with the project's AI off, no row shows an AI read", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue({ enableAi: false } as never);
+
+    const read: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000151",
+      "CASE-151",
+      "Brute force against web-1 ended in a sign-in",
+      undefined,
+    );
+    read.aiVerdict = SecurityCaseAiVerdict.LikelyMalicious;
+    listedRows = [read];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Brute force against web-1 ended in a sign-in");
+
+    expect(screen.queryByTestId("security-case-row-ai-verdict")).toBeNull();
+    expect(bodyRowTexts()[0]).not.toContain("Likely Malicious");
   });
 
   test("Open Cases names a case's team where nobody is on it, and says Unassigned where there is neither", async () => {
