@@ -90,9 +90,12 @@ export function getSecurityTriageAiName(): string {
   return `${ProductBrandingText.getProductName()} AI`;
 }
 
-// The report's first line when the case's data held text written to steer an AI.
+/*
+ * The report's first line when the case's data held text written to steer
+ * an AI. Markdown of OneUptime's own, with the product's name placed as text.
+ */
 export function getPromptInjectionReportLead(): string {
-  return `**Heads up:** some text in this case's data reads like instructions to an AI - a sign of an attempt to steer the triage. ${getSecurityTriageAiName()} treated it as data and leaves the call to a person.`;
+  return mdText`**Heads up:** some text in this case's data reads like instructions to an AI - a sign of an attempt to steer the triage. ${getSecurityTriageAiName()} treated it as data and leaves the call to a person.`.toString();
 }
 
 export default class SecurityCaseTriageRunner {

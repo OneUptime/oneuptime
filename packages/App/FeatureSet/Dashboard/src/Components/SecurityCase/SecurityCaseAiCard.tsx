@@ -532,8 +532,12 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
             <dt className="text-sm text-gray-600">
               {translator.translateText(SecurityCaseAiCopy.suggestedPlaybook)}
             </dt>
-            <dd className="flex min-w-0 items-center gap-3">
-              <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+            {/*
+              The playbook's whole name, wrapping on a phone rather than
+              cut short: it is what Run playbook would start.
+            */}
+            <dd className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="min-w-0 break-words text-sm font-medium text-gray-900">
                 {playbookName}
               </span>
               <Button

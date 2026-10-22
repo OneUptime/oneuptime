@@ -26,6 +26,8 @@
  *            detections, no playbooks, no rules.
  *   ?role=   owner (default) | viewer: Security Viewer only, so it can read
  *            but not change anything.
+ *   ?ai=     off: the project's Enable AI is off, so nothing of OneUptime AI
+ *            is drawn - no AI card, AI Verdict, Draft with AI or AI trigger.
  *
  * Every read is recorded on window.__securityOperationsFixture: getItem,
  * list, count and API requests, the writes, and `unhandled` - anything the
@@ -55,6 +57,7 @@ import AttackCoveragePage from "../../../App/FeatureSet/Dashboard/src/Pages/Secu
 import SecurityPlaybooksPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Playbooks";
 import SecurityPlaybookViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookView";
 import SecurityPlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/PlaybookRuns";
+import SecurityEventsAISettingsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AISettings";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -119,6 +122,8 @@ import SecurityPlaybookRunStatus, {
   SecurityPlaybookStepStatus,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { computeSecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import API from "Common/UI/Utils/API/API";
@@ -150,6 +155,11 @@ const role = params.get("role") === "viewer" ? "viewer" : "owner";
  * Free Lists card has nothing left to offer.
  */
 const hasEveryFreeList = !isEmpty && params.get("lists") === "all";
+/*
+ * ?ai=off: the project's Enable AI is off. Every AI part of Security reads
+ * it (useAiOffered) and draws nothing; the AI settings page says AI is off.
+ */
+const isAiOff = params.get("ai") === "off";
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
 
@@ -199,6 +209,7 @@ const fixture = {
     unassignedCase: ID.case(141),
     containPlaybook: ID.playbook(3),
     waitingRun: ID.run(1),
+    domainCase: ID.case(141),
   },
   getItemRequests: [],
   listRequests: [],
@@ -376,7 +387,19 @@ const people = {
 
 const socTeam = make(Team, { _id: ID.team(1), name: "SOC Tier 2" });
 
-const project = make(Project, { _id: PROJECT_ID, name: "Acme Commerce" });
+/*
+ * The project, with OneUptime AI on (?ai=off turns Enable AI off) and its
+ * one Security switch, Triage new cases. The AI settings page and its
+ * notices read it like any record.
+ */
+const PROJECT_RECORD = {
+  _id: PROJECT_ID,
+  name: "Acme Commerce",
+  enableAi: !isAiOff,
+  enableAutomaticSecurityCaseTriage: true,
+};
+const project = make(Project, PROJECT_RECORD);
+table(Project).push(PROJECT_RECORD);
 
 function assignee(user) {
   return user
@@ -399,6 +422,156 @@ const SPRAY_USERS = [
   "a.ng@acme-commerce.example",
   "k.morgan@acme-commerce.example",
 ];
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI: the cases' triages
+ * ---------------------------------------------------------------------------
+ *
+ * Each triaged case's run, its report and the checks it cited, as the
+ * runner writes them (SecurityCaseTriageRunner) and the status route reads
+ * them back (SecurityCaseTriageStatus). The report ends on the engine's own
+ * "Evidence checked" list and footer (buildBrandedMarkdown).
+ */
+const TRIAGE_FOOTER =
+  "---\n*Investigated automatically by OneUptime AI — read-only, 6 queries run across your own telemetry. This is an AI-generated first pass; verify before acting.*";
+
+function triageReport(sections, evidence) {
+  const checked = evidence
+    .map((item) => {
+      return `- **[${item.citationId}]** ${item.label} — ${item.rowCount} row(s)`;
+    })
+    .join("\n");
+  return `## 🧠 AI — Security Case Triage\n\n${sections}\n\n**Evidence checked**\n${checked}\n\n${TRIAGE_FOOTER}`;
+}
+
+function check(citationId, toolName, label, rowCount, queryArguments, rows) {
+  return {
+    citationId,
+    toolName,
+    label,
+    rowCount,
+    queryArguments,
+    canLoadRows: true,
+    rows,
+  };
+}
+
+const SPRAY_EVIDENCE = [
+  check(
+    "C1",
+    "search_security_events",
+    `Security events for ${SPRAY_IP} (412 shown)`,
+    412,
+    { observable: SPRAY_IP, timeRange: "Last 6 hours" },
+    `11:51:02  user.session.start SUCCESS k.morgan@acme-commerce.example from ${SPRAY_IP}\n11:50:47  user.session.start FAILURE j.wilson@acme-commerce.example from ${SPRAY_IP}\n11:50:31  user.session.start FAILURE a.ng@acme-commerce.example from ${SPRAY_IP}`,
+  ),
+  check(
+    "C2",
+    "lookup_threat_intel",
+    "Threat intel lookup of 1 value(s) - 1 known-bad",
+    1,
+    { values: [SPRAY_IP] },
+    `${SPRAY_IP}  known-bad  Abuse.ch Feodo + Tor exits  (Tor exit node, confidence 85)`,
+  ),
+  check(
+    "C3",
+    "security_entity_activity",
+    "Activity of k.morgan@acme-commerce.example",
+    3,
+    { values: ["k.morgan@acme-commerce.example"] },
+    `k.morgan@acme-commerce.example  first seen from ${SPRAY_IP} 9 minutes before the success; 3 events from it since`,
+  ),
+];
+
+const DOMAIN_EVIDENCE = [
+  check(
+    "C1",
+    "lookup_threat_intel",
+    "Threat intel lookup of 2 value(s) - 1 known-bad",
+    2,
+    { values: ["update-sync.bad-cdn.example", "198.51.100.23"] },
+    "update-sync.bad-cdn.example  known-bad  Escalate Known-Bad Indicators feed (command and control)\n198.51.100.23  not known",
+  ),
+  check(
+    "C2",
+    "search_security_events",
+    "Security events for build-runner-07 (18 shown)",
+    18,
+    { observable: "build-runner-07", timeRange: "Last 24 hours" },
+    "11:12:40  dns.query update-sync.bad-cdn.example from build-runner-07\n11:12:41  network.connection 198.51.100.23:443 from build-runner-07",
+  ),
+];
+
+/*
+ * The triaged cases: the run (6 queries, two minutes) and what it read.
+ * Keyed by case number.
+ */
+const TRIAGES = {
+  142: {
+    verdict: SecurityCaseAiVerdict.LikelyMalicious,
+    suggestedPriority: SecurityCasePriority.Critical,
+    suggestedPlaybookId: ID.playbook(3),
+    triagedAt: ago(2 * HOUR + 50 * MINUTE),
+    evidence: SPRAY_EVIDENCE,
+    report: triageReport(
+      `**Summary**\nOne address, ${SPRAY_IP}, failed Okta sign-in for 31 accounts and then signed in as k.morgan@acme-commerce.example [C1]. This is a password spray that most likely succeeded.\n\n**Assessment**\nLikely malicious: ${SPRAY_IP} is a Tor exit node on your threat intel [C2], and k.morgan@acme-commerce.example had never signed in from it before [C3].\n\n**Evidence**\n- 412 failed sign-ins from ${SPRAY_IP} across 31 accounts, then one success [C1].\n- ${SPRAY_IP} matched Abuse.ch Feodo + Tor exits [C2].\n- k.morgan@acme-commerce.example was first seen from this address minutes before the success [C3].\n\n**Suggested next steps**\n1. Approve the held step of Contain Compromised Okta Users: it suspends k.morgan@acme-commerce.example in Okta.\n2. Reset the account's password and review what it did after the sign-in.\n3. Block ${SPRAY_IP} at the edge.`,
+      SPRAY_EVIDENCE,
+    ),
+  },
+  138: {
+    verdict: SecurityCaseAiVerdict.LikelyMalicious,
+    suggestedPriority: SecurityCasePriority.Critical,
+    triagedAt: ago(1 * HOUR + 58 * MINUTE),
+    evidence: [],
+    report:
+      "## 🧠 AI — Security Case Triage\n\n**Summary**\nAn encoded PowerShell command ran on web-03 under the IIS application pool, which runs no PowerShell otherwise. It looks like a web shell.\n\n**Assessment**\nLikely malicious: an encoded command started by the web server's own process is not something this team runs.\n\n**Suggested next steps**\n1. Isolate web-03 and capture its memory.\n2. Look for new files under the site's upload folders.",
+  },
+  139: {
+    verdict: SecurityCaseAiVerdict.Inconclusive,
+    triagedAt: ago(6 * HOUR + 55 * MINUTE),
+    evidence: [],
+    report:
+      "## 🧠 AI — Security Case Triage\n\n**Summary**\nk.morgan@acme-commerce.example signed in from two countries an hour apart. One of the two addresses is a consumer VPN.\n\n**Assessment**\nNot enough to tell: the VPN explains the travel, but the same account is in the password spray case.\n\n**Suggested next steps**\n1. Ask k.morgan whether they use a VPN.\n2. Read CASE-142 before closing this one.",
+  },
+  137: {
+    verdict: SecurityCaseAiVerdict.LikelyBenign,
+    suggestedPriority: SecurityCasePriority.Low,
+    triagedAt: ago(4 * HOUR + 57 * MINUTE),
+    evidence: [],
+    report:
+      "## 🧠 AI — Security Case Triage\n\n**Summary**\ndeploy-bot@acme-commerce.example created an admin API key during the 07:00 release, which this bot does every release.\n\n**Assessment**\nLikely benign: real, but the release automation does this on schedule.\n\n**Suggested next steps**\n1. Move the change window to cover the release, or exempt deploy-bot from this rule.",
+  },
+};
+
+/*
+ * What Triage with AI on CASE-141 (the known-bad domain nobody has picked
+ * up) finds: Likely Malicious, Critical over its High, and the playbook that
+ * escalates known-bad indicators.
+ */
+const DOMAIN_TRIAGE = {
+  verdict: SecurityCaseAiVerdict.LikelyMalicious,
+  suggestedPriority: SecurityCasePriority.Critical,
+  suggestedPlaybookId: ID.playbook(2),
+  evidence: DOMAIN_EVIDENCE,
+  report: triageReport(
+    "**Summary**\nbuild-runner-07 resolved update-sync.bad-cdn.example, a command-and-control domain on your threat intel [C1], and then opened a connection to 198.51.100.23 [C2].\n\n**Assessment**\nLikely malicious: the domain is a known command-and-control server [C1], and the runner connected out right after resolving it [C2].\n\n**Evidence**\n- update-sync.bad-cdn.example is on your threat intel as command and control [C1].\n- build-runner-07 connected to 198.51.100.23 one second after the lookup [C2].\n\n**Suggested next steps**\n1. Run Escalate Known-Bad Indicators to raise the case and start the investigation.\n2. Take build-runner-07 out of the build pool and rebuild it.",
+    DOMAIN_EVIDENCE,
+  ),
+};
+
+function triageColumns(triage) {
+  return {
+    aiVerdict: triage.verdict,
+    aiSuggestedPriority: triage.suggestedPriority,
+    aiSuggestedPlaybookId: triage.suggestedPlaybookId
+      ? new ObjectID(triage.suggestedPlaybookId)
+      : undefined,
+    aiTriageReport: triage.report,
+    aiTriagedAt: triage.triagedAt,
+    aiTriagePromptInjectionSuspected: false,
+  };
+}
 
 function addCase(number, record) {
   return insert(SecurityCase, {
@@ -631,6 +804,18 @@ if (hasHistory) {
       closedAt: new Date(openedAt.getTime() + toClose),
       createdAt: openedAt,
     });
+  }
+
+  /*
+   * What OneUptime AI read each triaged case as, as the runner writes it
+   * on the case when a triage finishes (TRIAGES below holds the runs).
+   * CASE-141 has not been triaged: Triage with AI walks it through.
+   */
+  for (const [number, triage] of Object.entries(TRIAGES)) {
+    const record = table(SecurityCase).find((item) => {
+      return item._id === ID.case(Number(number));
+    });
+    Object.assign(record, triageColumns(triage));
   }
 
   // The spray case's own detections.
@@ -1973,6 +2158,230 @@ function decideApproval(runId, isApproved, body) {
   return new HTTPResponse(200, {}, {});
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI's routes: a case's triage, its start and its evidence, and
+ * Draft with AI
+ * ---------------------------------------------------------------------------
+ *
+ * A finished triage answers with its run and the checks its report cites.
+ * Triage with AI on a case starts a run the fixture walks one status read at
+ * a time - queued, two checks, done - and, done, writes the read onto the
+ * case as the runner would. Each check's rows re-run as the evidence route
+ * does: the rows the triage read, pinned to when it read them.
+ */
+const triageRuns = new Map();
+
+function triageRunFor(caseId) {
+  if (triageRuns.has(caseId)) {
+    return triageRuns.get(caseId);
+  }
+  const number = Number(caseId.split("-").pop());
+  const triage = hasHistory ? TRIAGES[number] : undefined;
+  if (!triage) {
+    return null;
+  }
+  const run = {
+    _id: uuid("29000000", number),
+    status: AIRunStatus.Completed,
+    createdAt: new Date(triage.triagedAt.getTime() - 2 * MINUTE),
+    startedAt: new Date(triage.triagedAt.getTime() - 2 * MINUTE),
+    completedAt: triage.triagedAt,
+    toolCallCount: 6,
+    totalTokens: 48210,
+    evidence: triage.evidence,
+    steps: [],
+  };
+  triageRuns.set(caseId, run);
+  return run;
+}
+
+const TRIAGE_STEPS = [
+  { toolName: "lookup_threat_intel", failed: false, rowCount: 2 },
+  { toolName: "search_security_events", failed: false, rowCount: 18 },
+];
+
+// One status read moves a run that is on its way one stage on.
+function advanceTriage(caseId, run) {
+  if (run.status === AIRunStatus.Completed) {
+    return;
+  }
+  run.phase = (run.phase || 0) + 1;
+  if (run.phase === 1) {
+    run.status = AIRunStatus.Queued;
+    return;
+  }
+  run.status = AIRunStatus.Running;
+  run.startedAt = run.startedAt || NOW;
+  run.steps = TRIAGE_STEPS.slice(0, run.phase - 1);
+  if (run.phase <= TRIAGE_STEPS.length + 1) {
+    return;
+  }
+  run.status = AIRunStatus.Completed;
+  run.completedAt = NOW;
+  run.toolCallCount = 4;
+  run.totalTokens = 31877;
+  run.evidence = DOMAIN_TRIAGE.evidence;
+  const record = table(SecurityCase).find((item) => {
+    return item._id === caseId;
+  });
+  Object.assign(record, triageColumns({ ...DOMAIN_TRIAGE, triagedAt: NOW }));
+}
+
+function triageStatus(caseId) {
+  const run = triageRunFor(caseId);
+  if (run) {
+    advanceTriage(caseId, run);
+  }
+  const isDone = run && run.status === AIRunStatus.Completed;
+  return {
+    run: run
+      ? {
+          _id: run._id,
+          status: run.status,
+          createdAt: run.createdAt?.toISOString(),
+          startedAt: run.startedAt?.toISOString(),
+          completedAt: run.completedAt?.toISOString(),
+          toolCallCount: run.toolCallCount || 0,
+          totalTokens: run.totalTokens || 0,
+        }
+      : null,
+    steps: run && !isDone ? run.steps : [],
+    isReportPending: false,
+    finishedWithoutReport: false,
+    evidence: isDone
+      ? run.evidence.map((item) => {
+          return {
+            citationId: item.citationId,
+            toolName: item.toolName,
+            label: item.label,
+            rowCount: item.rowCount,
+            queryArguments: item.queryArguments,
+            executedAt: run.completedAt.toISOString(),
+            canLoadRows: item.canLoadRows,
+          };
+        })
+      : [],
+    notStartedReason: null,
+    isAutomaticTriageOn: PROJECT_RECORD.enableAutomaticSecurityCaseTriage,
+  };
+}
+
+function startTriage(caseId) {
+  const existing = triageRunFor(caseId);
+  if (existing && existing.status !== AIRunStatus.Completed) {
+    return new HTTPErrorResponse(
+      400,
+      { message: "OneUptime AI is already triaging this case." },
+      {},
+    );
+  }
+  const run = {
+    _id: rowId(),
+    status: AIRunStatus.Queued,
+    createdAt: NOW,
+    phase: 0,
+    steps: [],
+    evidence: [],
+  };
+  triageRuns.set(caseId, run);
+  return new HTTPResponse(200, { started: true, runId: run._id }, {});
+}
+
+function triageEvidence(caseId, body) {
+  const run = triageRunFor(caseId);
+  if (!run || run._id !== body?.runId) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "This triage was not found for this case." },
+      {},
+    );
+  }
+  const item = (run.evidence || []).find((candidate) => {
+    return candidate.citationId === body?.citationId;
+  });
+  if (!item) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "The triage did not cite this check." },
+      {},
+    );
+  }
+  return new HTTPResponse(
+    200,
+    {
+      citationId: item.citationId,
+      toolName: item.toolName,
+      label: item.label,
+      rowCount: item.rowCount,
+      isTruncated: false,
+      executedAt: NOW.toISOString(),
+      isPinnedToInvestigationTime: true,
+      investigatedAt: run.completedAt.toISOString(),
+      text: item.rows,
+    },
+    {},
+  );
+}
+
+// What OneUptime AI drafts from any description: a counting correlation.
+const DRAFTED_RULE_YAML = `title: Ten failed sign-ins from one address in five minutes
+level: high
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 5m
+  condition:
+    gte: 10
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+`;
+
+function draftRule(body) {
+  if (
+    typeof body?.description !== "string" ||
+    body.description.trim().length < 10
+  ) {
+    return new HTTPErrorResponse(
+      400,
+      { message: "Describe what the rule should catch in a sentence." },
+      {},
+    );
+  }
+  return new HTTPResponse(
+    200,
+    {
+      sigmaRuleYaml: DRAFTED_RULE_YAML,
+      title: "Ten failed sign-ins from one address in five minutes",
+      isCorrelation: true,
+    },
+    {},
+  );
+}
+
+// The LLM providers OneUptime AI can use: OneUptime Cloud's, the default.
+const AI_PROVIDERS = {
+  isAIEnabledForProject: true,
+  defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
+  providers: [
+    {
+      id: "9d9d9d9d-0000-4000-8000-000000000001",
+      name: "OneUptime AI",
+      isGlobal: true,
+      isDefault: true,
+    },
+  ],
+};
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url, body: serialize(options.data) });
@@ -1998,6 +2407,24 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/entity-activity")) {
     return new HTTPResponse(200, entityActivity(options.data), {});
+  }
+  const triage = path.match(
+    /\/security-case\/([^/]+)\/ai-triage(?:\/(start|evidence))?$/,
+  );
+  if (method === "POST" && triage) {
+    if (triage[2] === "start") {
+      return startTriage(triage[1]);
+    }
+    if (triage[2] === "evidence") {
+      return triageEvidence(triage[1], options.data);
+    }
+    return new HTTPResponse(200, triageStatus(triage[1]), {});
+  }
+  if (method === "POST" && path.endsWith("/detection-rule/draft-with-ai")) {
+    return draftRule(options.data);
+  }
+  if (method === "POST" && path.endsWith("/ai-chat/providers")) {
+    return new HTTPResponse(200, AI_PROVIDERS, {});
   }
   const decision = path.match(
     /\/security-playbook-run\/([^/]+)\/(approve|reject)$/,
@@ -2096,6 +2523,7 @@ const PAGES = [
   ...SECURITY_PLAYBOOK_RUN_VIEWS.map((view) => {
     return [view.page, SecurityPlaybookRunsPage, view.key];
   }),
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI, SecurityEventsAISettingsPage],
 ];
 const STUB_PAGES = [
   [PageMap.SECURITY_EVENTS, "Events"],
