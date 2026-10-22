@@ -26,6 +26,8 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   ComposedValue,
   composedValue,
+  createTranslator,
+  DEFAULT_LANGUAGE,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -54,6 +56,9 @@ import { formatNameList } from "../../AiAccess/AiAccessModes";
  * keys (src/Locales/README.md), each a whole sentence, and in English they
  * are word for word what the server says (getOnCallPassOnSentence).
  */
+
+// English, for a sentence that has no translation yet (getPassOnKeptTogether).
+const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
 
 export const PASS_ON_PAGE_TEXT: {
   button: string;
@@ -264,21 +269,141 @@ function levelValue(
   }
 
   const name: string | undefined = getOnCallPassOnLevelName(rule);
-  const count: number = getOnCallPassOnLevelCount(rule, ruleCount);
 
   return composedValue((sentence: Translator): string => {
-    const place: { order: string; count: string } = {
-      order: sentence.formatNumber(rule.order),
-      count: sentence.formatNumber(count),
-    };
-
-    return name
-      ? sentence.translateTemplate("{{name}} (Level {{order}} of {{count}})", {
-          ...place,
-          name: name,
-        })
-      : sentence.translateTemplate("Level {{order}} of {{count}}", place);
+    return levelLabel(sentence, rule, ruleCount, name);
   });
+}
+
+// A level's label in the sentence's language, by the name it is given.
+function levelLabel(
+  sentence: Translator,
+  rule: OnCallPassOnRule,
+  ruleCount: number,
+  name: string | undefined,
+): string {
+  const place: { order: string; count: string } = {
+    order: sentence.formatNumber(rule.order),
+    count: sentence.formatNumber(getOnCallPassOnLevelCount(rule, ruleCount)),
+  };
+
+  return name
+    ? sentence.translateTemplate("{{name}} (Level {{order}} of {{count}})", {
+        ...place,
+        name: name,
+      })
+    : sentence.translateTemplate("Level {{order}} of {{count}}", place);
+}
+
+// Stands in for a level's name while its place is read out of its label.
+const LEVEL_NAME_MARK: string = String.fromCharCode(0xe000);
+
+/*
+ * What the dialog keeps on one line: each level's place - "(Level 2 of 3)"
+ * after its name, "Level 2 of 3" on its own - and the time the policy
+ * moves on, "6:40 PM GMT". A phone broke the maintainer's own example as
+ * "Platform leads (Level 2 of" / "3), without waiting.", and a time as
+ * "by 6:40" / "PM GMT". Never a level's name: somebody typed it, and a long
+ * one breaks where it needs to.
+ *
+ * A place is worded in the reader's language, and in English too: a
+ * sentence that has no translation yet is filled with English values. The
+ * dialog draws each of them it finds in a line on one line
+ * (getPassOnLinePieces); the line's text itself is unchanged. `now` is when
+ * it is read, as describePassOnResult takes it.
+ */
+export function getPassOnKeptTogether(
+  results: Array<OnCallPassOnResult>,
+  translator: Translator,
+  now?: Date | undefined,
+): Array<string> {
+  const kept: Array<string> = [];
+
+  const keep: (text: string) => void = (text: string): void => {
+    const phrase: string = text.trim();
+
+    if (phrase && !kept.includes(phrase)) {
+      kept.push(phrase);
+    }
+  };
+
+  for (const result of results) {
+    for (const rule of [result.rule, result.nextRule]) {
+      if (!rule || !rule.order) {
+        continue;
+      }
+
+      const hasName: boolean = Boolean(getOnCallPassOnLevelName(rule));
+
+      for (const sentence of [translator, ENGLISH]) {
+        levelLabel(
+          sentence,
+          rule,
+          result.ruleCount,
+          hasName ? LEVEL_NAME_MARK : undefined,
+        )
+          .split(LEVEL_NAME_MARK)
+          .forEach(keep);
+      }
+    }
+
+    if (result.nextStepAt) {
+      keep(formatPassOnTime(result.nextStepAt, now));
+    }
+  }
+
+  return kept;
+}
+
+// A piece of a dialog line, and whether it must stay on one line.
+export interface PassOnLinePiece {
+  text: string;
+  keepTogether: boolean;
+}
+
+/*
+ * A line of the dialog in pieces: each phrase of `kept` in it (a level's
+ * "(Level 2 of 3)", a time: getPassOnKeptTogether) a piece of its own that
+ * stays on one line, the rest as it is. Joined, the pieces are the line.
+ */
+export function getPassOnLinePieces(
+  text: string,
+  kept: Array<string>,
+): Array<PassOnLinePiece> {
+  const pieces: Array<PassOnLinePiece> = [];
+  let rest: string = text;
+
+  while (rest.length > 0) {
+    let at: number = -1;
+    let found: string = "";
+
+    // The first phrase in what is left; of two at the same spot, the longer.
+    for (const phrase of kept) {
+      const index: number = phrase ? rest.indexOf(phrase) : -1;
+
+      if (
+        index >= 0 &&
+        (at < 0 || index < at || (index === at && phrase.length > found.length))
+      ) {
+        at = index;
+        found = phrase;
+      }
+    }
+
+    if (at < 0) {
+      pieces.push({ text: rest, keepTogether: false });
+      break;
+    }
+
+    if (at > 0) {
+      pieces.push({ text: rest.slice(0, at), keepTogether: false });
+    }
+
+    pieces.push({ text: found, keepTogether: true });
+    rest = rest.slice(at + found.length);
+  }
+
+  return pieces;
 }
 
 /*
@@ -516,6 +641,21 @@ export function describePassOnAnswers(
     },
     translator,
   );
+}
+
+// What escalating did, for each page it escalated.
+export function getPassedOnResults(
+  answers: Array<OnCallPassOnAnswer>,
+): Array<OnCallPassOnResult> {
+  const results: Array<OnCallPassOnResult> = [];
+
+  for (const answer of answers) {
+    if (answer.passedOn && answer.result) {
+      results.push(answer.result);
+    }
+  }
+
+  return results;
 }
 
 // Whether any of the answers escalated a page.

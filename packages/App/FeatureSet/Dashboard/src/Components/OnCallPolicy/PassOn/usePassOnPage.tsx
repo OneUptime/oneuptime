@@ -4,6 +4,7 @@ import {
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
+  OnCallPassOnResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -15,11 +16,15 @@ import { EventPanelAction } from "../../EventView/EventStatusPanel";
 import {
   PASS_ON_PAGE_TEXT,
   PassOnDialogLine,
+  PassOnLinePiece,
   fetchOpenPages,
   getPassOnAnswerLines,
   getPassOnAnswerTitle,
+  getPassOnKeptTogether,
+  getPassOnLinePieces,
   getPassOnQuestionLines,
   getPassOnQuestionTitle,
+  getPassedOnResults,
   isAnyPassedOn,
   passOnPages,
 } from "./PassOnPage";
@@ -62,10 +67,16 @@ interface LoadedPages {
 /*
  * The dialog's text: a warning first when escalating leaves nobody being
  * paged (PassOnDialogLine), then each sentence as a paragraph of its own.
+ *
+ * A level's place - "(Level 2 of 3)" - and a time stay on one line
+ * (`kept`, getPassOnKeptTogether): a phone broke the place as "(Level 2
+ * of" / "3)". And a paragraph never leaves its last word alone on a line
+ * ("... without" / "waiting."): text-pretty.
  */
 function dialogText(
   lines: Array<PassOnDialogLine>,
   testId: string,
+  kept: Array<string>,
 ): ReactElement {
   return (
     <div className="space-y-3" data-testid={testId}>
@@ -78,7 +89,23 @@ function dialogText(
             dataTestId="pass-on-warning"
           />
         ) : (
-          <p key={index}>{line.text}</p>
+          <p key={index} className="text-pretty">
+            {getPassOnLinePieces(line.text, kept).map(
+              (piece: PassOnLinePiece, pieceIndex: number) => {
+                return piece.keepTogether ? (
+                  <span
+                    key={pieceIndex}
+                    className="whitespace-nowrap"
+                    data-testid="pass-on-kept-together"
+                  >
+                    {piece.text}
+                  </span>
+                ) : (
+                  <React.Fragment key={pieceIndex}>{piece.text}</React.Fragment>
+                );
+              },
+            )}
+          </p>
         );
       })}
     </div>
@@ -185,6 +212,12 @@ export default function usePassOnPage(data: {
         description={dialogText(
           getPassOnQuestionLines(pages, translator, data.recordType),
           "pass-on-preview",
+          getPassOnKeptTogether(
+            pages.map((page: OnCallOpenPage): OnCallPassOnResult => {
+              return page.preview;
+            }),
+            translator,
+          ),
         )}
         submitButtonText={PASS_ON_PAGE_TEXT.button}
         onSubmit={passOn}
@@ -202,6 +235,7 @@ export default function usePassOnPage(data: {
         description={dialogText(
           getPassOnAnswerLines(answers, translator, data.recordType),
           "pass-on-answer",
+          getPassOnKeptTogether(getPassedOnResults(answers), translator),
         )}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}

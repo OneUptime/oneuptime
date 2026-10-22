@@ -10980,6 +10980,64 @@ test.describe("Escalate", () => {
       "escalate-dialog-stopped-ask-dark-mobile",
     );
   });
+
+  /*
+   * A phone broke the maintainer's own example inside the level's place -
+   * "Platform leads (Level 2 of" / "3), without waiting." - and the time as
+   * "by 6:40" / "PM GMT". Each now stays on one line; the sentence's text
+   * is unchanged.
+   */
+  for (const width of [390, 360, 320]) {
+    test(`on a ${width}px phone, a level's place and the time each stay on one line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 844 });
+      await openReady(
+        page,
+        INCIDENT_PAGE,
+        "paged=incident&state=created&passOn=others",
+      );
+
+      await escalateButton(page).click();
+
+      const kept: Locator = escalateDialog(page)
+        .getByTestId("pass-on-preview")
+        .getByTestId("pass-on-kept-together");
+      await expect(kept).toHaveText(["6:40 PM GMT", "(Level 2 of 3)"]);
+
+      for (const phrase of await kept.all()) {
+        const drawn: { lines: number; whiteSpace: string } =
+          await phrase.evaluate(
+            (element: Element): { lines: number; whiteSpace: string } => {
+              return {
+                lines: element.getClientRects().length,
+                whiteSpace: getComputedStyle(element).whiteSpace,
+              };
+            },
+          );
+        expect(drawn).toEqual({ lines: 1, whiteSpace: "nowrap" });
+      }
+
+      // The sentence a reader gets is whole, and fits the screen.
+      expect(await dialogLines(page, "pass-on-preview")).toEqual([
+        "Bob Smith is still being paged. If nobody acknowledges by 6:40 PM GMT, the policy pages Platform leads (Level 2 of 3) next.",
+        NOT_PAGED_AGAIN,
+      ]);
+      await expectNoHorizontalOverflow(page);
+
+      // After escalating, the answer keeps them together too.
+      await escalateDialog(page)
+        .getByTestId("modal-footer-submit-button")
+        .click();
+      await expect(
+        escalateDialog(page)
+          .getByTestId("pass-on-answer")
+          .getByTestId("pass-on-kept-together"),
+      ).toHaveText(["6:40 PM GMT", "(Level 2 of 3)"]);
+    });
+  }
 });
 
 /*

@@ -855,8 +855,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     let warning: string | undefined = undefined;
 
     if (answer.passedOn && answer.result) {
+      // A page, often a phone's: "Level 2 of 3" and a time stay on one line.
       const sentence: string = getOnCallPassOnSentence(answer.result, {
         timezone: record.timezone,
+        keepTogether: true,
       });
       const notPagedAgain: string = getOnCallPageNotPagedAgainSentence(
         record.notificationType,
@@ -925,8 +927,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     // "Incident", "Alert Episode".
     recordNoun: string;
   }): PassOnWording {
+    // A page, often a phone's: "Level 2 of 3" and a time stay on one line.
     const sentence: string = getOnCallPassOnSentence(data.result, {
       timezone: data.timezone,
+      keepTogether: true,
     });
     const notPagedAgain: string = getOnCallPageNotPagedAgainSentence(
       data.recordNoun,
@@ -967,7 +971,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     });
 
     if (answer.passedOn && answer.result) {
-      // "by 3:34 AM CEST": a time read out is the person's own.
+      /*
+       * "by 3:34 AM CEST": a time read out is the person's own. Read out, a
+       * sentence keeps plain spaces (no keepTogether).
+       */
       return `You escalated this ${noun}. ${getOnCallPassOnSentence(
         answer.result,
         { timezone: timelineItem.user?.timezone?.toString() || undefined },

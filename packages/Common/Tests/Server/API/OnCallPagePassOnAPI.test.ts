@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import {
+  ON_CALL_PASS_ON_NO_BREAK_SPACE,
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
@@ -254,9 +255,13 @@ describe("the pass-on routes", () => {
               nextRule: { order: 2, name: "Level 2" },
               ruleCount: 2,
             },
-            // As the server words it everywhere, in the caller's time zone.
+            /*
+             * As the server words it everywhere, in the caller's time zone -
+             * with "Level 2 of 2" and the time each on one line of a phone.
+             */
             sentence: getOnCallPassOnSentence(PAGE.preview, {
               timezone: Timezone.EuropeBerlin,
+              keepTogether: true,
             }),
           },
         ],
@@ -278,10 +283,16 @@ describe("the pass-on routes", () => {
       expect(sentence).toContain(
         "Bob Smith is still being paged. If nobody acknowledges by ",
       );
-      expect(sentence).toContain(", the policy pages Level 2 of 2 next.");
+      expect(sentence).toContain(
+        `, the policy pages ${["Level", "2", "of", "2"].join(ON_CALL_PASS_ON_NO_BREAK_SPACE)} next.`,
+      );
       // 03:30 UTC is 05:30 in Berlin in October.
       expect(sentence).toContain("5:30");
       expect(sentence).not.toContain("3:30");
+      // The mobile app shows it on a phone: the time never breaks either.
+      expect(sentence).toContain(
+        ["5:30", "AM", "CEST"].join(ON_CALL_PASS_ON_NO_BREAK_SPACE),
+      );
 
       const asked: Parameters<FindUser>[0] = mockFindUser.mock.calls[0]![0];
 
@@ -290,7 +301,9 @@ describe("the pass-on routes", () => {
     });
 
     test("without a time zone of their own, or when it cannot be read, it is the server's", async () => {
-      const serverTime: string = getOnCallPassOnSentence(PAGE.preview, {});
+      const serverTime: string = getOnCallPassOnSentence(PAGE.preview, {
+        keepTogether: true,
+      });
 
       mockRead.mockResolvedValue([PAGE]);
       mockFindUser.mockResolvedValue({});
@@ -386,7 +399,9 @@ describe("the pass-on routes", () => {
       expect(
         (response.body as { answers: Array<{ sentence: string }> }).answers[0]!
           .sentence,
-      ).toBe("The policy is now paging Level 2 of 2: Carl Diaz.");
+      ).toBe(
+        `The policy is now paging ${["Level", "2", "of", "2"].join(ON_CALL_PASS_ON_NO_BREAK_SPACE)}: Carl Diaz.`,
+      );
 
       const asked: Arguments = mockPassOn.mock.calls[0]![0];
 

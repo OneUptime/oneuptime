@@ -29,6 +29,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  ON_CALL_PASS_ON_NO_BREAK_SPACE,
   OnCallPassOnAnswer,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
@@ -126,6 +127,14 @@ function rendered(): { path: string; variables: JSONObject } {
   };
 }
 
+/*
+ * A phrase as a page draws it: its spaces are spaces no line breaks at, so
+ * "Level 2 of 2" - or a time - stays on one line of a phone.
+ */
+function kept(phrase: string): string {
+  return phrase.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE);
+}
+
 function preview(outcome: OnCallPassOnOutcome): OnCallPassOnResult {
   return {
     outcome: outcome,
@@ -213,8 +222,7 @@ describe("the acknowledge page", () => {
 
     expect(variables["passOn"]).toEqual({
       lead: "Can't take it?",
-      explanation:
-        "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
+      explanation: `This will immediately page ${kept("Level 2 of 2")}, without waiting. You will not be paged again for this incident.`,
       buttonText: "Escalate",
       formUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       tokenParam: "pageToken",
@@ -316,8 +324,7 @@ describe("the escalate page", () => {
     expect(variables).toMatchObject({
       title: "Escalate this incident?",
       // They followed "Can't take it? Escalate" here: it is not asked again.
-      message:
-        "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
+      message: `This will immediately page ${kept("Level 2 of 2")}, without waiting. You will not be paged again for this incident.`,
       passOnText: "Escalate",
       passOnFormUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       pageTokenParam: "pageToken",
@@ -346,10 +353,40 @@ describe("the escalate page", () => {
 
     expect(rendered().variables).toMatchObject({
       title: "Escalate this incident?",
-      message:
-        "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+      // The name breaks where it needs to; "(Level 2 of 2)" never does.
+      message: `This will immediately page Platform leads (${kept("Level 2 of 2")}), without waiting. You will not be paged again for this incident.`,
       passOnText: "Escalate",
     });
+  });
+
+  test("keeps the time the policy moves on on one line of a phone too", async () => {
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-16T03:00:00.000Z"));
+    previewSpy.mockResolvedValue({
+      passedOn: false,
+      result: {
+        ...preview(OnCallPassOnOutcome.OthersStillPaged),
+        stillPagedNames: ["Bob Smith"],
+        nextStepAt: new Date("2026-10-16T03:30:00.000Z"),
+        nextRule: { order: 2, name: "Platform leads" },
+      },
+    });
+
+    await call({
+      method: "GET",
+      uri: `${BASE}/pass-on-page/:itemId`,
+      query: { pageToken: VALID_TOKEN() },
+    });
+
+    const message: string = rendered().variables["message"] as string;
+
+    expect(message).toContain(
+      `the policy pages Platform leads (${kept("Level 2 of 2")}) next.`,
+    );
+    expect(message).toContain(`If nobody acknowledges by ${kept("3:30 AM")}`);
+    // Only those phrases: the rest of the sentence wraps as it always did.
+    expect(message).toContain("Bob Smith is still being paged. If nobody");
   });
 
   test("never says the old words, whatever escalating would do", async () => {
@@ -558,7 +595,7 @@ describe("the Escalate button", () => {
     expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
     expect(variables["title"]).toBe("Incident escalated - Checkout is down");
     expect(variables["message"]).toBe(
-      "The policy is now paging Level 2 of 2: Bob Smith. You will not be paged again for this incident.",
+      `The policy is now paging ${kept("Level 2 of 2")}: Bob Smith. You will not be paged again for this incident.`,
     );
     expect(variables["viewDetailsText"]).toBe("View Incident");
   });
@@ -674,6 +711,8 @@ describe("a call's second key", () => {
     expect(sayOf()).toContain(
       "You escalated this incident. The policy is now paging Level 2 of 2: Bob Smith. Good bye.",
     );
+    // Read out, not drawn: plain spaces, never the page's no-break ones.
+    expect(sayOf()).not.toContain(ON_CALL_PASS_ON_NO_BREAK_SPACE);
   });
 
   test("reads a time out on the person's own clock, without a date that day", async () => {
@@ -713,6 +752,7 @@ describe("a call's second key", () => {
     expect(sayOf()).toContain(
       "You escalated this incident. Bob Smith is still being paged. If nobody acknowledges by 5:30 AM CEST, the policy pages Level 2 of 2 next. Good bye.",
     );
+    expect(sayOf()).not.toContain(ON_CALL_PASS_ON_NO_BREAK_SPACE);
   });
 
   test("says why when it could not", async () => {

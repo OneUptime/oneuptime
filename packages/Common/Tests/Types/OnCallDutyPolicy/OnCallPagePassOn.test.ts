@@ -14,6 +14,7 @@ import {
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_STATUS_VALUE,
   ON_CALL_PAGE_PASS_ON_ROUTE,
+  ON_CALL_PASS_ON_NO_BREAK_SPACE,
   OnCallPageRecordType,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
@@ -655,6 +656,118 @@ describe("somebody else still paged", () => {
         result({ outcome: OnCallPassOnOutcome.OthersStillPaged }),
       ),
     ).toBe("Somebody else is still being paged.");
+  });
+});
+
+/*
+ * A sentence drawn on a page or a phone - the confirm page, the page after
+ * it, the mobile app - keeps a level's place and a time each on one line: a
+ * phone broke the maintainer's own example as "Platform leads (Level 2 of"
+ * / "3), without waiting." A call reads the sentence out, with plain
+ * spaces.
+ */
+describe("a sentence drawn on a screen keeps its short phrases on one line", () => {
+  const AT: Date = new Date("2026-10-16T03:30:00.000Z");
+  const NOW: Date = new Date("2026-10-16T03:00:00.000Z");
+  const NBSP: string = ON_CALL_PASS_ON_NO_BREAK_SPACE;
+
+  // A phrase as a screen draws it: no line breaks inside it.
+  const kept: (phrase: string) => string = (phrase: string): string => {
+    return phrase.split(" ").join(NBSP);
+  };
+
+  test("the space is U+00A0, a space no line breaks at", () => {
+    expect(NBSP).toBe(String.fromCharCode(0xa0));
+    expect(NBSP).not.toBe(" ");
+  });
+
+  test("a level's place stays on one line; its name, somebody's text, does not have to", () => {
+    expect(
+      getOnCallPassOnLevelLabel({ order: 2, name: "Platform leads" }, 3, true),
+    ).toBe(`Platform leads (${kept("Level 2 of 3")})`);
+    expect(getOnCallPassOnLevelLabel({ order: 2 }, 3, true)).toBe(
+      kept("Level 2 of 3"),
+    );
+    expect(
+      getOnCallPassOnLevelLabel({ order: 2, name: "Level 2" }, 3, true),
+    ).toBe(kept("Level 2 of 3"));
+  });
+
+  test("the maintainer's sentence, as the confirm page draws it", () => {
+    expect(
+      getOnCallPassOnSentence(
+        result({
+          isPreview: true,
+          rule: { order: 2, name: "Platform leads" },
+        }),
+        { keepTogether: true },
+      ),
+    ).toBe(
+      `This will immediately page Platform leads (${kept("Level 2 of 3")}), without waiting.`,
+    );
+  });
+
+  test("a time stays on one line too, the next level's place with it", () => {
+    expect(
+      getOnCallPassOnSentence(
+        result({
+          outcome: OnCallPassOnOutcome.OthersStillPaged,
+          stillPagedNames: ["Bob Smith"],
+          nextStepAt: AT,
+          nextRule: { order: 3, name: "Managers" },
+        }),
+        { timezone: "UTC", now: NOW, keepTogether: true },
+      ),
+    ).toBe(
+      `Bob Smith is still being paged. If nobody acknowledges by ${kept("3:30 AM UTC")}, the policy pages Managers (${kept("Level 3 of 3")}) next.`,
+    );
+
+    // A time on another day keeps its date, on one line with it.
+    expect(
+      getOnCallPassOnSentence(
+        result({
+          outcome: OnCallPassOnOutcome.OthersStillPaged,
+          stillPagedNames: ["Bob"],
+          nextStepAt: AT,
+        }),
+        {
+          timezone: "UTC",
+          now: new Date("2026-10-15T21:00:00.000Z"),
+          keepTogether: true,
+        },
+      ),
+    ).toBe(
+      `Bob is still being paged. If nobody acknowledges by ${kept("Oct 16, 2026, 3:30 AM UTC")}, the policy moves on.`,
+    );
+  });
+
+  test("whatever came of it, only the place and the time are joined - every word else breaks as it did", () => {
+    for (const each of everyResult()) {
+      const wording: { timezone: string; now: Date } = {
+        timezone: "UTC",
+        now: NOW,
+      };
+      const drawn: string = getOnCallPassOnSentence(each, {
+        ...wording,
+        keepTogether: true,
+      });
+      const plain: string = getOnCallPassOnSentence(each, wording);
+
+      // The same words: only some of the spaces differ.
+      expect(drawn.split(NBSP).join(" ")).toBe(plain);
+      // Read out - a call - the sentence has plain spaces only.
+      expect(plain).not.toContain(NBSP);
+
+      // Every joined space is inside "Level 2 of 3" or the time.
+      const rest: string = [kept("Level 2 of 3"), kept("3:30 AM UTC")].reduce(
+        (text: string, phrase: string): string => {
+          return text.split(phrase).join("");
+        },
+        drawn,
+      );
+
+      expect(rest).not.toContain(NBSP);
+    }
   });
 });
 

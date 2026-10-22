@@ -341,6 +341,13 @@ export interface OnCallPassOnWording {
    * (getOnCallPassOnTime). Now without one.
    */
   now?: Date | undefined;
+  /*
+   * For a sentence drawn on a page or a phone screen: a level's place -
+   * "Level 2 of 3" - and a time - "5:28 AM UTC" - each stay on one line,
+   * written with spaces no line breaks at (ON_CALL_PASS_ON_NO_BREAK_SPACE).
+   * A call reads its sentence out, and leaves this off.
+   */
+  keepTogether?: boolean | undefined;
 }
 
 // "Alex, Sam and Kim" - names are text.
@@ -389,19 +396,38 @@ export function getOnCallPassOnLevelCount(
   return Math.max(ruleCount || 0, rule.order);
 }
 
+// U+00A0, a space no line breaks at.
+export const ON_CALL_PASS_ON_NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+// A phrase whose spaces no line breaks at, when it is to stay on one line.
+function keepOnOneLine(
+  phrase: string,
+  keepTogether: boolean | undefined,
+): string {
+  return keepTogether
+    ? phrase.split(" ").join(ON_CALL_PASS_ON_NO_BREAK_SPACE)
+    : phrase;
+}
+
 /*
  * A level as every sentence names it: "Platform leads (Level 2 of 3)" - its
  * name, then its place - or "Level 2 of 3" when it has no name of its own.
  * In every sentence it is what the policy pages.
+ *
+ * keepTogether writes the place with spaces no line breaks at, for a page
+ * or a phone screen: a narrow one broke the maintainer's own example as
+ * "Platform leads (Level 2 of" / "3)". The name keeps its own spaces - it
+ * is text somebody typed, and may be long.
  */
 export function getOnCallPassOnLevelLabel(
   rule: OnCallPassOnRule,
   ruleCount?: number | undefined,
+  keepTogether?: boolean | undefined,
 ): string {
-  const place: string = `Level ${rule.order} of ${getOnCallPassOnLevelCount(
-    rule,
-    ruleCount,
-  )}`;
+  const place: string = keepOnOneLine(
+    `Level ${rule.order} of ${getOnCallPassOnLevelCount(rule, ruleCount)}`,
+    keepTogether,
+  );
   const name: string | undefined = getOnCallPassOnLevelName(rule);
 
   return name ? `${name} (${place})` : place;
@@ -415,9 +441,10 @@ export function getOnCallPassOnLevelLabel(
 function getKnownLevelLabel(
   rule: OnCallPassOnRule | undefined,
   ruleCount: number,
+  keepTogether: boolean | undefined,
 ): string | undefined {
   return rule && rule.order
-    ? getOnCallPassOnLevelLabel(rule, ruleCount)
+    ? getOnCallPassOnLevelLabel(rule, ruleCount, keepTogether)
     : undefined;
 }
 
@@ -510,6 +537,7 @@ export function getOnCallPassOnSentence(
   const level: string | undefined = getKnownLevelLabel(
     result.rule,
     result.ruleCount,
+    wording.keepTogether,
   );
 
   switch (result.outcome) {
@@ -552,10 +580,14 @@ export function getOnCallPassOnSentence(
         return still;
       }
 
-      const time: string = getOnCallPassOnTime(result.nextStepAt, wording);
+      const time: string = keepOnOneLine(
+        getOnCallPassOnTime(result.nextStepAt, wording),
+        wording.keepTogether,
+      );
       const next: string | undefined = getKnownLevelLabel(
         result.nextRule,
         result.ruleCount,
+        wording.keepTogether,
       );
 
       return next
