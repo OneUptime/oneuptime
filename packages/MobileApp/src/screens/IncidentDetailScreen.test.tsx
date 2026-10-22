@@ -141,7 +141,7 @@ jest.mock("../api/incidentNotes", () => {
 });
 
 /*
- * Whether the signed-in person is being paged about it, for Pass it on
+ * Whether the signed-in person is being paged about it, for Escalate
  * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
  * the answer never comes: the screen renders as it always did, and nothing
  * updates it after a test has looked.
@@ -1499,12 +1499,12 @@ describe("Acknowledged by the order of the project's states (utils/acknowledgedS
   });
 });
 
-describe("Passing the page on", () => {
+describe("Escalating the page", () => {
   /*
    * The person an on-call policy is paging about the incident, who cannot
-   * take it, passes it on from here: the policy pages its next escalation
-   * rule now instead of waiting. Only they are offered it, and only while
-   * the incident still waits for somebody to take it.
+   * take it, escalates it from here: the policy pages its next level now
+   * instead of waiting. Only they are offered it, and only while the
+   * incident still waits for somebody to take it.
    */
   let alertSpy: jest.SpyInstance;
   let refetchTimeline: jest.Mock;
@@ -1519,7 +1519,7 @@ describe("Passing the page on", () => {
     executionLogId: "run-1",
     policyName: "Payments",
     sentence:
-      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      "This will immediately page Platform leads (Level 2 of 3), without waiting.",
   };
 
   function lastAlert(): [
@@ -1569,7 +1569,7 @@ describe("Passing the page on", () => {
     mockPassOnPages.current = null;
   });
 
-  test("somebody the policy is not paging is offered no Pass it on", async () => {
+  test("somebody the policy is not paging is offered no Escalate", async () => {
     mockPassOnPages.current = [];
 
     await renderScreen(createTestQueryClient());
@@ -1582,7 +1582,7 @@ describe("Passing the page on", () => {
       );
     });
     expect(
-      screen.queryByRole("button", { name: "Pass this incident page on" }),
+      screen.queryByRole("button", { name: "Escalate this incident" }),
     ).toBeNull();
     expect(
       screen.getByRole("button", { name: "Acknowledge incident" }),
@@ -1595,7 +1595,7 @@ describe("Passing the page on", () => {
     await renderScreen(createTestQueryClient());
 
     const passOn: unknown = await screen.findByRole("button", {
-      name: "Pass this incident page on",
+      name: "Escalate this incident",
     });
     const buttons: Array<unknown> = within(
       screen.getByTestId("response-actions"),
@@ -1603,7 +1603,8 @@ describe("Passing the page on", () => {
 
     expect(buttons).toHaveLength(3);
     expect(buttons[2]).toBe(passOn);
-    expect(screen.getByText("Pass it on")).toBeTruthy();
+    expect(screen.getByText("Escalate")).toBeTruthy();
+    expect(screen.queryByText("Pass it on")).toBeNull();
   });
 
   test("an incident somebody acknowledged is not offered it, whatever the server last said", async () => {
@@ -1623,49 +1624,50 @@ describe("Passing the page on", () => {
       return expect(fetchPassOnMock).toHaveBeenCalled();
     });
     expect(
-      screen.queryByRole("button", { name: "Pass this incident page on" }),
+      screen.queryByRole("button", { name: "Escalate this incident" }),
     ).toBeNull();
   });
 
-  test("it asks first, passes it on, says what it did, and reads the feed and timeline again", async () => {
+  test("it asks first, in the maintainer's words, escalates it, says what it did, and reads the feed and timeline again", async () => {
     mockPassOnPages.current = [PASS_ON_PAGE];
     passOnMock.mockResolvedValueOnce([
       {
         passedOn: true,
         policyName: "Payments",
-        sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+        sentence:
+          "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
       },
     ]);
 
     await renderScreen(createTestQueryClient());
 
     fireEvent.press(
-      await screen.findByRole("button", { name: "Pass this incident page on" }),
+      await screen.findByRole("button", { name: "Escalate this incident" }),
     );
 
     const [title, message, choices] = lastAlert();
 
-    expect(title).toBe("Pass it on?");
+    expect(title).toBe("Escalate Incident?");
     expect(message).toBe(
-      `You won't be paged about it again.\n\n${PASS_ON_PAGE.sentence}`,
+      `${PASS_ON_PAGE.sentence}\n\nYou will not be paged again for this incident.`,
     );
-    // Nothing is passed on until they say so.
+    // Nothing is escalated until they say so.
     expect(passOnMock).not.toHaveBeenCalled();
 
-    // Read again after passing on: no longer paged.
+    // Read again after escalating: no longer paged.
     mockPassOnPages.current = [];
 
     await act(async () => {
       choices!.find((choice: { text?: string }) => {
-        return choice.text === "Pass it on";
+        return choice.text === "Escalate";
       })!.onPress!();
     });
 
     await waitFor(() => {
-      return expect(lastAlert()[0]).toBe("You passed it on");
+      return expect(lastAlert()[0]).toBe("Incident escalated");
     });
     expect(lastAlert()[1]).toBe(
-      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.\n\nYou won't be paged about it again.",
+      "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.\n\nYou will not be paged again for this incident.",
     );
     expect(passOnMock).toHaveBeenCalledWith(
       PROJECT_ID,
@@ -1679,7 +1681,7 @@ describe("Passing the page on", () => {
     expect(refetchTimeline).toHaveBeenCalled();
     await waitFor(() => {
       return expect(
-        screen.queryByRole("button", { name: "Pass this incident page on" }),
+        screen.queryByRole("button", { name: "Escalate this incident" }),
       ).toBeNull();
     });
   });

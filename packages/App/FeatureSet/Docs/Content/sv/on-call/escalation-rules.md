@@ -20,7 +20,7 @@ flowchart TB
 - [Lägg till en eskaleringsregel](#lägg-till-en-eskaleringsregel): Lägg till nästa nivå, steg för steg.
 - [Så larmar nivåerna personer](#så-larmar-nivåerna-personer): Tider, upprepningar och hur varje person nås.
 - [Nästa person i rotationen](#eskalera-till-nästa-person-i-rotationen): Larma backupen för den som har jour, från samma rotation.
-- [Skicka ett larm vidare](#skicka-ett-larm-vidare): Kan du inte ta ett larm? Skicka det direkt vidare till nästa nivå.
+- [Eskalera ett larm](#eskalera-ett-larm): Kan du inte ta ett larm? Låt nästa nivå larmas direkt.
 - [API och Terraform](#skapa-regler-med-apiet-eller-terraform): Skapa policyer och regler som kod.
 :::
 
@@ -75,7 +75,7 @@ Klicka på **Create Rule**. Regeln läggs till under de andra, som policyns näs
 
 ## Så larmar nivåerna personer
 
-När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen bekräftar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan bekräftelse börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger som den tillåter, och annars slutar den. Att bekräfta eller lösa incidenten eller larmet stoppar larmandet på vilken nivå som helst. Den som larmas och inte kan ta det kan skicka larmet vidare, och nästa nivå larmas utan att vänta: se [Skicka ett larm vidare](#skicka-ett-larm-vidare).
+När en incident eller ett larm når policyn larmar **Level 1** sina mottagare direkt. Om ingen bekräftar inom väntetiden larmas **Level 2**, och så vidare nedåt i listan. När den sista nivåns väntetid har gått utan bekräftelse börjar policyn om från **Level 1** om dess **Upprepningspolicy** (under reglerna) säger att den ska upprepas, så många gånger som den tillåter, och annars slutar den. Att bekräfta eller lösa incidenten eller larmet stoppar larmandet på vilken nivå som helst. Den som larmas och inte kan ta det kan eskalera larmet, och nästa nivå larmas utan att vänta: se [Eskalera ett larm](#eskalera-ett-larm).
 
 En incident, ett larm eller en episod som skapas redan bekräftad eller löst — registrerad i efterhand — kör ingen av sina policyer: ingen larmas, och dess feed säger det och nämner dem vid namn. Se [Deklarerad redan bekräftad eller löst](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst).
 
@@ -120,11 +120,11 @@ Ett längre meddelande, med en lång titel eller en lång beskrivning som en mal
 
 ### Vad ett larms sms säger
 
-Ett sms skickas, och debiteras, i delar om 160 tecken. Ett larm via sms skrivs så att det ryms i en del där det går, och säger bara det du behöver på en låst telefon: vem som skickar det, vad som har hänt och den enda länken för att bekräfta larmet eller skicka det vidare. På en telefon ser det ut så här:
+Ett sms skickas, och debiteras, i delar om 160 tecken. Ett larm via sms skrivs så att det ryms i en del där det går, och säger bara det du behöver på en låst telefon: vem som skickar det, vad som har hänt och den enda länken för att bekräfta larmet eller eskalera det. På en telefon ser det ut så här:
 
 ```text
 OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
-Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Det anger allvarlighetsgraden och vad som har hänt (en incident, ett larm eller en episod av någon av dem), dess nummer, projektet och titeln, i den ordningen. När inte allt ryms i en del:
@@ -184,44 +184,44 @@ Körningens meddelande i Slack och Microsoft Teams, incidentens feed och **Tidsl
 > [!TIP]
 > Ett schema räcker: det finns inget andra backupschema att hålla i takt med det första, och den frånvaro som dess personer bokar gäller för båda nivåerna.
 
-## Skicka ett larm vidare
+## Eskalera ett larm
 
-Den som larmas och inte kan ta det, för att hen sover, sitter på ett flyg eller redan arbetar med en annan incident, kan skicka larmet vidare i stället för att låta det ringa ut. Policyn larmar då nästa nivå direkt, utan att vänta ut nivåns **Eskalera efter (i minuter)**, och hen larmas inte om det igen.
+Den som larmas och inte kan ta det, för att hen sover, sitter på ett flyg eller redan arbetar med en annan incident, kan eskalera larmet i stället för att låta det ringa ut. Policyn larmar då nästa nivå direkt, utan att vänta ut nivåns **Eskalera efter (i minuter)**, och hen larmas inte om det igen.
 
-```mermaid title="Ett larm som skickas vidare flyttar policyn direkt till nästa nivå"
+```mermaid title="Ett eskalerat larm flyttar policyn direkt till nästa nivå"
 flowchart TB
     page["Level 1 larmar Alex"] --> take{"Kan Alex<br/>ta det?"}
     take -->|"Ja"| ack["Alex bekräftar:<br/>larmandet stoppar"]
-    take -->|"Nej"| pass["Alex skickar det vidare"]
+    take -->|"Nej"| pass["Alex eskalerar det"]
     pass --> others{"Larmas någon annan<br/>på Level 1 fortfarande?"}
     others -->|"Ja"| wait["Policyn väntar på<br/>dem, som förut"]
     others -->|"Nej"| next["Level 2 larmas<br/>nu"]
 ```
 
-Varje larm kan skickas vidare därifrån det nådde dig:
+Varje larm kan eskaleras därifrån det nådde dig:
 
-| Var | Så skickar du det vidare |
+| Var | Så eskalerar du det |
 | --- | --- |
-| E-post | Knappen **Pass it on**, sedan **Pass it on** på sidan den öppnar |
-| SMS och WhatsApp | Länken i meddelandet öppnar bekräftelsesidan, som också har **Pass it on** |
-| Telegram, Slack och Microsoft Teams | Länken "Can't take it? Pass it on", sedan **Pass it on** på sidan den öppnar |
+| E-post | Knappen **Escalate**, sedan **Escalate** på sidan den öppnar |
+| SMS och WhatsApp | Länken i meddelandet öppnar bekräftelsesidan, som också har **Escalate** |
+| Telegram, Slack och Microsoft Teams | Länken "Can't take it? Escalate", sedan **Escalate** på sidan den öppnar |
 | Telefonsamtal | Tryck 2. Samtalet säger sedan vad som hände |
-| Pushnotis | Tryck på den: incidenten, larmet eller episoden öppnas i OneUptime On-Call-appen, med **Pass it on** under sig |
-| OneUptime | **Skicka vidare** högst upp i incidenten, larmet eller episoden, efter dess tillståndsknappar |
+| Pushnotis | Tryck på den: incidenten, larmet eller episoden öppnas i OneUptime On-Call-appen, med **Escalate** under sig |
+| OneUptime | **Eskalera** högst upp i incidenten, larmet eller episoden, efter dess tillståndsknappar |
 
-Alla vägar utom samtalet frågar innan de gör något och säger vad som kommer att hända, till exempel "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; i ett samtal är det svaret att trycka 2. Bara den som larmas kan skicka sitt larm vidare: knappen i OneUptime visas bara för hen, och länken i ett meddelande skickar bara vidare det larm den skickades om, för den person den skickades till, i 7 dagar.
+Alla vägar utom samtalet frågar innan de gör något och säger vad som kommer att hända, till exempel "This will immediately page Platform leads (Level 2 of 3), without waiting."; i ett samtal är det svaret att trycka 2. Bara den som larmas kan eskalera sitt larm: knappen i OneUptime visas bara för hen, och länken i ett meddelande eskalerar bara det larm den skickades om, för den person den skickades till, i 7 dagar.
 
 Vad som händer sedan beror på vilka andra som larmas:
 
-- Andra på samma nivå larmas fortfarande: policyn väntar på dem, som förut. Den går vidare när nivåns väntetid går ut, eller så snart den sista av dem också skickar larmet vidare.
+- Andra på samma nivå larmas fortfarande: policyn väntar på dem, som förut. Den går vidare när nivåns väntetid går ut, eller så snart den sista av dem också eskalerar larmet.
 - Ingen annan finns kvar på nivån: nästa nivå larmas direkt.
 - Det var den sista nivån: om **Upprepningspolicy** säger att den ska upprepas börjar policyn om från **Level 1** direkt. Annars stoppar larmandet, och någon måste ta hand om det.
 
-Att skicka ett larm vidare bekräftar det inte: incidenten eller larmet väntar fortfarande på att någon bekräftar, och den som skickade det vidare kan fortfarande bekräfta själv. Den här körningen larmar inte hen om det igen: en senare nivå, eller en upprepning, som nämner hen hoppar över hen. När alla som den larmade har skickat det vidare och ingen finns kvar att larma stoppar larmandet, och incidentens feed säger det.
+Att eskalera ett larm bekräftar det inte: incidenten eller larmet väntar fortfarande på att någon bekräftar, och den som eskalerade det kan fortfarande bekräfta själv. Den här körningen larmar inte hen om det igen: en senare nivå, eller en upprepning, som nämner hen hoppar över hen. När alla som den larmade har eskalerat det och ingen finns kvar att larma stoppar larmandet, och incidentens feed säger det.
 
-Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: skickar du det vidare larmas du inte mer, och när alla som det larmade har skickat det vidare stoppar larmandet.
+Ett larm som ett arbetsflöde skickar direkt till personer har inga nivåer: eskalerar du det larmas du inte mer, och när alla som det larmade har eskalerat det stoppar larmandet.
 
-Varje gång ett larm skickas vidare registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Skickat vidare**, incidentens feed säger "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", körningens meddelande i Slack och Microsoft Teams säger att hen skickade det vidare, och hens **Jourloggar** visar larmet som **Skickat vidare**.
+Varje gång ett larm eskaleras registreras det. Körningens **Tidslinje för körningen** markerar personens rad **Eskalerad**, incidentens feed säger "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", körningens meddelande i Slack och Microsoft Teams säger att hen eskalerade det, och hens **Jourloggar** visar larmet som **Eskalerad**.
 
 ## Redigera, ändra ordning på och ta bort regler
 

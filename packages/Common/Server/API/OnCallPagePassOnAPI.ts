@@ -28,7 +28,7 @@ import {
 import User from "../../Models/DatabaseModels/User";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" FROM THE DASHBOARD AND THE MOBILE APP
+ * "CAN'T TAKE IT? ESCALATE" FROM THE DASHBOARD AND THE MOBILE APP
  * (OnCallPagePassOn).
  *
  * GET  /on-call-page/pass-on/<record type>/<record id>
@@ -46,7 +46,10 @@ import User from "../../Models/DatabaseModels/User";
  *
  * Each page and each answer also carries `sentence`: what it does or did,
  * as the server words it everywhere else (the confirm page, a call), with
- * times in the caller's own time zone. The mobile app shows it as it is.
+ * times in the caller's own time zone. The mobile app shows it as it is, so
+ * a level's place ("Level 2 of 3") and a time ("5:28 AM UTC") are written
+ * to stay on one line of a phone screen, as on the confirm page
+ * (keepTogether).
  */
 const router: ExpressRouter = Express.getRouter();
 
@@ -148,8 +151,10 @@ router.get(
         pages: pages.map((page: OnCallOpenPage): OnCallOpenPage => {
           return {
             ...page,
+            // Shown on a phone: "Level 2 of 3" and a time stay on one line.
             sentence: getOnCallPassOnSentence(page.preview, {
               timezone: timezone,
+              keepTogether: true,
             }),
           };
         }),
@@ -210,6 +215,7 @@ router.post(
                 passOnAnswer.passedOn && passOnAnswer.result
                   ? getOnCallPassOnSentence(passOnAnswer.result, {
                       timezone: timezone,
+                      keepTogether: true,
                     })
                   : getOnCallPassOnRefusalSentence(passOnAnswer),
             };

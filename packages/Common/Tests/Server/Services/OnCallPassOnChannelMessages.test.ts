@@ -45,26 +45,28 @@ import WhatsAppMessage from "../../../Types/WhatsApp/WhatsAppMessage";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * EVERY MESSAGE A PAGE SENDS LETS THE PERSON PASS IT ON.
+ * EVERY MESSAGE A PAGE SENDS LETS THE PERSON ESCALATE IT.
  *
- * Woken by a page they cannot take, a person passes it on from the message
- * itself. These read what each channel's message says, for each of the four
- * things that page - an incident, an alert and both kinds of episode:
+ * Woken by a page they cannot take, a person escalates it from the message
+ * itself - with the word every other place uses (the action was called "Pass
+ * it on" before). These read what each channel's message says, for each of
+ * the four things that page - an incident, an alert and both kinds of
+ * episode:
  *
- *   call       "If you can't take it, press 2 to pass it on.", and the
+ *   call       "If you can't take it, press 2 to escalate.", and the
  *              address the key press goes to carries the page's token;
- *   text       "Ack or pass it on:", then the one link, which opens a
- *              page that offers both;
+ *   text       "Ack or escalate:", then the one link, which opens a page
+ *              that offers both;
  *   WhatsApp   the approved template as it is: its acknowledge link opens
  *              that same page, so it carries the token;
- *   Telegram,  a "Can't take it? Pass it on" link under Acknowledge;
+ *   Telegram,  a "Can't take it? Escalate" link under Acknowledge;
  *   Slack and
  *   Teams DMs
- *   email      a Pass it on button under Acknowledge (its template draws it
+ *   email      an Escalate button under Acknowledge (its template draws it
  *              from passOnLink); its Acknowledge link has no token, so the
  *              link it prints to copy stays one line.
  *
- * Every link that can pass the page on carries a token signed for this one
+ * Every link that can escalate the page carries a token signed for this one
  * notification (OnCallPageLinkToken) - checked here by verifying it.
  */
 
@@ -422,14 +424,14 @@ const ACKNOWLEDGE_PAGE: string = `/api/user-notification-log-timeline/acknowledg
 const PASS_ON_PAGE: string = `/api/user-notification-log-timeline/pass-on-page/${NOTIFICATION.toString()}`;
 
 describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
-  test("a call asks for 2 to pass it on, after 1 to acknowledge", async () => {
+  test("a call asks for 2 to escalate, after 1 to acknowledge", async () => {
     const request: CallRequest = await kind.call();
     const gather: GatherInput = request.data.find((item: unknown) => {
       return Boolean((item as GatherInput).introMessage);
     }) as GatherInput;
 
     expect(gather.introMessage).toBe(
-      `To acknowledge this ${kind.noun}, press 1. If you can't take it, press 2 to pass it on.`,
+      `To acknowledge this ${kind.noun}, press 1. If you can't take it, press 2 to escalate.`,
     );
     expect(gather.numDigits).toBe(1);
   });
@@ -458,12 +460,12 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     ]);
   });
 
-  test("a text says it can be passed on, behind its one link, which carries the token", async () => {
+  test("a text says it can be escalated, behind its one link, which carries the token", async () => {
     const sms: SMS = await kind.sms();
 
     expect(
       sms.message.endsWith(
-        " Ack or pass it on: https://oneuptime.example.com/l/1",
+        " Ack or escalate: https://oneuptime.example.com/l/1",
       ),
     ).toBe(true);
     expect(sms.message).toContain(` ${kind.noun} `);
@@ -472,25 +474,26 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     ]);
   });
 
-  test("a Telegram message has a 'Can't take it? Pass it on' link under Acknowledge", async () => {
+  test("a Telegram message has a 'Can't take it? Escalate' link under Acknowledge", async () => {
     const body: string = await kind.telegram();
 
     expect(body).toContain(
       '✅ <a href="https://oneuptime.example.com/l/1">Tap to acknowledge</a>',
     );
     expect(body).toContain(
-      `⏭️ <a href="https://oneuptime.example.com/l/2">Can't take it? Pass it on</a>`,
+      `⬆️ <a href="https://oneuptime.example.com/l/2">Can't take it? Escalate</a>`,
     );
     expect(body.indexOf("Tap to acknowledge")).toBeLessThan(
-      body.indexOf("Pass it on"),
+      body.indexOf("Escalate"),
     );
+    expect(body.toLowerCase()).not.toContain("pass it on");
     expect(shortened.map(readLink)).toEqual([
       { path: ACKNOWLEDGE_PAGE, hasToken: true },
       { path: PASS_ON_PAGE, hasToken: true },
     ]);
   });
 
-  test("a WhatsApp message keeps its approved template; its link opens the page that offers passing on", async () => {
+  test("a WhatsApp message keeps its approved template; its link opens the page that offers escalating", async () => {
     const message: WhatsAppMessage = await kind.whatsApp();
 
     expect(message.templateVariables?.["acknowledge_url"]).toBe(
@@ -504,7 +507,7 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     ]);
   });
 
-  test("a Slack or Microsoft Teams direct message has a 'Can't take it? Pass it on' link under Acknowledge", async () => {
+  test("a Slack or Microsoft Teams direct message has a 'Can't take it? Escalate' link under Acknowledge", async () => {
     const markdown: string = (await kind.workspace())
       .map((block: WorkspaceMessageBlock): string => {
         return (block as WorkspacePayloadMarkdown).text || "";
@@ -515,24 +518,25 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
       "✅ [Acknowledge](https://oneuptime.example.com/l/1)",
     );
     expect(markdown).toContain(
-      "⏭️ [Can't take it? Pass it on](https://oneuptime.example.com/l/2)",
+      "⬆️ [Can't take it? Escalate](https://oneuptime.example.com/l/2)",
     );
     expect(markdown.indexOf("[Acknowledge]")).toBeLessThan(
-      markdown.indexOf("Pass it on"),
+      markdown.indexOf("Escalate"),
     );
+    expect(markdown.toLowerCase()).not.toContain("pass it on");
     expect(shortened.map(readLink)).toEqual([
       { path: ACKNOWLEDGE_PAGE, hasToken: true },
       { path: PASS_ON_PAGE, hasToken: true },
     ]);
   });
 
-  test("an email gets a Pass it on button with the token, beside an Acknowledge link as short as it always was", async () => {
+  test("an email gets an Escalate button with the token, beside an Acknowledge link as short as it always was", async () => {
     const email: EmailMessage = await kind.email();
 
     /*
      * The email prints its Acknowledge link in full, to copy and paste: a
-     * token would stretch it from one line to five. The email's own Pass it
-     * on button is the way to pass it on.
+     * token would stretch it from one line to five. The email's own
+     * Escalate button is the way to escalate it.
      */
     expect(String(email.vars[kind.acknowledgeVar])).toBe(
       `https://oneuptime.example.com${ACKNOWLEDGE_PAGE}`,

@@ -19,7 +19,7 @@ import OnCallPageLinkToken, {
  *
  *   acknowledge-page   what the page is about, with Acknowledge - and, for a
  *                      link that carries the page's token, "Can't take it?
- *                      Pass it on" beside it;
+ *                      Escalate" beside it;
  *   pass-on-page       what passing it on would do, and the button that does
  *                      it (a form, so a mail scanner that follows every link
  *                      passes nothing on);
@@ -58,7 +58,7 @@ export default class OnCallPageLinks {
 
   /*
    * The page a message's Acknowledge link opens, with the token: it offers
-   * "Can't take it? Pass it on" too.
+   * "Can't take it? Escalate" too.
    */
   public static async getAcknowledgePageUrl(
     userOnCallLogTimelineId: ObjectID,
@@ -74,7 +74,7 @@ export default class OnCallPageLinks {
 
   /*
    * The page an email's Acknowledge button opens, and the link under it to
-   * copy and paste - without the token. An email has its own Pass it on
+   * copy and paste - without the token. An email has its own Escalate
    * button, so its acknowledge page need not offer passing on as well, and
    * a token would stretch the link the email prints in full from one line
    * to five (a token is some 300 characters).
@@ -88,7 +88,7 @@ export default class OnCallPageLinks {
     });
   }
 
-  // The page a message's "Pass it on" link opens.
+  // The page a message's Escalate link opens (its address keeps pass-on).
   public static async getPassOnPageUrl(
     userOnCallLogTimelineId: ObjectID,
   ): Promise<URL> {

@@ -106,7 +106,7 @@ import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import OnCallPageLinks from "../Utils/OnCall/OnCallPageLinks";
 import {
-  CANT_TAKE_IT_PASS_IT_ON,
+  CANT_TAKE_IT_ESCALATE,
   getOnCallPageCallPassOnPrompt,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert from "../../Models/DatabaseModels/Alert";
@@ -3859,7 +3859,7 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 passes the page on only through it.
+          // Carries the page's token: pressing 2 escalates the page only through it.
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -3906,7 +3906,7 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 passes the page on only through it.
+          // Carries the page's token: pressing 2 escalates the page only through it.
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -3954,7 +3954,7 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 passes the page on only through it.
+          // Carries the page's token: pressing 2 escalates the page only through it.
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -4003,7 +4003,7 @@ export class Service extends ProjectReferencesService<Model> {
               sayMessage: "Invalid input. Good bye",
             },
           },
-          // Carries the page's token: pressing 2 passes the page on only through it.
+          // Carries the page's token: pressing 2 escalates the page only through it.
           responseUrl: await OnCallPageLinks.getCallResponseUrl(
             userOnCallLogTimelineId,
           ),
@@ -4158,7 +4158,7 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * The short link of a page's acknowledge page. It carries the page's
-   * token (OnCallPageLinks), so the page offers "Can't take it? Pass it on"
+   * token (OnCallPageLinks), so the page offers "Can't take it? Escalate"
    * beside Acknowledge: a text, a WhatsApp message and a Telegram or chat
    * message lead there.
    */
@@ -4171,7 +4171,7 @@ export class Service extends ProjectReferencesService<Model> {
     return await ShortLinkService.getShortenedUrl(shortUrl);
   }
 
-  // The short link of a page's "Can't take it? Pass it on" page.
+  // The short link of a page's "Can't take it? Escalate" page.
   private async buildOnCallPassOnShortUrl(
     userOnCallLogTimelineId: ObjectID,
   ): Promise<URL> {
@@ -4235,7 +4235,7 @@ export class Service extends ProjectReferencesService<Model> {
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
       "",
-      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
+      `⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`,
     );
 
     return lines.join("\n");
@@ -4283,7 +4283,7 @@ export class Service extends ProjectReferencesService<Model> {
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
       "",
-      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
+      `⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`,
     );
 
     return lines.join("\n");
@@ -4332,7 +4332,7 @@ export class Service extends ProjectReferencesService<Model> {
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
       "",
-      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
+      `⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`,
     );
 
     return lines.join("\n");
@@ -4381,7 +4381,7 @@ export class Service extends ProjectReferencesService<Model> {
       "",
       `✅ <a href="${this.escapeTelegramHtml(ackUrl.toString())}">Tap to acknowledge</a>`,
       "",
-      `⏭️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_PASS_IT_ON}</a>`,
+      `⬆️ <a href="${this.escapeTelegramHtml(passOnUrl.toString())}">${CANT_TAKE_IT_ESCALATE}</a>`,
     );
 
     return lines.join("\n");
@@ -4405,7 +4405,7 @@ export class Service extends ProjectReferencesService<Model> {
     dashboardUrl: URL | null;
     dashboardLinkText: string;
     ackUrl: URL;
-    // "Can't take it? Pass it on" (OnCallPagePassOn).
+    // "Can't take it? Escalate" (OnCallPagePassOn).
     passOnUrl: URL;
   }): Array<WorkspaceMessageBlock> {
     const lines: Array<string> = [
@@ -4433,7 +4433,7 @@ export class Service extends ProjectReferencesService<Model> {
       "",
       mdText`✅ [Acknowledge](${data.ackUrl.toString()})`.toString(),
       "",
-      mdText`⏭️ [${CANT_TAKE_IT_PASS_IT_ON}](${data.passOnUrl.toString()})`.toString(),
+      mdText`⬆️ [${CANT_TAKE_IT_ESCALATE}](${data.passOnUrl.toString()})`.toString(),
     );
 
     const markdownBlock: WorkspacePayloadMarkdown = {
@@ -4602,7 +4602,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<WhatsAppMessage> {
     /*
      * The template's wording is fixed (approved by Meta); its acknowledge
-     * link opens the page that offers "Can't take it? Pass it on" too.
+     * link opens the page that offers "Can't take it? Escalate" too.
      */
     const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4647,7 +4647,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<WhatsAppMessage> {
     /*
      * The template's wording is fixed (approved by Meta); its acknowledge
-     * link opens the page that offers "Can't take it? Pass it on" too.
+     * link opens the page that offers "Can't take it? Escalate" too.
      */
     const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4694,7 +4694,7 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<WhatsAppMessage> {
     /*
      * The template's wording is fixed (approved by Meta); its acknowledge
-     * link opens the page that offers "Can't take it? Pass it on" too.
+     * link opens the page that offers "Can't take it? Escalate" too.
      */
     const acknowledgeUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4832,7 +4832,7 @@ export class Service extends ProjectReferencesService<Model> {
         await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
       ).toString(),
       /*
-       * No token: the email has its own Pass it on button, and the link
+       * No token: the email has its own Escalate button, and the link
        * it prints to copy stays one line.
        */
       acknowledgeAlertLink: (
@@ -4840,7 +4840,7 @@ export class Service extends ProjectReferencesService<Model> {
           userOnCallLogTimelineId,
         )
       ).toString(),
-      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
         await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
@@ -4905,7 +4905,7 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Pass it on button, and the link
+       * No token: the email has its own Escalate button, and the link
        * it prints to copy stays one line.
        */
       acknowledgeIncidentLink: (
@@ -4913,7 +4913,7 @@ export class Service extends ProjectReferencesService<Model> {
           userOnCallLogTimelineId,
         )
       ).toString(),
-      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
         await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
@@ -5061,7 +5061,7 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Pass it on button, and the link
+       * No token: the email has its own Escalate button, and the link
        * it prints to copy stays one line.
        */
       acknowledgeAlertEpisodeLink: (
@@ -5069,7 +5069,7 @@ export class Service extends ProjectReferencesService<Model> {
           userOnCallLogTimelineId,
         )
       ).toString(),
-      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
         await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
@@ -5226,7 +5226,7 @@ export class Service extends ProjectReferencesService<Model> {
         )
       ).toString(),
       /*
-       * No token: the email has its own Pass it on button, and the link
+       * No token: the email has its own Escalate button, and the link
        * it prints to copy stays one line.
        */
       acknowledgeIncidentEpisodeLink: (
@@ -5234,7 +5234,7 @@ export class Service extends ProjectReferencesService<Model> {
           userOnCallLogTimelineId,
         )
       ).toString(),
-      // "Can't take it? Pass it on" (OnCallPagePassOn).
+      // "Can't take it? Escalate" (OnCallPagePassOn).
       passOnLink: (
         await OnCallPageLinks.getPassOnPageUrl(userOnCallLogTimelineId)
       ).toString(),
