@@ -418,7 +418,7 @@ const KubernetesClusterEvents: FunctionComponent<
     <div data-testid="kubernetes-events-view">
       <Card
         title="Events"
-        description="What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. Warnings are listed first when there are any."
+        description="What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any."
         rightElement={rangeElement}
         buttons={getTableHeaderButtons(cardButtons)}
         headerLayout="toolbar"
