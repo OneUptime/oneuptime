@@ -909,3 +909,258 @@ test.describe("everywhere", () => {
     await screenshot(page, "german");
   });
 });
+
+/*
+ * The LLM provider OneUptime AI drafts with (Common/Types/AI/
+ * LlmProviderChoice): first under the Draft step's More fields. Its empty
+ * box names the provider a rule that picks none uses - the project's
+ * default, else the global one - and so does the folded line while there
+ * is more than one to pick from; a pick is sent with the rule.
+ */
+const OPUS_PROVIDER_ID: string = "9d9d9d9d-0000-4000-8000-000000000003";
+// The field's one line, the same on every kind of rule.
+const POSTMORTEM_PROVIDER_DESCRIPTION: string =
+  "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.";
+const PROJECT_DEFAULT_SUMMARY: string =
+  "The rule uses the project's default LLM provider, Azure GPT-4o.";
+const PROJECT_DEFAULT_PLACEHOLDER: string = "Project default (Azure GPT-4o)";
+
+// An id as a save sends it: a string, or an ObjectID as the form serialised it.
+const idOfValue: (value: unknown) => string = (value: unknown): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+
+  const row: Record<string, unknown> = (value || {}) as Record<string, unknown>;
+  return String(row["value"] || row["_id"] || "");
+};
+
+const moreFieldsButton: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByRole("button", { name: /More fields/ });
+};
+
+const openMoreFields: (dialog: Locator) => Promise<void> = async (
+  dialog: Locator,
+): Promise<void> => {
+  await moreFieldsButton(dialog).click();
+  await expect(moreFieldsButton(dialog)).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+};
+
+const providerPicker: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId("rule-llm-provider-picker");
+};
+
+const providerBox: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return providerPicker(dialog).getByRole("combobox");
+};
+
+const providerShown: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return providerPicker(dialog).getByTestId("entity-dropdown-value");
+};
+
+// The create dialog, on its Draft step.
+const openDraftStep: (page: Page) => Promise<Locator> = async (
+  page: Page,
+): Promise<Locator> => {
+  const dialog: Locator = await openCreateDialog(page);
+  await dialog.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(dialog).toContainText(TEMPLATES_DESCRIPTION);
+  return dialog;
+};
+
+/*
+ * The dialog alone, scrolled to a field: its body scrolls, so a page
+ * screenshot shows only what sits above the fold.
+ */
+const dialogScreenshot: (
+  dialog: Locator,
+  field: Locator,
+  name: string,
+) => Promise<void> = async (
+  dialog: Locator,
+  field: Locator,
+  name: string,
+): Promise<void> => {
+  fs.mkdirSync(SCREENSHOTS, { recursive: true });
+  await field.scrollIntoViewIfNeeded();
+  await dialog.screenshot({ path: path.join(SCREENSHOTS, `${name}.png`) });
+};
+
+test.describe("the LLM provider a rule drafts with", () => {
+  test("folded, the line names the provider a rule that picks none uses; open, the box names it, first under More fields", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "providers=project");
+    await unfold(page);
+    const dialog: Locator = await openDraftStep(page);
+
+    await expect(dialog.getByTestId("collapsible-section-summary")).toHaveText(
+      PROJECT_DEFAULT_SUMMARY,
+    );
+
+    await openMoreFields(dialog);
+    await expect(
+      dialog.getByText("LLM Provider", { exact: true }),
+    ).toBeVisible();
+    await expect(dialog).toContainText(POSTMORTEM_PROVIDER_DESCRIPTION);
+    await expect(dialog).not.toContainText("LLM Provider (Optional)");
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      PROJECT_DEFAULT_PLACEHOLDER,
+    );
+    // First under More fields, above the description.
+    expect((await providerBox(dialog).boundingBox())!.y).toBeLessThan(
+      (await dialog
+        .getByRole("textbox", { name: /^Description/ })
+        .boundingBox())!.y,
+    );
+  });
+
+  /*
+   * The global provider alone: nothing to pick between, so the folded line
+   * says nothing of it (none at all, the description being the only other
+   * field); open, the box names it.
+   */
+  test("with the global provider alone, the folded line says nothing of it; the box names it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page);
+    await unfold(page);
+    const dialog: Locator = await openDraftStep(page);
+
+    await expect(moreFieldsButton(dialog)).toBeVisible();
+    await expect(dialog.getByTestId("collapsible-section-summary")).toHaveCount(
+      0,
+    );
+
+    await openMoreFields(dialog);
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      "Global provider (OneUptime AI)",
+    );
+  });
+
+  test("a pick is sent with the rule", async ({ page }: { page: Page }) => {
+    await openPage(page, "providers=project");
+    await unfold(page);
+    const dialog: Locator = await openDraftStep(page);
+    await openMoreFields(dialog);
+
+    await providerBox(dialog).click();
+    await page.getByRole("option", { name: /^Claude Opus/ }).click();
+    await expect(providerShown(dialog)).toContainText("Claude Opus");
+
+    await dialog
+      .getByRole("button", { name: "Create Postmortem Rule" })
+      .click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    expect(idOfValue(sent.creates[0]!.data["llmProviderId"])).toBe(
+      OPUS_PROVIDER_ID,
+    );
+  });
+
+  test("a rule's pick is shown when it is edited, and clearing it saves none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, "rules=1&providers=project&rulePick=opus");
+    await unfold(page);
+
+    await rulesCard(page)
+      .locator("tbody tr")
+      .first()
+      .getByRole("button", { name: "Edit", exact: true })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByText("Draft", { exact: true }).click();
+
+    const folded: Array<string> = (
+      await dialog.getByTestId("folded-section-item").allInnerTexts()
+    ).map((text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    });
+    expect(folded).toContain("LLM Provider: Claude Opus");
+
+    await openMoreFields(dialog);
+    await expect(providerShown(dialog)).toContainText("Claude Opus");
+    await providerPicker(dialog).getByTestId("entity-dropdown-clear").click();
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      PROJECT_DEFAULT_PLACEHOLDER,
+    );
+
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.updates.length).toBeGreaterThan(0);
+    expect(
+      sent.updates[sent.updates.length - 1]!.data["llmProviderId"] || null,
+    ).toBeNull();
+  });
+
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`the field, open, at ${width}px, ${theme}`, async ({
+        page,
+      }: {
+        page: Page;
+      }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await openPage(
+          page,
+          ["providers=project", theme === "dark" ? "theme=dark" : ""]
+            .filter(Boolean)
+            .join("&"),
+        );
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        }
+        await unfold(page);
+
+        const dialog: Locator = await openDraftStep(page);
+        await openMoreFields(dialog);
+        await providerBox(dialog).click();
+        await expect(page.getByRole("option")).toHaveCount(3);
+
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth;
+          }),
+        ).toBeLessThanOrEqual(width);
+        const dialogBox: { x: number; width: number } =
+          (await dialog.boundingBox())!;
+        const pickerBox: { x: number; width: number } =
+          (await providerPicker(dialog).boundingBox())!;
+        expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(
+          dialogBox.x + dialogBox.width,
+        );
+
+        await dialogScreenshot(
+          dialog,
+          providerPicker(dialog),
+          `postmortem-rule-llm-provider-${width}-${theme}`,
+        );
+      });
+    }
+  }
+});

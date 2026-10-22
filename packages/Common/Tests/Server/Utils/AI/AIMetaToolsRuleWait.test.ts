@@ -10,6 +10,7 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import AlertService from "../../../../Server/Services/AlertService";
 import AIInvestigationQueue from "../../../../Server/Utils/AI/SRE/InvestigationQueue";
+import InvestigationRules from "../../../../Server/Utils/AI/SRE/InvestigationRules";
 import InvestigationRuleWait, {
   RuleWaitSubject,
 } from "../../../../Server/Utils/AI/SRE/InvestigationRuleWait";
@@ -345,5 +346,65 @@ describe("start_investigation on a record that waits", () => {
       ),
     ).rejects.toThrow();
     expect(startNow).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * An investigation Ask AI starts uses the LLM provider the record's
+ * investigation rules pick, as the one the rules start does
+ * (Types/AI/LlmProviderChoice).
+ */
+describe("start_investigation and the LLM provider the rules pick", () => {
+  const OPUS: ObjectID = new ObjectID("cccccccc-cccc-4ccc-8ccc-ccccccccccc1");
+
+  test("the run it queues records the rules' pick", async () => {
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    jest.spyOn(InvestigationRuleWait, "getWaiting").mockResolvedValue(null);
+    const pick: jest.SpyInstance = jest
+      .spyOn(InvestigationRules, "getSubjectLlmProviderId")
+      .mockResolvedValue(OPUS);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockResolvedValue(RUN_ID as never);
+
+    await StartInvestigationTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(pick).toHaveBeenCalledWith({
+      projectId: ctx.projectId,
+      incidentId: INCIDENT_ID,
+      alertId: undefined,
+    });
+    expect(
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
+    ).toEqual(OPUS);
+  });
+
+  test("an alert's rules pick for an alert's run", async () => {
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    jest.spyOn(InvestigationRuleWait, "getWaiting").mockResolvedValue(null);
+    const pick: jest.SpyInstance = jest
+      .spyOn(InvestigationRules, "getSubjectLlmProviderId")
+      .mockResolvedValue(undefined);
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockResolvedValue(RUN_ID as never);
+
+    await StartInvestigationTool.execute({ alertId: ALERT_ID.toString() }, ctx);
+
+    expect(pick).toHaveBeenCalledWith({
+      projectId: ctx.projectId,
+      incidentId: undefined,
+      alertId: ALERT_ID,
+    });
+    expect(
+      (enqueue.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
+    ).toBeUndefined();
   });
 });

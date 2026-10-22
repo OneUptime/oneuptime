@@ -333,6 +333,40 @@ describe("RemediationRulePullRequests.getRulesForSignal", () => {
         isEveryRepository: false,
         repositoryIds: [CHECKOUT_REPO],
       },
+      // The rule picks no LLM provider: the project's default, else the global one.
+      llmProviderId: "",
     });
+  });
+
+  /*
+   * The pull request is written with the LLM provider the rules that open it
+   * pick (Types/AI/LlmProviderChoice): what was read carries the pick.
+   */
+  test("what it reads carries the LLM provider the matching rule picks to the pull request", async () => {
+    const OPUS: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+    mockRules([
+      rule({
+        monitors: [ref(Monitor, MONITOR_A)],
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident() as never);
+
+    const rules: AutomaticFixPullRequestRules | null =
+      await RemediationRulePullRequests.getRulesForSignal({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+      });
+
+    expect(
+      decideAutomaticFixPullRequest({
+        project: { enableAutomaticIncidentRemediation: true },
+        signal: AutoRemediationTriggerEntity.Incident,
+        pullRequest: AutomaticFixPullRequest.CodeFix,
+        rules,
+      }).llmProviderId,
+    ).toBe(OPUS);
   });
 });

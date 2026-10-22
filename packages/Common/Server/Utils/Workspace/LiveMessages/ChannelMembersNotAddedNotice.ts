@@ -20,15 +20,20 @@ import DatabaseConfig from "../../../DatabaseConfig";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import UserService from "../../../Services/UserService";
 import WorkspaceLiveMessageService from "../../../Services/WorkspaceLiveMessageService";
+import { NotificationFor } from "../../../Services/WorkspaceNotificationRuleService";
 import logger, { LogAttributes } from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import MicrosoftTeamsOnCallMention from "../MicrosoftTeams/MicrosoftTeamsOnCallMention";
+import { ScheduleOnCallPerson } from "../WorkspaceScheduleOnCall";
 import WorkspaceLiveMessages from "./WorkspaceLiveMessages";
 
 // A channel OneUptime could not add somebody to.
 export interface ChannelMembersNotAddedChannel {
   id: string;
   name?: string | undefined;
+  // A Microsoft Teams channel's team, by its Graph id: what posting to it takes.
+  teamId?: string | undefined;
 }
 
 /*
@@ -40,6 +45,14 @@ export interface ChannelMembersNotAdded {
   workspaceType: WorkspaceType;
   channels: Array<ChannelMembersNotAddedChannel>;
   userIds: Array<ObjectID>;
+  /*
+   * Microsoft Teams adds nobody to a channel, so the people on call in the
+   * schedules the channels' rules name are @mentioned in them instead
+   * (MicrosoftTeamsOnCallMention), and Teams notifies them.
+   */
+  onCallToMention?: Array<ScheduleOnCallPerson> | undefined;
+  // The record the channels are for: the mention is logged against it.
+  notificationFor?: NotificationFor | undefined;
 }
 
 // The note, as posted: its Markdown, and the line its notification shows.
@@ -82,13 +95,17 @@ export interface ChannelMembersNotAddedNote {
  * Slack only. OneUptime never adds people to a Microsoft Teams channel - a
  * standard channel is open to everyone in its team - so connecting a
  * Microsoft Teams account would not add anybody either, and the note would
- * only tell people to do something that changes nothing.
+ * only tell people to do something that changes nothing. What a Teams
+ * channel is told at the same moment instead is who is on call in the
+ * schedules its rules name, @mentioned so that Teams notifies them
+ * (MicrosoftTeamsOnCallMention).
  */
 export default class ChannelMembersNotAddedNotice {
   /*
-   * Notes everybody channel setup could not add, channel by channel. Never
-   * throws: a note that cannot be posted is logged, and the record's other
-   * messages go on.
+   * Notes everybody channel setup could not add, channel by channel, and
+   * mentions who is on call in a Microsoft Teams channel. Never throws: a
+   * note that cannot be posted is logged, and the record's other messages
+   * go on.
    */
   @CaptureSpan()
   public static async noteAll(data: {
@@ -101,6 +118,19 @@ export default class ChannelMembersNotAddedNotice {
 
     for (const membersNotAdded of data.membersNotAdded) {
       try {
+        if (
+          membersNotAdded.workspaceType === WorkspaceType.MicrosoftTeams &&
+          membersNotAdded.onCallToMention &&
+          membersNotAdded.onCallToMention.length > 0
+        ) {
+          await MicrosoftTeamsOnCallMention.mentionInChannels({
+            projectId: data.projectId,
+            channels: membersNotAdded.channels,
+            people: membersNotAdded.onCallToMention,
+            notificationFor: membersNotAdded.notificationFor,
+          });
+        }
+
         await this.noteMembersNotAdded({
           projectId: data.projectId,
           workspaceType: membersNotAdded.workspaceType,

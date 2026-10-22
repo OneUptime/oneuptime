@@ -1,3 +1,4 @@
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AutoRemediationRule from "../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
@@ -63,10 +64,17 @@ import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService
 import IncidentFeedService from "./IncidentFeedService";
 import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import LlmProviderService from "./LlmProviderService";
+import LlmProviderChoice from "../Utils/AI/LlmProviderChoice";
+import {
+  getRuleLlmProviderId,
+  getRulesLlmProviderId,
+} from "../../Types/AI/LlmProviderChoice";
 import ResourceAiAccessService, {
   describeResourceNoun,
 } from "./ResourceAiAccessService";
 import ProjectService from "./ProjectService";
+import AIRunService from "./AIRunService";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import RunbookService from "./RunbookService";
 import RunbookTriggerType from "../../Types/Runbook/RunbookTriggerType";
@@ -1586,6 +1594,8 @@ class AutoRemediationRuleEngineServiceClass {
           runbooks: { _id: true, name: true },
           runnerId: true,
           externalMcpServers: { _id: true },
+          // The LLM provider the rule picks: none when empty.
+          llmProviderId: true,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -1650,6 +1660,13 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     /*
+     * The LLM provider the cluster and resource rounds use: the pick of the
+     * first matching AI fix rule by name that picks one; with none, the
+     * project's default, else the global one (Types/AI/LlmProviderChoice).
+     */
+    const roundsLlmProviderId: string = getRulesLlmProviderId(aiFixRules);
+
+    /*
      * Whether the AI agent on a cluster or host fixes this signal - a round
      * started now, or by an earlier pass. A runbook OneUptime AI picks then
      * waits for approval instead of starting on its own: two fixes running
@@ -1679,6 +1696,7 @@ class AutoRemediationRuleEngineServiceClass {
           budget: remainingBudget,
           recorder,
           askFirst,
+          llmProviderId: roundsLlmProviderId,
         });
 
       remainingBudget -= clusterRoundsStarted;
@@ -1714,6 +1732,7 @@ class AutoRemediationRuleEngineServiceClass {
           clusterRoundStarted: clusterRoundsStarted > 0,
           recorder,
           askFirst,
+          llmProviderId: roundsLlmProviderId,
         });
 
       remainingBudget -= resourceRoundsStarted;
@@ -1731,21 +1750,45 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     /*
-     * Lazily evaluated once: AI runs need a provider. AI itself is on — the
-     * kill switch above already returned otherwise.
+     * Lazily evaluated, once for each LLM provider a rule picks ("" for
+     * none): AI runs need a provider - the pick, or what it falls back to,
+     * the project's default, else the global one (LlmProviderChoice). AI
+     * itself is on — the kill switch above already returned otherwise.
      */
-    let aiAvailable: boolean | null = null;
+    const aiAvailableByPick: Map<string, boolean> = new Map<string, boolean>();
 
+    const isAiAvailableFor: (
+      pickedProviderId: string,
+    ) => Promise<boolean> = async (
+      pickedProviderId: string,
+    ): Promise<boolean> => {
+      const known: boolean | undefined =
+        aiAvailableByPick.get(pickedProviderId);
+
+      if (known !== undefined) {
+        return known;
+      }
+
+      const isAvailable: boolean = pickedProviderId
+        ? (
+            await LlmProviderChoice.decide({
+              projectId: data.projectId,
+              pickedProviderId,
+            })
+          ).provider !== null
+        : (await LlmProviderService.getLLMProviderForProject(
+            data.projectId,
+          )) !== null;
+
+      aiAvailableByPick.set(pickedProviderId, isAvailable);
+
+      return isAvailable;
+    };
+
+    // With no rule: the project's default, else the global provider.
     const isAiAvailable: () => Promise<boolean> =
       async (): Promise<boolean> => {
-        if (aiAvailable === null) {
-          aiAvailable =
-            (await LlmProviderService.getLLMProviderForProject(
-              data.projectId,
-            )) !== null;
-        }
-
-        return aiAvailable;
+        return await isAiAvailableFor("");
       };
 
     /*
@@ -1807,6 +1850,15 @@ class AutoRemediationRuleEngineServiceClass {
     );
 
     for (const rule of matchedRules) {
+      /*
+       * Whether AI can run for this rule: a provider to run on - the one the
+       * rule picks, or what it falls back to (LlmProviderChoice).
+       */
+      const isRuleAiAvailable: () => Promise<boolean> =
+        async (): Promise<boolean> => {
+          return await isAiAvailableFor(getRuleLlmProviderId(rule));
+        };
+
       const ruleNames: { ruleId?: string | undefined; ruleName?: string } = {
         ruleId: rule.id?.toString(),
         ruleName: rule.name || "",
@@ -1862,7 +1914,7 @@ class AutoRemediationRuleEngineServiceClass {
             runbookIds: getRuleRunbookIds(rule),
           }))
         ) {
-          if (!(await isAiAvailable())) {
+          if (!(await isRuleAiAvailable())) {
             recorder.add({
               lane: AutoRemediationDecisionLane.Rule,
               reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -1920,7 +1972,7 @@ class AutoRemediationRuleEngineServiceClass {
               linkage,
               recorder,
               ruleNames,
-              isAiAvailable,
+              isAiAvailable: isRuleAiAvailable,
               isEveryServerFixStarted: isEveryServerMcpFixStarted,
               anotherRuleAsksFirst: askFirst !== undefined,
               agentRoundStarted: agentRoundsStarted > 0,
@@ -1949,7 +2001,7 @@ class AutoRemediationRuleEngineServiceClass {
           continue;
         }
 
-        if (!(await isAiAvailable())) {
+        if (!(await isRuleAiAvailable())) {
           recorder.add({
             lane: AutoRemediationDecisionLane.Rule,
             reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -1985,7 +2037,7 @@ class AutoRemediationRuleEngineServiceClass {
         action === AutoRemediationAction.OneUptimeAI &&
         rule.aiComposesCommands
       ) {
-        if (!(await isAiAvailable())) {
+        if (!(await isRuleAiAvailable())) {
           recorder.add({
             lane: AutoRemediationDecisionLane.Rule,
             reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -2018,7 +2070,7 @@ class AutoRemediationRuleEngineServiceClass {
         action === AutoRemediationAction.OneUptimeAI &&
         rule.aiSelectsRunbook
       ) {
-        if (!(await isAiAvailable())) {
+        if (!(await isRuleAiAvailable())) {
           recorder.add({
             lane: AutoRemediationDecisionLane.Rule,
             reason: AutoRemediationDecisionReason.RuleSkippedNoLlmProvider,
@@ -2298,6 +2350,8 @@ class AutoRemediationRuleEngineServiceClass {
     recorder?: AutoRemediationDecisionRecorder | undefined;
     // A matching rule that asks before fixing: every round asks first.
     askFirst?: RuleAskFirst | undefined;
+    // The LLM provider the matching AI fix rules pick ("" for none).
+    llmProviderId?: string | undefined;
   }): Promise<number> {
     let consumed: number = 0;
     const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
@@ -2402,6 +2456,7 @@ class AutoRemediationRuleEngineServiceClass {
         linkage: data.linkage,
         round: 1,
         askFirstReason: data.askFirst?.reason,
+        llmProviderId: data.llmProviderId,
       });
 
       /*
@@ -2539,6 +2594,11 @@ class AutoRemediationRuleEngineServiceClass {
         cluster: status,
         linkage,
         round: priorRounds + 1,
+        // The provider the round before it used: the same fix, again.
+        llmProviderId: await this.getLatestRoundLlmProviderId({
+          linkage,
+          kubernetesClusterId: data.kubernetesClusterId,
+        }),
         askFirstReason:
           data.forceSuggest === true
             ? data.forceSuggestReason ||
@@ -2564,6 +2624,8 @@ class AutoRemediationRuleEngineServiceClass {
      * completes "this round asks first because ...".
      */
     askFirstReason?: string | undefined;
+    // The LLM provider a rule picks for the round ("" or none for none).
+    llmProviderId?: string | undefined;
   }): Promise<boolean> {
     const { cluster } = data;
 
@@ -2656,6 +2718,7 @@ class AutoRemediationRuleEngineServiceClass {
       subjectAlertId: data.linkage.alertId,
       subjectAutoRemediationSuggestionId: created.id!,
       remediationRunType: AIRunType.RemediationExecution,
+      ...this.getRunLlmProviderInput(data.llmProviderId),
     });
 
     if (!aiRunId) {
@@ -2759,6 +2822,8 @@ class AutoRemediationRuleEngineServiceClass {
     recorder?: AutoRemediationDecisionRecorder | undefined;
     // A matching rule that asks before fixing: the round asks first.
     askFirst?: RuleAskFirst | undefined;
+    // The LLM provider the matching AI fix rules pick ("" for none).
+    llmProviderId?: string | undefined;
   }): Promise<number> {
     const recorder: AutoRemediationDecisionRecorder | undefined = data.recorder;
 
@@ -2906,6 +2971,7 @@ class AutoRemediationRuleEngineServiceClass {
         linkage: data.linkage,
         round: 1,
         askFirstReason: data.askFirst?.reason,
+        llmProviderId: data.llmProviderId,
       });
 
       const isAskedByRule: boolean = Boolean(
@@ -3027,6 +3093,12 @@ class AutoRemediationRuleEngineServiceClass {
         resource: status,
         linkage,
         round: priorRounds + 1,
+        // The provider the round before it used: the same fix, again.
+        llmProviderId: await this.getLatestRoundLlmProviderId({
+          linkage,
+          resourceType: data.resourceType,
+          resourceId: data.resourceId,
+        }),
         askFirstReason:
           data.forceSuggest === true
             ? data.forceSuggestReason ||
@@ -3056,6 +3128,8 @@ class AutoRemediationRuleEngineServiceClass {
     round: number;
     // Set when a round that would run unattended must ask first anyway.
     askFirstReason?: string | undefined;
+    // The LLM provider a rule picks for the round ("" or none for none).
+    llmProviderId?: string | undefined;
   }): Promise<boolean> {
     const { resource } = data;
     const noun: string = describeResourceNoun(resource.resourceType);
@@ -3134,6 +3208,7 @@ class AutoRemediationRuleEngineServiceClass {
       subjectAlertId: data.linkage.alertId,
       subjectAutoRemediationSuggestionId: created.id!,
       remediationRunType: AIRunType.RemediationExecution,
+      ...this.getRunLlmProviderInput(data.llmProviderId),
     });
 
     if (!aiRunId) {
@@ -3263,6 +3338,10 @@ class AutoRemediationRuleEngineServiceClass {
       subjectIncidentId: data.linkage.incidentId,
       subjectAlertId: data.linkage.alertId,
       subjectAutoRemediationSuggestionId: created.id!,
+      // The LLM provider the rule picks; none for the project's default pick.
+      ...this.getRunLlmProviderInput(
+        data.rule ? getRuleLlmProviderId(data.rule) : "",
+      ),
     });
 
     if (!aiRunId) {
@@ -3508,6 +3587,10 @@ class AutoRemediationRuleEngineServiceClass {
       : DEFAULT_RUNBOOK_PICK_NAME;
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.suggestionType = AutoRemediationSuggestionType.McpToolCalls;
+    // The LLM provider the rule picks; none for the project's default fix.
+    const llmProviderId: string = data.rule
+      ? getRuleLlmProviderId(data.rule)
+      : "";
     suggestion.executionMode = data.executionMode;
     suggestion.verificationWindowMinutes =
       data.rule?.verificationWindowMinutes ||
@@ -3533,6 +3616,7 @@ class AutoRemediationRuleEngineServiceClass {
       subjectAlertId: data.linkage.alertId,
       subjectAutoRemediationSuggestionId: created.id!,
       remediationRunType: AIRunType.RemediationExecution,
+      ...this.getRunLlmProviderInput(llmProviderId),
     });
 
     if (!aiRunId) {
@@ -3610,6 +3694,8 @@ class AutoRemediationRuleEngineServiceClass {
     suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    // The LLM provider the rule picks.
+    const llmProviderId: string = getRuleLlmProviderId(data.rule);
     suggestion.executionMode =
       data.rule.executionMode === AutoRemediationExecutionMode.FullAuto
         ? AutoRemediationExecutionMode.FullAuto
@@ -3638,6 +3724,7 @@ class AutoRemediationRuleEngineServiceClass {
       subjectAlertId: data.linkage.alertId,
       subjectAutoRemediationSuggestionId: created.id!,
       remediationRunType: AIRunType.RemediationExecution,
+      ...this.getRunLlmProviderInput(llmProviderId),
     });
 
     if (!aiRunId) {
@@ -3670,6 +3757,70 @@ class AutoRemediationRuleEngineServiceClass {
     });
 
     return true;
+  }
+
+  /*
+   * What an enqueued run records of the LLM provider a rule picks for it
+   * (AIRun.llmProviderId): nothing for none - the run then uses the
+   * project's default, else the global provider.
+   */
+  private getRunLlmProviderInput(pickedProviderId: string | undefined): {
+    llmProviderId?: ObjectID;
+  } {
+    return pickedProviderId && ObjectID.isValidUUID(pickedProviderId)
+      ? { llmProviderId: new ObjectID(pickedProviderId) }
+      : {};
+  }
+
+  /*
+   * The LLM provider a follow-up round uses: the one the subject's latest
+   * round on the same cluster or resource was started with
+   * (AIRun.llmProviderId) - the same fix, tried again. "" when it had none,
+   * or it cannot be read.
+   */
+  private async getLatestRoundLlmProviderId(data: {
+    linkage: SubjectLinkage;
+    kubernetesClusterId?: ObjectID | undefined;
+    resourceType?: AiResourceType | undefined;
+    resourceId?: ObjectID | undefined;
+  }): Promise<string> {
+    try {
+      const round: AutoRemediationSuggestion | null =
+        await AutoRemediationSuggestionService.findOneBy({
+          query: {
+            ...(data.linkage.incidentId
+              ? { incidentId: data.linkage.incidentId }
+              : { alertId: data.linkage.alertId! }),
+            ...(data.kubernetesClusterId
+              ? { kubernetesClusterId: data.kubernetesClusterId }
+              : {
+                  resourceType: data.resourceType!,
+                  resourceId: data.resourceId!,
+                }),
+            aiRunId: QueryHelper.notNull(),
+          },
+          select: { _id: true, aiRunId: true },
+          sort: { createdAt: SortOrder.Descending },
+          props: { isRoot: true },
+        });
+
+      if (!round?.aiRunId) {
+        return "";
+      }
+
+      const run: AIRun | null = await AIRunService.findOneById({
+        id: round.aiRunId,
+        select: { llmProviderId: true },
+        props: { isRoot: true },
+      });
+
+      return run?.llmProviderId?.toString() || "";
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not read the LLM provider of the round before; the follow-up uses the project's provider: ${error}`,
+      );
+      return "";
+    }
   }
 
   // Deterministic Suggest path: propose the runbook for one-click approval.

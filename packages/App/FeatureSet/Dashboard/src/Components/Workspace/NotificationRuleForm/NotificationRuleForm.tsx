@@ -5,6 +5,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -51,6 +52,8 @@ import {
 import {
   ALSO_INVITE_BUTTON_TEXT,
   ALSO_INVITE_DESCRIPTION,
+  ALSO_INVITE_EMPTY_TEXT,
+  ALSO_INVITE_SEARCH_PLACEHOLDER,
   ALSO_INVITE_TITLE,
   ARCHIVE_CHANNEL_TITLES,
   CHATS_DESCRIPTION,
@@ -63,6 +66,11 @@ import {
   EXISTING_CHANNELS_TEAM_DESCRIPTION,
   INCIDENT_ROLES_DESCRIPTION,
   INCIDENT_ROLES_TITLE,
+  MENTION_ON_CALL_BUTTON_TEXT,
+  MENTION_ON_CALL_DESCRIPTION,
+  MENTION_ON_CALL_EMPTY_TEXT,
+  MENTION_ON_CALL_SEARCH_PLACEHOLDER,
+  MENTION_ON_CALL_TITLE,
   NEW_CHANNEL_TEAM_DESCRIPTION,
   NO_CHATS_DESCRIPTION,
   NOTIFICATION_RULE_CONDITIONS_DESCRIPTIONS,
@@ -108,17 +116,28 @@ export const NOTIFICATION_RULE_DESTINATION_FIELD_KEY: string =
  * The people picker's own key in the Destination half: form-only, never
  * written to the rule. The picks are kept in the rule's
  * inviteUsersToNewChannel and inviteTeamsToNewChannel, as the two dropdowns
- * that asked before it kept them.
+ * that asked before it kept them, and its on-call schedules in
+ * inviteOnCallSchedulesToNewChannel.
  */
 export const ALSO_INVITE_FIELD_KEY: string = "alsoInviteToNewChannel";
 
+// The rule's on-call schedules in a key of the rule's own.
+const ON_CALL_SCHEDULES_VALUE_KEY: string = "inviteOnCallSchedulesToNewChannel";
+
 // Teams says who sees a channel: the note in place of who joins it.
 export const TEAMS_WHO_JOINS_NOTE_FIELD_KEY: string = "teamsWhoJoinsNote";
+
+/*
+ * Microsoft Teams' schedule picker's own key: form-only, as the Slack
+ * picker's is. Its picks are the rule's inviteOnCallSchedulesToNewChannel.
+ */
+export const MENTION_ON_CALL_FIELD_KEY: string = "mentionOnCallInNewChannel";
 
 // What the Destination half never hands up: the keys that only draw it.
 const DESTINATION_FORM_ONLY_KEYS: ReadonlyArray<string> = [
   ALSO_INVITE_FIELD_KEY,
   TEAMS_WHO_JOINS_NOTE_FIELD_KEY,
+  MENTION_ON_CALL_FIELD_KEY,
 ];
 
 export interface ComponentProps {
@@ -139,6 +158,8 @@ export interface ComponentProps {
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
+  // For the summary to name the schedules whose on-call person joins.
+  onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   /*
    * The project's number prefixes and a monitor's or on-call policy's name,
    * for the preview of the name of the channel the rule creates.
@@ -412,9 +433,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   /*
    * Who joins the channel, for a workspace that adds people one by one
    * (Slack): the kinds of people this kind of record has, ticked for a new
-   * rule, then anybody the rule names. Each kind joins as it joins the
-   * record - the commander when assigned, the person paged when paged -
-   * not only when the channel is created.
+   * rule, then anybody the rule names - people, teams, and on-call
+   * schedules, whose on-call person joins when the channel is created. Each
+   * kind joins as it joins the record - the commander when assigned, the
+   * person paged when paged - not only when the channel is created.
    */
   const inviteeFields: Record<
     NotificationRuleInvitee,
@@ -454,7 +476,8 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   /*
    * Microsoft Teams: the same section as Slack's, with what Teams does in
    * place of the boxes - its heading and the note under it, as Slack's
-   * heading and its sentence.
+   * heading and its sentence - and the schedules whose on-call person is
+   * @mentioned in the channel: Teams adds nobody to one.
    */
   const whoJoinsFields: Array<Field<NotificationRulesType>> = isTeams
     ? [
@@ -477,6 +500,28 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
           showIf: createsChannel,
           getCustomElement: (): ReactElement => {
             return <></>;
+          },
+        },
+        {
+          field: {
+            [MENTION_ON_CALL_FIELD_KEY]: true,
+          } as never,
+          title: MENTION_ON_CALL_TITLE,
+          description: MENTION_ON_CALL_DESCRIPTION,
+          fieldType: FormFieldSchemaType.PeoplePicker,
+          required: false,
+          dataTestId: "who-joins-mention-on-call",
+          showIf: createsChannel,
+          peoplePicker: {
+            kinds: [
+              {
+                kind: PeoplePickerKind.OnCallSchedule,
+                valueKey: ON_CALL_SCHEDULES_VALUE_KEY,
+              },
+            ],
+            addButtonText: MENTION_ON_CALL_BUTTON_TEXT,
+            searchPlaceholder: MENTION_ON_CALL_SEARCH_PLACEHOLDER,
+            emptyText: MENTION_ON_CALL_EMPTY_TEXT,
           },
         },
       ]
@@ -520,10 +565,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
                 kind: PeoplePickerKind.Team,
                 valueKey: "inviteTeamsToNewChannel",
               },
+              {
+                kind: PeoplePickerKind.OnCallSchedule,
+                valueKey: ON_CALL_SCHEDULES_VALUE_KEY,
+              },
             ],
             addButtonText: ALSO_INVITE_BUTTON_TEXT,
-            searchPlaceholder: "Search people or teams...",
-            emptyText: "No people or teams available.",
+            searchPlaceholder: ALSO_INVITE_SEARCH_PLACEHOLDER,
+            emptyText: ALSO_INVITE_EMPTY_TEXT,
           },
         },
       ];
@@ -669,6 +718,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             workspaceType={props.workspaceType}
             users={props.users}
             teams={props.teams}
+            onCallSchedules={props.onCallSchedules}
             microsoftTeamsTeams={props.microsoftTeamsTeams}
             microsoftTeamsChats={props.microsoftTeamsChats}
             numberPrefixes={props.numberPrefixes}

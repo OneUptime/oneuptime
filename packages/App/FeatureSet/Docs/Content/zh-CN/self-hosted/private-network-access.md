@@ -208,4 +208,5 @@ probes:
 - [工作流配置](/docs/workflows/configuration): 工作流步骤能访问什么、能做什么。
 - [LLM 提供商](/docs/ai/llm-provider): 将 OneUptime AI 连接到你网络中的模型。
 - [架构](/docs/self-hosted/architecture): 自托管安装的哪个部分建立了哪种连接。
+- [位于 VPN 或防火墙之后](/docs/self-hosted/behind-a-firewall): 反方向：哪些连接会从外部到达你的服务器。
 :::

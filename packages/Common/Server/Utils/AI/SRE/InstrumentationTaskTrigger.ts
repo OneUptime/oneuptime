@@ -74,6 +74,11 @@ export interface InstrumentationTaskGateDecision {
   reason: string;
   // The repositories the pull request may open in, once it may open.
   repositories: CodeRepositoryAllowance;
+  /*
+   * The LLM provider the rules that open it pick, once it may open: "" (or
+   * absent) for none - the project's default, else the global provider.
+   */
+  llmProviderId?: string | undefined;
 }
 
 export default class InstrumentationTaskTrigger {
@@ -158,6 +163,7 @@ export default class InstrumentationTaskTrigger {
       enqueue: true,
       reason: "passed fixing, rule, repository and dedupe gates",
       repositories: decision.repositories,
+      llmProviderId: decision.llmProviderId,
     };
   }
 
@@ -322,6 +328,10 @@ export default class InstrumentationTaskTrigger {
           ...(allowedCodeRepositoryIds
             ? { taskContext: { allowedCodeRepositoryIds } }
             : {}),
+          // The LLM provider the rules that open it pick.
+          llmProviderId: SubjectCodeFixRun.toRunLlmProviderId(
+            decision.llmProviderId,
+          ),
         });
 
       logger.debug(

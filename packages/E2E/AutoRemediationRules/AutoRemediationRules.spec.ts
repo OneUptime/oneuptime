@@ -100,6 +100,12 @@ const REPOSITORIES_SUMMARY: string =
 // An investigation rule's, while it holds both of its defaults.
 const INVESTIGATION_DEFAULTS_SUMMARY: string =
   "OneUptime AI may use any of your MCP servers and connected repositories.";
+/*
+ * The fixture's project has the global LLM provider alone unless
+ * ?providers= says otherwise: nothing to pick between, so the folded line
+ * says nothing of providers (the open box names it). With more than one,
+ * the line names the default first (PROJECT_DEFAULT_SUMMARY).
+ */
 const RUNBOOKS_DESCRIPTION: string =
   "OneUptime AI may run any of your runbooks. Pick some to let it run only those.";
 const RUNNER_DESCRIPTION: string =
@@ -2188,6 +2194,506 @@ test.describe("the AI card and the rule dialogs, at 1280px and 390px, light and 
           investigationDialog,
           investigationDialog.getByTestId("rule-code-repositories-hint"),
           `investigation-rule-more-fields-${width}-${theme}`,
+        );
+      });
+    }
+  }
+});
+
+/*
+ * The LLM provider OneUptime AI uses for what a rule starts
+ * (Common/Types/AI/LlmProviderChoice). The maintainer: "If the provider is
+ * not selected, select the project LLM provider by default if one is set to
+ * default, or you can select the global LLM provider as well. If one is
+ * selected, use that LLM provider to do everything." So the field sits under
+ * More fields - after "Run them every time", which turns AI off - its empty
+ * box names the provider a rule that picks none uses, and so does the
+ * folded line while there is more than one to pick from; a pick is sent
+ * with the rule and named on the folded line. Every rule's field has the
+ * same one line, and a locked box looks locked.
+ */
+const PROVIDER_IDS: Record<string, string> = {
+  oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
+  azure: "9d9d9d9d-0000-4000-8000-000000000002",
+  opus: "9d9d9d9d-0000-4000-8000-000000000003",
+};
+const PROVIDER_TITLE: string = "LLM Provider";
+// The field's one line, the same on every kind of rule.
+const PROVIDER_DESCRIPTION: string =
+  "OneUptime AI uses the default LLM provider for everything this rule starts, unless you pick another.";
+const PROJECT_DEFAULT_PLACEHOLDER: string = "Project default (Azure GPT-4o)";
+const PROJECT_DEFAULT_SUMMARY: string =
+  "The rule uses the project's default LLM provider, Azure GPT-4o.";
+const UNAVAILABLE_WARNING: string =
+  "OneUptime AI can no longer use this provider, so it uses the default instead. Pick another one, or clear it.";
+
+const providerPicker: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog.getByTestId("rule-llm-provider-picker");
+};
+
+// The search box, while nothing is picked.
+const providerBox: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return providerPicker(dialog).getByRole("combobox");
+};
+
+// What the closed box shows as picked.
+const providerShown: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return providerPicker(dialog).getByTestId("entity-dropdown-value");
+};
+
+const foldedItemsOf: (dialog: Locator) => Promise<Array<string>> = async (
+  dialog: Locator,
+): Promise<Array<string>> => {
+  return (await dialog.getByTestId("folded-section-item").allInnerTexts()).map(
+    (text: string): string => {
+      return text.replace(/\s+/g, " ").trim();
+    },
+  );
+};
+
+// The investigation rules card beside the remediation one, and its create dialog's Investigate step.
+const openInvestigateStep: (page: Page) => Promise<Locator> = async (
+  page: Page,
+): Promise<Locator> => {
+  const investigationCard: Locator = page
+    .locator("[data-card-surface='section']")
+    .filter({
+      has: page.getByRole("heading", {
+        name: "Investigation rules",
+        exact: true,
+      }),
+    });
+  await expect(investigationCard).toBeVisible();
+
+  const dialog: Locator = await openDialogWith(
+    page,
+    investigationCard
+      .getByRole("button", { name: "Create Investigation Rule" })
+      .first(),
+  );
+  await dialog.getByRole("button", { name: "Next", exact: true }).click();
+  await dialog
+    .getByRole("textbox", { name: /^Name/ })
+    .fill("Investigate checkout");
+  return dialog;
+};
+
+test.describe("the LLM provider a rule picks", () => {
+  test("with a project default, the empty box and the folded line name it, and the providers are listed with what each is", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+
+    // Folded: the provider first, then what the rest's defaults do.
+    await expect(foldedSummary(dialog)).toHaveText(
+      `${PROJECT_DEFAULT_SUMMARY} ${DEFAULTS_SUMMARY}`,
+    );
+
+    await openMoreFields(dialog);
+    await expect(
+      dialog.getByText(PROVIDER_TITLE, { exact: true }),
+    ).toBeVisible();
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
+    // Empty is an answer of its own - the default - not "(Optional)".
+    await expect(dialog).not.toContainText(`${PROVIDER_TITLE} (Optional)`);
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      PROJECT_DEFAULT_PLACEHOLDER,
+    );
+    await expect(dialog.getByTestId("rule-llm-provider-link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/llm-providers`,
+    );
+    await expect(dialog.getByTestId("rule-llm-provider-link")).toHaveAttribute(
+      "target",
+      "_blank",
+    );
+
+    // After the runbooks, before the Runner: what OneUptime AI thinks with.
+    const order: Array<number> = [];
+    for (const locator of [
+      runbooksPicker(dialog),
+      providerBox(dialog),
+      runnerPicker(dialog),
+    ]) {
+      order.push((await locator.boundingBox())!.y);
+    }
+    expect(
+      [...order].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(order);
+
+    await providerBox(dialog).click();
+    const options: Locator = page.getByRole("option");
+    await expect(options).toHaveCount(3);
+    await expect(options.nth(0)).toContainText("Azure GPT-4o");
+    await expect(options.nth(0)).toContainText("Project default · gpt-4o");
+    await expect(options.nth(1)).toContainText("Claude Opus");
+    await expect(options.nth(1)).toContainText("claude-opus-4-5");
+    await expect(options.nth(2)).toContainText("OneUptime AI");
+    await expect(options.nth(2)).toContainText("Global");
+    await dialogScreenshot(dialog, providerPicker(dialog), "llm-provider-menu");
+  });
+
+  test("a pick is sent with the rule, and the folded line names it instead of the default", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await providerBox(dialog).click();
+    await page.getByRole("option", { name: /^Claude Opus/ }).click();
+    await expect(providerShown(dialog)).toContainText("Claude Opus");
+    await dialogScreenshot(
+      dialog,
+      providerPicker(dialog),
+      "llm-provider-picked",
+    );
+
+    await moreFieldsButton(dialog).click();
+    expect(await foldedItemsOf(dialog)).toContain("LLM Provider: Claude Opus");
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(idOfValue(sent.creates[0]!.data["llmProviderId"])).toBe(
+      PROVIDER_IDS["opus"],
+    );
+  });
+
+  test("a rule made without picking one sends none: the default provider", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+
+    await create(page, dialog);
+
+    const sent: Recorded = await recorded(page);
+    expect(sent.creates[0]!.data["llmProviderId"] || null).toBeNull();
+  });
+
+  test("a saved rule opens with its pick, folded and open, and clearing it saves none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project&rules=saved&rulePick=opus",
+    });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Fix database incidents",
+    );
+
+    expect(await foldedItemsOf(dialog)).toContain("LLM Provider: Claude Opus");
+    await openMoreFields(dialog);
+    await expect(providerShown(dialog)).toContainText("Claude Opus");
+
+    await providerPicker(dialog).getByTestId("entity-dropdown-clear").click();
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      PROJECT_DEFAULT_PLACEHOLDER,
+    );
+    await dialog.getByRole("button", { name: "Save Changes" }).click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const update: Recorded["updates"][number] | undefined = sent.updates.find(
+      (candidate: Recorded["updates"][number]): boolean => {
+        return candidate.id === SAVED_RULE_IDS["aiWithRunner"];
+      },
+    );
+    expect(update).toBeDefined();
+    expect(update!.data["llmProviderId"] || null).toBeNull();
+  });
+
+  test("a pick the project can no longer use says so, and OneUptime AI uses the default instead", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project&rules=saved&rulePick=gone",
+    });
+    const dialog: Locator = await editRule(
+      page,
+      card,
+      "Fix database incidents",
+    );
+
+    expect(await foldedItemsOf(dialog)).toContain(
+      "LLM Provider: No longer available",
+    );
+    await openMoreFields(dialog);
+    await expect(providerShown(dialog)).toContainText("No longer available");
+    await expect(dialog.getByTestId("rule-llm-provider-warning")).toHaveText(
+      UNAVAILABLE_WARNING,
+    );
+    await dialogScreenshot(
+      dialog,
+      dialog.getByTestId("rule-llm-provider-warning"),
+      "llm-provider-unavailable",
+    );
+  });
+
+  test("a rule that runs its runbooks every time uses no AI: no provider to pick, and More fields stays open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+    await pickOption(page, runbooksPicker(dialog), "Restart checkout");
+    await page.keyboard.press("Escape");
+    await expect(providerPicker(dialog)).toBeVisible();
+
+    await everyTimeSwitch(dialog).click();
+    await expect(everyTimeSwitch(dialog)).toBeChecked();
+    await expect(providerPicker(dialog)).toHaveCount(0);
+    await expect(moreFieldsButton(dialog)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    // Folded, the line names no provider for it.
+    await moreFieldsButton(dialog).click();
+    await expect(foldedSummary(dialog)).not.toContainText("LLM provider");
+    expect((await foldedItemsOf(dialog)).join(" ")).not.toContain(
+      PROVIDER_TITLE,
+    );
+  });
+
+  test("a reader who may not read the providers finds the box locked, naming the default", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=denied",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(providerBox(dialog)).toBeDisabled();
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      "Default LLM provider",
+    );
+  });
+
+  test("a project with no provider at all says so in the box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=none",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await expect(providerBox(dialog)).toBeDisabled();
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      "No LLM provider yet",
+    );
+
+    /*
+     * And looks locked: its box is grey where the Runbooks box beside it is
+     * white. Both fills used to sit on a locked box, and white won in light
+     * mode, so it looked like one to click.
+     */
+    const fillOf: (box: Locator) => Promise<string> = async (
+      box: Locator,
+    ): Promise<string> => {
+      return box.evaluate((input: Element): string => {
+        return getComputedStyle(input.parentElement!).backgroundColor;
+      });
+    };
+
+    expect(await fillOf(runbooksPicker(dialog))).toBe("rgb(255, 255, 255)");
+    expect(await fillOf(providerBox(dialog))).not.toBe(
+      await fillOf(runbooksPicker(dialog)),
+    );
+  });
+
+  /*
+   * The fixture's project has the global provider alone: nothing to pick
+   * between, so the folded line says nothing of it - the line every rule
+   * shows stays as short as before rules could pick one. Open, the box
+   * still names it, and it can be picked.
+   */
+  test("with the global provider alone, the folded line says nothing of providers; the box names it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).not.toContainText("LLM provider");
+
+    await openMoreFields(dialog);
+    await expect(providerBox(dialog)).toHaveAttribute(
+      "placeholder",
+      "Global provider (OneUptime AI)",
+    );
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
+    await providerBox(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await expect(page.getByRole("option").first()).toContainText(
+      "OneUptime AI",
+    );
+  });
+
+  test("a provider added on LLM Providers, in another tab, can be picked on return", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "providers=project",
+    });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await page.evaluate(() => {
+      (
+        window as unknown as {
+          __fixture: { addProvider: (name: string) => void };
+        }
+      ).__fixture.addProvider("Gemini");
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await providerBox(dialog).click();
+    await expect(page.getByRole("option", { name: /^Gemini/ })).toBeVisible();
+    await page.getByRole("option", { name: /^Gemini/ }).click();
+    await expect(providerShown(dialog)).toContainText("Gemini");
+  });
+
+  test("an investigation rule picks one first under its More fields, and it is sent", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRulesCard(page, { query: "providers=project" });
+    const dialog: Locator = await openInvestigateStep(page);
+
+    await expect(foldedSummary(dialog)).toHaveText(
+      `${PROJECT_DEFAULT_SUMMARY} ${INVESTIGATION_DEFAULTS_SUMMARY}`,
+    );
+    await openMoreFields(dialog);
+    await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
+    // First under More fields, above the MCP servers.
+    expect((await providerBox(dialog).boundingBox())!.y).toBeLessThan(
+      (await mcpServersPicker(dialog).boundingBox())!.y,
+    );
+
+    await providerBox(dialog).click();
+    await page.getByRole("option", { name: /^Claude Opus/ }).click();
+    await dialog
+      .getByRole("button", { name: "Create Investigation Rule" })
+      .click();
+    await expect(dialog).toBeHidden();
+
+    const sent: Recorded = await recorded(page);
+    const created: { model: string; data: Record<string, unknown> } =
+      sent.creates.find((each: { model: string }): boolean => {
+        return each.model === "AIInvestigationRule";
+      })!;
+    expect(idOfValue(created.data["llmProviderId"])).toBe(PROVIDER_IDS["opus"]);
+  });
+});
+
+/*
+ * Both rule dialogs' LLM Provider field, open, as a person sees it: 1280px
+ * and a phone's 390px, light and dark - the menu's choices with what each
+ * is, the line to LLM Providers, and nothing running off the screen.
+ */
+test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () => {
+  for (const width of [1280, 390]) {
+    for (const theme of ["light", "dark"]) {
+      test(`${width}px, ${theme}`, async ({ page }: { page: Page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        const card: Locator = await openRulesCard(page, {
+          query: ["providers=project", theme === "dark" ? "theme=dark" : ""]
+            .filter(Boolean)
+            .join("&"),
+        });
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        }
+
+        const dialog: Locator = await openFixStep(page, card);
+        await openMoreFields(dialog);
+        await expect(providerBox(dialog)).toBeVisible();
+        await providerBox(dialog).click();
+        await expect(page.getByRole("option")).toHaveCount(3);
+
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth;
+          }),
+        ).toBeLessThanOrEqual(width);
+        // The box fits its dialog.
+        const dialogBox: { x: number; width: number } =
+          (await dialog.boundingBox())!;
+        const pickerBox: { x: number; width: number } =
+          (await providerPicker(dialog).boundingBox())!;
+        expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(
+          dialogBox.x + dialogBox.width,
+        );
+        await dialogScreenshot(
+          dialog,
+          providerPicker(dialog),
+          `remediation-rule-llm-provider-${width}-${theme}`,
+        );
+        await page.keyboard.press("Escape");
+
+        await dialog.getByRole("button", { name: "Cancel" }).click();
+        await expect(dialog).toBeHidden();
+
+        const investigationDialog: Locator = await openInvestigateStep(page);
+        await openMoreFields(investigationDialog);
+        await expect(providerBox(investigationDialog)).toBeVisible();
+        expect(
+          await page.evaluate(() => {
+            return document.documentElement.scrollWidth;
+          }),
+        ).toBeLessThanOrEqual(width);
+        await dialogScreenshot(
+          investigationDialog,
+          investigationDialog.getByTestId("rule-llm-provider-hint"),
+          `investigation-rule-llm-provider-${width}-${theme}`,
         );
       });
     }

@@ -23,6 +23,7 @@ import AlertService from "../../../Services/AlertService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import PostedRootCause from "../SRE/PostedRootCause";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
+import InvestigationRules from "../SRE/InvestigationRules";
 import InvestigationRuleWait, {
   RuleWaitSubject,
   StartNowResult,
@@ -903,6 +904,15 @@ export const StartInvestigationTool: ObservabilityTool = {
           subjectIncidentId: incidentId,
           subjectAlertId: alertId,
           subjectMonitorId: subject.monitorId,
+          /*
+           * The LLM provider the subject's investigation rules pick: an
+           * investigation someone asked for uses it too.
+           */
+          llmProviderId: await InvestigationRules.getSubjectLlmProviderId({
+            projectId: ctx.projectId,
+            incidentId,
+            alertId,
+          }),
         });
 
     if (!enqueuedRunId) {

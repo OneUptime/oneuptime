@@ -14,6 +14,8 @@ import AIService, {
   AILogResponse,
   AI_CODE_FIX_FEATURE,
 } from "../../../Services/AIService";
+import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
+import { LlmProviderActivity } from "../../../../Types/AI/LlmProviderChoice";
 import {
   LLMMessage,
   LLMToolCall,
@@ -157,6 +159,8 @@ export default class CodeFixAgentCompletion {
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
         toolCallCount: true,
+        // The LLM provider the rule behind the run picked, if any.
+        llmProviderId: true,
       },
       props: {
         isRoot: true,
@@ -215,13 +219,48 @@ export default class CodeFixAgentCompletion {
     await AIService.assertProjectAIEnabled(run.projectId);
 
     /*
-     * Metered-path provider resolution: project-owned first, else the global
-     * provider — on cloud too, because this call is executed through
+     * The LLM provider the rule behind the run picked (AIRun.llmProviderId),
+     * when it can be used (Server/Utils/AI/LlmProviderChoice). Otherwise -
+     * no rule picked one, or its pick cannot be used - metered-path
+     * provider resolution: project-owned first, else the global provider —
+     * on cloud too, because this call is executed through
      * AIService.executeWithLogging and therefore billed/logged/budgeted.
      * See getLlmProviderForMeteredAgentPath for the full rationale.
      */
+    const llmProviderChoice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideIfPicked({
+        projectId: run.projectId,
+        pickedProviderId: run.llmProviderId,
+      });
+
     const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLlmProviderForMeteredAgentPath(run.projectId);
+      llmProviderChoice.llmProviderId && llmProviderChoice.providerRow
+        ? llmProviderChoice.providerRow
+        : await LlmProviderService.getLlmProviderForMeteredAgentPath(
+            run.projectId,
+          );
+
+    /*
+     * A run a rule picked a provider for says, on its first completion,
+     * which provider it uses - or why it uses another - as a step of the
+     * task (CodeTaskSteps draws the English message).
+     */
+    if (usage.completionCalls === 0) {
+      const activity: LlmProviderActivity | null =
+        LlmProviderChoice.getFallbackActivity({
+          choice: llmProviderChoice,
+          usedProvider: llmProvider,
+        });
+
+      if (activity) {
+        await AIRunEventService.appendEventToRun({
+          projectId: run.projectId,
+          aiRunId: request.aiRunId,
+          eventType: AIRunEventType.ProgressLog,
+          resultSummary: LlmProviderChoice.getActivityEventSummary(activity),
+        });
+      }
+    }
 
     if (!llmProvider || !llmProvider.id) {
       throw new BadDataException(

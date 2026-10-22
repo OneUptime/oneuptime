@@ -36,6 +36,7 @@ import AIService, {
 } from "../../../Services/AIService";
 import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
+import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import InvestigationTldr from "./InvestigationTldr";
@@ -312,6 +313,12 @@ export default class AIInvestigationEngine {
   public static async getDisabledReason(
     projectId: ObjectID,
     subjectType: AISubjectType,
+    /*
+     * The LLM provider the rules that match the subject pick, when known:
+     * the provider and AI credits checks ask about the provider the run
+     * would use (Types/AI/LlmProviderChoice), not the project's alone.
+     */
+    options?: { llmProviderId?: ObjectID | undefined },
   ): Promise<InvestigationNotStartedCode | null> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -349,7 +356,10 @@ export default class AIInvestigationEngine {
     const providerOrBalance:
       | "provider_missing"
       | "insufficient_ai_balance"
-      | null = await this.getProviderOrBalanceReason(projectId);
+      | null = await this.getProviderOrBalanceReason(
+      projectId,
+      options?.llmProviderId,
+    );
 
     if (providerOrBalance) {
       return providerOrBalance;
@@ -374,6 +384,47 @@ export default class AIInvestigationEngine {
     }
 
     return null;
+  }
+
+  /*
+   * getDisabledReason for one incident or alert. When what stops OneUptime AI
+   * is the project's provider - none, or no AI credits for it - the provider
+   * the investigation rules that match the subject pick may still run it:
+   * it is asked for then, and only then, so the usual path reads nothing
+   * more. Every other reason is the project's, whatever a rule picks.
+   */
+  public static async getDisabledReasonForSubject(data: {
+    projectId: ObjectID;
+    subjectType: AISubjectType;
+    getRuleLlmProviderId: () => Promise<ObjectID | undefined>;
+  }): Promise<InvestigationNotStartedCode | null> {
+    const disabled: InvestigationNotStartedCode | null =
+      await this.getDisabledReason(data.projectId, data.subjectType);
+
+    if (
+      disabled !== "provider_missing" &&
+      disabled !== "insufficient_ai_balance"
+    ) {
+      return disabled;
+    }
+
+    let llmProviderId: ObjectID | undefined = undefined;
+
+    try {
+      llmProviderId = await data.getRuleLlmProviderId();
+    } catch (error) {
+      logger.error(
+        `AI: could not read the LLM provider the investigation rules pick for project ${data.projectId.toString()}: ${error}`,
+      );
+    }
+
+    if (!llmProviderId) {
+      return disabled;
+    }
+
+    return await this.getDisabledReason(data.projectId, data.subjectType, {
+      llmProviderId,
+    });
   }
 
   /*
@@ -426,9 +477,21 @@ export default class AIInvestigationEngine {
    */
   public static async getProviderOrBalanceReason(
     projectId: ObjectID,
+    /*
+     * The LLM provider a rule picks for the work, when one does: the
+     * provider asked about is the one the work would use - the pick, or what
+     * it falls back to (Server/Utils/AI/LlmProviderChoice).
+     */
+    pickedLlmProviderId?: ObjectID | undefined,
   ): Promise<"provider_missing" | "insufficient_ai_balance" | null> {
-    const llmProvider: LlmProvider | null =
-      await LlmProviderService.getLLMProviderForProject(projectId);
+    const llmProvider: LlmProvider | null = pickedLlmProviderId
+      ? (
+          await LlmProviderChoice.decide({
+            projectId,
+            pickedProviderId: pickedLlmProviderId,
+          })
+        ).providerRow || null
+      : await LlmProviderService.getLLMProviderForProject(projectId);
 
     if (!llmProvider) {
       logger.debug(
@@ -501,6 +564,32 @@ export default class AIInvestigationEngine {
       sequence: sequence++,
       eventType: AIRunEventType.RunStarted,
     });
+
+    /*
+     * The LLM provider the run uses: the one the rule that started it picks
+     * (AIRun.llmProviderId), else what it falls back to - and when a rule
+     * picked one, the run says which it used, or why another, first in its
+     * activity (Server/Utils/AI/LlmProviderChoice). Every call of the run -
+     * the agent loop, the confidence signal, the TL;DR - uses it. A run no
+     * rule picked one for reads and says nothing more: each call resolves
+     * the project's provider, as it always has.
+     */
+    const llmProviderChoice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideForRun({ projectId, aiRunId });
+    const llmProviderEvent: AIRunEventResultSummary | null =
+      LlmProviderChoice.getEventSummary(llmProviderChoice);
+
+    if (llmProviderEvent) {
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.ProgressLog,
+        resultSummary: llmProviderEvent,
+      });
+    }
+
+    const llmProviderId: ObjectID | undefined = llmProviderChoice.llmProviderId;
 
     /*
      * The model reads text: an image embedded in the subject's text - a
@@ -642,6 +731,8 @@ export default class AIInvestigationEngine {
           incidentId: request.incidentId,
           alertId: request.alertId,
           aiRunId,
+          // The rule's pick, when the run uses it; else the project's provider.
+          llmProviderId,
           /*
            * System run — full read access to the project's telemetry, and
            * to this project only. The tenant is what holds a root read to
@@ -773,6 +864,7 @@ export default class AIInvestigationEngine {
           AIConfidenceSignal.computeConfidenceSignal({
             projectId,
             aiRunId,
+            llmProviderId,
             incidentId: request.incidentId,
             alertId: request.alertId,
             analysisMarkdown: analysis,
@@ -784,6 +876,7 @@ export default class AIInvestigationEngine {
             ? InvestigationTldr.generateTldr({
                 projectId,
                 aiRunId,
+                llmProviderId,
                 incidentId: request.incidentId,
                 alertId: request.alertId,
                 /*

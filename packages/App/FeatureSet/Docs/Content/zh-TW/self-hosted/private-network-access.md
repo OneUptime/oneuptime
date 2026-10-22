@@ -208,4 +208,5 @@ probes:
 - [工作流程設定](/docs/workflows/configuration): 工作流程步驟能存取什麼、能做什麼。
 - [LLM 提供者](/docs/ai/llm-provider): 將 OneUptime AI 連線到你網路中的模型。
 - [架構](/docs/self-hosted/architecture): 自行託管安裝的哪個部分建立了哪種連線。
+- [位於 VPN 或防火牆之後](/docs/self-hosted/behind-a-firewall): 反方向：哪些連線會從外部到達你的伺服器。
 :::

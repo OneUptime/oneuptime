@@ -2026,6 +2026,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/API/OwnerFilterListsPostgres.test.ts --forceExit
 
+      # The LLM provider an AI rule picks, on migrated Postgres: the two
+      # migrations on copies of the rule tables that already hold rules (the
+      # columns added without a backfill, each rule's index and key built
+      # online and safe to build again), and a provider deleted while rules
+      # point at it - every rule that picked it picks none, while a run keeps
+      # the pick it was queued with.
+      - name: Test the AI rules' LLM provider on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RULE_LLM_PROVIDER_TESTS: "true"
+          RULE_LLM_PROVIDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RULE_LLM_PROVIDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RULE_LLM_PROVIDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

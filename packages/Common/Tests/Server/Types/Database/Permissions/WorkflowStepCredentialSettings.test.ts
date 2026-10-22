@@ -11,6 +11,7 @@ import ApiKeyPermission from "../../../../../Models/DatabaseModels/ApiKeyPermiss
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ExternalMcpServer from "../../../../../Models/DatabaseModels/ExternalMcpServer";
 import IncomingCallPolicy from "../../../../../Models/DatabaseModels/IncomingCallPolicy";
+import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import NetworkSnmpCredentialProfile from "../../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../../Models/DatabaseModels/ProjectSmtpConfig";
@@ -276,6 +277,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
     for (const modelType of [
       ApiKey,
       ExternalMcpServer,
+      LlmProvider,
       NetworkSnmpCredentialProfile,
       ProjectCallSMSConfig,
       ProjectSmtpConfig,
@@ -300,6 +302,7 @@ describe("a workflow's step naming a setting that holds credentials", () => {
       [
         new ApiKey().tableName!,
         new ExternalMcpServer().tableName!,
+        new LlmProvider().tableName!,
         new NetworkSnmpCredentialProfile().tableName!,
         new ProjectCallSMSConfig().tableName!,
         new ProjectSmtpConfig().tableName!,

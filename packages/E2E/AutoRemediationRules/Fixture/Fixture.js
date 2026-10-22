@@ -55,6 +55,16 @@
  *   - runbooks=0      the project has no runbook (three by default)
  *   - role=viewer     may read the page only (Viewer); the default is a
  *                     project owner
+ *   - providers=project
+ *                     the project's own LLM providers, Azure GPT-4o (its
+ *                     default) and Claude Opus, beside the global OneUptime
+ *                     AI; providers=none for no provider at all,
+ *                     providers=denied for a reader who may not read them;
+ *                     the global OneUptime AI alone by default
+ *   - rulePick=opus   the saved rules ("Fix database incidents", and the
+ *                     investigation rule that investigates right away) pick
+ *                     Claude Opus; rulePick=gone, a provider the project can
+ *                     no longer use; none by default
  *   - lang=de         the Dashboard's German words
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
@@ -91,6 +101,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Project from "Common/Models/DatabaseModels/Project";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -131,12 +142,91 @@ const hasHiddenRepository = params.get("hiddenRepository") === "1";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const language = params.get("lang") === "de" ? "de" : "en";
+const providerSet = ["project", "none", "denied"].includes(
+  params.get("providers"),
+)
+  ? params.get("providers")
+  : "global";
+const rulePick = params.get("rulePick");
 
 window.__fixture = {
   creates: [],
   updates: [],
   deletes: [],
 };
+
+/*
+ * The project's LLM providers, as POST /ai-chat/providers answers them
+ * (?providers=): the global OneUptime AI alone, which the project uses (the
+ * default); its own Azure GPT-4o, the default, and Claude Opus, then the
+ * global one (project); none at all (none); or a refusal, for a reader who
+ * may not read them (denied). `window.__fixture.addProvider(name)` adds one
+ * of the project's own, as someone would on LLM Providers in another tab;
+ * `providerReads` counts the reads.
+ */
+const LLM_PROVIDER_IDS = {
+  oneUptimeAi: "9d9d9d9d-0000-4000-8000-000000000001",
+  azure: "9d9d9d9d-0000-4000-8000-000000000002",
+  opus: "9d9d9d9d-0000-4000-8000-000000000003",
+  // A provider a rule picked that the project can no longer use.
+  gone: "9d9d9d9d-0000-4000-8000-0000000000ff",
+};
+
+const GLOBAL_LLM_PROVIDER = {
+  id: LLM_PROVIDER_IDS.oneUptimeAi,
+  name: "OneUptime AI",
+  modelName: null,
+  isGlobal: true,
+  isDefault: false,
+};
+
+const LLM_PROVIDERS =
+  providerSet === "project"
+    ? [
+        {
+          id: LLM_PROVIDER_IDS.azure,
+          name: "Azure GPT-4o",
+          modelName: "gpt-4o",
+          isGlobal: false,
+          isDefault: true,
+        },
+        {
+          id: LLM_PROVIDER_IDS.opus,
+          name: "Claude Opus",
+          modelName: "claude-opus-4-5",
+          isGlobal: false,
+          isDefault: false,
+        },
+        GLOBAL_LLM_PROVIDER,
+      ]
+    : providerSet === "none" || providerSet === "denied"
+      ? []
+      : [GLOBAL_LLM_PROVIDER];
+
+window.__fixture.providerReads = 0;
+window.__fixture.addProvider = (name) => {
+  // The project's own come before the global ones.
+  const firstGlobal = LLM_PROVIDERS.findIndex((provider) => provider.isGlobal);
+  LLM_PROVIDERS.splice(
+    firstGlobal === -1 ? LLM_PROVIDERS.length : firstGlobal,
+    0,
+    {
+      id: `9d9d9d9d-0000-4000-8000-0000000000${String(10 + LLM_PROVIDERS.length)}`,
+      name,
+      modelName: "gemini-2.5-pro",
+      isGlobal: false,
+      isDefault: false,
+    },
+  );
+};
+
+// The provider the saved rules pick (?rulePick=opus or gone); none by default.
+const RULE_PICK =
+  rulePick === "opus"
+    ? new ObjectID(LLM_PROVIDER_IDS.opus)
+    : rulePick === "gone"
+      ? new ObjectID(LLM_PROVIDER_IDS.gone)
+      : undefined;
 
 // ---- who is signed in -------------------------------------------------------
 
@@ -438,6 +528,8 @@ const SAVED_RULES = [
       RUNBOOK_IDS.clearCache,
     ]),
     runnerId: new ObjectID(RUNNER_IDS.prodEu),
+    // The LLM provider it fixes with (?rulePick=): none by default.
+    llmProviderId: RULE_PICK,
     /*
      * It names one repository - and, with hiddenRepository=1, one the
      * reader may not read, which the list never returns - and opens fix
@@ -508,6 +600,8 @@ const SAVED_INVESTIGATION_RULES = [
     name: lane === "alert" ? "Production alerts" : "Production incidents",
     isEnabled: true,
     triggerEntityType: trigger,
+    // The LLM provider it investigates with (?rulePick=): none by default.
+    llmProviderId: RULE_PICK,
     criteria: null,
   }),
   record(AIInvestigationRule, {
@@ -739,6 +833,8 @@ function applyRuleFields(item, json) {
       item.codeRepositories = relationList(value, CodeRepository);
     } else if (key === "runnerId") {
       item.runnerId = value ? new ObjectID(idOf(value)) : null;
+    } else if (key === "llmProviderId") {
+      item.llmProviderId = value ? new ObjectID(idOf(value)) : null;
     } else if (key !== "_id") {
       item[key] = value;
     }
@@ -806,26 +902,38 @@ ModelAPI.deleteItem = async (options) => {
 };
 
 /*
- * POST /ai-chat/providers: the project has the global provider, so no
- * notice is drawn over the page.
+ * POST /ai-chat/providers: the project's LLM providers (?providers=). With
+ * the global provider, the default, no notice is drawn over the page.
  */
-API.post = async () =>
-  new HTTPResponse(
+API.post = async () => {
+  window.__fixture.providerReads++;
+
+  if (providerSet === "denied") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "You do not have permission to read this project's AI providers.",
+      },
+      {},
+    );
+  }
+
+  const defaultProvider =
+    LLM_PROVIDERS.find((provider) => provider.isDefault) ||
+    LLM_PROVIDERS.find((provider) => provider.isGlobal) ||
+    null;
+
+  return new HTTPResponse(
     200,
     {
       isAIEnabledForProject: true,
-      defaultProviderId: "9d9d9d9d-0000-4000-8000-000000000001",
-      providers: [
-        {
-          id: "9d9d9d9d-0000-4000-8000-000000000001",
-          name: "OneUptime AI",
-          isGlobal: true,
-          isDefault: false,
-        },
-      ],
+      defaultProviderId: defaultProvider ? defaultProvider.id : null,
+      providers: LLM_PROVIDERS.map((provider) => ({ ...provider })),
     },
     {},
   );
+};
 API.get = async () => new HTTPResponse(200, {}, {});
 
 /*

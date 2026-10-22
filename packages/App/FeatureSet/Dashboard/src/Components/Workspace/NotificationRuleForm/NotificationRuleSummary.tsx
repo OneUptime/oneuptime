@@ -2,6 +2,7 @@ import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -41,6 +42,8 @@ export interface RuleSummarySource {
   workspaceType: WorkspaceType;
   users: Array<User>;
   teams: Array<Team>;
+  // The project's on-call schedules, to name those whose on-call person joins.
+  onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
@@ -116,6 +119,13 @@ export const getRuleSummarySentences: (
         return team.name?.toString() || undefined;
       },
     }),
+    scheduleNames: namesOf<OnCallDutyPolicySchedule>({
+      ids: toPeoplePickerIds(rule.inviteOnCallSchedulesToNewChannel),
+      rows: props.onCallSchedules || [],
+      nameOf: (schedule: OnCallDutyPolicySchedule): string | undefined => {
+        return schedule.name?.toString() || undefined;
+      },
+    }),
     channelTeamName: channelTeam?.name,
     chatNames: chatIds
       .map((chatId: string): string => {
@@ -144,6 +154,7 @@ const NotificationRuleSummary: FunctionComponent<
     workspaceType: props.workspaceType,
     users: props.users,
     teams: props.teams,
+    onCallSchedules: props.onCallSchedules,
     microsoftTeamsTeams: props.microsoftTeamsTeams,
     microsoftTeamsChats: props.microsoftTeamsChats,
     numberPrefixes: props.numberPrefixes,
