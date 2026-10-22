@@ -24,7 +24,7 @@ flowchart TB
     ack["You acknowledge"] -.->|"stops the rest"| third
 ```
 
-Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Slack and Microsoft Teams messages carry an acknowledge link, and a call asks you to press 1. When you cannot take a page, the same messages let you pass it on, and a call asks you to press 2: the policy pages its next level straight away, and you are not paged about it again. See [Passing a page on](/docs/on-call/escalation-rules#passing-a-page-on). Each page you get is listed under **User Settings → On-Call Logs**, where **View Timeline** shows every message it sent and whether it was delivered.
+Most messages can acknowledge the page: emails, texts and WhatsApp, Telegram, Slack and Microsoft Teams messages carry an acknowledge link, and a call asks you to press 1. When you cannot take a page, the same messages let you escalate it, and a call asks you to press 2: the policy pages its next level straight away, and you are not paged again for it. See [Escalating a page](/docs/on-call/escalation-rules#escalating-a-page). Each page you get is listed under **User Settings → On-Call Logs**, where **View Timeline** shows every message it sent and whether it was delivered.
 
 ## The four tabs
 
