@@ -393,9 +393,13 @@ describe.each([
         ["olderRuleNote", "remediation", ""],
         // The Fix step's one question, then More fields, folded.
         ["executionMode", "remediation", ""],
-        ["llmProviderId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runbooks", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["remediationAction", "remediation", MORE_FIELDS_SECTION_TITLE],
+        /*
+         * After the switch that turns AI off, never first: the fold keeps
+         * its place by its first field, and this one comes and goes.
+         */
+        ["llmProviderId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runnerId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["externalMcpServers", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["codeRepositories", "remediation", MORE_FIELDS_SECTION_TITLE],
@@ -407,9 +411,9 @@ describe.each([
     test("More fields is one section, folded, with a line on what its defaults do", () => {
       const props: Record<string, unknown> = tableFor(lane);
       const folded: Array<CapturedField> = [
-        "llmProviderId",
         "runbooks",
         "remediationAction",
+        "llmProviderId",
         "runnerId",
         "externalMcpServers",
         "codeRepositories",
@@ -438,10 +442,11 @@ describe.each([
     /*
      * The LLM provider OneUptime AI fixes with - its runbook picks, its
      * commands, its MCP fixes and the rule's pull requests
-     * (Common/Types/AI/LlmProviderChoice): first under More fields; empty
-     * is the default provider, which the folded line names first.
+     * (Common/Types/AI/LlmProviderChoice): under More fields, after the
+     * switch that turns AI off; empty is the default provider, which the
+     * folded line names first.
      */
-    test("the LLM provider comes first under More fields, saying what it does for a fix", () => {
+    test("the LLM provider is under More fields, saying what it does for a fix", () => {
       const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
 
       expect(field.title).toBe("LLM Provider");

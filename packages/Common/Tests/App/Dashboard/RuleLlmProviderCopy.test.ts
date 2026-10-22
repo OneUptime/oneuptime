@@ -376,7 +376,7 @@ describe("the folded More fields line", () => {
     expect(getRuleLlmProviderSummary({}, choices([], ""), ENGLISH)).toEqual([]);
   });
 
-  test("the provider sentence comes first, as the field comes first in More fields", () => {
+  test("the provider sentence comes first: what OneUptime AI thinks with, before what it may use", () => {
     expect(
       withRuleLlmProviderSummary(
         ["Any runbook may be run."],

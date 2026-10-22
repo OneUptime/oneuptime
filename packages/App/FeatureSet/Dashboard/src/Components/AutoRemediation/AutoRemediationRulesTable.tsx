@@ -615,24 +615,6 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
             );
           },
         },
-        /*
-         * The LLM provider OneUptime AI fixes with - its runbook picks, its
-         * commands, its MCP fixes and the rule's pull requests: none is the
-         * default. Not for a rule that runs its runbooks every time: no AI
-         * decides anything for it.
-         */
-        getRuleLlmProviderFormField<AutoRemediationRule>({
-          work: RuleLlmProviderWork.Fix,
-          stepId: "remediation",
-          collapsibleSection: moreFields,
-          dataTestId: "auto-remediation-llm-provider-field",
-          getChoices: (): RuleLlmProviderChoices | null => {
-            return llmProviderChoicesRef.current;
-          },
-          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return !isRunbooksEveryTime(values);
-          },
-        }),
         {
           // The runbooks OneUptime AI may run: none picked is any runbook.
           field: { runbooks: true },
@@ -713,6 +695,26 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
             );
           },
         },
+        /*
+         * The LLM provider OneUptime AI fixes with - its runbook picks, its
+         * commands, its MCP fixes and the rule's pull requests: none is the
+         * default. Not for a rule that runs its runbooks every time: no AI
+         * decides anything for it. After the switch that turns AI off, never
+         * first in More fields: the fold keeps its place (open or not) by its
+         * first field, and this one comes and goes with the switch.
+         */
+        getRuleLlmProviderFormField<AutoRemediationRule>({
+          work: RuleLlmProviderWork.Fix,
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          dataTestId: "auto-remediation-llm-provider-field",
+          getChoices: (): RuleLlmProviderChoices | null => {
+            return llmProviderChoicesRef.current;
+          },
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return !isRunbooksEveryTime(values);
+          },
+        }),
         {
           /*
            * Where OneUptime AI runs the rule's Bash commands: the project's

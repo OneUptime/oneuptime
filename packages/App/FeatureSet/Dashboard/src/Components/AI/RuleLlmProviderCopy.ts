@@ -365,9 +365,9 @@ export function getRuleLlmProviderSummary(
 }
 
 /*
- * A rule form's More fields summary with the provider sentence first, as
- * the field comes first in the section: what the rest of the section's
- * defaults say follows. Undefined when there is nothing to say.
+ * A rule form's More fields summary with the provider sentence first - what
+ * OneUptime AI thinks with, before what it may use: what the rest of the
+ * section's defaults say follows. Undefined when there is nothing to say.
  */
 export function withRuleLlmProviderSummary(
   sentences: Array<string> | undefined,
@@ -441,7 +441,9 @@ export function getRuleLlmProviderOptionDescription(
 
   if (provider.isGlobal) {
     parts.push(
-      translator.translateText(RULE_LLM_PROVIDER_FIELD_COPY.globalTag) as string,
+      translator.translateText(
+        RULE_LLM_PROVIDER_FIELD_COPY.globalTag,
+      ) as string,
     );
   }
 
