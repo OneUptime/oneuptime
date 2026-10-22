@@ -28,19 +28,23 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * code of their choosing. Nothing is said in the thread either way.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("b2c3d4e5-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "b2c3d4e5-1111-4222-8333-444455556666",
+);
 const REPOSITORY_ID: ObjectID = new ObjectID(
   "b2c3d4e5-2222-4222-8333-444455556666",
 );
 
-function payload(change: {
-  action?: string;
-  draft?: boolean;
-  state?: string;
-  author?: JSONObject;
-  sender?: JSONObject;
-  headRepository?: string | null;
-} = {}): JSONObject {
+function payload(
+  change: {
+    action?: string;
+    draft?: boolean;
+    state?: string;
+    author?: JSONObject;
+    sender?: JSONObject;
+    headRepository?: string | null;
+  } = {},
+): JSONObject {
   return {
     action: change.action || "opened",
     repository: { full_name: "acme/checkout" },
@@ -101,7 +105,11 @@ describe("ProductionReviewGitHubTrigger.onPullRequestChanged", () => {
     jest.restoreAllMocks();
   });
 
-  test.each(REVIEWED_ACTIONS.map((action: string) => [action]))(
+  test.each(
+    REVIEWED_ACTIONS.map((action: string) => {
+      return [action];
+    }),
+  )(
     "a pull request %s by someone who can write is queued for review",
     async (action: string) => {
       const result: ProductionReviewTriggerResult =
@@ -180,7 +188,10 @@ describe("ProductionReviewGitHubTrigger.onPullRequestChanged", () => {
   test.each([
     [{ login: "dependabot[bot]", type: "Bot" }, undefined],
     [{ login: "renovate", type: "Bot" }, undefined],
-    [{ login: "octo-dev", type: "User" }, { login: "oneuptime[bot]", type: "Bot" }],
+    [
+      { login: "octo-dev", type: "User" },
+      { login: "oneuptime[bot]", type: "Bot" },
+    ],
   ])(
     "a bot's pull request, or a bot's push, is never reviewed",
     async (author: JSONObject, sender: JSONObject | undefined) => {
@@ -250,14 +261,17 @@ describe("ProductionReviewGitHubTrigger.onPullRequestChanged", () => {
     [GitHubRepositoryPermission.Write],
     [GitHubRepositoryPermission.Maintain],
     [GitHubRepositoryPermission.Admin],
-  ])("an author with %s permission is reviewed", async (level: GitHubRepositoryPermission) => {
-    permissions = { "octo-dev": level };
+  ])(
+    "an author with %s permission is reviewed",
+    async (level: GitHubRepositoryPermission) => {
+      permissions = { "octo-dev": level };
 
-    expect(
-      (await ProductionReviewGitHubTrigger.onPullRequestChanged(payload()))
-        .outcome,
-    ).toBe("queued");
-  });
+      expect(
+        (await ProductionReviewGitHubTrigger.onPullRequestChanged(payload()))
+          .outcome,
+      ).toBe("queued");
+    },
+  );
 
   test("a push by someone who cannot write, to a trusted author's fork, is not reviewed", async () => {
     permissions = {
@@ -320,7 +334,9 @@ describe("ProductionReviewGitHubTrigger.onPullRequestChanged", () => {
 describe("isBotUser", () => {
   test("GitHub's own word, or a [bot] login", () => {
     expect(isBotUser({ login: "x", type: "Bot" })).toBe(true);
-    expect(isBotUser({ login: "github-actions[bot]", type: "User" })).toBe(true);
+    expect(isBotUser({ login: "github-actions[bot]", type: "User" })).toBe(
+      true,
+    );
     expect(isBotUser({ login: "octo-dev", type: "User" })).toBe(false);
     expect(isBotUser(undefined)).toBe(false);
   });

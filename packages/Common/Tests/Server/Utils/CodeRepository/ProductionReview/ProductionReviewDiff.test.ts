@@ -49,7 +49,10 @@ describe("extractDeclaredFunctionName", () => {
     ["def charge", "charge"],
     ["  defp charge(card) do", "charge"],
     ["function chargeCard(card) {", "chargeCard"],
-    ["export async function chargeCard(card: Card): Promise<void> {", "chargeCard"],
+    [
+      "export async function chargeCard(card: Card): Promise<void> {",
+      "chargeCard",
+    ],
     ["export default function* walk(tree) {", "walk"],
     ["func Charge(ctx context.Context, card Card) error {", "Charge"],
     ["func (s *Server) Charge(ctx context.Context) error {", "Charge"],
@@ -64,7 +67,10 @@ describe("extractDeclaredFunctionName", () => {
     ["  chargeCard: function (card) {", "chargeCard"],
     ["const charge = card => {", "charge"],
     ["  public async chargeCard(card: Card): Promise<void> {", "chargeCard"],
-    ["  private static Receipt charge(Card card) throws PaymentException {", "charge"],
+    [
+      "  private static Receipt charge(Card card) throws PaymentException {",
+      "charge",
+    ],
     ["  public Receipt Charge(Card card)", "Charge"],
     ["  Map<String, List<Item>> groupItems(List<Item> items) {", "groupItems"],
     ["  async refund(order) {", "refund"],
@@ -336,7 +342,11 @@ describe("readChangedCode", () => {
   test("keeps the files of code, in GitHub's order, with what each change touches", () => {
     const changed: ChangedCode = readChangedCode({
       files: [
-        { filename: "README.md", status: "modified", patch: "@@ -1 +1 @@\n-a\n+b" },
+        {
+          filename: "README.md",
+          status: "modified",
+          patch: "@@ -1 +1 @@\n-a\n+b",
+        },
         {
           filename: "src/billing/charge.ts",
           status: "modified",
@@ -354,10 +364,11 @@ describe("readChangedCode", () => {
     expect(changed.fileCount).toBe(3);
     expect(changed.codeFileCount).toBe(2);
     expect(changed.isTruncated).toBe(false);
-    expect(changed.files.map((file: ChangedCodeFile) => file.path)).toEqual([
-      "src/billing/charge.ts",
-      "src/billing/refund.ts",
-    ]);
+    expect(
+      changed.files.map((file: ChangedCodeFile) => {
+        return file.path;
+      }),
+    ).toEqual(["src/billing/charge.ts", "src/billing/refund.ts"]);
     expect(changed.files[0]!.functionNames).toEqual(["chargeCard"]);
     expect(changed.files[0]!.baseLines).toEqual([{ start: 10, end: 10 }]);
     expect(changed.files[1]!.previousPath).toBe("src/billing/refunds.ts");
@@ -378,9 +389,9 @@ describe("readChangedCode", () => {
     expect(many.codeFileCount).toBe(PRODUCTION_REVIEW_LIMITS.maxCodeFiles + 5);
     expect(many.isTruncated).toBe(true);
 
-    expect(
-      readChangedCode({ files: [], hasMoreFiles: true }).isTruncated,
-    ).toBe(true);
+    expect(readChangedCode({ files: [], hasMoreFiles: true }).isTruncated).toBe(
+      true,
+    );
   });
 
   test("the whole change's functions are held to a number", () => {
@@ -453,9 +464,7 @@ describe("matchChangedFile", () => {
   });
 
   test("an absurdly long path is not read", () => {
-    expect(
-      matchChangedFile(`/${"x/".repeat(600)}charge.ts`, files),
-    ).toBeNull();
+    expect(matchChangedFile(`/${"x/".repeat(600)}charge.ts`, files)).toBeNull();
   });
 
   test("sharedTrailingSegments counts from the end", () => {

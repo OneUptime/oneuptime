@@ -514,7 +514,9 @@ export default class ProductionReviewQueue {
     });
   }
 
-  private static async createTask(data: ProductionReviewRequest): Promise<AIRun> {
+  private static async createTask(
+    data: ProductionReviewRequest,
+  ): Promise<AIRun> {
     const run: AIRun = new AIRun();
     run.projectId = data.projectId;
     run.runType = AIRunType.CodeFix;

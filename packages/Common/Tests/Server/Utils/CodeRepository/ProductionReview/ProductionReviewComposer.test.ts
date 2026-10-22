@@ -229,7 +229,9 @@ describe("ProductionReviewComposer.compose: OneUptime AI's read on top", () => {
           {
             text: "`chargeCard` threw `TypeError` 1,240 times at the line this edits; the null check should stop it.",
           },
-          { text: "`GET /api/orders/:id` now makes one more query per request." },
+          {
+            text: "`GET /api/orders/:id` now makes one more query per request.",
+          },
         ],
       }),
     }),
@@ -242,9 +244,7 @@ describe("ProductionReviewComposer.compose: OneUptime AI's read on top", () => {
   });
 
   test("folds the facts it read from under it", () => {
-    expect(body).toContain(
-      "<details><summary>What production shows</summary>",
-    );
+    expect(body).toContain("<details><summary>What production shows</summary>");
     expect(body.indexOf("What to watch")).toBeLessThan(
       body.indexOf("<details>"),
     );
@@ -320,9 +320,7 @@ describe("ProductionReviewComposer.compose: a link only", () => {
       }),
     );
 
-    expect(body).toContain(
-      "found nothing that runs through its changes.",
-    );
+    expect(body).toContain("found nothing that runs through its changes.");
   });
 });
 
@@ -513,9 +511,9 @@ describe("ProductionReviewComposer: text from outside OneUptime stays text", () 
       });
 
       if (!isOurs) {
-        expect(
-          body[index - 1] === "\\" || body[index + 1] === "\u2060",
-        ).toBe(true);
+        expect(body[index - 1] === "\\" || body[index + 1] === "\u2060").toBe(
+          true,
+        );
       }
     }
   });
@@ -586,9 +584,7 @@ describe("ProductionReviewComposer.summarize", () => {
       ProductionReviewComposer.summarize(
         emptyReport({ exceptions: fullReport().exceptions }),
       ),
-    ).toBe(
-      "Production review: 1 exception in or around the changed code.",
-    );
+    ).toBe("Production review: 1 exception in or around the changed code.");
   });
 
   test("nothing found", () => {
@@ -635,16 +631,14 @@ describe("formatting", () => {
 
   test("githubSafeText makes one line, cuts by code point and breaks every @", () => {
     expect(githubSafeText("a\n  b\tc", 100)).toBe("a b c");
-    expect(githubSafeText("@oneuptime help", 100)).toBe(
-      "@⁠oneuptime help",
-    );
+    expect(githubSafeText("@oneuptime help", 100)).toBe("@⁠oneuptime help");
     expect(githubSafeText("😀😀😀😀", 3)).toBe("😀😀…");
     expect(githubSafeText(null, 10)).toBe("");
   });
 
   test("githubSafeAiText breaks web addresses too", () => {
-    expect(githubSafeAiText("see https://x.example and www.y.example", 200)).toBe(
-      "see https:⁠//x.example and www⁠.y.example",
-    );
+    expect(
+      githubSafeAiText("see https://x.example and www.y.example", 200),
+    ).toBe("see https:⁠//x.example and www⁠.y.example");
   });
 });

@@ -28,7 +28,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * time so it is read again soon.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("7f809102-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "7f809102-1111-4222-8333-444455556666",
+);
 const REPOSITORY_ID: ObjectID = new ObjectID(
   "7f809102-2222-4222-8333-444455556666",
 );
@@ -45,7 +47,9 @@ function service(id: string): CodeAgentScopedService {
   };
 }
 
-function stubReads(change: { failTraffic?: boolean; partialTraffic?: boolean } = {}): {
+function stubReads(
+  change: { failTraffic?: boolean; partialTraffic?: boolean } = {},
+): {
   functionList: jest.SpyInstance;
   sample: jest.SpyInstance;
 } {
@@ -218,8 +222,9 @@ describe("ProductionReviewRepositoryProfile.read", () => {
 
     // The busiest service's profile is read first.
     expect(
-      (functionList.mock.calls[0]![0] as { serviceIds: Array<ObjectID> })
-        .serviceIds[0]!.toString(),
+      (
+        functionList.mock.calls[0]![0] as { serviceIds: Array<ObjectID> }
+      ).serviceIds[0]!.toString(),
     ).toBe(BUSY);
 
     // One bounded sample of the code locations, for every service.

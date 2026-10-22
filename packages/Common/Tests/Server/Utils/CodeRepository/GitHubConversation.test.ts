@@ -1618,17 +1618,22 @@ describe("GitHubConversation", () => {
       [{ private: true }, false],
       [{}, null],
       [{ visibility: "something-new" }, null],
-    ])("reads %p as %p", async (repository: JSONObject, expected: boolean | null) => {
-      getMock.mockResolvedValue(okJson(repository));
+    ])(
+      "reads %p as %p",
+      async (repository: JSONObject, expected: boolean | null) => {
+        getMock.mockResolvedValue(okJson(repository));
 
-      expect(await GitHubConversation.isRepositoryPublic(REPO)).toBe(expected);
-      expect(getCall(1).url.toString()).toBe(
-        "https://api.github.com/repos/acme/checkout",
-      );
-      expect(getCall(1).headers["Authorization"]).toBe(
-        "Bearer ghs_installation_1",
-      );
-    });
+        expect(await GitHubConversation.isRepositoryPublic(REPO)).toBe(
+          expected,
+        );
+        expect(getCall(1).url.toString()).toBe(
+          "https://api.github.com/repos/acme/checkout",
+        );
+        expect(getCall(1).headers["Authorization"]).toBe(
+          "Bearer ghs_installation_1",
+        );
+      },
+    );
 
     test("GitHub answering with an error is not knowing", async () => {
       getMock.mockResolvedValue(errorResponse(404, { message: "Not Found" }));

@@ -20,7 +20,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  */
 
 const projectId: ObjectID = ObjectID.generate();
-const serviceId: ObjectID = new ObjectID("6e7f8091-1111-4222-8333-444455556666");
+const serviceId: ObjectID = new ObjectID(
+  "6e7f8091-1111-4222-8333-444455556666",
+);
 const startTime: Date = new Date("2026-10-22T09:00:00.000Z");
 const endTime: Date = new Date("2026-10-22T10:00:00.000Z");
 
@@ -74,16 +76,15 @@ describe("TraceAggregationService.getCodeLocationSample", () => {
   });
 
   test("stops with an error at its time limit, never with part of the groups", () => {
-    const sql: string = TraceAggregationService.buildCodeLocationSampleStatement(
-      {
+    const sql: string =
+      TraceAggregationService.buildCodeLocationSampleStatement({
         projectId,
         startTime,
         endTime,
         serviceIds: [serviceId],
         sampleSize: 20000,
         limit: 500,
-      },
-    ).query;
+      }).query;
 
     expect(sql).toContain(
       `max_execution_time = ${CODE_LOCATION_SAMPLE_TIME_LIMIT_IN_SECONDS}`,

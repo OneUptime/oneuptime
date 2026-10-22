@@ -351,9 +351,9 @@ export class ProductionReviewUtil {
   ): ProductionReviewPullRequestContent {
     if (
       value &&
-      (Object.values(ProductionReviewPullRequestContent) as Array<string>).includes(
-        value,
-      )
+      (
+        Object.values(ProductionReviewPullRequestContent) as Array<string>
+      ).includes(value)
     ) {
       return value as ProductionReviewPullRequestContent;
     }

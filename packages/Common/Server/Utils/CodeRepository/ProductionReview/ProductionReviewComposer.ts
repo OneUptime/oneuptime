@@ -201,9 +201,9 @@ function listing(items: Array<MarkdownText>): MarkdownText {
     return items[0] || FeedMarkdown.empty();
   }
 
-  return mdText`${FeedMarkdown.join(items.slice(0, -1))} and ${
-    items[items.length - 1]!
-  }`;
+  return mdText`${FeedMarkdown.join(items.slice(0, -1))} and ${items[
+    items.length - 1
+  ]!}`;
 }
 
 function plural(count: number, one: string, many: string): string {
@@ -271,7 +271,11 @@ export default class ProductionReviewComposer {
 
     if (report.suspectDeploys.length > 0) {
       found.push(
-        plural(report.suspectDeploys.length, "suspect deploy", "suspect deploys"),
+        plural(
+          report.suspectDeploys.length,
+          "suspect deploy",
+          "suspect deploys",
+        ),
       );
     }
 
@@ -412,7 +416,9 @@ export default class ProductionReviewComposer {
     )}.`;
   }
 
-  private static nothingFound(input: ProductionReviewCommentInput): MarkdownText {
+  private static nothingFound(
+    input: ProductionReviewCommentInput,
+  ): MarkdownText {
     const report: ProductionReviewReport = input.report;
 
     if (report.codeFileCount === 0) {
@@ -429,7 +435,10 @@ export default class ProductionReviewComposer {
     return mdText`Nothing in production runs through this pull request's changes: no exception thrown in them in the last ${PRODUCTION_REVIEW_WINDOWS.exceptionsDays} days, no traced operation or profiled function that runs them in the last hour, and no open incident or suspect deploy on their services.`;
   }
 
-  private static linkTo(input: ProductionReviewCommentInput, path: string): string {
+  private static linkTo(
+    input: ProductionReviewCommentInput,
+    path: string,
+  ): string {
     return `${input.dashboardUrl.replace(/\/+$/, "")}/${input.projectId}/${path}`;
   }
 
@@ -553,12 +562,11 @@ export default class ProductionReviewComposer {
     const rows: Array<MarkdownText> = operations.map(
       (operation: ProductionReviewOperationJSON): MarkdownText => {
         const params: URLSearchParams = new URLSearchParams();
-        const query: Record<string, string> =
-          toTracesExplorerQueryParams({
-            serviceIds: [operation.serviceId],
-            startTime,
-            endTime: reviewedAt,
-          }).params;
+        const query: Record<string, string> = toTracesExplorerQueryParams({
+          serviceIds: [operation.serviceId],
+          startTime,
+          endTime: reviewedAt,
+        }).params;
 
         for (const key of Object.keys(query)) {
           params.set(key, query[key] as string);
@@ -566,7 +574,9 @@ export default class ProductionReviewComposer {
 
         const errorRate: string =
           operation.requestCount > 0
-            ? formatPercent((operation.errorCount / operation.requestCount) * 100)
+            ? formatPercent(
+                (operation.errorCount / operation.requestCount) * 100,
+              )
             : "0%";
 
         return mdText`| ${FeedMarkdown.code(
@@ -690,13 +700,11 @@ export default class ProductionReviewComposer {
         : FeedMarkdown.empty();
 
     return FeedMarkdown.join(
-      [
-        mdText`**Incidents**`,
-        FeedMarkdown.bulletList(lines),
-        context,
-      ].filter((part: MarkdownText): boolean => {
-        return !part.isEmpty();
-      }),
+      [mdText`**Incidents**`, FeedMarkdown.bulletList(lines), context].filter(
+        (part: MarkdownText): boolean => {
+          return !part.isEmpty();
+        },
+      ),
       "\n\n",
     );
   }

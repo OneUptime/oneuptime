@@ -334,11 +334,15 @@ function isFunctionValue(value: string, isAfterColon: boolean): boolean {
       const after: string = text.slice(close).trimStart();
 
       // "(a, b): Result =>", "(a) =>"
-      return after.startsWith("=>") || (after[0] === ":" && after.includes("=>"));
+      return (
+        after.startsWith("=>") || (after[0] === ":" && after.includes("=>"))
+      );
     }
 
     // "param => ..."
-    return Boolean(word) && text.slice(word.length).trimStart().startsWith("=>");
+    return (
+      Boolean(word) && text.slice(word.length).trimStart().startsWith("=>")
+    );
   };
 
   if (startsAsFunction(rest)) {
@@ -639,7 +643,11 @@ function readNumber(
 ): { value: number; end: number } | null {
   let end: number = from;
 
-  while (end < text.length && end - from < 10 && isDigitCode(text.charCodeAt(end))) {
+  while (
+    end < text.length &&
+    end - from < 10 &&
+    isDigitCode(text.charCodeAt(end))
+  ) {
     end++;
   }
 
@@ -740,7 +748,10 @@ export function toLineRanges(lines: Iterable<number>): Array<LineRange> {
   return ranges;
 }
 
-export function isLineInRanges(line: number, ranges: Array<LineRange>): boolean {
+export function isLineInRanges(
+  line: number,
+  ranges: Array<LineRange>,
+): boolean {
   return ranges.some((range: LineRange): boolean => {
     return line >= range.start && line <= range.end;
   });

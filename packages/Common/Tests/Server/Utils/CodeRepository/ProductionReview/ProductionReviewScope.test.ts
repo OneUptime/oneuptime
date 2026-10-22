@@ -16,7 +16,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * change touches, by where each service's code lives in the repository.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("5d6e7f80-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "5d6e7f80-1111-4222-8333-444455556666",
+);
 const REPOSITORY_ID: ObjectID = new ObjectID(
   "5d6e7f80-2222-4222-8333-444455556666",
 );
@@ -35,14 +37,19 @@ function service(
 }
 
 const BILLING: CodeAgentScopedService = service("billing", "services/billing");
-const CHECKOUT: CodeAgentScopedService = service("checkout", "services/checkout");
+const CHECKOUT: CodeAgentScopedService = service(
+  "checkout",
+  "services/checkout",
+);
 const CHECKOUT_API: CodeAgentScopedService = service(
   "checkout-api",
   "services/checkout/api",
 );
 const MONOLITH: CodeAgentScopedService = service("monolith", null);
 
-function changedFiles(...paths: Array<string>): ReturnType<typeof readChangedCode> {
+function changedFiles(
+  ...paths: Array<string>
+): ReturnType<typeof readChangedCode> {
   return readChangedCode({
     files: paths.map((path: string) => {
       return { filename: path, status: "modified", patch: null };

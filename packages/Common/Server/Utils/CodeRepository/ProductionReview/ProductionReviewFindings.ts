@@ -718,12 +718,15 @@ export default class ProductionReviewFindings {
     >();
 
     for (const profiled of data.profile.functions) {
-      if (profiled.totalPercent < PRODUCTION_REVIEW_LIMITS.minHotFunctionPercent) {
+      if (
+        profiled.totalPercent < PRODUCTION_REVIEW_LIMITS.minHotFunctionPercent
+      ) {
         continue;
       }
 
-      const service: CodeAgentScopedService | undefined =
-        data.servicesById.get(profiled.serviceId.toLowerCase());
+      const service: CodeAgentScopedService | undefined = data.servicesById.get(
+        profiled.serviceId.toLowerCase(),
+      );
       const match: ChangedFileMatch | null = service
         ? matchChangedFile(profiled.fileName, data.changed.files)
         : null;
@@ -750,7 +753,8 @@ export default class ProductionReviewFindings {
         serviceName: service.name,
         totalPercent: Math.round(profiled.totalPercent * 10) / 10,
         selfPercent: Math.round(profiled.selfPercent * 10) / 10,
-        isChangedFunction: Boolean(name) && match.file.functionNames.includes(name),
+        isChangedFunction:
+          Boolean(name) && match.file.functionNames.includes(name),
         profileKind: boundedLine(profiled.kind, 40),
       });
     }
@@ -950,8 +954,8 @@ export default class ProductionReviewFindings {
         match: ExceptionFrameMatch;
       }): ProductionReviewExceptionJSON => {
         const group: TelemetryException = entry.group;
-        const serviceId: string = group.primaryEntityId!
-          .toString()
+        const serviceId: string = group
+          .primaryEntityId!.toString()
           .toLowerCase();
         const windowCount: number | undefined = counts.get(
           group._id!.toString(),
@@ -1023,8 +1027,8 @@ export default class ProductionReviewFindings {
         })
         .map(async (group: TelemetryException): Promise<void> => {
           try {
-            const count: PositiveNumber = await ExceptionInstanceService.countBy(
-              {
+            const count: PositiveNumber =
+              await ExceptionInstanceService.countBy({
                 query: {
                   projectId: data.projectId,
                   primaryEntityId: group.primaryEntityId,
@@ -1034,8 +1038,7 @@ export default class ProductionReviewFindings {
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: { isRoot: true, tenantId: data.projectId },
-              },
-            );
+              });
 
             counts.set(group._id!.toString(), count.toNumber());
           } catch (error) {
@@ -1142,15 +1145,14 @@ export default class ProductionReviewFindings {
           item.state = boundedLine(incident.currentIncidentState.name, 40);
         }
 
-        const mentions: string | null =
-          ProductionReviewFindings.findMention({
-            texts: [
-              incident.rootCause,
-              incident.remediationNotes,
-              incident.postmortemNote,
-            ],
-            changed: data.changed,
-          });
+        const mentions: string | null = ProductionReviewFindings.findMention({
+          texts: [
+            incident.rootCause,
+            incident.remediationNotes,
+            incident.postmortemNote,
+          ],
+          changed: data.changed,
+        });
 
         if (mentions) {
           item.mentions = mentions;

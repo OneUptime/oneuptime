@@ -42,7 +42,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * code, never a message or an incident's text).
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("1a2b3c4d-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "1a2b3c4d-1111-4222-8333-444455556666",
+);
 const CHECKOUT: string = "1a2b3c4d-aaaa-4222-8333-444455556666";
 const WORKER: string = "1a2b3c4d-bbbb-4222-8333-444455556666";
 const NOW: Date = new Date("2026-10-22T10:00:00.000Z");
@@ -221,7 +223,8 @@ describe("matchExceptionFrames", () => {
 
   test("a frame in a function the change touches, away from its lines", () => {
     const match: ExceptionFrameMatch | null = matchExceptionFrames({
-      stackTrace: "Error: x\n    at refundCard (/app/src/billing/charge.ts:120:5)",
+      stackTrace:
+        "Error: x\n    at refundCard (/app/src/billing/charge.ts:120:5)",
       changed: changed(),
     });
 
@@ -258,7 +261,8 @@ describe("matchExceptionFrames", () => {
         {
           filename: "app/billing.py",
           status: "modified",
-          patch: "@@ -10,1 +10,2 @@ def charge_card(card):\n-    x = card.id\n+    x = card and card.id",
+          patch:
+            "@@ -10,1 +10,2 @@ def charge_card(card):\n-    x = card.id\n+    x = card and card.id",
         },
       ],
     });
@@ -284,7 +288,8 @@ describe("matchExceptionFrames", () => {
         {
           filename: "pkg/server/server.go",
           status: "modified",
-          patch: "@@ -1,1 +1,1 @@\n-func (s *Server) Charge(ctx context.Context) error {\n+func (s *Server) Charge(ctx context.Context, id string) error {",
+          patch:
+            "@@ -1,1 +1,1 @@\n-func (s *Server) Charge(ctx context.Context) error {\n+func (s *Server) Charge(ctx context.Context, id string) error {",
         },
       ],
     });
@@ -319,9 +324,12 @@ describe("matchExceptionFrames", () => {
     [":20)", false],
     [":80 in Charge", false],
     ["Charge", false],
-  ])("%p is a file's line and offset only: %p", (rest: string, expected: boolean) => {
-    expect(isFileAndOffsetOnly(rest)).toBe(expected);
-  });
+  ])(
+    "%p is a file's line and offset only: %p",
+    (rest: string, expected: boolean) => {
+      expect(isFileAndOffsetOnly(rest)).toBe(expected);
+    },
+  );
 
   test("Go frames: a file line at the top of the trace is still read, at its line", () => {
     const goChanged: ChangedCode = readChangedCode({
@@ -329,7 +337,8 @@ describe("matchExceptionFrames", () => {
         {
           filename: "pkg/server/server.go",
           status: "modified",
-          patch: "@@ -80,1 +80,1 @@\n-\treturn s.charge(ctx)\n+\treturn s.chargeOnce(ctx)",
+          patch:
+            "@@ -80,1 +80,1 @@\n-\treturn s.charge(ctx)\n+\treturn s.chargeOnce(ctx)",
         },
       ],
     });
@@ -349,7 +358,8 @@ describe("matchExceptionFrames", () => {
         {
           filename: "src/main/java/com/acme/Billing.java",
           status: "modified",
-          patch: "@@ -20,1 +20,1 @@\n-  public Receipt charge(Card card) {\n+  public Receipt charge(Card card, Money m) {",
+          patch:
+            "@@ -20,1 +20,1 @@\n-  public Receipt charge(Card card) {\n+  public Receipt charge(Card card, Money m) {",
         },
       ],
     });
@@ -385,7 +395,9 @@ describe("matchExceptionFrames", () => {
     const started: number = Date.now();
     const huge: string = `${"    at x (/app/src/a.ts:1:1)\n".repeat(100000)}${"(".repeat(400000)}`;
 
-    expect(matchExceptionFrames({ stackTrace: huge, changed: changed() })).toBeNull();
+    expect(
+      matchExceptionFrames({ stackTrace: huge, changed: changed() }),
+    ).toBeNull();
     expect(Date.now() - started).toBeLessThan(2000);
   });
 });
@@ -393,7 +405,9 @@ describe("matchExceptionFrames", () => {
 describe("readFrameLine", () => {
   test("path:line and Python's line", () => {
     expect(readFrameLine("at f (/app/a.ts:42:7)", "/app/a.ts")).toBe(42);
-    expect(readFrameLine('File "/app/a.py", line 7, in f', "/app/a.py")).toBe(7);
+    expect(readFrameLine('File "/app/a.py", line 7, in f', "/app/a.py")).toBe(
+      7,
+    );
     expect(readFrameLine("at f (/app/a.ts)", "/app/a.ts")).toBeUndefined();
     expect(readFrameLine("at f (/app/a.ts:0)", "/app/a.ts")).toBeUndefined();
     expect(readFrameLine("nothing here", "/app/a.ts")).toBeUndefined();
@@ -402,11 +416,21 @@ describe("readFrameLine", () => {
 
 describe("operationServesRoute", () => {
   test("the route as a whole path in the operation's name", () => {
-    expect(operationServesRoute("GET /api/orders/:id", "/api/orders/:id")).toBe(true);
-    expect(operationServesRoute("/api/orders/:id", "/api/orders/:id")).toBe(true);
-    expect(operationServesRoute("GET /api/orders/:id?x=1", "/api/orders/:id")).toBe(true);
-    expect(operationServesRoute("GET /api/orders/:id/items", "/api/orders/:id")).toBe(false);
-    expect(operationServesRoute("GET /v2/api/orders/:id", "/api/orders/:id")).toBe(false);
+    expect(operationServesRoute("GET /api/orders/:id", "/api/orders/:id")).toBe(
+      true,
+    );
+    expect(operationServesRoute("/api/orders/:id", "/api/orders/:id")).toBe(
+      true,
+    );
+    expect(
+      operationServesRoute("GET /api/orders/:id?x=1", "/api/orders/:id"),
+    ).toBe(true);
+    expect(
+      operationServesRoute("GET /api/orders/:id/items", "/api/orders/:id"),
+    ).toBe(false);
+    expect(
+      operationServesRoute("GET /v2/api/orders/:id", "/api/orders/:id"),
+    ).toBe(false);
     expect(operationServesRoute("POST /charge", "/api/orders/:id")).toBe(false);
   });
 });
@@ -426,7 +450,9 @@ describe("lastNameSegment and maskOperationName", () => {
         "SELECT * FROM users WHERE email = 'bob@example.com' AND id = 550e8400-e29b-41d4-a716-446655440000",
       ),
     ).toBe("SELECT * FROM users WHERE email = '<EMAIL>' AND id = <UUID>");
-    expect(maskOperationName(`GET /x\n${"y".repeat(500)}`).length).toBeLessThanOrEqual(120);
+    expect(
+      maskOperationName(`GET /x\n${"y".repeat(500)}`).length,
+    ).toBeLessThanOrEqual(120);
   });
 });
 
@@ -446,7 +472,10 @@ describe("ProductionReviewFindings.matchOperations", () => {
     ).toEqual([
       ["GET /api/orders/:id", ProductionReviewOperationMatch.Route],
       ["POST /charge", ProductionReviewOperationMatch.CodeAttribute],
-      ["BillingService.refundCard", ProductionReviewOperationMatch.FunctionName],
+      [
+        "BillingService.refundCard",
+        ProductionReviewOperationMatch.FunctionName,
+      ],
     ]);
   });
 
@@ -515,7 +544,13 @@ describe("ProductionReviewFindings.matchOperations", () => {
         changed: short,
         profile: profile({
           operations: [
-            { serviceId: CHECKOUT, name: "run", count: 9, errorCount: 0, p95Ms: 1 },
+            {
+              serviceId: CHECKOUT,
+              name: "run",
+              count: 9,
+              errorCount: 0,
+              p95Ms: 1,
+            },
           ],
           codeLocations: [],
         }),
@@ -572,7 +607,10 @@ describe("ProductionReviewFindings.findMention", () => {
   test("a changed file by its path, or by a name long enough to mean it", () => {
     expect(
       ProductionReviewFindings.findMention({
-        texts: [null, "Root cause: a null card in services/checkout/src/billing/charge.ts"],
+        texts: [
+          null,
+          "Root cause: a null card in services/checkout/src/billing/charge.ts",
+        ],
         changed: changed(),
       }),
     ).toBe("services/checkout/src/billing/charge.ts");
@@ -623,7 +661,8 @@ describe("ProductionReviewFindings reads", () => {
     group._id = "2b3c4d5e-0000-4000-8000-000000000001";
     group.primaryEntityId = new ObjectID(CHECKOUT);
     group.exceptionType = "TypeError";
-    group.message = "Cannot read properties of undefined (reading 'id') for bob@example.com";
+    group.message =
+      "Cannot read properties of undefined (reading 'id') for bob@example.com";
     group.stackTrace =
       "TypeError: Cannot read properties of undefined (reading 'id') for bob@example.com\n    at chargeCard (/app/src/billing/charge.ts:41:20)";
     group.fingerprint = "fp-1";

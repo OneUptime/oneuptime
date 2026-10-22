@@ -51,7 +51,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * stubbed; the decisions are the code under test.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("a1b2c3d4-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "a1b2c3d4-1111-4222-8333-444455556666",
+);
 const REPOSITORY_ID: ObjectID = new ObjectID(
   "a1b2c3d4-2222-4222-8333-444455556666",
 );
@@ -144,7 +146,9 @@ function pullRequest(
   };
 }
 
-function findingsOf(report: ProductionReviewReport): ProductionReviewFindingsResult {
+function findingsOf(
+  report: ProductionReviewReport,
+): ProductionReviewFindingsResult {
   return {
     services: report.services,
     exceptions: report.exceptions,
@@ -176,11 +180,11 @@ describe("ProductionReviewRunner", () => {
     repository.gitHubAppInstallationId = "4242";
     repository.isProductionReviewEnabled = true;
 
-    jest.spyOn(CodeRepositoryService, "findOneBy").mockImplementation(
-      async () => {
+    jest
+      .spyOn(CodeRepositoryService, "findOneBy")
+      .mockImplementation(async () => {
         return repository;
-      },
-    );
+      });
     jest
       .spyOn(GitHubInstallationBinding, "isInstallationBoundToProject")
       .mockResolvedValue(true);
@@ -449,7 +453,9 @@ describe("ProductionReviewRunner", () => {
       expect(updateComment).toHaveBeenCalledTimes(1);
       expect(
         (updateComment.mock.calls[0]![0] as { body: string }).body,
-      ).toContain("Nothing in production runs through this pull request's changes");
+      ).toContain(
+        "Nothing in production runs through this pull request's changes",
+      );
     });
 
     test("someone who asked always gets an answer", async () => {

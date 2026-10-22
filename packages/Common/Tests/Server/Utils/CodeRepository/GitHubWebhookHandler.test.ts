@@ -10,6 +10,7 @@ import GitHubCommandParser from "../../../../Server/Utils/CodeRepository/GitHub/
 import GitHubConversation, {
   GitHubPullRequestDetails,
   GitHubReaction,
+  GitHubRepositoryPermission,
 } from "../../../../Server/Utils/CodeRepository/GitHub/GitHubConversation";
 import GitHubRunReply from "../../../../Server/Utils/CodeRepository/GitHub/GitHubRunReply";
 import ProductionReviewGitHubTrigger from "../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewGitHubTrigger";
@@ -17,7 +18,6 @@ import ProductionReviewQueue, {
   ProductionReviewRequest,
 } from "../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
 import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
-import { GitHubRepositoryPermission } from "../../../../Server/Utils/CodeRepository/GitHub/GitHubConversation";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../Server/Utils/Logger";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";

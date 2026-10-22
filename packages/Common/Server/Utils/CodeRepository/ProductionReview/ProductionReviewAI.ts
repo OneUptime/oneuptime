@@ -112,7 +112,10 @@ function describeMatch(matchedBy: ProductionReviewOperationMatch): string {
 }
 
 // "2 hours before the review", from two moments.
-function hoursBefore(at: string | undefined, reviewedAt: string): number | null {
+function hoursBefore(
+  at: string | undefined,
+  reviewedAt: string,
+): number | null {
   if (!at) {
     return null;
   }
@@ -129,10 +132,16 @@ export default class ProductionReviewAI {
    * exception, O1 an operation, P1 a hot function, I1 an incident, D1 a
    * deploy.
    */
-  public static buildFacts(report: ProductionReviewReport): ProductionReviewFacts {
+  public static buildFacts(
+    report: ProductionReviewReport,
+  ): ProductionReviewFacts {
     const ids: Set<string> = new Set<string>();
 
-    const withId: <T>(prefix: string, items: Array<T>, toJSON: (item: T) => JSONObject) => Array<JSONObject> = <T>(
+    const withId: <T>(
+      prefix: string,
+      items: Array<T>,
+      toJSON: (item: T) => JSONObject,
+    ) => Array<JSONObject> = <T>(
       prefix: string,
       items: Array<T>,
       toJSON: (item: T) => JSONObject,
@@ -397,10 +406,7 @@ export default class ProductionReviewAI {
         return typeof id === "string" && factIds.has(id.trim().toUpperCase());
       });
 
-      const pointText: string = point.text
-        .split("\n")
-        .join(" ")
-        .trim();
+      const pointText: string = point.text.split("\n").join(" ").trim();
 
       if (!rests || pointText.length < 10) {
         continue;

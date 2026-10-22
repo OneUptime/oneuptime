@@ -452,9 +452,7 @@ export default class CodeAgentTelemetryScope {
 
     const repository: ResolvableRepository | undefined = repositories.find(
       (candidate: ResolvableRepository): boolean => {
-        return (
-          normalizeId(candidate.id) === normalizeId(data.codeRepositoryId)
-        );
+        return normalizeId(candidate.id) === normalizeId(data.codeRepositoryId);
       },
     );
 

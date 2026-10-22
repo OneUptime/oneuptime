@@ -318,7 +318,10 @@ export default class ProductionReviewRunner {
       },
       reviewedAt: now.toISOString(),
       trigger: review.trigger,
-      changedFileCount: Math.max(changed.fileCount, pullRequest.changedFilesCount),
+      changedFileCount: Math.max(
+        changed.fileCount,
+        pullRequest.changedFilesCount,
+      ),
       codeFileCount: changed.codeFileCount,
       ...findings,
       points: [],
@@ -506,19 +509,19 @@ export default class ProductionReviewRunner {
       return;
     }
 
-    const isPublic: boolean | null = await GitHubConversation.isRepositoryPublic(
-      {
+    const isPublic: boolean | null =
+      await GitHubConversation.isRepositoryPublic({
         installationId: data.github.installationId,
         organizationName: data.github.organizationName,
         repositoryName: data.github.repositoryName,
-      },
-    );
-
-    const posting: ProductionReviewPosting.Review | ProductionReviewPosting.Link =
-      ProductionReviewUtil.getPosting({
-        content: data.repository.productionReviewPullRequestContent,
-        isPublic,
       });
+
+    const posting:
+      | ProductionReviewPosting.Review
+      | ProductionReviewPosting.Link = ProductionReviewUtil.getPosting({
+      content: data.repository.productionReviewPullRequestContent,
+      isPublic,
+    });
 
     data.report.posting = posting;
     data.report.isPublicRepository = isPublic === true;
@@ -540,13 +543,12 @@ export default class ProductionReviewRunner {
       isPublicRepository: isPublic,
     });
 
-    const comment: GitHubIssueComment = await ProductionReviewRunner.writeComment(
-      {
+    const comment: GitHubIssueComment =
+      await ProductionReviewRunner.writeComment({
         github: data.github,
         commentId: data.review.commentId,
         body,
-      },
-    );
+      });
 
     data.update.commentId = comment.commentId;
     data.update.commentUrl = comment.htmlUrl;

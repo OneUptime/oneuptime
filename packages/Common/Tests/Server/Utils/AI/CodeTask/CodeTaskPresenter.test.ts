@@ -419,11 +419,13 @@ describe("CodeTaskPresenter.summarize", () => {
       posting: ProductionReviewPosting.Link,
     });
 
-    jest
-      .spyOn(AIRunService, "findBy")
-      .mockImplementation(
-        outcomesRead({ summary: "", filesChanged: [], productionReview: report }) as never,
-      );
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
     jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     const [summary]: Array<CodeTaskSummaryJSON> =
@@ -452,15 +454,13 @@ describe("CodeTaskPresenter.summarize", () => {
   });
 
   test("a production review that found nothing says so", async () => {
-    jest
-      .spyOn(AIRunService, "findBy")
-      .mockImplementation(
-        outcomesRead({
-          summary: "",
-          filesChanged: [],
-          productionReview: emptyReport(),
-        }) as never,
-      );
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: emptyReport(),
+      }) as never,
+    );
     jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     const [summary]: Array<CodeTaskSummaryJSON> =
@@ -475,9 +475,9 @@ describe("CodeTaskPresenter.summarize", () => {
   });
 
   test("a production review not yet reviewed has no glance", async () => {
-    jest.spyOn(AIRunService, "findBy").mockImplementation(
-      outcomesRead(undefined) as never,
-    );
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation(outcomesRead(undefined) as never);
     jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
 
     const [summary]: Array<CodeTaskSummaryJSON> =

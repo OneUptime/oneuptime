@@ -34,7 +34,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * again a little later, a few times.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("90a1b2c3-1111-4222-8333-444455556666");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "90a1b2c3-1111-4222-8333-444455556666",
+);
 const REPOSITORY_ID: ObjectID = new ObjectID(
   "90a1b2c3-2222-4222-8333-444455556666",
 );
@@ -219,8 +221,8 @@ describe("ProductionReviewQueue", () => {
       );
 
       const run: AIRun = (create.mock.calls[0]![0] as { data: AIRun }).data;
-      const review: ProductionReviewTaskContext = run.taskContext!
-        .productionReview!;
+      const review: ProductionReviewTaskContext =
+        run.taskContext!.productionReview!;
 
       expect(run.userId).toBe(USER_ID);
       expect(getDueAt(review).getTime()).toBeLessThanOrEqual(Date.now());
@@ -323,9 +325,9 @@ describe("ProductionReviewQueue", () => {
       expect(set.taskContext.productionReview?.requestNumber).toBe(4);
 
       // Only the title is written beside the transition.
-      expect(
-        (update.mock.calls[0]![0] as { data: JSONObject }).data,
-      ).toEqual({ title: "fix: guard the card" });
+      expect((update.mock.calls[0]![0] as { data: JSONObject }).data).toEqual({
+        title: "fix: guard the card",
+      });
     });
 
     test("a finished review that moved meanwhile still gets the ask", async () => {
@@ -379,11 +381,22 @@ describe("ProductionReviewQueue", () => {
     }
 
     test("claims the reviews past their wait, each by one conditional update; passes over the rest", async () => {
-      jest.spyOn(AIRunService, "findBy").mockResolvedValue([
-        queued("90a1b2c3-0001-4222-8333-444455556666", "2026-10-22T09:58:00.000Z"),
-        queued("90a1b2c3-0002-4222-8333-444455556666", "2026-10-22T09:59:30.000Z"),
-        queued("90a1b2c3-0003-4222-8333-444455556666", "2026-10-22T09:58:00.000Z"),
-      ]);
+      jest
+        .spyOn(AIRunService, "findBy")
+        .mockResolvedValue([
+          queued(
+            "90a1b2c3-0001-4222-8333-444455556666",
+            "2026-10-22T09:58:00.000Z",
+          ),
+          queued(
+            "90a1b2c3-0002-4222-8333-444455556666",
+            "2026-10-22T09:59:30.000Z",
+          ),
+          queued(
+            "90a1b2c3-0003-4222-8333-444455556666",
+            "2026-10-22T09:58:00.000Z",
+          ),
+        ]);
 
       const transition: jest.SpyInstance = jest
         .spyOn(AIRunService, "attemptStatusTransition")
@@ -416,13 +429,13 @@ describe("ProductionReviewQueue", () => {
 
       await ProductionReviewQueue.claimDue();
 
-      expect(
-        (findBy.mock.calls[0]![0] as { query: JSONObject }).query,
-      ).toEqual({
-        runType: AIRunType.CodeFix,
-        codeFixTaskType: CodeFixTaskType.GitHubPullRequestProductionReview,
-        status: AIRunStatus.Queued,
-      });
+      expect((findBy.mock.calls[0]![0] as { query: JSONObject }).query).toEqual(
+        {
+          runType: AIRunType.CodeFix,
+          codeFixTaskType: CodeFixTaskType.GitHubPullRequestProductionReview,
+          status: AIRunStatus.Queued,
+        },
+      );
     });
 
     test("a review that does not say what to review ends with why", async () => {
@@ -613,9 +626,7 @@ describe("ProductionReviewQueue", () => {
 
       expect(set.status).toBe(AIRunStatus.Queued);
       expect(set.taskContext.productionReview?.failedAttempts).toBe(1);
-      expect(
-        getDueAt(set.taskContext.productionReview!).toISOString(),
-      ).toBe(
+      expect(getDueAt(set.taskContext.productionReview!).toISOString()).toBe(
         new Date(
           Date.now() + PRODUCTION_REVIEW_RETRY_SECONDS * 1000,
         ).toISOString(),
