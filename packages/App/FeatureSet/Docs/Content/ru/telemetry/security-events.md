@@ -288,7 +288,64 @@ OneUptime выполняет булево ядро Sigma:
 - `Image` и `CommandLine` читают процесс, о котором событие: при запуске процесса — запущенный процесс (`processPath`, `processCommandLine`), а `ParentImage` и `ParentCommandLine` — процесс, который его запустил (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` — это процесс, который действовал, то есть при запуске — родительский.
 - `level` задаёт серьёзность: `informational`, `low`, `medium`, `high` или `critical`, а при отсутствии — `medium`. ID ATT&CK в `tags` (`attack.t1110`, `attack.ta0006`) заполняют поля MITRE находки.
 
-Агрегации вроде `| count() by principalIp > 5` отклоняются при сохранении: используйте вместо них **Group By Field** и **Match Count Threshold**. `logsource` носит только информационный характер и ничего не сужает: поместите такой фильтр в выборку, например `className: Authentication`. `timeframe` игнорируется, потому что окно задаёт интервал правила.
+Агрегации вроде `| count() by principalIp > 5` отклоняются при сохранении: используйте вместо них [правило корреляции](#правила-корреляции) или **Group By Field** и **Match Count Threshold**. `logsource` носит только информационный характер и ничего не сужает: поместите такой фильтр в выборку, например `className: Authentication`. `timeframe` игнорируется, потому что окно задаёт интервал правила.
+
+### Правила корреляции
+
+[Корреляция Sigma](https://sigmahq.io/docs/meta/correlations.html) срабатывает на несколько событий вместе, а не на одно. Вставьте её в **Sigma Rule (YAML)** вместе с правилами, которые она читает, как YAML-документы, разделённые `---`, или назовите правила, которые в проекте уже есть, по их `name` или `id` в Sigma. В **Rule Library** есть готовые, например неудачные входы, за которыми следует успешный.
+
+| Тип | Срабатывает, когда | Показывается как |
+| --- | --- | --- |
+| `event_count` | Одна группа достигает числа событий в пределах `timespan` | Число событий |
+| `value_count` | Одна группа показывает число разных значений поля в пределах `timespan` | Разные значения |
+| `temporal` | Каждое правило совпадает для одной и той же группы в пределах `timespan`, в любом порядке | События вместе |
+| `temporal_ordered` | Правила совпадают в своём порядке для одной и той же группы в пределах `timespan` | Sequence |
+| `new_value` | Группа показывает значение поля, которого не показывала в пределах `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- Группа — это значение полей `group-by`, например один адрес. Подсчёт скользящий: всплеск, который поделили два запуска, всё равно считается целиком в пределах своего `timespan`, а он не больше 24 часов.
+- `new_value` — собственный тип OneUptime, потому что в Sigma нет корреляции «впервые замечено»: он сравнивает с историей до 30 дней. `value_sum`, `value_avg`, `value_percentile` и `value_median` отклоняются при сохранении.
+- Столбец **Тип** в **Detection Rules** называет вид каждого правила, а форма одним предложением говорит, что ищет правило.
 
 ### Настройки оценки
 

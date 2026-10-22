@@ -142,6 +142,48 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 
 Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert nie etwas und verschiebt nie den Cursor, und jede fehlgeschlagene Prüfung sagt, was zu ändern ist.
 
+## Sicherheitsereignisse an Elastic Security senden
+
+OneUptime kann das, was es findet, auch an Elasticsearch senden, als Dokumente im Elastic Common Schema (ECS) in einem Datenstrom, sodass die Warnungen, Zeitachsen und Erkennungsregeln von Elastic Security die Erkennungen von OneUptime neben Ihren eigenen sehen. Eine Erkennung ist ein Dokument mit `event.kind` `alert`, und jedes andere Ereignis hat `event.kind` `event`.
+
+:::steps
+### Einen API-Schlüssel erstellen, der schreiben darf
+
+Öffnen Sie in Kibana **Stack Management → API keys**, klicken Sie auf **Create API key**, geben Sie ihm die Berechtigungen unten und kopieren Sie seinen Wert **Encoded**.
+
+### Das Ziel hinzufügen
+
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen**. Klicken Sie unter **An Ihr SIEM senden** auf **Ziel hinzufügen**, wählen Sie Elastic Security unter **SIEM** und klicken Sie auf **Weiter**. Tragen Sie die **Elasticsearch-URL** ein, den Elasticsearch-Endpunkt des Deployments und nicht den von Kibana, und fügen Sie den Schlüssel in **API-Schlüssel** ein. **Datenstrom** ist optional: Bleibt er leer, gehen die Dokumente nach `logs-oneuptime.security-default`, den Elasticsearch beim ersten Schreiben anlegt.
+
+### Ein Testereignis senden und das Senden starten
+
+Klicken Sie auf **Testereignis senden**: Ein Dokument kommt im Datenstrom an. Behalten Sie dann unter **Was gesendet wird** die Option **Nur Erkennungen** oder wählen Sie **Alle Sicherheitsereignisse**, und klicken Sie auf **Senden starten**.
+:::
+
+Die Berechtigungen des Schlüssels, für den Standard-Datenstrom:
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- Dokumente gehen in Stapeln von bis zu 500, jedes mit der eigenen ID seines Ereignisses, sodass ein zweimal gesendetes Ereignis einmal gespeichert wird.
+- Ein Dokument, das Elasticsearch nicht zuordnen kann, wird ausgelassen und in **Fehler anzeigen** genannt, und eines, das es gerade nicht annehmen kann (`429`), wird erneut gesendet.
+- Warnungen, die OneUptime aus Elastic Security importiert hat, werden nie an Elastic Security zurückgesendet.
+
 ## Fehlerbehebung
 
 Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, mit geschwärzten Anmeldedaten, hinter einem Präfix, das den fehlgeschlagenen Schritt nennt. Hat eine Verbindung einen Fehler, wählen Sie in ihrer Spalte **Aktionen** die Aktion **Fehler anzeigen**, um ihn zu lesen, und im Dialog **Fehler kopieren**, um ihn zu kopieren. Lesen Sie zuerst das Präfix.

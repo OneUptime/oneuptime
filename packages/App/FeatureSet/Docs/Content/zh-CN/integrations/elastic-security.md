@@ -142,6 +142,48 @@ Stopped after collecting 10000 alerts; the window holds more.
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
+## 将安全事件发送到 Elastic Security
+
+OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Schema（ECS）文档发送到 Elasticsearch，让 Elastic Security 的警报、时间线和检测规则在你自己的检测结果旁边看到 OneUptime 的检测结果。检测结果是 `event.kind` 为 `alert` 的文档，其他所有事件的 `event.kind` 为 `event`。
+
+:::steps
+### 创建可以写入的 API 密钥
+
+在 Kibana 中打开 **Stack Management → API keys**，点击 **Create API key**，授予它下面的权限，然后复制它的 **Encoded** 值。
+
+### 添加目标
+
+打开 **产品 → Security Events → Connections**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Elastic Security，然后点击 **下一步**。在 **Elasticsearch URL** 中填写部署的 Elasticsearch 端点，而不是 Kibana 的端点，并把密钥粘贴到 **API 密钥** 中。**数据流** 是可选的：留空时，文档会进入 `logs-oneuptime.security-default`，Elasticsearch 会在第一次写入时创建它。
+
+### 发送测试事件并开始发送
+
+点击 **发送测试事件**：会有一个文档到达数据流。然后在 **发送内容** 下保留 **仅检测结果** 或选择 **所有安全事件**，再点击 **开始发送**。
+:::
+
+默认数据流对应的密钥权限：
+
+```json title="oneuptime-writer-role.json"
+{
+  "oneuptime-writer": {
+    "indices": [
+      {
+        "names": [
+          "logs-oneuptime.security-*"
+        ],
+        "privileges": [
+          "create_doc",
+          "auto_configure"
+        ]
+      }
+    ]
+  }
+}
+```
+
+- 文档按每批最多 500 个发送，每个都带有其事件自己的 id，所以发送两次的事件只会存储一次。
+- Elasticsearch 无法映射的文档会被略去并在 **查看错误** 中列出，它暂时无法接收的文档（`429`）会被重新发送。
+- OneUptime 从 Elastic Security 导入的警报永远不会被发回 Elastic Security。
+
 ## 故障排除
 
 连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。请先阅读前缀。

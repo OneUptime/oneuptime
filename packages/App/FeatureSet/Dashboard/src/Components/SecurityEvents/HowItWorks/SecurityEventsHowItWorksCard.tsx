@@ -10,12 +10,15 @@ import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { DOCS_URL } from "Common/UI/Config";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityEventSeverityPill from "../SecurityEventSeverityPill";
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
   SecurityEventsGuideSection,
   SecurityEventsGuideStep,
+  SecurityEventsGuideTemplate,
   getGuideSection,
 } from "./SecurityEventsGuide";
 
@@ -31,6 +34,12 @@ import {
  * Someone who has read it can hide it. The choice is remembered per guide
  * in this browser; hidden, the card shrinks to its title row, so the
  * guide stays one click away.
+ *
+ * Everything the card draws is looked up in the reader's language: the
+ * guide's words are en.json keys, and a sentence with numbers in it is a
+ * template the numbers are written into the reader's way. The full guide's
+ * tabs are named in that language too; their markdown is the documentation
+ * and stays English, with the docs page a click away.
  */
 
 export interface ComponentProps {
@@ -70,7 +79,43 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { guide } = props;
+  const translator: Translator = useTranslator();
   const storageKey: string = getHowItWorksCollapsedStorageKey(guide.id);
+
+  // A guide's words in the reader's language, or as written while it has none.
+  const say: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+
+  const translateGuideTemplate: (
+    guideTemplate: SecurityEventsGuideTemplate,
+  ) => string = (guideTemplate: SecurityEventsGuideTemplate): string => {
+    const values: Record<string, string> = {};
+
+    for (const [name, value] of Object.entries(guideTemplate.values)) {
+      values[name] = translator.formatNumber(value);
+    }
+
+    return translator.translateTemplate(guideTemplate.sentence, values);
+  };
+
+  const describeStep: (step: SecurityEventsGuideStep) => string = (
+    step: SecurityEventsGuideStep,
+  ): string => {
+    return step.descriptionTemplate
+      ? translateGuideTemplate(step.descriptionTemplate)
+      : say(step.description);
+  };
+
+  const labelLevel: (level: SecurityEventsGuideLevel) => string = (
+    level: SecurityEventsGuideLevel,
+  ): string => {
+    if (level.labelTemplate) {
+      return translateGuideTemplate(level.labelTemplate);
+    }
+
+    return level.isLabelAValue ? level.label : say(level.label);
+  };
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     return readIsCollapsed(storageKey);
@@ -122,11 +167,15 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
         </div>
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-            Step {index + 1}
+            {translator.translateTemplate("Step {{number}}", {
+              number: translator.formatNumber(index + 1),
+            })}
           </p>
-          <h3 className="text-sm font-semibold text-gray-900">{step.title}</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {say(step.title)}
+          </h3>
           <p className="mt-1 text-sm leading-relaxed text-gray-600">
-            {step.description}
+            {describeStep(step)}
           </p>
         </div>
       </li>
@@ -138,7 +187,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
       <div className="mt-4 rounded-lg border border-gray-100 p-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h3 className="text-sm font-semibold text-gray-900">
-            {guide.levels.title}
+            {say(guide.levels.title)}
           </h3>
           <button
             type="button"
@@ -148,11 +197,11 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
             }}
             data-testid="how-it-works-levels-link"
           >
-            How {guide.levels.title.toLowerCase()} are chosen
+            {say(guide.levels.linkText)}
           </button>
         </div>
         <p className="mt-1 text-sm leading-relaxed text-gray-500">
-          {guide.levels.description}
+          {say(guide.levels.description)}
         </p>
         <ul className="mt-3 flex flex-wrap gap-2">
           {guide.levels.items.map(
@@ -164,7 +213,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
                   data-testid="how-it-works-level"
                 >
                   <span className="text-xs font-medium text-gray-700">
-                    {level.label}
+                    {labelLevel(level)}
                   </span>
                   <Icon
                     icon={IconProp.ArrowRight}
@@ -195,7 +244,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
       const tabs: Array<Tab> = guide.sections.map(
         (section: SecurityEventsGuideSection): Tab => {
           return {
-            name: section.title,
+            name: say(section.title),
             children: (
               <div
                 className="pb-2"
@@ -210,11 +259,11 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
 
       return (
         <Modal
-          title={guide.guideTitle}
-          description={guide.guideDescription}
+          title={say(guide.guideTitle)}
+          description={say(guide.guideDescription)}
           modalWidth={ModalWidth.Large}
           onClose={closeGuide}
-          closeButtonText="Close"
+          closeButtonText={say("Close")}
           leftFooterElement={
             <Link
               className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"
@@ -225,14 +274,16 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
             >
               <>
                 <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
-                Full documentation
+                {say("Full documentation")}
               </>
             </Link>
           }
         >
           <Tabs
             tabs={tabs}
-            initialTabName={initialSection?.title}
+            initialTabName={
+              initialSection ? say(initialSection.title) : undefined
+            }
             onTabChange={() => {
               // The selected tab is local to the open modal.
             }}
@@ -257,11 +308,11 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <h2 id={titleId} className="text-base font-semibold text-gray-900">
-              {guide.title}
+              {say(guide.title)}
             </h2>
             {!isCollapsed && (
               <p className="mt-0.5 text-sm leading-relaxed text-gray-500">
-                {guide.summary}
+                {say(guide.summary)}
               </p>
             )}
           </div>
@@ -280,7 +331,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
             data-testid="how-it-works-open-guide"
           >
             <Icon icon={IconProp.Book} className="h-4 w-4" />
-            Read the full guide
+            {say("Read the full guide")}
           </button>
           <button
             type="button"
@@ -290,7 +341,7 @@ const SecurityEventsHowItWorksCard: FunctionComponent<ComponentProps> = (
             onClick={toggleCollapsed}
             data-testid="how-it-works-toggle"
           >
-            {isCollapsed ? "Show" : "Hide"}
+            {say(isCollapsed ? "Show" : "Hide")}
             <Icon
               icon={isCollapsed ? IconProp.ChevronDown : IconProp.ChevronUp}
               className="h-4 w-4"
