@@ -382,9 +382,11 @@ describe("POST /incident/get-list: the Postmortems list", () => {
     asCaller([Permission.ProjectAdmin]);
     jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-      .mockImplementation((async (): Promise<DatabaseCommonInteractionProps> => {
-        return caller;
-      }) as never);
+      .mockImplementation(
+        (async (): Promise<DatabaseCommonInteractionProps> => {
+          return caller;
+        }) as never,
+      );
     stubProjectDirectory({ projectId: PROJECT_ID });
     repository = fakeRepository(IncidentService);
 
@@ -398,7 +400,9 @@ describe("POST /incident/get-list: the Postmortems list", () => {
       response(),
     );
 
-    expect(repository.find.mock.calls[0]![0].where["isPrivate"]).toBeUndefined();
+    expect(
+      repository.find.mock.calls[0]![0].where["isPrivate"],
+    ).toBeUndefined();
   });
 
   test.each([
@@ -528,7 +532,10 @@ describe("POST /incident-postmortem-status/get-list: the statuses the chips and 
     ["a project viewer", [Permission.Viewer]],
     ["an incident viewer", [Permission.IncidentViewer]],
     ["a member", [Permission.ProjectMember]],
-    ["someone with Read Postmortem Status", [Permission.ReadIncidentPostmortemStatus]],
+    [
+      "someone with Read Postmortem Status",
+      [Permission.ReadIncidentPostmortemStatus],
+    ],
   ] as Array<[string, Array<Permission>]>)(
     "%s reads the project's statuses, top first",
     async (_name: string, permissions: Array<Permission>) => {
@@ -621,9 +628,10 @@ describe("writes", () => {
         },
       );
 
-      getJestSpyOn(IncidentPostmortemStatusService, "_onBeforeCreate").mockImplementation(
-        create as never,
-      );
+      getJestSpyOn(
+        IncidentPostmortemStatusService,
+        "_onBeforeCreate",
+      ).mockImplementation(create as never);
 
       await expect(
         statusApi().createItem(request({ body: newStatus }), response()),
@@ -637,7 +645,10 @@ describe("writes", () => {
     ["an owner", [Permission.ProjectOwner]],
     ["an admin", [Permission.ProjectAdmin]],
     ["an incident admin", [Permission.IncidentAdmin]],
-    ["someone with Create Postmortem Status", [Permission.CreateIncidentPostmortemStatus]],
+    [
+      "someone with Create Postmortem Status",
+      [Permission.CreateIncidentPostmortemStatus],
+    ],
   ] as Array<[string, Array<Permission>]>)(
     "%s adds one: the request reaches the statuses' own hooks",
     async (_name: string, permissions: Array<Permission>) => {
@@ -651,9 +662,10 @@ describe("writes", () => {
         },
       );
 
-      getJestSpyOn(IncidentPostmortemStatusService, "_onBeforeCreate").mockImplementation(
-        create as never,
-      );
+      getJestSpyOn(
+        IncidentPostmortemStatusService,
+        "_onBeforeCreate",
+      ).mockImplementation(create as never);
 
       await expect(
         statusApi().createItem(request({ body: newStatus }), response()),

@@ -309,6 +309,30 @@ function between(source: string, start: string, end: string): string {
 }
 
 /*
+ * Code with its white space and its trailing commas taken out: what a label
+ * declaration says whichever way Prettier wraps it.
+ */
+function compact(code: string): string {
+  return code.split(/\s+/).join("").split(",)").join(")");
+}
+
+/*
+ * Whether `source` declares the label `constant` as the Dashboard key `text`
+ * (translationKey), however the line is wrapped.
+ */
+function expectLabelDeclared(
+  source: string,
+  constant: string,
+  text: string,
+): void {
+  expect(compact(source)).toContain(
+    compact(
+      `export const ${constant}: string = translationKey(${JSON.stringify(text)});`,
+    ),
+  );
+}
+
+/*
  * The source of the object a field is declared in on a form, from its title:
  * the text between the `{` that opens it and the `}` that closes it, found by
  * brace depth around `title: "<title>"`.
@@ -2460,8 +2484,10 @@ describe("where a postmortem is written", () => {
     );
 
     // Nothing written: Write Postmortem, the empty card's one button.
-    expect(POSTMORTEM_EMPTY_STATE).toContain(
-      'export const WRITE_POSTMORTEM: string = translationKey("Write Postmortem");',
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "WRITE_POSTMORTEM",
+      "Write Postmortem",
     );
     expect(POSTMORTEM_EMPTY_STATE).toContain("title={WRITE_POSTMORTEM}");
     expect(writeDialog).toContain('title="Write Postmortem"');
@@ -2591,11 +2617,15 @@ describe("starting a postmortem from a template or an AI draft", () => {
       "const hasTemplates: boolean = postmortemTemplates.templates.length > 0;",
     );
     // Nothing written: beside Write Postmortem.
-    expect(POSTMORTEM_EMPTY_STATE).toContain(
-      'export const START_FROM_TEMPLATE: string = translationKey(\n  "Start from Template",\n);',
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "START_FROM_TEMPLATE",
+      "Start from Template",
     );
-    expect(POSTMORTEM_EMPTY_STATE).toContain(
-      'export const GENERATE_WITH_AI: string = translationKey("Generate with AI");',
+    expectLabelDeclared(
+      POSTMORTEM_EMPTY_STATE,
+      "GENERATE_WITH_AI",
+      "Generate with AI",
     );
     expect(POSTMORTEM_EMPTY_STATE).toContain(
       "{props.hasTemplates ? (\n        <Button\n          title={START_FROM_TEMPLATE}",
@@ -2607,8 +2637,10 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(POSTMORTEM_PAGE).toContain(
       "buttons:\n            hasNote &&\n            hasPostmortemMoreMenuItems({",
     );
-    expect(POSTMORTEM_MORE_MENU).toContain(
-      'export const APPLY_TEMPLATE: string = translationKey("Apply Template");',
+    expectLabelDeclared(
+      POSTMORTEM_MORE_MENU,
+      "APPLY_TEMPLATE",
+      "Apply Template",
     );
     expect(POSTMORTEM_MORE_MENU).toContain("text={APPLY_TEMPLATE}");
     expect(POSTMORTEM_MORE_MENU).toContain("text={GENERATE_WITH_AI}");
@@ -3625,8 +3657,10 @@ describe("where each postmortem stands", () => {
   it("moves from its status under Move postmortem to, by the roles that write it", () => {
     const incident: Incident = new Incident();
 
-    expect(POSTMORTEM_STATUS_PICKER).toContain(
-      'export const POSTMORTEM_STATUS_MENU_TITLE: string = translationKey(\n  "Move postmortem to",\n);',
+    expectLabelDeclared(
+      POSTMORTEM_STATUS_PICKER,
+      "POSTMORTEM_STATUS_MENU_TITLE",
+      "Move postmortem to",
     );
     expect(POSTMORTEMS_TABLE).toContain("<PostmortemStatusPicker");
     expect(
@@ -3812,8 +3846,10 @@ describe("every postmortem in one list", () => {
   });
 
   it("changes many at once: Change Postmortem Status, Add Owner and Remove Owner", () => {
-    expect(BULK_POSTMORTEM_STATUS).toContain(
-      'export const CHANGE_POSTMORTEM_STATUS: string = translationKey(\n  "Change Postmortem Status",\n);',
+    expectLabelDeclared(
+      BULK_POSTMORTEM_STATUS,
+      "CHANGE_POSTMORTEM_STATUS",
+      "Change Postmortem Status",
     );
     expect(POSTMORTEMS_TABLE).toContain(
       "buttons: [statusBulkAction, ...ownerBulkActions],",

@@ -507,8 +507,12 @@ describe("the no-templates dialogs", () => {
     expect(incident).toMatch(
       /const hasTemplates: boolean = postmortemTemplates\.templates\.length > 0;/,
     );
-    expect(incident).toMatch(/<PostmortemEmptyState[^>]*hasTemplates=\{hasTemplates\}/);
-    expect(incident).toMatch(/<PostmortemMoreMenu[^>]*hasTemplates=\{hasTemplates\}/);
+    expect(incident).toMatch(
+      /<PostmortemEmptyState[^>]*hasTemplates=\{hasTemplates\}/,
+    );
+    expect(incident).toMatch(
+      /<PostmortemMoreMenu[^>]*hasTemplates=\{hasTemplates\}/,
+    );
 
     for (const file of [
       "Components/Postmortem/PostmortemEmptyState.tsx",

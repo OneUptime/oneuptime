@@ -126,16 +126,16 @@ const buildValueFacet: <T extends ColoredValue>(data: {
         } as unknown as Query<T>,
         limit: values.length,
         skip: 0,
-        select: { _id: true, name: true, color: true } as Record<
-          string,
-          true
-        >,
+        select: { _id: true, name: true, color: true } as Record<string, true>,
         sort: {},
       });
 
       return result.data.map(toColoredOption);
     },
-    toQueryValue: (values: Array<string>, operator: FilterOperator): unknown => {
+    toQueryValue: (
+      values: Array<string>,
+      operator: FilterOperator,
+    ): unknown => {
       return buildEntityFacetQuery(values, operator, true);
     },
   };

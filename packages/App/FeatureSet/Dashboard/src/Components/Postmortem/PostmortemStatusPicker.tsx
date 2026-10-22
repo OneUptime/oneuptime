@@ -27,9 +27,8 @@ import {
 } from "./PostmortemStatusChoices";
 import Color from "Common/Types/Color";
 
-export const POSTMORTEM_STATUS_MENU_TITLE: string = translationKey(
-  "Move postmortem to",
-);
+export const POSTMORTEM_STATUS_MENU_TITLE: string =
+  translationKey("Move postmortem to");
 
 export const POSTMORTEM_STATUS_SAVE_FAILED: string = translationKey(
   "Could not change the postmortem's status.",
@@ -183,35 +182,33 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
               // The section translates its own title.
               title={POSTMORTEM_STATUS_MENU_TITLE}
             >
-              {pickable.map(
-                (choice: PostmortemStatusChoice): ReactElement => {
-                  const isSelected: boolean = Boolean(
-                    current && current.id === choice.id,
-                  );
+              {pickable.map((choice: PostmortemStatusChoice): ReactElement => {
+                const isSelected: boolean = Boolean(
+                  current && current.id === choice.id,
+                );
 
-                  return (
-                    <MoreMenuItem
-                      key={choice.id}
-                      text={choice.name}
-                      color={choice.color}
-                      tooltip={choice.description || undefined}
-                      isChecked={isSelected}
-                      rightElement={
-                        isSelected ? (
-                          <Icon
-                            icon={IconProp.Check}
-                            className="h-4 w-4 text-indigo-600"
-                          />
-                        ) : undefined
-                      }
-                      dataTestId={`${testId}-option`}
-                      onClick={() => {
-                        void moveTo(choice);
-                      }}
-                    />
-                  );
-                },
-              )}
+                return (
+                  <MoreMenuItem
+                    key={choice.id}
+                    text={choice.name}
+                    color={choice.color}
+                    tooltip={choice.description || undefined}
+                    isChecked={isSelected}
+                    rightElement={
+                      isSelected ? (
+                        <Icon
+                          icon={IconProp.Check}
+                          className="h-4 w-4 text-indigo-600"
+                        />
+                      ) : undefined
+                    }
+                    dataTestId={`${testId}-option`}
+                    onClick={() => {
+                      void moveTo(choice);
+                    }}
+                  />
+                );
+              })}
             </MoreMenuSection>,
           ]}
         </MoreMenu>

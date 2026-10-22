@@ -247,21 +247,21 @@ const IncidentPostmortem: FunctionComponent<
               hasTemplates: hasTemplates,
               isAiOffered: isAiOffered,
             })
-            ? [
-                <PostmortemMoreMenu
-                  key="postmortem-more-menu"
-                  writeGate={writeGate}
-                  hasTemplates={hasTemplates}
-                  isAiOffered={isAiOffered}
-                  onApplyTemplate={() => {
-                    setShowTemplateModal(true);
-                  }}
-                  onGenerateWithAI={() => {
-                    setShowAIGenerateModal(true);
-                  }}
-                />,
-              ]
-            : [],
+              ? [
+                  <PostmortemMoreMenu
+                    key="postmortem-more-menu"
+                    writeGate={writeGate}
+                    hasTemplates={hasTemplates}
+                    isAiOffered={isAiOffered}
+                    onApplyTemplate={() => {
+                      setShowTemplateModal(true);
+                    }}
+                    onGenerateWithAI={() => {
+                      setShowAIGenerateModal(true);
+                    }}
+                  />,
+                ]
+              : [],
         }}
         refresher={refreshToggle}
         createEditModalWidth={ModalWidth.Large}
@@ -286,7 +286,9 @@ const IncidentPostmortem: FunctionComponent<
             isPrivate: true,
           },
           onItemLoaded: (item: Incident) => {
-            setHasNote(IncidentPostmortemPublication.hasNote(item.postmortemNote));
+            setHasNote(
+              IncidentPostmortemPublication.hasNote(item.postmortemNote),
+            );
           },
           /*
            * Where it stands and who owns it, then the write-up and its
@@ -336,7 +338,9 @@ const IncidentPostmortem: FunctionComponent<
               colSpan: 2,
               fieldType: FieldType.Element,
               getElement: (item: Incident): ReactElement => {
-                if (IncidentPostmortemPublication.hasNote(item.postmortemNote)) {
+                if (
+                  IncidentPostmortemPublication.hasNote(item.postmortemNote)
+                ) {
                   /*
                    * The viewer spaces its paragraphs and lists apart; the
                    * first's space above and the last's below would put the

@@ -387,9 +387,14 @@ const INCIDENT: Kind = {
       return { counter: 42, prefix: undefined };
     });
     // Where its postmortem starts: a project with no statuses yet.
-    stub(IncidentPostmortemStatusService, "getProjectStatuses", undefined, () => {
-      return [];
-    });
+    stub(
+      IncidentPostmortemStatusService,
+      "getProjectStatuses",
+      undefined,
+      () => {
+        return [];
+      },
+    );
     stub(ProductAnalytics, "captureForUser");
     stub(IncidentService, "findOneById", undefined, () => {
       const incident: Incident = new Incident();

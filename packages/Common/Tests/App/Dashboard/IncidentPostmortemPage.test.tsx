@@ -324,69 +324,71 @@ beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
 
   getListMock.mockReset();
-  getListMock.mockImplementation(async (...args: Array<unknown>): Promise<unknown> => {
-    const modelType: unknown = (args[0] as { modelType: unknown }).modelType;
+  getListMock.mockImplementation(
+    async (...args: Array<unknown>): Promise<unknown> => {
+      const modelType: unknown = (args[0] as { modelType: unknown }).modelType;
 
-    // The project's postmortem statuses, archived ones too.
-    if (modelType === IncidentPostmortemStatus) {
-      return { data: STATUSES, count: STATUSES.length, skip: 0, limit: 100 };
-    }
+      // The project's postmortem statuses, archived ones too.
+      if (modelType === IncidentPostmortemStatus) {
+        return { data: STATUSES, count: STATUSES.length, skip: 0, limit: 100 };
+      }
 
-    // The incident's owners: people, then teams.
-    if (modelType === IncidentOwnerUser) {
-      const rows: Array<IncidentOwnerUser> = owners.users.map(
-        (name: string, index: number): IncidentOwnerUser => {
-          const row: IncidentOwnerUser = new IncidentOwnerUser();
-          row._id = `55555555-5555-4555-8555-55555555555${index}`;
-          const user: User = new User();
-          user._id = `66666666-6666-4666-8666-66666666666${index}`;
-          user.name = name as never;
-          row.user = user;
-          return row;
-        },
-      );
-      return { data: rows, count: rows.length, skip: 0, limit: 100 };
-    }
+      // The incident's owners: people, then teams.
+      if (modelType === IncidentOwnerUser) {
+        const rows: Array<IncidentOwnerUser> = owners.users.map(
+          (name: string, index: number): IncidentOwnerUser => {
+            const row: IncidentOwnerUser = new IncidentOwnerUser();
+            row._id = `55555555-5555-4555-8555-55555555555${index}`;
+            const user: User = new User();
+            user._id = `66666666-6666-4666-8666-66666666666${index}`;
+            user.name = name as never;
+            row.user = user;
+            return row;
+          },
+        );
+        return { data: rows, count: rows.length, skip: 0, limit: 100 };
+      }
 
-    if (modelType === IncidentOwnerTeam) {
-      const rows: Array<IncidentOwnerTeam> = owners.teams.map(
-        (name: string, index: number): IncidentOwnerTeam => {
-          const row: IncidentOwnerTeam = new IncidentOwnerTeam();
-          row._id = `77777777-7777-4777-8777-77777777777${index}`;
-          const team: Team = new Team();
-          team._id = `88888888-8888-4888-8888-88888888888${index}`;
-          team.name = name;
-          row.team = team;
-          return row;
-        },
-      );
-      return { data: rows, count: rows.length, skip: 0, limit: 100 };
-    }
+      if (modelType === IncidentOwnerTeam) {
+        const rows: Array<IncidentOwnerTeam> = owners.teams.map(
+          (name: string, index: number): IncidentOwnerTeam => {
+            const row: IncidentOwnerTeam = new IncidentOwnerTeam();
+            row._id = `77777777-7777-4777-8777-77777777777${index}`;
+            const team: Team = new Team();
+            team._id = `88888888-8888-4888-8888-88888888888${index}`;
+            team.name = name;
+            row.team = team;
+            return row;
+          },
+        );
+        return { data: rows, count: rows.length, skip: 0, limit: 100 };
+      }
 
-    if (templatesFail) {
-      throw new Error("You do not have permission to read templates.");
-    }
+      if (templatesFail) {
+        throw new Error("You do not have permission to read templates.");
+      }
 
-    return {
-      data: templates.map(
-        (template: {
-          id: string;
-          name: string;
-          note: string;
-        }): IncidentPostmortemTemplate => {
-          const model: IncidentPostmortemTemplate =
-            new IncidentPostmortemTemplate();
-          model._id = template.id;
-          model.templateName = template.name;
-          model.postmortemNote = template.note;
-          return model;
-        },
-      ),
-      count: templates.length,
-      skip: 0,
-      limit: 100,
-    };
-  });
+      return {
+        data: templates.map(
+          (template: {
+            id: string;
+            name: string;
+            note: string;
+          }): IncidentPostmortemTemplate => {
+            const model: IncidentPostmortemTemplate =
+              new IncidentPostmortemTemplate();
+            model._id = template.id;
+            model.templateName = template.name;
+            model.postmortemNote = template.note;
+            return model;
+          },
+        ),
+        count: templates.length,
+        skip: 0,
+        limit: 100,
+      };
+    },
+  );
 
   getItemMock.mockReset();
   getItemMock.mockImplementation(async (): Promise<Incident> => {

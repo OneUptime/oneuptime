@@ -16,6 +16,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../Server/Utils/PasswordHash", () => {
   return {
@@ -130,16 +131,16 @@ describe("a delete", () => {
 });
 
 describe("the backfill for incidents from before statuses", () => {
+  type RawQuery = Mock<(statement: string) => Promise<unknown>>;
+
   const runsOf: (counts: Array<number>) => {
-    query: jest.SpyInstance;
+    query: RawQuery;
     sql: Array<string>;
-  } = (
-    counts: Array<number>,
-  ): { query: jest.SpyInstance; sql: Array<string> } => {
+  } = (counts: Array<number>): { query: RawQuery; sql: Array<string> } => {
     const sql: Array<string> = [];
     const queue: Array<number> = [...counts];
 
-    const query: jest.SpyInstance = jest.fn(
+    const query: RawQuery = jest.fn(
       async (statement: string): Promise<unknown> => {
         sql.push(statement);
         // What the Postgres driver answers an UPDATE with: [rows, affected].
@@ -147,11 +148,12 @@ describe("the backfill for incidents from before statuses", () => {
       },
     );
 
-    getJestSpyOn(IncidentPostmortemStatusService, "getRepository").mockReturnValue(
-      {
-        manager: { query: query },
-      } as never,
-    );
+    getJestSpyOn(
+      IncidentPostmortemStatusService,
+      "getRepository",
+    ).mockReturnValue({
+      manager: { query: query },
+    } as never);
 
     return { query, sql };
   };
@@ -182,15 +184,16 @@ describe("the backfill for incidents from before statuses", () => {
   });
 
   test("an answer the driver does not count as rows written ends it", async () => {
-    getJestSpyOn(IncidentPostmortemStatusService, "getRepository").mockReturnValue(
-      {
-        manager: {
-          query: async (): Promise<unknown> => {
-            return "UPDATE 7";
-          },
+    getJestSpyOn(
+      IncidentPostmortemStatusService,
+      "getRepository",
+    ).mockReturnValue({
+      manager: {
+        query: async (): Promise<unknown> => {
+          return "UPDATE 7";
         },
-      } as never,
-    );
+      },
+    } as never);
 
     expect(
       await IncidentPostmortemStatusService.backfillIncidentPostmortemStatuses(),

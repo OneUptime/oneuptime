@@ -100,7 +100,8 @@ export class Service extends DatabaseService<Model> {
     // Never created archived if it is a built-in one. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeCreate({
       service: this,
-      definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentPostmortemStatus],
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.IncidentPostmortemStatus],
       createBy: createBy,
     });
 
@@ -151,7 +152,8 @@ export class Service extends DatabaseService<Model> {
     // A built-in status is never archived. See ArchivableValueGuard.
     await ArchivableValueGuard.beforeUpdate({
       service: this,
-      definition: ARCHIVABLE_VALUES[ArchivableValueType.IncidentPostmortemStatus],
+      definition:
+        ARCHIVABLE_VALUES[ArchivableValueType.IncidentPostmortemStatus],
       updateBy: updateBy,
     });
 

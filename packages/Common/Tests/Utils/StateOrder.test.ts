@@ -58,7 +58,6 @@ const SEVERITY: StateListDefinition =
 const POSTMORTEM: StateListDefinition =
   STATE_LISTS[StateListType.IncidentPostmortemStatus];
 
-
 const row: (
   id: string,
   order: number | null,

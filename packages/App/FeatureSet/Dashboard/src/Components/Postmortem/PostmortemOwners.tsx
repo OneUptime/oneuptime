@@ -38,7 +38,9 @@ export const getOwnerName: (entry: ResourceOwnerEntry) => string = (
 ): string => {
   if (entry.kind === "user") {
     return (
-      entry.user.name?.toString() || entry.user.email?.toString() || ""
+      entry.user.name?.toString() ||
+      entry.user.email?.toString() ||
+      ""
     ).trim();
   }
 

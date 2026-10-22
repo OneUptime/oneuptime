@@ -177,11 +177,11 @@ beforeEach(() => {
     .spyOn(CustomFieldMappingService, "restampAfterMultiRowUpdate")
     .mockReturnValue(undefined as never);
 
-  jest
-    .spyOn(IncidentService, "findBy")
-    .mockImplementation((async (): Promise<Array<Incident>> => {
-      return Object.keys(stored).map(storedIncident);
-    }) as never);
+  jest.spyOn(IncidentService, "findBy").mockImplementation((async (): Promise<
+    Array<Incident>
+  > => {
+    return Object.keys(stored).map(storedIncident);
+  }) as never);
 
   jest
     .spyOn(IncidentService, "findOneById")

@@ -301,9 +301,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           link: {
             title: "Postmortem Statuses",
             to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES
-              ] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES] as Route,
             ),
           },
           icon: IconProp.ClipboardDocumentCheck,

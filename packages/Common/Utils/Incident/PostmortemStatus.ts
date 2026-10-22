@@ -152,7 +152,10 @@ export default class PostmortemStatusUtil {
   }
 
   // The status carrying `flag` - the first from the top - or null.
-  private static getBuiltInStatus<T>(statuses: Array<T>, flag: string): T | null {
+  private static getBuiltInStatus<T>(
+    statuses: Array<T>,
+    flag: string,
+  ): T | null {
     const rows: Array<StateListRow> = this.toRows(statuses);
     const row: StateListRow | undefined = getStateListBuiltInRows(
       DEFINITION,
@@ -402,7 +405,10 @@ export default class PostmortemStatusUtil {
 
     const targetId: string = toStateListRow(DEFINITION, target).id;
 
-    if (!targetId || targetId.toLowerCase() === this.toId(data.statusIdBefore)) {
+    if (
+      !targetId ||
+      targetId.toLowerCase() === this.toId(data.statusIdBefore)
+    ) {
       return null;
     }
 

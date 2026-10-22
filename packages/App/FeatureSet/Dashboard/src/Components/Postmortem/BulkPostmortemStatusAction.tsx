@@ -134,7 +134,9 @@ export default function useBulkPostmortemStatusAction(data: {
     title: CHANGE_POSTMORTEM_STATUS,
     buttonStyleType: ButtonStyleType.NORMAL,
     icon: IconProp.ClipboardDocumentCheck,
-    disabled: pickable.length === 0 || (!gate.isAllowed && Boolean(gate.disabledReason)),
+    disabled:
+      pickable.length === 0 ||
+      (!gate.isAllowed && Boolean(gate.disabledReason)),
     tooltip: gate.isAllowed ? undefined : gate.disabledReason,
     onClick: async (
       actionProps: BulkActionOnClickProps<Incident>,

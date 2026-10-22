@@ -43,9 +43,11 @@ const MIGRATIONS_DIR: string = path.join(
 );
 
 const TABLE_FILE: string = "1805900000000-AddIncidentPostmortemStatus.ts";
-const KEYS_FILE: string = "1805910000000-AddIncidentPostmortemStatusIndexesAndKey.ts";
+const KEYS_FILE: string =
+  "1805910000000-AddIncidentPostmortemStatusIndexesAndKey.ts";
 const TABLE_NAME: string = "AddIncidentPostmortemStatus1805900000000";
-const KEYS_NAME: string = "AddIncidentPostmortemStatusIndexesAndKey1805910000000";
+const KEYS_NAME: string =
+  "AddIncidentPostmortemStatusIndexesAndKey1805910000000";
 // The newest migration when these were generated on top of it.
 const GENERATED_AFTER: string = "AddArchiveToValuesUserKeys1805810000000";
 
@@ -174,9 +176,9 @@ describe("registration", () => {
     expect(new AddIncidentPostmortemStatus1805900000000().name).toBe(
       TABLE_NAME,
     );
-    expect(new AddIncidentPostmortemStatusIndexesAndKey1805910000000().name).toBe(
-      KEYS_NAME,
-    );
+    expect(
+      new AddIncidentPostmortemStatusIndexesAndKey1805910000000().name,
+    ).toBe(KEYS_NAME);
     expect(TABLE_FILE.split("-")[0]).toBe(TABLE_NAME.slice(-13));
     expect(KEYS_FILE.split("-")[0]).toBe(KEYS_NAME.slice(-13));
   });
@@ -248,7 +250,9 @@ describe("the statuses table", () => {
       "isCompletedStatus",
       "isArchived",
     ]) {
-      expect(CREATE_TABLE).toContain(`"${flag}" boolean NOT NULL DEFAULT false`);
+      expect(CREATE_TABLE).toContain(
+        `"${flag}" boolean NOT NULL DEFAULT false`,
+      );
     }
   });
 
@@ -311,11 +315,15 @@ describe("the statuses table", () => {
   );
 
   test("a project's statuses go with the project, and who made or archived one is let go with the user", () => {
-    expect(relationOf(IncidentPostmortemStatus, "project")!.options.onDelete).toBe(
-      "CASCADE",
-    );
+    expect(
+      relationOf(IncidentPostmortemStatus, "project")!.options.onDelete,
+    ).toBe("CASCADE");
 
-    for (const relation of ["createdByUser", "deletedByUser", "archivedByUser"]) {
+    for (const relation of [
+      "createdByUser",
+      "deletedByUser",
+      "archivedByUser",
+    ]) {
       expect(
         relationOf(IncidentPostmortemStatus, relation)!.options.onDelete,
       ).toBe("SET NULL");
@@ -328,7 +336,9 @@ describe("the incident's status column", () => {
     expect(TABLE_MIGRATION.up).toContain(
       'ALTER TABLE "Incident" ADD "postmortemStatusId" uuid`',
     );
-    expect(TABLE_MIGRATION.up).not.toMatch(/"postmortemStatusId" uuid NOT NULL/);
+    expect(TABLE_MIGRATION.up).not.toMatch(
+      /"postmortemStatusId" uuid NOT NULL/,
+    );
     expect(TABLE_MIGRATION.up).not.toMatch(/"postmortemStatusId" uuid DEFAULT/);
 
     const column: ColumnMetadataArgs | undefined = declaredColumns(
@@ -454,7 +464,9 @@ describe("down()", () => {
     ).toHaveLength(keysAdded);
     expect(
       Array.from(TABLE_MIGRATION.down.matchAll(/DROP INDEX/g)),
-    ).toHaveLength(Array.from(TABLE_MIGRATION.up.matchAll(/CREATE INDEX/g)).length);
+    ).toHaveLength(
+      Array.from(TABLE_MIGRATION.up.matchAll(/CREATE INDEX/g)).length,
+    );
     expect(TABLE_MIGRATION.down).toContain(
       'ALTER TABLE "Incident" DROP COLUMN "postmortemStatusId"',
     );

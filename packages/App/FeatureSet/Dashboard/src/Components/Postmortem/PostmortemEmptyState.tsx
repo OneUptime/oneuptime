@@ -5,9 +5,8 @@ import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 
-export const POSTMORTEM_EMPTY_TITLE: string = translationKey(
-  "No postmortem yet",
-);
+export const POSTMORTEM_EMPTY_TITLE: string =
+  translationKey("No postmortem yet");
 export const POSTMORTEM_EMPTY_DESCRIPTION: string = translationKey(
   "Write down what happened, its impact on your users, and what changes now.",
 );

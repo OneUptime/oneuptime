@@ -1,5 +1,10 @@
 import IncidentPostmortemStatus from "../../../Models/DatabaseModels/IncidentPostmortemStatus";
-import { Gray500, Green, VeryLightGray, Yellow } from "../../../Types/BrandColors";
+import {
+  Gray500,
+  Green,
+  VeryLightGray,
+  Yellow,
+} from "../../../Types/BrandColors";
 import ObjectID from "../../../Types/ObjectID";
 import PostmortemStatusUtil, {
   COMPLETED_STATUS_FLAG,
@@ -102,7 +107,11 @@ describe("the statuses a project starts with", () => {
           return builtIn.flag;
         },
       ),
-    ).toEqual([NOT_STARTED_STATUS_FLAG, DRAFT_STATUS_FLAG, COMPLETED_STATUS_FLAG]);
+    ).toEqual([
+      NOT_STARTED_STATUS_FLAG,
+      DRAFT_STATUS_FLAG,
+      COMPLETED_STATUS_FLAG,
+    ]);
   });
 
   test("are coloured gray, yellow, green and light gray", () => {
@@ -179,7 +188,10 @@ describe("what a status counts as", () => {
       }),
     ).toBe(PostmortemProgress.NotStarted);
     expect(
-      PostmortemStatusUtil.getProgress({ statuses: DEFAULTS, statusId: UNKNOWN }),
+      PostmortemStatusUtil.getProgress({
+        statuses: DEFAULTS,
+        statusId: UNKNOWN,
+      }),
     ).toBeNull();
   });
 
@@ -204,17 +216,20 @@ describe("what a status counts as", () => {
     });
 
     expect(
-      PostmortemStatusUtil.getProgress({ statuses: moved, statusId: NOT_NEEDED }),
+      PostmortemStatusUtil.getProgress({
+        statuses: moved,
+        statusId: NOT_NEEDED,
+      }),
     ).toBe(PostmortemProgress.Done);
   });
 
   test("the statuses come top first, each with what it counts as", () => {
     expect(
-      PostmortemStatusUtil.getStatusesWithProgress(
-        [...CUSTOM].reverse(),
-      ).map((entry: { status: StatusRow; progress: PostmortemProgress }) => {
-        return `${entry.status.name}:${entry.progress}`;
-      }),
+      PostmortemStatusUtil.getStatusesWithProgress([...CUSTOM].reverse()).map(
+        (entry: { status: StatusRow; progress: PostmortemProgress }) => {
+          return `${entry.status.name}:${entry.progress}`;
+        },
+      ),
     ).toEqual([
       "Not Started:NotStarted",
       "Assigned:NotStarted",
@@ -523,7 +538,10 @@ describe("what publishing a postmortem does to its status", () => {
     expect(
       PostmortemStatusUtil.getAutomaticMove({
         statuses: DEFAULTS,
-        stored: { postmortemNote: "## A note", showPostmortemOnStatusPage: true },
+        stored: {
+          postmortemNote: "## A note",
+          showPostmortemOnStatusPage: true,
+        },
         written: {
           postmortemNote: "## A note, edited",
           showPostmortemOnStatusPage: true,
@@ -537,7 +555,10 @@ describe("what publishing a postmortem does to its status", () => {
     expect(
       PostmortemStatusUtil.getAutomaticMove({
         statuses: DEFAULTS,
-        stored: { postmortemNote: "## A note", showPostmortemOnStatusPage: true },
+        stored: {
+          postmortemNote: "## A note",
+          showPostmortemOnStatusPage: true,
+        },
         written: { showPostmortemOnStatusPage: false },
         statusIdBefore: COMPLETED,
       }),

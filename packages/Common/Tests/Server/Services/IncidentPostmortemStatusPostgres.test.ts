@@ -55,7 +55,7 @@ import { DataSource, QueryRunner } from "typeorm";
  * The migrations' down() is left to the text test: it drops indexes by
  * their "public" names, which here would be the real ones.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_POSTMORTEM_STATUS_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -236,18 +236,19 @@ describePostgres(
        * Column for column as the drift checked table, the id's default
        * named as each schema reaches uuid_generate_v4().
        */
-      const unqualified: (columns: Array<ColumnShape>) => Array<ColumnShape> =
-        (columns: Array<ColumnShape>): Array<ColumnShape> => {
-          return columns.map((column: ColumnShape): ColumnShape => {
-            return {
-              ...column,
-              column_default:
-                column.column_default === "public.uuid_generate_v4()"
-                  ? "uuid_generate_v4()"
-                  : column.column_default,
-            };
-          });
-        };
+      const unqualified: (columns: Array<ColumnShape>) => Array<ColumnShape> = (
+        columns: Array<ColumnShape>,
+      ): Array<ColumnShape> => {
+        return columns.map((column: ColumnShape): ColumnShape => {
+          return {
+            ...column,
+            column_default:
+              column.column_default === "public.uuid_generate_v4()"
+                ? "uuid_generate_v4()"
+                : column.column_default,
+          };
+        });
+      };
 
       expect(
         unqualified(await columnsOf(database, schema, STATUS_TABLE)),

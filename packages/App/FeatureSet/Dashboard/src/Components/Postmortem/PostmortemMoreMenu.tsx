@@ -2,10 +2,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import CardMoreMenu from "Common/UI/Components/Card/CardMoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { PermissionGateResult } from "Common/UI/Utils/PermissionGate";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import { GENERATE_WITH_AI } from "./PostmortemEmptyState";

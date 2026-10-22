@@ -198,11 +198,9 @@ describe.each(CREATED_ARCHIVABLE_LATER)(
 
     // The CREATE TABLE statement, as the generator wrote it on one line.
     const createTable: string =
-      created.up
-        .split("\n")
-        .find((line: string): boolean => {
-          return line.includes(`CREATE TABLE "${table}"`);
-        }) || "";
+      created.up.split("\n").find((line: string): boolean => {
+        return line.includes(`CREATE TABLE "${table}"`);
+      }) || "";
 
     test("is registered after both archive migrations", () => {
       const names: Array<string> = Migrations.map(

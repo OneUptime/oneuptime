@@ -211,17 +211,22 @@ jest.mock(
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners",
     ) as Record<string, unknown>;
-    const ReactActual: typeof React = jest.requireActual("react");
-    const facetColumnQuery: {
+    const ReactActual: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
+
+    interface FacetColumnQueryModule {
       buildFacetColumnQuery: (data: {
         facet: { key: string; queryField?: string };
         operator: string;
         values: Array<string>;
         existingValue: unknown;
       }) => { field: string; value: unknown } | null;
-    } = jest.requireActual(
+    }
+
+    const facetColumnQuery: FacetColumnQueryModule = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FacetColumnQuery",
-    );
+    ) as FacetColumnQueryModule;
 
     return {
       ...actual,
