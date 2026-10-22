@@ -678,6 +678,12 @@ describe("Managing Applications: label rules and owner rules", () => {
         bulkOwnerActions: false,
       });
 
+      const ownerTable: RegExp = /RumApplicationOwner(User|Team)/;
+      const ownerTableImport: RegExp =
+        /^import RumApplicationOwner(User|Team) from "Common\/Models\/DatabaseModels\/RumApplicationOwner(User|Team)";$/;
+      const hookArgument: RegExp =
+        /^owner(User|Team)ModelType: RumApplicationOwner(User|Team),$/;
+
       const otherMentions: Array<string> = text
         .split("\n")
         .map((line: string): string => {
@@ -685,13 +691,9 @@ describe("Managing Applications: label rules and owner rules", () => {
         })
         .filter((line: string): boolean => {
           return (
-            /RumApplicationOwner(User|Team)/.test(line) &&
-            !/^import RumApplicationOwner(User|Team) from "Common\/Models\/DatabaseModels\/RumApplicationOwner(User|Team)";$/.test(
-              line,
-            ) &&
-            !/^owner(User|Team)ModelType: RumApplicationOwner(User|Team),$/.test(
-              line,
-            )
+            ownerTable.test(line) &&
+            !ownerTableImport.test(line) &&
+            !hookArgument.test(line)
           );
         });
 
