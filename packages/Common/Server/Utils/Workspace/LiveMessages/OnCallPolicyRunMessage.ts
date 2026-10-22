@@ -15,11 +15,11 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPo
 import { ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import { getOnCallPolicyRepeatsAllowed } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
-  ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
   ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+  isOnCallPolicyRunEverybodyPassedOnMessage,
 } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
-import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { isOnCallPagePassedOnSkipTimelineMessage } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   isOnCallPolicyRunEndedWhileWaiting,
@@ -1184,13 +1184,11 @@ export default class OnCallPolicyRunMessage {
           }
 
           /*
-           * Passed over by a later rule or a repeat, having passed the page
-           * on: their line says they passed it on, once - and a rule whose
+           * Passed over by a later rule or a repeat, having escalated the
+           * page: their line says they escalated it, once - and a rule whose
            * people all did reached nobody it had not asked already.
            */
-          if (
-            step.statusMessage === ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE
-          ) {
+          if (isOnCallPagePassedOnSkipTimelineMessage(step.statusMessage)) {
             continue;
           }
 
@@ -1285,7 +1283,7 @@ export default class OnCallPolicyRunMessage {
           person.isBeingPaged = true;
         }
 
-        // They could not take it, and passed it on (OnCallPagePassOn).
+        // They could not take it, and escalated it (OnCallPagePassOn).
         if (status === OnCallDutyExecutionLogTimelineStatus.PassedOn) {
           person.passedOn = true;
         }
@@ -1504,7 +1502,7 @@ export default class OnCallPolicyRunMessage {
     }
 
     /*
-     * Somebody who passed the page on is not being paged by this run any
+     * Somebody who escalated the page is not being paged by this run any
      * more, whatever a page of theirs that was still going out said.
      */
     for (const person of pagedByUserId.values()) {
@@ -1702,8 +1700,8 @@ export default class OnCallPolicyRunMessage {
           return { outcome: OnCallPolicyRunOutcome.NobodyAcknowledged };
         }
 
-        // Nobody was left: everybody it paged passed the page on.
-        if (statusMessage === ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE) {
+        // Nobody was left: everybody it paged escalated it.
+        if (isOnCallPolicyRunEverybodyPassedOnMessage(statusMessage)) {
           return { outcome: OnCallPolicyRunOutcome.EverybodyPassedOn };
         }
 

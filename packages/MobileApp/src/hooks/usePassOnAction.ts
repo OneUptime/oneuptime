@@ -22,14 +22,14 @@ import { useHaptics } from "./useHaptics";
 import type { ResponseAction } from "../components/ResponseDetailLayout";
 
 /*
- * "Pass it on" on a detail screen, for the person being paged about it.
+ * "Escalate" on a detail screen, for the person being paged about it.
  *
  * A push notification about a page opens the detail screen of what it is
  * about. Somebody who cannot take it - asleep at the wheel, on a plane, ill -
- * passes it on from there: the screen asks first, saying what passing on
- * will do, and then says what it did. The policy pages its next escalation
- * rule at once instead of waiting the rule out, and they are not paged about
- * it again.
+ * escalates it from there: the screen asks first ("Escalate Incident?"),
+ * saying what escalating will do, and then says what it did. The policy
+ * pages its next level at once instead of waiting the level out, and they
+ * are not paged again for it.
  *
  * Anybody the policy is not paging gets no button: the screen is as it was.
  * So does anybody whose server cannot be asked (an older server, no
@@ -37,7 +37,7 @@ import type { ResponseAction } from "../components/ResponseDetailLayout";
  */
 
 export interface PassOnControls {
-  // The screen's "Pass it on" button, or null when there is nothing to pass on.
+  // The screen's "Escalate" button, or null when there is nothing to escalate.
   action: ResponseAction | null;
   passingOn: boolean;
   // Reads again whether the person is being paged about it.
@@ -50,7 +50,7 @@ export function usePassOnAction(data: {
   recordId: string;
   // What the record is, for a screen reader: "incident", "alert episode".
   recordLabel: string;
-  // After a page was passed on: the record's feed and timeline have news.
+  // After a page was escalated: the record's feed and timeline have news.
   onPassedOn?: (() => Promise<unknown> | void) | undefined;
 }): PassOnControls {
   const { projectId, recordType, recordId, recordLabel, onPassedOn } = data;
@@ -80,7 +80,7 @@ export function usePassOnAction(data: {
         recordId,
       );
       const answer: { title: string; message: string; passedOn: boolean } =
-        getPassOnAnswer(answers);
+        getPassOnAnswer(answers, recordType);
 
       if (answer.passedOn) {
         await successFeedback();
@@ -91,7 +91,7 @@ export function usePassOnAction(data: {
       await Promise.allSettled([
         // Now they are not paged about it: the button goes.
         query.refetch(),
-        // My Pages shows the page as passed on.
+        // My Pages shows the page as escalated.
         queryClient.invalidateQueries({ queryKey: ["oncall", "my-pages"] }),
         answer.passedOn && onPassedOn ? onPassedOn() : undefined,
       ]);
@@ -116,12 +116,13 @@ export function usePassOnAction(data: {
     pages.length > 0
       ? {
           label: PASS_ON_TEXT.button,
-          accessibilityLabel: `Pass this ${recordLabel} page on`,
-          busyAccessibilityLabel: "Passing the page on",
-          icon: "play-skip-forward-outline",
+          accessibilityLabel: `Escalate this ${recordLabel}`,
+          busyAccessibilityLabel: "Escalating",
+          // Up the levels: escalating hands the page to the next one.
+          icon: "arrow-up-circle-outline",
           onPress: (): void => {
             const question: { title: string; message: string } =
-              getPassOnQuestion(pages);
+              getPassOnQuestion(pages, recordType);
 
             Alert.alert(question.title, question.message, [
               { text: "Cancel", style: "cancel" },

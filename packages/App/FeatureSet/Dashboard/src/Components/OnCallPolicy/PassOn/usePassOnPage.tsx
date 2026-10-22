@@ -4,6 +4,7 @@ import {
   OnCallOpenPage,
   OnCallPageRecordType,
   OnCallPassOnAnswer,
+  OnCallPassOnResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -15,23 +16,28 @@ import { EventPanelAction } from "../../EventView/EventStatusPanel";
 import {
   PASS_ON_PAGE_TEXT,
   PassOnDialogLine,
+  PassOnLinePiece,
   fetchOpenPages,
   getPassOnAnswerLines,
   getPassOnAnswerTitle,
+  getPassOnKeptTogether,
+  getPassOnLinePieces,
   getPassOnQuestionLines,
+  getPassOnQuestionTitle,
+  getPassedOnResults,
   isAnyPassedOn,
   passOnPages,
 } from "./PassOnPage";
 
 /*
- * "PASS IT ON" IN A RECORD'S HEADER, FOR THE PERSON BEING PAGED.
+ * "ESCALATE" IN A RECORD'S HEADER, FOR THE PERSON BEING PAGED.
  *
  * Reads whether the signed-in person is being paged about the record, and
- * when they are, hands the header a "Pass it on" button and the dialog it
- * opens: what passing on will do, then - once passed on - what it did. For
- * everybody else it hands nothing, and the header is as it was. If whether
- * they are paged cannot be read, the button is left out: it is a shortcut,
- * and acknowledging works as it always did.
+ * when they are, hands the header an "Escalate" button and the dialog it
+ * opens: "Escalate Incident?" with what escalating will do, then - once
+ * escalated - what it did. For everybody else it hands nothing, and the
+ * header is as it was. If whether they are paged cannot be read, the button
+ * is left out: it is a shortcut, and acknowledging works as it always did.
  */
 
 export interface PassOnPageControls {
@@ -59,12 +65,18 @@ interface LoadedPages {
 }
 
 /*
- * The dialog's text: a warning first when passing on leaves nobody being
+ * The dialog's text: a warning first when escalating leaves nobody being
  * paged (PassOnDialogLine), then each sentence as a paragraph of its own.
+ *
+ * A level's place - "(Level 2 of 3)" - and a time stay on one line
+ * (`kept`, getPassOnKeptTogether): a phone broke the place as "(Level 2
+ * of" / "3)". And a paragraph never leaves its last word alone on a line
+ * ("... without" / "waiting."): text-pretty.
  */
 function dialogText(
   lines: Array<PassOnDialogLine>,
   testId: string,
+  kept: Array<string>,
 ): ReactElement {
   return (
     <div className="space-y-3" data-testid={testId}>
@@ -77,7 +89,23 @@ function dialogText(
             dataTestId="pass-on-warning"
           />
         ) : (
-          <p key={index}>{line.text}</p>
+          <p key={index} className="text-pretty">
+            {getPassOnLinePieces(line.text, kept).map(
+              (piece: PassOnLinePiece, pieceIndex: number) => {
+                return piece.keepTogether ? (
+                  <span
+                    key={pieceIndex}
+                    className="whitespace-nowrap"
+                    data-testid="pass-on-kept-together"
+                  >
+                    {piece.text}
+                  </span>
+                ) : (
+                  <React.Fragment key={pieceIndex}>{piece.text}</React.Fragment>
+                );
+              },
+            )}
+          </p>
         );
       })}
     </div>
@@ -87,7 +115,7 @@ function dialogText(
 export default function usePassOnPage(data: {
   recordType: OnCallPageRecordType;
   recordId: ObjectID;
-  // After a page was passed on: the record's feed has news.
+  // After a page was escalated: the record's feed has news.
   onPassedOn?: (() => void) | undefined;
 }): PassOnPageControls {
   const translator: Translator = useTranslator();
@@ -159,11 +187,13 @@ export default function usePassOnPage(data: {
           {
             /*
              * No tooltip: the header shows one only on a disabled action, and
-             * the dialog says what passing on does before it does it.
+             * the dialog says what escalating does before it does it. The
+             * arrow points up the levels: escalating hands the page up to
+             * the next one. The id keeps the action's first name.
              */
             id: "pass-on-page",
             label: PASS_ON_PAGE_TEXT.button,
-            icon: IconProp.Forward,
+            icon: IconProp.ArrowCircleUp,
             onClick: () => {
               setAnswers([]);
               setError("");
@@ -178,10 +208,16 @@ export default function usePassOnPage(data: {
   if (stage === DialogStage.Asking || stage === DialogStage.Passing) {
     dialog = (
       <ConfirmModal
-        title={PASS_ON_PAGE_TEXT.dialogTitle}
+        title={getPassOnQuestionTitle(data.recordType)}
         description={dialogText(
-          getPassOnQuestionLines(pages, translator),
+          getPassOnQuestionLines(pages, translator, data.recordType),
           "pass-on-preview",
+          getPassOnKeptTogether(
+            pages.map((page: OnCallOpenPage): OnCallPassOnResult => {
+              return page.preview;
+            }),
+            translator,
+          ),
         )}
         submitButtonText={PASS_ON_PAGE_TEXT.button}
         onSubmit={passOn}
@@ -195,10 +231,11 @@ export default function usePassOnPage(data: {
   if (stage === DialogStage.Done) {
     dialog = (
       <ConfirmModal
-        title={getPassOnAnswerTitle(answers)}
+        title={getPassOnAnswerTitle(answers, data.recordType)}
         description={dialogText(
-          getPassOnAnswerLines(answers, translator),
+          getPassOnAnswerLines(answers, translator, data.recordType),
           "pass-on-answer",
+          getPassOnKeptTogether(getPassedOnResults(answers), translator),
         )}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}

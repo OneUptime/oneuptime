@@ -226,7 +226,7 @@ describe.each(KINDS)("the SMS a page about $name sends", (kind: Kind) => {
 
     expect(sms.to.toString()).toBe(TO_PHONE.toString());
     expect(sms.message).toBe(
-      `OneUptime: ${kind.what} ${kind.number} in Acme Prod: Checkout API is down. Ack or pass it on: https://${CLOUD_HOST}/l/${SHORT_ID}`,
+      `OneUptime: ${kind.what} ${kind.number} in Acme Prod: Checkout API is down. Ack or escalate: https://${CLOUD_HOST}/l/${SHORT_ID}`,
     );
     expect(countSmsSegments(sms.message).segments).toBe(1);
   });
@@ -276,7 +276,7 @@ describe.each(KINDS)("the SMS a page about $name sends", (kind: Kind) => {
     expect(sms.message).not.toContain("Acme Prod");
     expect(
       sms.message.endsWith(
-        `... Ack or pass it on: https://${SELF_HOSTED_HOST}/l/${SHORT_ID}`,
+        `... Ack or escalate: https://${SELF_HOSTED_HOST}/l/${SHORT_ID}`,
       ),
     ).toBe(true);
   });
@@ -333,7 +333,7 @@ describe("a record without a number prefix", () => {
     );
 
     expect(sms.message).toBe(
-      `OneUptime: High alert #512 in Acme Prod: Checkout API is down. Ack or pass it on: https://${CLOUD_HOST}/l/${SHORT_ID}`,
+      `OneUptime: High alert #512 in Acme Prod: Checkout API is down. Ack or escalate: https://${CLOUD_HOST}/l/${SHORT_ID}`,
     );
   });
 
@@ -350,7 +350,7 @@ describe("a record without a number prefix", () => {
     );
 
     expect(sms.message).toBe(
-      `OneUptime: Incident episode: Checkout API is down. Ack or pass it on: https://${CLOUD_HOST}/l/${SHORT_ID}`,
+      `OneUptime: Incident episode: Checkout API is down. Ack or escalate: https://${CLOUD_HOST}/l/${SHORT_ID}`,
     );
   });
 });

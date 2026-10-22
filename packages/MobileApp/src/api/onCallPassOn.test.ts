@@ -31,9 +31,10 @@ function postSpy(): jest.SpyInstance {
 }
 
 /*
- * "Pass it on" asks the server two things about one record: is the signed-in
- * person being paged about it (GET), and pass it on (POST). Neither carries
- * a user id - the session is who passes on, so nobody can pass on somebody
+ * "Escalate" asks the server two things about one record: is the signed-in
+ * person being paged about it (GET), and escalate it (POST) - at the route
+ * that keeps the action's first name, pass-on. Neither carries a user id -
+ * the session is who escalates, so nobody can escalate somebody
  * else's page - and both are scoped to the record's project by the tenant
  * header, like every other request the app makes.
  */
@@ -72,7 +73,7 @@ describe("the requests", () => {
             executionLogId: "run-1",
             preview: PREVIEW,
             sentence:
-              "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+              "This will immediately page Platform leads (Level 2 of 3), without waiting.",
           },
         ],
       },
@@ -86,7 +87,7 @@ describe("the requests", () => {
         executionLogId: "run-1",
         policyName: "Payments",
         sentence:
-          "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+          "This will immediately page Platform leads (Level 2 of 3), without waiting.",
       },
     ]);
 
@@ -106,7 +107,8 @@ describe("the requests", () => {
           {
             passedOn: true,
             result: { ...PREVIEW, isPreview: false },
-            sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+            sentence:
+              "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
           },
         ],
       },
@@ -119,7 +121,8 @@ describe("the requests", () => {
       {
         passedOn: true,
         policyName: "Payments",
-        sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+        sentence:
+          "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
       },
     ]);
 
@@ -176,7 +179,7 @@ describe("reading the answers", () => {
     expect(toOnCallPassOnPages([])).toEqual([]);
   });
 
-  test("answers: only a true passedOn passed it on, and a refusal has no policy", () => {
+  test("answers: only a true passedOn escalated it, and a refusal has no policy", () => {
     expect(
       toOnCallPassOnAnswers({
         answers: [
@@ -185,7 +188,7 @@ describe("reading the answers", () => {
             passedOn: false,
             refusal: "RecordAcknowledged",
             sentence:
-              "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+              "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
           },
           7,
         ],
@@ -196,7 +199,7 @@ describe("reading the answers", () => {
         passedOn: false,
         policyName: "",
         sentence:
-          "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+          "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
       },
     ]);
     expect(toOnCallPassOnAnswers({})).toEqual([]);

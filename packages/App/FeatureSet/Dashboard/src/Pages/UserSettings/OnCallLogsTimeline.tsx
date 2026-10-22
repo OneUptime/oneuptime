@@ -10,6 +10,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import { PASS_ON_PAGE_TEXT } from "../../Components/OnCallPolicy/PassOn/PassOnPage";
+import { withEscalatedStatusLabel } from "../../Components/OnCallPolicy/PassOn/PassedOnStatus";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -100,8 +102,9 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Status",
             type: FieldType.Element,
 
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              UserNotificationStatus,
+            // The notification you escalated from: stored "Passed On", offered as Escalated.
+            filterDropdownOptions: withEscalatedStatusLabel(
+              DropdownUtil.getDropdownOptionsFromEnum(UserNotificationStatus),
             ),
           },
         ]}
@@ -162,9 +165,12 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   <Pill color={Yellow} text={UserNotificationStatus.Skipped} />
                 );
               } else if (item["status"] === UserNotificationStatus.PassedOn) {
-                // The notification you passed the page on from.
+                // The notification you escalated the page from.
                 return (
-                  <Pill color={Yellow} text={UserNotificationStatus.PassedOn} />
+                  <Pill
+                    color={Yellow}
+                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                  />
                 );
               }
 
