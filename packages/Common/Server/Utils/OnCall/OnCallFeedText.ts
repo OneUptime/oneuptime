@@ -11,6 +11,10 @@ import {
   ON_CALL_POLICY_RUN_ENDED_WHILE_WAITING_MESSAGE_START,
   isOnCallPolicyRunEndedWhileWaiting,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  describeOnCallAcknowledgementTimeout,
+  getOnCallPageAgainPlaceWithLast,
+} from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import FeedMarkdown, {
   MarkdownText,
   mdText,
@@ -602,6 +606,36 @@ export default class OnCallFeedText {
     }
 
     return mdText`${getPolicy(data.policyLink)} started paging.`.toString();
+  }
+
+  /*
+   * A page again (OnCallAcknowledgementTimeout), as it starts: the record
+   * stayed acknowledged without being resolved, so the policy pages again.
+   *
+   *   On-call policy PolicyX is paging again (1 of 5): the incident is still
+   *     not resolved 30 minutes after Ana Lopez acknowledged it.
+   *
+   * Without anybody to name - acknowledged through the API, say - "after it
+   * was acknowledged". The last page again says it is the last.
+   */
+  public static getRunPagedAgainMarkdown(data: {
+    policyLink: MarkdownText;
+    pageAgainNumber: number;
+    minutes: number;
+    // "incident", "alert", "incident episode" or "alert episode".
+    recordKind: string;
+    // Who acknowledged it last, as a link to them, when somebody did.
+    acknowledgedBy?: MarkdownText | undefined;
+  }): string {
+    const place: string = getOnCallPageAgainPlaceWithLast(data.pageAgainNumber);
+    const after: string = describeOnCallAcknowledgementTimeout(data.minutes);
+    const recordKind: string = (data.recordKind || "").trim() || "record";
+
+    const acknowledged: MarkdownText = hasMarkdown(data.acknowledgedBy)
+      ? mdText`**${data.acknowledgedBy!}** acknowledged it`
+      : mdText`it was acknowledged`;
+
+    return mdText`${getPolicy(data.policyLink)} is paging again (${place}): the ${recordKind} is still not resolved ${after} after ${acknowledged}.`.toString();
   }
 
   /*

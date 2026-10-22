@@ -29,6 +29,12 @@ import {
   getDueRuleExecution,
   isRuleFullyExecuted,
 } from "Common/Types/NotificationRule/NotificationRepeat";
+import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import ObjectID from "Common/Types/ObjectID";
+import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordKind,
+} from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 
 RunCron(
   "UserOnCallLog:ExecutePendingExecutions",
@@ -59,6 +65,15 @@ RunCron(
           onCallDutyPolicyId: true,
           onCallDutyScheduleId: true,
           userBelongsToTeamId: true,
+          /*
+           * A page again goes on until the run itself is acknowledged
+           * (OnCallAcknowledgementTimeout): its record was acknowledged all
+           * along.
+           */
+          onCallDutyPolicyExecutionLog: {
+            pageAgainNumber: true,
+            acknowledgedAt: true,
+          },
         },
         props: {
           isRoot: true,
@@ -221,7 +236,48 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         );
       }
 
-      if (incident) {
+      /*
+       * A person's page in a page again (OnCallAcknowledgementTimeout) is
+       * about a record that was acknowledged all along, so the record being
+       * acknowledged ends nothing: the page goes on until somebody
+       * acknowledges the page again, or the record is resolved.
+       */
+      const pageAgainRun: OnCallDutyPolicyExecutionLog | undefined =
+        pendingNotificationLog.onCallDutyPolicyExecutionLog;
+      const isPageAgain: boolean = isOnCallPageAgainRun(pageAgainRun);
+
+      if (isPageAgain) {
+        const record: {
+          kind: OnCallTimeoutRecordKind;
+          recordId: ObjectID;
+        } | null = OnCallAcknowledgementTimeout.getRunRecord(
+          pendingNotificationLog,
+        );
+
+        const overReason: string | null = record
+          ? await OnCallAcknowledgementTimeout.getPageAgainOverReason({
+              run: pageAgainRun!,
+              kind: record.kind,
+              recordId: record.recordId,
+            })
+          : null;
+
+        if (overReason) {
+          await UserOnCallLogService.updateOneById({
+            id: pendingNotificationLog.id!,
+            data: {
+              status: UserNotificationExecutionStatus.Completed,
+              statusMessage: `Execution completed because ${overReason}.`,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+          return;
+        }
+      }
+
+      if (incident && !isPageAgain) {
         // check if the incident is acknowledged.
         const isAcknowledged: boolean =
           await IncidentService.isIncidentAcknowledged({
@@ -244,7 +300,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
-      if (alert) {
+      if (alert && !isPageAgain) {
         // check if the alert is acknowledged.
         const isAcknowledged: boolean = await AlertService.isAlertAcknowledged({
           alertId: pendingNotificationLog.triggeredByAlertId!,
@@ -267,7 +323,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
-      if (alertEpisode) {
+      if (alertEpisode && !isPageAgain) {
         // check if the alert episode is acknowledged.
         const isAcknowledged: boolean =
           await AlertEpisodeService.isEpisodeAcknowledged({
@@ -291,7 +347,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
-      if (incidentEpisode) {
+      if (incidentEpisode && !isPageAgain) {
         // check if the incident episode is acknowledged.
         const isAcknowledged: boolean =
           await IncidentEpisodeService.isEpisodeAcknowledged({

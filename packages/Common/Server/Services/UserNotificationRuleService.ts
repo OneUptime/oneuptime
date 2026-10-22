@@ -109,6 +109,17 @@ import {
   CANT_TAKE_IT_ESCALATE,
   getOnCallPageCallPassOnPrompt,
 } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  OnCallPageAgainNotice,
+  getOnCallAcknowledgementTimeoutInMinutes,
+  getOnCallPageAgainCallSentence,
+  getOnCallPageAgainEmailLine,
+  getOnCallPageAgainHeadline,
+  getOnCallPageAgainWhyLine,
+  isOnCallPageAgainRun,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
 import Alert from "../../Models/DatabaseModels/Alert";
 import AlertService from "./AlertService";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -1212,6 +1223,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
+    /*
+     * A page again (OnCallAcknowledgementTimeout) is about a record that was
+     * acknowledged a while ago: its messages say it is still not resolved,
+     * not that it was just created.
+     */
+    const pageAgain: OnCallPageAgainNotice | undefined =
+      await this.readPageAgainNotice(options);
+
     if (
       notificationRuleItem.userEmail?.email &&
       notificationRuleItem.userEmail?.isVerified
@@ -1242,6 +1261,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userEmail?.email,
             alert,
             updatedLog.id!,
+            pageAgain,
           );
 
         // send email.
@@ -1296,6 +1316,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userEmail?.email,
             incident,
             updatedLog.id!,
+            pageAgain,
           );
 
         // send email.
@@ -1349,6 +1370,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userEmail?.email,
             alertEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         MailService.sendMail(emailMessage, {
@@ -1400,6 +1422,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userEmail?.email,
             incidentEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         /*
@@ -1941,6 +1964,7 @@ export class Service extends ProjectReferencesService<Model> {
           body: await this.generateTelegramBodyForAlertCreated(
             alert,
             updatedLog.id!,
+            pageAgain,
           ),
           parseMode: "HTML",
           disableWebPagePreview: true,
@@ -1994,6 +2018,7 @@ export class Service extends ProjectReferencesService<Model> {
           body: await this.generateTelegramBodyForIncidentCreated(
             incident,
             updatedLog.id!,
+            pageAgain,
           ),
           parseMode: "HTML",
           disableWebPagePreview: true,
@@ -2047,6 +2072,7 @@ export class Service extends ProjectReferencesService<Model> {
           body: await this.generateTelegramBodyForAlertEpisodeCreated(
             alertEpisode,
             updatedLog.id!,
+            pageAgain,
           ),
           parseMode: "HTML",
           disableWebPagePreview: true,
@@ -2100,6 +2126,7 @@ export class Service extends ProjectReferencesService<Model> {
           body: await this.generateTelegramBodyForIncidentEpisodeCreated(
             incidentEpisode,
             updatedLog.id!,
+            pageAgain,
           ),
           parseMode: "HTML",
           disableWebPagePreview: true,
@@ -2167,6 +2194,7 @@ export class Service extends ProjectReferencesService<Model> {
           alert: alert,
           alertEpisode: alertEpisode,
           incidentEpisode: incidentEpisode,
+          pageAgain: pageAgain,
         });
 
       deliveryAttempted = deliveryAttempted || attempted;
@@ -2206,6 +2234,7 @@ export class Service extends ProjectReferencesService<Model> {
           alert: alert,
           alertEpisode: alertEpisode,
           incidentEpisode: incidentEpisode,
+          pageAgain: pageAgain,
         });
 
       deliveryAttempted = deliveryAttempted || attempted;
@@ -2455,6 +2484,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userCall?.phone,
             alert,
             updatedLog.id!,
+            pageAgain,
           );
 
         // send call.
@@ -2509,6 +2539,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userCall?.phone,
             incident,
             updatedLog.id!,
+            pageAgain,
           );
 
         // send call.
@@ -2563,6 +2594,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userCall?.phone,
             alertEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         CallService.makeCall(callRequest, {
@@ -2615,6 +2647,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userCall?.phone,
             incidentEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         /*
@@ -2723,6 +2756,8 @@ export class Service extends ProjectReferencesService<Model> {
             }),
             alertId: alert.id!.toString(),
             projectId: alert.projectId!.toString(),
+            // A page again says it is still not resolved.
+            pageAgain: pageAgain,
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
@@ -2813,6 +2848,8 @@ export class Service extends ProjectReferencesService<Model> {
             }),
             incidentId: incident.id!.toString(),
             projectId: incident.projectId!.toString(),
+            // A page again says it is still not resolved.
+            pageAgain: pageAgain,
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
@@ -2903,6 +2940,8 @@ export class Service extends ProjectReferencesService<Model> {
             }),
             alertEpisodeId: alertEpisode.id!.toString(),
             projectId: alertEpisode.projectId!.toString(),
+            // A page again says it is still not resolved.
+            pageAgain: pageAgain,
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
@@ -2992,6 +3031,8 @@ export class Service extends ProjectReferencesService<Model> {
             }),
             incidentEpisodeId: incidentEpisode.id!.toString(),
             projectId: incidentEpisode.projectId!.toString(),
+            // A page again says it is still not resolved.
+            pageAgain: pageAgain,
           });
 
         pushMessage.isCriticalAlert = isCriticalAlert;
@@ -3124,6 +3165,8 @@ export class Service extends ProjectReferencesService<Model> {
     alert: Alert | null;
     alertEpisode: AlertEpisode | null;
     incidentEpisode: IncidentEpisode | null;
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): Promise<boolean> {
     const channelDisplayName: string = getWorkspaceTypeDisplayName(
       data.workspaceType,
@@ -3154,13 +3197,16 @@ export class Service extends ProjectReferencesService<Model> {
       const incident: Incident = data.incident;
       entityProjectId = incident.projectId;
       incidentId = incident.id!;
-      messageSummary = `On-call notification: incident created.`;
+      messageSummary = data.pageAgain
+        ? `On-call notification: incident still not resolved.`
+        : `On-call notification: incident created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
         return this.generateWorkspaceMessageBlocksForIncidentCreated(
           incident,
           timelineId,
+          data.pageAgain,
         );
       };
     }
@@ -3173,13 +3219,16 @@ export class Service extends ProjectReferencesService<Model> {
       const alert: Alert = data.alert;
       entityProjectId = alert.projectId;
       alertId = alert.id!;
-      messageSummary = `On-call notification: alert created.`;
+      messageSummary = data.pageAgain
+        ? `On-call notification: alert still not resolved.`
+        : `On-call notification: alert created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
         return this.generateWorkspaceMessageBlocksForAlertCreated(
           alert,
           timelineId,
+          data.pageAgain,
         );
       };
     }
@@ -3192,13 +3241,16 @@ export class Service extends ProjectReferencesService<Model> {
       const alertEpisode: AlertEpisode = data.alertEpisode;
       entityProjectId = alertEpisode.projectId;
       alertEpisodeId = alertEpisode.id!;
-      messageSummary = `On-call notification: alert episode created.`;
+      messageSummary = data.pageAgain
+        ? `On-call notification: alert episode still not resolved.`
+        : `On-call notification: alert episode created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
         return this.generateWorkspaceMessageBlocksForAlertEpisodeCreated(
           alertEpisode,
           timelineId,
+          data.pageAgain,
         );
       };
     }
@@ -3211,13 +3263,16 @@ export class Service extends ProjectReferencesService<Model> {
       const incidentEpisode: IncidentEpisode = data.incidentEpisode;
       entityProjectId = incidentEpisode.projectId;
       incidentEpisodeId = incidentEpisode.id!;
-      messageSummary = `On-call notification: incident episode created.`;
+      messageSummary = data.pageAgain
+        ? `On-call notification: incident episode still not resolved.`
+        : `On-call notification: incident episode created.`;
       generateBlocks = (
         timelineId: ObjectID,
       ): Promise<Array<WorkspaceMessageBlock>> => {
         return this.generateWorkspaceMessageBlocksForIncidentEpisodeCreated(
           incidentEpisode,
           timelineId,
+          data.pageAgain,
         );
       };
     }
@@ -3828,6 +3883,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<CallRequest> {
     const alertIdentifier: string =
       alert.alertNumber !== undefined
@@ -3841,7 +3898,12 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: "This is a call from One Uptime",
         },
         {
-          sayMessage: "A new alert has been created",
+          sayMessage: pageAgain
+            ? getOnCallPageAgainCallSentence({
+                recordNoun: "alert",
+                notice: pageAgain,
+              })
+            : "A new alert has been created",
         },
         {
           sayMessage: alertIdentifier,
@@ -3875,6 +3937,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<CallRequest> {
     const incidentIdentifier: string =
       incident.incidentNumber !== undefined
@@ -3888,7 +3952,12 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: "This is a call from One Uptime",
         },
         {
-          sayMessage: "A new incident has been created",
+          sayMessage: pageAgain
+            ? getOnCallPageAgainCallSentence({
+                recordNoun: "incident",
+                notice: pageAgain,
+              })
+            : "A new incident has been created",
         },
         {
           sayMessage: incidentIdentifier,
@@ -3922,6 +3991,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<CallRequest> {
     const episodeIdentifier: string = alertEpisode.episodeNumberWithPrefix
       ? `Alert episode ${alertEpisode.episodeNumberWithPrefix}, ${alertEpisode.title || "Alert Episode"}`
@@ -3936,7 +4007,12 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: "This is a call from One Uptime",
         },
         {
-          sayMessage: "A new alert episode has been created",
+          sayMessage: pageAgain
+            ? getOnCallPageAgainCallSentence({
+                recordNoun: "alert episode",
+                notice: pageAgain,
+              })
+            : "A new alert episode has been created",
         },
         {
           sayMessage: episodeIdentifier,
@@ -3970,6 +4046,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<CallRequest> {
     const episodeIdentifier: string = incidentEpisode.episodeNumberWithPrefix
       ? `Incident episode ${incidentEpisode.episodeNumberWithPrefix}, ${incidentEpisode.title || "Incident Episode"}`
@@ -3984,7 +4062,12 @@ export class Service extends ProjectReferencesService<Model> {
           sayMessage: "This is a call from One Uptime",
         },
         {
-          sayMessage: "A new incident episode has been created",
+          sayMessage: pageAgain
+            ? getOnCallPageAgainCallSentence({
+                recordNoun: "incident episode",
+                notice: pageAgain,
+              })
+            : "A new incident episode has been created",
         },
         {
           sayMessage: episodeIdentifier,
@@ -4182,6 +4265,78 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Whether a delivery is part of a page again (OnCallAcknowledgementTimeout),
+   * with the policy's timeout: its messages then say the record is still not
+   * resolved so long after it was acknowledged, where a first page's say it
+   * was just created. Best effort: a run that cannot be read is worded as a
+   * first page, and the page still goes out.
+   */
+  private async readPageAgainNotice(
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<OnCallPageAgainNotice | undefined> {
+    if (!options.onCallPolicyExecutionLogId) {
+      return undefined;
+    }
+
+    try {
+      const run: OnCallDutyPolicyExecutionLog | null =
+        await OnCallDutyPolicyExecutionLogService.findOneById({
+          id: options.onCallPolicyExecutionLogId,
+          select: {
+            pageAgainNumber: true,
+            onCallDutyPolicy: {
+              acknowledgementTimeoutInMinutes: true,
+            },
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!run || !isOnCallPageAgainRun(run)) {
+        return undefined;
+      }
+
+      const minutes: number | null = getOnCallAcknowledgementTimeoutInMinutes(
+        run.onCallDutyPolicy,
+      );
+
+      return {
+        pageAgainNumber: Number(run.pageAgainNumber),
+        ...(minutes !== null ? { minutes: minutes } : {}),
+      };
+    } catch (err) {
+      logger.debug(
+        `Could not read whether on-call execution log ${options.onCallPolicyExecutionLogId.toString()} pages again; worded as a first page.`,
+      );
+      logger.debug(err as Error);
+      return undefined;
+    }
+  }
+
+  /*
+   * A page's headline in a chat or Telegram message: "New incident assigned
+   * to you", or a page again's "Incident still not resolved".
+   */
+  private getPageHeadline(
+    recordNoun: string,
+    pageAgain?: OnCallPageAgainNotice | undefined,
+  ): string {
+    return pageAgain
+      ? getOnCallPageAgainHeadline(recordNoun)
+      : `New ${recordNoun} assigned to you`;
+  }
+
+  // Why the person gets a page's chat or Telegram message.
+  private getPageWhyLine(
+    pageAgain?: OnCallPageAgainNotice | undefined,
+  ): string {
+    return pageAgain
+      ? getOnCallPageAgainWhyLine(pageAgain)
+      : "You're getting this because you're on call.";
+  }
+
+  /*
    * Telegram's HTML parse_mode supports <b>, <i>, <a>, <code>. <, > and &
    * need escaping in those tags' text content; a value also goes inside an
    * <a href="..."> attribute, so " is escaped as well (Telegram reads &quot;).
@@ -4198,6 +4353,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateTelegramBodyForAlertCreated(
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4213,11 +4370,11 @@ export class Service extends ProjectReferencesService<Model> {
         : alert.title || "Alert";
 
     const lines: Array<string> = [
-      "🚨 <b>New alert assigned to you</b>",
+      `🚨 <b>${this.getPageHeadline("alert", pageAgain)}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(alertIdentifier)}</b>`,
       "",
-      "👤 You're getting this because you're on call.",
+      `👤 ${this.getPageWhyLine(pageAgain)}`,
     ];
 
     if (alert.projectId && alert.id) {
@@ -4245,6 +4402,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateTelegramBodyForIncidentCreated(
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4260,11 +4419,11 @@ export class Service extends ProjectReferencesService<Model> {
         : incident.title || "Incident";
 
     const lines: Array<string> = [
-      "🔥 <b>New incident assigned to you</b>",
+      `🔥 <b>${this.getPageHeadline("incident", pageAgain)}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(incidentIdentifier)}</b>`,
       "",
-      "👤 You're getting this because you're on call.",
+      `👤 ${this.getPageWhyLine(pageAgain)}`,
     ];
 
     if (incident.projectId && incident.id) {
@@ -4293,6 +4452,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateTelegramBodyForAlertEpisodeCreated(
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4309,11 +4470,11 @@ export class Service extends ProjectReferencesService<Model> {
         : alertEpisode.title || "Alert Episode";
 
     const lines: Array<string> = [
-      "🔔 <b>New alert episode assigned to you</b>",
+      `🔔 <b>${this.getPageHeadline("alert episode", pageAgain)}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
       "",
-      "👤 You're getting this because you're on call.",
+      `👤 ${this.getPageWhyLine(pageAgain)}`,
     ];
 
     if (alertEpisode.projectId && alertEpisode.id) {
@@ -4342,6 +4503,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateTelegramBodyForIncidentEpisodeCreated(
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<string> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4358,11 +4521,11 @@ export class Service extends ProjectReferencesService<Model> {
         : incidentEpisode.title || "Incident Episode";
 
     const lines: Array<string> = [
-      "🔥 <b>New incident episode assigned to you</b>",
+      `🔥 <b>${this.getPageHeadline("incident episode", pageAgain)}</b>`,
       "",
       `📋 <b>${this.escapeTelegramHtml(episodeIdentifier)}</b>`,
       "",
-      "👤 You're getting this because you're on call.",
+      `👤 ${this.getPageWhyLine(pageAgain)}`,
     ];
 
     if (incidentEpisode.projectId && incidentEpisode.id) {
@@ -4407,7 +4570,10 @@ export class Service extends ProjectReferencesService<Model> {
     ackUrl: URL;
     // "Can't take it? Escalate" (OnCallPagePassOn).
     passOnUrl: URL;
+    // A page again (OnCallAcknowledgementTimeout): says why it pages again.
+    pageAgain?: OnCallPageAgainNotice | undefined;
   }): Array<WorkspaceMessageBlock> {
+    const pageAgain: OnCallPageAgainNotice | undefined = data.pageAgain;
     const lines: Array<string> = [
       mdText`🚨 **${data.headline}**`.toString(),
       "",
@@ -4419,7 +4585,7 @@ export class Service extends ProjectReferencesService<Model> {
        */
       mdText`📋 **${data.identifier}**`.toString(),
       "",
-      "👤 You're getting this because you're on call.",
+      `👤 ${this.getPageWhyLine(pageAgain)}`,
     ];
 
     if (data.dashboardUrl) {
@@ -4448,6 +4614,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateWorkspaceMessageBlocksForAlertCreated(
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4472,7 +4640,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return this.buildWorkspaceMessageBlocks({
-      headline: "New alert assigned to you",
+      headline: this.getPageHeadline("alert", pageAgain),
+      pageAgain: pageAgain,
       identifier: alertIdentifier,
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert in OneUptime",
@@ -4485,6 +4654,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateWorkspaceMessageBlocksForIncidentCreated(
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4509,7 +4680,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return this.buildWorkspaceMessageBlocks({
-      headline: "New incident assigned to you",
+      headline: this.getPageHeadline("incident", pageAgain),
+      pageAgain: pageAgain,
       identifier: incidentIdentifier,
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident in OneUptime",
@@ -4522,6 +4694,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateWorkspaceMessageBlocksForAlertEpisodeCreated(
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4547,7 +4721,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return this.buildWorkspaceMessageBlocks({
-      headline: "New alert episode assigned to you",
+      headline: this.getPageHeadline("alert episode", pageAgain),
+      pageAgain: pageAgain,
       identifier: episodeIdentifier,
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View alert episode in OneUptime",
@@ -4560,6 +4735,8 @@ export class Service extends ProjectReferencesService<Model> {
   public async generateWorkspaceMessageBlocksForIncidentEpisodeCreated(
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<Array<WorkspaceMessageBlock>> {
     const ackUrl: URL = await this.buildOnCallAcknowledgeShortUrl(
       userOnCallLogTimelineId,
@@ -4585,7 +4762,8 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return this.buildWorkspaceMessageBlocks({
-      headline: "New incident episode assigned to you",
+      headline: this.getPageHeadline("incident episode", pageAgain),
+      pageAgain: pageAgain,
       identifier: episodeIdentifier,
       dashboardUrl: dashboardUrl,
       dashboardLinkText: "View incident episode in OneUptime",
@@ -4785,6 +4963,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Email,
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<EmailMessage> {
     const alertNumber: string =
       alert.alertNumberWithPrefix ||
@@ -4846,11 +5026,22 @@ export class Service extends ProjectReferencesService<Model> {
       ).toString(),
     };
 
+    // A page again opens with why it pages again, not "A new alert has been created".
+    if (pageAgain) {
+      vars["pageAgainInfo"] = getOnCallPageAgainEmailLine({
+        recordNoun: "alert",
+        projectName: alert.project?.name || "",
+        notice: pageAgain,
+      });
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlert,
       vars: vars,
-      subject: `ACTION REQUIRED: Alert ${alertNumber} created - ${alert.title!}`,
+      subject: pageAgain
+        ? `ACTION REQUIRED: Alert ${alertNumber} still not resolved - ${alert.title!}`
+        : `ACTION REQUIRED: Alert ${alertNumber} created - ${alert.title!}`,
       isSubjectLiteral: true,
     };
 
@@ -4862,6 +5053,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Email,
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<EmailMessage> {
     const incidentNumber: string =
       incident.incidentNumberWithPrefix ||
@@ -4919,11 +5112,22 @@ export class Service extends ProjectReferencesService<Model> {
       ).toString(),
     };
 
+    // A page again opens with why it pages again, not "A new incident has been created".
+    if (pageAgain) {
+      vars["pageAgainInfo"] = getOnCallPageAgainEmailLine({
+        recordNoun: "incident",
+        projectName: incident.project?.name || "",
+        notice: pageAgain,
+      });
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncident,
       vars: vars,
-      subject: `ACTION REQUIRED: Incident ${incidentNumber} created - ${incident.title!}`,
+      subject: pageAgain
+        ? `ACTION REQUIRED: Incident ${incidentNumber} still not resolved - ${incident.title!}`
+        : `ACTION REQUIRED: Incident ${incidentNumber} created - ${incident.title!}`,
       isSubjectLiteral: true,
     };
 
@@ -4935,6 +5139,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Email,
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<EmailMessage> {
     // Fetch alerts that are members of this episode
     const episodeMembers: Array<AlertEpisodeMember> =
@@ -5075,11 +5281,22 @@ export class Service extends ProjectReferencesService<Model> {
       ).toString(),
     };
 
+    // A page again opens with why it pages again, not "A new alert episode has been created".
+    if (pageAgain) {
+      vars["pageAgainInfo"] = getOnCallPageAgainEmailLine({
+        recordNoun: "alert episode",
+        projectName: alertEpisode.project?.name || "",
+        notice: pageAgain,
+      });
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
-      subject: `ACTION REQUIRED: Alert Episode ${episodeNumber} created - ${alertEpisode.title!}`,
+      subject: pageAgain
+        ? `ACTION REQUIRED: Alert Episode ${episodeNumber} still not resolved - ${alertEpisode.title!}`
+        : `ACTION REQUIRED: Alert Episode ${episodeNumber} created - ${alertEpisode.title!}`,
       isSubjectLiteral: true,
     };
 
@@ -5091,6 +5308,8 @@ export class Service extends ProjectReferencesService<Model> {
     to: Email,
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
+    // A page again (OnCallAcknowledgementTimeout): says it is still not resolved.
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<EmailMessage> {
     // Fetch incidents that are members of this episode
     const episodeMembers: Array<IncidentEpisodeMember> =
@@ -5240,11 +5459,22 @@ export class Service extends ProjectReferencesService<Model> {
       ).toString(),
     };
 
+    // A page again opens with why it pages again, not "A new incident episode has been created".
+    if (pageAgain) {
+      vars["pageAgainInfo"] = getOnCallPageAgainEmailLine({
+        recordNoun: "incident episode",
+        projectName: incidentEpisode.project?.name || "",
+        notice: pageAgain,
+      });
+    }
+
     const emailMessage: EmailMessage = {
       toEmail: to!,
       templateType: EmailTemplateType.AcknowledgeIncidentEpisode,
       vars: vars,
-      subject: `ACTION REQUIRED: Incident Episode ${episodeNumber} created - ${incidentEpisode.title!}`,
+      subject: pageAgain
+        ? `ACTION REQUIRED: Incident Episode ${episodeNumber} still not resolved - ${incidentEpisode.title!}`
+        : `ACTION REQUIRED: Incident Episode ${episodeNumber} created - ${incidentEpisode.title!}`,
       isSubjectLiteral: true,
     };
 
