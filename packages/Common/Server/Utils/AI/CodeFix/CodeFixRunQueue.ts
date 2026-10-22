@@ -2,6 +2,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import { CodeFixTaskTypeHelper } from "../../../../Types/AI/CodeFixTaskType";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import AIRunService from "../../../Services/AIRunService";
@@ -82,6 +83,13 @@ export default class CodeFixRunQueue {
         runType: AIRunType.CodeFix,
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(waitThreshold),
+        /*
+         * Never a recipe the server runs itself (a production review): no
+         * Runner takes one, so none being online says nothing about it.
+         */
+        codeFixTaskType: QueryHelper.notInOrNull(
+          CodeFixTaskTypeHelper.getServerRunTaskTypes(),
+        ),
       },
       select: {
         _id: true,

@@ -8,6 +8,8 @@ import AIRunService from "Common/Server/Services/AIRunService";
 import AIConversationMessageService from "Common/Server/Services/AIConversationMessageService";
 import AIInvestigationQueue from "Common/Server/Utils/AI/SRE/InvestigationQueue";
 import CodeFixRunQueue from "Common/Server/Utils/AI/CodeFix/CodeFixRunQueue";
+import ProductionReviewQueue from "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
+import { CodeFixTaskTypeHelper } from "Common/Types/AI/CodeFixTaskType";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIConversationMessage from "Common/Models/DatabaseModels/AIConversationMessage";
@@ -50,6 +52,7 @@ RunCron(
         _id: true,
         conversationId: true,
         runType: true,
+        codeFixTaskType: true,
         attemptCount: true,
         handedBackCount: true,
         lastHeartbeatAt: true,
@@ -121,6 +124,24 @@ RunCron(
 
           logger.info(
             `Stale ${run.runType === AIRunType.RemediationPlan ? "remediation plan" : "investigation"} run ${run.id?.toString()}: ${outcome}.`,
+            { service: "workers" },
+          );
+          continue;
+        }
+
+        /*
+         * A production review runs on the server and only reads: the
+         * worker that died mid-review leaves nothing half done, so it is
+         * queued again and the next worker reviews the pull request.
+         */
+        if (
+          run.runType === AIRunType.CodeFix &&
+          CodeFixTaskTypeHelper.isRunByServer(run.codeFixTaskType)
+        ) {
+          await ProductionReviewQueue.requeueStale({ id: run.id! });
+
+          logger.info(
+            `Stale production review ${run.id?.toString()}: queued again.`,
             { service: "workers" },
           );
           continue;

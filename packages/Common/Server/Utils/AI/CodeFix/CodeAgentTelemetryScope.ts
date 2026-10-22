@@ -136,6 +136,35 @@ export interface ServiceFacts {
 }
 
 /*
+ * The services a repository serves, worked out for a run's scope or for a
+ * production review of one of its pull requests (ProductionReviewScope) -
+ * or why there are none: the repository is no longer one the project's
+ * GitHub App reaches, or no service of the project maps to it.
+ */
+export enum RepositoryServicesGap {
+  RepositoryNotConnected = "RepositoryNotConnected",
+  NoServiceMapped = "NoServiceMapped",
+}
+
+export type RepositoryServices =
+  | {
+      repository: ResolvableRepository;
+      services: Array<CodeAgentScopedService>;
+      gap: null;
+    }
+  | {
+      repository: ResolvableRepository | null;
+      services: [];
+      gap: RepositoryServicesGap;
+    };
+
+// The run whose own subject's facts come first in its scope.
+export interface ScopeSubject {
+  run: AIRun;
+  taskType: CodeFixTaskType;
+}
+
+/*
  * What a run is offered: its scope, or - for a run that may ask but has
  * nothing to read - why not.
  */
@@ -362,16 +391,17 @@ export default class CodeAgentTelemetryScope {
       };
     }
 
-    const repositories: Array<ResolvableRepository> =
-      await CodeRepositoryService.getResolvableRepositories(projectId);
+    const found: RepositoryServices =
+      await CodeAgentTelemetryScope.findRepositoryServices({
+        projectId,
+        codeRepositoryId: run.codeRepositoryId,
+        subject: { run, taskType },
+      });
 
-    const repository: ResolvableRepository | undefined = repositories.find(
-      (candidate: ResolvableRepository): boolean => {
-        return normalizeId(candidate.id) === normalizeId(run.codeRepositoryId!);
-      },
-    );
-
-    if (!repository) {
+    if (
+      !found.repository ||
+      found.gap === RepositoryServicesGap.RepositoryNotConnected
+    ) {
       return {
         scope: null,
         reason:
@@ -379,16 +409,72 @@ export default class CodeAgentTelemetryScope {
       };
     }
 
+    const repository: ResolvableRepository = found.repository;
+
+    if (found.gap === RepositoryServicesGap.NoServiceMapped) {
+      return {
+        scope: null,
+        reason: `No service of this project maps to ${repository.organizationName}/${repository.repositoryName}: none of their recent stack traces runs through its files, none is named like it, and the project has other repositories. There is no production telemetry to read for it.`,
+      };
+    }
+
+    logger.debug(
+      `Production telemetry scope of run ${run.id?.toString()}: ${found.services.length} service(s) of ${repository.organizationName}/${repository.repositoryName}.`,
+    );
+
+    return {
+      scope: {
+        projectId: projectId,
+        aiRunId: run.id!,
+        taskType: taskType,
+        codeRepositoryId: new ObjectID(repository.id),
+        repositoryFullName: `${repository.organizationName}/${repository.repositoryName}`,
+        services: found.services,
+      },
+      reason: null,
+    };
+  }
+
+  /*
+   * The services a repository serves, of its project's: those the
+   * repository resolver maps to it from their own facts (above), with a
+   * company AI tool's private chats left out - or why there are none. A
+   * run's own subject's facts come first, when a run asks.
+   */
+  @CaptureSpan()
+  public static async findRepositoryServices(data: {
+    projectId: ObjectID;
+    codeRepositoryId: ObjectID;
+    subject?: ScopeSubject | undefined;
+  }): Promise<RepositoryServices> {
+    const repositories: Array<ResolvableRepository> =
+      await CodeRepositoryService.getResolvableRepositories(data.projectId);
+
+    const repository: ResolvableRepository | undefined = repositories.find(
+      (candidate: ResolvableRepository): boolean => {
+        return (
+          normalizeId(candidate.id) === normalizeId(data.codeRepositoryId)
+        );
+      },
+    );
+
+    if (!repository) {
+      return {
+        repository: null,
+        services: [],
+        gap: RepositoryServicesGap.RepositoryNotConnected,
+      };
+    }
+
     // A company AI tool's private chats never enter the scope (see above).
     const restricted: Set<string> = new Set<string>(
-      await LlmConversationPrivacy.getRestrictedServiceIds(projectId),
+      await LlmConversationPrivacy.getRestrictedServiceIds(data.projectId),
     );
 
     const facts: Array<ServiceFacts> = (
       await CodeAgentTelemetryScope.readServiceFacts({
-        projectId,
-        run,
-        taskType,
+        projectId: data.projectId,
+        subject: data.subject,
       })
     ).filter((service: ServiceFacts): boolean => {
       return !restricted.has(service.id);
@@ -408,37 +494,23 @@ export default class CodeAgentTelemetryScope {
 
     if (services.length === 0) {
       return {
-        scope: null,
-        reason: `No service of this project maps to ${repository.organizationName}/${repository.repositoryName}: none of their recent stack traces runs through its files, none is named like it, and the project has other repositories. There is no production telemetry to read for it.`,
+        repository,
+        services: [],
+        gap: RepositoryServicesGap.NoServiceMapped,
       };
     }
 
-    logger.debug(
-      `Production telemetry scope of run ${run.id?.toString()}: ${services.length} service(s) of ${repository.organizationName}/${repository.repositoryName}.`,
-    );
-
-    return {
-      scope: {
-        projectId: projectId,
-        aiRunId: run.id!,
-        taskType: taskType,
-        codeRepositoryId: new ObjectID(repository.id),
-        repositoryFullName: `${repository.organizationName}/${repository.repositoryName}`,
-        services: services,
-      },
-      reason: null,
-    };
+    return { repository, services, gap: null };
   }
 
   /*
    * Every service of the project with the facts the resolver is asked
    * about: its name, the stack traces of its most recently seen exception
-   * groups, and - first - the run's own subject's facts.
+   * groups, and - first - the run's own subject's facts, when a run asks.
    */
   private static async readServiceFacts(data: {
     projectId: ObjectID;
-    run: AIRun;
-    taskType: CodeFixTaskType;
+    subject?: ScopeSubject | undefined;
   }): Promise<Array<ServiceFacts>> {
     const services: Array<Service> = await ServiceService.findBy({
       query: { projectId: data.projectId },
@@ -473,11 +545,15 @@ export default class CodeAgentTelemetryScope {
     }
 
     // The run's own subject's facts come first.
-    await CodeAgentTelemetryScope.addSubjectFacts({
-      ...data,
-      factsById,
-      idsByName,
-    });
+    if (data.subject) {
+      await CodeAgentTelemetryScope.addSubjectFacts({
+        projectId: data.projectId,
+        run: data.subject.run,
+        taskType: data.subject.taskType,
+        factsById,
+        idsByName,
+      });
+    }
 
     const exceptions: Array<TelemetryException> =
       await TelemetryExceptionService.findBy({

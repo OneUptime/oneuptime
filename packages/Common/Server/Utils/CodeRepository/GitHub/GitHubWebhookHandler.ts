@@ -31,6 +31,9 @@ import GitHubWebhookEvents, {
   GitHubWebhookSender,
 } from "./GitHubWebhookEvents";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import ProductionReviewQueue from "../ProductionReview/ProductionReviewQueue";
+import ProductionReviewGitHubTrigger from "../ProductionReview/ProductionReviewGitHubTrigger";
+import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
 
 /*
  * The interactive half of the GitHub App: everything between a verified
@@ -402,14 +405,20 @@ export default class GitHubWebhookHandler {
     });
   }
 
-  // A review requested from the app's bot user on a pull request.
+  /*
+   * A pull request that opened or changed (ProductionReviewGitHubTrigger decides
+   * whether it is reviewed against production on its own), or a review
+   * requested from the app's bot user.
+   */
   private static async handlePullRequestEvent(data: {
     event: string | undefined;
     deliveryId: string | undefined;
     payload: JSONObject;
   }): Promise<GitHubWebhookHandlingResult> {
     if (GitHubWebhookEvents.getAction(data.payload) !== "review_requested") {
-      return NOT_HANDLED("action-not-actionable");
+      return await ProductionReviewGitHubTrigger.onPullRequestChanged(
+        data.payload,
+      );
     }
 
     const pullRequestNumber: number | null = GitHubWebhookEvents.getNumber(
@@ -546,6 +555,15 @@ export default class GitHubWebhookHandler {
       return { handled: true, outcome: "unsupported-on-surface" };
     }
 
+    if (command.commandType === GitHubCommandType.ProductionReview) {
+      return GitHubWebhookHandler.requestProductionReview({
+        context: context,
+        conversationNumber: data.conversationNumber,
+        triggerCommentId: data.triggerCommentId,
+        triggerCommentKind: data.triggerCommentKind,
+      });
+    }
+
     if (isConversationalCommand(command.commandType)) {
       return GitHubWebhookHandler.answerConversationalCommand({
         context: context,
@@ -633,6 +651,99 @@ export default class GitHubWebhookHandler {
     });
 
     return { handled: true, outcome: "cancel" };
+  }
+
+  /*
+   * "@oneuptime production review": review this pull request against
+   * production now, whoever wrote it - the person asking can write to the
+   * repository (resolveContext), and that is the consent a pull request
+   * from an outside contributor or a fork needs. No setting is needed, no
+   * Runner and no clone: the server reviews it (ProductionReviewQueue), and
+   * the pull request's one production review comment is the answer - the
+   * ask only gets an eyes reaction. Its next pushes are reviewed on their
+   * own only when its author can write to the repository too.
+   */
+  private static async requestProductionReview(data: {
+    context: ResolvedWebhookContext;
+    conversationNumber: number;
+    triggerCommentId: number | undefined;
+    triggerCommentKind: GitHubCommentKind;
+  }): Promise<GitHubWebhookHandlingResult> {
+    const codeRepository: CodeRepository | undefined =
+      data.context.authorization.codeRepository;
+
+    if (!codeRepository?.id || !codeRepository.projectId) {
+      return NOT_HANDLED("no-repository");
+    }
+
+    const pullRequest: GitHubPullRequestDetails =
+      await GitHubConversation.getPullRequestDetails({
+        installationId: data.context.installationId,
+        organizationName: data.context.repository.organizationName,
+        repositoryName: data.context.repository.repositoryName,
+        pullRequestNumber: data.conversationNumber,
+      });
+
+    if (pullRequest.state !== "open") {
+      await GitHubWebhookHandler.reply({
+        context: data.context,
+        conversationNumber: data.conversationNumber,
+        body: GitHubReplyComposer.refusal({
+          reason:
+            "This pull request is already closed, so there is nothing for me to review.",
+        }),
+      });
+
+      return { handled: true, outcome: "pull-request-not-open" };
+    }
+
+    const isAuthorTrusted: boolean =
+      pullRequest.authorLogin.toLowerCase() ===
+        data.context.sender.login.toLowerCase() ||
+      (!GitHubConversation.isBotLogin(pullRequest.authorLogin) &&
+        (await ProductionReviewGitHubTrigger.canWrite({
+          installationId: data.context.installationId,
+          repository: data.context.repository,
+          login: pullRequest.authorLogin,
+        })));
+
+    const run: AIRun = await ProductionReviewQueue.request({
+      projectId: codeRepository.projectId,
+      codeRepositoryId: codeRepository.id,
+      installationId: data.context.installationId,
+      organizationName: data.context.repository.organizationName,
+      repositoryName: data.context.repository.repositoryName,
+      pullRequestNumber: data.conversationNumber,
+      pullRequestTitle: pullRequest.title,
+      headSha: pullRequest.headSha,
+      isFromFork: GitHubConversation.isFromFork({
+        headRepositoryFullName: pullRequest.headRepositoryFullName,
+        organizationName: data.context.repository.organizationName,
+        repositoryName: data.context.repository.repositoryName,
+      }),
+      trigger: ProductionReviewTrigger.GitHubCommand,
+      isAuthorTrusted,
+      requestedByLogin: data.context.sender.login,
+      isImmediate: true,
+    });
+
+    if (data.triggerCommentId) {
+      await GitHubConversation.addReactionToComment({
+        installationId: data.context.installationId,
+        organizationName: data.context.repository.organizationName,
+        repositoryName: data.context.repository.repositoryName,
+        issueNumber: data.conversationNumber,
+        commentId: data.triggerCommentId,
+        commentKind: data.triggerCommentKind,
+        reaction: GitHubReaction.Eyes,
+      });
+    }
+
+    return {
+      handled: true,
+      outcome: "production-review-queued",
+      aiRunId: run.id || undefined,
+    };
   }
 
   /*

@@ -34,6 +34,10 @@ import {
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
+import {
+  ProductionReviewReport,
+  ProductionReviewUtil,
+} from "../../../../Types/CodeRepository/ProductionReview";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -314,6 +318,19 @@ export default class CodeTaskPresenter {
 
     if (changes) {
       summary.changes = changes;
+    }
+
+    /*
+     * A production review: what its latest review found, at a glance. Its
+     * task is reviewed again in place, so the task's own outcome is it.
+     */
+    const review: ProductionReviewReport | undefined =
+      CodeFixTaskTypeHelper.isProductionReview(data.task.codeFixTaskType)
+        ? (data.outcomes?.[0] || data.task.taskOutcome)?.productionReview
+        : undefined;
+
+    if (review) {
+      summary.productionReview = ProductionReviewUtil.summarize(review);
     }
 
     return summary;

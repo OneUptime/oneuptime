@@ -24,6 +24,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
+import { ProductionReviewPullRequestContent } from "../../Types/CodeRepository/ProductionReview";
 import URL from "../../Types/API/URL";
 import {
   Column,
@@ -820,6 +821,102 @@ export default class CodeRepository extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public gitHubTriggerLabel?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  /*
+   * Whether OneUptime reviews this repository's pull requests against
+   * production on its own: when one opens, is pushed to, reopens or is
+   * marked ready for review, by someone who can write to the repository
+   * (Common/Server/Utils/CodeRepository/ProductionReview). On for the
+   * repositories the GitHub App connects from now on
+   * (CodeRepositoryService.getNewRepositoryDefaults); unset - every
+   * repository connected before it existed - is off: their pull requests
+   * never had a comment from OneUptime, and do not get one unasked.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    title: "Review Pull Requests Against Production",
+    description:
+      "Whether OneUptime comments on this repository's pull requests with what production says about the code they change: the exceptions thrown in it, how busy and slow the operations it runs are, and the incidents and deploys around it. Only pull requests from people who can write to the repository are reviewed on their own.",
+    example: true,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isProductionReviewEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Production Review in Pull Requests",
+    description:
+      "What a pull request's production review comment shows. Review (the default): the review, or only a link to it in OneUptime on a public repository. Link: only a link, whatever the repository. ReviewEvenIfPublic: the review, even on a public repository.",
+    example: "Review",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public productionReviewPullRequestContent?: ProductionReviewPullRequestContent =
+    undefined;
 
   @ColumnAccessControl({
     create: [
