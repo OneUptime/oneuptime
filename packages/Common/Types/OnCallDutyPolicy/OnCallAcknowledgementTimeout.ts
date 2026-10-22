@@ -294,6 +294,98 @@ export function getOnCallPageAgainChatReason(pageAgainNumber: number): string {
 }
 
 /*
+ * WHAT A PAGE AGAIN SAYS TO THE PEOPLE IT PAGES.
+ *
+ * A page again reaches people the way every page does - their own
+ * notification rules: an email, a call, a push, a Slack or Microsoft Teams
+ * message, Telegram. Worded as a first page, it told somebody who
+ * acknowledged the incident half an hour ago that "a new incident has been
+ * created". It says what it is instead: the incident (alert, episode) is
+ * still not resolved, so long after it was acknowledged. The text message
+ * is left as it is - it names the record and asks to acknowledge or
+ * escalate it, never calls it new, and has one 160-character part to fit
+ * in - and so is WhatsApp's, whose words are a template Meta approved.
+ */
+export interface OnCallPageAgainNotice {
+  // Which page again, from 1.
+  pageAgainNumber: number;
+  // The policy's timeout, when it could be read: "30 minutes after".
+  minutes?: number | undefined;
+}
+
+/*
+ * Why the person is paged again, as the end of a sentence: "still not
+ * resolved 30 minutes after it was acknowledged" - or, without the minutes,
+ * "still not resolved after it was acknowledged".
+ */
+export function getOnCallPageAgainNoticeReason(
+  notice: OnCallPageAgainNotice,
+): string {
+  const minutes: number = Number(notice.minutes || 0);
+
+  return Number.isFinite(minutes) && minutes > 0
+    ? `still not resolved ${describeOnCallAcknowledgementTimeout(
+        minutes,
+      )} after it was acknowledged`
+    : "still not resolved after it was acknowledged";
+}
+
+/*
+ * A page again's headline, where a first page says "New incident assigned
+ * to you": "Incident still not resolved". `recordNoun` is the record's kind
+ * as a sentence names it: "incident", "alert", "incident episode", "alert
+ * episode".
+ */
+export function getOnCallPageAgainHeadline(recordNoun: string): string {
+  const noun: string = recordNoun.trim() || "record";
+
+  return `${noun.charAt(0).toUpperCase()}${noun.slice(1)} still not resolved`;
+}
+
+/*
+ * What a call says first, where a first page's says "A new incident has
+ * been created": "An incident is still not resolved 30 minutes after it was
+ * acknowledged". Every kind of record starts with a vowel.
+ */
+export function getOnCallPageAgainCallSentence(data: {
+  recordNoun: string;
+  notice: OnCallPageAgainNotice;
+}): string {
+  return `An ${data.recordNoun} is ${getOnCallPageAgainNoticeReason(
+    data.notice,
+  )}`;
+}
+
+/*
+ * What an email says first, where a first page's says "A new incident has
+ * been created in the project - Acme": "This incident in the project Acme
+ * is still not resolved 30 minutes after it was acknowledged."
+ */
+export function getOnCallPageAgainEmailLine(data: {
+  recordNoun: string;
+  projectName: string;
+  notice: OnCallPageAgainNotice;
+}): string {
+  const project: string = data.projectName.trim();
+
+  return `This ${data.recordNoun}${
+    project ? ` in the project ${project}` : ""
+  } is ${getOnCallPageAgainNoticeReason(data.notice)}.`;
+}
+
+/*
+ * What a chat message and a Telegram message say under the record, where a
+ * first page's say "You're getting this because you're on call.".
+ */
+export function getOnCallPageAgainWhyLine(
+  notice: OnCallPageAgainNotice,
+): string {
+  return `You're getting this because it is ${getOnCallPageAgainNoticeReason(
+    notice,
+  )}.`;
+}
+
+/*
  * ACKNOWLEDGING A PAGE AGAIN FROM THE DASHBOARD.
  *
  * A page again's record was acknowledged all along, so the record's own
