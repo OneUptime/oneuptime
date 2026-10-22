@@ -163,19 +163,41 @@ function countryWords(text: string): Array<string> {
   });
 }
 
-// The SMS numbers' field object of a form, as its source writes it.
-function smsField(source: string): string {
-  const start: number = source.indexOf(SMS_FIELD_START);
+/*
+ * The SMS numbers' field objects of a form, as its source writes them: two
+ * since a config says what it is used for - the open, required one of an
+ * account used for SMS only, and the folded, optional one of an account
+ * used for calls and SMS (Dashboard TwilioConfigUseCopy).
+ */
+function smsFields(source: string): Array<string> {
+  const fields: Array<string> = [];
+  let start: number = source.indexOf(SMS_FIELD_START);
 
-  expect(start).toBeGreaterThan(-1);
-  // One form field draws the list.
-  expect(source.indexOf(SMS_FIELD_START, start + 1)).toBe(-1);
+  while (start !== -1) {
+    const end: number = source.indexOf("\n          },", start);
 
-  const end: number = source.indexOf("\n          },", start);
+    expect(end).toBeGreaterThan(start);
+    fields.push(source.slice(start, end));
 
-  expect(end).toBeGreaterThan(start);
+    start = source.indexOf(SMS_FIELD_START, start + 1);
+  }
 
-  return source.slice(start, end);
+  expect(fields).toHaveLength(2);
+
+  return fields;
+}
+
+// The folded one: SMS numbers for numbers that can only make calls.
+function foldedSmsField(source: string): string {
+  const folded: Array<string> = smsFields(source).filter(
+    (field: string): boolean => {
+      return field.includes("collapsibleSection:");
+    },
+  );
+
+  expect(folded).toHaveLength(1);
+
+  return folded[0]!;
 }
 
 describe("the words that give one country away", () => {
@@ -231,7 +253,9 @@ describe("the help under Twilio SMS Phone Numbers", () => {
   });
 
   test("is the same on the Admin Dashboard's Call and SMS settings", () => {
-    const field: string = smsField(fs.readFileSync(ADMIN_CALL_SMS, "utf8"));
+    const field: string = foldedSmsField(
+      fs.readFileSync(ADMIN_CALL_SMS, "utf8"),
+    );
 
     expect(field).toContain(`"${SMS_NUMBERS_HELP}"`);
   });
@@ -267,9 +291,11 @@ describe("the example a reader is shown, and the error that refuses a list", () 
     (file: string) => {
       const source: string = fs.readFileSync(file, "utf8");
 
-      expect(smsField(source)).toContain(
-        "placeholder: PHONE_NUMBER_LIST_EXAMPLE,",
-      );
+      // Open for SMS only, folded for calls and SMS: the same example in both.
+      for (const field of smsFields(source)) {
+        expect(field).toContain("placeholder: PHONE_NUMBER_LIST_EXAMPLE,");
+        expect(countryWords(field)).toEqual([]);
+      }
       expect(source).toContain(
         'import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";',
       );
