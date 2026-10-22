@@ -74,6 +74,7 @@ import IncidentFollowUpCheck, {
 } from "./IncidentFollowUpCheck";
 import InvestigationRuleWait from "./InvestigationRuleWait";
 import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
+import SecurityCaseIncidentContext from "../Security/SecurityCaseIncidentContext";
 
 /*
  * AI SRE — incident investigation.
@@ -616,6 +617,23 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the recent changes of incident ${incidentId.toString()}; investigating it without them: ${error}`,
+        );
+      }
+
+      /*
+       * The security case that declared the incident, when one did: the
+       * attack the outage may be the impact of, and OneUptime AI's triage
+       * of it (SecurityCaseIncidentContext). Enrichment only.
+       */
+      try {
+        contextSummary +=
+          await SecurityCaseIncidentContext.buildContextSectionFor({
+            projectId,
+            incidentId,
+          });
+      } catch (error) {
+        logger.error(
+          `AI: could not read the security case behind incident ${incidentId.toString()}; investigating it without it: ${error}`,
         );
       }
 

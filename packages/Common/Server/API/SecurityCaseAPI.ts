@@ -52,6 +52,11 @@ import SecuritySetup, {
   TurnOnRecommendedOptions,
   TurnOnRecommendedResult,
 } from "../Utils/SecurityEvent/SecuritySetup";
+import SecurityCaseTriage, {
+  SECURITY_CASE_TRIAGE_NOT_STARTED_MESSAGES,
+  SecurityCaseTriageStartResult,
+} from "../Utils/AI/Security/SecurityCaseTriage";
+import SecurityCaseTriageStatus from "../Utils/AI/Security/SecurityCaseTriageStatus";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -98,6 +103,8 @@ function readWholeNumber(
  *   POST /security-case/setup/status       how security is set up
  *   POST /security-case/setup/turn-on-recommended
  *   POST /security-case/setup/test         a simulated attack, end to end
+ *   POST /security-case/:caseId/ai-triage  OneUptime AI's triage of a case
+ *   POST /security-case/:caseId/ai-triage/start
  *
  * Every read is made with the caller's own props, so the figures are of the
  * cases, detections and events the caller may read, and nothing else.
@@ -516,6 +523,127 @@ export default class SecurityCaseAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * The case's AI card: OneUptime AI's latest triage run of the case, its
+     * steps while it runs, and what stops a triage now
+     * (SecurityCaseTriageStatus). For whoever may read the case; the
+     * triage's result is on the case itself.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-triage`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage:
+              "Reading a case's AI triage takes a Security role, or Project Owner or Project Admin.",
+          });
+
+          const securityCaseId: ObjectID = await this.readCaseForTriage({
+            caseId: req.params["caseId"],
+            projectId,
+            props,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            await SecurityCaseTriageStatus.read({ projectId, securityCaseId }),
+          );
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Triage with AI (and Triage again): a person asks OneUptime AI to
+     * triage the case now, whether or not the project triages new cases on
+     * its own. Takes a role that can work cases - the triage records its
+     * read on the case - and everything AI needs (SecurityCaseTriage).
+     * Answers with the run, or 400 with what stopped it.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-triage/start`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityCase().getUpdatePermissions(),
+            errorMessage:
+              "Asking OneUptime AI to triage a case takes a role that can work security cases.",
+          });
+
+          const securityCaseId: ObjectID = await this.readCaseForTriage({
+            caseId: req.params["caseId"],
+            projectId,
+            props,
+          });
+
+          const result: SecurityCaseTriageStartResult =
+            await SecurityCaseTriage.startTriage({
+              projectId,
+              securityCaseId,
+            });
+
+          if (!result.started) {
+            throw new BadDataException(
+              SECURITY_CASE_TRIAGE_NOT_STARTED_MESSAGES[result.code],
+            );
+          }
+
+          return Response.sendJsonObjectResponse(req, res, {
+            runId: result.runId.toString(),
+          });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
+
+  /*
+   * The case a triage route is about, read with the caller's own props: a
+   * case they may not read, or of another project, is no case to them.
+   */
+  private async readCaseForTriage(data: {
+    caseId: string | undefined;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ObjectID> {
+    if (!data.caseId || !ObjectID.isValidUUID(data.caseId)) {
+      throw new BadDataException("A valid case ID is required.");
+    }
+
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
+        query: { _id: data.caseId, projectId: data.projectId },
+        select: { _id: true, projectId: true },
+        props: data.props,
+      });
+
+    CommonAPI.assertResourceBelongsToProject({
+      resourceProjectId: securityCase?.projectId,
+      projectId: data.projectId,
+    });
+
+    return securityCase!.id!;
   }
 
   private assertCanReadSecurityEvents(

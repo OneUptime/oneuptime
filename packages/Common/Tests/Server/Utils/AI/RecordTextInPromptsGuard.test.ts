@@ -178,6 +178,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
   "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
     "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
+  "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":
+    "A detection rule from a person's description: the description as a field of DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH, the Rule Library's own examples, and the model's own YAML back with the parser's error.",
 };
 
 // The one caller that may keep embedded data (rule C).
