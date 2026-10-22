@@ -10426,34 +10426,42 @@ test.describe("Open in Slack / Microsoft Teams", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Pass it on
+ * Escalate (the action first called "Pass it on")
  * ---------------------------------------------------------------------------
  *
  * The person an on-call policy is paging about a record, who cannot take
- * it, passes the page on from its header: the policy pages its next
- * escalation rule at once instead of waiting. Only they see the button
- * (?paged= picks the records the viewer is paged about; ?passOn= what
- * passing on does). It asks first, saying what passing on will do, and then
- * says what it did, or why there was nothing to pass on.
+ * it, escalates the page from its header: the policy pages its next level
+ * at once instead of waiting. Only they see the button (?paged= picks the
+ * records the viewer is paged about; ?passOn= what escalating does). It asks
+ * first, in the maintainer's words - "Escalate Incident?", "This will
+ * immediately page Platform leads (Level 2 of 3), without waiting.", "You
+ * will not be paged again for this incident.", Cancel and Escalate - and
+ * then says what it did, or why there was nothing to escalate.
  */
 
-function passOnButton(page: Page): Locator {
-  return heroActions(page).getByRole("button", { name: "Pass it on" });
+function escalateButton(page: Page): Locator {
+  return heroActions(page).getByRole("button", { name: "Escalate" });
 }
 
-function passOnDialog(page: Page): Locator {
+function escalateDialog(page: Page): Locator {
   return page.getByRole("dialog");
 }
 
 async function dialogLines(page: Page, testId: string): Promise<Array<string>> {
   return (
-    await passOnDialog(page).getByTestId(testId).locator("p").allInnerTexts()
+    await escalateDialog(page).getByTestId(testId).locator("p").allInnerTexts()
   ).map((line: string): string => {
     return line.trim();
   });
 }
 
-test.describe("Pass it on", () => {
+const NEXT_LEVEL: string =
+  "This will immediately page Platform leads (Level 2 of 3), without waiting.";
+
+const NOT_PAGED_AGAIN: string =
+  "You will not be paged again for this incident.";
+
+test.describe("Escalate", () => {
   test("somebody the policy is not paging sees no button, and the page asked", async ({
     page,
   }: {
@@ -10461,7 +10469,7 @@ test.describe("Pass it on", () => {
   }) => {
     await openReady(page, INCIDENT_PAGE, "state=created");
 
-    await expect(passOnButton(page)).toHaveCount(0);
+    await expect(escalateButton(page)).toHaveCount(0);
 
     const requests: Array<RecordedApiRequest> = await apiRequestsTo(
       page,
@@ -10471,7 +10479,7 @@ test.describe("Pass it on", () => {
     expect(requests[0]!.method).toBe("GET");
   });
 
-  test("the person being paged passes it on: asked first, then told what it did", async ({
+  test("the person being paged escalates: the maintainer's dialog first, then what it did", async ({
     page,
   }: {
     page: Page;
@@ -10479,7 +10487,7 @@ test.describe("Pass it on", () => {
     await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
 
     // After the state buttons it is the alternative to.
-    const button: Locator = passOnButton(page);
+    const button: Locator = escalateButton(page);
     await expect(button).toBeVisible();
     const order: Array<string> = (
       await heroActions(page).getByRole("button").allInnerTexts()
@@ -10487,24 +10495,31 @@ test.describe("Pass it on", () => {
       return text.trim();
     });
     expect(order).toContain("Acknowledge");
-    expect(order.indexOf("Pass it on")).toBeGreaterThan(
+    expect(order.indexOf("Escalate")).toBeGreaterThan(
       order.indexOf("Acknowledge"),
     );
+    expect(order).not.toContain("Pass it on");
 
     await page.mouse.move(0, 0);
-    await screenshotElement(hero(page), "incident-hero-pass-on");
+    await screenshotElement(hero(page), "incident-hero-escalate");
 
     await button.click();
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "Pass it on?",
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Escalate Incident?",
     );
     expect(await dialogLines(page, "pass-on-preview")).toEqual([
-      "You won't be paged about it again.",
-      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      NEXT_LEVEL,
+      NOT_PAGED_AGAIN,
     ]);
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask");
+    await expect(
+      escalateDialog(page).getByTestId("modal-footer-close-button"),
+    ).toHaveText("Cancel");
+    await expect(
+      escalateDialog(page).getByTestId("modal-footer-submit-button"),
+    ).toHaveText("Escalate");
+    await screenshotElement(escalateDialog(page), "escalate-dialog-ask");
 
-    // Nothing is passed on until they say so.
+    // Nothing is escalated until they say so.
     expect(
       (
         await apiRequestsTo(
@@ -10516,22 +10531,22 @@ test.describe("Pass it on", () => {
       }),
     ).toHaveLength(0);
 
-    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
 
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "You passed it on",
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
-      "Escalation rule 2 of 3 (Level 2) is paging Sam Lee and Priya Patel now.",
-      "You won't be paged about it again.",
+      "The policy is now paging Platform leads (Level 2 of 3): Sam Lee and Priya Patel.",
+      NOT_PAGED_AGAIN,
     ]);
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-done");
+    await screenshotElement(escalateDialog(page), "escalate-dialog-done");
 
-    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
-    await expect(passOnDialog(page)).toHaveCount(0);
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await expect(escalateDialog(page)).toHaveCount(0);
 
     // No longer paged about it: the button is gone.
-    await expect(passOnButton(page)).toHaveCount(0);
+    await expect(escalateButton(page)).toHaveCount(0);
     expect(
       (
         await apiRequestsTo(
@@ -10544,14 +10559,14 @@ test.describe("Pass it on", () => {
     ).toHaveLength(1);
   });
 
-  test("Cancel passes nothing on", async ({ page }: { page: Page }) => {
+  test("Cancel escalates nothing", async ({ page }: { page: Page }) => {
     await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
 
-    await passOnButton(page).click();
-    await passOnDialog(page).getByTestId("modal-footer-close-button").click();
+    await escalateButton(page).click();
+    await escalateDialog(page).getByTestId("modal-footer-close-button").click();
 
-    await expect(passOnDialog(page)).toHaveCount(0);
-    await expect(passOnButton(page)).toBeVisible();
+    await expect(escalateDialog(page)).toHaveCount(0);
+    await expect(escalateButton(page)).toBeVisible();
     expect(
       (
         await apiRequestsTo(
@@ -10564,7 +10579,57 @@ test.describe("Pass it on", () => {
     ).toHaveLength(0);
   });
 
-  test("others on the rule are still paged: who, and when the policy moves on", async ({
+  test("a level nobody named is called by its place, never 'Level 2 (Level 2 of 3)'", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=unnamed",
+    );
+
+    await escalateButton(page).click();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "This will immediately page Level 2 of 3, without waiting.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await screenshotElement(escalateDialog(page), "escalate-dialog-unnamed");
+
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+
+    expect(await dialogLines(page, "pass-on-answer")).toEqual([
+      "The policy is now paging Level 2 of 3: Sam Lee and Priya Patel.",
+      NOT_PAGED_AGAIN,
+    ]);
+  });
+
+  test("the last level, with Repeat Policy on: the first level is paged again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "paged=incident&state=created&passOn=restart",
+    );
+
+    await escalateButton(page).click();
+
+    expect(await dialogLines(page, "pass-on-preview")).toEqual([
+      "There is no level after yours, so this will immediately page First responders (Level 1 of 3) again, without waiting.",
+      NOT_PAGED_AGAIN,
+    ]);
+    await expect(
+      escalateDialog(page).getByTestId("pass-on-warning"),
+    ).toHaveCount(0);
+    await screenshotElement(escalateDialog(page), "escalate-dialog-restart");
+  });
+
+  test("others on the level are still paged: who, and when the policy pages the next level", async ({
     page,
   }: {
     page: Page;
@@ -10575,20 +10640,23 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&passOn=others",
     );
 
-    await passOnButton(page).click();
+    await escalateButton(page).click();
 
     const lines: Array<string> = await dialogLines(page, "pass-on-preview");
-    expect(lines[1]).toContain(
+    expect(lines[0]).toContain(
       "Bob Smith is still being paged. If nobody acknowledges by ",
     );
-    expect(lines[1]).toContain(", escalation rule 2 of 3 (Level 2) is next.");
-    // Twenty minutes away, today: the time alone, with no date in front of it.
-    expect(lines[1]).toContain("by 6:40 PM ");
-    expect(lines[1]).not.toContain("2026");
-    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveCount(
-      0,
+    expect(lines[0]).toContain(
+      ", the policy pages Platform leads (Level 2 of 3) next.",
     );
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-others");
+    // Twenty minutes away, today: the time alone, with no date in front of it.
+    expect(lines[0]).toContain("by 6:40 PM ");
+    expect(lines[0]).not.toContain("2026");
+    expect(lines[1]).toBe(NOT_PAGED_AGAIN);
+    await expect(
+      escalateDialog(page).getByTestId("pass-on-warning"),
+    ).toHaveCount(0);
+    await screenshotElement(escalateDialog(page), "escalate-dialog-others");
   });
 
   test("nobody left to page: the dialog warns about it first, before and after", async ({
@@ -10602,60 +10670,45 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&passOn=stopped",
     );
 
-    await passOnButton(page).click();
+    await escalateButton(page).click();
 
-    const asked: Locator = passOnDialog(page).getByTestId("pass-on-warning");
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Escalate Incident?",
+    );
+    const asked: Locator = escalateDialog(page).getByTestId("pass-on-warning");
     await expect(asked).toHaveText(
       "Nobody else is left to page: paging stops, and somebody needs to take it.",
     );
     await expect(asked).toHaveAttribute("role", "alert");
     // The warning, then the one line about the reader.
     expect(await dialogLines(page, "pass-on-preview")).toEqual([
-      "You won't be paged about it again.",
+      NOT_PAGED_AGAIN,
     ]);
     const warningBox: { y: number } | null = await asked.boundingBox();
-    const lineBox: { y: number } | null = await passOnDialog(page)
+    const lineBox: { y: number } | null = await escalateDialog(page)
       .getByTestId("pass-on-preview")
       .locator("p")
       .first()
       .boundingBox();
     expect(warningBox!.y).toBeLessThan(lineBox!.y);
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-ask");
+    await screenshotElement(escalateDialog(page), "escalate-dialog-stopped-ask");
 
-    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
 
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "You passed it on",
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Incident escalated",
     );
-    await expect(passOnDialog(page).getByTestId("pass-on-warning")).toHaveText(
+    await expect(
+      escalateDialog(page).getByTestId("pass-on-warning"),
+    ).toHaveText(
       "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
-      "You won't be paged about it again.",
+      NOT_PAGED_AGAIN,
     ]);
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-stopped-done");
-  });
-
-  test("nobody left to page, in the dark theme and on a phone", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await openReady(
-      page,
-      INCIDENT_PAGE,
-      "paged=incident&state=created&passOn=stopped&theme=dark",
-    );
-
-    await passOnButton(page).click();
-    await expect(
-      passOnDialog(page).getByTestId("pass-on-warning"),
-    ).toBeVisible();
-    await expectNoHorizontalOverflow(page);
     await screenshotElement(
-      passOnDialog(page),
-      "pass-on-dialog-stopped-ask-dark-mobile",
+      escalateDialog(page),
+      "escalate-dialog-stopped-done",
     );
   });
 
@@ -10670,16 +10723,16 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&passOn=two",
     );
 
-    await passOnButton(page).click();
+    await escalateButton(page).click();
 
     expect(await dialogLines(page, "pass-on-preview")).toEqual([
-      "You won't be paged about it again.",
-      "Checkout on-call: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
-      "Payments escalation: Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      `Checkout on-call: ${NEXT_LEVEL}`,
+      `Payments escalation: ${NEXT_LEVEL}`,
+      NOT_PAGED_AGAIN,
     ]);
   });
 
-  test("somebody acknowledged it meanwhile: it says so, and nothing is passed on", async ({
+  test("somebody acknowledged it meanwhile: it says so, and nothing is escalated", async ({
     page,
   }: {
     page: Page;
@@ -10690,17 +10743,20 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&passOn=acknowledged",
     );
 
-    await passOnButton(page).click();
-    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateButton(page).click();
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
 
-    // Why, in a few words: not the button's "Pass it on", an instruction.
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
+    // Why, in a few words: not the button's "Escalate", an instruction.
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
       "Already acknowledged",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
-      "Sam Lee acknowledged it already, so there is nothing to pass on.",
+      "Sam Lee acknowledged it already, so there is nothing to escalate.",
     ]);
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-acknowledged");
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-acknowledged",
+    );
   });
 
   test("a failed request keeps the question open, with an error", async ({
@@ -10714,14 +10770,14 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&fail=pass-on",
     );
 
-    await passOnButton(page).click();
-    await passOnDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateButton(page).click();
+    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
 
     await expect(
-      passOnDialog(page).getByText("Could not pass it on. Please try again."),
+      escalateDialog(page).getByText("Could not escalate. Please try again."),
     ).toBeVisible();
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "Pass it on?",
+    await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+      "Escalate Incident?",
     );
   });
 
@@ -10736,35 +10792,59 @@ test.describe("Pass it on", () => {
       "paged=incident&state=created&fail=pass-on-read",
     );
 
-    await expect(passOnButton(page)).toHaveCount(0);
+    await expect(escalateButton(page)).toHaveCount(0);
     await expectNoErrorStates(page);
   });
 
-  for (const passOnPage of [
-    { eventPage: ALERT_PAGE, recordType: "alert" },
-    { eventPage: INCIDENT_EPISODE_PAGE, recordType: "incident-episode" },
-    { eventPage: ALERT_EPISODE_PAGE, recordType: "alert-episode" },
+  for (const escalatePage of [
+    {
+      eventPage: ALERT_PAGE,
+      recordType: "alert",
+      question: "Escalate Alert?",
+      notPagedAgain: "You will not be paged again for this alert.",
+    },
+    {
+      eventPage: INCIDENT_EPISODE_PAGE,
+      recordType: "incident-episode",
+      question: "Escalate Episode?",
+      notPagedAgain: "You will not be paged again for this episode.",
+    },
+    {
+      eventPage: ALERT_EPISODE_PAGE,
+      recordType: "alert-episode",
+      question: "Escalate Episode?",
+      notPagedAgain: "You will not be paged again for this episode.",
+    },
   ]) {
-    test(`the ${passOnPage.recordType} page has it too`, async ({
+    test(`the ${escalatePage.recordType} page has it too, asking about itself`, async ({
       page,
     }: {
       page: Page;
     }) => {
       await openReady(
         page,
-        passOnPage.eventPage,
-        `paged=${passOnPage.recordType}&state=created`,
+        escalatePage.eventPage,
+        `paged=${escalatePage.recordType}&state=created`,
       );
 
-      await expect(passOnButton(page)).toBeVisible();
+      await expect(escalateButton(page)).toBeVisible();
       expect(
         await apiRequestsTo(
           page,
-          `/on-call-page/pass-on/${passOnPage.recordType}/${
+          `/on-call-page/pass-on/${escalatePage.recordType}/${
             new URL(page.url()).pathname.split("/").pop() || ""
           }`,
         ),
       ).not.toHaveLength(0);
+
+      await escalateButton(page).click();
+      await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
+        escalatePage.question,
+      );
+      expect(await dialogLines(page, "pass-on-preview")).toEqual([
+        NEXT_LEVEL,
+        escalatePage.notPagedAgain,
+      ]);
     });
   }
 
@@ -10775,7 +10855,7 @@ test.describe("Pass it on", () => {
   }) => {
     await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "paged=incident");
 
-    await expect(passOnButton(page)).toHaveCount(0);
+    await expect(escalateButton(page)).toHaveCount(0);
     expect(
       (await fixture(page)).apiRequests.filter(
         (request: RecordedApiRequest): boolean => {
@@ -10785,41 +10865,104 @@ test.describe("Pass it on", () => {
     ).toHaveLength(0);
   });
 
-  test("a phone shows the button and the dialog without sideways scrolling", async ({
+  /*
+   * The incident and the alert page, and the dialog over each, at a laptop's
+   * width and a phone's, in the light and the dark theme.
+   */
+  for (const look of [
+    {
+      eventPage: INCIDENT_PAGE,
+      recordType: "incident",
+      question: "Escalate Incident?",
+    },
+    {
+      eventPage: ALERT_PAGE,
+      recordType: "alert",
+      question: "Escalate Alert?",
+    },
+  ]) {
+    for (const width of [1280, 390]) {
+      for (const theme of ["light", "dark"]) {
+        test(`the ${look.recordType} page and its dialog at ${width}px, ${theme}`, async ({
+          page,
+        }: {
+          page: Page;
+        }) => {
+          await page.setViewportSize({
+            width: width,
+            height: width < 600 ? 844 : 900,
+          });
+          await openReady(
+            page,
+            look.eventPage,
+            `paged=${look.recordType}&state=created${
+              theme === "dark" ? "&theme=dark" : ""
+            }`,
+          );
+
+          const button: Locator = escalateButton(page);
+          await expect(button).toBeVisible();
+          // The button's words fit: nothing is cut short.
+          const fits: boolean = await button.evaluate(
+            (element: Element): boolean => {
+              return element.scrollWidth <= element.clientWidth + 1;
+            },
+          );
+          expect(fits).toBe(true);
+          await expectNoHorizontalOverflow(page);
+          await page.mouse.move(0, 0);
+          await screenshotElement(
+            hero(page),
+            `${look.recordType}-hero-escalate-${width}-${theme}`,
+          );
+
+          await button.click();
+          await expect(
+            escalateDialog(page).getByTestId("modal-title"),
+          ).toHaveText(look.question);
+          await expect(
+            escalateDialog(page).getByTestId("modal-footer-submit-button"),
+          ).toBeVisible();
+          await expectNoHorizontalOverflow(page);
+
+          // The dialog sits inside the screen, its buttons in reach.
+          const box: { x: number; width: number } | null =
+            await escalateDialog(page)
+              .getByTestId("modal-footer-submit-button")
+              .boundingBox();
+          expect(box!.x).toBeGreaterThanOrEqual(0);
+          expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+
+          await screenshotElement(
+            escalateDialog(page),
+            `${look.recordType}-escalate-dialog-${width}-${theme}`,
+          );
+        });
+      }
+    }
+  }
+
+  test("nobody left to page, in the dark theme and on a phone", async ({
     page,
   }: {
     page: Page;
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await openReady(page, INCIDENT_PAGE, "paged=incident&state=created");
-
-    await expect(passOnButton(page)).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-    await page.mouse.move(0, 0);
-    await screenshotElement(hero(page), "incident-hero-pass-on-mobile");
-
-    await passOnButton(page).click();
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "Pass it on?",
-    );
-    await expectNoHorizontalOverflow(page);
-    await screenshot(page, "pass-on-dialog-mobile", { fullPage: false });
-  });
-
-  test("in the dark theme", async ({ page }: { page: Page }) => {
     await openReady(
       page,
       INCIDENT_PAGE,
-      "paged=incident&state=created&theme=dark",
+      "paged=incident&state=created&passOn=stopped&theme=dark",
     );
 
-    await page.mouse.move(0, 0);
-    await screenshotElement(hero(page), "incident-hero-pass-on-dark");
-    await passOnButton(page).click();
-    await expect(passOnDialog(page).getByTestId("modal-title")).toHaveText(
-      "Pass it on?",
+    await escalateButton(page).click();
+    await expect(
+      escalateDialog(page).getByTestId("pass-on-warning"),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-stopped-ask-dark-mobile",
     );
-    await screenshotElement(passOnDialog(page), "pass-on-dialog-ask-dark");
   });
 });
 
