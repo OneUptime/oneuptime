@@ -248,8 +248,16 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     }
 
     let cancelled: boolean = false;
+
+    /*
+     * Loading from the moment the popover opens or the search changes, not
+     * from when the debounced read starts: in between, an Owner chip just
+     * opened said "Nothing to show - No options available", as though the
+     * project had no people and no teams.
+     */
+    setIsLoading(true);
+
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      setIsLoading(true);
       props.loadOptions!(searchText)
         .then((opts: Array<FilterChipDropdownOption>) => {
           if (!cancelled) {
