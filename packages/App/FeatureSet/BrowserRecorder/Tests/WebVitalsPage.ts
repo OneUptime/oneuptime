@@ -331,6 +331,19 @@ export default class WebVitalsPage {
     });
   }
 
+  /*
+   * An engine that delivers a batch it had already queued after the
+   * observer disconnected: every observer of the entry's type gets it,
+   * disconnected or not, at once.
+   */
+  public deliverDespiteDisconnect(entry: Entry): void {
+    this.entries.push(entry);
+
+    for (const observer of this.observers) {
+      observer.deliverDespiteDisconnect(entry);
+    }
+  }
+
   /* Frames waiting for the next paint. */
   public pendingFrames(): number {
     return this.frames.length;
@@ -648,6 +661,18 @@ class TimelineObserver {
         this.deliver();
       }, 0);
     }
+  }
+
+  public deliverDespiteDisconnect(entry: Entry): void {
+    if (!this.thresholds.has(String(entry["entryType"]))) {
+      return;
+    }
+
+    this.callback({
+      getEntries: (): Array<Entry> => {
+        return [entry];
+      },
+    });
   }
 
   public observedTypes(): Array<string> {

@@ -580,6 +580,107 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
       ]);
     });
 
+    /*
+     * The tab hides again before the restore's second frame, with an LCP
+     * entry of the load arriving late: that entry is the visit before the
+     * cache, so the hide settles nothing on it, and the restore's own LCP
+     * still comes from its frames.
+     */
+    it("settles no LCP from a late load entry when the tab hides before the restore's frames", async (): Promise<void> => {
+      page = new WebVitalsPage({ responseStart: 130 });
+      page.now = 200;
+
+      page.startRecorder();
+
+      page.now = 5000;
+      page.enterBackForwardCache();
+      page.now = 60000;
+      page.restoreFromBackForwardCache();
+      page.largestPaint(4000, 99999);
+      await page.settle();
+
+      page.now = 60005;
+      page.hide();
+      expect(vitalsOf(page, "LCP")).toEqual([]);
+
+      page.show();
+      page.frame(60010);
+      page.frame(60020);
+
+      expect(
+        vitalsOf(page, "LCP").map((event: WebVitalEvent): string => {
+          return `${event.value}:${event.navigationType}`;
+        }),
+      ).toEqual(["20:back-forward-cache"]);
+    });
+
+    /*
+     * Some engines deliver a batch they had queued even after the
+     * observer disconnected. A paint of the load that arrives so, after
+     * the restore, is not the restored page's FCP.
+     */
+    it("takes no FCP from a paint entry delivered after the restore", async (): Promise<void> => {
+      page = new WebVitalsPage({ responseStart: 130 });
+      page.now = 200;
+
+      page.startRecorder();
+
+      page.now = 5000;
+      page.enterBackForwardCache();
+      page.now = 60000;
+      page.restoreFromBackForwardCache();
+      page.deliverDespiteDisconnect({
+        entryType: "paint",
+        name: "first-contentful-paint",
+        startTime: 300,
+        duration: 0,
+      });
+
+      expect(vitalsOf(page, "FCP")).toEqual([]);
+
+      page.frame(60010);
+      page.frame(60020);
+
+      expect(
+        vitalsOf(page, "FCP").map((event: WebVitalEvent): string => {
+          return `${event.value}:${event.navigationType}`;
+        }),
+      ).toEqual(["20:back-forward-cache"]);
+    });
+
+    /*
+     * An interaction from before the page went into the cache, delivered
+     * only once it is back, belongs to the visit before; the restored
+     * page's INP is its own interactions'.
+     */
+    it("charges a late entry from before the restore to no view of the restored page", async (): Promise<void> => {
+      page = new WebVitalsPage({ responseStart: 130 });
+      page.now = 200;
+
+      page.startRecorder();
+
+      page.now = 5000;
+      page.enterBackForwardCache();
+      page.now = 60000;
+      page.restoreFromBackForwardCache();
+      page.frame(60010);
+      page.frame(60020);
+
+      page.now = 61000;
+      page.interaction(4900, 640);
+      page.interaction(60900, 96);
+      await page.settle();
+
+      page.now = 62000;
+      page.hide();
+
+      expect(
+        vitalsOf(page, "INP").map((event: WebVitalEvent): string => {
+          return `${event.value}:${event.navigationType}`;
+        }),
+      ).toEqual(["96:back-forward-cache"]);
+    });
+
     it("drops the frames of a restore that a second restore overtook", async (): Promise<void> => {
       const loaded: { page: WebVitalsPage; recorder: PerformanceRecorder } =
         await loadedPage();
