@@ -39,7 +39,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-27 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+28 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が、公開ステータスページのツールにだけ `openWorldHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -471,7 +471,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | 分野 | 作成・取得・一覧・更新・削除・件数のツールがあるレコード |
 | --- | --- |
 | 監視 | Monitor, Monitor Status, Monitor Status Event |
-| インシデント | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert |
+| インシデント | Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note, Incident Alert, Postmortem Status |
 | アラート | Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note |
 | ステータスページ | Status Page, Status Page Announcement |
 | 定期メンテナンス | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |

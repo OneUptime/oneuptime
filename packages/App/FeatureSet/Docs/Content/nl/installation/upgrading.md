@@ -400,7 +400,7 @@ Er wordt niets uitgezet. Regels, clusters en resources die een van de schakelaar
 
 ### Nieuwe projecten beginnen met elke AI-functie aan
 
-Een project dat na de upgrade wordt aangemaakt, begint met elke AI-functie aan, niet alleen automatisch onderzoek van incidenten en waarschuwingen: conceptpostmortems (Incidenten → AI → Instellingen), en AI Insights met zijn pull requests met fixes en het automatisch archiveren van uitzonderingen voor verwachte weigeringen (AI → Inzichten → Instellingen). De pull requests die OneUptime AI voor incidenten en waarschuwingen opent, horen bij het herstellen, dat uit begint; zie [De pull-requestschakelaars horen bij het herstellen](#de-pull-requestschakelaars-horen-bij-het-herstellen).
+Een project dat na de upgrade wordt aangemaakt, begint met elke AI-functie aan, niet alleen automatisch onderzoek van incidenten en waarschuwingen: conceptpostmortems (Incidenten → AI → Instellingen), en AI Insights met zijn pull requests met fixes en het automatisch archiveren van uitzonderingen voor verwachte weigeringen (AI → Inzichten → Instellingen). De pull requests die OneUptime AI voor incidenten en waarschuwingen opent, horen bij het herstellen, dat uit begint; zie [De pull-requestschakelaars zijn verhuisd naar de regels voor automatisch herstel](#de-pull-requestschakelaars-zijn-verhuisd-naar-de-regels-voor-automatisch-herstel).
 
 Projecten die al bestaan, houden hun instellingen; de upgrade zet niets aan. Aan betekent ook niet dat het draait: elke functie heeft nog steeds een LLM-provider nodig (en AI-tegoeden op OneUptime Cloud), en de functies die pull requests openen, hebben een verbonden repository en een Runner met de mogelijkheid tot codecorrectie nodig. Zet er een uit op de bijbehorende instellingenpagina, of allemaal tegelijk met **AI inschakelen**.
 
@@ -453,18 +453,22 @@ De upgrade laat elk project herstellen wat het eerder herstelde:
 
 API-clients en Terraform-configuraties kunnen herstel aanzetten met `enableAutomaticIncidentRemediation` en `enableAutomaticAlertRemediation` van het project (`enable_automatic_incident_remediation` en `enable_automatic_alert_remediation` in Terraform), en in `remediationAction` zeggen waarmee een regel herstelt (`OneUptimeAI` of `Runbooks`). Een regel die zonder wordt aangemaakt, met runbooks en zonder AI-instelling, is een regel met **Runbooks**, zoals hij eerder zou hebben gedraaid.
 
-### De pull-requestschakelaars horen bij het herstellen
+### De pull-requestschakelaars zijn verhuisd naar de regels voor automatisch herstel
 
-**Een pull request met een fix openen wanneer een onderzoek een codewijziging vindt** en **Een pull request openen die ontbrekende telemetrie toevoegt** (Incidenten of Waarschuwingen → AI → Instellingen) staan nu onder **Nieuwe incidenten automatisch herstellen** (of **Nieuwe waarschuwingen automatisch herstellen**). Ze worden alleen getoond zolang herstellen aan staat; herstellen aanzetten zet ze allebei aan, en het uitzetten zet ze allebei uit. Zolang herstellen aan staat, kan elk van de twee apart worden uitgezet.
+**Open a fix pull request when an investigation finds a code change** en **Open a pull request that adds missing telemetry** zijn geen schakelaars meer op **Incidenten → AI → Instellingen** en **Waarschuwingen → AI → Instellingen**. In plaats daarvan heeft elke regel voor automatisch herstel ze, als **Pull requests met oplossing** en **Pull requests voor telemetrie** onder **Meer velden**, allebei aan bij een nieuwe regel. Een pull request opent zich nog steeds alleen vanzelf zolang **Nieuwe incidenten automatisch herstellen** (of **Nieuwe waarschuwingen automatisch herstellen**) aan staat:
 
-Wat er na de upgrade verandert:
+- Zonder regel worden beide pull requests geopend, in elke verbonden repository.
+- Met regels wordt een pull request alleen geopend voor een incident (of waarschuwing) dat een regel matcht, wanneer een matchende regel hem aan heeft staan, en alleen in de repository's die de matchende regels noemen onder **Code-repositories**. Een regel die er geen noemt, staat elke verbonden repository toe; onderzoeksregels noemen op dezelfde manier de repository's die OneUptime AI mag lezen.
 
-- Een pull request opent zichzelf alleen zolang herstellen aan staat naast zijn eigen schakelaar. Een project dat een pull-requestschakelaar aan had en herstellen uit, stopt met zelf die pull requests openen. Zet herstellen aan om ze terug te krijgen. Om OneUptime AI uw clusters of hosts niet te laten wijzigen, laat u **Oplossingen** uit op hun pagina's **AI-agent** (de standaard) en voegt u geen regel voor automatisch herstel toe.
-- De upgrade wijzigt geen opgeslagen instelling. Een pull-requestschakelaar die aan stond onder herstellen dat uit stond, blijft aan en wacht; de instellingenpagina toont hem zodra herstellen aan gaat, en herstellen aanzetten zet hem hoe dan ook aan.
-- Een nieuw project begint met de pull-requestschakelaars uit, net als herstellen. Onderzoeken, conceptpostmortems en AI Insights beginnen nog steeds aan.
-- **Open Fix PR from this analysis** bij een onderzoek verandert niet: het heeft geen van beide schakelaars nodig.
+Elk project houdt zijn keuze:
 
-API-clients en Terraform-configuraties houden hun velden (`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, of `enable_automatic_incident_code_fixes` en de rest in Terraform). De server slaat op wat ze schrijven, en zet de pull-requestvelden niet aan of uit met `enableAutomaticIncidentRemediation` (of het veld voor waarschuwingen): stel alle drie in één verzoek in om herstellen met zijn pull requests aan te zetten.
+- Een project met herstellen uit, of met beide schakelaars aan, houdt zijn regels zoals ze zijn, en hun schakelaars beginnen aan.
+- Bij een project met herstellen aan en een schakelaar uit gaat die schakelaar uit in elk van zijn regels van die soort. Zonder ingeschakelde regel van die soort krijgt het er een, **All incidents** (of **All alerts**): die matcht elk incident, herstelt zonder te vragen zoals OneUptime AI zonder regel herstelde, en houdt de twee schakelaars zoals het project ze had. Zet er een schakelaar in aan, of verwijder hem, om die pull requests te openen.
+- **Open Fix PR from this analysis** bij een onderzoek blijft ongewijzigd.
+
+De **Runner** van een regel toont alleen uw eigen Runners. **AI agent on the cluster or host** staat er niet meer bij: opdrachten op het getroffen cluster of de getroffen host lopen altijd via de AI-agent daarvan, wat de regel ook kiest. Een regel die er geen had gekozen, toont **Geen Runner** en herstelt zoals voorheen.
+
+API-clients en Terraform-configuraties verliezen de projectvelden `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes` en `enableAlertInstrumentationFixTasks` (`enable_automatic_incident_code_fixes` en de rest in Terraform): verwijder ze uit uw configuratie. `openCodeFixPullRequests` en `openTelemetryPullRequests` van een regel voor automatisch herstel (`open_code_fix_pull_requests` en `open_telemetry_pull_requests`) zijn `true` tenzij u ze instelt, en een regel van beide soorten noemt zijn repository's in `codeRepositories` (`code_repositories`), leeg voor elke verbonden repository.
 
 ### De editie en de licentie controleren
 

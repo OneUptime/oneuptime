@@ -14,6 +14,7 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../../../Types/AI/CodeFixTaskType";
 import ObjectID from "../../../../Types/ObjectID";
+import { fromStoredCodeRepositoryIds } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 
 /*
  * The repository a code-fix run that finds its repository as it works will
@@ -36,6 +37,10 @@ import ObjectID from "../../../../Types/ObjectID";
  * Exception recipes are decided where their readiness already resolves the
  * repository (TelemetryExceptionService.createCodeFixRunForException), and
  * Code's requests and GitHub commands name theirs.
+ *
+ * A run the auto remediation rules opened is held to the repositories they
+ * allow (CodeFixTaskContext.allowedCodeRepositoryIds): it resolves among
+ * those only, here and when it starts.
  */
 
 /*
@@ -96,6 +101,9 @@ export default class CodeFixRunRepository {
           projectId: data.projectId,
           stackTrace: facts.stackTrace,
           serviceName: facts.serviceName,
+          allowance: fromStoredCodeRepositoryIds(
+            data.taskContext?.allowedCodeRepositoryIds,
+          ),
         });
 
       return resolution ? new ObjectID(resolution.codeRepositoryId) : null;

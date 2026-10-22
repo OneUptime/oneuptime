@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddOnCallAcknowledgementTimeout1805900000000, and moved into a migration of
+ * AddOnCallAcknowledgementTimeout1805920000000, and moved into a migration of
  * its own: "OnCallDutyPolicyExecutionLog" already holds rows, so its index is
  * built online, without blocking the on-call runs written meanwhile. It is
  * partial - only the runs whose acknowledgement timeout's clock is running,
@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * it stays as small as what the worker that pages again reads every minute.
  * Safe to run again after a stop part way.
  */
-export class AddOnCallAcknowledgementTimeoutIndex1805910000000
+export class AddOnCallAcknowledgementTimeoutIndex1805930000000
   implements MigrationInterface
 {
-  public name: string = "AddOnCallAcknowledgementTimeoutIndex1805910000000";
+  public name: string = "AddOnCallAcknowledgementTimeoutIndex1805930000000";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

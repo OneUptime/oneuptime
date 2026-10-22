@@ -470,8 +470,31 @@ describe("the messages people act on name Runbooks", () => {
       "RunnerPicker.tsx",
     );
 
-    expect(picker).toContain('placeholder="Select a Runner"');
+    /*
+     * A step's picker asks for a Runner; a rule's, which may pick none,
+     * reads "No Runner" while nothing is picked - never an agent: the AI
+     * agent on a cluster or host is not a Runner, so it is no choice there.
+     */
+    expect(picker).toContain(': "Select a Runner"');
+    expect(picker).toContain("? REMEDIATION_NO_RUNNER_PLACEHOLDER");
     expect(picker).toContain('"Unknown Runner ({{id}})"');
+
+    const model: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "Runner",
+      "RunnerPickerModel.ts",
+    );
+
+    expect(model).toContain(
+      'export const REMEDIATION_NO_RUNNER_PLACEHOLDER: string = translationKey("No Runner");',
+    );
+    expect(model).not.toContain(
+      'translationKey("AI agent on the cluster or host")',
+    );
     expect(steps).toContain(
       'description: "Run a shell command on one of your Runners.",',
     );

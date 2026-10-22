@@ -20,6 +20,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |
 | **Postmortem-Vorlagen**       | Wiederverwendbare Postmortem-Strukturen.                                                           |
+| **Postmortem-Status** | Die Status, die ein Postmortem durchläuft, von Nicht gestartet bis Abgeschlossen. |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                    |
 | **Vorfallsrollen**            | Die Rollen definieren, denen Sie Responder zuweisen, etwa Vorfall-Kommandant.                      |
 | **Messungen**                 | Messen, wie lange Dinge dauern, etwa die Zeit bis zur Bestätigung oder bis zur Behebung, an jedem Vorfall. |
@@ -27,7 +28,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Episodenzugehörigkeit**     | Wählen, ob ein Vorfall nur in einer Episode sein kann. Standardmäßig aus. |
 | **Nummerierung**              | Der Text vor Vorfall- und Episodennummern, etwa `INC-` in `INC-42`, und die Nummer, die als Nächstes vergeben wird. |
 
-Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet das Untersuchen neuer Vorfälle, ihr automatisches Beheben (aus, bis Sie es einschalten) – mit den Pull Requests für Korrekturen und fehlende Telemetrie, die zum Beheben gehören, darunter angeordnet – und Postmortem-Entwürfe ein oder aus, und jeder Schalter speichert, sobald Sie ihn umlegen. Die Untersuchungsregeln und Auto-Behebungsregeln, die eingrenzen, welche Vorfälle untersucht und behoben werden, die Postmortem-Regeln, die festlegen, welche gelösten Vorfälle einen Entwurf erhalten und welchen Vorlagen er folgt, und die optionalen Grenzen, unter denen die KI arbeitet, sind unter **Weitere Einstellungen** eingeklappt, und keine davon gilt, bevor Sie sie setzen. Daneben liegen **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
+Was OneUptime AI selbstständig tut, wird nicht hier eingestellt: Dafür gibt es einen eigenen Abschnitt, **Vorfälle → KI**, unter Routen, die mit `/dashboard/{projectId}/incidents/ai/` beginnen. Seine Seite **Einstellungen** schaltet das Untersuchen neuer Vorfälle, ihr automatisches Beheben (aus, bis Sie es einschalten) und Postmortem-Entwürfe ein oder aus, und jeder Schalter speichert, sobald Sie ihn umlegen. Die Untersuchungsregeln und Auto-Behebungsregeln, die eingrenzen, welche Vorfälle untersucht und behoben werden und mit welchen Code-Repositorys und Pull Requests, die Postmortem-Regeln, die festlegen, welche gelösten Vorfälle einen Entwurf erhalten und welchen Vorlagen er folgt, und die optionalen Grenzen, unter denen die KI arbeitet, sind unter **Weitere Einstellungen** eingeklappt, und keine davon gilt, bevor Sie sie setzen. Daneben liegen **Einblicke** und **Protokolle**: was die KI aus Ihren Vorfällen gelernt und was sie alles getan hat. Siehe [AI SRE](/docs/ai/ai-sre).
 
 **Vorfallsstatus** und **Vorfallsschweregrad** werden ausführlich unter [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities) behandelt – der Rest dieser Seite setzt bei **Vorfall-Vorlagen** an. Formulare, mit denen Leute außerhalb Ihres Teams Vorfälle melden, sind ein eigenes Produkt: siehe [Formulare](/docs/forms/index). Werkzeuge, die von selbst Vorfälle öffnen, etwa [Huntress](/docs/integrations/huntress), werden als Workflows eingerichtet.
 
@@ -169,10 +170,16 @@ Eine Postmortem-Vorlage ist das Gerüst der Aufarbeitung, die Sie nach einem Vor
 :::steps
 1. Gehen Sie zu **Vorfälle → Einstellungen → Postmortem-Vorlagen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Die Karte heißt **Postmortem-Vorlagen**.
 2. Klicken Sie auf **Postmortem-Vorlage für Vorfälle erstellen** und füllen Sie seine eine Seite aus: **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht, dann **Postmortem-Vorlage**, den Text selbst, in Markdown, Pflicht.
-3. Speichern Sie sie. Die Seite **Postmortem** jedes Vorfalls bietet nun **Vorlage anwenden** an.
+3. Speichern Sie sie. Die Seite **Postmortem** jedes Vorfalls bietet nun **Vorlage anwenden** an. Solange noch nichts geschrieben ist, heißt die Schaltfläche **Mit Vorlage beginnen**; sobald das Postmortem geschrieben ist, steht **Vorlage anwenden** im Menü **⋯** der Karte.
 :::
 
 Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine wählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu. **Vorlage anwenden** erscheint erst, wenn das Projekt eine Postmortem-Vorlage hat; gibt es nur eine, ist sie bereits gewählt. Der Editor öffnet das Postmortem des Vorfalls so, wie es ist, mit der Vorlage als Notiz – ob es auf der Statusseite steht, wann es veröffentlicht wurde und seine Anhänge bleiben unverändert.
+
+## Postmortem-Status
+
+Das Postmortem jedes Vorfalls hat einen der Postmortem-Status des Projekts, sodass **Vorfälle → Postmortem-Analysen** zeigen kann, welche Postmortems noch ausstehen. Bearbeiten Sie sie unter **Vorfälle → Einstellungen → Postmortem-Status** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): Ein neues Projekt hat **Nicht gestartet**, **Entwurf**, **Abgeschlossen** und **Nicht erforderlich**, und eigene, etwa **In Prüfung**, legen Sie mit **Postmortem-Status erstellen** an.
+
+**Nicht gestartet**, **Entwurf** und **Abgeschlossen** sind vordefiniert: OneUptime verschiebt Postmortems in sie, während sie geschrieben und veröffentlicht werden, daher können sie umbenannt, aber nicht gelöscht oder archiviert werden. Die Position eines Status bestimmt, ob ein Postmortem darin noch aussteht, angezeigt unter **Zählt als**. Siehe [Postmortem-Analysen](/docs/incidents/postmortems#verfolgen-wo-jedes-postmortem-steht).
 
 ## Benutzerdefinierte Felder
 

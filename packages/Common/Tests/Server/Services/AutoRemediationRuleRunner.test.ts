@@ -248,8 +248,12 @@ describe("an auto remediation rule's Runner", () => {
         'Runner "kubernetes-agent/prod-us" is the in-cluster Runner the Kubernetes agent chart installed.',
       );
       expect(message).toContain("so it cannot be this rule's Runner");
+      // The AI agent on the cluster is how OneUptime AI reaches it, whatever the rule picks.
       expect(message).toContain(
-        "Pick a Runner you created under Runbooks → Runners, or none: OneUptime AI then fixes through the AI agent on the affected cluster or host.",
+        "OneUptime AI reaches that cluster through its Kubernetes AI agent instead (the cluster's AI → Agent page), whatever Runner the rule picks.",
+      );
+      expect(message).toContain(
+        "Pick a Runner you created under Runbooks → Runners, or none.",
       );
       expect(picked()).toEqual([]);
     });

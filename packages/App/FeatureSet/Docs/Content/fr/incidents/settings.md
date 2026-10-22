@@ -20,6 +20,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 | **Modèles d'incident**        | Préremplir tout un incident — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes. |
 | **Modèles de notes**          | Du texte réutilisable pour les notes publiques et privées.                                         |
 | **Modèles de post-mortem**    | Des structures de post-mortem réutilisables.                                                       |
+| **Statuts de post-mortem** | Les statuts par lesquels passe un post-mortem, de Non démarré à Achevé. |
 | **Champs personnalisés**      | Définir des champs supplémentaires qui apparaissent sur chaque incident.                           |
 | **Rôles d'incident**          | Définir les rôles auxquels vous affectez les intervenants, comme Responsable d'incident.            |
 | **Mesures**                   | Mesurer combien de temps prennent les choses, comme le délai de prise en compte ou de résolution, sur chaque incident. |
@@ -27,7 +28,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 | **Appartenance aux épisodes** | Choisir si un incident ne peut faire partie que d'un seul épisode. Désactivé par défaut. |
 | **Numérotation**              | Le texte devant les numéros d'incident et d'épisode, comme `INC-` dans `INC-42`, et le numéro que reçoit le suivant. |
 
-Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre section, **Incidents → IA**, sur des routes commençant par `/dashboard/{projectId}/incidents/ai/`. Sa page **Paramètres** active ou désactive l'examen des nouveaux incidents, leur correction automatique (désactivée jusqu'à ce que vous l'activiez) — avec, rangées dessous, les pull requests de correction et de télémétrie manquante qui font partie de la correction — et les brouillons de post-mortem, chacun s'enregistrant dès que vous le basculez ; les règles d'investigation et les règles de remédiation automatique qui restreignent les incidents examinés et corrigés, les règles de post-mortem qui choisissent quels incidents résolus reçoivent un brouillon et les modèles qu'il suit, ainsi que les limites facultatives dans lesquelles l'IA travaille, sont repliées sous **Plus de paramètres**, et aucune ne s'applique tant que vous ne la définissez pas. **Analyses** et **Journaux** se trouvent à côté : ce que l'IA a appris de vos incidents, et tout ce qu'elle a fait. Voir [AI SRE](/docs/ai/ai-sre).
+Ce que OneUptime AI fait de lui-même ne se règle pas ici : il a sa propre section, **Incidents → IA**, sur des routes commençant par `/dashboard/{projectId}/incidents/ai/`. Sa page **Paramètres** active ou désactive l'examen des nouveaux incidents, leur correction automatique (désactivée jusqu'à ce que vous l'activiez) et les brouillons de post-mortem, chacun s'enregistrant dès que vous le basculez ; les règles d'investigation et les règles de remédiation automatique qui restreignent les incidents examinés et corrigés, et avec quels dépôts de code et quelles pull requests, les règles de post-mortem qui choisissent quels incidents résolus reçoivent un brouillon et les modèles qu'il suit, ainsi que les limites facultatives dans lesquelles l'IA travaille, sont repliées sous **Plus de paramètres**, et aucune ne s'applique tant que vous ne la définissez pas. **Analyses** et **Journaux** se trouvent à côté : ce que l'IA a appris de vos incidents, et tout ce qu'elle a fait. Voir [AI SRE](/docs/ai/ai-sre).
 
 **État de l'incident** et **Gravité de l'incident** sont traités en détail dans [États et sévérités des incidents](/docs/incidents/states-and-severities) — le reste de cette page reprend à partir de **Modèles d'incident**. Les formulaires qui permettent à des personnes extérieures à votre équipe de signaler des incidents sont un produit à part entière : voir [Formulaires](/docs/forms/index). Les outils qui ouvrent des incidents d'eux-mêmes, comme [Huntress](/docs/integrations/huntress), se configurent comme des workflows.
 
@@ -169,10 +170,16 @@ Un modèle de post-mortem est le squelette du compte rendu que vous produisez ap
 :::steps
 1. Allez dans **Incidents → Paramètres → Modèles de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La carte s'intitule **Modèles de post-mortem**.
 2. Cliquez sur **Créer : Modèle de post-mortem d'incident** et remplissez son unique page : **Nom du modèle** et **Description du modèle**, tous deux obligatoires, puis **Modèle de post-mortem**, le corps lui-même, en Markdown, obligatoire.
-3. Enregistrez-le. La page **Post-mortem** de chaque incident propose désormais **Appliquer le modèle**.
+3. Enregistrez-le. La page **Post-mortem** de chaque incident propose désormais **Appliquer le modèle**. Tant que rien n'est rédigé, le bouton est **Partir d'un modèle** ; une fois le post-mortem rédigé, **Appliquer le modèle** est dans le menu **⋯** de la carte.
 :::
 
 Vous en appliquez un depuis l'incident, pas depuis les paramètres. Ouvrez un incident, choisissez **Post-mortem** dans son menu latéral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), et utilisez **Appliquer le modèle**. Cela ouvre une boîte de dialogue **Appliquer le modèle de post-mortem** avec une liste déroulante **Sélectionner le modèle** ; en choisir un charge le corps du modèle dans l'éditeur **Note du post-mortem**, où vous le modifiez avant d'enregistrer. Les épisodes d'incident ont la même page **Post-mortem** et puisent dans la même bibliothèque de modèles. **Appliquer le modèle** ne s'affiche qu'une fois que le projet a un modèle de post-mortem ; s'il n'y en a qu'un, il est déjà choisi. L'éditeur s'ouvre sur le post-mortem de l'incident tel qu'il est, avec le modèle comme note, si bien que sa présence sur la page de statut, sa date de publication et ses pièces jointes restent telles qu'elles étaient.
+
+## Statuts de post-mortem
+
+Le post-mortem de chaque incident est dans l'un des statuts de post-mortem du projet, si bien que **Incidents → Post-mortems** peut montrer les post-mortems qui restent à faire. Modifiez-les sous **Incidents → Paramètres → Statuts de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`) : un nouveau projet a **Non démarré**, **Brouillon**, **Achevé** et **Pas nécessaire**, et vous ajoutez les vôtres, comme **En relecture**, avec **Créer : Statut du post-mortem**.
+
+**Non démarré**, **Brouillon** et **Achevé** sont intégrés : OneUptime y place les post-mortems à mesure qu'ils sont rédigés et publiés, ils peuvent donc être renommés, mais pas supprimés ni archivés. La position d'un statut détermine si un post-mortem qui s'y trouve reste à faire, affiché sous **Compte comme**. Voir [Post-mortems](/docs/incidents/postmortems#suivre-où-en-est-chaque-post-mortem).
 
 ## Champs personnalisés
 

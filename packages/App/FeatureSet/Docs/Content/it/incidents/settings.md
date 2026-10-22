@@ -20,6 +20,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Modelli di incidenti**        | Precompilare un intero incidente — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
 | **Modelli di note**             | Testo riutilizzabile per note pubbliche e private.                                                 |
 | **Modelli post-mortem**         | Strutture di post-mortem riutilizzabili.                                                           |
+| **Stati del post-mortem** | Gli stati che un post-mortem attraversa, da Non iniziato a Completato. |
 | **Campi personalizzati**        | Definire campi aggiuntivi che compaiono su ogni incidente.                                         |
 | **Ruoli incidente**             | Definire i ruoli a cui assegnate i responder, come Comandante dell'incidente.                      |
 | **Misurazioni**                 | Misurare quanto tempo richiedono le cose, come il tempo di riconoscimento o di risoluzione, su ogni incidente. |
@@ -27,7 +28,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Appartenenza agli episodi**   | Scegliere se un incidente può far parte di un solo episodio. Disattivato per impostazione predefinita. |
 | **Numerazione**                 | Il testo davanti ai numeri di incidente e di episodio, come `INC-` in `INC-42`, e il numero che riceve il successivo. |
 
-Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **Incidenti → IA**, su route che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'esame dei nuovi incidenti, la loro correzione automatica (disattivata finché non la attivate) — con le pull request di correzione e di telemetria mancante, che fanno parte della correzione, raccolte sotto di essa — e le bozze di post-mortem, ciascuna salvata non appena la cambiate; le regole di indagine e le regole di rimedio automatico che restringono quali incidenti vengono esaminati e corretti, le regole post-mortem che scelgono quali incidenti risolti ricevono una bozza e quali modelli segue, e i limiti facoltativi entro cui lavora l'IA, sono ripiegati sotto **Altre impostazioni**, e nessuno si applica finché non lo impostate. **Informazioni** e **Registri** sono accanto: ciò che l'IA ha imparato dai vostri incidenti, e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
+Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **Incidenti → IA**, su route che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'esame dei nuovi incidenti, la loro correzione automatica (disattivata finché non la attivate) e le bozze di post-mortem, ciascuna salvata non appena la cambiate; le regole di indagine e le regole di rimedio automatico che restringono quali incidenti vengono esaminati e corretti, e con quali repository di codice e pull request, le regole post-mortem che scelgono quali incidenti risolti ricevono una bozza e quali modelli segue, e i limiti facoltativi entro cui lavora l'IA, sono ripiegati sotto **Altre impostazioni**, e nessuno si applica finché non lo impostate. **Informazioni** e **Registri** sono accanto: ciò che l'IA ha imparato dai vostri incidenti, e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
 
 **Stato incidente** e **Gravità incidente** sono trattati in dettaglio in [Stati e gravità degli incidenti](/docs/incidents/states-and-severities) — il resto di questa pagina riparte da **Modelli di incidenti**. I moduli che permettono a persone esterne al vostro team di segnalare incidenti sono un prodotto a sé: vedete [Moduli](/docs/forms/index). Gli strumenti che aprono incidenti da soli, come [Huntress](/docs/integrations/huntress), si configurano come workflow.
 
@@ -169,10 +170,16 @@ Un modello di post-mortem è lo scheletro del resoconto che producete dopo un in
 :::steps
 1. Andate in **Incidenti → Impostazioni → Modelli post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La scheda si intitola **Modelli post-mortem**.
 2. Fate clic su **Crea: Incidente Postmortem Modello** e compilate la sua unica pagina: **Nome del modello** e **Descrizione del modello**, entrambi obbligatori, poi **Modello di postmortem**, il corpo stesso, in Markdown, obbligatorio.
-3. Salvatelo. La pagina **Post-mortem** di ogni incidente ora offre **Applica modello**.
+3. Salvatelo. La pagina **Post-mortem** di ogni incidente ora offre **Applica modello**. Finché non c'è nulla di scritto, il pulsante è **Inizia da un modello**; una volta scritto il post-mortem, **Applica modello** è nel menu **⋯** della scheda.
 :::
 
 Ne applicate uno dall'incidente, non dalle impostazioni. Aprite un incidente, scegliete **Post-mortem** nel suo menu laterale (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), e usate **Applica modello**. Si apre una finestra **Applica modello di analisi post-incidente** con un menu a tendina **Seleziona modello**; sceglierne uno carica il corpo del modello nell'editor **Nota del postmortem**, dove lo modificate prima di salvare. Gli episodi degli incidenti hanno la stessa pagina **Post-mortem** e attingono alla stessa libreria di modelli. **Applica modello** viene mostrato solo quando il progetto ha un modello di post-mortem; se ce n'è uno solo, è già scelto. L'editor si apre sul post-mortem dell'incidente così com'è, con il modello come nota, quindi se è sulla pagina di stato, quando è stato pubblicato e i suoi allegati restano com'erano.
+
+## Stati del post-mortem
+
+Il post-mortem di ogni incidente è in uno degli stati di post-mortem del progetto, così **Incidenti → Post-mortem** può mostrare quali post-mortem sono ancora da fare. Modificateli in **Incidenti → Impostazioni → Stati del post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): un nuovo progetto ha **Non iniziato**, **Bozza**, **Completato** e **Non necessario**, e aggiungete i vostri, come **In revisione**, con **Crea: Stato del post-mortem**.
+
+**Non iniziato**, **Bozza** e **Completato** sono integrati: OneUptime vi sposta i post-mortem man mano che vengono scritti e pubblicati, quindi possono essere rinominati, ma non eliminati né archiviati. La posizione di uno stato decide se un post-mortem che vi si trova è ancora da fare, mostrato sotto **Conta come**. Vedete [Post-mortem](/docs/incidents/postmortems#seguire-a-che-punto-è-ogni-post-mortem).
 
 ## Campi personalizzati
 

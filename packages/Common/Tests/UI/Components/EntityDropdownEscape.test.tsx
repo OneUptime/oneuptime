@@ -430,6 +430,67 @@ describe("Escape in an EntityDropdown outside a modal", () => {
     expect(queryMenu()).toBeInTheDocument();
   });
 
+  /*
+   * Escape leaves the focus in the search input with the menu closed, and a
+   * click on an input that already has the focus fires no focus event: the
+   * click opened nothing, and picking a second item needed a click away
+   * first. A click opens the menu now.
+   */
+  test("after Escape, a click on the input opens the menu again", async () => {
+    const user: UserEventController = userEvent.setup();
+    renderAlone();
+
+    await user.click(getCombobox());
+    expect(queryMenu()).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(queryMenu()).toBeNull();
+    expect(getCombobox()).toHaveFocus();
+
+    await user.click(getCombobox());
+
+    expect(queryMenu()).toBeInTheDocument();
+    expect(getCombobox()).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(getMenu()).getByRole("option", { name: "Members" }),
+    ).toBeInTheDocument();
+  });
+
+  test("a multi-select picks one, closes with Escape, and a click opens it for the next", async () => {
+    const user: UserEventController = userEvent.setup();
+    const onChange: MockFunction = getJestMockFunction();
+    renderAlone({
+      isMultiSelect: true,
+      onChange: (value: unknown): void => {
+        onChange(value);
+      },
+    });
+
+    await user.click(getCombobox());
+    await user.click(within(getMenu()).getByRole("option", { name: "Admins" }));
+    expect(onChange).toHaveBeenLastCalledWith(["admins"]);
+
+    await user.keyboard("{Escape}");
+    expect(queryMenu()).toBeNull();
+    expect(getCombobox()).toHaveFocus();
+
+    await user.click(getCombobox());
+    // The one picked is a chip: the menu offers the one left.
+    await user.click(
+      within(getMenu()).getByRole("option", { name: "Members" }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith(["admins", "members"]);
+  });
+
+  test("a disabled dropdown stays closed", async () => {
+    const user: UserEventController = userEvent.setup();
+    renderAlone({ disabled: true });
+
+    await user.click(getCombobox());
+
+    expect(queryMenu()).toBeNull();
+    expect(getCombobox()).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("the menu reopens as before after Escape: typing in the input searches again", async () => {
     const user: UserEventController = userEvent.setup();
     renderAlone();

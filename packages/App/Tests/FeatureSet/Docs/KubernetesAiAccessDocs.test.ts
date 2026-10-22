@@ -1029,7 +1029,7 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
   it("says postmortem drafts and AI Insights are on for new projects too, and fixing with its pull requests is not", () => {
     expect(enabling).toContain("So are postmortem drafts and AI Insights.");
     expect(enabling).toContain(
-      "Fixing starts off, and so do the pull requests that are part of it",
+      "Fixing starts off, and the pull requests that are part of it open only while it is on",
     );
     expect(enabling).not.toContain(
       "So is every other AI feature on this page: postmortem drafts, automatic code fixes and AI Insights.",
@@ -1071,14 +1071,13 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
       expect(list).toContain(`"${column}"`);
     }
 
-    // Fixing, and the pull requests that are part of it, start off.
+    /*
+     * Fixing starts off; the pull requests that are part of it are each
+     * auto remediation rule's, and open only while it is on.
+     */
     for (const column of [
       "enableAutomaticIncidentRemediation",
       "enableAutomaticAlertRemediation",
-      "enableAutomaticIncidentCodeFixes",
-      "enableAutomaticAlertCodeFixes",
-      "enableIncidentInstrumentationFixTasks",
-      "enableAlertInstrumentationFixTasks",
     ]) {
       expect(list).not.toContain(`"${column}"`);
     }
@@ -1129,9 +1128,9 @@ describe("enabling AI investigations and postmortems, on the AI SRE page", () =>
     );
 
     expect(codeFixes).toContain(
-      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings**",
+      "Fix pull requests are part of fixing: they open only while **Fix new incidents automatically** (on **Incidents → AI → Settings**)",
     );
-    expect(codeFixes).toContain("Both start **off**, for new projects too");
+    expect(codeFixes).toContain("fixing starts **off**, for new projects too");
     expect(codeFixes).not.toContain("**on by default for new projects**");
     expect(codeFixes).not.toContain("set independently");
     expect(insights).toContain(

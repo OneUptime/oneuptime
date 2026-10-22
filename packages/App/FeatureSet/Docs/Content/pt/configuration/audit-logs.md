@@ -93,6 +93,7 @@ Monitores, incidentes, alertas, páginas de status, SLOs e muitos outros recurso
 | Status de monitor | `Monitor Status` |
 | Estados de manutenção programada | `Scheduled Maintenance State` |
 | Funções de incidente | `Incident Role` |
+| Status de post-mortem | `Postmortem Status` |
 | Chaves de API | `API Key` |
 | Clientes MCP que as pessoas conectam | `MCP Client Authorization` |
 | Itens do inventário | `Inventory Item` |

@@ -20,6 +20,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Incident-sjablonen**       | Een heel incident vooraf invullen — titel, beschrijving, middelen, bereikbaarheidsbeleid, eigenaren, labels. |
 | **Notitie-sjablonen**        | Herbruikbare tekst voor openbare en privénotities.                                           |
 | **Postmortem-sjablonen**     | Herbruikbare structuren voor postmortems.                                                    |
+| **Postmortem-statussen** | De statussen die een postmortem doorloopt, van Niet gestart tot Voltooid. |
 | **Aangepaste velden**        | Extra velden definiëren die op elk incident verschijnen.                                     |
 | **Incidentrollen**           | De rollen definiëren waaraan je responders toewijst, zoals Incident Commander.               |
 | **Metingen**                 | Meten hoe lang dingen duren, zoals de tijd tot bevestiging of tot oplossing, op elk incident. |
@@ -27,7 +28,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Lidmaatschap van episodes** | Kiezen of een incident maar in één episode kan zitten. Standaard uit. |
 | **Nummering**                | De tekst vóór incident- en episodenummers, zoals `INC-` in `INC-42`, en het nummer dat het volgende krijgt. |
 
-Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet het onderzoeken van nieuwe incidenten aan of uit, het automatisch herstellen ervan (uit tot je het aanzet), met de pull requests voor fixes en voor ontbrekende telemetrie die bij het herstellen horen eronder gegroepeerd, en het schrijven van concepten voor postmortems, en elke instelling wordt opgeslagen zodra je haar omzet; de onderzoeksregels en de regels voor automatisch herstel die beperken welke incidenten worden onderzocht en hersteld, de postmortem-regels die kiezen welke opgeloste incidenten een concept krijgen en welke sjablonen het volgt, en de optionele limieten waaronder AI werkt, zijn ingeklapt onder **Meer instellingen**, en geen ervan geldt tot je het instelt. **Inzichten** en **Logboeken** staan ernaast: wat AI van je incidenten heeft geleerd, en alles wat het deed. Zie [AI SRE](/docs/ai/ai-sre).
+Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet het onderzoeken van nieuwe incidenten aan of uit, het automatisch herstellen ervan (uit tot je het aanzet), en het schrijven van concepten voor postmortems, en elke instelling wordt opgeslagen zodra je haar omzet; de onderzoeksregels en de regels voor automatisch herstel die beperken welke incidenten worden onderzocht en hersteld, en met welke code-repository's en pull requests, de postmortem-regels die kiezen welke opgeloste incidenten een concept krijgen en welke sjablonen het volgt, en de optionele limieten waaronder AI werkt, zijn ingeklapt onder **Meer instellingen**, en geen ervan geldt tot je het instelt. **Inzichten** en **Logboeken** staan ernaast: wat AI van je incidenten heeft geleerd, en alles wat het deed. Zie [AI SRE](/docs/ai/ai-sre).
 
 **Status incident** en **Ernst van incident** worden uitgebreid behandeld in [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities) — de rest van deze pagina gaat verder vanaf **Incident-sjablonen**. Formulieren waarmee mensen buiten je team incidenten melden, zijn een eigen product: zie [Formulieren](/docs/forms/index). Tools die zelf incidenten openen, zoals [Huntress](/docs/integrations/huntress), stel je in als workflows.
 
@@ -169,10 +170,16 @@ Een postmortem-sjabloon is het geraamte van het verslag dat je na een incident m
 :::steps
 1. Ga naar **Incidenten → Instellingen → Postmortem-sjablonen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). De kaart heet **Postmortem-sjablonen**.
 2. Klik op **Incident Postmortem Sjabloon aanmaken** en vul de ene pagina in: **Sjabloonnaam** en **Sjabloonbeschrijving**, allebei verplicht, en dan **Postmortem-sjabloon**, de tekst zelf, in Markdown, verplicht.
-3. Sla het op. De pagina **Postmortem** van elk incident biedt nu **Sjabloon toepassen** aan.
+3. Sla het op. De pagina **Postmortem** van elk incident biedt nu **Sjabloon toepassen** aan. Zolang er nog niets geschreven is, heet de knop **Beginnen met sjabloon**; zodra het postmortem geschreven is, staat **Sjabloon toepassen** in het menu **⋯** van de kaart.
 :::
 
 Je past er een toe vanuit het incident, niet vanuit de instellingen. Open een incident, kies **Postmortem** in het zijmenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), en gebruik **Sjabloon toepassen**. Dat opent een dialoogvenster **Postmortemsjabloon toepassen** met een vervolgkeuzelijst **Selecteer sjabloon**; er een kiezen laadt de tekst van het sjabloon in de editor **Postmortem-notitie**, waar je die bewerkt voordat je opslaat. Incidentepisodes hebben dezelfde pagina **Postmortem** en putten uit dezelfde sjablonenbibliotheek. **Sjabloon toepassen** wordt pas getoond zodra het project een postmortem-sjabloon heeft; is er maar één, dan is dat al gekozen. De editor opent op het postmortem van het incident zoals het is, met het sjabloon als notitie, dus of het op de statuspagina staat, wanneer het werd gepubliceerd en de bijlagen blijven zoals ze waren.
+
+## Postmortem-statussen
+
+Het postmortem van elk incident staat in een van de postmortem-statussen van het project, zodat **Incidenten → Postmortem-analyses** kan tonen welke postmortems nog openstaan. Bewerk ze onder **Incidenten → Instellingen → Postmortem-statussen** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): een nieuw project heeft **Niet gestart**, **Concept**, **Voltooid** en **Niet nodig**, en je voegt je eigen toe, zoals **Ter beoordeling**, met **Postmortem-status aanmaken**.
+
+**Niet gestart**, **Concept** en **Voltooid** zijn ingebouwd: OneUptime plaatst postmortems erin terwijl ze worden geschreven en gepubliceerd, dus ze kunnen een andere naam krijgen, maar niet worden verwijderd of gearchiveerd. Waar een status staat, bepaalt of een postmortem erin nog openstaat, getoond onder **Telt als**. Zie [Postmortem-analyses](/docs/incidents/postmortems#bijhouden-hoe-ver-elk-postmortem-is).
 
 ## Aangepaste velden
 

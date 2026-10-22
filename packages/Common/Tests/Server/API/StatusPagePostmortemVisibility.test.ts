@@ -450,4 +450,40 @@ describe("StatusPageAPI postmortem visibility", () => {
       expectSourcesUnchanged(fixtures);
     },
   );
+
+  /*
+   * Where a postmortem stands (Not Started, Draft, Completed, a project's
+   * own "In Review") is the team's own business: the Postmortems list and
+   * the incident's page show it, a status page never does. No read the
+   * overview, the incident list or an incident's page makes selects it,
+   * so the database never hands it over to be sent.
+   */
+  it.each([
+    ["the overview", OVERVIEW_ROUTE, true],
+    ["the incident list", INCIDENTS_ROUTE, false],
+    ["an incident's page", INCIDENT_DETAIL_ROUTE, false],
+  ] as Array<[string, string, boolean]>)(
+    "never reads where a postmortem stands on %s",
+    async (_name: string, route: string, overview: boolean) => {
+      const fixtures: Fixtures = mockServices({ overview: overview });
+
+      await invokeRoute({
+        method: "post",
+        route: route,
+        statusPageId: fixtures.statusPageId,
+        ...(route === INCIDENT_DETAIL_ROUTE
+          ? { incidentId: fixtures.incidents[3]!._id! }
+          : {}),
+      });
+
+      expect(fixtures.incidentReadSpy).toHaveBeenCalled();
+
+      for (const call of fixtures.incidentReadSpy.mock.calls) {
+        const select: JSONObject = (call[0] as { select: JSONObject }).select;
+
+        expect(Object.keys(select)).not.toContain("postmortemStatus");
+        expect(Object.keys(select)).not.toContain("postmortemStatusId");
+      }
+    },
+  );
 });

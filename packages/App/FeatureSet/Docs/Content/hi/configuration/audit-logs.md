@@ -93,6 +93,7 @@ flowchart TB
 | मॉनिटर स्थितियाँ | `Monitor Status` |
 | अनुसूचित रखरखाव स्थितियाँ | `Scheduled Maintenance State` |
 | घटना भूमिकाएं | `Incident Role` |
+| पोस्टमॉर्टम स्थितियां | `Postmortem Status` |
 | API कुंजियाँ | `API Key` |
 | लोगों द्वारा कनेक्ट किए गए MCP क्लाइंट | `MCP Client Authorization` |
 | इन्वेंटरी आइटम | `Inventory Item` |

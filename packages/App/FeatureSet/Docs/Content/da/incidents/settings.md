@@ -20,6 +20,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |
 | **Postmortem-skabeloner**    | Genbrugelige strukturer til postmortems.                                                     |
+| **Postmortem-statusser** | De statusser, en postmortem bevæger sig igennem, fra Ikke startet til Fuldført. |
 | **Brugerdefinerede felter**  | Definere ekstra felter, der vises på hver hændelse.                                          |
 | **Hændelsesroller**          | Definere de roller, du tildeler dem, der reagerer, som Hændelsesleder.                       |
 | **Målinger**                 | Måle, hvor lang tid tingene tager, som tiden til bekræftelse eller løsning, på hver hændelse. |
@@ -27,7 +28,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 | **Medlemskab af episoder**   | Vælge, om en hændelse kun kan være i én episode. Slået fra som standard. |
 | **Nummerering**              | Teksten foran hændelses- og episodenumre, som `INC-` i `INC-42`, og det nummer, den næste får. |
 
-Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), med de pull requests til rettelser og manglende telemetri, der hører til rettelsen, samlet under den, og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der indsnævrer, hvilke hændelser der undersøges og rettes, postmortem-reglerne, der vælger, hvilke løste hændelser der får et udkast, og hvilke skabeloner det følger, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Det, OneUptime AI gør på egen hånd, sættes ikke her: det har sit eget afsnit, **Hændelser → AI**, på ruter, der begynder med `/dashboard/{projectId}/incidents/ai/`. Dets side **Indstillinger** slår undersøgelse af nye hændelser, automatisk rettelse af dem (slået fra, indtil du slår den til), og udkast til postmortems til eller fra, og hver gemmes, så snart du slår den om; undersøgelsesreglerne og reglerne for automatisk afhjælpning, der indsnævrer, hvilke hændelser der undersøges og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglerne, der vælger, hvilke løste hændelser der får et udkast, og hvilke skabeloner det følger, og de valgfri grænser, AI arbejder under, er foldet sammen under **Yderligere indstillinger**, og ingen af dem gælder, før du sætter dem. **Indsigter** og **Protokoller** står ved siden af: hvad AI har lært af dine hændelser, og alt, hvad den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hændelsesstatus** og **Hændelsesalvor** gennemgås grundigt i [Hændelsestilstande og alvorsgrader](/docs/incidents/states-and-severities) — resten af denne side fortsætter fra **Hændelsesskabeloner**. Formularer, der lader folk uden for dit team melde hændelser, er et produkt for sig: se [Formularer](/docs/forms/index). Værktøjer, der selv åbner hændelser, som [Huntress](/docs/integrations/huntress), sættes op som workflows.
 
@@ -169,10 +170,16 @@ En postmortem-skabelon er skelettet til den rapport, du laver efter en hændelse
 :::steps
 1. Gå til **Hændelser → Indstillinger → Postmortem-skabeloner** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet hedder **Postmortem-skabeloner**.
 2. Klik på **Opret Hændelse Postmortem Skabelon**, og udfyld dens ene side: **Skabelonnavn** og **Skabelonbeskrivelse**, begge påkrævet, og derefter **Postmortem-skabelon**, selve teksten, i Markdown, påkrævet.
-3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**.
+3. Gem den. Hver hændelses side **Postmortem** tilbyder nu **Anvend skabelon**. Så længe intet er skrevet, hedder knappen **Start fra skabelon**; når postmortem er skrevet, ligger **Anvend skabelon** i kortets menu **⋯**.
 :::
 
 Du anvender en fra hændelsen, ikke fra indstillingerne. Åbn en hændelse, vælg **Postmortem** i dens sidemenu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og brug **Anvend skabelon**. Det åbner en dialog **Anvend postmortem-skabelon** med en rullemenu **Vælg skabelon**; vælger du en, indlæses skabelonens tekst i editoren **Postmortem-note**, hvor du redigerer den, før du gemmer. Hændelsesepisoder har den samme side **Postmortem** og trækker på det samme skabelonbibliotek. **Anvend skabelon** vises kun, når projektet har en postmortem-skabelon; er der kun én, er den allerede valgt. Editoren åbner på hændelsens postmortem, som den er, med skabelonen som note, så om den er på statussiden, hvornår den blev offentliggjort, og dens vedhæftninger forbliver, som de var.
+
+## Postmortem-statusser
+
+Hver hændelses postmortem har en af projektets postmortem-statusser, så **Hændelser → Postmortem-analyser** kan vise, hvilke postmortems der stadig mangler. Rediger dem under **Hændelser → Indstillinger → Postmortem-statusser** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): et nyt projekt har **Ikke startet**, **Kladde**, **Fuldført** og **Ikke nødvendig**, og du tilføjer dine egne, for eksempel **Til gennemgang**, med **Opret Postmortem-status**.
+
+**Ikke startet**, **Kladde** og **Fuldført** er indbyggede: OneUptime flytter postmortems til dem, efterhånden som de skrives og offentliggøres, så de kan omdøbes, men ikke slettes eller arkiveres. Hvor en status står, afgør, om en postmortem i den stadig mangler, vist under **Tæller som**. Se [Postmortem-analyser](/docs/incidents/postmortems#følg-hvor-langt-hver-postmortem-er).
 
 ## Brugerdefinerede felter
 

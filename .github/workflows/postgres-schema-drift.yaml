@@ -935,6 +935,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/FoldAiSwitchesIntoEnableAiPostgres.test.ts --forceExit
 
+      # The fix and telemetry pull request switches moved from the project
+      # into its auto remediation rules. Clones the migrated Project,
+      # AutoRemediationRule, AIInvestigationRule and CodeRepository tables
+      # into an isolated schema, puts the four project switches back as they
+      # were, seeds projects with fixing on and off, rules enabled, disabled
+      # and deleted, and runs up() and down(): every project keeps its
+      # choice, and gets a rule that holds it only when it has no enabled
+      # rule of that kind.
+      - name: Test moving the fix pull request switches into the rules on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_FIX_PULL_REQUEST_SWITCH_TESTS: "true"
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          FIX_PULL_REQUEST_SWITCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/MoveFixPullRequestSwitchesIntoRulesPostgres.test.ts --forceExit
+
       # Clones the migrated TeamMember, Team and User tables into an isolated
       # schema and runs the real create and accept pipelines: a member of a
       # project added to another of its teams is a member of it at once, and
@@ -1969,6 +1988,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ArchivableValuesPostgres.test.ts --forceExit
+
+      # Postmortem statuses (Incidents > Postmortems), on migrated Postgres:
+      # the two migrations on a copy of the incidents table that already
+      # holds incidents (the column added without a rewrite, the indexes and
+      # key built online and safe to build again, a status incidents are in
+      # can't be deleted), the backfill that gives every incident from before
+      # the status its postmortem is in, and the list's reads through the
+      # incident service.
+      - name: Test postmortem statuses and their backfill on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_POSTMORTEM_STATUS_TESTS: "true"
+          POSTMORTEM_STATUS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          POSTMORTEM_STATUS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          POSTMORTEM_STATUS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/IncidentPostmortemStatusPostgres.test.ts --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification

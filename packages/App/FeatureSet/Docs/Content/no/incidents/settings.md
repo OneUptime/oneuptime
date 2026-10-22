@@ -20,6 +20,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |
 | **Postmortem-maler**         | Gjenbrukbare strukturer for etteranalyser.                                                   |
+| **Statuser for etteranalyse** | Statusene en etteranalyse går gjennom, fra Ikke startet til Fullført. |
 | **Egendefinerte felt**       | Definere ekstra felt som vises på hver hendelse.                                             |
 | **Hendelsesroller**          | Definere rollene du tildeler dem som responderer, som Hendelsesleder.                        |
 | **Målinger**                 | Måle hvor lang tid ting tar, som tiden til bekreftelse eller til løsning, på hver hendelse.  |
@@ -27,7 +28,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 | **Medlemskap i episoder**    | Velge om en hendelse bare kan være i én episode. Slått av som standard. |
 | **Nummerering**              | Teksten foran hendelses- og episodenumre, som `INC-` i `INC-42`, og nummeret den neste får. |
 
-Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), med pull requestene for rettinger og manglende telemetri som hører til rettingen, samlet under den, og utkast til etteranalyser, og hver lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring som snevrer inn hvilke hendelser som undersøkes og rettes, postmortem-reglene som velger hvilke løste hendelser som får et utkast og hvilke maler det følger, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
+Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon, **Hendelser → KI**, på ruter som begynner med `/dashboard/{projectId}/incidents/ai/`. Siden **Innstillinger** der slår av eller på undersøkelse av nye hendelser, automatisk retting av dem (slått av til du slår den på), og utkast til etteranalyser, og hver lagres så snart du slår den om; undersøkelsesreglene og reglene for automatisk utbedring som snevrer inn hvilke hendelser som undersøkes og rettes, og med hvilke koderepositorier og pull requests, postmortem-reglene som velger hvilke løste hendelser som får et utkast og hvilke maler det følger, og de valgfrie grensene KI jobber under, er brettet sammen under **Flere innstillinger**, og ingen av dem gjelder før du setter dem. **Innsikt** og **Logger** står ved siden av: hva KI har lært av hendelsene dine, og alt den har gjort. Se [AI SRE](/docs/ai/ai-sre).
 
 **Hendelsesstatus** og **Hendelsesalvor** gjennomgås grundig i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden fortsetter fra **Hendelsesmaler**. Skjemaer som lar folk utenfor teamet ditt melde hendelser, er et eget produkt: se [Skjemaer](/docs/forms/index). Verktøy som selv åpner hendelser, som [Huntress](/docs/integrations/huntress), settes opp som arbeidsflyter.
 
@@ -169,10 +170,16 @@ En mal for etteranalyse er skjelettet til rapporten du lager etter en hendelse �
 :::steps
 1. Gå til **Hendelser → Innstillinger → Postmortem-maler** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-maler**.
 2. Klikk på **Opprett Hendelse Postmortem Mal**, og fyll ut den ene siden: **Malnavn** og **Malbeskrivelse**, begge påkrevd, og deretter **Mal for etteranalyse**, selve teksten, i Markdown, påkrevd.
-3. Lagre den. Siden **Etteranalyse** for hver hendelse tilbyr nå **Bruk mal**.
+3. Lagre den. Siden **Etteranalyse** for hver hendelse tilbyr nå **Bruk mal**. Så lenge ingenting er skrevet, heter knappen **Start fra mal**; når etteranalysen er skrevet, ligger **Bruk mal** i kortets meny **⋯**.
 :::
 
 Du bruker en fra hendelsen, ikke fra innstillingene. Åpne en hendelse, velg **Etteranalyse** i sidemenyen (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), og bruk **Bruk mal**. Det åpner en dialog **Bruk obduksjonsmal** med en nedtrekksliste **Velg mal**; velger du en, lastes malens tekst inn i redigeringsverktøyet **Notat om etteranalyse**, der du redigerer den før du lagrer. Hendelsesepisoder har den samme siden **Etteranalyse** og henter fra det samme malbiblioteket. **Bruk mal** vises bare når prosjektet har en mal for etteranalyse; finnes det bare én, er den allerede valgt. Redigeringsverktøyet åpner på hendelsens etteranalyse slik den er, med malen som notat, så om den er på statussiden, når den ble publisert og vedleggene forblir som de var.
+
+## Statuser for etteranalyse
+
+Etteranalysen for hver hendelse har en av prosjektets statuser for etteranalyse, slik at **Hendelser → Etteranalyser** kan vise hvilke etteranalyser som fortsatt mangler. Rediger dem under **Hendelser → Innstillinger → Statuser for etteranalyse** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): et nytt prosjekt har **Ikke startet**, **Utkast**, **Fullført** og **Ikke nødvendig**, og du legger til dine egne, for eksempel **Til gjennomgang**, med **Opprett Status for etteranalyse**.
+
+**Ikke startet**, **Utkast** og **Fullført** er innebygde: OneUptime flytter etteranalyser til dem etter hvert som de skrives og publiseres, så de kan gis nytt navn, men ikke slettes eller arkiveres. Hvor en status står, avgjør om en etteranalyse i den fortsatt mangler, vist under **Teller som**. Se [Etteranalyser](/docs/incidents/postmortems#følg-hvor-langt-hver-etteranalyse-har-kommet).
 
 ## Egendefinerte felt
 

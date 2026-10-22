@@ -189,7 +189,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | حوزه | دستورها |
 | --- | --- |
 | پایش | `monitor`, `monitor-status`, `monitor-status-event` |
-| حادثه‌ها | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| حادثه‌ها | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | هشدارها | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | صفحه‌های وضعیت | `status-page`, `status-page-announcement` |
 | نگهداری زمان‌بندی‌شده | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

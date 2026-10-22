@@ -20,6 +20,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |
 | **Postmortem Templates** | Reusable postmortem structures.                                                              |
+| **Postmortem Statuses** | The statuses a postmortem moves through, from Not Started to Completed. |
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
 | **Measurements**         | Time how long things take, like time to acknowledge or time to resolve, on every incident.    |
@@ -27,7 +28,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Episode Membership**   | Choose whether an incident can be in only one episode. Off by default. |
 | **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
 
-What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), with the fix and missing-telemetry pull requests that are part of fixing drawn under it, and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
+What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), and drafting postmortems on or off, each saving as soon as you flip it; the investigation rules and auto remediation rules that narrow which incidents are investigated and fixed, and with which code repositories and pull requests, the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**. Forms that let people outside your team report incidents are a product of their own: see [Forms](/docs/forms/index). Tools that open incidents on their own, such as [Huntress](/docs/integrations/huntress), are set up as workflows.
 
@@ -169,10 +170,16 @@ A postmortem template is the skeleton of the write-up you produce after an incid
 :::steps
 1. Go to **Incidents → Settings → Postmortem Templates** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). The card is titled **Postmortem Templates**.
 2. Click **Create Incident Postmortem Template** and fill in its one page: **Template Name** and **Template Description**, both required, then **Postmortem Template**, the body itself, in Markdown, required.
-3. Save it. Every incident's **Postmortem** page now offers **Apply Template**.
+3. Save it. Every incident's **Postmortem** page now offers **Apply Template**. While nothing is written yet, the button is **Start from Template**; once the postmortem is written, **Apply Template** is in the card's **⋯** menu.
 :::
 
 You apply one from the incident, not from settings. Open an incident, choose **Postmortem** in its side menu (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), and use **Apply Template**. That opens an **Apply Postmortem Template** dialog with a **Select Template** dropdown; picking one loads the template body into the **Postmortem Note** editor, where you edit it before saving. Incident episodes have the same **Postmortem** page and draw on the same template library. **Apply Template** is shown only once the project has a postmortem template; with just one, it is already picked. The editor opens on the incident's postmortem as it stands, with the template as its note, so whether it is on the status page, when it was published and its attachments stay as they were.
+
+## Postmortem statuses
+
+Every incident's postmortem is in one of the project's postmortem statuses, so **Incidents → Postmortems** can show which postmortems are still owed. Edit them at **Incidents → Settings → Postmortem Statuses** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): a new project has **Not Started**, **Draft**, **Completed** and **Not Needed**, and you add your own, such as **In Review**, with **Create Postmortem Status**.
+
+**Not Started**, **Draft** and **Completed** are built in: OneUptime moves postmortems into them as they are written and published, so they can be renamed but not deleted or archived. Where a status sits decides whether a postmortem in it is still owed, shown under **Counts as**. See [Postmortems](/docs/incidents/postmortems#track-where-each-postmortem-stands).
 
 ## Custom fields
 

@@ -122,6 +122,19 @@ const clone: (
   }
 };
 
+/*
+ * The value tables the two archive migrations alter: every archivable value
+ * but those created archivable later by their own migration - the
+ * postmortem statuses (1805900000000-AddIncidentPostmortemStatus).
+ * AddArchiveToValuesMigration.test.ts holds the split.
+ */
+const CREATED_ARCHIVABLE_LATER: Array<string> = ["IncidentPostmortemStatus"];
+
+const MIGRATED_VALUE_TABLE_NAMES: Array<string> =
+  ARCHIVABLE_VALUE_TABLE_NAMES.filter((table: string): boolean => {
+    return !CREATED_ARCHIVABLE_LATER.includes(table);
+  });
+
 const uniqueSchema: (prefix: string) => string = (prefix: string): string => {
   return `${prefix}_${ObjectID.generate().toString().replace(/-/g, "")}`;
 };
@@ -178,10 +191,10 @@ describePostgres("the archive migrations on tables that hold values", () => {
 
   beforeAll(async () => {
     database = await connect(schema);
-    await clone(database, schema, [...ARCHIVABLE_VALUE_TABLE_NAMES, "User"]);
+    await clone(database, schema, [...MIGRATED_VALUE_TABLE_NAMES, "User"]);
 
     // The tables as they were before the migration: no archive columns.
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       await database.query(
         `ALTER TABLE "${schema}"."${table}" DROP COLUMN "archivedByUserId", DROP COLUMN "archivedAt", DROP COLUMN "isArchived"`,
       );
@@ -216,7 +229,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
   test("up() adds the columns: every existing value is live, with no stamps", async () => {
     await new AddArchiveToValues1805800000000().up(queryRunner);
 
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       expect(await columnsOf(table)).toEqual([
         { column_name: "archivedAt", is_nullable: "YES", column_default: null },
         {
@@ -255,7 +268,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
 
     await keys.up(queryRunner);
 
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       const found: Array<{
         conname: string;
         convalidated: boolean;
@@ -292,7 +305,7 @@ describePostgres("the archive migrations on tables that hold values", () => {
   test("the keys migration is safe to run again", async () => {
     await new AddArchiveToValuesUserKeys1805810000000().up(queryRunner);
 
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       expect(await keysOf(table)).toHaveLength(1);
     }
   });
@@ -300,13 +313,13 @@ describePostgres("the archive migrations on tables that hold values", () => {
   test("down() undoes both", async () => {
     await new AddArchiveToValuesUserKeys1805810000000().down(queryRunner);
 
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       expect(await keysOf(table)).toEqual([]);
     }
 
     await new AddArchiveToValues1805800000000().down(queryRunner);
 
-    for (const table of ARCHIVABLE_VALUE_TABLE_NAMES) {
+    for (const table of MIGRATED_VALUE_TABLE_NAMES) {
       expect(await columnsOf(table)).toEqual([]);
     }
 
