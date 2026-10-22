@@ -33303,5 +33303,17 @@
   "Using {{provider}}, the rule's LLM provider": "Använder {{provider}}, regelns LLM-leverantör",
   "Default LLM provider": "Standard-LLM-leverantör",
   "No default LLM provider": "Ingen standard-LLM-leverantör",
-  "Poll Telegram for Messages": "Poll Telegram for Messages"
+  "Poll Telegram for Messages": "Poll Telegram for Messages",
+  "Add people, teams or schedules": "Lägg till personer, team eller scheman",
+  "Add schedules": "Lägg till scheman",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Bjuder också in dem som har jour i {{schedules}} när kanalen skapas.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Bjuder in dem som har jour i {{schedules}} när kanalen skapas.",
+  "Mention who is on call": "Nämn dem som har jour",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nämner dem som har jour i {{schedules}} när kanalen skapas.",
+  "No on-call schedules available.": "Inga jourscheman tillgängliga.",
+  "No people, teams or schedules available.": "Inga personer, team eller scheman tillgängliga.",
+  "Search on-call schedules...": "Sök jourscheman...",
+  "Search people, teams or schedules...": "Sök personer, team eller scheman...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Dessa personer och team går med i varje kanal som regeln skapar, och det gör även de som har jour i dessa scheman när kanalen skapas. Ingen larmas.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har jour i dessa scheman när kanalen skapas @nämns i den, så att Microsoft Teams aviserar dem. Ingen larmas."
 }

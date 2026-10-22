@@ -33303,5 +33303,17 @@
   "Using {{provider}}, the rule's LLM provider": "{{provider}} का उपयोग, जो नियम का LLM प्रदाता है",
   "Default LLM provider": "डिफ़ॉल्ट LLM प्रदाता",
   "No default LLM provider": "कोई डिफ़ॉल्ट LLM प्रदाता नहीं",
-  "Poll Telegram for Messages": "Poll Telegram for Messages"
+  "Poll Telegram for Messages": "Poll Telegram for Messages",
+  "Add people, teams or schedules": "लोग, टीमें या अनुसूचियाँ जोड़ें",
+  "Add schedules": "अनुसूचियाँ जोड़ें",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे भी आमंत्रित करता है।",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे आमंत्रित करता है।",
+  "Mention who is on call": "ऑन-कॉल लोगों को मेंशन करें",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे मेंशन करता है।",
+  "No on-call schedules available.": "कोई ऑन-कॉल अनुसूची उपलब्ध नहीं है।",
+  "No people, teams or schedules available.": "कोई लोग, टीमें या अनुसूचियाँ उपलब्ध नहीं हैं।",
+  "Search on-call schedules...": "ऑन-कॉल अनुसूचियाँ खोजें...",
+  "Search people, teams or schedules...": "लोग, टीमें या अनुसूचियाँ खोजें...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "ये लोग और टीमें नियम द्वारा बनाए गए हर चैनल में शामिल होते हैं, और चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, वह भी शामिल होता है। किसी को पेज नहीं किया जाता।",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, उसे चैनल में @मेंशन किया जाता है, ताकि Microsoft Teams उसे सूचित करे। किसी को पेज नहीं किया जाता।"
 }

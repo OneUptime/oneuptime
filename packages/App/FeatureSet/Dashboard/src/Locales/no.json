@@ -33303,5 +33303,17 @@
   "Using {{provider}}, the rule's LLM provider": "Bruker {{provider}}, regelens LLM-leverandør",
   "Default LLM provider": "Standard-LLM-leverandør",
   "No default LLM provider": "Ingen standard-LLM-leverandør",
-  "Poll Telegram for Messages": "Poll Telegram for Messages"
+  "Poll Telegram for Messages": "Poll Telegram for Messages",
+  "Add people, teams or schedules": "Legg til personer, team eller vaktplaner",
+  "Add schedules": "Legg til vaktplaner",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Inviterer også dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Inviterer dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "Mention who is on call": "Nevn dem som har vakt",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nevner dem som har vakt i {{schedules}} når kanalen opprettes.",
+  "No on-call schedules available.": "Ingen vaktplaner tilgjengelig.",
+  "No people, teams or schedules available.": "Ingen personer, team eller vaktplaner tilgjengelig.",
+  "Search on-call schedules...": "Søk etter vaktplaner ...",
+  "Search people, teams or schedules...": "Søk etter personer, team eller vaktplaner ...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Disse personene og teamene blir med i hver kanal regelen oppretter, og det samme gjør de som har vakt i disse vaktplanene når kanalen opprettes. Ingen blir varslet.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt."
 }

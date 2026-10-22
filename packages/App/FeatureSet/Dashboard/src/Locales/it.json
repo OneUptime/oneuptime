@@ -33303,5 +33303,17 @@
   "Using {{provider}}, the rule's LLM provider": "Usa {{provider}}, il fornitore LLM della regola",
   "Default LLM provider": "Fornitore LLM predefinito",
   "No default LLM provider": "Nessun fornitore LLM predefinito",
-  "Poll Telegram for Messages": "Poll Telegram for Messages"
+  "Poll Telegram for Messages": "Poll Telegram for Messages",
+  "Add people, teams or schedules": "Aggiungi persone, team o pianificazioni",
+  "Add schedules": "Aggiungi pianificazioni",
+  "Also invites whoever is on call in {{schedules}} when the channel is created.": "Invita anche chi è reperibile in {{schedules}} quando il canale viene creato.",
+  "Invites whoever is on call in {{schedules}} when the channel is created.": "Invita chi è reperibile in {{schedules}} quando il canale viene creato.",
+  "Mention who is on call": "Menziona chi è reperibile",
+  "Mentions whoever is on call in {{schedules}} when the channel is created.": "Menziona chi è reperibile in {{schedules}} quando il canale viene creato.",
+  "No on-call schedules available.": "Nessuna pianificazione di reperibilità disponibile.",
+  "No people, teams or schedules available.": "Nessuna persona, team o pianificazione disponibile.",
+  "Search on-call schedules...": "Cerca pianificazioni di reperibilità...",
+  "Search people, teams or schedules...": "Cerca persone, team o pianificazioni...",
+  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Queste persone e questi team entrano in ogni canale creato dalla regola, così come chi è reperibile in queste pianificazioni quando il canale viene creato. Nessuno viene chiamato.",
+  "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Chi è reperibile in queste pianificazioni quando il canale viene creato viene @menzionato nel canale, così riceve una notifica da Microsoft Teams. Nessuno viene chiamato."
 }
