@@ -515,8 +515,10 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     });
     expect(kinds).toEqual(["Network Device", "Ping", "IP", "Port", "NTP"]);
 
+    // The menu pops in (ou-animate-pop-in): shot as it ends, not half drawn.
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-templates-menu.png"),
+      animations: "disabled",
     });
   });
 
@@ -560,6 +562,7 @@ test.describe("templates of every kind a device's monitor can be made from (#514
         screenshots,
         "discovery-import-ping-template-desktop.png",
       ),
+      animations: "disabled",
     });
     await useDarkTheme(page);
     await page.getByTestId("discovery-import-monitoring-step").screenshot({
@@ -567,6 +570,7 @@ test.describe("templates of every kind a device's monitor can be made from (#514
         screenshots,
         "discovery-import-ping-template-desktop-dark.png",
       ),
+      animations: "disabled",
     });
 
     await submitImport(page);
@@ -629,6 +633,7 @@ test.describe("templates of every kind a device's monitor can be made from (#514
 
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-walk-checks-folded.png"),
+      animations: "disabled",
     });
   });
 
@@ -678,6 +683,7 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await expectNoSidewaysScroll(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-templates-menu-phone.png"),
+      animations: "disabled",
     });
     await page.keyboard.press("Escape");
 
@@ -688,6 +694,7 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await expectNoSidewaysScroll(page, 390);
     await page.screenshot({
       path: path.join(screenshots, "discovery-import-ping-template-phone.png"),
+      animations: "disabled",
     });
 
     await useDarkTheme(page);
@@ -697,6 +704,7 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
         screenshots,
         "discovery-import-ping-template-phone-dark.png",
       ),
+      animations: "disabled",
     });
   });
 });
