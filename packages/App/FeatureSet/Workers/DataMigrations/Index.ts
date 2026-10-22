@@ -809,6 +809,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddProcessColumnsToSecurityEvent(),
   /*
+   * Postmortem statuses (Incidents > Postmortems): every project from before
+   * them gets the four a new project starts with, then every incident the
+   * status its postmortem is in - Completed when published on a status page,
+   * Draft when it has a note, Not Started otherwise. After the schema
+   * migration AddIncidentPostmortemStatus, which adds the table and the
+   * column (data migrations run after every schema migration).
+   * Postgres-only and idempotent; no ordering requirement among data
+   * migrations, so it sits above the runbook moves, which keep their places
+   * right before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new AddDefaultPostmortemStatusesToExistingProjects(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -842,16 +855,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * Postmortem statuses (Incidents > Postmortems): every project from before
-   * them gets the four a new project starts with, then every incident the
-   * status its postmortem is in - Completed when published on a status page,
-   * Draft when it has a note, Not Started otherwise. After the schema
-   * migration AddIncidentPostmortemStatus, which adds the table and the
-   * column. Postgres-only and idempotent; it sits before the last slot
-   * AddAuditLogMcpClientColumns asserts for itself.
-   */
-  new AddDefaultPostmortemStatusesToExistingProjects(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

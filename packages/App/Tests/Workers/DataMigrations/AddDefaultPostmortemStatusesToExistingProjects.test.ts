@@ -271,6 +271,16 @@ describe("AddDefaultPostmortemStatusesToExistingProjects", () => {
     expect(
       index.indexOf("new AddDefaultPostmortemStatusesToExistingProjects(),"),
     ).toBeLessThan(index.indexOf("new AddAuditLogMcpClientColumns(),"));
+    /*
+     * Above the runbook moves, which keep their places right before the
+     * last slot (their own suites assert each neighbour): placed between
+     * RemoveRunbookCredentials and the last slot, it broke both.
+     */
+    expect(
+      index.indexOf("new AddDefaultPostmortemStatusesToExistingProjects(),"),
+    ).toBeLessThan(
+      index.indexOf("new MoveRunbookApprovalsBeforeTheirSteps(),"),
+    );
     expect(new AddDefaultPostmortemStatusesToExistingProjects().name).toBe(
       "AddDefaultPostmortemStatusesToExistingProjects",
     );
