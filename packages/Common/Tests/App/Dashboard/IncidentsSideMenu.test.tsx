@@ -183,11 +183,19 @@ describe("Incidents side menu", () => {
     test("the overview, episode and workspace sections are unchanged by the move", async () => {
       await renderIncidentsMenu();
 
+      /*
+       * Postmortems sits with the lists of incidents: every incident's
+       * postmortem, across the project.
+       */
       expect(linksIn("Overview")).toEqual([
         { title: "All Incidents", href: routeFor(PageMap.INCIDENTS) },
         {
           title: "Active Incidents",
           href: routeFor(PageMap.UNRESOLVED_INCIDENTS),
+        },
+        {
+          title: "Postmortems",
+          href: routeFor(PageMap.INCIDENT_POSTMORTEMS),
         },
       ]);
 
@@ -480,6 +488,11 @@ describe("Incidents side menu", () => {
         {
           title: "Postmortem Templates",
           href: routeFor(PageMap.INCIDENTS_SETTINGS_POSTMORTEM_TEMPLATES),
+        },
+        // The statuses a postmortem moves through, beside its templates.
+        {
+          title: "Postmortem Statuses",
+          href: routeFor(PageMap.INCIDENTS_SETTINGS_POSTMORTEM_STATUSES),
         },
         {
           title: "Custom Fields",

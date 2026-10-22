@@ -5,6 +5,7 @@ import path from "path";
 import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../Models/DatabaseModels/AlertState";
+import IncidentPostmortemStatus from "../../Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
@@ -99,6 +100,13 @@ const RESOURCES: Array<ArchivableResource> = [
     modelType: IncidentRole,
     apiPath: "/incident-role",
     terraformType: "oneuptime_incident_role",
+  },
+  {
+    table: "IncidentPostmortemStatus",
+    modelType: IncidentPostmortemStatus,
+    apiPath: "/incident-postmortem-status",
+    // Named after the model's singular name, as every resource is.
+    terraformType: "oneuptime_postmortem_status",
   },
 ];
 

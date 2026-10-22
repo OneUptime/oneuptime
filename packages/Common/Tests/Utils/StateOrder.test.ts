@@ -1,6 +1,7 @@
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentPostmortemStatus from "../../Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -54,6 +55,9 @@ const MAINTENANCE: StateListDefinition =
 const MONITOR: StateListDefinition = STATE_LISTS[StateListType.MonitorStatus];
 const SEVERITY: StateListDefinition =
   STATE_LISTS[StateListType.IncidentSeverity];
+const POSTMORTEM: StateListDefinition =
+  STATE_LISTS[StateListType.IncidentPostmortemStatus];
+
 
 const row: (
   id: string,
@@ -74,6 +78,14 @@ const row: (
     createdAt: createdAt || null,
   };
 };
+
+// A project's postmortem statuses as it starts with them.
+const SEEDED_POSTMORTEM_STATUSES: Array<StateListRow> = [
+  row("Not Started", 1, ["isNotStartedStatus"]),
+  row("Draft", 2, ["isDraftStatus"]),
+  row("Completed", 3, ["isCompletedStatus"]),
+  row("Not Needed", 4),
+];
 
 // The seeded incident states, plus a state added between two of them.
 const SEEDED_INCIDENT_STATES: Array<StateListRow> = [
@@ -97,9 +109,10 @@ const MODELS: Record<StateListType, { new (): BaseModel }> = {
   [StateListType.MonitorStatus]: MonitorStatus,
   [StateListType.IncidentSeverity]: IncidentSeverity,
   [StateListType.AlertSeverity]: AlertSeverity,
+  [StateListType.IncidentPostmortemStatus]: IncidentPostmortemStatus,
 };
 
-describe("the six lists", () => {
+describe("the seven lists", () => {
   test.each(Object.values(StateListType))(
     "%s is defined by the model it is about",
     (type: StateListType) => {
@@ -149,6 +162,8 @@ describe("the six lists", () => {
     expect(STATE_LISTS[StateListType.AlertSeverity].keepsBuiltInOrder).toBe(
       false,
     );
+    // Not started, then a draft, then completed: in that order.
+    expect(POSTMORTEM.keepsBuiltInOrder).toBe(true);
   });
 
   test("the built-in states are listed in the order an incident meets them", () => {
@@ -801,6 +816,39 @@ describe("the messages", () => {
     );
   });
 
+  test("a postmortem one says why without claiming a postmortem only moves down", () => {
+    const violation: StateListOrderViolation = getStateListOrderViolation(
+      POSTMORTEM,
+      [
+        row("Not Started", 1, ["isNotStartedStatus"]),
+        row("Completed", 2, ["isCompletedStatus"]),
+        row("Draft", 3, ["isDraftStatus"]),
+      ],
+    )!;
+
+    expect(getStateListOrderViolationMessage(POSTMORTEM, violation)).toBe(
+      'A postmortem is started, drafted and then completed, so the completed status ("Completed") has to stay below the draft status ("Draft").',
+    );
+    expect(POSTMORTEM.orderReason).toBeTruthy();
+    // Every other list keeps its sentence: its subjects only move down.
+    for (const type of Object.values(StateListType)) {
+      if (type !== StateListType.IncidentPostmortemStatus) {
+        expect(STATE_LISTS[type].orderReason).toBeUndefined();
+      }
+    }
+  });
+
+  test("a refused delete of a built-in postmortem status names it and what it is", () => {
+    expect(
+      getStateListDeleteRefusalMessage(POSTMORTEM, {
+        row: row("Completed", 3, ["isCompletedStatus"]),
+        builtIn: { flag: "isCompletedStatus", role: "completed status" },
+      }),
+    ).toBe(
+      '"Completed" is the completed status of this project, and postmortems need one. It can be renamed, but not deleted.',
+    );
+  });
+
   test("a maintenance one talks about scheduled maintenance events", () => {
     const violation: StateListOrderViolation = getStateListOrderViolation(
       MAINTENANCE,
@@ -846,5 +894,112 @@ describe("the messages", () => {
     ).toBe(
       "This state is the resolved state of this project, and incidents need one. It can be renamed, but not deleted.",
     );
+  });
+});
+
+describe("postmortem statuses", () => {
+  test("are built in as not started, draft and completed, in that order", () => {
+    expect(
+      POSTMORTEM.builtIns.map((builtIn: StateListBuiltIn) => {
+        return builtIn.flag;
+      }),
+    ).toEqual(["isNotStartedStatus", "isDraftStatus", "isCompletedStatus"]);
+    expect(POSTMORTEM.subject).toEqual({
+      singular: "postmortem",
+      plural: "postmortems",
+    });
+  });
+
+  test("a new status with no place goes just above the completed status", () => {
+    expect(
+      getStateListInsertValue(POSTMORTEM, SEEDED_POSTMORTEM_STATUSES),
+    ).toBe(3);
+
+    const rows: Array<StateListRow> = getStateListRowsAfterCreate({
+      rows: SEEDED_POSTMORTEM_STATUSES,
+      newRow: row("In Review", 3),
+    });
+
+    expect(namesInOrder(rows)).toEqual([
+      "Not Started:1",
+      "Draft:2",
+      "In Review:3",
+      "Completed:4",
+      "Not Needed:5",
+    ]);
+  });
+
+  test("what each status counts as follows from where it sits", () => {
+    const rows: Array<StateListRow> = [
+      row("Not Started", 1, ["isNotStartedStatus"]),
+      row("Assigned", 2),
+      row("Draft", 3, ["isDraftStatus"]),
+      row("In Review", 4),
+      row("Completed", 5, ["isCompletedStatus"]),
+      row("Not Needed", 6),
+    ];
+
+    const reached: (name: string) => string | null = (
+      name: string,
+    ): string | null => {
+      return getStateListReachedBuiltIn(
+        POSTMORTEM,
+        rows,
+        rows.find((candidate: StateListRow) => {
+          return candidate.name === name;
+        })!,
+      );
+    };
+
+    expect(reached("Not Started")).toBe("isNotStartedStatus");
+    expect(reached("Assigned")).toBe("isNotStartedStatus");
+    expect(reached("Draft")).toBe("isDraftStatus");
+    expect(reached("In Review")).toBe("isDraftStatus");
+    expect(reached("Completed")).toBe("isCompletedStatus");
+    expect(reached("Not Needed")).toBe("isCompletedStatus");
+  });
+
+  test("a move that puts the draft status below the completed one is caught", () => {
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: POSTMORTEM,
+        rowsBefore: SEEDED_POSTMORTEM_STATUSES,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: SEEDED_POSTMORTEM_STATUSES,
+          id: "Draft",
+          requestedValue: 4,
+        }),
+      }),
+    ).not.toBeNull();
+
+    // Not Needed moved above Completed is a status of the project's own: fine.
+    expect(
+      getStateListOrderViolationIntroduced({
+        definition: POSTMORTEM,
+        rowsBefore: SEEDED_POSTMORTEM_STATUSES,
+        rowsAfter: getStateListRowsAfterMove({
+          rows: SEEDED_POSTMORTEM_STATUSES,
+          id: "Not Needed",
+          requestedValue: 3,
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  test("the last status of a built-in kind cannot be deleted; Not Needed can", () => {
+    expect(
+      getStateListDeleteRefusal({
+        definition: POSTMORTEM,
+        rows: SEEDED_POSTMORTEM_STATUSES,
+        idsToDelete: ["Draft"],
+      })?.builtIn.flag,
+    ).toBe("isDraftStatus");
+    expect(
+      getStateListDeleteRefusal({
+        definition: POSTMORTEM,
+        rows: SEEDED_POSTMORTEM_STATUSES,
+        idsToDelete: ["Not Needed"],
+      }),
+    ).toBeNull();
   });
 });

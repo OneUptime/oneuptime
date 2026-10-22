@@ -312,6 +312,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   ScheduledMaintenanceState: PROJECT_SETTING,
   MonitorStatus: PROJECT_SETTING,
   IncidentRole: PROJECT_SETTING,
+  // An incident's postmortem status: one of the project's statuses.
+  IncidentPostmortemStatus: PROJECT_SETTING,
   AlertGroupingRule: PROJECT_SETTING,
   IncidentGroupingRule: PROJECT_SETTING,
   IncidentSlaRule: PROJECT_SETTING,
