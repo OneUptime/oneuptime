@@ -44,6 +44,7 @@ import {
   getReviewedPullRequestNumber,
   getValuesForProductionReviewContent,
   readProductionReviewContent,
+  splitCodeNameAtBreaks,
   splitPointText,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
 import {
@@ -161,17 +162,18 @@ describe("the words are the Dashboard's to translate", () => {
     >;
     // The same in German: names, units and figures.
     const sameInGerman: Array<string> = [
+      "Pull Requests",
       "Commit {{sha}}",
       "p95 {{duration}}",
       "p99 {{duration}}",
       "{{count}} spans",
     ];
     /*
-     * Labels other pages drew first - a resource's "Last seen", a profile's
-     * "Samples": their words are those pages', and the review reuses them.
+     * Labels other pages drew first - a profile's "Samples": their words are
+     * those pages', and the review reuses them. ("Last seen {{time}}", which
+     * a resource's page drew first, is German now.)
      */
     const sharedWithOtherPages: Array<string> = [
-      "Last seen {{time}}",
       "Traces",
       "Deployments",
       "Goroutines",
@@ -191,14 +193,26 @@ describe("the words are the Dashboard's to translate", () => {
     expect(
       german.translateText(PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle),
     ).toBe("Pull Requests gegen die Produktion prüfen");
+    // Shared words a review's rows draw, German too.
+    expect(
+      german.translateTemplate(PRODUCTION_REVIEW_COPY.lastSeen, {
+        time: "vor 5 Minuten",
+      }),
+    ).toBe("Zuletzt gesehen vor 5 Minuten");
+    expect(
+      german.translatePlural(
+        { one: "{{count}} error", other: "{{count}} errors" },
+        93,
+      ),
+    ).toBe("93 Fehler");
   });
 
   test("every description a person reads while setting it up fits two short lines", () => {
     const lines: Array<string> = [
       PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription,
       PRODUCTION_REVIEW_COPY.pageDescription,
-      PRODUCTION_REVIEW_COPY.emptyOn,
-      PRODUCTION_REVIEW_COPY.emptyOff,
+      PRODUCTION_REVIEW_COPY.statusOnOthers,
+      PRODUCTION_REVIEW_COPY.emptyDescription,
       ...PRODUCTION_REVIEW_CONTENT_ANSWERS.map(
         (content: ProductionReviewPullRequestContent): string => {
           return PRODUCTION_REVIEW_CONTENT_COPY[content].description;
@@ -365,14 +379,13 @@ describe("what the pull request shows of a review", () => {
     ).toBe(
       "This repository's pull requests only link to their review, as its settings ask.",
     );
+    // The review below it says why: once is enough.
     expect(
       getProductionReviewPostingSentence({
         posting: ProductionReviewPosting.None,
         isPublicRepository: false,
       }),
-    ).toBe(
-      "Nothing was posted on the pull request: production shows nothing about the code it changes.",
-    );
+    ).toBe("Nothing was posted on the pull request.");
   });
 
   test("the choice of what it shows, read and written - unset or unknown is the default", () => {
@@ -540,5 +553,65 @@ describe("OneUptime AI's words, in pieces", () => {
 
     expect(splitPointText(text)).toHaveLength(200000);
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("the names of code, in the pieces a narrow screen wraps them between", () => {
+  test("a path at its folders; a function after the dot before it; never inside a part", () => {
+    expect(splitCodeNameAtBreaks("src/payments/charge.ts:88")).toEqual([
+      "src/",
+      "payments/",
+      "charge.ts:88",
+    ]);
+    expect(splitCodeNameAtBreaks("PaymentClient.chargeWithRetries")).toEqual([
+      "PaymentClient.",
+      "chargeWithRetries",
+    ]);
+    expect(splitCodeNameAtBreaks("POST /api/charges")).toEqual([
+      "POST /",
+      "api/",
+      "charges",
+    ]);
+    expect(splitCodeNameAtBreaks("charge_card_with_retries")).toEqual([
+      "charge_",
+      "card_",
+      "with_",
+      "retries",
+    ]);
+    expect(splitCodeNameAtBreaks("Foo::chargeCard")).toEqual([
+      "Foo::",
+      "chargeCard",
+    ]);
+  });
+
+  test("a short part after a dot or a colon stays with it: a file's extension, a version, a line", () => {
+    for (const name of ["charge.ts", "v2.14.0", "app.js:12", "chargeCard"]) {
+      expect(splitCodeNameAtBreaks(name)).toEqual([name]);
+    }
+    expect(splitCodeNameAtBreaks("")).toEqual([]);
+    // A name never ends on an empty piece, nor loses a character.
+    expect(splitCodeNameAtBreaks("src/").join("")).toBe("src/");
+    expect(splitCodeNameAtBreaks("src/")).toEqual(["src/"]);
+  });
+
+  test("every piece joins back into the name", () => {
+    for (const name of [
+      "GET /api/v2/organizations/:organizationId/payment-methods/:paymentMethodId/verification",
+      "services\\checkout\\charge.cs",
+      "__init__",
+      "a.b.c.dddddd",
+    ]) {
+      expect(splitCodeNameAtBreaks(name).join("")).toBe(name);
+    }
+  });
+
+  test("a long name is split in time in line with it, whatever it holds", () => {
+    for (const unit of ["a.", "/", "a.bbbbb", ".:", "x"]) {
+      const name: string = unit.repeat(Math.ceil(400000 / unit.length));
+      const started: number = Date.now();
+
+      expect(splitCodeNameAtBreaks(name).join("")).toBe(name);
+      expect(Date.now() - started).toBeLessThan(2000);
+    }
   });
 });

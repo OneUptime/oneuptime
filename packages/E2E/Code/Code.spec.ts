@@ -2671,6 +2671,19 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(status).toContainText(
       "A pull request from someone with write access is reviewed when it opens and each time it changes.",
     );
+    // Anyone else's waits for someone with write access to ask.
+    await expect(
+      page.getByTestId("code-production-reviews-status-others"),
+    ).toContainText(
+      "A pull request from anyone else is reviewed when someone with write access comments @oneuptime-app production review on it.",
+    );
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveText("Change in Settings");
+    // The list is of pull requests.
+    await expect(
+      page.getByTestId("code-production-reviews-list").getByRole("heading"),
+    ).toContainText("Pull Requests");
 
     // Newest first, each its pull request: its title, its number, what was found.
     const rows: Locator = page
@@ -2747,7 +2760,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(page.getByTestId("production-review")).toBeVisible();
   });
 
-  test("off, with none yet: the GitHub command that asks for a review, drawn as code, and how a review comes", async ({
+  test("off, with none yet: the GitHub command that asks for a review, drawn as code, once - and Turn on in Settings", async ({
     page,
   }: {
     page: Page;
@@ -2763,16 +2776,33 @@ test.describe("a repository's pull requests, reviewed against production", () =>
       status.locator("code", { hasText: "@oneuptime-app production review" }),
     ).toBeVisible();
 
+    await expect(
+      page.getByTestId("code-production-reviews-settings"),
+    ).toHaveText("Turn on in Settings");
+
+    // The list says what it will hold; how a review comes is said once, above it.
     const empty: Locator = page.getByTestId("code-production-reviews-empty");
     await expect(empty).toContainText("No pull request reviewed yet");
     await expect(empty).toContainText(
-      "Turn on Review Pull Requests Against Production in Settings, or comment @oneuptime-app production review on a pull request.",
+      "Each pull request's latest review shows up here.",
     );
+    await expect(
+      page.locator("code", { hasText: "production review" }),
+    ).toHaveCount(1);
     await expect(page.getByTestId("code-production-reviews-count")).toHaveCount(
       0,
     );
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-production-reviews-off");
+
+    // A repository whose GitHub App answers no command is never offered one.
+    await page.goto(`${REVIEWS}?review=off&ghcommands=off&reviews=none`);
+    await expect(
+      page.getByTestId("code-production-reviews-status"),
+    ).toContainText("Pull requests are not reviewed against production.");
+    await expect(
+      page.locator("code", { hasText: "production review" }),
+    ).toHaveCount(0);
   });
 
   test("a review: the pull request, the commit, what production shows of the changed code - each linked into OneUptime - and what never leaves OneUptime", async ({
@@ -2871,21 +2901,25 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(page.getByTestId("production-review-again")).toBeEnabled();
   });
 
-  test("waiting for its minute, and a review that found nothing and posted nothing, say so", async ({
+  test("waiting to start, and a review that found nothing and posted nothing, say so - once each", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
     await openReview(page, REVIEW.waiting);
     await expect(page.getByTestId("production-review-working")).toContainText(
-      "Starting soon: a review waits a minute after the pull request last changed.",
+      "Starting in a minute or so.",
     );
 
     await openReview(page, REVIEW.nothing);
-    await expect(page.getByTestId("production-review-posting")).toContainText(
-      "Nothing was posted on the pull request: production shows nothing about the code it changes.",
+    await expect(page.getByTestId("production-review-posting")).toHaveText(
+      "Nothing was posted on the pull request.",
     );
     await expect(page.getByTestId("production-review-comment")).toHaveCount(0);
+    // Nothing was posted, so nothing is said about what a comment holds.
+    await expect(page.getByTestId("production-review-aggregates")).toHaveCount(
+      0,
+    );
     await expect(
       page.getByTestId("production-review-nothing-found"),
     ).toContainText(
@@ -2893,6 +2927,56 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     );
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-production-review-nothing");
+  });
+
+  test("a review that failed, one of a public repository, one whose author cannot write, and one with parts not read", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // Failed: the one sentence, then the review before it.
+    await openReview(page, REVIEW.found, "reviewcase=failed");
+    await expect(page.getByTestId("production-review-failed")).toHaveText(
+      "OneUptime could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.",
+    );
+    await expect(page.getByTestId("production-review")).toBeVisible();
+    await expect(page.getByTestId("production-review-again")).toBeEnabled();
+
+    // A public repository's pull request only links here: nothing of production was posted.
+    await openReview(page, REVIEW.found, "reviewcase=public");
+    await expect(page.getByTestId("production-review-posting")).toContainText(
+      "This repository is public, so the pull request only links to this review.",
+    );
+    await expect(page.getByTestId("production-review-aggregates")).toHaveCount(
+      0,
+    );
+
+    // Its author cannot write to the repository: reviewed again only when asked.
+    await openReview(page, REVIEW.found, "reviewcase=outside");
+    await expect(page.getByTestId("production-review-updates")).toHaveText(
+      "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+    );
+
+    // Parts not read are said before the findings.
+    await openReview(page, REVIEW.found, "reviewcase=unread");
+    const unread: Locator = page.getByTestId("production-review-unread");
+    await expect(unread).toContainText("Not read this time");
+    await expect(
+      unread.getByTestId("production-review-unread-section"),
+    ).toHaveText(["Traces", "Profiles"]);
+    const unreadBox: { y: number } | null = await unread.boundingBox();
+    const findingsBox: { y: number } | null = await page
+      .getByTestId("production-review-exceptions")
+      .boundingBox();
+    expect(unreadBox!.y).toBeLessThan(findingsBox!.y);
+
+    // Long names of code wrap between their parts, and nothing scrolls sideways.
+    await openReview(page, REVIEW.found, "reviewcase=long");
+    await expect(page.getByTestId("production-review-operation")).toHaveCount(
+      3,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, testInfo, "code-production-review-long");
   });
 
   test("a member who may only read reads the review, and is told why they cannot review it again", async ({

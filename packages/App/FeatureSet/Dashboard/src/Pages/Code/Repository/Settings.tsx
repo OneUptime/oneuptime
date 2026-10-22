@@ -649,13 +649,15 @@ const CodeRepositorySettings: FunctionComponent<
             },
             fields: [
               /*
-               * The card says what it is for: its value - the answer picked,
-               * in the form's words - needs no label of its own.
+               * Named as the Edit form's choice is, as the other cards under
+               * More settings name their values, and shown as the answer
+               * picked, in the form's words.
                */
               {
                 field: {
                   productionReviewPullRequestContent: true,
                 },
+                title: PRODUCTION_REVIEW_SETTINGS_COPY.contentFieldTitle,
                 fieldType: FieldType.Element,
                 getElement: (item: CodeRepository): ReactElement => {
                   return (

@@ -327,6 +327,12 @@ describe("who may read a repository's tasks", () => {
         "isProductionReviewEnabled"
       ],
     ).toBe(true);
+    // Whether the GitHub App answers commands, for the reviews page.
+    expect(
+      (CODE_TASK_REPOSITORY_SELECT as Record<string, unknown>)[
+        "isGitHubCommandsEnabled"
+      ],
+    ).toBe(true);
   });
 
   test("a repository the caller may not read is not found - the same answer as one that does not exist", async () => {

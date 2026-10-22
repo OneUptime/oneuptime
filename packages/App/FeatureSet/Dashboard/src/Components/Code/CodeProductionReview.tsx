@@ -10,8 +10,10 @@ import {
   formatReviewPercent,
   getProductionReviewNothingSentence,
   getProfileKindLabel,
+  splitCodeNameAtBreaks,
   splitPointText,
 } from "./CodeProductionReviewCopy";
+import CodeMetaList from "./CodeMetaList";
 import CodeTimeAgo from "./CodeTimeAgo";
 import PageMap from "../../Utils/PageMap";
 import { buildProfilesRoute } from "../../Utils/ProfilesUrlState";
@@ -25,6 +27,7 @@ import {
   ProductionReviewIncidentJSON,
   ProductionReviewOperationJSON,
   ProductionReviewPointJSON,
+  ProductionReviewPosting,
   ProductionReviewReport,
   ProductionReviewSection,
   ProductionReviewServiceJSON,
@@ -47,8 +50,10 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
  * exceptions thrown in it, the operations that run it, the functions of it
  * that take a share of a profile, the incidents and deploys around it -
  * each linked to where it lives in OneUptime. A review that found nothing
- * says why. Lists, not tables: a row's facts wrap on a phone rather than
- * scroll.
+ * says why, and the parts that could not be read are named before the
+ * findings. Lists, not tables: a row's facts wrap on a phone rather than
+ * scroll, between facts (Code's meta line) and inside the names of code
+ * only between their parts.
  *
  * Everything drawn here is aggregate - counts, durations, shares and the
  * names of code - as the review holds nothing else.
@@ -138,19 +143,28 @@ export function getHotFunctionRoute(
   });
 }
 
-// The name of a piece of code, drawn as code.
+// The name of a piece of code, drawn as code: it wraps between its parts.
 const CodeName: FunctionComponent<{
-  children: ReactNode;
+  children: string;
   className?: string | undefined;
 }> = (props: {
-  children: ReactNode;
+  children: string;
   className?: string | undefined;
 }): ReactElement => {
+  const pieces: Array<string> = splitCodeNameAtBreaks(props.children);
+
   return (
     <code
       className={`rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere] ${props.className || ""}`}
     >
-      {props.children}
+      {pieces.map((piece: string, index: number) => {
+        return (
+          <React.Fragment key={index}>
+            {piece}
+            {index < pieces.length - 1 ? <wbr /> : <></>}
+          </React.Fragment>
+        );
+      })}
     </code>
   );
 };
@@ -182,31 +196,42 @@ const Badge: FunctionComponent<{
   );
 };
 
-// A line of a finding's facts, a dot between each.
-const Facts: FunctionComponent<{ items: Array<ReactNode> }> = (props: {
-  items: Array<ReactNode>;
-}): ReactElement => {
-  const shown: Array<ReactNode> = props.items.filter((item: ReactNode) => {
-    return item !== null && item !== undefined && item !== "";
-  });
-
+/*
+ * One fact of a row: kept whole on its line, and wrapped only when it is
+ * longer than a whole line (a deep path, a long name).
+ */
+function fact(key: string, content: ReactNode): ReactElement {
   return (
-    <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-500">
-      {shown.map((item: ReactNode, index: number) => {
-        return (
-          <React.Fragment key={index}>
-            {index > 0 ? (
-              <span aria-hidden="true" className="text-gray-300">
-                ·
-              </span>
-            ) : (
-              <></>
-            )}
-            <span className="min-w-0 break-words">{item}</span>
-          </React.Fragment>
-        );
-      })}
-    </p>
+    <span
+      key={key}
+      className="min-w-0 whitespace-normal [overflow-wrap:anywhere]"
+    >
+      {content}
+    </span>
+  );
+}
+
+/*
+ * A row's facts on a line of their own, a dot between each - Code's meta
+ * line, so no line a narrow screen wraps starts or ends with a dot.
+ */
+const Facts: FunctionComponent<{
+  items: Array<ReactElement | null>;
+  dataTestId?: string | undefined;
+}> = (props: {
+  items: Array<ReactElement | null>;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  return (
+    <CodeMetaList
+      dataTestId={props.dataTestId}
+      className="mt-1 text-xs text-gray-500"
+      items={
+        props.items.filter((item: ReactElement | null): boolean => {
+          return item !== null;
+        }) as Array<ReactElement>
+      }
+    />
   );
 };
 
@@ -362,27 +387,40 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 
     return (
       <div data-testid="production-review-services">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        <p className="text-xs font-medium text-gray-500">
           {text(PRODUCTION_REVIEW_COPY.runsIn)}
         </p>
         <ul className="mt-2 flex flex-wrap gap-2">
           {report.services.map((service: ProductionReviewServiceJSON) => {
-            const facts: Array<string> = [];
+            const facts: Array<ReactElement> = [
+              <span
+                key="name"
+                className="min-w-0 whitespace-normal font-medium text-gray-900 [overflow-wrap:anywhere]"
+              >
+                {service.name}
+              </span>,
+            ];
 
             if (service.requestCount !== undefined) {
               facts.push(
-                translator.translatePlural(
-                  PRODUCTION_REVIEW_SPANS_LAST_HOUR,
-                  service.requestCount,
+                fact(
+                  "requests",
+                  translator.translatePlural(
+                    PRODUCTION_REVIEW_SPANS_LAST_HOUR,
+                    service.requestCount,
+                  ),
                 ),
               );
             }
 
             if (service.p99Ms !== undefined) {
               facts.push(
-                translator.translateTemplate(PRODUCTION_REVIEW_COPY.p99, {
-                  duration: formatReviewDuration(service.p99Ms, translator),
-                }),
+                fact(
+                  "p99",
+                  translator.translateTemplate(PRODUCTION_REVIEW_COPY.p99, {
+                    duration: formatReviewDuration(service.p99Ms, translator),
+                  }),
+                ),
               );
             }
 
@@ -390,24 +428,15 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
               <li
                 key={service.id}
                 data-testid="production-review-service"
-                className="max-w-full"
+                className="min-w-0 max-w-full"
               >
                 <RowName route={recordRoute(PageMap.SERVICE_VIEW, service.id)}>
-                  <span className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600">
-                    <span className="font-medium text-gray-900">
-                      {service.name}
-                    </span>
-                    {facts.map((fact: string) => {
-                      return (
-                        <React.Fragment key={fact}>
-                          <span aria-hidden="true" className="text-gray-300">
-                            ·
-                          </span>
-                          <span>{fact}</span>
-                        </React.Fragment>
-                      );
-                    })}
-                  </span>
+                  <div className="inline-flex max-w-full rounded-lg border border-gray-200 bg-white px-2.5 py-1.5">
+                    <CodeMetaList
+                      className="text-xs text-gray-600"
+                      items={facts}
+                    />
+                  </div>
                 </RowName>
               </li>
             );
@@ -468,7 +497,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 </div>
                 <span
                   data-testid="production-review-exception-count"
-                  className="flex-shrink-0 text-sm font-semibold tabular-nums text-gray-900"
+                  className="flex-shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-gray-900"
                 >
                   {exception.isWindowCount
                     ? translator.formatNumber(exception.occurrences)
@@ -481,27 +510,38 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 </span>
               </div>
               <Facts
+                dataTestId="production-review-exception-facts"
                 items={[
-                  <CodeName key="where">
-                    {exception.line
-                      ? `${exception.path}:${exception.line}`
-                      : exception.path}
-                  </CodeName>,
-                  exception.functionName ? (
-                    <CodeName key="function">{exception.functionName}</CodeName>
-                  ) : null,
-                  text(PRODUCTION_REVIEW_WHERE_LABELS[exception.where]),
-                  exception.serviceName,
-                  exception.lastSeenAt ? (
-                    <span key="last-seen">
-                      <TranslatedSentence
-                        template={PRODUCTION_REVIEW_COPY.lastSeen}
-                        slots={{
-                          time: <CodeTimeAgo date={exception.lastSeenAt} />,
-                        }}
-                      />
-                    </span>
-                  ) : null,
+                  fact(
+                    "where",
+                    <CodeName>
+                      {exception.line
+                        ? `${exception.path}:${exception.line}`
+                        : exception.path}
+                    </CodeName>,
+                  ),
+                  exception.functionName
+                    ? fact(
+                        "function",
+                        <CodeName>{exception.functionName}</CodeName>,
+                      )
+                    : null,
+                  fact(
+                    "closeness",
+                    text(PRODUCTION_REVIEW_WHERE_LABELS[exception.where]),
+                  ),
+                  fact("service", exception.serviceName),
+                  exception.lastSeenAt
+                    ? fact(
+                        "last-seen",
+                        <TranslatedSentence
+                          template={PRODUCTION_REVIEW_COPY.lastSeen}
+                          slots={{
+                            time: <CodeTimeAgo date={exception.lastSeenAt} />,
+                          }}
+                        />,
+                      )
+                    : null,
                 ]}
               />
             </li>
@@ -548,19 +588,29 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 </span>
               </div>
               <Facts
+                dataTestId="production-review-operation-facts"
                 items={[
-                  operation.serviceName,
-                  translator.translatePlural(
-                    { one: "{{count}} span", other: "{{count}} spans" },
-                    operation.requestCount,
+                  fact("service", operation.serviceName),
+                  fact(
+                    "requests",
+                    translator.translatePlural(
+                      { one: "{{count}} span", other: "{{count}} spans" },
+                      operation.requestCount,
+                    ),
                   ),
                   operation.errorCount > 0
-                    ? `${translator.translatePlural(
-                        { one: "{{count}} error", other: "{{count}} errors" },
-                        operation.errorCount,
-                      )} (${errorRate})`
+                    ? fact(
+                        "errors",
+                        `${translator.translatePlural(
+                          { one: "{{count}} error", other: "{{count}} errors" },
+                          operation.errorCount,
+                        )} (${errorRate})`,
+                      )
                     : null,
-                  text(PRODUCTION_REVIEW_MATCH_LABELS[operation.matchedBy]),
+                  fact(
+                    "match",
+                    text(PRODUCTION_REVIEW_MATCH_LABELS[operation.matchedBy]),
+                  ),
                 ]}
               />
             </li>
@@ -592,22 +642,32 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 <RowName route={getHotFunctionRoute(hot, report)}>
                   <CodeName className="text-sm">{hot.functionName}</CodeName>
                 </RowName>
-                <span className="flex-shrink-0 text-sm font-semibold tabular-nums text-gray-900">
+                {/* Its share with what it calls, as the Profiler's Total. */}
+                <span
+                  data-testid="production-review-hot-function-share"
+                  className="flex-shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-gray-900"
+                >
                   {formatReviewPercent(hot.totalPercent, translator)}
                 </span>
               </div>
               <Facts
+                dataTestId="production-review-hot-function-facts"
                 items={[
-                  <CodeName key="path">{hot.path}</CodeName>,
-                  hot.serviceName,
-                  translator.translateTemplate(
-                    PRODUCTION_REVIEW_COPY.hotFunctionShare,
-                    {
-                      total: formatReviewPercent(hot.totalPercent, translator),
-                      self: formatReviewPercent(hot.selfPercent, translator),
-                    },
+                  fact("path", <CodeName>{hot.path}</CodeName>),
+                  fact("service", hot.serviceName),
+                  fact(
+                    "kind",
+                    getProfileKindLabel(hot.profileKind, translator),
                   ),
-                  getProfileKindLabel(hot.profileKind, translator),
+                  fact(
+                    "self",
+                    translator.translateTemplate(
+                      PRODUCTION_REVIEW_COPY.hotFunctionSelf,
+                      {
+                        self: formatReviewPercent(hot.selfPercent, translator),
+                      },
+                    ),
+                  ),
                 ]}
               />
             </li>
@@ -663,19 +723,22 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 )}
               </div>
               <Facts
+                dataTestId="production-review-incident-facts"
                 items={[
-                  <span key="declared">
+                  fact(
+                    "declared",
                     <TranslatedSentence
                       template={PRODUCTION_REVIEW_COPY.declared}
                       slots={{
                         time: <CodeTimeAgo date={incident.declaredAt} />,
                       }}
-                    />
-                  </span>,
+                    />,
+                  ),
                   incident.mentions ? (
                     <span
                       key="mentions"
                       data-testid="production-review-incident-mentions"
+                      className="min-w-0 whitespace-normal [overflow-wrap:anywhere]"
                     >
                       <TranslatedSentence
                         template={PRODUCTION_REVIEW_COPY.incidentNames}
@@ -726,11 +789,11 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                 data-testid="production-review-deploy"
                 className={ROW_CLASS_NAME}
               >
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <RowName
                     route={recordRoute(PageMap.SERVICE_VIEW, deploy.serviceId)}
                   >
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                       {deploy.serviceName}
                     </span>
                   </RowName>
@@ -757,6 +820,10 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Above the findings, so no one reads "nothing found" without knowing
+   * what was not read.
+   */
   const renderUnread: () => ReactElement = (): ReactElement => {
     if (report.unreadSections.length === 0) {
       return <></>;
@@ -798,6 +865,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
     <div data-testid="production-review" className="space-y-4">
       {renderPoints()}
       {renderServices()}
+      {renderUnread()}
 
       {hasSignal ? (
         <>
@@ -827,18 +895,26 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {renderUnread()}
-
-      <div
-        data-testid="production-review-aggregates"
-        className="flex items-start gap-2 text-xs leading-5 text-gray-500"
-      >
-        <Icon
-          icon={IconProp.Lock}
-          className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
-        />
-        <p className="min-w-0">{text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}</p>
-      </div>
+      {/*
+       * What the pull request was shown of production - said only where it
+       * was shown something: a link or nothing posts none of it.
+       */}
+      {report.posting === ProductionReviewPosting.Review ? (
+        <div
+          data-testid="production-review-aggregates"
+          className="flex items-start gap-2 text-xs leading-5 text-gray-500"
+        >
+          <Icon
+            icon={IconProp.Lock}
+            className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+          />
+          <p className="min-w-0">
+            {text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

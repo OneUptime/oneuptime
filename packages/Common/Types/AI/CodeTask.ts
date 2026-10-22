@@ -497,6 +497,12 @@ export interface CodeTaskRepositoryJSON {
    * where the column was not read.
    */
   isProductionReviewEnabled?: boolean | undefined;
+  /*
+   * Whether the GitHub App answers commands in it, "@oneuptime production
+   * review" among them (CodeRepository.isGitHubCommandsEnabled; unset is
+   * on). Left out where the column was not read.
+   */
+  isGitHubCommandsEnabled?: boolean | undefined;
 }
 
 /*

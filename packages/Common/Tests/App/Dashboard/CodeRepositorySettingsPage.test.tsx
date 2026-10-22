@@ -1199,7 +1199,7 @@ describe("Production Review Comment: what a review posts on a pull request", () 
     );
   });
 
-  test("the card shows the answer picked, in the form's words, with no label over it", () => {
+  test("the card shows the answer picked, in the form's words, named as the form's choice", () => {
     draw();
 
     const props: Record<string, unknown> = card(
@@ -1210,7 +1210,9 @@ describe("Production Review Comment: what a review posts on a pull request", () 
     ).fields;
 
     expect(shown).toHaveLength(1);
-    expect(shown[0]!.title).toBeUndefined();
+    // Named as the other cards under More settings name their values.
+    expect(shown[0]!.title).toBe("What the Comment Shows");
+    expect(shown[0]!.title).toBe(fields()[0]!.title);
     expect((props["cardProps"] as { description: string }).description).toBe(
       "What a production review posts on a pull request.",
     );

@@ -94,6 +94,11 @@ export const PRODUCTION_REVIEW_OFF_MESSAGE: string =
 export const REPOSITORY_NOT_CONNECTED_MESSAGE: string =
   "This repository is no longer connected to the project through the GitHub App.";
 
+// Why a review ended failed: kept once it was tried again and failed again.
+export const PRODUCTION_REVIEW_FAILED_MESSAGE: () => string = (): string => {
+  return `${ProductBrandingText.getProductName()} could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.`;
+};
+
 // What one review leaves behind.
 export interface ProductionReviewRunResult {
   report: ProductionReviewReport | null;
@@ -133,10 +138,14 @@ export default class ProductionReviewRunner {
         `Production review ${run.id?.toString()} failed: ${error instanceof Error ? error.message : String(error)}`,
       );
 
+      /*
+       * Kept only once it was tried again and failed again: said on the
+       * review's page, with what starts a new one.
+       */
       await ProductionReviewQueue.fail({
         run,
         requestNumber,
-        errorMessage: `${ProductBrandingText.getProductName()} could not finish this production review. It tries again, and every push asks for a new one.`,
+        errorMessage: PRODUCTION_REVIEW_FAILED_MESSAGE(),
         isRetryable: true,
       }).catch((failError: unknown) => {
         logger.error(
@@ -315,6 +324,8 @@ export default class ProductionReviewRunner {
           organizationName: github.organizationName,
           repositoryName: github.repositoryName,
         }),
+        // Its pushes are reviewed on their own only when it is.
+        isAuthorTrusted: review.isAuthorTrusted,
       },
       reviewedAt: now.toISOString(),
       trigger: review.trigger,

@@ -34,13 +34,14 @@ export const CODE_PRODUCTION_REVIEWS_TEST_ID: string =
 
 /*
  * A repository's pull requests, reviewed against production: what the
- * review does and whether it is on for the repository - with a way to
- * Settings, where it is turned on or off - then one row per pull request,
- * newest first, saying what its latest review found. A row opens the
- * review.
+ * review does and whether it is on for the repository - how a pull request
+ * gets one, on its own or by asking with the GitHub command (only while the
+ * GitHub App answers commands there), with a way to Settings, where it is
+ * turned on or off - then one row per pull request, newest first, saying
+ * what its latest review found. A row opens the review.
  *
- * With none yet, the page says how one comes: on its own when a pull
- * request opens or changes, or by asking on the pull request.
+ * With none yet, the list says what it will hold: the status line above it
+ * already says how a review comes.
  */
 const CodeRepositoryProductionReviews: FunctionComponent<
   PageComponentProps
@@ -88,18 +89,31 @@ const CodeRepositoryProductionReviews: FunctionComponent<
 
   const isOn: boolean =
     repository.repository.isProductionReviewEnabled === true;
+  /*
+   * The command is answered only while the GitHub App answers commands in
+   * the repository (unset is on): the page never offers one it ignores.
+   */
+  const areCommandsOn: boolean =
+    repository.repository.isGitHubCommandsEnabled !== false;
   const command: ReactElement = (
-    <code className="whitespace-nowrap rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800">
+    <code className="break-words rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800">
       {getProductionReviewCommand()}
     </code>
   );
+  // Off, the one thing to do is to turn it on.
   const settingsLink: ReactElement = (
     <Link
       to={getRepositorySettingsRoute(repositoryId)}
       dataTestId="code-production-reviews-settings"
       className="font-medium text-indigo-600 hover:text-indigo-500"
     >
-      <>{translator.translateText(PRODUCTION_REVIEW_COPY.openSettings)}</>
+      <>
+        {translator.translateText(
+          isOn
+            ? PRODUCTION_REVIEW_COPY.openSettings
+            : PRODUCTION_REVIEW_COPY.turnOnInSettings,
+        )}
+      </>
     </Link>
   );
 
@@ -135,16 +149,42 @@ const CodeRepositoryProductionReviews: FunctionComponent<
                 : PRODUCTION_REVIEW_COPY.statusOffLabel,
             )}
           </span>
-          <p className="min-w-0 flex-1 basis-56 text-gray-600">
-            {isOn ? (
-              translator.translateText(PRODUCTION_REVIEW_COPY.statusOn)
+          <div
+            data-testid="code-production-reviews-status-text"
+            className="min-w-0 flex-1 basis-56"
+          >
+            <p className="text-gray-700">
+              {isOn ? (
+                translator.translateText(PRODUCTION_REVIEW_COPY.statusOn)
+              ) : areCommandsOn ? (
+                <TranslatedSentence
+                  template={PRODUCTION_REVIEW_COPY.statusOff}
+                  slots={{ command }}
+                />
+              ) : (
+                translator.translateText(
+                  PRODUCTION_REVIEW_COPY.statusOffNoCommands,
+                )
+              )}
+            </p>
+            {/*
+             * On, the pull requests of anyone who cannot write to the
+             * repository - outside contributors, forks - wait to be asked.
+             */}
+            {isOn && areCommandsOn ? (
+              <p
+                data-testid="code-production-reviews-status-others"
+                className="mt-1 text-gray-500"
+              >
+                <TranslatedSentence
+                  template={PRODUCTION_REVIEW_COPY.statusOnOthers}
+                  slots={{ command }}
+                />
+              </p>
             ) : (
-              <TranslatedSentence
-                template={PRODUCTION_REVIEW_COPY.statusOff}
-                slots={{ command }}
-              />
+              <></>
             )}
-          </p>
+          </div>
           {repository.canAsk ? settingsLink : <></>}
         </div>
       </div>
@@ -157,7 +197,7 @@ const CodeRepositoryProductionReviews: FunctionComponent<
           id="code-production-reviews-heading"
           className="flex items-baseline gap-2 px-1 text-sm font-semibold text-gray-900"
         >
-          {translator.translateText(PRODUCTION_REVIEW_COPY.pageTitle)}
+          {translator.translateText(PRODUCTION_REVIEW_COPY.listTitle)}
           {reviewCount ? (
             <span
               data-testid="code-production-reviews-count"
@@ -192,13 +232,8 @@ const CodeRepositoryProductionReviews: FunctionComponent<
                   {translator.translateText(PRODUCTION_REVIEW_COPY.emptyTitle)}
                 </p>
                 <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-                  {isOn ? (
-                    translator.translateText(PRODUCTION_REVIEW_COPY.emptyOn)
-                  ) : (
-                    <TranslatedSentence
-                      template={PRODUCTION_REVIEW_COPY.emptyOff}
-                      slots={{ command }}
-                    />
+                  {translator.translateText(
+                    PRODUCTION_REVIEW_COPY.emptyDescription,
                   )}
                 </p>
               </div>

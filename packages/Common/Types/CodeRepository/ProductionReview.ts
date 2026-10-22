@@ -223,6 +223,12 @@ export interface ProductionReviewPullRequestJSON {
   headSha: string;
   baseRefName?: string | undefined;
   isFromFork: boolean;
+  /*
+   * Whether its author can write to the repository, as the review was
+   * asked: only then are its pushes reviewed on their own. Unset in a
+   * review kept before it was recorded.
+   */
+  isAuthorTrusted?: boolean | undefined;
 }
 
 /*

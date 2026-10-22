@@ -1,4 +1,5 @@
 import ProductionReviewRunner, {
+  PRODUCTION_REVIEW_FAILED_MESSAGE,
   PRODUCTION_REVIEW_OFF_MESSAGE,
   PULL_REQUEST_CLOSED_MESSAGE,
   PULL_REQUEST_DRAFT_MESSAGE,
@@ -326,6 +327,8 @@ describe("ProductionReviewRunner", () => {
           number: 42,
           headSha: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
           isFromFork: false,
+          // Its pushes are reviewed on their own: its page says so.
+          isAuthorTrusted: true,
         },
         changedFileCount: 2,
         codeFileCount: 1,
@@ -371,6 +374,10 @@ describe("ProductionReviewRunner", () => {
       expect(postedBody()).toContain(
         "Not updated on its own: ask again with `@oneuptime production review` after new commits.",
       );
+      // And the review's page in Code says the same.
+      expect(finished().outcome!.productionReview!.pullRequest).toMatchObject({
+        isAuthorTrusted: false,
+      });
     });
   });
 
@@ -663,7 +670,15 @@ describe("ProductionReviewRunner", () => {
       expect(fail.mock.calls[0]![0]).toMatchObject({
         requestNumber: 2,
         isRetryable: true,
+        errorMessage: PRODUCTION_REVIEW_FAILED_MESSAGE(),
       });
+      /*
+       * Kept only once it failed again: said once on the review's page,
+       * with what starts a new one - never that it tries again.
+       */
+      expect(PRODUCTION_REVIEW_FAILED_MESSAGE()).toBe(
+        "OneUptime could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.",
+      );
     });
 
     test("runs every review the queue hands it", async () => {

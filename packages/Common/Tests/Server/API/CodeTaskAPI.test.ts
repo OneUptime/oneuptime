@@ -1522,4 +1522,41 @@ describe("the repositories, at a glance", () => {
       CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
     ).toBe(false);
   });
+
+  /*
+   * And whether the GitHub App answers commands in it - the production
+   * review command among them - so the reviews page offers the command only
+   * where it is answered: unset is on, as GitHubCommandAuthorizer reads it.
+   */
+  test("says whether the GitHub App answers commands: on unless turned off", async () => {
+    const CodeTaskAPI: typeof import("../../../Server/API/CodeTaskAPI").default =
+      (await import("../../../Server/API/CodeTaskAPI")).default;
+    const GitHubCommandAuthorizer: typeof import("../../../Server/Utils/CodeRepository/GitHub/GitHubCommandAuthorizer").default =
+      (
+        await import(
+          "../../../Server/Utils/CodeRepository/GitHub/GitHubCommandAuthorizer"
+        )
+      ).default;
+    const value: CodeRepository = repository();
+
+    expect(CodeTaskAPI.toRepositoryJSON(value, true)).not.toHaveProperty(
+      "isGitHubCommandsEnabled",
+    );
+
+    for (const [stored, shown] of [
+      [true, true],
+      [false, false],
+      [null, true],
+    ] as Array<[boolean | null, boolean]>) {
+      (
+        value as unknown as { isGitHubCommandsEnabled: boolean | null }
+      ).isGitHubCommandsEnabled = stored;
+
+      expect(
+        CodeTaskAPI.toRepositoryJSON(value, true).isGitHubCommandsEnabled,
+      ).toBe(shown);
+      // As the server answers a command.
+      expect(GitHubCommandAuthorizer.areCommandsEnabled(value)).toBe(shown);
+    }
+  });
 });

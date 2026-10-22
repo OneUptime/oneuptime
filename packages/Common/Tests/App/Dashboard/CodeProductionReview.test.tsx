@@ -53,17 +53,21 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *  - the review (CodeProductionReview): OneUptime AI's points, or why there
  *    are none; the services the changed code runs in; then what production
  *    shows of the changed code - exceptions, operations, hot functions,
- *    incidents, deploys - each linked to where it lives in OneUptime; what
- *    could not be read; and, always, that only aggregates leave OneUptime.
- *    A review that found nothing says why. Every word of it is drawn as
- *    text: OneUptime AI's points and the names of code never as markup.
+ *    incidents, deploys - each linked to where it lives in OneUptime, each
+ *    row's facts on Code's meta line and the names of code wrapping only
+ *    between their parts; what could not be read, before the findings; and,
+ *    where the review was posted, that only aggregates left OneUptime. A
+ *    review that found nothing says why. Every word of it is drawn as text:
+ *    OneUptime AI's points and the names of code never as markup.
  *  - its page (CodeProductionReviewTask, through the task's page): what it
  *    is of - the pull request, the commit, when - and what the pull request
  *    shows of it; while a review runs, the one before it stays; a review
  *    that failed or was not done says why; Review again where a reply box
  *    would be, for those who may ask, and why not for the rest.
- *  - the repository's Production Reviews page: whether reviews are on, the
- *    way to Settings, the reviews, and what to do when there are none.
+ *  - the repository's Production Reviews page: whether reviews are on, how
+ *    a pull request gets one (the GitHub command only while the GitHub App
+ *    answers commands), the way to Settings, the reviews, and what the list
+ *    holds when there are none.
  *  - a review's row in a list, its trail, the repository's menu and trail.
  */
 
@@ -600,8 +604,14 @@ describe("the review: what production shows of the changed code", () => {
     const row: HTMLElement = within(section).getByTestId(
       "production-review-hot-function",
     );
-    expect(row).toHaveTextContent("18%");
-    expect(row).toHaveTextContent("18% with what it calls, 2.5% in itself");
+    expect(
+      within(row).getByTestId("production-review-hot-function-share"),
+    ).toHaveTextContent("18%");
+    // Said once: the figure is its share with what it calls; the facts add its own.
+    expect(row).not.toHaveTextContent("with what it calls");
+    expect(
+      within(row).getByTestId("production-review-hot-function-facts"),
+    ).toHaveTextContent("2.5% in its own code");
     expect(row).toHaveTextContent("CPU time");
 
     const url: URL = new URL(
@@ -767,7 +777,7 @@ describe("the review: what production shows of the changed code", () => {
     );
   });
 
-  test("it always says what never leaves OneUptime", () => {
+  test("where the review was posted, it says what never leaves OneUptime - and nowhere else", () => {
     drawReview(report());
     expect(
       screen.getByTestId("production-review-aggregates"),
@@ -775,9 +785,105 @@ describe("the review: what production shows of the changed code", () => {
       "Only counts, durations and the names of code are posted on GitHub: never an exception's message, a log line, an incident's title or personal data.",
     );
 
+    // A link posts nothing of production, and nothing posted posts nothing.
+    for (const posting of [
+      ProductionReviewPosting.Link,
+      ProductionReviewPosting.None,
+    ]) {
+      cleanup();
+      drawReview(report({ posting }));
+      expect(screen.queryByTestId("production-review-aggregates")).toBeNull();
+    }
+
     cleanup();
     drawReview(emptyReport());
-    expect(screen.getByTestId("production-review-aggregates")).toBeTruthy();
+    expect(screen.queryByTestId("production-review-aggregates")).toBeNull();
+  });
+
+  test("what could not be read is said before the findings, so none is read without it", () => {
+    drawReview(
+      report({ unreadSections: [ProductionReviewSection.Exceptions] }),
+    );
+
+    const unread: HTMLElement = screen.getByTestId("production-review-unread");
+    const findings: HTMLElement = screen.getByTestId(
+      "production-review-operations",
+    );
+    expect(
+      unread.compareDocumentPosition(findings) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Before "nothing found" too.
+    cleanup();
+    drawReview(
+      emptyReport({ unreadSections: [ProductionReviewSection.Exceptions] }),
+    );
+    expect(
+      screen
+        .getByTestId("production-review-unread")
+        .compareDocumentPosition(
+          screen.getByTestId("production-review-nothing-found"),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a row's facts are Code's meta line: a dot between facts, never one that starts a line", () => {
+    drawReview(report());
+
+    const row: HTMLElement = screen.getAllByTestId(
+      "production-review-exception",
+    )[0]!;
+    const facts: HTMLElement = within(row).getByTestId(
+      "production-review-exception-facts",
+    );
+    // Path, function, closeness, service, last seen: a dot before each but the first.
+    expect(within(facts).getAllByTestId("code-meta-dot")).toHaveLength(4);
+    // The meta line clips a wrapped fact's dot: its box hides what overflows.
+    expect(facts.className).toContain("overflow-hidden");
+
+    const service: HTMLElement = screen.getAllByTestId(
+      "production-review-service",
+    )[0]!;
+    // The service's name, its spans and its p99: two dots, inside the chip.
+    expect(within(service).getAllByTestId("code-meta-dot")).toHaveLength(2);
+  });
+
+  test("the names of code wrap between their parts on a narrow screen - after a folder, or a dot before a long part - never inside one", () => {
+    drawReview(
+      report({
+        operations: [
+          {
+            ...report().operations[0]!,
+            name: "PaymentClient.chargeWithRetries",
+          },
+        ],
+      }),
+    );
+
+    const operation: HTMLElement = within(
+      screen.getByTestId("production-review-operation"),
+    ).getByText((_content: string, element: Element | null): boolean => {
+      return (
+        element?.tagName === "CODE" &&
+        element.textContent === "PaymentClient.chargeWithRetries"
+      );
+    });
+    expect(operation.querySelectorAll("wbr")).toHaveLength(1);
+    expect(operation.innerHTML).toContain(
+      "PaymentClient.<wbr>chargeWithRetries",
+    );
+
+    // A path at its folders; "charge.ts:88" stays whole.
+    const where: HTMLElement = within(
+      screen.getAllByTestId("production-review-exception")[0]!,
+    ).getByText((_content: string, element: Element | null): boolean => {
+      return (
+        element?.tagName === "CODE" &&
+        element.textContent === "src/payments/charge.ts:88"
+      );
+    });
+    expect(where.innerHTML).toBe("src/<wbr>payments/<wbr>charge.ts:88");
   });
 });
 
@@ -899,13 +1005,15 @@ describe("a review's page", () => {
       "production-review-posting",
     );
     expect(posting).toHaveAttribute("data-posting", "None");
+    // Said once: the review below says why.
     expect(posting).toHaveTextContent(
-      "Nothing was posted on the pull request: production shows nothing about the code it changes.",
+      "Nothing was posted on the pull request.",
     );
+    expect(posting).not.toHaveTextContent("production shows nothing");
     expect(screen.queryByTestId("production-review-comment")).toBeNull();
   });
 
-  test("waiting to start, it says a review waits a minute after the pull request last changed", () => {
+  test("waiting to start, it says when it starts - true after a push and after Review again alike", () => {
     drawTask(
       taskAnswer({
         task: summary({ state: CodeTaskState.Working, isQueued: true }),
@@ -914,7 +1022,7 @@ describe("a review's page", () => {
     );
 
     expect(screen.getByTestId("production-review-working")).toHaveTextContent(
-      "Starting soon: a review waits a minute after the pull request last changed.",
+      "Starting in a minute or so.",
     );
     expect(screen.queryByTestId("production-review")).toBeNull();
     // While it works, Review again waits too: the line above says why.
@@ -948,24 +1056,37 @@ describe("a review's page", () => {
     expect(screen.getByTestId("production-review")).toBeTruthy();
   });
 
-  test("a review that failed says so, and why", () => {
+  test("a review that failed says so once - the server's sentence, with what starts a new one", () => {
+    const sentence: string =
+      "OneUptime could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.";
     drawTask(
       taskAnswer({
         task: summary({ state: CodeTaskState.Failed }),
         turns: [
           turn({
             state: CodeTaskState.Failed,
-            errorMessage:
-              "OneUptime could not finish this production review. It tries again, and every push asks for a new one.",
+            errorMessage: sentence,
           }),
         ],
       }),
     );
 
     const failed: HTMLElement = screen.getByTestId("production-review-failed");
-    expect(failed).toHaveTextContent("The review could not finish.");
-    expect(failed).toHaveTextContent(
-      "OneUptime could not finish this production review.",
+    expect(failed).toHaveTextContent(sentence);
+    // Not said twice over it.
+    expect(failed).not.toHaveTextContent("The review could not finish.");
+    // The review before it stays, below.
+    expect(screen.getByTestId("production-review")).toBeTruthy();
+
+    cleanup();
+    drawTask(
+      taskAnswer({
+        task: summary({ state: CodeTaskState.Failed }),
+        turns: [turn({ state: CodeTaskState.Failed, outcome: undefined })],
+      }),
+    );
+    expect(screen.getByTestId("production-review-failed")).toHaveTextContent(
+      "The review could not finish.",
     );
   });
 
@@ -1021,6 +1142,45 @@ describe("a review's page", () => {
     expect(screen.getByTestId("code-task-footer")).toHaveTextContent(
       "Production review is off for this repository, so this pull request is reviewed again only when someone asks.",
     );
+  });
+
+  test("a pull request whose author cannot write to the repository says it is reviewed again only when asked, as its comment does", () => {
+    drawTask(
+      taskAnswer({
+        turns: [
+          turn({
+            outcome: {
+              summary: "",
+              filesChanged: [],
+              productionReview: report({
+                pullRequest: {
+                  ...report().pullRequest,
+                  isFromFork: true,
+                  isAuthorTrusted: false,
+                },
+              }),
+            },
+          }),
+        ],
+      }),
+    );
+
+    expect(screen.getByTestId("production-review-updates")).toHaveTextContent(
+      "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
+    );
+    // Review again is right there for those who may ask.
+    expect(screen.getByTestId("production-review-again")).toBeEnabled();
+  });
+
+  test("the commit is named in words, its sha drawn as code", () => {
+    drawTask(taskAnswer());
+
+    const commit: HTMLElement = screen.getByTestId("production-review-commit");
+    expect(commit).toHaveTextContent("Commit 4f2a9c1");
+    expect(within(commit).getByText("4f2a9c1").className).toContain(
+      "font-mono",
+    );
+    expect(within(commit).getByText("4f2a9c1")).not.toBe(commit);
   });
 
   test("someone who may only read is told why they cannot review it again; a repository no longer connected says so", () => {
@@ -1154,7 +1314,11 @@ describe("a repository's Production Reviews", () => {
   });
 
   function repositoryAnswer(
-    data: { isProductionReviewEnabled?: boolean; canAsk?: boolean } = {},
+    data: {
+      isProductionReviewEnabled?: boolean;
+      isGitHubCommandsEnabled?: boolean;
+      canAsk?: boolean;
+    } = {},
   ): Record<string, unknown> {
     return {
       repository: {
@@ -1164,6 +1328,7 @@ describe("a repository's Production Reviews", () => {
         repositoryName: "checkout-api",
         isConnected: true,
         isProductionReviewEnabled: data.isProductionReviewEnabled ?? true,
+        isGitHubCommandsEnabled: data.isGitHubCommandsEnabled ?? true,
       },
       stats: {
         working: 0,
@@ -1219,12 +1384,24 @@ describe("a repository's Production Reviews", () => {
     expect(status).toHaveTextContent(
       "A pull request from someone with write access is reviewed when it opens and each time it changes.",
     );
+    // And how anyone else's is: the command, drawn as code.
+    const others: HTMLElement = within(status).getByTestId(
+      "code-production-reviews-status-others",
+    );
+    expect(others).toHaveTextContent(
+      "A pull request from anyone else is reviewed when someone with write access comments @oneuptime production review on it.",
+    );
     expect(
-      within(status).getByTestId("code-production-reviews-settings"),
-    ).toHaveAttribute(
+      within(others).getByText("@oneuptime production review").tagName,
+    ).toBe("CODE");
+    const settings: HTMLElement = within(status).getByTestId(
+      "code-production-reviews-settings",
+    );
+    expect(settings).toHaveAttribute(
       "href",
       `/dashboard/${PROJECT_ID}/code/repositories/${REPOSITORY_ID}/settings`,
     );
+    expect(settings).toHaveTextContent("Change in Settings");
 
     await waitFor(() => {
       expect(listTasksMock).toHaveBeenCalled();
@@ -1234,6 +1411,13 @@ describe("a repository's Production Reviews", () => {
       kind: CodeTaskListKind.ProductionReviews,
       skip: 0,
     });
+
+    // The list is of pull requests: its heading says so, not the page's name again.
+    expect(
+      within(screen.getByTestId("code-production-reviews-list")).getByRole(
+        "heading",
+      ),
+    ).toHaveTextContent(/^Pull Requests/);
 
     const row: HTMLElement = await screen.findByTestId("code-task-row");
     expect(row).toHaveTextContent("Retry charges when the gateway times out");
@@ -1270,17 +1454,26 @@ describe("a repository's Production Reviews", () => {
       within(status).getByText("@oneuptime production review").tagName,
     ).toBe("CODE");
 
+    // Off, the one thing to do is to turn it on; nobody is told twice how to ask.
+    expect(
+      within(status).getByTestId("code-production-reviews-settings"),
+    ).toHaveTextContent("Turn on in Settings");
+    expect(
+      screen.queryByTestId("code-production-reviews-status-others"),
+    ).toBeNull();
+
     const empty: HTMLElement = await screen.findByTestId(
       "code-production-reviews-empty",
     );
     expect(empty).toHaveTextContent("No pull request reviewed yet");
     expect(empty).toHaveTextContent(
-      "Turn on Review Pull Requests Against Production in Settings, or comment @oneuptime production review on a pull request.",
+      "Each pull request's latest review shows up here.",
     );
+    expect(empty).not.toHaveTextContent("production review");
     expect(screen.queryByTestId("code-production-reviews-count")).toBeNull();
   });
 
-  test("on with none yet: it says a review shows up when a pull request opens or changes", async () => {
+  test("on with none yet: the list says what it will hold; the status line says how a review comes", async () => {
     getRepositoryMock.mockResolvedValue(repositoryAnswer() as never);
     listTasksMock.mockResolvedValue(listAnswer([]) as never);
 
@@ -1288,9 +1481,46 @@ describe("a repository's Production Reviews", () => {
 
     expect(
       await screen.findByTestId("code-production-reviews-empty"),
-    ).toHaveTextContent(
-      "When someone with write access opens or pushes to a pull request, its production review shows up here.",
+    ).toHaveTextContent("Each pull request's latest review shows up here.");
+  });
+
+  test("with the GitHub App answering no command, the page never offers the command", async () => {
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer({
+        isProductionReviewEnabled: false,
+        isGitHubCommandsEnabled: false,
+      }) as never,
     );
+    listTasksMock.mockResolvedValue(listAnswer([]) as never);
+
+    draw(<CodeRepositoryProductionReviews {...PAGE_PROPS} />);
+
+    const status: HTMLElement = await screen.findByTestId(
+      "code-production-reviews-status",
+    );
+    expect(status).toHaveTextContent(
+      "Pull requests are not reviewed against production.",
+    );
+    expect(status).not.toHaveTextContent("production review on it");
+    expect(status.querySelector("code")).toBeNull();
+    expect(
+      within(status).getByTestId("code-production-reviews-settings"),
+    ).toHaveTextContent("Turn on in Settings");
+
+    // On, only the repository's own pull requests: no line for anyone else's.
+    cleanup();
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer({ isGitHubCommandsEnabled: false }) as never,
+    );
+    draw(<CodeRepositoryProductionReviews {...PAGE_PROPS} />);
+    expect(
+      await screen.findByTestId("code-production-reviews-status"),
+    ).toHaveTextContent(
+      "A pull request from someone with write access is reviewed when it opens and each time it changes.",
+    );
+    expect(
+      screen.queryByTestId("code-production-reviews-status-others"),
+    ).toBeNull();
   });
 
   test("the command names the app this OneUptime was set up with", async () => {

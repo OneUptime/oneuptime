@@ -49,6 +49,26 @@ export interface ComponentProps {
   fadeStyle?: React.CSSProperties | undefined;
 }
 
+/*
+ * When the pull request is reviewed again, as its comment says it: on every
+ * change while the repository's switch is on and its author can write to
+ * the repository - otherwise only when someone asks.
+ */
+export function getProductionReviewUpdatesSentence(data: {
+  data: Pick<CodeTaskResponse, "repository">;
+  report: ProductionReviewReport | null;
+}): string {
+  if (!data.data.repository?.isProductionReviewEnabled) {
+    return PRODUCTION_REVIEW_COPY.updatesWhenAsked;
+  }
+
+  if (data.report?.pullRequest.isAuthorTrusted === false) {
+    return PRODUCTION_REVIEW_COPY.updatesWhenAskedForAuthor;
+  }
+
+  return PRODUCTION_REVIEW_COPY.updatesOnChange;
+}
+
 // The latest review the task holds, from its own turn.
 export function getLatestProductionReview(
   turns: Array<CodeTaskTurnJSON>,
@@ -117,6 +137,11 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
       );
     }
 
+    /*
+     * Failed: the server's sentence says it all - that it could not finish
+     * and what starts a new one - so it is the only line; one with no
+     * sentence says that it could not finish.
+     */
     if (data.task.state === CodeTaskState.Failed) {
       return (
         <div
@@ -127,18 +152,9 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
             icon={IconProp.ExclaimationCircle}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
           />
-          <div className="min-w-0">
-            <p className="font-medium">
-              {text(PRODUCTION_REVIEW_COPY.failedTitle)}
-            </p>
-            {turn?.errorMessage ? (
-              <p className="mt-0.5 break-words text-red-700">
-                {turn.errorMessage}
-              </p>
-            ) : (
-              <></>
-            )}
-          </div>
+          <p className="min-w-0 break-words">
+            {turn?.errorMessage || text(PRODUCTION_REVIEW_COPY.failedTitle)}
+          </p>
         </div>
       );
     }
@@ -190,10 +206,11 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
         data-testid="production-review-footer-bar"
         className="flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
       >
-        <p className="min-w-0 flex-1 basis-56 text-sm text-gray-600">
-          {data.repository.isProductionReviewEnabled
-            ? text(PRODUCTION_REVIEW_COPY.updatesOnChange)
-            : text(PRODUCTION_REVIEW_COPY.updatesWhenAsked)}
+        <p
+          data-testid="production-review-updates"
+          className="min-w-0 flex-1 basis-56 text-sm text-gray-600"
+        >
+          {text(getProductionReviewUpdatesSentence({ data, report }))}
         </p>
         {/*
          * Waits while a review is asked for or runs - the line above the
@@ -304,16 +321,19 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
             <span
               data-testid="production-review-commit"
               title={report.pullRequest.headSha}
-              className="font-mono text-xs"
             >
-              {translator.translateTemplate(
-                PRODUCTION_REVIEW_COPY.commitLabel,
-                {
-                  sha: ProductionReviewUtil.shortSha(
-                    report.pullRequest.headSha,
+              <TranslatedSentence
+                template={PRODUCTION_REVIEW_COPY.commitLabel}
+                slots={{
+                  sha: (
+                    <span className="font-mono text-xs">
+                      {ProductionReviewUtil.shortSha(
+                        report.pullRequest.headSha,
+                      )}
+                    </span>
                   ),
-                },
-              )}
+                }}
+              />
             </span>
           ) : (
             <></>

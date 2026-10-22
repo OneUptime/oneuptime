@@ -43,12 +43,15 @@ export const PRODUCTION_REVIEW_COPY: {
   pageDescription: string;
   statusOnLabel: string;
   statusOn: string;
+  statusOnOthers: string;
   statusOffLabel: string;
   statusOff: string;
+  statusOffNoCommands: string;
   openSettings: string;
+  turnOnInSettings: string;
+  listTitle: string;
   emptyTitle: string;
-  emptyOn: string;
-  emptyOff: string;
+  emptyDescription: string;
   pullRequestFallbackTitle: string;
   reviewAgain: string;
   reviewingAgain: string;
@@ -76,7 +79,7 @@ export const PRODUCTION_REVIEW_COPY: {
   newBadge: string;
   unhandledBadge: string;
   allTimeCount: string;
-  hotFunctionShare: string;
+  hotFunctionSelf: string;
   incidentNames: string;
   lastSeen: string;
   declared: string;
@@ -95,6 +98,7 @@ export const PRODUCTION_REVIEW_COPY: {
   viewComment: string;
   updatesOnChange: string;
   updatesWhenAsked: string;
+  updatesWhenAskedForAuthor: string;
   cannotReviewAgain: string;
   notConnected: string;
 } = {
@@ -109,18 +113,34 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOn: translationKey(
     "A pull request from someone with write access is reviewed when it opens and each time it changes.",
   ),
+  /*
+   * After statusOn, while the GitHub App answers commands: how a pull
+   * request from an outside contributor or a fork is reviewed. {{command}}
+   * is the mention, drawn as code.
+   */
+  statusOnOthers: translationKey(
+    "A pull request from anyone else is reviewed when someone with write access comments {{command}} on it.",
+  ),
   statusOffLabel: translationKey("Off"),
   // {{command}} is the mention, drawn as code.
   statusOff: translationKey(
     "A pull request is reviewed only when someone with write access comments {{command}} on it.",
   ),
-  openSettings: translationKey("Change in Settings"),
-  emptyTitle: translationKey("No pull request reviewed yet"),
-  emptyOn: translationKey(
-    "When someone with write access opens or pushes to a pull request, its production review shows up here.",
+  // Off, and the GitHub App answers no command in the repository either.
+  statusOffNoCommands: translationKey(
+    "Pull requests are not reviewed against production.",
   ),
-  emptyOff: translationKey(
-    "Turn on Review Pull Requests Against Production in Settings, or comment {{command}} on a pull request.",
+  openSettings: translationKey("Change in Settings"),
+  turnOnInSettings: translationKey("Turn on in Settings"),
+  // The list's heading: what its rows are.
+  listTitle: translationKey("Pull Requests"),
+  emptyTitle: translationKey("No pull request reviewed yet"),
+  /*
+   * What the list will hold. How a review comes is the status line's to
+   * say, above it.
+   */
+  emptyDescription: translationKey(
+    "Each pull request's latest review shows up here.",
   ),
   // A review whose pull request's title is not known yet.
   pullRequestFallbackTitle: translationKey("Pull request {{label}}"),
@@ -128,10 +148,11 @@ export const PRODUCTION_REVIEW_COPY: {
   reviewingAgain: translationKey("Reviewing again…"),
   // A list row's state while a review runs.
   rowReviewing: translationKey("Reviewing…"),
-  // Queued: a review starts a moment after the pull request last changed.
-  queued: translationKey(
-    "Starting soon: a review waits a minute after the pull request last changed.",
-  ),
+  /*
+   * Queued: a push waits a minute (so a burst is reviewed once) and Review
+   * again is due at once, and a worker takes due reviews every minute.
+   */
+  queued: translationKey("Starting in a minute or so."),
   reviewing: translationKey("Reviewing against production…"),
   failedTitle: translationKey("The review could not finish."),
   reviewedAt: translationKey("Reviewed {{time}}"),
@@ -155,9 +176,8 @@ export const PRODUCTION_REVIEW_COPY: {
   unhandledBadge: translationKey("Unhandled"),
   // A count the exceptions window could not read: the group's own.
   allTimeCount: translationKey("{{count}} in all"),
-  hotFunctionShare: translationKey(
-    "{{total}} with what it calls, {{self}} in itself",
-  ),
+  // A hot function's own share; the row's figure is its share with what it calls.
+  hotFunctionSelf: translationKey("{{self}} in its own code"),
   // {{subject}} is a changed file or function, drawn as code.
   incidentNames: translationKey(
     "Its root cause or postmortem names {{subject}}",
@@ -190,15 +210,21 @@ export const PRODUCTION_REVIEW_COPY: {
   postedLinkChosen: translationKey(
     "This repository's pull requests only link to their review, as its settings ask.",
   ),
-  postedNothing: translationKey(
-    "Nothing was posted on the pull request: production shows nothing about the code it changes.",
-  ),
+  // The review below says why: it found nothing.
+  postedNothing: translationKey("Nothing was posted on the pull request."),
   viewComment: translationKey("View comment"),
   updatesOnChange: translationKey(
     "Reviewed again each time the pull request changes.",
   ),
   updatesWhenAsked: translationKey(
     "Production review is off for this repository, so this pull request is reviewed again only when someone asks.",
+  ),
+  /*
+   * On, but its author cannot write to the repository (an outside
+   * contributor, a fork): its pushes are not reviewed on their own.
+   */
+  updatesWhenAskedForAuthor: translationKey(
+    "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.",
   ),
   cannotReviewAgain: translationKey(
     "You can read this review. Reviewing it again takes permission to edit the repository - ask a project admin for it.",
@@ -612,6 +638,59 @@ export function formatReviewPercent(
     percent >= 10 ? Math.round(percent) : Math.round(percent * 10) / 10;
 
   return `${translator.formatNumber(rounded)}%`;
+}
+
+// Where the name of a piece of code may break onto a new line, after it.
+const CODE_NAME_BREAKS_ALWAYS: string = "/\\_";
+// ...and after these only before a long part: "charge.ts" stays whole.
+const CODE_NAME_BREAKS_BEFORE_LONG: string = ".:";
+const CODE_NAME_LONG_PART: number = 5;
+
+/*
+ * The name of a piece of code - a path, an operation, a function - in the
+ * pieces a narrow screen may wrap it between: after each "/", "\" and "_",
+ * and after a "." or ":" that a long part follows. So
+ * "PaymentClient.chargeWithRetries" wraps as "PaymentClient." and
+ * "chargeWithRetries", a path at its folders, and "charge.ts:88" or
+ * "v2.14.0" never. One pass, in time in line with the name.
+ */
+export function splitCodeNameAtBreaks(name: string): Array<string> {
+  const characters: Array<string> = Array.from(name);
+  // The length of the part that starts at each character: up to its next break.
+  const partLengths: Array<number> = new Array<number>(characters.length + 1);
+  partLengths[characters.length] = 0;
+
+  for (let index: number = characters.length - 1; index >= 0; index--) {
+    const character: string = characters[index] as string;
+    const isBreak: boolean =
+      CODE_NAME_BREAKS_ALWAYS.includes(character) ||
+      CODE_NAME_BREAKS_BEFORE_LONG.includes(character);
+
+    partLengths[index] = isBreak ? 0 : (partLengths[index + 1] as number) + 1;
+  }
+
+  const pieces: Array<string> = [];
+  let current: string = "";
+
+  characters.forEach((character: string, index: number) => {
+    current += character;
+
+    const breaksAfter: boolean =
+      CODE_NAME_BREAKS_ALWAYS.includes(character) ||
+      (CODE_NAME_BREAKS_BEFORE_LONG.includes(character) &&
+        (partLengths[index + 1] as number) >= CODE_NAME_LONG_PART);
+
+    if (breaksAfter && index < characters.length - 1) {
+      pieces.push(current);
+      current = "";
+    }
+  });
+
+  if (current) {
+    pieces.push(current);
+  }
+
+  return pieces;
 }
 
 /*

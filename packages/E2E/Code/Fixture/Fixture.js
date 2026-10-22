@@ -75,6 +75,15 @@
  *   - reviewcomment=Link|ReviewEvenIfPublic  what checkout-api's production
  *                       review comment shows; by default never chosen (the
  *                       review, or a link on a public repository)
+ *   - reviewcase=<case> pull request #42's latest review: failed (tried
+ *                       again and failed again, the review before it kept),
+ *                       closed (not reviewed: the pull request was closed),
+ *                       unread (its traces and profiles could not be read),
+ *                       aioff (AI is off: no points, and why), public (a
+ *                       public repository: the pull request only links to
+ *                       it), outside (its author cannot write to the
+ *                       repository) or long (long names of code and
+ *                       services, for a phone to wrap)
  *
  * checkout-api's pull requests are reviewed against production
  * (Common/Server/Utils/CodeRepository/ProductionReview): #42 found
@@ -134,8 +143,10 @@ import {
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import {
+  ProductionReviewAiNoteCode,
   ProductionReviewOperationMatch,
   ProductionReviewPosting,
+  ProductionReviewSection,
   ProductionReviewTrigger,
   ProductionReviewUtil,
   ProductionReviewWhere,
@@ -465,6 +476,8 @@ function withProductionReview(repository) {
   return {
     ...repository,
     isProductionReviewEnabled: settings.isProductionReviewEnabled === true,
+    // Unset is on, as the server reads it.
+    isGitHubCommandsEnabled: settings.isGitHubCommandsEnabled !== false,
   };
 }
 
@@ -962,6 +975,7 @@ function foundReport(reviewedAt, headSha) {
       headSha,
       baseRefName: "main",
       isFromFork: false,
+      isAuthorTrusted: true,
     },
     reviewedAt,
     trigger: ProductionReviewTrigger.PullRequestChanged,
@@ -1199,6 +1213,68 @@ const REVIEW_TASKS = [
   },
 ];
 
+// The failure a review ends with once it was tried again (ProductionReviewRunner).
+const REVIEW_FAILED_MESSAGE =
+  "OneUptime could not finish this production review, even after trying again. A push to the pull request, or Review again, starts a new one.";
+
+/*
+ * reviewcase: #42's latest review in one of the states its page draws, as
+ * the server leaves it - a review that failed or was not done keeps the
+ * one before it.
+ */
+function applyReviewCase(task, reviewCase) {
+  const latest = task.turns[task.turns.length - 1];
+  const report = latest.outcome.productionReview;
+  if (reviewCase === "failed") {
+    latest.status = AIRunStatus.Error;
+    latest.errorMessage = REVIEW_FAILED_MESSAGE;
+  }
+  if (reviewCase === "closed") {
+    latest.errorMessage = "The pull request is closed, so it was not reviewed.";
+  }
+  if (reviewCase === "unread") {
+    report.unreadSections = [
+      ProductionReviewSection.Operations,
+      ProductionReviewSection.Profiles,
+    ];
+    report.operations = [];
+    report.hotFunctions = [];
+  }
+  if (reviewCase === "aioff") {
+    report.points = [];
+    report.aiNote = { code: ProductionReviewAiNoteCode.AiOff };
+  }
+  if (reviewCase === "public") {
+    report.posting = ProductionReviewPosting.Link;
+    report.isPublicRepository = true;
+  }
+  if (reviewCase === "outside") {
+    report.pullRequest.isAuthorTrusted = false;
+    report.pullRequest.isFromFork = true;
+    report.trigger = ProductionReviewTrigger.GitHubCommand;
+  }
+  if (reviewCase === "long") {
+    report.services[0].name = "checkout-api-payments-gateway-eu-west-1";
+    report.exceptions[0].type = "PaymentGatewayIdempotencyKeyConflictError";
+    report.exceptions[0].path =
+      "services/checkout/src/payments/gateway/adapters/stripe/retry-policy-for-card-networks-and-wallets.ts";
+    report.operations[1].name =
+      "PaymentGatewayClient.chargeWithRetriesAndIdempotencyKeys";
+    report.operations.push({
+      name: "GET /api/v2/organizations/:organizationId/payment-methods/:paymentMethodId/verification",
+      serviceId: REVIEW_RECORD_IDS.service,
+      serviceName: "checkout-api-payments-gateway-eu-west-1",
+      path: "src/payments/verification.ts",
+      matchedBy: ProductionReviewOperationMatch.Route,
+      requestCount: 120,
+      errorCount: 30,
+      p95Ms: 64000,
+    });
+    report.hotFunctions[0].path =
+      "services/checkout/src/payments/gateway/adapters/stripe/charge-card-with-retries.ts";
+  }
+}
+
 if (
   params.get("reviews") !== "none" &&
   repositories.some((repository) => {
@@ -1206,6 +1282,14 @@ if (
   })
 ) {
   tasks.push(...REVIEW_TASKS);
+  if (params.get("reviewcase")) {
+    applyReviewCase(
+      REVIEW_TASKS.find((task) => {
+        return task.id === REVIEW_IDS.found;
+      }),
+      params.get("reviewcase"),
+    );
+  }
 }
 
 function isReview(task) {

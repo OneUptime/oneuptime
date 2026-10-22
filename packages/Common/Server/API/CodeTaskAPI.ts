@@ -971,6 +971,15 @@ export default class CodeTaskAPI {
         repository.isProductionReviewEnabled === true;
     }
 
+    /*
+     * Unset (null) is on, as GitHubCommandAuthorizer.areCommandsEnabled
+     * reads it: the production review command is answered only while it is.
+     */
+    if (repository.isGitHubCommandsEnabled !== undefined) {
+      json.isGitHubCommandsEnabled =
+        repository.isGitHubCommandsEnabled !== false;
+    }
+
     return json;
   }
 
