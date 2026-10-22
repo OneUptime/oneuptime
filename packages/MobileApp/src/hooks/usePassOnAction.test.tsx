@@ -55,13 +55,15 @@ jest.mock("./useHaptics", () => {
 });
 
 /*
- * "Pass it on" on a detail screen. A push notification about a page opens
- * the screen of what it is about; the person who cannot take it passes it
- * on from there. The button is there for them only - for anybody the policy
- * is not paging, and whenever the server cannot be asked, there is none and
- * the screen is as it was. Pressing it asks first, saying what passing on
- * will do; only "Pass it on" in that question passes it on. Then it says
- * what it did, or why there was nothing to pass on.
+ * "Escalate" on a detail screen. A push notification about a page opens the
+ * screen of what it is about; the person who cannot take it escalates it
+ * from there. The button is there for them only - for anybody the policy is
+ * not paging, and whenever the server cannot be asked, there is none and the
+ * screen is as it was. Pressing it asks first, in the words of the
+ * Dashboard's dialog - "Escalate Incident?", what escalating will do, then
+ * "You will not be paged again for this incident." - and only "Escalate" in
+ * that question escalates it. Then it says what it did, or why there was
+ * nothing to escalate. The action was called "Pass it on" before.
  */
 
 const fetchMock: jest.MockedFunction<typeof fetchOnCallPassOnPages> =
@@ -73,13 +75,21 @@ const PAGE: OnCallPassOnPage = {
   executionLogId: "run-1",
   policyName: "Payments",
   sentence:
-    "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+    "This will immediately page Platform leads (Level 2 of 3), without waiting.",
 };
 
 const PASSED: OnCallPassOnAnswer = {
   passedOn: true,
   policyName: "Payments",
-  sentence: "Escalation rule 2 of 3 (Level 2) is paging Sam Lee now.",
+  sentence: "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
+};
+
+// What a screen calls each kind of record, for a screen reader.
+const LABELS: Record<OnCallPageRecordType, string> = {
+  incident: "incident",
+  alert: "alert",
+  "incident-episode": "incident episode",
+  "alert-episode": "alert episode",
 };
 
 interface HookArgs {
@@ -102,7 +112,7 @@ async function renderPassOn(
         projectId: "project-1",
         recordType: args.recordType || "incident",
         recordId: args.recordId ?? "incident-1",
-        recordLabel: "incident",
+        recordLabel: LABELS[args.recordType || "incident"],
         onPassedOn: args.onPassedOn,
       });
     },
@@ -189,7 +199,7 @@ describe("who sees the button", () => {
     expect(rendered.result.current.action).toBeNull();
   });
 
-  test("the person being paged: Pass it on, named for a screen reader", async () => {
+  test("the person being paged: Escalate, named for a screen reader, with an arrow up the levels", async () => {
     fetchMock.mockResolvedValue([PAGE]);
     const client: QueryClient = createTestQueryClient();
 
@@ -199,9 +209,10 @@ describe("who sees the button", () => {
       return expect(rendered.result.current.action).not.toBeNull();
     });
     expect(rendered.result.current.action).toMatchObject({
-      label: "Pass it on",
-      accessibilityLabel: "Pass this incident page on",
-      icon: "play-skip-forward-outline",
+      label: "Escalate",
+      accessibilityLabel: "Escalate this incident",
+      busyAccessibilityLabel: "Escalating",
+      icon: "arrow-up-circle-outline",
     });
     expect(rendered.result.current.action!.primary).toBeFalsy();
   });
@@ -222,7 +233,7 @@ describe("pressing it", () => {
     return rendered;
   }
 
-  test("asks first, saying what passing on will do; Cancel passes nothing on", async () => {
+  test("asks first, in the maintainer's words; Cancel escalates nothing", async () => {
     const client: QueryClient = createTestQueryClient();
     const rendered: HookRender = await pagedAndReady(client);
 
@@ -230,9 +241,9 @@ describe("pressing it", () => {
       await rendered.result.current.action!.onPress();
     });
 
-    expect(lastAlert().title).toBe("Pass it on?");
+    expect(lastAlert().title).toBe("Escalate Incident?");
     expect(lastAlert().message).toBe(
-      `You won't be paged about it again.\n\n${PAGE.sentence}`,
+      `${PAGE.sentence}\n\nYou will not be paged again for this incident.`,
     );
     expect(
       lastAlert().buttons!.map((button: AlertButton) => {
@@ -240,14 +251,14 @@ describe("pressing it", () => {
       }),
     ).toEqual([
       ["Cancel", "cancel"],
-      ["Pass it on", undefined],
+      ["Escalate", undefined],
     ]);
 
     pressInLastAlert("Cancel");
     expect(passOnMock).not.toHaveBeenCalled();
   });
 
-  test("Pass it on: passes it on, says what it did, and the button goes", async () => {
+  test("Escalate: escalates it, says what it did, and the button goes", async () => {
     const onPassedOn: jest.Mock<() => Promise<void>> = jest.fn(
       async (): Promise<void> => {
         return undefined;
@@ -257,18 +268,18 @@ describe("pressing it", () => {
     const rendered: HookRender = await pagedAndReady(client, { onPassedOn });
 
     passOnMock.mockResolvedValue([PASSED]);
-    // Read again after passing on: no longer paged.
+    // Read again after escalating: no longer paged.
     fetchMock.mockResolvedValue([]);
 
     await act(async () => {
       await rendered.result.current.action!.onPress();
     });
     await act(async () => {
-      pressInLastAlert("Pass it on");
+      pressInLastAlert("Escalate");
     });
 
     await waitFor(() => {
-      return expect(lastAlert().title).toBe("You passed it on");
+      return expect(lastAlert().title).toBe("Incident escalated");
     });
     expect(passOnMock).toHaveBeenCalledWith(
       "project-1",
@@ -276,7 +287,7 @@ describe("pressing it", () => {
       "incident-1",
     );
     expect(lastAlert().message).toBe(
-      `${PASSED.sentence}\n\nYou won't be paged about it again.`,
+      `${PASSED.sentence}\n\nYou will not be paged again for this incident.`,
     );
     expect(mockSuccessFeedback).toHaveBeenCalledTimes(1);
 
@@ -287,7 +298,7 @@ describe("pressing it", () => {
     expect(rendered.result.current.passingOn).toBe(false);
   });
 
-  test("My Pages is told: the page shows as passed on there", async () => {
+  test("My Pages is told: the page shows as escalated there", async () => {
     const client: QueryClient = createTestQueryClient();
     const invalidate: jest.SpiedFunction<QueryClient["invalidateQueries"]> =
       jest.spyOn(client, "invalidateQueries");
@@ -299,7 +310,7 @@ describe("pressing it", () => {
       await rendered.result.current.action!.onPress();
     });
     await act(async () => {
-      pressInLastAlert("Pass it on");
+      pressInLastAlert("Escalate");
     });
 
     await waitFor(() => {
@@ -309,7 +320,7 @@ describe("pressing it", () => {
     });
   });
 
-  test("somebody acknowledged it meanwhile: it says why, and the screen is not told of a pass", async () => {
+  test("somebody acknowledged it meanwhile: it says why, and the screen is not told of an escalation", async () => {
     const onPassedOn: jest.Mock<() => void> = jest.fn();
     const client: QueryClient = createTestQueryClient();
     const rendered: HookRender = await pagedAndReady(client, { onPassedOn });
@@ -319,7 +330,7 @@ describe("pressing it", () => {
         passedOn: false,
         policyName: "",
         sentence:
-          "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+          "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
       },
     ]);
 
@@ -327,14 +338,14 @@ describe("pressing it", () => {
       await rendered.result.current.action!.onPress();
     });
     await act(async () => {
-      pressInLastAlert("Pass it on");
+      pressInLastAlert("Escalate");
     });
 
     await waitFor(() => {
-      return expect(lastAlert().title).toBe("Nothing to pass on");
+      return expect(lastAlert().title).toBe("Nothing to escalate");
     });
     expect(lastAlert().message).toBe(
-      "It was already acknowledged by Ana Lopez, so there is nothing to pass on.",
+      "It was already acknowledged by Ana Lopez, so there is nothing to escalate.",
     );
     expect(onPassedOn).not.toHaveBeenCalled();
     expect(mockSuccessFeedback).not.toHaveBeenCalled();
@@ -350,20 +361,20 @@ describe("pressing it", () => {
       await rendered.result.current.action!.onPress();
     });
     await act(async () => {
-      pressInLastAlert("Pass it on");
+      pressInLastAlert("Escalate");
     });
 
     await waitFor(() => {
       return expect(lastAlert().title).toBe("Error");
     });
-    expect(lastAlert().message).toBe("Could not pass it on. Please try again.");
+    expect(lastAlert().message).toBe("Could not escalate. Please try again.");
     expect(mockErrorFeedback).toHaveBeenCalledTimes(1);
     // Still paged, so the button is still there to try again.
     expect(rendered.result.current.action).not.toBeNull();
     expect(rendered.result.current.passingOn).toBe(false);
   });
 
-  test("while it passes on, the screen's buttons are busy", async () => {
+  test("while it escalates, the screen's buttons are busy", async () => {
     let finish: (answers: OnCallPassOnAnswer[]) => void = (): void => {
       return undefined;
     };
@@ -383,7 +394,7 @@ describe("pressing it", () => {
       await rendered.result.current.action!.onPress();
     });
     await act(async () => {
-      pressInLastAlert("Pass it on");
+      pressInLastAlert("Escalate");
     });
 
     expect(rendered.result.current.passingOn).toBe(true);
@@ -397,27 +408,64 @@ describe("pressing it", () => {
     });
   });
 
-  test.each<[OnCallPageRecordType]>([
-    ["alert"],
-    ["incident-episode"],
-    ["alert-episode"],
+  test.each<[OnCallPageRecordType, string, string, string]>([
+    [
+      "alert",
+      "Escalate Alert?",
+      "Alert escalated",
+      "You will not be paged again for this alert.",
+    ],
+    [
+      "incident-episode",
+      "Escalate Episode?",
+      "Episode escalated",
+      "You will not be paged again for this episode.",
+    ],
+    [
+      "alert-episode",
+      "Escalate Episode?",
+      "Episode escalated",
+      "You will not be paged again for this episode.",
+    ],
   ])(
-    "%s: asks about its own kind of record",
-    async (recordType: OnCallPageRecordType) => {
+    "%s: asks about its own kind of record, in its own words",
+    async (
+      recordType: OnCallPageRecordType,
+      question: string,
+      doneTitle: string,
+      notPagedAgain: string,
+    ) => {
       const client: QueryClient = createTestQueryClient();
       const rendered: HookRender = await pagedAndReady(client, {
         recordType,
         recordId: "record-9",
       });
 
+      expect(rendered.result.current.action!.accessibilityLabel).toBe(
+        `Escalate this ${LABELS[recordType]}`,
+      );
+
       passOnMock.mockResolvedValue([PASSED]);
 
       await act(async () => {
         await rendered.result.current.action!.onPress();
       });
+
+      expect(lastAlert().title).toBe(question);
+      expect(lastAlert().message).toBe(
+        `${PAGE.sentence}\n\n${notPagedAgain}`,
+      );
+
       await act(async () => {
-        pressInLastAlert("Pass it on");
+        pressInLastAlert("Escalate");
       });
+
+      await waitFor(() => {
+        return expect(lastAlert().title).toBe(doneTitle);
+      });
+      expect(lastAlert().message).toBe(
+        `${PASSED.sentence}\n\n${notPagedAgain}`,
+      );
 
       await waitFor(() => {
         return expect(passOnMock).toHaveBeenCalledWith(
