@@ -66,6 +66,19 @@ Läuft die Wartezeit der letzten Stufe ab, ohne dass jemand bestätigt, hört ei
 
 Eine Richtlinie, die noch dreimal von vorn beginnt, geht insgesamt viermal durch ihre Stufen. Die Zeile **Nach der letzten Stufe** der Karte sagt, was die Richtlinie tut, und **Richtlinie auf einen Blick** in der **Übersicht** sagt dasselbe in Worten.
 
+## Erneut alarmieren, wenn es nicht behoben wird
+
+Eine Bestätigung beendet die Alarmierung einer Richtlinie endgültig, auch wenn danach niemand den Vorfall oder die Warnung behebt. Eine Richtlinie kann stattdessen erneut alarmieren: Öffnen Sie ihre Seite **Eskalationsregeln**, öffnen Sie unten **Weitere Einstellungen** und klicken Sie auf der Karte **Bestätigungs-Timeout** auf **Bearbeiten**. **Bestätigungs-Timeout bearbeiten** fragt **Wenn bestätigt, aber nicht behoben**:
+
+| Antwort | Was sie bewirkt |
+| --- | --- |
+| **Nicht erneut alarmieren** | Mit der Bestätigung endet die Alarmierung endgültig. Eine neue Richtlinie beginnt mit dieser Antwort. |
+| **Erneut alarmieren** | Alarmiert die Person, die bestätigt hat, und wer jetzt Bereitschaft hat. **Nach wie vielen Minuten?** legt fest, wann: von 5 bis 1440, zu Beginn 30. |
+
+Die Minuten zählen ab jeder Bestätigung, und eine Richtlinie alarmiert zu einem Vorfall, einer Warnung oder einer Episode höchstens 5-mal erneut. Eine erneute Alarmierung beginnt bei der Stufe, die bei der Bestätigung alarmierte, alarmiert, wer dort jetzt Bereitschaft hat, und geht dann wie der erste Lauf durch die Stufen. Der Vorfall oder die Warnung bleibt bestätigt: Die erneute Alarmierung ist ein eigener Lauf, im Feed und in den Ausführungsprotokollen der Richtlinie, wo sein **Status** „Erneut alarmiert (1 von 5)“ zeigt.
+
+Wer erneut alarmiert wird, bestätigt aus der Nachricht oder mit **Bestätigen** auf der Seite des Vorfalls oder der Warnung, und die Minuten beginnen von vorn; **Eskalieren** gibt die Alarmierung an die nächste Stufe weiter. Sie endet, wenn der Vorfall oder die Warnung behoben oder gelöscht, die Richtlinie archiviert oder gelöscht oder **Nicht erneut alarmieren** gewählt wird. Die Zeile **Nach einer Bestätigung** der Karte sagt, was die Richtlinie tut, und **Weitere Einstellungen** zeigt die Minuten, solange es eingeklappt ist.
+
 ## Ausführungsprotokolle
 
 Jedes Mal, wenn eine Richtlinie läuft, schreibt sie ein Ausführungsprotokoll, und das Protokoll durchläuft seine Status, während der Lauf weitergeht:
@@ -122,9 +135,12 @@ Bereitschaftsrichtlinien sind die Ressource `/api/on-call-duty-policy` und in Te
 | **Beschreibung** | `description` |
 | **Wenn nach der letzten Stufe niemand bestätigt** | `repeatPolicyIfNoOneAcknowledges` |
 | **Wie oft noch?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Nach wie vielen Minuten?** | `acknowledgementTimeoutInMinutes` |
 | Archiviert | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true` und `repeatPolicyIfNoOneAcknowledgesNoOfTimes` auf `0`, wiederholt sich die Richtlinie nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
+
+`acknowledgementTimeoutInMinutes` ist `null` für **Nicht erneut alarmieren** und eine ganze Zahl von Minuten zwischen 5 und 1440 für **Erneut alarmieren**. Alles andere lehnt OneUptime ab.
 
 Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen, steht unter [Regeln mit der API oder Terraform anlegen](/docs/on-call/escalation-rules#regeln-mit-der-api-oder-terraform-anlegen).
 

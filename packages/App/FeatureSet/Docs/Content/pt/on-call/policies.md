@@ -66,6 +66,19 @@ Quando a espera do último nível acaba sem que ninguém confirme, uma política
 
 Uma política que recomeça mais três vezes percorre seus níveis quatro vezes no total. A linha **Depois do último nível** do cartão diz o que a política faz, e **Policy at a glance** na **Visão geral** diz o mesmo em palavras.
 
+## Acionar de novo se não for resolvido
+
+Confirmar encerra os acionamentos de uma política de vez, mesmo que depois ninguém resolva o incidente ou alerta. Em vez disso, uma política pode acionar de novo: abra a página **Regras de escalonamento** dela, abra **Mais configurações** na parte de baixo e clique em **Editar** no cartão **Tempo limite após a confirmação**. **Editar tempo limite após a confirmação** pergunta **Se for confirmado, mas não resolvido**:
+
+| Resposta | O que faz |
+| --- | --- |
+| **Não acionar de novo** | A confirmação encerra os acionamentos de vez. Uma nova política começa com esta resposta. |
+| **Acionar de novo** | Aciona quem confirmou e quem está de plantão agora. **Depois de quantos minutos?** diz quando: de 5 a 1440, 30 no início. |
+
+Os minutos contam a partir de cada confirmação, e uma política aciona de novo no máximo 5 vezes pelo mesmo incidente, alerta ou episódio. Um novo acionamento começa no nível que estava acionando quando houve a confirmação, aciona quem está de plantão agora nesse nível e segue pelos níveis como a primeira execução. O incidente ou alerta continua confirmado: o novo acionamento é uma execução própria, no seu feed e nos registros de execução da política, onde o seu **Status** diz "Acionado de novo (1 de 5)".
+
+Quem é acionado de novo confirma pela mensagem, ou com **Confirmar** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido.
+
 ## Registros de execução
 
 Cada vez que uma política é executada, ela grava um registro de execução, e o registro passa pelos seus status conforme a execução avança:
@@ -122,9 +135,12 @@ As políticas de plantão são o recurso `/api/on-call-duty-policy`, e o recurso
 | **Descrição** | `description` |
 | **Se ninguém confirmar depois do último nível** | `repeatPolicyIfNoOneAcknowledges` |
 | **Quantas vezes mais?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Depois de quantos minutos?** | `acknowledgementTimeoutInMinutes` |
 | Arquivada | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true` e `repeatPolicyIfNoOneAcknowledgesNoOfTimes` em `0`, uma política nunca se repete, e o painel a mostra como **Parar de acionar**.
+
+`acknowledgementTimeoutInMinutes` é `null` para **Não acionar de novo**, e um número inteiro de minutos de 5 a 1440 para **Acionar de novo**. O OneUptime recusa qualquer outro valor.
 
 Para criar uma política com seu primeiro nível em uma única requisição, veja [Criar regras com a API ou o Terraform](/docs/on-call/escalation-rules#criar-regras-com-a-api-ou-o-terraform).
 

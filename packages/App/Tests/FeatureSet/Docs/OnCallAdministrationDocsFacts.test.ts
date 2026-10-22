@@ -44,6 +44,18 @@ import {
 } from "Common/Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import { getOnCallPolicyRepeatsAllowed } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
 import {
+  DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
+  MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
+  MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
+  ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN,
+  getOnCallAcknowledgementTimeoutRefusal,
+  getOnCallPageAgainPlace,
+  hasOnCallPagesAgainLeft,
+  isOnCallAcknowledgementTimeoutDue,
+  isOnCallAcknowledgementTimeoutOn,
+} from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { MORE_SETTINGS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
   ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE,
   ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
@@ -1037,6 +1049,244 @@ describe("repeating a policy", () => {
   });
 });
 
+// ---- Paging again after an acknowledgement (issue #5123) ------------------------
+
+describe("paging again when an acknowledged incident or alert is not resolved", () => {
+  const escalationPage: string = readDashboardSource(
+    "Pages/OnCallDuty/OnCallDutyPolicy/Escalation.tsx",
+  );
+  const card: string = readDashboardSource(
+    "Components/OnCallPolicy/AcknowledgementTimeout/AcknowledgementTimeoutCard.tsx",
+  );
+  const copy: string = readDashboardSource(
+    "Components/OnCallPolicy/AcknowledgementTimeout/AcknowledgementTimeout.ts",
+  );
+  const pagesAgain: string = readCommonSource(
+    "Server/Utils/OnCall/OnCallAcknowledgementTimeout.ts",
+  );
+  const pageAgainSection: () => string = (): string => {
+    return section(
+      english(ON_CALL_POLICIES),
+      "## Page again if it is not resolved",
+    );
+  };
+
+  it("names the card folded under More settings, its Edit button, the dialog, its question and its two answers", () => {
+    const fold: number = escalationPage.indexOf("<AdvancedPageSection");
+    const cardAt: number = escalationPage.indexOf(
+      "<AcknowledgementTimeoutCard",
+    );
+    const foldEnd: number = escalationPage.indexOf("</AdvancedPageSection>");
+
+    // The card is inside the page's More settings, which starts folded.
+    expect(fold).toBeGreaterThan(-1);
+    expect(cardAt).toBeGreaterThan(fold);
+    expect(foldEnd).toBeGreaterThan(cardAt);
+    expect(MORE_SETTINGS_SECTION_TITLE).toBe("More settings");
+    expect(card).toContain('editButtonText="Edit"');
+    expect(card).toContain(
+      "editModalTitle={AcknowledgementTimeoutCopy.dialogTitle}",
+    );
+
+    for (const fact of [
+      'cardTitle: translationKey("Acknowledgement Timeout")',
+      'dialogTitle: translationKey("Edit Acknowledgement Timeout")',
+      'fieldTitle: translationKey("If it is acknowledged but not resolved")',
+      `title: translationKey("Don't page again")`,
+      'title: translationKey("Page again")',
+      'minutesTitle: translationKey("After how many minutes?")',
+      'rowTitle: translationKey("After an acknowledgement")',
+    ]) {
+      expect({ fact, inCode: copy.includes(fact) }).toEqual({
+        fact,
+        inCode: true,
+      });
+    }
+
+    expect(pageAgainSection()).toContain(
+      "open its **Escalation Rules** page, open **More settings** at the bottom, and click **Edit** on the **Acknowledgement Timeout** card. **Edit Acknowledgement Timeout** asks **If it is acknowledged but not resolved**:",
+    );
+    expect(
+      tableRows(pageAgainSection()).map((row: string): string => {
+        return tableCells(row)[0] || "";
+      }),
+    ).toEqual(["**Don't page again**", "**Page again**"]);
+  });
+
+  it("starts every policy at Don't page again: no timeout, so acknowledging stops the paging for good", () => {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    const column: ReturnType<OnCallDutyPolicy["getTableColumnMetadata"]> =
+      policy.getTableColumnMetadata("acknowledgementTimeoutInMinutes");
+
+    expect(column).toBeDefined();
+    expect(column?.defaultValue).toBeUndefined();
+    expect(column?.required).toBe(false);
+    expect(isOnCallAcknowledgementTimeoutOn({})).toBe(false);
+    expect(
+      isOnCallAcknowledgementTimeoutOn({
+        acknowledgementTimeoutInMinutes: null,
+      }),
+    ).toBe(false);
+    expect(copy).toContain(
+      'description: translationKey("Acknowledging stops the paging for good.")',
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **Don't page again** | Acknowledging stops the paging for good. A new policy starts with this answer. |",
+    );
+  });
+
+  it("asks after how many minutes only for Page again: 5 to 1440, 30 to start with", () => {
+    expect(MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES).toBe(5);
+    expect(MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES).toBe(1440);
+    expect(DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES).toBe(30);
+    expect(card).toContain("minValue: ACKNOWLEDGEMENT_TIMEOUT_MIN_MINUTES");
+    expect(card).toContain("maxValue: ACKNOWLEDGEMENT_TIMEOUT_MAX_MINUTES");
+    expect(copy).toContain(
+      "ACKNOWLEDGEMENT_TIMEOUT_DEFAULT_MINUTES: number =\n  DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES;",
+    );
+    expect(copy).toContain(
+      '"Pages whoever acknowledged it, and whoever is on call now."',
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      `| **Page again** | Pages whoever acknowledged it, and whoever is on call now. **After how many minutes?** says when: from ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} to ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES}, ${DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} to start with. |`,
+    );
+  });
+
+  it("pages again at most 5 times about one record, from the level that was paging, whoever acknowledged it included", () => {
+    expect(ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN).toBe(5);
+    expect(hasOnCallPagesAgainLeft(4)).toBe(true);
+    expect(hasOnCallPagesAgainLeft(5)).toBe(false);
+    expect(pagesAgain).toContain(
+      "startAtRuleId: run.lastExecutedEscalationRuleId || undefined",
+    );
+    expect(pagesAgain).toContain(
+      "acknowledgedByUserId: acknowledgedByUserId || undefined",
+    );
+    expect(
+      readCommonSource("Server/Services/OnCallDutyPolicyExecutionLogService.ts"),
+    ).toContain("alsoPageUserIds: data.acknowledgedByUserId");
+    expect(pageAgainSection()).toContain(
+      `a policy pages again at most ${ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN} times about one incident, alert or episode. A page again starts at the level that was paging when it was acknowledged, pages whoever is on call there now, and goes on through the levels as the first run did.`,
+    );
+  });
+
+  it("counts from each acknowledgement, to the minute it runs out, and shows the page again under its run's Status", () => {
+    const acknowledgedAt: Date = new Date("2026-10-22T10:00:00.000Z");
+
+    expect(
+      isOnCallAcknowledgementTimeoutDue({
+        startedAt: acknowledgedAt,
+        minutes: 30,
+        now: new Date("2026-10-22T10:29:59.999Z"),
+      }),
+    ).toBe(false);
+    expect(
+      isOnCallAcknowledgementTimeoutDue({
+        startedAt: acknowledgedAt,
+        minutes: 30,
+        now: new Date("2026-10-22T10:30:00.000Z"),
+      }),
+    ).toBe(true);
+    expect(getOnCallPageAgainPlace(1)).toBe("1 of 5");
+
+    const logsTable: string = readDashboardSource(
+      "Components/OnCallPolicy/ExecutionLogs/ExecutionLogsTable.tsx",
+    );
+    const statusColumn: string = logsTable.slice(
+      logsTable.indexOf('title: "Status"'),
+    );
+
+    expect(logsTable).toContain(
+      'ON_CALL_LOGS_PAGED_AGAIN: string = translationKey(\n  "Paged again ({{number}} of {{max}})",\n);',
+    );
+    expect(statusColumn).toContain('data-testid="execution-log-paged-again"');
+    expect(pageAgainSection()).toContain(
+      "The minutes are counted from each acknowledgement",
+    );
+    expect(pageAgainSection()).toContain(
+      `The incident or alert stays acknowledged: the page again is a run of its own, in its feed and in the policy's execution logs, where its **Status** says "Paged again (${getOnCallPageAgainPlace(1)})".`,
+    );
+  });
+
+  it("is acknowledged from its message or with Acknowledge on the record's page, and escalated with Escalate", () => {
+    expect(
+      readDashboardSource("Components/OnCallPolicy/PassOn/PassOnPage.ts"),
+    ).toContain('button: translationKey("Acknowledge")');
+    expect(
+      readDashboardSource("Components/OnCallPolicy/PassOn/usePassOnPage.tsx"),
+    ).toContain('id: "acknowledge-page-again"');
+    // Answering it starts the clock again, like every acknowledgement.
+    expect(
+      readCommonSource("Server/Services/UserOnCallLogTimelineService.ts"),
+    ).toContain("OnCallAcknowledgementTimeout.onPageAcknowledged");
+    expect(pageAgainSection()).toContain(
+      "Whoever is paged again acknowledges it from its message, or with **Acknowledge** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level.",
+    );
+  });
+
+  it("stops when the record is resolved or deleted, the policy is archived or deleted, or nobody wants it any more", () => {
+    for (const stop of [
+      "OnCallAcknowledgementTimeoutStop.RecordResolved",
+      "OnCallAcknowledgementTimeoutStop.RecordGone",
+      "OnCallAcknowledgementTimeoutStop.PolicyArchived",
+      "OnCallAcknowledgementTimeoutStop.PolicyGone",
+      "OnCallAcknowledgementTimeoutStop.TimeoutOff",
+    ]) {
+      expect({ stop, inCode: pagesAgain.includes(`because: ${stop}`) }).toEqual(
+        { stop, inCode: true },
+      );
+    }
+
+    expect(pageAgainSection()).toContain(
+      "Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it.",
+    );
+  });
+
+  it("says what the policy does on the card's row, and on More settings while it is folded", () => {
+    expect(escalationPage).toContain(
+      "foldedSectionItem(AcknowledgementTimeoutCopy.cardTitle",
+    );
+    expect(card).toContain("title: AcknowledgementTimeoutCopy.rowTitle");
+    expect(pageAgainSection()).toContain(
+      "The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded.",
+    );
+  });
+
+  it("is the policy's acknowledgementTimeoutInMinutes in the API: null, or 5 to 1440, and nothing else", () => {
+    for (const [value, refused] of [
+      [null, false],
+      [MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES, false],
+      [MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES, false],
+      [MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES - 1, true],
+      [MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES + 1, true],
+      [30.5, true],
+      [0, true],
+    ] as Array<[number | null, boolean]>) {
+      expect({
+        value,
+        refused: getOnCallAcknowledgementTimeoutRefusal(value) !== null,
+      }).toEqual({ value, refused });
+    }
+
+    const service: string = readCommonSource(
+      "Server/Services/OnCallDutyPolicyService.ts",
+    );
+
+    expect(service).toContain(
+      "Service.assertAcknowledgementTimeout(createBy.data);",
+    );
+    expect(service).toContain(
+      "Service.assertAcknowledgementTimeout(updateBy.data);",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      "| **After how many minutes?** | `acknowledgementTimeoutInMinutes` |",
+    );
+    expect(english(ON_CALL_POLICIES)).toContain(
+      `\`acknowledgementTimeoutInMinutes\` is \`null\` for **Don't page again**, and a whole number of minutes from ${MIN_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} to ${MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES} for **Page again**. OneUptime refuses anything else.`,
+    );
+  });
+});
+
 // ---- Execution logs --------------------------------------------------------------
 
 describe("execution logs", () => {
@@ -1296,7 +1546,7 @@ describe("who can change a policy, and the policy API", () => {
       section(english(ON_CALL_POLICIES), "## API and Terraform"),
     ).map(tableCells);
 
-    expect(rows.length).toBe(5);
+    expect(rows.length).toBe(6);
 
     for (const row of rows) {
       const column: string = (row[1] || "").replace(/`/g, "");

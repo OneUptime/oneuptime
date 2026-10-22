@@ -66,6 +66,19 @@ Loopt de wachttijd van het laatste niveau af zonder dat iemand bevestigt, dan st
 
 Een beleid dat nog drie keer opnieuw begint, gaat in totaal vier keer door zijn niveaus. De regel **Na het laatste niveau** op de kaart zegt wat het beleid doet, en **Policy at a glance** op het **Overzicht** zegt hetzelfde in woorden.
 
+## Opnieuw oproepen als het niet is opgelost
+
+Bevestigen stopt het oproepen van een beleid voorgoed, ook als daarna niemand het incident of de waarschuwing oplost. Een beleid kan in plaats daarvan opnieuw oproepen: open de pagina **Escalatieregels** ervan, open onderaan **Meer instellingen** en klik op **Bewerken** op de kaart **Time-out na bevestiging**. **Time-out na bevestiging bewerken** vraagt **Als het bevestigd maar niet opgelost is**:
+
+| Antwoord | Wat het doet |
+| --- | --- |
+| **Niet opnieuw oproepen** | Bevestigen stopt het oproepen voorgoed. Een nieuw beleid begint met dit antwoord. |
+| **Opnieuw oproepen** | Roept op wie het bevestigde en wie nu dienst heeft. **Na hoeveel minuten?** bepaalt wanneer: van 5 tot 1440, eerst 30. |
+
+De minuten tellen vanaf elke bevestiging, en een beleid roept voor één incident, waarschuwing of episode hoogstens 5 keer opnieuw op. Een nieuwe oproep begint op het niveau dat opriep toen er werd bevestigd, roept op wie daar nu dienst heeft en gaat daarna door de niveaus zoals de eerste uitvoering. Het incident of de waarschuwing blijft bevestigd: de nieuwe oproep is een eigen uitvoering, in de feed en in de uitvoeringslogboeken van het beleid, waar de **Status** "Opnieuw opgeroepen (1 van 5)" zegt.
+
+Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt.
+
 ## Uitvoeringslogboeken
 
 Elke keer dat een beleid loopt, schrijft het een uitvoeringslogboek, en dat logboek doorloopt zijn statussen naarmate de uitvoering vordert:
@@ -122,9 +135,12 @@ Bereikbaarheidsbeleid is de resource `/api/on-call-duty-policy`, en in Terraform
 | **Beschrijving** | `description` |
 | **Als niemand bevestigt na het laatste niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hoe vaak nog?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Na hoeveel minuten?** | `acknowledgementTimeoutInMinutes` |
 | Gearchiveerd | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` is `false` voor **Stoppen met oproepen** en `true` voor **Opnieuw beginnen bij Level 1**. Met `true` en `repeatPolicyIfNoOneAcknowledgesNoOfTimes` op `0` herhaalt een beleid zich nooit, en het dashboard toont het als **Stoppen met oproepen**.
+
+`acknowledgementTimeoutInMinutes` is `null` voor **Niet opnieuw oproepen**, en een heel aantal minuten van 5 tot 1440 voor **Opnieuw oproepen**. OneUptime weigert elke andere waarde.
 
 Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Regels maken met de API of Terraform](/docs/on-call/escalation-rules#regels-maken-met-de-api-of-terraform).
 
