@@ -94,13 +94,13 @@ export default function AlertDetailScreen({ route }: Props): React.JSX.Element {
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  // "Pass it on", for the person an on-call policy is paging about it.
+  // "Escalate", for the person an on-call policy is paging about it.
   const passOn: PassOnControls = usePassOnAction({
     projectId,
     recordType: "alert",
     recordId: alertId,
     recordLabel: "alert",
-    // Passing it on is news on the feed and the state timeline.
+    // Escalating it is news on the feed and the state timeline.
     onPassedOn: () => {
       return Promise.allSettled([refetchFeed(), refetchTimeline()]);
     },

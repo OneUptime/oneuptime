@@ -128,7 +128,7 @@ jest.mock("../api/alertNotes", () => {
 });
 
 /*
- * Whether the signed-in person is being paged about it, for Pass it on
+ * Whether the signed-in person is being paged about it, for Escalate
  * (hooks/usePassOnAction.test.tsx owns how that works). Unless a test says,
  * the answer never comes: the screen renders as it always did, and nothing
  * updates it after a test has looked.
@@ -1338,7 +1338,7 @@ describe("Acknowledged by the order of the project's states (utils/acknowledgedS
   });
 });
 
-describe("Passing the page on", () => {
+describe("Escalating the page", () => {
   const fetchPassOnMock: jest.Mock =
     passOnApi.fetchOnCallPassOnPages as unknown as jest.Mock;
 
@@ -1346,14 +1346,14 @@ describe("Passing the page on", () => {
     executionLogId: "run-1",
     policyName: "Payments",
     sentence:
-      "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.",
+      "This will immediately page Platform leads (Level 2 of 3), without waiting.",
   };
 
   afterEach(() => {
     mockPassOnPages.current = null;
   });
 
-  test("the person being paged about this alert is offered Pass it on", async () => {
+  test("the person being paged about this alert is offered Escalate", async () => {
     fetchPassOnMock.mockClear();
     mockPassOnPages.current = [PASS_ON_PAGE];
 
@@ -1370,7 +1370,7 @@ describe("Passing the page on", () => {
     await renderScreen(createTestQueryClient());
 
     expect(
-      await screen.findByRole("button", { name: "Pass this alert page on" }),
+      await screen.findByRole("button", { name: "Escalate this alert" }),
     ).toBeTruthy();
     expect(fetchPassOnMock).toHaveBeenCalledWith(PROJECT_ID, "alert", ALERT_ID);
   });

@@ -48,7 +48,7 @@ import OnCallEscalationAdvance, {
 } from "./OnCallEscalationAdvance";
 
 /*
- * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? PASS IT ON."
+ * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
  *
  * What it does, and why, is in Types/OnCallDutyPolicy/OnCallPagePassOn. This
  * is the one place that does it, for every way in: the links in a person's

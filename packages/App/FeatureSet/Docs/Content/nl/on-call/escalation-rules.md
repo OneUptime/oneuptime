@@ -20,7 +20,7 @@ flowchart TB
 - [Een escalatieregel toevoegen](#een-escalatieregel-toevoegen): Voeg het volgende niveau toe, stap voor stap.
 - [Hoe de niveaus mensen oproepen](#hoe-de-niveaus-mensen-oproepen): Timing, herhalingen en hoe iedere persoon wordt bereikt.
 - [De volgende persoon in de rotatie](#escaleren-naar-de-volgende-persoon-in-de-rotatie): Roep de back-up van wie dienst heeft op, uit dezelfde rotatie.
-- [Een oproep doorgeven](#een-oproep-doorgeven): Kunt u een oproep niet aannemen? Stuur hem meteen naar het volgende niveau.
+- [Een oproep escaleren](#een-oproep-escaleren): Kunt u een oproep niet aannemen? Laat meteen het volgende niveau oproepen.
 - [API en Terraform](#regels-maken-met-de-api-of-terraform): Maak beleid en regels als code.
 :::
 
@@ -75,7 +75,7 @@ Klik op **Create Rule**. De regel wordt onder de andere toegevoegd, als het volg
 
 ## Hoe de niveaus mensen oproepen
 
-Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** meteen zijn ontvangers op. Als niemand binnen de wachttijd bevestigt, wordt **Level 2** opgeroepen, enzovoort de lijst af. Is de wachttijd van het laatste niveau verstreken zonder bevestiging, dan begint het beleid opnieuw bij **Level 1** als het **Herhaalbeleid** (onder de regels) herhalen voorschrijft, zo vaak als dat toestaat, en anders stopt het. Het incident of de waarschuwing bevestigen of oplossen stopt het oproepen op elk niveau. Wie wordt opgeroepen en de oproep niet kan aannemen, kan hem doorgeven, en het volgende niveau wordt zonder wachten opgeroepen: zie [Een oproep doorgeven](#een-oproep-doorgeven).
+Wanneer een incident of waarschuwing het beleid bereikt, roept **Level 1** meteen zijn ontvangers op. Als niemand binnen de wachttijd bevestigt, wordt **Level 2** opgeroepen, enzovoort de lijst af. Is de wachttijd van het laatste niveau verstreken zonder bevestiging, dan begint het beleid opnieuw bij **Level 1** als het **Herhaalbeleid** (onder de regels) herhalen voorschrijft, zo vaak als dat toestaat, en anders stopt het. Het incident of de waarschuwing bevestigen of oplossen stopt het oproepen op elk niveau. Wie wordt opgeroepen en de oproep niet kan aannemen, kan hem escaleren, en het volgende niveau wordt zonder wachten opgeroepen: zie [Een oproep escaleren](#een-oproep-escaleren).
 
 Een incident, waarschuwing of episode die al bevestigd of opgelost wordt aangemaakt — achteraf vastgelegd — voert geen enkel beleid uit: niemand wordt opgeroepen, en de feed meldt dat, met de namen van het beleid erbij. Zie [Al bevestigd of opgelost gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld).
 
@@ -120,11 +120,11 @@ Een langer bericht, met een lange titel of een lange beschrijving die een sjablo
 
 ### Wat de sms van een oproep zegt
 
-Een sms wordt verstuurd, en betaald, in delen van 160 tekens. Een oproep per sms is zo geschreven dat hij waar het kan in één deel past, en zegt alleen wat u nodig hebt op een vergrendelde telefoon: wie hem stuurt, wat er is gebeurd en de ene link om de oproep te bevestigen of door te geven. Op een telefoon ziet hij er zo uit:
+Een sms wordt verstuurd, en betaald, in delen van 160 tekens. Een oproep per sms is zo geschreven dat hij waar het kan in één deel past, en zegt alleen wat u nodig hebt op een vergrendelde telefoon: wie hem stuurt, wat er is gebeurd en de ene link om de oproep te bevestigen of te escaleren. Op een telefoon ziet hij er zo uit:
 
 ```text
 OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
-Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Hij noemt de ernst en wat er is gebeurd (een incident, een waarschuwing of een episode van een van beide), het nummer, het project en de titel, in die volgorde. Als niet alles in één deel past:
@@ -184,44 +184,44 @@ Het bericht van de uitvoering in Slack en Microsoft Teams, de feed van het incid
 > [!TIP]
 > Eén schema is genoeg: er is geen tweede back-upschema dat gelijk moet lopen met het eerste, en de afwezigheid die de mensen erin boeken, telt voor beide niveaus.
 
-## Een oproep doorgeven
+## Een oproep escaleren
 
-Wie wordt opgeroepen en de oproep niet kan aannemen, omdat diegene slaapt, in een vliegtuig zit of al aan een ander incident werkt, kan de oproep doorgeven in plaats van hem te laten uitgaan. Het beleid roept dan meteen het volgende niveau op, zonder het **Escaleren na (in minuten)** van het niveau af te wachten, en diegene wordt er niet meer over opgeroepen.
+Wie wordt opgeroepen en de oproep niet kan aannemen, omdat diegene slaapt, in een vliegtuig zit of al aan een ander incident werkt, kan de oproep escaleren in plaats van hem te laten uitgaan. Het beleid roept dan meteen het volgende niveau op, zonder het **Escaleren na (in minuten)** van het niveau af te wachten, en diegene wordt er niet meer over opgeroepen.
 
-```mermaid title="Een oproep doorgeven brengt het beleid meteen naar het volgende niveau"
+```mermaid title="Een oproep escaleren brengt het beleid meteen naar het volgende niveau"
 flowchart TB
     page["Level 1 roept Alex op"] --> take{"Kan Alex hem<br/>aannemen?"}
     take -->|"Ja"| ack["Alex bevestigt:<br/>het oproepen stopt"]
-    take -->|"Nee"| pass["Alex geeft hem door"]
+    take -->|"Nee"| pass["Alex escaleert hem"]
     pass --> others{"Wordt er op Level 1<br/>nog iemand opgeroepen?"}
     others -->|"Ja"| wait["Het beleid wacht<br/>op hen, zoals eerst"]
     others -->|"Nee"| next["Level 2 wordt<br/>nu opgeroepen"]
 ```
 
-Elke oproep kunt u doorgeven vanaf de plek waar hij u bereikte:
+Elke oproep kunt u escaleren vanaf de plek waar hij u bereikte:
 
-| Waar | Zo geeft u hem door |
+| Waar | Zo escaleert u hem |
 | --- | --- |
-| E-mail | De knop **Pass it on**, dan **Pass it on** op de pagina die hij opent |
-| Sms en WhatsApp | De link in het bericht opent de bevestigingspagina, waarop ook **Pass it on** staat |
-| Telegram, Slack en Microsoft Teams | De link "Can't take it? Pass it on", dan **Pass it on** op de pagina die hij opent |
+| E-mail | De knop **Escalate**, dan **Escalate** op de pagina die hij opent |
+| Sms en WhatsApp | De link in het bericht opent de bevestigingspagina, waarop ook **Escalate** staat |
+| Telegram, Slack en Microsoft Teams | De link "Can't take it? Escalate", dan **Escalate** op de pagina die hij opent |
 | Telefoongesprek | Druk op 2. Het gesprek vertelt daarna wat er is gebeurd |
-| Pushmelding | Tik erop: het incident, de waarschuwing of de episode opent in de OneUptime On-Call-app, met **Pass it on** eronder |
-| OneUptime | **Doorgeven** bovenaan het incident, de waarschuwing of de episode, na de statusknoppen |
+| Pushmelding | Tik erop: het incident, de waarschuwing of de episode opent in de OneUptime On-Call-app, met **Escalate** eronder |
+| OneUptime | **Escaleren** bovenaan het incident, de waarschuwing of de episode, na de statusknoppen |
 
-Elke manier behalve het telefoongesprek vraagt het eerst en vertelt wat er gaat gebeuren, zoals "Escalation rule 2 of 3 (Level 2) is paged right away, without waiting."; in een telefoongesprek is op 2 drukken het antwoord. Alleen wie wordt opgeroepen, kan de oproep doorgeven: de knop in OneUptime verschijnt alleen voor diegene, en de link in een bericht geeft alleen de oproep door waarover het bericht ging, voor de persoon naar wie het ging, gedurende 7 dagen.
+Elke manier behalve het telefoongesprek vraagt het eerst en vertelt wat er gaat gebeuren, zoals "This will immediately page Platform leads (Level 2 of 3), without waiting."; in een telefoongesprek is op 2 drukken het antwoord. Alleen wie wordt opgeroepen, kan de oproep escaleren: de knop in OneUptime verschijnt alleen voor diegene, en de link in een bericht escaleert alleen de oproep waarover het bericht ging, voor de persoon naar wie het ging, gedurende 7 dagen.
 
 Wat er daarna gebeurt, hangt af van wie er nog meer wordt opgeroepen:
 
-- Anderen op hetzelfde niveau worden nog opgeroepen: het beleid wacht op hen, zoals eerst. Het gaat verder wanneer de wachttijd van het niveau verstrijkt, of zodra de laatste van hen de oproep ook doorgeeft.
+- Anderen op hetzelfde niveau worden nog opgeroepen: het beleid wacht op hen, zoals eerst. Het gaat verder wanneer de wachttijd van het niveau verstrijkt, of zodra de laatste van hen de oproep ook escaleert.
 - Er is op het niveau niemand anders meer over: het volgende niveau wordt meteen opgeroepen.
 - Het was het laatste niveau: als het **Herhaalbeleid** herhalen voorschrijft, begint het beleid meteen opnieuw bij **Level 1**. Anders stopt het oproepen, en moet iemand het oppakken.
 
-Een oproep doorgeven bevestigt hem niet: het incident of de waarschuwing wacht nog steeds tot iemand bevestigt, en wie de oproep doorgaf, kan hem nog zelf bevestigen. Deze uitvoering roept diegene er niet meer over op: een later niveau, of een herhaling, dat diegene noemt, slaat diegene over. Zodra iedereen die zij opriep de oproep heeft doorgegeven en er niemand meer op te roepen is, stopt het oproepen, en de feed van het incident vermeldt dat.
+Een oproep escaleren bevestigt hem niet: het incident of de waarschuwing wacht nog steeds tot iemand bevestigt, en wie de oproep escaleerde, kan hem nog zelf bevestigen. Deze uitvoering roept diegene er niet meer over op: een later niveau, of een herhaling, dat diegene noemt, slaat diegene over. Zodra iedereen die zij opriep de oproep heeft geëscaleerd en er niemand meer op te roepen is, stopt het oproepen, en de feed van het incident vermeldt dat.
 
-Een oproep die een workflow rechtstreeks naar mensen stuurt, heeft geen niveaus: als u hem doorgeeft, wordt u niet meer opgeroepen, en zodra iedereen die hij opriep hem heeft doorgegeven, stopt het oproepen.
+Een oproep die een workflow rechtstreeks naar mensen stuurt, heeft geen niveaus: als u hem escaleert, wordt u niet meer opgeroepen, en zodra iedereen die hij opriep hem heeft geëscaleerd, stopt het oproepen.
 
-Elke keer dat een oproep wordt doorgegeven, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Doorgegeven**, de feed van het incident zegt "Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft doorgegeven, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Doorgegeven**.
+Elke keer dat een oproep wordt geëscaleerd, wordt dat vastgelegd. De **Tijdlijn van de uitvoering** markeert de regel van de persoon als **Geëscaleerd**, de feed van het incident zegt "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", het bericht van de uitvoering in Slack en Microsoft Teams vermeldt dat diegene hem heeft geëscaleerd, en de **Bereikbaarheidslogboeken** van diegene tonen de oproep als **Geëscaleerd**.
 
 ## Regels bewerken, herordenen en verwijderen
 

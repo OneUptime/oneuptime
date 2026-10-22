@@ -3,15 +3,16 @@ import apiClient from "./client";
 import { toPlainText } from "../utils/text";
 
 /*
- * "Can't take it? Pass it on" - the person an on-call policy is paging about
+ * "Can't take it? Escalate" - the person an on-call policy is paging about
  * an incident, an alert or an episode hands the page to the policy's next
- * escalation rule now, instead of the policy waiting the rule out.
+ * level now, instead of the policy waiting the level out. The route keeps
+ * the action's first name, pass-on.
  *
  * GET  /api/on-call-page/pass-on/<record type>/<record id>
  *   The signed-in person's own open pages about the record, each with what
- *   passing it on would do. Empty for everybody the policy is not paging.
+ *   escalating it would do. Empty for everybody the policy is not paging.
  * POST the same route
- *   Passes them on, and answers what came of each - or why it could not.
+ *   Escalates them, and answers what came of each - or why it could not.
  *
  * The server words both in English, with times in the person's own time
  * zone (`sentence`), as it does in the email, the text and the call that
@@ -25,7 +26,7 @@ export type OnCallPageRecordType =
   | "incident-episode"
   | "alert-episode";
 
-// One page the person can pass on, and what passing it on would do.
+// One page the person can escalate, and what escalating it would do.
 export interface OnCallPassOnPage {
   executionLogId: string;
   // The policy paging them; empty for a direct page.
@@ -33,7 +34,7 @@ export interface OnCallPassOnPage {
   sentence: string;
 }
 
-// What passing one page on came to.
+// What escalating one page came to.
 export interface OnCallPassOnAnswer {
   passedOn: boolean;
   policyName: string;

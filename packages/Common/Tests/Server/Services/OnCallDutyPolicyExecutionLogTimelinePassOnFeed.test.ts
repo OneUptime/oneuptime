@@ -12,6 +12,8 @@ import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import {
+  LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+  LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
   ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
@@ -26,14 +28,16 @@ import {
 } from "@jest/globals";
 
 /*
- * WHAT THE RECORD'S FEED SAYS WHEN A PAGE IS PASSED ON.
+ * WHAT THE RECORD'S FEED SAYS WHEN A PAGE IS ESCALATED.
  *
  * Each line of an on-call run's timeline that changes to a status worth
  * telling becomes one entry in the feed of the incident or alert the run
  * pages about (OnCallDutyPolicyExecutionLogTimelineService). A line that
- * turns "Passed On" is one: the person passed the page on. The line a later
- * rule writes for somebody it passed over, because they passed it on, is
- * not: the feed said once that they passed it on.
+ * turns "Passed On" (the status an escalated page is stored with) is one:
+ * the person escalated the page. The line a later rule writes for somebody
+ * it passed over, because they escalated it, is not: the feed said once
+ * that they escalated it - and that holds for lines written before the
+ * action was renamed from "Pass it on", in those words.
  */
 
 const PROJECT: ObjectID = new ObjectID("0f800000-0000-4000-8000-000000000001");
@@ -154,8 +158,23 @@ describe("a line that turns Passed On", () => {
 
     expect(incidentEntries).toHaveLength(1);
     expect(incidentEntries[0]!.markdown).toBe(
-      "**Ana Lopez** passed on the page from on-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** at escalation rule **Level 1**.",
+      "**Ana Lopez** escalated the page from on-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** at escalation rule **Level 1**.",
     );
+  });
+
+  test("a line written before the rename reads the same, once", async () => {
+    await feedFor(
+      lineOf({
+        status: OnCallDutyExecutionLogTimelineStatus.PassedOn,
+        statusMessage: LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+      }),
+    );
+
+    expect(incidentEntries).toHaveLength(1);
+    expect(incidentEntries[0]!.markdown).toBe(
+      "**Ana Lopez** escalated the page from on-call policy **[Payments](https://oneuptime.test/dashboard/policies/payments)** at escalation rule **Level 1**.",
+    );
+    expect(incidentEntries[0]!.markdown.toLowerCase()).not.toContain("pass");
   });
 
   test("is amber: neither a failure nor an answer, the page moved on", async () => {
@@ -193,13 +212,13 @@ describe("a line that turns Passed On", () => {
     );
 
     expect(incidentEntries[0]!.markdown).toBe(
-      "**Ana Lopez** passed on the page from workflow **Page SRE**.",
+      "**Ana Lopez** escalated the page from workflow **Page SRE**.",
     );
   });
 });
 
-describe("the line a later rule writes for somebody who passed it on", () => {
-  test("is no feed entry: the feed said once that they passed it on", async () => {
+describe("the line a later rule writes for somebody who escalated it", () => {
+  test("is no feed entry: the feed said once that they escalated it", async () => {
     await feedFor(
       lineOf({
         status: OnCallDutyExecutionLogTimelineStatus.Skipped,
@@ -216,6 +235,17 @@ describe("the line a later rule writes for somebody who passed it on", () => {
         isDirectPage: true,
         status: OnCallDutyExecutionLogTimelineStatus.Skipped,
         statusMessage: ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
+      }),
+    );
+
+    expect(incidentEntries).toEqual([]);
+  });
+
+  test("nor is one written before the rename, in the old words", async () => {
+    await feedFor(
+      lineOf({
+        status: OnCallDutyExecutionLogTimelineStatus.Skipped,
+        statusMessage: LEGACY_ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE,
       }),
     );
 

@@ -413,7 +413,7 @@ const EXECUTION_TIMELINE: string = "Execution Timeline";
 
 /*
  * Where the sections are, in every language: the English page's outline.
- * Passing a page on (PassOnDocs.test.ts) sits between the rotation and the
+ * Escalating a page (PassOnDocs.test.ts) sits between the rotation and the
  * editing sections.
  */
 const LEVELS_SECTION: number = 2;

@@ -51,7 +51,7 @@ const POLICIES_MENU_ENTRY: string = "On-Call Policies";
 /*
  * Where the page's "## " sections are, in every language: the outline is
  * the English page's, so the API section is the seventh of the eight (after
- * Passing a page on, PassOnDocs.test.ts).
+ * Escalating a page, PassOnDocs.test.ts).
  */
 const SECTION_COUNT: number = 8;
 const API_SECTION: number = 6;
@@ -109,7 +109,7 @@ describe("the Escalation Rules docs page, on who gets paged first", () => {
       "Adding an escalation rule",
       "How the levels page people",
       "Escalating to the next person in the rotation",
-      "Passing a page on",
+      "Escalating a page",
       "Editing, reordering and deleting rules",
       "Creating rules with the API or Terraform",
       "Next steps",

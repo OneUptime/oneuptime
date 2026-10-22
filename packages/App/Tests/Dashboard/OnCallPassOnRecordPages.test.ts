@@ -3,12 +3,13 @@ import fs from "fs";
 import path from "path";
 
 /*
- * "PASS IT ON" ON EVERY RECORD AN ON-CALL POLICY PAGES ABOUT.
+ * "ESCALATE" ON EVERY RECORD AN ON-CALL POLICY PAGES ABOUT.
  *
  * An on-call policy pages people about four kinds of record: incidents,
  * alerts, incident episodes and alert episodes. The person being paged can
- * pass the page on from the record's own page: usePassOnPage gives the
- * header a "Pass it on" button (for them only) and the dialog it opens.
+ * escalate the page from the record's own page: usePassOnPage (the hook
+ * keeps the action's first name, "pass on") gives the header an "Escalate"
+ * button (for them only) and the dialog it opens - "Escalate Incident?".
  * This holds the wiring on each of the four pages:
  *
  *   - the hook is asked about the page's own kind of record;
@@ -91,11 +92,11 @@ describe.each(RECORD_PAGES)(
         `recordType: OnCallPageRecordType.${page.recordType},`,
       );
       expect(call).toContain("recordId: modelId,");
-      // A page passed on is news on the record's feed.
+      // A page escalated is news on the record's feed.
       expect(call).toContain("onPassedOn:");
     });
 
-    test("puts Pass it on first among the header's other actions", () => {
+    test("puts Escalate first among the header's other actions", () => {
       const actions: string = between(source, "secondaryActions={[", "]}");
       const first: string = actions
         .slice("secondaryActions={[".length)
@@ -123,7 +124,7 @@ describe.each(RECORD_PAGES)(
 );
 
 describe("nowhere else", () => {
-  test("only the four record pages draw Pass it on", () => {
+  test("only the four record pages draw Escalate", () => {
     const users: Array<string> = sourceFiles()
       .filter((file: string): boolean => {
         return file !== HOOK_FILE && read(file).includes("usePassOnPage");
@@ -135,5 +136,47 @@ describe("nowhere else", () => {
         return page.file;
       }).sort(),
     );
+  });
+});
+
+describe("the button and the dialog are worded in one place", () => {
+  const hook: string = read(HOOK_FILE);
+  const words: string = read("Components/OnCallPolicy/PassOn/PassOnPage.ts");
+
+  test("the hook draws the button and the question from the record's own words", () => {
+    expect(hook).toContain("label: PASS_ON_PAGE_TEXT.button,");
+    expect(hook).toContain("title={getPassOnQuestionTitle(data.recordType)}");
+    expect(hook).toContain("submitButtonText={PASS_ON_PAGE_TEXT.button}");
+    expect(hook).toContain(
+      "getPassOnQuestionLines(pages, translator, data.recordType)",
+    );
+    expect(hook).toContain(
+      "getPassOnAnswerLines(answers, translator, data.recordType)",
+    );
+    expect(hook).toContain("getPassOnAnswerTitle(answers, data.recordType)");
+  });
+
+  test("the words are the maintainer's: Escalate, and the question by the record's kind", () => {
+    for (const word of [
+      'button: translationKey("Escalate"),',
+      'question: translationKey("Escalate Incident?"),',
+      'question: translationKey("Escalate Alert?"),',
+      'question: translationKey("Escalate Episode?"),',
+      '"You will not be paged again for this incident.",',
+      '"This will immediately page {{level}}, without waiting.",',
+    ]) {
+      expect({ word, found: words.includes(word) }).toEqual({
+        word,
+        found: true,
+      });
+    }
+  });
+
+  test("nothing a reader sees says the old Pass it on", () => {
+    for (const source of [hook, words]) {
+      expect(source).not.toContain('translationKey("Pass it on")');
+      expect(source).not.toContain('"Pass it on?"');
+      expect(source).not.toContain('"You passed it on"');
+    }
   });
 });
