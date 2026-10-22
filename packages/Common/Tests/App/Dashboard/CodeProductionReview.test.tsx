@@ -342,6 +342,15 @@ function summary(data: Partial<CodeTaskSummaryJSON> = {}): CodeTaskSummaryJSON {
   };
 }
 
+// A review whose pull request's title is not known yet.
+function untitled(
+  data: Partial<CodeTaskSummaryJSON> = {},
+): CodeTaskSummaryJSON {
+  const value: CodeTaskSummaryJSON = summary(data);
+  delete value.title;
+  return value;
+}
+
 function turn(data: Partial<CodeTaskTurnJSON> = {}): CodeTaskTurnJSON {
   return {
     runId: TASK_ID,
@@ -1051,7 +1060,7 @@ describe("a review's page", () => {
   test("a pull request whose title is not known yet is named by its number", () => {
     drawTask(
       taskAnswer({
-        task: summary({ title: undefined }),
+        task: untitled(),
         turns: [turn({ outcome: undefined })],
       }),
     );
@@ -1373,11 +1382,7 @@ describe("a review's row, trail and the repository's menu", () => {
   });
 
   test("a row whose review runs says Reviewing…; one with no title is named by its pull request", () => {
-    draw(
-      <CodeTaskRow
-        task={summary({ state: CodeTaskState.Working, title: undefined })}
-      />,
-    );
+    draw(<CodeTaskRow task={untitled({ state: CodeTaskState.Working })} />);
 
     const row: HTMLElement = screen.getByTestId("code-task-row");
     expect(row).toHaveTextContent("Reviewing…");

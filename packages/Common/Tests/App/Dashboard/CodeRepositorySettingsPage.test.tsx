@@ -1104,7 +1104,11 @@ describe("Production Review Comment: what a review posts on a pull request", () 
     expect(choice!.description).toBeUndefined();
     expect(
       (choice!.radioButtonOptions || []).map(
-        (option: { value: unknown; title: string; description?: string }) => {
+        (option: {
+          value: unknown;
+          title: string;
+          description?: string | undefined;
+        }) => {
           return [option.value, option.title, option.description];
         },
       ),

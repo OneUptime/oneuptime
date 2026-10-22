@@ -175,6 +175,10 @@ describe("ProductionReviewComposer.compose: the review", () => {
   });
 
   test("says what the changed function takes of its service's CPU time", () => {
+    // Named as the review's page in Code names the part.
+    expect(body).toContain(
+      "**Hot functions in the changed code** · profiles, last hour",
+    );
     expect(body).toContain(
       "- `chargeCard()` in `src/billing/charge.ts` takes 12% of checkout-api's CPU time (4% in its own code), and this changes it.",
     );

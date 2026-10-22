@@ -656,7 +656,7 @@ export default class ProductionReviewComposer {
 
     return FeedMarkdown.join(
       [
-        mdText`**Hot code in the change** · profiles, last hour`,
+        mdText`**Hot functions in the changed code** · profiles, last hour`,
         FeedMarkdown.bulletList(lines),
       ],
       "\n\n",
