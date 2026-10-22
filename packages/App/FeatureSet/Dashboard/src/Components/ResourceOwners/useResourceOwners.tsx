@@ -17,6 +17,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import React, {
@@ -235,7 +236,59 @@ const useResourceOwners: <TResource extends BaseModel>(
 ): UseResourceOwnersResult<TResource> => {
   const translator: Translator = useTranslator();
   const { ownerUserModelType, ownerTeamModelType, resourceIdField } = options;
-  const showOwnerFacet: boolean = options.showOwnerFacet !== false;
+
+  /*
+   * The Owner chip filters by what the owner tables hold, and the server
+   * holds that filter to a read of them: someone who may read the list but
+   * not who owns its records - a custom role - is refused it (403). For
+   * them the chip is left out, and an owner filter a link carries is not
+   * sent, rather than a chip that turns the list into an error. Until the
+   * permission snapshot has landed nobody is known to be refused, so the
+   * chip stays.
+   */
+  const hasPermissionSnapshot: boolean = PermissionGate.hasPermissionSnapshot();
+
+  const isOwnerFilterRefused: boolean = useMemo((): boolean => {
+    if (
+      !hasPermissionSnapshot ||
+      !ownerUserModelType ||
+      !ownerTeamModelType ||
+      !resourceIdField
+    ) {
+      return false;
+    }
+
+    const ownerTables: Array<{
+      modelType: { new (): OwnerJunctionModel };
+      ownerColumn: string;
+    }> = [
+      { modelType: ownerUserModelType, ownerColumn: "userId" },
+      { modelType: ownerTeamModelType, ownerColumn: "teamId" },
+    ];
+
+    return ownerTables.some(
+      (table: {
+        modelType: { new (): OwnerJunctionModel };
+        ownerColumn: string;
+      }): boolean => {
+        const ownerTable: OwnerJunctionModel = new table.modelType();
+
+        return (
+          !PermissionGate.check(ownerTable, ModelAction.Read).isAllowed ||
+          !PermissionGate.canReadColumn(ownerTable, resourceIdField) ||
+          !PermissionGate.canReadColumn(ownerTable, table.ownerColumn)
+        );
+      },
+    );
+  }, [
+    hasPermissionSnapshot,
+    ownerUserModelType,
+    ownerTeamModelType,
+    resourceIdField,
+  ]);
+
+  const showOwnerFacet: boolean =
+    options.showOwnerFacet !== false && !isOwnerFilterRefused;
   const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
   const extraFacets: Array<ResourceFacet> = options.extraFacets || [];
   const persistKey: string | undefined = options.persistKey;
@@ -281,6 +334,22 @@ const useResourceOwners: <TResource extends BaseModel>(
   const [facetOperators, setFacetOperators] = useState<{
     [facetKey: string]: FilterOperator;
   }>(initialFacetState.facetOperators);
+
+  /*
+   * An owner filter a link or a saved view brought to someone refused it is
+   * dropped, not kept out of sight: it would otherwise still be saved with
+   * their views and offered as one to save.
+   */
+  useEffect(() => {
+    if (!isOwnerFilterRefused) {
+      return;
+    }
+
+    setSelectedOwnerKeys((keys: Array<string>): Array<string> => {
+      return keys.length > 0 ? [] : keys;
+    });
+    setOwnerOperator("is");
+  }, [isOwnerFilterRefused, selectedOwnerKeys, ownerOperator]);
 
   // Per-facet selected values keyed by facet.key.
   const [facetSelections, setFacetSelections] = useState<{
@@ -1742,6 +1811,14 @@ const useResourceOwners: <TResource extends BaseModel>(
     return {
       isFiltered: hasActiveFilters,
       onClearFilters: clearAllFacets,
+      /*
+       * No chips over a list with nothing in it - an empty archive, a
+       * project's own probes before it has one: there is nothing to filter,
+       * and the empty state's way forward is the one thing to see. They
+       * come back with the first record, and stay while a chip, search or
+       * filter is in force (BaseModelTable).
+       */
+      hideTopContentWhileEmpty: true,
     };
   }, [hasActiveFilters, clearAllFacets]);
 

@@ -31,7 +31,12 @@ import path from "path";
  *     answer - never ids the page worked out.
  *   - The chips survive a reload, and clearing them lists every schedule.
  *   - At a 390px phone's width, the chips and their list fit the screen and
- *     still filter; in German and in dark mode they read.
+ *     still filter; in German and in dark mode they read. The header's
+ *     buttons keep their words on one line once a chip brings Saved Views.
+ *   - A project with no schedule shows its empty state alone, without
+ *     chips to filter nothing.
+ *   - "Owner is empty" can be saved as a view.
+ *   - A member who may not read the schedules' owners gets no Owner chip.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000f1";
@@ -261,6 +266,55 @@ async function latestOwnersFilter(
   return reads[reads.length - 1]?.query["owners"] as
     | Record<string, unknown>
     | undefined;
+}
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
+
+  expect(box).not.toBeNull();
+  return box!;
+}
+
+/*
+ * The list card's header buttons once a chip is set - Saved Views, the
+ * main button and the ⋯ - and the card they sit in.
+ */
+async function headerButtons(
+  page: Page,
+  names: { savedViews: string; create: string },
+): Promise<{ card: Box; savedViews: Box; create: Box; more: Box }> {
+  const header: Locator = page
+    .locator('[data-testid="card-header-actions"]')
+    .filter({ has: page.getByRole("button", { name: names.create }) });
+
+  await expect(header.getByText(names.savedViews)).toBeVisible();
+  await finishFirstPaintTransitions(page);
+
+  const createButton: Locator = header.getByRole("button", {
+    name: names.create,
+  });
+
+  return {
+    card: await boxOf(
+      header.locator("xpath=ancestor::*[@data-testid='card'][1]"),
+    ),
+    savedViews: await boxOf(
+      header.getByText(names.savedViews).locator("xpath=.."),
+    ),
+    create: await boxOf(createButton),
+    more: await boxOf(
+      header
+        .locator('[data-testid="model-table-header-toolbar"] button')
+        .last(),
+    ),
+  };
 }
 
 async function horizontalOverflow(page: Page): Promise<number> {
@@ -658,5 +712,123 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     expect(await horizontalOverflow(page)).toBe(0);
 
     await screenshot(page, "filtered-by-team-390-de");
+  });
+
+  /*
+   * A chip set brings Saved Views into the list's header. On a phone the
+   * three buttons did not fit one line and broke their words - "Create /
+   * On-Call / Schedule" three lines tall - and in German "Gespeicherte
+   * Ansichten" ran past the card's left edge. Now Saved Views takes a line
+   * of its own over the main button and the ⋯, every word on one line.
+   */
+  for (const language of ["en", "de"]) {
+    test(`on a phone, a chip set keeps the header's buttons whole and inside the card (${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: (english: string) => string = (english: string): string => {
+        return language === "de" ? GERMAN[english]! : english;
+      };
+
+      await openPage(page, {
+        width: 390,
+        query: language === "de" ? "?lang=de" : "",
+      });
+      await pick(page, words("Owner"), "SRE");
+      await closePopover(page);
+      await expectListed(page, ["SRE Weekdays", "SRE Weekends"]);
+
+      const boxes: { card: Box; savedViews: Box; create: Box; more: Box } =
+        await headerButtons(page, {
+          savedViews: words("Saved Views"),
+          create: words("Create On-Call Schedule"),
+        });
+
+      // Each button's words on one line: no taller than the ⋯ beside it.
+      expect(boxes.create.height).toBeLessThanOrEqual(boxes.more.height + 1);
+      expect(boxes.savedViews.height).toBeLessThanOrEqual(
+        boxes.more.height + 1,
+      );
+
+      // All inside the card.
+      for (const box of [boxes.savedViews, boxes.create, boxes.more]) {
+        expect(box.x).toBeGreaterThanOrEqual(boxes.card.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(
+          boxes.card.x + boxes.card.width,
+        );
+      }
+
+      // Saved Views on its own line, over the main button and the ⋯.
+      expect(boxes.savedViews.y + boxes.savedViews.height).toBeLessThanOrEqual(
+        boxes.create.y,
+      );
+      expect(Math.abs(boxes.create.y - boxes.more.y)).toBeLessThanOrEqual(2);
+      expect(await horizontalOverflow(page)).toBe(0);
+
+      await screenshot(page, `phone-header-with-chip-390-${language}`);
+    });
+  }
+
+  test("a project with no schedule shows its empty state alone - no chips to filter nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(`${PAGE_PATH}?schedules=0`);
+    await page.evaluate(async (): Promise<void> => {
+      await document.fonts.ready;
+    });
+
+    await expect(page.getByText("No on-call schedules yet")).toBeVisible();
+    await expect(bar(page)).toHaveCount(0);
+
+    // The way forward is still there, in the header and in the empty state.
+    await expect(
+      page.getByRole("button", { name: "Create On-Call Schedule" }),
+    ).toHaveCount(2);
+
+    await finishFirstPaintTransitions(page);
+    await screenshot(page, "schedules-empty-1280");
+  });
+
+  test("Owner is empty - the schedules nobody owns - can be saved as a view", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page);
+
+    // Nothing set, no view yet: nothing to save.
+    await expect(page.getByText("Saved Views")).toHaveCount(0);
+
+    await setOperator(page, "Owner", "is_empty");
+    await closePopover(page);
+    await expectListed(page, ["Nights"]);
+
+    await expect(page.getByText("Saved Views")).toBeVisible();
+  });
+
+  test("a member who may not read the schedules' owners gets no Owner chip, and the list is never refused", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, { query: "?role=noowners" });
+
+    await expect(chip(page, "Labels")).toBeVisible();
+    await expect(chip(page, "Owner")).toHaveCount(0);
+    await expectListed(page, SCHEDULES);
+    expect(await latestOwnersFilter(page)).toBeUndefined();
+
+    // Nor are the owner tables read for an Owners column they may not see.
+    expect(
+      (await fixture(page)).listRequests.filter(
+        (request: ListRequest): boolean => {
+          return request.model.startsWith("OnCallDutyPolicyScheduleOwner");
+        },
+      ),
+    ).toEqual([]);
   });
 });

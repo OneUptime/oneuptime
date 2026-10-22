@@ -313,6 +313,46 @@ export const buildModelTableEmptyState: (
   };
 };
 
+export interface ListLoadOutcome {
+  // The rows the load brought back for the page on screen.
+  rowCount: number;
+  // How many records match in all (the list's count).
+  totalCount: number;
+  // An analytics list's "there is more" when it gives no count.
+  hasMore?: boolean | undefined;
+  // The page the load was for, from 1.
+  pageNumber: number;
+  // The table's own search box (or its label chips) had something in it.
+  isSearchActive: boolean;
+  // The table's own filters had something set.
+  isFilterActive: boolean;
+  // The page's own chips (EmptyStateOptions.isFiltered) narrowed it.
+  isPageFiltered: boolean;
+}
+
+/*
+ * Whether a load found the list empty with nothing narrowing it: no record
+ * at all, on its first page, and no search, filter or chip applied. Only
+ * then is the list's topContent (its filter chips) left out
+ * (EmptyStateOptions.hideTopContentWhileEmpty). Kept for what the last
+ * load found, so a refresh of an empty list never draws the chips for the
+ * moment it takes, and a search typed into an empty list shows them only
+ * once its answer is in.
+ */
+export const isListEmptyWithNothingApplied: (
+  outcome: ListLoadOutcome,
+) => boolean = (outcome: ListLoadOutcome): boolean => {
+  return (
+    outcome.rowCount === 0 &&
+    outcome.totalCount === 0 &&
+    !outcome.hasMore &&
+    outcome.pageNumber <= 1 &&
+    !outcome.isSearchActive &&
+    !outcome.isFilterActive &&
+    !outcome.isPageFiltered
+  );
+};
+
 export interface NoAccessStateInput {
   // The names of the permissions that would let the viewer read the list.
   permissionTitles: Array<string>;

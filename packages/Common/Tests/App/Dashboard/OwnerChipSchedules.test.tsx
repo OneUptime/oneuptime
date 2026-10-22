@@ -27,6 +27,7 @@ import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OwnedBy, { OwnedByMatch } from "../../../Types/BaseDatabase/OwnedBy";
+import Permission from "../../../Types/Permission";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import Name from "../../../Types/Name";
@@ -76,7 +77,10 @@ interface CapturedTableProps {
   id: string;
   query: Record<string, unknown>;
   topContent: ReactElement;
-  emptyState: { isFiltered?: boolean | undefined };
+  emptyState: {
+    isFiltered?: boolean | undefined;
+    hideTopContentWhileEmpty?: boolean | undefined;
+  };
   currentFacetState: JSONObject;
   onFetchSuccess: (data: Array<OnCallDutyPolicySchedule>) => void;
   columns: Array<CapturedColumn>;
@@ -158,12 +162,19 @@ jest.mock("react-i18next", () => {
   };
 });
 
+/*
+ * What the signed-in member holds. Empty is a snapshot that has not landed
+ * yet - nobody is known to be refused anything; a test that needs a member
+ * whose role may not read the schedules' owners sets it.
+ */
+let heldPermissions: Array<Permission> = [];
+
 jest.mock("../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
       getAllPermissions: () => {
-        return [];
+        return heldPermissions;
       },
       getProjectPermissions: () => {
         return [];
@@ -371,6 +382,7 @@ const ownersOfLatestQuery: () => JSONObject | null = (): JSONObject | null => {
 };
 
 beforeEach(() => {
+  heldPermissions = [];
   capturedTableProps = null;
   capturedQueries = [];
   getListMock.mockReset();
@@ -687,5 +699,117 @@ describe("On-Call Schedules: the Owner chip", () => {
     expect(
       (JSONFunctions.deserialize(sent) as Record<string, unknown>)["owners"],
     ).toBeInstanceOf(OwnedBy);
+  });
+});
+
+describe("On-Call Schedules: when the chips stay out of the way", () => {
+  /*
+   * The chips filter a list with records. Over a project with no schedule
+   * yet they offered to narrow nothing: the table is asked to leave them
+   * out while its list is empty with nothing applied (BaseModelTable reads
+   * hideTopContentWhileEmpty), and to keep them while a chip is in force.
+   */
+  test("the table is asked to leave the chips out while the list has nothing", async () => {
+    renderPage();
+
+    expect(getTable().emptyState.hideTopContentWhileEmpty).toBe(true);
+    expect(getTable().emptyState.isFiltered).toBe(false);
+
+    await pick("Owner", "SRE");
+
+    // A chip in force: the empty state says nothing matches, chips kept.
+    await waitFor(() => {
+      expect(getTable().emptyState.isFiltered).toBe(true);
+    });
+    expect(getTable().emptyState.hideTopContentWhileEmpty).toBe(true);
+  });
+
+  /*
+   * A custom role may read the schedules but not who owns them. The server
+   * refuses that member a filter by owners (403), so the chip is not
+   * offered to them - and an owner filter a colleague's link carries is
+   * dropped rather than turning the list into an error.
+   */
+  const MAY_NOT_READ_OWNERS: Array<Permission> = [
+    Permission.ReadProjectOnCallDutyPolicySchedule,
+    Permission.ReadProjectLabel,
+  ];
+
+  test("a member who may not read the schedules' owners gets no Owner chip", async () => {
+    heldPermissions = MAY_NOT_READ_OWNERS;
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: /^Labels$/ })).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /^Owner(?:$| ·)/ }),
+    ).not.toBeInTheDocument();
+    expect(ownersOfLatestQuery()).toBeNull();
+
+    // Nor are the owner tables read for an Owners column they may not see.
+    const nights: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+    nights._id = NIGHTS_SCHEDULE_ID;
+
+    await act(async () => {
+      getTable().onFetchSuccess([nights]);
+    });
+
+    expect(requestsOf(OnCallDutyPolicyScheduleOwnerUser)).toHaveLength(0);
+    expect(requestsOf(OnCallDutyPolicyScheduleOwnerTeam)).toHaveLength(0);
+  });
+
+  test("a link's owner filter is dropped for them, not sent to be refused", async () => {
+    heldPermissions = MAY_NOT_READ_OWNERS;
+
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/on-call-duty/schedules?${TableFilterUrlState.getParamName(
+        "on-call-schedules-table",
+        "facets",
+      )}=${encodeURIComponent(
+        JSON.stringify({
+          selectedOwnerKeys: [`team:${SRE_TEAM_ID}`],
+          ownerOperator: "is",
+        }),
+      )}`,
+    );
+
+    renderPage();
+
+    expect(capturedQueries.length).toBeGreaterThan(0);
+    for (const query of capturedQueries) {
+      expect(query["owners"]).toBeUndefined();
+    }
+
+    // And it is not kept to be saved with their views.
+    await waitFor(() => {
+      expect(getTable().currentFacetState).toEqual(
+        expect.objectContaining({
+          selectedOwnerKeys: [],
+          ownerOperator: "is",
+        }),
+      );
+    });
+    expect(getTable().emptyState.isFiltered).toBe(false);
+  });
+
+  test("a member who may read them keeps the chip once their permissions are known", async () => {
+    heldPermissions = [Permission.ProjectMember];
+
+    renderPage();
+
+    expect(screen.getByRole("button", { name: /^Owner$/ })).toBeVisible();
+
+    await pick("Owner", "SRE");
+
+    await waitFor(() => {
+      expect(ownersOfLatestQuery()).toEqual({
+        _type: "OwnedBy",
+        match: OwnedByMatch.AnyOf,
+        userIds: [],
+        teamIds: [SRE_TEAM_ID],
+      });
+    });
   });
 });

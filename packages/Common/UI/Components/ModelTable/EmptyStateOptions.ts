@@ -44,4 +44,15 @@ export default interface EmptyStateOptions {
    */
   isFiltered?: boolean | undefined;
   onClearFilters?: (() => void) | undefined;
+  /*
+   * What sits over the table (its topContent: the page's filter chips) is
+   * left out while the list has nothing at all - no record, and no search,
+   * filter or chip narrowing it. There is nothing to filter yet, and the
+   * empty state's way forward is the one thing to look at; the chips come
+   * back with the first record. The facet chips set it
+   * (useResourceOwners), so every list with chips - an empty archive, a
+   * project's own probes or Runners before it has any - shows its empty
+   * state alone, as the infrastructure lists do on their first run.
+   */
+  hideTopContentWhileEmpty?: boolean | undefined;
 }

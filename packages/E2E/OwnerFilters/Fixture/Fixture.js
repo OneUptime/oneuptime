@@ -25,6 +25,10 @@
  *   - lang=de     the Dashboard's German words
  *   - theme=dark  dark mode (set before the bundle by server.js)
  *   - delay=<ms>  the Owner chip's people and teams take this long to read
+ *   - schedules=0 the project has no schedule yet
+ *   - role=noowners
+ *                 the member may read the schedules (and labels and teams)
+ *                 but not who owns them - a custom role
  *
  * Recorded on window.__fixture: every list read (`listRequests`, its query
  * as the API would carry it) and every read of a table this fixture does not
@@ -77,6 +81,10 @@ const params = new URLSearchParams(window.location.search);
 const language = params.get("lang") === "de" ? "de" : "en";
 // ?delay=<ms>: the Owner chip's people and teams take this long to read.
 const pickerDelay = Number(params.get("delay") || 0);
+// ?schedules=0: a project with no schedule yet.
+const hasNoSchedules = params.get("schedules") === "0";
+// ?role=noowners: a member who may read the schedules but not their owners.
+const mayNotReadOwners = params.get("role") === "noowners";
 
 window.__fixture = {
   listRequests: [],
@@ -85,7 +93,13 @@ window.__fixture = {
 
 // ---- who is signed in -------------------------------------------------------
 
-const HELD = [Permission.ProjectOwner];
+const HELD = mayNotReadOwners
+  ? [
+      Permission.ReadProjectOnCallDutyPolicySchedule,
+      Permission.ReadProjectLabel,
+      Permission.ReadProjectTeam,
+    ]
+  : [Permission.ProjectOwner];
 
 UserUtil.isMasterAdmin = () => false;
 UserUtil.getUserId = () => new ObjectID("20000000-0000-4000-8000-0000000000f1");
@@ -227,7 +241,7 @@ function member(index, team, user) {
 }
 
 const TABLES = {
-  OnCallDutyPolicySchedule: SCHEDULES,
+  OnCallDutyPolicySchedule: hasNoSchedules ? [] : SCHEDULES,
   OnCallDutyPolicyScheduleOwnerUser: [
     ownerUser("SRE Weekends", ADA),
     ownerUser("Database On-Call", ADA),
