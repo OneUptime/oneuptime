@@ -650,3 +650,99 @@ describe("InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation", () =>
     expect(getRules).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * The telemetry pull request is written with the LLM provider the rules
+ * that open it pick - the first of them by name that picks one
+ * (Types/AI/AutomaticFixPullRequests, Types/AI/LlmProviderChoice) - which
+ * the run records (AIRun.llmProviderId) for its completions to use.
+ */
+describe("InstrumentationTaskTrigger and the LLM provider the rules pick", () => {
+  const PICK: string = "cccccccc-cccc-4ccc-8ccc-ccccccccccc1";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("the gate's decision carries the opening rule's pick", () => {
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: matchingRules({ name: "Checkout", llmProviderId: PICK }),
+        hasConnectedRepository: true,
+        existingRun: null,
+      }),
+    ).toMatchObject({ enqueue: true, llmProviderId: PICK });
+
+    expect(
+      InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
+        project: fakeProject(),
+        incidentId,
+        rules: NO_RULES,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).llmProviderId,
+    ).toBe("");
+  });
+
+  test("the run it records carries the pick", async () => {
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(
+        matchingRules({ name: "Checkout", llmProviderId: PICK }),
+      );
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+      projectId,
+      incidentId,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toEqual(new ObjectID(PICK));
+  });
+
+  test("no rule picks one: the run picks none", async () => {
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+      limit: 25,
+      paused: false,
+      runsToday: 0,
+    });
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue(NO_RULES);
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(null);
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await InstrumentationTaskTrigger.enqueueForInconclusiveInvestigation({
+      projectId,
+      incidentId,
+    });
+
+    expect(
+      (create.mock.calls[0]![0] as { data: AIRun }).data.llmProviderId,
+    ).toBeUndefined();
+  });
+});

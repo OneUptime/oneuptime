@@ -264,6 +264,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "not",
     "without",
     "Commands on Runners.",
+    // Which LLM provider a rule uses.
+    "Everything the rule starts.",
+    "A provider that can no longer be used.",
+    "The run says which.",
+    "Who may pick one.",
     "Several rules.",
     "Changes during the wait.",
     "When the wait ends.",

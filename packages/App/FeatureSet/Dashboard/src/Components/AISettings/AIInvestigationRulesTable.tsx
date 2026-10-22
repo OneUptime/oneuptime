@@ -20,11 +20,25 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
 import AIInvestigationRuleTriggerEntity from "Common/Types/AI/AIInvestigationRuleTriggerEntity";
 import { Green, Red } from "Common/Types/BrandColors";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useMemo,
+  useRef,
+} from "react";
 import {
   RULE_MCP_SERVERS_FIELD_COPY,
   getInvestigationRuleMoreFieldsSummary,
 } from "../ExternalMcpServer/ExternalMcpServerCopy";
+import {
+  RuleLlmProviderChoices,
+  withRuleLlmProviderSummary,
+} from "../AI/RuleLlmProviderCopy";
+import {
+  getRuleLlmProviderFormField,
+  useRuleLlmProviderChoices,
+} from "../AI/RuleLlmProviderField";
 import RuleMcpServersFieldHint from "../ExternalMcpServer/RuleMcpServersFieldHint";
 import {
   RULE_CODE_REPOSITORIES_FIELD_COPY,
@@ -83,20 +97,33 @@ export const AI_LANE_INVESTIGATION_RULE_TRIGGER: Record<
 
 /*
  * What most rules leave alone, folded under More fields on the Investigate
- * step: the MCP servers and the code repositories OneUptime AI may use while
- * it investigates what the rule matches (none picked: all of them, which the
- * folded line says), and the description. Built once, so the form folds it
- * the same way each time.
+ * step: the LLM provider OneUptime AI investigates with (none picked: the
+ * default provider), the MCP servers and the code repositories it may use
+ * while it investigates what the rule matches (none picked: all of them -
+ * the folded line says each default), and the description. Built once per
+ * table, so the form folds it the same way each time; its summary names the
+ * default provider from the providers as the table last read them.
  *
  * No Runner: an investigation reads code through the repository's GitHub
  * App, from OneUptime itself, and asks the AI agents on the affected
  * clusters and hosts what it needs to know there - nothing of it runs on a
  * Runner, so a rule has none to pick.
  */
-const INVESTIGATION_RULE_MORE_FIELDS: FormFieldCollapsibleSection<AIInvestigationRule> =
-  getAdvancedFormSection<AIInvestigationRule>({
-    getSummary: getInvestigationRuleMoreFieldsSummary,
+export function getInvestigationRuleMoreFields(
+  getLlmProviderChoices: () => RuleLlmProviderChoices | null,
+): FormFieldCollapsibleSection<AIInvestigationRule> {
+  return getAdvancedFormSection<AIInvestigationRule>({
+    getSummary: (
+      values: FormValues<AIInvestigationRule>,
+    ): Array<string> | undefined => {
+      return withRuleLlmProviderSummary(
+        getInvestigationRuleMoreFieldsSummary(values),
+        values,
+        getLlmProviderChoices(),
+      );
+    },
   });
+}
 
 // When to investigate: the two answers, each with its line.
 export const getInvestigationRuleTimingChoices: (
@@ -133,6 +160,26 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
   const isIncident: boolean = props.lane === AiLane.Incident;
   const triggerEntityType: AIInvestigationRuleTriggerEntity =
     AI_LANE_INVESTIGATION_RULE_TRIGGER[props.lane];
+
+  /*
+   * The project's LLM providers, for the folded More fields line to name a
+   * rule's provider - or the default one - by. Read through a ref: a form
+   * may hold on to the fields it was opened with.
+   */
+  const llmProviderChoices: RuleLlmProviderChoices | null =
+    useRuleLlmProviderChoices();
+  const llmProviderChoicesRef: MutableRefObject<RuleLlmProviderChoices | null> =
+    useRef<RuleLlmProviderChoices | null>(llmProviderChoices);
+  llmProviderChoicesRef.current = llmProviderChoices;
+
+  const moreFields: FormFieldCollapsibleSection<AIInvestigationRule> =
+    useMemo(() => {
+      return getInvestigationRuleMoreFields(
+        (): RuleLlmProviderChoices | null => {
+          return llmProviderChoicesRef.current;
+        },
+      );
+    }, []);
 
   return (
     <ModelTable<AIInvestigationRule>
@@ -426,13 +473,22 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           doNotShowWhenCreating: true,
           required: false,
         },
+        // The LLM provider OneUptime AI investigates with: none is the default.
+        getRuleLlmProviderFormField<AIInvestigationRule>({
+          stepId: "investigate",
+          collapsibleSection: moreFields,
+          dataTestId: "ai-investigation-rule-llm-provider-field",
+          getChoices: (): RuleLlmProviderChoices | null => {
+            return llmProviderChoicesRef.current;
+          },
+        }),
         {
           // The MCP servers OneUptime AI may use: none picked is all of them.
           field: { externalMcpServers: true },
           title: RULE_MCP_SERVERS_FIELD_COPY.title,
           description: RULE_MCP_SERVERS_FIELD_COPY.investigationDescription,
           stepId: "investigate",
-          collapsibleSection: INVESTIGATION_RULE_MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: ExternalMcpServer,
@@ -456,7 +512,7 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           description:
             RULE_CODE_REPOSITORIES_FIELD_COPY.investigationDescription,
           stepId: "investigate",
-          collapsibleSection: INVESTIGATION_RULE_MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           // Empty is an answer of its own - all of them - not "(Optional)".
@@ -494,7 +550,7 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           stepId: "investigate",
           fieldType: FormFieldSchemaType.LongText,
           required: false,
-          collapsibleSection: INVESTIGATION_RULE_MORE_FIELDS,
+          collapsibleSection: moreFields,
         },
       ]}
       showRefreshButton={true}

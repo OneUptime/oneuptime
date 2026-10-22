@@ -32,6 +32,8 @@ flowchart TB
 
 Un proveedor es el predeterminado de un proyecto cuando **Establecer como predeterminado** está activado, como ocurre en cada proveedor nuevo. Un proyecto cuyos proveedores tienen todos desactivado el predeterminado recurre al proveedor global, como si no tuviera ninguno.
 
+Cada regla de OneUptime AI —reglas de investigación, de remediación automática y de post mortem— puede elegir en su lugar un proveedor propio, en **Más campos**: uno de los proveedores del proyecto o uno global, que se usa para todo lo que inicia la regla. Una regla que no elige ninguno usa el proveedor predeterminado, y un proveedor elegido que ya no se puede usar vuelve a él. Consulta [Qué proveedor de LLM usa una regla](/docs/ai/ai-sre#qué-proveedor-de-llm-usa-una-regla).
+
 ## OneUptime Cloud
 
 En **OneUptime Cloud**, cada proyecto puede usar el proveedor global sin configurar nada. Está listo para cada función de IA y se paga con los créditos de IA del proyecto.

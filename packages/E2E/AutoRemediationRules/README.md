@@ -68,6 +68,16 @@ The suite drives the pages the way a person does:
   with them, the switch on and no Runner, and a OneUptime AI rule with its
   runbooks and its Runner, which can go back to No Runner;
 - an alert rule asks the same;
+- the LLM provider OneUptime AI uses for what a rule starts
+  (`?providers=project|none|denied`, `?rulePick=opus|gone`): the field's one
+  line, the same on every rule; the empty box naming the provider an empty
+  field uses; the folded line naming it only while there is more than one to
+  pick from (the global provider alone, the fixture's default, says nothing
+  of providers); a pick sent with the rule and named on the folded line, and
+  cleared back to none; a pick no longer available, with its warning; a
+  locked box, grey where the Runbooks box beside it is white; a provider
+  added on LLM Providers in another tab (`window.__fixture.addProvider`)
+  picked on return; and the field at 1280px and 390px, light and dark;
 - a viewer reads the rules but cannot add or edit one; a phone, dark mode
   (`?theme=dark`) and German (`?lang=de`); the AI card and both rule dialogs
   at 1280px and 390px, light and dark, with nothing off the screen.

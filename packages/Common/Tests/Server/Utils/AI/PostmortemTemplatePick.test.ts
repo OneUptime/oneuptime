@@ -150,6 +150,34 @@ describe("PostmortemTemplatePick.pick", () => {
     );
   });
 
+  /*
+   * The pick is part of the draft: it is made with the LLM provider the
+   * postmortem rule picked, when it picked one (Server/Utils/AI/
+   * LlmProviderChoice) - and with none named, the project's provider.
+   */
+  it("asks with the LLM provider the draft is written with", async () => {
+    const OPUS: ObjectID = new ObjectID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1");
+
+    await PostmortemTemplatePick.pick({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      templates: [DATABASE, SECURITY],
+      llmProviderId: OPUS,
+    });
+
+    expect(
+      (execute.mock.calls[0]![0] as Record<string, unknown>)["llmProviderId"],
+    ).toBe(OPUS);
+  });
+
+  it("with no provider named, names none: the project's provider answers", async () => {
+    await pick([DATABASE, SECURITY]);
+
+    expect(
+      (execute.mock.calls[0]![0] as Record<string, unknown>)["llmProviderId"],
+    ).toBeUndefined();
+  });
+
   it("reads the incident as root, with what the pick tells the model", async () => {
     await pick([DATABASE, SECURITY]);
 

@@ -208,4 +208,5 @@ Abrir esto cambia de verdad lo que tu instancia de OneUptime puede llegar a alca
 - [Configuración de workflows](/docs/workflows/configuration): Qué pueden alcanzar y hacer los pasos de un workflow.
 - [Proveedores de LLM](/docs/ai/llm-provider): Conecta OneUptime AI a un modelo de tu red.
 - [Arquitectura](/docs/self-hosted/architecture): Qué parte de una instalación autoalojada hace cada conexión.
+- [Detrás de una VPN o un cortafuegos](/docs/self-hosted/behind-a-firewall): El camino inverso: qué llega a tu servidor desde fuera.
 :::

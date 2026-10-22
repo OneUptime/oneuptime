@@ -8,7 +8,13 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -92,6 +98,12 @@ import { DropdownChange } from "../../../UI/Components/Dropdown/DropdownChange";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { RULE_LLM_PROVIDER_FIELD_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import {
+  OPUS_PROVIDER,
+  mockRuleLlmProviders,
+  projectProvidersAnswer,
+} from "./RuleLlmProviderFixtures";
 
 // ModelAPI.count spied on, as jest-mock's spyOn types it.
 type CountSpy = SpyInstance<
@@ -242,6 +254,8 @@ beforeEach(() => {
   mockCapturedTableProps.length = 0;
   mockBelowPlanAsked.length = 0;
   mockIsBelowTemplatePlan = false;
+  // The LLM Provider field's providers: not answered unless a test says so.
+  mockRuleLlmProviders();
 });
 
 afterEach(() => {
@@ -478,6 +492,7 @@ describe("the postmortem rule form", () => {
       ["postmortemTemplates", "postmortem-draft"],
       ["name", "postmortem-draft"],
       ["isEnabled", "postmortem-draft"],
+      ["llmProviderId", "postmortem-draft"],
       ["description", "postmortem-draft"],
     ]);
   });
@@ -634,6 +649,71 @@ describe("the postmortem rule form", () => {
     expect(name.length).toBeLessThanOrEqual(RULE_NAME_MAX_LENGTH);
     expect(name.startsWith("Draft with Customer-facing outage")).toBe(true);
     expect(name).toMatch(/and \d+ more$/);
+  });
+});
+
+/*
+ * The LLM provider OneUptime AI drafts with (Common/Types/AI/
+ * LlmProviderChoice): first under the rule's More fields, with the
+ * description - empty is the default provider, which the folded line names.
+ */
+describe("the LLM provider a postmortem rule drafts with", () => {
+  interface ProviderField {
+    title?: string;
+    description?: string;
+    hideOptionalLabel?: boolean;
+    collapsibleSection?: {
+      title: string;
+      getSummary?: (values: Record<string, unknown>) => unknown;
+    };
+    getFoldedValue?: (values: Record<string, unknown>) => string | null;
+  }
+
+  function providerField(props: Record<string, unknown>): ProviderField {
+    return fieldNamed(props, "llmProviderId") as unknown as ProviderField;
+  }
+
+  test("is first under More fields, with the description, and the line every rule has", () => {
+    const props: Record<string, unknown> = table();
+    const field: ProviderField = providerField(props);
+
+    expect(field.title).toBe("LLM Provider");
+    expect(field.description).toBe(RULE_LLM_PROVIDER_FIELD_COPY.description);
+    expect(field.hideOptionalLabel).toBe(true);
+    expect(field.collapsibleSection).toBe(
+      fieldNamed(props, "description")!.collapsibleSection,
+    );
+    expect(field.collapsibleSection!.title).toBe("More fields");
+  });
+
+  test("folded, says which provider drafts: the project's default by name, or the rule's pick", async () => {
+    mockRuleLlmProviders(projectProvidersAnswer());
+
+    await act(async () => {
+      table();
+    });
+
+    const field: ProviderField = providerField(
+      mockCapturedTableProps[mockCapturedTableProps.length - 1]!,
+    );
+
+    expect(field.collapsibleSection!.getSummary!({})).toEqual([
+      "The rule uses the project's default LLM provider, Azure GPT-4o.",
+    ]);
+    expect(
+      field.collapsibleSection!.getSummary!({
+        llmProviderId: OPUS_PROVIDER.id,
+      }),
+    ).toBeUndefined();
+    expect(field.getFoldedValue!({ llmProviderId: OPUS_PROVIDER.id })).toBe(
+      "Claude Opus",
+    );
+  });
+
+  test("before the providers are read, the folded line says nothing of them", () => {
+    const field: ProviderField = providerField(table());
+
+    expect(field.collapsibleSection!.getSummary!({})).toBeUndefined();
   });
 });
 

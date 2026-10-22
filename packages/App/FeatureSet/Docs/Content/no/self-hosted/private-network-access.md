@@ -208,4 +208,5 @@ Kjør arbeidsflyten eller monitoren på nytt. Hvis den fortsatt avvises, nevner 
 - [Arbeidsflytkonfigurasjon](/docs/workflows/configuration): Hva arbeidsflyttrinn kan nå og gjøre.
 - [LLM-leverandører](/docs/ai/llm-provider): Koble OneUptime AI til en modell i nettverket ditt.
 - [Arkitektur](/docs/self-hosted/architecture): Hvilken del av en selvhostet installasjon som lager hvilken tilkobling.
+- [Bak en VPN eller brannmur](/docs/self-hosted/behind-a-firewall): Andre veien: hva som når serveren din utenfra.
 :::

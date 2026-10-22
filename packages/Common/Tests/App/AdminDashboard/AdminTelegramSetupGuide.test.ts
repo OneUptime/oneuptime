@@ -137,7 +137,7 @@ describe("the rest of the guide", () => {
     expect(headings).toEqual([
       "### What you'll need",
       "### 1. Create a bot and grab its token",
-      "### 2. Register the webhook with Telegram",
+      "### 2. Choose how Telegram reaches OneUptime",
       "### 3. Test end-to-end",
       "### Webhook endpoint",
     ]);
@@ -170,5 +170,86 @@ describe("the rest of the guide", () => {
     expect(page).toContain("<MarkdownViewer text={telegramSetupMarkdown} />");
     // One guide: the page no longer keeps a copy of its own.
     expect(page).not.toContain("### 3. Test end-to-end");
+  });
+});
+
+/*
+ * A server Telegram cannot reach - behind a VPN, or a firewall that lets
+ * nothing in - links Telegram accounts by polling Telegram for the bot's
+ * messages (Common/Server/Utils/TelegramUpdatePolling). The guide offers it
+ * first, because it needs nothing but outbound HTTPS, and calls the switch
+ * what the form calls it.
+ */
+describe("the guide's two ways for messages to reach OneUptime", () => {
+  const POLL_SWITCH: string = "Poll Telegram for Messages";
+
+  const settingsPage: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "App",
+      "FeatureSet",
+      "AdminDashboard",
+      "src",
+      "Pages",
+      "Settings",
+      "Telegram",
+      "Index.tsx",
+    ),
+    "utf8",
+  );
+
+  const section: string =
+    guide.split("\n### ").find((candidate: string): boolean => {
+      return candidate.startsWith("2. Choose how Telegram reaches OneUptime");
+    }) || "";
+
+  test("offers polling before the webhook command", () => {
+    const polling: number = section.indexOf(
+      "#### Poll Telegram for messages (works behind a VPN or firewall)",
+    );
+    const webhook: number = section.indexOf(
+      "#### Webhook (Telegram calls this server)",
+    );
+
+    expect(polling).toBeGreaterThan(-1);
+    expect(webhook).toBeGreaterThan(polling);
+    expect(section.indexOf("setWebhook")).toBeGreaterThan(webhook);
+  });
+
+  test("says polling needs nothing to reach the server, and no webhook secret", () => {
+    const polling: string = section.substring(
+      0,
+      section.indexOf("#### Webhook"),
+    );
+
+    expect(polling).toContain(`Turn on **${POLL_SWITCH}** in the form above`);
+    expect(polling).toContain("over outbound HTTPS");
+    expect(polling).toContain("nothing has to reach this server");
+    expect(polling).toContain("no webhook secret");
+    // The poller removes a webhook, which stops getUpdates: the guide says so.
+    expect(polling).toContain("OneUptime removes it");
+  });
+
+  test("keeps the webhook secret and the command to the webhook way", () => {
+    const webhook: string = section.substring(section.indexOf("#### Webhook"));
+
+    expect(webhook).toContain(`Leave **${POLL_SWITCH}** off`);
+    expect(webhook).toContain("**Webhook Secret Token**");
+    expect(webhook).toContain(`"secret_token": "<SECRET>"`);
+  });
+
+  test("names the switch the way the form titles it", () => {
+    expect(settingsPage).toContain(`title: "${POLL_SWITCH}",`);
+    expect(settingsPage).toContain("telegramPollForUpdates: true,");
+    expect(settingsPage).toContain("FormFieldSchemaType.Toggle");
+  });
+
+  test("hides the webhook secret while polling, in the form and on the card", () => {
+    expect(settingsPage).toContain("return !values.telegramPollForUpdates;");
+    expect(settingsPage).toContain("return !item.telegramPollForUpdates;");
   });
 });

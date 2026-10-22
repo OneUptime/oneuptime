@@ -11,6 +11,7 @@ import {
   UnreadableReferenceException,
 } from "../../../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
+import AIInvestigationRule from "../../../../../Models/DatabaseModels/AIInvestigationRule";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import Alert from "../../../../../Models/DatabaseModels/Alert";
 import AlertOwnerTeam from "../../../../../Models/DatabaseModels/AlertOwnerTeam";
@@ -23,6 +24,7 @@ import IncidentTemplateOwnerTeam from "../../../../../Models/DatabaseModels/Inci
 import IncidentTemplateOwnerUser from "../../../../../Models/DatabaseModels/IncidentTemplateOwnerUser";
 import IncomingCallPolicyEscalationRule from "../../../../../Models/DatabaseModels/IncomingCallPolicyEscalationRule";
 import LlmCostBudget from "../../../../../Models/DatabaseModels/LlmCostBudget";
+import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../../../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorOwnerTeam from "../../../../../Models/DatabaseModels/MonitorOwnerTeam";
@@ -390,12 +392,15 @@ describe("the single references held to the caller's read", () => {
     ]);
   });
 
-  test("the records every project may name: OneUptime's global probes and AI agents", () => {
+  test("the records every project may name: OneUptime's global probes, AI agents and LLM providers", () => {
     expect(RelationListPermission.getSharedRecordQuery(Probe)).toEqual({
       isGlobalProbe: true,
     });
     expect(RelationListPermission.getSharedRecordQuery(AIAgent)).toEqual({
       isGlobalAIAgent: true,
+    });
+    expect(RelationListPermission.getSharedRecordQuery(LlmProvider)).toEqual({
+      isGlobalLlm: true,
     });
     expect(RelationListPermission.getSharedRecordQuery(Monitor)).toBeNull();
     expect(RelationListPermission.getSharedRecordQuery(Service)).toBeNull();
@@ -1051,6 +1056,47 @@ describe("the records every project may name", () => {
     expect(lookups.sharedCalls[0]?.query).toMatchObject({
       isGlobalAIAgent: true,
     });
+  });
+
+  /*
+   * An AI rule may pick a global LLM provider (Types/AI/LlmProviderChoice):
+   * one every project uses, whose row no project reads.
+   */
+  test("a global LLM provider is named by an AI rule through its own query, and another project's is refused", async () => {
+    const GLOBAL_LLM: string = "0193c0de-aaaa-4aaa-8bbb-0000000000c1";
+    const OTHER_PROJECTS_LLM: string = "0193c0de-aaaa-4aaa-8bbb-0000000000c2";
+    const lookups: Lookups = lookupsFinding({
+      readable: [],
+      shared: [GLOBAL_LLM],
+    });
+
+    await expect(
+      check({
+        modelType: AIInvestigationRule,
+        data: { llmProviderId: GLOBAL_LLM },
+        props: member([everywhere(Permission.ProjectAdmin)]),
+        lookups: lookups,
+        referencesCheckedInProject: false,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(lookups.sharedCalls[0]?.modelType).toBe(LlmProvider);
+    expect(lookups.sharedCalls[0]?.ids).toEqual([GLOBAL_LLM]);
+    expect(lookups.sharedCalls[0]?.query).toMatchObject({
+      isGlobalLlm: true,
+    });
+
+    const refusal: unknown = await refusalOf(
+      check({
+        modelType: AIInvestigationRule,
+        data: { llmProvider: { _id: OTHER_PROJECTS_LLM } },
+        props: member([everywhere(Permission.ProjectAdmin)]),
+        lookups: lookups,
+        referencesCheckedInProject: false,
+      }),
+    );
+
+    expect(refusal).toBeInstanceOf(UnreadableReferenceException);
   });
 
   test("a model with no shared records is never looked up for them", async () => {
