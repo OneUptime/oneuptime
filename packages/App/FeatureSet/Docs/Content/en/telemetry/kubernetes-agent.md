@@ -213,7 +213,7 @@ If you are not sure, start with `standard`. If the install fails with a Pod Secu
 | Pod metrics | CPU, memory, network and restarts |
 | Container metrics | CPU and memory per container |
 | Cluster metrics | Node conditions, allocatable resources, pod counts |
-| Kubernetes events | Warnings, errors and scheduling events |
+| Kubernetes events | Every event, Warning and Normal, of every namespace and kind of object: see [Kubernetes events](#kubernetes-events) |
 | Pod logs | The stdout and stderr of every container (through `hostPath` on standard clusters, through the Kubernetes API on Autopilot and Fargate) |
 | Application traces (eBPF, on by default) | HTTP, gRPC, SQL and Redis spans from every pod, with no SDK or code changes |
 | HTTP RED metrics (eBPF) | `http.server.request.duration`, and request and response body sizes, per service |
@@ -221,6 +221,43 @@ If you are not sure, start with `standard`. If the install fails with a Pod Secu
 | Network flow metrics (eBPF) | Pod-to-pod TCP and UDP byte and packet counters, with Kubernetes metadata |
 | TCP stats (eBPF) | Node-level round-trip time, failed-connection and retransmit counters |
 | Workload costs (opt-in, `cost.enabled=true`) | Spend per namespace, workload and pod, with idle and efficiency, and node and volume hourly costs: see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes events
+
+The agent sends every Kubernetes event of the cluster to OneUptime: from every namespace, system ones such as `kube-system` and `aks-istio-system` included, about every kind of object, nodes and autoscalers as much as pods, Warning and Normal alike. No agent setting filters them. Kubernetes keeps an event for about an hour; OneUptime keeps it as a log, for as long as your [data retention](/docs/telemetry/data-retention) keeps logs.
+
+### Find warning events
+
+- The cluster's **Events** page, under **Telemetry**, lists every event newest first, and opens on the warnings when there are any: an `OOMKilling` on a node, a `BackOff` on a pod, a `FailedGetResourceMetric` on an HPA. Narrow it by namespace, kind or reason, and pick a time range to look back further than the cluster keeps events.
+- Every node, pod, workload, autoscaler, volume and namespace page has an **Events** tab, which shows the number of warnings in its name. A workload's tab includes the events of its pods, where crash loops and failed mounts are reported.
+- The cluster's **Overview** lists the newest warnings in **Recent Warnings**, one line per reason and object.
+
+### What an event shows
+
+| Column | What it shows |
+| --- | --- |
+| Event | The reason, Warning or Normal, the message, and who reported it: `kernel-monitor` on a node, `kubelet`, `horizontal-pod-autoscaler` |
+| Object | What it is about, linked to its page in OneUptime |
+| Namespace | The namespace the event is in; a node's events are in `default`, as `kubectl get events` lists them |
+| Count | How many times it happened: a repeat raises the count rather than adding a row |
+| Last seen | When it last happened; hover to see when it first did |
+
+### Search and alert on events
+
+Every event is also a log. A warning is stored with the **Warning** severity, and what the event says is in its attributes:
+
+| Attribute | Example |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Search them in **Logs**, drop the ones you do not want with a drop filter, or be told when one happens with a [Logs monitor](/docs/monitor/logs-monitor): filter on the **Warning** severity and `k8s.event.reason`, and group by `k8s.object.name` for one alert per node or autoscaler.
 
 ## Configuration options
 
@@ -287,7 +324,7 @@ Add those scopes to a rule to filter namespaced metrics or spans too:
 > [!NOTE]
 > Node- and cluster-level metrics are always kept. A namespace belongs to a pod, not to a node, so series such as node CPU, node memory and filesystem use have nothing to match and are never dropped: a `metrics`-scoped rule trims per-pod series without hiding a node going bad.
 
-Kubernetes events cannot be filtered by namespace at the agent: they arrive from the `k8sobjects` receiver without a `k8s.namespace.name` attribute (the namespace is inside the event body), so there is nothing for a filter to match. Drop them in OneUptime instead, with **Logs → Settings → Drop Filters**.
+Kubernetes events are not filtered by namespace at the agent: it sends every one of them, the system namespaces' included. To drop some, use **Logs → Settings → Drop Filters** in OneUptime, which can match an event's `k8s.namespace.name`.
 
 ### Filtering by log severity
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Check its `/healthz`: the log tailer answers on port `13133` with its number of active streams and its last export error.
 3. Read its logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. On a very large cluster, one replica can be a bottleneck: split the namespaces across releases with `podLogs`-scoped include rules in `namespaceFilters.rules`.
+:::
+
+:::details Kubernetes warning events do not show
+1. Check that Kubernetes reported them: `kubectl get events -A --field-selector type=Warning`. Kubernetes keeps an event for about an hour, and the agent sends the events that happen or repeat while it runs, not the ones from before it started.
+2. On the cluster's **Events** page, choose **Warnings** or **All**, and a time range that covers when the event happened.
+3. Check **Logs → Settings → Drop Filters**: an event that a drop filter matches is dropped before it is stored.
+4. Read the metrics collector's logs for export errors: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details The eBPF pods crash-loop or do not start

@@ -213,7 +213,7 @@ Se non sei sicuro, inizia con `standard`. Se l'installazione fallisce con un err
 | Metriche dei pod | CPU, memoria, rete e riavvii |
 | Metriche dei container | CPU e memoria per container |
 | Metriche del cluster | Condizioni dei nodi, risorse allocabili, numero di pod |
-| Eventi Kubernetes | Avvisi, errori ed eventi di pianificazione |
+| Eventi Kubernetes | Ogni evento, Warning e Normal, di ogni namespace e tipo di oggetto: vedi [Eventi Kubernetes](#eventi-kubernetes) |
 | Log dei pod | stdout e stderr di ogni container (tramite `hostPath` sui cluster standard, tramite l'API di Kubernetes su Autopilot e Fargate) |
 | Tracce applicative (eBPF, attive per impostazione predefinita) | Span HTTP, gRPC, SQL e Redis di ogni pod, senza SDK né modifiche al codice |
 | Metriche RED HTTP (eBPF) | `http.server.request.duration` e le dimensioni del corpo di richiesta e risposta, per servizio |
@@ -221,6 +221,43 @@ Se non sei sicuro, inizia con `standard`. Se l'installazione fallisce con un err
 | Metriche dei flussi di rete (eBPF) | Contatori di byte e pacchetti TCP e UDP da pod a pod, con i metadati Kubernetes |
 | Statistiche TCP (eBPF) | Contatori di tempo di andata e ritorno, connessioni fallite e ritrasmissioni per nodo |
 | Costi dei carichi di lavoro (opzionale, `cost.enabled=true`) | Spesa per namespace, carico di lavoro e pod, con capacità inutilizzata ed efficienza, e costi orari di nodi e volumi: vedi [Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost) |
+
+## Eventi Kubernetes
+
+L'agent invia a OneUptime ogni evento Kubernetes del cluster: da ogni namespace, compresi quelli di sistema come `kube-system` e `aks-istio-system`, su ogni tipo di oggetto, nodi e autoscaler quanto i pod, Warning e Normal allo stesso modo. Nessuna impostazione dell'agent li filtra. Kubernetes conserva un evento per circa un'ora; OneUptime lo conserva come log, finché la tua [conservazione dei dati](/docs/telemetry/data-retention) conserva i log.
+
+### Trovare le avvertenze
+
+- La pagina **Eventi** del cluster, sotto **Telemetria**, elenca ogni evento dal più recente, e si apre sulle avvertenze quando ce ne sono: un `OOMKilling` su un nodo, un `BackOff` su un pod, un `FailedGetResourceMetric` su un HPA. Restringila per namespace, tipo o motivo, e scegli un intervallo di tempo per guardare più indietro di quanto il cluster conservi gli eventi.
+- Ogni pagina di nodo, pod, carico di lavoro, autoscaler, volume e namespace ha una scheda **Eventi**, il cui nome mostra il numero di avvertenze. La scheda di un carico di lavoro include gli eventi dei suoi pod, dove vengono segnalati i crash loop e i mount non riusciti.
+- La **Panoramica** del cluster elenca le avvertenze più recenti in **Avvertenze recenti**, una riga per motivo e oggetto.
+
+### Cosa mostra un evento
+
+| Colonna | Cosa mostra |
+| --- | --- |
+| Evento | Il motivo, Warning o Normal, il messaggio e chi lo ha segnalato: `kernel-monitor` su un nodo, `kubelet`, `horizontal-pod-autoscaler` |
+| Oggetto | A cosa si riferisce, con un link alla sua pagina in OneUptime |
+| Namespace | Il namespace in cui si trova l'evento; gli eventi di un nodo sono in `default`, come li elenca `kubectl get events` |
+| Conteggio | Quante volte è successo: una ripetizione aumenta il conteggio invece di aggiungere una riga |
+| Ultima volta visto | Quando è successo l'ultima volta; passa il puntatore sopra per vedere quando è successo la prima volta |
+
+### Cercare gli eventi e ricevere avvisi
+
+Ogni evento è anche un log. Un'avvertenza viene salvata con la gravità **Warning**, e ciò che dice l'evento è nei suoi attributi:
+
+| Attributo | Esempio |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Cercali in **Registri**, scarta quelli che non vuoi con un filtro di scarto, oppure ricevi un avviso quando ne accade uno con un [monitor dei log](/docs/monitor/logs-monitor): filtra per la gravità **Warning** e `k8s.event.reason`, e raggruppa per `k8s.object.name` per un avviso per nodo o autoscaler.
 
 ## Opzioni di configurazione
 
@@ -287,7 +324,7 @@ Aggiungi questi ambiti a una regola per filtrare anche le metriche o gli span co
 > [!NOTE]
 > Le metriche a livello di nodo e di cluster vengono sempre mantenute. Un namespace appartiene a un pod, non a un nodo, quindi serie come la CPU del nodo, la memoria del nodo e l'utilizzo del file system non hanno nulla con cui corrispondere e non vengono mai scartate: una regola limitata a `metrics` riduce le serie per pod senza nascondere un nodo che si sta guastando.
 
-Gli eventi Kubernetes non si possono filtrare per namespace nell'agent: arrivano dal receiver `k8sobjects` senza un attributo `k8s.namespace.name` (il namespace è nel corpo dell'evento), quindi un filtro non ha nulla su cui corrispondere. Scartali invece in OneUptime, con **Registri → Impostazioni → Filtri di scarto**.
+Gli eventi Kubernetes non vengono filtrati per namespace nell'agent: li invia tutti, compresi quelli dei namespace di sistema. Per scartarne alcuni, usa **Registri → Impostazioni → Filtri di scarto** in OneUptime, che possono confrontare il `k8s.namespace.name` di un evento.
 
 ### Filtraggio per severità dei log
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Controlla il suo `/healthz`: il lettore di log risponde sulla porta `13133` con il numero di flussi attivi e l'ultimo errore di esportazione.
 3. Leggi i suoi log: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. Su un cluster molto grande, una sola replica può diventare un collo di bottiglia: distribuisci i namespace su più release con regole include limitate a `podLogs` in `namespaceFilters.rules`.
+:::
+
+:::details Le avvertenze Kubernetes non compaiono
+1. Verifica che Kubernetes le abbia segnalate: `kubectl get events -A --field-selector type=Warning`. Kubernetes conserva un evento per circa un'ora, e l'agent invia gli eventi che accadono o si ripetono mentre è in esecuzione, non quelli di prima del suo avvio.
+2. Nella pagina **Eventi** del cluster, scegli **Avvertenze** o **Tutti**, e un intervallo di tempo che copra il momento dell'evento.
+3. Controlla **Registri → Impostazioni → Filtri di scarto**: un evento che corrisponde a un filtro di scarto viene scartato prima di essere salvato.
+4. Leggi i log del collector delle metriche per cercare errori di esportazione: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details I pod eBPF si riavviano in loop o non partono

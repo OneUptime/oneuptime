@@ -213,7 +213,7 @@ Twijfel je, begin dan met `standard`. Mislukt de installatie met een Pod Securit
 | Podmetrics | CPU, geheugen, netwerk en herstarts |
 | Containermetrics | CPU en geheugen per container |
 | Clustermetrics | Nodecondities, toewijsbare resources, aantal pods |
-| Kubernetes-events | Waarschuwingen, fouten en scheduling-events |
+| Kubernetes-events | Elk event, Warning en Normal, uit elke namespace en van elk soort object: zie [Kubernetes-events](#kubernetes-events) |
 | Podlogs | De stdout en stderr van elke container (via `hostPath` op standaardclusters, via de Kubernetes-API op Autopilot en Fargate) |
 | Applicatietraces (eBPF, standaard aan) | HTTP-, gRPC-, SQL- en Redis-spans van elke pod, zonder SDK of codewijzigingen |
 | HTTP RED-metrics (eBPF) | `http.server.request.duration`, en de groottes van request- en responsebody's, per service |
@@ -221,6 +221,43 @@ Twijfel je, begin dan met `standard`. Mislukt de installatie met een Pod Securit
 | Netwerkflowmetrics (eBPF) | TCP- en UDP-tellers voor bytes en pakketten van pod naar pod, met Kubernetes-metadata |
 | TCP-statistieken (eBPF) | Tellers voor round-trip-tijd, mislukte verbindingen en retransmissies per node |
 | Workloadkosten (opt-in, `cost.enabled=true`) | Uitgaven per namespace, workload en pod, met inactiviteit en efficiëntie, en de uurkosten van nodes en volumes: zie [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes-events
+
+De agent stuurt elk Kubernetes-event van het cluster naar OneUptime: uit elke namespace, systeemnamespaces zoals `kube-system` en `aks-istio-system` inbegrepen, over elk soort object, nodes en autoscalers net zo goed als pods, Warning en Normal gelijk. Geen enkele instelling van de agent filtert ze. Kubernetes bewaart een event ongeveer een uur; OneUptime bewaart het als log, zo lang als je [gegevensbewaring](/docs/telemetry/data-retention) logs bewaart.
+
+### Waarschuwingen vinden
+
+- De pagina **Gebeurtenissen** van het cluster, onder **Telemetrie**, toont elk event, nieuwste eerst, en opent op de waarschuwingen als die er zijn: een `OOMKilling` op een node, een `BackOff` op een pod, een `FailedGetResourceMetric` op een HPA. Verfijn op namespace, soort of reden, en kies een tijdsbereik om verder terug te kijken dan het cluster events bewaart.
+- Elke pagina van een node, pod, workload, autoscaler, volume en namespace heeft een tabblad **Gebeurtenissen**, waarvan de naam het aantal waarschuwingen toont. Het tabblad van een workload bevat de events van zijn pods, waar crashloops en mislukte mounts worden gemeld.
+- Het **Overzicht** van het cluster toont de nieuwste waarschuwingen onder **Recente waarschuwingen**, één regel per reden en object.
+
+### Wat een event toont
+
+| Kolom | Wat ze toont |
+| --- | --- |
+| Gebeurtenis | De reden, Warning of Normal, het bericht en wie het meldde: `kernel-monitor` op een node, `kubelet`, `horizontal-pod-autoscaler` |
+| Object | Waar het over gaat, met een link naar de pagina ervan in OneUptime |
+| Naamruimte | De namespace waarin het event staat; de events van een node staan in `default`, zoals `kubectl get events` ze toont |
+| Aantal | Hoe vaak het gebeurde: een herhaling verhoogt het aantal in plaats van een regel toe te voegen |
+| Laatst gezien | Wanneer het voor het laatst gebeurde; beweeg erboven om te zien wanneer het voor het eerst gebeurde |
+
+### Events doorzoeken en erop alarmeren
+
+Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Warning**, en wat het event zegt staat in de attributen:
+
+| Attribuut | Voorbeeld |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Doorzoek ze in **Logboeken**, laat de events die je niet wilt vallen met een drop-filter, of krijg bericht wanneer er een gebeurt met een [logmonitor](/docs/monitor/logs-monitor): filter op de ernst **Warning** en `k8s.event.reason`, en groepeer op `k8s.object.name` voor één melding per node of autoscaler.
 
 ## Configuratieopties
 
@@ -287,7 +324,7 @@ Voeg die scopes toe aan een regel om ook metrics of spans met een namespace te f
 > [!NOTE]
 > Metrics op node- en clusterniveau blijven altijd behouden. Een namespace hoort bij een pod, niet bij een node, dus series zoals node-CPU, nodegeheugen en bestandssysteemgebruik hebben niets om op te matchen en worden nooit weggelaten: een regel met scope `metrics` snoeit series per pod zonder een node die slecht gaat te verbergen.
 
-Kubernetes-events kunnen bij de agent niet op namespace worden gefilterd: ze komen binnen van de receiver `k8sobjects` zonder attribuut `k8s.namespace.name` (de namespace zit in de body van het event), dus een filter heeft niets om op te matchen. Laat ze in plaats daarvan in OneUptime vallen, met **Logboeken → Instellingen → Drop-filters**.
+Kubernetes-events worden bij de agent niet op namespace gefilterd: hij stuurt ze allemaal, die van de systeemnamespaces inbegrepen. Om er een paar te laten vallen, gebruik je **Logboeken → Instellingen → Drop-filters** in OneUptime, die de `k8s.namespace.name` van een event kunnen matchen.
 
 ### Filteren op log-severity
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Controleer zijn `/healthz`: de logtailer antwoordt op poort `13133` met zijn aantal actieve streams en zijn laatste exportfout.
 3. Lees zijn logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. Op een heel groot cluster kan één replica een bottleneck zijn: verdeel de namespaces over meerdere releases met include-regels met scope `podLogs` in `namespaceFilters.rules`.
+:::
+
+:::details Kubernetes-waarschuwingen verschijnen niet
+1. Controleer of Kubernetes ze heeft gemeld: `kubectl get events -A --field-selector type=Warning`. Kubernetes bewaart een event ongeveer een uur, en de agent stuurt de events die gebeuren of zich herhalen terwijl hij draait, niet die van voor zijn start.
+2. Kies op de pagina **Gebeurtenissen** van het cluster **Waarschuwingen** of **Alle**, en een tijdsbereik dat het moment van het event omvat.
+3. Controleer **Logboeken → Instellingen → Drop-filters**: een event waarop een drop-filter past, wordt verworpen voordat het wordt opgeslagen.
+4. Lees de logs van de metricscollector op exportfouten: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details De eBPF-pods zitten in een herstartlus of starten niet

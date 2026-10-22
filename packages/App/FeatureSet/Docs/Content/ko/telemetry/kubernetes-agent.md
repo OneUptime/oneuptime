@@ -213,7 +213,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Pod 메트릭 | CPU, 메모리, 네트워크, 재시작 |
 | 컨테이너 메트릭 | 컨테이너별 CPU와 메모리 |
 | 클러스터 메트릭 | 노드 상태, 할당 가능한 리소스, Pod 수 |
-| Kubernetes 이벤트 | 경고, 오류, 스케줄링 이벤트 |
+| Kubernetes 이벤트 | 모든 네임스페이스와 모든 종류의 객체에서 온 모든 이벤트(Warning과 Normal): [Kubernetes 이벤트](#kubernetes-이벤트) 참고 |
 | Pod 로그 | 모든 컨테이너의 stdout과 stderr (표준 클러스터에서는 `hostPath`를 통해, Autopilot과 Fargate에서는 Kubernetes API를 통해) |
 | 애플리케이션 트레이스 (eBPF, 기본적으로 켜짐) | 모든 Pod의 HTTP, gRPC, SQL, Redis 스팬 (SDK나 코드 변경 불필요) |
 | HTTP RED 메트릭 (eBPF) | 서비스별 `http.server.request.duration`, 그리고 요청 및 응답 본문 크기 |
@@ -221,6 +221,43 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 네트워크 흐름 메트릭 (eBPF) | Kubernetes 메타데이터가 붙은 Pod 간 TCP 및 UDP 바이트·패킷 카운터 |
 | TCP 통계 (eBPF) | 노드 수준의 왕복 시간, 연결 실패, 재전송 카운터 |
 | 워크로드 비용 (옵트인, `cost.enabled=true`) | 유휴 및 효율을 포함한 네임스페이스, 워크로드, Pod별 지출, 그리고 노드와 볼륨의 시간당 비용: [Kubernetes 비용 옵저버빌리티](/docs/telemetry/kubernetes-cost) 참조 |
+
+## Kubernetes 이벤트
+
+에이전트는 클러스터의 모든 Kubernetes 이벤트를 OneUptime으로 보냅니다. `kube-system`, `aks-istio-system` 같은 시스템 네임스페이스를 포함한 모든 네임스페이스에서, Pod뿐 아니라 노드와 오토스케일러를 포함한 모든 종류의 객체에 대해, Warning과 Normal 모두 보냅니다. 에이전트 설정으로 이를 필터링하지 않습니다. Kubernetes는 이벤트를 약 1시간 보관하고, OneUptime은 로그로서 [데이터 보존](/docs/telemetry/data-retention) 설정이 로그를 보관하는 기간 동안 보관합니다.
+
+### 경고 이벤트 찾기
+
+- 클러스터의 **이벤트** 페이지(**텔레메트리** 아래)는 모든 이벤트를 최신순으로 보여 주며, 경고가 있으면 경고부터 엽니다. 예를 들어 노드의 `OOMKilling`, Pod의 `BackOff`, HPA의 `FailedGetResourceMetric`입니다. 네임스페이스, 종류, 사유로 좁히고, 시간 범위를 골라 클러스터가 이벤트를 보관하는 기간보다 더 이전까지 볼 수 있습니다.
+- 노드, Pod, 워크로드, 오토스케일러, 볼륨, 네임스페이스의 각 페이지에는 **이벤트** 탭이 있으며, 탭 이름에 경고 수가 표시됩니다. 워크로드의 탭에는 크래시 루프와 마운트 실패가 보고되는 해당 Pod의 이벤트도 포함됩니다.
+- 클러스터의 **개요**에는 **최근 경고**에 최신 경고가 사유와 객체별로 한 줄씩 표시됩니다.
+
+### 이벤트에 표시되는 내용
+
+| 열 | 표시하는 내용 |
+| --- | --- |
+| 이벤트 | 사유, Warning 또는 Normal, 메시지, 보고한 주체: 노드의 `kernel-monitor`, `kubelet`, `horizontal-pod-autoscaler` |
+| 객체 | 무엇에 관한 이벤트인지, OneUptime의 해당 페이지 링크 포함 |
+| 네임스페이스 | 이벤트가 있는 네임스페이스. 노드의 이벤트는 `kubectl get events`와 같이 `default`에 있습니다 |
+| 개수 | 발생한 횟수. 반복되면 행을 추가하지 않고 개수를 올립니다 |
+| 마지막 확인 | 마지막으로 발생한 시각. 포인터를 올리면 처음 발생한 시각을 볼 수 있습니다 |
+
+### 이벤트 검색과 알림
+
+모든 이벤트는 로그이기도 합니다. 경고는 심각도 **Warning**로 저장되며, 이벤트의 내용은 속성에 들어 있습니다.
+
+| 속성 | 예 |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+**로그**에서 검색하고, 원하지 않는 것은 드롭 필터로 버리거나, [로그 모니터](/docs/monitor/logs-monitor)로 발생 시 알림을 받을 수 있습니다. 심각도 **Warning**와 `k8s.event.reason`으로 필터링하고 `k8s.object.name`으로 그룹화하면 노드나 오토스케일러마다 알림이 하나씩 옵니다.
 
 ## 구성 옵션
 
@@ -287,7 +324,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 > [!NOTE]
 > 노드 및 클러스터 수준 메트릭은 항상 유지됩니다. 네임스페이스는 노드가 아니라 Pod에 속하므로 노드 CPU, 노드 메모리, 파일 시스템 사용량 같은 시계열에는 일치시킬 대상이 없어 절대 버려지지 않습니다. `metrics` 범위 규칙은 문제가 생긴 노드를 숨기지 않고 Pod별 시계열을 줄입니다.
 
-Kubernetes 이벤트는 에이전트에서 네임스페이스로 필터링할 수 없습니다. 이벤트는 `k8sobjects` 리시버에서 `k8s.namespace.name` 속성 없이 도착하므로(네임스페이스는 이벤트 본문 안에 있음) 필터가 일치시킬 대상이 없습니다. 대신 OneUptime의 **로그 → 설정 → 드롭 필터**에서 버리세요.
+Kubernetes 이벤트는 에이전트에서 네임스페이스로 필터링되지 않습니다. 시스템 네임스페이스의 이벤트를 포함해 모두 보냅니다. 일부를 버리려면 OneUptime의 **로그 → 설정 → 드롭 필터**를 사용하세요. 이벤트의 `k8s.namespace.name`과 일치시킬 수 있습니다.
 
 ### 로그 심각도로 필터링
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. `/healthz`를 확인하세요. 로그 테일러는 포트 `13133`에서 활성 스트림 수와 마지막 내보내기 오류로 응답합니다.
 3. 로그를 확인하세요: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. 매우 큰 클러스터에서는 레플리카 하나가 병목이 될 수 있습니다. `namespaceFilters.rules`에서 `podLogs` 범위의 include 규칙으로 네임스페이스를 여러 릴리스에 나누세요.
+:::
+
+:::details Kubernetes 경고 이벤트가 보이지 않음
+1. Kubernetes가 경고를 보고했는지 확인하세요: `kubectl get events -A --field-selector type=Warning`. Kubernetes는 이벤트를 약 1시간 보관하며, 에이전트는 실행 중에 발생하거나 반복되는 이벤트를 보내고 시작 전에 있던 이벤트는 보내지 않습니다.
+2. 클러스터의 **이벤트** 페이지에서 **경고** 또는 **전체**를 고르고, 이벤트가 발생한 시점을 포함하는 시간 범위를 고르세요.
+3. **로그 → 설정 → 드롭 필터**를 확인하세요. 드롭 필터에 일치하는 이벤트는 저장되기 전에 버려집니다.
+4. 메트릭 Collector의 로그에서 내보내기 오류를 확인하세요: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF Pod가 크래시 루프에 빠지거나 시작되지 않음

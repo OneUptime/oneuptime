@@ -213,7 +213,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Pod 指标 | CPU、内存、网络和重启次数 |
 | 容器指标 | 每个容器的 CPU 和内存 |
 | 集群指标 | 节点状况、可分配资源、Pod 数量 |
-| Kubernetes 事件 | 警告、错误和调度事件 |
+| Kubernetes 事件 | 来自每个命名空间、每种对象的每个事件（Warning 和 Normal）：请参阅 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日志 | 每个容器的 stdout 和 stderr（标准集群上通过 `hostPath`，Autopilot 和 Fargate 上通过 Kubernetes API） |
 | 应用追踪（eBPF，默认开启） | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis Span，无需 SDK 或修改代码 |
 | HTTP RED 指标（eBPF） | 每个服务的 `http.server.request.duration`，以及请求和响应的正文大小 |
@@ -221,6 +221,43 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 网络流指标（eBPF） | Pod 之间的 TCP 和 UDP 字节与数据包计数器，附带 Kubernetes 元数据 |
 | TCP 统计（eBPF） | 节点级的往返时间、连接失败和重传计数器 |
 | 工作负载成本（需选择启用，`cost.enabled=true`） | 按命名空间、工作负载和 Pod 统计的支出（含空闲和效率），以及节点和卷的每小时成本：见 [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes 事件
+
+代理会把集群的每个 Kubernetes 事件发送到 OneUptime：来自每个命名空间（包括 `kube-system` 和 `aks-istio-system` 等系统命名空间），涉及每种对象（节点和自动伸缩器与 Pod 一样），Warning 和 Normal 都有。代理的任何设置都不会过滤它们。Kubernetes 保留事件大约一小时；OneUptime 把它作为日志保留，保留时间与你的[数据保留](/docs/telemetry/data-retention)设置保留日志的时间一样长。
+
+### 查找警告事件
+
+- 集群的 **事件** 页面（在 **遥测** 下）按最新优先列出每个事件，有警告时会先显示警告：例如节点上的 `OOMKilling`、Pod 上的 `BackOff`、HPA 上的 `FailedGetResourceMetric`。可按命名空间、种类或原因缩小范围，并选择时间范围，查看比集群保留事件更早的内容。
+- 每个节点、Pod、工作负载、自动伸缩器、卷和命名空间页面都有 **事件** 标签页，其名称显示警告数量。工作负载的标签页包含其 Pod 的事件，崩溃循环和挂载失败都在这里报告。
+- 集群的 **概览** 在 **最近的警告** 中列出最新的警告，每个原因和对象一行。
+
+### 事件显示的内容
+
+| 列 | 显示内容 |
+| --- | --- |
+| 事件 | 原因、Warning 或 Normal、消息，以及报告者：节点上的 `kernel-monitor`、`kubelet`、`horizontal-pod-autoscaler` |
+| 对象 | 事件所涉及的对象，链接到它在 OneUptime 中的页面 |
+| 命名空间 | 事件所在的命名空间；节点的事件位于 `default`，与 `kubectl get events` 的列法相同 |
+| 计数 | 发生的次数：重复发生时会增加计数，而不是新增一行 |
+| 最后出现 | 最后一次发生的时间；将指针悬停在上面可查看第一次发生的时间 |
+
+### 搜索事件并设置告警
+
+每个事件也是一条日志。警告以严重程度 **Warning** 存储，事件的内容在其属性中：
+
+| 属性 | 示例 |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+可以在 **日志** 中搜索它们，用丢弃过滤器丢弃不需要的事件，或者用 [日志监视器](/docs/monitor/logs-monitor) 在事件发生时收到通知：按严重程度 **Warning** 和 `k8s.event.reason` 过滤，并按 `k8s.object.name` 分组，每个节点或自动伸缩器一条告警。
 
 ## 配置选项
 
@@ -287,7 +324,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 > [!NOTE]
 > 节点级和集群级指标始终会保留。命名空间属于 Pod 而不属于节点，因此节点 CPU、节点内存和文件系统使用量等序列没有可匹配的内容，永远不会被丢弃：作用域为 `metrics` 的规则会削减每个 Pod 的序列，而不会隐藏出问题的节点。
 
-Kubernetes 事件无法在代理端按命名空间过滤：它们来自 `k8sobjects` 接收器，没有 `k8s.namespace.name` 属性（命名空间在事件正文中），因此过滤器没有可匹配的内容。请改为在 OneUptime 中通过 **日志 → 设置 → 丢弃过滤器** 丢弃它们。
+Kubernetes 事件不会在代理端按命名空间过滤：代理会发送所有事件，包括系统命名空间的事件。要丢弃其中一部分，请在 OneUptime 中使用 **日志 → 设置 → 丢弃过滤器**，它可以匹配事件的 `k8s.namespace.name`。
 
 ### 按日志严重性过滤
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. 检查它的 `/healthz`：日志尾随器在端口 `13133` 上响应，返回其活动流的数量和最近一次导出错误。
 3. 查看它的日志：`kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. 在非常大的集群上，单个副本可能成为瓶颈：在 `namespaceFilters.rules` 中使用作用域为 `podLogs` 的包含规则，把命名空间拆分到多个发布中。
+:::
+
+:::details Kubernetes 警告事件没有显示
+1. 确认 Kubernetes 报告了它们：`kubectl get events -A --field-selector type=Warning`。Kubernetes 保留事件大约一小时，代理发送它运行期间发生或重复的事件，而不发送它启动之前就有的事件。
+2. 在集群的 **事件** 页面上选择 **警告** 或 **全部**，并选择涵盖事件发生时间的时间范围。
+3. 检查 **日志 → 设置 → 丢弃过滤器**：与丢弃过滤器匹配的事件会在存储之前被丢弃。
+4. 查看指标 Collector 的日志中是否有导出错误：`kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF Pod 崩溃循环或无法启动

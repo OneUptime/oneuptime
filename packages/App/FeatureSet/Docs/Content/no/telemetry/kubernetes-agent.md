@@ -213,7 +213,7 @@ Hvis du er usikker, start med `standard`. Hvis installasjonen feiler med en Pod 
 | Podmetrikker | CPU, minne, nettverk og omstarter |
 | Containermetrikker | CPU og minne per container |
 | Klyngemetrikker | Nodetilstander, allokerbare ressurser, antall poder |
-| Kubernetes-hendelser | Advarsler, feil og planleggingshendelser |
+| Kubernetes-hendelser | Hver hendelse, Warning og Normal, fra hvert navnerom og hver slags objekt: se [Kubernetes-hendelser](#kubernetes-hendelser) |
 | Pod-logger | Stdout og stderr fra hver container (gjennom `hostPath` på standardklynger, gjennom Kubernetes-API-et på Autopilot og Fargate) |
 | Applikasjonsspor (eBPF, på som standard) | HTTP-, gRPC-, SQL- og Redis-spenn fra hver pod, uten SDK eller kodeendringer |
 | HTTP RED-metrikker (eBPF) | `http.server.request.duration`, og størrelsen på forespørsels- og svarkropper, per tjeneste |
@@ -221,6 +221,43 @@ Hvis du er usikker, start med `standard`. Hvis installasjonen feiler med en Pod 
 | Nettverksflytmetrikker (eBPF) | Byte- og pakketellere for TCP og UDP fra pod til pod, med Kubernetes-metadata |
 | TCP-statistikk (eBPF) | Tur-retur-tid, mislykkede tilkoblinger og retransmisjonstellere på nodenivå |
 | Kostnader for arbeidsbelastninger (valgfritt, `cost.enabled=true`) | Forbruk per navnerom, arbeidsbelastning og pod, med ledig kapasitet og effektivitet, og timekostnader for noder og volumer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes-hendelser
+
+Agenten sender hver Kubernetes-hendelse i klyngen til OneUptime: fra hvert navnerom, også systemnavnerom som `kube-system` og `aks-istio-system`, om alle slags objekter, noder og autoskalerere like mye som pods, Warning og Normal likt. Ingen innstilling i agenten filtrerer dem. Kubernetes beholder en hendelse i omtrent en time; OneUptime beholder den som en logg, så lenge [datalagringen](/docs/telemetry/data-retention) din beholder logger.
+
+### Finn advarsler
+
+- Klyngens side **Hendelser**, under **Telemetri**, viser alle hendelser med de nyeste først, og åpner på advarslene når det finnes noen: en `OOMKilling` på en node, en `BackOff` på en pod, en `FailedGetResourceMetric` på en HPA. Avgrens etter navnerom, type eller årsak, og velg et tidsrom for å se lenger tilbake enn klyngen beholder hendelser.
+- Hver side for en node, pod, arbeidsbelastning, autoskalerer, volum og navnerom har en fane **Hendelser**, der navnet viser antallet advarsler. Fanen til en arbeidsbelastning tar med hendelsene til podene dens, der krasjløkker og mislykkede monteringer rapporteres.
+- Klyngens **Oversikt** viser de nyeste advarslene under **Nylige advarsler**, én linje per årsak og objekt.
+
+### Hva en hendelse viser
+
+| Kolonne | Hva den viser |
+| --- | --- |
+| Hendelse | Årsaken, Warning eller Normal, meldingen, og hvem som rapporterte den: `kernel-monitor` på en node, `kubelet`, `horizontal-pod-autoscaler` |
+| Objekt | Hva den gjelder, med lenke til siden i OneUptime |
+| Navnerom | Navnerommet hendelsen ligger i; hendelsene til en node ligger i `default`, slik `kubectl get events` viser dem |
+| Antall | Hvor mange ganger den skjedde: en gjentakelse øker antallet i stedet for å legge til en rad |
+| Sist sett | Når den sist skjedde; hold pekeren over for å se når den skjedde første gang |
+
+### Søk i hendelser og få varsler
+
+Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Warning**, og det hendelsen sier, står i attributtene:
+
+| Attributt | Eksempel |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Søk i dem under **Logger**, dropp dem du ikke vil ha med et drop-filter, eller bli varslet når en skjer med en [loggmonitor](/docs/monitor/logs-monitor): filtrer på alvorlighetsgraden **Warning** og `k8s.event.reason`, og grupper etter `k8s.object.name` for ett varsel per node eller autoskalerer.
 
 ## Konfigurasjonsvalg
 
@@ -287,7 +324,7 @@ Legg disse områdene til en regel for også å filtrere metrikker eller spenn me
 > [!NOTE]
 > Metrikker på node- og klyngenivå beholdes alltid. Et navnerom tilhører en pod, ikke en node, så serier som nodens CPU, nodens minne og filsystembruk har ingenting å samsvare med og droppes aldri: en regel avgrenset til `metrics` trimmer serier per pod uten å skjule en node som går i stykker.
 
-Kubernetes-hendelser kan ikke filtreres etter navnerom i agenten: de kommer fra receiveren `k8sobjects` uten et `k8s.namespace.name`-attributt (navnerommet ligger inne i hendelsens innhold), så det er ingenting et filter kan samsvare med. Dropp dem i OneUptime i stedet, med **Logger → Innstillinger → Drop-filtre**.
+Kubernetes-hendelser filtreres ikke etter navnerom i agenten: den sender alle, også de fra systemnavnerom. For å droppe noen, bruk **Logger → Innstillinger → Drop-filtre** i OneUptime, som kan samsvare med `k8s.namespace.name` til en hendelse.
 
 ### Filtrering etter loggalvorlighetsgrad
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Sjekk `/healthz`: logg-taileren svarer på port `13133` med antall aktive strømmer og den siste eksportfeilen.
 3. Les loggene: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. På en svært stor klynge kan én replika være en flaskehals: del navnerommene på flere utgivelser med include-regler avgrenset til `podLogs` i `namespaceFilters.rules`.
+:::
+
+:::details Kubernetes-advarsler vises ikke
+1. Sjekk at Kubernetes har rapportert dem: `kubectl get events -A --field-selector type=Warning`. Kubernetes beholder en hendelse i omtrent en time, og agenten sender hendelsene som skjer eller gjentas mens den kjører, ikke dem fra før den startet.
+2. Velg **Advarsler** eller **Alle** på klyngens side **Hendelser**, og et tidsrom som dekker når hendelsen skjedde.
+3. Sjekk **Logger → Innstillinger → Drop-filtre**: en hendelse som et drop-filter samsvarer med, droppes før den lagres.
+4. Les loggene til metrikk-collectoren for eksportfeil: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF-podene krasjer i en løkke eller starter ikke

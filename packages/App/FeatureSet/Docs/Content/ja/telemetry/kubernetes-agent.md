@@ -213,7 +213,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | Pod のメトリクス | CPU、メモリ、ネットワーク、再起動 |
 | コンテナのメトリクス | コンテナごとの CPU とメモリ |
 | クラスターのメトリクス | ノードの状態、割り当て可能なリソース、Pod 数 |
-| Kubernetes イベント | 警告、エラー、スケジューリングのイベント |
+| Kubernetes イベント | すべての Namespace とあらゆる種類のオブジェクトのすべてのイベント (Warning と Normal): [Kubernetes イベント](#kubernetes-イベント) を参照 |
 | Pod のログ | すべてのコンテナの stdout と stderr (標準のクラスターでは `hostPath` 経由、Autopilot と Fargate では Kubernetes API 経由) |
 | アプリケーションのトレース (eBPF、デフォルトで有効) | すべての Pod からの HTTP、gRPC、SQL、Redis のスパン (SDK もコードの変更も不要) |
 | HTTP の RED メトリクス (eBPF) | サービスごとの `http.server.request.duration`、およびリクエストとレスポンスのボディサイズ |
@@ -221,6 +221,43 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | ネットワークフローのメトリクス (eBPF) | Pod 間の TCP と UDP のバイト数とパケット数のカウンター (Kubernetes のメタデータ付き) |
 | TCP の統計 (eBPF) | ノード単位のラウンドトリップタイム、接続失敗、再送のカウンター |
 | ワークロードのコスト (オプトイン、`cost.enabled=true`) | namespace、ワークロード、Pod ごとの支出 (アイドルと効率を含む)、およびノードとボリュームの時間あたりのコスト: [Kubernetes コストオブザーバビリティ](/docs/telemetry/kubernetes-cost) を参照 |
+
+## Kubernetes イベント
+
+エージェントは、クラスターのすべての Kubernetes イベントを OneUptime に送信します。`kube-system` や `aks-istio-system` などのシステムの Namespace を含むすべての Namespace から、Pod と同じようにノードやオートスケーラーも含むあらゆる種類のオブジェクトについて、Warning も Normal も送信します。エージェントの設定でこれらがフィルタリングされることはありません。Kubernetes はイベントを約 1 時間保持し、OneUptime はログとして、[データ保持](/docs/telemetry/data-retention) がログを保持する期間だけ保持します。
+
+### 警告イベントを見つける
+
+- クラスターの **イベント** ページ (**テレメトリ** の下) は、すべてのイベントを新しい順に一覧表示し、警告がある場合は警告から表示します。たとえばノードの `OOMKilling`、Pod の `BackOff`、HPA の `FailedGetResourceMetric` です。Namespace、種類、理由で絞り込み、時間範囲を選ぶと、クラスターがイベントを保持する期間より前までさかのぼれます。
+- ノード、Pod、ワークロード、オートスケーラー、ボリューム、Namespace の各ページには **イベント** タブがあり、その名前に警告の数が表示されます。ワークロードのタブには、クラッシュループやマウントの失敗が報告されるその Pod のイベントも含まれます。
+- クラスターの **概要** では、最新の警告が **最近の警告** に、理由とオブジェクトごとに 1 行ずつ表示されます。
+
+### イベントに表示される内容
+
+| 列 | 表示される内容 |
+| --- | --- |
+| イベント | 理由、Warning または Normal、メッセージ、報告元: ノードの `kernel-monitor`、`kubelet`、`horizontal-pod-autoscaler` |
+| オブジェクト | 対象のオブジェクト。OneUptime のそのページへのリンク付き |
+| Namespace | イベントがある Namespace。ノードのイベントは、`kubectl get events` と同じく `default` にあります |
+| カウント | 発生した回数。繰り返すと、行が増えるのではなくカウントが増えます |
+| 最終確認 | 最後に発生した日時。ポインターを合わせると最初に発生した日時が表示されます |
+
+### イベントの検索とアラート
+
+すべてのイベントはログでもあります。警告は重大度 **警告** で保存され、イベントの内容はその属性に入っています。
+
+| 属性 | 例 |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+**ログ** で検索したり、不要なものを破棄フィルターで破棄したり、[ログモニター](/docs/monitor/logs-monitor) で発生時に通知を受け取ったりできます。重大度 **警告** と `k8s.event.reason` で絞り込み、`k8s.object.name` でグループ化すると、ノードやオートスケーラーごとに 1 つのアラートになります。
 
 ## 設定オプション
 
@@ -287,7 +324,7 @@ namespace を持つメトリクスやスパンもフィルタリングするに�
 > [!NOTE]
 > ノードとクラスターのレベルのメトリクスは常に残ります。namespace は Pod に属し、ノードには属さないため、ノードの CPU、ノードのメモリ、ファイルシステムの使用量のような系列には照合する対象がなく、破棄されることはありません。`metrics` スコープのルールは、問題が起きているノードを隠すことなく、Pod ごとの系列を減らします。
 
-Kubernetes イベントは、エージェントで namespace によってフィルタリングすることはできません。イベントは `k8sobjects` レシーバーから `k8s.namespace.name` 属性なしで届くため (namespace はイベントの本文の中にあります)、フィルターが照合する対象がありません。代わりに、OneUptime の **ログ → 設定 → 破棄フィルター** で破棄してください。
+Kubernetes イベントは、エージェントで namespace によってフィルタリングされません。システムの namespace のものも含め、すべて送信されます。一部を破棄するには、OneUptime の **ログ → 設定 → 破棄フィルター** を使ってください。イベントの `k8s.namespace.name` で照合できます。
 
 ### ログの重大度によるフィルタリング
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. その `/healthz` を確認します。ログテーラーはポート `13133` で、アクティブなストリームの数と直近のエクスポートのエラーを返します。
 3. そのログを確認します: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. 非常に大規模なクラスターでは、レプリカ 1 つがボトルネックになることがあります。`namespaceFilters.rules` で `podLogs` スコープの include ルールを使い、namespace を複数のリリースに分割してください。
+:::
+
+:::details Kubernetes の警告イベントが表示されない
+1. Kubernetes が警告を報告したことを確認します: `kubectl get events -A --field-selector type=Warning`。Kubernetes はイベントを約 1 時間保持し、エージェントは実行中に発生または繰り返されたイベントを送信します。起動前からあったイベントは送信しません。
+2. クラスターの **イベント** ページで **警告** または **すべて** を選び、イベントが発生した時刻を含む時間範囲を選びます。
+3. **ログ → 設定 → 破棄フィルター** を確認します。破棄フィルターに一致したイベントは、保存される前に破棄されます。
+4. メトリクス Collector のログでエクスポートエラーを確認します: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF Pod がクラッシュループする、または起動しない

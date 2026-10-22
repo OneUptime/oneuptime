@@ -213,7 +213,7 @@ Om du är osäker, börja med `standard`. Om installationen misslyckas med ett P
 | Poddmätvärden | CPU, minne, nätverk och omstarter |
 | Containermätvärden | CPU och minne per container |
 | Klustermätvärden | Nodvillkor, allokerbara resurser, antal poddar |
-| Kubernetes-händelser | Varningar, fel och schemaläggningshändelser |
+| Kubernetes-händelser | Varje händelse, Warning och Normal, från varje namespace och varje slags objekt: se [Kubernetes-händelser](#kubernetes-händelser) |
 | Poddloggar | Stdout och stderr från varje container (via `hostPath` på standardkluster, via Kubernetes-API:t på Autopilot och Fargate) |
 | Applikationsspår (eBPF, på som standard) | HTTP-, gRPC-, SQL- och Redis-spans från varje podd, utan SDK eller kodändringar |
 | HTTP RED-mätvärden (eBPF) | `http.server.request.duration`, och storleken på förfrågnings- och svarskroppar, per tjänst |
@@ -221,6 +221,43 @@ Om du är osäker, börja med `standard`. Om installationen misslyckas med ett P
 | Nätverksflödesmätvärden (eBPF) | Byte- och paketräknare för TCP och UDP från podd till podd, med Kubernetes-metadata |
 | TCP-statistik (eBPF) | Tur och retur-tid, misslyckade anslutningar och omsändningsräknare på nodnivå |
 | Kostnader för arbetsbelastningar (tillval, `cost.enabled=true`) | Utgifter per namespace, arbetsbelastning och podd, med ledig kapacitet och effektivitet, och timkostnader för noder och volymer: se [Kubernetes-kostnadsobserverbarhet](/docs/telemetry/kubernetes-cost) |
+
+## Kubernetes-händelser
+
+Agenten skickar varje Kubernetes-händelse i klustret till OneUptime: från varje namespace, även systemnamespaces som `kube-system` och `aks-istio-system`, om varje slags objekt, noder och autoskalare lika väl som poddar, Warning och Normal lika. Ingen inställning i agenten filtrerar dem. Kubernetes sparar en händelse i ungefär en timme; OneUptime sparar den som en logg, så länge din [datalagring](/docs/telemetry/data-retention) sparar loggar.
+
+### Hitta varningar
+
+- Klustrets sida **Händelser**, under **Telemetri**, listar alla händelser med de senaste först och öppnas på varningarna när det finns några: en `OOMKilling` på en nod, en `BackOff` på en podd, en `FailedGetResourceMetric` på en HPA. Begränsa efter namespace, typ eller orsak, och välj ett tidsintervall för att se längre bakåt än klustret sparar händelser.
+- Varje sida för en nod, podd, arbetsbelastning, autoskalare, volym och namespace har en flik **Händelser**, vars namn visar antalet varningar. Fliken för en arbetsbelastning tar med händelserna för dess poddar, där kraschloopar och misslyckade monteringar rapporteras.
+- Klustrets **Översikt** listar de senaste varningarna under **Senaste varningar**, en rad per orsak och objekt.
+
+### Vad en händelse visar
+
+| Kolumn | Vad den visar |
+| --- | --- |
+| Händelse | Orsaken, Warning eller Normal, meddelandet och vem som rapporterade den: `kernel-monitor` på en nod, `kubelet`, `horizontal-pod-autoscaler` |
+| Objekt | Vad den gäller, med en länk till dess sida i OneUptime |
+| Namnrymd | Det namespace händelsen ligger i; en nods händelser ligger i `default`, som `kubectl get events` listar dem |
+| Antal | Hur många gånger den hände: en upprepning höjer antalet i stället för att lägga till en rad |
+| Senast sedd | När den senast hände; håll pekaren över för att se när den hände första gången |
+
+### Sök bland händelser och få larm
+
+Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Warning**, och det händelsen säger står i dess attribut:
+
+| Attribut | Exempel |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Sök bland dem i **Loggar**, släpp dem du inte vill ha med ett drop-filter, eller få besked när en inträffar med en [loggmonitor](/docs/monitor/logs-monitor): filtrera på allvarlighetsgraden **Warning** och `k8s.event.reason`, och gruppera efter `k8s.object.name` för ett larm per nod eller autoskalare.
 
 ## Konfigurationsalternativ
 
@@ -287,7 +324,7 @@ Lägg till dessa områden i en regel för att också filtrera mätvärden eller 
 > [!NOTE]
 > Mätvärden på nod- och klusternivå behålls alltid. Ett namespace hör till en podd, inte till en nod, så serier som nodens CPU, nodens minne och filsystemsanvändning har inget att matcha och släpps aldrig: en regel avgränsad till `metrics` trimmar serier per podd utan att dölja en nod som går sönder.
 
-Kubernetes-händelser kan inte filtreras efter namespace i agenten: de kommer från receivern `k8sobjects` utan ett `k8s.namespace.name`-attribut (namespacet ligger i händelsens innehåll), så det finns inget för ett filter att matcha. Släpp dem i OneUptime i stället, med **Loggar → Inställningar → Drop-filter**.
+Kubernetes-händelser filtreras inte efter namespace i agenten: den skickar alla, även de från systemnamespaces. Om du vill släppa några använder du **Loggar → Inställningar → Drop-filter** i OneUptime, som kan matcha en händelses `k8s.namespace.name`.
 
 ### Filtrering efter loggallvarlighetsgrad
 
@@ -1001,6 +1038,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Kontrollera dess `/healthz`: loggläsaren svarar på port `13133` med sitt antal aktiva strömmar och sitt senaste exportfel.
 3. Läs dess loggar: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. På ett mycket stort kluster kan en enda replika bli en flaskhals: dela upp namespacen på flera releaser med include-regler avgränsade till `podLogs` i `namespaceFilters.rules`.
+:::
+
+:::details Kubernetes-varningar visas inte
+1. Kontrollera att Kubernetes har rapporterat dem: `kubectl get events -A --field-selector type=Warning`. Kubernetes sparar en händelse i ungefär en timme, och agenten skickar de händelser som inträffar eller upprepas medan den körs, inte dem från innan den startade.
+2. Välj **Varningar** eller **Alla** på klustrets sida **Händelser**, och ett tidsintervall som täcker när händelsen inträffade.
+3. Kontrollera **Loggar → Inställningar → Drop-filter**: en händelse som ett drop-filter matchar släpps innan den sparas.
+4. Läs loggarna från mätvärdes-collectorn efter exportfel: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details eBPF-poddarna kraschar i en loop eller startar inte
