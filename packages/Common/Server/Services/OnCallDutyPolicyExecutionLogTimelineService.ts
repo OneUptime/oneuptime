@@ -25,7 +25,7 @@ import OnCallPolicyRunMessage from "../Utils/Workspace/LiveMessages/OnCallPolicy
 import OnCallFeedText from "../Utils/OnCall/OnCallFeedText";
 import { ALREADY_PAGED_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/AlreadyPagedTimelineMessage";
 import { isOnCallDirectPage } from "../../Types/OnCallDutyPolicy/OnCallDirectPage";
-import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import { isOnCallPagePassedOnSkipTimelineMessage } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import FirstPagedAt from "../Utils/OnCall/FirstPagedAt";
 
 export class Service extends DatabaseService<Model> {
@@ -171,14 +171,16 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Somebody who passed the page on, passed over by a later rule or a
-     * repeat: the feed said once that they passed it on, and "did not page
+     * Somebody who escalated the page, passed over by a later rule or a
+     * repeat: the feed said once that they escalated it, and "did not page
      * Ana" for every rule after it would only bury what the run did next.
-     * The line stays on the run's own page.
+     * The line stays on the run's own page. Lines written before the action
+     * was renamed from "Pass it on" are read the same.
      */
     if (
-      onCallDutyPolicyExecutionLogTimeline.statusMessage ===
-      ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE
+      isOnCallPagePassedOnSkipTimelineMessage(
+        onCallDutyPolicyExecutionLogTimeline.statusMessage,
+      )
     ) {
       return;
     }

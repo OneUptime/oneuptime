@@ -186,7 +186,7 @@ Hvert anrop står på policyens side **Anropslogger**, under **Logger** i sideme
 
 | Status | Hva som skjedde |
 | --- | --- |
-| **Initiated**, **Escalated** | Anropet pågår fortsatt: det kom inn og en telefon ringer, eller det gikk videre til en senere regel. |
+| **Initiated**, **Eskalert** | Anropet pågår fortsatt: det kom inn og en telefon ringer, eller det gikk videre til en senere regel. |
 | **Fullført** | Noen svarte, og innringeren ble satt over. |
 | **Ingen svar** | Alle eskaleringsregler ble prøvd, og ingen svarte. Innringeren hørte **Melding ved ingen svar**. |
 | **Caller Hung Up** | Innringeren la på mens telefonen til en ingeniør ringte. |

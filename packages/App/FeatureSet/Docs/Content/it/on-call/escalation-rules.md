@@ -20,7 +20,7 @@ flowchart TB
 - [Aggiungere una regola di escalation](#aggiungere-una-regola-di-escalation): Aggiungi il livello successivo, passo dopo passo.
 - [Come i livelli avvisano le persone](#come-i-livelli-avvisano-le-persone): Tempi, ripetizioni e come viene raggiunta ogni persona.
 - [La persona successiva nella rotazione](#escalation-alla-persona-successiva-nella-rotazione): Avvisa il backup di chi è reperibile, dalla stessa rotazione.
-- [Passare un avviso](#passare-un-avviso): Non puoi gestire un avviso? Mandalo subito al livello successivo.
+- [Escalare un avviso](#escalare-un-avviso): Non puoi gestire un avviso? Fai avvisare subito il livello successivo.
 - [API e Terraform](#creare-regole-con-lapi-o-terraform): Crea policy e regole come codice.
 :::
 
@@ -75,7 +75,7 @@ Fai clic su **Create Rule**. La regola viene aggiunta sotto le altre, come livel
 
 ## Come i livelli avvisano le persone
 
-Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se il suo **Criterio di ripetizione** (sotto le regole) prevede di ripetere, tante volte quante consente, altrimenti si ferma. Confermare o risolvere l'incidente o l'avviso ferma gli avvisi a qualsiasi livello. Chi viene avvisato e non può gestire l'avviso può passarlo, e il livello successivo viene avvisato senza attendere: vedi [Passare un avviso](#passare-un-avviso).
+Quando un incidente o un avviso raggiunge la policy, **Level 1** avvisa subito i suoi destinatari. Se nessuno conferma entro la sua attesa, viene avvisato **Level 2**, e così via lungo l'elenco. Trascorsa l'attesa dell'ultimo livello senza conferma, la policy ricomincia da **Level 1** se il suo **Criterio di ripetizione** (sotto le regole) prevede di ripetere, tante volte quante consente, altrimenti si ferma. Confermare o risolvere l'incidente o l'avviso ferma gli avvisi a qualsiasi livello. Chi viene avvisato e non può gestire l'avviso può escalarlo, e il livello successivo viene avvisato senza attendere: vedi [Escalare un avviso](#escalare-un-avviso).
 
 Un incidente, un avviso o un episodio creato già riconosciuto o risolto — registrato a posteriori — non esegue nessuna delle sue policy: nessuno viene avvisato, e il suo feed lo indica nominandole. Vedi [Dichiarato già riconosciuto o risolto](/docs/incidents/declaring-incidents#dichiarato-già-riconosciuto-o-risolto).
 
@@ -120,11 +120,11 @@ Un messaggio più lungo, con un titolo lungo o una descrizione lunga inserita da
 
 ### Cosa dice l'SMS di un avviso
 
-Un SMS viene inviato, e fatturato, in parti da 160 caratteri. Un avviso via SMS è scritto per stare in una sola parte ovunque possibile, e dice solo ciò che ti serve su un telefono bloccato: chi lo invia, cosa è successo e l'unico link per confermare l'avviso o passarlo. Su un telefono appare così:
+Un SMS viene inviato, e fatturato, in parti da 160 caratteri. Un avviso via SMS è scritto per stare in una sola parte ovunque possibile, e dice solo ciò che ti serve su un telefono bloccato: chi lo invia, cosa è successo e l'unico link per confermare l'avviso o escalarlo. Su un telefono appare così:
 
 ```text
 OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
-Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Indica la gravità e cosa è successo (un incidente, un avviso o un episodio di uno dei due), il suo numero, il progetto e il titolo, in quest'ordine. Quando non entra tutto in una parte:
@@ -184,44 +184,44 @@ Il messaggio dell'esecuzione in Slack e Microsoft Teams, il feed dell'incidente 
 > [!TIP]
 > Basta una sola pianificazione: non c'è una seconda pianificazione di backup da tenere allineata alla prima, e le assenze che le sue persone registrano valgono per entrambi i livelli.
 
-## Passare un avviso
+## Escalare un avviso
 
-Chi viene avvisato e non può gestire l'avviso, perché dorme, è in aereo o sta già lavorando a un altro incidente, può passarlo invece di lasciarlo squillare. La policy avvisa allora subito il livello successivo, senza attendere lo scadere di **Escala dopo (in minuti)** del livello, e quella persona non viene più avvisata al riguardo.
+Chi viene avvisato e non può gestire l'avviso, perché dorme, è in aereo o sta già lavorando a un altro incidente, può escalarlo invece di lasciarlo squillare. La policy avvisa allora subito il livello successivo, senza attendere lo scadere di **Escala dopo (in minuti)** del livello, e quella persona non viene più avvisata al riguardo.
 
-```mermaid title="Passare un avviso porta subito la policy al livello successivo"
+```mermaid title="Escalare un avviso porta subito la policy al livello successivo"
 flowchart TB
     page["Level 1 avvisa Alex"] --> take{"Alex può<br/>gestirlo?"}
     take -->|"Sì"| ack["Alex conferma:<br/>gli avvisi si fermano"]
-    take -->|"No"| pass["Alex lo passa"]
+    take -->|"No"| pass["Alex lo escala"]
     pass --> others{"Qualcun altro su<br/>Level 1 ancora avvisato?"}
     others -->|"Sì"| wait["La policy li attende,<br/>come prima"]
     others -->|"No"| next["Level 2 viene<br/>avvisato ora"]
 ```
 
-Ogni avviso si può passare da dove ti ha raggiunto:
+Ogni avviso si può escalare da dove ti ha raggiunto:
 
-| Dove | Come passarlo |
+| Dove | Come escalarlo |
 | --- | --- |
-| E-mail | Il pulsante **Pass it on**, poi **Pass it on** nella pagina che apre |
-| SMS e WhatsApp | Il link nel messaggio apre la pagina di conferma, che ha anche **Pass it on** |
-| Telegram, Slack e Microsoft Teams | Il link "Can't take it? Pass it on", poi **Pass it on** nella pagina che apre |
+| E-mail | Il pulsante **Escalate**, poi **Escalate** nella pagina che apre |
+| SMS e WhatsApp | Il link nel messaggio apre la pagina di conferma, che ha anche **Escalate** |
+| Telegram, Slack e Microsoft Teams | Il link "Can't take it? Escalate", poi **Escalate** nella pagina che apre |
 | Telefonata | Premi 2. La telefonata poi dice che cosa è successo |
-| Notifica push | Toccala: l'incidente, l'avviso o l'episodio si apre nell'app OneUptime On-Call, con **Pass it on** sotto |
-| OneUptime | **Passa l'avviso** in cima all'incidente, all'avviso o all'episodio, dopo i suoi pulsanti di stato |
+| Notifica push | Toccala: l'incidente, l'avviso o l'episodio si apre nell'app OneUptime On-Call, con **Escalate** sotto |
+| OneUptime | **Escala** in cima all'incidente, all'avviso o all'episodio, dopo i suoi pulsanti di stato |
 
-Ogni via tranne la telefonata chiede prima di fare qualsiasi cosa e dice che cosa succederà, per esempio «Escalation rule 2 of 3 (Level 2) is paged right away, without waiting.»; in una telefonata, premere 2 è la risposta. Solo la persona avvisata può passare il proprio avviso: il pulsante in OneUptime compare solo a lei, e il link in un messaggio passa solo l'avviso di cui parla, per la persona a cui è stato inviato, per 7 giorni.
+Ogni via tranne la telefonata chiede prima di fare qualsiasi cosa e dice che cosa succederà, per esempio «This will immediately page Platform leads (Level 2 of 3), without waiting.»; in una telefonata, premere 2 è la risposta. Solo la persona avvisata può escalare il proprio avviso: il pulsante in OneUptime compare solo a lei, e il link in un messaggio escala solo l'avviso di cui parla, per la persona a cui è stato inviato, per 7 giorni.
 
 Che cosa succede dopo dipende da chi altro viene avvisato:
 
-- Altre persone dello stesso livello vengono ancora avvisate: la policy le attende, come prima. Va avanti quando scade l'attesa del livello, o non appena anche l'ultima di loro passa l'avviso.
+- Altre persone dello stesso livello vengono ancora avvisate: la policy le attende, come prima. Va avanti quando scade l'attesa del livello, o non appena anche l'ultima di loro escala l'avviso.
 - Sul livello non resta nessun altro: il livello successivo viene avvisato subito.
 - Era l'ultimo livello: se il **Criterio di ripetizione** prevede di ripetere, la policy ricomincia subito da **Level 1**. Altrimenti gli avvisi si fermano, e qualcuno deve occuparsene.
 
-Passare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere che qualcuno lo confermi, e chi l'ha passato può ancora confermarlo. Questa esecuzione non lo avvisa più al riguardo: un livello successivo, o una ripetizione, che lo nomina lo salta. Quando tutti quelli che ha avvisato l'hanno passato e non resta nessuno da avvisare, gli avvisi si fermano, e il feed dell'incidente lo dice.
+Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere che qualcuno lo confermi, e chi l'ha escalato può ancora confermarlo. Questa esecuzione non lo avvisa più al riguardo: un livello successivo, o una ripetizione, che lo nomina lo salta. Quando tutti quelli che ha avvisato l'hanno escalato e non resta nessuno da avvisare, gli avvisi si fermano, e il feed dell'incidente lo dice.
 
-Un avviso che un workflow invia direttamente alle persone non ha livelli: passarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno passato, gli avvisi si fermano.
+Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
-Ogni passaggio viene registrato. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Avviso passato**, il feed dell'incidente dice «Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha passato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Avviso passato**.
+Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
 
 ## Modificare, riordinare ed eliminare le regole
 

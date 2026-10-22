@@ -98,13 +98,13 @@ export default function AlertEpisodeDetailScreen({
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  // "Pass it on", for the person an on-call policy is paging about it.
+  // "Escalate", for the person an on-call policy is paging about it.
   const passOn: PassOnControls = usePassOnAction({
     projectId,
     recordType: "alert-episode",
     recordId: episodeId,
     recordLabel: "alert episode",
-    // Passing it on is news on the feed and the state timeline.
+    // Escalating it is news on the feed and the state timeline.
     onPassedOn: () => {
       return Promise.allSettled([refetchFeed(), refetchTimeline()]);
     },

@@ -114,7 +114,7 @@ describe("one person on the rule passes the page on", () => {
       ruleCount: 2,
     });
     expect(getOnCallPassOnSentence(answer.result!)).toBe(
-      "Escalation rule 2 of 2 (Level 2) is paging Bob Smith now.",
+      "The policy is now paging Level 2 of 2: Bob Smith.",
     );
   });
 
@@ -243,7 +243,7 @@ describe("several people on one rule", () => {
     );
     // The world's clock reads 3:00 AM: the time is today, so no date.
     expect(getOnCallPassOnSentence(answer.result!, { timezone: "UTC" })).toBe(
-      "Bob Smith is still being paged. If nobody acknowledges by 3:30 AM UTC, escalation rule 2 of 2 (Level 2) is next.",
+      "Bob Smith is still being paged. If nobody acknowledges by 3:30 AM UTC, the policy pages Level 2 of 2 next.",
     );
   });
 
@@ -448,7 +448,7 @@ describe("the last escalation rule", () => {
     ]);
     expect(world.run.onCallPolicyExecutionRepeatCount).toBe(2);
     expect(getOnCallPassOnSentence(answer.result!)).toBe(
-      "That was the policy's last escalation rule, so the policy started again from escalation rule 1. It is paging Bob Smith now.",
+      "There was no level after yours, so the policy started over and is paging Level 1 of 2 again.",
     );
   });
 
@@ -747,7 +747,7 @@ describe("what passing it on would do, asked first", () => {
       },
     });
     expect(getOnCallPassOnSentence(preview.result!)).toBe(
-      "Escalation rule 2 of 2 (Managers) is paged right away, without waiting.",
+      "This will immediately page Managers (Level 2 of 2), without waiting.",
     );
     expect(world.logsOf(ANA)[0]!.status).toBe(
       UserNotificationExecutionStatus.Executing,

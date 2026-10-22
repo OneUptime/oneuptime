@@ -81,7 +81,7 @@ To stop OneUptime AI using a server, turn off **Let OneUptime AI use this server
 
 ## Choose the servers a rule may use
 
-Investigation rules and auto remediation rules can each name the MCP servers OneUptime AI may use for what they match. The field is **MCP Servers**, under **More fields**. Until you pick some, the folded section says **OneUptime AI may use all of your MCP servers.**
+Investigation rules and auto remediation rules can each name the MCP servers OneUptime AI may use for what they match. The field is **MCP Servers**, under **More fields**. Until you pick some, OneUptime AI may use all of them, and the folded section says so.
 
 - **None picked** — all of the project's servers that are on.
 - **Some picked** — only those. On an auto remediation rule that fixes without asking, naming its servers is also what lets OneUptime AI make their changes without asking.

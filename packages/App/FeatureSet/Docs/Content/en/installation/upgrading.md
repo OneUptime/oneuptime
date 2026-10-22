@@ -1834,8 +1834,8 @@ not only automatic incident and alert investigation: postmortem drafts
 (Incidents → AI → Settings), and AI Insights with its fix pull requests and
 auto-archiving of expected-denial exceptions (AI → Insights → Settings). The
 pull requests OneUptime AI opens for incidents and alerts are part of fixing,
-which starts off; see [The pull-request switches are part of
-fixing](#the-pull-request-switches-are-part-of-fixing).
+which starts off; see [The pull-request switches moved into the auto
+remediation rules](#the-pull-request-switches-moved-into-the-auto-remediation-rules).
 
 Projects that already exist keep the settings they have; the upgrade switches
 nothing on. On also does not mean running: each feature still needs an LLM
@@ -1966,38 +1966,50 @@ with in its `remediationAction` (`OneUptimeAI` or `Runbooks`). A rule created
 without one, with runbooks and no AI setting, is a **Runbooks** rule, as it
 would have run before.
 
-### The pull-request switches are part of fixing
+### The pull-request switches moved into the auto remediation rules
 
 **Open a fix pull request when an investigation finds a code change** and
-**Open a pull request that adds missing telemetry** (Incidents or Alerts →
-AI → Settings) now sit under **Fix new incidents automatically** (or
-**Fix new alerts automatically**). They are shown only while fixing is on,
-turning fixing on turns both on, and turning it off turns both off. While
-fixing is on, either one can be turned off on its own.
+**Open a pull request that adds missing telemetry** are no longer switches
+on **Incidents → AI → Settings** and **Alerts → AI → Settings**. Each auto
+remediation rule has them instead, as **Fix pull requests** and **Telemetry
+pull requests** under its **More fields**, both on for a new rule. A pull
+request still opens on its own only while **Fix new incidents
+automatically** (or **Fix new alerts automatically**) is on:
 
-What changes after the upgrade:
+- With no rule, both pull requests open, in any connected repository.
+- With rules, a pull request opens only for an incident (or alert) a rule
+  matches, when a matching rule has it on, and only in the repositories the
+  matching rules name under **Code Repositories**. A rule that names none
+  allows every connected repository; investigation rules name the
+  repositories OneUptime AI may read the same way.
 
-- A pull request opens on its own only while fixing is on as well as its
-  own switch. A project that had a pull-request switch on and fixing off
-  stops opening those pull requests by itself. Turn fixing on to get them
-  back. To keep OneUptime AI from changing your clusters or hosts, keep
-  **Fixes** off on their **AI agent** pages (the default) and add no auto
-  remediation rule.
-- The upgrade changes no stored setting. A pull-request switch that was on
-  under fixing that was off stays on and waits; the settings page shows it
-  once fixing is turned on, and turning fixing on turns it on anyway.
-- A new project starts with the pull-request switches off, like fixing.
-  Investigations, postmortem drafts and AI Insights still start on.
-- **Open Fix PR from this analysis** on an investigation is unchanged: it
-  needs neither switch.
+Every project keeps its choice:
 
-API clients and Terraform configurations keep their fields
-(`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
-`enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, or
-`enable_automatic_incident_code_fixes` and the rest in Terraform). The
-server stores what they write, and does not turn the pull-request fields on
-or off with `enableAutomaticIncidentRemediation` (or the alert field): set
-all three in one request to turn fixing on with its pull requests.
+- A project with fixing off, or with both switches on, keeps its rules as
+  they are, and their switches start on.
+- A project with fixing on and a switch off has that switch turned off in
+  each of its rules of that kind. With no enabled rule of that kind, it gets
+  one, **All incidents** (or **All alerts**): it matches every one, fixes
+  without asking the way OneUptime AI fixed with no rule, and holds the two
+  switches as the project had them. Turn a switch on in it, or delete it,
+  to open those pull requests.
+- **Open Fix PR from this analysis** on an investigation is unchanged.
+
+A rule's **Runner** lists your own Runners only. **AI agent on the cluster or
+host** is gone from it: commands on the affected cluster or host always go
+through its AI agent, whatever the rule picks. A rule that picked none reads
+**No Runner** and fixes as before.
+
+API clients and Terraform configurations lose the project fields
+`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`,
+`enableAutomaticAlertCodeFixes` and `enableAlertInstrumentationFixTasks`
+(`enable_automatic_incident_code_fixes` and the rest in Terraform): remove
+them from your configuration. An auto remediation rule's
+`openCodeFixPullRequests` and `openTelemetryPullRequests`
+(`open_code_fix_pull_requests` and `open_telemetry_pull_requests`) are `true`
+unless you set them, and a rule of either kind names its repositories in
+`codeRepositories` (`code_repositories`), empty for every connected
+repository.
 
 ### Verify the edition and the license
 

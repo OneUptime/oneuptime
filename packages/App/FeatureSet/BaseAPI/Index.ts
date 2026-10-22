@@ -5405,7 +5405,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WorkspaceChannelMembersAPI);
 
     /*
-     * "Can't take it? Pass it on" for the signed-in person's own pages about
+     * "Can't take it? Escalate" for the signed-in person's own pages about
      * a record (/on-call-page/pass-on/<record type>/<id>), from a record's
      * page in the Dashboard and from the mobile app.
      */

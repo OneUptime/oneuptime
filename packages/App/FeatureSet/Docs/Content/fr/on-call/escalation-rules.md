@@ -20,7 +20,7 @@ flowchart TB
 - [Ajouter une règle d'escalade](#ajouter-une-règle-descalade): Ajouter le niveau suivant, étape par étape.
 - [Comment les niveaux alertent les personnes](#comment-les-niveaux-alertent-les-personnes): Délais, répétitions et manière de joindre chaque personne.
 - [La personne suivante de la rotation](#escalader-vers-la-personne-suivante-de-la-rotation): Alerter le suppléant de la personne d'astreinte, dans la même rotation.
-- [Transmettre une alerte](#transmettre-une-alerte): Vous ne pouvez pas prendre une alerte ? Envoyez-la tout de suite au niveau suivant.
+- [Escalader une alerte](#escalader-une-alerte): Vous ne pouvez pas prendre une alerte ? Faites alerter le niveau suivant tout de suite.
 - [API et Terraform](#créer-des-règles-avec-lapi-ou-terraform): Créer des politiques et des règles sous forme de code.
 :::
 
@@ -75,7 +75,7 @@ Cliquez sur **Créer une règle**. La règle est ajoutée sous les autres, comme
 
 ## Comment les niveaux alertent les personnes
 
-Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses intervenants immédiatement. Si personne n'accuse réception dans son délai, **Level 2** est alerté, et ainsi de suite. Une fois le délai du dernier niveau écoulé sans accusé de réception, la politique recommence à **Level 1** si sa **Politique de répétition** (sous les règles) prévoit une répétition, autant de fois qu'elle le permet, et s'arrête sinon. Accuser réception de l'incident ou de l'alerte, ou le résoudre, arrête les alertes à n'importe quel niveau. Une personne alertée qui ne peut pas prendre l'alerte peut la transmettre, et le niveau suivant est alerté sans attendre : voir [Transmettre une alerte](#transmettre-une-alerte).
+Lorsqu'un incident ou une alerte atteint la politique, **Level 1** alerte ses intervenants immédiatement. Si personne n'accuse réception dans son délai, **Level 2** est alerté, et ainsi de suite. Une fois le délai du dernier niveau écoulé sans accusé de réception, la politique recommence à **Level 1** si sa **Politique de répétition** (sous les règles) prévoit une répétition, autant de fois qu'elle le permet, et s'arrête sinon. Accuser réception de l'incident ou de l'alerte, ou le résoudre, arrête les alertes à n'importe quel niveau. Une personne alertée qui ne peut pas prendre l'alerte peut l'escalader, et le niveau suivant est alerté sans attendre : voir [Escalader une alerte](#escalader-une-alerte).
 
 Un incident, une alerte ou un épisode créé déjà pris en compte ou résolu — enregistré après coup — n'exécute aucune de ses politiques : personne n'est alerté, et son fil d'activité l'indique en les nommant. Voir [Déclaré déjà pris en compte ou résolu](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu).
 
@@ -120,11 +120,11 @@ Un message plus long, avec un titre long ou une longue description qu'un modèle
 
 ### Ce que dit le SMS d'une alerte
 
-Un SMS est envoyé, et facturé, par parties de 160 caractères. Une alerte par SMS est écrite pour tenir en une seule partie chaque fois que c'est possible, et ne dit que ce dont vous avez besoin sur un téléphone verrouillé : qui l'envoie, ce qui s'est passé, et l'unique lien pour accuser réception de l'alerte ou la transmettre. Sur un téléphone, elle s'affiche ainsi :
+Un SMS est envoyé, et facturé, par parties de 160 caractères. Une alerte par SMS est écrite pour tenir en une seule partie chaque fois que c'est possible, et ne dit que ce dont vous avez besoin sur un téléphone verrouillé : qui l'envoie, ce qui s'est passé, et l'unique lien pour accuser réception de l'alerte ou l'escalader. Sur un téléphone, elle s'affiche ainsi :
 
 ```text
 OneUptime: Critical Incident INC-42 in Acme Prod: Checkout API is down.
-Ack or pass it on: https://oneuptime.com/l/XJlaZRsd
+Ack or escalate: https://oneuptime.com/l/XJlaZRsd
 ```
 
 Il indique la gravité et ce qui s'est passé (un incident, une alerte ou un épisode de l'un ou de l'autre), son numéro, le projet et le titre, dans cet ordre. Quand tout ne tient pas en une partie :
@@ -184,44 +184,44 @@ Le message de l'exécution dans Slack et Microsoft Teams, le fil d'activité de 
 > [!TIP]
 > Un seul planning suffit : pas de second planning de suppléance à garder en phase avec le premier, et les absences que posent ses membres valent pour les deux niveaux.
 
-## Transmettre une alerte
+## Escalader une alerte
 
-Une personne alertée qui ne peut pas prendre l'alerte, parce qu'elle dort, est dans un avion ou travaille déjà sur un autre incident, peut la transmettre plutôt que de la laisser sonner. La politique alerte alors son niveau suivant tout de suite, sans attendre la fin du délai **Escalader après (en minutes)** du niveau, et cette personne n'est plus alertée à ce sujet.
+Une personne alertée qui ne peut pas prendre l'alerte, parce qu'elle dort, est dans un avion ou travaille déjà sur un autre incident, peut l'escalader plutôt que de la laisser sonner. La politique alerte alors son niveau suivant tout de suite, sans attendre la fin du délai **Escalader après (en minutes)** du niveau, et cette personne n'est plus alertée à ce sujet.
 
-```mermaid title="Transmettre une alerte fait passer la politique au niveau suivant tout de suite"
+```mermaid title="Escalader une alerte fait passer la politique au niveau suivant tout de suite"
 flowchart TB
     page["Level 1 alerte Alex"] --> take{"Alex peut-il<br/>la prendre ?"}
     take -->|"Oui"| ack["Alex accuse<br/>réception :<br/>les alertes s'arrêtent"]
-    take -->|"Non"| pass["Alex la transmet"]
+    take -->|"Non"| pass["Alex l'escalade"]
     pass --> others{"Quelqu'un<br/>d'autre encore<br/>alerté sur Level 1 ?"}
     others -->|"Oui"| wait["La politique<br/>les attend,<br/>comme avant"]
     others -->|"Non"| next["Level 2 est alerté<br/>maintenant"]
 ```
 
-Chaque alerte peut être transmise là où elle vous a atteint :
+Chaque alerte peut être escaladée là où elle vous a atteint :
 
-| Où | Comment la transmettre |
+| Où | Comment l'escalader |
 | --- | --- |
-| E-mail | Le bouton **Pass it on**, puis **Pass it on** sur la page qu'il ouvre |
-| SMS et WhatsApp | Le lien du message ouvre la page de prise en compte, qui propose aussi **Pass it on** |
-| Telegram, Slack et Microsoft Teams | Le lien "Can't take it? Pass it on", puis **Pass it on** sur la page qu'il ouvre |
+| E-mail | Le bouton **Escalate**, puis **Escalate** sur la page qu'il ouvre |
+| SMS et WhatsApp | Le lien du message ouvre la page de prise en compte, qui propose aussi **Escalate** |
+| Telegram, Slack et Microsoft Teams | Le lien "Can't take it? Escalate", puis **Escalate** sur la page qu'il ouvre |
 | Appel téléphonique | Appuyez sur 2. L'appel dit ensuite ce qui s'est passé |
-| Notification push | Touchez-la : l'incident, l'alerte ou l'épisode s'ouvre dans l'app OneUptime On-Call, avec **Pass it on** en dessous |
-| OneUptime | **Transmettre** en haut de l'incident, de l'alerte ou de l'épisode, après ses boutons d'état |
+| Notification push | Touchez-la : l'incident, l'alerte ou l'épisode s'ouvre dans l'app OneUptime On-Call, avec **Escalate** en dessous |
+| OneUptime | **Escalader** en haut de l'incident, de l'alerte ou de l'épisode, après ses boutons d'état |
 
-Chaque moyen, sauf l'appel, demande avant d'agir et dit ce qui va se passer, par exemple « Escalation rule 2 of 3 (Level 2) is paged right away, without waiting. » ; lors d'un appel, appuyer sur 2 est la réponse. Seule la personne alertée peut transmettre son alerte : le bouton dans OneUptime ne s'affiche que pour elle, et le lien d'un message ne transmet que l'alerte dont il parle, pour la personne à qui il a été envoyé, pendant 7 jours.
+Chaque moyen, sauf l'appel, demande avant d'agir et dit ce qui va se passer, par exemple « This will immediately page Platform leads (Level 2 of 3), without waiting. » ; lors d'un appel, appuyer sur 2 est la réponse. Seule la personne alertée peut escalader son alerte : le bouton dans OneUptime ne s'affiche que pour elle, et le lien d'un message n'escalade que l'alerte dont il parle, pour la personne à qui il a été envoyé, pendant 7 jours.
 
 La suite dépend des autres personnes encore alertées :
 
-- D'autres personnes du même niveau sont encore alertées : la politique les attend, comme avant. Elle passe à la suite quand le délai du niveau expire, ou dès que la dernière d'entre elles transmet aussi l'alerte.
+- D'autres personnes du même niveau sont encore alertées : la politique les attend, comme avant. Elle passe à la suite quand le délai du niveau expire, ou dès que la dernière d'entre elles escalade aussi l'alerte.
 - Il ne reste personne d'autre sur le niveau : le niveau suivant est alerté tout de suite.
 - C'était le dernier niveau : si la **Politique de répétition** prévoit une répétition, la politique recommence tout de suite à **Level 1**. Sinon, les alertes s'arrêtent, et quelqu'un doit s'en charger.
 
-Transmettre une alerte n'en accuse pas réception : l'incident ou l'alerte attend toujours que quelqu'un en accuse réception, et la personne qui l'a transmise peut encore en accuser réception elle-même. Cette exécution ne l'alerte plus à ce sujet : un niveau suivant, ou une répétition, qui la nomme la passe. Une fois que tous ceux qu'elle a alertés l'ont transmise et qu'il ne reste personne à alerter, les alertes s'arrêtent, et le fil d'activité de l'incident l'indique.
+Escalader une alerte n'en accuse pas réception : l'incident ou l'alerte attend toujours que quelqu'un en accuse réception, et la personne qui l'a escaladée peut encore en accuser réception elle-même. Cette exécution ne l'alerte plus à ce sujet : un niveau suivant, ou une répétition, qui la nomme la passe. Une fois que tous ceux qu'elle a alertés l'ont escaladée et qu'il ne reste personne à alerter, les alertes s'arrêtent, et le fil d'activité de l'incident l'indique.
 
-Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : la transmettre arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont transmise, les alertes s'arrêtent.
+Une alerte qu'un workflow envoie directement à des personnes n'a pas de niveaux : l'escalader arrête de vous alerter, et une fois que tous ceux qu'elle a alertés l'ont escaladée, les alertes s'arrêtent.
 
-Chaque transmission est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Transmis**, le fil d'activité de l'incident indique « Alex Kim passed on the page from on-call policy Payments at escalation rule Level 1. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a transmise, et ses **Journaux d'astreinte** montrent l'alerte comme **Transmis**.
+Chaque escalade est enregistrée. La **Chronologie d'exécution** de l'exécution marque la ligne de la personne **Escaladé**, le fil d'activité de l'incident indique « Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1. », le message de l'exécution dans Slack et Microsoft Teams indique qu'elle l'a escaladée, et ses **Journaux d'astreinte** montrent l'alerte comme **Escaladé**.
 
 ## Modifier, réordonner et supprimer des règles
 

@@ -16,6 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * collectionId are a TAXII feed's alone, so they may now be empty. Deleting
  * a connection leaves its feeds in place, without a connection, and the feed
  * says so on its next poll.
+ *
+ * The index on "securityEventConnectionId" and its foreign key to
+ * "SecurityEventConnection" are built online, without blocking the table's
+ * writes, by AddThreatIntelFeedConnectionIndexAndKey1805840000000.
  */
 export class AddThreatIntelFeedSources1805820000000
   implements MigrationInterface
@@ -41,21 +45,9 @@ export class AddThreatIntelFeedSources1805820000000
     await queryRunner.query(
       `ALTER TABLE "ThreatIntelFeed" ALTER COLUMN "collectionId" DROP NOT NULL`,
     );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_4ceb7e2ec44885a5152983a2aa" ON "ThreatIntelFeed" ("securityEventConnectionId") `,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "ThreatIntelFeed" ADD CONSTRAINT "FK_4ceb7e2ec44885a5152983a2aa2" FOREIGN KEY ("securityEventConnectionId") REFERENCES "SecurityEventConnection"("_id") ON DELETE SET NULL ON UPDATE NO ACTION`,
-    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "ThreatIntelFeed" DROP CONSTRAINT "FK_4ceb7e2ec44885a5152983a2aa2"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_4ceb7e2ec44885a5152983a2aa"`,
-    );
     // Only a TAXII feed has a collection: the other sources' feeds go with them.
     await queryRunner.query(
       `DELETE FROM "ThreatIntelFeed" WHERE "apiRootUrl" IS NULL OR "collectionId" IS NULL`,

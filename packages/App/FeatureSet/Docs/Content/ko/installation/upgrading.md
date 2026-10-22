@@ -400,7 +400,7 @@ Kubernetes 클러스터나 인프라 리소스에서의 조사와 수정은 이�
 
 ### 새 프로젝트는 모든 AI 기능이 켜진 채로 시작합니다
 
-업그레이드 후에 만든 프로젝트는 인시던트와 알림의 자동 조사뿐 아니라 모든 AI 기능이 켜진 채로 시작합니다. 포스트모템 초안(인시던트 → AI → 설정)과, 수정 풀 리퀘스트 및 예상된 거부 예외의 자동 보관을 포함한 AI Insights(AI → 인사이트 → 설정)입니다. OneUptime AI가 인시던트와 알림을 위해 여는 풀 리퀘스트는 수정의 일부이며, 수정은 꺼진 채로 시작합니다. [풀 리퀘스트 스위치는 수정의 일부입니다](#풀-리퀘스트-스위치는-수정의-일부입니다) 를 참조하십시오.
+업그레이드 후에 만든 프로젝트는 인시던트와 알림의 자동 조사뿐 아니라 모든 AI 기능이 켜진 채로 시작합니다. 포스트모템 초안(인시던트 → AI → 설정)과, 수정 풀 리퀘스트 및 예상된 거부 예외의 자동 보관을 포함한 AI Insights(AI → 인사이트 → 설정)입니다. OneUptime AI가 인시던트와 알림을 위해 여는 풀 리퀘스트는 수정의 일부이며, 수정은 꺼진 채로 시작합니다. [풀 리퀘스트 스위치가 자동 해결 규칙으로 옮겨졌습니다](#풀-리퀘스트-스위치가-자동-해결-규칙으로-옮겨졌습니다) 를 참조하십시오.
 
 이미 있는 프로젝트는 현재 설정을 유지하며, 업그레이드가 무언가를 켜지는 않습니다. 켜져 있다고 해서 실행되는 것도 아닙니다. 각 기능에는 여전히 LLM 공급자(OneUptime Cloud에서는 AI 크레딧도)가 필요하고, 풀 리퀘스트를 여는 기능에는 연결된 저장소와 코드 수정 기능을 가진 Runner가 필요합니다. 각 설정 페이지에서 하나씩 끄거나, **AI 활성화** 로 모두 끄십시오.
 
@@ -453,18 +453,22 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "IDX_LLM_LOG_PROJECT_CREATED_AT"
 
 API 클라이언트와 Terraform 구성은 프로젝트의 `enableAutomaticIncidentRemediation` 과 `enableAutomaticAlertRemediation` (Terraform에서는 `enable_automatic_incident_remediation` 과 `enable_automatic_alert_remediation`)으로 수정을 켤 수 있으며, 규칙의 `remediationAction` (`OneUptimeAI` 또는 `Runbooks`)으로 수정 방법을 지정할 수 있습니다. 이를 지정하지 않고 만든, 런북이 있고 AI 설정이 없는 규칙은 예전에 실행되던 대로 **런북** 규칙입니다.
 
-### 풀 리퀘스트 스위치는 수정의 일부입니다
+### 풀 리퀘스트 스위치가 자동 해결 규칙으로 옮겨졌습니다
 
-**조사에서 코드 변경이 발견되면 수정 풀 리퀘스트 열기** 와 **누락된 텔레메트리를 추가하는 풀 리퀘스트 열기** (인시던트 또는 알림 → AI → 설정)는 이제 **새 인시던트 자동 수정** (또는 **새 경고 자동 수정**) 아래에 있습니다. 수정이 켜져 있는 동안에만 표시되며, 수정을 켜면 둘 다 켜지고 끄면 둘 다 꺼집니다. 수정이 켜져 있는 동안에는 둘 중 어느 것이든 따로 끌 수 있습니다.
+**Open a fix pull request when an investigation finds a code change** 와 **Open a pull request that adds missing telemetry** 는 더 이상 **인시던트 → AI → 설정** 과 **알림 → AI → 설정** 의 스위치가 아닙니다. 대신 각 자동 해결 규칙이 **추가 필드** 의 **수정 풀 리퀘스트** 와 **텔레메트리 풀 리퀘스트** 로 가지며, 둘 다 새 규칙에서 켜져 있습니다. 풀 리퀘스트는 여전히 **새 인시던트 자동 수정** (또는 **새 경고 자동 수정**) 이 켜져 있는 동안에만 스스로 열립니다:
 
-업그레이드 후 바뀌는 점:
+- 규칙이 없으면 두 풀 리퀘스트가 연결된 어느 저장소에서든 열립니다.
+- 규칙이 있으면 풀 리퀘스트는 규칙과 일치하는 인시던트(또는 경고)에 대해서만, 일치하는 규칙에서 그것이 켜져 있을 때, 일치하는 규칙이 **코드 저장소** 에서 지정한 저장소에서만 열립니다. 아무것도 지정하지 않은 규칙은 연결된 모든 저장소를 허용하며, 조사 규칙도 같은 방식으로 OneUptime AI가 읽을 수 있는 저장소를 지정합니다.
 
-- 풀 리퀘스트는 자체 스위치에 더해 수정도 켜져 있는 동안에만 스스로 열립니다. 풀 리퀘스트 스위치는 켜고 수정은 꺼 두었던 프로젝트는 그 풀 리퀘스트를 더 이상 스스로 열지 않습니다. 되돌리려면 수정을 켜십시오. OneUptime AI가 클러스터나 호스트를 바꾸지 못하게 하려면, 그것들의 **AI 에이전트** 페이지에서 **수정** 을 꺼 둔 채로 두고(기본값) 자동 해결 규칙을 추가하지 마십시오.
-- 업그레이드는 저장된 설정을 바꾸지 않습니다. 꺼진 수정 아래에서 켜져 있던 풀 리퀘스트 스위치는 켜진 채로 기다리며, 수정이 켜지면 설정 페이지에 표시되고, 수정을 켜면 어쨌든 켜집니다.
-- 새 프로젝트는 수정처럼 풀 리퀘스트 스위치가 꺼진 채로 시작합니다. 조사, 포스트모템 초안, AI Insights는 여전히 켜진 채로 시작합니다.
-- 조사의 **Open Fix PR from this analysis** 는 바뀌지 않습니다. 어느 스위치도 필요 없습니다.
+모든 프로젝트는 선택을 그대로 유지합니다:
 
-API 클라이언트와 Terraform 구성은 필드(`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, 또는 Terraform의 `enable_automatic_incident_code_fixes` 등)를 유지합니다. 서버는 쓰인 것을 저장하며, `enableAutomaticIncidentRemediation` (또는 알림 필드)에 맞춰 풀 리퀘스트 필드를 켜거나 끄지 않습니다. 풀 리퀘스트와 함께 수정을 켜려면 세 가지를 모두 한 요청에서 설정하십시오.
+- 수정이 꺼져 있거나 두 스위치가 모두 켜져 있던 프로젝트는 규칙을 그대로 유지하며, 규칙의 스위치는 켜진 상태로 시작합니다.
+- 수정이 켜져 있고 스위치가 꺼져 있던 프로젝트는 그 종류의 각 규칙에서 그 스위치가 꺼집니다. 그 종류의 활성화된 규칙이 없으면 규칙 **All incidents** (또는 **All alerts**) 하나가 추가됩니다. 이 규칙은 모든 대상과 일치하고, 규칙이 없을 때의 OneUptime AI처럼 묻지 않고 수정하며, 두 스위치를 프로젝트의 설정대로 유지합니다. 그 풀 리퀘스트를 열려면 이 규칙에서 스위치를 켜거나 규칙을 삭제하십시오.
+- 조사의 **Open Fix PR from this analysis** 는 바뀌지 않습니다.
+
+규칙의 **Runner** 에는 내 Runner만 표시됩니다. **AI agent on the cluster or host** 는 없어졌습니다. 영향을 받은 클러스터나 호스트의 명령은 규칙이 무엇을 고르든 항상 그 AI 에이전트를 거칩니다. 아무것도 고르지 않았던 규칙은 **Runner 없음** 으로 표시되며 이전처럼 수정합니다.
+
+API 클라이언트와 Terraform 구성에서는 프로젝트 필드 `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`(Terraform의 `enable_automatic_incident_code_fixes` 등)가 없어집니다. 구성에서 제거하십시오. 자동 해결 규칙의 `openCodeFixPullRequests` 와 `openTelemetryPullRequests`(`open_code_fix_pull_requests` 와 `open_telemetry_pull_requests`)는 설정하지 않으면 `true` 이며, 두 종류의 규칙 모두 `codeRepositories`(`code_repositories`)에 저장소를 지정합니다. 비어 있으면 연결된 모든 저장소입니다.
 
 ### 에디션과 라이선스 확인하기
 
