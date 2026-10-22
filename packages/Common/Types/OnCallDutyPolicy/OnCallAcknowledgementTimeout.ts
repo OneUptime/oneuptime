@@ -289,3 +289,21 @@ export function getOnCallPageAgainChatReason(pageAgainNumber: number): string {
     pageAgainNumber,
   )}): still not resolved after it was acknowledged.`;
 }
+
+/*
+ * ACKNOWLEDGING A PAGE AGAIN FROM THE DASHBOARD.
+ *
+ * A page again's record was acknowledged all along, so the record's own
+ * Acknowledge is not offered. The person being paged again acknowledges
+ * their page instead - as its link, a call's 1 or a text would - signed in
+ * as themselves: a POST of the record's type and id to this route, which
+ * acknowledges every page again of theirs about the record still going out
+ * to them, and starts the clock again (OnCallPagePassOnAPI).
+ */
+export const ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE: string =
+  "/on-call-page/acknowledge";
+
+// The POST answer: how many of the person's pages again it acknowledged.
+export interface OnCallPageAgainAcknowledgeAnswer {
+  acknowledged: number;
+}

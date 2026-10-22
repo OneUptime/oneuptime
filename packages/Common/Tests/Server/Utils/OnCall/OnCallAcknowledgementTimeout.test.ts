@@ -7,9 +7,13 @@ import {
 import ObjectID from "../../../../Types/ObjectID";
 import { ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import {
+  OnCallOpenPage,
+  OnCallPageRecordType,
   OnCallPassOnOutcome,
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import OnCallAcknowledgementTimeoutUtil from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
+import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import AcknowledgementTimeoutWorld, {
   ACKNOWLEDGED,
@@ -919,5 +923,141 @@ describe("one clock per incident and policy", () => {
 
     world.advance(LEVEL_WAIT_IN_MINUTES);
     expect(pagedAgain(await world.pageAgainTick())).toHaveLength(1);
+  });
+});
+
+/*
+ * A page again's record was acknowledged all along, so the record's own
+ * Acknowledge is gone from its page: the person paged again acknowledges
+ * their page from the Dashboard instead (acknowledgePagesAgainForRecord),
+ * and the record's header knows which of their open pages is a page again.
+ */
+describe("acknowledging a page again from the Dashboard", () => {
+  async function pagedAgainAt(): Promise<OnCallDutyPolicyExecutionLog> {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(LEVEL_WAIT_IN_MINUTES);
+
+    return pageAgainRun(await world.pageAgainTick());
+  }
+
+  test("answers the person's page again: it ends, they are paged no more, and the clock starts again", async () => {
+    const run: OnCallDutyPolicyExecutionLog = await pagedAgainAt();
+
+    world.advance(3);
+
+    const acknowledged: number =
+      await OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord({
+        userId: ANA,
+        projectId: run.projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: run.triggeredByIncidentId!,
+      });
+
+    expect(acknowledged).toBe(1);
+
+    const answered: OnCallDutyPolicyExecutionLog = world.runById(run.id!);
+    expect(answered.status).toBe(OnCallDutyPolicyStatus.Completed);
+    expect(answered.acknowledgedByUserId!.toString()).toBe(ANA.toString());
+    expect(world.isStillPaging(ANA, run.id!)).toBe(false);
+    expect(world.runningClocks()).toEqual([
+      { runId: run.id!.toString(), startedAt: new Date(world.clock) },
+    ]);
+  });
+
+  test("answers nothing for somebody it is not paging again", async () => {
+    const run: OnCallDutyPolicyExecutionLog = await pagedAgainAt();
+
+    expect(
+      await OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord({
+        userId: CARL,
+        projectId: run.projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: run.triggeredByIncidentId!,
+      }),
+    ).toBe(0);
+    expect(world.runById(run.id!).status).toBe(
+      OnCallDutyPolicyStatus.Executing,
+    );
+  });
+
+  test("answers nothing once the incident is resolved: the page again is over", async () => {
+    const run: OnCallDutyPolicyExecutionLog = await pagedAgainAt();
+
+    world.incident = { stateId: RESOLVED };
+
+    expect(
+      await OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord({
+        userId: ANA,
+        projectId: run.projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: run.triggeredByIncidentId!,
+      }),
+    ).toBe(0);
+    expect(world.runningClocks()).toEqual([]);
+  });
+
+  test("never answers a page of the first run: that one is answered by acknowledging the incident", async () => {
+    await world.startRun();
+
+    expect(
+      await OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord({
+        userId: ANA,
+        projectId: world.runById(RUN_ID).projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: world.runById(RUN_ID).triggeredByIncidentId!,
+      }),
+    ).toBe(0);
+    expect(world.runById(RUN_ID).status).toBe(OnCallDutyPolicyStatus.Executing);
+    expect(world.incident!.stateId.toString()).toBe(CREATED.toString());
+  });
+
+  test("a second answer, from another tab, finds nothing left to answer", async () => {
+    const run: OnCallDutyPolicyExecutionLog = await pagedAgainAt();
+
+    const ask: () => Promise<number> = (): Promise<number> => {
+      return OnCallAcknowledgementTimeoutUtil.acknowledgePagesAgainForRecord({
+        userId: ANA,
+        projectId: run.projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: run.triggeredByIncidentId!,
+      });
+    };
+
+    expect(await ask()).toBe(1);
+    expect(await ask()).toBe(0);
+  });
+
+  test("the record's header learns which open page is a page again", async () => {
+    const run: OnCallDutyPolicyExecutionLog = await pagedAgainAt();
+
+    const pages: Array<OnCallOpenPage> =
+      await OnCallPagePassOn.getOpenPagesForRecord({
+        userId: ANA,
+        projectId: run.projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: run.triggeredByIncidentId!,
+      });
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0]!.executionLogId).toBe(run.id!.toString());
+    expect(pages[0]!.isPageAgain).toBe(true);
+  });
+
+  test("a first run's open page is no page again", async () => {
+    world.ruleUsers[world.rules[0]!.id!.toString()] = [ANA];
+    await world.startRun();
+
+    const pages: Array<OnCallOpenPage> =
+      await OnCallPagePassOn.getOpenPagesForRecord({
+        userId: ANA,
+        projectId: world.runById(RUN_ID).projectId!,
+        recordType: OnCallPageRecordType.Incident,
+        recordId: world.runById(RUN_ID).triggeredByIncidentId!,
+      });
+
+    expect(pages).toHaveLength(1);
+    expect("isPageAgain" in pages[0]!).toBe(false);
   });
 });

@@ -316,6 +316,14 @@ export interface OnCallOpenPage {
   preview: OnCallPassOnResult;
   // The API's answer only: the preview as the server words it (see above).
   sentence?: string | undefined;
+  /*
+   * Present (true) when the page is a page again
+   * (OnCallAcknowledgementTimeout): its record was acknowledged all along,
+   * so the record's own Acknowledge is gone, and the page is acknowledged
+   * as the page it is (ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE). Absent
+   * otherwise.
+   */
+  isPageAgain?: true | undefined;
 }
 
 /*

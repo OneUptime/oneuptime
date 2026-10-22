@@ -4,6 +4,7 @@ import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyEscalationRule from "../../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogTimeline from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import URL from "../../../../Types/API/URL";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
@@ -15,6 +16,7 @@ import OnCallDutyPolicyEscalationRuleService from "../../../../Server/Services/O
 import OnCallDutyPolicyExecutionLogService from "../../../../Server/Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogService";
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import UserService from "../../../../Server/Services/UserService";
 import OnCallAcknowledgementTimeout, {
@@ -483,6 +485,48 @@ export default class AcknowledgementTimeoutWorld extends PassOnWorld {
    * delivery is any log of the run's, answered by its person.
    */
   private installAcknowledgeHook(): void {
+    /*
+     * A person's pages, read with their run - as the Dashboard's Acknowledge
+     * of a page again reads them (acknowledgePagesAgainForRecord).
+     */
+    this.spyOn(
+      UserOnCallLogService,
+      "findBy",
+      async (data: { query: Record<string, unknown> }) => {
+        return this.logs
+          .filter((row: UserOnCallLog) => {
+            return matchesQuery(data.query, row as unknown as FakeRow);
+          })
+          .map((row: UserOnCallLog) => {
+            const log: UserOnCallLog = copy(row);
+            const run: OnCallDutyPolicyExecutionLog | undefined = this.findRun(
+              row.onCallDutyPolicyExecutionLogId,
+            );
+
+            if (run) {
+              log.onCallDutyPolicyExecutionLog = copy(run);
+            }
+
+            // And the run's line for them, as PassOnWorld reads it.
+            const step: OnCallDutyPolicyExecutionLogTimeline | undefined =
+              this.steps.find(
+                (candidate: OnCallDutyPolicyExecutionLogTimeline) => {
+                  return sameKey(
+                    candidate._id,
+                    row.onCallDutyPolicyExecutionLogTimelineId,
+                  );
+                },
+              );
+
+            if (step) {
+              log.onCallDutyPolicyExecutionLogTimeline = copy(step);
+            }
+
+            return log;
+          });
+      },
+    );
+
     this.spyOn(
       UserOnCallLogTimelineService,
       "findBy",

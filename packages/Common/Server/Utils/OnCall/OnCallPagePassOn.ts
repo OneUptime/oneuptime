@@ -295,17 +295,30 @@ export default class OnCallPagePassOn {
     const pages: Array<OnCallOpenPage> = [];
 
     for (const executionLogId of await this.getRunIdsForRecord(data)) {
-      const answer: OnCallPassOnAnswer = await this.getPreview({
+      const read: ReadStateResult = await this.readState({
         userId: data.userId,
         executionLogId: executionLogId,
       });
 
-      if (answer.result) {
-        pages.push({
-          executionLogId: executionLogId.toString(),
-          preview: answer.result,
-        });
+      if (!read.state) {
+        continue;
       }
+
+      pages.push({
+        executionLogId: executionLogId.toString(),
+        preview: await this.predict({
+          userId: data.userId,
+          run: read.state.run,
+        }),
+        /*
+         * A page again (OnCallAcknowledgementTimeout): its record was
+         * acknowledged all along, so the page itself is what the person
+         * acknowledges.
+         */
+        ...(isOnCallPageAgainRun(read.state.run)
+          ? { isPageAgain: true as const }
+          : {}),
+      });
     }
 
     return pages;

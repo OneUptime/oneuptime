@@ -9,6 +9,11 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import {
+  ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE,
+  OnCallPageAgainAcknowledgeAnswer,
+} from "../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -229,6 +234,59 @@ router.post(
         req,
         res,
         // Plain JSON: its times are ISO strings (readOnCallPassOnResult).
+        answer as unknown as JSONObject,
+      );
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * POST /on-call-page/acknowledge/<record type>/<record id>
+ *   Acknowledges the signed-in person's pages again about the record
+ *   (OnCallAcknowledgementTimeout): a page again's record was acknowledged
+ *   all along, so its own Acknowledge is not offered, and the person answers
+ *   their page instead, as its link, a call's 1 or a text would. Only their
+ *   own pages again, in the project they are signed in to: { acknowledged:
+ *   N }, 0 when there was none to answer.
+ */
+router.post(
+  `${ON_CALL_PAGE_AGAIN_ACKNOWLEDGE_ROUTE}/:recordType/:recordId`,
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const caller: { userId: ObjectID; projectId: ObjectID } =
+        readCaller(props);
+
+      const record: {
+        recordType: OnCallPageRecordType;
+        recordId: ObjectID;
+      } = readRecord(req);
+
+      const answer: OnCallPageAgainAcknowledgeAnswer = {
+        acknowledged:
+          await OnCallAcknowledgementTimeout.acknowledgePagesAgainForRecord({
+            userId: caller.userId,
+            projectId: caller.projectId,
+            recordType: record.recordType,
+            recordId: record.recordId,
+          }),
+      };
+
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
         answer as unknown as JSONObject,
       );
     } catch (err) {

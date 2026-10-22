@@ -7,6 +7,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeStateTimeline from "../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import OnCallDutyPolicyExecutionLog from "../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import UserOnCallLog from "../../../Models/DatabaseModels/UserOnCallLog";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
@@ -17,6 +18,8 @@ import {
   isOnCallAcknowledgementTimeoutDue,
   isOnCallPageAgainRun,
 } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { OnCallPageRecordType } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
 import AcknowledgedStateUtil from "../../../Utils/AcknowledgedState";
 import ResolvedStateUtil, {
   ResolvedStateTimelineRow,
@@ -33,6 +36,8 @@ import IncidentService from "../../Services/IncidentService";
 import IncidentStateService from "../../Services/IncidentStateService";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
+import UserOnCallLogService from "../../Services/UserOnCallLogService";
+import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import logger, { LogAttributes } from "../Logger";
@@ -320,6 +325,24 @@ const RECORD_ACCESS: Record<OnCallTimeoutRecordKind, TimeoutRecordAccess> = {
   "incident episode": INCIDENT_EPISODE,
   "alert episode": ALERT_EPISODE,
 };
+
+// A record's type in a page's route, as the clock names its kind.
+const RECORD_KIND_OF_PAGE: Record<
+  OnCallPageRecordType,
+  OnCallTimeoutRecordKind
+> = {
+  [OnCallPageRecordType.Incident]: "incident",
+  [OnCallPageRecordType.Alert]: "alert",
+  [OnCallPageRecordType.IncidentEpisode]: "incident episode",
+  [OnCallPageRecordType.AlertEpisode]: "alert episode",
+};
+
+// The statuses of a person's page still going out to them.
+const OPEN_PAGE_STATUSES: Array<UserNotificationExecutionStatus> = [
+  UserNotificationExecutionStatus.Scheduled,
+  UserNotificationExecutionStatus.Started,
+  UserNotificationExecutionStatus.Executing,
+];
 
 // Where a record stands, for the clock.
 export interface OnCallTimeoutRecordState {
@@ -833,6 +856,101 @@ export default class OnCallAcknowledgementTimeout {
     }
 
     return state.isResolved ? `${data.kind} is resolved` : null;
+  }
+
+  /*
+   * ACKNOWLEDGES A PERSON'S PAGES AGAIN ABOUT A RECORD - from the Dashboard,
+   * signed in as them (OnCallPagePassOnAPI). A page again's record was
+   * acknowledged all along, so the record's own Acknowledge is not offered;
+   * the person acknowledges their page instead, as its link, a call's 1 or
+   * a text would (UserOnCallLogTimelineService.acknowledgePage): their
+   * notifications still due stop, the page again is answered and ends, and
+   * the clock starts again.
+   *
+   * Only the person's own pages that a page again sent and that are still
+   * going out to them; nothing once the record is resolved (the page again
+   * is over). Returns how many it acknowledged: none is an answer too - not
+   * paged again, or answered already.
+   */
+  @CaptureSpan()
+  public static async acknowledgePagesAgainForRecord(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    recordType: OnCallPageRecordType;
+    recordId: ObjectID;
+  }): Promise<number> {
+    const kind: OnCallTimeoutRecordKind = RECORD_KIND_OF_PAGE[data.recordType];
+    const access: TimeoutRecordAccess = RECORD_ACCESS[kind];
+
+    const logs: Array<UserOnCallLog> = await UserOnCallLogService.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+        status: QueryHelper.any(OPEN_PAGE_STATUSES),
+        [access.runColumn]: data.recordId,
+      },
+      select: {
+        _id: true,
+        userId: true,
+        onCallDutyPolicyExecutionLogId: true,
+        onCallDutyPolicyExecutionLogTimelineId: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
+        triggeredByAlertEpisodeId: true,
+        triggeredByIncidentEpisodeId: true,
+        onCallDutyPolicyExecutionLog: {
+          pageAgainNumber: true,
+          acknowledgedAt: true,
+        },
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+
+    const pagesAgain: Array<UserOnCallLog> = logs.filter(
+      (log: UserOnCallLog): boolean => {
+        return (
+          isOnCallPageAgainRun(log.onCallDutyPolicyExecutionLog) &&
+          !log.onCallDutyPolicyExecutionLog?.acknowledgedAt
+        );
+      },
+    );
+
+    if (pagesAgain.length === 0) {
+      return 0;
+    }
+
+    const state: OnCallTimeoutRecordState | null = await this.readRecordState(
+      {
+        kind: kind,
+        recordId: data.recordId,
+      },
+    );
+
+    // Resolved, or gone: the page again is over, with nothing to answer.
+    if (!state || state.isResolved) {
+      return 0;
+    }
+
+    const acknowledgedAt: Date = OneUptimeDate.getCurrentDate();
+
+    for (const log of pagesAgain) {
+      await UserOnCallLogTimelineService.acknowledgePage({
+        userOnCallLogId: log.id!,
+        userId: data.userId,
+        onCallDutyPolicyExecutionLogId: log.onCallDutyPolicyExecutionLogId,
+        onCallDutyPolicyExecutionLogTimelineId:
+          log.onCallDutyPolicyExecutionLogTimelineId,
+        triggeredByIncidentId: log.triggeredByIncidentId,
+        triggeredByAlertId: log.triggeredByAlertId,
+        triggeredByAlertEpisodeId: log.triggeredByAlertEpisodeId,
+        triggeredByIncidentEpisodeId: log.triggeredByIncidentEpisodeId,
+        acknowledgedAt: acknowledgedAt,
+      });
+    }
+
+    return pagesAgain.length;
   }
 
   // Whether a run's policy pages again after an acknowledgement, as read with it.

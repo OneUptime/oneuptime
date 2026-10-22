@@ -196,17 +196,36 @@ describe.each(STATE_TIMELINES)(
   },
 );
 
-describe("an answered page tells the acknowledgement timeout", () => {
+describe("an acknowledged page tells the acknowledgement timeout", () => {
   const source: ts.SourceFile = parse("UserOnCallLogTimelineService.ts");
   const calls: Array<ts.CallExpression> = findCalls(
     source,
     "onPageAcknowledged",
   );
 
-  test("once, from the acknowledge hook", () => {
+  test("once, from the one place a page is acknowledged, which the acknowledge hook calls", () => {
     expect(calls).toHaveLength(1);
-    expect(enclosingMethodName(calls[0]!)).toBe("onUpdateSuccess");
+    expect(enclosingMethodName(calls[0]!)).toBe("acknowledgePage");
     expect(ts.isAwaitExpression(calls[0]!.parent)).toBe(true);
+
+    // The hook acknowledges each answered page through it.
+    const viaHook: Array<ts.CallExpression> = [];
+
+    const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+      if (
+        ts.isCallExpression(node) &&
+        node.expression.getText(source) === "this.acknowledgePage"
+      ) {
+        viaHook.push(node);
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(source);
+
+    expect(viaHook).toHaveLength(1);
+    expect(enclosingMethodName(viaHook[0]!)).toBe("onUpdateSuccess");
   });
 
   test("after the record itself is acknowledged, with the moment it was answered", () => {
@@ -226,11 +245,9 @@ describe("an answered page tells the acknowledgement timeout", () => {
     );
 
     expect(properties["executionLogId"]).toBe(
-      "item.onCallDutyPolicyExecutionLogId",
+      "page.onCallDutyPolicyExecutionLogId",
     );
-    expect(properties["acknowledgedAt"]).toContain(
-      "onUpdate.updateBy.data.acknowledgedAt",
-    );
+    expect(properties["acknowledgedAt"]).toBe("page.acknowledgedAt");
   });
 });
 
