@@ -14,6 +14,14 @@ import {
   RULE_MCP_SERVERS_FIELD_COPY,
   hasRuleMcpServers,
 } from "../ExternalMcpServer/ExternalMcpServerCopy";
+import {
+  RULE_CODE_REPOSITORIES_FIELD_COPY,
+  hasRuleCodeRepositories,
+} from "../Code/RuleCodeRepositoriesCopy";
+import {
+  AutomaticFixPullRequest,
+  REMEDIATION_RULE_PULL_REQUEST_COLUMNS,
+} from "Common/Types/AI/AutomaticFixPullRequests";
 
 /*
  * What an auto remediation rule's form and table say, React-free so the
@@ -27,7 +35,12 @@ import {
  * OneUptime AI fixes (Common/Types/AutoRemediation/AutoRemediationFix).
  * What most people never change is folded under More fields: the runbooks
  * OneUptime AI may run (none picked: any), whether the rule runs them every
- * time instead, and the Runner OneUptime AI runs the rule's commands on.
+ * time instead, the Runner OneUptime AI runs the rule's Bash commands on,
+ * the MCP servers and code repositories it may use (none picked: all), and
+ * the two pull requests it opens after an investigation (both on). "Both of
+ * these toggles should be inside of Remediation Rule, inside of More, and
+ * they should be checked by default" - the maintainer, of the pull request
+ * switches the AI settings page used to hold.
  */
 
 /*
@@ -180,6 +193,10 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
   everyTimeDescription: string;
   runnerTitle: string;
   runnerDescription: string;
+  codeFixTitle: string;
+  codeFixDescription: string;
+  telemetryTitle: string;
+  telemetryDescription: string;
 } = {
   runbooksTitle: translationKey("Runbooks"),
   runbooksDescription: translationKey(
@@ -191,28 +208,79 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
     "Start every runbook above for every match, instead of OneUptime AI deciding.",
   ),
   runnerTitle: translationKey("Runner"),
+  /*
+   * The one line that says the AI agent on the affected cluster or host is
+   * not a Runner choice: it is used whatever the rule picks. "Why does it
+   * see an AI agent on the cluster or host? That doesn't make any sense" -
+   * the maintainer, of the picker that listed it as a Runner.
+   */
   runnerDescription: translationKey(
-    "Where OneUptime AI runs commands of its own for this rule, inside your network.",
+    "Where OneUptime AI runs Bash commands for this rule, inside your network. Commands on the affected cluster or host go through its AI agent.",
+  ),
+  // The two pull requests an investigation of a match can lead to: both on.
+  codeFixTitle: translationKey("Fix pull requests"),
+  codeFixDescription: translationKey(
+    "When an investigation finds the cause in your code, OneUptime AI opens a pull request with the fix for review. Nothing is merged.",
+  ),
+  telemetryTitle: translationKey("Telemetry pull requests"),
+  telemetryDescription: translationKey(
+    "When missing logs, traces or metrics stop an investigation, OneUptime AI opens a pull request that adds them, for review.",
   ),
 };
 
 /*
- * What More fields' defaults do, under its folded line: one sentence for
- * what is not set. Nothing when both are set - the line names them.
+ * What More fields' defaults do, under its folded line. A new rule keeps
+ * them all - any runbook, every MCP server, every connected repository and
+ * the pull requests opened in them - and that is said in one sentence: the
+ * fold is the form's quietest line, and three sentences that each began
+ * "OneUptime AI may" took more room than the fields they stood for. Once
+ * some are set, one sentence for each default left as it is; nothing for
+ * what is set: the line names it.
  */
 export const AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES: {
-  anyRunbookAndAgents: string;
+  everythingAndPullRequests: string;
+  everything: string;
   anyRunbook: string;
-  agents: string;
+  allRepositoriesAndPullRequests: string;
+  allRepositories: string;
 } = {
-  anyRunbookAndAgents: translationKey(
-    "OneUptime AI may run any of your runbooks, and fixes through the AI agent on the affected cluster or host.",
+  everythingAndPullRequests: translationKey(
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.",
+  ),
+  everything: translationKey(
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.",
   ),
   anyRunbook: translationKey("OneUptime AI may run any of your runbooks."),
-  agents: translationKey(
-    "OneUptime AI fixes through the AI agent on the affected cluster or host.",
+  allRepositoriesAndPullRequests: translationKey(
+    "OneUptime AI may read all connected repositories, and open pull requests in them.",
   ),
+  allRepositories: RULE_CODE_REPOSITORIES_FIELD_COPY.allRepositoriesSummary,
 };
+
+// The data-testids of the rule's two pull request switches.
+export const AUTO_REMEDIATION_PULL_REQUEST_TEST_IDS: {
+  codeFix: string;
+  telemetry: string;
+} = {
+  codeFix: "auto-remediation-code-fix-pull-requests-field",
+  telemetry: "auto-remediation-telemetry-pull-requests-field",
+};
+
+/*
+ * Whether the rule being edited opens this pull request. A form that has
+ * not read the switch - a new rule before its defaults are filled in -
+ * reads as on, its column's default.
+ */
+export function doesEditedRuleOpenPullRequest(
+  values: FormValues<AutoRemediationRule>,
+  pullRequest: AutomaticFixPullRequest,
+): boolean {
+  const value: unknown = (values as Record<string, unknown>)[
+    REMEDIATION_RULE_PULL_REQUEST_COLUMNS[pullRequest]
+  ];
+
+  return value !== false;
+}
 
 /*
  * Whether the rule being edited runs its runbooks every time, without
@@ -345,31 +413,53 @@ export function hasRuleRunner(
 
 /*
  * The sentences under More fields while it is folded: what the defaults
- * left do - the runbooks and the Runner in one, then the MCP servers. A
- * rule that runs its runbooks every time has none of the defaults.
+ * left do - any runbook, every MCP server, every connected repository and
+ * the pull requests opened in them; one sentence while a rule keeps them
+ * all, as a new rule does. A rule that runs its runbooks every time, or one
+ * saved before rules were simplified, has no runbook or MCP default to
+ * describe (its fields say what it does); the repositories and pull
+ * requests are every rule's.
  */
 export function getAutoRemediationMoreFieldsSummary(
   values: FormValues<AutoRemediationRule>,
 ): Array<string> | undefined {
-  // Neither has the defaults the line describes: their fields say what is set.
-  if (isRunbooksEveryTime(values) || isOlderAutoRemediationRule(values)) {
-    return undefined;
+  const isAiFix: boolean =
+    !isRunbooksEveryTime(values) && !isOlderAutoRemediationRule(values);
+  const isAnyRunbook: boolean = isAiFix && !hasRuleRunbooks(values);
+  const isEveryMcpServer: boolean = isAiFix && !hasRuleMcpServers(values);
+  const isEveryRepository: boolean = !hasRuleCodeRepositories(values);
+  const opensPullRequests: boolean =
+    doesEditedRuleOpenPullRequest(values, AutomaticFixPullRequest.CodeFix) ||
+    doesEditedRuleOpenPullRequest(
+      values,
+      AutomaticFixPullRequest.MissingTelemetry,
+    );
+
+  // Every default kept, as a new rule does: one sentence says it.
+  if (isAnyRunbook && isEveryMcpServer && isEveryRepository) {
+    return [
+      opensPullRequests
+        ? AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everythingAndPullRequests
+        : AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everything,
+    ];
   }
 
   const sentences: Array<string> = [];
-  const isAnyRunbook: boolean = !hasRuleRunbooks(values);
-  const isAgentsOnly: boolean = !hasRuleRunner(values);
 
-  if (isAnyRunbook && isAgentsOnly) {
-    sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbookAndAgents);
-  } else if (isAnyRunbook) {
+  if (isAnyRunbook) {
     sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook);
-  } else if (isAgentsOnly) {
-    sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.agents);
   }
 
-  if (!hasRuleMcpServers(values)) {
+  if (isEveryMcpServer) {
     sentences.push(RULE_MCP_SERVERS_FIELD_COPY.allServersSummary);
+  }
+
+  if (isEveryRepository) {
+    sentences.push(
+      opensPullRequests
+        ? AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.allRepositoriesAndPullRequests
+        : AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.allRepositories,
+    );
   }
 
   return sentences.length > 0 ? sentences : undefined;

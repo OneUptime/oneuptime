@@ -1,5 +1,6 @@
 import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
 import ObjectID from "../../../../Types/ObjectID";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -260,6 +261,12 @@ export interface InvestigationRequest {
    * present; extras are additive and own their own authorization.
    */
   extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+  /*
+   * The code repositories the run may read (CodeRepositoryAllowance): the
+   * ones the rules that matched its incident (or alert) name. Left out,
+   * every connected repository.
+   */
+  codeRepositoryAllowance?: CodeRepositoryAllowance | undefined;
   maxLlmCalls?: number | undefined;
   maxToolCalls?: number | undefined;
   // Undefined means no time limit.
@@ -641,6 +648,9 @@ export default class AIInvestigationEngine {
           maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
           extraTools: request.extraTools,
+          ...(request.codeRepositoryAllowance
+            ? { codeRepositoryAllowance: request.codeRepositoryAllowance }
+            : {}),
           /*
            * The chat-facing AI-meta tools are hidden from the investigator:
            * "the latest investigation" for this subject IS this in-flight

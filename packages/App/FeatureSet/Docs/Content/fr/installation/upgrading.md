@@ -400,7 +400,7 @@ Rien n'est désactivé. Les règles, clusters et ressources que l'un des interru
 
 ### Les nouveaux projets démarrent avec toutes les fonctionnalités IA activées
 
-Un projet créé après la mise à niveau démarre avec toutes les fonctionnalités IA activées, pas seulement l'investigation automatique des incidents et des alertes : les brouillons de postmortem (Incidents → IA → Paramètres), et AI Insights avec ses pull requests de correctif et l'archivage automatique des exceptions de refus attendu (IA → Analyses → Paramètres). Les pull requests qu'ouvre OneUptime AI pour les incidents et les alertes font partie de la correction, qui démarre désactivée ; voir [Les interrupteurs de pull request font partie de la correction](#les-interrupteurs-de-pull-request-font-partie-de-la-correction).
+Un projet créé après la mise à niveau démarre avec toutes les fonctionnalités IA activées, pas seulement l'investigation automatique des incidents et des alertes : les brouillons de postmortem (Incidents → IA → Paramètres), et AI Insights avec ses pull requests de correctif et l'archivage automatique des exceptions de refus attendu (IA → Analyses → Paramètres). Les pull requests qu'ouvre OneUptime AI pour les incidents et les alertes font partie de la correction, qui démarre désactivée ; voir [Les interrupteurs de pull request sont passés dans les règles de remédiation automatique](#les-interrupteurs-de-pull-request-sont-passés-dans-les-règles-de-remédiation-automatique).
 
 Les projets qui existent déjà gardent leurs paramètres ; la mise à niveau n'active rien. Activé ne veut pas non plus dire en marche : chaque fonctionnalité a toujours besoin d'un fournisseur LLM (et de crédits IA sur OneUptime Cloud), et celles qui ouvrent des pull requests ont besoin d'un dépôt connecté et d'un Runner doté de la capacité de correction de code. Désactivez l'une d'elles sur sa page de paramètres, ou toutes avec **Activer l'IA**.
 
@@ -453,18 +453,22 @@ La mise à niveau garde chaque projet en train de corriger ce qu'il corrigeait a
 
 Les clients d'API et les configurations Terraform peuvent activer la correction avec `enableAutomaticIncidentRemediation` et `enableAutomaticAlertRemediation` du projet (`enable_automatic_incident_remediation` et `enable_automatic_alert_remediation` dans Terraform), et indiquer avec quoi une règle corrige dans son `remediationAction` (`OneUptimeAI` ou `Runbooks`). Une règle créée sans cette indication, avec des runbooks et sans paramètre IA, est une règle **Runbooks**, comme elle se serait exécutée avant.
 
-### Les interrupteurs de pull request font partie de la correction
+### Les interrupteurs de pull request sont passés dans les règles de remédiation automatique
 
-**Ouvrir une pull request de correctif quand une investigation trouve une modification de code** et **Ouvrir une pull request qui ajoute la télémétrie manquante** (Incidents ou Alertes → IA → Paramètres) se trouvent désormais sous **Corriger automatiquement les nouveaux incidents** (ou **Corriger automatiquement les nouvelles alertes**). Ils ne sont affichés que tant que la correction est activée ; activer la correction les active tous les deux, et la désactiver les désactive tous les deux. Tant que la correction est activée, chacun peut être désactivé à part.
+**Open a fix pull request when an investigation finds a code change** et **Open a pull request that adds missing telemetry** ne sont plus des interrupteurs de **Incidents → IA → Paramètres** et **Alertes → IA → Paramètres**. Chaque règle de remédiation automatique les a à la place, sous la forme de **Pull requests de correctif** et de **Pull requests de télémétrie** sous **Plus de champs**, tous deux activés pour une nouvelle règle. Une pull request ne s'ouvre toujours d'elle-même que tant que **Corriger automatiquement les nouveaux incidents** (ou **Corriger automatiquement les nouvelles alertes**) est activé :
 
-Ce qui change après la mise à niveau :
+- Sans règle, les deux pull requests s'ouvrent, dans n'importe quel dépôt connecté.
+- Avec des règles, une pull request ne s'ouvre que pour un incident (ou une alerte) que cible une règle, quand une règle qui le cible l'a activée, et seulement dans les dépôts que nomment les règles qui le ciblent sous **Dépôts de code**. Une règle qui n'en nomme aucun autorise tous les dépôts connectés ; les règles d'investigation nomment de la même façon les dépôts que OneUptime AI peut lire.
 
-- Une pull request ne s'ouvre d'elle-même que si la correction est activée en plus de son propre interrupteur. Un projet qui avait un interrupteur de pull request activé et la correction désactivée cesse d'ouvrir ces pull requests de lui-même. Activez la correction pour les retrouver. Pour empêcher OneUptime AI de modifier vos clusters ou vos hôtes, laissez **Correctifs** désactivé sur leurs pages **Agent IA** (la valeur par défaut) et n'ajoutez aucune règle de remédiation automatique.
-- La mise à niveau ne change aucun paramètre stocké. Un interrupteur de pull request qui était activé sous une correction désactivée reste activé et attend ; la page des paramètres l'affiche dès que la correction est activée, et activer la correction l'active de toute façon.
-- Un nouveau projet démarre avec les interrupteurs de pull request désactivés, comme la correction. Les investigations, les brouillons de postmortem et AI Insights démarrent toujours activés.
-- **Ouvrir une PR de correctif à partir de cette analyse** sur une investigation ne change pas : il n'a besoin d'aucun des deux interrupteurs.
+Chaque projet garde son choix :
 
-Les clients d'API et les configurations Terraform gardent leurs champs (`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, ou `enable_automatic_incident_code_fixes` et les autres dans Terraform). Le serveur stocke ce qu'ils écrivent, et n'active ni ne désactive les champs de pull request avec `enableAutomaticIncidentRemediation` (ou le champ des alertes) : définissez les trois dans une même requête pour activer la correction avec ses pull requests.
+- Un projet dont la correction est désactivée, ou dont les deux interrupteurs sont activés, garde ses règles telles quelles, et leurs interrupteurs démarrent activés.
+- Pour un projet dont la correction est activée et un interrupteur désactivé, cet interrupteur est désactivé dans chacune de ses règles de ce type. Sans règle activée de ce type, il en reçoit une, **All incidents** (ou **All alerts**) : elle cible chaque incident, corrige sans demander comme OneUptime AI corrigeait sans règle, et garde les deux interrupteurs tels que le projet les avait. Activez-y un interrupteur, ou supprimez-la, pour ouvrir ces pull requests.
+- **Ouvrir une PR de correctif à partir de cette analyse** sur une investigation ne change pas.
+
+Le champ **Agent Runbook** d'une règle ne liste que vos propres Runners. **AI agent on the cluster or host** n'y figure plus : les commandes sur le cluster ou l'hôte concerné passent toujours par son agent IA, quel que soit le choix de la règle. Une règle qui n'en avait choisi aucun affiche **Aucun agent Runbook** et corrige comme avant.
+
+Les clients d'API et les configurations Terraform perdent les champs de projet `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes` et `enableAlertInstrumentationFixTasks` (`enable_automatic_incident_code_fixes` et les autres dans Terraform) : retirez-les de votre configuration. Les champs `openCodeFixPullRequests` et `openTelemetryPullRequests` d'une règle de remédiation automatique (`open_code_fix_pull_requests` et `open_telemetry_pull_requests`) valent `true` sauf si vous les définissez, et une règle de l'un ou l'autre type nomme ses dépôts dans `codeRepositories` (`code_repositories`), vide pour tous les dépôts connectés.
 
 ### Vérifier l'édition et la licence
 

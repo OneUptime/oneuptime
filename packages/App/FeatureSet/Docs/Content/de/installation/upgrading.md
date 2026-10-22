@@ -400,7 +400,7 @@ Nichts wird ausgeschaltet. Regeln, Cluster und Ressourcen, die einer der Schalte
 
 ### Neue Projekte beginnen mit allen KI-Funktionen eingeschaltet
 
-Ein nach dem Upgrade angelegtes Projekt beginnt mit jeder eingeschalteten KI-Funktion, nicht nur mit der automatischen Untersuchung von Vorfällen und Warnungen: Postmortem-Entwürfe (Vorfälle → KI → Einstellungen) und AI Insights mit seinen Korrektur-Pull-Requests und der automatischen Archivierung erwarteter Zugriffsverweigerungs-Ausnahmen (KI → Einblicke → Einstellungen). Die Pull-Requests, die OneUptime AI für Vorfälle und Warnungen öffnet, gehören zum Beheben, das ausgeschaltet beginnt; siehe [Die Pull-Request-Schalter gehören zum Beheben](#die-pull-request-schalter-gehören-zum-beheben).
+Ein nach dem Upgrade angelegtes Projekt beginnt mit jeder eingeschalteten KI-Funktion, nicht nur mit der automatischen Untersuchung von Vorfällen und Warnungen: Postmortem-Entwürfe (Vorfälle → KI → Einstellungen) und AI Insights mit seinen Korrektur-Pull-Requests und der automatischen Archivierung erwarteter Zugriffsverweigerungs-Ausnahmen (KI → Einblicke → Einstellungen). Die Pull-Requests, die OneUptime AI für Vorfälle und Warnungen öffnet, gehören zum Beheben, das ausgeschaltet beginnt; siehe [Die Pull-Request-Schalter sind in die Regeln für automatische Behebung umgezogen](#die-pull-request-schalter-sind-in-die-regeln-für-automatische-behebung-umgezogen).
 
 Bereits bestehende Projekte behalten ihre Einstellungen; das Upgrade schaltet nichts ein. Eingeschaltet heißt auch nicht, dass etwas läuft: Jede Funktion braucht weiterhin einen LLM-Anbieter (und in OneUptime Cloud KI-Guthaben), und die, die Pull-Requests öffnen, brauchen ein verbundenes Repository und einen Runner mit der Fähigkeit zur Codekorrektur. Schalten Sie jede davon auf ihrer Einstellungsseite aus, oder alle zusammen mit **KI aktivieren**.
 
@@ -453,18 +453,22 @@ Das Upgrade lässt jedes Projekt weiterhin beheben, was es bisher behoben hat:
 
 API-Clients und Terraform-Konfigurationen können das Beheben mit `enableAutomaticIncidentRemediation` und `enableAutomaticAlertRemediation` des Projekts einschalten (`enable_automatic_incident_remediation` und `enable_automatic_alert_remediation` in Terraform) und in `remediationAction` einer Regel angeben, womit sie behebt (`OneUptimeAI` oder `Runbooks`). Eine ohne diese Angabe angelegte Regel mit Runbooks und ohne KI-Einstellung ist eine Regel mit **Runbooks**, wie sie früher gelaufen wäre.
 
-### Die Pull-Request-Schalter gehören zum Beheben
+### Die Pull-Request-Schalter sind in die Regeln für automatische Behebung umgezogen
 
-**Korrektur-Pull-Anfrage öffnen, wenn eine Untersuchung eine Codeänderung findet** und **Pull-Anfrage öffnen, die fehlende Telemetrie ergänzt** (Vorfälle oder Warnungen → KI → Einstellungen) stehen jetzt unter **Neue Vorfälle automatisch beheben** (oder **Neue Warnungen automatisch beheben**). Sie werden nur angezeigt, solange das Beheben eingeschaltet ist; das Beheben einzuschalten, schaltet beide ein, und es auszuschalten, schaltet beide aus. Solange das Beheben eingeschaltet ist, lässt sich jeder der beiden einzeln ausschalten.
+**Open a fix pull request when an investigation finds a code change** und **Open a pull request that adds missing telemetry** sind keine Schalter mehr auf **Vorfälle → KI → Einstellungen** und **Warnungen → KI → Einstellungen**. Stattdessen hat jede Regel für automatische Behebung sie, als **Fix-Pull-Requests** und **Telemetrie-Pull-Requests** unter **Weitere Felder** der Regel, beide bei einer neuen Regel eingeschaltet. Ein Pull-Request öffnet sich weiterhin nur von selbst, solange **Neue Vorfälle automatisch beheben** (oder **Neue Warnungen automatisch beheben**) eingeschaltet ist:
 
-Was sich nach dem Upgrade ändert:
+- Ohne Regel werden beide Pull-Requests geöffnet, in jedem verbundenen Repository.
+- Mit Regeln wird ein Pull-Request nur für einen Vorfall (oder eine Warnung) geöffnet, auf den eine Regel passt, wenn eine passende Regel ihn eingeschaltet hat, und nur in den Repositorys, die die passenden Regeln unter **Code-Repositories** nennen. Eine Regel, die keines nennt, erlaubt jedes verbundene Repository; Untersuchungsregeln nennen die Repositorys, die OneUptime AI lesen darf, auf dieselbe Weise.
 
-- Ein Pull-Request öffnet sich nur dann von selbst, wenn sowohl das Beheben als auch sein eigener Schalter eingeschaltet sind. Ein Projekt, das einen Pull-Request-Schalter eingeschaltet und das Beheben ausgeschaltet hatte, öffnet diese Pull-Requests nicht mehr von selbst. Schalten Sie das Beheben ein, um sie zurückzubekommen. Um OneUptime AI davon abzuhalten, Ihre Cluster oder Hosts zu ändern, lassen Sie **Korrekturen** auf deren Seiten **KI-Agent** ausgeschaltet (der Standard) und fügen Sie keine Regel zur automatischen Behebung hinzu.
-- Das Upgrade ändert keine gespeicherte Einstellung. Ein Pull-Request-Schalter, der unter ausgeschaltetem Beheben eingeschaltet war, bleibt eingeschaltet und wartet; die Einstellungsseite zeigt ihn, sobald das Beheben eingeschaltet wird, und das Einschalten des Behebens schaltet ihn ohnehin ein.
-- Ein neues Projekt beginnt mit ausgeschalteten Pull-Request-Schaltern, wie das Beheben. Untersuchungen, Postmortem-Entwürfe und AI Insights beginnen weiterhin eingeschaltet.
-- **Korrektur-PR aus dieser Analyse öffnen** bei einer Untersuchung bleibt unverändert: Es braucht keinen der beiden Schalter.
+Jedes Projekt behält seine Wahl:
 
-API-Clients und Terraform-Konfigurationen behalten ihre Felder (`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks` oder `enable_automatic_incident_code_fixes` und die übrigen in Terraform). Der Server speichert, was sie schreiben, und schaltet die Pull-Request-Felder nicht mit `enableAutomaticIncidentRemediation` (oder dem Feld für Warnungen) ein oder aus: Setzen Sie alle drei in einer Anfrage, um das Beheben mit seinen Pull-Requests einzuschalten.
+- Ein Projekt mit ausgeschaltetem Beheben oder mit beiden Schaltern eingeschaltet behält seine Regeln, wie sie sind, und ihre Schalter beginnen eingeschaltet.
+- Bei einem Projekt mit eingeschaltetem Beheben und einem ausgeschalteten Schalter wird dieser Schalter in jeder seiner Regeln dieser Art ausgeschaltet. Ohne aktivierte Regel dieser Art bekommt es eine, **All incidents** (oder **All alerts**): Sie passt auf jeden Vorfall, behebt ohne Nachfrage so, wie OneUptime AI ohne Regel behoben hat, und hält die beiden Schalter so, wie das Projekt sie hatte. Schalten Sie darin einen Schalter ein oder löschen Sie sie, um diese Pull-Requests zu öffnen.
+- **Korrektur-PR aus dieser Analyse öffnen** bei einer Untersuchung bleibt unverändert.
+
+Der **Runner** einer Regel listet nur Ihre eigenen Runner auf. **AI agent on the cluster or host** gibt es dort nicht mehr: Befehle auf dem betroffenen Cluster oder Host laufen immer über dessen KI-Agenten, egal welchen Runner die Regel wählt. Eine Regel, die keinen gewählt hat, zeigt **Kein Runner** und behebt wie zuvor.
+
+API-Clients und Terraform-Konfigurationen verlieren die Projektfelder `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes` und `enableAlertInstrumentationFixTasks` (`enable_automatic_incident_code_fixes` und die übrigen in Terraform): Entfernen Sie sie aus Ihrer Konfiguration. `openCodeFixPullRequests` und `openTelemetryPullRequests` einer Regel für automatische Behebung (`open_code_fix_pull_requests` und `open_telemetry_pull_requests`) sind `true`, sofern Sie sie nicht setzen, und eine Regel beider Arten nennt ihre Repositorys in `codeRepositories` (`code_repositories`), leer für jedes verbundene Repository.
 
 ### Edition und Lizenz überprüfen
 

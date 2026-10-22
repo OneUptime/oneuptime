@@ -81,7 +81,7 @@ För att få OneUptime AI att sluta använda en server stänger du av **Låt One
 
 ## Välj de servrar en regel får använda
 
-Utredningsregler och regler för automatisk åtgärd kan var för sig nämna de MCP-servrar som OneUptime AI får använda för det de matchar. Fältet är **MCP-servrar**, under **Fler fält**. Tills du väljer några säger det hopfällda avsnittet **OneUptime AI får använda alla dina MCP-servrar.**
+Utredningsregler och regler för automatisk åtgärd kan var för sig nämna de MCP-servrar som OneUptime AI får använda för det de matchar. Fältet är **MCP-servrar**, under **Fler fält**. Tills du väljer några får OneUptime AI använda alla, och det hopfällda avsnittet säger det.
 
 - **Ingen vald** – alla projektets påslagna servrar.
 - **Några valda** – bara de. På en regel för automatisk åtgärd som åtgärdar utan att fråga är det också att nämna dess servrar som låter OneUptime AI göra deras ändringar utan att fråga.

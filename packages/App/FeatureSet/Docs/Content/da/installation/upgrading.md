@@ -400,7 +400,7 @@ Intet slås fra. Regler, klynger og ressourcer, som en af kontakterne holdt tavs
 
 ### Nye projekter starter med alle AI-funktioner slået til
 
-Et projekt, der oprettes efter opgraderingen, starter med alle AI-funktioner slået til, ikke kun automatisk undersøgelse af hændelser og advarsler: udkast til postmortems (Hændelser → AI → Indstillinger), og AI Insights med dets pull requests med rettelser og automatisk arkivering af undtagelser for forventede afvisninger (AI → Indsigter → Indstillinger). De pull requests, OneUptime AI åbner for hændelser og advarsler, hører til rettelserne, som starter slået fra; se [Pull request-kontakterne hører til rettelserne](#pull-request-kontakterne-hører-til-rettelserne).
+Et projekt, der oprettes efter opgraderingen, starter med alle AI-funktioner slået til, ikke kun automatisk undersøgelse af hændelser og advarsler: udkast til postmortems (Hændelser → AI → Indstillinger), og AI Insights med dets pull requests med rettelser og automatisk arkivering af undtagelser for forventede afvisninger (AI → Indsigter → Indstillinger). De pull requests, OneUptime AI åbner for hændelser og advarsler, hører til rettelserne, som starter slået fra; se [Pull request-kontakterne er flyttet ind i reglerne for automatisk afhjælpning](#pull-request-kontakterne-er-flyttet-ind-i-reglerne-for-automatisk-afhjælpning).
 
 Projekter, der allerede findes, beholder deres indstillinger; opgraderingen slår intet til. Slået til betyder heller ikke, at det kører: hver funktion har stadig brug for en LLM-udbyder (og AI-kreditter på OneUptime Cloud), og dem, der åbner pull requests, har brug for et forbundet repository og en Runner med kapaciteten til koderettelser. Slå hvilken som helst af dem fra på dens indstillingsside, eller dem alle med **Aktivér AI**.
 
@@ -453,18 +453,22 @@ Opgraderingen lader hvert projekt blive ved med at rette det, det rettede før:
 
 API-klienter og Terraform-konfigurationer kan slå rettelser til med projektets `enableAutomaticIncidentRemediation` og `enableAutomaticAlertRemediation` (`enable_automatic_incident_remediation` og `enable_automatic_alert_remediation` i Terraform), og angive, hvad en regel retter med, i dens `remediationAction` (`OneUptimeAI` eller `Runbooks`). En regel, der oprettes uden, med runbooks og uden AI-indstilling, er en regel med **Runbooks**, som den ville have kørt før.
 
-### Pull request-kontakterne hører til rettelserne
+### Pull request-kontakterne er flyttet ind i reglerne for automatisk afhjælpning
 
-**Åbn en pull request med en rettelse, når en undersøgelse finder en kodeændring** og **Åbn en pull request, der tilføjer manglende telemetri** (Hændelser eller Advarsler → AI → Indstillinger) ligger nu under **Ret nye hændelser automatisk** (eller **Ret nye advarsler automatisk**). De vises kun, mens rettelser er slået til; at slå rettelser til slår dem begge til, og at slå dem fra slår begge fra. Mens rettelser er slået til, kan hver af dem slås fra for sig.
+**Open a fix pull request when an investigation finds a code change** og **Open a pull request that adds missing telemetry** er ikke længere kontakter på **Hændelser → AI → Indstillinger** og **Advarsler → AI → Indstillinger**. I stedet har hver regel for automatisk afhjælpning dem, som **Pull requests med rettelser** og **Pull requests med telemetri** under **Flere felter**, begge slået til for en ny regel. En pull request åbnes stadig kun af sig selv, så længe **Ret nye hændelser automatisk** (eller **Ret nye advarsler automatisk**) er slået til:
 
-Hvad der ændrer sig efter opgraderingen:
+- Uden regler åbnes begge pull requests, i ethvert forbundet repository.
+- Med regler åbnes en pull request kun for en hændelse (eller advarsel), som en regel matcher, når en matchende regel har den slået til, og kun i de repositorier, de matchende regler nævner under **Koderepositorier**. En regel, der ikke nævner nogen, tillader alle forbundne repositorier; undersøgelsesregler nævner på samme måde de repositorier, OneUptime AI må læse.
 
-- En pull request åbner kun af sig selv, mens rettelser er slået til ud over dens egen kontakt. Et projekt, der havde en pull request-kontakt slået til og rettelser slået fra, holder op med at åbne de pull requests af sig selv. Slå rettelser til for at få dem tilbage. For at forhindre OneUptime AI i at ændre dine klynger eller værter lader du **Rettelser** være slået fra på deres sider **AI-agent** (standarden) og tilføjer ingen regel for automatisk afhjælpning.
-- Opgraderingen ændrer ingen gemt indstilling. En pull request-kontakt, der var slået til under rettelser, der var slået fra, forbliver slået til og venter; indstillingssiden viser den, så snart rettelser slås til, og at slå rettelser til slår den til under alle omstændigheder.
-- Et nyt projekt starter med pull request-kontakterne slået fra, ligesom rettelser. Undersøgelser, udkast til postmortems og AI Insights starter stadig slået til.
-- **Open Fix PR from this analysis** på en undersøgelse er uændret: den har ikke brug for nogen af kontakterne.
+Hvert projekt beholder sit valg:
 
-API-klienter og Terraform-konfigurationer beholder deres felter (`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, eller `enable_automatic_incident_code_fixes` og resten i Terraform). Serveren gemmer det, de skriver, og slår ikke pull request-felterne til eller fra med `enableAutomaticIncidentRemediation` (eller feltet for advarsler): sæt alle tre i én forespørgsel for at slå rettelser til med deres pull requests.
+- Et projekt med rettelser slået fra, eller med begge kontakter slået til, beholder sine regler, som de er, og deres kontakter starter slået til.
+- I et projekt med rettelser slået til og en kontakt slået fra slås den kontakt fra i hver af dets regler af den type. Uden en aktiveret regel af den type får det en, **All incidents** (eller **All alerts**): den matcher alle, retter uden at spørge, som OneUptime AI rettede uden regler, og holder de to kontakter, som projektet havde dem. Slå en kontakt til i den, eller slet den, for at åbne de pull requests.
+- **Open Fix PR from this analysis** på en undersøgelse er uændret.
+
+En regels **Runner** viser kun dine egne Runners. **AI agent on the cluster or host** er fjernet derfra: kommandoer på det berørte cluster eller den berørte vært går altid gennem dens AI-agent, uanset hvad reglen vælger. En regel, der ikke havde valgt nogen, viser **Ingen Runner** og retter som før.
+
+API-klienter og Terraform-konfigurationer mister projektfelterne `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes` og `enableAlertInstrumentationFixTasks` (`enable_automatic_incident_code_fixes` og resten i Terraform): fjern dem fra din konfiguration. `openCodeFixPullRequests` og `openTelemetryPullRequests` på en regel for automatisk afhjælpning (`open_code_fix_pull_requests` og `open_telemetry_pull_requests`) er `true`, medmindre du sætter dem, og en regel af begge typer nævner sine repositorier i `codeRepositories` (`code_repositories`), tom for alle forbundne repositorier.
 
 ### Kontrollér udgaven og licensen
 

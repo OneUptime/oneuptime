@@ -21,12 +21,14 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Switches that belong to another switch (UI/Components/ModelSwitch):
- * "Open a fix pull request when an investigation finds a code change" and
- * "Open a pull request that adds missing telemetry" under "Fix new
- * incidents automatically". The maintainer: "The two dots below should be
- * auto-turned on when the 'Fix new alerts automatically' is turned on, and
- * it should actually be a child of 'Fix new alerts automatically'."
+ * Switches that belong to another switch (UI/Components/ModelSwitch). The
+ * shared pieces were built for the two pull request switches under "Fix new
+ * alerts automatically" ("The two dots below should be auto-turned on when
+ * the 'Fix new alerts automatically' is turned on, and it should actually be
+ * a child of 'Fix new alerts automatically'" - the maintainer); those moved
+ * into the auto remediation rules, and the pieces stay for any switch that
+ * holds others. The fixture hangs two of the project's other AI switches -
+ * with the same permissions - under "Fix new alerts automatically".
  *
  * Pinned here, on the shared pieces every page draws them with:
  *
@@ -252,14 +254,14 @@ describe("getModelSwitchWrite: what a flip writes", () => {
           column: "enableAutomaticAlertRemediation",
           isOn,
           childSwitches: [
-            { column: "enableAutomaticAlertCodeFixes" },
-            { column: "enableAlertInstrumentationFixTasks" },
+            { column: "enableInsightFixTasks" },
+            { column: "autoArchiveNonActionableExceptions" },
           ],
         }),
       ).toEqual({
         enableAutomaticAlertRemediation: isOn,
-        enableAutomaticAlertCodeFixes: isOn,
-        enableAlertInstrumentationFixTasks: isOn,
+        enableInsightFixTasks: isOn,
+        autoArchiveNonActionableExceptions: isOn,
       });
     },
   );
@@ -348,25 +350,25 @@ function rowWithChildren(props?: Partial<RowProps<Project>>): ReactElement {
       title="Fix new alerts automatically"
       dataTestId={FIX}
       childSwitches={[
-        { column: "enableAutomaticAlertCodeFixes" },
-        { column: "enableAlertInstrumentationFixTasks" },
+        { column: "enableInsightFixTasks" },
+        { column: "autoArchiveNonActionableExceptions" },
       ]}
       childrenWhileOn={
         <>
           <ModelSwitchRow<Project>
             modelType={Project}
             modelId={new ObjectID(RECORD_ID)}
-            column="enableAutomaticAlertCodeFixes"
+            column="enableInsightFixTasks"
             initialValue={true}
-            title="Open a fix pull request when an investigation finds a code change"
+            title="Open a fix pull request when an insight points at your code"
             dataTestId={CODE_FIX}
           />
           <ModelSwitchRow<Project>
             modelType={Project}
             modelId={new ObjectID(RECORD_ID)}
-            column="enableAlertInstrumentationFixTasks"
+            column="autoArchiveNonActionableExceptions"
             initialValue={true}
-            title="Open a pull request that adds missing telemetry"
+            title="Archive exceptions that are expected"
             dataTestId={TELEMETRY}
           />
         </>
@@ -386,8 +388,8 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     expect(writes()).toEqual([
       {
         enableAutomaticAlertRemediation: true,
-        enableAutomaticAlertCodeFixes: true,
-        enableAlertInstrumentationFixTasks: true,
+        enableInsightFixTasks: true,
+        autoArchiveNonActionableExceptions: true,
       },
     ]);
     expect(
@@ -405,8 +407,8 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     expect(writes()).toEqual([
       {
         enableAutomaticAlertRemediation: false,
-        enableAutomaticAlertCodeFixes: false,
-        enableAlertInstrumentationFixTasks: false,
+        enableInsightFixTasks: false,
+        autoArchiveNonActionableExceptions: false,
       },
     ]);
     expect(checked(FIX)).toBe("false");
@@ -434,8 +436,8 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
       }),
     ).toEqual([
       ["enableAutomaticAlertRemediation", true],
-      ["enableAutomaticAlertCodeFixes", true],
-      ["enableAlertInstrumentationFixTasks", true],
+      ["enableInsightFixTasks", true],
+      ["autoArchiveNonActionableExceptions", true],
     ]);
     for (const saved of heard) {
       expect(saved.tableName).toBe("Project");
@@ -451,7 +453,7 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     const unsubscribe: () => void = subscribeToModelSwitchSaved({
       modelType: Project,
       modelId: new ObjectID(RECORD_ID),
-      column: "enableAutomaticAlertCodeFixes",
+      column: "enableInsightFixTasks",
       onSaved: (value: boolean): void => {
         heard(value);
       },
@@ -582,8 +584,8 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     expect(writes()).toEqual([
       {
         enableAutomaticAlertRemediation: true,
-        enableAutomaticAlertCodeFixes: true,
-        enableAlertInstrumentationFixTasks: true,
+        enableInsightFixTasks: true,
+        autoArchiveNonActionableExceptions: true,
       },
     ]);
     expect(screen.getByTestId(`${FIX}-children`)).toBeInTheDocument();
@@ -627,7 +629,7 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
     render(
       rowWithChildren({
         childSwitches: [
-          { column: "enableAutomaticAlertCodeFixes" },
+          { column: "enableInsightFixTasks" },
           { column: "enableAi" },
         ],
       }),
@@ -767,19 +769,19 @@ describe("ModelSwitchRow: a switch with switches under it", () => {
 });
 
 /*
- * The card, as the AI settings pages use it: "Investigate new alerts",
- * then "Fix new alerts automatically" with its two pull requests.
+ * A card as the AI settings pages draw one: "Investigate new alerts",
+ * then "Fix new alerts automatically" with two switches under it.
  */
 const CHILDREN: Array<ModelSwitchesCardChildSwitch<Project>> = [
   {
-    column: "enableAutomaticAlertCodeFixes",
-    title: "Open a fix pull request when an investigation finds a code change",
-    note: "Needs a repository connected through the GitHub App and a Runner that can fix code.",
+    column: "enableInsightFixTasks",
+    title: "Open a fix pull request when an insight points at your code",
+    note: "Needs a repository connected through the GitHub App.",
     dataTestId: CODE_FIX,
   },
   {
-    column: "enableAlertInstrumentationFixTasks",
-    title: "Open a pull request that adds missing telemetry",
+    column: "autoArchiveNonActionableExceptions",
+    title: "Archive exceptions that are expected",
     dataTestId: TELEMETRY,
   },
 ];
@@ -834,8 +836,8 @@ describe("getSwitchesInDrawnOrder", () => {
     ).toEqual([
       "enableAutomaticAlertInvestigation",
       "enableAutomaticAlertRemediation",
-      "enableAutomaticAlertCodeFixes",
-      "enableAlertInstrumentationFixTasks",
+      "enableInsightFixTasks",
+      "autoArchiveNonActionableExceptions",
     ]);
   });
 
@@ -857,8 +859,8 @@ describe("getSwitchesInDrawnOrder", () => {
   test("it is what the card draws, in the card's own order", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -886,8 +888,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     ).toEqual({
       enableAutomaticAlertInvestigation: true,
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     });
   });
 
@@ -895,8 +897,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     stored = {
       enableAutomaticAlertInvestigation: true,
       enableAutomaticAlertRemediation: false,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -910,8 +912,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("with the switch on, they hang under it, each as the record holds it", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: false,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -932,11 +934,11 @@ describe("ModelSwitchesCard: switches under a switch", () => {
 
     // Each says its own sentence, under its own name.
     expect(screen.getByTestId(`${CODE_FIX}-row`)).toHaveTextContent(
-      "Needs a repository connected through the GitHub App and a Runner that can fix code.",
+      "Needs a repository connected through the GitHub App.",
     );
     expect(
       screen.getByRole("switch", {
-        name: "Open a pull request that adds missing telemetry",
+        name: "Archive exceptions that are expected",
       }),
     ).toBe(screen.getByTestId(TELEMETRY));
 
@@ -947,8 +949,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("turning the switch on is ONE save that turns both on, and they appear on - even ones that were off", async () => {
     stored = {
       enableAutomaticAlertRemediation: false,
-      enableAutomaticAlertCodeFixes: false,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: false,
     };
     const onSaved: MockFunction = getJestMockFunction();
 
@@ -960,16 +962,16 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     expect(writes()).toEqual([
       {
         enableAutomaticAlertRemediation: true,
-        enableAutomaticAlertCodeFixes: true,
-        enableAlertInstrumentationFixTasks: true,
+        enableInsightFixTasks: true,
+        autoArchiveNonActionableExceptions: true,
       },
     ]);
     expect(switchIds()).toEqual([INVESTIGATE, FIX, CODE_FIX, TELEMETRY]);
     expect(checked(CODE_FIX)).toBe("true");
     expect(checked(TELEMETRY)).toBe("true");
     expect(onSaved.mock.calls).toEqual([
-      ["enableAutomaticAlertCodeFixes", true],
-      ["enableAlertInstrumentationFixTasks", true],
+      ["enableInsightFixTasks", true],
+      ["autoArchiveNonActionableExceptions", true],
       ["enableAutomaticAlertRemediation", true],
     ]);
   });
@@ -977,8 +979,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("turning the switch off is one save that turns both off, and they go", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
     };
 
     render(card());
@@ -989,8 +991,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     expect(writes()).toEqual([
       {
         enableAutomaticAlertRemediation: false,
-        enableAutomaticAlertCodeFixes: false,
-        enableAlertInstrumentationFixTasks: false,
+        enableInsightFixTasks: false,
+        autoArchiveNonActionableExceptions: false,
       },
     ]);
     expect(switchIds()).toEqual([INVESTIGATE, FIX]);
@@ -999,8 +1001,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("while it is on, each switch under it is flipped on its own and saves its own column", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -1008,7 +1010,7 @@ describe("ModelSwitchesCard: switches under a switch", () => {
 
     await press(CODE_FIX);
 
-    expect(writes()).toEqual([{ enableAutomaticAlertCodeFixes: false }]);
+    expect(writes()).toEqual([{ enableInsightFixTasks: false }]);
     expect(checked(CODE_FIX)).toBe("false");
     expect(checked(TELEMETRY)).toBe("true");
     expect(checked(FIX)).toBe("true");
@@ -1018,8 +1020,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("off and on again, both come back on - the one turned off by hand too", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -1036,16 +1038,16 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     expect(checked(CODE_FIX)).toBe("true");
     expect(checked(TELEMETRY)).toBe("true");
     expect(writes()).toEqual([
-      { enableAlertInstrumentationFixTasks: false },
+      { autoArchiveNonActionableExceptions: false },
       {
         enableAutomaticAlertRemediation: false,
-        enableAutomaticAlertCodeFixes: false,
-        enableAlertInstrumentationFixTasks: false,
+        enableInsightFixTasks: false,
+        autoArchiveNonActionableExceptions: false,
       },
       {
         enableAutomaticAlertRemediation: true,
-        enableAutomaticAlertCodeFixes: true,
-        enableAlertInstrumentationFixTasks: true,
+        enableInsightFixTasks: true,
+        autoArchiveNonActionableExceptions: true,
       },
     ]);
   });
@@ -1053,8 +1055,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("a refused turn-on leaves all three off: the switch moves back with why, and nothing appears under it", async () => {
     stored = {
       enableAutomaticAlertRemediation: false,
-      enableAutomaticAlertCodeFixes: false,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: false,
     };
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error("AI is disabled for this project.");
@@ -1083,8 +1085,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("a refused turn-off brings them back as they were, the one turned off by hand still off", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -1108,8 +1110,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     stored = {
       enableAutomaticAlertInvestigation: true,
       enableAutomaticAlertRemediation: false,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
     };
     const onChange: MockFunction = getJestMockFunction();
 
@@ -1119,8 +1121,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     expect(onChange.mock.calls).toEqual([
       ["enableAutomaticAlertInvestigation", true],
       ["enableAutomaticAlertRemediation", false],
-      ["enableAutomaticAlertCodeFixes", true],
-      ["enableAlertInstrumentationFixTasks", false],
+      ["enableInsightFixTasks", true],
+      ["autoArchiveNonActionableExceptions", false],
     ]);
   });
 
@@ -1128,8 +1130,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     permissionsForTest = [Permission.EditProject];
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
     };
 
     render(card());
@@ -1157,8 +1159,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("while a switch under it is being saved, the switch it belongs to is locked, and a press does nothing", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -1201,11 +1203,11 @@ describe("ModelSwitchesCard: switches under a switch", () => {
     await press(FIX);
 
     expect(writes()).toEqual([
-      { enableAutomaticAlertCodeFixes: false },
+      { enableInsightFixTasks: false },
       {
         enableAutomaticAlertRemediation: false,
-        enableAutomaticAlertCodeFixes: false,
-        enableAlertInstrumentationFixTasks: false,
+        enableInsightFixTasks: false,
+        autoArchiveNonActionableExceptions: false,
       },
     ]);
   });
@@ -1213,8 +1215,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("a refused save of a switch under it lets the switch it belongs to go again, and says why on that row", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     render(card());
@@ -1241,8 +1243,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("a save of a switch under it made elsewhere while it is not drawn is remembered, and drawn when it comes back", async () => {
     stored = {
       enableAutomaticAlertRemediation: false,
-      enableAutomaticAlertCodeFixes: false,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: false,
+      autoArchiveNonActionableExceptions: false,
     };
 
     const view: RenderResult = render(card());
@@ -1259,7 +1261,7 @@ describe("ModelSwitchesCard: switches under a switch", () => {
       announceModelSwitchSaved({
         modelType: Project,
         modelId: new ObjectID(RECORD_ID),
-        column: "enableAutomaticAlertCodeFixes",
+        column: "enableInsightFixTasks",
         value: true,
         source: "somewhere-else",
       });
@@ -1281,8 +1283,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("the caller hears every switch under it that was saved, and as moved only the ones that moved", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: false,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: false,
     };
     const onChange: MockFunction = getJestMockFunction();
     const onSaved: MockFunction = getJestMockFunction();
@@ -1295,11 +1297,11 @@ describe("ModelSwitchesCard: switches under a switch", () => {
 
     expect(onChange.mock.calls).toEqual([
       ["enableAutomaticAlertRemediation", false],
-      ["enableAutomaticAlertCodeFixes", false],
+      ["enableInsightFixTasks", false],
     ]);
     expect(onSaved.mock.calls).toEqual([
-      ["enableAutomaticAlertCodeFixes", false],
-      ["enableAlertInstrumentationFixTasks", false],
+      ["enableInsightFixTasks", false],
+      ["autoArchiveNonActionableExceptions", false],
       ["enableAutomaticAlertRemediation", false],
     ]);
   });
@@ -1307,8 +1309,8 @@ describe("ModelSwitchesCard: switches under a switch", () => {
   test("a save of the switch made elsewhere on the screen moves it, and with it what is under it", async () => {
     stored = {
       enableAutomaticAlertRemediation: true,
-      enableAutomaticAlertCodeFixes: true,
-      enableAlertInstrumentationFixTasks: true,
+      enableInsightFixTasks: true,
+      autoArchiveNonActionableExceptions: true,
     };
 
     const view: RenderResult = render(card());

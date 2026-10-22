@@ -17,7 +17,7 @@ import {
   AUTO_REMEDIATION_FIX_WITH_TEXT,
   AUTO_REMEDIATION_MORE_FIELDS_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
-import { REMEDIATION_NO_RUNNER_CHOICE_LABEL } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import { REMEDIATION_NO_RUNNER_PLACEHOLDER } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { CATCH_ALL_RULE_NAMES } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1799400000000-AddAutomaticRemediationSwitchesAndInvestigationRules";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
@@ -39,9 +39,9 @@ const NOTE_HEADING: string =
   "### Fixing new incidents and alerts has a switch of its own";
 const PREVIOUS_NOTE_HEADING: string =
   "### The AI Logs get an index for the daily AI limits";
-// Fixing's own note is followed by the one on the pull requests under it.
+// Fixing's own note is followed by the one on the pull requests it opens.
 const NEXT_NOTE_HEADING: string =
-  "### The pull-request switches are part of fixing";
+  "### The pull-request switches moved into the auto remediation rules";
 
 const INCIDENT_SETTINGS_PAGE: string = path.join(
   DOCS_CONTENT_DIR,
@@ -84,20 +84,18 @@ describe("the AI SRE page", () => {
     );
   });
 
-  it("names the two pull requests as part of fixing, drawn under it, on and off with it", () => {
-    const children: Array<string> = (
-      AI_LANE_SWITCHES[AiLane.Incident][1]!.children || []
-    ).map((definition: ProjectAiSwitchDefinition<string>): string => {
-      return `_${definition.title}_`;
-    });
-
-    expect(children).toHaveLength(2);
+  /*
+   * "Both of these toggles should be inside of Remediation Rule, inside of
+   * More, and they should be checked by default" - the maintainer. Fixing
+   * has no switch under it: its two pull requests are each auto
+   * remediation rule's.
+   */
+  it("names the two pull requests as part of fixing, set by each auto remediation rule", () => {
+    expect(AI_LANE_SWITCHES[AiLane.Incident][1]!.children).toBeUndefined();
     expect(page).toContain(
-      `Two more switches are part of it, drawn under it while it is on: ${children[0]} and ${children[1]}.`,
+      "The pull requests it opens, a fix to your code and the telemetry an investigation found missing, are part of it, and each auto remediation rule sets them: with no rule both open, and a rule can turn either off under its **More fields**",
     );
-    expect(page).toContain(
-      "Turning fixing on turns both on, and turning it off turns both off; while it is on, turn off either one you do not want.",
-    );
+    expect(page).not.toContain("Two more switches are part of it");
     // The page no longer counts them as switches of their own.
     expect(page).not.toContain("The incident page has five");
   });
@@ -168,8 +166,13 @@ describe("the AI SRE page", () => {
     expect(rules).toContain(
       `With none picked (**${AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksPlaceholder}**) it may pick any of the project's enabled runbooks; pick some to let it run only those.`,
     );
+    /*
+     * A rule's Runner lists the project's own Runners: no "AI agent on the
+     * cluster or host" - commands on the affected cluster or host go
+     * through its AI agent whatever the rule picks.
+     */
     expect(rules).toContain(
-      `With none (**${REMEDIATION_NO_RUNNER_CHOICE_LABEL}**), OneUptime AI fixes through the AI agent on the affected Kubernetes cluster or host only; a global Runner never runs OneUptime AI's commands.`,
+      `It lists your own Runners, the project's default first, and a new rule starts on the default; with **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**, OneUptime AI runs no commands of its own for the rule. Commands on the affected Kubernetes cluster or host always go through its AI agent, whatever the rule picks, and a global Runner never runs OneUptime AI's commands.`,
     );
     expect(rules).toContain(
       "A runbook it picks from any of them is always proposed for approval.",

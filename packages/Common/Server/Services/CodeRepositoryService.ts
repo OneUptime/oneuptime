@@ -16,6 +16,10 @@ import GitHubUtil, {
 } from "../Utils/CodeRepository/GitHub/GitHub";
 import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  CodeRepositoryAllowance,
+  keepAllowedCodeRepositories,
+} from "../../Types/CodeRepository/CodeRepositoryAllowance";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
@@ -459,9 +463,21 @@ export class Service extends ProjectReferencesService<Model> {
     projectId: ObjectID;
     stackTrace: string | null;
     serviceName: string | null;
+    /*
+     * The repositories the work may be done in (CodeRepositoryAllowance):
+     * the others are never candidates. Left out, every resolvable one is.
+     */
+    allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<RepoResolution | null> {
-    const resolvable: Array<ResolvableRepository> =
-      await this.getResolvableRepositories(data.projectId);
+    const resolvable: Array<ResolvableRepository> = keepAllowedCodeRepositories(
+      {
+        allowance: data.allowance,
+        repositories: await this.getResolvableRepositories(data.projectId),
+        getId: (repository: ResolvableRepository): string => {
+          return repository.id;
+        },
+      },
+    );
 
     if (resolvable.length === 0) {
       return null;

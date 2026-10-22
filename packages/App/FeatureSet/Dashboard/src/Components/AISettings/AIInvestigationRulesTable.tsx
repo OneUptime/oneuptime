@@ -1,5 +1,8 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import {
+  CustomElementProps,
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -23,6 +26,14 @@ import {
   getInvestigationRuleMoreFieldsSummary,
 } from "../ExternalMcpServer/ExternalMcpServerCopy";
 import RuleMcpServersFieldHint from "../ExternalMcpServer/RuleMcpServersFieldHint";
+import {
+  RULE_CODE_REPOSITORIES_FIELD_COPY,
+  getRuleCodeRepositoriesFoldedValue,
+} from "../Code/RuleCodeRepositoriesCopy";
+import {
+  RuleCodeRepositoriesFieldHint,
+  RuleCodeRepositoriesPicker,
+} from "../Code/RuleCodeRepositoriesField";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_INVESTIGATION_RULES_TABLE_ID,
@@ -72,9 +83,15 @@ export const AI_LANE_INVESTIGATION_RULE_TRIGGER: Record<
 
 /*
  * What most rules leave alone, folded under More fields on the Investigate
- * step: the MCP servers OneUptime AI may use while it investigates what the
- * rule matches (none picked: all of them, which the folded line says), and
- * the description. Built once, so the form folds it the same way each time.
+ * step: the MCP servers and the code repositories OneUptime AI may use while
+ * it investigates what the rule matches (none picked: all of them, which the
+ * folded line says), and the description. Built once, so the form folds it
+ * the same way each time.
+ *
+ * No Runner: an investigation reads code through the repository's GitHub
+ * App, from OneUptime itself, and asks the AI agents on the affected
+ * clusters and hosts what it needs to know there - nothing of it runs on a
+ * Runner, so a rule has none to pick.
  */
 const INVESTIGATION_RULE_MORE_FIELDS: FormFieldCollapsibleSection<AIInvestigationRule> =
   getAdvancedFormSection<AIInvestigationRule>({
@@ -430,6 +447,45 @@ const AIInvestigationRulesTable: FunctionComponent<ComponentProps> = (
           dataTestId: "ai-investigation-rule-mcp-servers-field",
           getFooterElement: (): ReactElement => {
             return <RuleMcpServersFieldHint />;
+          },
+        },
+        {
+          // The code repositories OneUptime AI may read: none picked is all.
+          field: { codeRepositories: true },
+          title: RULE_CODE_REPOSITORIES_FIELD_COPY.title,
+          description:
+            RULE_CODE_REPOSITORIES_FIELD_COPY.investigationDescription,
+          stepId: "investigate",
+          collapsibleSection: INVESTIGATION_RULE_MORE_FIELDS,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          dataTestId: "ai-investigation-rule-code-repositories-field",
+          getFoldedValue: (
+            values: FormValues<AIInvestigationRule>,
+          ): string | null => {
+            return getRuleCodeRepositoriesFoldedValue(values);
+          },
+          getCustomElement: (
+            values: FormValues<AIInvestigationRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <RuleCodeRepositoriesPicker
+                value={
+                  (values as { codeRepositories?: unknown }).codeRepositories
+                }
+                ariaLabelledby={elementProps.ariaLabelledby}
+                onChange={(repositoryIds: Array<string>): void => {
+                  elementProps.onChange?.(repositoryIds);
+                }}
+              />
+            );
+          },
+          getFooterElement: (): ReactElement => {
+            return <RuleCodeRepositoriesFieldHint />;
           },
         },
         {

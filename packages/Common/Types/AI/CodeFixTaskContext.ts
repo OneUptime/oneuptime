@@ -263,6 +263,16 @@ export interface CodeFixTaskContext {
    * pull request.
    */
   productionReview?: ProductionReviewTaskContext | undefined;
+  /*
+   * ImproveInstrumentation / FixFromIncident opened on their own: the code
+   * repositories the auto remediation rules that opened the run allow it to
+   * be made in (Types/CodeRepository/CodeRepositoryAllowance). Absent - on
+   * a run a person started, on a run opened with no rule or with a rule
+   * that names none, and on a run queued before rules named repositories -
+   * every connected repository. The run's repository is resolved among
+   * these only, when it is queued and again when it starts.
+   */
+  allowedCodeRepositoryIds?: Array<string> | undefined;
 }
 
 /*

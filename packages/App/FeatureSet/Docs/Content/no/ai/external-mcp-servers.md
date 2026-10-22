@@ -81,7 +81,7 @@ For at OneUptime AI skal slutte å bruke en server, slår du av **La OneUptime A
 
 ## Velg serverne en regel kan bruke
 
-Undersøkelsesregler og regler for automatisk utbedring kan hver for seg nevne MCP-serverne OneUptime AI kan bruke for det de samsvarer med. Feltet er **MCP-servere** under **Flere felt**. Til du velger noen, sier den sammenfoldede delen **OneUptime AI kan bruke alle MCP-serverne dine.**
+Undersøkelsesregler og regler for automatisk utbedring kan hver for seg nevne MCP-serverne OneUptime AI kan bruke for det de samsvarer med. Feltet er **MCP-servere** under **Flere felt**. Til du velger noen, kan OneUptime AI bruke alle sammen, og den sammenfoldede delen sier det.
 
 - **Ingen valgt** – alle prosjektets servere som er slått på.
 - **Noen valgt** – bare de. På en regel for automatisk utbedring som retter uten å spørre, er det å nevne serverne også det som lar OneUptime AI gjøre endringene deres uten å spørre.

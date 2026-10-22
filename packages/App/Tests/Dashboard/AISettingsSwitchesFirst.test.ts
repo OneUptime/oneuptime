@@ -3,6 +3,7 @@ import {
   AI_LANE_ADVANCED_CARDS,
   AI_LANE_ADVANCED_COLUMNS,
   AI_LANE_PAGE_COPY,
+  AI_LANE_RULES_COPY,
   AI_LANE_SWITCHES,
   AI_LANE_SWITCHES_TEST_ID,
   AI_LANE_ADVANCED_SECTION_TEST_ID,
@@ -164,20 +165,18 @@ const ENABLE_OR_DISABLE: RegExp = /\b(enable|disable)/i;
 
 const PULL_REQUEST: RegExp = /pull request/;
 
-const CODE_FIXES_COLUMN: RegExp = /CodeFixes$/;
+// The fix pull request switches' columns, before the rules held them.
+const PULL_REQUEST_SWITCH_COLUMN: RegExp =
+  /(CodeFixes|InstrumentationFixTasks)$/;
 
 /*
  * The switches a new project starts without: fixing new incidents and
  * alerts changes infrastructure, so a project turns it on itself - and the
- * pull requests under it are part of fixing, so they start off with it.
+ * pull requests it opens open only while it is on.
  */
 const OFF_FOR_NEW_PROJECTS: Array<string> = [
   "enableAutomaticIncidentRemediation",
   "enableAutomaticAlertRemediation",
-  "enableAutomaticIncidentCodeFixes",
-  "enableIncidentInstrumentationFixTasks",
-  "enableAutomaticAlertCodeFixes",
-  "enableAlertInstrumentationFixTasks",
 ];
 
 /*
@@ -275,9 +274,15 @@ describe("every AI behaviour is a switch", () => {
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
       const fix: ProjectAiSwitchDefinition<string> = AI_LANE_SWITCHES[lane][1]!;
 
-      // What fixes: the AI agent where it happens, or one of the runbooks.
+      /*
+       * What fixes: the AI agent where it happens, one of the runbooks, or
+       * a pull request - one of the ways it fixes, not a switch of its own.
+       */
       expect(fix.description).toContain("through the AI agent");
-      expect(fix.description).toContain("or with one of your runbooks");
+      expect(fix.description).toContain(
+        "with one of your runbooks, or with a pull request.",
+      );
+      expect(fix.children).toBeUndefined();
       /*
        * Who decides whether a fix waits, in one sentence: that agent's
        * settings, or a rule (one that fixes without asking and names a
@@ -369,18 +374,9 @@ describe("every AI behaviour is a switch", () => {
       ),
     ).toEqual(["Investigate new alerts", "Fix new alerts automatically"]);
 
-    // The pull requests, under fixing on each page.
+    // No switch under fixing: its pull requests are each rule's.
     for (const lane of [AiLane.Incident, AiLane.Alert]) {
-      expect(
-        (AI_LANE_SWITCHES[lane][1]!.children || []).map(
-          (definition: ProjectAiSwitchDefinition<string>): string => {
-            return definition.title;
-          },
-        ),
-      ).toEqual([
-        "Open a fix pull request when an investigation finds a code change",
-        "Open a pull request that adds missing telemetry",
-      ]);
+      expect(AI_LANE_SWITCHES[lane][1]!.children || []).toEqual([]);
     }
     expect(
       AI_INSIGHTS_SWITCHES.map(
@@ -425,26 +421,69 @@ describe("every AI behaviour is a switch", () => {
     }
   });
 
-  test("the fix pull request switches say what they need, and that nothing merges by itself", () => {
-    for (const definition of ALL_SWITCHES) {
-      if (PULL_REQUEST.test(definition.title)) {
-        expect([definition.title, definition.note]).toEqual([
-          definition.title,
-          expect.stringContaining("GitHub App"),
-        ]);
+  test("the one pull request switch left, AI Insights', says what it needs, and that nothing merges by itself", () => {
+    const pullRequestSwitches: Array<ProjectAiSwitchDefinition<string>> =
+      ALL_SWITCHES.filter(
+        (definition: ProjectAiSwitchDefinition<string>): boolean => {
+          return PULL_REQUEST.test(definition.title);
+        },
+      );
+
+    expect(
+      pullRequestSwitches.map(
+        (definition: ProjectAiSwitchDefinition<string>): string => {
+          return definition.column;
+        },
+      ),
+    ).toEqual(["enableInsightFixTasks"]);
+
+    for (const definition of pullRequestSwitches) {
+      expect([definition.title, definition.note]).toEqual([
+        definition.title,
+        "Needs a repository connected through the GitHub App.",
+      ]);
+      expect(definition.description).toContain(
+        "Nothing is merged automatically.",
+      );
+    }
+  });
+
+  /*
+   * "Both of these toggles should be inside of Remediation Rule, inside of
+   * More, and they should be checked by default ... You can remove these
+   * toggles from the main card" - the maintainer. The incident and alert
+   * pages draw no pull request switch; the rules table under More settings
+   * says that, with no rule, fixing opens them.
+   */
+  test("fixing's pull requests are no switches of the incident and alert pages: the rules hold them", () => {
+    for (const lane of [AiLane.Incident, AiLane.Alert]) {
+      for (const definition of getSwitchesInDrawnOrder(
+        AI_LANE_SWITCHES[lane],
+      )) {
+        expect([
+          definition.column,
+          PULL_REQUEST_SWITCH_COLUMN.test(definition.column),
+        ]).toEqual([definition.column, false]);
+        expect([definition.title, PULL_REQUEST.test(definition.title)]).toEqual(
+          [definition.title, false],
+        );
       }
+
+      expect(AI_LANE_RULES_COPY[lane].remediationRulesDescription).toContain(
+        "while fixing is on, pull requests included.",
+      );
     }
 
-    for (const lane of [AiLane.Incident, AiLane.Alert]) {
-      const codeFix: ProjectAiSwitchDefinition<string> | undefined =
-        getSwitchesInDrawnOrder(AI_LANE_SWITCHES[lane]).find(
-          (definition: ProjectAiSwitchDefinition<string>): boolean => {
-            return CODE_FIXES_COLUMN.test(definition.column);
-          },
-        );
+    // A project's switch columns are gone from the model, too.
+    const project: Project = new Project();
 
-      expect(codeFix?.description).toContain("Nothing is merged.");
-      expect(codeFix?.note).toContain("a Runner that can fix code");
+    for (const retired of [
+      "enableAutomaticIncidentCodeFixes",
+      "enableIncidentInstrumentationFixTasks",
+      "enableAutomaticAlertCodeFixes",
+      "enableAlertInstrumentationFixTasks",
+    ]) {
+      expect([retired, project.hasColumn(retired)]).toEqual([retired, false]);
     }
   });
 
