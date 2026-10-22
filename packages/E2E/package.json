@@ -67,6 +67,7 @@
     "test-runbooks-menu-ui": "playwright test --config playwright.runbooks-menu-ui.config.ts",
     "test-runbook-steps-ui": "playwright test --config playwright.runbook-steps-ui.config.ts",
     "test-postmortem-rules-ui": "playwright test --config playwright.postmortem-rules-ui.config.ts",
+    "test-postmortems-ui": "playwright test --config playwright.postmortems-ui.config.ts",
     "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts",
     "test-maintenance-calendar-ui": "playwright test --config playwright.maintenance-calendar-ui.config.ts",
     "test-detail-cards-ui": "playwright test --config playwright.detail-cards-ui.config.ts",

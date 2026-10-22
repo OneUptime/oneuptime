@@ -3,7 +3,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -180,11 +183,16 @@ const PostmortemStatusSummaryCards: FunctionComponent<ComponentProps> = (
               isSelected
                 ? translator.translateTemplate(
                     "{{status}}: {{count}}. Filtering the postmortems below - activate to remove this filter.",
-                    { status: tile.name, count: count },
+                    /*
+                     * Named as the tile draws it: the four a project starts
+                     * with in the reader's language, a project's own as
+                     * written.
+                     */
+                    { status: translatableTerm(tile.name), count: count },
                   )
                 : translator.translateTemplate(
                     "{{status}}: {{count}}. Activate to show only these postmortems below.",
-                    { status: tile.name, count: count },
+                    { status: translatableTerm(tile.name), count: count },
                   )
             }
             value={

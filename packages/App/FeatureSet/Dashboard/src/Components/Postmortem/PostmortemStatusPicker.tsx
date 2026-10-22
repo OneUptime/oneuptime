@@ -160,9 +160,10 @@ const PostmortemStatusPicker: FunctionComponent<ComponentProps> = (
               aria-label={translator.translateTemplate(
                 "Postmortem status: {{status}}. Change it.",
                 {
-                  status: current
-                    ? current.name
-                    : translatableTerm(POSTMORTEM_STATUS_UNKNOWN),
+                  // Named as the pill draws it, in the reader's language.
+                  status: translatableTerm(
+                    current ? current.name : POSTMORTEM_STATUS_UNKNOWN,
+                  ),
                 },
               )}
               aria-busy={isSaving}
