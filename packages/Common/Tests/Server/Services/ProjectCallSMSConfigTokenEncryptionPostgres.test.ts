@@ -508,7 +508,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
           statusPages[0]!.callSmsConfig,
         );
 
-      expect(twilioConfig?.primaryPhoneNumber.toString()).toBe("+6561234567");
+      expect(twilioConfig?.primaryPhoneNumber?.toString()).toBe("+6561234567");
       expect(
         (twilioConfig?.smsPhoneNumbers || []).map((phone: Phone): string => {
           return phone.toString();
