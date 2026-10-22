@@ -20,6 +20,10 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunType from "../../../Types/AI/AIRunType";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import {
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../Types/CodeRepository/CodeRepositoryAllowance";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -265,5 +269,80 @@ describe("FixFromIncident task-details investigation snapshot", () => {
 
     expect(getForIncident).toHaveBeenCalledWith(incidentId);
     expect(jsonResponse()?.["analysisMarkdown"]).toBe(latestAnalysis);
+  });
+
+  /*
+   * A pull request the auto remediation rules opened is opened in one of the
+   * repositories they allow (taskContext.allowedCodeRepositoryIds, stored
+   * when it was queued): when the run starts, its repository is resolved
+   * among those alone - every connected one when the rules named none.
+   */
+  describe("the repository it starts in", () => {
+    const CHECKOUT_REPO: string = "c1111111-1111-4111-8111-111111111111";
+
+    async function startWith(
+      taskContext: CodeFixTaskContext,
+    ): Promise<SpyInstance<
+      typeof CodeRepositoryService.resolveRepositoryForException
+    >> {
+      const incidentId: ObjectID = ObjectID.generate();
+      jest
+        .spyOn(AIRunService, "findOneById")
+        .mockResolvedValue(fixRun({ incidentId, taskContext }));
+      jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+        title: "Checkout failures",
+        monitors: [{ name: "checkout-api" }],
+      } as unknown as Incident);
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = jest
+        .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+        .mockResolvedValue(null);
+
+      await callRoute();
+
+      return resolve;
+    }
+
+    test("among the repositories the rules allowed when it was queued", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startWith({
+        ...snapshot(ObjectID.generate()),
+        allowedCodeRepositoryIds: [CHECKOUT_REPO],
+      });
+
+      expect(resolve).toHaveBeenCalledTimes(1);
+      expect(resolve.mock.calls[0]![0]).toEqual({
+        projectId,
+        stackTrace: null,
+        serviceName: "checkout-api",
+        allowance: {
+          isEveryRepository: false,
+          repositoryIds: [CHECKOUT_REPO],
+        },
+      });
+    });
+
+    test("a run that names none it may use - no rule narrowed it - may start in any connected repository", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startWith(snapshot(ObjectID.generate()));
+
+      expect(resolve.mock.calls[0]![0].allowance).toEqual(
+        EVERY_CODE_REPOSITORY,
+      );
+    });
+
+    test("an empty list allows none: it is never read as every repository", async () => {
+      const resolve: SpyInstance<
+        typeof CodeRepositoryService.resolveRepositoryForException
+      > = await startWith({
+        ...snapshot(ObjectID.generate()),
+        allowedCodeRepositoryIds: [],
+      });
+
+      expect(resolve.mock.calls[0]![0].allowance).toEqual(NO_CODE_REPOSITORY);
+    });
   });
 });

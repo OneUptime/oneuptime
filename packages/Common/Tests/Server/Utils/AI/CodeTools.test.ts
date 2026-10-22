@@ -14,9 +14,15 @@ import GitHubUtil from "../../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepository";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import ObjectID from "../../../../Types/ObjectID";
 import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * The code tools are the bridge from a telemetry signal to the source that
@@ -638,5 +644,209 @@ describe("find_code_for_exception", () => {
         ctx,
       ),
     ).rejects.toThrow(/No exception found/);
+  });
+});
+
+/*
+ * An investigation (or a fix) reads only the code repositories the rules
+ * that matched its incident name (ToolContext.codeRepositoryAllowance): "if
+ * no code repo is selected - it should be able to read and investigate all
+ * the repos that are connected" - the maintainer. Every code tool finds its
+ * repositories through findReadableRepositories, so each one is held to it;
+ * a person's own question (no allowance) reads every repository they may.
+ */
+describe("a run held to the code repositories its rules name", () => {
+  const CHECKOUT_ID: ObjectID = new ObjectID(
+    "c1111111-1111-4111-8111-111111111111",
+  );
+  const BILLING_ID: ObjectID = new ObjectID(
+    "c2222222-2222-4222-8222-222222222222",
+  );
+
+  function heldTo(allowance: CodeRepositoryAllowance): ToolContext {
+    return { ...ctx, codeRepositoryAllowance: allowance };
+  }
+
+  function onlyCheckout(): CodeRepositoryAllowance {
+    return {
+      isEveryRepository: false,
+      repositoryIds: [CHECKOUT_ID.toString()],
+    };
+  }
+
+  function named(id: ObjectID, name: string): CodeRepositoryModel {
+    const repository: CodeRepositoryModel = buildRepository({ id, name });
+    repository.repositoryName = name;
+    return repository;
+  }
+
+  function twoRepositories(): Array<CodeRepositoryModel> {
+    return [named(CHECKOUT_ID, "checkout"), named(BILLING_ID, "billing")];
+  }
+
+  /*
+   * The project's repositories as the database reads them: a read for one
+   * repository (findReadableRepositories names its id) finds that one alone.
+   */
+  function mockStoredRepositories(
+    repositories: Array<CodeRepositoryModel>,
+  ): void {
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (args: {
+        query: { _id?: unknown };
+      }): Promise<Array<CodeRepositoryModel>> => {
+        const id: string | undefined =
+          typeof args.query._id === "string" ? args.query._id : undefined;
+
+        return repositories.filter(
+          (repository: CodeRepositoryModel): boolean => {
+            return !id || repository.id?.toString() === id;
+          },
+        );
+      }) as never);
+  }
+
+  test("list_code_repositories lists only the ones the rules name", async () => {
+    mockRepositories(twoRepositories());
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      heldTo(onlyCheckout()),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(CHECKOUT_ID.toString());
+    expect(result.dataForLlm).not.toContain(BILLING_ID.toString());
+    expect(result.dataForLlm).not.toContain("billing");
+  });
+
+  test("a rule's ids match whatever their case", async () => {
+    mockRepositories(twoRepositories());
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      heldTo({
+        isEveryRepository: false,
+        repositoryIds: [BILLING_ID.toString().toLowerCase()],
+      }),
+    );
+
+    expect(result.rowCount).toBe(1);
+    expect(result.dataForLlm).toContain(BILLING_ID.toString());
+  });
+
+  test("every repository, and no allowance at all, lists them all", async () => {
+    for (const context of [heldTo(EVERY_CODE_REPOSITORY), ctx]) {
+      mockRepositories(twoRepositories());
+
+      const result: ToolExecutionResult =
+        await ListCodeRepositoriesTool.execute({}, context);
+
+      expect(result.rowCount).toBe(2);
+      jest.restoreAllMocks();
+      jest
+        .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+        .mockResolvedValue("12345");
+    }
+  });
+
+  test("none allowed reads as no repository, never as all of them", async () => {
+    mockRepositories(twoRepositories());
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      heldTo(NO_CODE_REPOSITORY),
+    );
+
+    expect(result.rowCount).toBe(0);
+    expect(result.dataForLlm).toContain(
+      "no GitHub-connected code repositories",
+    );
+  });
+
+  test("read_code_file reads the one repository allowed without asking which, and refuses another by id", async () => {
+    mockStoredRepositories(twoRepositories());
+    mockFileContent("export const charge = 1;");
+
+    const result: ToolExecutionResult = await ReadCodeFileTool.execute(
+      { filePath: "src/billing/charge.ts" },
+      heldTo(onlyCheckout()),
+    );
+
+    expect(result.dataForLlm).toContain("export const charge = 1;");
+
+    await expect(
+      ReadCodeFileTool.execute(
+        {
+          filePath: "src/billing/charge.ts",
+          repositoryId: BILLING_ID.toString(),
+        },
+        heldTo(onlyCheckout()),
+      ),
+    ).rejects.toThrow(
+      `No readable repository with id ${BILLING_ID.toString()} in this project.`,
+    );
+  });
+
+  test("search_code searches only the repositories allowed", async () => {
+    mockRepositories(twoRepositories());
+    const tree: SpyInstance<typeof GitHubUtil.getRepositoryTreePaths> = jest
+      .spyOn(GitHubUtil, "getRepositoryTreePaths")
+      .mockResolvedValue(["src/billing/charge.ts"]);
+
+    await SearchCodeTool.execute(
+      { query: "charge" },
+      heldTo({
+        isEveryRepository: false,
+        repositoryIds: [BILLING_ID.toString()],
+      }),
+    );
+
+    expect(
+      tree.mock.calls.map(
+        (call: Parameters<typeof GitHubUtil.getRepositoryTreePaths>): string => {
+          return call[0].repositoryName;
+        },
+      ),
+    ).toEqual(["billing"]);
+  });
+
+  test("find_code_for_exception resolves among the allowed repositories only, and never names another", async () => {
+    const exception: TelemetryException = new TelemetryException();
+    exception._id = ObjectID.generate().toString();
+    exception.message = "Cannot read property 'id' of undefined";
+    exception.exceptionType = "TypeError";
+    exception.occuranceCount = 3;
+    exception.stackTrace =
+      "    at chargeCustomer (/app/src/billing/charge.ts:42:15)";
+    jest
+      .spyOn(TelemetryExceptionService, "findOneById")
+      .mockResolvedValue(exception as never);
+    mockStoredRepositories(twoRepositories());
+
+    const resolve: SpyInstance<
+      typeof CodeRepositoryService.resolveRepositoryForException
+    > = jest
+      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+      .mockResolvedValue({
+        codeRepositoryId: BILLING_ID.toString(),
+        organizationName: "acme",
+        repositoryName: "billing",
+        servicePathInRepository: null,
+        method: "stack-trace",
+        evidence: "Matched src/billing/charge.ts in acme/billing",
+      });
+
+    const result: ToolExecutionResult = await FindCodeForExceptionTool.execute(
+      { exceptionId: ObjectID.generate().toString() },
+      heldTo(onlyCheckout()),
+    );
+
+    // The resolver is told which repositories it may pick from.
+    expect(resolve.mock.calls[0]![0].allowance).toEqual(onlyCheckout());
+    // A repository outside them is never disclosed, whatever resolved.
+    expect(result.dataForLlm).toContain("resolvedRepository: none");
+    expect(result.dataForLlm).not.toContain(BILLING_ID.toString());
   });
 });

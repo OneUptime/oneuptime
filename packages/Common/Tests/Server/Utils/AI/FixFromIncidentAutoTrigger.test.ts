@@ -274,7 +274,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
       });
 
     expect(decision.enqueue).toBe(false);
-    expect(decision.reason).toMatch(/could not be read/);
+    expect(decision.reason).toContain("could not be read");
   });
 
   test("rules set up and none matching the incident: it is not fixed, so no pull request", () => {

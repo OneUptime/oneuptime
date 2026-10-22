@@ -208,7 +208,7 @@ describe("InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask", () => {
         hasConnectedRepository: true,
         existingRun: null,
       }).reason,
-    ).toMatch(/could not be read/);
+    ).toContain("could not be read");
     expect(
       InstrumentationTaskTrigger.shouldEnqueueInstrumentationTask({
         project: fakeProject(),

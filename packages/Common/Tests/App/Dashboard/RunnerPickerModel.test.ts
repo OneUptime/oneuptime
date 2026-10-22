@@ -988,13 +988,11 @@ describe("an auto remediation rule's Runner", () => {
       for (const option of model.options) {
         expect([
           option.kind,
-          option.value,
+          option.kind === RunnerPickerOptionKind.Global ||
+            option.kind === RunnerPickerOptionKind.GlobalUnavailable,
+          option.value === "",
           option.name.toLowerCase().includes("ai agent"),
-        ]).toEqual([
-          expect.not.stringMatching(/^global/),
-          expect.not.stringMatching(/^$/),
-          false,
-        ]);
+        ]).toEqual([option.kind, false, false, false]);
       }
     }
 
