@@ -124,6 +124,8 @@ const SETTINGS_PAGES: Record<ArchivableValueType, string> = {
   [ArchivableValueType.Label]: "Pages/Settings/Labels.tsx",
   [ArchivableValueType.IncidentRole]:
     "Pages/Incidents/Settings/IncidentRoles.tsx",
+  [ArchivableValueType.IncidentPostmortemStatus]:
+    "Pages/Incidents/Settings/IncidentPostmortemStatuses.tsx",
 };
 
 const SOURCE_FILE: RegExp = /\.(ts|tsx)$/;
