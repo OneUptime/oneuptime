@@ -4,6 +4,7 @@ Koppel OneUptime aan Microsoft Teams om incidenten, waarschuwingen, episodes, ge
 
 :::cards
 - [Microsoft Teams koppelen](#microsoft-teams-koppelen): Beheerderstoestemming, je aanmelding en de app in elk team.
+- [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen): Stuur in één keer een bericht aan elk lid dat zijn account nog niet heeft gekoppeld.
 - [Meldingsregels](#meldingsregels): Bepaal welke gebeurtenissen waar worden geplaatst, en welke een eigen kanaal krijgen.
 - [Praten met de OneUptime-bot](#praten-met-de-oneuptime-bot): Commando's, vragen en formulieren in een chat met de bot.
 - [Tags voor bereikbaarheid](#tags-voor-bereikbaarheid): Houd de tag van een team gelijk aan wie er dienst heeft, en roep die op.
@@ -59,7 +60,7 @@ Op OneUptime Cloud opent **Teams Store openen** de app in de Microsoft Teams Sto
 
 ### Alle anderen koppelen
 
-Elke persoon koppelt zijn eigen Microsoft Teams-account onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Microsoft Teams is gekoppeld.
+Elke persoon koppelt zijn eigen Microsoft Teams-account onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**, om als zichzelf op incidenten te handelen en directe berichten te krijgen. Die sectie verschijnt zodra het project aan Microsoft Teams is gekoppeld. Zie [Iedereen vragen hun account te koppelen](#iedereen-vragen-hun-account-te-koppelen) om een heel team in één keer erbij te halen.
 
 ### Een meldingsregel toevoegen
 
@@ -68,6 +69,14 @@ Ga naar **Incidenten** > **Werkruimte** > **Microsoft Teams**. De sectie **Werkr
 
 > [!NOTE]
 > OneUptime voor jezelf installeren, of aan een chat toevoegen, is een andere installatie en laat het niet in de kanalen van een team plaatsen. **Privékanalen** hebben de app nodig in het kanaal zelf: open het kanaal > "..." > **Manage channel** > **Apps** > **Add an app**. **Gedeelde kanalen** kunnen geen meldingen ontvangen: Microsoft Teams ondersteunt geen bots in gedeelde kanalen.
+
+## Iedereen vragen hun account te koppelen
+
+Niemand kan het Microsoft Teams-account van iemand anders koppelen, ook een beheerder niet: ieder meldt zich aan met zijn eigen account. Om een heel team erbij te halen, vraagt een **Project Owner** of **Project Admin** iedereen tegelijk op **Projectinstellingen** > **Werkruimte** > **Microsoft Teams**. De kaart **Members' Microsoft Teams accounts** zegt hoeveel leden hun account al hebben gekoppeld. **Ask everyone to connect** laat de OneUptime-bot een bericht sturen aan elk lid dat nog niet gekoppeld is, met een knop **Connect Microsoft Teams account** die het account met één klik koppelt.
+
+- **Wie een bericht krijgt.** Elk lid van het project dat zijn Microsoft Teams-account niet heeft gekoppeld, in een team zit waaraan de OneUptime-app is toegevoegd en daar via zijn e-mailadres of user principal name (UPN) wordt gevonden. Wie in de afgelopen 24 uur al is gevraagd, wordt niet opnieuw gevraagd, dus opnieuw vragen de volgende dag is alleen een herinnering voor wie zijn account nog steeds niet heeft gekoppeld.
+- **Wat de kaart zegt.** Hoe ver het versturen is terwijl de berichten de deur uit gaan, en daarna wie het vroeg en hoeveel leden een bericht kregen. Leden die OneUptime niet kon vinden, staan bij naam op de kaart: voeg de app toe aan hun team, of laat ze hun account zelf koppelen onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams**.
+- **Wat de knop koppelt.** Het Microsoft Teams-account van wie erop drukt en zich aanmeldt, aan diens eigen OneUptime-account. Een bericht dat aan iemand anders is doorgestuurd, koppelt niets aan het lid naar wie het was gestuurd.
 
 ## Meldingsregels
 

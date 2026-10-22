@@ -664,7 +664,7 @@ describe("REGRESSION: each duplicate in the screenshots, one by one", () => {
       expect.stringContaining("NB User 3"),
     ]);
     expect(notes[0]!.text).toContain(
-      "NB User 3*\u200b could not be added to this channel: they have not connected their Slack account to OneUptime yet. Add them here yourself, or send them this link to connect in one click:",
+      "NB User 3*\u200b could not be added to this channel: they have not connected their Slack account to OneUptime yet, and it could not be found by their email address. Add them here yourself, or send them this link to connect in one click:",
     );
 
     /*
