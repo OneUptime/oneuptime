@@ -494,3 +494,94 @@ describe("copy that tells people where repositories are connected", () => {
     expect(guide).toContain("**Products → Code**");
   });
 });
+
+/*
+ * A repository's pull requests, reviewed against production, have a page of
+ * their own under the repository - its menu between Tasks and Settings, its
+ * trail under the repository - and the Workers review the pull requests
+ * that are due every minute, on the server.
+ */
+describe("a repository's Production Reviews", () => {
+  test("lives at …/code/repositories/:id/production-reviews, under Code's one route", () => {
+    const routes: string = dense(readSource("Utils", "RouteMap.ts"));
+    const pageMap: string = readSource("Utils", "PageMap.ts");
+
+    expect(pageMap).toContain(
+      'CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS = "CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS",',
+    );
+    expect(routes).toContain(
+      "[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]:`repositories/${RouteParams.ModelID}/production-reviews`,",
+    );
+    expect(routes).toContain(
+      "[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]:newRoute(`/dashboard/${RouteParams.ProjectID}/code/${CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]}`,),",
+    );
+  });
+
+  test("Code's route group mounts the page inside a repository's layout", () => {
+    const codeRoutes: string = dense(readSource("Routes", "CodeRoutes.tsx"));
+
+    expect(codeRoutes).toContain(
+      'importCodeRepositoryProductionReviewsfrom"../Pages/Code/Repository/ProductionReviews";',
+    );
+    expect(codeRoutes).toContain(
+      "<PageRoutepath={RouteUtil.getLastPathForKey(PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS,)}element={<CodeRepositoryProductionReviews{...props}pageRoute={RouteMap[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]asRoute}/>}/>",
+    );
+    // Inside the repository's layout: its name, menu and trail.
+    expect(codeRoutes.indexOf("<CodeRepositoryLayout")).toBeLessThan(
+      codeRoutes.indexOf("<CodeRepositoryProductionReviews"),
+    );
+  });
+
+  test("the repository's menu lists it between Tasks and Settings", () => {
+    const menu: string = dense(
+      readSource("Pages", "Code", "Repository", "SideMenu.tsx"),
+    );
+    const tasks: number = menu.indexOf('title:"Tasks"');
+    const reviews: number = menu.indexOf('title:"ProductionReviews"');
+    const settings: number = menu.indexOf('title:"Settings"');
+
+    expect(tasks).toBeGreaterThan(-1);
+    expect(reviews).toBeGreaterThan(tasks);
+    expect(settings).toBeGreaterThan(reviews);
+    expect(menu).toContain(
+      "RouteMap[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]asRoute",
+    );
+  });
+
+  test("its trail is Project, Code, Repositories, the repository, Production Reviews", () => {
+    const crumbs: string = dense(
+      readSource("Utils", "Breadcrumbs", "CodeBreadcrumbs.ts"),
+    );
+
+    expect(crumbs).toContain(
+      'BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS,["Project","Code","Repositories","Repository","ProductionReviews"],)',
+    );
+  });
+
+  test("the Workers review the pull requests that are due, every minute", () => {
+    const workers: string = fs.readFileSync(
+      path.join(APP_ROOT, "FeatureSet", "Workers", "Index.ts"),
+      "utf8",
+    );
+    const job: string = dense(
+      fs.readFileSync(
+        path.join(
+          APP_ROOT,
+          "FeatureSet",
+          "Workers",
+          "Jobs",
+          "AIAgent",
+          "ReviewPullRequestsInProduction.ts",
+        ),
+        "utf8",
+      ),
+    );
+
+    expect(workers).toContain(
+      'import "./Jobs/AIAgent/ReviewPullRequestsInProduction";',
+    );
+    expect(job).toContain('"AIAgent:ReviewPullRequestsInProduction"');
+    expect(job).toContain("schedule:EVERY_MINUTE");
+    expect(job).toContain("ProductionReviewRunner.runDueReviews()");
+  });
+});

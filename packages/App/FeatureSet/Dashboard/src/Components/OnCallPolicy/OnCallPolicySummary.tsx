@@ -23,6 +23,8 @@ import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallD
 import OnCallDutyPolicyEscalationRuleSchedule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleSchedule";
 import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleTeam";
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
+import AcknowledgementTimeoutPolicySentence from "./AcknowledgementTimeout/AcknowledgementTimeoutPolicySentence";
+import { getAcknowledgementTimeoutMinutes } from "./AcknowledgementTimeout/AcknowledgementTimeout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
@@ -36,6 +38,12 @@ interface PolicyOverview {
   timeToFinalLevelMinutes: number;
   repeatEnabled: boolean;
   repeatCount: number;
+  /*
+   * The acknowledgement timeout in minutes while the policy pages again
+   * when what it paged about is acknowledged but not resolved; null while
+   * it does not. The narrative ends by saying so.
+   */
+  acknowledgementTimeoutInMinutes: number | null;
   scheduleNames: Array<string>;
   teamNames: Array<string>;
   userNames: Array<string>;
@@ -181,6 +189,7 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           select: {
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
+            acknowledgementTimeoutInMinutes: true,
           },
         }),
       ]);
@@ -294,6 +303,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         timeToFinalLevelMinutes,
         repeatEnabled: Boolean(policy?.repeatPolicyIfNoOneAcknowledges),
         repeatCount: policy?.repeatPolicyIfNoOneAcknowledgesNoOfTimes || 0,
+        acknowledgementTimeoutInMinutes: getAcknowledgementTimeoutMinutes({
+          acknowledgementTimeoutInMinutes:
+            policy?.acknowledgementTimeoutInMinutes,
+        }),
         scheduleNames: Object.values(scheduleNamesById),
         teamNames: Object.values(teamNamesById),
         userNames: Object.values(userNamesById),
@@ -532,6 +545,19 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
             translator.translateText(
               "If it is still unacknowledged after the final level, escalation stops.",
             )
+          )}
+          {overview.acknowledgementTimeoutInMinutes ? (
+            <>
+              {" "}
+              <AcknowledgementTimeoutPolicySentence
+                duration={formatDuration(
+                  overview.acknowledgementTimeoutInMinutes,
+                  translator,
+                )}
+              />
+            </>
+          ) : (
+            <></>
           )}
         </p>
 

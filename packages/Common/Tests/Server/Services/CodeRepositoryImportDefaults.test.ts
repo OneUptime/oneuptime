@@ -18,6 +18,9 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  *   - "Respond to GitHub Commands" on - people with write access can mention
  *     the app straight away;
+ *   - "Review Pull Requests Against Production" on - a pull request from
+ *     someone with write access is reviewed against what production shows
+ *     of the code it changes (on a public repository, as a link only);
  *   - the project's default Runner when it has one - a Runner of its own
  *     builds and tests a change before the pull request opens - and none
  *     otherwise, so a global Runner takes the work;
@@ -109,6 +112,9 @@ describe("a repository the GitHub App imports starts with what most teams want",
 
     for (const repository of [checkout!, legacy!]) {
       expect(repository.isGitHubCommandsEnabled).toBe(true);
+      expect(repository.isProductionReviewEnabled).toBe(true);
+      // What its pull requests show is left to the repository's visibility.
+      expect(repository.productionReviewPullRequestContent).toBeUndefined();
       expect(repository.projectId?.toString()).toBe(projectId.toString());
       expect(repository.repositoryHostedAt).toBe(CodeRepositoryType.GitHub);
       expect(repository.gitHubAppInstallationId).toBe(INSTALLATION_ID);
@@ -168,6 +174,7 @@ describe("a repository the GitHub App imports starts with what most teams want",
 
     expect(created()[0]!.runnerId).toBeUndefined();
     expect(created()[0]!.isGitHubCommandsEnabled).toBe(true);
+    expect(created()[0]!.isProductionReviewEnabled).toBe(true);
   });
 
   test("nothing to import: the project's default Runner is not even read", async () => {
@@ -237,6 +244,7 @@ describe("getNewRepositoryDefaults", () => {
       );
 
     expect(defaults.isGitHubCommandsEnabled).toBe(true);
+    expect(defaults.isProductionReviewEnabled).toBe(true);
     expect(defaults.runnerId?.toString()).toBe(runnerId);
   });
 

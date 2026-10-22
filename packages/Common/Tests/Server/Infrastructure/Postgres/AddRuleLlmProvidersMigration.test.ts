@@ -1,6 +1,6 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddRuleLlmProviders1805920000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805920000000-AddRuleLlmProviders";
-import { AddRuleLlmProviderIndexesAndKeys1805930000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805930000000-AddRuleLlmProviderIndexesAndKeys";
+import { AddRuleLlmProviders1805980000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805980000000-AddRuleLlmProviders";
+import { AddRuleLlmProviderIndexesAndKeys1805990000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805990000000-AddRuleLlmProviderIndexesAndKeys";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import fs from "fs";
@@ -44,8 +44,8 @@ const FOREIGN_KEYS: Array<string> = [
 type MigrationClass = new () => MigrationInterface;
 
 const MIGRATIONS: Array<MigrationClass> = [
-  AddRuleLlmProviders1805920000000,
-  AddRuleLlmProviderIndexesAndKeys1805930000000,
+  AddRuleLlmProviders1805980000000,
+  AddRuleLlmProviderIndexesAndKeys1805990000000,
 ];
 
 async function record(
@@ -92,18 +92,18 @@ afterEach(() => {
 
 describe("the AI rules' LLM provider migrations", () => {
   test("name themselves after their timestamps", () => {
-    expect(new AddRuleLlmProviders1805920000000().name).toBe(
-      "AddRuleLlmProviders1805920000000",
+    expect(new AddRuleLlmProviders1805980000000().name).toBe(
+      "AddRuleLlmProviders1805980000000",
     );
-    expect(new AddRuleLlmProviderIndexesAndKeys1805930000000().name).toBe(
-      "AddRuleLlmProviderIndexesAndKeys1805930000000",
+    expect(new AddRuleLlmProviderIndexesAndKeys1805990000000().name).toBe(
+      "AddRuleLlmProviderIndexesAndKeys1805990000000",
     );
   });
 
   test("are registered once each, after every migration before them, the keys right after the columns", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
-    const at: number = registered.indexOf(AddRuleLlmProviders1805920000000);
+    const at: number = registered.indexOf(AddRuleLlmProviders1805980000000);
 
     for (const migration of MIGRATIONS) {
       expect(
@@ -114,15 +114,15 @@ describe("the AI rules' LLM provider migrations", () => {
     }
 
     expect(registered[at + 1]).toBe(
-      AddRuleLlmProviderIndexesAndKeys1805930000000,
+      AddRuleLlmProviderIndexesAndKeys1805990000000,
     );
     expect(
-      timestampOf(AddRuleLlmProviderIndexesAndKeys1805930000000),
-    ).toBeGreaterThan(timestampOf(AddRuleLlmProviders1805920000000));
+      timestampOf(AddRuleLlmProviderIndexesAndKeys1805990000000),
+    ).toBeGreaterThan(timestampOf(AddRuleLlmProviders1805980000000));
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddRuleLlmProviders1805920000000),
+        timestampOf(AddRuleLlmProviders1805980000000),
       );
     }
   });
@@ -145,7 +145,7 @@ describe("the AI rules' LLM provider migrations", () => {
   });
 
   test("add the pick to every kind of rule, and to the run - nullable, with nothing to backfill", async () => {
-    expect(await record(new AddRuleLlmProviders1805920000000(), "up")).toEqual([
+    expect(await record(new AddRuleLlmProviders1805980000000(), "up")).toEqual([
       `ALTER TABLE "AIRun" ADD "llmProviderId" uuid`,
       `ALTER TABLE "AutoRemediationRule" ADD "llmProviderId" uuid`,
       `ALTER TABLE "AIInvestigationRule" ADD "llmProviderId" uuid`,
@@ -154,8 +154,8 @@ describe("the AI rules' LLM provider migrations", () => {
   });
 
   test("build each rule's index and key online, outside a transaction", async () => {
-    const migration: AddRuleLlmProviderIndexesAndKeys1805930000000 =
-      new AddRuleLlmProviderIndexesAndKeys1805930000000();
+    const migration: AddRuleLlmProviderIndexesAndKeys1805990000000 =
+      new AddRuleLlmProviderIndexesAndKeys1805990000000();
 
     expect(migration.transaction).toBe(false);
     expect(await record(migration, "up")).toEqual([
@@ -184,7 +184,7 @@ describe("the AI rules' LLM provider migrations", () => {
 
   test("a run's pick has no key and no index: it outlives the provider", async () => {
     const steps: Array<string> = await record(
-      new AddRuleLlmProviderIndexesAndKeys1805930000000(),
+      new AddRuleLlmProviderIndexesAndKeys1805990000000(),
       "up",
     );
 
@@ -195,7 +195,7 @@ describe("the AI rules' LLM provider migrations", () => {
 
   test("down takes the keys and indexes away, then the columns, the run's last", async () => {
     expect(
-      await record(new AddRuleLlmProviderIndexesAndKeys1805930000000(), "down"),
+      await record(new AddRuleLlmProviderIndexesAndKeys1805990000000(), "down"),
     ).toEqual([
       `ALTER TABLE "AIPostmortemRule" DROP CONSTRAINT "FK_57fa7734d3e32175d6100fb8d00"`,
       `ALTER TABLE "AIInvestigationRule" DROP CONSTRAINT "FK_42204354d038fc00dc63646b72b"`,
@@ -206,7 +206,7 @@ describe("the AI rules' LLM provider migrations", () => {
     ]);
 
     expect(
-      await record(new AddRuleLlmProviders1805920000000(), "down"),
+      await record(new AddRuleLlmProviders1805980000000(), "down"),
     ).toEqual([
       `ALTER TABLE "AIPostmortemRule" DROP COLUMN "llmProviderId"`,
       `ALTER TABLE "AIInvestigationRule" DROP COLUMN "llmProviderId"`,

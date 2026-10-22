@@ -4,7 +4,11 @@
 {{> Logo this}}
 {{> EmailTitle title=(concat "Incident Episode " episodeNumber ": " incidentEpisodeTitle) }}
 
+{{#if pageAgainInfo}}
+{{> InfoBlock plainInfo=pageAgainInfo}}
+{{else}}
 {{> InfoBlock plainInfo=(concat "A new incident episode has been created in the project - " projectName)}}
+{{/if}}
 
 {{> InfoBlock info="Here are the details: "}}
 

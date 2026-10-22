@@ -19,11 +19,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * The rules' indexes on "llmProviderId" and their foreign keys to
  * "LlmProvider" (ON DELETE SET NULL: deleting a provider leaves its rules
  * picking none) are built online, without blocking the tables' writes, by
- * AddRuleLlmProviderIndexesAndKeys1805930000000. AIRun's column has none:
+ * AddRuleLlmProviderIndexesAndKeys1805990000000. AIRun's column has none:
  * a run remembers its pick after the provider is gone.
  */
-export class AddRuleLlmProviders1805920000000 implements MigrationInterface {
-  public name: string = "AddRuleLlmProviders1805920000000";
+export class AddRuleLlmProviders1805980000000 implements MigrationInterface {
+  public name: string = "AddRuleLlmProviders1805980000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "AIRun" ADD "llmProviderId" uuid`);

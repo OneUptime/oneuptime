@@ -64,6 +64,7 @@ import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
 import { StateMoveRecord, StateMoveState } from "../../Utils/StateMove";
 import FeedApiKeyActorUtil from "../Utils/Feed/FeedApiKeyActor";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
 
 export class Service extends ProjectReferencesService<IncidentStateTimeline> {
   public constructor() {
@@ -825,6 +826,23 @@ ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
       } as LogAttributes);
       logger.error(error);
     });
+
+    /*
+     * An on-call policy that pages again when an acknowledged incident is
+     * not resolved in time: its clock starts at a new acknowledgement and
+     * stops at a resolve (OnCallAcknowledgementTimeout). The incident's
+     * current state only - a back-dated row changes neither. Never throws.
+     */
+    if (!createdItem.endsAt) {
+      await OnCallAcknowledgementTimeout.onRecordStateChanged({
+        kind: "incident",
+        recordId: createdItem.incidentId,
+        projectId: createdItem.projectId!,
+        stateId: createdItem.incidentStateId,
+        previousStateId:
+          onCreate.carryForward.statusTimelineBeforeThisStatus?.incidentStateId,
+      });
+    }
 
     // Track SLA response/resolution times
     this.trackSlaStateChange({

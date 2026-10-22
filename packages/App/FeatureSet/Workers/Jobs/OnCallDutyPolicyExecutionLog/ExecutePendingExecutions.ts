@@ -5,7 +5,13 @@ import {
   ON_CALL_POLICY_ARCHIVED_EXECUTION_STOPPED_MESSAGE,
   ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
-import { getOnCallPolicyRunRecordHandledMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import {
+  getOnCallPolicyRunRecordHandledMessage,
+  getOnCallPolicyRunRecordResolvedMessage,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -18,6 +24,10 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertEpisodeService from "Common/Server/Services/AlertEpisodeService";
 import IncidentEpisodeService from "Common/Server/Services/IncidentEpisodeService";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordState,
+} from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 
 RunCron(
   "OnCallDutyPolicyExecutionLog:ExecutePendingExecutions",
@@ -54,6 +64,8 @@ RunCron(
           triggeredByAlertEpisodeId: true,
           triggeredByIncidentEpisodeId: true,
           createdAt: true,
+          // A page again ends when its record is resolved, not acknowledged.
+          pageAgainNumber: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -111,26 +123,53 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
     }
 
     /*
-     * Its record was acknowledged or resolved: nobody else needs paging, so
-     * the run is over.
+     * A page again (OnCallAcknowledgementTimeout) pages about a record that
+     * was acknowledged all along: it is over once the record is resolved.
+     * Somebody acknowledging the page again itself ends it where they do
+     * (UserOnCallLogTimelineService).
      */
-    const handledRecordKind: string | null =
-      await getHandledRecordKind(executionLog);
+    if (isOnCallPageAgainRun(executionLog)) {
+      const resolvedRecordKind: string | null =
+        await getResolvedRecordKind(executionLog);
 
-    if (handledRecordKind) {
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: executionLog.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Completed,
-          statusMessage:
-            getOnCallPolicyRunRecordHandledMessage(handledRecordKind),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      if (resolvedRecordKind) {
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            status: OnCallDutyPolicyStatus.Completed,
+            statusMessage:
+              getOnCallPolicyRunRecordResolvedMessage(resolvedRecordKind),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
-      return;
+        return;
+      }
+    } else {
+      /*
+       * Its record was acknowledged or resolved: nobody else needs paging, so
+       * the run is over.
+       */
+      const handledRecordKind: string | null =
+        await getHandledRecordKind(executionLog);
+
+      if (handledRecordKind) {
+        await OnCallDutyPolicyExecutionLogService.updateOneById({
+          id: executionLog.id!,
+          data: {
+            status: OnCallDutyPolicyStatus.Completed,
+            statusMessage:
+              getOnCallPolicyRunRecordHandledMessage(handledRecordKind),
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
     }
 
     /*
@@ -289,6 +328,40 @@ const getHandledRecordKind: GetHandledRecordKindFunction = async (
   }
 
   return null;
+};
+
+/*
+ * The kind of record a page again pages about - "incident", "alert",
+ * "incident episode", "alert episode" - when that record is resolved; null
+ * while it is not. A record that is gone ends the run with an error, as a
+ * run whose record cannot be read always has.
+ */
+type GetResolvedRecordKindFunction = (
+  executionLog: OnCallDutyPolicyExecutionLog,
+) => Promise<string | null>;
+
+const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
+  executionLog: OnCallDutyPolicyExecutionLog,
+): Promise<string | null> => {
+  const record: {
+    kind: OnCallTimeoutRecordKind;
+    recordId: ObjectID;
+  } | null = OnCallAcknowledgementTimeout.getRunRecord(executionLog);
+
+  if (!record) {
+    return null;
+  }
+
+  const state: OnCallTimeoutRecordState | null =
+    await OnCallAcknowledgementTimeout.readRecordState(record);
+
+  if (!state) {
+    throw new BadDataException(
+      `The ${record.kind} this page is about is gone.`,
+    );
+  }
+
+  return state.isResolved ? record.kind : null;
 };
 
 /*

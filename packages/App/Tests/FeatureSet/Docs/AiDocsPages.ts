@@ -358,6 +358,12 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "This project, and only the services this repository serves.",
     "No private incidents",
     "Bounded.",
+    // What a production review reads of the changed code, and its rules.
+    "Operations",
+    "Hot functions",
+    "Aggregates only.",
+    "Public repositories get a link.",
+    "Outside contributors cannot start one.",
   ],
   [GITHUB_APP]: [
     "it never merges anything, and it never approves a pull request.",

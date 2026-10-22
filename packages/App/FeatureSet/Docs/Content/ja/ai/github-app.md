@@ -14,6 +14,7 @@ OneUptime GitHub App は、コードへの単なる接続ではありません�
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ flowchart TB
 | コマンド | 動作 | 同じ意味として扱われる表現 |
 | --- | --- | --- |
 | `@oneuptime review` | ブランチをクローンし、変更されたコードとその周辺のコードを読み、それについて本番環境が示していることを確認して、レビューをコメントとして投稿します。何も変更しません。 | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | 作成者が誰であっても、今すぐプルリクエストを本番環境のデータでレビューします。変更されたコードの周りの例外、操作、インシデント、デプロイを、その場で更新されるひとつのコメントにまとめます ([プルリクエストの本番レビュー](/docs/ai/ai-agent#プルリクエストの本番レビュー) を参照)。何もクローンせず、何も実行しません。 | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | プルリクエスト自身のブランチをクローンし、変更を加えて、そのブランチに新しいコミットをプッシュします。別のプルリクエストを作成することはありません。 | `revise`, `please revise`, `rework`, `redo` |
 
 メンションの後に書いたもののうち、既知のコマンドでないものは修正の依頼として読まれます。ほとんどの場合、実際にそうだからです:
@@ -100,6 +102,8 @@ OneUptime はレビューするコードのテレメトリを持っているの�
 
 設定は何も必要ありません。対象のサービスは、修正のときと同じように OneUptime がこのリポジトリに対応すると判断したものです([修正での本番テレメトリ](/docs/ai/ai-agent#修正での本番テレメトリ) を参照)。クエリは読み取り専用で、OneUptime サーバーで実行され、ほかのサービスやプロジェクト、非公開のインシデントについては何も読みません。サービスがプロジェクトにテレメトリを送っていないリポジトリは、コードだけをもとにレビューされます。
 
+すべてのプルリクエストを自動で本番環境のデータでレビューするには、リポジトリの設定で **本番環境のデータでプルリクエストをレビュー** をオンにします。[プルリクエストの本番レビュー](/docs/ai/ai-agent#プルリクエストの本番レビュー) を参照してください。
+
 ## コマンドを出せる人
 
 **リポジトリへの write、maintain、admin のいずれかのアクセス権を持つ人だけです。** OneUptime は毎回、そのリポジトリでのコメント投稿者の権限を GitHub に問い合わせます。GitHub がコメントの横に表示する "contributor" バッジは信用しません。これは現在のアクセス権ではなく、過去の活動を表すものだからです。
@@ -142,7 +146,7 @@ GitHub App の **Permissions & events** の設定で、次のイベントをサ�
 | --- | --- |
 | **Issue comment** | Issue とプルリクエストでの `@mention` コマンド |
 | **Issues** | Issue のアプリへの割り当てと、トリガーラベル |
-| **Pull request** | アプリへのレビュー依頼 |
+| **Pull request** | アプリへのレビュー依頼、およびプルリクエストの作成時と変更時の本番レビュー |
 | **Pull request review** | 送信されたレビュー本文内のメンション |
 | **Pull request review comment** | 差分へのインラインコメント内のメンション |
 

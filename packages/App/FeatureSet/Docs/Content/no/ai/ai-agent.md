@@ -8,6 +8,7 @@ Kode er der du ber OneUptime AI om å jobbe i repositoriene dine, slik du ville 
 - [Slik går en rettingskjøring](#slik-går-en-rettingskjøring): Fra et klikk til en pull request, steg for steg.
 - [Hvor rettingsoppgaver starter](#hvor-rettingsoppgaver-starter): Oppgavene OneUptime starter, og hva hver pull request gjør.
 - [Produksjonstelemetri i en retting](#produksjonstelemetri-i-en-retting): Hva en retting leser fra produksjonen mens den skriver endringen.
+- [Produksjonsgjennomgang av pull requests](#produksjonsgjennomgang-av-pull-requests): Hva produksjonen sier om koden hver pull request endrer.
 - [Før du begynner](#før-du-begynner): En modell, et tilkoblet repositorium og en Runner.
 - [Når en retting mislykkes](#når-en-retting-mislykkes): Hva som skjer med en kjøring som feiler, stopper opp eller venter.
 :::
@@ -145,6 +146,27 @@ Hva agenten kan lese, bestemmes av OneUptime-serveren, ut fra selve oppgaven:
 - **Avgrenset.** Høyst **12** spørringer per kjøring, og hver av dem teller mot kjøringens 40 kall.
 
 Når ingen tjeneste kan knyttes til repositoriet, kjører oppgaven uten produksjonstelemetri, som før.
+
+## Produksjonsgjennomgang av pull requests
+
+OneUptime vet hva koden din gjør i produksjon, så den kan gå gjennom en pull request med det ingen ser ved å lese diffen. Slå på **Gå gjennom pull-forespørsler opp mot produksjon** på siden **Innstillinger** for et repositorium i Kode, så får hver pull request som noen med skrivetilgang åpner eller pusher til, én kommentar som sier hva produksjonen viser om koden den endrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produksjonsgjennomganger** i Kode tar vare på hver gjennomgang, med **Gå gjennom på nytt**.
+
+| Den leser | Om koden pull requesten endrer |
+| --- | --- |
+| **Unntak** | Unntakene som er kastet i de endrede linjene, funksjonene og filene de siste 7 dagene, med nye og uhåndterte merket. |
+| **Operasjoner** | De sporede operasjonene som kjører den endrede koden den siste timen: spennene, feilene og p95 deres. |
+| **Tunge funksjoner** | Funksjonene i den endrede koden som tar en del av tjenestenes profiler den siste timen. |
+| **Hendelser** | Tjenestenes hendelser fra de siste 30 dagene som fortsatt er åpne, eller der rotårsaken eller etteranalysen nevner den endrede koden. Aldri en privat hendelse. |
+| **Utrullinger** | Tjenestenes utrullinger fra de siste 7 dagene som OneUptime mistenker for en regresjon. |
+
+Når produksjonen viser noe, leser OneUptime AI det ved siden av diffen og legger til **Hva du bør følge med på**: noen få korte punkter som hvert bygger på fakta. Det kjører bare mens AI er slått på for prosjektet, høyst 10 ganger om dagen for en pull request og 100 for et repositorium, og måles som alle AI-kall; fakta leses hver gang uten det. Når produksjonen ikke viser noe om endringen, publiserer OneUptime ingenting.
+
+- **Bare samlede tall.** Kommentaren inneholder antall, varigheter og navn på kode: aldri meldingen til et unntak, en logglinje, tittelen på en hendelse eller personopplysninger.
+- **Offentlige repositorier får en lenke.** Alle kan lese pull requestene i et offentlig repositorium, så der lenker kommentaren bare til gjennomgangen i OneUptime, som bare prosjektets medlemmer kan åpne. **Kommentar fra produksjonsgjennomgang** under **Flere innstillinger** på repositoriets side **Innstillinger** kan publisere **Bare en lenke til gjennomgangen** overalt, eller **Gjennomgangen, også i et offentlig kodelager**.
+- **Eksterne bidragsytere kan ikke starte en.** En pull request gjennomgås bare av seg selv når forfatteren, og den som pushet til den, kan skrive til repositoriet. En fra alle andre - en ekstern bidragsyter, en fork, en bot - gjennomgås når noen med skrivetilgang kommenterer `@oneuptime production review` på den, eller klikker **Gå gjennom på nytt** i Kode.
+- **Bare lesing.** En gjennomgang kloner ingenting og kjører ingenting fra pull requesten. Diffen og tittelen er data for OneUptime AI, aldri instruksjoner: AI-en har ingen verktøy, og det den skriver, settes inn i kommentaren som tekst.
+
+Bryteren er slått på for repositoriene GitHub App kobler til fra nå av. Et repositorium som ble koblet til før den fantes, beholder den slått av til du slår den på.
 
 ## Kontroll før pull requesten
 

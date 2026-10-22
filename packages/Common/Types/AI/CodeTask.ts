@@ -1,4 +1,8 @@
 import FixProductionReport from "./FixProductionReport";
+import {
+  ProductionReviewReport,
+  ProductionReviewSummaryJSON,
+} from "../CodeRepository/ProductionReview";
 import AIRunStatus from "./AIRunStatus";
 import BadDataException from "../Exception/BadDataException";
 import ObjectID from "../ObjectID";
@@ -208,6 +212,12 @@ export interface CodeTaskOutcome {
   pullRequestUrl?: string | undefined;
   // True when this turn opened the pull request; false when it added to it.
   openedPullRequest?: boolean | undefined;
+  /*
+   * A production review of a pull request (the
+   * GitHubPullRequestProductionReview recipe): what production says about
+   * the code it changes. Written by the server, never by a Runner.
+   */
+  productionReview?: ProductionReviewReport | undefined;
 }
 
 // One file's diff, as the turn committed it.
@@ -372,6 +382,17 @@ export interface CodeTaskOriginJSON {
   url?: string | undefined;
 }
 
+/*
+ * Which of a repository's tasks a list reads (POST /code-task/list `kind`):
+ * the work people asked of AI and OneUptime started (Tasks, the default),
+ * or the production reviews of its pull requests (ProductionReviews) - each
+ * its own page in Code.
+ */
+export enum CodeTaskListKind {
+  Tasks = "tasks",
+  ProductionReviews = "productionReviews",
+}
+
 // One task in a list.
 export interface CodeTaskSummaryJSON {
   id: string;
@@ -394,6 +415,8 @@ export interface CodeTaskSummaryJSON {
    * when it changed anything: the "+23 −1" a list row shows.
    */
   changes?: CodeTaskChangeStatsJSON | undefined;
+  // A production review's latest findings, at a glance.
+  productionReview?: ProductionReviewSummaryJSON | undefined;
 }
 
 // How much a task changed: its files, and the lines added and taken out.
@@ -468,6 +491,18 @@ export interface CodeTaskRepositoryJSON {
   repositoryUrl?: string | undefined;
   // Connected through the GitHub App, so AI can work in it.
   isConnected: boolean;
+  /*
+   * Whether OneUptime reviews its pull requests against production on its
+   * own (CodeRepository.isProductionReviewEnabled; unset is off). Left out
+   * where the column was not read.
+   */
+  isProductionReviewEnabled?: boolean | undefined;
+  /*
+   * Whether the GitHub App answers commands in it, "@oneuptime production
+   * review" among them (CodeRepository.isGitHubCommandsEnabled; unset is
+   * on). Left out where the column was not read.
+   */
+  isGitHubCommandsEnabled?: boolean | undefined;
 }
 
 /*

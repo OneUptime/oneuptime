@@ -97,7 +97,7 @@ OneUptime は 2 種類のイベントを使い、それぞれ役割が異なり�
 | --- | --- |
 | **Issue comment** | issue **および** pull request での `@mention` コマンド |
 | **Issues** | issue をアプリに割り当てることと、リポジトリのトリガーラベル |
-| **Pull request** | アプリにレビューを依頼すること |
+| **Pull request** | アプリにレビューを依頼すること、およびプルリクエストの作成時と変更時の本番レビュー |
 | **Pull request review** | 送信されたレビューの本文に書かれたメンション |
 | **Pull request review comment** | diff のインラインコメントでのメンション |
 

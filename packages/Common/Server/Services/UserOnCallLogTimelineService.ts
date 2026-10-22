@@ -22,6 +22,8 @@ import Model from "../../Models/DatabaseModels/UserOnCallLogTimeline";
 import AlertService from "./AlertService";
 import AlertEpisodeService from "./AlertEpisodeService";
 import IncidentEpisodeService from "./IncidentEpisodeService";
+import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementTimeout";
+import OneUptimeDate from "../../Types/Date";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -143,168 +145,219 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
+      const acknowledgedAt: Date = OneUptimeDate.fromString(
+        onUpdate.updateBy.data.acknowledgedAt as Date,
+      );
+
       for (const item of items) {
-        const isIncident: boolean = Boolean(item.triggeredByIncidentId);
-        const isAlert: boolean = Boolean(item.triggeredByAlertId);
-        /*
-         * Alert-episode and incident-episode pages were never handled here, so
-         * acknowledging one via call/SMS/email/push marked only this user's log
-         * done but never acknowledged the EPISODE. ExecutePendingExecutions gates
-         * every co-notified user's continuation solely on isEpisodeAcknowledged,
-         * so the other responders kept escalating and the episode stayed
-         * unacknowledged in its own state (audit F15). Handle both episode kinds
-         * the same way incident/alert are handled below.
-         */
-        const isAlertEpisode: boolean = Boolean(item.triggeredByAlertEpisodeId);
-        const isIncidentEpisode: boolean = Boolean(
-          item.triggeredByIncidentEpisodeId,
-        );
-
-        // this incident is acknowledged.
-
-        // now we need to ack the parent log.
-
-        const user: User | null = await UserService.findOneById({
-          id: item.userId!,
-          select: {
-            _id: true,
-            name: true,
-            email: true,
-          },
-          props: {
-            isRoot: true,
-          },
+        await this.acknowledgePage({
+          userOnCallLogId: item.userNotificationLogId!,
+          userId: item.userId!,
+          onCallDutyPolicyExecutionLogId: item.onCallDutyPolicyExecutionLogId,
+          onCallDutyPolicyExecutionLogTimelineId:
+            item.onCallDutyPolicyExecutionLogTimelineId,
+          triggeredByIncidentId: item.triggeredByIncidentId,
+          triggeredByAlertId: item.triggeredByAlertId,
+          triggeredByAlertEpisodeId: item.triggeredByAlertEpisodeId,
+          triggeredByIncidentEpisodeId: item.triggeredByIncidentEpisodeId,
+          acknowledgedAt: acknowledgedAt,
         });
-
-        if (!user) {
-          throw new BadDataException("User not found.");
-        }
-
-        const entityLabel: string =
-          isIncident || isIncidentEpisode
-            ? isIncidentEpisode
-              ? "Incident Episode"
-              : "Incident"
-            : isAlertEpisode
-              ? "Alert Episode"
-              : "Alert";
-
-        const statusMessage: string = `${entityLabel} acknowledged by ${user.name} (${user.email})`;
-
-        await UserOnCallLogService.updateOneById({
-          id: item.userNotificationLogId!,
-          data: {
-            acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
-            acknowledgedByUserId: item.userId!,
-            status: UserNotificationExecutionStatus.Completed,
-            statusMessage: statusMessage,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        //  and then oncall log.
-
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: item.onCallDutyPolicyExecutionLogId!,
-          data: {
-            acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
-            acknowledgedByUserId: item.userId!,
-            status: OnCallDutyPolicyStatus.Completed,
-            statusMessage: statusMessage,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        // and then oncall log timeline.
-        await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
-          id: item.onCallDutyPolicyExecutionLogTimelineId!,
-          data: {
-            acknowledgedAt: onUpdate.updateBy.data.acknowledgedAt,
-            isAcknowledged: true,
-            status:
-              OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
-            statusMessage: statusMessage,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        /*
-         * The record itself is acknowledged only when it is not already -
-         * by the one rule (Common/Utils/AcknowledgedState): a colleague may
-         * have acknowledged it first, or moved it on to a state after
-         * Acknowledged, or resolved it. Their page is acknowledged above
-         * either way; acknowledging the record again would be a move back
-         * up its list, refused, and an error page for the responder who
-         * only answered their page.
-         *
-         * It is OneUptime's acknowledge, credited to the responder: the
-         * on-call policy paged them about this record, and answering the
-         * page is what acknowledging it means.
-         */
-        if (
-          isIncident &&
-          !(await IncidentService.isIncidentAcknowledged({
-            incidentId: item.triggeredByIncidentId!,
-          }))
-        ) {
-          await IncidentService.acknowledgeIncident({
-            incidentId: item.triggeredByIncidentId!,
-            acknowledgedByUserId: item.userId!,
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-
-        if (
-          isAlert &&
-          !(await AlertService.isAlertAcknowledged({
-            alertId: item.triggeredByAlertId!,
-          }))
-        ) {
-          await AlertService.acknowledgeAlert({
-            alertId: item.triggeredByAlertId!,
-            acknowledgedByUserId: item.userId!,
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-
-        // An episode's - which also stops co-notified responders escalating.
-        if (
-          isAlertEpisode &&
-          !(await AlertEpisodeService.isEpisodeAcknowledged({
-            episodeId: item.triggeredByAlertEpisodeId!,
-          }))
-        ) {
-          await AlertEpisodeService.acknowledgeEpisode(
-            item.triggeredByAlertEpisodeId!,
-            item.userId!,
-          );
-        }
-
-        if (
-          isIncidentEpisode &&
-          !(await IncidentEpisodeService.isEpisodeAcknowledged({
-            episodeId: item.triggeredByIncidentEpisodeId!,
-          }))
-        ) {
-          await IncidentEpisodeService.acknowledgeEpisode(
-            item.triggeredByIncidentEpisodeId!,
-            item.userId!,
-          );
-        }
       }
     }
 
     return onUpdate;
+  }
+
+  /*
+   * ACKNOWLEDGES ONE PERSON'S PAGE: their notification log, the run it is a
+   * page of, the run's line for them, the record it is about (when it is
+   * not acknowledged already), and the acknowledgement timeout's clock
+   * (OnCallAcknowledgementTimeout). What answering a page does - its link,
+   * a call's 1, a text - and what the Dashboard's Acknowledge does for a
+   * page again, whose record was acknowledged all along. As OneUptime,
+   * credited to the person.
+   */
+  @CaptureSpan()
+  public async acknowledgePage(page: {
+    userOnCallLogId: ObjectID;
+    userId: ObjectID;
+    onCallDutyPolicyExecutionLogId?: ObjectID | undefined;
+    onCallDutyPolicyExecutionLogTimelineId?: ObjectID | undefined;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+    triggeredByAlertEpisodeId?: ObjectID | undefined;
+    triggeredByIncidentEpisodeId?: ObjectID | undefined;
+    acknowledgedAt: Date;
+  }): Promise<void> {
+    const isIncident: boolean = Boolean(page.triggeredByIncidentId);
+    const isAlert: boolean = Boolean(page.triggeredByAlertId);
+    /*
+     * Alert-episode and incident-episode pages were never handled here, so
+     * acknowledging one via call/SMS/email/push marked only this user's log
+     * done but never acknowledged the EPISODE. ExecutePendingExecutions gates
+     * every co-notified user's continuation solely on isEpisodeAcknowledged,
+     * so the other responders kept escalating and the episode stayed
+     * unacknowledged in its own state (audit F15). Handle both episode kinds
+     * the same way incident/alert are handled below.
+     */
+    const isAlertEpisode: boolean = Boolean(page.triggeredByAlertEpisodeId);
+    const isIncidentEpisode: boolean = Boolean(
+      page.triggeredByIncidentEpisodeId,
+    );
+
+    // this incident is acknowledged.
+
+    // now we need to ack the parent log.
+
+    const user: User | null = await UserService.findOneById({
+      id: page.userId,
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadDataException("User not found.");
+    }
+
+    const entityLabel: string =
+      isIncident || isIncidentEpisode
+        ? isIncidentEpisode
+          ? "Incident Episode"
+          : "Incident"
+        : isAlertEpisode
+          ? "Alert Episode"
+          : "Alert";
+
+    const statusMessage: string = `${entityLabel} acknowledged by ${user.name} (${user.email})`;
+
+    await UserOnCallLogService.updateOneById({
+      id: page.userOnCallLogId,
+      data: {
+        acknowledgedAt: page.acknowledgedAt,
+        acknowledgedByUserId: page.userId,
+        status: UserNotificationExecutionStatus.Completed,
+        statusMessage: statusMessage,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    //  and then oncall log.
+
+    await OnCallDutyPolicyExecutionLogService.updateOneById({
+      id: page.onCallDutyPolicyExecutionLogId!,
+      data: {
+        acknowledgedAt: page.acknowledgedAt,
+        acknowledgedByUserId: page.userId,
+        status: OnCallDutyPolicyStatus.Completed,
+        statusMessage: statusMessage,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // and then oncall log timeline.
+    await OnCallDutyPolicyExecutionLogTimelineService.updateOneById({
+      id: page.onCallDutyPolicyExecutionLogTimelineId!,
+      data: {
+        acknowledgedAt: page.acknowledgedAt,
+        isAcknowledged: true,
+        status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+        statusMessage: statusMessage,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * The record itself is acknowledged only when it is not already -
+     * by the one rule (Common/Utils/AcknowledgedState): a colleague may
+     * have acknowledged it first, or moved it on to a state after
+     * Acknowledged, or resolved it. Their page is acknowledged above
+     * either way; acknowledging the record again would be a move back
+     * up its list, refused, and an error page for the responder who
+     * only answered their page.
+     *
+     * It is OneUptime's acknowledge, credited to the responder: the
+     * on-call policy paged them about this record, and answering the
+     * page is what acknowledging it means.
+     */
+    if (
+      isIncident &&
+      !(await IncidentService.isIncidentAcknowledged({
+        incidentId: page.triggeredByIncidentId!,
+      }))
+    ) {
+      await IncidentService.acknowledgeIncident({
+        incidentId: page.triggeredByIncidentId!,
+        acknowledgedByUserId: page.userId,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    if (
+      isAlert &&
+      !(await AlertService.isAlertAcknowledged({
+        alertId: page.triggeredByAlertId!,
+      }))
+    ) {
+      await AlertService.acknowledgeAlert({
+        alertId: page.triggeredByAlertId!,
+        acknowledgedByUserId: page.userId,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
+    // An episode's - which also stops co-notified responders escalating.
+    if (
+      isAlertEpisode &&
+      !(await AlertEpisodeService.isEpisodeAcknowledged({
+        episodeId: page.triggeredByAlertEpisodeId!,
+      }))
+    ) {
+      await AlertEpisodeService.acknowledgeEpisode(
+        page.triggeredByAlertEpisodeId!,
+        page.userId,
+      );
+    }
+
+    if (
+      isIncidentEpisode &&
+      !(await IncidentEpisodeService.isEpisodeAcknowledged({
+        episodeId: page.triggeredByIncidentEpisodeId!,
+      }))
+    ) {
+      await IncidentEpisodeService.acknowledgeEpisode(
+        page.triggeredByIncidentEpisodeId!,
+        page.userId,
+      );
+    }
+
+    /*
+     * A new acknowledgement: when the run's policy pages again after an
+     * acknowledgement, its clock starts again from now - how a page
+     * again is answered, since its record was acknowledged all along
+     * (OnCallAcknowledgementTimeout). Never throws.
+     */
+    if (page.onCallDutyPolicyExecutionLogId) {
+      await OnCallAcknowledgementTimeout.onPageAcknowledged({
+        executionLogId: page.onCallDutyPolicyExecutionLogId,
+        acknowledgedAt: page.acknowledgedAt,
+      });
+    }
   }
 }
 

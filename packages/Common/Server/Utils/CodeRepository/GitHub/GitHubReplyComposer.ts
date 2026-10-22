@@ -74,6 +74,8 @@ export default class GitHubReplyComposer {
     switch (commandType) {
       case GitHubCommandType.Review:
         return "reviewing this pull request";
+      case GitHubCommandType.ProductionReview:
+        return "reviewing this pull request against production";
       case GitHubCommandType.Revise:
         return "revising this pull request";
       case GitHubCommandType.Implement:
@@ -260,6 +262,7 @@ export default class GitHubReplyComposer {
       "",
       "```text",
       `@${data.appSlug} review`,
+      `@${data.appSlug} production review`,
       `@${data.appSlug} revise this — the retry loop should back off exponentially`,
       "```",
       "",
@@ -341,6 +344,13 @@ export default class GitHubReplyComposer {
     commandType: GitHubCommandType;
     appSlug: string;
   }): string {
+    if (data.commandType === GitHubCommandType.ProductionReview) {
+      return GitHubReplyComposer.refusal({
+        reason:
+          "I can only review pull requests against production, and this is an issue. Run that command on a pull request.",
+      });
+    }
+
     if (
       data.commandType === GitHubCommandType.Review ||
       data.commandType === GitHubCommandType.Revise

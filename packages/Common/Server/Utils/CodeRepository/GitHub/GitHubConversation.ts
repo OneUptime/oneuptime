@@ -84,6 +84,8 @@ export interface GitHubPullRequestDetails {
 
 export interface GitHubPullRequestFile {
   filename: string;
+  // The file's name before the pull request renamed it, when it did.
+  previousFilename?: string | null | undefined;
   status: string;
   additions: number;
   deletions: number;
@@ -596,6 +598,7 @@ export default class GitHubConversation {
         const file: JSONObject = entry as JSONObject;
         files.push({
           filename: (file["filename"] as string) || "",
+          previousFilename: (file["previous_filename"] as string) || null,
           status: (file["status"] as string) || "",
           additions: (file["additions"] as number) || 0,
           deletions: (file["deletions"] as number) || 0,
@@ -611,6 +614,67 @@ export default class GitHubConversation {
     }
 
     return files.slice(0, data.maxFiles);
+  }
+
+  /*
+   * Whether anyone on the internet can read the repository: true for a
+   * public one, false for a private or an organization-internal one, and
+   * null when GitHub could not say - which a caller deciding what to post
+   * reads as public. Asked of GitHub every time it matters, never kept: a
+   * repository made public a minute ago is public now.
+   */
+  @CaptureSpan()
+  public static async isRepositoryPublic(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+  }): Promise<boolean | null> {
+    try {
+      const token: string = await GitHubConversation.getConversationToken(
+        data.installationId,
+      );
+
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get({
+          url: URL.fromString(GitHubConversation.repoApiUrl(data)),
+          headers: GitHubConversation.buildHeaders(token),
+        });
+
+      if (result instanceof HTTPErrorResponse) {
+        return null;
+      }
+
+      return GitHubConversation.readIsPublic(result.data);
+    } catch (error) {
+      logger.debug(
+        `Could not read whether ${data.organizationName}/${data.repositoryName} is public: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * GitHub's answer for a repository, read: `visibility` says public,
+   * private or internal; older answers carry only `private`.
+   */
+  public static readIsPublic(repository: JSONObject): boolean | null {
+    const visibility: string = (
+      (repository["visibility"] as string) || ""
+    ).toLowerCase();
+
+    if (visibility === "public") {
+      return true;
+    }
+
+    if (visibility === "private" || visibility === "internal") {
+      return false;
+    }
+
+    if (typeof repository["private"] === "boolean") {
+      return !repository["private"];
+    }
+
+    return null;
   }
 
   /*
