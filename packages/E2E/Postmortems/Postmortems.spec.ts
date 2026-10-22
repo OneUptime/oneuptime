@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -98,7 +99,9 @@ function count(page: Page, status: string): Locator {
 function tile(page: Page, name: string): Locator {
   return page
     .getByTestId("postmortem-status-summary-cards")
-    .getByRole("button", { name: new RegExp(`^${name}: \\d+\\.`) });
+    .getByRole("button", {
+      name: new RegExp(`^${escapeRegExp(name)}: \\d+\\.`),
+    });
 }
 
 async function updatesSent(page: Page): Promise<Array<RecordedUpdate>> {

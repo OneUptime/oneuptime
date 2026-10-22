@@ -132,7 +132,11 @@ function tile(id: string): PostmortemStatusTile {
 interface FakeFacetBar {
   selections: FacetSelectionMap;
   operators: FacetOperatorMap;
-  calls: Array<{ key: string; values: Array<string>; operator?: string }>;
+  calls: Array<{
+    key: string;
+    values: Array<string>;
+    operator?: string | undefined;
+  }>;
   setFacetSelection: (
     facetKey: string,
     values: Array<string>,

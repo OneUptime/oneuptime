@@ -32,6 +32,7 @@ import IncidentLabelRuleEngineService from "../../../Server/Services/IncidentLab
 import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
 import { OnCallRulePagingHold } from "../../../Server/Utils/OnCall/OnCallRulePagingHold";
 import IncidentOwnerRuleEngineService from "../../../Server/Services/IncidentOwnerRuleEngineService";
+import IncidentPostmortemStatusService from "../../../Server/Services/IncidentPostmortemStatusService";
 import IncidentPrivacyRuleEngineService from "../../../Server/Services/IncidentPrivacyRuleEngineService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSlaService from "../../../Server/Services/IncidentSlaService";
@@ -384,6 +385,10 @@ const INCIDENT: Kind = {
   stubHooks: (probes: Probes): void => {
     stub(ProjectService, "incrementAndGetIncidentCounter", undefined, () => {
       return { counter: 42, prefix: undefined };
+    });
+    // Where its postmortem starts: a project with no statuses yet.
+    stub(IncidentPostmortemStatusService, "getProjectStatuses", undefined, () => {
+      return [];
     });
     stub(ProductAnalytics, "captureForUser");
     stub(IncidentService, "findOneById", undefined, () => {
