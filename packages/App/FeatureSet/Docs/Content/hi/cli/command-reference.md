@@ -189,7 +189,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | क्षेत्र | कमांड |
 | --- | --- |
 | मॉनिटरिंग | `monitor`, `monitor-status`, `monitor-status-event` |
-| घटनाएँ | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| घटनाएँ | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | अलर्ट | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | स्थिति पृष्ठ | `status-page`, `status-page-announcement` |
 | अनुसूचित रखरखाव | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

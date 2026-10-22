@@ -20,6 +20,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Modelos de incidentes**       | Preencher um incidente inteiro — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
 | **Modelos de notas**            | Texto reutilizável para notas públicas e privadas.                                                 |
 | **Modelos de post-mortem**      | Estruturas de post-mortem reutilizáveis.                                                           |
+| **Status de post-mortem** | Os status pelos quais um post-mortem passa, de Não iniciado a Concluído. |
 | **Campos personalizados**       | Definir campos extras que aparecem em todo incidente.                                              |
 | **Funções de incidente**        | Definir as funções a que você atribui os respondedores, como Comandante do incidente.              |
 | **Medições**                    | Medir quanto tempo as coisas levam, como o tempo até a confirmação ou até a resolução, em todo incidente. |
@@ -169,10 +170,16 @@ Um modelo de post-mortem é o esqueleto do relatório que você produz depois de
 :::steps
 1. Vá em **Incidentes → Configurações → Modelos de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). O cartão se chama **Modelos de post-mortem**.
 2. Clique em **Criar: Incidente Postmortem Modelo** e preencha sua única página: **Nome do modelo** e **Descrição do modelo**, ambos obrigatórios, e depois **Modelo de análise pós-incidente**, o próprio corpo, em Markdown, obrigatório.
-3. Salve-o. A página **Post-mortem** de cada incidente agora oferece **Aplicar modelo**.
+3. Salve-o. A página **Post-mortem** de cada incidente agora oferece **Aplicar modelo**. Enquanto nada estiver escrito, o botão é **Começar com um modelo**; depois que o post-mortem estiver escrito, **Aplicar modelo** fica no menu **⋯** do cartão.
 :::
 
 Você aplica um a partir do incidente, não das configurações. Abra um incidente, escolha **Post-mortem** no menu lateral dele (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), e use **Aplicar modelo**. Isso abre uma caixa de diálogo **Aplicar modelo de post-mortem** com uma lista suspensa **Selecionar Modelo**; escolher um carrega o corpo do modelo no editor **Nota da análise pós-incidente**, onde você o edita antes de salvar. Os episódios de incidente têm a mesma página **Post-mortem** e usam a mesma biblioteca de modelos. **Aplicar modelo** só aparece quando o projeto tem um modelo de post-mortem; se houver só um, ele já vem escolhido. O editor abre no post-mortem do incidente como ele está, com o modelo como nota, então se ele está na página de status, quando foi publicado e seus anexos continuam como estavam.
+
+## Status de post-mortem
+
+O post-mortem de cada incidente está em um dos status de post-mortem do projeto, então **Incidentes → Post-mortems** pode mostrar quais post-mortems ainda estão pendentes. Edite-os em **Incidentes → Configurações → Status de post-mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): um projeto novo tem **Não iniciado**, **Rascunho**, **Concluído** e **Não necessário**, e você adiciona os seus, como **Em revisão**, com **Criar: Status do post-mortem**.
+
+**Não iniciado**, **Rascunho** e **Concluído** são integrados: o OneUptime move os post-mortems para eles conforme são escritos e publicados, então podem ser renomeados, mas não excluídos nem arquivados. A posição de um status define se um post-mortem nele ainda está pendente, mostrado em **Conta como**. Veja [Post-mortems](/docs/incidents/postmortems#acompanhar-em-que-ponto-está-cada-post-mortem).
 
 ## Campos personalizados
 

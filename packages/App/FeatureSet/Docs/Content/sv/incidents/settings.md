@@ -20,6 +20,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
 | **Postmortem-mallar**        | Återanvändbara strukturer för efteranalyser.                                                 |
+| **Efteranalysstatusar** | De statusar en efteranalys går igenom, från Inte påbörjad till Slutförd. |
 | **Anpassade fält**           | Definiera extra fält som visas på varje incident.                                            |
 | **Incidentroller**           | Definiera rollerna som du tilldelar de som ingriper, som Incidentansvarig.                   |
 | **Mätningar**                | Mäta hur lång tid saker tar, som tiden till bekräftelse eller till lösning, på varje incident. |
@@ -169,10 +170,16 @@ En mall för efteranalys är skelettet till rapporten som du tar fram efter en i
 :::steps
 1. Gå till **Incidenter → Inställningar → Postmortem-mallar** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Kortet heter **Postmortem-mallar**.
 2. Klicka på **Skapa Incident Postmortem Mall** och fyll i dess enda sida: **Mallnamn** och **Mallbeskrivning**, båda obligatoriska, och sedan **Mall för efteranalys**, själva texten, i Markdown, obligatorisk.
-3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**.
+3. Spara den. Varje incidents sida **Efteranalys** erbjuder nu **Tillämpa mall**. Så länge inget är skrivet heter knappen **Börja från mall**; när efteranalysen är skriven finns **Tillämpa mall** i kortets meny **⋯**.
 :::
 
 Du tillämpar en från incidenten, inte från inställningarna. Öppna en incident, välj **Efteranalys** i dess sidomeny (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`), och använd **Tillämpa mall**. Det öppnar en dialog **Tillämpa mall för efteranalys** med en rullgardinsmeny **Välj mall**; väljer du en läses mallens text in i redigeraren **Anteckning för efteranalys**, där du redigerar den innan du sparar. Incidentepisoder har samma sida **Efteranalys** och hämtar från samma mallbibliotek. **Tillämpa mall** visas bara när projektet har en mall för efteranalys; finns det bara en är den redan vald. Redigeraren öppnas på incidentens efteranalys som den är, med mallen som anteckning, så om den finns på statussidan, när den publicerades och dess bilagor förblir som de var.
+
+## Efteranalysstatusar
+
+Varje incidents efteranalys har en av projektets efteranalysstatusar, så att **Incidenter → Efteranalyser** kan visa vilka efteranalyser som fortfarande saknas. Redigera dem under **Incidenter → Inställningar → Efteranalysstatusar** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): ett nytt projekt har **Inte påbörjad**, **Utkast**, **Slutförd** och **Behövs inte**, och du lägger till egna, till exempel **Under granskning**, med **Skapa Efteranalysstatus**.
+
+**Inte påbörjad**, **Utkast** och **Slutförd** är inbyggda: OneUptime flyttar efteranalyser till dem allteftersom de skrivs och publiceras, så de kan byta namn men inte tas bort eller arkiveras. Var en status står avgör om en efteranalys i den fortfarande saknas, vilket visas under **Räknas som**. Se [Efteranalyser](/docs/incidents/postmortems#följ-hur-långt-varje-efteranalys-har-kommit).
 
 ## Anpassade fält
 

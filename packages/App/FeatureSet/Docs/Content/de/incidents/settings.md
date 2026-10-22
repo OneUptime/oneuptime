@@ -20,6 +20,7 @@ Die Vorfallkonfiguration liegt in **Vorfälle**, nicht in den **Projekteinstellu
 | **Vorfall-Vorlagen**          | Einen ganzen Vorfall vorausfüllen – Titel, Beschreibung, Ressourcen, Bereitschaftsrichtlinien, Eigentümer, Beschriftungen. |
 | **Notiz-Vorlagen**            | Wiederverwendbarer Text für öffentliche und private Notizen.                                       |
 | **Postmortem-Vorlagen**       | Wiederverwendbare Postmortem-Strukturen.                                                           |
+| **Postmortem-Status** | Die Status, die ein Postmortem durchläuft, von Nicht gestartet bis Abgeschlossen. |
 | **Benutzerdefinierte Felder** | Zusätzliche Felder definieren, die an jedem Vorfall erscheinen.                                    |
 | **Vorfallsrollen**            | Die Rollen definieren, denen Sie Responder zuweisen, etwa Vorfall-Kommandant.                      |
 | **Messungen**                 | Messen, wie lange Dinge dauern, etwa die Zeit bis zur Bestätigung oder bis zur Behebung, an jedem Vorfall. |
@@ -169,10 +170,16 @@ Eine Postmortem-Vorlage ist das Gerüst der Aufarbeitung, die Sie nach einem Vor
 :::steps
 1. Gehen Sie zu **Vorfälle → Einstellungen → Postmortem-Vorlagen** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). Die Karte heißt **Postmortem-Vorlagen**.
 2. Klicken Sie auf **Postmortem-Vorlage für Vorfälle erstellen** und füllen Sie seine eine Seite aus: **Vorlagenname** und **Vorlagenbeschreibung**, beide Pflicht, dann **Postmortem-Vorlage**, den Text selbst, in Markdown, Pflicht.
-3. Speichern Sie sie. Die Seite **Postmortem** jedes Vorfalls bietet nun **Vorlage anwenden** an.
+3. Speichern Sie sie. Die Seite **Postmortem** jedes Vorfalls bietet nun **Vorlage anwenden** an. Solange noch nichts geschrieben ist, heißt die Schaltfläche **Mit Vorlage beginnen**; sobald das Postmortem geschrieben ist, steht **Vorlage anwenden** im Menü **⋯** der Karte.
 :::
 
 Angewendet wird eine Vorlage vom Vorfall aus, nicht aus den Einstellungen. Öffnen Sie einen Vorfall, wählen Sie **Postmortem** in seinem Seitenmenü (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) und nutzen Sie **Vorlage anwenden**. Das öffnet den Dialog **Postmortem-Vorlage anwenden** mit dem Dropdown **Vorlage auswählen**; sobald Sie eine wählen, lädt ihr Text in den Editor **Postmortem-Notiz**, wo Sie ihn vor dem Speichern bearbeiten. Vorfall-Episoden haben dieselbe Seite **Postmortem** und greifen auf dieselbe Vorlagenbibliothek zu. **Vorlage anwenden** erscheint erst, wenn das Projekt eine Postmortem-Vorlage hat; gibt es nur eine, ist sie bereits gewählt. Der Editor öffnet das Postmortem des Vorfalls so, wie es ist, mit der Vorlage als Notiz – ob es auf der Statusseite steht, wann es veröffentlicht wurde und seine Anhänge bleiben unverändert.
+
+## Postmortem-Status
+
+Das Postmortem jedes Vorfalls hat einen der Postmortem-Status des Projekts, sodass **Vorfälle → Postmortem-Analysen** zeigen kann, welche Postmortems noch ausstehen. Bearbeiten Sie sie unter **Vorfälle → Einstellungen → Postmortem-Status** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): Ein neues Projekt hat **Nicht gestartet**, **Entwurf**, **Abgeschlossen** und **Nicht erforderlich**, und eigene, etwa **In Prüfung**, legen Sie mit **Postmortem-Status erstellen** an.
+
+**Nicht gestartet**, **Entwurf** und **Abgeschlossen** sind vordefiniert: OneUptime verschiebt Postmortems in sie, während sie geschrieben und veröffentlicht werden, daher können sie umbenannt, aber nicht gelöscht oder archiviert werden. Die Position eines Status bestimmt, ob ein Postmortem darin noch aussteht, angezeigt unter **Zählt als**. Siehe [Postmortem-Analysen](/docs/incidents/postmortems#verfolgen-wo-jedes-postmortem-steht).
 
 ## Benutzerdefinierte Felder
 

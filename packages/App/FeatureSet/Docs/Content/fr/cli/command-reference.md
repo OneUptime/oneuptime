@@ -189,7 +189,7 @@ Les enregistrements prennent `list`, `get`, `create`, `update`, `delete` et `cou
 | Domaine | Commandes |
 | --- | --- |
 | Surveillance | `monitor`, `monitor-status`, `monitor-status-event` |
-| Incidents | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Incidents | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Alertes | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Pages de statut | `status-page`, `status-page-announcement` |
 | Maintenance planifiée | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

@@ -93,6 +93,7 @@ flowchart TB
 | 監測器狀態 | `Monitor Status` |
 | 排定維護狀態 | `Scheduled Maintenance State` |
 | 事件角色 | `Incident Role` |
+| 事後分析狀態 | `Postmortem Status` |
 | API 金鑰 | `API Key` |
 | 人們連接的 MCP 用戶端 | `MCP Client Authorization` |
 | 資產清單項目 | `Inventory Item` |

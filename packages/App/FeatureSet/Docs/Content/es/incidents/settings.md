@@ -20,6 +20,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior y desplieg
 | **Plantillas de incidente**        | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios, etiquetas. |
 | **Plantillas de notas**            | Texto reutilizable para notas públicas y privadas.                                                 |
 | **Plantillas de post mortem**      | Estructuras de post mortem reutilizables.                                                          |
+| **Estados de post mortem** | Los estados por los que pasa un post mortem, de No iniciado a Completado. |
 | **Campos personalizados**          | Definir campos adicionales que aparecen en cada incidente.                                         |
 | **Roles de incidente**             | Definir los roles a los que asignas a los respondedores, como Comandante de incidente.             |
 | **Mediciones**                     | Medir cuánto tardan las cosas, como el tiempo hasta el reconocimiento o hasta la resolución, en cada incidente. |
@@ -169,10 +170,16 @@ Una plantilla de post mortem es el esqueleto del informe que escribes después d
 :::steps
 1. Ve a **Incidentes → Ajustes → Plantillas de post mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-templates`). La tarjeta se titula **Plantillas de post mortem**.
 2. Haz clic en **Crear Plantilla de post mortem de incidente** y rellena su única página: **Nombre de la plantilla** y **Descripción de la plantilla**, ambos obligatorios, y luego **Plantilla de análisis post mortem**, el cuerpo en sí, en Markdown, obligatorio.
-3. Guárdala. La página **Post mortem** de cada incidente ofrece ahora **Aplicar plantilla**.
+3. Guárdala. La página **Post mortem** de cada incidente ofrece ahora **Aplicar plantilla**. Mientras no haya nada escrito, el botón es **Empezar con una plantilla**; cuando el post mortem ya está escrito, **Aplicar plantilla** está en el menú **⋯** de la tarjeta.
 :::
 
 Una se aplica desde el incidente, no desde los ajustes. Abre un incidente, elige **Post mortem** en su menú lateral (`/dashboard/{projectId}/incidents/{incidentId}/postmortem`) y usa **Aplicar plantilla**. Se abre un diálogo **Aplicar plantilla de análisis post mortem** con un desplegable **Seleccionar plantilla**; elegir una carga el cuerpo de la plantilla en el editor **Nota del análisis post mortem**, donde lo editas antes de guardar. Los episodios de incidente tienen la misma página **Post mortem** y usan la misma biblioteca de plantillas. **Aplicar plantilla** solo se muestra cuando el proyecto tiene una plantilla de post mortem; si solo hay una, ya está elegida. El editor se abre con el post mortem del incidente tal como está, con la plantilla como su nota, así que si está en la página de estado, cuándo se publicó y sus adjuntos se quedan como estaban.
+
+## Estados de post mortem
+
+El post mortem de cada incidente está en uno de los estados de post mortem del proyecto, así que **Incidentes → Informes post mortem** puede mostrar qué post mortem siguen pendientes. Edítalos en **Incidentes → Ajustes → Estados de post mortem** (`/dashboard/{projectId}/incidents/settings/postmortem-statuses`): un proyecto nuevo tiene **No iniciado**, **Borrador**, **Completado** y **No necesario**, y añades los tuyos, como **En revisión**, con **Crear Estado del post mortem**.
+
+**No iniciado**, **Borrador** y **Completado** son predefinidos: OneUptime mueve los post mortem a ellos a medida que se escriben y se publican, así que se pueden renombrar, pero no eliminar ni archivar. La posición de un estado decide si un post mortem en él sigue pendiente, y se muestra en **Cuenta como**. Consulta [Informes post mortem](/docs/incidents/postmortems#seguir-en-qué-punto-está-cada-post-mortem).
 
 ## Campos personalizados
 

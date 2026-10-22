@@ -93,6 +93,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | Monitorstatuser | `Monitor Status` |
 | Statuser for planlagt vedlikehold | `Scheduled Maintenance State` |
 | Hendelsesroller | `Incident Role` |
+| Statuser for etteranalyse | `Postmortem Status` |
 | API-nøkler | `API Key` |
 | MCP-klienter som folk kobler til | `MCP Client Authorization` |
 | Inventarelementer | `Inventory Item` |
