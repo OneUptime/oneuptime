@@ -20,7 +20,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nothing to backfill: every new column is empty, and the switch's constant
  * default adds a NOT NULL column without rewriting a row.
  */
-export class AddSecurityCaseAiTriage1805860000000 implements MigrationInterface {
+export class AddSecurityCaseAiTriage1805860000000
+  implements MigrationInterface
+{
   public name: string = "AddSecurityCaseAiTriage1805860000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -69,7 +71,9 @@ export class AddSecurityCaseAiTriage1805860000000 implements MigrationInterface 
     await queryRunner.query(
       `ALTER TABLE "SecurityCase" DROP COLUMN "aiSuggestedPriority"`,
     );
-    await queryRunner.query(`ALTER TABLE "SecurityCase" DROP COLUMN "aiVerdict"`);
+    await queryRunner.query(
+      `ALTER TABLE "SecurityCase" DROP COLUMN "aiVerdict"`,
+    );
     await queryRunner.query(
       `ALTER TABLE "Project" DROP COLUMN "enableAutomaticSecurityCaseTriage"`,
     );

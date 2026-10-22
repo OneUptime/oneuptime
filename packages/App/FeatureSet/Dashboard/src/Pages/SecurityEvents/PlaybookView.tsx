@@ -35,7 +35,10 @@ import {
   SecurityPlaybookStep,
   parseSecurityPlaybookSteps,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
-import SecurityPlaybookTrigger from "Common/Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import {
+  SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
+  getSecurityPlaybookTriggerOptions,
+} from "../../Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
 import { Green, Gray500 } from "Common/Types/BrandColors";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -306,12 +309,13 @@ const SecurityPlaybookViewPage: FunctionComponent<
               field: { trigger: true },
               stepId: "when",
               title: "Trigger",
-              description:
-                "Case Opened: once, as a case opens. Detection Added: each time a new detection joins an open case. Manual: only when someone runs it.",
+              description: SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
               fieldType: FormFieldSchemaType.Dropdown,
-              dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-                SecurityPlaybookTrigger,
-              ),
+              // Every trigger, so the playbook's own stays shown.
+              dropdownOptions: getSecurityPlaybookTriggerOptions({
+                isAiOffered: true,
+                isEditing: true,
+              }),
               required: true,
             },
             {

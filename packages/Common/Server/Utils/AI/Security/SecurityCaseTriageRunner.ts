@@ -1,8 +1,12 @@
 import { SecurityCaseFeedEventType } from "../../../../Models/DatabaseModels/SecurityCaseFeed";
+import SecurityDetection from "../../../../Models/DatabaseModels/SecurityDetection";
 import { Indigo500 } from "../../../../Types/BrandColors";
 import OneUptimeDate from "../../../../Types/Date";
 import ObjectID from "../../../../Types/ObjectID";
-import { getSecurityCaseAiVerdictDescription } from "../../../../Types/SecurityCase/SecurityCaseAiVerdict";
+import SecurityCaseAiVerdict, {
+  getSecurityCaseAiVerdictDescription,
+} from "../../../../Types/SecurityCase/SecurityCaseAiVerdict";
+import SecurityPlaybookTrigger from "../../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import { InstructionLikeTextScan } from "../../../../Utils/AI/InstructionLikeText";
 import FeedMarkdown, {
   MarkdownText,
@@ -11,7 +15,13 @@ import FeedMarkdown, {
 import { AI_SECURITY_CASE_TRIAGE_FEATURE } from "../../../Services/AIService";
 import SecurityCaseFeedService from "../../../Services/SecurityCaseFeedService";
 import SecurityCaseService from "../../../Services/SecurityCaseService";
+import SecurityDetectionService from "../../../Services/SecurityDetectionService";
 import logger from "../../Logger";
+import ProductBrandingText from "../../ProductBrandingText";
+import { isSetupTestCase } from "../../SecurityCase/SecurityCaseNotifications";
+import SecurityPlaybookLauncher, {
+  PlaybookLaunchDetection,
+} from "../../SecurityPlaybook/SecurityPlaybookLauncher";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ToolOutputPager from "../Chat/ToolOutputPager";
 import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
@@ -60,10 +70,30 @@ import {
  * to steer an AI, a benign or false-positive read is set aside for
  * Inconclusive (SecurityCaseTriageDecision), the case records it, and the
  * report says so first.
+ *
+ * A Likely Malicious read starts the project's playbooks whose trigger is
+ * Triaged as Likely Malicious (SecurityPlaybookLauncher): once per case,
+ * never for a case whose data held text written to steer an AI - such a
+ * read may have been steered toward an innocent user or host - and, on the
+ * setup test's case, only playbooks that stay inside OneUptime. Their
+ * containment steps wait for approval as every playbook's do.
  */
 
-export const PROMPT_INJECTION_REPORT_LEAD: string =
-  "**Heads up:** some text in this case's data reads like instructions to an AI - a sign of an attempt to steer the triage. OneUptime AI treated it as data and leaves the call to a person.";
+// The most detections of a case read to match a playbook's conditions.
+export const MAX_PLAYBOOK_MATCH_DETECTIONS: number = 100;
+
+/*
+ * "OneUptime AI", or the AI of the name the installation goes by: the
+ * timeline entry and the report are text OneUptime writes and keeps.
+ */
+export function getSecurityTriageAiName(): string {
+  return `${ProductBrandingText.getProductName()} AI`;
+}
+
+// The report's first line when the case's data held text written to steer an AI.
+export function getPromptInjectionReportLead(): string {
+  return `**Heads up:** some text in this case's data reads like instructions to an AI - a sign of an attempt to steer the triage. ${getSecurityTriageAiName()} treated it as data and leaves the call to a person.`;
+}
 
 export default class SecurityCaseTriageRunner {
   @CaptureSpan()
@@ -77,6 +107,7 @@ export default class SecurityCaseTriageRunner {
     const scan: InstructionLikeTextScan = new InstructionLikeTextScan();
 
     let context: SecurityCaseTriageContext;
+    let isSetupTest: boolean = false;
 
     try {
       const triage: SecurityCaseTriageData =
@@ -86,6 +117,7 @@ export default class SecurityCaseTriageRunner {
         });
 
       context = SecurityCaseAIContextBuilder.buildContext({ triage, scan });
+      isSetupTest = isSetupTestCase(triage.securityCase);
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
@@ -154,6 +186,7 @@ export default class SecurityCaseTriageRunner {
               analysisMarkdown: posted.analysisMarkdown,
               offeredPlaybookIds: context.offeredPlaybookIds,
               scan,
+              isSetupTestCase: isSetupTest,
             });
           },
         },
@@ -177,13 +210,16 @@ export default class SecurityCaseTriageRunner {
     analysisMarkdown: string;
     offeredPlaybookIds: Array<string>;
     scan: InstructionLikeTextScan;
+    // The setup test's case: only playbooks that stay inside OneUptime.
+    isSetupTestCase?: boolean | undefined;
   }): Promise<SecurityCaseTriageDecision> {
-    const decision: SecurityCaseTriageDecision =
-      readSecurityCaseTriageDecision({
+    const decision: SecurityCaseTriageDecision = readSecurityCaseTriageDecision(
+      {
         analysisMarkdown: data.analysisMarkdown,
         offeredPlaybookIds: data.offeredPlaybookIds,
         instructionLikeTextFound: data.scan.found(),
-      });
+      },
+    );
 
     const report: string = this.buildReport({
       analysisMarkdown: data.analysisMarkdown,
@@ -222,7 +258,76 @@ export default class SecurityCaseTriageRunner {
       }.`,
     );
 
+    if (this.shouldStartMaliciousPlaybooks({ decision, scan: data.scan })) {
+      await this.startMaliciousPlaybooks({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        onlyPlaybooksThatStayInside: data.isSetupTestCase === true,
+      });
+    }
+
     return decision;
+  }
+
+  /*
+   * Whether this read starts the Triaged as Likely Malicious playbooks: a
+   * Likely Malicious read of a case whose data held no text written to
+   * steer an AI.
+   */
+  public static shouldStartMaliciousPlaybooks(data: {
+    decision: SecurityCaseTriageDecision;
+    scan: InstructionLikeTextScan;
+  }): boolean {
+    return (
+      data.decision.verdict === SecurityCaseAiVerdict.LikelyMalicious &&
+      !data.scan.found()
+    );
+  }
+
+  /*
+   * Starts the playbooks a Likely Malicious read calls for, matched against
+   * the case's detections. Never throws: the triage is recorded either way.
+   */
+  public static async startMaliciousPlaybooks(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    onlyPlaybooksThatStayInside: boolean;
+  }): Promise<number> {
+    try {
+      const detections: Array<SecurityDetection> =
+        await SecurityDetectionService.findBy({
+          query: {
+            projectId: data.projectId,
+            securityCaseId: data.securityCaseId,
+          },
+          select: { source: true, detectionRuleId: true },
+          limit: MAX_PLAYBOOK_MATCH_DETECTIONS,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      return await SecurityPlaybookLauncher.launchForCase({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        trigger: SecurityPlaybookTrigger.TriagedAsLikelyMalicious,
+        detections: detections
+          .filter((detection: SecurityDetection): boolean => {
+            return Boolean(detection.source);
+          })
+          .map((detection: SecurityDetection): PlaybookLaunchDetection => {
+            return {
+              source: detection.source!,
+              detectionRuleId: detection.detectionRuleId || undefined,
+            };
+          }),
+        onlyPlaybooksThatStayInside: data.onlyPlaybooksThatStayInside,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: could not start the Triaged as Likely Malicious playbooks for security case ${data.securityCaseId.toString()}: ${error}`,
+      );
+      return 0;
+    }
   }
 
   /*
@@ -248,10 +353,10 @@ export default class SecurityCaseTriageRunner {
     });
 
     if (headingIndex === -1) {
-      return `${PROMPT_INJECTION_REPORT_LEAD}\n\n${report}`;
+      return `${getPromptInjectionReportLead()}\n\n${report}`;
     }
 
-    lines.splice(headingIndex + 1, 0, "", PROMPT_INJECTION_REPORT_LEAD);
+    lines.splice(headingIndex + 1, 0, "", getPromptInjectionReportLead());
 
     return lines.join("\n");
   }
@@ -277,7 +382,7 @@ export default class SecurityCaseTriageRunner {
     }
 
     return suggestions.length > 0
-      ? mdText`**OneUptime AI triaged this case: ${verdict}.** It ${FeedMarkdown.join(suggestions, " and ")}.`
-      : mdText`**OneUptime AI triaged this case: ${verdict}.**`;
+      ? mdText`**${getSecurityTriageAiName()} triaged this case: ${verdict}.** It ${FeedMarkdown.join(suggestions, " and ")}.`
+      : mdText`**${getSecurityTriageAiName()} triaged this case: ${verdict}.**`;
   }
 }

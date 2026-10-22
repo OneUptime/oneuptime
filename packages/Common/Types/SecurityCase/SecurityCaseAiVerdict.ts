@@ -44,8 +44,7 @@ export const SECURITY_CASE_AI_VERDICTS: ReadonlyArray<SecurityCaseAiVerdictDescr
     {
       verdict: SecurityCaseAiVerdict.LikelyMalicious,
       token: "malicious",
-      description:
-        "The evidence points at malicious or unauthorized activity.",
+      description: "The evidence points at malicious or unauthorized activity.",
       suggestedCloseVerdict: SecurityCaseVerdict.TruePositive,
     },
     {
@@ -64,7 +63,8 @@ export const SECURITY_CASE_AI_VERDICTS: ReadonlyArray<SecurityCaseAiVerdictDescr
     {
       verdict: SecurityCaseAiVerdict.Inconclusive,
       token: "inconclusive",
-      description: "There was not enough evidence to tell. A person has to look.",
+      description:
+        "There was not enough evidence to tell. A person has to look.",
     },
   ];
 

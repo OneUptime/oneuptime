@@ -7,7 +7,9 @@ import InvestigationStatusBadge, {
   InvestigationStatusIndicator,
   renderInvestigationStatusIndicator,
 } from "../AI/InvestigationStatusBadge";
+import { EvidenceFocusRequest } from "../AI/InvestigationReport/InvestigationEvidenceList";
 import InvestigationReportView from "../AI/InvestigationReport/InvestigationReportView";
+import InvestigationRunDetails from "../AI/InvestigationReport/InvestigationRunDetails";
 import SecurityCaseApi from "./SecurityCaseApi";
 import {
   SecurityCaseAiCopy,
@@ -17,12 +19,15 @@ import {
   SecurityCaseTriageStatusView,
   SecurityCaseTriageStep,
   canStartTriage,
-  didTriageRunFail,
+  didLatestTriageNotFinish,
+  getSecurityCaseAiBadge,
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
   getSecurityCaseAiStepLabel,
   getSecurityCaseAiVerdictSentence,
-  isTriageRunActive,
+  isBlockingTriageReason,
+  isTriageOnItsWay,
+  readSecurityCaseAiResult,
   shouldOfferSuggestedPriority,
 } from "./SecurityCaseAiTriage";
 import {
@@ -34,9 +39,12 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import {
@@ -71,7 +79,7 @@ import React, {
 
 export const SECURITY_CASE_AI_CARD_ID: string = "security-case-ai-card";
 
-// How often the card asks while a triage runs.
+// How often the card asks while a triage is on its way.
 export const SECURITY_CASE_AI_POLL_INTERVAL_MS: number = 3000;
 // The latest steps the card lists while a triage runs.
 export const SECURITY_CASE_AI_STEPS_SHOWN: number = 5;
@@ -98,7 +106,9 @@ export interface ComponentProps {
  *   - Triaged: OneUptime AI's read (its pill), the priority and playbook it
  *     suggests - each one click, through the case's own actions (Set
  *     priority, Run Playbook and that playbook's approvals) - and its report
- *     with every claim cited. Ask about this case opens Ask AI on the case.
+ *     with every claim cited: a citation opens the check behind it under
+ *     Evidence checked, with the rows it read, re-run with the reader's own
+ *     permissions. Ask about this case opens Ask AI on the case.
  *   - Failed: what happened, and Try again.
  *
  * With the project's AI off the card is not drawn at all. Like the incident
@@ -118,20 +128,14 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   const [startError, setStartError] = useState<string>("");
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [playbookName, setPlaybookName] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<EvidenceFocusRequest | null>(
+    null,
+  );
+  const focusRequestCounterRef: React.MutableRefObject<number> =
+    useRef<number>(0);
 
   const result: SecurityCaseAiResult = useMemo((): SecurityCaseAiResult => {
-    return {
-      verdict: props.securityCase.aiVerdict || undefined,
-      suggestedPriority: props.securityCase.aiSuggestedPriority || undefined,
-      suggestedPlaybookId:
-        props.securityCase.aiSuggestedPlaybookId?.toString() || undefined,
-      report: props.securityCase.aiTriageReport || undefined,
-      triagedAt: props.securityCase.aiTriagedAt
-        ? new Date(props.securityCase.aiTriagedAt)
-        : undefined,
-      promptInjectionSuspected:
-        props.securityCase.aiTriagePromptInjectionSuspected === true,
-    };
+    return readSecurityCaseAiResult(props.securityCase);
   }, [
     props.securityCase.aiVerdict,
     props.securityCase.aiSuggestedPriority,
@@ -151,8 +155,8 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   );
   onTriagedRef.current = props.onTriaged;
 
-  // Whether the last answer had a run on its way: its end reloads the case.
-  const wasActiveRef: React.MutableRefObject<boolean> =
+  // Whether the last answer had a triage on its way: its end reloads the case.
+  const wasOnItsWayRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
@@ -163,17 +167,17 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     try {
       const next: SecurityCaseTriageStatusView =
         await SecurityCaseApi.getAiTriage(new ObjectID(caseId));
-      const isActive: boolean = isTriageRunActive(next.run);
+      const isOnItsWay: boolean = isTriageOnItsWay(next);
 
       setStatus(next);
       setLoadError("");
 
-      if (wasActiveRef.current && !isActive) {
+      if (wasOnItsWayRef.current && !isOnItsWay) {
         // The triage just settled: read the case again for its result.
         onTriagedRef.current();
       }
 
-      wasActiveRef.current = isActive;
+      wasOnItsWayRef.current = isOnItsWay;
     } catch (error) {
       setLoadError(API.getFriendlyMessage(error));
     }
@@ -188,10 +192,10 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   }, [isAiOffered, load, result.triagedAt?.getTime()]);
 
   // Poll while a triage is on its way.
-  const isActive: boolean = isTriageRunActive(status?.run);
+  const isOnItsWay: boolean = isTriageOnItsWay(status);
 
   useEffect(() => {
-    if (!isAiOffered || !isActive) {
+    if (!isAiOffered || !isOnItsWay) {
       return;
     }
 
@@ -202,7 +206,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     return () => {
       clearInterval(timer);
     };
-  }, [isAiOffered, isActive, load]);
+  }, [isAiOffered, isOnItsWay, load]);
 
   // The suggested playbook's name, read with the viewer's permissions.
   useEffect(() => {
@@ -244,6 +248,35 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     return result.report ? parseInvestigationReport(result.report) : null;
   }, [result.report]);
 
+  // A citation chip opens the check behind it under Evidence checked.
+  const focusCitation: (citationId: string) => void = useCallback(
+    (citationId: string): void => {
+      focusRequestCounterRef.current += 1;
+      setFocusRequest({
+        citationId,
+        requestId: focusRequestCounterRef.current,
+      });
+    },
+    [],
+  );
+
+  const loadEvidenceRows: (data: {
+    runId: string;
+    citationId: string;
+  }) => Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> = useCallback(
+    async (data: {
+      runId: string;
+      citationId: string;
+    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+      return await SecurityCaseApi.loadAiTriageEvidenceRows({
+        caseId: new ObjectID(caseId),
+        runId: data.runId,
+        citationId: data.citationId,
+      });
+    },
+    [caseId],
+  );
+
   if (!isAiOffered) {
     return <></>;
   }
@@ -259,7 +292,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
 
     try {
       await SecurityCaseApi.startAiTriage(new ObjectID(caseId));
-      wasActiveRef.current = true;
+      wasOnItsWayRef.current = true;
       await load();
     } catch (error) {
       setStartError(API.getFriendlyMessage(error));
@@ -275,15 +308,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   };
 
   const badge: { text: string; indicator: InvestigationStatusIndicator } =
-    stage === SecurityCaseAiStage.Triaging
-      ? { text: "Triaging", indicator: "live" }
-      : stage === SecurityCaseAiStage.Triaged
-        ? { text: "Triaged", indicator: "done" }
-        : stage === SecurityCaseAiStage.Failed
-          ? { text: "Failed", indicator: "failed" }
-          : status
-            ? { text: "Not triaged", indicator: "idle" }
-            : { text: "Checking", indicator: "checking" };
+    getSecurityCaseAiBadge({ stage, hasStatus: status !== null });
 
   const canStart: boolean = canStartTriage(status) && updateGate.isAllowed;
 
@@ -305,9 +330,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           updateGate.isAllowed
             ? undefined
             : updateGate.disabledReason ||
-              translator.translateText(
-                "A role that can work security cases can ask OneUptime AI to triage one.",
-              ) ||
+              translator.translateText(SecurityCaseAiCopy.noPermission) ||
               undefined
         }
         onClick={() => {
@@ -322,11 +345,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     status?.notStartedCode || null;
   const reasonAction: SecurityCaseAiReasonAction | null =
     getSecurityCaseAiReasonAction(reasonCode);
-  const blockingReason: boolean = Boolean(
-    reasonCode &&
-      reasonCode !== "automatic_triage_disabled" &&
-      reasonCode !== "already_triaging",
-  );
+  const blockingReason: boolean = isBlockingTriageReason(reasonCode);
 
   const renderReason: () => ReactElement = (): ReactElement => {
     if (!reasonCode || !blockingReason) {
@@ -383,7 +402,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     return (
       <ul
         className="space-y-1.5 border-t border-gray-100 pt-3"
-        aria-label={translator.translateText("What OneUptime AI checked")}
+        aria-label={translator.translateText(SecurityCaseAiCopy.stepsLabel)}
         data-testid="security-case-ai-steps"
       >
         {steps.map((step: SecurityCaseTriageStep, index: number) => {
@@ -410,14 +429,86 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderTriaged: () => ReactElement = (): ReactElement => {
+  const renderSuggestions: () => ReactElement = (): ReactElement => {
     const offerPriority: boolean = shouldOfferSuggestedPriority({
       suggestedPriority: result.suggestedPriority,
       currentPriority: props.securityCase.priority,
     });
 
+    if (!result.suggestedPriority && !playbookName) {
+      return <></>;
+    }
+
     return (
-      <div className="space-y-5">
+      <dl className="divide-y divide-gray-100 border-y border-gray-100">
+        {result.suggestedPriority ? (
+          <div
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
+            data-testid="security-case-ai-suggested-priority"
+          >
+            <dt className="text-sm text-gray-600">
+              {translator.translateText(SecurityCaseAiCopy.suggestedPriority)}
+            </dt>
+            <dd className="flex items-center gap-3">
+              <SecurityCasePriorityPill value={result.suggestedPriority} />
+              {offerPriority && updateGate.isAllowed ? (
+                <Button
+                  title={SecurityCaseAiCopy.setPriorityButton}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  disabled={props.isWorking}
+                  onClick={() => {
+                    if (result.suggestedPriority) {
+                      props.onSetPriority(result.suggestedPriority);
+                    }
+                  }}
+                  dataTestId="security-case-ai-set-priority"
+                />
+              ) : (
+                <></>
+              )}
+            </dd>
+          </div>
+        ) : (
+          <></>
+        )}
+        {playbookName && result.suggestedPlaybookId ? (
+          <div
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
+            data-testid="security-case-ai-suggested-playbook"
+          >
+            <dt className="text-sm text-gray-600">
+              {translator.translateText(SecurityCaseAiCopy.suggestedPlaybook)}
+            </dt>
+            <dd className="flex min-w-0 items-center gap-3">
+              <span className="min-w-0 truncate text-sm font-medium text-gray-900">
+                {playbookName}
+              </span>
+              <Button
+                title={SecurityCaseAiCopy.runPlaybookButton}
+                icon={IconProp.Play}
+                buttonStyle={ButtonStyleType.NORMAL}
+                buttonSize={ButtonSize.Small}
+                disabled={props.isWorking}
+                onClick={() => {
+                  props.onRunPlaybook(
+                    new ObjectID(result.suggestedPlaybookId!),
+                  );
+                }}
+                dataTestId="security-case-ai-run-playbook"
+              />
+            </dd>
+          </div>
+        ) : (
+          <></>
+        )}
+      </dl>
+    );
+  };
+
+  const renderTriaged: () => ReactElement = (): ReactElement => {
+    return (
+      <div className="space-y-5" data-testid="security-case-ai-triaged">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <SecurityCaseAiVerdictPill value={result.verdict} />
           <span className="text-sm text-gray-600">
@@ -443,7 +534,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {didTriageRunFail(status?.run) ? (
+        {didLatestTriageNotFinish(status) ? (
           <InvestigationNotice
             indicator={renderInvestigationStatusIndicator("attention")}
             title={SecurityCaseAiCopy.lastRunFailed}
@@ -453,98 +544,51 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        {result.suggestedPriority || playbookName ? (
-          <dl className="divide-y divide-gray-100 border-y border-gray-100">
-            {result.suggestedPriority ? (
-              <div
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
-                data-testid="security-case-ai-suggested-priority"
-              >
-                <dt className="text-sm text-gray-600">
-                  {translator.translateText(
-                    SecurityCaseAiCopy.suggestedPriority,
-                  )}
-                </dt>
-                <dd className="flex items-center gap-3">
-                  <SecurityCasePriorityPill value={result.suggestedPriority} />
-                  {offerPriority && updateGate.isAllowed ? (
-                    <Button
-                      title={SecurityCaseAiCopy.setPriorityButton}
-                      buttonStyle={ButtonStyleType.NORMAL}
-                      buttonSize={ButtonSize.Small}
-                      disabled={props.isWorking}
-                      onClick={() => {
-                        if (result.suggestedPriority) {
-                          props.onSetPriority(result.suggestedPriority);
-                        }
-                      }}
-                      dataTestId="security-case-ai-set-priority"
-                    />
-                  ) : (
-                    <></>
-                  )}
-                </dd>
-              </div>
-            ) : (
-              <></>
-            )}
-            {playbookName && result.suggestedPlaybookId ? (
-              <div
-                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3"
-                data-testid="security-case-ai-suggested-playbook"
-              >
-                <dt className="text-sm text-gray-600">
-                  {translator.translateText(
-                    SecurityCaseAiCopy.suggestedPlaybook,
-                  )}
-                </dt>
-                <dd className="flex min-w-0 items-center gap-3">
-                  <span className="min-w-0 truncate text-sm font-medium text-gray-900">
-                    {playbookName}
-                  </span>
-                  <Button
-                    title={SecurityCaseAiCopy.runPlaybookButton}
-                    icon={IconProp.Play}
-                    buttonStyle={ButtonStyleType.NORMAL}
-                    buttonSize={ButtonSize.Small}
-                    disabled={props.isWorking}
-                    onClick={() => {
-                      props.onRunPlaybook(
-                        new ObjectID(result.suggestedPlaybookId!),
-                      );
-                    }}
-                    dataTestId="security-case-ai-run-playbook"
-                  />
-                </dd>
-              </div>
-            ) : (
-              <></>
-            )}
-          </dl>
-        ) : (
-          <></>
-        )}
+        {renderSuggestions()}
 
         {report && result.report ? (
           <InvestigationReportView
             analysisMarkdown={result.report}
             report={report}
             analysisTldr={null}
-            evidence={[]}
+            evidence={status?.evidence || []}
             references={[]}
             subjectType="incident"
-            onCitationActivate={() => {
-              // The evidence is listed in the report's own words.
-            }}
+            onCitationActivate={focusCitation}
           />
         ) : (
           <></>
         )}
 
+        {report && result.report ? (
+          <InvestigationRunDetails
+            evidence={status?.evidence || []}
+            legacyEntries={report.evidenceChecked}
+            events={[]}
+            usage={
+              status?.run && status.evidence.length > 0
+                ? {
+                    toolCallCount: status.run.toolCallCount,
+                    totalTokens: status.run.totalTokens,
+                  }
+                : null
+            }
+            subjectType="securityCase"
+            subjectId={caseId}
+            runId={status?.run?.id || null}
+            focusRequest={focusRequest}
+            loadEvidenceRows={loadEvidenceRows}
+          />
+        ) : (
+          <></>
+        )}
+
+        {renderStartError()}
+
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-gray-100 pt-4">
           <Button
             title={SecurityCaseAiCopy.askButton}
-            icon={IconProp.Sparkles}
+            icon={IconProp.ChatBubbleLeftRight}
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
             onClick={askAboutCase}
@@ -552,8 +596,13 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           />
           {triageButton(SecurityCaseAiCopy.triageAgainButton, false)}
           {result.triagedAt ? (
-            <span className="text-xs text-gray-500">
-              {translator.translateTemplate("Triaged {{when}}", {
+            <span
+              className="text-xs text-gray-500"
+              title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                result.triagedAt,
+              )}
+            >
+              {translator.translateTemplate(SecurityCaseAiCopy.triagedWhen, {
                 when: OneUptimeDate.fromNow(result.triagedAt),
               })}
             </span>
@@ -608,7 +657,11 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           </InvestigationNotice>
           {renderReason()}
           {renderStartError()}
-          <div>{triageButton("Try again", true)}</div>
+          {blockingReason ? (
+            <></>
+          ) : (
+            <div>{triageButton(SecurityCaseAiCopy.tryAgainButton, true)}</div>
+          )}
         </div>
       );
     }

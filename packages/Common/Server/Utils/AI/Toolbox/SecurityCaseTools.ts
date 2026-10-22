@@ -21,8 +21,9 @@ import {
   SecurityEntity,
   readSecurityEntities,
 } from "../../../../Types/SecurityCase/SecurityEntity";
-import { OPEN_SECURITY_CASE_STATUSES } from "../../../../Types/SecurityCase/SecurityCaseStatus";
-import SecurityCaseStatus from "../../../../Types/SecurityCase/SecurityCaseStatus";
+import SecurityCaseStatus, {
+  OPEN_SECURITY_CASE_STATUSES,
+} from "../../../../Types/SecurityCase/SecurityCaseStatus";
 import { ocsfSeverityFromId } from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
   SecurityPlaybookStep,
@@ -168,7 +169,7 @@ function entityList(value: unknown): string {
 export const QuerySecurityCasesTool: ObservabilityTool = {
   name: "query_security_cases",
   description:
-    "Read security cases. Pass securityCaseId for one case with its detections (what fired, how often, the entities it names, a sample event message) and the incident it declared, if any. Without it, list cases: status=\"open\" (default), \"closed\" or \"all\", and entity to list only the cases about one user, host, IP address or domain - a recurrence, or a wider attack.",
+    'Read security cases. Pass securityCaseId for one case with its detections (what fired, how often, the entities it names, a sample event message) and the incident it declared, if any. Without it, list cases: status="open" (default), "closed" or "all", and entity to list only the cases about one user, host, IP address or domain - a recurrence, or a wider attack.',
   inputSchema: {
     type: "object",
     properties: {
@@ -312,8 +313,8 @@ async function readOneCase(
   securityCaseId: ObjectID,
   ctx: ToolContext,
 ): Promise<ToolExecutionResult> {
-  const securityCase: SecurityCase | null =
-    await SecurityCaseService.findOneBy({
+  const securityCase: SecurityCase | null = await SecurityCaseService.findOneBy(
+    {
       query: {
         _id: securityCaseId,
         projectId: ctx.projectId,
@@ -341,7 +342,8 @@ async function readOneCase(
         aiSuggestedPriority: true,
       },
       props: ctx.props,
-    });
+    },
+  );
 
   if (!securityCase) {
     throw new BadDataException(
@@ -384,7 +386,8 @@ async function readOneCase(
       });
 
       if (incident) {
-        incidentLine = `${incident.incidentNumberWithPrefix || "Incident"} ${incident.title || ""}`.trim();
+        incidentLine =
+          `${incident.incidentNumberWithPrefix || "Incident"} ${incident.title || ""}`.trim();
       }
     } catch {
       // An incident the caller may not read is not named.
@@ -493,12 +496,9 @@ export const LookupThreatIntelTool: ObservabilityTool = {
     required: ["values"],
   },
   get requiredPermissions(): Array<Permission> {
-    return permissionsOf(
-      "ThreatIntelIndicator:read",
-      (): Array<Permission> => {
-        return new ThreatIntelIndicator().getReadPermissions();
-      },
-    );
+    return permissionsOf("ThreatIntelIndicator:read", (): Array<Permission> => {
+      return new ThreatIntelIndicator().getReadPermissions();
+    });
   },
   execute: async (
     args: JSONObject,
@@ -703,9 +703,21 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
  * ---------------------------------------------------------------------------
  */
 
-// One playbook's steps in a line: "Check threat intel, then Contain CrowdStrike host (needs approval)".
+/*
+ * One playbook's steps in a line: "Check threat intel, then Contain
+ * CrowdStrike host (needs approval)". Steps that cannot be read say so,
+ * rather than keep every other playbook from being listed.
+ */
 export function describePlaybookSteps(steps: unknown): string {
-  return parseSecurityPlaybookSteps(steps)
+  let parsed: Array<SecurityPlaybookStep>;
+
+  try {
+    parsed = parseSecurityPlaybookSteps(steps);
+  } catch {
+    return "(its steps could not be read)";
+  }
+
+  return parsed
     .map((step: SecurityPlaybookStep): string => {
       const title: string =
         getSecurityPlaybookAction(step.action)?.title || step.action;
@@ -997,12 +1009,11 @@ export const RunSecurityPlaybookTool: ObservabilityTool = {
     run.securityCaseId = securityCaseId;
     run.securityPlaybookId = securityPlaybookId;
 
-    const created: SecurityPlaybookRun = await SecurityPlaybookRunService.create(
-      {
+    const created: SecurityPlaybookRun =
+      await SecurityPlaybookRunService.create({
         data: run,
         props: ctx.props,
-      },
-    );
+      });
 
     const target: AIChatCitationTarget = {
       type: AIChatCitationTargetType.SecurityCaseView,

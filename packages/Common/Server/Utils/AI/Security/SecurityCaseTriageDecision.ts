@@ -37,9 +37,9 @@ import { findLabelledValues } from "../LabelledAnswerLines";
  * the answer.
  */
 
-const VERDICT_VALUE: RegExp = /(malicious|benign|false-positive|inconclusive)\b/iy;
-const PRIORITY_VALUE: RegExp =
-  /(critical|high|medium|low|informational)\b/iy;
+const VERDICT_VALUE: RegExp =
+  /(malicious|benign|false-positive|inconclusive)\b/iy;
+const PRIORITY_VALUE: RegExp = /(critical|high|medium|low|informational)\b/iy;
 // A playbook id as OneUptime writes one, or "none".
 const PLAYBOOK_VALUE: RegExp =
   /(none|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/iy;

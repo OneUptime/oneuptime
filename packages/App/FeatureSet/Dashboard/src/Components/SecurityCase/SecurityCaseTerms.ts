@@ -46,6 +46,7 @@ export const SECURITY_CASE_DISPLAY_TERMS: ReadonlyArray<string> = [
   // SecurityPlaybookTrigger
   translationKey("Case Opened"),
   translationKey("Detection Added"),
+  translationKey("Triaged as Likely Malicious"),
   // SecurityPlaybookRunStatus and SecurityPlaybookStepStatus
   translationKey("Queued"),
   translationKey("Running"),

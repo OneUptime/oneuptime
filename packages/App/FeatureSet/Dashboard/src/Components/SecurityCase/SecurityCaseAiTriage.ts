@@ -1,6 +1,8 @@
 import PageMap from "../../Utils/PageMap";
+import { parseInvestigationEvidence } from "../AI/InvestigationReport/InvestigationReportData";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence";
 import SecurityCaseAiVerdict, {
   getSecurityCaseAiVerdictDescription,
   isSecurityCaseAiVerdict,
@@ -24,9 +26,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  *   - POST /security-case/:caseId/ai-triage (SecurityCaseTriageStatus):
  *     the latest run, its steps while it runs, and what stops a triage now.
  *
- * From them, one of four stages: triaging (a run is queued or running),
- * triaged (a report is on the case - a later run that failed is said under
- * it), failed (the only run did not finish) and not triaged.
+ * From them, one of four stages: triaging (a run is queued or running, or
+ * finished with its report still being written), triaged (a report is on
+ * the case - a later run that did not finish is said under it), failed
+ * (the only run did not finish, or finished with nothing to say) and not
+ * triaged.
  */
 
 export enum SecurityCaseAiStage {
@@ -43,6 +47,7 @@ export interface SecurityCaseTriageRunView {
   startedAt?: Date | undefined;
   completedAt?: Date | undefined;
   toolCallCount: number;
+  totalTokens: number;
   errorMessage?: string | undefined;
 }
 
@@ -76,6 +81,12 @@ const NOT_STARTED_CODES: ReadonlyArray<SecurityCaseTriageNotStartedCode> = [
 export interface SecurityCaseTriageStatusView {
   run: SecurityCaseTriageRunView | null;
   steps: Array<SecurityCaseTriageStep>;
+  // The run finished; its report is still being written onto the case.
+  isReportPending: boolean;
+  // The run settled without writing a report.
+  finishedWithoutReport: boolean;
+  // Every check the report on the case may cite, when it is the latest run's.
+  evidence: Array<InvestigationEvidenceItem>;
   notStartedCode: SecurityCaseTriageNotStartedCode | null;
   isAutomaticTriageOn: boolean;
 }
@@ -104,6 +115,13 @@ function readText(value: JSONValue | undefined): string | undefined {
   return typeof value === "string" && value.trim() ? value : undefined;
 }
 
+// A count the server sent: a whole number, never below zero.
+function readCount(value: JSONValue | undefined): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
+}
+
 /*
  * The route's answer, read defensively: a field an older server left out,
  * or one of the wrong shape, reads as nothing - never as a feature that is
@@ -128,10 +146,8 @@ export function parseSecurityCaseTriageStatus(
       createdAt: readDate(runJson["createdAt"]),
       startedAt: readDate(runJson["startedAt"]),
       completedAt: readDate(runJson["completedAt"]),
-      toolCallCount:
-        typeof runJson["toolCallCount"] === "number"
-          ? Math.max(0, Math.floor(runJson["toolCallCount"] as number))
-          : 0,
+      toolCallCount: readCount(runJson["toolCallCount"]),
+      totalTokens: readCount(runJson["totalTokens"]),
       errorMessage: readText(runJson["errorMessage"]),
     };
   }
@@ -167,6 +183,9 @@ export function parseSecurityCaseTriageStatus(
   return {
     run,
     steps,
+    isReportPending: body["isReportPending"] === true,
+    finishedWithoutReport: body["finishedWithoutReport"] === true,
+    evidence: parseInvestigationEvidence(body["evidence"]),
     notStartedCode: NOT_STARTED_CODES.includes(
       code as SecurityCaseTriageNotStartedCode,
     )
@@ -195,7 +214,9 @@ export function readSecurityCaseAiResult(securityCase: {
     suggestedPriority: isSecurityCasePriority(securityCase.aiSuggestedPriority)
       ? securityCase.aiSuggestedPriority
       : undefined,
-    suggestedPlaybookId: playbookId ? String(playbookId) || undefined : undefined,
+    suggestedPlaybookId: playbookId
+      ? String(playbookId) || undefined
+      : undefined,
     report:
       typeof securityCase.aiTriageReport === "string" &&
       securityCase.aiTriageReport.trim()
@@ -232,11 +253,36 @@ export function didTriageRunFail(
   );
 }
 
+/*
+ * Whether the latest triage is still on its way: queued, running, or
+ * finished with its report not yet on the case.
+ */
+export function isTriageOnItsWay(
+  status: SecurityCaseTriageStatusView | null | undefined,
+): boolean {
+  return Boolean(
+    status && (isTriageRunActive(status.run) || status.isReportPending),
+  );
+}
+
+/*
+ * Whether the latest triage ended without a report: it failed, or it
+ * settled with nothing written.
+ */
+export function didLatestTriageNotFinish(
+  status: SecurityCaseTriageStatusView | null | undefined,
+): boolean {
+  return Boolean(
+    status &&
+      (didTriageRunFail(status.run) || status.finishedWithoutReport === true),
+  );
+}
+
 export function getSecurityCaseAiStage(data: {
   status: SecurityCaseTriageStatusView | null;
   result: SecurityCaseAiResult;
 }): SecurityCaseAiStage {
-  if (isTriageRunActive(data.status?.run)) {
+  if (isTriageOnItsWay(data.status)) {
     return SecurityCaseAiStage.Triaging;
   }
 
@@ -244,7 +290,7 @@ export function getSecurityCaseAiStage(data: {
     return SecurityCaseAiStage.Triaged;
   }
 
-  if (didTriageRunFail(data.status?.run)) {
+  if (didLatestTriageNotFinish(data.status)) {
     return SecurityCaseAiStage.Failed;
   }
 
@@ -265,6 +311,46 @@ export function shouldOfferSuggestedPriority(data: {
 }
 
 /*
+ * Whether a reason stops a person's Triage with AI too: everything but the
+ * automatic switch being off (which a person's request ignores) and a
+ * triage already on its way (which the card shows instead).
+ */
+export function isBlockingTriageReason(
+  code: SecurityCaseTriageNotStartedCode | null | undefined,
+): boolean {
+  return Boolean(
+    code && code !== "automatic_triage_disabled" && code !== "already_triaging",
+  );
+}
+
+// The words and the mark of the badge beside the card's title, by stage.
+export type SecurityCaseAiBadgeIndicator =
+  | "live"
+  | "checking"
+  | "done"
+  | "idle"
+  | "failed";
+
+export function getSecurityCaseAiBadge(data: {
+  stage: SecurityCaseAiStage;
+  // Whether the card has heard from the server yet.
+  hasStatus: boolean;
+}): { text: string; indicator: SecurityCaseAiBadgeIndicator } {
+  switch (data.stage) {
+    case SecurityCaseAiStage.Triaging:
+      return { text: SecurityCaseAiCopy.badges.triaging, indicator: "live" };
+    case SecurityCaseAiStage.Triaged:
+      return { text: SecurityCaseAiCopy.badges.triaged, indicator: "done" };
+    case SecurityCaseAiStage.Failed:
+      return { text: SecurityCaseAiCopy.badges.failed, indicator: "failed" };
+    default:
+      return data.hasStatus
+        ? { text: SecurityCaseAiCopy.badges.notTriaged, indicator: "idle" }
+        : { text: SecurityCaseAiCopy.badges.checking, indicator: "checking" };
+  }
+}
+
+/*
  * Whether Triage with AI may be pressed now: nothing in the way, or only
  * the automatic switch being off (which a person's request ignores).
  */
@@ -275,7 +361,7 @@ export function canStartTriage(
     return false;
   }
 
-  if (isTriageRunActive(status.run)) {
+  if (isTriageOnItsWay(status)) {
     return false;
   }
 
@@ -291,7 +377,9 @@ export const SECURITY_CASE_AI_STEP_LABELS: Record<string, string> = {
   search_security_events: translationKey("Searched the security events"),
   security_event_summary: translationKey("Summarized the security events"),
   lookup_threat_intel: translationKey("Checked threat intel"),
-  security_entity_activity: translationKey("Checked how unusual each entity is"),
+  security_entity_activity: translationKey(
+    "Checked how unusual each entity is",
+  ),
   query_security_playbooks: translationKey("Read the playbooks"),
   query_resource_telemetry: translationKey("Read a host's telemetry"),
   query_alerts: translationKey("Checked alerts"),
@@ -360,8 +448,10 @@ export const SecurityCaseAiCopy: {
   automaticOffNote: string;
   triageButton: string;
   triageAgainButton: string;
+  tryAgainButton: string;
   triagingTitle: string;
   triagingDescription: string;
+  stepsLabel: string;
   failedTitle: string;
   failedDescription: string;
   lastRunFailed: string;
@@ -372,6 +462,15 @@ export const SecurityCaseAiCopy: {
   askButton: string;
   askPrompt: string;
   promptInjection: string;
+  triagedWhen: string;
+  noPermission: string;
+  badges: {
+    triaging: string;
+    triaged: string;
+    failed: string;
+    notTriaged: string;
+    checking: string;
+  };
   reasons: Record<SecurityCaseTriageNotStartedCode, string>;
 } = {
   cardTitle: translationKey("OneUptime AI"),
@@ -384,10 +483,12 @@ export const SecurityCaseAiCopy: {
   ),
   triageButton: translationKey("Triage with AI"),
   triageAgainButton: translationKey("Triage again"),
+  tryAgainButton: translationKey("Try again"),
   triagingTitle: translationKey("Triaging this case"),
   triagingDescription: translationKey(
     "OneUptime AI is reading the case's detections, events, threat intel and hosts. It changes nothing.",
   ),
+  stepsLabel: translationKey("What OneUptime AI checked"),
   failedTitle: translationKey("The triage did not finish"),
   failedDescription: translationKey(
     "OneUptime AI could not finish triaging this case. Try again.",
@@ -400,12 +501,21 @@ export const SecurityCaseAiCopy: {
   suggestedPlaybook: translationKey("Suggested playbook"),
   runPlaybookButton: translationKey("Run playbook"),
   askButton: translationKey("Ask about this case"),
-  askPrompt: translationKey(
-    "What should I check next on this case, and why?",
-  ),
+  askPrompt: translationKey("What should I check next on this case, and why?"),
   promptInjection: translationKey(
     "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.",
   ),
+  triagedWhen: translationKey("Triaged {{when}}"),
+  noPermission: translationKey(
+    "A role that can work security cases can ask OneUptime AI to triage one.",
+  ),
+  badges: {
+    triaging: translationKey("Triaging"),
+    triaged: translationKey("Triaged"),
+    failed: translationKey("Failed"),
+    notTriaged: translationKey("Not triaged"),
+    checking: translationKey("Checking"),
+  },
   reasons: {
     ai_disabled: translationKey("AI is turned off for this project."),
     automatic_triage_disabled: translationKey(

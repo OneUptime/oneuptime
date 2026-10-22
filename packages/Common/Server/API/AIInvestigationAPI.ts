@@ -1118,6 +1118,110 @@ export function pinEvidenceArgumentsToInvestigationTime(data: {
 }
 
 /*
+ * Re-runs the query behind one citation ([C#]) of a run, from the run's own
+ * recorded events, under the VIEWER's tenant-pinned props: the rows a
+ * "Load rows" shows. Only a read-only toolbox tool is re-run, with the
+ * arguments it ran with (its end time pinned to when it ran, where it takes
+ * one). The caller has already checked the viewer may read the run's
+ * subject and that the run is that subject's; the events are the run's,
+ * read as root. Shared by an incident's or alert's AI card and a security
+ * case's (SecurityCaseAPI).
+ */
+export async function rerunInvestigationEvidence(data: {
+  events: Array<AIRunEvent>;
+  citationId: string;
+  tenantId: ObjectID;
+  viewerProps: DatabaseCommonInteractionProps;
+}): Promise<InvestigationEvidenceRowsResponse> {
+  const { citationId } = data;
+
+  const toolCall: InvestigationToolCallRecord | null =
+    findInvestigationToolCall({ events: data.events, citationId });
+
+  if (!toolCall) {
+    throw new BadDataException("This evidence is no longer available.");
+  }
+
+  const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
+    toolCall.item.toolName,
+  );
+
+  // Re-checked here rather than trusted from the item: defense in depth.
+  if (
+    !tool ||
+    !toolCall.item.canLoadRows ||
+    !isRerunnableEvidenceTool(toolCall.item.toolName)
+  ) {
+    throw new BadDataException("This evidence can't be re-run.");
+  }
+
+  const investigatedAt: Date | undefined = toolCall.item.executedAt
+    ? new Date(toolCall.item.executedAt)
+    : undefined;
+
+  const pinned: { args: JSONObject; isPinnedToInvestigationTime: boolean } =
+    pinEvidenceArgumentsToInvestigationTime({
+      tool,
+      rawArguments: toolCall.rawArguments,
+      investigatedAt: toolCall.startedAt || investigatedAt,
+    });
+
+  const outcome: ToolCallOutcome = await AIToolbox.executeTool({
+    name: toolCall.item.toolName,
+    args: pinned.args,
+    ctx: {
+      projectId: data.tenantId,
+      props: data.viewerProps,
+    },
+  });
+
+  if (!outcome.success || !outcome.result) {
+    throw new BadDataException(
+      outcome.errorMessage || "This evidence could not be loaded.",
+    );
+  }
+
+  const result: ToolExecutionResult = outcome.result;
+
+  const rowsResponse: InvestigationEvidenceRowsResponse = {
+    citationId,
+    toolName: toolCall.item.toolName,
+    label: result.citationLabel || toolCall.item.label,
+    rowCount: result.rowCount,
+    isTruncated: result.isTruncated,
+    executedAt: OneUptimeDate.getCurrentDate().toISOString(),
+    isPinnedToInvestigationTime: pinned.isPinnedToInvestigationTime,
+  };
+
+  if (result.widget) {
+    // Mirror ChatAgentRunner: widgets carry their own id + citation.
+    rowsResponse.widget = {
+      ...result.widget,
+      id: result.widget.id || "W1",
+      citationId,
+    };
+  } else {
+    const text: string = result.dataForLlm || "";
+
+    if (text.length > MAX_EVIDENCE_TEXT_LENGTH) {
+      rowsResponse.text = text.substring(0, MAX_EVIDENCE_TEXT_LENGTH);
+      rowsResponse.isTruncated = true;
+    } else {
+      rowsResponse.text = text;
+    }
+  }
+
+  if (toolCall.item.executedAt) {
+    rowsResponse.investigatedAt = toolCall.item.executedAt;
+  }
+
+  return rowsResponse;
+}
+
+// The events a run's evidence is read from: the most read for one run.
+export const MAX_EVIDENCE_EVENTS: number = MAX_EVENTS;
+
+/*
  * "Load rows" for one piece of evidence in the investigation panel: re-runs
  * the query behind a report citation ([C#]) with the VIEWER's permissions.
  *
@@ -1246,85 +1350,13 @@ router.post(
         props: { isRoot: true },
       });
 
-      const toolCall: InvestigationToolCallRecord | null =
-        findInvestigationToolCall({ events, citationId });
-
-      if (!toolCall) {
-        throw new BadDataException("This evidence is no longer available.");
-      }
-
-      const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
-        toolCall.item.toolName,
-      );
-
-      // Re-checked here rather than trusted from the item: defense in depth.
-      if (
-        !tool ||
-        !toolCall.item.canLoadRows ||
-        !isRerunnableEvidenceTool(toolCall.item.toolName)
-      ) {
-        throw new BadDataException("This evidence can't be re-run.");
-      }
-
-      const investigatedAt: Date | undefined = toolCall.item.executedAt
-        ? new Date(toolCall.item.executedAt)
-        : undefined;
-
-      const pinned: { args: JSONObject; isPinnedToInvestigationTime: boolean } =
-        pinEvidenceArgumentsToInvestigationTime({
-          tool,
-          rawArguments: toolCall.rawArguments,
-          investigatedAt: toolCall.startedAt || investigatedAt,
-        });
-
-      const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-        name: toolCall.item.toolName,
-        args: pinned.args,
-        ctx: {
-          projectId: tenantId,
-          props: viewerProps,
-        },
-      });
-
-      if (!outcome.success || !outcome.result) {
-        throw new BadDataException(
-          outcome.errorMessage || "This evidence could not be loaded.",
-        );
-      }
-
-      const result: ToolExecutionResult = outcome.result;
-
-      const rowsResponse: InvestigationEvidenceRowsResponse = {
-        citationId,
-        toolName: toolCall.item.toolName,
-        label: result.citationLabel || toolCall.item.label,
-        rowCount: result.rowCount,
-        isTruncated: result.isTruncated,
-        executedAt: OneUptimeDate.getCurrentDate().toISOString(),
-        isPinnedToInvestigationTime: pinned.isPinnedToInvestigationTime,
-      };
-
-      if (result.widget) {
-        // Mirror ChatAgentRunner: widgets carry their own id + citation.
-        rowsResponse.widget = {
-          ...result.widget,
-          id: result.widget.id || "W1",
+      const rowsResponse: InvestigationEvidenceRowsResponse =
+        await rerunInvestigationEvidence({
+          events,
           citationId,
-        };
-      } else {
-        const text: string = result.dataForLlm || "";
-
-        if (text.length > MAX_EVIDENCE_TEXT_LENGTH) {
-          rowsResponse.text = text.substring(0, MAX_EVIDENCE_TEXT_LENGTH);
-          rowsResponse.isTruncated = true;
-        } else {
-          rowsResponse.text = text;
-        }
-      }
-
-      if (toolCall.item.executedAt) {
-        rowsResponse.investigatedAt = toolCall.item.executedAt;
-      }
+          tenantId,
+          viewerProps,
+        });
 
       Response.sendJsonObjectResponse(
         req,

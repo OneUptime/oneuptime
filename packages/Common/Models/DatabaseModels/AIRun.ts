@@ -601,7 +601,8 @@ export default class AIRun extends BaseModel {
     required: false,
     canReadOnRelationQuery: true,
     title: "Triggered By Security Case ID",
-    description: "The security case this run triaged (for security case triage runs).",
+    description:
+      "The security case this run triaged (for security case triage runs).",
   })
   @Column({
     type: ColumnType.ObjectID,

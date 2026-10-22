@@ -220,6 +220,8 @@ export default class SecurityCaseAIContextBuilder {
           lastDetectedAt: true,
           createdAt: true,
           incidentId: true,
+          // The setup test's case is told apart by it (isSetupTestCase).
+          groupingKey: true,
         },
         props: { isRoot: true },
       });

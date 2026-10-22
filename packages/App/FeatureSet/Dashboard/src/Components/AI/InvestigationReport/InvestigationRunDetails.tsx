@@ -10,8 +10,9 @@ import {
 } from "../ClusterToolFormat";
 import InvestigationEvidenceList, {
   EvidenceFocusRequest,
+  InvestigationEvidenceSubjectType,
+  LoadEvidenceRows,
 } from "./InvestigationEvidenceList";
-import { InvestigationReportSubjectType } from "./InvestigationReportData";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import { InvestigationEvidenceItem } from "Common/Types/AI/InvestigationEvidence";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -430,7 +431,7 @@ export interface ComponentProps {
   // What the run's kubectl calls did (see summarizeKubectlActivity).
   kubectlActivity?: KubectlActivitySummary | undefined;
   modelName?: string | undefined;
-  subjectType: InvestigationReportSubjectType;
+  subjectType: InvestigationEvidenceSubjectType;
   subjectId: string;
   runId: string | null;
   /*
@@ -438,6 +439,8 @@ export interface ComponentProps {
    * the details on the evidence tab before the list reveals the row.
    */
   focusRequest?: EvidenceFocusRequest | null | undefined;
+  // Where "Load rows" asks, for a subject with its own route.
+  loadEvidenceRows?: LoadEvidenceRows | undefined;
 }
 
 /*
@@ -672,6 +675,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             subjectId={props.subjectId}
             runId={props.runId}
             focusRequest={props.focusRequest}
+            loadEvidenceRows={props.loadEvidenceRows}
           />
         </div>
       );

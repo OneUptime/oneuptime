@@ -25,6 +25,11 @@ interface ValuePillProps {
   isMinimal?: boolean | undefined;
 }
 
+interface AiVerdictPillProps extends ValuePillProps {
+  // Already in the reader's language.
+  tooltip?: string | undefined;
+}
+
 const NoValue: FunctionComponent = (): ReactElement => {
   return <span className="text-gray-400">-</span>;
 };
@@ -68,9 +73,9 @@ export const SecurityCaseStatusPill: FunctionComponent<ValuePillProps> = (
  * the verdicts each read suggests, with the AI mark in front so it is never
  * taken for the verdict a person set.
  */
-export const SecurityCaseAiVerdictPill: FunctionComponent<ValuePillProps> = (
-  props: ValuePillProps,
-): ReactElement => {
+export const SecurityCaseAiVerdictPill: FunctionComponent<
+  AiVerdictPillProps
+> = (props: AiVerdictPillProps): ReactElement => {
   if (!props.value) {
     return <NoValue />;
   }
@@ -82,6 +87,7 @@ export const SecurityCaseAiVerdictPill: FunctionComponent<ValuePillProps> = (
       color={getSecurityCaseAiVerdictColor(props.value)}
       size={props.size}
       isMinimal={props.isMinimal}
+      tooltip={props.tooltip}
     />
   );
 };

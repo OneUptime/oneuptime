@@ -173,6 +173,25 @@ export default class SecurityCaseApi {
     );
   }
 
+  /*
+   * The rows behind one citation ([C#]) of the triage's report, re-run with
+   * the viewer's own permissions: the evidence list's Load rows. The raw
+   * response, as the evidence list reads it.
+   */
+  public static async loadAiTriageEvidenceRows(data: {
+    caseId: ObjectID;
+    runId: string;
+    citationId: string;
+  }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
+    return await API.post<JSONObject>({
+      url: routeUrl(
+        `/security-case/${data.caseId.toString()}/ai-triage/evidence`,
+      ),
+      data: { runId: data.runId, citationId: data.citationId },
+      headers: { ...ModelAPI.getCommonHeaders() },
+    });
+  }
+
   // Triage with AI: asks OneUptime AI to triage the case now.
   public static async startAiTriage(caseId: ObjectID): Promise<string> {
     const body: JSONObject = await post(

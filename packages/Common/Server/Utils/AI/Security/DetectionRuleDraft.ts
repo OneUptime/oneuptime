@@ -1,5 +1,9 @@
 import { DetectionRuleDefinition } from "../../../../Types/SecurityEvent/SigmaCorrelation";
 import {
+  DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH,
+  isDetectionRuleDraftDescription,
+} from "../../../../Types/SecurityEvent/DetectionRuleAiDraft";
+import {
   DetectionRuleLibraryEntry,
   getDetectionRuleLibraryEntry,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
@@ -40,7 +44,7 @@ import SigmaClickhouseCompiler from "../../SecurityEvent/Sigma/SigmaClickhouseCo
  * and inside the project's daily AI limits, not the autonomous budget.
  */
 
-export const DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH: number = 2000;
+export { DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH };
 const DRAFT_MAX_OUTPUT_TOKENS: number = 2000;
 // How many times the model may write the rule: once, and once more to fix it.
 export const DETECTION_RULE_DRAFT_MAX_ATTEMPTS: number = 2;
@@ -182,7 +186,7 @@ export default class DetectionRuleDraft {
   }): Promise<DetectionRuleDraftResult> {
     const description: string = (data.description || "").trim();
 
-    if (!description) {
+    if (!isDetectionRuleDraftDescription(description)) {
       throw new BadDataException(
         "Describe what the rule should detect, in a sentence or two.",
       );

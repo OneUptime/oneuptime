@@ -57,6 +57,19 @@ import SecurityCaseTriage, {
   SecurityCaseTriageStartResult,
 } from "../Utils/AI/Security/SecurityCaseTriage";
 import SecurityCaseTriageStatus from "../Utils/AI/Security/SecurityCaseTriageStatus";
+import AIRun from "../../Models/DatabaseModels/AIRun";
+import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
+import AIRunType from "../../Types/AI/AIRunType";
+import { InvestigationEvidenceRowsResponse } from "../../Types/AI/InvestigationEvidence";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import AIRunEventService from "../Services/AIRunEventService";
+import AIRunService from "../Services/AIRunService";
+import { EVIDENCE_CITATION_ID_REGEX } from "../Utils/AI/SRE/InvestigationEvidence";
+import {
+  MAX_EVIDENCE_EVENTS,
+  pinPropsToTenant,
+  rerunInvestigationEvidence,
+} from "./AIInvestigationAPI";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -105,6 +118,7 @@ function readWholeNumber(
  *   POST /security-case/setup/test         a simulated attack, end to end
  *   POST /security-case/:caseId/ai-triage  OneUptime AI's triage of a case
  *   POST /security-case/:caseId/ai-triage/start
+ *   POST /security-case/:caseId/ai-triage/evidence  the rows behind a [C#]
  *
  * Every read is made with the caller's own props, so the figures are of the
  * cases, detections and events the caller may read, and nothing else.
@@ -611,6 +625,121 @@ export default class SecurityCaseAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             runId: result.runId.toString(),
           });
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * "Load rows" for one piece of the triage's evidence: re-runs the check
+     * behind a citation of the report ([C#]) with the VIEWER's own
+     * permissions, as an incident's AI card does (rerunInvestigationEvidence).
+     * The case is read under the viewer's props first; the run must be a
+     * triage of THAT case in the tenant, so another case's run cannot be
+     * replayed through this one; the tool and its arguments come from the
+     * run's recorded events, never from the request; only read-only tools
+     * re-run. Body: { runId, citationId: "C1" }.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-triage/evidence`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          const viewerProps: DatabaseCommonInteractionProps =
+            pinPropsToTenant(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: SecurityCase,
+            props,
+            errorMessage:
+              "Reading a case's AI triage takes a Security role, or Project Owner or Project Admin.",
+          });
+
+          const body: JSONObject =
+            req.body && typeof req.body === "object" && !Array.isArray(req.body)
+              ? (req.body as JSONObject)
+              : {};
+
+          const runIdText: string =
+            typeof body["runId"] === "string"
+              ? (body["runId"] as string).trim()
+              : "";
+
+          if (!ObjectID.isValidUUID(runIdText)) {
+            throw new BadDataException("runId must be a valid ID.");
+          }
+
+          const citationId: string =
+            typeof body["citationId"] === "string"
+              ? (body["citationId"] as string).trim()
+              : "";
+
+          if (!EVIDENCE_CITATION_ID_REGEX.test(citationId)) {
+            throw new BadDataException(
+              'citationId must be a citation marker such as "C1".',
+            );
+          }
+
+          const securityCaseId: ObjectID = await this.readCaseForTriage({
+            caseId: req.params["caseId"],
+            projectId,
+            props: viewerProps,
+          });
+
+          const run: AIRun | null = await AIRunService.findOneBy({
+            query: {
+              _id: new ObjectID(runIdText),
+              projectId,
+              runType: AIRunType.Investigation,
+              triggeredBySecurityCaseId: securityCaseId,
+            },
+            select: { _id: true },
+            props: { isRoot: true },
+          });
+
+          if (!run) {
+            throw new BadDataException(
+              "This triage was not found for this case.",
+            );
+          }
+
+          const events: Array<AIRunEvent> = await AIRunEventService.findBy({
+            query: { aiRunId: run.id!, projectId },
+            select: {
+              _id: true,
+              sequence: true,
+              eventType: true,
+              toolName: true,
+              toolArguments: true,
+              resultSummary: true,
+              citationId: true,
+              createdAt: true,
+            },
+            sort: { sequence: SortOrder.Ascending },
+            limit: MAX_EVIDENCE_EVENTS,
+            skip: 0,
+            props: { isRoot: true },
+          });
+
+          const rows: InvestigationEvidenceRowsResponse =
+            await rerunInvestigationEvidence({
+              events,
+              citationId,
+              tenantId: projectId,
+              viewerProps,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            rows as unknown as JSONObject,
+          );
         } catch (error) {
           next(error);
         }
