@@ -7311,6 +7311,12 @@ ${incidentSeverity.name}
   public async generatePostmortemFromAI(data: {
     incidentId: ObjectID;
     template?: string;
+    /*
+     * The LLM provider a postmortem rule picks for an automatic draft
+     * (AIIncidentPostmortemRunner). Left out - Generate with AI - the
+     * project's provider.
+     */
+    llmProviderId?: ObjectID | undefined;
   }): Promise<string> {
     // Get the incident to verify it exists and get the project ID
     const incident: Model | null = await this.findOneById({
@@ -7368,6 +7374,7 @@ ${incidentSeverity.name}
       projectId: incident.projectId,
       feature: "Incident Postmortem",
       incidentId: data.incidentId,
+      llmProviderId: data.llmProviderId,
       messages: aiContext.messages,
       temperature: 0.2,
       storeContentPreviews: false,

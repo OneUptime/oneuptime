@@ -386,6 +386,8 @@ export default class IncidentFollowUpCheck {
       subjectIncidentId: data.incidentId,
       subjectMonitorId: latest.monitorId,
       followUpForAlertId: data.alertId,
+      // A second look at the incident, with the provider of the first.
+      ...(latest.llmProviderId ? { llmProviderId: latest.llmProviderId } : {}),
       // Once per incident, and never beside a run that is still going.
       admitInsideSubjectLock: async (): Promise<boolean> => {
         return await IncidentFollowUpCheck.isAdmitted(data);
@@ -712,6 +714,8 @@ export default class IncidentFollowUpCheck {
         monitorId: true,
         followUpForAlertId: true,
         ruleWaitMinutes: true,
+        // The LLM provider its rule picked: the follow-up uses it too.
+        llmProviderId: true,
       },
       sort: { createdAt: SortOrder.Descending },
       limit: 1,

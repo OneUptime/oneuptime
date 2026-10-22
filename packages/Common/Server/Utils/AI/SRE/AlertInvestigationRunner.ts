@@ -103,6 +103,11 @@ export interface AlertGateDecision {
   waitMinutes?: number | undefined;
   // When the alert was created: a wait counts from it.
   createdAt?: Date | undefined;
+  /*
+   * To investigate, and an investigation rule it matches picks an LLM
+   * provider: the pick the run is recorded with (Types/AI/LlmProviderChoice).
+   */
+  llmProviderId?: ObjectID | undefined;
 }
 
 export default class AIAlertInvestigationRunner {
@@ -181,8 +186,23 @@ export default class AIAlertInvestigationRunner {
     };
 
     try {
+      /*
+       * What stops OneUptime AI for the whole project - but a provider or AI
+       * credits it lacks for the project's own provider stop it only when
+       * the provider the alert's investigation rules pick cannot run it
+       * either.
+       */
       const disabled: InvestigationNotStartedCode | null =
-        await AIInvestigationEngine.getDisabledReason(projectId, "Alert");
+        await AIInvestigationEngine.getDisabledReasonForSubject({
+          projectId,
+          subjectType: "Alert",
+          getRuleLlmProviderId: async (): Promise<ObjectID | undefined> => {
+            return await InvestigationRules.getSubjectLlmProviderId({
+              projectId,
+              alertId,
+            });
+          },
+        });
       if (disabled) {
         await recordSkipped(disabled);
         return false;
@@ -259,6 +279,8 @@ export default class AIAlertInvestigationRunner {
           projectId,
           subjectAlertId: alertId,
           subjectMonitorId: gate.monitorId,
+          // The LLM provider the alert's investigation rules pick.
+          ...(gate.llmProviderId ? { llmProviderId: gate.llmProviderId } : {}),
           onNotEnqueued: async (
             code: InvestigationNotStartedCode,
             budget?: AutonomousBudgetStatus,
@@ -892,6 +914,7 @@ export default class AIAlertInvestigationRunner {
       ...(scope.waitMinutes && scope.waitMinutes > 0
         ? { waitMinutes: scope.waitMinutes, createdAt: alert.createdAt }
         : {}),
+      ...(scope.llmProviderId ? { llmProviderId: scope.llmProviderId } : {}),
     };
   }
 

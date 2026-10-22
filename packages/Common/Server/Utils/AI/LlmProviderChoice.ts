@@ -73,6 +73,7 @@ export interface RuleLlmProviderChoice extends LlmProviderDecision {
 const PROVIDER_SELECT: {
   _id: true;
   name: true;
+  modelName: true;
   projectId: true;
   isGlobalLlm: true;
   isDefault: true;
@@ -80,6 +81,7 @@ const PROVIDER_SELECT: {
 } = {
   _id: true,
   name: true,
+  modelName: true,
   projectId: true,
   isGlobalLlm: true,
   isDefault: true,
@@ -162,6 +164,22 @@ export default class LlmProviderChoice {
   }
 
   /*
+   * decide, for work whose pick is known - and, with no pick, nothing read
+   * and nothing to say (NO_PICK): the work's LLM calls resolve the project's
+   * provider themselves, as they always have.
+   */
+  public static async decideIfPicked(data: {
+    projectId: ObjectID;
+    pickedProviderId?: unknown;
+  }): Promise<RuleLlmProviderChoice> {
+    if (!readLlmProviderId(data.pickedProviderId)) {
+      return NO_PICK;
+    }
+
+    return this.decide(data);
+  }
+
+  /*
    * The provider for a run, from the pick its rule recorded on it
    * (AIRun.llmProviderId). A run no rule picked one for reads nothing more
    * and says nothing: NO_PICK.
@@ -208,13 +226,45 @@ export default class LlmProviderChoice {
       return null;
     }
 
+    return this.getActivityEventSummary(choice.activity);
+  }
+
+  // The ProgressLog event for an activity (getEventSummary).
+  public static getActivityEventSummary(
+    activity: LlmProviderActivity,
+  ): AIRunEventResultSummary {
     return {
-      message: describeLlmProviderActivityInEnglish(choice.activity),
-      severity: isLlmProviderActivityWarning(choice.activity)
-        ? "Warning"
-        : "Info",
-      llmProvider: choice.activity,
+      message: describeLlmProviderActivityInEnglish(activity),
+      severity: isLlmProviderActivityWarning(activity) ? "Warning" : "Info",
+      llmProvider: activity,
     };
+  }
+
+  /*
+   * What a run says when its rule's pick was not used and the provider it
+   * did use was resolved some other way - a fix run's, by the metered
+   * agent path: the reason the pick was not used, and that provider.
+   */
+  public static getFallbackActivity(data: {
+    choice: RuleLlmProviderChoice;
+    usedProvider: LlmProvider | null;
+  }): LlmProviderActivity | null {
+    if (!data.choice.activity || !data.choice.fallbackReason) {
+      return data.choice.activity;
+    }
+
+    const activity: LlmProviderActivity = {
+      fallbackReason: data.choice.fallbackReason,
+    };
+
+    if (data.usedProvider) {
+      activity.source = LlmProviderChoice.isGlobalProvider(data.usedProvider)
+        ? LlmProviderSource.Global
+        : LlmProviderSource.ProjectDefault;
+      activity.providerName = data.usedProvider.name || "";
+    }
+
+    return activity;
   }
 
   /*

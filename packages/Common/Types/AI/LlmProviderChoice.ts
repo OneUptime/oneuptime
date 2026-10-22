@@ -221,25 +221,19 @@ function readRuleId(rule: LlmProviderRuleFacts): string {
 }
 
 /*
- * Of the rules that decide a run, the provider it uses: the pick of the
- * first of them by name that picks one (ties by id), or "" when none does -
- * then the project's default, else the global provider.
+ * The rules that pick a provider, in the order that decides between them:
+ * by name (ties by id). The first of them a run's subject matches decides
+ * its provider; a rule that picks none is not among them, so it never
+ * hides another's pick.
  */
-export function getRulesLlmProviderId(
-  rules: ReadonlyArray<LlmProviderRuleFacts>,
-): string {
-  const picking: Array<LlmProviderRuleFacts> = rules.filter(
-    (rule: LlmProviderRuleFacts): boolean => {
+export function getLlmProviderPickingRules<TRule extends LlmProviderRuleFacts>(
+  rules: ReadonlyArray<TRule>,
+): Array<TRule> {
+  return rules
+    .filter((rule: TRule): boolean => {
       return getRuleLlmProviderId(rule).length > 0;
-    },
-  );
-
-  if (picking.length === 0) {
-    return "";
-  }
-
-  const sorted: Array<LlmProviderRuleFacts> = [...picking].sort(
-    (first: LlmProviderRuleFacts, second: LlmProviderRuleFacts): number => {
+    })
+    .sort((first: TRule, second: TRule): number => {
       const byName: number = String(first.name ?? "").localeCompare(
         String(second.name ?? ""),
         "en",
@@ -251,10 +245,21 @@ export function getRulesLlmProviderId(
       }
 
       return readRuleId(first).localeCompare(readRuleId(second));
-    },
-  );
+    });
+}
 
-  return getRuleLlmProviderId(sorted[0]!);
+/*
+ * Of the rules that decide a run, the provider it uses: the pick of the
+ * first of them by name that picks one (ties by id), or "" when none does -
+ * then the project's default, else the global provider.
+ */
+export function getRulesLlmProviderId(
+  rules: ReadonlyArray<LlmProviderRuleFacts>,
+): string {
+  const picking: Array<LlmProviderRuleFacts> =
+    getLlmProviderPickingRules(rules);
+
+  return picking.length > 0 ? getRuleLlmProviderId(picking[0]!) : "";
 }
 
 /*

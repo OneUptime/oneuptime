@@ -5,6 +5,7 @@ import {
   NO_CODE_REPOSITORY,
   getCodeRepositoryAllowance,
 } from "../CodeRepository/CodeRepositoryAllowance";
+import { getRulesLlmProviderId } from "./LlmProviderChoice";
 
 /*
  * THE PULL REQUESTS OneUptime AI OPENS ON ITS OWN FOR AN INCIDENT OR AN
@@ -45,7 +46,9 @@ import {
  * And it opens in one of the repositories those rules allow: the ones the
  * matching rules with the switch on name, or every connected repository
  * when one of them names none, or when there is no rule
- * (CodeRepositoryAllowance).
+ * (CodeRepositoryAllowance). OneUptime AI writes it with the LLM provider
+ * those rules pick - the first of them by name that picks one - else the
+ * project's default, else the global provider (Types/AI/LlmProviderChoice).
  *
  * Enable AI is checked first, by each trigger: with it off nothing opens.
  * "Open Fix PR from this analysis" on the investigation panel needs none of
@@ -130,6 +133,10 @@ export interface RemediationRulePullRequestFacts {
   openTelemetryPullRequests?: boolean | null | undefined;
   // The repositories the rule names: none is every connected repository.
   codeRepositories?: unknown;
+  // The LLM provider the rule picks, and what orders rules that pick one.
+  llmProviderId?: unknown;
+  name?: unknown;
+  _id?: unknown;
 }
 
 /*
@@ -162,6 +169,12 @@ export interface AutomaticFixPullRequestDecision {
   blocker: AutomaticFixPullRequestBlocker | null;
   // The repositories it may open in (none while it is blocked).
   repositories: CodeRepositoryAllowance;
+  /*
+   * The LLM provider it is written with: the pick of the first rule that
+   * opens it, by name, that picks one. "" for none - the project's
+   * default, else the global provider - and while it is blocked.
+   */
+  llmProviderId: string;
 }
 
 /*
@@ -193,7 +206,7 @@ export function decideAutomaticFixPullRequest(data: {
   ) => AutomaticFixPullRequestDecision = (
     blocker: AutomaticFixPullRequestBlocker,
   ): AutomaticFixPullRequestDecision => {
-    return { blocker, repositories: NO_CODE_REPOSITORY };
+    return { blocker, repositories: NO_CODE_REPOSITORY, llmProviderId: "" };
   };
 
   if (data.project[AUTOMATIC_FIX_SWITCH_COLUMNS[data.signal]] !== true) {
@@ -205,7 +218,11 @@ export function decideAutomaticFixPullRequest(data: {
   }
 
   if (!data.rules.rulesSetUp) {
-    return { blocker: null, repositories: EVERY_CODE_REPOSITORY };
+    return {
+      blocker: null,
+      repositories: EVERY_CODE_REPOSITORY,
+      llmProviderId: "",
+    };
   }
 
   if (data.rules.matchingRules.length === 0) {
@@ -229,6 +246,7 @@ export function decideAutomaticFixPullRequest(data: {
       rulesSetUp: true,
       matchingRules: openingRules,
     }),
+    llmProviderId: getRulesLlmProviderId(openingRules),
   };
 }
 
@@ -251,10 +269,12 @@ export const REMEDIATION_RULE_PULL_REQUEST_SELECT: {
   openCodeFixPullRequests: true;
   openTelemetryPullRequests: true;
   codeRepositories: { _id: true };
+  llmProviderId: true;
 } = {
   openCodeFixPullRequests: true,
   openTelemetryPullRequests: true,
   codeRepositories: { _id: true },
+  llmProviderId: true,
 };
 
 // Why a pull request did not open, in the words a debug log line ends with.
