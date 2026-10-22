@@ -227,6 +227,50 @@ describe("the sentences that say what a rule does", () => {
     ).toBe("Invites Alice and Database when the channel is created.");
   });
 
+  /*
+   * The on-call schedules a rule names: whoever is on call in them when the
+   * channel is created joins it, without being paged - in a sentence of
+   * their own, after the people and teams the rule names.
+   */
+  test("whoever is on call in the rule's schedules joins when the channel is created", () => {
+    expect(
+      sentences({
+        rule: rule({ shouldInviteOwnersToNewChannel: true }),
+        userNames: ["Alice"],
+        scheduleNames: ["Payments Primary", "Payments Secondary"],
+      }).slice(1),
+    ).toEqual([
+      "Invites the Incident Commander and other incident roles as they are assigned and owners as they are added.",
+      "Also invites Alice when the channel is created.",
+      "Also invites whoever is on call in Payments Primary and Payments Secondary when the channel is created.",
+    ]);
+    // Named alone, they are who the rule invites.
+    expect(
+      sentences({
+        rule: rule({}),
+        scheduleNames: ["Payments Primary"],
+      }).slice(1),
+    ).toEqual([
+      "Invites whoever is on call in Payments Primary when the channel is created.",
+    ]);
+  });
+
+  test("Microsoft Teams: whoever is on call in the rule's schedules is mentioned in the channel", () => {
+    expect(
+      sentences({
+        rule: rule({}),
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        exampleChannelName: "inc-42",
+        channelTeamName: "Ops",
+        scheduleNames: ["Payments Primary"],
+      }),
+    ).toEqual([
+      "Creates a channel like inc-42 for each incident.",
+      "Everyone in Ops can open the channel.",
+      "Mentions whoever is on call in Payments Primary when the channel is created.",
+    ]);
+  });
+
   test("a German reader reads the people named in a sentence of their own", () => {
     expect(
       sentences({

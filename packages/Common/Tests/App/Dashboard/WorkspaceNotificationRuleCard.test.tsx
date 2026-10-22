@@ -99,6 +99,7 @@ import {
 import { NOTIFICATION_RULE_CONDITIONS_TITLES } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import VideoCallConnection from "../../../Models/DatabaseModels/VideoCallConnection";
@@ -180,6 +181,7 @@ function columnsFor(data: {
   workspaceType?: WorkspaceType | undefined;
   users?: Array<User> | undefined;
   teams?: Array<Team> | undefined;
+  onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   canStartVideoCall?: boolean | undefined;
 }): Columns<WorkspaceNotificationRule> {
@@ -197,6 +199,7 @@ function columnsFor(data: {
     monitorStatus: [],
     teams: data.teams || [],
     users: data.users || [],
+    onCallSchedules: data.onCallSchedules || [],
     microsoftTeamsTeams: data.microsoftTeamsTeams || [],
     microsoftTeamsChats: [],
     videoCallConnections: [zoom()],
@@ -476,6 +479,68 @@ describe("a rule's card, row by row", () => {
     expect(thenSentences(card!)[1]).toBe(
       "Invites Alice Moreau and Database when the channel is created.",
     );
+  });
+
+  /*
+   * Whoever is on call in the schedules a rule names joins its channel,
+   * unpaged: the card names the schedules, as the Dashboard loaded them.
+   */
+  test("names the on-call schedules whose on-call person the rule invites", async () => {
+    const primary: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+    primary._id = "cccccccc-0000-4000-8000-000000000003";
+    primary.name = "Payments Primary";
+
+    const secondary: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+    secondary._id = "dddddddd-0000-4000-8000-000000000004";
+    secondary.name = "Payments Secondary";
+
+    const [card] = await renderCards(
+      [
+        {
+          id: "1a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Payments incidents",
+          rule: ruleJson({
+            inviteOnCallSchedulesToNewChannel: [primary._id, secondary._id],
+          }),
+        },
+      ],
+      { onCallSchedules: [secondary, primary] },
+    );
+
+    expect(thenSentences(card!)[1]).toBe(
+      "Invites whoever is on call in Payments Primary and Payments Secondary when the channel is created.",
+    );
+  });
+
+  test("Microsoft Teams: the card says whoever is on call is mentioned in the channel", async () => {
+    const primary: OnCallDutyPolicySchedule = new OnCallDutyPolicySchedule();
+    primary._id = "cccccccc-0000-4000-8000-000000000003";
+    primary.name = "Payments Primary";
+
+    const [card] = await renderCards(
+      [
+        {
+          id: "1a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
+          name: "Payments incidents",
+          rule: ruleJson({
+            teamToCreateChannelIn: "team-ops",
+            inviteOnCallSchedulesToNewChannel: [primary._id],
+          }),
+        },
+      ],
+      {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        microsoftTeamsTeams: [
+          { id: "team-ops", name: "Ops" } as MicrosoftTeamsTeam,
+        ],
+        onCallSchedules: [primary],
+      },
+    );
+
+    expect(thenSentences(card!).slice(1)).toEqual([
+      "Everyone in Ops can open the channel.",
+      "Mentions whoever is on call in Payments Primary when the channel is created.",
+    ]);
   });
 
   test("a rule that posts nowhere says what is to pick", async () => {
