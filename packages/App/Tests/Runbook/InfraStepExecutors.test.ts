@@ -2,7 +2,9 @@ import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
 import logger from "Common/Server/Utils/Logger";
 import RunnerService from "Common/Server/Services/RunnerService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -15,6 +17,7 @@ import {
   RunbookStep,
   SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
+import { REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE } from "Common/Types/Runbook/RunbookLegacySteps";
 import {
   DEFAULT_AGENT_CLAIM_TIMEOUT_IN_MS,
   DEFAULT_STEP_EXECUTION_TIMEOUT_IN_MS,
@@ -29,20 +32,32 @@ import {
 } from "../../FeatureSet/Runbook/Services/StepExecutors";
 
 /*
- * SSH and Kubernetes steps act on the customer's own infrastructure, so the
- * Worker never executes them: it builds a payload and hands it to a Runner,
- * which resolves the credential at claim time. Everything below is about that
- * payload — what has to be in it, what must never be in it, and which
- * misconfigurations have to be caught before a job row is ever created.
+ * SSH and kubectl steps act on the customer's own infrastructure, so the
+ * Worker never executes them: it builds a payload of references and hands
+ * it to a Runner, which is given what they name when it claims the job.
+ * Everything below is about that hand-off:
  *
- * These are the steps written before runbook variables: an SSH step with a
- * credential and a command, a Kubernetes step with a credential and one
- * workload action. They still run as they always did. A step that names no
- * credential is one of the steps that take a script (ScriptStepExecutors).
+ *   - a step written with a runbook credential - an SSH step with a
+ *     credential and a command, a Kubernetes step with a credential and one
+ *     workload action, never moved to variables - no longer runs: runbook
+ *     credentials were removed. It fails before anything is read, looked up
+ *     or queued, with what to do instead, whatever else it holds - secrets
+ *     stashed on its config included. A step that names a credential beside
+ *     a script is a script step, and runs as one, without it;
+ *   - which misconfigurations of a step that takes a script are caught
+ *     before a job row is ever created, and in which order;
+ *   - where a step runs: the Runner it picked, else the project's default
+ *     Runner, never a global Runner;
+ *   - the dispatched job: an empty top-level script that is not mistaken for
+ *     a no-op step, a payload picked field by field, timeouts on the job row
+ *     and the poll window alike;
+ *   - results and redelivery: a failed job's error and output, an enqueue
+ *     failure, a redelivered execution adopting the job it already has.
  *
- * Step configs are untyped JSON at rest, so the fixtures here are raw objects
- * rather than typed literals: a field can be genuinely absent, which is the
- * shape the validation actually has to survive.
+ * What a script step's payload holds, field by field, and its variable
+ * checks are ScriptStepExecutors'. Step configs are untyped JSON at rest, so
+ * the fixtures here are raw objects rather than typed literals: a field can
+ * be genuinely absent, which is the shape the validation has to survive.
  */
 type RawConfig = Record<string, unknown>;
 
@@ -63,7 +78,7 @@ function makeCtx(): StepExecutionContext {
  * Runner. Here the Runner a step picked is always one of its project's own,
  * the project has no default Runner (unless a test gives it one) and uses
  * global Runners, and the server has none - so a step that picked no Runner
- * is refused as it always was. StepExecutorsGlobalRunner covers the rest.
+ * is refused. StepExecutorsGlobalRunner covers the rest.
  */
 let projectDefaultRunner: Runner | null = null;
 
@@ -71,14 +86,22 @@ let projectDefaultRunner: Runner | null = null;
 const PROJECT_DEFAULT_RUNNER_ID: string =
   "c1e10000-0000-4000-8000-0000000000d1";
 
-function stubRunnerChoiceFacts(): void {
+interface RunnerChoiceSpies {
+  findRunnerSpy: jest.SpyInstance;
+  findDefaultSpy: jest.SpyInstance;
+}
+
+let runnerChoice: RunnerChoiceSpies;
+let variablesSpy: jest.SpyInstance;
+
+function stubRunnerChoiceFacts(): RunnerChoiceSpies {
   projectDefaultRunner = null;
-  jest
+  const findDefaultSpy: jest.SpyInstance = jest
     .spyOn(RunnerService, "findProjectDefaultRunner")
     .mockImplementation(async (): Promise<Runner | null> => {
       return projectDefaultRunner;
     });
-  jest
+  const findRunnerSpy: jest.SpyInstance = jest
     .spyOn(RunnerService, "findOneById")
     .mockImplementation(async (args: { id: ObjectID }): Promise<Runner> => {
       const runner: Runner = new Runner();
@@ -97,9 +120,31 @@ function stubRunnerChoiceFacts(): void {
   jest
     .spyOn(RunnerService, "hasGlobalRunnerForRunbooks")
     .mockResolvedValue(false);
+
+  return { findRunnerSpy, findDefaultSpy };
 }
 
-beforeEach(stubRunnerChoiceFacts);
+// The project's variables: the steps sign in with the two secret ones.
+function stubVariables(): jest.SpyInstance {
+  const variables: Array<RunbookVariable> = [
+    Object.assign(new RunbookVariable(), { name: "DB_KEY", isSecret: true }),
+    Object.assign(new RunbookVariable(), {
+      name: "PROD_KUBECONFIG",
+      isSecret: true,
+    }),
+  ];
+
+  return jest
+    .spyOn(RunbookVariableService, "findBy")
+    .mockImplementation(async (): Promise<never> => {
+      return variables as never;
+    });
+}
+
+beforeEach(() => {
+  runnerChoice = stubRunnerChoiceFacts();
+  variablesSpy = stubVariables();
+});
 
 function omit(config: RawConfig, ...keys: Array<string>): RawConfig {
   const copy: RawConfig = { ...config };
@@ -109,7 +154,20 @@ function omit(config: RawConfig, ...keys: Array<string>): RawConfig {
   return copy;
 }
 
+// An SSH step that takes a script: the machine, the secret it signs in with, the script.
 function sshConfig(overrides: RawConfig = {}): RawConfig {
+  return {
+    host: "10.0.4.21",
+    username: "deploy",
+    signIn: "{{global.variables.DB_KEY}}",
+    script: "sudo systemctl restart nginx",
+    agentId: AGENT_ID,
+    ...overrides,
+  };
+}
+
+// An SSH step written with a runbook credential and a command, before variables.
+function legacySshConfig(overrides: RawConfig = {}): RawConfig {
   return {
     credentialId: "cred-ssh-1",
     command: "systemctl restart nginx",
@@ -128,7 +186,18 @@ function makeSshStep(config: RawConfig = sshConfig()): RunbookStep {
   };
 }
 
+// A kubectl step: the kubeconfig it uses, and a script of kubectl commands.
 function k8sConfig(overrides: RawConfig = {}): RawConfig {
+  return {
+    kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+    script: "kubectl rollout restart deployment/api --namespace production",
+    agentId: AGENT_ID,
+    ...overrides,
+  };
+}
+
+// A Kubernetes step written with a runbook credential and one workload action.
+function legacyK8sConfig(overrides: RawConfig = {}): RawConfig {
   return {
     credentialId: "cred-k8s-1",
     action: KubernetesAction.RestartWorkload,
@@ -194,10 +263,10 @@ function enqueuedPayload(spy: jest.SpyInstance): Record<string, unknown> {
 }
 
 /*
- * Strings that must never appear in a dispatched job. The credential's secret
- * columns are write-only and decrypted exactly once, at claim time, inside
- * Credentials.resolveForJob — an agent job row is not a place a private key
- * or a service-account token may be persisted.
+ * Strings that must never appear in a dispatched job: a job row is not a
+ * place a private key, a password or a service-account token may be
+ * persisted. A step names secret variables; the Runner is handed what they
+ * hold when it claims the job (RunnerIngress, RunbookJobVariables).
  */
 const SECRET_MARKERS: Array<string> = [
   "sshPrivateKey",
@@ -233,13 +302,142 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The answer to a step written with a runbook credential, and nothing else.
+async function expectRefusedAsRemoved(
+  run: () => Promise<StepRunResult>,
+): Promise<void> {
+  const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
+
+  const result: StepRunResult = await run();
+
+  expect(result).toEqual({
+    success: false,
+    output: "",
+    errorMessage: REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE,
+  });
+
+  // Nothing is queued, looked up or read: the step cannot run anywhere.
+  expect(enqueueSpy).not.toHaveBeenCalled();
+  expect(findSpy).not.toHaveBeenCalled();
+  expect(pollSpy).not.toHaveBeenCalled();
+  expect(runnerChoice.findRunnerSpy).not.toHaveBeenCalled();
+  expect(runnerChoice.findDefaultSpy).not.toHaveBeenCalled();
+  expect(variablesSpy).not.toHaveBeenCalled();
+}
+
+describe("a step written with a runbook credential no longer runs", () => {
+  test("its answer says why, and what to do: turn it into a script step that signs in with a variable", () => {
+    expect(REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE).toBe(
+      "This step names a runbook credential, and runbook credentials were removed, so it was not run. Open the runbook's Steps page, choose Turn into a script step on this step, and pick the secret runbook variable it signs in with.",
+    );
+  });
+
+  test.each([
+    ["a credential and a command", legacySshConfig()],
+    ["a credential and no command", omit(legacySshConfig(), "command")],
+    ["a credential and no Runner", legacySshConfig({ agentId: "" })],
+    ["a credential and a blank script", legacySshConfig({ script: "   " })],
+    [
+      "a credential with secrets stashed on the step",
+      legacySshConfig({
+        sshPrivateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n",
+        sshPassword: "hunter2",
+        sshHostname: "db-primary.internal",
+        sshUsername: "root",
+      }),
+    ],
+  ])(
+    "an SSH step with %s fails before anything is read or queued",
+    async (_label: string, config: RawConfig) => {
+      await expectRefusedAsRemoved(async (): Promise<StepRunResult> => {
+        return await runSshStep(makeSshStep(config), makeCtx());
+      });
+    },
+  );
+
+  test.each([
+    ["a restart", legacyK8sConfig()],
+    [
+      "a scale to zero",
+      legacyK8sConfig({ action: KubernetesAction.ScaleWorkload, replicas: 0 }),
+    ],
+    [
+      "a scale with no replica count",
+      legacyK8sConfig({ action: KubernetesAction.ScaleWorkload }),
+    ],
+    [
+      "no namespace or workload",
+      omit(legacyK8sConfig(), "namespace", "workloadName"),
+    ],
+    ["no Runner", legacyK8sConfig({ agentId: "" })],
+    [
+      "a service account token stashed on the step",
+      legacyK8sConfig({
+        kubernetesServiceAccountToken: "eyJhbGciOiJSUzI1NiJ9.token",
+        kubernetesCaCertificate: "-----BEGIN CERTIFICATE-----",
+        kubernetesApiServerUrl: "https://10.0.0.1:6443",
+      }),
+    ],
+  ])(
+    "a Kubernetes step with a credential and %s fails before anything is read or queued",
+    async (_label: string, config: RawConfig) => {
+      await expectRefusedAsRemoved(async (): Promise<StepRunResult> => {
+        return await runKubernetesStep(makeK8sStep(config), makeCtx());
+      });
+    },
+  );
+
+  /*
+   * Negative controls: a credential beside a script is what a step the move
+   * to variables wrote looked like, or what an API client left behind. Such
+   * a step is a script step; it runs, and the credential and the action go
+   * nowhere.
+   */
+  test("an SSH step that names a credential beside its script runs as a script step, without the credential", async () => {
+    const { enqueueSpy } = stubDispatch();
+
+    const result: StepRunResult = await runSshStep(
+      makeSshStep(sshConfig({ credentialId: "cred-ssh-1", command: "uptime" })),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(true);
+    expect(enqueueSpy).toHaveBeenCalledTimes(1);
+    expect(Object.keys(enqueuedPayload(enqueueSpy)).sort()).toEqual([
+      "host",
+      "port",
+      "script",
+      "signIn",
+      "username",
+    ]);
+  });
+
+  test("a kubectl step that kept its credential and action beside its script runs the script, without them", async () => {
+    const { enqueueSpy } = stubDispatch();
+
+    const result: StepRunResult = await runKubernetesStep(
+      makeK8sStep({ ...legacyK8sConfig(), ...k8sConfig() }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(true);
+    expect(enqueueSpy).toHaveBeenCalledTimes(1);
+    expect(enqueuedPayload(enqueueSpy)).toEqual({
+      kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+      script: "kubectl rollout restart deployment/api --namespace production",
+    });
+  });
+});
+
 describe("runSshStep", () => {
   describe("misconfiguration is caught before a job is created", () => {
     test.each([
-      ["the field is absent", omit(sshConfig(), "credentialId")],
-      ["the field is an empty string", sshConfig({ credentialId: "" })],
+      ["the host is absent", omit(sshConfig(), "host")],
+      ["the host is empty", sshConfig({ host: "" })],
+      ["the user is absent", omit(sshConfig(), "username")],
+      ["the user is only whitespace", sshConfig({ username: "   " })],
     ])(
-      "a step without a credential is a script step, and fails for the machine it does not name, never dispatching — %s",
+      "a step without a machine fails and never dispatches - %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -262,10 +460,11 @@ describe("runSshStep", () => {
     );
 
     test.each([
-      ["the field is absent", omit(sshConfig(), "command")],
-      ["the field is an empty string", sshConfig({ command: "" })],
+      ["the field is absent", omit(sshConfig(), "script")],
+      ["the field is an empty string", sshConfig({ script: "" })],
+      ["the field is only whitespace", sshConfig({ script: "  \n " })],
     ])(
-      "a step without a command fails and never dispatches — %s",
+      "a step without a script fails and never dispatches - %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -276,7 +475,7 @@ describe("runSshStep", () => {
 
         expect(result.success).toBe(false);
         expect(result.output).toBe("");
-        expect(result.errorMessage).toContain("no command to run");
+        expect(result.errorMessage).toBe("This SSH step has no script to run.");
         expect(enqueueSpy).not.toHaveBeenCalled();
         expect(findSpy).not.toHaveBeenCalled();
         expect(pollSpy).not.toHaveBeenCalled();
@@ -288,7 +487,7 @@ describe("runSshStep", () => {
       ["the field is an empty string", sshConfig({ agentId: "" })],
       ["the field is only whitespace", sshConfig({ agentId: "   " })],
     ])(
-      "a step without a Runner fails and never dispatches — %s",
+      "a step without a Runner fails and never dispatches - %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -337,7 +536,9 @@ describe("runSshStep", () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runSshStep(
-        makeSshStep(omit(sshConfig(), "credentialId", "command", "agentId")),
+        makeSshStep(
+          omit(sshConfig(), "host", "username", "signIn", "script", "agentId"),
+        ),
         makeCtx(),
       );
 
@@ -349,7 +550,7 @@ describe("runSshStep", () => {
   });
 
   describe("the dispatched job", () => {
-    test("enqueues an SSH job with an empty script and a payload carrying only the credential id and the command", async () => {
+    test("enqueues an SSH job with an empty top-level script and a payload of references, field by field", async () => {
       const { enqueueSpy, pollSpy } = stubDispatch();
       pollSpy.mockResolvedValue(makeJob({ output: "nginx restarted" }));
 
@@ -361,30 +562,31 @@ describe("runSshStep", () => {
 
       const args: Record<string, unknown> = firstCallArgs(enqueueSpy);
       expect(args["stepType"]).toBe(RunbookStepType.SSH);
-      // An SSH step has no script: the instruction lives in the payload.
+      // The instruction lives in the payload, not in the job's own script.
       expect(args["script"]).toBe("");
       expect(args["stepId"]).toBe(step.id);
       expect((args["targetAgentId"] as ObjectID).toString()).toBe(AGENT_ID);
 
       /*
        * Exact keys, not objectContaining: the assertion that matters here is
-       * the absence of anything else. A payload that grew a resolved host,
-       * user or key would still pass a containment check.
+       * the absence of anything else. A payload that grew a resolved key
+       * would still pass a containment check.
        */
-      const payload: Record<string, unknown> = enqueuedPayload(enqueueSpy);
-      expect(Object.keys(payload).sort()).toEqual(["command", "credentialId"]);
-      expect(payload).toEqual({
-        credentialId: "cred-ssh-1",
-        command: "systemctl restart nginx",
+      expect(enqueuedPayload(enqueueSpy)).toEqual({
+        host: "10.0.4.21",
+        username: "deploy",
+        port: 22,
+        signIn: "{{global.variables.DB_KEY}}",
+        script: "sudo systemctl restart nginx",
       });
       expectNoSecretMaterial(enqueueSpy);
     });
 
-    test("a credential is referenced by id only — secrets stashed on the step config never reach the job", async () => {
+    test("secrets stashed on the step config never reach the job", async () => {
       /*
        * The executor picks fields out of the config explicitly rather than
-       * spreading it. That is what stops a stray key — pasted into the step
-       * by an older UI, a template or an API caller — from being persisted in
+       * spreading it. That is what stops a stray key - pasted into the step
+       * by an older UI, a template or an API caller - from being persisted in
        * plaintext on the job row and shipped to whichever Runner claims it.
        */
       const { enqueueSpy } = stubDispatch();
@@ -401,17 +603,22 @@ describe("runSshStep", () => {
         makeCtx(),
       );
 
-      const payload: Record<string, unknown> = enqueuedPayload(enqueueSpy);
-      expect(Object.keys(payload).sort()).toEqual(["command", "credentialId"]);
+      expect(Object.keys(enqueuedPayload(enqueueSpy)).sort()).toEqual([
+        "host",
+        "port",
+        "script",
+        "signIn",
+        "username",
+      ]);
       expectNoSecretMaterial(enqueueSpy);
     });
 
-    test("the empty script is not mistaken for a no-op step", async () => {
+    test("the empty top-level script is not mistaken for a no-op step", async () => {
       /*
-       * The dispatcher short-circuits script steps with nothing to run. SSH
-       * steps always have an empty script, so if that guard did not exempt
-       * payload-carrying steps, every SSH step in production would silently
-       * succeed without ever touching the host.
+       * The dispatcher short-circuits script steps with nothing to run. An
+       * SSH step's own script travels in its payload, so if that guard did
+       * not exempt payload-carrying steps, every SSH step in production would
+       * silently succeed without ever touching the host.
        */
       const { enqueueSpy, pollSpy } = stubDispatch();
 
@@ -422,14 +629,14 @@ describe("runSshStep", () => {
       expect(result.success).toBe(true);
     });
 
-    test("the command is forwarded verbatim, whatever it contains", async () => {
+    test("the script is forwarded verbatim, whatever it contains", async () => {
       const { enqueueSpy } = stubDispatch();
-      const command: string =
+      const script: string =
         "bash -lc 'pg_dump -Fc app | gzip > /backup/$(date +%F).gz' # \"quotes\" & $vars";
 
-      await runSshStep(makeSshStep(sshConfig({ command })), makeCtx());
+      await runSshStep(makeSshStep(sshConfig({ script })), makeCtx());
 
-      expect(enqueuedPayload(enqueueSpy)["command"]).toBe(command);
+      expect(enqueuedPayload(enqueueSpy)["script"]).toBe(script);
     });
 
     test("unset timeouts dispatch with the documented defaults", async () => {
@@ -467,7 +674,8 @@ describe("runSshStep", () => {
       expect(firstCallArgs(pollSpy)["claimTimeoutInMs"]).toBe(300_000);
 
       jest.restoreAllMocks();
-      stubRunnerChoiceFacts();
+      runnerChoice = stubRunnerChoiceFacts();
+      variablesSpy = stubVariables();
       jest.spyOn(logger, "error").mockImplementation((): void => {
         return undefined;
       });
@@ -518,7 +726,7 @@ describe("runSshStep", () => {
       expect(result.errorMessage).toContain("queue unavailable");
     });
 
-    test("a redelivered execution adopts the finished job instead of running the command twice", async () => {
+    test("a redelivered execution adopts the finished job instead of running the script twice", async () => {
       /*
        * The whole point of the lookup: `systemctl restart` is survivable
        * twice, `rm -rf` on a stale directory is not. A step that already
@@ -545,10 +753,11 @@ describe("runSshStep", () => {
 describe("runKubernetesStep", () => {
   describe("misconfiguration is caught before a job is created", () => {
     test.each([
-      ["the field is absent", omit(k8sConfig(), "credentialId")],
-      ["the field is an empty string", k8sConfig({ credentialId: "" })],
+      ["the field is absent", omit(k8sConfig(), "script")],
+      ["the field is an empty string", k8sConfig({ script: "" })],
+      ["the field is only whitespace", k8sConfig({ script: " \n " })],
     ])(
-      "a step without a credential is a kubectl script step, and fails for the script it does not have, never dispatching — %s",
+      "a step without a script fails and never dispatches - %s",
       async (_label: string, config: RawConfig) => {
         const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
 
@@ -569,38 +778,11 @@ describe("runKubernetesStep", () => {
     );
 
     test.each([
-      ["namespace absent", omit(k8sConfig(), "namespace")],
-      ["namespace empty", k8sConfig({ namespace: "" })],
-      ["workload name absent", omit(k8sConfig(), "workloadName")],
-      ["workload name empty", k8sConfig({ workloadName: "" })],
-      ["both absent", omit(k8sConfig(), "namespace", "workloadName")],
-    ])(
-      "a step without a target fails and never dispatches — %s",
-      async (_label: string, config: RawConfig) => {
-        const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
-
-        const result: StepRunResult = await runKubernetesStep(
-          makeK8sStep(config),
-          makeCtx(),
-        );
-
-        expect(result.success).toBe(false);
-        expect(result.output).toBe("");
-        expect(result.errorMessage).toBe(
-          "Kubernetes step needs a namespace and a workload name.",
-        );
-        expect(enqueueSpy).not.toHaveBeenCalled();
-        expect(findSpy).not.toHaveBeenCalled();
-        expect(pollSpy).not.toHaveBeenCalled();
-      },
-    );
-
-    test.each([
       ["the field is absent", omit(k8sConfig(), "agentId")],
       ["the field is an empty string", k8sConfig({ agentId: "" })],
       ["the field is only whitespace", k8sConfig({ agentId: "  " })],
     ])(
-      "a step without a Runner fails and never dispatches — %s",
+      "a step without a Runner fails and never dispatches - %s",
       async (_label: string, config: RawConfig) => {
         const { enqueueSpy, pollSpy } = stubDispatch();
 
@@ -610,7 +792,7 @@ describe("runKubernetesStep", () => {
         );
 
         expect(result.success).toBe(false);
-        // A Kubernetes step never runs on a global Runner: it needs one of the project's own.
+        // A kubectl step never runs on a global Runner: it needs one of the project's own.
         expect(result.errorMessage).toBe(
           "This Kubernetes step has no Runner. Kubernetes steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.",
         );
@@ -640,15 +822,7 @@ describe("runKubernetesStep", () => {
       const { enqueueSpy } = stubDispatch();
 
       const result: StepRunResult = await runKubernetesStep(
-        makeK8sStep(
-          omit(
-            k8sConfig({ action: KubernetesAction.ScaleWorkload }),
-            "credentialId",
-            "namespace",
-            "workloadName",
-            "agentId",
-          ),
-        ),
+        makeK8sStep(omit(k8sConfig(), "kubeconfig", "script", "agentId")),
         makeCtx(),
       );
 
@@ -659,134 +833,8 @@ describe("runKubernetesStep", () => {
     });
   });
 
-  describe("ScaleWorkload replica count", () => {
-    test.each([
-      ["replicas absent", omit(k8sConfig(), "replicas")],
-      ["replicas explicitly null", k8sConfig({ replicas: null })],
-      ["replicas explicitly undefined", k8sConfig({ replicas: undefined })],
-    ])(
-      "a scale step with no replica count fails and never dispatches — %s",
-      async (_label: string, overrides: RawConfig) => {
-        /*
-         * There is no safe default here in either direction. Guessing 1 would
-         * scale a 40-replica fleet down to one pod during an incident;
-         * guessing "leave it alone" would make the step a silent no-op the
-         * author believed had run. So it has to be an error, and the message
-         * has to name the missing thing.
-         */
-        const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
-
-        const result: StepRunResult = await runKubernetesStep(
-          makeK8sStep({
-            ...overrides,
-            action: KubernetesAction.ScaleWorkload,
-          }),
-          makeCtx(),
-        );
-
-        expect(result.success).toBe(false);
-        expect(result.output).toBe("");
-        expect(result.errorMessage).toBe("Scale step needs a replica count.");
-        expect(result.errorMessage).toMatch(/replica/i);
-        expect(enqueueSpy).not.toHaveBeenCalled();
-        expect(findSpy).not.toHaveBeenCalled();
-        expect(pollSpy).not.toHaveBeenCalled();
-      },
-    );
-
-    test("scaling to zero is allowed and is dispatched with replicas 0", async () => {
-      /*
-       * The boundary that a naive `if (!config.replicas)` check would swallow.
-       * Draining a workload to zero — a poison-pill consumer, a runaway job
-       * processor — is one of the remediations this step type exists for, and
-       * turning it into "needs a replica count" would block it entirely.
-       */
-      const { enqueueSpy } = stubDispatch();
-
-      const result: StepRunResult = await runKubernetesStep(
-        makeK8sStep(
-          k8sConfig({
-            action: KubernetesAction.ScaleWorkload,
-            replicas: 0,
-          }),
-        ),
-        makeCtx(),
-      );
-
-      expect(result.success).toBe(true);
-      expect(enqueueSpy).toHaveBeenCalledTimes(1);
-
-      const payload: Record<string, unknown> = enqueuedPayload(enqueueSpy);
-      // Present as a real 0, not dropped and not coerced to something truthy.
-      expect(Object.keys(payload)).toContain("replicas");
-      expect(payload["replicas"]).toBe(0);
-      expect(payload["action"]).toBe(KubernetesAction.ScaleWorkload);
-    });
-
-    test.each([1, 3, 40])(
-      "scaling to %s replicas forwards the exact count",
-      async (replicas: number) => {
-        const { enqueueSpy } = stubDispatch();
-
-        const result: StepRunResult = await runKubernetesStep(
-          makeK8sStep(
-            k8sConfig({ action: KubernetesAction.ScaleWorkload, replicas }),
-          ),
-          makeCtx(),
-        );
-
-        expect(result.success).toBe(true);
-        expect(enqueuedPayload(enqueueSpy)["replicas"]).toBe(replicas);
-      },
-    );
-
-    test("a scale payload carries exactly the keys the Runner needs", async () => {
-      const { enqueueSpy } = stubDispatch();
-
-      await runKubernetesStep(
-        makeK8sStep(
-          k8sConfig({
-            action: KubernetesAction.ScaleWorkload,
-            workloadKind: KubernetesWorkloadKind.StatefulSet,
-            replicas: 2,
-          }),
-        ),
-        makeCtx(),
-      );
-
-      expect(Object.keys(enqueuedPayload(enqueueSpy)).sort()).toEqual([
-        "action",
-        "credentialId",
-        "namespace",
-        "replicas",
-        "workloadKind",
-        "workloadName",
-      ]);
-    });
-
-    test("a nonsensical replica count is forwarded rather than silently corrected", async () => {
-      /*
-       * Documenting where the check lives: the Worker does not sanitise the
-       * number, the Runner rejects anything non-numeric or negative before it
-       * ever reaches the API server (Runner/Services/KubernetesExecutor.ts).
-       * Clamping here would hide a misconfiguration behind a scale that
-       * "worked" but did something other than what the step said.
-       */
-      const { enqueueSpy } = stubDispatch();
-
-      await runKubernetesStep(
-        makeK8sStep(
-          k8sConfig({ action: KubernetesAction.ScaleWorkload, replicas: -1 }),
-        ),
-        makeCtx(),
-      );
-
-      expect(enqueuedPayload(enqueueSpy)["replicas"]).toBe(-1);
-    });
-  });
-
   describe("the dispatched job", () => {
-    test("a restart enqueues a Kubernetes job with an empty script and no replicas key", async () => {
+    test("enqueues a Kubernetes job with an empty top-level script, the kubeconfig reference and the script", async () => {
       const { enqueueSpy, pollSpy } = stubDispatch();
       pollSpy.mockResolvedValue(makeJob({ output: "restart triggered" }));
 
@@ -802,74 +850,24 @@ describe("runKubernetesStep", () => {
       expect(args["stepId"]).toBe(step.id);
       expect((args["targetAgentId"] as ObjectID).toString()).toBe(AGENT_ID);
 
-      const payload: Record<string, unknown> = enqueuedPayload(enqueueSpy);
-      expect(payload).toEqual({
-        credentialId: "cred-k8s-1",
-        action: KubernetesAction.RestartWorkload,
-        workloadKind: KubernetesWorkloadKind.Deployment,
-        namespace: "production",
-        workloadName: "api",
+      expect(enqueuedPayload(enqueueSpy)).toEqual({
+        kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+        script: "kubectl rollout restart deployment/api --namespace production",
       });
-      expect(Object.keys(payload).sort()).toEqual([
-        "action",
-        "credentialId",
-        "namespace",
-        "workloadKind",
-        "workloadName",
-      ]);
-      /*
-       * Not merely undefined: a `replicas` key on a restart would be a scale
-       * instruction riding along with it.
-       */
-      expect("replicas" in payload).toBe(false);
       expectNoSecretMaterial(enqueueSpy);
     });
 
-    test("a restart needs no replica count", async () => {
-      const { enqueueSpy } = stubDispatch();
-
-      const result: StepRunResult = await runKubernetesStep(
-        makeK8sStep(
-          omit(
-            k8sConfig({ action: KubernetesAction.RestartWorkload }),
-            "replicas",
-          ),
-        ),
-        makeCtx(),
-      );
-
-      expect(result.success).toBe(true);
-      expect(enqueueSpy).toHaveBeenCalledTimes(1);
-    });
-
-    test.each([
-      KubernetesWorkloadKind.Deployment,
-      KubernetesWorkloadKind.StatefulSet,
-      KubernetesWorkloadKind.DaemonSet,
-    ])("the %s workload kind is forwarded verbatim", async (kind: string) => {
+    test("with no kubeconfig, it carries none: the Runner's own access", async () => {
       const { enqueueSpy } = stubDispatch();
 
       await runKubernetesStep(
-        makeK8sStep(k8sConfig({ workloadKind: kind })),
+        makeK8sStep(omit(k8sConfig(), "kubeconfig")),
         makeCtx(),
       );
 
-      expect(enqueuedPayload(enqueueSpy)["workloadKind"]).toBe(kind);
-    });
-
-    test("the namespace and workload name are forwarded verbatim", async () => {
-      const { enqueueSpy } = stubDispatch();
-
-      await runKubernetesStep(
-        makeK8sStep(
-          k8sConfig({ namespace: "team-payments", workloadName: "ledger-api" }),
-        ),
-        makeCtx(),
-      );
-
-      const payload: Record<string, unknown> = enqueuedPayload(enqueueSpy);
-      expect(payload["namespace"]).toBe("team-payments");
-      expect(payload["workloadName"]).toBe("ledger-api");
+      expect(enqueuedPayload(enqueueSpy)).toEqual({
+        script: "kubectl rollout restart deployment/api --namespace production",
+      });
     });
 
     test("secrets stashed on the step config never reach the job", async () => {
@@ -887,16 +885,13 @@ describe("runKubernetesStep", () => {
       );
 
       expect(Object.keys(enqueuedPayload(enqueueSpy)).sort()).toEqual([
-        "action",
-        "credentialId",
-        "namespace",
-        "workloadKind",
-        "workloadName",
+        "kubeconfig",
+        "script",
       ]);
       expectNoSecretMaterial(enqueueSpy);
     });
 
-    test("the empty script is not mistaken for a no-op step", async () => {
+    test("the empty top-level script is not mistaken for a no-op step", async () => {
       const { enqueueSpy, pollSpy } = stubDispatch();
 
       const result: StepRunResult = await runKubernetesStep(
@@ -959,18 +954,20 @@ describe("runKubernetesStep", () => {
       expect(result.errorMessage).toContain("is forbidden");
     });
 
-    test("a redelivered execution adopts the finished job instead of scaling twice", async () => {
+    test("a redelivered execution adopts the finished job instead of running the script twice", async () => {
       const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
       findSpy.mockResolvedValue(
         makeJob({
           status: RunnerJobStatus.Succeeded,
-          output: "Scaled deployment production/api to 0 replica(s).",
+          output: "deployment.apps/api scaled",
         }),
       );
 
       const result: StepRunResult = await runKubernetesStep(
         makeK8sStep(
-          k8sConfig({ action: KubernetesAction.ScaleWorkload, replicas: 0 }),
+          k8sConfig({
+            script: "kubectl scale deployment/api --replicas=0 -n production",
+          }),
         ),
         makeCtx(),
       );
@@ -978,7 +975,7 @@ describe("runKubernetesStep", () => {
       expect(enqueueSpy).not.toHaveBeenCalled();
       expect(pollSpy).not.toHaveBeenCalled();
       expect(result.success).toBe(true);
-      expect(result.output).toContain("to 0 replica(s)");
+      expect(result.output).toContain("scaled");
     });
 
     test("an in-flight job is re-attached to rather than dispatched a second time", async () => {

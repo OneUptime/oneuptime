@@ -7,7 +7,6 @@ import KubernetesClusterAiAccessService, {
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -69,7 +68,6 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.Disabled,
     ...overrides,
@@ -157,9 +155,6 @@ describe("the previous in-cluster Runner and the Kubernetes AI agent that replac
       });
     jest
       .spyOn(RunnerService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0));
-    jest
-      .spyOn(RunbookCredentialService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(RunbookVariableService, "countBy")

@@ -46,8 +46,10 @@ import {
  * secret became a global secret variable of the same name, and every
  * credential a runbook step used became the secret variables its key,
  * password or kubeconfig went into (Server/Utils/Runbook/RunbookVariablesMove).
- * Credentials stay for what OneUptime AI's own commands reach through a
- * Runner (RunbookCredential).
+ * Runbook credentials are gone: they stayed for what OneUptime AI's own
+ * commands reached through a Runner (AI Access) until the AI agents on hosts
+ * and Kubernetes clusters made them unneeded, and the data migration that
+ * removed them moved what runbook steps still named first.
  *
  * A SECRET is write-only, as a secret and a credential were:
  *   - its value goes into secretValue, encrypted at rest, with `read: []`,

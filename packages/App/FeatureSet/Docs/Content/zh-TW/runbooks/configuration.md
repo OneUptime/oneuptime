@@ -78,7 +78,7 @@ Runbook 權限位於 `Runbook` 權限群組中：
 
 Runbook 的排程和 Webhook 會在無人在場時啟動執行，因此設定其中任何一個都需要編輯並執行該 Runbook 的權限，檢視其 Webhook URL 也是如此。關閉它們只需要編輯權限。請參閱 [Runbook 觸發器](/docs/runbooks/triggers#誰可以設定觸發器)。
 
-Runbook 變數和憑證不在 `RunbookAdmin` 的範圍內，該角色只讀取變數，以便在自己撰寫的步驟中選擇它們。管理變數需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` 和 `ReadRunbookSecret` 權限：這些是 Runbook 機密的權限，在機密變成變數時保留了原來的名稱。管理憑證需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookCredential`、`EditRunbookCredential`、`DeleteRunbookCredential` 和 `ReadRunbookCredential`。請參閱 [Runbook 變數](/docs/runbooks/variables) 和 [AI 存取](/docs/runbooks/credentials)。
+Runbook 變數不在 `RunbookAdmin` 的範圍內，該角色只讀取變數，以便在自己撰寫的步驟中選擇它們。管理變數需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookSecret`, `EditRunbookSecret`, `DeleteRunbookSecret` 和 `ReadRunbookSecret` 權限：這些是 Runbook 機密的權限，在機密變成變數時保留了原來的名稱。請參閱 [Runbook 變數](/docs/runbooks/variables)。
 
 **運行手冊 → 設定** 下的擁有者規則和標籤規則同樣不在 `RunbookAdmin` 的範圍內。管理它們需要 `ProjectOwner` 或 `ProjectAdmin`，或者 `CreateRunbookOwnerRule` 和 `CreateRunbookLabelRule` 權限及其對應的編輯、刪除和讀取權限。
 
@@ -95,9 +95,9 @@ Runbook 執行在 `Runbook` BullMQ 佇列上進行。每個 Worker 處理程序�
 - **JavaScript、Bash、SSH 和 kubectl** 在您掌控的 Runner 主機上執行，而不是在 OneUptime Worker 上。JavaScript 在獨立的 `isolated-vm` 隔離環境中執行，擁有 128 MB 記憶體，無法存取 Runner 的檔案系統或處理程序；它可以用 `axios` 發出 HTTP 請求，但發往私人網路、回送和鏈路本機位址的請求會被拒絕。Bash 以 `bash -c` 執行，其逾時在 Runner 上強制執行。 未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定，則在全域 Runner 上執行。
 - **HTTP 步驟** 使用寬鬆的狀態驗證，因此 4xx 或 5xx 回應會被記錄為失敗的步驟，而不是作為例外擲回，記錄的輸出也會反映上游實際傳回的內容。不會追蹤重新導向。Worker 絕不呼叫回送或鏈路本機位址，例如雲端中繼資料端點；在 OneUptime Cloud 上，它也會拒絕私人網路位址，自行託管的 OneUptime 則在設定 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` 時拒絕。
 - **AI 步驟** 永遠看不到事件的私人備註，也看不到 Slack 和 Microsoft Teams 的訊息；前面步驟的輸出會被掃描是否含有機密資訊，並在到達模型之前被遮蔽。內嵌圖片和很長的編碼資料不會進入提示詞。請參閱 [AI](/docs/runbooks/authoring#ai)。
-- **全域 Runner** 只執行 JavaScript 步驟，每個步驟都在為它建立、結束後丟棄的沙箱中執行，只能存取公用網際網路位址，最長 5 分鐘，而且同一專案同時最多執行三個步驟。它們只會取得步驟所屬專案中已為全域 Runner 開啟的機密變數，永遠不會取得憑證；內建的全域 Runner 持有自己的金鑰，不持有伺服器的任何其他東西。請參閱 [全域 Runner](/docs/runbooks/agents#全域-runner)。
+- **全域 Runner** 只執行 JavaScript 步驟，每個步驟都在為它建立、結束後丟棄的沙箱中執行，只能存取公用網際網路位址，最長 5 分鐘，而且同一專案同時最多執行三個步驟。它們只會取得步驟所屬專案中已為全域 Runner 開啟的機密變數；內建的全域 Runner 持有自己的金鑰，不持有伺服器的任何其他東西。請參閱 [全域 Runner](/docs/runbooks/agents#全域-runner)。
 - **Runner 驗證** 使用 ID 和秘密金鑰，以環境變數設定在 Runner 容器上。在伺服器端，Runner 的權威身分來自與所提供的 ID 和金鑰對應的資料庫列：即使金鑰外洩，用戶端也無法冒充另一個 Runner。
-- **機密變數和憑證** 靜態加密儲存，API 從不傳回，只在其列出的 Runner 認領引用它們的步驟或指令時交給這些 Runner。當機密變數允許全域 Runner 使用時，它也會交給認領了該變數所屬專案中步驟的全域 Runner。Runner 會把步驟收到的每個機密在步驟輸出中取代為 `[REDACTED]`，OneUptime 在儲存輸出之前還會再取代一次。
+- **機密變數** 靜態加密儲存，API 從不傳回，只在其列出的 Runner 認領引用它們的步驟時交給這些 Runner。當機密變數允許全域 Runner 使用時，它也會交給認領了該變數所屬專案中步驟的全域 Runner。Runner 會把步驟收到的每個機密在步驟輸出中取代為 `[REDACTED]`，OneUptime 在儲存輸出之前還會再取代一次。
 
 ## 資料庫資料表
 
@@ -108,7 +108,6 @@ Runbook 執行在 `Runbook` BullMQ 佇列上進行。每個 Worker 處理程序�
 | `RunbookRule` | 自動觸發規則，具有判別欄位 `triggerEntityType`（Incident、Alert、ScheduledMaintenance）、與要啟動之 Runbook 的多對多關聯，以及比對依據：JSON 欄 `criteria`（條件），加上指向監測器、事件嚴重性、警示嚴重性、標籤和監測器標籤的多對多連結，以及標題、描述、監測器名稱和監測器描述的比對模式。 |
 | `Runner` | 每個已安裝的 Runner 一列：名稱、秘密金鑰、`lastAlive`、`connectionStatus`、主機資訊和功能。 全域 Runner 設定了 `isGlobalRunner`，且不屬於任何專案；專案預設 Runner 設定了 `isProjectDefault`。 |
 | `RunnerJob` | 每個分派給 Runner 的步驟一列：`targetAgentId`（步驟作者選擇的 Runner）、步驟類型、指令碼或酬載、狀態（`Pending` → `Claimed` → `Running` → `Succeeded`、`Failed`、`TimedOut` 或 `Cancelled`）、認領期限、租約、輸出和結束代碼。 `runsOnGlobalRunner` 標記任何全域 Runner 都可以認領的步驟。 |
-| `RunbookCredential` | OneUptime AI 指令使用的 SSH 和 Kubernetes 憑證，其機密欄位已加密，以及指派到的 Runner。 |
 | `RunbookVariable` | Runbook 變數：專案的全域變數，以及在 `runbookId` 中指明所屬 Runbook 的 Runbook 自有變數；機密的值已加密，以及可以接收機密的 Runner。 |
 
 ## 維運建議

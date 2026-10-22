@@ -95,7 +95,7 @@ Runbooks ligger under **Produkter**, i gruppen **Dashbord og automatisering**.
 | Et runbooks **Eiere** | Legg til personene og teamene som er ansvarlige for det. |
 | Et runbooks **Innstillinger** | Slå av **Kjør dette runbooket** uten å slette runbooket. |
 | **Runbooks → Kjøringer** | Alle kjøringer av alle runbooks i prosjektet. |
-| **Runbooks → Runbook-agenter** og **Runbooks → Runbook-agenter → AI-tilgang** | Installer [Runnere](/docs/runbooks/agents), og administrer [tilgangen](/docs/runbooks/credentials) som OneUptime AIs kommandoer har gjennom dem. |
+| **Runbooks → Runbook-agenter** | Installer [Runnerne](/docs/runbooks/agents) som runbook-trinnene dine kjører på. |
 | **Runbooks → Innstillinger** | Administrer under **Globale variabler** variablene som hver runbook kan [bruke](/docs/runbooks/variables), samt **Eierregler** og **Etikettregler** som legger til eiere og etiketter på nye runbooks. |
 | **Hendelser / Varsler / Planlagt vedlikehold → Regler → Runbook-regler** | Opprett reglene som starter runbooks automatisk. |
 | En hendelse, et varsel eller en vedlikeholdshendelse → **Runbooks** | Se kjøringene som er knyttet til den, og klikk **Kjør runbook** for å starte en. |

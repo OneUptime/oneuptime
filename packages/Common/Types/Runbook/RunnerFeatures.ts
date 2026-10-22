@@ -10,22 +10,28 @@
  *
  * Steps an older Runner runs fine need no feature: an SSH step that takes a
  * script also carries it as the command an older Runner sends. A kubectl
- * step the data migration moved from a Kubernetes action keeps that action
- * and its credential while its script and kubeconfig are the ones it was
- * moved with, and a Runner that does not name "kubectl-script" is handed the
- * step that way, as it always was (RunbookLegacySteps). Only a kubectl step
- * with no action to fall back on - written as a script, or changed since it
- * was moved - is failed on such a Runner.
+ * step is failed on a Runner that does not name "kubectl-script", saying to
+ * update the Runner - the Kubernetes steps the data migration moved from an
+ * action included: the runbook credential they kept for such a Runner went
+ * with runbook credentials.
  */
 
 // A kubectl step that takes a script and a kubeconfig (RunbookStepType.Kubernetes).
 export const RUNNER_FEATURE_KUBECTL_SCRIPT: string = "kubectl-script";
 
 /*
- * How a kubectl step's kubeconfig is sent in a claim's `credential`
- * ({ credentialType, kubeconfig }), beside the SSH and Kubernetes shapes a
- * runbook credential is sent in. Never a RunbookCredential's own type.
+ * How a claim's `credential` says what it holds: { credentialType, ... }.
+ *
+ * An SSH step's sign-in is sent as { credentialType: "SSH", hostname, port,
+ * username, privateKey (and passphrase) or password }, filled in from its
+ * secret runbook variables (RunbookJobVariables) - the shape every Runner
+ * reads, an older one included, since runbook credentials were sent in it.
+ * A kubectl step's kubeconfig is sent as { credentialType: "Kubeconfig",
+ * kubeconfig }. ("Kubernetes", an API server URL and a token, is what a
+ * runbook credential was sent as; OneUptime sends it no more.)
  */
+export const SSH_CREDENTIAL_TYPE: string = "SSH";
+
 export const KUBECONFIG_CREDENTIAL_TYPE: string = "Kubeconfig";
 
 // Every feature this build of the Runner has.

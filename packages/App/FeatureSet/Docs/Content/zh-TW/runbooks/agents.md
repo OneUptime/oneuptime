@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"對外 HTTPS，Runner ID 和金鑰"| ingest
-    ingest -->|"已認領的工作及其密鑰或憑證"| runner
+    ingest -->|"已認領的工作及其密鑰"| runner
     runner -->|"指令碼、SSH 或 Kubernetes API"| targets
 ```
 
@@ -61,13 +61,12 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | 步驟可以存取的位址 | 公用網際網路位址 | 其主機可以存取的位址 |
 | 步驟的最長執行時間 | 5 分鐘 | 1 小時 |
 | 機密變數 | 您允許全域 Runner 使用的那些 | 列出了它的那些 |
-| 憑證 | 無 | 您指派給它的憑證 |
 
 全域 Runner 會執行許多專案的步驟，因此每個步驟都與其他所有步驟彼此隔離：
 
 - 每個步驟都在自己的 `isolated-vm` 沙箱中執行，這個沙箱為該步驟建立，並在步驟結束後丟棄：沒有檔案、沒有處理程序、沒有環境變數，也不會從一個步驟保留任何東西到下一個步驟。
 - 它的 HTTP 請求只能到達公用網際網路位址，絕不會到達私人、回送或鏈路本機位址或雲端中繼資料端點，因此全域 Runner 永遠無法存取您的網路。
-- 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。它永遠不會收到憑證。
+- 只有當機密變數的 **全域 Runner 可以使用** 開關開啟時，它才會收到該變數，而且只用於該變數所屬專案的步驟。
 - 一個專案在全域 Runner 上同時最多執行三個步驟，因此沒有專案能獨占它們。
 
 對於需要存取您網路的步驟，或要讓步驟留在您掌控的主機上，請為它選擇您自己的 Runner。若要讓每個步驟都在您自己的 Runner 上執行，請在 **運行手冊 → Runbook 代理程式** 底部關閉 **使用全域 Runner** 。之後，未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定預設 Runner，它會失敗並說明原因，直到它選擇您的某個 Runner；選擇了您的某個 Runner 的步驟無論如何都會保留它。在程式碼的設定中沒有選擇 Runner 的程式碼儲存庫同樣在全域 Runner 上工作，而在關閉該開關時需要您的某個 Runner；請參閱 [程式碼](/docs/ai/ai-agent#選擇儲存庫的-runner)。
@@ -98,7 +97,7 @@ Runner 只保存自己的 ID 和金鑰。其餘一切都隨它認領的工作一
 | **執行操作手冊** | **更多欄位** 下 | 預設開啟。讓此 Runner 認領 Runbook 步驟。 |
 | **標籤** | **更多欄位** 下 | 選用。 |
 
-Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。自動補救規則選擇 OneUptime AI 執行其指令所用的 Runner，Kubernetes 叢集的 AI 設定選擇其 kubectl 所執行的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。選擇持有 SSH 憑證的 Runner 需要讀取 Runbook 憑證的權限；請參閱 [執行 OneUptime AI 指令的 Runner](/docs/runbooks/credentials#執行-oneuptime-ai-指令的-runner)。
+Runner 會在下一次心跳時取得功能的變更，不需要重新啟動。AI 不是一項功能。程式碼儲存庫會在程式碼的設定中選擇 AI 在其中工作所用的 Runner，Runner 的頁面會列出選擇了它的儲存庫。自動補救規則選擇 OneUptime AI 執行其指令所用的 Runner：正是在那裡選擇 Runner，才讓 OneUptime AI 的指令可以在其上執行。
 
 ### 2. 複製安裝指令
 

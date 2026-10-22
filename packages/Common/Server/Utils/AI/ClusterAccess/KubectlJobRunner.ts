@@ -264,7 +264,6 @@ export default class KubectlJobRunner {
     autoRemediationSuggestionId?: ObjectID | undefined;
     kubernetesClusterId: ObjectID;
     targetRunnerId: ObjectID;
-    credentialId?: string | undefined;
     command: string;
     stepId: string;
     timeoutInMs: number;
@@ -299,7 +298,6 @@ export default class KubectlJobRunner {
       kubernetesClusterId: data.kubernetesClusterId,
       stepId: data.stepId,
       targetAgentId: data.targetRunnerId,
-      credentialId: data.credentialId,
       command: data.command,
       timeoutInMs: data.timeoutInMs,
       claimTimeoutInMs,

@@ -14,8 +14,9 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Releases 14.0.26 to 14.0.31 recorded who last saved a workflow's steps,
  * to answer its steps' read of runbook credentials with that person's. A
- * step is now never lent that read (RunbookCredentialReaders), so nothing
- * reads it: the column and its foreign key are dropped by a migration of
+ * step was then never lent that read (and runbook credentials were removed
+ * since), so nothing reads it: the column and its foreign key are dropped
+ * by a migration of
  * their own, after the two that added them - which stay registered, so an
  * install that never ran them runs all three, in order, and ends where
  * every other does.

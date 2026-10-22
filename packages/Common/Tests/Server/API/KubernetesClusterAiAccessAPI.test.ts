@@ -71,8 +71,9 @@ import {
  *   reservation, so concurrent requests cannot all start), a few per minute
  *   and a ceiling per hour per cluster, and a few per minute per user
  *   (counted under a per-user lock) — checked before anything is enqueued;
- * - /status and /test show the credential's name only to a caller who may
- *   read credentials;
+ * - /status hands a cluster reader the whole status, and neither route
+ *   names or passes on a credential (runbook credentials were removed, and
+ *   the credential filter with them);
  * - /test runs each command through KubectlJobRunner.run, like every AI
  *   kubectl command: an access-test command that times out reads in
  *   kubectl's words (never ran, or unknown for a job a Runner took and went
@@ -358,17 +359,16 @@ function readyStatus(
     clusterId: CLUSTER_ID.toString(),
     clusterName: "prod-us",
     clusterIdentifier: "prod-us",
+    // The chart's previous in-cluster Runner: the one Runner AI still uses.
     runner: {
       id: RUNNER_ID.toString(),
-      name: "office-runner",
+      name: "kubernetes-agent/prod-us",
       isOnline: true,
       canRunAiCommands: true,
     },
-    accessMethod: "credential",
+    accessMethod: "in_cluster",
     aiAgent: null,
     automaticInvestigation: { incidents: false, alerts: false },
-    credentialId: CREDENTIAL_ID,
-    credentialName: "prod-us kubeconfig",
     kubectlAllowlist: [],
     isInvestigationEnabled: false,
     isInvestigationReady: false,
@@ -1057,7 +1057,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
   });
 
   describe("POST /kubernetes-cluster/ai-access/test — the happy path", () => {
-    test("runs both commands through the chokepoint as an access test, through the bound Runner and credential", async () => {
+    test("runs both commands through the chokepoint as an access test, through the bound Runner and no credential", async () => {
       const result: RouteCallResult = await callRoute(TEST_ROUTE);
 
       expect(result.nextCallCount).toBe(0);
@@ -1080,7 +1080,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
           CLUSTER_ID.toString(),
         );
         expect(data["targetAgentId"]!.toString()).toBe(RUNNER_ID.toString());
-        expect(data["credentialId"]).toBe(CREDENTIAL_ID);
+        expect(data).not.toHaveProperty("credentialId");
         // Each test's commands name the user who ran it, first command first.
         expect(data["stepId"]).toBe(
           `ai-access-test-${index + 1}-${USER_ID.toString()}`,
@@ -1699,7 +1699,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
           CLUSTER_ID.toString(),
         );
         expect(data["targetRunnerId"]!.toString()).toBe(RUNNER_ID.toString());
-        expect(data["credentialId"]).toBe(CREDENTIAL_ID);
+        expect(data).not.toHaveProperty("credentialId");
         expect(data["stepId"]).toBe(
           `ai-access-test-${index + 1}-${USER_ID.toString()}`,
         );
@@ -2028,91 +2028,62 @@ describe("KubernetesClusterAiAccessAPI", () => {
   });
 
   /*
-   * The cluster's AI page shows the credential's NAME only to someone who
-   * may read credentials — the rule its credential picker and the
-   * investigation panel apply. Reading the cluster is not enough.
+   * The cluster's AI page showed the credential a Runner outside the
+   * cluster reached it with - by NAME, and only to someone who could read
+   * credentials. Runbook credentials were removed: no status names one, so
+   * a cluster reader sees the whole status as the server computed it, and
+   * the test runs through its target alone.
    */
-  describe("the credential is shown only to callers who may read credentials", () => {
-    const CREDENTIAL_GAP: KubernetesAiAccessGap = {
-      code: "credential_missing",
-      title: "The Kubernetes credential is not usable by the Runner",
-      description:
-        '"prod-us kubeconfig" is not assigned to Runner "office-runner".',
-      nextStep: "Assign it.",
-      blocks: "both",
-    };
-
-    test("/status withholds the credential's id and name, and the gap text that names it", async () => {
+  describe("no credential, on either route", () => {
+    test("/status hands a cluster reader the whole status, which names no credential", async () => {
       propsSpy.mockResolvedValue(
         userProps({ permissions: [Permission.ReadKubernetesCluster] }),
       );
-      statusSpy.mockResolvedValue(readyStatus({ gaps: [CREDENTIAL_GAP] }));
+      const status: KubernetesClusterAiAccessStatus = readyStatus({
+        gaps: [gap("last_access_check_failed")],
+        lastError: "error: You must be logged in to the server",
+      });
+      statusSpy.mockResolvedValue(status);
 
       await callRoute(STATUS_ROUTE);
 
       const response: JSONObject = lastResponse();
+      expect(response).toEqual(status);
       expect(response).not.toHaveProperty("credentialId");
       expect(response).not.toHaveProperty("credentialName");
-      expect(JSON.stringify(response)).not.toContain("prod-us kubeconfig");
-      const gaps: Array<JSONObject> = response["gaps"] as Array<JSONObject>;
-      expect(gaps[0]!["description"]).toContain(
-        "Someone who can view Runner credentials",
-      );
-      // Everything else a cluster reader may see is still there.
-      expect(response["accessMethod"]).toBe("credential");
-      expect(response["clusterId"]).toBe(CLUSTER_ID.toString());
+      expect(response["accessMethod"]).toBe("in_cluster");
     });
 
-    test("a block row for credential read is a denial even with a grant", async () => {
-      propsSpy.mockResolvedValue(
-        userProps({
-          permissions: [
-            Permission.ReadKubernetesCluster,
-            Permission.ReadRunbookCredential,
-          ],
-          blocked: [Permission.ReadRunbookCredential],
-        }),
-      );
+    test("the route module keeps no credential filter", async () => {
+      const api: Record<string, unknown> = (await import(
+        "../../../Server/API/KubernetesClusterAiAccessAPI"
+      )) as unknown as Record<string, unknown>;
 
-      await callRoute(STATUS_ROUTE);
-
-      expect(lastResponse()).not.toHaveProperty("credentialName");
+      expect(api).not.toHaveProperty("toViewerStatus");
+      expect(api).not.toHaveProperty("RESTRICTED_CREDENTIAL_GAP_DESCRIPTION");
     });
 
-    test("negative control: a caller who may read credentials sees them", async () => {
-      propsSpy.mockResolvedValue(
-        userProps({
-          permissions: [
-            Permission.ReadKubernetesCluster,
-            Permission.ReadRunbookCredential,
-          ],
-        }),
-      );
-      statusSpy.mockResolvedValue(readyStatus({ gaps: [CREDENTIAL_GAP] }));
-
-      await callRoute(STATUS_ROUTE);
-
-      const response: JSONObject = lastResponse();
-      expect(response["credentialId"]).toBe(CREDENTIAL_ID);
-      expect(response["credentialName"]).toBe("prod-us kubeconfig");
-      expect(
-        (response["gaps"] as Array<JSONObject>)[0]!["description"],
-      ).toContain("prod-us kubeconfig");
-    });
-
-    test("/test withholds them from its status too, yet still runs through the bound credential", async () => {
+    /*
+     * The status is the server's own, so it names no credential. Should one
+     * still hold one (a status cached by an older server), the route passes
+     * nothing on: a job that names a credential is refused when claimed.
+     */
+    test("/test passes no credential to a job, whatever the status holds, and returns the status as computed", async () => {
       propsSpy.mockResolvedValue(userProps({ permissions: CLUSTER_EDITOR }));
+      statusSpy.mockResolvedValue({
+        ...readyStatus(),
+        credentialId: CREDENTIAL_ID,
+      } as KubernetesClusterAiAccessStatus);
 
       await callRoute(TEST_ROUTE);
 
-      expect(
-        (enqueueSpy.mock.calls[0]![0] as Record<string, unknown>)[
-          "credentialId"
-        ],
-      ).toBe(CREDENTIAL_ID);
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+      for (const call of enqueueSpy.mock.calls) {
+        expect(call[0]).not.toHaveProperty("credentialId");
+      }
       const status: JSONObject = lastResponse()["status"] as JSONObject;
-      expect(status).not.toHaveProperty("credentialName");
-      expect(status).not.toHaveProperty("credentialId");
+      expect(status["accessMethod"]).toBe("in_cluster");
+      expect(status["clusterId"]).toBe(CLUSTER_ID.toString());
     });
   });
 });

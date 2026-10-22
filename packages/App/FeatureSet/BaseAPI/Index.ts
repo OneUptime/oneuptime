@@ -1238,9 +1238,6 @@ import RunnerOwnerUserService, {
 import RunbookVariableService, {
   Service as RunbookVariableServiceType,
 } from "Common/Server/Services/RunbookVariableService";
-import RunbookCredentialService, {
-  Service as RunbookCredentialServiceType,
-} from "Common/Server/Services/RunbookCredentialService";
 
 import ProbeOwnerTeamService, {
   Service as ProbeOwnerTeamServiceType,
@@ -1590,7 +1587,6 @@ import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
 import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
-import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
 import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
 import AIAgentOwnerTeam from "Common/Models/DatabaseModels/AIAgentOwnerTeam";
@@ -4282,14 +4278,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RunbookVariable, RunbookVariableServiceType>(
         RunbookVariable,
         RunbookVariableService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookCredential, RunbookCredentialServiceType>(
-        RunbookCredential,
-        RunbookCredentialService,
       ).getRouter(),
     );
 

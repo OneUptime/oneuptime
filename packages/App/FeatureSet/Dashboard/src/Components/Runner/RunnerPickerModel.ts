@@ -248,9 +248,13 @@ export const REMEDIATION_ADD_RUNNER_TEMPLATE: string = translationKey(
   "Add a Runner under {{location}} for OneUptime AI to run commands on, then pick it here.",
 );
 
-// Under a rule's picker on one of the project's own Runners.
+/*
+ * Under a rule's picker on one of the project's own Runners. Bash only:
+ * OneUptime AI's SSH commands reached another host with a runbook
+ * credential, and runbook credentials were removed.
+ */
 export const REMEDIATION_OWN_RUNNER_HELPER_TEXT: string = translationKey(
-  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.",
+  "OneUptime AI may also run Bash commands on this Runner, inside your network.",
 );
 
 /*

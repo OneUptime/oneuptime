@@ -69,7 +69,7 @@ describe("MoveRunbookApprovalsBeforeTheirSteps", () => {
       ).toHaveLength(1);
     });
 
-    test("sits right above the runbook variables move, which keeps its place before the last slot", () => {
+    test("sits right above the runbook variables move, which the removal of runbook credentials follows before the last slot", () => {
       const instantiations: Array<string> = registeredMigrations();
 
       expect(instantiations.indexOf(MIGRATION_NAME)).toBe(
@@ -78,7 +78,10 @@ describe("MoveRunbookApprovalsBeforeTheirSteps", () => {
       );
       expect(
         instantiations.indexOf("MoveRunbookSecretsAndCredentialsToVariables"),
-      ).toBe(instantiations.indexOf("AddAuditLogMcpClientColumns") - 1);
+      ).toBe(instantiations.indexOf("RemoveRunbookCredentials") - 1);
+      expect(instantiations.indexOf("RemoveRunbookCredentials")).toBe(
+        instantiations.indexOf("AddAuditLogMcpClientColumns") - 1,
+      );
       expect(instantiations[instantiations.length - 1]).toBe(
         "AddAuditLogMcpClientColumns",
       );

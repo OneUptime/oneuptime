@@ -178,9 +178,9 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 誰可以變更
 
-當 Kubernetes AI 代理程式設定調查和修正時，由能夠變更叢集上 chart 值的人來變更它們；OneUptime 會拒絕在其他地方所做的變更。下面的規則適用於留在 OneUptime 中的內容——kubectl 允許清單以及 Runner 和憑證的繫結——以及設定仍在 OneUptime 中的叢集的調查和修正（請參閱 [AI 可以執行的操作——由代理程式設定](#ai-可以執行的操作由代理程式設定)）。
+當 Kubernetes AI 代理程式設定調查和修正時，由能夠變更叢集上 chart 值的人來變更它們；OneUptime 會拒絕在其他地方所做的變更。下面的規則適用於留在 OneUptime 中的內容——kubectl 允許清單以及與叢集先前的叢集內 Runner 的繫結——以及設定仍在 OneUptime 中的叢集的調查和修正（請參閱 [AI 可以執行的操作——由代理程式設定](#ai-可以執行的操作由代理程式設定)）。
 
-開啟修正——從 **關閉** 切換到任何其他模式——以及放寬修正——切換到 **自動** 或 **略過核准**、撰寫 kubectl 允許清單、繫結 Runner 或憑證，或從擁有 Kubernetes AI 代理程式的叢集中移除該繫結——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 權限，也就是可以建立完全自動補救規則的那些人。繫結憑證還需要 **Read Runbook Credential** 權限，除非您是 Project Owner 或 Project Admin。**重設代理程式** 需要與開啟修正相同的人員。收緊修正——**關閉**、改回 **請求核准**、清空允許清單——任何可以編輯該叢集的人都能執行，**測試連線** 以及核准 OneUptime AI 為該叢集提出的修正也是如此。所有這些都需要編輯該叢集本身的權限：限制於某些標籤、或限制於您或您的團隊擁有的叢集的權限，只能作用於這些叢集，而帶標籤的封鎖項目會取消對帶有這些標籤的叢集的操作。
+開啟修正——從 **關閉** 切換到任何其他模式——以及放寬修正——切換到 **自動** 或 **略過核准**、撰寫 kubectl 允許清單或繫結 Runner——需要 Project Owner、Project Admin 或 **Edit Auto Remediation Rule** 權限，也就是可以建立完全自動補救規則的那些人。**重設代理程式** 需要與開啟修正相同的人員。收緊修正——**關閉**、改回 **請求核准**、清空允許清單或 Runner 繫結——任何可以編輯該叢集的人都能執行，**測試連線** 以及核准 OneUptime AI 為該叢集提出的修正也是如此。所有這些都需要編輯該叢集本身的權限：限制於某些標籤、或限制於您或您的團隊擁有的叢集的權限，只能作用於這些叢集，而帶標籤的封鎖項目會取消對帶有這些標籤的叢集的操作。
 
 ### 調查可以執行什麼
 
@@ -263,11 +263,11 @@ chart 的 RBAC 是獨立於原則的另一層，它限制的是 AI 代理程式�
 
 叢集的 **AI 日誌** 頁面（人工智慧 → 日誌）記錄了 OneUptime AI 在那裡做過的一切，依時間由新到舊：每次調查及其事件或警示和摘要，它提出或執行的每項修正及其狀態，以及每條 kubectl 指令——無論是調查還是修正——及其指令內容、狀態和執行時間。調查的摘要是其 TL;DR，如果無法寫出 TL;DR，則是其報告開頭的摘要。此頁面過去叫作 AI Insights；其舊網址的書籤現在會開啟 AI Insights 頁面，該頁面會連結到這裡。
 
-### 改為透過 Runner（進階）
-
-不執行該 chart 的叢集——以其他方式傳送 Kubernetes 遙測資料的叢集——可以透過您執行的 Runner（運行手冊 → Runbook 代理程式）為 OneUptime AI 提供 kubectl 存取權。使用 API 或 Terraform 將 Runner 和一個 Kubernetes 憑證（API 伺服器 URL + ServiceAccount 權杖，位於 **運行手冊 → Runbook 代理程式 → AI 存取** 下）繫結到叢集（叢集的 **AI Access Runner** 和 **AI Access Credential**）：正是繫結 Runner 才讓 OneUptime AI 可以在其上執行 kubectl。透過 Runner 進行的修正需要與透過 AI 代理程式進行的修正相同的專案開關：**啟用 AI**，以及 **自動修正新事件** （或警示對應的開關）。若要限制此類 Runner 可以寫入的位置，請使用 `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` 啟動它（並使用 `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` 讓修正遠離節點）：Runner 會回報這些限制，因此 OneUptime 會在超出限制的修正被提出或核准時、在其到達 Runner 之前就拒絕它，而 Runner 也會再次拒絕。繫結到 Runner 的叢集即使安裝了 Kubernetes AI 代理程式也會繼續使用該 Runner；此時 AI 代理程式頁面會顯示它經過哪個 Runner 和憑證，並在 AI 代理程式連線後，在代理程式狀態旁的 **⋯** 選單中提供 **切換到 AI 代理程式**。
+### 透過先前的叢集內 Runner
 
 使用較早的 chart（`aiAccess.enabled=true`）設定的叢集，在 chart 升級之前會透過先前的叢集內 Runner 存取 OneUptime AI。升級會用 Kubernetes AI 代理程式取代該 Runner 並沿用其設定——請參閱 [升級代理程式](/docs/telemetry/kubernetes-agent#升級代理程式)。
+
+叢集外的 Runner 不再能存取該叢集：它過去是憑藉 Kubernetes Runbook 憑證存取的，而 Runbook 憑證已被移除。未執行 Kubernetes 代理程式 chart 的叢集，安裝該 chart 即可讓 OneUptime AI 執行 kubectl：chart 中的 Kubernetes AI 代理程式就是入口。
 
 ## 基礎設施存取——Docker、Podman、Swarm、Proxmox、VMware、Ceph、資料庫和主機
 
@@ -317,14 +317,14 @@ OneUptime AI 透過事件所影響的叢集或主機上的 AI 代理程式進行
 
 - **運行手冊** ——OneUptime AI 可以為該規則執行的運行手冊。如果一個都不選（**任何運行手冊**），它可以挑選專案中任何已啟用的運行手冊；選擇一些後，它只會執行這些。從全部運行手冊中挑選的運行手冊一律會提交核准。從規則自己的運行手冊中挑選的運行手冊，對於無需詢問直接修正的規則會立即啟動——除非另一條相符的規則先詢問、AI 代理程式已經在叢集或主機上修正該事件，或者該規則已經啟動了一小時內可啟動的最多運行手冊。
 - **每次都執行** ——規則會為其相符的每個事件啟動它指定的每個運行手冊，每次都以相同方式執行，而不是由 OneUptime AI 決定。規則指定運行手冊後才會顯示。
-- **Runner** ——OneUptime AI 為該規則執行自有指令（Bash 和 SSH）的位置，在您的網路內。不選時（**叢集或主機上的 AI 代理程式**），OneUptime AI 只透過受影響的 Kubernetes 叢集或主機上的 AI 代理程式進行修正；全域 Runner 從不執行 OneUptime AI 的指令。選擇您的某個 Runner，才能讓 OneUptime AI 在其上執行指令：Runner 本身沒有為此設定的開關。
+- **Runner** ——OneUptime AI 為該規則執行自有指令（Bash）的位置，在您的網路內。不選時（**叢集或主機上的 AI 代理程式**），OneUptime AI 只透過受影響的 Kubernetes 叢集或主機上的 AI 代理程式進行修正；全域 Runner 從不執行 OneUptime AI 的指令。選擇您的某個 Runner，才能讓 OneUptime AI 在其上執行指令：Runner 本身沒有為此設定的開關。
 - **MCP 伺服器** ——OneUptime AI 可以為該規則用來修正的[外部 MCP 伺服器](/docs/ai/external-mcp-servers)。如果不選（**所有 MCP 伺服器**），它可以使用專案中所有已開啟的伺服器，透過它們做出的每項變更都要等待核准；選擇其中一些，可讓它只使用這些伺服器，並讓無需詢問直接修正的規則自行做出它們的變更。
 
 當多條規則相符時，每條都會執行：OneUptime AI 修正事件一次，每條每次都執行其運行手冊的規則會執行這些運行手冊。如果任何相符的 OneUptime AI 規則要求修正前先詢問，該事件的每個 OneUptime AI 修正都會先詢問，其在 **補救** 卡片上的那一行會寫明該規則。
 
 在規則簡化之前儲存的規則會繼續做它原來做的事。讓 AI 在 Runner 上撰寫指令或選擇專案某個運行手冊的規則，會顯示為 **OneUptime AI：Runner 上的命令** 或 **OneUptime AI：選擇運行手冊**，並繼續這樣做；它不會開啟叢集和主機的修正，也不會讓它們詢問。它的其他設定（指令允許清單、指令 Runner、驗證時間範圍）會保留，並透過 API 或 Terraform 設定。 編輯時會顯示它的作用，**像新規則一樣修正** 會讓它像新規則一樣修正，在您另行選擇之前會先詢問。
 
-**Runner 上的指令以及它們執行時使用的憑證。** OneUptime AI 撰寫的 SSH 指令（用於選擇了 **Runner** 的規則，或儲存為在 Runner 上撰寫指令的規則），會在它使用指派給該 Runner 的某個憑證——OneUptime AI 選中的那個——所能存取的主機上執行。核准帶有 SSH 指令的計畫就等於確認這一選擇，因此需要讀取運行手冊憑證的權限（**Read Runbook Credential**，或者是 Project Owner 或 Project Admin）；沒有該權限時，核准會被拒絕，並說明誰可以核准該計畫，且不會執行任何內容。讓此類規則無需詢問就執行其指令——**無需詢問直接修正**，帶有指令允許清單——在某次儲存開啟了這一點（包括開啟此類規則）或在允許清單中新增了模式或 Runner 時，都需要同樣的權限，無論允許清單如何撰寫；縮小規則範圍或關閉這一點則不需要。首次選擇持有 SSH 憑證的 Runner（作為規則的 **Runner**，或用於叢集的 AI 存取）也需要同樣的權限，因為正是這一選擇讓 OneUptime AI 的指令可以在其上執行。將 SSH 憑證指派給執行 OneUptime AI 指令的 Runner——使用該 Runner 建立憑證，或將該 Runner 新增到憑證中——同樣需要該權限，這樣無論先儲存的是憑證還是選擇，SSH 憑證都只能經由有權讀取它的人到達此類 Runner（請參閱 [執行 OneUptime AI 指令的 Runner](/docs/runbooks/credentials#執行-oneuptime-ai-指令的-runner)）。工作流程步驟永遠不會因為以 Project Admin 身分執行而借用此權限：必須由擁有該權限的人來進行這些變更。kubectl 指令使用在 **AI 代理程式** 頁面上繫結到其叢集的憑證執行，而只有能夠讀取運行手冊憑證的人才能繫結它（請參閱 [誰可以變更](#誰可以變更)），因此核准它不需要其他任何條件。
+**Runner 上的指令。** OneUptime AI 為選擇了 **Runner** 的規則、或為儲存為在 Runner 上撰寫指令的規則所撰寫的指令，是在該 Runner 自身主機上執行的 Bash 指令，可以存取該主機能存取的內容。OneUptime AI 不再撰寫 SSH 指令：這類指令過去憑藉 Runbook 憑證存取其他主機，而 Runbook 憑證已被移除，因此仍包含此類指令的已儲存計畫不會被核准，也永遠不會執行。kubectl 指令透過叢集的 Kubernetes AI 代理程式或其先前的叢集內 Runner，以其自身的 ServiceAccount 執行（請參閱 [叢集存取](#叢集存取讓-oneuptime-ai-執行-kubectl)）。
 
 ### 調查前等待
 

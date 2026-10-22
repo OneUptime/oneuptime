@@ -97,9 +97,9 @@ Runbook 변수는 Runbook 시크릿과, SSH 및 Kubernetes 단계가 지정하�
 - 단계가 지정하던 각 자격 증명은 같은 Runner를 가진 시크릿 전역 변수가 되었고, 그 이름을 따서 `<name>-ssh-key`(암호 문구가 있는 키라면 `<name>-ssh-key-passphrase` 도), `<name>-ssh-password` 또는 `<name>-kubeconfig` 로 이름이 지어졌습니다.
 - 자격 증명을 지정하던 각 SSH 단계는 그 변수로 대상 머신에 로그인해 자신의 명령을 스크립트로 실행하고, 각 Kubernetes 단계는 자신의 동작이 하던 `kubectl patch` 를 실행하는 kubectl 단계가 되었으므로 단계가 갖던 것보다 더 많은 접근 권한이 필요하지 않습니다.
 
-이 릴리스보다 오래된 Runner는 kubectl 스크립트를 실행할 수 없습니다. 그래서 이렇게 옮겨진 각 Kubernetes 단계는 자격 증명과 동작도 함께 유지했고, 더 오래된 Runner는 이전처럼 그것으로 단계를 실행합니다. 단계의 스크립트나 kubeconfig를 바꾸면 더 이상 그것을 유지하지 않습니다. 그러면 새 kubectl 단계와 마찬가지로 이 릴리스의 Runner가 필요하며, 더 오래된 Runner는 단계를 실패시키고 Runner를 업데이트하라고 알립니다.
+이 릴리스(14.0.79)보다 오래된 Runner는 kubectl 스크립트를 실행할 수 없으며, kubectl 단계를 실패시키고 Runner를 업데이트하라고 알립니다. 이렇게 옮겨진 각 Kubernetes 단계는 처음에 그런 Runner를 위해 스크립트 옆에 자격 증명과 동작을 유지했습니다. 그것들은 Runbook 자격 증명과 함께 사라졌으므로, 모든 kubectl 단계에는 14.0.79 이상의 Runner가 필요합니다.
 
-API로 자격 증명을 지정해 작성한 단계는 여전히 그 자격 증명으로 실행되고, 그 단계 페이지에 **스크립트 단계로 바꾸기** 가 표시됩니다. 자격 증명도 OneUptime AI 자체 명령이 닿는 곳을 위해 남아 있습니다. [AI 액세스](/docs/runbooks/credentials)를 참고하세요.
+그 뒤 Runbook 자격 증명이 제거되었고, 아직 자격 증명을 지정하던 단계는 먼저 같은 방식으로 옮겨졌습니다. 자격 증명을 지정하는 단계는 더 이상 실행되지 않으며, 그 단계 페이지에 **스크립트 단계로 바꾸기** 가 표시됩니다. API나 Terraform으로 단계에 자격 증명을 주어 저장하면 거부됩니다. [Runbook 자격 증명이 제거되었습니다](/docs/installation/upgrading#runbook-자격-증명이-제거되었습니다)를 참고하세요.
 
 ## 다음 단계
 

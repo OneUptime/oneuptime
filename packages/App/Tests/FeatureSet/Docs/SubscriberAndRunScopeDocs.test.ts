@@ -1,3 +1,4 @@
+import { REMOVED_SSH_COMMAND_MESSAGE } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -16,10 +17,13 @@ import path from "path";
  * - LLM providers are read by the project's members who may read its
  *   settings, the global list by anyone signed in: the LLM provider page
  *   says so.
- * - Approving an AI plan with an SSH command, letting a rule run AI
- *   commands without asking, and letting a Runner that holds SSH
- *   credentials run them, take the read of runbook credentials
- *   (AiRemediationCredentialUse, RunnerService): the AI SRE page says so.
+ * - OneUptime AI's commands on a Runner are Bash commands on the Runner's
+ *   own host: it composes no SSH command any more, and a stored plan that
+ *   holds one is not approved (REMOVED_SSH_COMMAND_MESSAGE), since runbook
+ *   credentials, which such a command reached a host with, were removed.
+ *   The AI SRE page says so. (Approving an SSH command, letting a rule run
+ *   without asking and picking a Runner with SSH credentials took the read
+ *   of runbook credentials until then.)
  *
  * Users, Teams & Permissions carries the two rules - a paragraph before the
  * scope-exempt roles, and the close of the paragraph on settings that hold
@@ -179,19 +183,30 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     ).toHaveLength(1);
   });
 
-  test("the AI SRE page says what approving an SSH command and running without asking take", () => {
+  test("the AI SRE page says OneUptime AI's commands on a Runner are Bash, and a plan with an SSH command is never approved", () => {
     const page: string = read("ai/ai-sre.md");
     const paragraph: string = paragraphStartingWith(
       page,
-      "**Commands on Runners and the credentials they run with.**",
+      "**Commands on Runners.**",
     );
 
     expectSentences(paragraph, [
-      "Approving a plan with an SSH command confirms that pick, so it takes permission to read runbook credentials (**Read Runbook Credential**, or a Project Owner or Project Admin); without it the approval is refused, saying who may approve the plan, and nothing runs.",
-      "Letting such a rule run its commands without asking - **Fix without asking**, with a command allowlist - takes the same permission when a save turns that on - switching such a rule on included - or adds allowlist patterns or Runners, however the allowlist is written; narrowing the rule, or turning that off, does not.",
-      "Picking a Runner that holds SSH credentials - as a rule's **Runner**, or for a cluster's AI access - takes the same permission the first time it is picked, since picking it is what lets OneUptime AI's commands run on it.",
-      "A kubectl command runs with the credential bound to its cluster on the **AI agent** page, which only someone who may read runbook credentials can bind (see [Who may change it](#who-may-change-it)), so approving it asks nothing more.",
+      "A command OneUptime AI composes for a rule that picks a **Runner**, or for a rule saved to compose commands on Runners, is a Bash command that runs on that Runner's own host, with what the host may reach.",
+      "OneUptime AI composes no SSH command any more: one reached another host with a runbook credential, and runbook credentials were removed, so a stored plan that still holds one is not approved and never runs.",
+      "A kubectl command runs through the cluster's Kubernetes AI agent, or its previous in-cluster Runner, with its own ServiceAccount (see [Cluster access](#cluster-access-let-oneuptime-ai-run-kubectl)).",
     ]);
+
+    // What approving such a plan is answered with says the same.
+    expect(REMOVED_SSH_COMMAND_MESSAGE).toContain(
+      "OneUptime AI no longer runs SSH commands",
+    );
+    expect(REMOVED_SSH_COMMAND_MESSAGE).toContain(
+      "runbook credentials were removed",
+    );
+
+    // Nothing on the page asks for a permission that is gone.
+    expect(page).not.toContain("Read Runbook Credential");
+    expect(page).not.toContain("the credentials they run with");
 
     // It closes the rules section, before auto-remediation waits for the analysis.
     const rule: number = page.indexOf(paragraph);
@@ -228,7 +243,7 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
     ]);
   });
 
-  test("Users, Teams & Permissions closes the paragraph on settings that hold credentials with the credential an AI command runs with", () => {
+  test("Users, Teams & Permissions closes the paragraph on settings that hold credentials with the workflow step rule, and names no runbook credential", () => {
     const decision: Array<string> = paragraphs(
       section(
         read("permissions/index.md"),
@@ -242,12 +257,14 @@ describe("Docs: what a subscription, a rule run, an LLM provider list and an AI 
         );
       }) || "";
 
-    // The close names one more way in (CredentialsReachAiRunnersDocs).
+    // The close is the workflow step rule (AiAccessRemovalDocs).
     expect(
-      credentials.includes(
-        "Approving an AI command plan with an SSH command, which runs with a runbook credential OneUptime AI picked from those of its Runner, takes the read of runbook credentials (**Read Runbook Credential**; Project Owners and Project Admins may), and so does saving an auto remediation rule that lets OneUptime AI run its commands without asking, when the save turns that on or adds allowlist patterns or Runners, picking a Runner that holds SSH credentials for OneUptime AI's commands, ",
+      credentials.endsWith(
+        "A workflow's step acts as a Project Admin but is never lent the read of a setting that holds credentials: it names none of them, and a person who may read them has to.",
       ),
     ).toBe(true);
+    expect(credentials).not.toContain("runbook credential");
+    expect(credentials).not.toContain("Read Runbook Credential");
   });
 
   test("the upgrade notes say what changes, before who owns a resource", () => {

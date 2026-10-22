@@ -112,15 +112,13 @@ const RUNNER_LOADS: RegExp =
 // Every Dashboard and Admin Dashboard file that loads Runners, and why.
 const LOADS_RUNNERS: Record<string, string> = {
   "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts":
-    "the one picker's choices: the project's own Runners, the global ones, the switch; and the Runners a cluster's AI settings may bind",
+    "the one picker's choices: the project's own Runners, the global ones, the switch",
   "App/FeatureSet/Dashboard/src/Components/Runner/GlobalRunnersTable.tsx":
     "Runbooks -> Runners: the global Runners, read-only",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/Runners.tsx":
     "Runbooks -> Runners: the project's own",
   "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerView.tsx":
     "one Runner's own page",
-  "App/FeatureSet/Dashboard/src/Pages/Runbook/Runners/RunnerCredentials.tsx":
-    "which of the project's Runners may use a credential; a global Runner never gets one",
   "App/FeatureSet/Dashboard/src/Components/Runbook/RunbookVariablesTable.tsx":
     "which of the project's own Runners may use a secret variable; the global Runners have their own switch",
   "App/FeatureSet/AdminDashboard/src/Pages/Settings/GlobalRunners/Index.tsx":
@@ -397,8 +395,9 @@ describe("a Runner is picked with one picker", () => {
     // The rule's choices hold no global Runner.
     const remediationChoices: string = loader.slice(
       loader.indexOf("public static async loadForRemediation("),
-      loader.indexOf("public static async loadForKubernetesCluster("),
+      loader.indexOf("public static async loadProjectRunners("),
     );
+    expect(remediationChoices.length).toBeGreaterThan(0);
     expect(remediationChoices).toContain("globalRunners: [],");
     expect(remediationChoices).not.toContain("loadGlobalRunners");
 
@@ -408,11 +407,13 @@ describe("a Runner is picked with one picker", () => {
   });
 
   /*
-   * A Kubernetes cluster's AI settings bind a Runner through the same
-   * loader (RunnerChoicesLoader.loadForKubernetesCluster): the project's own
-   * Runners only - a global Runner never runs OneUptime AI's commands.
+   * A Kubernetes cluster's AI settings bound a Runner through the same
+   * loader (RunnerChoicesLoader.loadForKubernetesCluster), with a runbook
+   * credential beside it. Runbook credentials were removed, and the
+   * cluster's Runner picker with them: the cluster's Kubernetes AI agent
+   * reaches it, and no Runner is picked there.
    */
-  test("a Kubernetes cluster's AI settings read the project's own Runners through the loader", () => {
+  test("a Kubernetes cluster's AI settings load no Runner at all", () => {
     const page: string = read(
       "App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI/Agent.tsx",
     );
@@ -420,17 +421,9 @@ describe("a Runner is picked with one picker", () => {
       "App/FeatureSet/Dashboard/src/Components/Runner/RunnerChoices.ts",
     );
 
-    expect(page).toContain("RunnerChoicesLoader.loadForKubernetesCluster(");
+    expect(page).not.toContain("RunnerChoicesLoader");
+    expect(page).not.toContain("RunnerPicker");
     expect(RUNNER_LOADS.test(page)).toBe(false);
-
-    const clusterChoices: string = loader.slice(
-      loader.indexOf("public static async loadForKubernetesCluster("),
-    );
-    const body: string = clusterChoices.slice(
-      0,
-      clusterChoices.indexOf("\n  }\n"),
-    );
-    expect(body).toMatch(/query:\s*\{\s*projectId: projectId,?\s*\}/);
-    expect(body).not.toContain("global");
+    expect(loader).not.toContain("loadForKubernetesCluster");
   });
 });

@@ -1,45 +1,44 @@
-import AutoRemediationRuleService from "../../../Server/Services/AutoRemediationRuleService";
+import AutoRemediationRuleService, {
+  Service as AutoRemediationRuleServiceClass,
+} from "../../../Server/Services/AutoRemediationRuleService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import AiRemediationCredentialUse, {
-  RuleCommandSettings,
-} from "../../../Server/Utils/AutoRemediation/AiRemediationCredentialUse";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import AutoRemediationAction from "../../../Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
-import {
-  AiRemediationCommand,
-  AiRemediationCommandPlan,
-} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
-import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 import { stubRowsCallerMayWrite } from "../TestingUtils/RowsCallerMayWrite";
 import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 
 /*
- * A RULE LETS ONEUPTIME AI RUN ITS COMMANDS WITHOUT ASKING ONLY WHEN WHOEVER
- * SAVES IT MAY READ RUNBOOK CREDENTIALS.
+ * ANYONE WHO MAY WRITE A RULE MAY LET ONEUPTIME AI RUN ITS COMMANDS WITHOUT
+ * ASKING.
  *
- * A rule that has OneUptime AI compose commands, set to fix without asking
- * (Full Auto) with a command allowlist, runs the commands its runs compose
- * with nobody approving them - and an SSH command runs with whichever
- * credential assigned to the rule's Runners OneUptime AI picks. Approving
- * one such plan needs the approver's read of runbook credentials; letting
- * every one run unattended needs the same of whoever turns that on, or
- * widens it (more allowlist patterns, more Runners). An edit that keeps
- * what a rule already runs - the dashboard posts every field back - asks
- * nothing.
+ * While runbook credentials existed, an SSH command a rule's run composed
+ * ran with whichever credential assigned to the rule's Runners OneUptime AI
+ * picked. So a rule set to fix without asking (Full Auto, with a command
+ * allowlist) was saved - turned on, or widened with a pattern or a Runner -
+ * only by someone who could read runbook credentials
+ * (AiRemediationCredentialUse), and never by a workflow's step.
+ *
+ * Runbook credentials were removed, and OneUptime AI composes no SSH: its
+ * commands run as Bash on the rule's own Runner, or through the AI agent on
+ * the affected cluster or host, with no credential. The rule's own
+ * permissions decide who saves it, and nothing more is asked or read. What
+ * an update still reads is the agent Runner check's: a kubernetes-agent
+ * Runner a rule already holds may be re-posted, never added.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -61,7 +60,7 @@ interface RuleHookAccess {
 const hooks: RuleHookAccess =
   AutoRemediationRuleService as unknown as RuleHookAccess;
 
-// A rule editor: may write rules, and - with ReadRunbookCredential - read credentials.
+// Someone in the project with `permissions`.
 function editor(
   permissions: Array<Permission>,
 ): DatabaseCommonInteractionProps {
@@ -87,14 +86,10 @@ function editor(
   } as unknown as DatabaseCommonInteractionProps;
 }
 
+// May write rules, and nothing else.
 const RULE_EDITOR: Array<Permission> = [
   Permission.CreateAutoRemediationRule,
   Permission.EditAutoRemediationRule,
-];
-
-const RULE_EDITOR_WHO_READS_CREDENTIALS: Array<Permission> = [
-  ...RULE_EDITOR,
-  Permission.ReadRunbookCredential,
 ];
 
 function runners(ids: Array<string>): Array<Runner> {
@@ -103,10 +98,18 @@ function runners(ids: Array<string>): Array<Runner> {
   });
 }
 
+// What a rule fixes with and how: the settings that decide it runs unasked.
+type CommandSettings = Pick<
+  AutoRemediationRule,
+  | "isEnabled"
+  | "remediationAction"
+  | "aiComposesCommands"
+  | "executionMode"
+  | "commandRunners"
+> & { commandAllowlist?: unknown };
+
 // A rule that runs OneUptime AI's commands without asking.
-function unattended(
-  overrides: Partial<RuleCommandSettings> = {},
-): RuleCommandSettings {
+function unattended(overrides: Partial<CommandSettings> = {}): CommandSettings {
   return {
     remediationAction: AutoRemediationAction.OneUptimeAI,
     aiComposesCommands: true,
@@ -117,405 +120,31 @@ function unattended(
   };
 }
 
-describe("AiRemediationCredentialUse.runsCommandsWithoutAsking", () => {
-  it("is a rule of OneUptime AI's commands, Full Auto, with an allowlist", () => {
-    expect(
-      AiRemediationCredentialUse.runsCommandsWithoutAsking(unattended()),
-    ).toBe(true);
-    // A rule saved before Fix With existed reads as OneUptime AI.
-    expect(
-      AiRemediationCredentialUse.runsCommandsWithoutAsking(
-        unattended({ remediationAction: undefined }),
-      ),
-    ).toBe(true);
-    // A rule saved without the switch is on.
-    expect(
-      AiRemediationCredentialUse.runsCommandsWithoutAsking(
-        unattended({ isEnabled: undefined }),
-      ),
-    ).toBe(true);
-  });
+async function create(
+  settings: CommandSettings,
+  props: DatabaseCommonInteractionProps,
+): Promise<unknown> {
+  const rule: AutoRemediationRule = new AutoRemediationRule();
+  rule.name = "Restart web on high latency";
+  rule.projectId = PROJECT_ID;
+  Object.assign(rule, settings);
 
-  it.each([
-    ["one bare pattern", "systemctl restart *"],
-    ["a JSON string of patterns", '["systemctl restart *"]'],
-  ])(
-    "reads an allowlist saved as %s the way the run reads it",
-    (_label: string, commandAllowlist: string) => {
-      expect(
-        AiRemediationCredentialUse.runsCommandsWithoutAsking(
-          unattended({ commandAllowlist: commandAllowlist }),
-        ),
-      ).toBe(true);
-    },
-  );
-
-  it.each([
-    [
-      "asks before fixing",
-      { executionMode: AutoRemediationExecutionMode.Suggest },
-    ],
-    ["has no allowlist", { commandAllowlist: [] }],
-    ["has only blank allowlist patterns", { commandAllowlist: ["  "] }],
-    ["has a null allowlist", { commandAllowlist: undefined }],
-    ["has a JSON string of no patterns", { commandAllowlist: "[]" }],
-    ["has an allowlist that is not a list", { commandAllowlist: { a: 1 } }],
-    ["is switched off", { isEnabled: false }],
-    ["does not compose commands", { aiComposesCommands: false }],
-    [
-      "fixes with runbooks",
-      { remediationAction: AutoRemediationAction.Runbooks },
-    ],
-  ])(
-    "is not a rule that %s",
-    (_label: string, overrides: Partial<RuleCommandSettings>) => {
-      expect(
-        AiRemediationCredentialUse.runsCommandsWithoutAsking(
-          unattended(overrides),
-        ),
-      ).toBe(false);
-    },
-  );
-});
-
-describe("AiRemediationCredentialUse.widensCommandsWithoutAsking", () => {
-  it("a new rule that runs commands without asking widens it", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: null,
-        after: unattended(),
-      }),
-    ).toBe(true);
-  });
-
-  it("turning it on widens it, whichever setting turns it on", () => {
-    for (const before of [
-      unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
-      unattended({ commandAllowlist: [] }),
-      unattended({ aiComposesCommands: false }),
-      unattended({ remediationAction: AutoRemediationAction.Runbooks }),
-      unattended({ isEnabled: false }),
-    ]) {
-      expect(
-        AiRemediationCredentialUse.widensCommandsWithoutAsking({
-          before: before,
-          after: unattended(),
-        }),
-      ).toBe(true);
-    }
-  });
-
-  it("keeping it as it is does not, Runners in any shape", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({
-          commandRunners: [{ _id: RUNNER_A.toUpperCase() }],
-        }),
-      }),
-    ).toBe(false);
-  });
-
-  it("adding an allowlist pattern widens it; removing one does not", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({
-          commandAllowlist: ["systemctl restart nginx", "reboot"],
-        }),
-      }),
-    ).toBe(true);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended({
-          commandAllowlist: ["systemctl restart nginx", "reboot"],
-        }),
-        after: unattended(),
-      }),
-    ).toBe(false);
-  });
-
-  it("reads the patterns as the run does, whatever shape they are saved in", () => {
-    // The same pattern as a bare string, a JSON string and a list.
-    for (const commandAllowlist of [
-      "systemctl restart nginx",
-      '["systemctl restart nginx"]',
-    ]) {
-      expect(
-        AiRemediationCredentialUse.widensCommandsWithoutAsking({
-          before: unattended(),
-          after: unattended({ commandAllowlist: commandAllowlist }),
-        }),
-      ).toBe(false);
-    }
-
-    // Another pattern, written as a string.
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({ commandAllowlist: "reboot" }),
-      }),
-    ).toBe(true);
-  });
-
-  it("reaching another Runner widens it; dropping one does not", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({ commandRunners: runners([RUNNER_A, RUNNER_B]) }),
-      }),
-    ).toBe(true);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended({ commandRunners: runners([RUNNER_A, RUNNER_B]) }),
-        after: unattended(),
-      }),
-    ).toBe(false);
-  });
-
-  /*
-   * No Runner named is no host at all now - never "every Runner that runs
-   * AI commands": a Runner runs a rule's commands only when the rule names
-   * it (AutoRemediationFix.getRuleCommandRunnerIds). So clearing the list
-   * narrows the rule, and naming one where none was named widens it.
-   */
-  it("clearing the Runners narrows it - no Runner is no host; naming one where none was widens it", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({ commandRunners: [] }),
-      }),
-    ).toBe(false);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended({ commandRunners: [] }),
-        after: unattended(),
-      }),
-    ).toBe(true);
-  });
-
-  it("the rule's Runner counts as one of its Runners: picking another widens it, keeping it does not", () => {
-    // A OneUptime AI rule that picks a Runner composes commands there.
-    const withRunner: (runnerId: string) => RuleCommandSettings = (
-      runnerId: string,
-    ): RuleCommandSettings => {
-      return unattended({
-        aiComposesCommands: false,
-        commandRunners: [],
-        runnerId: runnerId,
-      });
-    };
-
-    expect(
-      AiRemediationCredentialUse.runsCommandsWithoutAsking(
-        withRunner(RUNNER_A),
-      ),
-    ).toBe(true);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: withRunner(RUNNER_A),
-        after: withRunner(RUNNER_B),
-      }),
-    ).toBe(true);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: withRunner(RUNNER_A),
-        after: withRunner(RUNNER_A.toUpperCase()),
-      }),
-    ).toBe(false);
-
-    // A legacy rule's Command Runner moved to its Runner is the same Runner.
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended({ commandRunners: runners([RUNNER_A]) }),
-        after: unattended({ commandRunners: [], runnerId: RUNNER_A }),
-      }),
-    ).toBe(false);
-
-    // Without a Runner a OneUptime AI rule composes no commands at all.
-    expect(
-      AiRemediationCredentialUse.runsCommandsWithoutAsking(
-        unattended({ aiComposesCommands: false, commandRunners: [] }),
-      ),
-    ).toBe(false);
-  });
-
-  it("turning it off never widens it", () => {
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({
-          executionMode: AutoRemediationExecutionMode.Suggest,
-          commandAllowlist: ["anything", "at all"],
-          commandRunners: [],
-        }),
-      }),
-    ).toBe(false);
-
-    expect(
-      AiRemediationCredentialUse.widensCommandsWithoutAsking({
-        before: unattended(),
-        after: unattended({
-          isEnabled: false,
-          commandAllowlist: ["anything", "at all"],
-          commandRunners: [],
-        }),
-      }),
-    ).toBe(false);
-  });
-});
-
-describe("AiRemediationCredentialUse - a plan's commands", () => {
-  function command(
-    overrides: Partial<AiRemediationCommand>,
-  ): AiRemediationCommand {
-    return {
-      sequence: 1,
-      stepType: RunbookStepType.Bash,
-      runnerId: RUNNER_A,
-      runnerNameSnapshot: "web-runner",
-      command: "uptime",
-      timeoutInMs: 1000,
-      rationale: "",
-      expectedEffect: "",
-      ...overrides,
-    } as AiRemediationCommand;
+  try {
+    await hooks.onBeforeCreate({ data: rule, props: props });
+    return null;
+  } catch (error) {
+    return error;
   }
+}
 
-  function plan(
-    commands: Array<AiRemediationCommand>,
-  ): AiRemediationCommandPlan {
-    return { commands: commands } as AiRemediationCommandPlan;
-  }
-
-  it("finds the first command that runs with a credential OneUptime AI picked", () => {
-    const ssh: AiRemediationCommand = command({
-      sequence: 2,
-      stepType: RunbookStepType.SSH,
-      credentialId: RUNNER_B,
-    });
-
-    expect(
-      AiRemediationCredentialUse.getCommandWithPickedCredential(
-        plan([command({}), ssh]),
-      ),
-    ).toBe(ssh);
-  });
-
-  it("counts every SSH command: it runs with one of its Runner's credentials", () => {
-    const ssh: AiRemediationCommand = command({
-      stepType: RunbookStepType.SSH,
-    });
-
-    expect(
-      AiRemediationCredentialUse.getCommandWithPickedCredential(plan([ssh])),
-    ).toBe(ssh);
-  });
-
-  it("does not count a credential beside a Bash command, which runs on the Runner without one", () => {
-    expect(
-      AiRemediationCredentialUse.getCommandWithPickedCredential(
-        plan([command({ credentialId: RUNNER_B })]),
-      ),
-    ).toBeUndefined();
-  });
-
-  it("does not count a kubectl command's credential, which its cluster binds", () => {
-    expect(
-      AiRemediationCredentialUse.getCommandWithPickedCredential(
-        plan([
-          command({
-            stepType: RunbookStepType.Kubectl,
-            credentialId: RUNNER_B,
-          }),
-          command({ stepType: RunbookStepType.ResourceCommand }),
-          command({}),
-        ]),
-      ),
-    ).toBeUndefined();
-  });
-
-  it("refuses an approver who may not read credentials, and nobody else", () => {
-    const sshPlan: AiRemediationCommandPlan = plan([
-      command({
-        stepType: RunbookStepType.SSH,
-        credentialId: RUNNER_B,
-        credentialNameSnapshot: "web-hosts",
-      }),
-    ]);
-
-    expect(() => {
-      AiRemediationCredentialUse.assertApproverMayUseCredentials({
-        plan: sshPlan,
-        props: editor([Permission.ProjectMember]),
-      });
-    }).toThrow(NotAuthorizedException);
-
-    for (const props of [
-      editor([Permission.ReadRunbookCredential]),
-      editor([Permission.ProjectOwner]),
-      { isRoot: true } as DatabaseCommonInteractionProps,
-      {
-        isMasterAdmin: true,
-        tenantId: PROJECT_ID,
-      } as DatabaseCommonInteractionProps,
-    ]) {
-      expect(() => {
-        AiRemediationCredentialUse.assertApproverMayUseCredentials({
-          plan: sshPlan,
-          props: props,
-        });
-      }).not.toThrow();
-    }
-
-    expect(() => {
-      AiRemediationCredentialUse.assertApproverMayUseCredentials({
-        plan: plan([command({})]),
-        props: editor([Permission.ProjectMember]),
-      });
-    }).not.toThrow();
-  });
-
-  it("refuses a workflow's step, though it acts as a Project Admin", () => {
-    const sshPlan: AiRemediationCommandPlan = plan([
-      command({
-        stepType: RunbookStepType.SSH,
-        credentialId: RUNNER_B,
-        credentialNameSnapshot: "web-hosts",
-      }),
-    ]);
-
-    const step: DatabaseCommonInteractionProps =
-      WorkflowPrincipal.getPropsWithoutPlan({
-        projectId: PROJECT_ID,
-        workflowId: new ObjectID("ca000000-0000-4000-8000-000000000032"),
-      });
-
-    expect(AiRemediationCredentialUse.mayUseCredentials(step)).toBe(false);
-
-    expect(() => {
-      AiRemediationCredentialUse.assertApproverMayUseCredentials({
-        plan: sshPlan,
-        props: step,
-      });
-    }).toThrow(NotAuthorizedException);
-  });
-});
-
-describe("AutoRemediationRuleService - who may let a rule run AI commands without asking", () => {
+describe("AutoRemediationRuleService - fixing without asking is the rule's own setting", () => {
   let ruleFind: jest.SpyInstance;
-  let rowsCallerMayWrite: jest.SpyInstance;
-  let storedRule: JSONObject;
+  let runnerFind: jest.SpyInstance;
 
   beforeEach(() => {
     stubProjectDirectory({});
 
-    storedRule = {
+    const storedRule: JSONObject = {
       _id: RULE_ID.toString(),
       id: RULE_ID,
       ...unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
@@ -528,12 +157,125 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
       });
 
     // The editor may write the rule stored.
-    rowsCallerMayWrite = stubRowsCallerMayWrite(
-      AutoRemediationRuleService,
-      () => {
-        return [storedRule];
+    stubRowsCallerMayWrite(AutoRemediationRuleService, () => {
+      return [storedRule];
+    });
+
+    /*
+     * No Runner these rules name is a cluster's in-cluster agent, and each
+     * one runs OneUptime AI's commands already, so a pick writes nothing.
+     */
+    runnerFind = jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function update(
+    data: JSONObject,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<unknown> {
+    try {
+      await hooks.onBeforeUpdate({
+        query: { _id: RULE_ID.toString() },
+        data: data,
+        props: props,
+        skip: 0,
+        limit: 1,
+      } as unknown as UpdateBy<AutoRemediationRule>);
+      return null;
+    } catch (error) {
+      return error;
+    }
+  }
+
+  it("a rule editor creates a rule that fixes without asking, whatever shape its allowlist is saved in", async () => {
+    for (const commandAllowlist of [
+      ["systemctl restart nginx"],
+      "systemctl restart *",
+      '["systemctl restart *"]',
+    ]) {
+      expect(
+        await create(unattended({ commandAllowlist }), editor(RULE_EDITOR)),
+      ).toBeNull();
+    }
+  });
+
+  it("a switched-off rule, and turning it on, ask nothing more either", async () => {
+    expect(
+      await create(unattended({ isEnabled: false }), editor(RULE_EDITOR)),
+    ).toBeNull();
+    expect(await update({ isEnabled: true }, editor(RULE_EDITOR))).toBeNull();
+  });
+
+  it("a rule editor turns fixing without asking on, or widens it, and the change reads no rule", async () => {
+    for (const data of [
+      { executionMode: AutoRemediationExecutionMode.FullAuto },
+      { remediationAction: AutoRemediationAction.OneUptimeAI },
+      { aiComposesCommands: true },
+      { commandAllowlist: ["systemctl restart nginx", "reboot"] },
+      { commandAllowlist: "systemctl restart *" },
+      { commandRunners: [{ _id: RUNNER_A }, { _id: RUNNER_B }] },
+      { runnerId: RUNNER_B },
+      { runner: { _id: RUNNER_B } },
+    ] as Array<JSONObject>) {
+      expect({ data, thrown: await update(data, editor(RULE_EDITOR)) }).toEqual(
+        { data, thrown: null },
+      );
+    }
+
+    // The agent Runner check reads the rules only for an agent Runner named.
+    expect(ruleFind).not.toHaveBeenCalled();
+  });
+
+  it("the Runner a rule editor picks is offered OneUptime AI's commands, in the rule's project", async () => {
+    expect(
+      await update({ runnerId: RUNNER_B }, editor(RULE_EDITOR)),
+    ).toBeNull();
+
+    // One read for the agent Runner check, one for the pick, both as OneUptime.
+    const reads: Array<JSONObject> = runnerFind.mock.calls.map(
+      (call: Array<unknown>): JSONObject => {
+        return call[0] as JSONObject;
       },
     );
+    const pick: JSONObject | undefined = reads.find((read: JSONObject) => {
+      return (read["query"] as JSONObject)["canRunAiCommands"] === false;
+    });
+    expect(pick).toBeDefined();
+    expect((pick!["query"] as JSONObject)["projectId"]).toBe(PROJECT_ID);
+  });
+
+  it("the module that asked, and the rule's command settings change it read, are gone", () => {
+    expect(
+      fs.existsSync(
+        path.join(
+          __dirname,
+          "../../../Server/Utils/AutoRemediation/AiRemediationCredentialUse.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(AutoRemediationRuleServiceClass).not.toHaveProperty(
+      "getCommandSettingsChange",
+    );
+  });
+});
+
+/*
+ * A workflow's step acts as a Project Admin of its project
+ * (WorkflowPrincipal). It was refused a rule that runs OneUptime AI's
+ * commands without asking, because the read of runbook credentials that
+ * needed was never lent to a step. Nothing needs that read now: a step
+ * saves such a rule as any rule editor does, and nobody is looked up.
+ */
+describe("AutoRemediationRuleService - a workflow's step saving a rule that runs AI commands without asking", () => {
+  const WORKFLOW_ID: ObjectID = new ObjectID(
+    "ca000000-0000-4000-8000-000000000031",
+  );
+
+  beforeEach(() => {
+    stubProjectDirectory({});
 
     // No Runner these rules name is a cluster's in-cluster agent.
     jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
@@ -543,308 +285,28 @@ describe("AutoRemediationRuleService - who may let a rule run AI commands withou
     jest.restoreAllMocks();
   });
 
-  async function create(
-    settings: RuleCommandSettings,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<unknown> {
-    const rule: AutoRemediationRule = new AutoRemediationRule();
-    rule.name = "Restart web on high latency";
-    rule.projectId = PROJECT_ID;
-    Object.assign(rule, settings);
-
-    try {
-      await hooks.onBeforeCreate({ data: rule, props: props });
-      return null;
-    } catch (error) {
-      return error;
-    }
+  function step(): DatabaseCommonInteractionProps {
+    return WorkflowPrincipal.getPropsWithoutPlan({
+      projectId: PROJECT_ID,
+      workflowId: WORKFLOW_ID,
+      workflowName: "Restart web when it is slow",
+    });
   }
 
-  async function update(
-    data: JSONObject,
-    props: DatabaseCommonInteractionProps,
-    window: { skip: number; limit: number } = { skip: 0, limit: 1 },
-  ): Promise<unknown> {
-    try {
-      await hooks.onBeforeUpdate({
-        query: { _id: RULE_ID.toString() },
-        data: data,
-        props: props,
-        skip: window.skip,
-        limit: window.limit,
-      } as unknown as UpdateBy<AutoRemediationRule>);
-      return null;
-    } catch (error) {
-      return error;
-    }
-  }
-
-  it("refuses to create one for an editor who may not read credentials, saying why and what to do", async () => {
-    const thrown: unknown = await create(unattended(), editor(RULE_EDITOR));
-
-    expect(thrown).toBeInstanceOf(NotAuthorizedException);
-    expect((thrown as Error).message).toBe(
-      "This rule would let OneUptime AI run its commands without asking, and those commands may run over SSH with any credential assigned to the rule's Runner. Turning that on (or turning on a rule that does it), adding allowlist patterns or picking another Runner for it needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential. Set the rule to ask before fixing, or ask someone who has it to save the rule.",
+  it("saves it, looking nobody up", async () => {
+    const lookUp: jest.SpyInstance = jest.spyOn(
+      AccessTokenService,
+      "getDatabaseCommonInteractionPropsByUserAndProject",
     );
-  });
 
-  it("creates one for an editor who may read credentials, or for OneUptime itself", async () => {
-    expect(
-      await create(unattended(), editor(RULE_EDITOR_WHO_READS_CREDENTIALS)),
-    ).toBeNull();
-    expect(
-      await create(unattended(), editor([Permission.ProjectAdmin])),
-    ).toBeNull();
-    expect(
-      await create(unattended(), {
-        isRoot: true,
-      } as DatabaseCommonInteractionProps),
-    ).toBeNull();
-  });
-
-  it("refuses an allowlist saved as a string, which the run reads as patterns", async () => {
-    for (const commandAllowlist of [
-      "systemctl restart *",
-      '["systemctl restart *"]',
-    ]) {
-      expect(
-        await create(
-          unattended({ commandAllowlist: commandAllowlist }),
-          editor(RULE_EDITOR),
-        ),
-      ).toBeInstanceOf(NotAuthorizedException);
-    }
-
-    expect(
-      await update(
-        {
-          executionMode: AutoRemediationExecutionMode.FullAuto,
-          commandAllowlist: "systemctl restart *",
-        },
-        editor(RULE_EDITOR),
-      ),
-    ).toBeInstanceOf(NotAuthorizedException);
-  });
-
-  it("creates a switched-off rule for any editor; turning it on is asked about", async () => {
-    expect(
-      await create(unattended({ isEnabled: false }), editor(RULE_EDITOR)),
-    ).toBeNull();
-
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended({ isEnabled: false }),
-    } as unknown as JSONObject;
-
-    expect(
-      await update({ isEnabled: true }, editor(RULE_EDITOR)),
-    ).toBeInstanceOf(NotAuthorizedException);
-    expect(
-      await update(
-        { isEnabled: true },
-        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
-      ),
-    ).toBeNull();
-  });
-
-  it("creates a rule that asks first for anyone who may write rules", async () => {
+    expect(await create(unattended(), step())).toBeNull();
     expect(
       await create(
         unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
-        editor(RULE_EDITOR),
+        step(),
       ),
     ).toBeNull();
-    expect(
-      await create(unattended({ commandAllowlist: [] }), editor(RULE_EDITOR)),
-    ).toBeNull();
-    expect(
-      await create(
-        unattended({ remediationAction: AutoRemediationAction.Runbooks }),
-        editor(RULE_EDITOR),
-      ),
-    ).toBeNull();
-  });
-
-  it("refuses to switch a rule to fix without asking for an editor who may not read credentials", async () => {
-    const thrown: unknown = await update(
-      { executionMode: AutoRemediationExecutionMode.FullAuto },
-      editor(RULE_EDITOR),
-    );
-
-    expect(thrown).toBeInstanceOf(NotAuthorizedException);
-  });
-
-  it("refuses to switch Fix With to OneUptime AI on a rule set to run its commands without asking, for an editor who may not read credentials", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended({ remediationAction: AutoRemediationAction.Runbooks }),
-    } as unknown as JSONObject;
-
-    expect(
-      await update(
-        { remediationAction: AutoRemediationAction.OneUptimeAI },
-        editor(RULE_EDITOR),
-      ),
-    ).toBeInstanceOf(NotAuthorizedException);
-    expect(ruleFind).toHaveBeenCalledTimes(1);
-
-    expect(
-      await update(
-        { remediationAction: AutoRemediationAction.OneUptimeAI },
-        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
-      ),
-    ).toBeNull();
-  });
-
-  it("lets any editor switch Fix With to runbooks, which runs no AI commands", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended(),
-    } as unknown as JSONObject;
-
-    expect(
-      await update(
-        { remediationAction: AutoRemediationAction.Runbooks },
-        editor(RULE_EDITOR),
-      ),
-    ).toBeNull();
-  });
-
-  it("switches it for an editor who may read credentials, without reading the rule", async () => {
-    expect(
-      await update(
-        { executionMode: AutoRemediationExecutionMode.FullAuto },
-        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
-      ),
-    ).toBeNull();
-    expect(ruleFind).not.toHaveBeenCalled();
-  });
-
-  it("lets any editor save a rule that already runs commands without asking, as it is", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended(),
-    } as unknown as JSONObject;
-
-    // The dashboard posts every field back.
-    expect(
-      await update(
-        {
-          name: "Renamed",
-          executionMode: AutoRemediationExecutionMode.FullAuto,
-          commandAllowlist: ["systemctl restart nginx"],
-          commandRunners: [{ _id: RUNNER_A }],
-        },
-        editor(RULE_EDITOR),
-      ),
-    ).toBeNull();
-  });
-
-  it("refuses to widen a rule that runs commands without asking: a pattern, a Command Runner, or another Runner picked", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended(),
-    } as unknown as JSONObject;
-
-    for (const data of [
-      { commandAllowlist: ["systemctl restart nginx", "reboot"] },
-      { commandRunners: [{ _id: RUNNER_A }, { _id: RUNNER_B }] },
-      { runnerId: RUNNER_B },
-      { runner: { _id: RUNNER_B } },
-    ]) {
-      expect(await update(data, editor(RULE_EDITOR))).toBeInstanceOf(
-        NotAuthorizedException,
-      );
-    }
-  });
-
-  it("lets any editor clear its Command Runners: no Runner is no host, never every Runner", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended(),
-    } as unknown as JSONObject;
-
-    expect(
-      await update({ commandRunners: [] }, editor(RULE_EDITOR)),
-    ).toBeNull();
-  });
-
-  it("lets any editor narrow it, or turn it off", async () => {
-    storedRule = {
-      _id: RULE_ID.toString(),
-      id: RULE_ID,
-      ...unattended({
-        commandAllowlist: ["systemctl restart nginx", "reboot"],
-        commandRunners: runners([RUNNER_A, RUNNER_B]),
-      }),
-    } as unknown as JSONObject;
-
-    for (const data of [
-      { commandAllowlist: ["systemctl restart nginx"] },
-      { commandRunners: [{ _id: RUNNER_A }] },
-      { executionMode: AutoRemediationExecutionMode.Suggest },
-      { aiComposesCommands: false },
-      { isEnabled: false },
-    ]) {
-      expect(await update(data, editor(RULE_EDITOR))).toBeNull();
-    }
-  });
-
-  it("reads nothing for a change that writes none of these settings", async () => {
-    expect(await update({ name: "Renamed" }, editor(RULE_EDITOR))).toBeNull();
-    expect(ruleFind).not.toHaveBeenCalled();
-  });
-
-  it("reads the rules the change writes among those the caller may write, in their project", async () => {
-    await update(
-      { executionMode: AutoRemediationExecutionMode.FullAuto },
-      editor(RULE_EDITOR),
-    );
-
-    // The rules the caller may write, found in their project.
-    const mayWrite: { query: JSONObject } = rowsCallerMayWrite.mock
-      .calls[0]![0] as { query: JSONObject };
-    expect(mayWrite.query["projectId"]).toBe(PROJECT_ID);
-
-    // Then those, by id, as root.
-    const read: { query: JSONObject; props: JSONObject } = ruleFind.mock
-      .calls[0]![0] as { query: JSONObject; props: JSONObject };
-
-    expect(read.query["_id"]).toBe(RULE_ID.toString());
-    expect(read.props["isRoot"]).toBe(true);
-  });
-
-  it("reads the rows in the change's own window - the ones it goes on to write", async () => {
-    await update(
-      { executionMode: AutoRemediationExecutionMode.FullAuto },
-      editor(RULE_EDITOR),
-      { skip: 20000, limit: 15000 },
-    );
-
-    // The rows the editor may write, found in the change's window...
-    const mayWrite: { skip: number; limit: number } = rowsCallerMayWrite.mock
-      .calls[0]![0] as { skip: number; limit: number };
-
-    expect(mayWrite.skip).toBe(20000);
-    expect(mayWrite.limit).toBe(15000);
-
-    // ... are the ones the check reads, by id, and no others.
-    const read: { query: JSONObject; skip: number; limit: number } = ruleFind
-      .mock.calls[0]![0] as {
-      query: JSONObject;
-      skip: number;
-      limit: number;
-    };
-
-    expect(read.query["_id"]).toBe(RULE_ID.toString());
-    expect(read.skip).toBe(0);
-    expect(read.limit).toBe(1);
+    expect(lookUp).not.toHaveBeenCalled();
   });
 });
 
@@ -923,7 +385,7 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
     } as unknown as UpdateBy<AutoRemediationRule>;
   }
 
-  it("reads the rules once for both of its checks: who may run commands unasked, and the Runners it holds", async () => {
+  it("re-posting the agent Runner a rule holds reads the rule once, and passes for any rule editor", async () => {
     // Fix without asking, re-posting the agent Runner the rule holds.
     await expect(
       hooks.onBeforeUpdate(
@@ -932,37 +394,7 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
             executionMode: AutoRemediationExecutionMode.FullAuto,
             commandRunners: runners([RUNNER_A, AGENT_RUNNER]),
           },
-          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
-        ),
-      ),
-    ).resolves.toBeDefined();
-
-    expect(ruleFind).toHaveBeenCalledTimes(1);
-
-    ruleFind.mockClear();
-
-    // The same change by an editor who may not read credentials: one read, then the refusal.
-    await expect(
-      hooks.onBeforeUpdate(
-        change(
-          {
-            executionMode: AutoRemediationExecutionMode.FullAuto,
-            commandRunners: runners([RUNNER_A, AGENT_RUNNER]),
-          },
           editor(RULE_EDITOR),
-        ),
-      ),
-    ).rejects.toBeInstanceOf(NotAuthorizedException);
-
-    expect(ruleFind).toHaveBeenCalledTimes(1);
-  });
-
-  it("reads the rule once when it only checks the agent Runner it holds", async () => {
-    await expect(
-      hooks.onBeforeUpdate(
-        change(
-          { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
-          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
         ),
       ),
     ).resolves.toBeDefined();
@@ -977,17 +409,17 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
       hooks.onBeforeUpdate(
         change(
           { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
-          editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+          editor(RULE_EDITOR),
         ),
       ),
     ).rejects.toThrow('Runner "agent" is the in-cluster Runner');
   });
 
-  it("reads nothing when neither check has anything to ask", async () => {
+  it("reads nothing when the change names no agent Runner, even one that turns fixing without asking on", async () => {
     await hooks.onBeforeUpdate(
       change(
         { executionMode: AutoRemediationExecutionMode.FullAuto },
-        editor(RULE_EDITOR_WHO_READS_CREDENTIALS),
+        editor(RULE_EDITOR),
       ),
     );
 
@@ -996,12 +428,13 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
 
   it("holds the change to the one rule it read", async () => {
     const updateBy: UpdateBy<AutoRemediationRule> = change(
-      { executionMode: AutoRemediationExecutionMode.Suggest },
+      { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
       editor(RULE_EDITOR),
     );
 
     await hooks.onBeforeUpdate(updateBy);
 
+    expect(ruleFind).toHaveBeenCalledTimes(1);
     expect((updateBy.query as unknown as JSONObject)["_id"]).toBe(
       RULE_ID.toString(),
     );
@@ -1011,12 +444,12 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
 
   it("holds a bulk change to the rules read in its window, so none it did not check is written", async () => {
     rulesRead = [
-      rule(RULE_ID.toString(), [RUNNER_A]),
-      rule(SECOND_RULE, [RUNNER_A]),
+      rule(RULE_ID.toString(), [RUNNER_A, AGENT_RUNNER]),
+      rule(SECOND_RULE, [RUNNER_A, AGENT_RUNNER]),
     ];
 
     const updateBy: UpdateBy<AutoRemediationRule> = change(
-      { executionMode: AutoRemediationExecutionMode.Suggest },
+      { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
       editor(RULE_EDITOR),
       { projectId: PROJECT_ID },
       { skip: 0, limit: 15000 },
@@ -1034,110 +467,21 @@ describe("AutoRemediationRuleService - a change reads its rules once, and writes
     expect(updateBy.limit).toBe(2);
   });
 
-  it("refuses a bulk change that widens any rule it reads, for an editor who may not read credentials", async () => {
+  it("refuses a bulk change when any rule it reads does not hold the agent Runner", async () => {
     rulesRead = [
-      rule(RULE_ID.toString(), [RUNNER_A]),
-      // The second rule already runs its commands without asking.
-      {
-        ...rule(SECOND_RULE, [RUNNER_A]),
-        ...unattended({ commandRunners: runners([RUNNER_A]) }),
-      } as unknown as JSONObject,
+      rule(RULE_ID.toString(), [RUNNER_A, AGENT_RUNNER]),
+      rule(SECOND_RULE, [RUNNER_A]),
     ];
 
     await expect(
       hooks.onBeforeUpdate(
         change(
-          { commandAllowlist: ["systemctl restart nginx", "reboot"] },
+          { commandRunners: runners([RUNNER_A, AGENT_RUNNER]) },
           editor(RULE_EDITOR),
           { projectId: PROJECT_ID },
           { skip: 0, limit: 15000 },
         ),
       ),
-    ).rejects.toBeInstanceOf(NotAuthorizedException);
-  });
-});
-
-/*
- * A WORKFLOW'S STEP NEVER LETS A RULE RUN AI COMMANDS WITHOUT ASKING.
- *
- * A step acts as a Project Admin of its project (WorkflowPrincipal), and a
- * Project Admin may read runbook credentials - but that read is never lent
- * to a step (RunbookCredentialReaders): saving a rule that runs OneUptime
- * AI's commands without asking, or widening one, is refused with a refusal
- * that says a person has to save it. Nobody is looked up to answer it.
- */
-describe("AutoRemediationRuleService - a workflow's step saving a rule that runs AI commands without asking", () => {
-  const WORKFLOW_ID: ObjectID = new ObjectID(
-    "ca000000-0000-4000-8000-000000000031",
-  );
-
-  beforeEach(() => {
-    stubProjectDirectory({});
-
-    // No Runner these rules name is a cluster's in-cluster agent.
-    jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  function step(): DatabaseCommonInteractionProps {
-    return WorkflowPrincipal.getPropsWithoutPlan({
-      projectId: PROJECT_ID,
-      workflowId: WORKFLOW_ID,
-      workflowName: "Restart web when it is slow",
-    });
-  }
-
-  async function create(
-    settings: RuleCommandSettings,
-    props: DatabaseCommonInteractionProps,
-  ): Promise<unknown> {
-    const rule: AutoRemediationRule = new AutoRemediationRule();
-    rule.name = "Restart web on high latency";
-    rule.projectId = PROJECT_ID;
-    Object.assign(rule, settings);
-
-    try {
-      await hooks.onBeforeCreate({ data: rule, props: props });
-      return null;
-    } catch (error) {
-      return error;
-    }
-  }
-
-  it("refuses it, and says a person who may read runbook credentials has to save it", async () => {
-    const thrown: unknown = await create(unattended(), step());
-
-    expect(thrown).toBeInstanceOf(NotAuthorizedException);
-    expect((thrown as Error).message).toContain(
-      "needs permission to read runbook credentials: Project Owner, Project Admin, Read Runbook Credential.",
-    );
-    expect((thrown as Error).message).toContain(
-      "Workflow steps never have this permission, so a person who has it has to make this change.",
-    );
-    expect((thrown as Error).message).not.toContain("saved the workflow");
-  });
-
-  it("refuses it whoever saved the workflow, looking nobody up", async () => {
-    const lookUp: jest.SpyInstance = jest.spyOn(
-      AccessTokenService,
-      "getDatabaseCommonInteractionPropsByUserAndProject",
-    );
-
-    expect(await create(unattended(), step())).toBeInstanceOf(
-      NotAuthorizedException,
-    );
-    expect(lookUp).not.toHaveBeenCalled();
-  });
-
-  it("asks nothing for a rule that asks before fixing", async () => {
-    expect(
-      await create(
-        unattended({ executionMode: AutoRemediationExecutionMode.Suggest }),
-        step(),
-      ),
-    ).toBeNull();
+    ).rejects.toThrow('Runner "agent" is the in-cluster Runner');
   });
 });

@@ -142,7 +142,6 @@ const PERMISSIONS: Record<string, Array<string>> = {
     "Read Telemetry Service Log",
     "Read Telemetry Service Traces",
     "Read Telemetry Service Metrics",
-    "Read Runbook Credential",
   ],
 };
 

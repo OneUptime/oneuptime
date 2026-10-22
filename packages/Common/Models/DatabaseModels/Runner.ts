@@ -489,9 +489,11 @@ export default class Runner extends BaseModel {
    * anyone turns: picking the Runner for OneUptime AI's commands is the
    * consent, and OneUptime turns this on when that happens
    * (Server/Utils/Runner/RunnerAiCommandsPick) - an auto remediation rule
-   * picks it as its Runner, or a Kubernetes cluster's AI settings bind it.
-   * The in-cluster Runner the Kubernetes agent chart registers has it on for
-   * its own cluster, and a global Runner never has it. Which Runners a
+   * picks it as its Runner. (A Kubernetes cluster's AI settings binding one
+   * did too, while a Runner outside a cluster reached it with a Kubernetes
+   * runbook credential; runbook credentials were removed.) The in-cluster
+   * Runner the Kubernetes agent chart registers has it on for its own
+   * cluster, and a global Runner never has it. Which Runners a
    * rule's commands target is read from the rule (its Runner), never from
    * this column, so a Runner it is on for runs commands only for what picked
    * it.
@@ -515,7 +517,7 @@ export default class Runner extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Runs AI Remediation Commands",
     description:
-      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, SSH, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner or a Kubernetes cluster's AI settings bind it, and on for the in-cluster Runner the Kubernetes agent chart installs.",
+      "Whether OneUptime AI may run commands through this Runner: read-only kubectl while investigating a cluster it is bound to, and policy-checked remediation commands (Bash, kubectl) that either match an allowlist or wait for one-click human approval. Set by OneUptime: on once an auto remediation rule picks this Runner, and on for the in-cluster Runner the Kubernetes agent chart installs.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

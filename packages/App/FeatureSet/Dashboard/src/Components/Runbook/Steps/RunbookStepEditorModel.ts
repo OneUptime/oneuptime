@@ -253,6 +253,13 @@ export const REQUIRE_APPROVAL_FOLDED_TITLE: string =
   translationKey("Require approval");
 // On the header of a step that asks for approval, as a playbook step says it.
 export const NEEDS_APPROVAL_LABEL: string = translationKey("Needs approval");
+/*
+ * On the header of a step written with a runbook credential, open or
+ * folded: runbook credentials were removed, so it no longer runs
+ * (isLegacyCredentialStep). Without it a folded runbook read as if every
+ * step still ran.
+ */
+export const NO_LONGER_RUNS_LABEL: string = translationKey("No longer runs");
 export const LLM_PROVIDER_TITLE: string = translationKey("LLM provider");
 export const INCLUDE_PREVIOUS_STEP_CONTEXT_TITLE: string = translationKey(
   "Include previous step context",
@@ -540,10 +547,24 @@ export function setStepRequiresApproval(
 
 /*
  * Whether a step was written before runbook variables - an SSH or
- * Kubernetes step that names a credential (only through the API since the
- * data migration rewrote every stored one). The editor shows such a step as
- * it is, with a button that turns it into a script step.
+ * Kubernetes step that names a runbook credential (the data migrations
+ * rewrote every stored one). Runbook credentials were removed, so such a
+ * step no longer runs: the editor shows it as it is, with a button that
+ * turns it into a script step.
  */
+/*
+ * What such a step's body says above its one button: the fact first, then
+ * what turning it into a script step leaves to its author - an SSH step's
+ * machine and the secret it signs in with (its credential held them), a
+ * Kubernetes step's kubeconfig.
+ */
+export const LEGACY_SSH_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a script step, then fill in the machine and the secret variable it signs in with.",
+);
+export const LEGACY_KUBERNETES_STEP_NOTICE: string = translationKey(
+  "Runbook credentials were removed, so this step no longer runs. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+);
+
 export function isLegacyCredentialStep(step: RunbookStep): boolean {
   if (step.type === RunbookStepType.SSH) {
     return isLegacySSHStepConfig(step.config);
@@ -622,13 +643,14 @@ function isChanged(
 /*
  * A step with `patch` written over its config, as the editor changes it.
  *
- * A kubectl step the data migration moved from a Kubernetes action keeps
- * that action and its credential beside its script, so a Runner older than
- * kubectl scripts still runs it (RunbookLegacySteps) - only while its
- * script and kubeconfig are the ones it was moved with. A change to either
- * drops them here, as every save does on the server (RunbookService): the
- * step then needs a Runner that runs kubectl scripts, as every new one
- * does. Its Runner, timeouts and notes change nothing it does.
+ * A kubectl step the 14.0.79 data migration moved from a Kubernetes action
+ * kept that action and its credential beside its script, for Runners older
+ * than kubectl scripts. Runbook credentials are gone, so nothing reads them
+ * now, and the data migration that removed the credentials dropped them
+ * (RemoveRunbookCredentials). A step opened before that migration ran may
+ * still hold them: a change to its script or kubeconfig drops them here,
+ * so the save names no runbook credential. Its Runner, timeouts and notes
+ * change nothing it does.
  */
 export function applyStepConfigChange(
   step: RunbookStep,
