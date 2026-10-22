@@ -1,0 +1,737 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import * as React from "react";
+import { MemoryRouter } from "react-router-dom";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * THE CASE'S ONE AI CARD, drawn: every stage a case's triage can be in, the
+ * one action each offers, and nothing at all with the project's AI off.
+ * The server's answers are the shapes POST /security-case/:caseId/ai-triage
+ * sends (SecurityCaseTriageStatus); the case is the page's own row with its
+ * ai* columns.
+ */
+
+configure({ asyncUtilTimeout: 10000 });
+jest.setTimeout(60000);
+
+const getAiTriageMock: MockFunction = getJestMockFunction();
+const startAiTriageMock: MockFunction = getJestMockFunction();
+const loadRowsMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
+
+let permissionsForTest: Array<string> = ["ProjectOwner"];
+
+jest.mock("react-i18next", () => {
+  return {
+    useTranslation: () => {
+      return {
+        t: (value: string): string => {
+          return value;
+        },
+      };
+    },
+  };
+});
+
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<unknown> => {
+        return permissionsForTest;
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): { globalPermissions: Array<unknown> } => {
+        return { globalPermissions: [...permissionsForTest] };
+      },
+    },
+  };
+});
+
+/*
+ * The report's Markdown, drawn as its words with a citation chip for every
+ * [C#] the card can resolve: the real viewer loads lazily and parses with
+ * react-markdown, which the tests stub.
+ */
+jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
+  type Renderers = {
+    renderCitation?: (citationId: string) => React.ReactElement | null;
+  };
+
+  return {
+    __esModule: true,
+    default: (props: {
+      text: string;
+      inlineReferences?: Renderers | undefined;
+    }): React.ReactElement => {
+      const parts: Array<React.ReactNode> = [];
+      let rest: string = props.text;
+      let key: number = 0;
+
+      for (;;) {
+        const open: number = rest.indexOf("[C");
+        const close: number = open === -1 ? -1 : rest.indexOf("]", open);
+
+        if (open === -1 || close === -1) {
+          parts.push(rest);
+          break;
+        }
+
+        parts.push(rest.slice(0, open));
+
+        const citationId: string = rest.slice(open + 1, close);
+        const chip: React.ReactElement | null | undefined =
+          props.inlineReferences?.renderCitation?.(citationId);
+
+        parts.push(
+          chip
+            ? React.cloneElement(chip, { key: `chip-${key++}` })
+            : rest.slice(open, close + 1),
+        );
+        rest = rest.slice(close + 1);
+      }
+
+      return React.createElement(
+        "div",
+        { "data-testid": "report-markdown" },
+        ...parts,
+      );
+    },
+  };
+});
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getAiTriage: (...args: Array<unknown>) => {
+          return getAiTriageMock(...args);
+        },
+        startAiTriage: (...args: Array<unknown>) => {
+          return startAiTriageMock(...args);
+        },
+        loadAiTriageEvidenceRows: (...args: Array<unknown>) => {
+          return loadRowsMock(...args);
+        },
+      },
+    };
+  },
+);
+
+import SecurityCaseAiCard, {
+  ComponentProps as CardProps,
+  SECURITY_CASE_AI_POLL_INTERVAL_MS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseAiCard";
+import {
+  SecurityCaseAiCopy,
+  SecurityCaseTriageStatusView,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseAiTriage";
+import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import ObjectID from "../../../Types/ObjectID";
+import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
+import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import GlobalEvents from "../../../UI/Utils/GlobalEvents";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../../UI/Utils/Project";
+
+const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const CASE_ID: string = "20000000-0000-4000-8000-000000000042";
+const RUN_ID: string = "30000000-0000-4000-8000-000000000001";
+const PLAYBOOK_ID: string = "40000000-0000-4000-8000-000000000001";
+
+const REPORT: string = [
+  "## 🧠 AI — Security Case Triage",
+  "",
+  "**Summary**",
+  "A brute force against web-1 that ended in a success [C1].",
+  "",
+  "**Assessment**",
+  "Likely malicious: the address is known-bad [C1].",
+  "",
+  "**Evidence checked**",
+  "- **[C1]** Threat intel lookup of 1 value(s) - 1 known-bad — 1 row(s)",
+].join("\n");
+
+function status(
+  overrides: Partial<SecurityCaseTriageStatusView> = {},
+): SecurityCaseTriageStatusView {
+  return {
+    run: null,
+    steps: [],
+    isReportPending: false,
+    finishedWithoutReport: false,
+    evidence: [],
+    notStartedCode: null,
+    isAutomaticTriageOn: true,
+    ...overrides,
+  };
+}
+
+function run(value: AIRunStatus): SecurityCaseTriageStatusView["run"] {
+  return { id: RUN_ID, status: value, toolCallCount: 3, totalTokens: 900 };
+}
+
+function securityCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
+  const row: SecurityCase = new SecurityCase();
+  row._id = CASE_ID;
+  row.priority = SecurityCasePriority.Medium;
+  Object.assign(row, overrides);
+  return row;
+}
+
+function triagedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
+  return securityCase({
+    aiVerdict: SecurityCaseAiVerdict.LikelyMalicious,
+    aiSuggestedPriority: SecurityCasePriority.Critical,
+    aiSuggestedPlaybookId: new ObjectID(PLAYBOOK_ID),
+    aiTriageReport: REPORT,
+    aiTriagedAt: new Date(Date.now() - 5 * 60 * 1000),
+    aiTriagePromptInjectionSuspected: false,
+    ...overrides,
+  } as Partial<SecurityCase>);
+}
+
+interface Handlers {
+  onTriaged: jest.Mock;
+  onSetPriority: jest.Mock;
+  onRunPlaybook: jest.Mock;
+}
+
+function draw(
+  row: SecurityCase,
+  overrides: Partial<CardProps> = {},
+): Handlers & { container: HTMLElement } {
+  const handlers: Handlers = {
+    onTriaged: jest.fn(),
+    onSetPriority: jest.fn(),
+    onRunPlaybook: jest.fn(),
+  };
+
+  const { container } = render(
+    <MemoryRouter>
+      <SecurityCaseAiCard
+        securityCase={row}
+        onTriaged={handlers.onTriaged as unknown as () => void}
+        onSetPriority={
+          handlers.onSetPriority as unknown as (
+            priority: SecurityCasePriority,
+          ) => void
+        }
+        onRunPlaybook={
+          handlers.onRunPlaybook as unknown as (id: ObjectID) => void
+        }
+        {...overrides}
+      />
+    </MemoryRouter>,
+  );
+
+  return { ...handlers, container };
+}
+
+// A click, and whatever answer it waits on, inside one act.
+async function clickAndSettle(element: HTMLElement): Promise<void> {
+  await act(async () => {
+    fireEvent.click(element);
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 0);
+    });
+  });
+}
+
+beforeEach(() => {
+  permissionsForTest = ["ProjectOwner"];
+  getAiTriageMock.mockReset();
+  startAiTriageMock.mockReset();
+  loadRowsMock.mockReset();
+  getItemMock.mockReset();
+
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  jest
+    .spyOn(ProjectUtil, "getCurrentProject")
+    .mockReturnValue({ enableAi: true } as never);
+  jest.spyOn(ModelAPI, "getItem").mockImplementation(((
+    ...args: Array<unknown>
+  ) => {
+    return getItemMock(...args);
+  }) as never);
+  getItemMock.mockResolvedValue(null);
+});
+
+afterEach(() => {
+  cleanup();
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
+
+describe("with the project's AI off", () => {
+  test("the card is not drawn, and nothing is asked", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue({ enableAi: false } as never);
+
+    const { container } = draw(triagedCase());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container).toBeEmptyDOMElement();
+    expect(getAiTriageMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("not triaged yet", () => {
+  test("says what a triage does, and offers Triage with AI", async () => {
+    getAiTriageMock.mockResolvedValue(status());
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-triage-button"),
+    ).toBeEnabled();
+    expect(
+      screen.getByText(SecurityCaseAiCopy.notTriagedTitle),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(SecurityCaseAiCopy.notTriagedDescription),
+    ).toBeInTheDocument();
+    expect(getAiTriageMock).toHaveBeenCalledWith(new ObjectID(CASE_ID));
+    // New cases are triaged on their own: no word about the switch.
+    expect(
+      screen.queryByTestId("security-case-ai-automatic-off"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Not triaged")).toBeInTheDocument();
+  });
+
+  test("with new cases not triaged on their own, a quiet link says where to turn it on", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        isAutomaticTriageOn: false,
+        notStartedCode: "automatic_triage_disabled",
+      }),
+    );
+
+    draw(securityCase());
+
+    const note: HTMLElement = await screen.findByTestId(
+      "security-case-ai-automatic-off",
+    );
+
+    expect(note).toHaveTextContent(SecurityCaseAiCopy.automaticOffNote);
+    expect(within(note).getByRole("link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/security-events/ai/settings`,
+    );
+    // A person's request ignores the switch.
+    expect(screen.getByTestId("security-case-ai-triage-button")).toBeEnabled();
+  });
+
+  test("what stops a triage is said, with where to fix it, and no button", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ notStartedCode: "provider_missing" }),
+    );
+
+    draw(securityCase());
+
+    const reason: HTMLElement = await screen.findByTestId(
+      "security-case-ai-reason",
+    );
+
+    expect(reason).toHaveTextContent(
+      SecurityCaseAiCopy.reasons.provider_missing,
+    );
+    expect(within(reason).getByRole("link")).toHaveTextContent(
+      "Set up an LLM provider",
+    );
+    expect(
+      screen.queryByTestId("security-case-ai-triage-button"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a role that cannot work cases sees the button disabled", async () => {
+    permissionsForTest = ["SecurityViewer"];
+    getAiTriageMock.mockResolvedValue(status());
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-triage-button"),
+    ).toBeDisabled();
+  });
+
+  test("a status that cannot be read says so", async () => {
+    getAiTriageMock.mockRejectedValue(new Error("Network down"));
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-load-error"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Triage with AI", () => {
+  test("starts a triage, shows each check as it runs, and reads the case again when it settles", async () => {
+    getAiTriageMock.mockResolvedValueOnce(status()).mockResolvedValueOnce(
+      status({
+        run: run(AIRunStatus.Running),
+        steps: [
+          { toolName: "query_security_cases", failed: false, rowCount: 2 },
+          { toolName: "lookup_threat_intel", failed: true },
+        ],
+      }),
+    );
+    startAiTriageMock.mockResolvedValue(RUN_ID);
+
+    const handlers: Handlers = draw(securityCase());
+
+    fireEvent.click(
+      await screen.findByTestId("security-case-ai-triage-button"),
+    );
+
+    expect(
+      await screen.findByTestId("security-case-ai-triaging"),
+    ).toBeVisible();
+    expect(startAiTriageMock).toHaveBeenCalledWith(new ObjectID(CASE_ID));
+    expect(screen.getByText(SecurityCaseAiCopy.triagingTitle)).toBeVisible();
+
+    const steps: HTMLElement = screen.getByTestId("security-case-ai-steps");
+
+    expect(within(steps).getByText("Read security cases")).toBeVisible();
+    expect(within(steps).getByText("Checked threat intel")).toBeVisible();
+    expect(screen.getByText("Triaging")).toBeInTheDocument();
+
+    // The run settles: the card asks again and the page reads the case.
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    await waitFor(
+      () => {
+        expect(handlers.onTriaged).toHaveBeenCalled();
+      },
+      { timeout: SECURITY_CASE_AI_POLL_INTERVAL_MS * 3 },
+    );
+  });
+
+  test("keeps saying Triaging while the finished run's report is still being written", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed), isReportPending: true }),
+    );
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-triaging"),
+    ).toBeVisible();
+    expect(
+      screen.queryByTestId("security-case-ai-not-triaged"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a start the server refuses is said, and can be put away", async () => {
+    getAiTriageMock.mockResolvedValue(status());
+    startAiTriageMock.mockRejectedValue(
+      new Error("The project is out of AI credits."),
+    );
+
+    draw(securityCase());
+
+    fireEvent.click(
+      await screen.findByTestId("security-case-ai-triage-button"),
+    );
+
+    expect(
+      await screen.findByTestId("security-case-ai-start-error"),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("triaged", () => {
+  test("the read, what it suggests, the cited report and the time", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    getItemMock.mockImplementation(async (options: unknown) => {
+      const model: SecurityPlaybook = new SecurityPlaybook();
+      model.name = "Contain Host";
+      model.isEnabled = true;
+      expect((options as { id: ObjectID }).id.toString()).toBe(PLAYBOOK_ID);
+      return model;
+    });
+
+    const handlers: Handlers = draw(triagedCase());
+
+    expect(await screen.findByTestId("security-case-ai-triaged")).toBeVisible();
+    expect(screen.getByText("Likely Malicious")).toBeVisible();
+    expect(
+      screen.getByText(
+        "The evidence points at malicious or unauthorized activity.",
+      ),
+    ).toBeVisible();
+    expect(screen.getByText("Triaged")).toBeInTheDocument();
+
+    // Priority: one click, through the case's own action.
+    fireEvent.click(screen.getByTestId("security-case-ai-set-priority"));
+    expect(handlers.onSetPriority).toHaveBeenCalledWith(
+      SecurityCasePriority.Critical,
+    );
+
+    // Playbook: one click opens Run Playbook with it picked.
+    const playbookRow: HTMLElement = await screen.findByTestId(
+      "security-case-ai-suggested-playbook",
+    );
+    expect(playbookRow).toHaveTextContent("Contain Host");
+    fireEvent.click(screen.getByTestId("security-case-ai-run-playbook"));
+    expect(handlers.onRunPlaybook).toHaveBeenCalledTimes(1);
+    expect(
+      (handlers.onRunPlaybook.mock.calls[0]![0] as ObjectID).toString(),
+    ).toBe(PLAYBOOK_ID);
+
+    // The report, section by section.
+    expect(await screen.findByText("Assessment")).toBeVisible();
+    expect(
+      screen.getByTestId("security-case-ai-triaged-when"),
+    ).toHaveTextContent(/^Triaged /);
+  });
+
+  test("no Set priority when the case is already at the suggested one", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    draw(triagedCase({ priority: SecurityCasePriority.Critical }));
+
+    expect(
+      await screen.findByTestId("security-case-ai-suggested-priority"),
+    ).toBeVisible();
+    expect(
+      screen.queryByTestId("security-case-ai-set-priority"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a suggested playbook that is off, or not the reader's to read, is not offered", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    getItemMock.mockImplementation(async () => {
+      const model: SecurityPlaybook = new SecurityPlaybook();
+      model.name = "Old Playbook";
+      model.isEnabled = false;
+      return model;
+    });
+
+    draw(triagedCase());
+
+    expect(await screen.findByTestId("security-case-ai-triaged")).toBeVisible();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(
+      screen.queryByTestId("security-case-ai-suggested-playbook"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("text written to steer an AI is said first", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    draw(
+      triagedCase({
+        aiVerdict: SecurityCaseAiVerdict.Inconclusive,
+        aiTriagePromptInjectionSuspected: true,
+      } as Partial<SecurityCase>),
+    );
+
+    expect(
+      await screen.findByTestId("security-case-ai-prompt-injection"),
+    ).toHaveTextContent(SecurityCaseAiCopy.promptInjection);
+    expect(screen.getByText("Inconclusive")).toBeVisible();
+  });
+
+  test("a later triage that did not finish is said under the read it left", async () => {
+    getAiTriageMock.mockResolvedValue(status({ run: run(AIRunStatus.Error) }));
+
+    draw(triagedCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-last-run-failed"),
+    ).toHaveTextContent(SecurityCaseAiCopy.lastRunFailed);
+  });
+
+  test("Ask about this case opens Ask AI with a question ready", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    const dispatch: jest.SpiedFunction<typeof GlobalEvents.dispatchEvent> =
+      jest.spyOn(GlobalEvents, "dispatchEvent");
+
+    draw(triagedCase());
+
+    fireEvent.click(await screen.findByTestId("security-case-ai-ask"));
+
+    expect(dispatch).toHaveBeenCalledWith(EventName.AI_CHAT_TOGGLE, {
+      prompt: SecurityCaseAiCopy.askPrompt,
+    });
+  });
+
+  test("Triage again starts a new triage", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    startAiTriageMock.mockResolvedValue(RUN_ID);
+
+    draw(triagedCase());
+
+    const again: HTMLElement = await screen.findByTestId(
+      "security-case-ai-triage-button",
+    );
+    expect(again).toHaveTextContent(SecurityCaseAiCopy.triageAgainButton);
+
+    // Offered once the card knows nothing stops a triage.
+    await waitFor(() => {
+      expect(again).toBeEnabled();
+    });
+
+    fireEvent.click(again);
+
+    await waitFor(() => {
+      expect(startAiTriageMock).toHaveBeenCalledWith(new ObjectID(CASE_ID));
+    });
+  });
+
+  test("a citation opens the check behind it, and its rows are re-run on the case's own route", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        run: run(AIRunStatus.Completed),
+        evidence: [
+          {
+            citationId: "C1",
+            toolName: "lookup_threat_intel",
+            label: "Threat intel lookup of 1 value(s) - 1 known-bad",
+            rowCount: 1,
+            queryArguments: { values: ["203.0.113.9"] },
+            canLoadRows: true,
+          },
+        ],
+      }),
+    );
+    loadRowsMock.mockResolvedValue({
+      data: {
+        citationId: "C1",
+        toolName: "lookup_threat_intel",
+        label: "Threat intel lookup",
+        rowCount: 1,
+        isTruncated: false,
+        executedAt: new Date().toISOString(),
+        isPinnedToInvestigationTime: false,
+        text: "value: 203.0.113.9, match: known-bad",
+      },
+    });
+
+    draw(triagedCase());
+
+    const details: HTMLElement = await screen.findByTestId(
+      "investigation-details",
+    );
+    expect(within(details).getByText("Evidence checked")).toBeInTheDocument();
+
+    /*
+     * Until the run's status arrives the card can only show the report's own
+     * Evidence checked lines; once it has, C1 is a query that expands (still
+     * inside the collapsed section, so hidden from the reader).
+     */
+    const query: HTMLElement = await within(details).findByRole("button", {
+      name: /Threat intel lookup of 1 value/,
+      hidden: true,
+    });
+    expect(query).toHaveAttribute("aria-expanded", "false");
+    expect(query).not.toBeVisible();
+
+    // [C1] is cited twice: in the summary and in the assessment.
+    const chips: Array<HTMLElement> = screen.getAllByRole("button", {
+      name: /Citation C1/,
+    });
+    expect(chips).toHaveLength(2);
+    await clickAndSettle(chips[0]!);
+
+    expect(loadRowsMock).toHaveBeenCalledWith({
+      caseId: new ObjectID(CASE_ID),
+      runId: RUN_ID,
+      citationId: "C1",
+    });
+    expect(loadRowsMock).toHaveBeenCalledTimes(1);
+
+    // The section opened on the query, and its re-run rows are shown.
+    expect(query).toBeVisible();
+    expect(query).toHaveAttribute("aria-expanded", "true");
+    expect(
+      within(details).getByText(/203\.0\.113\.9, match: known-bad/),
+    ).toBeVisible();
+
+    // The second chip lands on the same query without re-running it.
+    await clickAndSettle(chips[1]!);
+    expect(query).toHaveAttribute("aria-expanded", "true");
+    expect(loadRowsMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("failed", () => {
+  test("says the triage did not finish, and offers Try again", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: { ...run(AIRunStatus.Error)!, errorMessage: "Boom" } }),
+    );
+
+    draw(securityCase());
+
+    expect(await screen.findByTestId("security-case-ai-failed")).toBeVisible();
+    expect(
+      screen.getByText(SecurityCaseAiCopy.failedTitle),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("security-case-ai-triage-button"),
+    ).toHaveTextContent(SecurityCaseAiCopy.tryAgainButton);
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+  });
+
+  test("a run that settled without a report has failed too", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        run: run(AIRunStatus.Completed),
+        finishedWithoutReport: true,
+      }),
+    );
+
+    draw(securityCase());
+
+    expect(await screen.findByTestId("security-case-ai-failed")).toBeVisible();
+  });
+});

@@ -532,7 +532,7 @@ describe("each case page draws the list its question needs", () => {
     });
   });
 
-  test("filters: an open list by where its cases stand, the closed one by verdict and when it closed", async () => {
+  test("filters: an open list by where its cases stand and what OneUptime AI read it as, the closed one by verdict and when it closed", async () => {
     const filters: Record<string, Array<string>> = {};
 
     for (const view of SECURITY_CASE_QUEUE_VIEWS) {
@@ -541,12 +541,69 @@ describe("each case page draws the list its question needs", () => {
     }
 
     expect(filters).toEqual({
-      open: ["Title", "Priority", "Status", "Labels", "Opened"],
-      mine: ["Title", "Priority", "Status", "Labels", "Opened"],
-      unassigned: ["Title", "Priority", "Status", "Labels", "Opened"],
-      closed: ["Title", "Priority", "Verdict", "Labels", "Opened", "Closed"],
-      all: ["Title", "Priority", "Status", "Verdict", "Labels", "Opened"],
+      open: ["Title", "Priority", "Status", "AI Verdict", "Labels", "Opened"],
+      mine: ["Title", "Priority", "Status", "AI Verdict", "Labels", "Opened"],
+      unassigned: [
+        "Title",
+        "Priority",
+        "Status",
+        "AI Verdict",
+        "Labels",
+        "Opened",
+      ],
+      closed: [
+        "Title",
+        "Priority",
+        "Verdict",
+        "AI Verdict",
+        "Labels",
+        "Opened",
+        "Closed",
+      ],
+      all: [
+        "Title",
+        "Priority",
+        "Status",
+        "Verdict",
+        "AI Verdict",
+        "Labels",
+        "Opened",
+      ],
     });
+  });
+
+  test("with the project's AI off, no list offers the AI Verdict filter", async () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProject")
+      .mockReturnValue({ enableAi: false } as never);
+
+    for (const view of SECURITY_CASE_QUEUE_VIEWS) {
+      const table: CapturedTable = await capture(view.key);
+
+      expect(titlesOf(table.filters)).not.toContain("AI Verdict");
+    }
+  });
+
+  test("the AI Verdict filter offers the four reads, the worst first", async () => {
+    const table: CapturedTable = await capture("open");
+    const filter: CapturedFilter | undefined = table.filters.find(
+      (candidate: CapturedFilter): boolean => {
+        return candidate.title === "AI Verdict";
+      },
+    );
+
+    expect(
+      (filter?.filterDropdownOptions || []).map(
+        (option: { value: unknown }): unknown => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      "Likely Malicious",
+      "Likely Benign",
+      "Likely False Positive",
+      "Inconclusive",
+    ]);
   });
 
   test("an open list's Status filter offers only the open statuses; All Cases offers Closed too", async () => {

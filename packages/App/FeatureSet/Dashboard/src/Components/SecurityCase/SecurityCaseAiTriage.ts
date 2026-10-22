@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import { describeEvidenceTool } from "../../Utils/InvestigationEvidenceFormat";
 import { parseInvestigationEvidence } from "../AI/InvestigationReport/InvestigationReportData";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -371,33 +372,13 @@ export function canStartTriage(
   );
 }
 
-// The tool names the card words, in the reader's language, as it runs.
-export const SECURITY_CASE_AI_STEP_LABELS: Record<string, string> = {
-  query_security_cases: translationKey("Read the case and its detections"),
-  search_security_events: translationKey("Searched the security events"),
-  security_event_summary: translationKey("Summarized the security events"),
-  lookup_threat_intel: translationKey("Checked threat intel"),
-  security_entity_activity: translationKey(
-    "Checked how unusual each entity is",
-  ),
-  query_security_playbooks: translationKey("Read the playbooks"),
-  query_resource_telemetry: translationKey("Read a host's telemetry"),
-  query_alerts: translationKey("Checked alerts"),
-  query_incidents: translationKey("Checked incidents"),
-  search_logs: translationKey("Searched logs"),
-};
-
-export const SECURITY_CASE_AI_OTHER_STEP_LABEL: string = translationKey(
-  "Checked the project's data",
-);
-
+/*
+ * A check the triage made, as the card lists it while it runs: in the
+ * words every AI report's Evidence checked uses for the same tool
+ * (describeEvidenceTool), so a check reads the same live and afterwards.
+ */
 export function getSecurityCaseAiStepLabel(toolName: string): string {
-  return Object.prototype.hasOwnProperty.call(
-    SECURITY_CASE_AI_STEP_LABELS,
-    toolName,
-  )
-    ? SECURITY_CASE_AI_STEP_LABELS[toolName]!
-    : SECURITY_CASE_AI_OTHER_STEP_LABEL;
+  return describeEvidenceTool(toolName).description;
 }
 
 // What the card says of each read, in a sentence under its pill.

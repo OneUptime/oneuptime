@@ -56,6 +56,12 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import {
+  FeedClock,
+  formatFeedFullTime,
+  formatFeedTimeAgo,
+  getFeedClock,
+} from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -309,6 +315,9 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
 
   const badge: { text: string; indicator: InvestigationStatusIndicator } =
     getSecurityCaseAiBadge({ stage, hasStatus: status !== null });
+
+  // When the triage finished, as every time on a timeline reads.
+  const clock: FeedClock = getFeedClock({ language: translator.language });
 
   const canStart: boolean = canStartTriage(status) && updateGate.isAllowed;
 
@@ -598,12 +607,14 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           {result.triagedAt ? (
             <span
               className="text-xs text-gray-500"
-              title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                result.triagedAt,
-              )}
+              title={formatFeedFullTime(result.triagedAt, clock)}
+              data-testid="security-case-ai-triaged-when"
             >
               {translator.translateTemplate(SecurityCaseAiCopy.triagedWhen, {
-                when: OneUptimeDate.fromNow(result.triagedAt),
+                // "5 minutes ago", in the reader's language.
+                when:
+                  formatFeedTimeAgo(result.triagedAt, clock) ||
+                  OneUptimeDate.fromNow(result.triagedAt),
               })}
             </span>
           ) : (
