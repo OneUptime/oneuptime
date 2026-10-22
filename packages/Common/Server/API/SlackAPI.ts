@@ -96,6 +96,11 @@ import SlackActionAnswer, {
   SlackAnswerPlace,
 } from "../Utils/Workspace/Slack/Actions/Answer";
 import SlackConnectPrompt from "../Utils/Workspace/Slack/Actions/ConnectPrompt";
+import WorkspaceProjectResolver, {
+  WorkspaceAmbiguousRetryKind,
+  WorkspaceProjectResolution,
+} from "../Utils/Workspace/WorkspaceProjectResolution";
+import { WorkspaceAnswer } from "../Utils/Workspace/WorkspaceActionAnswers";
 import SlackCommandActions from "../Utils/Workspace/Slack/Actions/Command";
 import SlackPageActions from "../Utils/Workspace/Slack/Actions/Page";
 import SlackAiConversations, {
@@ -131,6 +136,23 @@ const WHITESPACE_RUN: RegExp = /\s+/g;
 interface SlackAppCredentials {
   clientId: string;
   clientSecret: string;
+}
+
+/*
+ * Who a question for OneUptime AI is from, and in which project it is
+ * asked (resolveSlackAiOpsContext).
+ */
+interface SlackAiOpsContext {
+  projectId: ObjectID;
+  projectAuthToken: string;
+  botUserId: string | undefined;
+  userId: ObjectID | undefined;
+  /*
+   * The workspace is connected to more than one project, and neither the
+   * channel nor the asker tells which: what the asker is told instead of an
+   * answer (WorkspaceProjectResolution.getAmbiguousAnswer).
+   */
+  ambiguousAnswer?: WorkspaceAnswer | undefined;
 }
 
 export default class SlackAPI {
@@ -1805,17 +1827,12 @@ export default class SlackAPI {
 
     // Detached work (fire-and-forget). Ack has already been sent.
     (async (): Promise<void> => {
-      const context:
-        | {
-            projectId: ObjectID;
-            projectAuthToken: string;
-            botUserId: string | undefined;
-            userId: ObjectID | undefined;
-          }
-        | undefined = await SlackAPI.resolveSlackAiOpsContext({
-        slackTeamId: slackTeamId,
-        slackUserId: slackUserId,
-      });
+      const context: SlackAiOpsContext | undefined =
+        await SlackAPI.resolveSlackAiOpsContext({
+          slackTeamId: slackTeamId,
+          slackUserId: slackUserId,
+          slackChannelId: (body["channel_id"] as string) || undefined,
+        });
 
       if (!context) {
         // Workspace not connected — tell the user ephemerally.
@@ -1825,6 +1842,26 @@ export default class SlackAPI {
             response_type: "ephemeral",
             text: SlackUtil.getNotificationText(
               SlackCommandActions.getNotConnectedAnswer().text,
+            ),
+          },
+          headers: {
+            ["Content-Type"]: "application/json",
+          },
+        });
+        return;
+      }
+
+      /*
+       * The workspace is connected to more than one project, and neither
+       * the channel nor the asker tells which: said, only to them.
+       */
+      if (context.ambiguousAnswer) {
+        await API.post({
+          url: URL.fromString(responseUrl),
+          data: {
+            response_type: "ephemeral",
+            text: SlackUtil.convertMarkdownToSlackRichText(
+              context.ambiguousAnswer.markdown,
             ),
           },
           headers: {
@@ -1960,17 +1997,12 @@ export default class SlackAPI {
   }): Promise<void> {
     const { req, message } = data;
 
-    const context:
-      | {
-          projectId: ObjectID;
-          projectAuthToken: string;
-          botUserId: string | undefined;
-          userId: ObjectID | undefined;
-        }
-      | undefined = await SlackAPI.resolveSlackAiOpsContext({
-      slackTeamId: message.teamId,
-      slackUserId: message.userId,
-    });
+    const context: SlackAiOpsContext | undefined =
+      await SlackAPI.resolveSlackAiOpsContext({
+        slackTeamId: message.teamId,
+        slackUserId: message.userId,
+        slackChannelId: message.channelId,
+      });
 
     // Workspace not connected to any project — nothing we can do.
     if (!context) {
@@ -2015,6 +2047,23 @@ export default class SlackAPI {
       await SlackDirectMessageHelp.answer({
         projectAuthToken: context.projectAuthToken,
         message: message,
+      });
+      return;
+    }
+
+    /*
+     * The workspace is connected to more than one project, and neither the
+     * channel nor the asker tells which: said where they see it, only to
+     * them, as the Connect prompt is - instead of an answer about a project
+     * they may not have meant.
+     */
+    if (context.ambiguousAnswer) {
+      await SlackActionAnswer.answer({
+        place: SlackAiConversations.getConnectPromptPlace({
+          message: message,
+          projectAuthToken: context.projectAuthToken,
+        }),
+        answer: context.ambiguousAnswer,
       });
       return;
     }
@@ -2293,46 +2342,54 @@ export default class SlackAPI {
   /*
    * Shared "AI Ops" resolution used by both @mentions / DMs (Events API) and
    * the /oneuptime slash command. Resolves the Slack team_id -> OneUptime
-   * project and the Slack user id -> OneUptime user using the same
-   * WorkspaceProjectAuthToken / WorkspaceUserAuthToken pattern as
-   * SlackAuthAction.isAuthorized. Returns undefined when the workspace is not
-   * connected to any OneUptime project at all.
+   * project, as a press is (WorkspaceProjectResolution: the channel asked
+   * in, then the asker's own connections - a workspace can be connected to
+   * more than one project), and the Slack user id -> OneUptime user in it.
+   * Returns undefined when the workspace is not connected to any OneUptime
+   * project at all; ambiguousAnswer when it is connected to several and
+   * nothing tells which.
    */
   private static async resolveSlackAiOpsContext(data: {
     slackTeamId: string;
     slackUserId: string;
-  }): Promise<
-    | {
-        projectId: ObjectID;
-        projectAuthToken: string;
-        botUserId: string | undefined;
-        userId: ObjectID | undefined;
-      }
-    | undefined
-  > {
+    slackChannelId?: string | undefined;
+  }): Promise<SlackAiOpsContext | undefined> {
     const { slackTeamId, slackUserId } = data;
 
     if (!slackTeamId) {
       return undefined;
     }
 
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: slackTeamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-          miscData: true,
-        },
-        props: {
-          isRoot: true,
+    const resolution: WorkspaceProjectResolution =
+      await WorkspaceProjectResolver.resolve({
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: slackTeamId,
+        clues: {
+          channelId: data.slackChannelId,
+          workspaceUserId: slackUserId,
         },
       });
 
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      resolution.projectAuth || resolution.connections[0] || null;
+
     if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
       return undefined;
+    }
+
+    if (resolution.isAmbiguous) {
+      return {
+        projectId: projectAuth.projectId,
+        projectAuthToken: projectAuth.authToken,
+        botUserId: (projectAuth.miscData as SlackMiscData)?.botUserId,
+        userId: undefined,
+        // A question for OneUptime AI: asked again where it can be told apart.
+        ambiguousAnswer: await WorkspaceProjectResolver.getAmbiguousAnswer({
+          workspaceType: WorkspaceType.Slack,
+          resolution: resolution,
+          retry: { kind: WorkspaceAmbiguousRetryKind.Question },
+        }),
+      };
     }
 
     const projectId: ObjectID = projectAuth.projectId;

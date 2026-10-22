@@ -1219,7 +1219,15 @@ describe("'create incident' and 'create maintenance' go to MicrosoftTeamsCreateC
 
     const turn: FakeTurn = await deliver(activity);
 
-    expect(stubs.resolveTenant).toHaveBeenCalledWith({ tenantId: TENANT_ID });
+    // By the tenant, with what tells its projects apart: who sent it, and where.
+    expect(stubs.resolveTenant).toHaveBeenCalledWith({
+      tenantId: TENANT_ID,
+      clues: {
+        recordIds: [],
+        channelId: undefined,
+        workspaceUserId: USER_AAD_OBJECT_ID,
+      },
+    });
     expect(stubs.createIncident).toHaveBeenCalledTimes(1);
     expect(stubs.createIncident).toHaveBeenCalledWith({
       turnContext: turn.turnContext,

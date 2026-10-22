@@ -36,6 +36,7 @@ import WorkspaceCommands, {
 } from "Common/Server/Utils/Workspace/WorkspaceCommands";
 import WorkspaceConnectPromptOnce from "Common/Server/Utils/Workspace/WorkspaceConnectPromptOnce";
 import WorkspaceConnectRequest from "Common/Server/Utils/Workspace/WorkspaceConnectRequest";
+import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import { JSONObject } from "Common/Types/JSON";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -1467,9 +1468,18 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       readSource("testSendAccess"),
       "TEST_NOTIFICATION_PERMISSION_MESSAGE",
     );
-    const notReadable: string = stringConstant(
-      readSource("actionAuthorization"),
-      "NOT_FOUND_OR_NOT_READABLE",
+    /*
+     * Why a button on a record the person may not act on refuses it, for an
+     * incident: the noun is the model's own name for it.
+     */
+    expect(new Incident().singularName?.toLowerCase()).toBe("incident");
+    const unreadable: Array<string> = [
+      WorkspaceActionAuthorization.getNotIncludedReason("incident"),
+      WorkspaceActionAuthorization.getPrivateReason("incident"),
+      WorkspaceActionAuthorization.getNotFoundReason("incident"),
+    ];
+    expect(readSource("actionAuthorization")).toContain(
+      "Could not ${data.action}: ${WorkspaceActionAuthorization.getNotFoundReason(noun)}",
     );
     const noStates: string = stringConstant(
       readSource("teamsIncidentActions"),
@@ -1488,7 +1498,9 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
       const markdown: string = englishPage(page);
 
       expect(markdown).toContain(`"${testRefusal}"`);
-      expect(markdown).toContain(`"${notReadable}"`);
+      for (const reason of unreadable) {
+        expect(markdown).toContain(`"${reason}"`);
+      }
       expect(markdown).toContain(`"${noStates}"`);
       expect(markdown).toContain(
         '"There is no later state to move this incident to."',

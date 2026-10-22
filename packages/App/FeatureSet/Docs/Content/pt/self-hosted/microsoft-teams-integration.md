@@ -369,7 +369,7 @@ Se forem diferentes, o usuário que escreve para o bot entrou em outro locatári
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Dois ou mais projetos do OneUptime conectaram o mesmo locatário Microsoft. Uma mensagem do bot só leva um ID de locatário, então o OneUptime não consegue saber a qual projeto você se refere e recusa em vez de adivinhar. Desconecte o Microsoft Teams de todos os projetos, exceto um.
+Dois ou mais projetos do OneUptime estão conectados à mesma organização do Microsoft 365, e nada na mensagem os distinguiu. O botão de um cartão age no projeto do registro a que se refere, e uma mensagem no projeto do canal em que é enviada, ou então no único projeto em que a conta do Microsoft Teams de quem a envia está conectada. Envie-a de novo a partir de um canal do projeto que você quer, como um dos canais de incidentes dele. Quem não tem a conta conectada em nenhum dos projetos é solicitado a conectá-la primeiro.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

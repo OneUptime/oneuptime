@@ -18,6 +18,7 @@ import { Service as MonitorProbeServiceType } from "../../../Server/Services/Mon
 import { Service as NetworkDeviceServiceType } from "../../../Server/Services/NetworkDeviceService";
 import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import TelemetryIngestionKeyService from "../../../Server/Services/TelemetryIngestionKeyService";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
@@ -301,6 +302,14 @@ describe("a chat action or a tool import acting as a member", () => {
     jest
       .spyOn(AccessTokenService, "getUserTenantAccessPermission")
       .mockResolvedValue(tenantPermission);
+    /*
+     * The project's plan, which a member's props carry on OneUptime Cloud
+     * (billing on, as CI runs): WorkspaceActionPlan.test.ts.
+     */
+    jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: PlanType.Growth,
+      isSubscriptionUnpaid: false,
+    });
   });
 
   /*

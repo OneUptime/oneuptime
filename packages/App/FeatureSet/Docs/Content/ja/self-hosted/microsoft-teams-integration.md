@@ -369,7 +369,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-2 つ以上の OneUptime プロジェクトが同じ Microsoft テナントを接続しています。ボットのメッセージにはテナント ID しか含まれないため、OneUptime はどのプロジェクトのことか判断できず、推測せずに拒否します。1 つを除くすべてのプロジェクトから Microsoft Teams を切断してください。
+2 つ以上の OneUptime プロジェクトが同じ Microsoft 365 組織に接続されていて、メッセージの内容からはどれか判断できませんでした。カードのボタンはそのカードのレコードのプロジェクトで、メッセージは送信されたチャネルのプロジェクトで動作し、それ以外では、送信者の Microsoft Teams アカウントが接続されている唯一のプロジェクトで動作します。目的のプロジェクトのチャネル (そのインシデントのチャネルなど) からもう一度送信してください。どのプロジェクトでもアカウントが接続されていない送信者には、まず接続するよう求めます。
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

@@ -322,23 +322,123 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
     ).rejects.toBeInstanceOf(NotAuthorizedException);
   });
 
-  test("refuses when the incident is not visible to the user in this project", async (): Promise<void> => {
-    // A label-scoped, private or other-project incident comes back as null.
-    mockIncidentLookup(null);
+  /*
+   * A record the member may not read is refused with what is actually
+   * wrong - never "not found" for a record that is there. The chat showed
+   * them the record's message, so that it is there is nothing new to them;
+   * nothing else about it is read out.
+   */
+  test("an incident their access does not include: so, and who to ask - not 'not found'", async (): Promise<void> => {
+    const incidentId: ObjectID = ObjectID.generate();
+    const props: DatabaseCommonInteractionProps = createProps([
+      { permission: Permission.ProjectMember },
+    ]);
+    // Their own read finds nothing (labels, owners); OneUptime's finds it.
+    const lookupSpy: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? createIncident() : null;
+      }) as never);
+
+    await expect(
+      WorkspaceActionAuthorization.assertCanCreate({
+        props: props,
+        modelType: IncidentInternalNote,
+        action: "add a private note to this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to add a private note to this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+    );
+
+    // The member's read, then OneUptime's: is it there, is it private to them.
+    expect(lookupSpy).toHaveBeenCalledTimes(3);
+    expect(lookupSpy.mock.calls[1]![0]).toEqual({
+      query: { _id: incidentId.toString(), projectId: projectId },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+    expect(lookupSpy.mock.calls[2]![0].props).toEqual({ isRoot: true });
+    expect(Object.keys(lookupSpy.mock.calls[2]![0].query).sort()).toEqual([
+      "_id",
+      "isPrivate",
+      "projectId",
+    ]);
+  });
+
+  test("a private incident they do not own: that it is private, and who can add them", async (): Promise<void> => {
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
+
+        // OneUptime finds it - but not under the member's rule for private ones.
+        return findOneBy.query["isPrivate"] === undefined
+          ? createIncident()
+          : null;
+      }) as never);
 
     await expect(
       WorkspaceActionAuthorization.assertCanCreate({
         props: createProps([{ permission: Permission.ProjectMember }]),
-        modelType: IncidentInternalNote,
-        action: "add a private note to this incident",
+        modelType: IncidentStateTimeline,
+        action: "acknowledge this incident",
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
       }),
     ).rejects.toThrow(
-      "You do not have permission to add a private note to this incident: the incident was not found in this project, or you do not have access to it.",
+      "You do not have permission to acknowledge this incident: this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner.",
     );
   });
 
-  test("refuses when reading the incident is itself not permitted", async (): Promise<void> => {
+  test("a project admin, who sees every private incident, is not told it is private", async (): Promise<void> => {
+    const lookupSpy: SpyInstance<typeof IncidentService.findOneBy> = jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? createIncident() : null;
+      }) as never);
+
+    await expect(
+      WorkspaceActionAuthorization.assertCanCreate({
+        props: createProps([{ permission: Permission.ProjectAdmin }]),
+        modelType: IncidentStateTimeline,
+        action: "acknowledge this incident",
+        resources: [{ service: IncidentService, id: ObjectID.generate() }],
+      }),
+    ).rejects.toThrow(
+      "your access in this project does not include this incident",
+    );
+    // No read under the rule for private records: it does not hold them.
+    expect(lookupSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("an incident that is gone: not found - it may have been deleted", async (): Promise<void> => {
+    mockIncidentLookup(null);
+
+    const refusal: Promise<void> = WorkspaceActionAuthorization.assertCanCreate(
+      {
+        props: createProps([{ permission: Permission.ProjectMember }]),
+        modelType: IncidentStateTimeline,
+        action: "acknowledge this incident",
+        resources: [{ service: IncidentService, id: ObjectID.generate() }],
+      },
+    );
+
+    await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
+    await expect(refusal).rejects.toThrow(
+      "Could not acknowledge this incident: the incident was not found. It may have been deleted.",
+    );
+  });
+
+  test("a read refused for its permission says which permission, after what they pressed", async (): Promise<void> => {
     jest
       .spyOn(IncidentService, "findOneBy")
       .mockRejectedValue(new NotAuthorizedException("no read"));
@@ -352,29 +452,40 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         action: "acknowledge this incident",
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
       }),
-    ).rejects.toThrow("the incident was not found in this project");
+    ).rejects.toThrow(
+      "You do not have permission to acknowledge this incident. no read",
+    );
   });
 
-  test("the real read path refuses a user who may write timelines but not read incidents", async (): Promise<void> => {
-    await expect(
-      WorkspaceActionAuthorization.assertCanCreate({
+  test("the real read path names the permissions that read incidents, for a user who may write timelines but not read incidents", async (): Promise<void> => {
+    const refusal: Promise<void> = WorkspaceActionAuthorization.assertCanCreate(
+      {
         props: createProps([
           { permission: Permission.CreateIncidentStateTimeline },
         ]),
         modelType: IncidentStateTimeline,
         action: "acknowledge this incident",
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
-      }),
-    ).rejects.toThrow("the incident was not found in this project");
+      },
+    );
+
+    await expect(refusal).rejects.toThrow(
+      "You do not have permission to acknowledge this incident. You do not have permissions to read Incident. You need one of these permissions:",
+    );
+    await expect(refusal).rejects.not.toThrow("not found");
   });
 
-  test("every named resource must be readable: an on-call policy the user cannot see is refused", async (): Promise<void> => {
+  test("every named resource must be readable: an on-call policy the user cannot read is refused for it", async (): Promise<void> => {
     mockIncidentLookup(createIncident());
     const policyLookupSpy: SpyInstance<
       typeof OnCallDutyPolicyService.findOneBy
     > = jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
-      .mockResolvedValue(null);
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new OnCallDutyPolicy() : null;
+      }) as never);
 
     await expect(
       WorkspaceActionAuthorization.assertCanCreate({
@@ -386,8 +497,30 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
           { service: OnCallDutyPolicyService, id: ObjectID.generate() },
         ],
       }),
-    ).rejects.toThrow("the on-call policy was not found in this project");
-    expect(policyLookupSpy).toHaveBeenCalledTimes(1);
+    ).rejects.toThrow(
+      "You do not have permission to execute an on-call policy for this incident: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+    );
+    // A policy has no private ones: the member's read, then OneUptime's.
+    expect(policyLookupSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("an on-call policy that is gone is not found", async (): Promise<void> => {
+    mockIncidentLookup(createIncident());
+    jest.spyOn(OnCallDutyPolicyService, "findOneBy").mockResolvedValue(null);
+
+    await expect(
+      WorkspaceActionAuthorization.assertCanCreate({
+        props: createProps([{ permission: Permission.ProjectMember }]),
+        modelType: OnCallDutyPolicyExecutionLog,
+        action: "execute an on-call policy for this incident",
+        resources: [
+          { service: IncidentService, id: ObjectID.generate() },
+          { service: OnCallDutyPolicyService, id: ObjectID.generate() },
+        ],
+      }),
+    ).rejects.toThrow(
+      "Could not execute an on-call policy for this incident: the on-call policy was not found. It may have been deleted.",
+    );
   });
 
   test("an on-call page needs the on-call execution permission, not just incident access", async (): Promise<void> => {
