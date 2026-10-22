@@ -39,3 +39,25 @@ export const GLOBAL_TWILIO_CONFIG_SELECT: Select<GlobalConfig> = {
   twilioSecondaryPhoneNumbers: true,
   twilioSmsPhoneNumbers: true,
 };
+
+/*
+ * What a write's check reads of the configs it changes: what each is used
+ * for and the numbers that takes (Types/CallAndSMS/TwilioConfigWrite) - no
+ * credential, as the check needs none. ProjectCallSMSConfigService and
+ * GlobalConfigService refuse a write that would leave a config without the
+ * numbers what it is used for takes.
+ */
+export const PROJECT_TWILIO_CONFIG_USE_SELECT: Select<ProjectCallSMSConfig> = {
+  _id: true,
+  usedFor: true,
+  twilioPrimaryPhoneNumber: true,
+  twilioSmsPhoneNumbers: true,
+};
+
+// The server's account is asked for its numbers only once it has an account SID.
+export const GLOBAL_TWILIO_CONFIG_USE_SELECT: Select<GlobalConfig> = {
+  twilioUsedFor: true,
+  twilioAccountSID: true,
+  twilioPrimaryPhoneNumber: true,
+  twilioSmsPhoneNumbers: true,
+};

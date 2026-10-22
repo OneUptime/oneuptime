@@ -24,6 +24,7 @@ import TwilioConfigUses from "../../Types/CallAndSMS/TwilioConfigUse";
 import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
+import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
 
 // The columns of the server's Twilio account - stored, or a write's - its numbers' check reads.
 interface TwilioAccountColumns {
@@ -493,12 +494,7 @@ export class Service extends DatabaseService<Model> {
 
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
-      {
-        twilioUsedFor: true,
-        twilioAccountSID: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSmsPhoneNumbers: true,
-      },
+      GLOBAL_TWILIO_CONFIG_USE_SELECT,
     );
 
     for (const row of rows) {

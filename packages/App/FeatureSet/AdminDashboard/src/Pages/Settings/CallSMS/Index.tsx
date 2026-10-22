@@ -111,6 +111,11 @@ const Settings: FunctionComponent = (): ReactElement => {
             title: "Use This Account For",
             fieldType: FormFieldSchemaType.RadioButton,
             required: true,
+            /*
+             * Calls and SMS where nothing is stored, as every installation's
+             * account was before the choice.
+             */
+            defaultValue: TwilioConfigUse.CallsAndSms,
             // Each answer says in one line what it means.
             hideColumnDescription: true,
             radioButtonOptions: [

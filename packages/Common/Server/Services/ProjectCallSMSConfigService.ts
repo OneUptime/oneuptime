@@ -27,7 +27,10 @@ import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumbe
 import IncomingCallPolicyPhoneNumber from "../../Models/DatabaseModels/IncomingCallPolicyPhoneNumber";
 import PositiveNumber from "../../Types/PositiveNumber";
 import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
-import { PROJECT_TWILIO_CONFIG_SELECT } from "../Utils/TwilioConfigSelect";
+import {
+  PROJECT_TWILIO_CONFIG_SELECT,
+  PROJECT_TWILIO_CONFIG_USE_SELECT,
+} from "../Utils/TwilioConfigSelect";
 
 /*
  * The list of SMS numbers a config stores is checked, by the name the forms
@@ -198,12 +201,7 @@ export class Service extends DatabaseService<Model> {
 
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
-      {
-        _id: true,
-        usedFor: true,
-        twilioPrimaryPhoneNumber: true,
-        twilioSmsPhoneNumbers: true,
-      },
+      PROJECT_TWILIO_CONFIG_USE_SELECT,
     );
 
     for (const row of rows) {

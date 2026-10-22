@@ -433,6 +433,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             fieldType: FormFieldSchemaType.RadioButton,
             required: true,
             stepId: "basic-info",
+            /*
+             * Calls and SMS - what most accounts are, and every config made
+             * before the choice - unless the config says otherwise.
+             */
+            defaultValue: TwilioConfigUse.CallsAndSms,
             // Each answer says in one line what it means.
             hideColumnDescription: true,
             radioButtonOptions: getTwilioConfigUseOptions().map(

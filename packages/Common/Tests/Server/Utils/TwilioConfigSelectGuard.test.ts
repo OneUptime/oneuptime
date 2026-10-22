@@ -3,7 +3,9 @@ import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSC
 import { getTableColumns } from "../../../Types/Database/TableColumn";
 import {
   GLOBAL_TWILIO_CONFIG_SELECT,
+  GLOBAL_TWILIO_CONFIG_USE_SELECT,
   PROJECT_TWILIO_CONFIG_SELECT,
+  PROJECT_TWILIO_CONFIG_USE_SELECT,
 } from "../../../Server/Utils/TwilioConfigSelect";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -24,7 +26,12 @@ import path from "path";
  *
  *   - no file but TwilioConfigSelect selects a Twilio number column by hand;
  *   - each list names every Twilio column its model has, so a number column
- *     added later is read wherever a config is.
+ *     added later is read wherever a config is - and what the config is
+ *     used for (calls and SMS, SMS only or calls only), without which a
+ *     config used for SMS only would be read as one for calls and SMS,
+ *     which it cannot be: it has no number to make calls from;
+ *   - the lists a write's check reads (what a config is used for and the
+ *     numbers that takes, TwilioConfigWrite) hold no credential.
  */
 
 // packages/Common/Tests/Server/Utils -> packages/
@@ -116,6 +123,27 @@ function twilioColumnsOf(
     .sort();
 }
 
+/*
+ * What a config is used for: a project's config's own column, and the
+ * server's account's Twilio column of it.
+ */
+const PROJECT_USE_COLUMN: string = "usedFor";
+const GLOBAL_USE_COLUMN: string = "twilioUsedFor";
+
+// Every list TwilioConfigSelect exports, and how many number columns each names.
+const ALL_LISTS: Array<Record<string, unknown>> = [
+  PROJECT_TWILIO_CONFIG_SELECT,
+  GLOBAL_TWILIO_CONFIG_SELECT,
+  PROJECT_TWILIO_CONFIG_USE_SELECT,
+  GLOBAL_TWILIO_CONFIG_USE_SELECT,
+] as Array<Record<string, unknown>>;
+
+function numberColumnsNamedBy(list: Record<string, unknown>): number {
+  return NUMBER_COLUMNS.filter((column: string): boolean => {
+    return list[column] === true;
+  }).length;
+}
+
 describe("the server's reads of a Twilio config", () => {
   test("are really read", () => {
     expect(SERVER_FILES.length).toBeGreaterThan(500);
@@ -131,7 +159,14 @@ describe("the server's reads of a Twilio config", () => {
           return serverFile.file === SELECT_FILE;
         })!,
       ).length,
-    ).toBe(NUMBER_COLUMNS.length * 2);
+    ).toBe(
+      ALL_LISTS.reduce((count: number, list: Record<string, unknown>) => {
+        return count + numberColumnsNamedBy(list);
+      }, 0),
+    );
+    expect(numberColumnsNamedBy(PROJECT_TWILIO_CONFIG_SELECT)).toBe(
+      NUMBER_COLUMNS.length,
+    );
   });
 
   test("select a config's numbers only through TwilioConfigSelect", () => {
@@ -207,9 +242,87 @@ describe("TwilioConfigSelect's lists", () => {
     expect(listed).toEqual(expect.arrayContaining(NUMBER_COLUMNS));
   });
 
-  test("the two models keep the same Twilio columns", () => {
-    expect(twilioColumnsOf(new GlobalConfig())).toEqual(
-      twilioColumnsOf(new ProjectCallSMSConfig()),
+  /*
+   * The same columns, but for what a config is used for: a project's
+   * config keeps it as usedFor - its own, beside its name - and the server's
+   * account, whose GlobalConfig holds every other setting of the server, as
+   * twilioUsedFor.
+   */
+  test("the two models keep the same Twilio columns, and each says what it is used for", () => {
+    expect(
+      twilioColumnsOf(new GlobalConfig()).filter((column: string): boolean => {
+        return column !== GLOBAL_USE_COLUMN;
+      }),
+    ).toEqual(twilioColumnsOf(new ProjectCallSMSConfig()));
+
+    const projectUse: unknown = getTableColumns(new ProjectCallSMSConfig())[
+      PROJECT_USE_COLUMN
+    ];
+    const globalUse: unknown = getTableColumns(new GlobalConfig())[
+      GLOBAL_USE_COLUMN
+    ];
+
+    expect(projectUse).toBeDefined();
+    expect(globalUse).toBeDefined();
+    // Both start where every config was: calls and SMS.
+    expect(
+      (projectUse as { defaultValue: unknown }).defaultValue,
+    ).toEqual((globalUse as { defaultValue: unknown }).defaultValue);
+  });
+
+  test("each list a sender reads names what the config is used for", () => {
+    expect(PROJECT_TWILIO_CONFIG_SELECT[PROJECT_USE_COLUMN as "usedFor"]).toBe(
+      true,
+    );
+    expect(
+      GLOBAL_TWILIO_CONFIG_SELECT[GLOBAL_USE_COLUMN as "twilioUsedFor"],
+    ).toBe(true);
+  });
+
+  /*
+   * A write is checked against what the config is used for and the
+   * numbers that takes - and nothing else is read for it: never the token.
+   */
+  test("the lists a write's check reads name the use and its numbers, and no credential", () => {
+    expect(Object.keys(PROJECT_TWILIO_CONFIG_USE_SELECT).sort()).toEqual(
+      [
+        "_id",
+        PROJECT_USE_COLUMN,
+        "twilioPrimaryPhoneNumber",
+        "twilioSmsPhoneNumbers",
+      ].sort(),
+    );
+    expect(Object.keys(GLOBAL_TWILIO_CONFIG_USE_SELECT).sort()).toEqual(
+      [
+        GLOBAL_USE_COLUMN,
+        "twilioAccountSID",
+        "twilioPrimaryPhoneNumber",
+        "twilioSmsPhoneNumbers",
+      ].sort(),
+    );
+
+    for (const list of [
+      PROJECT_TWILIO_CONFIG_USE_SELECT,
+      GLOBAL_TWILIO_CONFIG_USE_SELECT,
+    ] as Array<Record<string, unknown>>) {
+      expect(list["twilioAuthToken"]).toBeUndefined();
+    }
+  });
+
+  test("the services read the rows a write changes through those lists", () => {
+    const sourceOf: (file: string) => string = (file: string): string => {
+      return SERVER_FILES.find((serverFile: ServerFile): boolean => {
+        return serverFile.file === file;
+      })!.source;
+    };
+
+    expect(
+      sourceOf("Common/Server/Services/ProjectCallSMSConfigService.ts"),
+    ).toContain(
+      "findRowsAndHoldUpdateToThem(\n      updateBy,\n      PROJECT_TWILIO_CONFIG_USE_SELECT,",
+    );
+    expect(sourceOf("Common/Server/Services/GlobalConfigService.ts")).toContain(
+      "findRowsAndHoldUpdateToThem(\n      updateBy,\n      GLOBAL_TWILIO_CONFIG_USE_SELECT,",
     );
   });
 });

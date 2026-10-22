@@ -44,7 +44,7 @@ To add a project configuration:
 :::steps
 1. Go to **Project Settings > Notifications > Notification Settings**.
 2. In **Twilio Config**, select **Create Twilio Config**.
-3. Enter a name, **Twilio Account SID**, **Twilio Auth Token**, and **Twilio Primary Phone Number**. Under **More fields**, optionally enter comma-separated **Twilio Secondary Phone Numbers** for other countries, and **Twilio SMS Phone Numbers** if your numbers cannot send SMS.
+3. Enter a name, and pick what the account sends in **Use This Account For**: **Calls and SMS**, **SMS only** or **Calls only**. Then enter **Twilio Account SID**, **Twilio Auth Token**, and the number the choice asks for: **Twilio Primary Phone Number** for calls, or **Twilio SMS Phone Numbers** for **SMS only**. Under **More fields**, optionally enter comma-separated **Twilio Secondary Phone Numbers** for other countries, and **Twilio SMS Phone Numbers** if your numbers cannot send SMS.
 4. **Set as Project Default** starts on for the project's first configuration, so the SMS and calls to the project's members, including on-call notifications, go through it as soon as you save. Turn it off if this account is only for status pages or incoming calls. A later configuration starts with the switch off: turn it on, or pick **Set as Project Default** from the configuration's row menu, to move those messages to it. An API request that leaves `isProjectDefault` out is treated the same way.
 5. Save. Only one configuration can be the project default. Status pages use the configuration explicitly assigned to each status page.
 
@@ -52,7 +52,7 @@ To add a project configuration:
 > **SMS** and **Phone Calls** start off in every project, and until they are on nobody in the project can add a phone number for them. A project owner, a **Billing Admin** or someone with **Manage Billing** turns them on in the **Notification Channels** card on the same page.
 :::
 
-For an installation-wide default, an administrator can instead open **Admin Dashboard > Settings > Call and SMS**, edit the Twilio credentials and phone numbers, and save. Member notifications use this global configuration when their project has no default. Keep the Auth Token confidential.
+For an installation-wide default, an administrator can instead open **Admin Dashboard > Settings > Call and SMS**, pick what the account sends, edit the Twilio credentials and phone numbers, and save. Member notifications use this global configuration when their project has no default. Keep the Auth Token confidential.
 
 ### Separate numbers for calls and SMS
 
@@ -70,6 +70,20 @@ A configuration without SMS numbers sends SMS from the same numbers as calls, as
 
 > [!NOTE]
 > Which numbers can send SMS, and whether a sender must be registered first, differs from country to country: where registration is required, an SMS from an unregistered number can be blocked or flagged as spam. Before you rely on a number, check [Twilio's SMS guidelines](https://www.twilio.com/en-us/guidelines/sms) for each country you send to.
+
+### An account for SMS only, or calls only
+
+An account you keep for SMS only, or for calls only, needs no number for the other. Pick it in **Use This Account For**, and the form asks only for the numbers that choice needs:
+
+| Choice | Numbers it needs | What it never sends |
+| --- | --- | --- |
+| **Calls and SMS** | **Twilio Primary Phone Number** | Nothing |
+| **SMS only** | **Twilio SMS Phone Numbers** | Calls |
+| **Calls only** | **Twilio Primary Phone Number** | SMS |
+
+What a configuration does not send goes as it would without the configuration: when the project default is used for **SMS only**, calls to the project's members go through the installation-wide configuration. If no configuration can send a message, the message's log says that the project's configuration is not used for it, and who can change that.
+
+Status pages offer only the configurations that send SMS, and **Send Test SMS** and **Send Test Call** appear only for what a configuration sends. Every existing configuration is used for **Calls and SMS**, as before. Through the API and Terraform, the choice is the `usedFor` field, and a configuration without the numbers its choice needs is refused.
 
 ## 3. Configure network access
 
@@ -145,6 +159,7 @@ For development, Twilio's [webhook testing guide](https://www.twilio.com/docs/us
 | --- | --- |
 | Nothing is sent | Credentials, the number's capabilities, account restrictions and outbound connectivity. |
 | Twilio refuses SMS with error 21606 | The number cannot send SMS. Add one that can to **Twilio SMS Phone Numbers**: see [Separate numbers for calls and SMS](#separate-numbers-for-calls-and-sms). |
+| Calls or SMS go through another account than the project's | The project default is used for **SMS only** or **Calls only**: see [An account for SMS only, or calls only](#an-account-for-sms-only-or-calls-only). |
 | The SMS or call arrives, but its status or the acknowledgement does not update | The callback URL and the public ingress logs. Twilio's [HTTP retrieval failure guidance](https://www.twilio.com/docs/api/errors/11200) helps diagnose unreachable callbacks, TLS problems, and HTTP errors. |
 
 A successful test call alone does not verify callback access.

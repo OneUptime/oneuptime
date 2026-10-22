@@ -639,8 +639,12 @@ describe("the Twilio Config table", () => {
   test("reads each config's SMS numbers, and can filter by them", async () => {
     await renderCard();
 
-    // The SMS numbers, and the secondary ones the cell counts.
+    /*
+     * The SMS numbers, and the secondary ones the cell counts - and what
+     * the config is used for, which says which of them it sends from.
+     */
     expect(lastTableProps()["selectMoreFields"]).toEqual({
+      usedFor: true,
       twilioSmsPhoneNumbers: true,
       twilioSecondaryPhoneNumbers: true,
     });
