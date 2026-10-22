@@ -289,15 +289,12 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
     ),
     isAddedByHand: true,
   },
-  {
-    ...agentList(
-      "Serverless Functions",
-      ServerlessFunctionsPage,
-      ServerlessFunction,
-      "Getting Started with Serverless Functions",
-    ),
-    hasChips: false,
-  },
+  agentList(
+    "Serverless Functions",
+    ServerlessFunctionsPage,
+    ServerlessFunction,
+    "Getting Started with Serverless Functions",
+  ),
   {
     ...agentList(
       "Cloud Environments",
@@ -306,7 +303,6 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
       "Getting Started with Cloud Environments",
     ),
     watchQuery: { cloudResourceKind: CloudResourceKind.Environment },
-    hasChips: false,
   },
   {
     ...agentList(
@@ -317,7 +313,6 @@ const FIRST_RUN_CASES: Array<FirstRunCase> = [
     ),
     watchQuery: { cloudResourceKind: CloudResourceKind.Resource },
     isCreateable: false,
-    hasChips: false,
   },
 ];
 
