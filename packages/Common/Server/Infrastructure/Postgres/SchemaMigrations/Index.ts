@@ -160,8 +160,8 @@ import { RemoveRunbookCredentials1805780000000 } from "./1805780000000-RemoveRun
 import { AddArchiveToValues1805800000000 } from "./1805800000000-AddArchiveToValues";
 import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArchiveToValuesUserKeys";
 import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
-import { AddSecurityCaseAiTriage1805830000000 } from "./1805830000000-AddSecurityCaseAiTriage";
-import { AddAIRunSecurityCaseIndex1805840000000 } from "./1805840000000-AddAIRunSecurityCaseIndex";
+import { AddSecurityCaseAiTriage1805860000000 } from "./1805860000000-AddSecurityCaseAiTriage";
+import { AddAIRunSecurityCaseIndex1805870000000 } from "./1805870000000-AddAIRunSecurityCaseIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1524,6 +1524,6 @@ export default [
   AddArchiveToValues1805800000000,
   AddArchiveToValuesUserKeys1805810000000,
   AddThreatIntelFeedSources1805820000000,
-  AddSecurityCaseAiTriage1805830000000,
-  AddAIRunSecurityCaseIndex1805840000000,
+  AddSecurityCaseAiTriage1805860000000,
+  AddAIRunSecurityCaseIndex1805870000000,
 ];

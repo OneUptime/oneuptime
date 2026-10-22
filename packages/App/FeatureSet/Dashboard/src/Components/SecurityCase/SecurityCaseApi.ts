@@ -20,6 +20,10 @@ import {
   parseSetupTestResult,
   parseTurnOnRecommendedResult,
 } from "../SecurityOverview/SecuritySetupModel";
+import {
+  SecurityCaseTriageStatusView,
+  parseSecurityCaseTriageStatus,
+} from "./SecurityCaseAiTriage";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -155,6 +159,49 @@ export default class SecurityCaseApi {
         ...(data.isApproved && data.targets ? { targets: data.targets } : {}),
       },
     );
+  }
+
+  /*
+   * OneUptime AI's triage of a case: its latest run, the run's steps while
+   * it runs, and what stops a triage now (SecurityCaseTriageStatus).
+   */
+  public static async getAiTriage(
+    caseId: ObjectID,
+  ): Promise<SecurityCaseTriageStatusView> {
+    return parseSecurityCaseTriageStatus(
+      await post(`/security-case/${caseId.toString()}/ai-triage`, {}),
+    );
+  }
+
+  // Triage with AI: asks OneUptime AI to triage the case now.
+  public static async startAiTriage(caseId: ObjectID): Promise<string> {
+    const body: JSONObject = await post(
+      `/security-case/${caseId.toString()}/ai-triage/start`,
+      {},
+    );
+
+    return String(body["runId"] || "");
+  }
+
+  /*
+   * OneUptime AI writes a detection rule's Sigma YAML from a description,
+   * checked as a saved rule is (DetectionRuleDraft). Nothing is saved.
+   */
+  public static async draftDetectionRule(description: string): Promise<{
+    sigmaRuleYaml: string;
+    title: string;
+  }> {
+    const body: JSONObject = await post("/detection-rule/draft-with-ai", {
+      description,
+    });
+
+    return {
+      sigmaRuleYaml:
+        typeof body["sigmaRuleYaml"] === "string"
+          ? (body["sigmaRuleYaml"] as string)
+          : "",
+      title: typeof body["title"] === "string" ? (body["title"] as string) : "",
+    };
   }
 
   // Releases one target a containment step contained, with the step's undo.

@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import { getSecurityCaseAiVerdictColor } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import { getSecurityCasePriorityColor } from "Common/Types/SecurityCase/SecurityCasePriority";
 import { getSecurityCaseStatusColor } from "Common/Types/SecurityCase/SecurityCaseStatus";
 import { getSecurityCaseVerdictColor } from "Common/Types/SecurityCase/SecurityCaseVerdict";
@@ -56,6 +57,29 @@ export const SecurityCaseStatusPill: FunctionComponent<ValuePillProps> = (
     <Pill
       text={props.value}
       color={getSecurityCaseStatusColor(props.value)}
+      size={props.size}
+      isMinimal={props.isMinimal}
+    />
+  );
+};
+
+/*
+ * OneUptime AI's read of a case (SecurityCaseAiVerdict), in the colors of
+ * the verdicts each read suggests, with the AI mark in front so it is never
+ * taken for the verdict a person set.
+ */
+export const SecurityCaseAiVerdictPill: FunctionComponent<ValuePillProps> = (
+  props: ValuePillProps,
+): ReactElement => {
+  if (!props.value) {
+    return <NoValue />;
+  }
+
+  return (
+    <Pill
+      text={props.value}
+      icon={IconProp.Sparkles}
+      color={getSecurityCaseAiVerdictColor(props.value)}
       size={props.size}
       isMinimal={props.isMinimal}
     />

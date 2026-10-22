@@ -795,6 +795,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
+  // AI, at the address Incidents' and Alerts' AI settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
 };
 
 // Metrics product routes
@@ -6844,6 +6846,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_AI]
     }`,
   ),
 

@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 /*
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration. The index on AIRun's new column is built
- * online by the next migration (AddAIRunSecurityCaseIndex1805840000000).
+ * online by the next migration (AddAIRunSecurityCaseIndex1805870000000).
  *
  * OneUptime AI triages security cases (SecurityCaseTriageRunner):
  *
@@ -20,8 +20,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Nothing to backfill: every new column is empty, and the switch's constant
  * default adds a NOT NULL column without rewriting a row.
  */
-export class AddSecurityCaseAiTriage1805830000000 implements MigrationInterface {
-  public name: string = "AddSecurityCaseAiTriage1805830000000";
+export class AddSecurityCaseAiTriage1805860000000 implements MigrationInterface {
+  public name: string = "AddSecurityCaseAiTriage1805860000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

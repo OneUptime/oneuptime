@@ -7,6 +7,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { getSuggestedCloseVerdict } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict, {
   SECURITY_CASE_VERDICTS,
@@ -55,6 +56,28 @@ interface CaseModalProps {
 }
 
 /*
+ * The verdict the close dialog starts on: the case's own, else the one
+ * OneUptime AI's read suggests (a person still picks), else True Positive.
+ * A case whose data held text written to steer an AI is never started on
+ * a dismissing verdict: its AI read is Inconclusive anyway, and suggests
+ * none.
+ */
+export function getInitialCloseVerdict(
+  securityCase: SecurityCase,
+): SecurityCaseVerdict {
+  if (securityCase.verdict) {
+    return securityCase.verdict;
+  }
+
+  const suggested: SecurityCaseVerdict | undefined =
+    securityCase.aiTriagePromptInjectionSuspected === true
+      ? undefined
+      : getSuggestedCloseVerdict(securityCase.aiVerdict);
+
+  return suggested || SecurityCaseVerdict.TruePositive;
+}
+
+/*
  * Closing a case asks what it turned out to be. The verdict is what the
  * overview counts and what tunes detections: a rule whose cases keep closing
  * as False Positive is a rule to fix.
@@ -77,8 +100,7 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
       formProps={{
         name: "security-case-close",
         initialValues: {
-          verdict:
-            props.securityCase.verdict || SecurityCaseVerdict.TruePositive,
+          verdict: getInitialCloseVerdict(props.securityCase),
         },
         fields: [
           {
@@ -134,14 +156,22 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
   );
 };
 
+export interface RunPlaybookModalProps extends CaseModalProps {
+  /*
+   * The playbook the dialog starts on - the one OneUptime AI suggested on
+   * the case's AI card. A person still picks, and runs it.
+   */
+  initialPlaybookId?: ObjectID | undefined;
+}
+
 /*
  * Runs a playbook against the case by hand - any enabled playbook, whatever
  * starts it on its own. The run appears under Playbook Runs and on the
  * timeline, step by step.
  */
-export const RunSecurityPlaybookModal: FunctionComponent<CaseModalProps> = (
-  props: CaseModalProps,
-): ReactElement => {
+export const RunSecurityPlaybookModal: FunctionComponent<
+  RunPlaybookModalProps
+> = (props: RunPlaybookModalProps): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -155,6 +185,13 @@ export const RunSecurityPlaybookModal: FunctionComponent<CaseModalProps> = (
       onClose={props.onClose}
       formProps={{
         name: "security-case-run-playbook",
+        ...(props.initialPlaybookId
+          ? {
+              initialValues: {
+                securityPlaybookId: props.initialPlaybookId.toString(),
+              },
+            }
+          : {}),
         fields: [
           {
             field: { securityPlaybookId: true },
