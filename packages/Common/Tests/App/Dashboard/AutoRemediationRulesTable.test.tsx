@@ -132,6 +132,15 @@ import {
   MORE_FIELDS_SECTION_TITLE,
 } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import {
+  RULE_LLM_PROVIDER_FIELD_COPY,
+  RuleLlmProviderWork,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AI/RuleLlmProviderCopy";
+import {
+  OPUS_PROVIDER,
+  mockRuleLlmProviders,
+  projectProvidersAnswer,
+} from "./RuleLlmProviderFixtures";
 
 // ModelAPI.count spied on, as jest-mock's spyOn types it.
 type CountSpy = SpyInstance<
@@ -270,6 +279,8 @@ const PICKED_RUNBOOKS: Array<unknown> = [
 
 beforeEach(() => {
   mockCapturedTableProps.length = 0;
+  // The LLM Provider field's providers: not answered unless a test says so.
+  mockRuleLlmProviders();
 });
 
 afterEach(() => {
@@ -382,6 +393,7 @@ describe.each([
         ["olderRuleNote", "remediation", ""],
         // The Fix step's one question, then More fields, folded.
         ["executionMode", "remediation", ""],
+        ["llmProviderId", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runbooks", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["remediationAction", "remediation", MORE_FIELDS_SECTION_TITLE],
         ["runnerId", "remediation", MORE_FIELDS_SECTION_TITLE],
@@ -395,6 +407,7 @@ describe.each([
     test("More fields is one section, folded, with a line on what its defaults do", () => {
       const props: Record<string, unknown> = tableFor(lane);
       const folded: Array<CapturedField> = [
+        "llmProviderId",
         "runbooks",
         "remediationAction",
         "runnerId",
@@ -413,7 +426,76 @@ describe.each([
       }
       expect(section.id).toBe(ADVANCED_FORM_SECTION_ID);
       expect(section.title).toBe("More fields");
-      expect(section.getSummary).toBe(getAutoRemediationMoreFieldsSummary);
+
+      // Before the providers are read: what the rest's defaults do, alone.
+      for (const each of [values({}), EVERY_TIME, OLDER_COMMANDS]) {
+        expect(section.getSummary!(each)).toEqual(
+          getAutoRemediationMoreFieldsSummary(each),
+        );
+      }
+    });
+
+    /*
+     * The LLM provider OneUptime AI fixes with - its runbook picks, its
+     * commands, its MCP fixes and the rule's pull requests
+     * (Common/Types/AI/LlmProviderChoice): first under More fields; empty
+     * is the default provider, which the folded line names first.
+     */
+    test("the LLM provider comes first under More fields, saying what it does for a fix", () => {
+      const field: CapturedField = fieldNamed(tableFor(lane), "llmProviderId");
+
+      expect(field.title).toBe("LLM Provider");
+      expect(field.description).toBe(
+        RULE_LLM_PROVIDER_FIELD_COPY.descriptions[RuleLlmProviderWork.Fix],
+      );
+      expect(field.fieldType).toBe(FormFieldSchemaType.CustomComponent);
+      expect(field.hideOptionalLabel).toBe(true);
+      expect(field.hideColumnDescription).toBe(true);
+      expect(field.showIf!(values({}))).toBe(true);
+      expect(field.showIf!(OLDER_PICKS)).toBe(true);
+    });
+
+    test("a rule that runs its runbooks every time uses no AI: no provider to pick, none named", async () => {
+      mockRuleLlmProviders(projectProvidersAnswer());
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!;
+      const field: CapturedField = fieldNamed(props, "llmProviderId");
+
+      expect(field.showIf!(EVERY_TIME)).toBe(false);
+      expect(field.collapsibleSection!.getSummary!(EVERY_TIME)).toEqual(
+        getAutoRemediationMoreFieldsSummary(EVERY_TIME),
+      );
+    });
+
+    test("folded, the line names the provider: the project's default first, or the rule's pick", async () => {
+      mockRuleLlmProviders(projectProvidersAnswer());
+
+      await act(async () => {
+        tableFor(lane);
+      });
+
+      const props: Record<string, unknown> =
+        mockCapturedTableProps[mockCapturedTableProps.length - 1]!;
+      const field: CapturedField = fieldNamed(props, "llmProviderId");
+      const section: FormFieldCollapsibleSection<AutoRemediationRule> =
+        field.collapsibleSection!;
+
+      expect(section.getSummary!(values({}))).toEqual([
+        "The rule uses the project's default LLM provider, Azure GPT-4o.",
+        ...(getAutoRemediationMoreFieldsSummary(values({})) || []),
+      ]);
+
+      const picking: Values = values({ llmProviderId: OPUS_PROVIDER.id });
+
+      expect(section.getSummary!(picking)).toEqual(
+        getAutoRemediationMoreFieldsSummary(picking),
+      );
+      expect(field.getFoldedValue!(picking)).toBe("Claude Opus");
     });
 
     test("no longer asks Fix With, nor anything else a rule does not need", () => {
