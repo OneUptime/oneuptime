@@ -33088,7 +33088,6 @@
   "Capture what happened, impact, resolution, and follow-up actions.": "Décrivez ce qui s'est passé, l'impact, la résolution et les actions de suivi.",
   "A pull request from someone with write access is reviewed when it opens and each time it changes.": "Une demande de tirage d'une personne ayant l'accès en écriture est relue à son ouverture et à chaque modification.",
   "A pull request is reviewed only when someone with write access comments {{command}} on it.": "Une demande de tirage n'est relue que lorsqu'une personne ayant l'accès en écriture y commente {{command}}.",
-  "A role that can work security cases can ask OneUptime AI to triage one.": "Un rôle qui peut traiter les dossiers de sécurité peut demander à OneUptime AI d'en qualifier un.",
   "AI Suggested Playbook ID": "ID du playbook suggéré par l'IA",
   "AI Suggested Priority": "Priorité suggérée par l'IA",
   "AI Triage Prompt Injection Suspected": "Qualification IA : injection de prompt suspectée",
@@ -33283,5 +33282,6 @@
   "Nothing was posted on the pull request.": "Rien n'a été publié sur la demande de tirage.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Son auteur n'a pas l'accès en écriture à ce dépôt : cette demande de tirage n'est relue à nouveau que si une personne ayant l'accès en écriture le demande.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Ce dépôt n'est pas connecté via l'application GitHub : ses demandes de tirage ne sont donc pas relues.",
-  "Last thrown {{time}}": "Dernière occurrence {{time}}"
+  "Last thrown {{time}}": "Dernière occurrence {{time}}",
+  "Someone who can edit this case can start a triage.": "Une personne qui peut modifier ce dossier peut lancer une qualification."
 }

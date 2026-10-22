@@ -21,6 +21,7 @@ import {
   SecurityCaseAiReasonAction,
   SecurityCaseAiResult,
   SecurityCaseAiStage,
+  SecurityCaseAiTriageAccess,
   SecurityCaseTriageStatusView,
   SecurityCaseTriageStep,
   canStartTriage,
@@ -30,6 +31,7 @@ import {
   getSecurityCaseAiCreditsAction,
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
+  getSecurityCaseAiTriageAccess,
   getSecurityCaseAiStepLabel,
   getSecurityCaseAiVerdictSentence,
   isBlockingTriageReason,
@@ -136,6 +138,10 @@ export interface ComponentProps {
  *     Evidence checked, with the rows it read, re-run with the reader's own
  *     permissions. Ask about this case opens Ask AI on the case.
  *   - Failed: what happened, and Try again.
+ *
+ * Someone who cannot start a triage (a Security Viewer) reads all of it:
+ * Triage with AI and Try again stay greyed with who can beside them, and
+ * Triage again and Set priority are not offered.
  *
  * With the project's AI off the card is not drawn at all. Like the incident
  * page's AI card, nothing inside it is a box: hairlines and notices.
@@ -353,12 +359,30 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   // When the triage finished, as every time on a timeline reads.
   const clock: FeedClock = getFeedClock({ language: translator.language });
 
-  const canStart: boolean = canStartTriage(status) && updateGate.isAllowed;
+  /*
+   * Who is reading, as the permission gate knows it: someone who may start
+   * a triage, someone known not to (the gate says why), or neither yet -
+   * the permissions are on their way, and nobody is told they cannot do
+   * what they may (PermissionGateResult).
+   */
+  const triageAccess: SecurityCaseAiTriageAccess =
+    getSecurityCaseAiTriageAccess(updateGate);
+  const canStart: boolean =
+    canStartTriage(status) && triageAccess === SecurityCaseAiTriageAccess.Yes;
 
+  /*
+   * Triage with AI or Try again: the card's one action. Someone known not
+   * to be able to start a triage sees it greyed, with who can beside it
+   * (renderWhoCanTriage), as the Security overview's set-up buttons do.
+   */
   const triageButton: (title: string, isPrimary: boolean) => ReactElement = (
     title: string,
     isPrimary: boolean,
   ): ReactElement => {
+    if (triageAccess === SecurityCaseAiTriageAccess.NotKnownYet) {
+      return <></>;
+    }
+
     return (
       <Button
         title={title}
@@ -371,17 +395,31 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         disabled={!canStart || isStarting}
         className={CARD_BUTTON_CLASS_NAME}
         tooltip={
-          updateGate.isAllowed
-            ? undefined
-            : updateGate.disabledReason ||
-              translator.translateText(SecurityCaseAiCopy.noPermission) ||
-              undefined
+          triageAccess === SecurityCaseAiTriageAccess.No
+            ? updateGate.disabledReason
+            : undefined
         }
         onClick={() => {
           void startTriage();
         }}
         dataTestId="security-case-ai-triage-button"
       />
+    );
+  };
+
+  // Who can start a triage, said beside the greyed button.
+  const renderWhoCanTriage: () => ReactElement = (): ReactElement => {
+    if (triageAccess !== SecurityCaseAiTriageAccess.No) {
+      return <></>;
+    }
+
+    return (
+      <span
+        className="text-sm text-gray-500"
+        data-testid="security-case-ai-who-can-triage"
+      >
+        {translator.translateText(SecurityCaseAiCopy.whoCanTriage)}
+      </span>
     );
   };
 
@@ -649,12 +687,23 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
+        {/*
+          A later triage that stopped: said over the read it left, with why
+          it stopped when the run recorded it, as a triage that never
+          finished says it.
+        */}
         {didLatestTriageNotFinish(status) ? (
           <InvestigationNotice
             indicator={renderInvestigationStatusIndicator("attention")}
             title={SecurityCaseAiCopy.lastRunFailed}
             testId="security-case-ai-last-run-failed"
-          />
+          >
+            {status?.run?.errorMessage ? (
+              <span data-testid="security-case-ai-last-run-failed-why">
+                {status.run.errorMessage}
+              </span>
+            ) : undefined}
+          </InvestigationNotice>
         ) : (
           <></>
         )}
@@ -718,7 +767,13 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
               onClick={askAboutCase}
               dataTestId="security-case-ai-ask"
             />
-            {blockingReason ? (
+            {/*
+              Triage again, for who may start one: a greyed outline button
+              reads as one that works, and the read is what the others came
+              for.
+            */}
+            {blockingReason ||
+            triageAccess !== SecurityCaseAiTriageAccess.Yes ? (
               <></>
             ) : (
               triageButton(SecurityCaseAiCopy.triageAgainButton, false)
@@ -789,10 +844,14 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
           </InvestigationNotice>
           {renderReason()}
           {renderStartError()}
-          {blockingReason ? (
+          {blockingReason ||
+          triageAccess === SecurityCaseAiTriageAccess.NotKnownYet ? (
             <></>
           ) : (
-            <div>{triageButton(SecurityCaseAiCopy.tryAgainButton, true)}</div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {triageButton(SecurityCaseAiCopy.tryAgainButton, true)}
+              {renderWhoCanTriage()}
+            </div>
           )}
         </div>
       );
@@ -813,10 +872,18 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         </InvestigationNotice>
         {renderReason()}
         {renderStartError()}
-        {status && !blockingReason ? (
+        {status &&
+        !blockingReason &&
+        triageAccess !== SecurityCaseAiTriageAccess.NotKnownYet ? (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {triageButton(SecurityCaseAiCopy.triageButton, true)}
-            {!status.isAutomaticTriageOn ? (
+            {renderWhoCanTriage()}
+            {/*
+              Where new cases are set to be triaged on their own - for who
+              may triage; the others are told who can instead.
+            */}
+            {!status.isAutomaticTriageOn &&
+            triageAccess === SecurityCaseAiTriageAccess.Yes ? (
               <span data-testid="security-case-ai-automatic-off">
                 <AppLink
                   className="text-sm text-gray-500 hover:text-gray-700 hover:underline"

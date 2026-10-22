@@ -33088,7 +33088,6 @@
   "Capture what happened, impact, resolution, and follow-up actions.": "記錄發生了什麼、影響、解決方式以及後續行動。",
   "A pull request from someone with write access is reviewed when it opens and each time it changes.": "擁有寫入權限的人提交的拉取請求，會在建立時以及每次變更時接受審查。",
   "A pull request is reviewed only when someone with write access comments {{command}} on it.": "只有當擁有寫入權限的人在拉取請求中留言 {{command}} 時，才會進行審查。",
-  "A role that can work security cases can ask OneUptime AI to triage one.": "能處理安全案例的角色可以請 OneUptime AI 研判案例。",
   "AI Suggested Playbook ID": "AI 建議的 Playbook ID",
   "AI Suggested Priority": "AI 建議的優先順序",
   "AI Triage Prompt Injection Suspected": "AI 研判：疑似提示詞注入",
@@ -33283,5 +33282,6 @@
   "Nothing was posted on the pull request.": "未向拉取請求發布任何內容。",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "其作者沒有此儲存庫的寫入權限，因此只有在擁有寫入權限的人要求時才會再次審查。",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "此儲存庫未透過 GitHub App 連線，因此不會審查其拉取請求。",
-  "Last thrown {{time}}": "最近一次 {{time}}"
+  "Last thrown {{time}}": "最近一次 {{time}}",
+  "Someone who can edit this case can start a triage.": "能編輯此案例的人可以開始研判。"
 }

@@ -143,8 +143,10 @@ that list is not empty.
   with no LLM provider says so in place of Triage again, with the fix for who may make it and who
   can for a Security Viewer; a triage that stopped says why and Try again reads the case; text
   written to steer an AI is said first, once (the report leaves out the runner's own heads-up),
-  and the read keeps no suggestion; a later triage that stopped keeps the read before it; with new
-  cases not triaged on their own the card links to the switch; Close Case names the AI read over
+  and the read keeps no suggestion; a later triage that stopped keeps the read before it and says
+  why it stopped; a Security Viewer sees Triage with AI greyed with who can beside it, and no
+  Triage again or Set priority on a read; with new cases not triaged on their own the card links
+  to the switch; Close Case names the AI read over
   the verdict it starts on, and nothing of it with AI off; the timeline has the triage; Draft
   with AI's box has one action and an x beside its question.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.

@@ -33088,7 +33088,6 @@
   "Capture what happened, impact, resolution, and follow-up actions.": "Опишите, что произошло, последствия, решение и дальнейшие действия.",
   "A pull request from someone with write access is reviewed when it opens and each time it changes.": "Запрос на слияние от человека с правом записи проверяется при открытии и при каждом изменении.",
   "A pull request is reviewed only when someone with write access comments {{command}} on it.": "Запрос на слияние проверяется, только когда человек с правом записи пишет в нём комментарий {{command}}.",
-  "A role that can work security cases can ask OneUptime AI to triage one.": "Роль, которая может работать с кейсами безопасности, может попросить OneUptime AI оценить кейс.",
   "AI Suggested Playbook ID": "ID плейбука, предложенного ИИ",
   "AI Suggested Priority": "Приоритет, предложенный ИИ",
   "AI Triage Prompt Injection Suspected": "Оценка ИИ: подозрение на prompt injection",
@@ -33283,5 +33282,6 @@
   "Nothing was posted on the pull request.": "В запросе на слияние ничего не опубликовано.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "У автора нет права записи в этот репозиторий, поэтому запрос проверяется снова только по просьбе человека с правом записи.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Этот репозиторий не подключён через GitHub App, поэтому его запросы на слияние не проверяются.",
-  "Last thrown {{time}}": "Последний раз: {{time}}"
+  "Last thrown {{time}}": "Последний раз: {{time}}",
+  "Someone who can edit this case can start a triage.": "Тот, кто может редактировать этот кейс, может запустить оценку."
 }

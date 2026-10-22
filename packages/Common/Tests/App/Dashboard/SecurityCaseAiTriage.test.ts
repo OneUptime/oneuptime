@@ -2,6 +2,7 @@ import {
   SecurityCaseAiCopy,
   SecurityCaseAiResult,
   SecurityCaseAiStage,
+  SecurityCaseAiTriageAccess,
   SecurityCaseTriageNotStartedCode,
   SecurityCaseTriageStatusView,
   canStartTriage,
@@ -10,6 +11,7 @@ import {
   getSecurityCaseAiCreditsAction,
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
+  getSecurityCaseAiTriageAccess,
   getSecurityCaseAiStepLabel,
   getSecurityCaseAiVerdictSentence,
   isBlockingTriageReason,
@@ -310,6 +312,31 @@ describe("what the card offers", () => {
         isKnownNotToAdd: false,
       }),
     ).toBeNull();
+  });
+
+  test("who may start a triage: yes, no with the gate's reason, or not known while the permissions are on their way", () => {
+    expect(getSecurityCaseAiTriageAccess({ isAllowed: true })).toBe(
+      SecurityCaseAiTriageAccess.Yes,
+    );
+    // A reason means the gate knows: a Security Viewer.
+    expect(
+      getSecurityCaseAiTriageAccess({
+        isAllowed: false,
+        disabledReason:
+          "You do not have permission to update this Security Case.",
+      }),
+    ).toBe(SecurityCaseAiTriageAccess.No);
+    // No reason: nothing honest to say yet, so nothing is offered or refused.
+    expect(getSecurityCaseAiTriageAccess({ isAllowed: false })).toBe(
+      SecurityCaseAiTriageAccess.NotKnownYet,
+    );
+    expect(
+      getSecurityCaseAiTriageAccess({ isAllowed: false, disabledReason: "" }),
+    ).toBe(SecurityCaseAiTriageAccess.NotKnownYet);
+    // Who can, said in the incident card's way: a person, not a role.
+    expect(SecurityCaseAiCopy.whoCanTriage).toBe(
+      "Someone who can edit this case can start a triage.",
+    );
   });
 
   test("the suggested priority is one click only when the case is at another", () => {

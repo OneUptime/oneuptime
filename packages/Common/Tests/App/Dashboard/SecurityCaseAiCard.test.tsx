@@ -416,15 +416,66 @@ describe("not triaged yet", () => {
     );
   });
 
-  test("a role that cannot work cases sees the button disabled", async () => {
+  test("a role that cannot work cases sees the button greyed, and who can beside it", async () => {
     permissionsForTest = ["SecurityViewer"];
-    getAiTriageMock.mockResolvedValue(status());
+    getAiTriageMock.mockResolvedValue(
+      status({
+        isAutomaticTriageOn: false,
+        notStartedCode: "automatic_triage_disabled",
+      }),
+    );
 
     draw(securityCase());
 
     expect(
       await screen.findByTestId("security-case-ai-triage-button"),
     ).toBeDisabled();
+    // Said on the card, not only on hover.
+    expect(
+      screen.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveTextContent(SecurityCaseAiCopy.whoCanTriage);
+    // Where the switch is is for who may triage.
+    expect(
+      screen.queryByTestId("security-case-ai-automatic-off"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("who may triage is not told who can", async () => {
+    getAiTriageMock.mockResolvedValue(status());
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-triage-button"),
+    ).toBeEnabled();
+    expect(
+      screen.queryByTestId("security-case-ai-who-can-triage"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("before the reader's permissions arrive, no button and no one is told they cannot", async () => {
+    // An empty snapshot: the permissions have not landed yet.
+    permissionsForTest = [];
+    getAiTriageMock.mockResolvedValue(status());
+
+    draw(securityCase());
+
+    expect(
+      await screen.findByText(SecurityCaseAiCopy.notTriagedTitle),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getAiTriageMock).toHaveBeenCalled();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.queryByTestId("security-case-ai-triage-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("security-case-ai-who-can-triage"),
+    ).not.toBeInTheDocument();
   });
 
   test("a status that cannot be read says so", async () => {
@@ -563,6 +614,31 @@ describe("triaged", () => {
     ).toHaveTextContent(/^Triaged /);
   });
 
+  test("a Security Viewer reads the read, with no Triage again or Set priority to press", async () => {
+    permissionsForTest = ["SecurityViewer"];
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    draw(triagedCase());
+
+    expect(await screen.findByTestId("security-case-ai-triaged")).toBeVisible();
+    expect(
+      await screen.findByTestId("security-case-ai-suggested-priority"),
+    ).toBeVisible();
+    expect(screen.getByTestId("security-case-ai-ask")).toBeEnabled();
+    expect(
+      screen.queryByTestId("security-case-ai-triage-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("security-case-ai-set-priority"),
+    ).not.toBeInTheDocument();
+    // Nothing to explain where nothing is offered.
+    expect(
+      screen.queryByTestId("security-case-ai-who-can-triage"),
+    ).not.toBeInTheDocument();
+  });
+
   test("no Set priority when the case is already at the suggested one", async () => {
     getAiTriageMock.mockResolvedValue(
       status({ run: run(AIRunStatus.Completed) }),
@@ -690,9 +766,41 @@ describe("triaged", () => {
 
     draw(triagedCase());
 
+    const notice: HTMLElement = await screen.findByTestId(
+      "security-case-ai-last-run-failed",
+    );
+
+    expect(notice).toHaveTextContent(SecurityCaseAiCopy.lastRunFailed);
+    // A run that recorded no reason: the sentence alone, no empty line.
     expect(
-      await screen.findByTestId("security-case-ai-last-run-failed"),
-    ).toHaveTextContent(SecurityCaseAiCopy.lastRunFailed);
+      screen.queryByTestId("security-case-ai-last-run-failed-why"),
+    ).not.toBeInTheDocument();
+    expect(notice.querySelectorAll("p")).toHaveLength(1);
+  });
+
+  test("a later triage that stopped says why, as a failed one does", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        run: {
+          ...run(AIRunStatus.Error)!,
+          errorMessage: "The LLM provider did not answer in time.",
+        },
+      }),
+    );
+
+    draw(triagedCase());
+
+    const notice: HTMLElement = await screen.findByTestId(
+      "security-case-ai-last-run-failed",
+    );
+
+    expect(notice).toHaveTextContent(SecurityCaseAiCopy.lastRunFailed);
+    expect(
+      within(notice).getByTestId("security-case-ai-last-run-failed-why"),
+    ).toHaveTextContent("The LLM provider did not answer in time.");
+    // The read it left stays, and Triage again is one click.
+    expect(screen.getByTestId("security-case-ai-triaged")).toBeVisible();
+    expect(screen.getByTestId("security-case-ai-triage-button")).toBeEnabled();
   });
 
   test("Ask about this case opens Ask AI with a question ready", async () => {
@@ -913,5 +1021,24 @@ describe("failed", () => {
     expect(
       screen.getByTestId("security-case-ai-failed-notice"),
     ).toHaveTextContent(SecurityCaseAiCopy.failedDescription);
+  });
+
+  test("a Security Viewer sees Try again greyed, and who can beside it", async () => {
+    permissionsForTest = ["SecurityViewer"];
+    getAiTriageMock.mockResolvedValue(
+      status({ run: { ...run(AIRunStatus.Error)!, errorMessage: "Boom" } }),
+    );
+
+    draw(securityCase());
+
+    const tryAgain: HTMLElement = await screen.findByTestId(
+      "security-case-ai-triage-button",
+    );
+
+    expect(tryAgain).toHaveTextContent(SecurityCaseAiCopy.tryAgainButton);
+    expect(tryAgain).toBeDisabled();
+    expect(
+      screen.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveTextContent(SecurityCaseAiCopy.whoCanTriage);
   });
 });

@@ -33088,7 +33088,6 @@
   "Capture what happened, impact, resolution, and follow-up actions.": "Registre o que aconteceu, o impacto, a resolução e as ações de acompanhamento.",
   "A pull request from someone with write access is reviewed when it opens and each time it changes.": "Um pull request de alguém com acesso de escrita é revisado quando é aberto e sempre que muda.",
   "A pull request is reviewed only when someone with write access comments {{command}} on it.": "Um pull request só é revisado quando alguém com acesso de escrita comenta {{command}} nele.",
-  "A role that can work security cases can ask OneUptime AI to triage one.": "Uma função que pode trabalhar casos de segurança pode pedir ao OneUptime AI que classifique um.",
   "AI Suggested Playbook ID": "ID do playbook sugerido pela IA",
   "AI Suggested Priority": "Prioridade sugerida pela IA",
   "AI Triage Prompt Injection Suspected": "Classificação da IA: suspeita de injeção de prompt",
@@ -33283,5 +33282,6 @@
   "Nothing was posted on the pull request.": "Nada foi publicado no pull request.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "O autor não tem acesso de escrita a este repositório, então ele só é revisado de novo quando alguém com acesso de escrita pede.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Este repositório não está conectado pelo GitHub App, então seus pull requests não são revisados.",
-  "Last thrown {{time}}": "Última vez {{time}}"
+  "Last thrown {{time}}": "Última vez {{time}}",
+  "Someone who can edit this case can start a triage.": "Quem pode editar este caso pode iniciar uma classificação."
 }

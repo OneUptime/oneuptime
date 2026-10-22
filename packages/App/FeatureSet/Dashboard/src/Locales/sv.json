@@ -33088,7 +33088,6 @@
   "Capture what happened, impact, resolution, and follow-up actions.": "Beskriv vad som hände, påverkan, lösningen och uppföljningen.",
   "A pull request from someone with write access is reviewed when it opens and each time it changes.": "En pull-förfrågan från någon med skrivbehörighet granskas när den öppnas och varje gång den ändras.",
   "A pull request is reviewed only when someone with write access comments {{command}} on it.": "En pull-förfrågan granskas bara när någon med skrivbehörighet kommenterar {{command}} på den.",
-  "A role that can work security cases can ask OneUptime AI to triage one.": "En roll som kan arbeta med säkerhetsärenden kan be OneUptime AI att bedöma ett ärende.",
   "AI Suggested Playbook ID": "AI-föreslaget playbook-ID",
   "AI Suggested Priority": "AI-föreslagen prioritet",
   "AI Triage Prompt Injection Suspected": "AI-bedömning: misstänkt promptinjektion",
@@ -33283,5 +33282,6 @@
   "Nothing was posted on the pull request.": "Inget publicerades på pull-förfrågan.",
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Författaren har inte skrivbehörighet till det här arkivet, så den granskas bara igen när någon med skrivbehörighet ber om det.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Det här arkivet är inte anslutet via GitHub App, så dess pull-förfrågningar granskas inte.",
-  "Last thrown {{time}}": "Senast inträffad {{time}}"
+  "Last thrown {{time}}": "Senast inträffad {{time}}",
+  "Someone who can edit this case can start a triage.": "Någon som kan redigera det här ärendet kan starta en bedömning."
 }

@@ -2736,9 +2736,9 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       "Go to Project Settings → AI → AI Features",
     );
     // No Triage again that could not start; asking about the read still works.
-    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveCount(
-      0,
-    );
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
     await expect(card.getByTestId("security-case-ai-ask")).toBeEnabled();
     await screenshot(page, "case-ai-limit-desktop", { fullPage: false });
 
@@ -2767,12 +2767,10 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       "OneUptime AI has no LLM provider to use in this project.",
       { timeout: 30000 },
     );
-    await expect(reason.getByRole("link")).toHaveText(
-      "Set up an LLM provider",
-    );
-    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveCount(
-      0,
-    );
+    await expect(reason.getByRole("link")).toHaveText("Set up an LLM provider");
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
     await screenshot(page, "case-ai-provider-desktop", { fullPage: false });
 
     await open(page, DOMAIN_CASE_PATH, {
@@ -2785,9 +2783,9 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     ).toHaveText("A project administrator can review these settings.", {
       timeout: 30000,
     });
-    await expect(card.getByTestId("security-case-ai-reason").getByRole("link")).toHaveCount(
-      0,
-    );
+    await expect(
+      card.getByTestId("security-case-ai-reason").getByRole("link"),
+    ).toHaveCount(0);
   });
 
   test("out of AI credits: Add AI credits for an owner, who can for a Security Viewer", async ({
@@ -2870,9 +2868,9 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     await expect(card).toContainText("Inconclusive");
     // The runner's own heads-up is left out of the report the card draws.
     await expect(card).not.toContainText("Heads up:");
-    await expect(card.getByText(/reads like instructions to an AI/)).toHaveCount(
-      1,
-    );
+    await expect(
+      card.getByText(/reads like instructions to an AI/),
+    ).toHaveCount(1);
     // The notice comes before the report.
     expect((await boxOf(notice)).y).toBeLessThan(
       (await boxOf(card.getByText("Summary", { exact: true }))).y,
@@ -2889,9 +2887,9 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
       width: 390,
       height: 844,
     });
-    await expect(card.getByTestId("security-case-ai-prompt-injection")).toBeVisible(
-      { timeout: 30000 },
-    );
+    await expect(
+      card.getByTestId("security-case-ai-prompt-injection"),
+    ).toBeVisible({ timeout: 30000 });
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "case-ai-injection-phone-dark");
   });
@@ -2903,16 +2901,70 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
   }) => {
     await open(page, SPRAY_CASE_PATH, { triage: "retry", width: 1280 });
     const card: Locator = aiCard(page);
+    const notice: Locator = card.getByTestId(
+      "security-case-ai-last-run-failed",
+    );
 
+    await expect(notice).toContainText(
+      "The latest triage did not finish. This is the one before it.",
+      { timeout: 30000 },
+    );
+    // Why it stopped, as the run recorded it - as a failed triage says it.
     await expect(
-      card.getByTestId("security-case-ai-last-run-failed"),
-    ).toHaveText("The latest triage did not finish. This is the one before it.", {
-      timeout: 30000,
-    });
+      notice.getByTestId("security-case-ai-last-run-failed-why"),
+    ).toHaveText("The LLM provider did not answer in time.");
     await expect(card).toContainText("Likely Malicious");
     await expect(card.getByTestId("security-case-ai-triage-button")).toHaveText(
       "Triage again",
     );
+  });
+
+  test("a Security Viewer is told who can triage, and offered nothing it cannot press", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A case nobody has read: Triage with AI greyed, who can beside it.
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "auto-off",
+      role: "viewer",
+      width: 1280,
+    });
+    const card: Locator = aiCard(page);
+
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toBeDisabled({ timeout: 30000 });
+    await expect(
+      card.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveText("Someone who can edit this case can start a triage.");
+    // Where the switch is, is for who may triage.
+    await expect(
+      card.getByTestId("security-case-ai-automatic-off"),
+    ).toHaveCount(0);
+
+    /*
+     * A triaged case whose suggested priority an owner could set (Low over
+     * its Medium): the read and Ask, no Triage again or Set priority.
+     */
+    await open(page, API_KEY_CASE_PATH, { role: "viewer", width: 1280 });
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-suggested-priority"),
+    ).toBeVisible();
+    await expect(card.getByTestId("security-case-ai-ask")).toBeEnabled();
+    await expect(
+      card.getByTestId("security-case-ai-triage-button"),
+    ).toHaveCount(0);
+    await expect(card.getByTestId("security-case-ai-set-priority")).toHaveCount(
+      0,
+    );
+    await expect(
+      card.getByTestId("security-case-ai-who-can-triage"),
+    ).toHaveCount(0);
+    await screenshot(page, "case-ai-viewer-desktop", { fullPage: false });
   });
 
   test("with new cases not triaged on their own, the card says where to turn it on", async ({
@@ -3029,8 +3081,7 @@ test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
     // Draft rule starts on the box's left edge.
     expect(
       Math.abs(
-        (await boxOf(submit)).x -
-          (await boxOf(draft.getByRole("textbox"))).x,
+        (await boxOf(submit)).x - (await boxOf(draft.getByRole("textbox"))).x,
       ),
     ).toBeLessThanOrEqual(1);
 

@@ -375,6 +375,33 @@ export function canStartTriage(
 }
 
 /*
+ * Whether the reader may start a triage, from the permission gate's answer
+ * on updating the case (PermissionGate.check): yes; no, and the gate says
+ * why (a Security Viewer), so the card greys the button and says who can;
+ * or not known yet - the permissions have not arrived, or the gate has
+ * nothing honest to say - so the card offers nothing rather than tell
+ * someone they cannot do what they may.
+ */
+export enum SecurityCaseAiTriageAccess {
+  Yes = "Yes",
+  No = "No",
+  NotKnownYet = "NotKnownYet",
+}
+
+export function getSecurityCaseAiTriageAccess(gate: {
+  isAllowed: boolean;
+  disabledReason?: string | undefined;
+}): SecurityCaseAiTriageAccess {
+  if (gate.isAllowed) {
+    return SecurityCaseAiTriageAccess.Yes;
+  }
+
+  return gate.disabledReason
+    ? SecurityCaseAiTriageAccess.No
+    : SecurityCaseAiTriageAccess.NotKnownYet;
+}
+
+/*
  * A check the triage made, as the card lists it while it runs: in the
  * words every AI report's Evidence checked uses for the same tool
  * (describeEvidenceTool), so a check reads the same live and afterwards.
@@ -526,7 +553,7 @@ export const SecurityCaseAiCopy: {
   promptInjectionTitle: string;
   promptInjectionDescription: string;
   triagedWhen: string;
-  noPermission: string;
+  whoCanTriage: string;
   closeVerdictHint: string;
   badges: {
     triaging: string;
@@ -573,8 +600,9 @@ export const SecurityCaseAiCopy: {
     "OneUptime AI treated it as data and leaves the call to you.",
   ),
   triagedWhen: translationKey("Triaged {{when}}"),
-  noPermission: translationKey(
-    "A role that can work security cases can ask OneUptime AI to triage one.",
+  // Beside a greyed Triage with AI, for who cannot start one.
+  whoCanTriage: translationKey(
+    "Someone who can edit this case can start a triage.",
   ),
   // Over Close Case's verdicts, when OneUptime AI has read the case.
   closeVerdictHint: translationKey(
