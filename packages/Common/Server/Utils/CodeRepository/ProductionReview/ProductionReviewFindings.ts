@@ -194,6 +194,27 @@ export function readFrameLine(
   return undefined;
 }
 
+/*
+ * Whether what is left of a frame line once its file is taken out is only
+ * the file's line and an offset - ":80 +0x1b", Go's - so the function is on
+ * the line before.
+ */
+export function isFileAndOffsetOnly(frameText: string): boolean {
+  let rest: string = frameText.trim();
+
+  if (rest.startsWith(":")) {
+    let end: number = 1;
+
+    while (end < rest.length && isDigit(rest[end])) {
+      end++;
+    }
+
+    rest = rest.slice(end).trim();
+  }
+
+  return rest === "" || rest.startsWith("+0x");
+}
+
 // The raw paths a frame line names: Python's quoted file, and path:line ones.
 function readFramePaths(frameLine: string): Array<string> {
   const paths: Array<string> = [];
@@ -257,8 +278,7 @@ export function matchExceptionFrames(data: {
        * the line before it.
        */
       const frameText: string = withoutFileLocations(line);
-      const isFileOnlyLine: boolean =
-        frameText.trim() === "" || frameText.trim().startsWith("+0x");
+      const isFileOnlyLine: boolean = isFileAndOffsetOnly(frameText);
       const previousText: string =
         isFileOnlyLine && index > 0
           ? withoutFileLocations(

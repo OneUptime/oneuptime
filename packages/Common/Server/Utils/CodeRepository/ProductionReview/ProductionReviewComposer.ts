@@ -37,9 +37,12 @@ import {
  * this app would be read as a command (GitHubCommandParser ignores this
  * app's own comments as well, but that is one guard, not two). The comment
  * names the command it suggests in a code span, where nothing is read as a
- * mention. A web address in OneUptime AI's words is broken the same way, so
- * it shows as text and is no link: the AI reads text other people wrote,
- * and its answer must not be able to point a reader anywhere.
+ * mention. A web address in any of them is broken the same way, so it shows
+ * as text and is no link: OneUptime AI reads text other people wrote, and
+ * neither it nor a name telemetry sent may point a reader anywhere. And in
+ * a table row a "|" would start a cell of its own - even inside a code span,
+ * since GitHub splits a row before it reads what is in it - so there it is
+ * shown as a broken bar.
  */
 
 // GitHub's "@" never opens a mention when this follows it.
@@ -68,8 +71,9 @@ export interface ProductionReviewCommentInput {
 
 /*
  * Text from outside OneUptime, made safe for a GitHub comment before it is
- * escaped for its place: one line, held to a length, and no "@" that could
- * mention anyone.
+ * escaped for its place: one line, held to a length, no "@" that could
+ * mention anyone, and every web address broken (an invisible word joiner
+ * after "://" and in "www.") so it shows as text and is never a link.
  */
 export function githubSafeText(
   value: string | null | undefined,
@@ -87,23 +91,29 @@ export function githubSafeText(
       ? `${codePoints.slice(0, maxLength - 1).join("")}…`
       : oneLine;
 
-  return cut.split("@").join(`@${WORD_JOINER}`);
-}
-
-/*
- * Words OneUptime AI wrote, for a GitHub comment: as githubSafeText, and
- * every web address broken (an invisible word joiner after "://" and in
- * "www."), so it shows as text and is never a link.
- */
-export function githubSafeAiText(
-  value: string | null | undefined,
-  maxLength: number,
-): string {
-  return githubSafeText(value, maxLength)
+  return cut
+    .split("@")
+    .join(`@${WORD_JOINER}`)
     .split("://")
     .join(`:${WORD_JOINER}//`)
     .split("www.")
     .join(`www${WORD_JOINER}.`);
+}
+
+// Words OneUptime AI wrote, for a GitHub comment: as any text from outside.
+export function githubSafeAiText(
+  value: string | null | undefined,
+  maxLength: number,
+): string {
+  return githubSafeText(value, maxLength);
+}
+
+// Text from outside OneUptime for a table row: no "|" splits its cell.
+export function githubSafeCell(
+  value: string | null | undefined,
+  maxLength: number,
+): string {
+  return githubSafeText(value, maxLength).split("|").join("¦");
 }
 
 // 1,240 - in the comment's own language, English.
@@ -432,7 +442,7 @@ export default class ProductionReviewComposer {
 
     const inFunction: MarkdownText = exception.functionName
       ? mdText` in ${FeedMarkdown.code(
-          githubSafeText(`${exception.functionName}()`, 120),
+          githubSafeCell(`${exception.functionName}()`, 120),
         )}`
       : FeedMarkdown.empty();
 
@@ -444,7 +454,7 @@ export default class ProductionReviewComposer {
           : "a file this changes";
 
     return mdText`${FeedMarkdown.code(
-      githubSafeText(location, 160),
+      githubSafeCell(location, 160),
     )}${inFunction} · ${closeness}`;
   }
 
@@ -463,7 +473,7 @@ export default class ProductionReviewComposer {
     const rows: Array<MarkdownText> = exceptions.map(
       (exception: ProductionReviewExceptionJSON): MarkdownText => {
         const name: MarkdownText = FeedMarkdown.link(
-          FeedMarkdown.code(githubSafeText(exception.type, 80)),
+          FeedMarkdown.code(githubSafeCell(exception.type, 80)),
           ProductionReviewComposer.linkTo(
             input,
             `exceptions/${exception.exceptionId}`,
@@ -560,9 +570,9 @@ export default class ProductionReviewComposer {
             : "0%";
 
         return mdText`| ${FeedMarkdown.code(
-          githubSafeText(operation.name, 120),
+          githubSafeCell(operation.name, 120),
         )} | ${FeedMarkdown.link(
-          githubSafeText(operation.serviceName, 80),
+          githubSafeCell(operation.serviceName, 80),
           ProductionReviewComposer.linkTo(input, `traces?${params.toString()}`),
         )} | ${formatCount(operation.requestCount)} | ${errorRate} | ${formatDuration(
           operation.p95Ms,
