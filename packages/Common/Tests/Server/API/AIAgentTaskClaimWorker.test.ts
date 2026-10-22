@@ -11,7 +11,9 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import { credentialCheckProving } from "../TestingUtils/CodeFixAgentCredential";
-import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import CodeFixTaskType, {
+  CodeFixTaskTypeHelper,
+} from "../../../Types/AI/CodeFixTaskType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -211,8 +213,16 @@ describe("POST /ai-agent-task/get-pending-task-count", () => {
 
       expect(workerOf(facts.worker)).toEqual(workerOf(identity.worker));
       expect(facts.projectId?.toString()).toBe(identity.projectId?.toString());
-      // A request that names no recipes counts every recipe, as always.
-      expect(facts.claimableTaskTypes).toEqual(Object.values(CodeFixTaskType));
+      /*
+       * A request that names no recipes counts every recipe a Runner may be
+       * handed, as always - never one the server runs itself.
+       */
+      expect(facts.claimableTaskTypes).toEqual(
+        CodeFixTaskTypeHelper.getRunnerTaskTypes(),
+      );
+      expect(facts.claimableTaskTypes).not.toContain(
+        CodeFixTaskType.GitHubPullRequestProductionReview,
+      );
 
       // The count, as the route has always sent it.
       const sent: unknown = answered()["count"];

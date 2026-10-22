@@ -32,6 +32,14 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
+import {
+  ProductionReviewPosting,
+  ProductionReviewReport,
+} from "../../../../../Types/CodeRepository/ProductionReview";
+import {
+  emptyReport,
+  fullReport,
+} from "../../CodeRepository/ProductionReview/ProductionReviewFixtures";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -368,6 +376,141 @@ describe("CodeTaskPresenter.summarize", () => {
       });
 
     expect(summary).not.toHaveProperty("changes");
+  });
+
+  /*
+   * A pull request's production review is one task, reviewed again in
+   * place: its row says what its latest review found, at a glance, from
+   * the task's own outcome - and a task of any other kind never does, even
+   * if its outcome held one.
+   */
+  function reviewTask(): AIRun {
+    const task: AIRun = new AIRun();
+    task._id = TASK_ID.toString();
+    task.projectId = PROJECT_ID;
+    task.runType = AIRunType.CodeFix;
+    task.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    task.codeRepositoryId = REPOSITORY_ID;
+    task.status = AIRunStatus.Completed;
+    task.title = "Production review: fix: guard the card (#42)";
+    task.createdAt = new Date("2026-10-22T09:00:00.000Z");
+    return task;
+  }
+
+  function outcomesRead(
+    outcome: AIRun["taskOutcome"],
+  ): (data: { select?: Record<string, unknown> }) => Promise<Array<AIRun>> {
+    return async (data: {
+      select?: Record<string, unknown>;
+    }): Promise<Array<AIRun>> => {
+      // The outcomes read; a review has no replies.
+      if (data.select?.["taskOutcome"]) {
+        const run: AIRun = new AIRun();
+        run._id = TASK_ID.toString();
+        run.taskOutcome = outcome!;
+        return [run];
+      }
+      return [];
+    };
+  }
+
+  test("a production review's row says what its latest review found", async () => {
+    const report: ProductionReviewReport = fullReport({
+      posting: ProductionReviewPosting.Link,
+    });
+
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation(
+        outcomesRead({ summary: "", filesChanged: [], productionReview: report }) as never,
+      );
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary!.recipe).toBe(
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    );
+    expect(summary!.productionReview).toEqual({
+      hasSignal: true,
+      exceptionCount: report.exceptions.length,
+      operationCount: report.operations.length,
+      hotFunctionCount: report.hotFunctions.length,
+      incidentCount: 2,
+      suspectDeployCount: report.suspectDeploys.length,
+      headSha: report.pullRequest.headSha,
+      reviewedAt: report.reviewedAt,
+      posting: ProductionReviewPosting.Link,
+    });
+    // Its numbers, never the report itself: the row is a glance.
+    expect(JSON.stringify(summary)).not.toContain("TypeError");
+  });
+
+  test("a production review that found nothing says so", async () => {
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockImplementation(
+        outcomesRead({
+          summary: "",
+          filesChanged: [],
+          productionReview: emptyReport(),
+        }) as never,
+      );
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary!.productionReview!.hasSignal).toBe(false);
+    expect(summary!.productionReview!.exceptionCount).toBe(0);
+  });
+
+  test("a production review not yet reviewed has no glance", async () => {
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead(undefined) as never,
+    );
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    expect(summary).not.toHaveProperty("productionReview");
+  });
+
+  test("a task of another kind never shows a production review", async () => {
+    const task: AIRun = reviewTask();
+    task.codeFixTaskType = CodeFixTaskType.CodeRequest;
+
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: fullReport(),
+      }) as never,
+    );
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [task],
+        props: READER,
+      });
+
+    expect(summary).not.toHaveProperty("productionReview");
   });
 
   test("a list reads nothing for no tasks", async () => {

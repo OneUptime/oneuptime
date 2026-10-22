@@ -344,18 +344,20 @@ export default class GitHubReplyComposer {
     commandType: GitHubCommandType;
     appSlug: string;
   }): string {
+    if (data.commandType === GitHubCommandType.ProductionReview) {
+      return GitHubReplyComposer.refusal({
+        reason:
+          "I can only review pull requests against production, and this is an issue. Run that command on a pull request.",
+      });
+    }
+
     if (
       data.commandType === GitHubCommandType.Review ||
-      data.commandType === GitHubCommandType.ProductionReview ||
       data.commandType === GitHubCommandType.Revise
     ) {
       return GitHubReplyComposer.refusal({
         reason: `I can only ${
-          data.commandType === GitHubCommandType.Revise
-            ? "revise"
-            : data.commandType === GitHubCommandType.ProductionReview
-              ? "review against production"
-              : "review"
+          data.commandType === GitHubCommandType.Review ? "review" : "revise"
         } pull requests, and this is an issue. Ask me to implement it instead, or run that command on a pull request.`,
       });
     }

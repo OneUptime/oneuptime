@@ -1,6 +1,7 @@
 import ProductionReviewFindings, {
   ExceptionFrameMatch,
   ProductionReviewFindingsResult,
+  isFileAndOffsetOnly,
   lastNameSegment,
   maskOperationName,
   matchExceptionFrames,
@@ -299,6 +300,47 @@ describe("matchExceptionFrames", () => {
 
     expect(match?.where).toBe(ProductionReviewWhere.ChangedFunction);
     expect(match?.functionName).toBe("Charge");
+  });
+
+  /*
+   * Go writes a frame's function on one line and its file on the next,
+   * as ":80 +0x1b" after the path; every other runtime names the function
+   * on the file's own line, where the line before is another frame's.
+   */
+  test.each([
+    [":80 +0x1b", true],
+    [":80", true],
+    ["", true],
+    ["   ", true],
+    [" +0x1b", true],
+    [":80 +0x1b extra", true],
+    [":12:5)", false],
+    [", line 10, in charge_card", false],
+    [":20)", false],
+    [":80 in Charge", false],
+    ["Charge", false],
+  ])("%p is a file's line and offset only: %p", (rest: string, expected: boolean) => {
+    expect(isFileAndOffsetOnly(rest)).toBe(expected);
+  });
+
+  test("Go frames: a file line at the top of the trace is still read, at its line", () => {
+    const goChanged: ChangedCode = readChangedCode({
+      files: [
+        {
+          filename: "pkg/server/server.go",
+          status: "modified",
+          patch: "@@ -80,1 +80,1 @@\n-\treturn s.charge(ctx)\n+\treturn s.chargeOnce(ctx)",
+        },
+      ],
+    });
+
+    const match: ExceptionFrameMatch | null = matchExceptionFrames({
+      stackTrace: "\t/app/pkg/server/server.go:80 +0x1b",
+      changed: goChanged,
+    });
+
+    expect(match?.line).toBe(80);
+    expect(match?.where).toBe(ProductionReviewWhere.ChangedLine);
   });
 
   test("Java frames: the file name alone matches the one changed file of that name", () => {

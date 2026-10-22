@@ -82,6 +82,15 @@ export interface GitHubCommand {
 }
 
 /*
+ * Commands the OneUptime server carries out itself, with no agent run: a
+ * production review of the pull request (Common/Server/Utils/
+ * CodeRepository/ProductionReview). Answered by the review's own comment.
+ */
+export function isServerReviewCommand(commandType: GitHubCommandType): boolean {
+  return commandType === GitHubCommandType.ProductionReview;
+}
+
+/*
  * Commands that only need a reply. They are answered synchronously in the
  * webhook handler and never enqueue an agent run, so they cost nothing and
  * are not subject to the fix-run budget.

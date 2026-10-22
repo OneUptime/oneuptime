@@ -28,7 +28,16 @@ import {
 import {
   CODE_TASK_BRANCH_NOT_FOUND_MESSAGE,
   CODE_TASK_BRANCHES_UNREADABLE_MESSAGE,
+  CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE,
+  CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE,
+  CodeTaskListKind,
 } from "../../../Server/API/CodeTaskAPI";
+import ProductionReviewQueue, {
+  ProductionReviewRequest,
+} from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
+import { CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
+import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
@@ -405,6 +414,7 @@ describe("every route is for a member of the project", () => {
     ["/code-task/create", {}],
     ["/code-task/reply/:taskId", { taskId: TASK_ID.toString() }],
     ["/code-task/stop/:taskId", { taskId: TASK_ID.toString() }],
+    ["/code-task/review-again/:taskId", { taskId: TASK_ID.toString() }],
   ])(
     "%s refuses someone who is not",
     async (route: string, params: Record<string, string>) => {
@@ -474,6 +484,8 @@ describe("every route acts as a signed-in person", () => {
       "/code-task/reply/:taskId",
       "/code-task/retry/:taskId",
       "/code-task/stop/:taskId",
+      // A pull request's production review, asked again.
+      "/code-task/review-again/:taskId",
       // Where a profile's frames live in the repositories (the Profiler).
       "/code-task/source-links",
     ]);
@@ -1101,6 +1113,191 @@ describe("listing a repository's tasks", () => {
     const { next } = await call(route, { body: { withoutRepository: true } });
 
     expect(refusal(next)).toBeInstanceOf(NotFoundException);
+  });
+
+  /*
+   * A repository's pull requests' production reviews have a page of their
+   * own: Tasks lists everything else, and production reviews only those.
+   */
+  test("Tasks leaves the production reviews out", async () => {
+    const notInOrNull: jest.SpyInstance = jest.spyOn(
+      QueryHelper,
+      "notInOrNull",
+    );
+
+    await call(route, { body: { repositoryId: REPOSITORY_ID.toString() } });
+
+    expect(notInOrNull).toHaveBeenCalledWith([
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    ]);
+
+    const read: { query: Record<string, unknown> } = (
+      AIRunService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(read.query["codeFixTaskType"]).toBe(
+      notInOrNull.mock.results[0]!.value,
+    );
+  });
+
+  test("Production reviews lists only them", async () => {
+    await call(route, {
+      body: {
+        repositoryId: REPOSITORY_ID.toString(),
+        kind: CodeTaskListKind.ProductionReviews,
+      },
+    });
+
+    const read: { query: Record<string, unknown> } = (
+      AIRunService.findBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+    const count: { query: Record<string, unknown> } = (
+      AIRunService.countBy as unknown as jest.Mock
+    ).mock.calls[0]![0] as never;
+
+    expect(read.query["codeFixTaskType"]).toBe(
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    );
+    expect(count.query["codeFixTaskType"]).toBe(
+      CodeFixTaskType.GitHubPullRequestProductionReview,
+    );
+  });
+});
+
+describe("reviewing a pull request against production again", () => {
+  const route: string = "/code-task/review-again/:taskId";
+  let requestSpy: jest.SpyInstance;
+
+  function reviewTask(): AIRun {
+    const value: AIRun = task();
+    value.codeFixTaskType = CodeFixTaskType.GitHubPullRequestProductionReview;
+    value.title = "fix: guard the card";
+    value.taskContext = {
+      github: {
+        codeRepositoryId: REPOSITORY_ID.toString(),
+        installationId: INSTALLATION_ID,
+        organizationName: "acme",
+        repositoryName: "users-api",
+        commandType: GitHubCommandType.ProductionReview,
+        instruction: "",
+        pullRequestNumber: 42,
+        isPullRequestFromFork: true,
+      },
+      productionReview: {
+        requestNumber: 3,
+        requestedAt: "2026-10-22T09:00:00.000Z",
+        headSha: "abc1234",
+        trigger: ProductionReviewTrigger.GitHubCommand,
+        isAuthorTrusted: false,
+      },
+    };
+    return value;
+  }
+
+  beforeEach(() => {
+    world.task = reviewTask();
+    jest
+      .spyOn(AIRunService, "findOneById")
+      .mockImplementation(async () => {
+        return world.task;
+      });
+    requestSpy = jest
+      .spyOn(ProductionReviewQueue, "request")
+      .mockImplementation(async () => {
+        return world.task!;
+      });
+  });
+
+  test("asks for the review again now, as the person who pressed it", async () => {
+    const { next, result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(next).not.toHaveBeenCalled();
+    expect(result).toEqual({ taskId: TASK_ID.toString() });
+
+    const asked: ProductionReviewRequest = requestSpy.mock
+      .calls[0]![0] as ProductionReviewRequest;
+
+    expect(asked).toEqual({
+      projectId: PROJECT_ID,
+      codeRepositoryId: REPOSITORY_ID,
+      installationId: INSTALLATION_ID,
+      organizationName: "acme",
+      repositoryName: "users-api",
+      pullRequestNumber: 42,
+      pullRequestTitle: "fix: guard the card",
+      headSha: "abc1234",
+      isFromFork: true,
+      trigger: ProductionReviewTrigger.OneUptime,
+      isAuthorTrusted: false,
+      requestedByUserId: USER_ID,
+      isImmediate: true,
+    });
+  });
+
+  test("only a production review can be reviewed again", async () => {
+    world.task = task();
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(next).message).toBe(
+      CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE,
+    );
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  test("a read-only member reads the review but may not ask again", async () => {
+    world.props = VIEWER;
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    const error: Error = refusal(next);
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error.message).toBe(CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE);
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  test("a repository the GitHub App no longer reaches cannot be reviewed", async () => {
+    jest
+      .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+      .mockResolvedValue(null);
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(next).message).toBe(
+      CODE_TASK_REPOSITORY_NOT_CONNECTED_MESSAGE,
+    );
+    expect(requestSpy).not.toHaveBeenCalled();
+  });
+
+  test("a review in a repository the caller may not read is not found", async () => {
+    world.repositoryReadable = false;
+
+    const { next } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(refusal(next).message).toBe(CODE_TASK_NOT_FOUND_MESSAGE);
+  });
+
+  test("a production review takes no reply: it is updated, not talked to", async () => {
+    const { next } = await call("/code-task/reply/:taskId", {
+      params: { taskId: TASK_ID.toString() },
+      body: { message: "Fix what you found" },
+    });
+
+    expect(refusal(next).message).toBe(
+      CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
+    );
+    expect(created).toHaveLength(0);
   });
 });
 
