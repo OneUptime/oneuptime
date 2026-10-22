@@ -220,7 +220,9 @@ describe("the Escalation Rules page, on escalating a page", () => {
 
     // A text's one link, after "Ack or escalate:", is the acknowledge page's.
     expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or escalate:");
-    expect(page).toContain(`${ON_CALL_PAGE_SMS_ACTION} https://oneuptime.com/l/`);
+    expect(page).toContain(
+      `${ON_CALL_PAGE_SMS_ACTION} https://oneuptime.com/l/`,
+    );
     expect(ruleService).toContain("message: this.buildOnCallPageSmsText({");
     expect(ruleService).toContain(
       "link: await this.buildOnCallAcknowledgeShortUrl(",

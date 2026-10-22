@@ -58,7 +58,8 @@ const ACKNOWLEDGE_BASE: Record<string, unknown> = {
 
 const PASS_ON_BLOCK: Record<string, unknown> = {
   lead: "Can't take it?",
-  explanation: "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+  explanation:
+    "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
   buttonText: "Escalate",
   formUrl: FORM_URL,
   tokenParam: "pageToken",
@@ -84,7 +85,9 @@ describe("the acknowledge page", () => {
     const text: string = htmlAsText(html);
 
     expect(text).toContain("Can't take it?");
-    expect(text).toContain("This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.");
+    expect(text).toContain(
+      "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+    );
     expect(text).toContain("Escalate");
   });
 
@@ -145,7 +148,8 @@ describe("the acknowledge page", () => {
 describe("the escalate page", () => {
   const PASS_ON_BASE: Record<string, unknown> = {
     title: "Escalate Incident INC-42?",
-    message: "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+    message:
+      "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
     passOnText: "Escalate",
     passOnFormUrl: FORM_URL,
     pageTokenParam: "pageToken",
@@ -161,7 +165,9 @@ describe("the escalate page", () => {
     const text: string = htmlAsText(render(PASS_ON_VIEW, PASS_ON_BASE));
 
     expect(text).toContain("Escalate Incident INC-42?");
-    expect(text).toContain("This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.");
+    expect(text).toContain(
+      "This will immediately page Platform leads (Level 2 of 2), without waiting. You will not be paged again for this incident.",
+    );
     expect(text).toContain("INC-42");
     expect(text).toContain("Checkout is down");
   });
@@ -262,9 +268,9 @@ describe("the warning when nobody is left to page", () => {
     });
 
     expect(htmlAsText(warningOf(html))).toContain(STOPS);
-    expect(html.indexOf("You will not be paged again for this incident.")).toBeLessThan(
-      html.indexOf('data-testid="pass-on-warning"'),
-    );
+    expect(
+      html.indexOf("You will not be paged again for this incident."),
+    ).toBeLessThan(html.indexOf('data-testid="pass-on-warning"'));
   });
 
   test("the page after escalating draws it too", () => {

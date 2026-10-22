@@ -314,10 +314,7 @@ export function describePassOnResult(
   translator: Translator,
   now?: Date | undefined,
 ): string {
-  const level: ComposedValue | null = levelValue(
-    result.rule,
-    result.ruleCount,
-  );
+  const level: ComposedValue | null = levelValue(result.rule, result.ruleCount);
 
   switch (result.outcome) {
     case OnCallPassOnOutcome.NextRulePaged: {

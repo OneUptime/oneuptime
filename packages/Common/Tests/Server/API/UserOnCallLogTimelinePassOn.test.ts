@@ -316,7 +316,8 @@ describe("the escalate page", () => {
     expect(variables).toMatchObject({
       title: "Escalate this incident?",
       // They followed "Can't take it? Escalate" here: it is not asked again.
-      message: "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
+      message:
+        "This will immediately page Level 2 of 2, without waiting. You will not be paged again for this incident.",
       passOnText: "Escalate",
       passOnFormUrl: `https://oneuptime.example.com/api/user-notification-log-timeline/pass-on/${ITEM.toString()}`,
       pageTokenParam: "pageToken",
@@ -472,7 +473,9 @@ describe("the escalate page", () => {
     expect(path).toBe(
       "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
     );
-    expect(variables["message"]).toBe("You will not be paged again for this incident.");
+    expect(variables["message"]).toBe(
+      "You will not be paged again for this incident.",
+    );
     expect(variables["warning"]).toBe(
       "Nobody else is left to page: paging stops, and somebody needs to take it.",
     );
@@ -579,7 +582,9 @@ describe("the Escalate button", () => {
 
     expect(path).toBe("/usr/src/Common/Server/Views/ViewMessage.ejs");
     expect(variables["title"]).toBe("Incident escalated - Checkout is down");
-    expect(variables["message"]).toBe("You will not be paged again for this incident.");
+    expect(variables["message"]).toBe(
+      "You will not be paged again for this incident.",
+    );
     expect(variables["warning"]).toBe(
       "Nobody else is left to page, so paging stopped. Somebody needs to take it.",
     );

@@ -167,7 +167,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
               } else if (item["status"] === UserNotificationStatus.PassedOn) {
                 // The notification you escalated the page from.
                 return (
-                  <Pill color={Yellow} text={PASS_ON_PAGE_TEXT.passedOnStatus} />
+                  <Pill
+                    color={Yellow}
+                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                  />
                 );
               }
 

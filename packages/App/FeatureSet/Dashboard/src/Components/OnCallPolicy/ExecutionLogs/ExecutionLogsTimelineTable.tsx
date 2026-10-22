@@ -458,7 +458,10 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                 item["status"] === OnCallDutyExecutionLogTimelineStatus.PassedOn
               ) {
                 return (
-                  <Pill color={Yellow} text={PASS_ON_PAGE_TEXT.passedOnStatus} />
+                  <Pill
+                    color={Yellow}
+                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                  />
                 );
               }
 

@@ -10531,7 +10531,9 @@ test.describe("Escalate", () => {
       }),
     ).toHaveLength(0);
 
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
 
     await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
       "Incident escalated",
@@ -10542,7 +10544,9 @@ test.describe("Escalate", () => {
     ]);
     await screenshotElement(escalateDialog(page), "escalate-dialog-done");
 
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
     await expect(escalateDialog(page)).toHaveCount(0);
 
     // No longer paged about it: the button is gone.
@@ -10598,7 +10602,9 @@ test.describe("Escalate", () => {
     ]);
     await screenshotElement(escalateDialog(page), "escalate-dialog-unnamed");
 
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
 
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
       "The policy is now paging Level 2 of 3: Sam Lee and Priya Patel.",
@@ -10691,9 +10697,14 @@ test.describe("Escalate", () => {
       .first()
       .boundingBox();
     expect(warningBox!.y).toBeLessThan(lineBox!.y);
-    await screenshotElement(escalateDialog(page), "escalate-dialog-stopped-ask");
+    await screenshotElement(
+      escalateDialog(page),
+      "escalate-dialog-stopped-ask",
+    );
 
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
 
     await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
       "Incident escalated",
@@ -10744,7 +10755,9 @@ test.describe("Escalate", () => {
     );
 
     await escalateButton(page).click();
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
 
     // Why, in a few words: not the button's "Escalate", an instruction.
     await expect(escalateDialog(page).getByTestId("modal-title")).toHaveText(
@@ -10771,7 +10784,9 @@ test.describe("Escalate", () => {
     );
 
     await escalateButton(page).click();
-    await escalateDialog(page).getByTestId("modal-footer-submit-button").click();
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
 
     await expect(
       escalateDialog(page).getByText("Could not escalate. Please try again."),
@@ -10926,10 +10941,11 @@ test.describe("Escalate", () => {
           await expectNoHorizontalOverflow(page);
 
           // The dialog sits inside the screen, its buttons in reach.
-          const box: { x: number; width: number } | null =
-            await escalateDialog(page)
-              .getByTestId("modal-footer-submit-button")
-              .boundingBox();
+          const box: { x: number; width: number } | null = await escalateDialog(
+            page,
+          )
+            .getByTestId("modal-footer-submit-button")
+            .boundingBox();
           expect(box!.x).toBeGreaterThanOrEqual(0);
           expect(box!.x + box!.width).toBeLessThanOrEqual(width);
 

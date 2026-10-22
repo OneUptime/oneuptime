@@ -573,9 +573,9 @@ describe("in French", () => {
   const FRENCH: Translator = translatorFor("fr", FR);
 
   test("a level with no name of its own takes its article, as the object of the sentence", () => {
-    expect(
-      describePassOnResult(result({ rule: { order: 2 } }), FRENCH),
-    ).toBe("Cela alertera immédiatement le niveau 2 sur 3, sans attendre.");
+    expect(describePassOnResult(result({ rule: { order: 2 } }), FRENCH)).toBe(
+      "Cela alertera immédiatement le niveau 2 sur 3, sans attendre.",
+    );
     expect(describePassOnResult(result({}), FRENCH)).toBe(
       "Cela alertera immédiatement Plattform-Leads (niveau 2 sur 3), sans attendre.",
     );
@@ -631,7 +631,11 @@ describe("in every language the Dashboard ships", () => {
     for (const text of [
       ...Object.values(PASS_ON_PAGE_TEXT),
       ...Object.values(PASS_ON_RECORD_TEXT).flatMap(
-        (each: { question: string; doneTitle: string; notPagedAgain: string }) => {
+        (each: {
+          question: string;
+          doneTitle: string;
+          notPagedAgain: string;
+        }) => {
           return [each.question, each.doneTitle, each.notPagedAgain];
         },
       ),

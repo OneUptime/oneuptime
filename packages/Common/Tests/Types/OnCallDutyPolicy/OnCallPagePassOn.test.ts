@@ -202,9 +202,11 @@ describe("what is stored, and what people read", () => {
     expect(
       isOnCallPagePassedOnStatusMessage(ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE),
     ).toBe(true);
-    expect(isOnCallPagePassedOnStatusMessage(LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE)).toBe(
-      true,
-    );
+    expect(
+      isOnCallPagePassedOnStatusMessage(
+        LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE,
+      ),
+    ).toBe(true);
     expect(LEGACY_ON_CALL_PAGE_PASSED_ON_STATUS_MESSAGE).toBe(
       "Passed on: could not take this page.",
     );
@@ -370,7 +372,9 @@ describe("what escalating would do (a preview)", () => {
       getOnCallPassOnSentence(
         result({ isPreview: true, rule: { order: 2, name: "second" } }),
       ),
-    ).toBe("This will immediately page second (Level 2 of 3), without waiting.");
+    ).toBe(
+      "This will immediately page second (Level 2 of 3), without waiting.",
+    );
   });
 
   test("a next level with no name of its own is its place", () => {
@@ -466,7 +470,10 @@ describe("what escalating did", () => {
     );
     expect(
       getOnCallPassOnSentence(
-        result({ rule: { order: 2, name: "Level 2" }, pagedNames: ["Sam Lee"] }),
+        result({
+          rule: { order: 2, name: "Level 2" },
+          pagedNames: ["Sam Lee"],
+        }),
       ),
     ).toBe("The policy is now paging Level 2 of 3: Sam Lee.");
   });
@@ -542,9 +549,7 @@ describe("what escalating did", () => {
       getOnCallPassOnSentence(
         result({ outcome: OnCallPassOnOutcome.AlreadyEscalated }),
       ),
-    ).toBe(
-      "The policy has moved on already and is paging a later level now.",
-    );
+    ).toBe("The policy has moved on already and is paging a later level now.");
   });
 });
 
@@ -657,7 +662,10 @@ describe("every sentence, whatever came of it", () => {
   test("starts with a capital: a level's name - text somebody typed - never opens it", () => {
     for (const each of everyResult()) {
       const sentence: string = getOnCallPassOnSentence(
-        { ...each, rule: each.rule ? { ...each.rule, name: "second" } : each.rule },
+        {
+          ...each,
+          rule: each.rule ? { ...each.rule, name: "second" } : each.rule,
+        },
         { timezone: "UTC", now: new Date("2026-10-16T03:00:00.000Z") },
       );
 
@@ -835,7 +843,9 @@ describe("why it could not be escalated", () => {
 
 describe("the headings over what came of it", () => {
   test("a refusal says why in a few words, never the button's own word", () => {
-    expect(ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE).toBe("Already acknowledged");
+    expect(ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE).toBe(
+      "Already acknowledged",
+    );
     expect(ON_CALL_PAGE_ALREADY_ESCALATED_TITLE).toBe("Already escalated");
     expect(ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE).toBe("Nothing to escalate");
 

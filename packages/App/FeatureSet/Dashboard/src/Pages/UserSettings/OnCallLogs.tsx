@@ -260,7 +260,10 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 item["status"] === UserNotificationExecutionStatus.PassedOn
               ) {
                 return (
-                  <Pill color={Yellow} text={PASS_ON_PAGE_TEXT.passedOnStatus} />
+                  <Pill
+                    color={Yellow}
+                    text={PASS_ON_PAGE_TEXT.passedOnStatus}
+                  />
                 );
               }
 

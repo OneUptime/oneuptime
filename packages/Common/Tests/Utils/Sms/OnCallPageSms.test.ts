@@ -128,7 +128,7 @@ describe("Escalate in a text: still one part", () => {
     "SSL certificate for www.acme.com expires in 7 days",
     "p99 latency of /api/orders is above 2 seconds in eu-west-1",
     "[FIRING:3] KubePodCrashLooping production/checkout-7d9f",
-    "Synthetic check \"Login flow\" failed from 3 probes",
+    'Synthetic check "Login flow" failed from 3 probes',
     "Memory usage of cache-redis-02 is at 97% and still climbing fast",
   ];
 

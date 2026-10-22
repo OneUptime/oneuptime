@@ -27,9 +27,7 @@ import {
 const NEXT_LEVEL: string =
   "This will immediately page Platform leads (Level 2 of 3), without waiting.";
 
-const RECORDS: Array<
-  [OnCallPageRecordType, string, string, string]
-> = [
+const RECORDS: Array<[OnCallPageRecordType, string, string, string]> = [
   [
     "incident",
     "Escalate Incident?",
@@ -210,7 +208,11 @@ describe("the words", () => {
       PASS_ON_TEXT.failed,
       PASS_ON_TEXT.passedOnLabel,
       ...Object.values(PASS_ON_RECORD_TEXT).flatMap(
-        (text: { question: string; doneTitle: string; notPagedAgain: string }) => {
+        (text: {
+          question: string;
+          doneTitle: string;
+          notPagedAgain: string;
+        }) => {
           return [text.question, text.doneTitle, text.notPagedAgain];
         },
       ),

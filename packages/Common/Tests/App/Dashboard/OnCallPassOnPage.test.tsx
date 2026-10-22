@@ -150,13 +150,16 @@ function page(overrides: Partial<OnCallPassOnResult>): OnCallOpenPage {
   };
 }
 
-// The record kinds, with what their dialog calls them.
-const RECORDS: Array<{
+// A record kind, with what its dialog calls it.
+interface RecordWords {
   recordType: OnCallPageRecordType;
   question: string;
   doneTitle: string;
   notPagedAgain: string;
-}> = [
+}
+
+// The record kinds, with what their dialog calls them.
+const RECORDS: Array<RecordWords> = [
   {
     recordType: OnCallPageRecordType.Incident,
     question: "Escalate Incident?",
@@ -201,7 +204,10 @@ describe("what escalating will do: the maintainer's sentence", () => {
   test("a level with no name of its own is its place: never 'Level 2 (Level 2 of 3)'", () => {
     for (const name of [undefined, "", "  ", "Level 2", "level 2"]) {
       expect(
-        describePassOnResult(result({ rule: { order: 2, name: name } }), ENGLISH),
+        describePassOnResult(
+          result({ rule: { order: 2, name: name } }),
+          ENGLISH,
+        ),
       ).toBe("This will immediately page Level 2 of 3, without waiting.");
     }
   });
@@ -212,7 +218,9 @@ describe("what escalating will do: the maintainer's sentence", () => {
         result({ rule: { order: 3, name: "Level 1" } }),
         ENGLISH,
       ),
-    ).toBe("This will immediately page Level 1 (Level 3 of 3), without waiting.");
+    ).toBe(
+      "This will immediately page Level 1 (Level 3 of 3), without waiting.",
+    );
   });
 
   test("a level the reader may not read is 'the next level'", () => {
@@ -441,9 +449,7 @@ describe("what escalating will do: the maintainer's sentence", () => {
         }),
         ENGLISH,
       ),
-    ).toBe(
-      "The policy has moved on already and is paging a later level now.",
-    );
+    ).toBe("The policy has moved on already and is paging a later level now.");
   });
 });
 
@@ -565,7 +571,11 @@ describe("the Dashboard's English is word for word the server's", () => {
               nextStepAt: AT,
             });
 
-            expect({ rule, isDirectPage, said: describePassOnResult(each, ENGLISH, NOW) }).toEqual({
+            expect({
+              rule,
+              isDirectPage,
+              said: describePassOnResult(each, ENGLISH, NOW),
+            }).toEqual({
               rule,
               isDirectPage,
               said: getOnCallPassOnSentence(each, { now: NOW }),
@@ -596,9 +606,9 @@ describe("the Dashboard's English is word for word the server's", () => {
       OnCallPassOnRefusal.PageOver,
       OnCallPassOnRefusal.NotPaged,
     ]) {
-      expect(
-        describePassOnRefusal({ passedOn: false, refusal }, ENGLISH),
-      ).toBe(getOnCallPassOnRefusalSentence({ passedOn: false, refusal }));
+      expect(describePassOnRefusal({ passedOn: false, refusal }, ENGLISH)).toBe(
+        getOnCallPassOnRefusalSentence({ passedOn: false, refusal }),
+      );
     }
   });
 });
@@ -625,7 +635,9 @@ describe("why a page could not be escalated", () => {
         refused(OnCallPassOnRefusal.RecordAcknowledged),
         ENGLISH,
       ),
-    ).toBe("Somebody acknowledged it already, so there is nothing to escalate.");
+    ).toBe(
+      "Somebody acknowledged it already, so there is nothing to escalate.",
+    );
   });
 
   test("escalated already, the page is over, not paged", () => {
@@ -722,7 +734,7 @@ describe("the dialog's lines, in the maintainer's order", () => {
 
   test.each(RECORDS)(
     "asking about a $recordType: what escalating does, then that you are not paged again for it",
-    ({ recordType, notPagedAgain }) => {
+    ({ recordType, notPagedAgain }: RecordWords) => {
       expect(
         getPassOnQuestionLines([page({ rule: SECOND })], ENGLISH, recordType),
       ).toEqual([
@@ -776,7 +788,7 @@ describe("the dialog's lines, in the maintainer's order", () => {
 
   test.each(RECORDS)(
     "answering about a $recordType: what came of it, then not paged again",
-    ({ recordType, notPagedAgain }) => {
+    ({ recordType, notPagedAgain }: RecordWords) => {
       expect(
         getPassOnAnswerLines(
           [
@@ -848,7 +860,7 @@ describe("the dialog's titles", () => {
 
   test.each(RECORDS)(
     "a $recordType: the question, then what was done",
-    ({ recordType, question, doneTitle }) => {
+    ({ recordType, question, doneTitle }: RecordWords) => {
       expect(getPassOnQuestionTitle(recordType)).toBe(question);
       expect(
         getPassOnAnswerTitle(
@@ -1345,7 +1357,7 @@ describe("in a record's header", () => {
 
   test.each(RECORDS)(
     "a $recordType asks about itself, and says it is done in its own words",
-    async ({ recordType, question, doneTitle, notPagedAgain }) => {
+    async ({ recordType, question, doneTitle, notPagedAgain }: RecordWords) => {
       getAnswers.push(pagedAbout({ rule: { order: 2, name: "Level 2" } }));
       postAnswers.push(passed({ rule: { order: 2, name: "Level 2" } }));
       getAnswers.push({ pages: [] });
@@ -1804,7 +1816,11 @@ describe("the words are the Dashboard's translation keys, and every place's", ()
     const words: Array<string> = [
       ...Object.values(PASS_ON_PAGE_TEXT),
       ...Object.values(PASS_ON_RECORD_TEXT).flatMap(
-        (text: { question: string; doneTitle: string; notPagedAgain: string }) => {
+        (text: {
+          question: string;
+          doneTitle: string;
+          notPagedAgain: string;
+        }) => {
           return [text.question, text.doneTitle, text.notPagedAgain];
         },
       ),

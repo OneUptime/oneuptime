@@ -452,9 +452,7 @@ describe("pressing it", () => {
       });
 
       expect(lastAlert().title).toBe(question);
-      expect(lastAlert().message).toBe(
-        `${PAGE.sentence}\n\n${notPagedAgain}`,
-      );
+      expect(lastAlert().message).toBe(`${PAGE.sentence}\n\n${notPagedAgain}`);
 
       await act(async () => {
         pressInLastAlert("Escalate");

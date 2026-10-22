@@ -107,7 +107,8 @@ describe("the requests", () => {
           {
             passedOn: true,
             result: { ...PREVIEW, isPreview: false },
-            sentence: "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
+            sentence:
+              "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
           },
         ],
       },
@@ -120,7 +121,8 @@ describe("the requests", () => {
       {
         passedOn: true,
         policyName: "Payments",
-        sentence: "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
+        sentence:
+          "The policy is now paging Platform leads (Level 2 of 3): Sam Lee.",
       },
     ]);
 
