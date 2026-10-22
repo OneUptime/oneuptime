@@ -33314,7 +33314,7 @@
   "No people, teams or schedules available.": "没有可用的人员、团队或值班计划。",
   "Search on-call schedules...": "搜索值班计划...",
   "Search people, teams or schedules...": "搜索人员、团队或值班计划...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "这些人员和团队会加入此规则创建的每个频道，创建频道时这些值班计划中正在值班的人也会加入。不会呼叫任何人。",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "这些人员和团队会加入此规则创建的每个频道，创建频道时这些值班计划中正在值班的人也会加入。不会呼叫任何人。",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "创建频道时，这些值班计划中正在值班的人会在频道中被 @提及，因此 Microsoft Teams 会通知他们。不会呼叫任何人。",
   "About the same as in the first half of the time range": "与时间范围前半段大致相同",
   "Click to configure metric": "点击以配置指标",

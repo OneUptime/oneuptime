@@ -33314,7 +33314,7 @@
   "No people, teams or schedules available.": "هیچ فرد، تیم یا زمان‌بندی‌ای در دسترس نیست.",
   "Search on-call schedules...": "جستجوی زمان‌بندی‌های آنکال...",
   "Search people, teams or schedules...": "جستجوی افراد، تیم‌ها یا زمان‌بندی‌ها...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "این افراد و تیم‌ها به هر کانالی که قاعده ایجاد می‌کند می‌پیوندند، و هر کسی هم که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد به آن می‌پیوندد. هیچ‌کس فراخوانده نمی‌شود.",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "این افراد و تیم‌ها به هر کانالی که قاعده ایجاد می‌کند می‌پیوندند، و هر کسی هم که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد به آن می‌پیوندد. هیچ‌کس فراخوانده نمی‌شود.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "هر کسی که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد، در آن @منشن می‌شود تا Microsoft Teams او را باخبر کند. هیچ‌کس فراخوانده نمی‌شود.",
   "About the same as in the first half of the time range": "تقریباً همانند نیمهٔ اول بازه زمانی",
   "Click to configure metric": "برای پیکربندی متریک کلیک کنید",

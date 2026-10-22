@@ -33314,7 +33314,7 @@
   "No people, teams or schedules available.": "Keine Personen, Teams oder Bereitschaftspläne verfügbar.",
   "Search on-call schedules...": "Bereitschaftspläne suchen...",
   "Search people, teams or schedules...": "Personen, Teams oder Bereitschaftspläne suchen...",
-  "These people and teams join every channel the rule creates, and so does whoever is on call in these schedules when the channel is created. Nobody is paged.": "Diese Personen und Teams treten jedem Kanal bei, den die Regel erstellt, ebenso wie die Personen, die beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft haben. Niemand wird alarmiert.",
+  "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Diese Personen und Teams treten jedem Kanal bei, den die Regel erstellt, ebenso wie die Personen, die beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft haben. Niemand wird alarmiert.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Wer beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft hat, wird darin mit @ erwähnt und so von Microsoft Teams benachrichtigt. Niemand wird alarmiert.",
   "About the same as in the first half of the time range": "Etwa gleich wie in der ersten Hälfte des Zeitraums",
   "Click to configure metric": "Klicken, um eine Metrik zu konfigurieren",
