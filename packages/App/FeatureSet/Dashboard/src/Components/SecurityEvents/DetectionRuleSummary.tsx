@@ -60,12 +60,108 @@ export function formatTimespan(
   );
 }
 
+/*
+ * The sentence names the rules a correlation reads and the fields it groups
+ * or counts by. Each is wrapped in a pair of marks - private-use characters
+ * no title, field name or translation holds - so the summary can draw a
+ * rule's title apart from the words around it, and a field as the column
+ * name it is, wherever a language puts them in the sentence.
+ */
+const RULE_START: string = "";
+const RULE_END: string = "";
+const FIELD_START: string = "";
+const FIELD_END: string = "";
+const MARKS: ReadonlyArray<string> = [
+  "",
+  RULE_START,
+  RULE_END,
+  FIELD_START,
+  FIELD_END,
+];
+
+export interface DetectionRuleSentencePart {
+  kind: "text" | "rule" | "field";
+  text: string;
+}
+
+// The text without any mark: a title or field that holds one cannot cut the sentence.
+function withoutMarks(text: string): string {
+  let result: string = "";
+
+  for (const character of text) {
+    if (!MARKS.includes(character)) {
+      result += character;
+    }
+  }
+
+  return result;
+}
+
+function markRule(title: string): string {
+  return `${RULE_START}${withoutMarks(title)}${RULE_END}`;
+}
+
+function markField(field: string): string {
+  return `${FIELD_START}${withoutMarks(field)}${FIELD_END}`;
+}
+
+// A marked sentence in its parts, read once from start to end.
+export function splitMarkedSentence(
+  sentence: string,
+): Array<DetectionRuleSentencePart> {
+  const parts: Array<DetectionRuleSentencePart> = [];
+  let kind: DetectionRuleSentencePart["kind"] = "text";
+  let current: string = "";
+
+  const flush: () => void = (): void => {
+    if (current) {
+      parts.push({ kind, text: current });
+    }
+
+    current = "";
+  };
+
+  for (const character of sentence) {
+    if (character === RULE_START || character === FIELD_START) {
+      flush();
+      kind = character === RULE_START ? "rule" : "field";
+    } else if (character === RULE_END || character === FIELD_END) {
+      flush();
+      kind = "text";
+    } else {
+      current += character;
+    }
+  }
+
+  flush();
+
+  return parts;
+}
+
 function fieldList(fields: Array<string>): string {
-  return fields.join(" / ");
+  return fields.map(markField).join(" / ");
 }
 
 // The sentence for a correlation's shape; "" for a single rule.
 export function describeDetectionRuleShape(
+  shape: DetectionRuleShape,
+  translator: Translator,
+): string {
+  return withoutMarks(describeMarkedShape(shape, translator));
+}
+
+/*
+ * The same sentence in parts: plain words, the titles of the rules it reads,
+ * and the fields it names. [] for a single rule.
+ */
+export function describeDetectionRuleShapeParts(
+  shape: DetectionRuleShape,
+  translator: Translator,
+): Array<DetectionRuleSentencePart> {
+  return splitMarkedSentence(describeMarkedShape(shape, translator));
+}
+
+function describeMarkedShape(
   shape: DetectionRuleShape,
   translator: Translator,
 ): string {
@@ -110,7 +206,7 @@ export function describeDetectionRuleShape(
           );
 
     case DetectionRuleType.TemporalOrdered: {
-      const steps: string = shape.stepTitles.join(" → ");
+      const steps: string = shape.stepTitles.map(markRule).join(" → ");
 
       return grouped
         ? translator.translateTemplate(
@@ -126,7 +222,11 @@ export function describeDetectionRuleShape(
     case DetectionRuleType.Temporal: {
       const steps: ReturnType<typeof composedValue> = composedValue(
         (sentence: Translator): string => {
-          return formatNameList(shape.stepTitles, "and", sentence);
+          return formatNameList(
+            shape.stepTitles.map(markRule),
+            "and",
+            sentence,
+          );
         },
       );
       const everyStep: boolean =
@@ -241,12 +341,44 @@ const DetectionRuleSummary: FunctionComponent<{
         icon={getDetectionRuleTypeIcon(props.shape.type)}
         className="mt-0.5 h-4 w-4 flex-shrink-0 text-indigo-600"
       />
-      <p className="min-w-0">
+      <p className="min-w-0 break-words leading-6">
         <span className="font-semibold">
           {translator.translateText(props.shape.typeTitle)}
         </span>
         {" · "}
-        {describeDetectionRuleShape(props.shape, translator)}
+        {/*
+         * The rules it reads by their titles, set apart from the sentence's
+         * own words, and each field as the column name it is.
+         */}
+        {describeDetectionRuleShapeParts(props.shape, translator).map(
+          (part: DetectionRuleSentencePart, index: number): ReactElement => {
+            if (part.kind === "rule") {
+              return (
+                <span
+                  key={index}
+                  className="font-medium"
+                  data-testid="detection-rule-summary-rule"
+                >
+                  {part.text}
+                </span>
+              );
+            }
+
+            if (part.kind === "field") {
+              return (
+                <code
+                  key={index}
+                  className="rounded bg-indigo-100 px-1 py-0.5 font-mono text-xs text-indigo-800"
+                  data-testid="detection-rule-summary-field"
+                >
+                  {part.text}
+                </code>
+              );
+            }
+
+            return <React.Fragment key={index}>{part.text}</React.Fragment>;
+          },
+        )}
       </p>
     </div>
   );

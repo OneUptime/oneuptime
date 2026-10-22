@@ -529,7 +529,7 @@ describe("what the feed's Last poll says", () => {
     ],
     [
       { ...base, letGo: 3 },
-      "Read 1,234 indicators from the list, let go of 3 indicators no longer on it.",
+      "Read 1,234 indicators from the list, revoked 3 indicators no longer on it.",
     ],
     [
       { ...base, unsupported: 2 },

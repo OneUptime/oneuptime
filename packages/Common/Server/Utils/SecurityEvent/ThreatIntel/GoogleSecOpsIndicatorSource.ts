@@ -322,7 +322,7 @@ export default class GoogleSecOpsIndicatorSource {
 
     if (result.muted > 0) {
       parts.push(
-        `let go of ${plural(result.muted, "indicator", "indicators")} muted in Google SecOps`,
+        `revoked ${plural(result.muted, "indicator", "indicators")} muted in Google SecOps`,
       );
     }
 
@@ -332,7 +332,7 @@ export default class GoogleSecOpsIndicatorSource {
 
     if (result.unsupported > 0) {
       parts.push(
-        `skipped ${plural(result.unsupported, "match", "matches")} OneUptime cannot match`,
+        `skipped ${plural(result.unsupported, "match", "matches")} OneUptime cannot read`,
       );
     }
 

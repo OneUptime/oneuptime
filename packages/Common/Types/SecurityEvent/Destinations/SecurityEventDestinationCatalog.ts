@@ -19,6 +19,11 @@ import SecurityEventDestinationProvider from "./SecurityEventDestinationProvider
 export interface SecurityEventDestinationDefinition {
   provider: SecurityEventDestinationProvider;
   title: string;
+  /*
+   * How OneUptime sends to it, in a line under its name in the picker: what
+   * tells one SIEM from another there. What is sent (detections, or every
+   * event) is the form's last question, so it is not said four times.
+   */
   description: string;
   // The product's mark in the picker and the table.
   icon: IconProp;
@@ -71,8 +76,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
     {
       provider: SecurityEventDestinationProvider.GoogleSecOps,
       title: "Google SecOps",
-      description:
-        "Send OneUptime's detections, or all its security events, to Google SecOps (Chronicle) as UDM events.",
+      description: "As UDM events, through the Chronicle API.",
       icon: IconProp.ViewfinderCircle,
       docsPath: GOOGLE_SECOPS_DESTINATION_DOCS_PATH,
       sentRecordName: "UDM event",
@@ -127,7 +131,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
       provider: SecurityEventDestinationProvider.Splunk,
       title: "Splunk",
       description:
-        "Send OneUptime's detections, or all its security events, to Splunk through its HTTP Event Collector (HEC).",
+        "Through its HTTP Event Collector (HEC), with CIM field names.",
       icon: IconProp.Search,
       docsPath: SPLUNK_DESTINATION_DOCS_PATH,
       sentRecordName: "event",
@@ -184,7 +188,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
       provider: SecurityEventDestinationProvider.MicrosoftSentinel,
       title: "Microsoft Sentinel",
       description:
-        "Send OneUptime's detections, or all its security events, to a Microsoft Sentinel workspace through the Azure Monitor Logs Ingestion API.",
+        "To a workspace's custom table, through the Azure Monitor Logs Ingestion API.",
       icon: IconProp.ShieldCheck,
       docsPath: MICROSOFT_SENTINEL_DESTINATION_DOCS_PATH,
       sentRecordName: "log record",
@@ -270,7 +274,7 @@ export const SecurityEventDestinationCatalog: Array<SecurityEventDestinationDefi
       provider: SecurityEventDestinationProvider.ElasticSecurity,
       title: "Elastic Security",
       description:
-        "Send OneUptime's detections, or all its security events, to Elasticsearch in Elastic Common Schema (ECS), so Elastic Security sees them.",
+        "As Elastic Common Schema (ECS) documents in an Elasticsearch data stream.",
       icon: IconProp.Database,
       docsPath: ELASTIC_SECURITY_DESTINATION_DOCS_PATH,
       sentRecordName: "document",

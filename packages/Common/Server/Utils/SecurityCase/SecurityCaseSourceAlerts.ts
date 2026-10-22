@@ -90,9 +90,10 @@ export function sourceAlertsClosedMarkdown(data: {
     mdText`Closed ${String(result.closed)} alert${result.closed === 1 ? "" : "s"} in **${data.productName}** through the connection **${data.connectionName}**.`,
   ];
 
+  // Alerts the product answered it does not have (deleted or merged there).
   if (result.notFound > 0) {
     parts.push(
-      mdText`${String(result.notFound)} ${result.notFound === 1 ? "was" : "were"} not ${result.notFound === 1 ? "an alert" : "alerts"} there.`,
+      mdText`${String(result.notFound)} ${result.notFound === 1 ? "was" : "were"} not found there.`,
     );
   }
 

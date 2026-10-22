@@ -346,7 +346,7 @@ export default class ThreatIntelListSource {
 
     if (result.letGo > 0) {
       parts.push(
-        `let go of ${plural(result.letGo, "indicator", "indicators")} no longer on it`,
+        `revoked ${plural(result.letGo, "indicator", "indicators")} no longer on it`,
       );
     }
 

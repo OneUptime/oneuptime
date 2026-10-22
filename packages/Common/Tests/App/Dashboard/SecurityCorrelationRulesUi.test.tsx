@@ -70,9 +70,12 @@ import DetectionRulesPage, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import RuleLibraryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRuleSummary, {
+  DetectionRuleSentencePart,
   DetectionRuleTypeLabel,
   describeDetectionRuleShape,
+  describeDetectionRuleShapeParts,
   formatTimespan,
+  splitMarkedSentence,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/DetectionRuleSummary";
 import {
   DETECTION_RULE_TYPE_DESCRIPTIONS,
@@ -356,6 +359,88 @@ describe("DetectionRuleSummary and DetectionRuleTypeLabel", () => {
     );
   });
 
+  /*
+   * The sentence names rules by their titles and fields by their column
+   * names: each drawn apart from the words around it - a title in a heavier
+   * weight, a field as code - wherever a language puts it.
+   */
+  test("draws the rules it reads by their titles, and each field as a column name", () => {
+    render(<DetectionRuleSummary shape={shapeOf(SEQUENCE)} />);
+
+    expect(
+      screen
+        .getAllByTestId("detection-rule-summary-rule")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["Failed sign-in", "Successful sign-in"]);
+
+    const fields: Array<HTMLElement> = screen.getAllByTestId(
+      "detection-rule-summary-field",
+    );
+
+    expect(
+      fields.map((element: HTMLElement): string => {
+        return element.textContent || "";
+      }),
+    ).toEqual(["principalIp"]);
+    expect(fields[0]!.tagName).toBe("CODE");
+  });
+
+  test("the sentence in parts: words, rule titles and fields, in its own order", () => {
+    const parts: Array<DetectionRuleSentencePart> =
+      describeDetectionRuleShapeParts(shapeOf(SEQUENCE), getGlobalTranslator());
+
+    expect(parts).toEqual([
+      { kind: "text", text: "Fires when " },
+      { kind: "rule", text: "Failed sign-in" },
+      { kind: "text", text: " → " },
+      { kind: "rule", text: "Successful sign-in" },
+      { kind: "text", text: " happen in this order for the same " },
+      { kind: "field", text: "principalIp" },
+      { kind: "text", text: " within 10 minutes." },
+    ]);
+    // The plain sentence is the parts' words, marks and all left out.
+    expect(
+      parts
+        .map((part: DetectionRuleSentencePart): string => {
+          return part.text;
+        })
+        .join(""),
+    ).toBe(sentence(SEQUENCE));
+  });
+
+  test("a title or field holding a mark cannot cut the sentence", () => {
+    const shape: DetectionRuleShape = {
+      ...shapeOf(SEQUENCE),
+      stepTitles: ["Failed \uE002sign-in\uE003", "Successful \uE001sign-in"],
+      groupBy: ["principal\uE004Ip"],
+    };
+
+    const parts: Array<DetectionRuleSentencePart> =
+      describeDetectionRuleShapeParts(shape, getGlobalTranslator());
+
+    expect(
+      parts.filter((part: DetectionRuleSentencePart): boolean => {
+        return part.kind !== "text";
+      }),
+    ).toEqual([
+      { kind: "rule", text: "Failed sign-in" },
+      { kind: "rule", text: "Successful sign-in" },
+      { kind: "field", text: "principalIp" },
+    ]);
+  });
+
+  test("a sentence without marks is one part of words; nothing makes no part", () => {
+    expect(splitMarkedSentence("Fires when it does.")).toEqual([
+      { kind: "text", text: "Fires when it does." },
+    ]);
+    expect(splitMarkedSentence("")).toEqual([]);
+    expect(
+      describeDetectionRuleShapeParts(shapeOf(FAILED), getGlobalTranslator()),
+    ).toEqual([]);
+  });
+
   test("the label names the kind, and explains it on hover", () => {
     render(
       <DetectionRuleTypeLabel shape={shapeOf(SEQUENCE)} dataTestId="label" />,
@@ -609,8 +694,10 @@ describe("correlations in the Rule Library", () => {
     )!;
 
     expect(summary).toHaveTextContent(shape.typeTitle);
-    expect(screen.getByText("Grouped by")).toBeInTheDocument();
-    expect(screen.getByText(shape.groupBy.join(" / "))).toBeInTheDocument();
+    // The grouping beside the schedule, as the field names it, and in the sentence.
+    expect(screen.getByText("Grouped by").nextElementSibling).toHaveTextContent(
+      shape.groupBy.join(" / "),
+    );
     // Not the single rule's "Fires at" and "Counting distinct".
     expect(screen.queryByText("Fires at")).toBeNull();
     expect(screen.queryByText("Counting distinct")).toBeNull();

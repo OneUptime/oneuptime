@@ -298,7 +298,7 @@ describe("creating a threat intel feed", () => {
     expect(radio(dialog, "List of indicators")).toBeChecked();
     fireEvent.click(radio(dialog, "TAXII collection"));
     fireEvent.change(
-      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      within(dialog).getByPlaceholderText("e.g. Partner threat feed"),
       {
         target: { value: "Corporate MISP" },
       },
@@ -388,7 +388,7 @@ describe("creating a threat intel feed", () => {
     );
 
     fireEvent.change(
-      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      within(dialog).getByPlaceholderText("e.g. Partner threat feed"),
       {
         target: { value: "Our blocklist" },
       },
@@ -475,7 +475,7 @@ describe("creating a threat intel feed", () => {
 
     fireEvent.click(radio(dialog, "Google SecOps"));
     fireEvent.change(
-      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
+      within(dialog).getByPlaceholderText("e.g. Partner threat feed"),
       {
         target: { value: "Google SecOps IOCs" },
       },

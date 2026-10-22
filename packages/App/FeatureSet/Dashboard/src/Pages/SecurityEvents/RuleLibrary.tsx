@@ -123,7 +123,8 @@ const LibraryRuleDetails: FunctionComponent<{
           shape={shape}
           dataTestId="rule-library-details-summary"
         />
-        <dl className="grid grid-cols-2 gap-3 text-sm">
+        {/* On the single rule's grid, so the two read alike side by side. */}
+        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           <div>
             <dt className="text-xs text-gray-500">
               {translator.translateText("Runs every")}

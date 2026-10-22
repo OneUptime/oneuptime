@@ -81,12 +81,35 @@ export interface ComponentProps {
 }
 
 /*
+ * Whether the card has anything left to offer: a project that reads every
+ * free list already has no use for it. One added from the card a moment ago
+ * keeps it, so the tile says Added rather than the card vanishing under the
+ * click.
+ */
+export function shouldShowRecommendedLists(data: {
+  listUrls: Array<string>;
+  hasAddedHere: boolean;
+  hasError: boolean;
+}): boolean {
+  if (data.hasAddedHere || data.hasError) {
+    return true;
+  }
+
+  return RECOMMENDED_THREAT_INTEL_LISTS.some(
+    (list: RecommendedThreatIntelList): boolean => {
+      return !isRecommendedListAdded(list, data.listUrls);
+    },
+  );
+}
+
+/*
  * The free lists a project starts with, one click each: abuse.ch's Feodo
  * Tracker, the Emerging Threats compromised hosts and the Tor exit nodes.
- * Each tile says who publishes the list, how often it is read, how sure a
- * match is and where its terms are; a list the project reads already says
- * Added. Adding one creates a list feed the feeds table below shows and
- * edits like any other.
+ * Each tile says who publishes the list, how often it is read and where its
+ * terms are; a list the project reads already says Added. Adding one creates
+ * a list feed the feeds table below shows and edits like any other. The
+ * card shows once the project's feeds are read, and only while a list is
+ * left to add.
  */
 const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -95,9 +118,11 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
   const [listUrls, setListUrls] = useState<Array<string>>([]);
   /*
    * Until the project's feeds are read, a list it has already would offer
-   * Add for a moment: the buttons wait for the read.
+   * Add for a moment, and a project with every list would see the card
+   * come and go: the card waits for the read.
    */
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [hasAddedHere, setHasAddedHere] = useState<boolean>(false);
   const [addingId, setAddingId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -149,6 +174,7 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
       setListUrls((current: Array<string>): Array<string> => {
         return [...current, list.url];
       });
+      setHasAddedHere(true);
       props.onAdded();
     } catch (err) {
       setError(
@@ -182,6 +208,17 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
       minutes,
     );
   };
+
+  if (
+    !isLoaded ||
+    !shouldShowRecommendedLists({
+      listUrls,
+      hasAddedHere,
+      hasError: Boolean(error),
+    })
+  ) {
+    return <></>;
+  }
 
   return (
     <Card
@@ -220,51 +257,47 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
                       <p className="text-sm font-semibold text-gray-900">
                         {translator.translateText(text.title)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      {/*
+                       * Who publishes it, how often it is read and its terms,
+                       * on one line that wraps as text: the tile's foot holds
+                       * only its one action, so every tile ends alike in
+                       * every language.
+                       */}
+                      <div
+                        className="text-xs text-gray-500"
+                        data-testid={`threat-intel-list-about-${list.id}`}
+                      >
                         {/* A publisher's name is a name, never translated. */}
                         {list.provider}
                         {" · "}
                         {everyHour(list.pollIntervalInMinutes)}
-                      </p>
+                        {" · "}
+                        <Link
+                          to={URL.fromString(list.termsUrl)}
+                          openInNewTab={true}
+                          className="inline-flex items-center gap-0.5 rounded font-medium text-gray-600 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                          {translator.translateText("Terms")}
+                          <Icon
+                            icon={IconProp.ExternalLink}
+                            className="h-3 w-3"
+                          />
+                          <span className="sr-only">
+                            {" "}
+                            {translator.translateText("(opens in a new tab)")}
+                          </span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                   <p className="mt-2 flex-1 text-sm text-gray-600">
                     {translator.translateText(text.description)}
                   </p>
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                    <div className="mr-auto flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
-                      <span
-                        data-testid={`threat-intel-list-confidence-${list.id}`}
-                      >
-                        {translator.translateTemplate(
-                          "Confidence {{confidence}}",
-                          {
-                            confidence: translator.formatNumber(
-                              list.indicatorConfidence,
-                            ),
-                          },
-                        )}
-                      </span>
-                      <span aria-hidden="true">&middot;</span>
-                      <Link
-                        to={URL.fromString(list.termsUrl)}
-                        openInNewTab={true}
-                        className="inline-flex items-center gap-1 rounded font-medium hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                      >
-                        {translator.translateText("Terms")}
-                        <Icon
-                          icon={IconProp.ExternalLink}
-                          className="h-3 w-3"
-                        />
-                        <span className="sr-only">
-                          {" "}
-                          {translator.translateText("(opens in a new tab)")}
-                        </span>
-                      </Link>
-                    </div>
+                  {/* As a Rule Library card ends: Added on the left, the action on the right. */}
+                  <div className="mt-4 flex min-h-[2rem] flex-wrap items-center justify-end gap-2">
                     {isAdded ? (
                       <div
-                        className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700"
+                        className="mr-auto inline-flex items-center gap-1 text-sm font-medium text-emerald-700"
                         data-testid={`threat-intel-list-added-${list.id}`}
                       >
                         <Icon icon={IconProp.Check} className="h-4 w-4" />
@@ -277,11 +310,7 @@ const ThreatIntelRecommendedLists: FunctionComponent<ComponentProps> = (
                         buttonStyle={ButtonStyleType.NORMAL}
                         buttonSize={ButtonSize.Small}
                         isLoading={isAdding}
-                        disabled={
-                          !createGate.isAllowed ||
-                          !isLoaded ||
-                          addingId !== null
-                        }
+                        disabled={!createGate.isAllowed || addingId !== null}
                         tooltip={
                           createGate.isAllowed
                             ? undefined

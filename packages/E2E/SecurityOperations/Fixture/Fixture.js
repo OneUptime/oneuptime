@@ -145,6 +145,11 @@ const isEmpty = params.get("empty") === "1";
 const isQuiet = !isEmpty && params.get("quiet") === "1";
 const hasHistory = !isEmpty && !isQuiet;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
+/*
+ * ?lists=all: the project reads every free list already, so Threat Intel's
+ * Free Lists card has nothing left to offer.
+ */
+const hasEveryFreeList = !isEmpty && params.get("lists") === "all";
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
 
@@ -1287,7 +1292,7 @@ if (!isEmpty) {
     shouldWriteDetectionFinding: true,
     lastPolledAt: ago(12 * MINUTE),
     lastPollSummary:
-      "Read 412 indicators from the list, let go of 3 indicators no longer on it.",
+      "Read 412 indicators from the list, revoked 3 indicators no longer on it.",
     lastEvaluatedAt: ago(1 * MINUTE),
     lastMatchAt: hasHistory ? ago(6 * HOUR) : undefined,
     createdAt: ago(20 * DAY),
@@ -1310,6 +1315,30 @@ if (!isEmpty) {
       "Fetched 120 STIX objects across 1 page, ingested 98 indicator values.",
     lastEvaluatedAt: ago(1 * MINUTE),
     createdAt: ago(60 * DAY),
+  });
+}
+
+if (hasEveryFreeList) {
+  RECOMMENDED_THREAT_INTEL_LISTS.filter((list) => {
+    return list.id !== FEODO_LIST.id;
+  }).forEach((list, index) => {
+    insert(ThreatIntelFeed, {
+      _id: ID.intel(3 + index),
+      name: list.title,
+      feedType: ThreatIntelFeedType.List,
+      listUrl: list.url,
+      indicatorConfidence: list.indicatorConfidence,
+      pollIntervalInMinutes: list.pollIntervalInMinutes,
+      isEnabled: true,
+      shouldCreateCase: true,
+      shouldCreateAlert: list.raisesAlerts,
+      shouldCreateIncident: false,
+      shouldWriteDetectionFinding: true,
+      lastPolledAt: ago((20 + index) * MINUTE),
+      lastPollSummary: "Read 1,027 indicators from the list.",
+      lastEvaluatedAt: ago(1 * MINUTE),
+      createdAt: ago((10 + index) * DAY),
+    });
   });
 }
 

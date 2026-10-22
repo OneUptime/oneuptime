@@ -576,7 +576,7 @@ describe("what the feed's Last poll says", () => {
     ],
     [
       { ...base, muted: 2 },
-      "Read 9 indicators Google SecOps found in your events (12 matches), let go of 2 indicators muted in Google SecOps.",
+      "Read 9 indicators Google SecOps found in your events (12 matches), revoked 2 indicators muted in Google SecOps.",
     ],
     [
       { ...base, filtered: 3 },
@@ -584,7 +584,7 @@ describe("what the feed's Last poll says", () => {
     ],
     [
       { ...base, unsupported: 1 },
-      "Read 9 indicators Google SecOps found in your events (12 matches), skipped 1 match OneUptime cannot match.",
+      "Read 9 indicators Google SecOps found in your events (12 matches), skipped 1 match OneUptime cannot read.",
     ],
   ])("%j", (result: GoogleSecOpsFeedPollResult, summary: string) => {
     expect(GoogleSecOpsIndicatorSource.describeResult(result)).toBe(summary);

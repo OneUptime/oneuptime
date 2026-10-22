@@ -594,7 +594,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           key: CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY,
           title: "Close alerts when their case closes",
           description:
-            "Closing a security case closes its Google SecOps alerts too, with the verdict and closing note. The key needs the Chronicle API Editor role.",
+            "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
           type: "toggle",
           required: false,
           defaultValue: false,

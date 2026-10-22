@@ -8,6 +8,10 @@ import {
   test,
 } from "@playwright/test";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import {
+  SecurityEventDestinationCatalog,
+  SecurityEventDestinationDefinition,
+} from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1641,6 +1645,27 @@ test.describe("connections: your logs and your SIEM", () => {
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("[aria-current='step']")).toHaveText("SIEM");
     await expect(dialog.getByRole("radio")).toHaveCount(SIEMS.length);
+    /*
+     * Each card says in a line of its own how OneUptime sends to that SIEM;
+     * what is sent - detections, or every event - is the form's last step,
+     * not four repeats of one sentence.
+     */
+    for (const definition of SecurityEventDestinationCatalog) {
+      const card: Locator = dialog
+        .locator("[role='radio']")
+        .filter({ hasText: definition.title });
+      await expect(card).toContainText(definition.description);
+      await expect(card).not.toContainText("detections");
+    }
+    expect(
+      new Set(
+        SecurityEventDestinationCatalog.map(
+          (definition: SecurityEventDestinationDefinition): string => {
+            return definition.description;
+          },
+        ),
+      ).size,
+    ).toBe(SecurityEventDestinationCatalog.length);
     await screenshot(page, "connections-siem-picker-desktop", {
       fullPage: false,
     });

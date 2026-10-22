@@ -33,6 +33,8 @@ import {
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
+  SecurityEventsGuideTemplate,
+  fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
 
@@ -751,9 +753,21 @@ const detectionRuleLevels: Array<SecurityEventsGuideLevel> =
   SIGMA_LEVELS_IN_ORDER.map((level: SigmaLevel): SecurityEventsGuideLevel => {
     return {
       label: level,
+      // As a rule's YAML writes it: `level: high`.
+      isLabelAValue: true,
       severity: SIGMA_LEVEL_TO_OCSF_SEVERITY[level],
     };
   });
+
+// The second step's sentence, as the card looks it up in the reader's language.
+const RULE_RUNS: SecurityEventsGuideTemplate = {
+  sentence:
+    "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.",
+  values: {
+    min: DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
+    max: DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
+  },
+};
 
 const DetectionRulesGuide: SecurityEventsGuide = {
   id: "detection-rules",
@@ -770,7 +784,8 @@ const DetectionRulesGuide: SecurityEventsGuide = {
     {
       title: "The rule runs on a schedule",
       icon: IconProp.Clock,
-      description: `Every ${DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES}–${DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.`,
+      description: fillGuideTemplate(RULE_RUNS),
+      descriptionTemplate: RULE_RUNS,
     },
     {
       title: "Matches are counted",
@@ -787,11 +802,13 @@ const DetectionRulesGuide: SecurityEventsGuide = {
   ],
   levels: {
     title: "Severity levels",
+    linkText: "How severity levels are chosen",
     description:
       "A rule's Sigma level sets the severity of its findings, and picks the alert severity when the rule does not set one.",
     items: detectionRuleLevels,
     sectionId: "severity-levels",
   },
+  // Keys in SecurityEventsGuideCopy, which the card looks up when it opens.
   guideTitle: "Detection Rules Guide",
   guideDescription:
     "How Sigma rules are evaluated, counted and turned into alerts — and how to write them.",

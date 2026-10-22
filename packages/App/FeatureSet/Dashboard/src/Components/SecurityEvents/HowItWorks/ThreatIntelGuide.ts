@@ -46,6 +46,8 @@ import {
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
+  SecurityEventsGuideTemplate,
+  fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
 
@@ -210,6 +212,8 @@ The columns split into the **polling** side and the **matching** side, so a sour
 | **Last Evaluated** | When the feed's indicators were last matched against events. |
 | **Last Match** | The last check that found at least one match. |
 | **Last Match Error** | Why the last match check failed. It clears on the next successful check. |
+
+**Interval (Minutes)** and **Last Evaluated** start hidden: turn them on under the table's **Columns**.
 
 The **Indicators** table below the feeds lists every indicator that has been ingested — see **Indicators**.
 `;
@@ -485,14 +489,34 @@ Read **Last Poll Summary**:
 const threatLevels: Array<SecurityEventsGuideLevel> = [
   ...THREAT_LEVEL_BANDS.map(
     (band: ThreatLevelBand): SecurityEventsGuideLevel => {
+      const labelTemplate: SecurityEventsGuideTemplate = {
+        sentence: "Confidence {{from}}–{{to}}",
+        values: {
+          from: band.minimumConfidence,
+          to: band.maximumConfidence,
+        },
+      };
+
       return {
-        label: `Confidence ${formatBand(band)}`,
+        label: fillGuideTemplate(labelTemplate),
+        labelTemplate,
         severity: threatLevelForBand(band),
       };
     },
   ),
   { label: "Not scored", severity: UNSCORED_THREAT_LEVEL },
 ];
+
+// The first step's sentence, as the card looks it up in the reader's language.
+const READ_THE_SOURCE: SecurityEventsGuideTemplate = {
+  sentence:
+    "Every {{min}}–{{max}} minutes (default {{default}}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.",
+  values: {
+    min: THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES,
+    max: THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES,
+    default: THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES,
+  },
+};
 
 const ThreatIntelGuide: SecurityEventsGuide = {
   id: "threat-intel",
@@ -503,7 +527,8 @@ const ThreatIntelGuide: SecurityEventsGuide = {
     {
       title: "Read the source",
       icon: IconProp.CloudArrowDown,
-      description: `Every ${THREAT_INTEL_POLL_INTERVAL_MIN_IN_MINUTES}–${THREAT_INTEL_POLL_INTERVAL_MAX_IN_MINUTES} minutes (default ${THREAT_INTEL_DEFAULT_POLL_INTERVAL_IN_MINUTES}), OneUptime downloads the list, polls the TAXII 2.1 collection or reads what Google SecOps found.`,
+      description: fillGuideTemplate(READ_THE_SOURCE),
+      descriptionTemplate: READ_THE_SOURCE,
     },
     {
       title: "Keep the indicators",
@@ -528,9 +553,11 @@ const ThreatIntelGuide: SecurityEventsGuide = {
     title: "Threat levels",
     description:
       "An indicator's confidence sets its threat level: the severity of its findings, and the alert severity when the feed does not set one.",
+    linkText: "How threat levels are chosen",
     items: threatLevels,
     sectionId: "threat-levels",
   },
+  // Keys in SecurityEventsGuideCopy, which the card looks up when it opens.
   guideTitle: "Threat Intel Guide",
   guideDescription:
     "Where feeds come from, how indicators reach your events, and how confidence becomes a threat level.",

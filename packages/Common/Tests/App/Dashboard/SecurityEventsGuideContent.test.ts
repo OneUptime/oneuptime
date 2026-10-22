@@ -1231,6 +1231,14 @@ describe("Threat Intel guide: threat levels", () => {
     THREAT_LEVEL_BANDS.forEach((band: ThreatLevelBand, index: number) => {
       expect(ThreatIntelGuide.levels.items[index]).toEqual({
         label: `Confidence ${formatBand(band)}`,
+        // The card looks the label up with the band's numbers written in.
+        labelTemplate: {
+          sentence: "Confidence {{from}}–{{to}}",
+          values: {
+            from: band.minimumConfidence,
+            to: band.maximumConfidence,
+          },
+        },
         severity: threatLevelForBand(band),
       });
     });

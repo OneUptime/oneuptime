@@ -8,11 +8,13 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import type { Mock } from "jest-mock";
 import * as React from "react";
@@ -49,7 +51,11 @@ type CapturedTableProps = {
   columns?: Array<{
     title: string;
     getElement?: (item: Record<string, unknown>) => React.ReactElement;
+    isHiddenByDefault?: boolean;
+    wrapContent?: boolean;
+    contentClassName?: string;
   }>;
+  emptyState?: { description?: string };
   actionButtons?: Array<{
     title: string;
     isVisible?: (item: Record<string, unknown>) => boolean;
@@ -86,6 +92,7 @@ import ThreatIntelPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Secu
 import ThreatIntelRecommendedLists, {
   buildFeedFromRecommendedList,
   isRecommendedListAdded,
+  shouldShowRecommendedLists,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ThreatIntelRecommendedLists";
 import {
   RECOMMENDED_THREAT_INTEL_LIST_TEXTS,
@@ -326,6 +333,40 @@ describe("a new feed's source", () => {
     ).toBeNull();
   });
 
+  /*
+   * A list's step asks for its address alone: how sure the list is (empty is
+   * Medium) waits under its own More fields, as the source step's settings
+   * that have a default do.
+   */
+  test("a list asks for its address alone; how sure the list is waits under More fields", async () => {
+    await renderPage();
+
+    const confidence: CapturedField = byColumn("indicatorConfidence");
+    const address: CapturedField = byColumn("listUrl");
+
+    expect(confidence.stepId).toBe("list");
+    expect(confidence["collapsibleSection"]).toBeDefined();
+    expect(isRequired(confidence, LIST)).toBe(false);
+    expect(address["collapsibleSection"]).toBeUndefined();
+    // Its own fold: the source step's More fields sit on another step.
+    expect(confidence["collapsibleSection"]).not.toBe(
+      byColumn("description")["collapsibleSection"],
+    );
+  });
+
+  // The name's example fits every source, not a TAXII server only.
+  test("a feed's name is asked in words that fit every source", async () => {
+    await renderPage();
+
+    const name: CapturedField = byColumn("name");
+
+    expect(name.stepId).toBe("source");
+    expect(name["placeholder"]).toBe("e.g. Partner threat feed");
+    expect(name["description"]).toBe(
+      "How this feed appears in the list and on its indicators.",
+    );
+  });
+
   test("a list's indicators all have the list's confidence: no confidence floor", async () => {
     await renderPage();
 
@@ -383,6 +424,78 @@ describe("the feeds table", () => {
     }
   });
 
+  /*
+   * Ten columns stood a feed's row five lines tall: the interval (the
+   * feed's own setting) and Last Evaluated (which moves every minute while
+   * all is well) start hidden, and the sentences wrap within a width of
+   * their own instead of one word a line.
+   */
+  test("shows what most people read on every row, and the rest from Customize Columns", async () => {
+    await renderPage();
+
+    type Column = {
+      title: string;
+      isHiddenByDefault?: boolean;
+      wrapContent?: boolean;
+      contentClassName?: string;
+    };
+
+    const columns: Array<Column> = capturedFeedTableProps?.columns || [];
+
+    const titles: (shown: boolean) => Array<string> = (
+      shown: boolean,
+    ): Array<string> => {
+      return columns
+        .filter((column: Column) => {
+          return Boolean(column.isHiddenByDefault) !== shown;
+        })
+        .map((column: Column) => {
+          return column.title;
+        });
+    };
+
+    expect(titles(true)).toEqual([
+      "Name",
+      "Source",
+      "Status",
+      "Last Polled",
+      "Last Poll Summary",
+      "Last Error",
+      "Last Match",
+      "Last Match Error",
+    ]);
+    expect(titles(false)).toEqual(["Interval (Minutes)", "Last Evaluated"]);
+
+    const byTitle: (title: string) => Column | undefined = (
+      title: string,
+    ): Column | undefined => {
+      return columns.find((column: Column) => {
+        return column.title === title;
+      });
+    };
+
+    for (const title of [
+      "Last Poll Summary",
+      "Last Error",
+      "Last Match Error",
+    ]) {
+      expect([title, byTitle(title)?.wrapContent]).toEqual([title, true]);
+    }
+
+    expect(byTitle("Last Poll Summary")?.contentClassName).toBe(
+      "min-w-[16rem]",
+    );
+  });
+
+  // A project with no feed has Free Lists right above the empty table.
+  test("an empty table points at Free Lists first, then at a feed of one's own", async () => {
+    await renderPage();
+
+    expect(capturedFeedTableProps?.emptyState?.description).toBe(
+      "Add a free list above in one click, or create a feed that reads your own list, a TAXII collection or Google SecOps.",
+    );
+  });
+
   test("offers Update Credentials on a TAXII feed only", async () => {
     await renderPage();
 
@@ -409,7 +522,13 @@ describe("the feeds table", () => {
 });
 
 describe("Free Lists", () => {
-  test("shows each free list with its publisher, schedule, confidence and terms", async () => {
+  /*
+   * Who publishes a list, how often it is read and its terms share one line
+   * under its name: the tile's foot holds only its one action, so every tile
+   * ends alike. A confidence number told a reader nothing; the feed's form
+   * keeps it.
+   */
+  test("shows each free list with its publisher, schedule and terms", async () => {
     await renderLists();
 
     await waitFor(() => {
@@ -420,10 +539,22 @@ describe("Free Lists", () => {
       const tile: HTMLElement = screen.getByTestId(
         `threat-intel-list-${list.id}`,
       );
+      const about: HTMLElement = screen.getByTestId(
+        `threat-intel-list-about-${list.id}`,
+      );
 
       expect(tile).toHaveTextContent(list.title);
-      expect(tile).toHaveTextContent(list.provider);
-      expect(tile).toHaveTextContent(`Confidence ${list.indicatorConfidence}`);
+      expect(about).toHaveTextContent(list.provider);
+      expect(tile).not.toHaveTextContent("Confidence");
+
+      const terms: HTMLElement = within(about).getByRole("link", {
+        name: /Terms/,
+      });
+
+      expect(terms).toHaveAttribute("target", "_blank");
+      expect(new URL(terms.getAttribute("href") || "").href).toBe(
+        new URL(list.termsUrl).href,
+      );
       expect(
         screen.getByTestId(`threat-intel-list-add-${list.id}`),
       ).toBeInTheDocument();
@@ -532,6 +663,149 @@ describe("Free Lists", () => {
     expect(
       screen.getByTestId("threat-intel-list-add-feodo-tracker"),
     ).toBeDisabled();
+  });
+
+  test("draws nothing until the project's feeds are read: no Add flashes for a list it has", async () => {
+    let answer: (value: unknown) => void = () => {};
+
+    getListSpy.mockImplementation((() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        answer = resolve;
+      });
+    }) as never);
+
+    render(
+      <MemoryRouter>
+        <ThreatIntelRecommendedLists onAdded={() => {}} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByTestId("threat-intel-recommended-lists"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Free Lists")).not.toBeInTheDocument();
+
+    await act(async () => {
+      answer({ data: [], count: 0, skip: 0, limit: 100 });
+    });
+
+    expect(
+      await screen.findByTestId("threat-intel-recommended-lists"),
+    ).toHaveAttribute("data-loaded", "true");
+  });
+
+  // A suggestion shows only while it applies: every list is a feed already.
+  test("a project that reads every free list has no Free Lists card", async () => {
+    stubFeeds(
+      RECOMMENDED_THREAT_INTEL_LISTS.map(
+        (list: RecommendedThreatIntelList): string => {
+          return list.url;
+        },
+      ),
+    );
+
+    render(
+      <MemoryRouter>
+        <ThreatIntelRecommendedLists onAdded={() => {}} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(getListSpy).toHaveBeenCalled();
+    });
+    // Past the read's answer: the card has decided, not merely not drawn yet.
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+
+    expect(
+      screen.queryByTestId("threat-intel-recommended-lists"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Free Lists")).not.toBeInTheDocument();
+  });
+
+  // The card does not vanish under the click that adds the last list.
+  test("adding the last list keeps the card, every tile saying Added", async () => {
+    stubFeeds(
+      RECOMMENDED_THREAT_INTEL_LISTS.filter(
+        (list: RecommendedThreatIntelList): boolean => {
+          return list.id !== TOR.id;
+        },
+      ).map((list: RecommendedThreatIntelList): string => {
+        return list.url;
+      }),
+    );
+
+    await renderLists();
+
+    fireEvent.click(screen.getByTestId("threat-intel-list-add-tor-exit-nodes"));
+
+    expect(
+      await screen.findByTestId("threat-intel-list-added-tor-exit-nodes"),
+    ).toBeInTheDocument();
+
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      expect(
+        screen.getByTestId(`threat-intel-list-added-${list.id}`),
+      ).toHaveTextContent("Added");
+    }
+  });
+
+  test("a read that fails still offers the lists, and says why", async () => {
+    getListSpy.mockImplementation((() => {
+      throw new BadDataException("The feeds could not be read.");
+    }) as never);
+
+    await renderLists();
+
+    expect(
+      screen.getByText("The feeds could not be read."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("threat-intel-list-add-feodo-tracker"),
+    ).toBeInTheDocument();
+  });
+
+  test("has something to offer while a list is left to add, or one was added from it", () => {
+    const every: Array<string> = RECOMMENDED_THREAT_INTEL_LISTS.map(
+      (list: RecommendedThreatIntelList): string => {
+        return list.url;
+      },
+    );
+
+    const shows: (
+      listUrls: Array<string>,
+      hasAddedHere: boolean,
+      hasError: boolean,
+    ) => boolean = (
+      listUrls: Array<string>,
+      hasAddedHere: boolean,
+      hasError: boolean,
+    ): boolean => {
+      return shouldShowRecommendedLists({ listUrls, hasAddedHere, hasError });
+    };
+
+    expect(shows([], false, false)).toBe(true);
+    expect(shows(every.slice(1), false, false)).toBe(true);
+    expect(shows(every, false, false)).toBe(false);
+    // Read the way a project wrote it: case and spaces aside.
+    expect(
+      shows(
+        every.map((url: string): string => {
+          return ` ${url.toUpperCase()} `;
+        }),
+        false,
+        false,
+      ),
+    ).toBe(false);
+    // Added from the card just now, or a read that failed: it stays.
+    expect(shows(every, true, false)).toBe(true);
+    expect(shows(every, false, true)).toBe(true);
   });
 
   test("a feed of a list, as built: every recommended list raises a case, those worth a page an alert", () => {

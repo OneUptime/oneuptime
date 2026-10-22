@@ -1,5 +1,6 @@
 import SecurityLogFormat from "Common/Types/SecurityEvent/SecurityLogFormat";
 import SecurityEventDestinationScope from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
+import SecurityEventDestinationProvider from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -68,6 +69,30 @@ export const SECURITY_EVENT_DESTINATION_SCOPE_TEXTS: Record<
       "Every security event OneUptime receives, so your SIEM can search them too.",
     ),
   },
+};
+
+/*
+ * Each SIEM's line under its name in the Send to your SIEM picker, by the
+ * catalog's provider: how OneUptime sends to it. The picker draws the
+ * catalog's own words; these only put them in the locale files. A SIEM's
+ * name is a name and is never translated.
+ */
+export const SECURITY_EVENT_DESTINATION_TEXTS: Record<
+  SecurityEventDestinationProvider,
+  string
+> = {
+  [SecurityEventDestinationProvider.GoogleSecOps]: translationKey(
+    "As UDM events, through the Chronicle API.",
+  ),
+  [SecurityEventDestinationProvider.Splunk]: translationKey(
+    "Through its HTTP Event Collector (HEC), with CIM field names.",
+  ),
+  [SecurityEventDestinationProvider.MicrosoftSentinel]: translationKey(
+    "To a workspace's custom table, through the Azure Monitor Logs Ingestion API.",
+  ),
+  [SecurityEventDestinationProvider.ElasticSecurity]: translationKey(
+    "As Elastic Common Schema (ECS) documents in an Elasticsearch data stream.",
+  ),
 };
 
 /*
@@ -199,7 +224,7 @@ export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
   closeAlertsWhenCaseCloses: {
     title: translationKey("Close alerts when their case closes"),
     description: translationKey(
-      "Closing a security case closes its Google SecOps alerts too, with the verdict and closing note. The key needs the Chronicle API Editor role.",
+      "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
     ),
   },
 };

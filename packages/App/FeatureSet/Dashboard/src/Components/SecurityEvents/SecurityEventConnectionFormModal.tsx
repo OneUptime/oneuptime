@@ -26,7 +26,9 @@ import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import Field, {
   CustomElementProps,
+  FormFieldCollapsibleSection,
 } from "Common/UI/Components/Forms/Types/Field";
+import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -49,6 +51,16 @@ export const PROVIDER_STEP_ID: string = "provider";
 export const CONNECTION_STEP_ID: string = "connection";
 export const CREDENTIALS_STEP_ID: string = "credentials";
 export const POLLING_STEP_ID: string = "polling";
+
+/*
+ * The last step's settings most people leave as they are - a description,
+ * how often to poll and whether polling is on - folded under More fields,
+ * so the step asks first for the connection's name and what it imports and
+ * opens. Folded, the line still names each one set otherwise ("Enabled:
+ * Off" on a paused connection).
+ */
+const pollingAdvancedSection: FormFieldCollapsibleSection<JSONObject> =
+  getAdvancedFormSection<JSONObject>();
 
 /*
  * Every provider's fields live in ONE form and are shown or hidden by the
@@ -807,33 +819,6 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         validation: { minLength: 2 },
       },
       {
-        field: { description: true },
-        title: "Description",
-        stepId: POLLING_STEP_ID,
-        fieldType: FormFieldSchemaType.LongText,
-        required: false,
-      },
-      {
-        field: { pollIntervalInMinutes: true },
-        title: "Poll Interval (Minutes)",
-        description:
-          "How often new records are fetched, in whole minutes between 1 and 1440. Default 5.",
-        stepId: POLLING_STEP_ID,
-        fieldType: FormFieldSchemaType.Number,
-        required: true,
-        placeholder: "e.g. 5",
-        validation: { minValue: 1, maxValue: 1440 },
-      },
-      {
-        field: { isEnabled: true },
-        title: "Enabled",
-        description:
-          "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
-        stepId: POLLING_STEP_ID,
-        fieldType: FormFieldSchemaType.Toggle,
-        required: false,
-      },
-      {
         field: { alertingOnly: true },
         title: "Alerts only",
         description:
@@ -852,51 +837,13 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
           );
         },
       },
-      {
-        field: { caseMinimumSeverity: true },
-        title: "Open Cases From",
-        description:
-          "Alerts at or above this severity open security cases, grouped by user, host or address.",
-        stepId: POLLING_STEP_ID,
-        fieldType: FormFieldSchemaType.Dropdown,
-        dropdownOptions: CASE_SEVERITY_CHOICES.map(
-          (choice: string): DropdownOption => {
-            return {
-              label: CASE_SEVERITY_LABELS[choice] || choice,
-              value: choice,
-            };
-          },
-        ),
-        required: true,
-      },
     );
 
     /*
-     * Each provider's own options (ConnectorField.isOption), after the
-     * connection's: "Close alerts when their case closes" for Google SecOps.
-     */
-    for (const definition of definitions) {
-      for (const field of definition.configFields) {
-        if (!field.isOption) {
-          continue;
-        }
-
-        fields.push({
-          field: { [configFieldName(definition.provider, field.key)]: true },
-          title: field.title,
-          description: field.description,
-          stepId: POLLING_STEP_ID,
-          fieldType: fieldTypeFor(field),
-          required: field.required,
-          showIf: isSelected(definition),
-        });
-      }
-    }
-
-    /*
      * A provider with its own presentation of alertingOnly gets that instead
-     * of the toggle. Same field name, so the value, the initial values and
-     * the submit mapping are shared; only one of the two is ever visible.
+     * of the toggle, where the toggle would be: what is imported, then which
+     * of it opens a case. Same field name, so the value, the initial values
+     * and the submit mapping are shared; only one of the two is ever visible.
      */
     for (const definition of definitions) {
       const control: ConnectorAlertingOnlyControl | undefined =
@@ -932,6 +879,89 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
         },
       });
     }
+
+    fields.push({
+      field: { caseMinimumSeverity: true },
+      title: "Open Cases From",
+      description:
+        "Alerts at or above this severity open security cases, grouped by user, host or address.",
+      stepId: POLLING_STEP_ID,
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownOptions: CASE_SEVERITY_CHOICES.map(
+        (choice: string): DropdownOption => {
+          return {
+            label: CASE_SEVERITY_LABELS[choice] || choice,
+            value: choice,
+          };
+        },
+      ),
+      required: true,
+    });
+
+    /*
+     * Each provider's own options (ConnectorField.isOption), last: what
+     * happens in the product when a case closes ("Close alerts when their
+     * case closes" for Google SecOps) follows what opens a case.
+     */
+    for (const definition of definitions) {
+      for (const field of definition.configFields) {
+        if (!field.isOption) {
+          continue;
+        }
+
+        fields.push({
+          field: { [configFieldName(definition.provider, field.key)]: true },
+          title: field.title,
+          description: field.description,
+          stepId: POLLING_STEP_ID,
+          fieldType: fieldTypeFor(field),
+          required: field.required,
+          showIf: isSelected(definition),
+        });
+      }
+    }
+
+    // More fields closes the step: what most people leave as it is.
+    fields.push(
+      {
+        field: { description: true },
+        title: "Description",
+        stepId: POLLING_STEP_ID,
+        fieldType: FormFieldSchemaType.LongText,
+        required: false,
+        collapsibleSection: pollingAdvancedSection,
+      },
+      {
+        field: { pollIntervalInMinutes: true },
+        title: "Poll Interval (Minutes)",
+        description:
+          "How often new records are fetched, in whole minutes between 1 and 1440. Default 5.",
+        stepId: POLLING_STEP_ID,
+        fieldType: FormFieldSchemaType.Number,
+        required: true,
+        placeholder: "e.g. 5",
+        validation: { minValue: 1, maxValue: 1440 },
+        /*
+         * Every provider's default (defaultPollIntervalInMinutes), as a new
+         * connection starts: the fold reads 5 as nobody's setting, and an
+         * interval set otherwise as one.
+         */
+        defaultValue: 5,
+        collapsibleSection: pollingAdvancedSection,
+      },
+      {
+        field: { isEnabled: true },
+        title: "Enabled",
+        description:
+          "Disabled connections are skipped by scheduled polling. On-demand runs remain available.",
+        stepId: POLLING_STEP_ID,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        // On unless paused: the fold names it only when it is off.
+        defaultValue: true,
+        collapsibleSection: pollingAdvancedSection,
+      },
+    );
   }
 
   const initialValues: JSONObject = {};

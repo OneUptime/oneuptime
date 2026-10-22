@@ -74,6 +74,20 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 const advancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
   getAdvancedFormSection<ThreatIntelFeed>();
 
+/*
+ * A list's own More fields: how sure the list is, which most people leave
+ * empty (Medium). The List step then asks for the address alone.
+ */
+const listAdvancedSection: FormFieldCollapsibleSection<ThreatIntelFeed> =
+  getAdvancedFormSection<ThreatIntelFeed>();
+
+/*
+ * What a feed's last poll did is a sentence on every row: it wraps within
+ * this width, not the few words a table of ten columns left it, which stood
+ * every row five lines tall.
+ */
+const POLL_SUMMARY_COLUMN_CLASS_NAME: string = "min-w-[16rem]";
+
 const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
@@ -162,6 +176,14 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           title: "Threat Intel Feeds",
           description:
             "Where your indicators come from: lists of indicators, TAXII 2.1 collections and Google SecOps. Matching events get threat.* attributes, and a match opens a case, as a detection rule does.",
+        }}
+        /*
+         * A project with no feed has Free Lists right above: the empty table
+         * points there first, then at a feed of its own.
+         */
+        emptyState={{
+          description:
+            "Add a free list above in one click, or create a feed that reads your own list, a TAXII collection or Google SecOps.",
         }}
         refreshToggle={String(feedsVersion)}
         onCreateSuccess={async (item: ThreatIntelFeed) => {
@@ -283,9 +305,11 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Name",
             stepId: "source",
+            description:
+              "How this feed appears in the list and on its indicators.",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "e.g. Corporate MISP",
+            placeholder: "e.g. Partner threat feed",
             validation: {
               minLength: 2,
             },
@@ -420,6 +444,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
                 getThreatIntelFeedSource(values) === ThreatIntelFeedType.List
               );
             },
+            collapsibleSection: listAdvancedSection,
           },
           {
             field: {
@@ -716,6 +741,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
               return <Pill color={Red} text="Disabled" />;
             },
           },
+          /*
+           * The interval is the feed's own setting, on its Edit form:
+           * shown from Customize Columns, not on every row.
+           */
           {
             field: {
               pollIntervalInMinutes: true,
@@ -723,6 +752,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Interval (Minutes)",
             type: FieldType.Number,
             noValueMessage: "-",
+            isHiddenByDefault: true,
           },
           {
             field: {
@@ -739,6 +769,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Poll Summary",
             type: FieldType.LongText,
             noValueMessage: "-",
+            wrapContent: true,
+            contentClassName: POLL_SUMMARY_COLUMN_CLASS_NAME,
           },
           {
             field: {
@@ -747,11 +779,14 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            wrapContent: true,
           },
           /*
            * The matching side, separate from the polling side above —
            * the split the help content promises, so a broken TAXII
            * server and a broken match query are distinguishable here.
+           * Last Evaluated moves every minute while all is well: shown
+           * from Customize Columns; Last Match Error says when it is not.
            */
           {
             field: {
@@ -760,6 +795,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Evaluated",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            isHiddenByDefault: true,
           },
           {
             field: {
@@ -776,6 +812,7 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Match Error",
             type: FieldType.LongText,
             noValueMessage: "-",
+            wrapContent: true,
           },
         ]}
       />

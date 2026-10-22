@@ -270,6 +270,21 @@ async function next(): Promise<void> {
   });
 }
 
+// The last step's More fields: a description and the poll interval.
+function pollingMoreFields(): HTMLElement {
+  return within(dialog()).getByRole("button", { name: /^More fields/ });
+}
+
+async function openPollingMoreFields(): Promise<void> {
+  if (pollingMoreFields().getAttribute("aria-expanded") === "true") {
+    return;
+  }
+
+  await act(async (): Promise<void> => {
+    fireEvent.click(pollingMoreFields());
+  });
+}
+
 async function goToStep(title: string): Promise<void> {
   await act(async (): Promise<void> => {
     fireEvent.click(within(progress()).getByText(title));
@@ -661,6 +676,32 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     await next();
     expect(activeStep()).toBe("Polling");
 
+    /*
+     * A new connection is polled, every 5 minutes unless said otherwise: a
+     * description, the interval and Enabled wait under More fields at the
+     * end of the step, named there and at their defaults.
+     */
+    expect(pollingMoreFields()).toHaveAttribute("aria-expanded", "false");
+    expect(
+      within(dialog())
+        .getAllByTestId("folded-section-item")
+        .map((item: HTMLElement): string => {
+          return `${item.textContent}:${item.getAttribute("data-item-set")}`;
+        }),
+    ).toEqual([
+      "Description:false",
+      "Poll Interval (Minutes):false",
+      "Enabled:false",
+    ]);
+    expect(
+      Boolean(
+        screen
+          .getByRole("combobox", { name: /^Open Cases From/ })
+          .compareDocumentPosition(pollingMoreFields()) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+    await openPollingMoreFields();
     expect(
       screen.getByRole("spinbutton", { name: /^Poll Interval/ }),
     ).toHaveValue(5);
@@ -973,6 +1014,19 @@ describe("SecurityEventConnectionFormModal (edit and credentials)", () => {
     await next();
     expect(activeStep()).toBe("Polling");
     expect(screen.getByLabelText(/^Name/)).toHaveValue("Acme Okta");
+    // An interval other than the default says so while folded; Enabled, on, does not.
+    expect(
+      within(dialog())
+        .getAllByTestId("folded-section-item")
+        .map((item: HTMLElement): string => {
+          return `${item.textContent}:${item.getAttribute("data-item-set")}`;
+        }),
+    ).toEqual([
+      "Description:false",
+      "Poll Interval (Minutes): 10:true",
+      "Enabled:false",
+    ]);
+    await openPollingMoreFields();
     expect(
       screen.getByRole("spinbutton", { name: /^Poll Interval/ }),
     ).toHaveValue(10);
@@ -1229,6 +1283,7 @@ describe("SecurityEventConnectionFormModal (poll interval bounds)", () => {
     await next();
     await next();
     expect(activeStep()).toBe("Polling");
+    await openPollingMoreFields();
     expect(pollIntervalInput()).toHaveValue(10);
     return onSaved;
   }
@@ -1283,6 +1338,40 @@ describe("SecurityEventConnectionFormModal (poll interval bounds)", () => {
       expect(onSaved).toHaveBeenCalledTimes(1);
     },
   );
+
+  /*
+   * A bad interval folded away still stops the save, and its fold opens by
+   * itself to say why.
+   */
+  test("a bad interval under More fields opens it to say why", async () => {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
+      connection: oktaConnection(),
+    });
+    await next();
+    await next();
+    expect(activeStep()).toBe("Polling");
+    await openPollingMoreFields();
+    fireEvent.change(pollIntervalInput(), { target: { value: "0" } });
+
+    // Folded again, the fold holds the bad value out of sight.
+    await act(async (): Promise<void> => {
+      fireEvent.click(pollingMoreFields());
+    });
+    expect(pollingMoreFields()).toHaveAttribute("aria-expanded", "false");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Save changes"));
+    });
+
+    expect(
+      await screen.findByText(
+        "Poll Interval (Minutes) should not be less than 1.",
+      ),
+    ).toBeVisible();
+    expect(pollingMoreFields()).toHaveAttribute("aria-expanded", "true");
+    expect(ModelAPI.updateById).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
 
   test("Open Cases From says what a threshold opens, and leaves Never to its own choice", async () => {
     await openPollingStep();
@@ -1531,6 +1620,52 @@ describe("SecurityEventConnectionFormModal (Google SecOps)", () => {
     expect(created.model.pollIntervalInMinutes).toBe(5);
     expect(created.model.isEnabled).toBe(true);
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The last step reads in the order things happen: what is imported (Data
+   * to import, where another product's Alerts only switch sits), which of
+   * it opens a case, then what closing a case does in Google SecOps.
+   */
+  test("the last step asks what to import, then what opens a case, then what closing one does", async (): Promise<void> => {
+    await renderModal();
+    await chooseProvider("Google SecOps");
+    await next();
+    const user: UserEvent = userEvent.setup({ delay: null });
+    await reachGoogleCredentials(user);
+    await pasteKey(GOOGLE_KEY);
+    await next();
+    expect(activeStep()).toBe("Polling");
+
+    const dataToImport: HTMLElement = screen.getByRole("group", {
+      name: "Data to import",
+    });
+    const openCasesFrom: HTMLElement = screen.getAllByText("Open Cases From", {
+      exact: true,
+    })[0]!;
+    const closeAlerts: HTMLElement = screen.getByRole("switch", {
+      name: /^Close alerts when their case closes/,
+    });
+
+    const follows: (first: HTMLElement, second: HTMLElement) => boolean = (
+      first: HTMLElement,
+      second: HTMLElement,
+    ): boolean => {
+      return Boolean(
+        first.compareDocumentPosition(second) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    };
+
+    expect(follows(dataToImport, openCasesFrom)).toBe(true);
+    expect(follows(openCasesFrom, closeAlerts)).toBe(true);
+    // Off until someone turns it on, and it says what the key then needs.
+    expect(closeAlerts).not.toBeChecked();
+    expect(
+      screen.getByText(
+        "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+      ),
+    ).toBeVisible();
   });
 
   test("selecting Detections creates the connection with alertingOnly false and keeps it across steps", async (): Promise<void> => {

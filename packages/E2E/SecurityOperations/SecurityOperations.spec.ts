@@ -10,6 +10,7 @@ import {
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -143,6 +144,8 @@ interface OpenOptions {
   empty?: boolean;
   quiet?: boolean;
   role?: "viewer";
+  // "all": the project reads every free list already.
+  lists?: "all";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -225,6 +228,9 @@ async function open(
   }
   if (options.role) {
     params.set("role", options.role);
+  }
+  if (options.lists) {
+    params.set("lists", options.lists);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -1815,6 +1821,17 @@ test.describe("detection rules and threat intel", () => {
     await expect(summary).toContainText(
       "Ten failed sign-ins → Successful sign-in happen in this order for the same principalIp within 15 minutes.",
     );
+    // The rules it reads stand apart by their titles, the field as a column name.
+    await expect(summary.getByTestId("detection-rule-summary-rule")).toHaveText(
+      ["Ten failed sign-ins", "Successful sign-in"],
+    );
+    const field: Locator = summary.getByTestId("detection-rule-summary-field");
+    await expect(field).toHaveText(["principalIp"]);
+    expect(
+      await field.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontFamily;
+      }),
+    ).toContain("monospace");
     // The rule is named after the correlation's own title.
     await expect(
       dialog(page).getByRole("textbox", { name: /^Name/ }),
@@ -1855,12 +1872,14 @@ test.describe("detection rules and threat intel", () => {
 
     for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
       const tile: Locator = page.getByTestId(`threat-intel-list-${list.id}`);
-      await expect(tile).toContainText(list.title);
-      await expect(tile).toContainText(list.provider);
-      await expect(tile).toContainText(
-        `Confidence ${list.indicatorConfidence}`,
+      // Who publishes it, how often it is read and its terms: one line under its name.
+      const about: Locator = page.getByTestId(
+        `threat-intel-list-about-${list.id}`,
       );
-      const terms: Locator = tile.getByRole("link", { name: /Terms/ });
+      await expect(tile).toContainText(list.title);
+      await expect(about).toContainText(list.provider);
+      await expect(tile).not.toContainText("Confidence");
+      const terms: Locator = about.getByRole("link", { name: /Terms/ });
       await expect(terms).toHaveAttribute("target", "_blank");
       expect(new URL((await terms.getAttribute("href")) || "").href).toBe(
         new URL(list.termsUrl).href,
@@ -1893,6 +1912,21 @@ test.describe("detection rules and threat intel", () => {
         }),
       ).size,
     ).toBe(1);
+
+    /*
+     * Every tile ends alike: Added and Add List on one line across the row,
+     * whichever a tile says (Added once sat beside the terms while Add List
+     * dropped a line below them).
+     */
+    const ends: Array<number> = [];
+    for (const list of RECOMMENDED_THREAT_INTEL_LISTS) {
+      const action: Locator = page
+        .getByTestId(`threat-intel-list-added-${list.id}`)
+        .or(page.getByTestId(`threat-intel-list-add-${list.id}`));
+      const box: Box = await boxOf(action);
+      ends.push(box.y + box.height / 2);
+    }
+    expect(Math.max(...ends) - Math.min(...ends)).toBeLessThanOrEqual(2);
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "threat-intel-desktop", { fullPage: false });
   });
@@ -1953,6 +1987,81 @@ test.describe("detection rules and threat intel", () => {
     );
   });
 
+  test("with every free list a feed already, Free Lists is gone and the feeds lead the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, THREAT_INTEL_PATH, { lists: "all" });
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(feeds.locator("tbody tr")).toHaveCount(
+      RECOMMENDED_THREAT_INTEL_LISTS.length + 1,
+      { timeout: 30000 },
+    );
+    // The card read the feeds, found nothing left to offer, and drew nothing.
+    await expect
+      .poll(async (): Promise<number> => {
+        return (await fixture(page)).listRequests.filter(
+          (request: { modelName: string }): boolean => {
+            return request.modelName === "ThreatIntelFeed";
+          },
+        ).length;
+      })
+      .toBeGreaterThanOrEqual(2);
+    await expect(
+      page.getByTestId("threat-intel-recommended-lists"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Free Lists", exact: true }),
+    ).toHaveCount(0);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+  });
+
+  /*
+   * Ten columns stood every feed's row five lines tall. The interval and
+   * Last Evaluated wait in Customize Columns; what a poll did wraps in a
+   * width of its own.
+   */
+  test("the feeds table shows what most people read, each row a line or two tall", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFreeLists(page);
+    const feeds: Locator = cardTitled(page, "Threat Intel Feeds");
+    await expect(
+      feeds.locator("tbody tr").filter({ hasText: "Corporate MISP" }),
+    ).toBeVisible();
+
+    const headers: Array<string> = (
+      await feeds.locator("thead th").allTextContents()
+    )
+      .map((text: string): string => {
+        return text.trim();
+      })
+      .filter(Boolean);
+    for (const shown of [
+      "Name",
+      "Source",
+      "Status",
+      "Last Polled",
+      "Last Poll Summary",
+      "Last Error",
+      "Last Match",
+      "Last Match Error",
+    ]) {
+      expect(headers.join(" | ")).toContain(shown);
+    }
+    for (const hidden of ["Interval (Minutes)", "Last Evaluated"]) {
+      expect(headers.join(" | ")).not.toContain(hidden);
+    }
+
+    for (const row of await feeds.locator("tbody tr").all()) {
+      const box: Box = await boxOf(row);
+      expect(box.height).toBeLessThanOrEqual(80);
+    }
+  });
+
   test("a Security Viewer reads the lists but cannot add one", async ({
     page,
   }: {
@@ -1978,11 +2087,14 @@ test.describe("detection rules and threat intel", () => {
       title: string;
       step: string;
       settings: Array<RegExp>;
+      folded?: Array<string>;
     }> = [
       {
         title: "List of indicators",
         step: "List",
-        settings: [/^List URL/, /^Confidence/],
+        settings: [/^List URL/],
+        // How sure the list is, empty for Medium: folded.
+        folded: ["Confidence"],
       },
       {
         title: "TAXII collection",
@@ -2031,6 +2143,30 @@ test.describe("detection rules and threat intel", () => {
           } else {
             await expect(dialog(page).getByText(setting)).toHaveCount(0);
           }
+        }
+      }
+      if (source.folded) {
+        const more: Locator = dialog(page).getByRole("button", {
+          name: /More fields/,
+        });
+        await expect(more).toBeVisible();
+        for (const title of source.folded) {
+          await expect(
+            dialog(page).getByText(title, { exact: true }).first(),
+          ).toBeVisible();
+          await expect(
+            dialog(page).getByRole("spinbutton", {
+              name: new RegExp(`^${escapeRegExp(title)}`),
+            }),
+          ).toHaveCount(0);
+        }
+        await more.click();
+        for (const title of source.folded) {
+          await expect(
+            dialog(page).getByRole("spinbutton", {
+              name: new RegExp(`^${escapeRegExp(title)}`),
+            }),
+          ).toBeVisible();
         }
       }
       if (source.title === "Google SecOps") {

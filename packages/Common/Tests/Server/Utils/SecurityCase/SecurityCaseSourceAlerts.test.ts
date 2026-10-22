@@ -424,7 +424,7 @@ describe("a connection's job", () => {
 
     expect(item["eventType"]).toBe(SecurityCaseFeedEventType.ResponseAction);
     expect(item["feedInfoInMarkdown"]).toBe(
-      "Closed 1 alert in **Google SecOps** through the connection **Connection 1**. 1 was not an alert there.",
+      "Closed 1 alert in **Google SecOps** through the connection **Connection 1**. 1 was not found there.",
     );
   });
 
@@ -512,7 +512,7 @@ describe("a connection's job", () => {
 });
 
 describe("what the timeline says", () => {
-  test("closed, not alerts, and refused, in one line", () => {
+  test("closed, not found, and refused, in one line", () => {
     expect(
       sourceAlertsClosedMarkdown({
         productName: "Google SecOps",
@@ -525,7 +525,7 @@ describe("what the timeline says", () => {
         },
       }).toString(),
     ).toBe(
-      "Closed 3 alerts in **Google SecOps** through the connection **SecOps \\*prod\\***. 2 were not alerts there. Google SecOps refused to close 1.",
+      "Closed 3 alerts in **Google SecOps** through the connection **SecOps \\*prod\\***. 2 were not found there. Google SecOps refused to close 1.",
     );
   });
 

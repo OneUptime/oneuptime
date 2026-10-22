@@ -64,6 +64,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?empty=` | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                 |
 | `?quiet=` | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs |
 | `?role=`  | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                    |
+| `?lists=` | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                        |
 
 ## What the fixture records
 
@@ -105,12 +106,15 @@ that list is not empty.
 - **Detection rules and threat intel**: Detection Rules names each rule's kind (Single event,
   Sequence, First seen) and says what it means on hover; a single rule pasted into the form counts
   by Group By Field, Distinct Count Field and Match Count Threshold, while a correlation is said in
-  a sentence under its YAML, named after its own title, and leaves those three out. Threat Intel's
-  Free Lists offer each free list with its publisher, schedule, confidence and terms, mark the one
-  the project reads as Added, and add another in one click as a list feed the feeds table lists by
-  its source; a Security Viewer cannot add one; a new feed asks its source first, then only that
-  source's settings (Google SecOps with nowhere to connect from says where). Both pages in dark
-  and on a phone.
+  a sentence under its YAML - the rules it reads by their titles, its fields as code - named after
+  its own title, and leaves those three out. Threat Intel's Free Lists offer each free list with
+  its publisher, schedule and terms on one line, end every tile alike, mark the one the project
+  reads as Added, and add another in one click as a list feed the feeds table lists by its source;
+  a project that reads every list (`?lists=all`) has no Free Lists card; a Security Viewer cannot
+  add one; the feeds table leaves the interval and Last Evaluated to Customize Columns, each row a
+  line or two; a new feed asks its source first, then only that source's settings (a list's
+  confidence under More fields; Google SecOps with nowhere to connect from says where). Both pages
+  in dark and on a phone.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the fixture
