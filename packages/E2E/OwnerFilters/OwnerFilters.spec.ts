@@ -318,9 +318,10 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     const popover: Locator = await openChip(page, "Owner");
 
     await expect(offered(popover)).toHaveCount(5);
-    await expect(
-      popover.getByTestId("filter-chip-group-heading"),
-    ).toHaveText(["People", "Teams"]);
+    await expect(popover.getByTestId("filter-chip-group-heading")).toHaveText([
+      "People",
+      "Teams",
+    ]);
 
     for (const name of [
       "Ada Lovelace",
@@ -329,9 +330,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
       "SRE",
       "Payments",
     ]) {
-      await expect(
-        offered(popover).filter({ hasText: name }),
-      ).toHaveCount(1);
+      await expect(offered(popover).filter({ hasText: name })).toHaveCount(1);
     }
 
     // Searching narrows both lists.
@@ -528,9 +527,7 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
       expect(read.query["owners"]).toBeDefined();
     }
 
-    await bar(page)
-      .getByRole("button", { name: "Clear Owner filter" })
-      .click();
+    await bar(page).getByRole("button", { name: "Clear Owner filter" }).click();
     await expectListed(page, SCHEDULES);
     expect(await latestOwnersFilter(page)).toBeUndefined();
   });

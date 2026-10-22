@@ -333,5 +333,4 @@ describe("a filter by owners, held to the owner tables' read", () => {
 });
 
 // A refusal of a read of one of the schedule's owner tables.
-const OWNER_TABLE_REFUSAL: RegExp =
-  /On-Call Schedule (User|Team) Owner/;
+const OWNER_TABLE_REFUSAL: RegExp = /On-Call Schedule (User|Team) Owner/;

@@ -1151,8 +1151,7 @@ const useResourceOwners: <TResource extends BaseModel>(
       const userIds: Array<string> = [];
       const teamIds: Array<string> = [];
       for (const k of keys) {
-        const parsed: OwnerKey | null =
-          parseOwnerKey(k);
+        const parsed: OwnerKey | null = parseOwnerKey(k);
         if (parsed?.kind === "user") {
           userIds.push(parsed.id);
         } else if (parsed?.kind === "team") {

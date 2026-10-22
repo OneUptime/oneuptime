@@ -130,7 +130,8 @@ export const buildOwnerFacetQuery: (data: {
   }
 
   return new OwnedBy({
-    match: data.operator === "is_not" ? OwnedByMatch.NoneOf : OwnedByMatch.AnyOf,
+    match:
+      data.operator === "is_not" ? OwnedByMatch.NoneOf : OwnedByMatch.AnyOf,
     userIds: picked.userIds,
     teamIds: picked.teamIds,
   });
@@ -140,11 +141,11 @@ export const buildOwnerFacetQuery: (data: {
  * `query` with the chip's filter under "owners", or the query as it was
  * when the chip filters nothing. The query is not changed in place.
  */
-export const mergeOwnerFacetIntoQuery: <TQuery extends object>(data: {
+export const mergeOwnerFacetIntoQuery: <TQuery>(data: {
   query: TQuery;
   operator: FilterOperator;
   ownerKeys: Array<string>;
-}) => TQuery = <TQuery extends object>(data: {
+}) => TQuery = <TQuery>(data: {
   query: TQuery;
   operator: FilterOperator;
   ownerKeys: Array<string>;
@@ -159,7 +160,7 @@ export const mergeOwnerFacetIntoQuery: <TQuery extends object>(data: {
   }
 
   return {
-    ...data.query,
+    ...(data.query as unknown as Record<string, unknown>),
     [OWNED_BY_QUERY_KEY]: ownedBy,
-  } as TQuery;
+  } as unknown as TQuery;
 };

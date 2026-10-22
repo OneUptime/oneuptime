@@ -102,12 +102,8 @@ describe("OwnedByFilter - the owner tables a filter by owners reads", () => {
       );
 
       expect(tables).not.toBeNull();
-      expect(tables!.userTable.modelType).toBe(
-        pair.ownerUserService.modelType,
-      );
-      expect(tables!.teamTable.modelType).toBe(
-        pair.ownerTeamService.modelType,
-      );
+      expect(tables!.userTable.modelType).toBe(pair.ownerUserService.modelType);
+      expect(tables!.teamTable.modelType).toBe(pair.ownerTeamService.modelType);
     });
 
     test.each([
@@ -120,9 +116,9 @@ describe("OwnedByFilter - the owner tables a filter by owners reads", () => {
         ownerColumn: string,
         ownerRelation: string,
       ) => {
-        const table: OwnerTable = OwnedByFilter.getOwnerTables(
-          kindModelType!,
-        )![side];
+        const table: OwnerTable = OwnedByFilter.getOwnerTables(kindModelType!)![
+          side
+        ];
         const model: BaseModel = new table.modelType();
 
         // The table Postgres has, as TypeORM creates it.
@@ -242,8 +238,7 @@ describe("OwnedByFilter - the owner tables a filter by owners reads", () => {
 
       expect({
         match,
-        exists:
-          match === OwnedByMatch.NoneOf || match === OwnedByMatch.NoOwner,
+        exists: match === OwnedByMatch.NoneOf || match === OwnedByMatch.NoOwner,
       }).toEqual({ match, exists: sql.includes("NOT EXISTS") });
     }
   });

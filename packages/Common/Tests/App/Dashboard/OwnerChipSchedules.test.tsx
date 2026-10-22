@@ -225,9 +225,11 @@ interface ListRequest {
 }
 
 // The requests of one model the page made.
-const requestsOf: (modelType: { name: string }) => Array<ListRequest> = (
-  modelType: { name: string },
-): Array<ListRequest> => {
+const requestsOf: (modelType: {
+  name: string;
+}) => Array<ListRequest> = (modelType: {
+  name: string;
+}): Array<ListRequest> => {
   return getListMock.mock.calls
     .map((call: Array<unknown>): ListRequest => {
       return call[0] as ListRequest;
@@ -246,14 +248,18 @@ const answerLists: () => void = (): void => {
       data = [teamMember(ADA), teamMember(GRACE)];
     } else if (request.modelType.name === Team.name) {
       data = [SRE, PAYMENTS];
-    } else if (request.modelType.name === OnCallDutyPolicyScheduleOwnerUser.name) {
+    } else if (
+      request.modelType.name === OnCallDutyPolicyScheduleOwnerUser.name
+    ) {
       const row: OnCallDutyPolicyScheduleOwnerUser =
         new OnCallDutyPolicyScheduleOwnerUser();
       row._id = ObjectID.generate().toString();
       row.onCallDutyPolicyScheduleId = new ObjectID(PRIMARY_SCHEDULE_ID);
       row.user = ADA;
       data = [row];
-    } else if (request.modelType.name === OnCallDutyPolicyScheduleOwnerTeam.name) {
+    } else if (
+      request.modelType.name === OnCallDutyPolicyScheduleOwnerTeam.name
+    ) {
       const row: OnCallDutyPolicyScheduleOwnerTeam =
         new OnCallDutyPolicyScheduleOwnerTeam();
       row._id = ObjectID.generate().toString();
@@ -293,7 +299,9 @@ const getTable: () => CapturedTableProps = (): CapturedTableProps => {
 };
 
 // The chip's button, and the popover it opens.
-const openChip: (label: string) => HTMLElement = (label: string): HTMLElement => {
+const openChip: (label: string) => HTMLElement = (
+  label: string,
+): HTMLElement => {
   const chip: HTMLElement = screen.getByRole("button", {
     name: new RegExp(`^${label}(?:$| ·)`),
   });
@@ -500,24 +508,21 @@ describe("On-Call Schedules: the Owner chip", () => {
   test.each([
     ["is_empty", OwnedByMatch.NoOwner],
     ["is_not_empty", OwnedByMatch.AnyOwner],
-  ])(
-    "%s: the schedules %s",
-    async (operator: string, match: OwnedByMatch) => {
-      renderPage();
-      await setOperator("Owner", operator);
+  ])("%s: the schedules %s", async (operator: string, match: OwnedByMatch) => {
+    renderPage();
+    await setOperator("Owner", operator);
 
-      await waitFor(() => {
-        expect(ownersOfLatestQuery()).toEqual({
-          _type: "OwnedBy",
-          match: match,
-          userIds: [],
-          teamIds: [],
-        });
+    await waitFor(() => {
+      expect(ownersOfLatestQuery()).toEqual({
+        _type: "OwnedBy",
+        match: match,
+        userIds: [],
+        teamIds: [],
       });
+    });
 
-      expect(getTable().emptyState.isFiltered).toBe(true);
-    },
-  );
+    expect(getTable().emptyState.isFiltered).toBe(true);
+  });
 
   test("clearing the chip lists every schedule again", async () => {
     renderPage();

@@ -205,9 +205,9 @@ describe("QueryHelper.ownedBy - the SQL of a filter by owners", () => {
       );
 
       expect(built.sql).not.toContain("EXISTS");
-      expect(built.sql.startsWith(`(${BARE_ALIAS} NOT IN (${PEOPLE_ROWS}`)).toBe(
-        true,
-      );
+      expect(
+        built.sql.startsWith(`(${BARE_ALIAS} NOT IN (${PEOPLE_ROWS}`),
+      ).toBe(true);
       expect(built.sql).toContain(` AND ${BARE_ALIAS} NOT IN (${TEAM_ROWS}`);
       // Owner ids that are null never make NOT IN answer nothing.
       expect(built.sql).toContain(

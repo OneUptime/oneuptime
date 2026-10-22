@@ -341,7 +341,11 @@ function resolveString(
  * Whether `column` of an owner table (`ownerModel`) is the key it names a
  * record of `kind` by: an id column, with the relation to `kind` on it.
  */
-function isKeyOfKind(ownerModel: string, column: string, kind: string): boolean {
+function isKeyOfKind(
+  ownerModel: string,
+  column: string,
+  kind: string,
+): boolean {
   const modelType: { new (): BaseModel } | undefined = modelNamed(ownerModel);
 
   if (!modelType) {
@@ -431,7 +435,8 @@ function readOptions(
     resourceIdField: resourceIdField
       ? resolveString(sourceFile, resourceIdField.initializer)
       : null,
-    showsOwnerChip: showOwnerFacet?.initializer.kind !== ts.SyntaxKind.FalseKeyword,
+    showsOwnerChip:
+      showOwnerFacet?.initializer.kind !== ts.SyntaxKind.FalseKeyword,
     showsLabelsChip:
       showLabelsFacet?.initializer.kind === ts.SyntaxKind.TrueKeyword,
   };
@@ -804,9 +809,7 @@ describe("every list of a kind with owners has the Owner chip", () => {
 
     // The chips over the table, their empty state and the query.
     expect(attributeOf(table, "topContent")).toContain("filterBar");
-    expect(attributeSourceOf(table, "emptyState")).toContain(
-      "facetEmptyState",
-    );
+    expect(attributeSourceOf(table, "emptyState")).toContain("facetEmptyState");
     expect(attributeOf(table, "query")).toContain("mergeFiltersIntoQuery(");
 
     // A list with saved views saves and restores the chips with them.
@@ -852,19 +855,22 @@ describe("every list of a kind with owners has the Owner chip", () => {
 });
 
 describe("every owner widget names the record by the owner tables' own key", () => {
-  const widgets: Array<{ file: string; what: string; wiring: OwnerWiring }> =
-    [
-      ...SCANNED.hookCalls
-        .filter((call: { file: string; wiring: OwnerWiring }): boolean => {
-          return (
-            call.wiring.showsOwnerChip && Boolean(call.wiring.ownerUserModel)
-          );
-        })
-        .map((call: { file: string; wiring: OwnerWiring }) => {
-          return { file: call.file, what: "useResourceOwners", wiring: call.wiring };
-        }),
-      ...SCANNED.ownerWidgets,
-    ];
+  const widgets: Array<{ file: string; what: string; wiring: OwnerWiring }> = [
+    ...SCANNED.hookCalls
+      .filter((call: { file: string; wiring: OwnerWiring }): boolean => {
+        return (
+          call.wiring.showsOwnerChip && Boolean(call.wiring.ownerUserModel)
+        );
+      })
+      .map((call: { file: string; wiring: OwnerWiring }) => {
+        return {
+          file: call.file,
+          what: "useResourceOwners",
+          wiring: call.wiring,
+        };
+      }),
+    ...SCANNED.ownerWidgets,
+  ];
 
   test("the scan finds them (hooks, bulk owner actions and Owners cards)", () => {
     expect(widgets.length).toBeGreaterThanOrEqual(100);

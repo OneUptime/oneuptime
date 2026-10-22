@@ -387,7 +387,8 @@ function rowsFor(name, query) {
       const ids = idsOf(query.onCallDutyPolicyScheduleId);
       return rows.filter(
         (row) =>
-          ids.length === 0 || ids.includes(idOf(row.onCallDutyPolicyScheduleId)),
+          ids.length === 0 ||
+          ids.includes(idOf(row.onCallDutyPolicyScheduleId)),
       );
     }
     case "TeamMember":

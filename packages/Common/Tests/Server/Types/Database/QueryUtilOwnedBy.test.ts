@@ -194,8 +194,9 @@ describe("QueryUtil.serializeQuery - a filter by owners", () => {
         ),
       } as Query<Monitor>);
 
-      const sql: string = (result["_id"].value[0] as FindOperator<any>)
-        .getSql!("Monitor._id");
+      const sql: string = (result["_id"].value[0] as FindOperator<any>).getSql!(
+        "Monitor._id",
+      );
 
       if (match === OwnedByMatch.AnyOf || match === OwnedByMatch.AnyOwner) {
         expect(sql.startsWith("(Monitor._id IN (SELECT ")).toBe(true);

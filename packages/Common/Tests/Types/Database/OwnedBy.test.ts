@@ -144,9 +144,7 @@ describe("OwnedBy - a filter by the people and teams that own a record", () => {
 
     expect(first).toBe(same);
     expect(first).not.toBe(other);
-    expect(new OwnedBy({ teamIds: [SRE_TEAM] }).toString()).toContain(
-      SRE_TEAM,
-    );
+    expect(new OwnedBy({ teamIds: [SRE_TEAM] }).toString()).toContain(SRE_TEAM);
   });
 
   describe("refused before anything is read", () => {

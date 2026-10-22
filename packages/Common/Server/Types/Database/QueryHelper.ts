@@ -891,8 +891,7 @@ export default class QueryHelper {
     const namesOwners: boolean =
       data.match === OwnedByMatch.AnyOf || data.match === OwnedByMatch.NoneOf;
     const isPositive: boolean =
-      data.match === OwnedByMatch.AnyOf ||
-      data.match === OwnedByMatch.AnyOwner;
+      data.match === OwnedByMatch.AnyOf || data.match === OwnedByMatch.AnyOwner;
 
     const parameters: Dictionary<Array<string>> = {};
     const branches: Array<OwnerBranch> = [];
@@ -946,9 +945,7 @@ export default class QueryHelper {
       const ownedIds: Array<string> = branches.map(
         (branch: OwnerBranch): string => {
           const table: string = quote(branch.table.tableName);
-          const resourceColumn: string = quote(
-            branch.table.resourceColumnName,
-          );
+          const resourceColumn: string = quote(branch.table.resourceColumnName);
 
           return `SELECT "${table}"."${resourceColumn}" FROM "${table}" WHERE "${table}"."${resourceColumn}" IS NOT NULL AND ${getOwnerRowsWhere(branch)}`;
         },
@@ -970,9 +967,7 @@ export default class QueryHelper {
       return `(${branches
         .map((branch: OwnerBranch): string => {
           const table: string = quote(branch.table.tableName);
-          const resourceColumn: string = quote(
-            branch.table.resourceColumnName,
-          );
+          const resourceColumn: string = quote(branch.table.resourceColumnName);
 
           return `NOT EXISTS (SELECT 1 FROM "${table}" WHERE "${table}"."${resourceColumn}" = ${alias} AND ${getOwnerRowsWhere(branch)})`;
         })

@@ -193,7 +193,11 @@ export default class OwnedBy extends QueryOperator<string> {
 
     for (const id of ids) {
       const text: string | null =
-        id instanceof ObjectID ? id.toString() : typeof id === "string" ? id : null;
+        id instanceof ObjectID
+          ? id.toString()
+          : typeof id === "string"
+            ? id
+            : null;
 
       if (text === null || !ObjectID.isValidUUID(text)) {
         throw new BadDataException(
