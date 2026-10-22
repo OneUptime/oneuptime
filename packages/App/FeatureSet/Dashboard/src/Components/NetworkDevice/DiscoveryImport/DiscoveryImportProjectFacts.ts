@@ -5,6 +5,7 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorTemplate from "Common/Models/DatabaseModels/MonitorTemplate";
 import NetworkAlertPolicy from "Common/Models/DatabaseModels/NetworkAlertPolicy";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -13,6 +14,11 @@ import ActiveMonitorLimitUtil, {
 } from "Common/Types/Monitor/ActiveMonitorLimit";
 import { NetworkAlertPolicyScopeUtil } from "Common/Types/NetworkDevice/NetworkAlertPolicyScope";
 import ObjectID from "Common/Types/ObjectID";
+import DeviceMonitorTemplateUtil, {
+  DEVICE_MONITOR_TEMPLATE_TYPES,
+  isDeviceAddressMonitorType,
+  isDeviceMonitorTemplateType,
+} from "Common/Utils/Monitor/DeviceMonitorTemplateUtil";
 import { summarizeMonitorTemplateAlerts } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import NetworkAlertPolicyBootstrapUtil, {
   RECOMMENDED_TEMPLATE_NAME,
@@ -33,16 +39,21 @@ import {
   DiscoveryImportPolicyFact,
   DiscoveryImportTemplateChoice,
 } from "./DiscoveryImportOutcome";
+import { NO_DEVICE_MONITOR_TEMPLATE_REASON } from "./DiscoveryImportTemplateCopy";
+
+// Its tests read it where the facts are read.
+export { NO_DEVICE_MONITOR_TEMPLATE_REASON };
 
 /*
  * What the import's monitoring step needs to know about the project, read
- * when the reader reaches that step: the Network Device monitor templates
- * they can pick (with what each raises), the names of the severities and
- * statuses those templates name, the alert policies that already cover
- * devices, how much room the plan has for monitors, and what the reader may
- * do. Every read can fail on its own - a reader who may not list templates
- * still imports devices - so each one is settled separately, and what failed
- * is said where it matters rather than failing the step.
+ * when the reader reaches that step: the monitor templates they can pick -
+ * Network Device ones, and since issue #5145 Ping, IP, Port and NTP ones -
+ * with what each raises, the names of the severities and statuses those
+ * templates name, the alert policies that already cover devices, how much
+ * room the plan has for monitors, and what the reader may do. Every read can
+ * fail on its own - a reader who may not list templates still imports
+ * devices - so each one is settled separately, and what failed is said
+ * where it matters rather than failing the step.
  */
 
 export interface NamedColor {
@@ -60,6 +71,11 @@ export interface DiscoveryImportProjectFacts {
   templates: Array<DiscoveryImportTemplateChoice>;
   // Why no template can be picked, when none can.
   templatesUnavailableReason?: string | undefined;
+  /*
+   * Whether the project's templates were read: a read that failed lists
+   * none, and must not be taken for a project that has none.
+   */
+  didReadTemplates: boolean;
   incidentSeverities: Map<string, NamedColor>;
   alertSeverities: Map<string, NamedColor>;
   monitorStatuses: Map<string, NamedColor>;
@@ -100,11 +116,46 @@ function settledValue<T>(result: PromiseSettledResult<T>): T | null {
 }
 
 /*
+ * A template choice as the step offers it, from a project template. A
+ * template with no name (the API allows one) is named by the step, in the
+ * reader's language: the name here is only ever what someone typed.
+ */
+export function toTemplateChoice(
+  template: MonitorTemplate,
+): DiscoveryImportTemplateChoice {
+  const monitorType: MonitorType = template.monitorType!;
+  const choice: DiscoveryImportTemplateChoice = {
+    id: template.id!.toString(),
+    name: template.templateName?.trim() || "",
+    monitorType: monitorType,
+    summary: summarizeMonitorTemplateAlerts(template.monitorSteps, {
+      monitorType: monitorType,
+    }),
+  };
+
+  if (isDeviceAddressMonitorType(monitorType)) {
+    if (template.monitoringInterval) {
+      choice.monitoringInterval = template.monitoringInterval;
+    }
+
+    if (monitorType === MonitorType.Port) {
+      choice.ports = DeviceMonitorTemplateUtil.readPorts(template.monitorSteps);
+    }
+  }
+
+  return choice;
+}
+
+/*
  * The templates, the recommended first. A project template carrying the
  * recommended marker is the recommended one; with none, the recommended pack
  * is offered as the template Import creates - when the reader may create
  * templates and the project has the statuses and severities it is built
- * with.
+ * with. Then the project's other Network Device templates, which read each
+ * device's polls, then its Ping, IP, Port and NTP templates, which check
+ * each device's address (#5145) - each in the order they were read, by name.
+ * A template of any other kind is not offered: nothing of a device's is for
+ * it to check (DEVICE_MONITOR_TEMPLATE_TYPES).
  */
 export function buildTemplateChoices(data: {
   templates: Array<MonitorTemplate>;
@@ -112,32 +163,45 @@ export function buildTemplateChoices(data: {
   seedIds: MonitorCriteriaSeedIds | null;
   projectId: ObjectID | null;
 }): Array<DiscoveryImportTemplateChoice> {
-  const choices: Array<DiscoveryImportTemplateChoice> = data.templates
-    .filter((template: MonitorTemplate): boolean => {
-      return Boolean(template.id);
-    })
-    .map((template: MonitorTemplate): DiscoveryImportTemplateChoice => {
-      return {
-        id: template.id!.toString(),
-        name: template.templateName || "Unnamed Network Device template",
-        summary: summarizeMonitorTemplateAlerts(template.monitorSteps),
-      };
-    });
+  const offered: Array<MonitorTemplate> = data.templates.filter(
+    (template: MonitorTemplate): boolean => {
+      return (
+        Boolean(template.id) &&
+        isDeviceMonitorTemplateType(template.monitorType)
+      );
+    },
+  );
 
   const recommended: MonitorTemplate | null =
-    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(data.templates);
+    NetworkAlertPolicyBootstrapUtil.findRecommendedTemplate(
+      offered.filter((template: MonitorTemplate): boolean => {
+        return template.monitorType === MonitorType.NetworkDevice;
+      }),
+    );
+  const recommendedId: string = recommended?.id?.toString() || "";
+
+  const byKind: (
+    readsPolls: boolean,
+  ) => Array<DiscoveryImportTemplateChoice> = (
+    readsPolls: boolean,
+  ): Array<DiscoveryImportTemplateChoice> => {
+    return offered
+      .filter((template: MonitorTemplate): boolean => {
+        return (
+          template.id!.toString() !== recommendedId &&
+          (template.monitorType === MonitorType.NetworkDevice) === readsPolls
+        );
+      })
+      .map(toTemplateChoice);
+  };
+
+  const rest: Array<DiscoveryImportTemplateChoice> = [
+    ...byKind(true),
+    ...byKind(false),
+  ];
 
   if (recommended?.id) {
-    const recommendedId: string = recommended.id.toString();
-
-    return [
-      ...choices.filter((choice: DiscoveryImportTemplateChoice): boolean => {
-        return choice.id === recommendedId;
-      }),
-      ...choices.filter((choice: DiscoveryImportTemplateChoice): boolean => {
-        return choice.id !== recommendedId;
-      }),
-    ];
+    return [toTemplateChoice(recommended), ...rest];
   }
 
   if (data.canCreateTemplates && data.seedIds && data.projectId) {
@@ -150,14 +214,44 @@ export function buildTemplateChoices(data: {
       {
         id: "",
         name: RECOMMENDED_TEMPLATE_NAME,
+        monitorType: MonitorType.NetworkDevice,
         summary: summarizeMonitorTemplateAlerts(preview.monitorSteps),
         isCreatedOnImport: true,
       },
-      ...choices,
+      ...rest,
     ];
   }
 
-  return choices;
+  return rest;
+}
+
+/*
+ * What the step knows once the templates are read again - the reader came
+ * back to the dialog's window, maybe from making a template in another tab
+ * (issue #5145): the templates replaced, everything else as it was read
+ * when the step opened. Null keeps the step as it is, when the read that
+ * matters failed: a template read that failed lists none, and a status or
+ * severity read that failed would take away the recommended template the
+ * import creates - neither means the project's templates changed.
+ */
+export function mergeRefreshedFacts(data: {
+  current: DiscoveryImportProjectFacts;
+  loaded: DiscoveryImportProjectFacts;
+}): DiscoveryImportProjectFacts | null {
+  if (!data.loaded.didReadTemplates) {
+    return null;
+  }
+
+  if (data.current.seedIds && !data.loaded.seedIds) {
+    return null;
+  }
+
+  return {
+    ...data.current,
+    templates: data.loaded.templates,
+    templatesUnavailableReason: data.loaded.templatesUnavailableReason,
+    didReadTemplates: true,
+  };
 }
 
 export function toPolicyFacts(data: {
@@ -221,13 +315,16 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
           modelType: MonitorTemplate,
           query: {
             ...(projectId ? { projectId: projectId } : {}),
-            monitorType: MonitorType.NetworkDevice,
+            // Every kind a device's monitor can be made from (#5145).
+            monitorType: new Includes([...DEVICE_MONITOR_TEMPLATE_TYPES]),
           },
           select: {
             _id: true,
             templateName: true,
             templateDescription: true,
+            monitorType: true,
             monitorSteps: true,
+            monitoringInterval: true,
           },
           sort: { templateName: SortOrder.Ascending },
           limit: LIMIT_PER_PROJECT,
@@ -341,8 +438,7 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
         canReadTemplates.disabledReason ||
         API.getFriendlyMessage(templatesResult.reason);
     } else if (!canCreateTemplates.isAllowed) {
-      templatesUnavailableReason =
-        "This project has no Network Device monitor template, and you may not create one. Ask a project owner or admin to create the recommended one under Network > Settings > Alert Policies.";
+      templatesUnavailableReason = NO_DEVICE_MONITOR_TEMPLATE_REASON;
     } else {
       templatesUnavailableReason = seedIdsError;
     }
@@ -361,6 +457,7 @@ export async function loadDiscoveryImportProjectFacts(): Promise<DiscoveryImport
   return {
     templates: templateChoices,
     templatesUnavailableReason: templatesUnavailableReason,
+    didReadTemplates: templatesResult.status === "fulfilled",
     incidentSeverities: toNamedColorMap<IncidentSeverity>(
       incidentSeverities,
       (row: IncidentSeverity): string | undefined => {

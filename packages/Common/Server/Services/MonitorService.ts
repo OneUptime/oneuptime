@@ -114,7 +114,7 @@ import {
 } from "../Utils/Database/AffectedResourceRelations";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
-import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
@@ -881,15 +881,20 @@ export class Service extends ProjectReferencesService<Model> {
             );
           }
 
+          /*
+           * A monitor made for a device stays one: a Network Device monitor
+           * keeps naming that device, and a Ping, IP, Port or NTP one made
+           * from a template by a discovery import (issue #5145) keeps
+           * checking an address in every step.
+           */
           if (monitor.autoProvisionedNetworkDeviceId) {
-            NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice(
-              {
-                monitorSteps: updateBy.data.monitorSteps as
-                  | MonitorSteps
-                  | JSONObject,
-                networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
-              },
-            );
+            DeviceMonitorTemplateUtil.assertProvenanceFits({
+              monitorType: monitor.monitorType,
+              monitorSteps: updateBy.data.monitorSteps as
+                | MonitorSteps
+                | JSONObject,
+              networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+            });
           }
         }
 
@@ -1952,13 +1957,14 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
 
-      if (createBy.data.monitorType !== MonitorType.NetworkDevice) {
-        throw new BadDataException(
-          "Only Network Device monitors can carry auto-provisioning provenance.",
-        );
-      }
-
-      NetworkDeviceMonitorTemplateUtil.assertMonitorStepsBoundToNetworkDevice({
+      /*
+       * A Network Device monitor whose steps name the device, or - since a
+       * discovery import may give each device a monitor from a Ping, IP,
+       * Port or NTP template (issue #5145) - one that checks the device's
+       * address.
+       */
+      DeviceMonitorTemplateUtil.assertProvenanceFits({
+        monitorType: createBy.data.monitorType,
         monitorSteps: createBy.data.monitorSteps,
         networkDeviceId: autoProvisionedNetworkDeviceId,
       });

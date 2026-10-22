@@ -41,6 +41,14 @@ import {
 } from "../../../../Types/NetworkDevice/DiscoveryImport";
 import NetworkDeviceMonitoringMethod from "../../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../../Types/ObjectID";
+import IP from "../../../../Types/IP/IP";
+import MonitorStep from "../../../../Types/Monitor/MonitorStep";
+import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
+import Port from "../../../../Types/Port";
+import {
+  DEVICE_ADDRESS_MONITOR_TYPES,
+  DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+} from "../../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -819,17 +827,28 @@ describe("asking for an import", () => {
     );
   });
 
-  test("the template must be the project's, and a Network Device one", async () => {
+  test("the template must be the project's, and of a kind a device's monitor can be made from", async () => {
     db.template = null;
     await expect(start({ settings: WITH_TEMPLATE })).rejects.toThrow(
       "was not found",
     );
 
-    db.template = networkDeviceTemplate();
-    db.template.monitorType = MonitorType.Ping;
-    await expect(start({ settings: WITH_TEMPLATE })).rejects.toThrow(
-      "Pick a Network Device monitor template",
-    );
+    // A Website, API or SSL Certificate template checks a URL, not a device.
+    for (const monitorType of [
+      MonitorType.Website,
+      MonitorType.API,
+      MonitorType.SSLCertificate,
+      MonitorType.DNS,
+      MonitorType.Manual,
+    ]) {
+      db.template = networkDeviceTemplate();
+      db.template.monitorType = monitorType;
+      await expect(start({ settings: WITH_TEMPLATE })).rejects.toThrow(
+        DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+      );
+    }
+
+    expect(db.imports.size).toBe(0);
   });
 
   test("a plan with no room for another monitor refuses the monitors up front, in the limit's words", async () => {
@@ -1236,6 +1255,336 @@ describe("importing the hosts", () => {
         return result.device === DiscoveryImportDeviceOutcome.NotReached;
       }).length,
     ).toBe(40 - created);
+  });
+});
+
+// ---- Templates whose monitors check each device's address (issue #5145).
+
+const DEVICE_PROBE_ID: ObjectID = new ObjectID(
+  "dd000000-0000-4000-8000-000000000002",
+);
+
+/*
+ * A Ping, IP, Port or NTP template as the template form saves one: its
+ * type's default criteria against an address of its own, which no device's
+ * monitor may keep.
+ */
+function addressTemplate(
+  monitorType: MonitorType,
+  options: { port?: number } = {},
+): MonitorTemplate {
+  const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+    monitorName: "Kitchen display",
+    monitorType: monitorType,
+    onlineMonitorStatusId: ObjectID.generate(),
+    offlineMonitorStatusId: ObjectID.generate(),
+    defaultIncidentSeverityId: ObjectID.generate(),
+    defaultAlertSeverityId: ObjectID.generate(),
+  });
+  step.setMonitorDestination(IP.fromString("192.0.2.10"));
+
+  if (options.port) {
+    step.setPort(new Port(options.port));
+  }
+
+  const steps: MonitorSteps = new MonitorSteps();
+  steps.data = {
+    monitorStepsInstanceArray: [step],
+    defaultMonitorStatusId: ObjectID.generate(),
+  };
+
+  const template: MonitorTemplate = new MonitorTemplate();
+  template.id = TEMPLATE_ID;
+  template.projectId = PROJECT_ID;
+  template.templateName = "WB KDS Ping Monitor Template";
+  template.monitorType = monitorType;
+  template.monitorSteps = steps;
+  template.monitoringInterval = "*/5 * * * *";
+  template.labels = [];
+  return template;
+}
+
+// What the import asked MonitorService to create, call by call.
+function monitorCreates(): Array<{
+  data: Monitor;
+  miscDataProps?: JSONObject;
+  props: unknown;
+}> {
+  return (MonitorService.create as jest.Mock).mock.calls.map(
+    (call: Array<unknown>) => {
+      return call[0] as {
+        data: Monitor;
+        miscDataProps?: JSONObject;
+        props: unknown;
+      };
+    },
+  );
+}
+
+function destinationOf(monitor: Monitor): string {
+  return (
+    monitor.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data?.monitorDestination?.toString() ||
+    ""
+  );
+}
+
+describe("a Ping, IP, Port or NTP template (issue #5145)", () => {
+  test.each([...DEVICE_ADDRESS_MONITOR_TYPES])(
+    "%s templates can be picked",
+    async (monitorType: MonitorType) => {
+      db.template = addressTemplate(monitorType, { port: 9100 });
+
+      const row: NetworkDeviceDiscoveryImport = await start({
+        settings: WITH_TEMPLATE,
+      });
+
+      expect(stored(row).monitorTemplateName).toBe(
+        "WB KDS Ping Monitor Template",
+      );
+      expect(
+        resultsOf(row).every((result: DiscoveryImportHostResult) => {
+          return result.monitor === DiscoveryImportMonitorOutcome.Pending;
+        }),
+      ).toBe(true);
+    },
+  );
+
+  test("each device gets a Ping monitor that checks its own address, from the scan's probe, made as OneUptime and linked to both", async () => {
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+    });
+    await runAll();
+
+    expect(db.createdMonitors).toHaveLength(3);
+
+    for (const address of ["10.0.0.1", "10.0.0.2", "10.0.0.3"]) {
+      const result: DiscoveryImportHostResult = resultAt(row, address);
+      const monitor: Monitor = db.monitors.get(
+        monitorKey(result.deviceId, TEMPLATE_ID),
+      )!;
+
+      expect(result.monitor).toBe(DiscoveryImportMonitorOutcome.Created);
+      expect(result.monitorId).toBe(monitor.id!.toString());
+      expect(monitor.monitorType).toBe(MonitorType.Ping);
+      // The device's own address, never the template's 192.0.2.10.
+      expect(destinationOf(monitor)).toBe(address);
+      expect(monitor.monitoringInterval).toBe("*/5 * * * *");
+      expect(monitor.monitorTemplateId?.toString()).toBe(
+        TEMPLATE_ID.toString(),
+      );
+      expect(monitor.autoProvisionedNetworkDeviceId?.toString()).toBe(
+        result.deviceId,
+      );
+      expect(monitor.createdByUserId?.toString()).toBe(PERSON_ID.toString());
+    }
+
+    for (const create of monitorCreates()) {
+      expect(create.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+      // The probe that reached the address in the scan runs the check.
+      expect(create.miscDataProps).toEqual({
+        probes: [PROBE_ID.toString()],
+      });
+    }
+  });
+
+  test("a Port template's monitors knock on its port; an IP or NTP template's check each device's address", async () => {
+    for (const [monitorType, port] of [
+      [MonitorType.Port, 9100],
+      [MonitorType.IP, undefined],
+      [MonitorType.NTP, 1123],
+    ] as Array<[MonitorType, number | undefined]>) {
+      db.monitors.clear();
+      db.createdMonitors = [];
+      db.devicesByHostname.clear();
+      db.template = addressTemplate(monitorType, port ? { port: port } : {});
+
+      const row: NetworkDeviceDiscoveryImport = await start({
+        settings: WITH_TEMPLATE,
+        ipAddresses: ["10.0.0.2"],
+      });
+      await runAll();
+
+      const result: DiscoveryImportHostResult = resultAt(row, "10.0.0.2");
+      const monitor: Monitor = db.monitors.get(
+        monitorKey(result.deviceId, TEMPLATE_ID),
+      )!;
+
+      expect(result.monitor).toBe(DiscoveryImportMonitorOutcome.Created);
+      expect(monitor.monitorType).toBe(monitorType);
+      expect(destinationOf(monitor)).toBe("10.0.0.2");
+      expect(
+        monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.monitorDestinationPort?.toString(),
+      ).toBe(port ? String(port) : undefined);
+    }
+  });
+
+  test("a device already in the inventory is checked from the probe that polls it", async () => {
+    const existing: NetworkDevice = new NetworkDevice();
+    existing.id = ObjectID.generate();
+    existing.projectId = PROJECT_ID;
+    existing.name = "core-sw-01";
+    existing.hostname = "10.0.0.1";
+    existing.probeId = DEVICE_PROBE_ID;
+    db.devicesByHostname.set("10.0.0.1", existing);
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.Created,
+      }),
+    );
+    expect(monitorCreates()[0]!.miscDataProps).toEqual({
+      probes: [DEVICE_PROBE_ID.toString()],
+    });
+    // Its probe was read with it, from the inventory.
+    const select: JSONObject = (
+      NetworkDeviceService.getDevicesByHostnames as jest.Mock
+    ).mock.calls[0]![0].select as JSONObject;
+    expect(select["probeId"]).toBe(true);
+    expect(select["hostname"]).toBe(true);
+  });
+
+  test("a device with no probe of its own, from a scan with none, leaves the probes to the project's defaults", () => {
+    const device: NetworkDevice = new NetworkDevice();
+    const scan: NetworkDeviceDiscoveryScan = scanWith([SWITCH]);
+    delete (scan as unknown as Record<string, unknown>)["probeId"];
+
+    expect(
+      DiscoveryImportRunner.getAddressMonitorProbes({
+        device: device,
+        scan: scan,
+      }),
+    ).toEqual({});
+
+    device.probeId = DEVICE_PROBE_ID;
+    expect(
+      DiscoveryImportRunner.getAddressMonitorProbes({
+        device: device,
+        scan: scanWith([SWITCH]),
+      }),
+    ).toEqual({ probes: [DEVICE_PROBE_ID.toString()] });
+
+    expect(
+      DiscoveryImportRunner.getAddressMonitorProbes({
+        device: new NetworkDevice(),
+        scan: scanWith([SWITCH]),
+      }),
+    ).toEqual({ probes: [PROBE_ID.toString()] });
+  });
+
+  test("a device that takes its status from a bound monitor still gets one: an address monitor checks it all the same", async () => {
+    const existing: NetworkDevice = new NetworkDevice();
+    existing.id = ObjectID.generate();
+    existing.projectId = PROJECT_ID;
+    existing.name = "lobby-camera";
+    existing.hostname = "10.0.0.3";
+    existing.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+    db.devicesByHostname.set("10.0.0.3", existing);
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.3"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.3")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.Created,
+      }),
+    );
+    expect(resultAt(row, "10.0.0.3").monitorError).toBeUndefined();
+  });
+
+  test("an IP template cannot check a device named by DNS: its monitor fails with why, the device stays", async () => {
+    const existing: NetworkDevice = new NetworkDevice();
+    existing.id = ObjectID.generate();
+    existing.projectId = PROJECT_ID;
+    existing.name = "printer-02";
+    existing.hostname = "printer-02.corp.example.com";
+    db.devicesByHostname.set("10.0.0.2", existing);
+    db.template = addressTemplate(MonitorType.IP);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.2"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.2")).toEqual(
+      expect.objectContaining({
+        device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+        monitor: DiscoveryImportMonitorOutcome.Failed,
+        monitorError:
+          "An IP monitor checks an IP address, and this device's address is a name. Use a Ping template for it.",
+      }),
+    );
+    expect(db.createdMonitors).toHaveLength(0);
+  });
+
+  test("a device that already has this template's monitor is not given a second", async () => {
+    const existing: NetworkDevice = new NetworkDevice();
+    existing.id = ObjectID.generate();
+    existing.projectId = PROJECT_ID;
+    existing.name = "core-sw-01";
+    existing.hostname = "10.0.0.1";
+    db.devicesByHostname.set("10.0.0.1", existing);
+    const earlier: Monitor = new Monitor();
+    earlier.id = ObjectID.generate();
+    db.monitors.set(monitorKey(existing.id, TEMPLATE_ID), earlier);
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+      ipAddresses: ["10.0.0.1"],
+    });
+    await runAll();
+
+    expect(resultAt(row, "10.0.0.1")).toEqual(
+      expect.objectContaining({
+        monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+        monitorId: earlier.id.toString(),
+      }),
+    );
+    expect(db.createdMonitors).toHaveLength(0);
+  });
+
+  test("a Network Device template's monitors name no probe: they read the device's polls", async () => {
+    await start({ settings: WITH_TEMPLATE });
+    await runAll();
+
+    expect(monitorCreates()).toHaveLength(3);
+
+    for (const create of monitorCreates()) {
+      expect(create.data.monitorType).toBe(MonitorType.NetworkDevice);
+      expect(create.miscDataProps).toBeUndefined();
+    }
+  });
+
+  test("a template that became another kind before the import ran fails it, with what to do", async () => {
+    db.template = addressTemplate(MonitorType.Ping);
+
+    const row: NetworkDeviceDiscoveryImport = await start({
+      settings: WITH_TEMPLATE,
+    });
+
+    db.template.monitorType = MonitorType.Website;
+    await runAll();
+
+    expect(stored(row).status).toBe(DiscoveryImportStatus.Failed);
+    expect(stored(row).error).toBe(
+      "The monitor template this import uses was deleted, or is no longer a Network Device, Ping, IP, Port or NTP template. Start the import again with another template.",
+    );
+    expect(db.createdMonitors).toHaveLength(0);
   });
 });
 

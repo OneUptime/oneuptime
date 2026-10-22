@@ -111,7 +111,7 @@ Le opzioni disponibili dipendono dal tipo di monitor. Comprendono destinazioni e
 - Le esclusioni valgono per le sincronizzazioni in blocco e per quelle singole. Sono salvate sul modello, non scelte di volta in volta a ogni sincronizzazione.
 - I nuovi monitor partono comunque con i valori dei campi del modello. Le esclusioni riguardano solo la sincronizzazione dei monitor esistenti.
 - I criteri si sincronizzano sempre. Una sincronizzazione dei soli criteri lascia invariati l'intervallo di monitoraggio, le etichette e le altre impostazioni a livello di monitor.
-- I modelli esistenti non hanno esclusioni di campi finché non le configurate. I monitor di dispositivi di rete continuano a mantenere automaticamente il proprio collegamento al dispositivo.
+- I modelli esistenti non hanno esclusioni di campi finché non le configurate. I monitor di dispositivi di rete continuano a mantenere automaticamente il proprio collegamento al dispositivo, e i monitor Ping, IP, Porta e NTP che un'importazione del rilevamento di rete ha creato per i dispositivi continuano a controllare l'indirizzo di ciascun dispositivo.
 
 Per i modelli con più passaggi, i valori protetti vengono abbinati tramite gli ID dei passaggi. Anche i monitor a passaggio singolo creati in modo indipendente possono ricevere un modello a passaggio singolo. Se un passaggio protetto non si può abbinare, la sincronizzazione viene rifiutata prima di aggiornare qualsiasi monitor, così un passaggio nuovo o riordinato non può copiare per errore la destinazione o le credenziali di un altro passaggio.
 
