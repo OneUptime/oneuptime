@@ -1460,7 +1460,11 @@ describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule pick
   it("a rule that picks none: the project's provider, and the feed says nothing of providers", async () => {
     decideIfPicked.mockRestore();
     decide.mockRestore();
-    storedRules = [criticalRule({ llmProviderId: undefined })];
+    storedRules = [
+      criticalRule({
+        llmProviderId: undefined,
+      } as unknown as Partial<AIPostmortemRule>),
+    ];
 
     await resolve();
 

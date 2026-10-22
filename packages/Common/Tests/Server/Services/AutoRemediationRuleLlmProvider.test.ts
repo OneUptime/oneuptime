@@ -210,7 +210,7 @@ function readyCluster(): KubernetesClusterAiAccessStatus {
     isRemediationReady: true,
     gaps: [],
     evaluatedAt: new Date().toISOString(),
-  } as KubernetesClusterAiAccessStatus;
+  } as unknown as KubernetesClusterAiAccessStatus;
 }
 
 function readyResource(): ResourceAiAccessStatus {
@@ -343,7 +343,7 @@ function mockEngine(
     .mockImplementation(
       async (args: {
         projectId: ObjectID;
-        pickedProviderId: unknown;
+        pickedProviderId?: unknown;
       }): Promise<RuleLlmProviderChoice> => {
         const pick: string = String(args.pickedProviderId);
         return data.decisions?.[pick] || choice(pick);

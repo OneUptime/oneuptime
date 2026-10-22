@@ -482,7 +482,9 @@ describe("the grade on resolve uses the run's pick", () => {
     jest
       .spyOn(PostedRootCause, "getForInvestigation")
       .mockResolvedValue("**Summary** - a bad deploy.");
-    jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIRunService, "updateOneById")
+      .mockResolvedValue(undefined as never);
     jest.spyOn(AIRunService, "updateOneBy").mockResolvedValue(1);
     execute = jest
       .spyOn(AIService, "executeWithLogging")

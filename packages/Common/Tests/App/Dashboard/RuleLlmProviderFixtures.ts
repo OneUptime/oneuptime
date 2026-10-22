@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -74,7 +73,7 @@ export function projectProvidersAnswer(): HTTPResponse<JSONObject> {
  */
 export function mockRuleLlmProviders(
   answer?: HTTPResponse<JSONObject> | HTTPErrorResponse,
-): SpyInstance<typeof API.post> {
+): ReturnType<typeof jest.spyOn> {
   const original: typeof API.post = API.post.bind(API);
 
   return jest.spyOn(API, "post").mockImplementation(((

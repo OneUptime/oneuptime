@@ -7,7 +7,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 import {
   act,
   cleanup,
@@ -141,7 +140,8 @@ function answer(
   );
 }
 
-let postSpy: SpyInstance<typeof API.post>;
+// API.post is generic: spied on, it is typed as jest.spyOn types any spy.
+let postSpy: ReturnType<typeof jest.spyOn>;
 let changes: Array<string | null> = [];
 
 function answerWith(
@@ -569,14 +569,14 @@ describe("the field, as a rule form lists it", () => {
       },
     } as CustomElementProps;
 
-    render(field.getCustomElement!({} as Values, props));
+    render(field.getCustomElement!({} as Values, props) as ReactElement);
     await screen.findByTestId(RULE_LLM_PROVIDER_PICKER_TEST_ID);
 
     fireEvent.click(openMenu()[1]!);
 
     expect(handed).toEqual([OPUS_ID]);
 
-    render(field.getFooterElement!());
+    render(field.getFooterElement!({} as Values) as ReactElement);
     expect(
       screen.getByTestId(RULE_LLM_PROVIDER_HINT_TEST_ID),
     ).toBeInTheDocument();
