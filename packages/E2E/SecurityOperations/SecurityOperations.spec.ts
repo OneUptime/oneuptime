@@ -65,6 +65,8 @@ const THREAT_INTEL_PATH: string = `${PRODUCT}/threat-intel`;
 // The known-bad domain case nobody has picked up, and OneUptime AI has not read.
 const DOMAIN_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000141`;
 const AI_SETTINGS_PATH: string = `${PRODUCT}/ai/settings`;
+// The admin API key case OneUptime AI read as Likely Benign.
+const API_KEY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000137`;
 // The spray case's triage run, whose cited checks re-run.
 const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 
@@ -154,6 +156,15 @@ interface OpenOptions {
   lists?: "all";
   // "off": the project's Enable AI is off.
   ai?: "off";
+  // The case AI card's other states (the fixture's TRIAGE_SCENARIOS).
+  triage?:
+    | "failed"
+    | "provider"
+    | "credits"
+    | "limit"
+    | "injection"
+    | "retry"
+    | "auto-off";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -242,6 +253,9 @@ async function open(
   }
   if (options.ai) {
     params.set("ai", options.ai);
+  }
+  if (options.triage) {
+    params.set("triage", options.triage);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -2647,6 +2661,386 @@ test.describe("OneUptime AI on the Security pages", () => {
       timeout: 30000,
     });
     await screenshot(page, "ai-settings-ai-off-desktop", { fullPage: false });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI: what the case's card says when a triage cannot run, stopped,
+ * or read text written to steer it (the fixture's ?triage= scenarios)
+ * ---------------------------------------------------------------------------
+ */
+test.describe("OneUptime AI when a triage cannot run, or was steered", () => {
+  function aiCard(page: Page): Locator {
+    return page.getByTestId("security-case-ai-card");
+  }
+
+  /*
+   * Every button in the card starts on the content's left edge: Button
+   * carries md:ml-3 for dialog footers, which pushed the first button of a
+   * row 12px in from the text above it.
+   */
+  async function expectOnTheContentEdge(
+    page: Page,
+    button: Locator,
+  ): Promise<void> {
+    const content: Box = await boxOf(
+      aiCard(page).locator("[data-testid='card-header-title-block']").first(),
+    );
+    const drawn: Box = await boxOf(button);
+    expect(Math.abs(drawn.x - content.x)).toBeLessThanOrEqual(1);
+  }
+
+  test("the card's buttons sit on the content's edge, in light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of [undefined, "dark"] as const) {
+      await open(page, SPRAY_CASE_PATH, { theme, width: 1280 });
+      await expect(
+        aiCard(page).getByTestId("security-case-ai-triaged"),
+      ).toBeVisible({ timeout: 30000 });
+      await expectOnTheContentEdge(
+        page,
+        aiCard(page).getByTestId("security-case-ai-ask"),
+      );
+    }
+
+    await open(page, DOMAIN_CASE_PATH, { width: 1280 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-not-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    await expectOnTheContentEdge(
+      page,
+      aiCard(page).getByTestId("security-case-ai-triage-button"),
+    );
+  });
+
+  test("a project that cannot triage now says why in place of Triage again, and where to fix it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { triage: "limit", width: 1280 });
+    const card: Locator = aiCard(page);
+    const reason: Locator = card.getByTestId("security-case-ai-reason");
+
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(reason).toContainText(
+      "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+    );
+    await expect(reason.getByRole("link")).toHaveText(
+      "Go to Project Settings → AI → AI Features",
+    );
+    // No Triage again that could not start; asking about the read still works.
+    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveCount(
+      0,
+    );
+    await expect(card.getByTestId("security-case-ai-ask")).toBeEnabled();
+    await screenshot(page, "case-ai-limit-desktop", { fullPage: false });
+
+    await open(page, SPRAY_CASE_PATH, {
+      triage: "limit",
+      width: 390,
+      height: 844,
+    });
+    await expect(card.getByTestId("security-case-ai-reason")).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    expect(await overflowOf(card)).toBeLessThanOrEqual(1);
+  });
+
+  test("with no LLM provider, the fix goes to who may set one up; a Security Viewer is told who can", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "provider", width: 1280 });
+    const card: Locator = aiCard(page);
+    const reason: Locator = card.getByTestId("security-case-ai-reason");
+
+    await expect(reason).toContainText(
+      "OneUptime AI has no LLM provider to use in this project.",
+      { timeout: 30000 },
+    );
+    await expect(reason.getByRole("link")).toHaveText(
+      "Set up an LLM provider",
+    );
+    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveCount(
+      0,
+    );
+    await screenshot(page, "case-ai-provider-desktop", { fullPage: false });
+
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "provider",
+      role: "viewer",
+      width: 1280,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-reason-who-can"),
+    ).toHaveText("A project administrator can review these settings.", {
+      timeout: 30000,
+    });
+    await expect(card.getByTestId("security-case-ai-reason").getByRole("link")).toHaveCount(
+      0,
+    );
+  });
+
+  test("out of AI credits: Add AI credits for an owner, who can for a Security Viewer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "credits", width: 1280 });
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-reason")).toContainText(
+      "The project is out of AI credits.",
+      { timeout: 30000 },
+    );
+    await expect(
+      card.getByTestId("security-case-ai-reason").getByRole("link"),
+    ).toHaveText("Add AI credits");
+
+    await open(page, DOMAIN_CASE_PATH, {
+      triage: "credits",
+      role: "viewer",
+      width: 1280,
+    });
+    await expect(
+      card.getByTestId("security-case-ai-reason-who-can"),
+    ).toHaveText(
+      "A project owner or someone with Manage Billing can add AI credits.",
+      { timeout: 30000 },
+    );
+  });
+
+  test("a triage that stopped says why, and Try again reads the case", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "failed", width: 1280 });
+    const card: Locator = aiCard(page);
+
+    await expect(card.getByTestId("security-case-ai-failed")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("The triage did not finish");
+    // Why it stopped, as the run recorded it.
+    await expect(
+      card.getByTestId("security-case-ai-failed-notice"),
+    ).toContainText("The LLM provider did not answer in time.");
+    const tryAgain: Locator = card.getByTestId(
+      "security-case-ai-triage-button",
+    );
+    await expect(tryAgain).toHaveText("Try again");
+    await expectOnTheContentEdge(page, tryAgain);
+    await screenshot(page, "case-ai-failed-desktop", { fullPage: false });
+
+    await tryAgain.click();
+    await expect(card.getByTestId("security-case-ai-triaged")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(card).toContainText("Likely Malicious");
+  });
+
+  test("text written to steer an AI is said first, once, and the read keeps no suggestion", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, API_KEY_CASE_PATH, { triage: "injection", width: 1280 });
+    const card: Locator = aiCard(page);
+    const notice: Locator = card.getByTestId(
+      "security-case-ai-prompt-injection",
+    );
+
+    await expect(notice).toBeVisible({ timeout: 30000 });
+    await expect(notice).toContainText(
+      "Text in this case reads like instructions to an AI",
+    );
+    await expect(notice).toContainText(
+      "OneUptime AI treated it as data and leaves the call to you.",
+    );
+    await expect(card).toContainText("Inconclusive");
+    // The runner's own heads-up is left out of the report the card draws.
+    await expect(card).not.toContainText("Heads up:");
+    await expect(card.getByText(/reads like instructions to an AI/)).toHaveCount(
+      1,
+    );
+    // The notice comes before the report.
+    expect((await boxOf(notice)).y).toBeLessThan(
+      (await boxOf(card.getByText("Summary", { exact: true }))).y,
+    );
+    // Nothing the steered answer suggested is offered.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-priority"),
+    ).toHaveCount(0);
+    await screenshot(page, "case-ai-injection-desktop", { fullPage: false });
+
+    await open(page, API_KEY_CASE_PATH, {
+      triage: "injection",
+      theme: "dark",
+      width: 390,
+      height: 844,
+    });
+    await expect(card.getByTestId("security-case-ai-prompt-injection")).toBeVisible(
+      { timeout: 30000 },
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-ai-injection-phone-dark");
+  });
+
+  test("a later triage that stopped keeps the read before it, and says so under the read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { triage: "retry", width: 1280 });
+    const card: Locator = aiCard(page);
+
+    await expect(
+      card.getByTestId("security-case-ai-last-run-failed"),
+    ).toHaveText("The latest triage did not finish. This is the one before it.", {
+      timeout: 30000,
+    });
+    await expect(card).toContainText("Likely Malicious");
+    await expect(card.getByTestId("security-case-ai-triage-button")).toHaveText(
+      "Triage again",
+    );
+  });
+
+  test("with new cases not triaged on their own, the card says where to turn it on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH, { triage: "auto-off", width: 1280 });
+    const note: Locator = aiCard(page).getByTestId(
+      "security-case-ai-automatic-off",
+    );
+
+    await expect(note).toContainText(
+      "New cases are not triaged automatically.",
+      { timeout: 30000 },
+    );
+    await note.getByRole("link").click();
+    await expect
+      .poll((): string => {
+        return new URL(page.url()).pathname;
+      })
+      .toBe(AI_SETTINGS_PATH);
+    await expect(
+      page.getByTestId("ai-switch-enableAutomaticSecurityCaseTriage"),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  test("Close Case names OneUptime AI's read over the verdict it starts on", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, API_KEY_CASE_PATH, { width: 1280 });
+    await expect(
+      aiCard(page).getByTestId("security-case-ai-triaged"),
+    ).toBeVisible({ timeout: 30000 });
+    await page.getByTestId("security-case-close").click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(
+      "OneUptime AI read this case as Likely Benign. Pick what you found.",
+    );
+    // The closing note says what it is for once; its label says Optional.
+    await expect(dialog).toContainText(
+      "What was found and what was done, for whoever reads this case next.",
+    );
+    await expect(dialog).not.toContainText("Optional. What was found");
+    await screenshot(page, "case-close-ai-read-desktop", { fullPage: false });
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+
+    // With AI off, nothing of it: the dialog starts on True Positive.
+    await open(page, API_KEY_CASE_PATH, { ai: "off", width: 1280 });
+    await expect(page.getByTestId("security-case-close")).toBeVisible({
+      timeout: 30000,
+    });
+    await page.getByTestId("security-case-close").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog")).not.toContainText("OneUptime AI");
+  });
+
+  test("the timeline has the triage, with its report behind Show details", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH, { width: 1280 });
+    const entry: Locator = page
+      .getByTestId("feed-entry")
+      .filter({ hasText: "OneUptime AI triaged this case: Likely Malicious." });
+
+    await expect(entry).toBeVisible({ timeout: 30000 });
+    await expect(entry).toContainText(
+      "It suggests priority Critical and a playbook.",
+    );
+    // The report itself waits behind the entry's details.
+    await expect(entry).not.toContainText(
+      "This is a password spray that most likely succeeded.",
+    );
+    await entry.getByTestId("feed-entry-details-toggle").click();
+    await expect(entry).toContainText(
+      "This is a password spray that most likely succeeded.",
+    );
+  });
+
+  test("Draft with AI's box has one action and an x beside its question", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH, { width: 1280 });
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click({ timeout: 30000 });
+    const dialog: Locator = page.getByRole("dialog");
+    const draft: Locator = dialog.getByTestId("detection-rule-ai-draft");
+
+    // The quiet button's mark sits on the field's edge, under its label.
+    const openButton: Locator = dialog.getByTestId(
+      "detection-rule-ai-draft-open",
+    );
+    const label: Box = await boxOf(
+      dialog.getByText("Sigma Rule (YAML)", { exact: true }),
+    );
+    const mark: Box = await boxOf(openButton.locator("svg").first());
+    expect(Math.abs(mark.x - label.x)).toBeLessThanOrEqual(2);
+
+    await openButton.click();
+    await expect(draft.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+    const close: Locator = draft.getByRole("button", {
+      name: "Close Draft with AI",
+    });
+    await expect(close).toBeVisible();
+    const submit: Locator = draft.getByTestId("detection-rule-ai-draft-submit");
+    // Draft rule starts on the box's left edge.
+    expect(
+      Math.abs(
+        (await boxOf(submit)).x -
+          (await boxOf(draft.getByRole("textbox"))).x,
+      ),
+    ).toBeLessThanOrEqual(1);
+
+    await close.click();
+    await expect(
+      dialog.getByTestId("detection-rule-ai-draft-description"),
+    ).toHaveCount(0);
+    await expect(dialog.getByTestId("detection-rule-ai-draft-open")).toHaveText(
+      "Draft with AI",
+    );
   });
 });
 

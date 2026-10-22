@@ -69,14 +69,15 @@ history is laid out from it with a seeded generator, so every run draws the same
 
 ## Scenarios
 
-| Parameter | Values                                                                                                                                            |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?theme=` | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                             |
-| `?empty=` | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                 |
-| `?quiet=` | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs |
-| `?role=`  | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                    |
-| `?lists=` | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                        |
-| `?ai=`    | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off            |
+| Parameter  | Values                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?theme=`  | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
+| `?empty=`  | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
+| `?quiet=`  | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
+| `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
+| `?lists=`  | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
+| `?ai=`     | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
+| `?triage=` | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
 
@@ -137,6 +138,15 @@ that list is not empty.
   switch, Triage new cases, that saves as it flips; the card in the dark theme and on a phone (the
   suggested playbook named in full); with the project's AI off (`?ai=off`) none of it is drawn and
   nothing asks.
+- **OneUptime AI when a triage cannot run, or was steered** (`?triage=`): the card's buttons sit
+  on the content's edge in both themes; a project out of AI credits, at its daily AI limit or
+  with no LLM provider says so in place of Triage again, with the fix for who may make it and who
+  can for a Security Viewer; a triage that stopped says why and Try again reads the case; text
+  written to steer an AI is said first, once (the report leaves out the runner's own heads-up),
+  and the read keeps no suggestion; a later triage that stopped keeps the read before it; with new
+  cases not triaged on their own the card links to the switch; Close Case names the AI read over
+  the verdict it starts on, and nothing of it with AI off; the timeline has the triage; Draft
+  with AI's box has one action and an x beside its question.
 - **Every page at 1280, 1024, 768 and 390**: none scrolls sideways.
 
 Every test pins the clock and puts up a network fence that aborts anything leaving the fixture
@@ -168,7 +178,9 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 `case-ai-not-triaged-desktop`, `case-ai-triaging-desktop`, `case-ai-triaged-desktop`,
 `case-ai-dark`, `case-ai-phone`, `case-ai-phone-dark`, `cases-ai-desktop`,
 `detection-rule-ai-draft-desktop`, `detection-rule-ai-drafted-desktop`, `ai-settings-desktop`,
-`ai-settings-dark`, `ai-settings-phone` and `ai-settings-ai-off-desktop`.
+`ai-settings-dark`, `ai-settings-phone`, `ai-settings-ai-off-desktop`, `case-ai-limit-desktop`,
+`case-ai-provider-desktop`, `case-ai-failed-desktop`, `case-ai-injection-desktop`,
+`case-ai-injection-phone-dark` and `case-close-ai-read-desktop`.
 
 ## Poke at it by hand
 
