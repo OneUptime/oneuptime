@@ -595,6 +595,12 @@ test.describe("templates of every kind a device's monitor can be made from (#514
       preview.getByTestId("discovery-import-template-check"),
     ).toHaveCount(1);
     await expect(preview).toContainText("Device unreachable");
+    // Its alerts all read a walk: none is promised for these registers.
+    await expect(
+      page.getByTestId("discovery-import-outcome-monitors"),
+    ).toHaveText(
+      "511 monitors, one per device, from “Network device alert pack (recommended)”, which opens incidents as its checks are met.",
+    );
 
     const folded: Locator = page.getByTestId(
       "discovery-import-template-walk-checks-folded",

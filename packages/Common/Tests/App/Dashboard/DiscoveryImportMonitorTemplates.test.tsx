@@ -852,6 +852,13 @@ describe("a Network Device template, on devices that answer ping only", () => {
     expect(
       screen.queryByTestId("discovery-import-template-walk-check"),
     ).toBeNull();
+
+    // The pack's alerts all read a walk: none can be created on these devices.
+    expect(
+      screen.getByTestId("discovery-import-outcome-monitors"),
+    ).toHaveTextContent(
+      `3 monitors, one per device, from “${RECOMMENDED_TEMPLATE_NAME}”, which opens incidents as its checks are met.`,
+    );
   });
 
   test("some devices answer SNMP: the walk checks are listed apart, under SNMP devices only", async () => {

@@ -102,7 +102,11 @@ export interface DiscoveryImportOutcome {
   monitorsBeyondRoom: number;
   template: DiscoveryImportTemplateChoice | null;
   reach: DiscoveryImportAlertReach;
-  // The template opens incidents / creates alerts on ANY of the devices.
+  /*
+   * The template opens incidents / creates alerts on ANY of the devices
+   * imported: on a device that answers ping only, only what its ping-only
+   * checks raise.
+   */
   raisesIncidents: boolean;
   raisesAlerts: boolean;
   /*
@@ -172,8 +176,30 @@ export function getDiscoveryImportOutcome(data: {
     },
   ).length;
 
-  const raisesIncidents: boolean = Boolean(template?.summary.raisesIncidents);
-  const raisesAlerts: boolean = Boolean(template?.summary.raisesAlerts);
+  /*
+   * What the monitors raise on THESE devices. When every one of them
+   * answers ping only - issue #5145's 516 kitchen displays and registers -
+   * a Network Device template's checks that read an SNMP walk raise nothing
+   * on any of them, so what it raises is what its ping-only checks raise:
+   * the summary must not promise alerts only an SNMP device could create.
+   */
+  const isEveryHostPingOnly: boolean =
+    hostCount > 0 && pingOnlyHostCount === hostCount;
+  const readsWalks: boolean = Boolean(
+    template && !checksDeviceAddress(template),
+  );
+  const raisesIncidents: boolean = Boolean(
+    template &&
+      (isEveryHostPingOnly && readsWalks
+        ? template.summary.raisesIncidentsOnPingOnlyDevices
+        : template.summary.raisesIncidents),
+  );
+  const raisesAlerts: boolean = Boolean(
+    template &&
+      (isEveryHostPingOnly && readsWalks
+        ? template.summary.raisesAlertsOnPingOnlyDevices
+        : template.summary.raisesAlerts),
+  );
   /*
    * A monitor that checks the address itself fires on a device that only
    * answers ping as much as on any other.
