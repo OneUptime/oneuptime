@@ -29,7 +29,8 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { KubernetesWorkloadKind } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -112,6 +113,28 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The deployment's Events and those of what it runs, read as the page
+   * opens: the Events tab says how many warnings there are before it
+   * is opened. Read once the deployment is known, for its namespace.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "workload",
+          workloadKind: KubernetesWorkloadKind.Deployment,
+          name: deploymentName,
+          namespace: objectData?.metadata.namespace,
+        },
+    title: "Deployment Events",
+    description:
+      "Kubernetes events for this deployment and its pods in the last 24 hours.",
+    resourceKind: "Deployment",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -317,22 +340,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="Deployment Events"
-          description="Kubernetes events for this deployment in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="Deployment"
-            resourceName={deploymentName}
-            namespace={objectData?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Metrics",
       children: (

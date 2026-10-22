@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -20,7 +19,7 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
 import {
   KubernetesHPAMetricSpec,
   KubernetesHPAObject,
@@ -93,6 +92,26 @@ const KubernetesClusterHPADetail: FunctionComponent<
 
     fetchObject().catch(() => {});
   }, [cluster?.clusterIdentifier, hpaName]);
+
+  /*
+   * The HPA's Events, read as the page opens: the Events tab says how
+   * many warnings there are before it is opened.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "object",
+          objectKind: "HorizontalPodAutoscaler",
+          objectName: hpaName,
+          namespace: objectData?.metadata.namespace,
+        },
+    title: "HPA Events",
+    description: "Kubernetes events for this HPA in the last 24 hours.",
+    resourceKind: "HorizontalPodAutoscaler",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -207,22 +226,7 @@ const KubernetesClusterHPADetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="HPA Events"
-          description="Kubernetes events for this HPA in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="HorizontalPodAutoscaler"
-            resourceName={hpaName}
-            namespace={objectData?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "YAML",
       children: (

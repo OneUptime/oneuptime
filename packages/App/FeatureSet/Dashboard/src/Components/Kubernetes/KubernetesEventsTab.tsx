@@ -1,252 +1,330 @@
+import {
+  KubernetesEventsPage,
+  fetchKubernetesEvents,
+} from "./KubernetesEventsApi";
+import {
+  KubernetesEventCounts,
+  KubernetesEventRow,
+  KubernetesEventsScope,
+  KubernetesEventsTypeFilter,
+  countKubernetesEventRows,
+  filterKubernetesEventRowsByType,
+} from "./KubernetesEventsModel";
+import KubernetesEventsTable from "./KubernetesEventsTable";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import OneUptimeDate from "Common/Types/Date";
+import IconProp from "Common/Types/Icon/IconProp";
+import ObjectID from "Common/Types/ObjectID";
+import Card from "Common/UI/Components/Card/Card";
+import FilterButtons, {
+  FilterButtonOption,
+} from "Common/UI/Components/FilterButtons/FilterButtons";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { Tab, TabType } from "Common/UI/Components/Tabs/Tab";
+import TableEmptyState, {
+  TableEmptyStateKind,
+} from "Common/UI/Components/Table/TableEmptyState";
+import { getLoadErrorStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
+import API from "Common/UI/Utils/API/API";
+import {
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
-import {
-  fetchK8sEventsForResource,
-  KubernetesEvent,
-} from "../../Pages/Kubernetes/Utils/KubernetesObjectFetcher";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FilterButtons, {
-  type FilterButtonOption,
-} from "Common/UI/Components/FilterButtons/FilterButtons";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
-import ExpandableText from "Common/UI/Components/ExpandableText/ExpandableText";
-import LocalTable from "Common/UI/Components/Table/LocalTable";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import type Columns from "Common/UI/Components/Table/Types/Columns";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+
+/*
+ * THE EVENTS TAB OF A NODE, A WORKLOAD, AN AUTOSCALER, A VOLUME OR A
+ * NAMESPACE.
+ *
+ * What Kubernetes reported in the last day about the object - and, on a
+ * workload's page, about what it runs (a Deployment's ReplicaSets and Pods,
+ * a CronJob's Jobs and their Pods), where a crash loop, an OOM kill or a
+ * failed mount is reported. A namespace's tab has every Event in it.
+ *
+ * The page reads them as it opens (useKubernetesEventsTab), not when the
+ * tab is opened, so the tab itself says how many warnings there are -
+ * "Events (2)", in the warning colour - from the Overview: the warnings
+ * about a node or an HPA are one look away wherever its page is opened.
+ * The tab opens on those warnings when there are any, and on every event
+ * otherwise.
+ */
+
+// How far back the tab looks.
+export const KUBERNETES_OBJECT_EVENTS_WINDOW_IN_HOURS: number = 24;
+
+const TYPE_LABELS: Record<KubernetesEventsTypeFilter, string> = {
+  [KubernetesEventsTypeFilter.All]: translationKey("All"),
+  [KubernetesEventsTypeFilter.Warning]: translationKey("Warnings"),
+  [KubernetesEventsTypeFilter.Normal]: translationKey("Normal"),
+};
+
+export interface KubernetesEventsState {
+  rows: Array<KubernetesEventRow>;
+  hasMore: boolean;
+  isLoading: boolean;
+  error: string;
+}
+
+/*
+ * The Events of a scope over the last day, read once the cluster is known
+ * (an empty identifier waits) and again when the scope changes.
+ */
+export function useKubernetesEvents(data: {
+  clusterIdentifier: string;
+  scope: KubernetesEventsScope | null;
+}): KubernetesEventsState & { reload: () => void } {
+  const [state, setState] = useState<KubernetesEventsState>({
+    rows: [],
+    hasMore: false,
+    isLoading: true,
+    error: "",
+  });
+  const requestSequence: React.MutableRefObject<number> = useRef<number>(0);
+  const scopeKey: string = data.scope ? JSON.stringify(data.scope) : "";
+
+  const load: () => void = (): void => {
+    if (!data.clusterIdentifier || !data.scope) {
+      return;
+    }
+
+    const sequence: number = ++requestSequence.current;
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+    const window: InBetween<Date> = new InBetween<Date>(
+      OneUptimeDate.addRemoveHours(
+        endDate,
+        -KUBERNETES_OBJECT_EVENTS_WINDOW_IN_HOURS,
+      ),
+      endDate,
+    );
+
+    setState((previous: KubernetesEventsState): KubernetesEventsState => {
+      return { ...previous, isLoading: true, error: "" };
+    });
+
+    fetchKubernetesEvents({
+      clusterIdentifier: data.clusterIdentifier,
+      scope: data.scope,
+      filters: { type: KubernetesEventsTypeFilter.All },
+      window: window,
+    })
+      .then((page: KubernetesEventsPage) => {
+        if (requestSequence.current === sequence) {
+          setState({
+            rows: page.rows,
+            hasMore: page.hasMore,
+            isLoading: false,
+            error: "",
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        if (requestSequence.current === sequence) {
+          setState((previous: KubernetesEventsState): KubernetesEventsState => {
+            return {
+              ...previous,
+              isLoading: false,
+              error: API.getFriendlyMessage(err),
+            };
+          });
+        }
+      });
+  };
+
+  useEffect(() => {
+    load();
+  }, [data.clusterIdentifier, scopeKey]);
+
+  return { ...state, reload: load };
+}
 
 export interface ComponentProps {
-  clusterIdentifier: string;
-  resourceKind: string; // "Pod", "Node", "Deployment", etc.
-  resourceName: string;
-  namespace?: string | undefined;
-}
-
-interface EventRow {
-  timestamp: string;
-  relativeTime: string;
-  type: string;
-  reason: string;
-  message: string;
-}
-
-function formatRelativeTime(timestamp: string): string {
-  if (!timestamp) {
-    return "-";
-  }
-  const date: Date = new Date(timestamp);
-  const now: Date = new Date();
-  const diffMs: number = now.getTime() - date.getTime();
-  if (diffMs < 0) {
-    return timestamp;
-  }
-  const diffSec: number = Math.floor(diffMs / 1000);
-  if (diffSec < 60) {
-    return `${diffSec}s ago`;
-  }
-  const diffMin: number = Math.floor(diffSec / 60);
-  if (diffMin < 60) {
-    return `${diffMin}m ago`;
-  }
-  const diffHrs: number = Math.floor(diffMin / 60);
-  if (diffHrs < 24) {
-    return `${diffHrs}h ago`;
-  }
-  const diffDays: number = Math.floor(diffHrs / 24);
-  return `${diffDays}d ago`;
+  events: KubernetesEventsState & { reload: () => void };
+  scope: KubernetesEventsScope;
+  // The cluster, for the links to an Event's object.
+  clusterId: ObjectID;
+  // What the scope is, in English: "node", "deployment", "namespace".
+  resourceKind: string;
 }
 
 const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [events, setEvents] = useState<Array<KubernetesEvent>>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [pickedType, setPickedType] =
+    useState<KubernetesEventsTypeFilter | null>(null);
+  const events: KubernetesEventsState & { reload: () => void } = props.events;
 
-  useEffect(() => {
-    const fetchEvents: () => Promise<void> = async (): Promise<void> => {
-      setIsLoading(true);
-      try {
-        const result: Array<KubernetesEvent> = await fetchK8sEventsForResource({
-          clusterIdentifier: props.clusterIdentifier,
-          resourceKind: props.resourceKind,
-          resourceName: props.resourceName,
-          namespace: props.namespace,
-        });
-        setEvents(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch events");
-      }
-      setIsLoading(false);
-    };
-
-    fetchEvents().catch(() => {});
-  }, [
-    props.clusterIdentifier,
-    props.resourceKind,
-    props.resourceName,
-    props.namespace,
-  ]);
-
-  if (isLoading) {
+  if (events.isLoading && events.rows.length === 0) {
     return <PageLoader isVisible={true} />;
   }
 
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
-
-  if (events.length === 0) {
+  if (events.error && events.rows.length === 0) {
     return (
-      <div className="text-gray-500 text-sm p-4">
-        {translator.translateTemplate(
-          "No events found for this {{kind}} in the last 24 hours.",
-          { kind: translatableTerm(props.resourceKind, { inSentence: true }) },
-        )}
-      </div>
+      <TableEmptyState
+        {...getLoadErrorStateProps({
+          pluralLabel: translationKey("Events"),
+          error: events.error,
+          onRetry: events.reload,
+          translate: (text: string): string => {
+            return translator.translateText(text) || text;
+          },
+          translator: translator,
+        })}
+        dataTestId="kubernetes-events-tab-error"
+      />
     );
   }
 
-  const warningCount: number = events.filter((e: KubernetesEvent) => {
-    return e.type.toLowerCase() === "warning";
-  }).length;
-  const normalCount: number = events.length - warningCount;
+  if (events.rows.length === 0) {
+    return (
+      <TableEmptyState
+        kind={TableEmptyStateKind.Empty}
+        icon={IconProp.Logs}
+        title={translator.translateTemplate(
+          "No events found for this {{kind}} in the last 24 hours.",
+          { kind: translatableTerm(props.resourceKind, { inSentence: true }) },
+        )}
+        description="Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them."
+        dataTestId="kubernetes-events-tab-empty"
+      />
+    );
+  }
 
-  const filteredEvents: Array<KubernetesEvent> = events.filter(
-    (e: KubernetesEvent) => {
-      if (typeFilter === "warning") {
-        return e.type.toLowerCase() === "warning";
-      }
-      if (typeFilter === "normal") {
-        return e.type.toLowerCase() !== "warning";
-      }
-      return true;
-    },
+  const counts: KubernetesEventCounts = countKubernetesEventRows(events.rows);
+  // The reader's pick, else the warnings when there are any.
+  const shownType: KubernetesEventsTypeFilter =
+    pickedType ||
+    (counts.warning > 0
+      ? KubernetesEventsTypeFilter.Warning
+      : KubernetesEventsTypeFilter.All);
+  const rows: Array<KubernetesEventRow> = filterKubernetesEventRowsByType(
+    events.rows,
+    shownType,
   );
 
-  const filterOptions: Array<FilterButtonOption> = [
-    { label: "All", value: "all" },
-    { label: "Warnings", value: "warning", badge: warningCount },
-    { label: "Normal", value: "normal", badge: normalCount },
-  ];
-
-  const tableData: Array<EventRow> = filteredEvents.map(
-    (event: KubernetesEvent): EventRow => {
-      return {
-        timestamp: event.timestamp,
-        relativeTime: formatRelativeTime(event.timestamp),
-        type: event.type,
-        reason: event.reason,
-        message: event.message,
-      };
-    },
-  );
-
-  const columns: Columns<EventRow> = [
+  const options: Array<FilterButtonOption> = [
     {
-      title: "Time",
-      type: FieldType.Text,
-      key: "relativeTime",
-      tooltipText: (item: EventRow): string => {
-        return item.timestamp;
-      },
+      label: TYPE_LABELS[KubernetesEventsTypeFilter.All],
+      value: KubernetesEventsTypeFilter.All,
+      badge: counts.all,
     },
     {
-      title: "Type",
-      type: FieldType.Element,
-      key: "type",
-      getElement: (item: EventRow): ReactElement => {
-        const isWarning: boolean = item.type.toLowerCase() === "warning";
-        return (
-          <StatusBadge
-            text={item.type}
-            type={isWarning ? StatusBadgeType.Warning : StatusBadgeType.Success}
-          />
-        );
-      },
+      label: TYPE_LABELS[KubernetesEventsTypeFilter.Warning],
+      value: KubernetesEventsTypeFilter.Warning,
+      badge: counts.warning,
     },
     {
-      title: "Reason",
-      type: FieldType.Text,
-      key: "reason",
-    },
-    {
-      title: "Message",
-      type: FieldType.Element,
-      key: "message",
-      getElement: (item: EventRow): ReactElement => {
-        return <ExpandableText text={item.message} maxLength={120} />;
-      },
+      label: TYPE_LABELS[KubernetesEventsTypeFilter.Normal],
+      value: KubernetesEventsTypeFilter.Normal,
+      badge: counts.normal,
     },
   ];
 
   return (
-    <div>
-      {/* Summary and Filters */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <div className="text-sm text-gray-600">
-          <TranslatedSentence
-            template={{ one: "{{number}} event", other: "{{number}} events" }}
-            count={events.length}
-            slots={{
-              number: <span className="font-medium">{events.length}</span>,
-            }}
-          />
-          {warningCount > 0 && (
-            <span>
-              {" "}
-              <TranslatedSentence
-                template={{
-                  one: "({{warnings}} warning, {{normal}} normal)",
-                  other: "({{warnings}} warnings, {{normal}} normal)",
-                }}
-                count={warningCount}
-                slots={{
-                  warnings: (
-                    <span className="text-amber-700 font-medium">
-                      {warningCount}
-                    </span>
-                  ),
-                  normal: (
-                    <span className="text-emerald-700 font-medium">
-                      {normalCount}
-                    </span>
-                  ),
-                }}
-              />
-            </span>
-          )}
-        </div>
+    <div data-testid="kubernetes-events-tab">
+      <div className="mb-4">
         <FilterButtons
-          options={filterOptions}
-          selectedValue={typeFilter}
-          onSelect={setTypeFilter}
+          options={options}
+          selectedValue={shownType}
+          ariaLabel="Event type"
+          onSelect={(value: string) => {
+            setPickedType(value as KubernetesEventsTypeFilter);
+          }}
+          className="flex-wrap"
         />
       </div>
 
-      <LocalTable
-        id="kubernetes-events-table"
-        data={tableData}
-        columns={columns}
-        singularLabel="Event"
-        pluralLabel="Events"
-      />
+      {rows.length === 0 ? (
+        <TableEmptyState
+          kind={
+            shownType === KubernetesEventsTypeFilter.Warning
+              ? TableEmptyStateKind.AllClear
+              : TableEmptyStateKind.Empty
+          }
+          title={
+            shownType === KubernetesEventsTypeFilter.Warning
+              ? "No warnings in the last 24 hours"
+              : "No normal events in the last 24 hours"
+          }
+          isCompact={true}
+          dataTestId="kubernetes-events-tab-empty-type"
+        />
+      ) : (
+        <KubernetesEventsTable
+          id="kubernetes-events-table"
+          rows={rows}
+          clusterId={props.clusterId}
+          showObject={props.scope.kind !== "object"}
+          showNamespace={false}
+        />
+      )}
+
+      {events.hasMore ? (
+        <p
+          className="mt-4 text-center text-xs text-gray-500"
+          data-testid="kubernetes-events-tab-more-note"
+        >
+          {translator.translateText(
+            "These are the newest events of the last 24 hours. The cluster's Events page reaches further back.",
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
 
 export default KubernetesEventsTab;
+
+/*
+ * The Events tab of a detail page, ready for its Tabs: read as the page
+ * opens, its name carrying the number of warnings in the warning colour.
+ * Call it with the other hooks, before the page's early returns; until the
+ * cluster is known it waits.
+ */
+export function useKubernetesEventsTab(data: {
+  clusterIdentifier: string;
+  clusterId: ObjectID;
+  scope: KubernetesEventsScope | null;
+  // The card's title and description, in English.
+  title: string;
+  description: string;
+  // What the scope is, in English: "node", "deployment", "namespace".
+  resourceKind: string;
+}): Tab {
+  const events: KubernetesEventsState & { reload: () => void } =
+    useKubernetesEvents({
+      clusterIdentifier: data.clusterIdentifier,
+      scope: data.scope,
+    });
+  const warnings: number = countKubernetesEventRows(events.rows).warning;
+
+  return {
+    name: "Events",
+    countBadge: warnings > 0 ? warnings : undefined,
+    tabType: TabType.Warning,
+    children: (
+      <Card title={data.title} description={data.description}>
+        {data.scope ? (
+          <KubernetesEventsTab
+            events={events}
+            scope={data.scope}
+            clusterId={data.clusterId}
+            resourceKind={data.resourceKind}
+          />
+        ) : (
+          <PageLoader isVisible={true} />
+        )}
+      </Card>
+    ),
+  };
+}

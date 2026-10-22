@@ -37,8 +37,9 @@ import KubernetesCpuUtils, {
 } from "../Utils/KubernetesCpuUtils";
 import {
   fetchClusterWarningEvents,
-  KubernetesEvent,
+  KubernetesWarningSummary,
 } from "../Utils/KubernetesObjectFetcher";
+import KubernetesRecentWarningsCard from "../../../Components/Kubernetes/KubernetesRecentWarningsCard";
 import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -121,7 +122,6 @@ import { getKubernetesClusterConnectionGuide } from "../../../Components/Resourc
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
-  translateTemplate,
   translateText,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -332,30 +332,6 @@ export function titleWithTooltip(
   );
 }
 
-function formatRelativeTime(timestamp: string): string {
-  try {
-    const eventDate: Date = new Date(timestamp);
-    const now: Date = new Date();
-    const diffMs: number = now.getTime() - eventDate.getTime();
-    const diffMins: number = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) {
-      return translateTemplate("just now");
-    }
-    if (diffMins < 60) {
-      return translateTemplate("{{minutes}}m ago", { minutes: diffMins });
-    }
-    const diffHours: number = Math.floor(diffMins / 60);
-    if (diffHours < 24) {
-      return translateTemplate("{{hours}}h ago", { hours: diffHours });
-    }
-    const diffDays: number = Math.floor(diffHours / 24);
-    return translateTemplate("{{days}}d ago", { days: diffDays });
-  } catch {
-    return timestamp;
-  }
-}
-
 const KubernetesClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -404,9 +380,9 @@ const KubernetesClusterOverview: FunctionComponent<
   const [topMemoryPods, setTopMemoryPods] = useState<Array<KubernetesResource>>(
     [],
   );
-  const [recentWarnings, setRecentWarnings] = useState<Array<KubernetesEvent>>(
-    [],
-  );
+  const [recentWarnings, setRecentWarnings] = useState<
+    Array<KubernetesWarningSummary>
+  >([]);
   const [nodePressure, setNodePressure] = useState<{
     memoryPressure: number;
     diskPressure: number;
@@ -722,10 +698,11 @@ const KubernetesClusterOverview: FunctionComponent<
     clusterIdentifier: string,
   ): Promise<void> => {
     try {
-      const warnings: Array<KubernetesEvent> = await fetchClusterWarningEvents({
-        clusterIdentifier: clusterIdentifier,
-        limit: 5,
-      });
+      const warnings: Array<KubernetesWarningSummary> =
+        await fetchClusterWarningEvents({
+          clusterIdentifier: clusterIdentifier,
+          limit: 5,
+        });
       setRecentWarnings(warnings);
     } catch {
       // Warnings are supplementary.
@@ -2880,124 +2857,16 @@ const KubernetesClusterOverview: FunctionComponent<
         )}
       </Card>
 
-      {/* Recent Warning Events */}
-      {isWarningsLoading ? (
-        <Card
-          title="Recent Warnings"
-          description="Latest warning events from the cluster."
-        >
-          <ComponentLoader />
-        </Card>
-      ) : (
-        recentWarnings.length > 0 &&
-        (() => {
-          // Deduplicate warnings by reason+object, keep latest timestamp and count
-          const deduped: Array<
-            KubernetesEvent & { count: number; latestTime: string }
-          > = [];
-          const seen: Map<
-            string,
-            KubernetesEvent & { count: number; latestTime: string }
-          > = new Map();
-
-          for (const event of recentWarnings) {
-            const dedupeKey: string = `${event.reason}:${event.objectKind}/${event.objectName}:${event.namespace}`;
-            const existing:
-              | (KubernetesEvent & { count: number; latestTime: string })
-              | undefined = seen.get(dedupeKey);
-            if (existing) {
-              existing.count++;
-            } else {
-              const entry: KubernetesEvent & {
-                count: number;
-                latestTime: string;
-              } = {
-                ...event,
-                count: 1,
-                latestTime: event.timestamp,
-              };
-              seen.set(dedupeKey, entry);
-              deduped.push(entry);
-            }
-          }
-
-          return (
-            <Card
-              title="Recent Warnings"
-              description="Latest warning events from the cluster."
-            >
-              <div className="divide-y divide-gray-100">
-                {deduped.map(
-                  (
-                    event: KubernetesEvent & {
-                      count: number;
-                      latestTime: string;
-                    },
-                    index: number,
-                  ) => {
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                          <Icon
-                            icon={IconProp.Alert}
-                            className="h-3.5 w-3.5 text-amber-600"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-sm font-medium text-gray-900">
-                              {event.reason}
-                            </span>
-                            {event.count > 1 && (
-                              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">
-                                ×{event.count}
-                              </span>
-                            )}
-                            <span className="text-xs text-gray-400 ml-auto flex-shrink-0">
-                              {formatRelativeTime(event.latestTime)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {event.message}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">
-                              {event.objectKind}/{event.objectName}
-                            </span>
-                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                              {event.namespace}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  },
-                )}
-              </div>
-              <div className="px-5 py-3 border-t border-gray-100">
-                <span
-                  onClick={() => {
-                    Navigation.navigate(
-                      RouteUtil.populateRouteParams(
-                        RouteMap[
-                          PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS
-                        ] as Route,
-                        { modelId: modelId },
-                      ),
-                    );
-                  }}
-                  className="text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
-                >
-                  {translator.translateText("View All Events →")}
-                </span>
-              </div>
-            </Card>
-          );
-        })()
-      )}
+      {/*
+       * The cluster's newest warnings, read on the server from its warning
+       * Events alone (issue #5179): OOM kills, crash loops, failed mounts,
+       * autoscalers that cannot read their metrics.
+       */}
+      <KubernetesRecentWarningsCard
+        warnings={recentWarnings}
+        isLoading={isWarningsLoading}
+        clusterId={modelId}
+      />
 
       {/*
        * Cluster Details: read here, edited in one place - the same card at

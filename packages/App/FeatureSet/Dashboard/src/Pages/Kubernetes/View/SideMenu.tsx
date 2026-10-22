@@ -266,6 +266,22 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Logs}
         />
+        {/*
+         * Beside Logs, open by default: a cluster's events - its OOM kills,
+         * crash loops, failed mounts, autoscalers that cannot read their
+         * metrics - are where most digs into a cluster start, not a place
+         * to fold away (issue #5179). The page opens on the warnings.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Events",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Bolt}
+        />
         <SideMenuItem
           link={{
             title: "Performance Profiles",
@@ -406,12 +422,12 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       {/*
-       * Autoscalers, and the cluster's events, control plane and service
-       * mesh, are where a deeper dig goes, not where a visit starts: the
-       * workloads, nodes and telemetry above are. So these two fold down to
-       * their titles, which keeps the longest menu in the product to what
-       * most visits need. Each opens with one click, and by itself on its
-       * own pages.
+       * Autoscalers, and the cluster's control plane and service mesh, are
+       * where a deeper dig goes, not where a visit starts: the workloads,
+       * nodes and telemetry above are. So these two fold down to their
+       * titles, which keeps the longest menu in the product to what most
+       * visits need. Each opens with one click, and by itself on its own
+       * pages. (The cluster's events sit under Telemetry, beside Logs.)
        */}
       <SideMenuSection title="Scaling" defaultCollapsed={true}>
         <SideMenuItem
@@ -439,16 +455,6 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
       </SideMenuSection>
 
       <SideMenuSection title="Observability" defaultCollapsed={true}>
-        <SideMenuItem
-          link={{
-            title: "Events",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Logs}
-        />
         <SideMenuItem
           link={{
             title: "Control Plane",

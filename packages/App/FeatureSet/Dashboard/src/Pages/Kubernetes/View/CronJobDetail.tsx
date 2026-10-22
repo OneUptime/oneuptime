@@ -26,7 +26,8 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { KubernetesWorkloadKind } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -109,6 +110,28 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The cronjob's Events and those of what it runs, read as the page
+   * opens: the Events tab says how many warnings there are before it
+   * is opened. Read once the cronjob is known, for its namespace.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "workload",
+          workloadKind: KubernetesWorkloadKind.CronJob,
+          name: cronJobName,
+          namespace: cronJobObject?.metadata.namespace,
+        },
+    title: "CronJob Events",
+    description:
+      "Kubernetes events for this cronjob, its jobs and their pods in the last 24 hours.",
+    resourceKind: "CronJob",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -273,22 +296,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="CronJob Events"
-          description="Kubernetes events for this cronjob in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="CronJob"
-            resourceName={cronJobName}
-            namespace={cronJobObject?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Metrics",
       children: (
