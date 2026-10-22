@@ -109,9 +109,21 @@ const FORBIDDEN_IN_BUNDLE = [
  * option it does not read never reaches the recorder. Measured 13322 bytes
  * raw / 4930 gzip after, against 13181 / 4890 before; the gzip budget below
  * is unchanged.
+ *
+ * The recorder's raw budget was raised from 320 KB to 323 KB on 2026-10-22
+ * for web vitals timed as the web-vitals library times them (issue #5181,
+ * src/PerformanceRecorder.ts): a page the browser prerendered is measured
+ * from when the visitor opened it (FCP 68 ms had read 2.1 s), a page hidden
+ * before it painted reports no FCP, LCP or CLS, a page restored from the
+ * back/forward cache reports vitals of its own, only the visitor's input
+ * settles LCP, and first-input gives a page of quick interactions its INP.
+ * Measured after: recorder.js 329507 bytes raw / 98609 gzip; before it
+ * 325428 / 97660. The gzip budget below still holds it and is unchanged;
+ * the raw one is the measured size plus about 1 KB, rounded up to a whole
+ * KB, the rule the gzip raises below follow.
  */
 const LOADER_MAX_BYTES = 13.5 * 1024;
-const RECORDER_MAX_BYTES = 320 * 1024;
+const RECORDER_MAX_BYTES = 323 * 1024;
 
 /*
  * Gzip budgets, which are the numbers a customer's browser actually pays.
