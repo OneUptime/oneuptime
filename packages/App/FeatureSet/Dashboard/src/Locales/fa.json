@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "استفاده از {{provider}}، ارائه‌دهنده پیش‌فرض LLM پروژه، چون ارائه‌دهنده قاعده دیگر در دسترس نیست",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "استفاده از {{provider}}، ارائه‌دهنده پیش‌فرض LLM پروژه، چون ارائه‌دهنده قاعده با اعتبار هوش مصنوعی کار می‌کند و این اعتبار تمام شده است",
   "Using {{provider}}, the rule's LLM provider": "استفاده از {{provider}}، ارائه‌دهنده LLM قاعده",
-  "Default LLM provider": "ارائه‌دهنده پیش‌فرض LLM"
+  "Default LLM provider": "ارائه‌دهنده پیش‌فرض LLM",
+  "No default LLM provider": "هیچ ارائه‌دهنده پیش‌فرض LLM ای وجود ندارد"
 }

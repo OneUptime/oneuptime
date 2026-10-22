@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "Bruger {{provider}}, projektets standard-LLM-udbyder, fordi reglens udbyder ikke længere er tilgængelig",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "Bruger {{provider}}, projektets standard-LLM-udbyder, fordi reglens udbyder kører på AI-kreditter, som er brugt op",
   "Using {{provider}}, the rule's LLM provider": "Bruger {{provider}}, reglens LLM-udbyder",
-  "Default LLM provider": "Standard-LLM-udbyder"
+  "Default LLM provider": "Standard-LLM-udbyder",
+  "No default LLM provider": "Ingen standard-LLM-udbyder"
 }

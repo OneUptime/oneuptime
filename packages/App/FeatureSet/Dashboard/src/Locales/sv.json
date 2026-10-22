@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "Använder {{provider}}, projektets standard-LLM-leverantör, eftersom regelns leverantör inte längre är tillgänglig",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "Använder {{provider}}, projektets standard-LLM-leverantör, eftersom regelns leverantör drivs med AI-krediter, som är slut",
   "Using {{provider}}, the rule's LLM provider": "Använder {{provider}}, regelns LLM-leverantör",
-  "Default LLM provider": "Standard-LLM-leverantör"
+  "Default LLM provider": "Standard-LLM-leverantör",
+  "No default LLM provider": "Ingen standard-LLM-leverantör"
 }

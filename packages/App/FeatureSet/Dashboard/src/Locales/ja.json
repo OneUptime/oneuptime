@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "ルールのプロバイダーが使用できなくなったため、{{provider}} (プロジェクトのデフォルトの LLM プロバイダー) を使用中",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "ルールのプロバイダーは AI クレジットで動作し、そのクレジットを使い切ったため、{{provider}} (プロジェクトのデフォルトの LLM プロバイダー) を使用中",
   "Using {{provider}}, the rule's LLM provider": "{{provider}} (ルールの LLM プロバイダー) を使用中",
-  "Default LLM provider": "デフォルトの LLM プロバイダー"
+  "Default LLM provider": "デフォルトの LLM プロバイダー",
+  "No default LLM provider": "デフォルトの LLM プロバイダーはありません"
 }

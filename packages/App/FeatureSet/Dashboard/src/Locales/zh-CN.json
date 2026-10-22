@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "该规则的提供商已不可用，因此正在使用项目的默认 LLM 提供商 {{provider}}",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "该规则的提供商依靠 AI 积分运行，而积分已用完，因此正在使用项目的默认 LLM 提供商 {{provider}}",
   "Using {{provider}}, the rule's LLM provider": "正在使用该规则的 LLM 提供商 {{provider}}",
-  "Default LLM provider": "默认 LLM 提供商"
+  "Default LLM provider": "默认 LLM 提供商",
+  "No default LLM provider": "没有默认 LLM 提供商"
 }

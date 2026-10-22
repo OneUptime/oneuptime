@@ -307,6 +307,20 @@ describe("the empty box names the provider an empty field uses", () => {
     );
   });
 
+  /*
+   * Providers of the project's own, none of them its default, and no
+   * global one: an empty field uses nothing, but there is a list to pick
+   * from - so not "No LLM provider yet" above it.
+   */
+  test("with providers but none the default, that there is no default", () => {
+    expect(
+      getRuleLlmProviderPlaceholder(
+        choices([{ ...AZURE, isDefault: false }, OPUS], ""),
+        ENGLISH,
+      ),
+    ).toBe("No default LLM provider");
+  });
+
   test("in the reader's language, the name as it is", () => {
     const german: Translator = translatorFor("de");
     const placeholder: string = getRuleLlmProviderPlaceholder(
@@ -536,6 +550,7 @@ describe("every word the field adds is every language's own", () => {
     RULE_LLM_PROVIDER_FIELD_COPY.globalPlaceholder,
     RULE_LLM_PROVIDER_FIELD_COPY.defaultPlaceholder,
     RULE_LLM_PROVIDER_FIELD_COPY.noProviderPlaceholder,
+    RULE_LLM_PROVIDER_FIELD_COPY.noDefaultPlaceholder,
     RULE_LLM_PROVIDER_FIELD_COPY.manageHint,
     RULE_LLM_PROVIDER_FIELD_COPY.llmProvidersPage,
     RULE_LLM_PROVIDER_FIELD_COPY.projectDefaultTag,

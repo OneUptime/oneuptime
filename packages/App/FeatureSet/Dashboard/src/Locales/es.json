@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "Usando {{provider}}, el proveedor LLM predeterminado del proyecto, porque el proveedor de la regla ya no está disponible",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "Usando {{provider}}, el proveedor LLM predeterminado del proyecto, porque el proveedor de la regla funciona con créditos de IA, que se han agotado",
   "Using {{provider}}, the rule's LLM provider": "Usando {{provider}}, el proveedor LLM de la regla",
-  "Default LLM provider": "Proveedor LLM predeterminado"
+  "Default LLM provider": "Proveedor LLM predeterminado",
+  "No default LLM provider": "Ningún proveedor LLM predeterminado"
 }

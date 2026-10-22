@@ -39,6 +39,7 @@ export const RULE_LLM_PROVIDER_FIELD_COPY: {
   globalPlaceholder: string;
   defaultPlaceholder: string;
   noProviderPlaceholder: string;
+  noDefaultPlaceholder: string;
   manageHint: string;
   llmProvidersPage: string;
   projectDefaultTag: string;
@@ -65,6 +66,12 @@ export const RULE_LLM_PROVIDER_FIELD_COPY: {
   // In the empty box while the providers are not known.
   defaultPlaceholder: translationKey("Default LLM provider"),
   noProviderPlaceholder: translationKey("No LLM provider yet"),
+  /*
+   * Providers to pick, but none an empty field uses: none is the project's
+   * default, and there is no global one. Not "No LLM provider yet" above a
+   * list of them.
+   */
+  noDefaultPlaceholder: translationKey("No default LLM provider"),
   manageHint: translationKey(
     "Add and manage providers on the {{llmProvidersLink}} page.",
   ),
@@ -281,7 +288,9 @@ export function getRuleLlmProviderPlaceholder(
 
   if (!defaultProvider) {
     return translator.translateText(
-      RULE_LLM_PROVIDER_FIELD_COPY.noProviderPlaceholder,
+      choices.providers.length > 0
+        ? RULE_LLM_PROVIDER_FIELD_COPY.noDefaultPlaceholder
+        : RULE_LLM_PROVIDER_FIELD_COPY.noProviderPlaceholder,
     ) as string;
   }
 

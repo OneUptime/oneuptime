@@ -33203,5 +33203,6 @@
   "Using {{provider}}, the project's default LLM provider, because the rule's provider is no longer available": "此規則的供應商已無法使用，因此正在使用專案的預設 LLM 供應商 {{provider}}",
   "Using {{provider}}, the project's default LLM provider, because the rule's provider runs on AI credits, which are used up": "此規則的供應商依靠 AI 點數執行，而點數已用完，因此正在使用專案的預設 LLM 供應商 {{provider}}",
   "Using {{provider}}, the rule's LLM provider": "正在使用此規則的 LLM 供應商 {{provider}}",
-  "Default LLM provider": "預設 LLM 供應商"
+  "Default LLM provider": "預設 LLM 供應商",
+  "No default LLM provider": "沒有預設 LLM 供應商"
 }
