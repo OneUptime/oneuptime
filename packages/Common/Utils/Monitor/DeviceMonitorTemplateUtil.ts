@@ -92,6 +92,15 @@ export function isDeviceMonitorTemplateType(
 export const DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL: string =
   "Pick a Network Device, Ping, IP, Port or NTP monitor template: a monitor made from any other kind cannot check a device.";
 
+/*
+ * Why a device whose address is a name gets no monitor from an IP template,
+ * and what would work. One sentence for every such device, so the import's
+ * list of failures shows them as one group (the device's own address is
+ * listed under it).
+ */
+export const IP_MONITOR_NEEDS_IP_ADDRESS: string =
+  "An IP monitor checks an IP address, and this device's address is a name. Use a Ping template for it.";
+
 type MonitorDestination = URL | IP | Hostname;
 
 export interface BuildDeviceMonitorData {
@@ -104,8 +113,10 @@ export default class DeviceMonitorTemplateUtil {
    * What a monitor of this type checks for a device at this address: an IP
    * address, or a host name for a Ping, Port or NTP monitor. An IP monitor
    * checks an IP address only, so a device whose address is a name cannot
-   * have one - said in a sentence that names the address and what would
-   * work, since it is read in the import's list of failures.
+   * have one - said in a sentence that says what would work, since it is
+   * read in the import's list of failures. The sentence names no address:
+   * that list groups its devices by reason and names each device's address
+   * under it, so every such device is one group, not one group each.
    */
   public static buildDestination(data: {
     address: string;
@@ -126,9 +137,7 @@ export default class DeviceMonitorTemplateUtil {
     }
 
     if (data.monitorType === MonitorType.IP && !IP.isIP(address)) {
-      throw new BadDataException(
-        `An IP monitor checks an IP address, and this device's address "${address}" is a name. Use a Ping template for it.`,
-      );
+      throw new BadDataException(IP_MONITOR_NEEDS_IP_ADDRESS);
     }
 
     return buildPingMonitorDestination(address);

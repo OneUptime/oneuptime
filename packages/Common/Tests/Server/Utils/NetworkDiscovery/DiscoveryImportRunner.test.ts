@@ -1525,7 +1525,7 @@ describe("a Ping, IP, Port or NTP template (issue #5145)", () => {
         device: DiscoveryImportDeviceOutcome.AlreadyAdded,
         monitor: DiscoveryImportMonitorOutcome.Failed,
         monitorError:
-          'An IP monitor checks an IP address, and this device\'s address "printer-02.corp.example.com" is a name. Use a Ping template for it.',
+          "An IP monitor checks an IP address, and this device's address is a name. Use a Ping template for it.",
       }),
     );
     expect(db.createdMonitors).toHaveLength(0);

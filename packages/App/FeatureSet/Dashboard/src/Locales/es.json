@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Equipos propietarios del dispositivo de red",
   "Network Device User Owner": "Usuario propietario del dispositivo de red",
   "Network Device User Owners": "Usuarios propietarios del dispositivo de red",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Monitores de dispositivo de red que evalúan los sondeos y traps de este dispositivo y abren incidentes o alertas.",
   "Network Devices": "Dispositivos de red",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Dispositivos de red (routers, switches, firewalls) que se monitorean en este proyecto mediante sondeo SNMP y traps.",
   "Network Endpoint": "Endpoint de red",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "Los nombres de métricas que reconoce OneUptime, como iot_device_up e iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "Las métricas acaban en un host, o aparece un servicio nuevo",
   "The metrics this monitor queries on every check.": "Las métricas que consulta este monitor en cada comprobación.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "El monitor vinculado a este dispositivo decide su estado, además de los monitores de dispositivo de red que hagan referencia a él.",
   "The monitor bound to this device reports it healthy.": "El monitor vinculado a este dispositivo informa que está en buen estado.",
   "The monitor bound to this device reports it offline.": "El monitor vinculado a este dispositivo informa que está sin conexión.",
   "The monitor template this monitor is linked to, if any.": "La plantilla de monitor a la que está vinculado este monitor, si la hay.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "Cada dispositivo recibe un monitor de la plantilla que elijas.",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "Cada dispositivo recibe un monitor IP que hace ping a su propia dirección IP desde {{probe}}.",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "Cada dispositivo recibe un monitor NTP que pregunta la hora a su propia dirección desde {{probe}}.",
-  "Each monitor checks its device's address from {{probe}}.": "Cada monitor comprueba la dirección de su dispositivo desde {{probe}}.",
   "Hide them": "Ocultarlos",
   "Network Device templates": "Plantillas de dispositivo de red",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "Se muestran las plantillas de dispositivo de red, Ping, IP, Puerto y NTP: los demás tipos no pueden comprobar un dispositivo.",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "Hay {{count}} comprobaciones más desactivadas en esta plantilla.",
   "{{count}} more checks are turned off in this template._one": "Hay {{count}} comprobación más desactivada en esta plantilla.",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "{{count}} comprobaciones más leen un recorrido SNMP: no se activan hasta que estos dispositivos tengan credenciales SNMP.",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} comprobación más lee un recorrido SNMP: no se activa hasta que estos dispositivos tengan credenciales SNMP."
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} comprobación más lee un recorrido SNMP: no se activa hasta que estos dispositivos tengan credenciales SNMP.",
+  "Monitors that check this device and open incidents or alerts.": "Monitores que comprueban este dispositivo y abren incidentes o alertas.",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "El monitor vinculado a este dispositivo decide su estado; los demás monitores de aquí también lo comprueban."
 }

@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Network Device Team Owners",
   "Network Device User Owner": "Network Device User Owner",
   "Network Device User Owners": "Network Device User Owners",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.",
   "Network Devices": "Network Devices",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.",
   "Network Endpoint": "Network Endpoint",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "हर डिवाइस को आपके चुने टेम्पलेट से एक मॉनिटर मिलता है।",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "हर डिवाइस को एक IP मॉनिटर मिलता है जो {{probe}} से उसके अपने IP पते को पिंग करता है।",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "हर डिवाइस को एक NTP मॉनिटर मिलता है जो {{probe}} से उसके अपने पते से समय पूछता है।",
-  "Each monitor checks its device's address from {{probe}}.": "हर मॉनिटर {{probe}} से अपने डिवाइस का पता जाँचता है।",
   "Hide them": "उन्हें छिपाएँ",
   "Network Device templates": "नेटवर्क डिवाइस टेम्पलेट",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "नेटवर्क डिवाइस, Ping, IP, पोर्ट और NTP टेम्पलेट दिखाए जाते हैं: दूसरे प्रकार किसी डिवाइस को नहीं जाँच सकते।",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "इस टेम्पलेट में {{count}} और जाँचें बंद हैं।",
   "{{count}} more checks are turned off in this template._one": "इस टेम्पलेट में {{count}} और जाँच बंद है।",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "{{count}} और जाँचें SNMP वॉक पढ़ती हैं: इन डिवाइस को SNMP क्रेडेंशियल मिलने तक वे शांत रहती हैं।",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} और जाँच SNMP वॉक पढ़ती है: इन डिवाइस को SNMP क्रेडेंशियल मिलने तक वह शांत रहती है।"
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} और जाँच SNMP वॉक पढ़ती है: इन डिवाइस को SNMP क्रेडेंशियल मिलने तक वह शांत रहती है।",
+  "Monitors that check this device and open incidents or alerts.": "मॉनिटर जो इस डिवाइस की जाँच करते हैं और घटना या अलर्ट खोलते हैं।",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "इस डिवाइस से जुड़ा मॉनिटर इसकी स्थिति तय करता है; यहाँ के बाकी मॉनिटर भी इसकी जाँच करते हैं।"
 }

@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Network Device Team Owners",
   "Network Device User Owner": "Network Device User Owner",
   "Network Device User Owners": "Network Device User Owners",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.",
   "Network Devices": "Network Devices",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.",
   "Network Endpoint": "Network Endpoint",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "每台裝置都會從你選擇的範本取得一個監測器。",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "每台裝置都會取得一個 IP 監測器，從 {{probe}} ping 它自己的 IP 位址。",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "每台裝置都會取得一個 NTP 監測器，從 {{probe}} 向它自己的位址詢問時間。",
-  "Each monitor checks its device's address from {{probe}}.": "每個監測器都從 {{probe}} 檢查其裝置的位址。",
   "Hide them": "隱藏",
   "Network Device templates": "網路裝置範本",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "列出網路裝置、Ping、IP、連接埠和 NTP 範本：其他類型無法檢查裝置。",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "此範本另有 {{count}} 項檢查已關閉。",
   "{{count}} more checks are turned off in this template._one": "此範本另有 {{count}} 項檢查已關閉。",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "另有 {{count}} 項檢查會讀取 SNMP 走訪：在這些裝置有 SNMP 認證資訊前，它們不會觸發。",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "另有 {{count}} 項檢查會讀取 SNMP 走訪：在這些裝置有 SNMP 認證資訊前，它們不會觸發。"
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "另有 {{count}} 項檢查會讀取 SNMP 走訪：在這些裝置有 SNMP 認證資訊前，它們不會觸發。",
+  "Monitors that check this device and open incidents or alerts.": "檢查此裝置並開啟事件或警示的監測器。",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "綁定到此裝置的監測器決定其狀態；這裡的其他監測器也會檢查它。"
 }

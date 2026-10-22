@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Network Device Team Owners",
   "Network Device User Owner": "Network Device User Owner",
   "Network Device User Owners": "Network Device User Owners",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.",
   "Network Devices": "Network Devices",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.",
   "Network Endpoint": "Network Endpoint",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "Varje enhet får en övervakning från den mall du väljer.",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "Varje enhet får en IP-övervakning som pingar sin egen IP-adress från {{probe}}.",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "Varje enhet får en NTP-övervakning som frågar sin egen adress om tiden från {{probe}}.",
-  "Each monitor checks its device's address from {{probe}}.": "Varje övervakning kontrollerar sin enhets adress från {{probe}}.",
   "Hide them": "Dölj dem",
   "Network Device templates": "Mallar för nätverksenheter",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "Mallar för nätverksenheter, Ping, IP, Port och NTP visas: andra typer kan inte kontrollera en enhet.",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "{{count}} kontroller till är avstängda i den här mallen.",
   "{{count}} more checks are turned off in this template._one": "{{count}} kontroll till är avstängd i den här mallen.",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "{{count}} kontroller till läser en SNMP-genomgång: de förblir tysta tills de här enheterna har SNMP-autentiseringsuppgifter.",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} kontroll till läser en SNMP-genomgång: den förblir tyst tills de här enheterna har SNMP-autentiseringsuppgifter."
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} kontroll till läser en SNMP-genomgång: den förblir tyst tills de här enheterna har SNMP-autentiseringsuppgifter.",
+  "Monitors that check this device and open incidents or alerts.": "Övervakningar som kontrollerar den här enheten och öppnar incidenter eller larm.",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "Övervakningen som är bunden till den här enheten avgör dess status; de andra övervakningarna här kontrollerar den också."
 }

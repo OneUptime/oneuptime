@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Network Device Team Owners",
   "Network Device User Owner": "Network Device User Owner",
   "Network Device User Owners": "Network Device User Owners",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.",
   "Network Devices": "Network Devices",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.",
   "Network Endpoint": "Network Endpoint",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "각 장치는 선택한 템플릿에서 모니터를 받습니다.",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "각 장치는 {{probe}}에서 자신의 IP 주소로 ping하는 IP 모니터를 받습니다.",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "각 장치는 {{probe}}에서 자신의 주소에 시간을 묻는 NTP 모니터를 받습니다.",
-  "Each monitor checks its device's address from {{probe}}.": "각 모니터는 {{probe}}에서 장치의 주소를 확인합니다.",
   "Hide them": "숨기기",
   "Network Device templates": "네트워크 장치 템플릿",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "네트워크 장치, Ping, IP, 포트, NTP 템플릿이 표시됩니다. 다른 종류로는 장치를 확인할 수 없습니다.",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "이 템플릿에서 확인 {{count}}개가 더 꺼져 있습니다.",
   "{{count}} more checks are turned off in this template._one": "이 템플릿에서 확인 {{count}}개가 더 꺼져 있습니다.",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "확인 {{count}}개가 더 SNMP 워크를 읽습니다. 이 장치들에 SNMP 자격 증명이 생길 때까지 발생하지 않습니다.",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "확인 {{count}}개가 더 SNMP 워크를 읽습니다. 이 장치들에 SNMP 자격 증명이 생길 때까지 발생하지 않습니다."
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "확인 {{count}}개가 더 SNMP 워크를 읽습니다. 이 장치들에 SNMP 자격 증명이 생길 때까지 발생하지 않습니다.",
+  "Monitors that check this device and open incidents or alerts.": "이 장치를 확인하고 인시던트나 경고를 여는 모니터입니다.",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "이 장치에 연결된 모니터가 상태를 결정하며, 여기 있는 다른 모니터도 이 장치를 확인합니다."
 }

@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Network Device Team Owners",
   "Network Device User Owner": "Network Device User Owner",
   "Network Device User Owners": "Network Device User Owners",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.",
   "Network Devices": "Network Devices",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.",
   "Network Endpoint": "Network Endpoint",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "每台设备都会从你选择的模板获得一个监视器。",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "每台设备都会获得一个 IP 监视器，从 {{probe}} ping 它自己的 IP 地址。",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "每台设备都会获得一个 NTP 监视器，从 {{probe}} 向它自己的地址询问时间。",
-  "Each monitor checks its device's address from {{probe}}.": "每个监视器都从 {{probe}} 检查其设备的地址。",
   "Hide them": "隐藏",
   "Network Device templates": "网络设备模板",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "列出网络设备、Ping、IP、端口和 NTP 模板：其他类型无法检查设备。",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "此模板中另有 {{count}} 项检查已关闭。",
   "{{count}} more checks are turned off in this template._one": "此模板中另有 {{count}} 项检查已关闭。",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "另有 {{count}} 项检查读取 SNMP 遍历：在这些设备有 SNMP 凭据之前，它们不会触发。",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "另有 {{count}} 项检查读取 SNMP 遍历：在这些设备有 SNMP 凭据之前，它们不会触发。"
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "另有 {{count}} 项检查读取 SNMP 遍历：在这些设备有 SNMP 凭据之前，它们不会触发。",
+  "Monitors that check this device and open incidents or alerts.": "检查此设备并打开事件或警报的监视器。",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "绑定到此设备的监视器决定其状态；这里的其他监视器也会检查它。"
 }

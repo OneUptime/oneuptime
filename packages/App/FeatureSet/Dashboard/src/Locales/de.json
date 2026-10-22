@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Team-Eigentümer des Netzwerkgeräts",
   "Network Device User Owner": "Benutzer-Eigentümer des Netzwerkgeräts",
   "Network Device User Owners": "Benutzer-Eigentümer des Netzwerkgeräts",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Netzwerkgeräte-Monitore, die die Abfragen und Traps dieses Geräts auswerten und Vorfälle oder Warnungen eröffnen.",
   "Network Devices": "Netzwerkgeräte",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Netzwerkgeräte (Router, Switches, Firewalls), die in diesem Projekt per SNMP-Abfrage und Traps überwacht werden.",
   "Network Endpoint": "Netzwerkendpunkt",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "Die Metriknamen, die OneUptime erkennt, z. B. iot_device_up und iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "Die Metriken landen bei einem Host, oder ein neuer Dienst erscheint",
   "The metrics this monitor queries on every check.": "Die Metriken, die dieser Monitor bei jeder Prüfung abfragt.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "Der an dieses Gerät gebundene Monitor bestimmt seinen Status, zusätzlich alle Netzwerkgerät-Monitore, die darauf verweisen.",
   "The monitor bound to this device reports it healthy.": "Der an dieses Gerät gebundene Monitor meldet es als fehlerfrei.",
   "The monitor bound to this device reports it offline.": "Der an dieses Gerät gebundene Monitor meldet es als offline.",
   "The monitor template this monitor is linked to, if any.": "Die Monitorvorlage, mit der dieser Monitor verknüpft ist, falls vorhanden.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "Jedes Gerät erhält einen Monitor aus der gewählten Vorlage.",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "Jedes Gerät erhält einen IP-Monitor, der seine eigene IP-Adresse von {{probe}} aus anpingt.",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "Jedes Gerät erhält einen NTP-Monitor, der seine eigene Adresse von {{probe}} aus nach der Uhrzeit fragt.",
-  "Each monitor checks its device's address from {{probe}}.": "Jeder Monitor prüft die Adresse seines Geräts von {{probe}} aus.",
   "Hide them": "Ausblenden",
   "Network Device templates": "Netzwerkgeräte-Vorlagen",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "Aufgeführt werden Netzwerkgeräte-, Ping-, IP-, Port- und NTP-Vorlagen: Andere Arten können kein Gerät prüfen.",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "{{count}} weitere Prüfungen sind in dieser Vorlage ausgeschaltet.",
   "{{count}} more checks are turned off in this template._one": "{{count}} weitere Prüfung ist in dieser Vorlage ausgeschaltet.",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "{{count}} weitere Prüfungen lesen einen SNMP-Walk und bleiben still, bis diese Geräte SNMP-Anmeldedaten haben.",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} weitere Prüfung liest einen SNMP-Walk und bleibt still, bis diese Geräte SNMP-Anmeldedaten haben."
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} weitere Prüfung liest einen SNMP-Walk und bleibt still, bis diese Geräte SNMP-Anmeldedaten haben.",
+  "Monitors that check this device and open incidents or alerts.": "Monitore, die dieses Gerät prüfen und Vorfälle oder Warnungen eröffnen.",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "Der an dieses Gerät gebundene Monitor bestimmt seinen Status; alle anderen Monitore hier prüfen es ebenfalls."
 }

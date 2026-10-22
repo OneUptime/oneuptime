@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "ネットワークデバイスの所有者チーム",
   "Network Device User Owner": "ネットワークデバイスの所有者ユーザー",
   "Network Device User Owners": "ネットワークデバイスの所有者ユーザー",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "このデバイスのポーリングとトラップを評価し、インシデントやアラートを作成するネットワークデバイスモニター。",
   "Network Devices": "ネットワークデバイス",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "このプロジェクトで SNMP のポーリングとトラップによって監視しているネットワークデバイス（ルーター、スイッチ、ファイアウォール）。",
   "Network Endpoint": "ネットワークエンドポイント",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "OneUptime が認識するメトリクス名（iot_device_up、iot_battery_percent など）。",
   "The metrics land on a Host, or a new Service appears": "メトリクスがホストに記録される、または新しいサービスが表示される",
   "The metrics this monitor queries on every check.": "このモニターがチェックのたびにクエリするメトリクス。",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "このデバイスのステータスは、紐付けられたモニターと、このデバイスを参照するネットワークデバイスモニターによって決まります。",
   "The monitor bound to this device reports it healthy.": "このデバイスに紐付けられたモニターは、正常と報告しています。",
   "The monitor bound to this device reports it offline.": "このデバイスに紐付けられたモニターは、オフラインと報告しています。",
   "The monitor template this monitor is linked to, if any.": "このモニターがリンクされているモニターテンプレート（ある場合）。",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "各デバイスに、選んだテンプレートからモニターが作られます。",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "各デバイスに、{{probe}} から自身の IP アドレスに ping する IP モニターが作られます。",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "各デバイスに、{{probe}} から自身のアドレスに時刻を問い合わせる NTP モニターが作られます。",
-  "Each monitor checks its device's address from {{probe}}.": "各モニターは {{probe}} からデバイスのアドレスをチェックします。",
   "Hide them": "非表示にする",
   "Network Device templates": "ネットワークデバイステンプレート",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "ネットワークデバイス、Ping、IP、ポート、NTP のテンプレートが表示されます。ほかの種類ではデバイスをチェックできません。",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "このテンプレートでは、ほかに {{count}} 件のチェックがオフになっています。",
   "{{count}} more checks are turned off in this template._one": "このテンプレートでは、ほかに {{count}} 件のチェックがオフになっています。",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "ほかに {{count}} 件のチェックが SNMP ウォークを読み取ります。これらのデバイスに SNMP 認証情報が設定されるまでは発生しません。",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "ほかに {{count}} 件のチェックが SNMP ウォークを読み取ります。これらのデバイスに SNMP 認証情報が設定されるまでは発生しません。"
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "ほかに {{count}} 件のチェックが SNMP ウォークを読み取ります。これらのデバイスに SNMP 認証情報が設定されるまでは発生しません。",
+  "Monitors that check this device and open incidents or alerts.": "このデバイスをチェックし、インシデントやアラートを開くモニター。",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "このデバイスのステータスは紐付けられたモニターで決まります。ここにあるほかのモニターもこのデバイスをチェックします。"
 }

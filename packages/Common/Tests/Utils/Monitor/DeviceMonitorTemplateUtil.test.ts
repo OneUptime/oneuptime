@@ -17,6 +17,7 @@ import DeviceMonitorTemplateUtil, {
   DEVICE_ADDRESS_MONITOR_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPES,
   DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+  IP_MONITOR_NEEDS_IP_ADDRESS,
   isDeviceAddressMonitorType,
   isDeviceMonitorTemplateType,
 } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
@@ -328,7 +329,36 @@ describe("DeviceMonitorTemplateUtil.buildDestination", () => {
         address: "kds-03.wbhq.com",
         monitorType: MonitorType.IP,
       });
-    }, 'An IP monitor checks an IP address, and this device\'s address "kds-03.wbhq.com" is a name. Use a Ping template for it.');
+    }, "An IP monitor checks an IP address, and this device's address is a name. Use a Ping template for it.");
+  });
+
+  /*
+   * The import's list of failures groups devices by reason and names each
+   * device's address under it: a reason that named the address would make
+   * every such device a group of its own.
+   */
+  it("every device whose address is a name gets the same sentence, so the import lists them as one group", () => {
+    const reasons: Array<string> = [
+      "kds-03.wbhq.com",
+      "printer-02.corp.example.com",
+    ].map((address: string): string => {
+      try {
+        DeviceMonitorTemplateUtil.buildDestination({
+          address: address,
+          monitorType: MonitorType.IP,
+        });
+      } catch (err) {
+        return (err as Error).message;
+      }
+
+      return "";
+    });
+
+    expect(reasons).toEqual([
+      IP_MONITOR_NEEDS_IP_ADDRESS,
+      IP_MONITOR_NEEDS_IP_ADDRESS,
+    ]);
+    expect(IP_MONITOR_NEEDS_IP_ADDRESS).not.toContain("kds-03");
   });
 
   it("a device with no address cannot be checked", () => {

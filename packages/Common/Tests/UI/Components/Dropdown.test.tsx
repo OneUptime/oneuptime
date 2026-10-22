@@ -305,6 +305,70 @@ describe("Dropdown", () => {
 });
 
 /*
+ * A picked name longer than the control - a monitor template's name in the
+ * discovery import, on a phone (OneUptime issue #5145) - ends in an
+ * ellipsis instead of being cut off mid-letter. react-select puts its own
+ * ellipsis on the value's box, but the name sits inside flex rows (beside a
+ * colour dot and labels) where it cannot reach: the rows must be allowed to
+ * shrink and the name must truncate itself. jsdom lays nothing out, so the
+ * classes that do it are what is pinned; the Discovery browser suite checks
+ * the drawn ellipsis at 390 pixels.
+ */
+describe("Dropdown picked value", () => {
+  const LONG_NAME: string =
+    "WB KDS Ping Monitor Template - Kitchen display systems, all franchise stores";
+
+  test("a single picked name truncates with an ellipsis inside rows that may shrink", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        options={[{ value: "kds", label: LONG_NAME }]}
+        value={{ value: "kds", label: LONG_NAME }}
+      />,
+    );
+
+    const label: HTMLElement = screen.getByTestId("dropdown-value-label");
+
+    expect(label).toHaveTextContent(LONG_NAME);
+    expect(label).toHaveClass("truncate");
+    expect(label.parentElement).toHaveClass("min-w-0", "max-w-full");
+    expect(label.parentElement?.parentElement).toHaveClass("min-w-0");
+  });
+
+  test("each picked chip of a multi select truncates its name the same way", () => {
+    render(
+      <Dropdown
+        onChange={() => {}}
+        isMultiSelect={true}
+        options={[
+          { value: "kds", label: LONG_NAME },
+          { value: "short", label: "Printers" },
+        ]}
+        value={[
+          { value: "kds", label: LONG_NAME },
+          { value: "short", label: "Printers" },
+        ]}
+      />,
+    );
+
+    const labels: Array<HTMLElement> = screen.getAllByTestId(
+      "dropdown-value-label",
+    );
+
+    expect(
+      labels.map((label: HTMLElement): string => {
+        return label.textContent || "";
+      }),
+    ).toEqual([LONG_NAME, "Printers"]);
+
+    for (const label of labels) {
+      expect(label).toHaveClass("truncate");
+      expect(label.parentElement).toHaveClass("min-w-0");
+    }
+  });
+});
+
+/*
  * Aliases let an option answer to values other than its own: the retired
  * spellings of a timezone ("Singapore" for Asia/Singapore). The timezone
  * picker offers only current names, but stored values are never rewritten, so

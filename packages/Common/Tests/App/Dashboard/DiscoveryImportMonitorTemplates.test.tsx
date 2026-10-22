@@ -656,6 +656,11 @@ describe("which templates the step lists (issue #5145)", () => {
       `/dashboard/${PROJECT_ID.toString()}/monitors/settings/templates`,
     );
     expect(link).toHaveAttribute("target", "_blank");
+    // The icon tells the eye it opens a new tab; a screen reader is told too.
+    expect(link).toHaveAccessibleName("Manage templates (opens in a new tab)");
+    expect(within(link).getByText("(opens in a new tab)")).toHaveClass(
+      "sr-only",
+    );
   });
 
   test("a template saved with no name is named in the reader's language, and drawn as named otherwise", async () => {
@@ -717,11 +722,14 @@ describe("picking a template whose monitors check each device's address", () => 
     ).toHaveTextContent(
       "5 monitors, one per device, from “WB KDS Ping Monitor Template”, which opens incidents",
     );
+    /*
+     * Where the monitors check from is said once, in the preview's first
+     * line beside the summary - not repeated in the summary.
+     */
+    expect(screen.queryByTestId("discovery-import-outcome-address")).toBeNull();
     expect(
-      screen.getByTestId("discovery-import-outcome-address"),
-    ).toHaveTextContent(
-      "Each monitor checks its device's address from Store probe.",
-    );
+      screen.getByTestId("discovery-import-outcome"),
+    ).not.toHaveTextContent("Store probe");
     expect(
       screen.queryByTestId("discovery-import-outcome-ping-silent"),
     ).toBeNull();
@@ -797,11 +805,7 @@ describe("picking a template whose monitors check each device's address", () => 
     ).toHaveTextContent(
       "Each device gets a Ping monitor that pings its own address from the probe that ran the scan.",
     );
-    expect(
-      screen.getByTestId("discovery-import-outcome-address"),
-    ).toHaveTextContent(
-      "Each monitor checks its device's address from the probe that ran the scan.",
-    );
+    expect(screen.queryByTestId("discovery-import-outcome-address")).toBeNull();
   });
 
   test("a Network Device template's monitors are checked on every poll, at the interval picked here", async () => {

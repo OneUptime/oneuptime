@@ -173,10 +173,16 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
           ? "Monitors reporting on this device"
           : "Monitors alerting on this device"
       }
+      /*
+       * Every kind of monitor the card lists: Network Device monitors that
+       * read the device's polls and traps, and - since a discovery import
+       * can give each device one from a template (OneUptime issue #5145) -
+       * Ping, IP, Port and NTP monitors that check its address.
+       */
       description={
         props.isMonitorBacked
-          ? "The monitor bound to this device decides its status, plus any Network Device monitors that reference it."
-          : "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts."
+          ? "The monitor bound to this device decides its status; any other monitors here check it too."
+          : "Monitors that check this device and open incidents or alerts."
       }
     >
       {getCardContent()}

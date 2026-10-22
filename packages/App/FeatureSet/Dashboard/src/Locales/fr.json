@@ -12933,7 +12933,6 @@
   "Network Device Team Owners": "Équipes propriétaires de l'équipement réseau",
   "Network Device User Owner": "Utilisateur propriétaire de l'équipement réseau",
   "Network Device User Owners": "Utilisateurs propriétaires de l'équipement réseau",
-  "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts.": "Moniteurs d'équipement réseau qui évaluent les interrogations et les traps de cet équipement et ouvrent des incidents ou des alertes.",
   "Network Devices": "Équipements réseau",
   "Network Devices (routers, switches, firewalls) that are being monitored in this project via SNMP polling and traps.": "Équipements réseau (routeurs, commutateurs, pare-feu) surveillés dans ce projet par interrogation et traps SNMP.",
   "Network Endpoint": "Point de terminaison réseau",
@@ -17223,7 +17222,6 @@
   "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.": "The metric names OneUptime recognizes, such as iot_device_up and iot_battery_percent.",
   "The metrics land on a Host, or a new Service appears": "The metrics land on a Host, or a new Service appears",
   "The metrics this monitor queries on every check.": "The metrics this monitor queries on every check.",
-  "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.": "The monitor bound to this device decides its status, plus any Network Device monitors that reference it.",
   "The monitor bound to this device reports it healthy.": "The monitor bound to this device reports it healthy.",
   "The monitor bound to this device reports it offline.": "The monitor bound to this device reports it offline.",
   "The monitor template this monitor is linked to, if any.": "The monitor template this monitor is linked to, if any.",
@@ -32816,7 +32814,6 @@
   "Each device gets a monitor from the template you pick.": "Chaque équipement reçoit un moniteur issu du modèle choisi.",
   "Each device gets an IP monitor that pings its own IP address from {{probe}}.": "Chaque équipement reçoit un moniteur IP qui pingue sa propre adresse IP depuis {{probe}}.",
   "Each device gets an NTP monitor that asks its own address for the time from {{probe}}.": "Chaque équipement reçoit un moniteur NTP qui demande l'heure à sa propre adresse depuis {{probe}}.",
-  "Each monitor checks its device's address from {{probe}}.": "Chaque moniteur vérifie l'adresse de son équipement depuis {{probe}}.",
   "Hide them": "Les masquer",
   "Network Device templates": "Modèles d'équipement réseau",
   "Network Device, Ping, IP, Port and NTP templates are listed: other kinds cannot check a device.": "Les modèles d'équipement réseau, Ping, IP, Port et NTP sont listés : les autres types ne peuvent pas vérifier un équipement.",
@@ -32832,5 +32829,7 @@
   "{{count}} more checks are turned off in this template.": "{{count}} autres vérifications sont désactivées dans ce modèle.",
   "{{count}} more checks are turned off in this template._one": "{{count}} autre vérification est désactivée dans ce modèle.",
   "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials.": "{{count}} autres vérifications lisent un parcours SNMP : elles restent muettes tant que ces équipements n'ont pas d'identifiants SNMP.",
-  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} autre vérification lit un parcours SNMP : elle reste muette tant que ces équipements n'ont pas d'identifiants SNMP."
+  "{{count}} more checks read an SNMP walk: they stay quiet until these devices have SNMP credentials._one": "{{count}} autre vérification lit un parcours SNMP : elle reste muette tant que ces équipements n'ont pas d'identifiants SNMP.",
+  "Monitors that check this device and open incidents or alerts.": "Moniteurs qui vérifient cet équipement et ouvrent des incidents ou des alertes.",
+  "The monitor bound to this device decides its status; any other monitors here check it too.": "Le moniteur lié à cet équipement détermine son état ; les autres moniteurs ici le vérifient aussi."
 }

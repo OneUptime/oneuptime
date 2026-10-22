@@ -462,7 +462,11 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     const manage: Locator = page.getByTestId(
       "discovery-import-manage-templates",
     );
-    await expect(manage).toHaveText("Manage templates");
+    await expect(manage).toContainText("Manage templates");
+    // The icon says "new tab" to the eye; the link's name says it aloud.
+    await expect(manage).toHaveAccessibleName(
+      "Manage templates (opens in a new tab)",
+    );
     await expect(manage).toHaveAttribute(
       "href",
       "/dashboard/10000000-0000-4000-8000-000000000001/monitors/settings/templates",
@@ -548,11 +552,13 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     ).toContainText(
       "511 monitors, one per device, from “WB KDS Ping Monitor Template”, which opens incidents",
     );
+    // Where the monitors check from is said once: in the preview, not again here.
     await expect(
       page.getByTestId("discovery-import-outcome-address"),
-    ).toHaveText(
-      "Each monitor checks its device's address from London datacenter.",
-    );
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("discovery-import-outcome"),
+    ).not.toContainText("London datacenter");
     await expect(
       page.getByTestId("discovery-import-outcome-ping-silent"),
     ).toHaveCount(0);
@@ -626,6 +632,23 @@ test.describe("templates of every kind a device's monitor can be made from (#514
     await expect(
       page.getByTestId("discovery-import-template-walk-check"),
     ).toHaveCount(count);
+
+    /*
+     * Opened, the checks start under a rule of their own, clear of the row
+     * that holds the line and its toggle.
+     */
+    const rowBox: { y: number; height: number } | null = await folded
+      .locator("xpath=..")
+      .boundingBox();
+    const firstCheckBox: { y: number } | null = await page
+      .getByTestId("discovery-import-template-walk-check")
+      .first()
+      .boundingBox();
+    expect(rowBox).not.toBeNull();
+    expect(firstCheckBox).not.toBeNull();
+    expect(
+      firstCheckBox!.y - (rowBox!.y + rowBox!.height),
+    ).toBeGreaterThanOrEqual(8);
     await toggle.click();
     await expect(
       page.getByTestId("discovery-import-template-walk-check"),
@@ -688,6 +711,33 @@ test.describe("templates of every kind, on a phone (#5145)", () => {
     await page.keyboard.press("Escape");
 
     await pickTemplate(page, /^WB KDS Ping Monitor Template/);
+
+    /*
+     * The picked name is longer than the control is wide here: it ends in an
+     * ellipsis inside the control, not cut off mid-letter at its edge.
+     */
+    const picked: Locator = page
+      .locator("#discovery-import-template")
+      .getByTestId("dropdown-value-label");
+    await expect(picked).toHaveText("WB KDS Ping Monitor Template");
+    const fit: {
+      isCut: boolean;
+      textOverflow: string;
+      right: number;
+      controlRight: number;
+    } = await picked.evaluate((element: HTMLElement) => {
+      const control: Element | null = element.closest(".ou-select__control");
+      return {
+        isCut: element.scrollWidth > element.clientWidth,
+        textOverflow: window.getComputedStyle(element).textOverflow,
+        right: element.getBoundingClientRect().right,
+        controlRight: control ? control.getBoundingClientRect().right : 0,
+      };
+    });
+    expect(fit.isCut).toBe(true);
+    expect(fit.textOverflow).toBe("ellipsis");
+    expect(fit.right).toBeLessThanOrEqual(fit.controlRight);
+
     await page
       .getByTestId("discovery-import-template-preview")
       .scrollIntoViewIfNeeded();

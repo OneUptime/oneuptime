@@ -525,11 +525,18 @@ const TemplatePreview: FunctionComponent<{
                     : translator.translateText("Show them")}
                 </button>
               </div>
-              {showWalkChecks &&
-                renderChecks(
-                  walkChecks,
-                  "discovery-import-template-walk-check",
-                )}
+              {/*
+               * Opened, the checks sit under a rule of their own, apart
+               * from the line and the button that opened them.
+               */}
+              {showWalkChecks && (
+                <div className="mt-2 border-t border-gray-100">
+                  {renderChecks(
+                    walkChecks,
+                    "discovery-import-template-walk-check",
+                  )}
+                </div>
+              )}
             </div>
           )}
         </>
@@ -700,6 +707,11 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
                   icon={IconProp.ExternalLink}
                   className="h-3 w-3 flex-shrink-0"
                 />
+                {/* What the icon says to the eye, said to a screen reader. */}
+                <span className="sr-only">
+                  {" "}
+                  {translator.translateText("(opens in a new tab)")}
+                </span>
               </Link>
             </span>
           }
@@ -915,7 +927,6 @@ const DiscoveryImportMonitoringStep: FunctionComponent<
         outcome={outcome}
         monitorRoom={facts?.monitorRoom ?? null}
         canPickMonitors={!choiceLockedReason}
-        probeName={props.probeName}
       />
     </div>
   );
@@ -975,13 +986,10 @@ export const OutcomeSummary: FunctionComponent<{
    * the summary does not suggest picking a template.
    */
   canPickMonitors?: boolean | undefined;
-  // The scan's probe, which a Ping, IP, Port or NTP template's monitors run from.
-  probeName?: string | undefined;
 }> = (props: {
   outcome: DiscoveryImportOutcome;
   monitorRoom: number | null;
   canPickMonitors?: boolean | undefined;
-  probeName?: string | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const outcome: DiscoveryImportOutcome = props.outcome;
@@ -1072,19 +1080,11 @@ export const OutcomeSummary: FunctionComponent<{
     });
 
     /*
-     * A Ping, IP, Port or NTP template's monitors check each device's
-     * address themselves: from the scan's probe, the one that reached them.
+     * Where a Ping, IP, Port or NTP template's monitors check from is said
+     * once, in the first line of the template's preview beside this
+     * summary ("Each device gets a Ping monitor that pings its own address
+     * from <probe>."), not again here.
      */
-    if (checksDeviceAddress(outcome.template)) {
-      lines.push({
-        key: "address",
-        text: translator.translateTemplate(
-          "Each monitor checks its device's address from {{probe}}.",
-          { probe: probeValue(props.probeName) },
-        ),
-      });
-    }
-
     if (outcome.pingOnlyHostsWithoutAlerts > 0) {
       lines.push({
         key: "ping-silent",

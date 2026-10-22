@@ -549,11 +549,20 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     );
 
     if (meta.context === "value") {
+      /*
+       * A picked name longer than the control - a template's name on a
+       * phone - ends in an ellipsis, not cut off mid-letter: react-select's
+       * own ellipsis does not reach text inside these rows, so the rows may
+       * shrink (min-w-0) and the name truncates itself.
+       */
       return (
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 max-w-full items-center gap-2">
             {renderOptionColorIndicator(option.color)}
-            <span className="text-sm font-medium text-gray-900">
+            <span
+              className="truncate text-sm font-medium text-gray-900"
+              data-testid="dropdown-value-label"
+            >
               {getOptionLabelText(option)}
             </span>
           </div>
