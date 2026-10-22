@@ -79,11 +79,13 @@ jest.mock(
 );
 
 import ValueWidgetView, {
+  HOVERED_TIME_TEST_ID,
   SPARKLINE_END_LABEL_TEST_ID,
   SPARKLINE_START_LABEL_TEST_ID,
   SPARKLINE_TEST_ID,
   TREND_DETAILS_TEST_ID,
   TREND_TEST_ID,
+  VALUE_WIDGET_TEST_ID,
   ValueWidgetViewProps,
   getSparklineSpanLabelsFit,
   getValueWidgetTrendTone,
@@ -92,12 +94,14 @@ import DashboardValueComponentElement from "../../../../App/FeatureSet/Dashboard
 import DashboardDataSourceValueComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardDataSourceValueComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import {
-  getDashboardDateTimeLabel,
+  getDashboardBucketLabel,
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardDateTime";
 import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import DashboardDataSourceValueComponent, {
   DataSourceValueReduce,
@@ -409,14 +413,19 @@ describe.each(ORDERS)(
 
       fireEvent.mouseMove(svg, { clientX: xOf(0), buttons: 0 });
 
-      expect(screen.getByText(getDashboardDateTimeLabel(oldest))).toBeVisible();
+      // Named as precisely as the hour the point stands for.
+      expect(screen.getByTestId(HOVERED_TIME_TEST_ID)).toHaveTextContent(
+        getDashboardBucketLabel(oldest, HOUR_MS),
+      );
       expect(bigNumber(rendered.container)).toBe(
         formatted(oldestFirstValues[0]!),
       );
 
       fireEvent.mouseMove(svg, { clientX: xOf(167), buttons: 0 });
 
-      expect(screen.getByText(getDashboardDateTimeLabel(newest))).toBeVisible();
+      expect(screen.getByTestId(HOVERED_TIME_TEST_ID)).toHaveTextContent(
+        getDashboardBucketLabel(newest, HOUR_MS),
+      );
       expect(bigNumber(rendered.container)).toBe(
         formatted(oldestFirstValues[167]!),
       );
@@ -918,6 +927,225 @@ describe("the Value widget's view", () => {
     rerender(<ValueWidgetView {...baseViewProps} value={42} />);
     expect(tile()).not.toHaveClass("bg-red-50/50");
     expect(tile()).not.toHaveClass("bg-amber-50/50");
+  });
+
+  describe("the hovered point's time", () => {
+    afterEach(() => {
+      OneUptimeDate.setUserTimezone(null);
+    });
+
+    test("reads day first, like the labels at the line's two ends, and left to right on any page", () => {
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+      render(<ValueWidgetView {...baseViewProps} trend={trendFor(400, 300)} />);
+
+      const svg: Element = screen.getByTestId(SPARKLINE_TEST_ID);
+      const xOf: (index: number) => number = layOut(svg);
+
+      fireEvent.mouseMove(svg, { clientX: xOf(0), buttons: 0 });
+
+      // The oldest hour of the week, as a chart's tooltip names an hour.
+      expect(screen.getByTestId(HOVERED_TIME_TEST_ID)).toHaveTextContent(
+        /^15 Oct, 10:00$/,
+      );
+      expect(
+        screen.getByTestId(SPARKLINE_START_LABEL_TEST_ID),
+      ).toHaveTextContent(/^15 Oct$/);
+      expect(screen.getByTestId(SPARKLINE_END_LABEL_TEST_ID)).toHaveTextContent(
+        /^22 Oct$/,
+      );
+      /*
+       * "15 Oct, 10:00" starts with a digit: on a right-to-left page it was
+       * reordered unless it is a left-to-right run of its own.
+       */
+      expect(screen.getByTestId(HOVERED_TIME_TEST_ID)).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
+    });
+
+    test("a day's bucket is named by its day alone, as the axis names it", () => {
+      OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+      const days: Array<{ timestamp: Date; value: number }> = Array.from(
+        { length: 14 },
+        (_unused: unknown, day: number) => {
+          return {
+            timestamp: new Date(Date.UTC(2026, 9, 8 + day)),
+            value: 10 + day,
+          };
+        },
+      ).reverse();
+
+      render(<ValueWidgetView {...baseViewProps} points={days} trend={null} />);
+
+      const svg: Element = screen.getByTestId(SPARKLINE_TEST_ID);
+      const xOf: (index: number) => number = layOut(svg);
+
+      fireEvent.mouseMove(svg, { clientX: xOf(13), buttons: 0 });
+
+      expect(screen.getByTestId(HOVERED_TIME_TEST_ID)).toHaveTextContent(
+        /^21 Oct$/,
+      );
+    });
+  });
+
+  test("the arrow is in the tab order, and focusing it opens what it compares", async () => {
+    render(<ValueWidgetView {...baseViewProps} trend={trendFor(400, 300)} />);
+
+    const chip: HTMLElement = screen.getByTestId(TREND_TEST_ID);
+
+    expect(chip).toHaveAttribute("tabindex", "0");
+    // A ring for the keyboard's focus, in a colour the dark theme remaps.
+    expect(chip).toHaveClass("focus-visible:ring-indigo-500");
+
+    jest.useFakeTimers();
+    fireEvent.focus(chip);
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(screen.getByTestId(TREND_DETAILS_TEST_ID)).toHaveTextContent(
+      "Down 25% from the first half of the time range",
+    );
+  });
+
+  test("each half's dates are a left-to-right run of their own", async () => {
+    render(<ValueWidgetView {...baseViewProps} trend={trendFor(400, 300)} />);
+
+    const details: HTMLElement = await openTooltip(
+      screen.getByTestId(TREND_TEST_ID),
+    );
+    const runs: Array<HTMLElement> = Array.from(
+      details.querySelectorAll<HTMLElement>("[data-half] bdi"),
+    );
+
+    /*
+     * "15 Oct – 18 Oct" starts with a digit: a Persian page drew it as
+     * "Oct – 18 Oct 15" until each range was isolated.
+     */
+    expect(runs).toHaveLength(2);
+
+    const label: ((date: Date) => string) | null = getDashboardSpanLabeller(
+      new Date(WEEK_START_MS),
+      new Date(WEEK_END_MS),
+    );
+    const midpoint: Date = new Date(WEEK_START_MS + 84 * HOUR_MS);
+
+    expect(runs[0]!).toHaveAttribute("dir", "ltr");
+    expect(runs[0]!).toHaveTextContent(
+      `${label!(new Date(WEEK_START_MS))} – ${label!(midpoint)}`,
+    );
+    expect(runs[1]!).toHaveAttribute("dir", "ltr");
+    expect(runs[1]!).toHaveTextContent(
+      `${label!(midpoint)} – ${label!(new Date(WEEK_END_MS))}`,
+    );
+  });
+
+  describe("on the shipped 3x1 tile", () => {
+    // Three units by one on a 975px board: 236 by 72 pixels.
+    const SHIPPED_TILE: { widthInPx: number; heightInPx: number } = {
+      widthInPx: 236,
+      heightInPx: 72,
+    };
+
+    function messageOf(text: string): HTMLElement {
+      return screen.getByText(text);
+    }
+
+    test("an unconfigured widget says only what to do, in edit mode too, where 30px cannot hold two lines", () => {
+      const { rerender } = render(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...SHIPPED_TILE}
+          isEditMode={true}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      /*
+       * "Value Widget" over "Click to configure metric" needed 38px and the
+       * edit-mode tile has 30: both lines lost their bottoms.
+       */
+      expect(screen.queryByText("Value Widget")).toBeNull();
+      expect(messageOf("Click to configure metric")).toHaveClass(
+        "line-clamp-1",
+      );
+
+      // Viewing, the tile has 46px: room for the message on two lines.
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...SHIPPED_TILE}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      expect(screen.queryByText("Value Widget")).toBeNull();
+      expect(messageOf("Click to configure metric")).toHaveClass(
+        "line-clamp-2",
+      );
+
+      // Two units tall, the widget names itself over the message.
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          widthInPx={236}
+          heightInPx={154}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      expect(screen.getByText("Value Widget")).toBeInTheDocument();
+      expect(messageOf("Click to configure metric")).toBeInTheDocument();
+      expect(screen.getByTestId(VALUE_WIDGET_TEST_ID)).toHaveAttribute(
+        "data-state",
+        "setup",
+      );
+    });
+
+    test("the no-data and error messages keep to one line where two do not fit", () => {
+      const { rerender } = render(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...SHIPPED_TILE}
+          isEditMode={true}
+          value={null}
+        />,
+      );
+
+      expect(messageOf("No data for the selected time range")).toHaveClass(
+        "line-clamp-1",
+      );
+
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...SHIPPED_TILE}
+          isEditMode={true}
+          error="The metrics service did not answer in time."
+        />,
+      );
+
+      expect(
+        messageOf("The metrics service did not answer in time."),
+      ).toHaveClass("line-clamp-1");
+
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...SHIPPED_TILE}
+          error="The metrics service did not answer in time."
+        />,
+      );
+
+      expect(
+        messageOf("The metrics service did not answer in time."),
+      ).toHaveClass("line-clamp-2");
+    });
   });
 });
 

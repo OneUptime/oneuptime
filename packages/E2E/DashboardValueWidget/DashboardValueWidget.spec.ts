@@ -241,31 +241,8 @@ const trendOf: (
   });
 };
 
-const MONTHS: Array<string> = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
 const pad: (value: number) => string = (value: number): string => {
   return String(value).padStart(2, "0");
-};
-
-/*
- * A dashboard widget's time of a point, in UTC (the suite's timezone):
- * "Oct 15, 2026 09:00" (Utils/DashboardDateTime).
- */
-const dateTimeLabel: (date: Date) => string = (date: Date): string => {
-  return `${MONTHS[date.getUTCMonth()]} ${pad(date.getUTCDate())}, ${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 };
 
 /*
@@ -286,6 +263,68 @@ const dayLabel: (page: Page, date: Date) => Promise<string> = async (
   }, date.toISOString());
 
   return `${pad(date.getUTCDate())} ${month}`;
+};
+
+/*
+ * The hovered point of a week's line, an hour's bucket, named as a line
+ * chart's tooltip names it and in the order of the line's end labels: day
+ * first, "15 Oct, 09:00" (Utils/DashboardDateTime getDashboardBucketLabel),
+ * in UTC, the suite's timezone.
+ */
+const hourLabel: (page: Page, date: Date) => Promise<string> = async (
+  page: Page,
+  date: Date,
+): Promise<string> => {
+  return `${await dayLabel(page, date)}, ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+};
+
+/*
+ * Whether `first` starts left of where `second` starts inside one element's
+ * text, as the eye reads it: a right-to-left page reordered a run that
+ * starts with a digit ("15 Oct – 18 Oct" read "Oct – 18 Oct 15"). Each part
+ * is placed by its first character alone: a reordered part's own pieces
+ * can land on both sides of the other part.
+ */
+const drawnInOrder: (
+  element: Locator,
+  first: string,
+  second: string,
+) => Promise<boolean> = async (
+  element: Locator,
+  first: string,
+  second: string,
+): Promise<boolean> => {
+  return element.evaluate(
+    (node: Element, parts: { first: string; second: string }): boolean => {
+      const text: string = node.textContent || "";
+      const walker: TreeWalker = document.createTreeWalker(
+        node,
+        NodeFilter.SHOW_TEXT,
+      );
+      const textNode: Node | null = walker.nextNode();
+
+      if (!textNode) {
+        return false;
+      }
+
+      const leftOf: (offset: number) => number = (offset: number): number => {
+        const range: Range = document.createRange();
+        range.setStart(textNode, offset);
+        range.setEnd(textNode, offset + 1);
+        return range.getBoundingClientRect().left;
+      };
+
+      const firstAt: number = text.indexOf(parts.first);
+      const secondAt: number = text.indexOf(parts.second, firstAt + 1);
+
+      if (firstAt < 0 || secondAt < 0) {
+        return false;
+      }
+
+      return leftOf(firstAt) < leftOf(secondAt);
+    },
+    { first, second },
+  );
 };
 
 const shoot: (
@@ -775,7 +814,10 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
 
     await hoverLineAt(page, widget, 0);
 
-    await expect(widget).toContainText(dateTimeLabel(oldest.timestamp));
+    // Day first, like the end labels below it: "15 Oct, 10:00" over "15 Oct".
+    await expect(widget.getByTestId("value-widget-hovered-time")).toHaveText(
+      await hourLabel(page, oldest.timestamp),
+    );
     await expect(bigNumber).toHaveText(String(oldest.value));
     await expect(widget.getByTestId("value-widget-sparkline-start")).toHaveText(
       await dayLabel(page, oldest.timestamp),
@@ -807,7 +849,9 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
 
     await hoverLineAt(page, widget, 1);
 
-    await expect(widget).toContainText(dateTimeLabel(newest.timestamp));
+    await expect(widget.getByTestId("value-widget-hovered-time")).toHaveText(
+      await hourLabel(page, newest.timestamp),
+    );
     await expect(bigNumber).toHaveText(String(newest.value));
 
     await shoot(page, testInfo, "hover-newest", widget);
@@ -862,6 +906,115 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     expect(detailsBox!.y).toBeLessThan(tileBox!.y + 200);
 
     await shootViewport(page, testInfo, "trend-tooltip");
+  });
+
+  test("let the keyboard reach each arrow, its tooltip opening on focus", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openApp(page);
+
+    const chip: Locator = trendChipOf(widgetTitled(page, "Log errors"));
+    const isFocused: (target: Locator) => Promise<boolean> = (
+      target: Locator,
+    ): Promise<boolean> => {
+      return target.evaluate((element: Element): boolean => {
+        return element === document.activeElement;
+      });
+    };
+
+    // From the top of the page, Tab by Tab, as a keyboard reaches it.
+    for (let press: number = 0; press < 60; press++) {
+      if (await isFocused(chip)) {
+        break;
+      }
+
+      await page.keyboard.press("Tab");
+    }
+
+    expect(await isFocused(chip)).toBe(true);
+
+    const details: Locator = await trendTooltipSettled(page);
+    const trend: ValueWidgetTrend = trendOf(
+      await readOf(page, LINES[0]!),
+      LINES[0]!,
+    )!;
+
+    await expect(details).toContainText(
+      `Up ${trend.percent}% from the first half of the time range`,
+    );
+    await expect(details.locator('[data-half="first"]')).toContainText(
+      "First half",
+    );
+
+    // A ring shows where the focus is.
+    const ring: string = await chip.evaluate((element: Element): string => {
+      return getComputedStyle(element).boxShadow;
+    });
+
+    expect(ring).not.toBe("none");
+
+    await shootViewport(page, testInfo, "keyboard-trend-tooltip");
+
+    // The next Tab moves on to the next arrow.
+    await page.keyboard.press("Tab");
+
+    expect(
+      await isFocused(trendChipOf(widgetTitled(page, "Checkout latency"))),
+    ).toBe(true);
+  });
+
+  test("tell an unconfigured widget on the shipped 3x1 tile what to do, in full, viewing and editing", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openApp(page);
+
+    const setup: Locator = page.locator(
+      '[data-testid="value-widget"][data-state="setup"]',
+    );
+
+    // Every line of the prompt inside the tile, none cut through.
+    const linesOutside: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return setup.evaluate((tile: Element): Array<string> => {
+        const box: DOMRect = tile.getBoundingClientRect();
+
+        return Array.from(tile.querySelectorAll("p"))
+          .filter((line: HTMLParagraphElement): boolean => {
+            const lineBox: DOMRect = line.getBoundingClientRect();
+            return (
+              lineBox.top < box.top - 0.5 ||
+              lineBox.bottom > box.bottom + 0.5 ||
+              line.scrollHeight > line.clientHeight + 1
+            );
+          })
+          .map((line: HTMLParagraphElement): string => {
+            return line.textContent || "";
+          });
+      });
+    };
+
+    await expect(setup).toHaveCount(1);
+    await expect(setup).toContainText("Click to configure metric");
+    expect(await linesOutside()).toEqual([]);
+
+    await page.getByRole("button", { name: "More dashboard options" }).click();
+    await page.getByText("Edit Dashboard").click();
+
+    // Editing, the drag handle takes 16px more off a tile one unit tall.
+    await expect(page.getByText("Save Changes")).toBeVisible();
+    await expect(setup).toContainText("Click to configure metric");
+    // The widget's generic name gives way to what to do.
+    await expect(setup).not.toContainText("Value Widget");
+    expect(await linesOutside()).toEqual([]);
+
+    await shoot(page, testInfo, "setup-3x1-editing", setup);
   });
 
   test("draw a series that never moves across the middle, with '→ 0%' in grey", async ({
@@ -1049,10 +1202,47 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     expect(endBox!.x).toBeGreaterThanOrEqual(line!.x + line!.width);
 
     /*
+     * The hovered time reads day, then hour, left to right: "15 Oct, 10:00"
+     * starts with a digit, and a right-to-left page reordered such a run.
+     */
+    const hovered: Locator = widget.getByTestId("value-widget-hovered-time");
+    const oldestDay: string = await dayLabel(page, series[0]!.timestamp);
+    const oldestHour: string = `${pad(series[0]!.timestamp.getUTCHours())}:00`;
+
+    await expect(hovered).toHaveText(
+      await hourLabel(page, series[0]!.timestamp),
+    );
+    expect(await drawnInOrder(hovered, oldestDay, oldestHour)).toBe(true);
+
+    /*
      * The page as the viewer sees it: an element's own screenshot is cut
      * from the wrong place on a right-to-left page.
      */
     await shootViewport(page, testInfo, "persian-hover");
+
+    // The arrow's tooltip: each half's dates read from its start to its end.
+    await page.mouse.move(5, 5);
+
+    const trend: ValueWidgetTrend = trendOf(
+      await readOf(page, LINES[0]!),
+      LINES[0]!,
+    )!;
+
+    await trendChipOf(widget).hover();
+
+    const details: Locator = await trendTooltipSettled(page);
+    const firstHalf: Locator = details.locator('[data-half="first"] bdi');
+    const secondHalf: Locator = details.locator('[data-half="second"] bdi');
+    const startDay: string = await dayLabel(page, trend.firstHalfStart);
+    const midDay: string = await dayLabel(page, trend.midpoint);
+    const endDay: string = await dayLabel(page, trend.secondHalfEnd);
+
+    await expect(firstHalf).toHaveText(`${startDay} – ${midDay}`);
+    await expect(secondHalf).toHaveText(`${midDay} – ${endDay}`);
+    expect(await drawnInOrder(firstHalf, startDay, midDay)).toBe(true);
+    expect(await drawnInOrder(secondHalf, midDay, endDay)).toBe(true);
+
+    await shootViewport(page, testInfo, "persian-trend-tooltip");
   });
 
   test("on a phone, a tap on the arrow says what it compares", async ({

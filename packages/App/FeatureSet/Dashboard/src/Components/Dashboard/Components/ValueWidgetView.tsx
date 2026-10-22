@@ -24,6 +24,7 @@ import {
   VALUE_LINE_HEIGHT_RATIO,
 } from "Common/Utils/Dashboard/ValueWidgetLayout";
 import {
+  getValueWidgetBucketWidthMs,
   getValueWidgetSeries,
   ValueWidgetPoint,
   ValueWidgetTrend,
@@ -31,7 +32,7 @@ import {
 } from "Common/Utils/Dashboard/ValueWidgetSeries";
 import {
   DashboardSpanLabels,
-  getDashboardDateTimeLabel,
+  getDashboardBucketLabel,
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../Utils/DashboardDateTime";
@@ -626,6 +627,7 @@ export const TREND_DETAILS_TEST_ID: string = "value-widget-trend-details";
 export const SPARKLINE_START_LABEL_TEST_ID: string =
   "value-widget-sparkline-start";
 export const SPARKLINE_END_LABEL_TEST_ID: string = "value-widget-sparkline-end";
+export const HOVERED_TIME_TEST_ID: string = "value-widget-hovered-time";
 
 /*
  * Whether a move is good news, bad news or neither. The chip carries it as
@@ -804,7 +806,12 @@ export const ValueWidgetTrendChip: FunctionComponent<
                   <p className="leading-4 text-gray-600">{half.label}</p>
                   {half.range ? (
                     <p className="mt-0.5 leading-4 tabular-nums text-gray-500">
-                      {half.range}
+                      {/*
+                       * Its own left-to-right run: on a right-to-left page a
+                       * range that starts with a digit ("15 Oct – 18 Oct")
+                       * was reordered into "Oct – 18 Oct 15".
+                       */}
+                      <bdi dir="ltr">{half.range}</bdi>
                     </p>
                   ) : (
                     <></>
@@ -821,6 +828,11 @@ export const ValueWidgetTrendChip: FunctionComponent<
     </div>
   );
 
+  /*
+   * In the tab order, so the halves are a key press away too: the tooltip
+   * opens on focus. The ring hugs the chip without moving it (the padding is
+   * taken back by the margin), and only a keyboard's focus draws it.
+   */
   return (
     <Tooltip richContent={details} interactive={false} isShownOnPress={true}>
       <span
@@ -829,7 +841,8 @@ export const ValueWidgetTrendChip: FunctionComponent<
         data-direction={trend.direction}
         role="img"
         aria-label={sentence}
-        className={`inline-flex items-center gap-0.5 ${TREND_TONE_CLASS_NAMES[props.tone]}`}
+        tabIndex={0}
+        className={`-mx-1 inline-flex cursor-default items-center gap-0.5 rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${TREND_TONE_CLASS_NAMES[props.tone]}`}
       >
         <span>{TREND_ARROWS[trend.direction]}</span>
         <span className="font-medium tabular-nums">
@@ -888,6 +901,11 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     return getValueWidgetSeries(props.points);
   }, [props.points]);
 
+  // How long each point stands for: how precisely the hover names its time.
+  const bucketWidthMs: number = useMemo(() => {
+    return getValueWidgetBucketWidthMs(sparklineData);
+  }, [sparklineData]);
+
   /*
    * While the cursor is over the sparkline, swap the big aggregated
    * number for the hovered data point's value and render its timestamp
@@ -931,9 +949,18 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   /*
    * Same trade one step further down: below this the tile cannot hold the
    * title AND a two-line explanation, and the explanation is the part that
-   * carries the meaning.
+   * carries the meaning. The setup prompt follows the same rule: on the
+   * shipped 3x1 tile in edit mode it drew "Value Widget" over "Click to
+   * configure metric" in 30px and cut the bottom off both.
    */
   const showStateTitle: boolean = contentBox.heightInPx >= 60;
+
+  /*
+   * A state's message wraps to a second line only where two lines fit; in a
+   * shorter box the second line was cut through the middle.
+   */
+  const stateMessageClampClass: string =
+    contentBox.heightInPx >= 32 ? "line-clamp-2" : "line-clamp-1";
 
   /*
    * The states' words come from the hosts in English (each wraps them in
@@ -1004,14 +1031,18 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
             </svg>
           </div>
         )}
+        {showStateTitle ? (
+          <p
+            className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
+            title={setupTitle}
+          >
+            {setupTitle}
+          </p>
+        ) : (
+          <></>
+        )}
         <p
-          className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
-          title={setupTitle}
-        >
-          {setupTitle}
-        </p>
-        <p
-          className="text-xs text-gray-500 text-center max-w-full line-clamp-1 px-1"
+          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
           title={setupMessage}
         >
           {setupMessage}
@@ -1035,7 +1066,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         <p
-          className="text-xs text-gray-500 text-center max-w-full line-clamp-2 px-1"
+          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
           title={props.error}
         >
           {props.error}
@@ -1091,7 +1122,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className="text-xs text-gray-500 text-center max-w-full line-clamp-2 px-1"
+          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
           title={noDataMessage}
         >
           {noDataMessage}
@@ -1146,9 +1177,13 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
       })
     : displayParts;
 
-  // In the date-and-time shape every dashboard widget writes a time in.
+  /*
+   * As a line chart's tooltip names the bucket under the pointer: day first,
+   * as precise as the bucket ("18 Oct, 22:00" for an hour's), so it reads
+   * like the labels at the line's two ends below it.
+   */
   const hoveredTimestamp: string | null = hoveredPoint
-    ? getDashboardDateTimeLabel(hoveredPoint.timestamp)
+    ? getDashboardBucketLabel(hoveredPoint.timestamp, bucketWidthMs)
     : null;
 
   /*
@@ -1254,8 +1289,16 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
    * COULD show either, never from whether it currently is, so the swap cannot
    * move anything below it.
    */
+  /*
+   * Left to right on a right-to-left page too: "18 Oct, 22:00" starts with a
+   * digit, and a Persian page reordered it into "22:00 ,Oct 18".
+   */
   const statusElement: ReactElement | null = hoveredTimestamp ? (
-    <span className="text-gray-500 font-medium tabular-nums truncate">
+    <span
+      data-testid={HOVERED_TIME_TEST_ID}
+      dir="ltr"
+      className="text-gray-500 font-medium tabular-nums truncate"
+    >
       {hoveredTimestamp}
     </span>
   ) : (

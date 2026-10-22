@@ -17,6 +17,8 @@
  *   external   a Data Source Value widget, its rows in no order at all
  *              (the dashboard inside OneUptime only: a public dashboard
  *              draws a placeholder for it)
+ *   unconfigured  a Value widget as Add Widget places it - 3x1, with no
+ *              metric yet - showing its setup prompt (inside OneUptime only)
  *
  * Every metric read is answered as OneUptime's metrics API answers it:
  * NEWEST bucket first (AnalyticsDatabaseService sorts an aggregate by time,
@@ -45,6 +47,7 @@ export const WIDGETS = {
   firstRead: "c0000000-0000-4000-8000-0000000000a7",
   silent: "c0000000-0000-4000-8000-0000000000a8",
   external: "c0000000-0000-4000-8000-0000000000a9",
+  unconfigured: "c0000000-0000-4000-8000-0000000000aa",
 };
 
 export const METRICS = {
@@ -75,9 +78,9 @@ const place = (component, data) => {
   component.componentId = new ObjectID(data.id);
   component.topInDashboardUnits = data.top;
   component.leftInDashboardUnits = data.left;
-  component.widthInDashboardUnits = 4;
-  component.heightInDashboardUnits = 3;
-  component.arguments = data.arguments;
+  component.widthInDashboardUnits = data.width || 4;
+  component.heightInDashboardUnits = data.height || 3;
+  component.arguments = data.arguments || component.arguments;
   return component;
 };
 
@@ -195,13 +198,25 @@ export const buildConfig = (options) => {
           reduce: "Sum",
         },
       }),
+      /*
+       * A Value widget as Add Widget places it: the shipped 3x1 size, no
+       * metric picked yet. On that size, in edit mode, its setup prompt
+       * used to be cut through.
+       */
+      place(DashboardValueComponentUtil.getDefaultComponent(), {
+        id: WIDGETS.unconfigured,
+        top: 9,
+        left: 0,
+        width: 3,
+        height: 1,
+      }),
     );
   }
 
   return {
     _type: "DashboardViewConfig",
     components,
-    heightInDashboardUnits: 9,
+    heightInDashboardUnits: options && options.isPublic ? 9 : 10,
     timeRange: "Past 1 Week",
   };
 };

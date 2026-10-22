@@ -183,6 +183,48 @@ export function getDashboardSpanLabeller(
   };
 }
 
+/*
+ * A bucket this long or longer stands for a month or more: the chart axes
+ * name it by its month and year.
+ */
+const BUCKET_LABELLED_BY_MONTH_IN_MS: number = 28 * DAY_IN_MS;
+
+/**
+ * The time of one point of a series, named as precisely as the bucket the
+ * point stands for, the way a chart's tooltip names the bucket under the
+ * pointer (its time axis's labels: Common/UI/Components/Charts/Utils/
+ * XAxis.ts):
+ *
+ *   a bucket shorter than a day   "18 Oct, 22:00"
+ *   a day or a week               "18 Oct"
+ *   a month or longer             "Oct 2026"
+ *
+ * Day first, so the hovered point of a Value widget's sparkline reads like
+ * the line chart beside it and like the labels at the line's two ends
+ * (getDashboardSpanLabeller). An unknown bucket width (zero, or not a
+ * number) is read as the finest. The placeholder when the date is unusable.
+ */
+export function getDashboardBucketLabel(
+  date: Date | string | null | undefined,
+  bucketWidthMs: number,
+): string {
+  const displayableDate: Date | null = toDisplayableDate(date);
+
+  if (!displayableDate) {
+    return NO_DATE_LABEL;
+  }
+
+  if (!(bucketWidthMs >= DAY_IN_MS)) {
+    return OneUptimeDate.getDateAsLocalDayMonthTimeString(displayableDate);
+  }
+
+  if (bucketWidthMs < BUCKET_LABELLED_BY_MONTH_IN_MS) {
+    return OneUptimeDate.getDateAsLocalDayMonthString(displayableDate);
+  }
+
+  return OneUptimeDate.getDateAsLocalMonthYearString(displayableDate);
+}
+
 // The two ends of a stretch of time, labelled by getDashboardSpanLabeller.
 export function getDashboardSpanLabels(
   start: Date | string | null | undefined,

@@ -16,6 +16,7 @@ import {
   DashboardDateTime,
   DashboardSpanLabels,
   NO_DATE_LABEL,
+  getDashboardBucketLabel,
   getDashboardDateTime,
   getDashboardDateTimeLabel,
   getDashboardSpanLabeller,
@@ -623,5 +624,104 @@ describe("getDashboardSpanLabels", () => {
 
     // The midpoint of a day's range, as the trend's tooltip names it.
     expect(label?.(at("2026-10-21T22:00:00.000Z"))).toBe("21 Oct, 22:00");
+  });
+});
+
+/*
+ * The hovered point of a Value widget's sparkline, named the way a chart's
+ * tooltip names the bucket under the pointer: day first, like the labels at
+ * the line's two ends, and as precise as the bucket the point stands for.
+ * It used to read "Oct 18, 2026 22:00" over a line labelled "15 Oct" and
+ * "22 Oct": two orders of day and month in one tile.
+ */
+describe("getDashboardBucketLabel", () => {
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  const MINUTE_MS: number = 60 * 1000;
+  const HOUR_MS: number = 60 * MINUTE_MS;
+  const DAY_MS: number = 24 * HOUR_MS;
+
+  const POINT: Date = new Date("2026-10-18T22:00:00.000Z");
+
+  it("a bucket shorter than a day: its day and its time, day first", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    // Past 1 Week's hourly buckets, Past 2 Days' half hours, Past 1 Hour's minutes.
+    expect(getDashboardBucketLabel(POINT, HOUR_MS)).toBe("18 Oct, 22:00");
+    expect(getDashboardBucketLabel(POINT, 30 * MINUTE_MS)).toBe(
+      "18 Oct, 22:00",
+    );
+    expect(
+      getDashboardBucketLabel(new Date("2026-10-22T09:42:00.000Z"), MINUTE_MS),
+    ).toBe("22 Oct, 09:42");
+  });
+
+  it("a day or a week: the day alone, as the axis names it", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    const midnight: Date = new Date("2026-10-18T00:00:00.000Z");
+
+    expect(getDashboardBucketLabel(midnight, DAY_MS)).toBe("18 Oct");
+    expect(getDashboardBucketLabel(midnight, 7 * DAY_MS)).toBe("18 Oct");
+  });
+
+  it("a month or longer: the month and its year", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    const firstOfMonth: Date = new Date("2026-10-01T00:00:00.000Z");
+
+    // February's month bucket is the shortest: 28 days.
+    expect(getDashboardBucketLabel(firstOfMonth, 28 * DAY_MS)).toBe("Oct 2026");
+    expect(getDashboardBucketLabel(firstOfMonth, 365 * DAY_MS)).toBe(
+      "Oct 2026",
+    );
+  });
+
+  it("an unknown bucket width is read as the finest: the day and the time", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(getDashboardBucketLabel(POINT, 0)).toBe("18 Oct, 22:00");
+    expect(getDashboardBucketLabel(POINT, Number.NaN)).toBe("18 Oct, 22:00");
+  });
+
+  it("reads the wall clock of the configured timezone", () => {
+    OneUptimeDate.setUserTimezone(KOLKATA);
+
+    // 22:00 UTC is 03:30 the next morning in Kolkata.
+    expect(getDashboardBucketLabel(POINT, HOUR_MS)).toBe("19 Oct, 03:30");
+
+    OneUptimeDate.setUserTimezone(LA);
+
+    expect(getDashboardBucketLabel(POINT, HOUR_MS)).toBe("18 Oct, 15:00");
+  });
+
+  it("names a point in the order the line's ends are named: day first", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    // The ends of the report's week, and an hour on it.
+    expect(
+      getDashboardSpanLabels(
+        new Date("2026-10-15T10:00:00.000Z"),
+        new Date("2026-10-22T09:00:00.000Z"),
+      ),
+    ).toEqual({ start: "15 Oct", end: "22 Oct" });
+    expect(getDashboardBucketLabel(POINT, HOUR_MS)).toBe("18 Oct, 22:00");
+    // Not the list widgets' month-first shape.
+    expect(getDashboardBucketLabel(POINT, HOUR_MS)).not.toBe(
+      getDashboardDateTimeLabel(POINT),
+    );
+  });
+
+  it("takes an ISO string, and names nothing for a value that is not a date", () => {
+    OneUptimeDate.setUserTimezone(UTC);
+
+    expect(getDashboardBucketLabel("2026-10-18T22:00:00.000Z", HOUR_MS)).toBe(
+      "18 Oct, 22:00",
+    );
+    expect(getDashboardBucketLabel(null, HOUR_MS)).toBe(NO_DATE_LABEL);
+    expect(getDashboardBucketLabel(undefined, HOUR_MS)).toBe(NO_DATE_LABEL);
+    expect(getDashboardBucketLabel("not a date", HOUR_MS)).toBe(NO_DATE_LABEL);
   });
 });

@@ -49,6 +49,8 @@ describe("the Value widget in the dark theme", () => {
         // The trend chip: good, bad and about the same.
         "text-emerald-700",
         "text-gray-500",
+        // The ring a keyboard's focus draws around it.
+        "focus-visible:ring-indigo-500",
         // The tooltip's sentence and numbers.
         "text-gray-900",
         "text-gray-600",

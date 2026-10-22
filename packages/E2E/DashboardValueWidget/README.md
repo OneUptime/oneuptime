@@ -20,7 +20,8 @@ series can have: a log recording rule's count that rises, a latency that falls, 
 that never moves, a sum grouped by service (three series a bucket), a sparse count most
 of whose hours have no bucket, an average past its critical threshold, a metric with a
 single bucket, one with no data, and - inside OneUptime only - a Data Source Value
-widget whose rows come in no order at all. Every metric read is answered the way
+widget whose rows come in no order at all, and a Value widget as Add Widget places it
+(3x1, no metric yet). Every metric read is answered the way
 OneUptime's metrics API answers it, NEWEST bucket first, and recorded with its window
 and its points; the suite works out what each widget should draw from those records
 with the same `Common/Utils/Dashboard/ValueWidgetSeries` the widgets use.
@@ -28,12 +29,14 @@ with the same `Common/Utils/Dashboard/ValueWidgetSeries` the widgets use.
 Desktop (1280px) Chromium covers: each line drawn from its oldest bucket on the left to
 its newest on the right, one point a bucket; each arrow's direction, colour and
 percentage; hovering a line's two ends (the oldest and newest buckets' times and values,
-and the line's ends labelled beside it, inside the tile); the arrow's tooltip naming both
-halves of the range and what each came to; a flat series across the middle with "→ 0%";
-a single bucket and an empty window; the critical threshold's wash in both themes; every
-word on every Value widget at 4.5:1 (3:1 when large) in the light and the dark theme,
-the tooltip and the hover included; German; and Persian, where time still runs left to
-right. Phone (Pixel 5, 390px) Chromium runs what a phone changes: the board's lines and
+and the line's ends labelled beside it, inside the tile, the hovered time day first like
+them); the arrow's tooltip naming both halves of the range and what each came to, opened
+by the mouse or by the keyboard's Tab; a flat series across the middle with "→ 0%"; a
+single bucket and an empty window; the setup prompt of an unconfigured 3x1 widget whole
+while viewing and editing; the critical threshold's wash in both themes; every word on
+every Value widget at 4.5:1 (3:1 when large) in the light and the dark theme, the tooltip
+and the hover included; German; and Persian, where time still runs left to right (the
+line, its end labels, the hovered time and the tooltip's dates). Phone (Pixel 5, 390px) Chromium runs what a phone changes: the board's lines and
 arrows at its width, the dark theme, and a tap on an arrow opening its tooltip. Both
 run the public dashboard's lines and arrows, Light and Dark. Screenshots of the board,
 the hover, the tooltip, the threshold and the public page are under
