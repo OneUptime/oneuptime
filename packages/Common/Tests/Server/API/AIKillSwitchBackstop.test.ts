@@ -517,6 +517,17 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "skip",
   },
   /*
+   * A pull request's production review asks OneUptime AI for its What to
+   * watch only after the runner has read the switch
+   * (ProductionReviewRunner: isProjectAIEnabled, else the review notes AI is
+   * off), and a refusal while it reads becomes the review's AI note: the
+   * comment still goes out with the production facts, without the AI part.
+   */
+  {
+    file: "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts",
+    delivery: "skip",
+  },
+  /*
    * Reading an incident call's transcript runs in the background: start()
    * checks the switch first and stores "Skipped" with the sentence that
    * says where to turn it on, and a refusal while it reads is stored on the
