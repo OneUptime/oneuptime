@@ -307,14 +307,13 @@ describe("WorkspaceActionAuthorization.getProjectMemberProps on the project's pl
       throw new BadDataException("Project does not have any plans");
     }) as never);
 
-    const refusal: unknown = await WorkspaceActionAuthorization.getProjectMemberProps(
-      {
+    const refusal: unknown =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
         userId: userId,
         projectId: projectId,
-      },
-    ).catch((error: unknown): unknown => {
-      return error;
-    });
+      }).catch((error: unknown): unknown => {
+        return error;
+      });
 
     expect(refusal).toBeInstanceOf(NotAuthorizedException);
     expect((refusal as Error).message).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
@@ -348,7 +347,9 @@ describe("WorkspaceActionAuthorization.getProjectMemberProps on the project's pl
         userId: userId,
         projectId: projectId,
       }),
-    ).rejects.toThrow(WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE);
+    ).rejects.toThrow(
+      WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+    );
     expect(currentPlanSpy).not.toHaveBeenCalled();
   });
 });

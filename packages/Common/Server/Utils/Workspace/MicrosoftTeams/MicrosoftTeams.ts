@@ -5246,13 +5246,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * User-facing text for a failed tenant resolution. The two cases need
    * different remedies, so they must not share a message. An organization
    * connected to several projects is not a mistake to undo: the person says
-   * which project from a channel of it.
+   * which project from a channel of it. The ambiguous sentence starts with
+   * WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD, word for word
+   * (MicrosoftTeamsTenantResolution.test.ts): the troubleshooting entry in
+   * the docs is headed with it.
    */
   public static getTenantResolutionFailureMessage(
     resolution: MicrosoftTeamsTenantResolution,
   ): string {
     if (resolution.isAmbiguous) {
-      return `${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, so I can't tell which one you mean here. Try it again from a channel of the one you mean, such as one of its incident channels.`;
+      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean here. Try it again from a channel of the one you mean, such as one of its incident channels.";
     }
 
     return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings.";

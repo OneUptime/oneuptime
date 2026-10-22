@@ -45,6 +45,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectService from "../../../Server/Services/ProjectService";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 jest.setTimeout(30_000);
 
@@ -153,6 +154,14 @@ const forgedInvokeBody: (action: string) => JSONObject = (
 beforeEach(() => {
   // Not a blocked project: that refusal has suites of its own (BlockedProject*).
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  /*
+   * The project's plan, which a member's props carry on OneUptime Cloud
+   * (billing on, as CI runs): WorkspaceActionPlan.test.ts.
+   */
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Growth,
+    isSubscriptionUnpaid: false,
+  });
 });
 
 afterEach(() => {

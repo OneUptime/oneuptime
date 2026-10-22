@@ -1235,11 +1235,13 @@ describe("WorkspaceIncidentActions.changeSeverity: the incident's update, as the
   test("an incident gone since it was read: not found - it may have been deleted", async () => {
     stubSeverity(true);
     stubCurrent(OTHER_SEVERITY_ID);
-    jest.spyOn(IncidentService, "updateOneById").mockImplementation((async () => {
-      // Deleted meanwhile: OneUptime's own read finds it no more.
-      jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
-      return 0;
-    }) as never);
+    jest
+      .spyOn(IncidentService, "updateOneById")
+      .mockImplementation((async () => {
+        // Deleted meanwhile: OneUptime's own read finds it no more.
+        jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
+        return 0;
+      }) as never);
     jest
       .spyOn(IncidentService, "getUnwrittenByIdError")
       .mockResolvedValue(new NotFoundException("Incident not found"));

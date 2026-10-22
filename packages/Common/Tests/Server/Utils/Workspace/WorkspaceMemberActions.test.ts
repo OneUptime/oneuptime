@@ -227,10 +227,7 @@ function readOf(data: {
     projectId?: ObjectID | undefined;
   } & Record<string, unknown>;
   stateColumn: string;
-}): (
-  currentStateId: ObjectID | null,
-  isOutsideMemberRead?: boolean,
-) => AnySpy {
+}): (currentStateId: ObjectID | null, isOutsideMemberRead?: boolean) => AnySpy {
   return (
     currentStateId: ObjectID | null,
     isOutsideMemberRead?: boolean,

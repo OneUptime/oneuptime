@@ -207,6 +207,7 @@ import Name from "../../../../Types/Name";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
 import AlertEpisodeInternalNoteService from "../../../../Server/Services/AlertEpisodeInternalNoteService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import IncidentEpisodeInternalNoteService from "../../../../Server/Services/IncidentEpisodeInternalNoteService";
@@ -841,6 +842,14 @@ function useRealMembershipCheck(permissions: Array<Permission> | null): void {
   jest.spyOn(TeamMemberService, "findBy").mockResolvedValue(memberships);
   // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  /*
+   * The project's plan, which the member's props carry on OneUptime Cloud
+   * (billing on, as CI runs): WorkspaceActionPlan.test.ts.
+   */
+  jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+    plan: PlanType.Growth,
+    isSubscriptionUnpaid: false,
+  });
   jest
     .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
     .mockResolvedValue(null);

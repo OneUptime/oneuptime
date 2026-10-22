@@ -91,7 +91,9 @@ import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolic
 import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
-import { WorkspaceProjectEvidence } from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectEvidence,
+} from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -1242,16 +1244,14 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
   );
 
   function linkSender(projectIds: Array<ObjectID>): void {
-    jest
-      .spyOn(WorkspaceUserAuthTokenService, "findBy")
-      .mockResolvedValue(
-        projectIds.map((projectId: ObjectID): WorkspaceUserAuthToken => {
-          const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
-          link.projectId = projectId;
-          link.userId = MEMBER;
-          return link;
-        }),
-      );
+    jest.spyOn(WorkspaceUserAuthTokenService, "findBy").mockResolvedValue(
+      projectIds.map((projectId: ObjectID): WorkspaceUserAuthToken => {
+        const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+        link.projectId = projectId;
+        link.userId = MEMBER;
+        return link;
+      }),
+    );
     jest
       .spyOn(WorkspaceActionAuthorization, "isProjectMember")
       .mockResolvedValue(true);
@@ -1316,14 +1316,12 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
     }
 
     // The incident is the production project's.
-    jest
-      .spyOn(IncidentService, "findOneBy")
-      .mockImplementation((async () => {
-        const incident: Incident = new Incident();
-        incident.id = INCIDENT;
-        incident.projectId = PRODUCTION;
-        return incident;
-      }) as never);
+    jest.spyOn(IncidentService, "findOneBy").mockImplementation((async () => {
+      const incident: Incident = new Incident();
+      incident.id = INCIDENT;
+      incident.projectId = PRODUCTION;
+      return incident;
+    }) as never);
     const userLookupSpy: jest.SpyInstance = jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockResolvedValue(MEMBER);
@@ -1402,17 +1400,31 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
   });
 
   test("getTenantResolutionFailureMessage says what to do, not to disconnect a project", () => {
-    const message: string = MicrosoftTeamsUtil.getTenantResolutionFailureMessage(
-      {
+    const message: string =
+      MicrosoftTeamsUtil.getTenantResolutionFailureMessage({
         projectAuth: null,
         isAmbiguous: true,
         candidateProjectIds: [PRODUCTION, STAGING],
-      },
-    );
+      });
 
     expect(message).toContain(AMBIGUOUS_FRAGMENT);
-    expect(message).toContain("Try it again from a channel of the one you mean");
+    expect(message).toContain(
+      "Try it again from a channel of the one you mean",
+    );
     expect(message).not.toContain("disconnect");
+  });
+
+  test("it starts with the lead the clued answer starts with, word for word", () => {
+    const message: string =
+      MicrosoftTeamsUtil.getTenantResolutionFailureMessage({
+        projectAuth: null,
+        isAmbiguous: true,
+        candidateProjectIds: [PRODUCTION, STAGING],
+      });
+
+    expect(
+      message.startsWith(`${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, `),
+    ).toBe(true);
   });
 });
 

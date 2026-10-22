@@ -134,6 +134,55 @@ describe("WorkspaceProjectResolution", () => {
     OnCallDutyPolicyService,
   ];
 
+  // A record service's reads, answered from `records` as its query asks.
+  function stubRecordService(service: unknown): void {
+    const read: (query: JSONObject) => Array<DatabaseBaseModel> = (
+      query: JSONObject,
+    ): Array<DatabaseBaseModel> => {
+      const projectIds: Array<string> = idsOf(query["projectId"]);
+      const channel: string = JSON.stringify(
+        idsOf(query["postUpdatesToWorkspaceChannels"]),
+      );
+
+      return (records.get(service) || [])
+        .filter((row: Row): boolean => {
+          return (
+            projectIds.includes(row.projectId.toString().toLowerCase()) &&
+            (query["_id"] === undefined ||
+              idsOf(query["_id"]).includes(row.id.toString())) &&
+            (query["postUpdatesToWorkspaceChannels"] === undefined ||
+              (row.channelIds || []).some((channelId: string): boolean => {
+                return channel.includes(channelId.toLowerCase());
+              }))
+          );
+        })
+        .map((row: Row): DatabaseBaseModel => {
+          const model: Incident = new Incident();
+          model.id = row.id;
+          model.projectId = row.projectId;
+          return model as unknown as DatabaseBaseModel;
+        });
+    };
+
+    jest
+      .spyOn(service as { findOneBy: () => Promise<unknown> }, "findOneBy")
+      .mockImplementation((async (findOneBy: JSONObject) => {
+        recordReads.push({
+          service: service,
+          query: findOneBy["query"] as JSONObject,
+        });
+        expect(findOneBy["props"]).toEqual({ isRoot: true });
+        return read(findOneBy["query"] as JSONObject)[0] || null;
+      }) as never);
+    jest
+      .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")
+      .mockImplementation((async (findBy: JSONObject) => {
+        channelReads++;
+        expect(findBy["props"]).toEqual({ isRoot: true });
+        return read(findBy["query"] as JSONObject);
+      }) as never);
+  }
+
   beforeEach(() => {
     connections = [connectionOf(PLATFORM), connectionOf(NONPRD)];
     records = new Map<unknown, Array<Row>>();
@@ -145,9 +194,9 @@ describe("WorkspaceProjectResolution", () => {
     personReads = 0;
     channelReads = 0;
 
-    jest.spyOn(ProductBrandingText, "getProductName").mockReturnValue(
-      "OneUptime",
-    );
+    jest
+      .spyOn(ProductBrandingText, "getProductName")
+      .mockReturnValue("OneUptime");
 
     jest
       .spyOn(WorkspaceProjectAuthTokenService, "findBy")
@@ -166,54 +215,7 @@ describe("WorkspaceProjectResolution", () => {
       }) as never);
 
     for (const service of RECORD_SERVICES) {
-      const read: (query: JSONObject) => Array<DatabaseBaseModel> = (
-        query: JSONObject,
-      ): Array<DatabaseBaseModel> => {
-        const projectIds: Array<string> = idsOf(query["projectId"]);
-        const channel: string = JSON.stringify(
-          idsOf(query["postUpdatesToWorkspaceChannels"]),
-        );
-
-        return (records.get(service) || [])
-          .filter((row: Row): boolean => {
-            return (
-              projectIds.includes(row.projectId.toString().toLowerCase()) &&
-              (query["_id"] === undefined ||
-                idsOf(query["_id"]).includes(row.id.toString())) &&
-              (query["postUpdatesToWorkspaceChannels"] === undefined ||
-                (row.channelIds || []).some((channelId: string): boolean => {
-                  return channel.includes(channelId.toLowerCase());
-                }))
-            );
-          })
-          .map((row: Row): DatabaseBaseModel => {
-            const model: Incident = new Incident();
-            model.id = row.id;
-            model.projectId = row.projectId;
-            return model as unknown as DatabaseBaseModel;
-          });
-      };
-
-      jest
-        .spyOn(
-          service as { findOneBy: () => Promise<unknown> },
-          "findOneBy",
-        )
-        .mockImplementation((async (findOneBy: JSONObject) => {
-          recordReads.push({
-            service: service,
-            query: findOneBy["query"] as JSONObject,
-          });
-          expect(findOneBy["props"]).toEqual({ isRoot: true });
-          return read(findOneBy["query"] as JSONObject)[0] || null;
-        }) as never);
-      jest
-        .spyOn(service as { findBy: () => Promise<unknown> }, "findBy")
-        .mockImplementation((async (findBy: JSONObject) => {
-          channelReads++;
-          expect(findBy["props"]).toEqual({ isRoot: true });
-          return read(findBy["query"] as JSONObject);
-        }) as never);
+      stubRecordService(service);
     }
 
     jest
@@ -261,7 +263,8 @@ describe("WorkspaceProjectResolution", () => {
               projectId: ObjectID;
               userId: ObjectID;
             }): WorkspaceUserAuthToken => {
-              const token: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+              const token: WorkspaceUserAuthToken =
+                new WorkspaceUserAuthToken();
               token.projectId = link.projectId;
               token.userId = link.userId;
               return token;
@@ -752,10 +755,10 @@ describe("WorkspaceProjectResolution", () => {
       const answer: WorkspaceAnswer = await answerFor(WorkspaceType.Slack);
 
       expect(answer.text).toBe(
-        "This Slack workspace is connected to more than one OneUptime project, and your Slack account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under User Settings > Workspace > Slack, then try again.",
+        "This Slack workspace is connected to more than one OneUptime project, and your Slack account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under User Settings → Workspace → Slack, then try again.",
       );
       expect(answer.markdown).toContain(
-        "**User Settings** > **Workspace** > **Slack**",
+        "**User Settings → Workspace → Slack**",
       );
     });
 
@@ -767,16 +770,16 @@ describe("WorkspaceProjectResolution", () => {
         WorkspaceType.MicrosoftTeams,
       );
 
-      expect(answer.text.startsWith(
-        WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD,
-      )).toBe(true);
+      expect(
+        answer.text.startsWith(WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD),
+      ).toBe(true);
       expect(answer.text).toContain("so I can't tell which one you mean here.");
       expect(answer.text).toContain("You're in IRM Platform and IRM Non-Prod:");
     });
 
     test("Microsoft Teams, connected in none: where to connect", async () => {
       expect((await answerFor(WorkspaceType.MicrosoftTeams)).text).toContain(
-        "your Microsoft Teams account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under User Settings > Workspace > Microsoft Teams",
+        "your Microsoft Teams account isn't connected in any of them yet. In OneUptime, open the project you use and connect your account under User Settings → Workspace → Microsoft Teams",
       );
     });
 

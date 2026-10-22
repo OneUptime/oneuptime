@@ -339,11 +339,13 @@ export default class WorkspaceProjectResolver {
         })
       : { linkedProjectIds: [], memberProjectIds: [] };
 
-    const personFacts: { memberProjectIds: Array<ObjectID>; isConnected: boolean } =
-      {
-        memberProjectIds: person.memberProjectIds,
-        isConnected: person.linkedProjectIds.length > 0,
-      };
+    const personFacts: {
+      memberProjectIds: Array<ObjectID>;
+      isConnected: boolean;
+    } = {
+      memberProjectIds: person.memberProjectIds,
+      isConnected: person.linkedProjectIds.length > 0,
+    };
 
     if (person.memberProjectIds.length === 1) {
       return decided(
@@ -394,8 +396,7 @@ export default class WorkspaceProjectResolver {
       return resolution.projectAuth;
     }
 
-    const firstProjectId: ObjectID | undefined =
-      resolution.memberProjectIds[0];
+    const firstProjectId: ObjectID | undefined = resolution.memberProjectIds[0];
 
     return firstProjectId
       ? WorkspaceProjectResolver.connectionOf(
@@ -647,11 +648,11 @@ export default class WorkspaceProjectResolver {
 
     if (!data.resolution.isPersonConnected) {
       const workspaceName: string = isTeams ? "Microsoft Teams" : "Slack";
-      const markdown: MarkdownText = mdText`${lead}, and your ${workspaceName} account isn't connected in any of them yet. In ${productName}, open the project you use and connect your account under **User Settings** > **Workspace** > **${workspaceName}**, then try again.`;
+      const markdown: MarkdownText = mdText`${lead}, and your ${workspaceName} account isn't connected in any of them yet. In ${productName}, open the project you use and connect your account under **User Settings → Workspace → ${workspaceName}**, then try again.`;
 
       return {
         markdown: markdown.toString(),
-        text: `${lead}, and your ${workspaceName} account isn't connected in any of them yet. In ${productName}, open the project you use and connect your account under User Settings > Workspace > ${workspaceName}, then try again.`,
+        text: `${lead}, and your ${workspaceName} account isn't connected in any of them yet. In ${productName}, open the project you use and connect your account under User Settings → Workspace → ${workspaceName}, then try again.`,
       };
     }
 
@@ -683,7 +684,8 @@ export default class WorkspaceProjectResolver {
     const plainList: string = `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]!}`;
 
     return {
-      markdown: mdText`${lead}, ${notSure} You're in ${boldList}: ${again}`.toString(),
+      markdown:
+        mdText`${lead}, ${notSure} You're in ${boldList}: ${again}`.toString(),
       text: `${lead}, ${notSure} You're in ${plainList}: ${again}`,
     };
   }
@@ -770,9 +772,7 @@ export default class WorkspaceProjectResolver {
       : new ObjectID(projectId.toString());
   }
 
-  private static distinct(
-    projectIds: Array<ObjectID | null>,
-  ): Array<ObjectID> {
+  private static distinct(projectIds: Array<ObjectID | null>): Array<ObjectID> {
     const seen: Set<string> = new Set<string>();
     const result: Array<ObjectID> = [];
 

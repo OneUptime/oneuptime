@@ -514,8 +514,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.MonitorViewer,
     ]);
-    const findSpy: SpyInstance<typeof MonitorService.findOneBy> =
-      jest
+    const findSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
       .spyOn(MonitorService, "findOneBy")
       .mockImplementation((async (findOneBy: {
         props: DatabaseCommonInteractionProps;
@@ -552,8 +551,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.OnCallViewer,
     ]);
-    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> =
-      jest
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
       .mockImplementation((async (findOneBy: {
         props: DatabaseCommonInteractionProps;
@@ -618,8 +616,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "create")
       .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(new Incident());
-    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> =
-      jest
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
       .mockImplementation((async (findOneBy: {
         props: DatabaseCommonInteractionProps;
@@ -657,8 +654,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "create")
       .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
     // Outside their labels: there, but not for them.
-    const incidentLookup: SpyInstance<typeof IncidentService.findOneBy> =
-      jest
+    const incidentLookup: SpyInstance<typeof IncidentService.findOneBy> = jest
       .spyOn(IncidentService, "findOneBy")
       .mockImplementation((async (findOneBy: {
         props: DatabaseCommonInteractionProps;

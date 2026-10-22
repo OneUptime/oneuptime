@@ -975,8 +975,7 @@ export default class WorkspaceMemberActions {
     action?: string | undefined;
   }): Promise<Error> {
     return await WorkspaceActionAuthorization.getUnreadableRefusal({
-      action:
-        data.action || `change this ${this.getNoun(data.event.type)}`,
+      action: data.action || `change this ${this.getNoun(data.event.type)}`,
       service: this.getEventResource(data.event).service,
       id: data.event.id,
       props: data.props,

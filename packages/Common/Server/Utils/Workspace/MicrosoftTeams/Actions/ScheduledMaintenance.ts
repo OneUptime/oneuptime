@@ -343,8 +343,8 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       const found: {
         record: ScheduledMaintenance;
         event: WorkspaceEventRecord;
-      } =
-        await WorkspaceMemberActions.readEventForMember<ScheduledMaintenance>({
+      } = await WorkspaceMemberActions.readEventForMember<ScheduledMaintenance>(
+        {
           event: {
             type: WorkspaceEventType.ScheduledMaintenance,
             id: scheduledMaintenanceId,
@@ -359,10 +359,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               name: true,
             },
           },
-          action: MicrosoftTeamsScheduledMaintenanceActions.getEventAction(
-            actionType,
-          ),
-        });
+          action:
+            MicrosoftTeamsScheduledMaintenanceActions.getEventAction(
+              actionType,
+            ),
+        },
+      );
 
       const scheduledMaintenance: ScheduledMaintenance = found.record;
       const event: WorkspaceEventRecord = found.event;

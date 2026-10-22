@@ -369,19 +369,21 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
   });
 
   test("a private incident they do not own: that it is private, and who can add them", async (): Promise<void> => {
-    jest.spyOn(IncidentService, "findOneBy").mockImplementation((async (findOneBy: {
-      query: Record<string, unknown>;
-      props: DatabaseCommonInteractionProps;
-    }) => {
-      if (!findOneBy.props.isRoot) {
-        return null;
-      }
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        query: Record<string, unknown>;
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
 
-      // OneUptime finds it - but not under the member's rule for private ones.
-      return findOneBy.query["isPrivate"] === undefined
-        ? createIncident()
-        : null;
-    }) as never);
+        // OneUptime finds it - but not under the member's rule for private ones.
+        return findOneBy.query["isPrivate"] === undefined
+          ? createIncident()
+          : null;
+      }) as never);
 
     await expect(
       WorkspaceActionAuthorization.assertCanCreate({
@@ -450,7 +452,9 @@ describe("WorkspaceActionAuthorization.assertCanCreate", (): void => {
         action: "acknowledge this incident",
         resources: [{ service: IncidentService, id: ObjectID.generate() }],
       }),
-    ).rejects.toThrow("You do not have permission to acknowledge this incident. no read");
+    ).rejects.toThrow(
+      "You do not have permission to acknowledge this incident. no read",
+    );
   });
 
   test("the real read path names the permissions that read incidents, for a user who may write timelines but not read incidents", async (): Promise<void> => {

@@ -1544,7 +1544,8 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
           return new ScheduledMaintenance();
         },
         stateColumn: "currentScheduledMaintenanceStateId",
-        currentStateId: readable || isOutsideMemberRead ? states[current] : null,
+        currentStateId:
+          readable || isOutsideMemberRead ? states[current] : null,
         isOutsideMemberRead: isOutsideMemberRead,
       }),
       states: states,
