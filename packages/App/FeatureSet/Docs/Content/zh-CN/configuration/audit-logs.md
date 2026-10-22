@@ -91,9 +91,10 @@ flowchart TB
 | API 密钥 | `API Key` |
 | 人们连接的 MCP 客户端 | `MCP Client Authorization` |
 | 资产清单项 | `Inventory Item` |
+| 收集器配置 | `Collector Config` |
 | vCenter 服务器 | `vCenter` |
 | 抓包及其下载 | `Packet Capture` |
-| 安全案例与剧本 | `Security Case`、`Security Playbook` |
+| 安全案例、剧本及其运行，以及受保护的实体 | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 当管理员在他人的账户上添加或移除通知方式或个人值班规则时，也会记录，但不包含地址或号码本身。
 

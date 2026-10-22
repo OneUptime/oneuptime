@@ -1025,6 +1025,92 @@ test.describe("layout", () => {
     }
   });
 
+  test("a refused copy's Copy failed never runs over the read-only words, however narrow the editor", async ({
+    page,
+    browserName,
+  }: {
+    page: Page;
+    browserName: string;
+  }) => {
+    test.skip(
+      browserName !== "chromium",
+      "Layout is not engine specific here.",
+    );
+
+    // Both ways of copying refuse, as a locked-down browser's do.
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (): Promise<void> => {
+            throw new DOMException(
+              "Write permission denied.",
+              "NotAllowedError",
+            );
+          },
+        },
+      });
+
+      const execCommand: typeof document.execCommand =
+        document.execCommand.bind(document);
+
+      document.execCommand = (
+        command: string,
+        showUI?: boolean,
+        value?: string,
+      ): boolean => {
+        if (command.toLowerCase() === "copy") {
+          return false;
+        }
+
+        return execCommand(command, showUI, value);
+      };
+    });
+    await page.goto("/");
+
+    const root: Locator = editor(page, "readonly");
+    await expect(root).toBeVisible();
+
+    /*
+     * As little room as a phone's card leaves beside a long translation
+     * ("Kopieren fehlgeschlagen"): the label used to be drawn on under the
+     * button.
+     */
+    await root.evaluate((element: HTMLElement) => {
+      element.style.width = "240px";
+    });
+
+    const copy: Locator = root.getByTestId("code-editor-copy-button");
+    await copy.click();
+    await expect(copy).toHaveText("Copy failed");
+
+    const edges: {
+      languageRight: number;
+      readOnlyRight: number;
+      copyLeft: number;
+      copyRight: number;
+      rootRight: number;
+    } = await root.evaluate((element: HTMLElement) => {
+      const box: (testId: string) => DOMRect = (testId: string): DOMRect => {
+        return element
+          .querySelector(`[data-testid='${testId}']`)!
+          .getBoundingClientRect();
+      };
+
+      return {
+        languageRight: box("code-editor-language").right,
+        readOnlyRight: box("code-editor-read-only").right,
+        copyLeft: box("code-editor-copy-button").left,
+        copyRight: box("code-editor-copy-button").right,
+        rootRight: element.getBoundingClientRect().right,
+      };
+    });
+
+    expect(edges.languageRight).toBeLessThanOrEqual(edges.copyLeft);
+    expect(edges.readOnlyRight).toBeLessThanOrEqual(edges.copyLeft);
+    expect(edges.copyRight).toBeLessThanOrEqual(edges.rootRight);
+  });
+
   test("screenshots for review", async ({
     page,
   }: { page: Page }, testInfo: TestInfo) => {

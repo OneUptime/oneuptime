@@ -5,6 +5,23 @@ import UseGlobalRunnersCard from "../../../Components/Runner/UseGlobalRunnersCar
 import RunnerChoicesLoader, {
   GlobalRunnerRow,
 } from "../../../Components/Runner/RunnerChoices";
+import ProjectDefaultRunnerCopy, {
+  PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID,
+  PROJECT_DEFAULT_REFUSAL_TEXT,
+  getMakeDefaultConfirmDescription,
+} from "../../../Components/Runner/ProjectDefaultRunnerCopy";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import {
+  ProjectDefaultRunnerRefusal,
+  getProjectDefaultRunnerRefusal,
+} from "Common/Types/Runner/ProjectDefaultRunner";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, {
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import GlobalRunnersCopy, {
   ADMIN_GLOBAL_RUNNERS_ROUTE,
 } from "../../../Components/Runner/GlobalRunnersCopy";
@@ -32,11 +49,11 @@ import useTranslateValue, {
 } from "Common/UI/Utils/Translation";
 import Label from "Common/Models/DatabaseModels/Label";
 import Runner from "Common/Models/DatabaseModels/Runner";
-import {
+import RunnerLiveStatus, {
   getRunnerLiveStatus,
   getRunnerLiveStatusLabel,
 } from "Common/Types/Runner/RunnerLiveStatus";
-import { Gray500 } from "Common/Types/BrandColors";
+import { Gray500, Green } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -60,10 +77,23 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  *     none yet, one plain sentence says why to add one.
  *   - Use global Runners: the project's one switch for the global ones.
  *
+ * One of the project's own Runners can be its default (Project Default
+ * column; "Set as Project Default" in a Runner's ⋯ menu, as a Twilio config
+ * is made the project default): a step that picks no Runner runs on it, in
+ * place of the Global Runner. Changing it asks first, saying which steps
+ * move.
+ *
  * On a server that has no global Runner (a self-hosted install whose admin
  * added none), the page shows the project's own Runners only, as it always
  * did, and tells a master admin where global Runners are added.
  */
+
+// A change of the project's default Runner, waiting on its dialog.
+interface DefaultRunnerChange {
+  runner: Runner;
+  // True: make it the default. False: stop using it as the default.
+  makeDefault: boolean;
+}
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
 
@@ -74,12 +104,177 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [projectUsesGlobalRunners, setProjectUsesGlobalRunners] =
     useState<boolean>(true);
 
+  /*
+   * The project's default Runner, read on its own (the table's rows can be
+   * filtered and paged): null for none, undefined until it is read - and
+   * when it cannot be read, so nothing is claimed about it.
+   */
+  const [projectDefaultRunner, setProjectDefaultRunner] = useState<
+    { id: string; name: string } | null | undefined
+  >(undefined);
+
+  // Whether the project's own Runners table lists any (as last fetched).
+  const [hasProjectRunners, setHasProjectRunners] = useState<boolean>(false);
+
+  const [defaultRunnerChange, setDefaultRunnerChange] =
+    useState<DefaultRunnerChange | null>(null);
+  const [isChangingDefault, setIsChangingDefault] = useState<boolean>(false);
+  const [defaultChangeError, setDefaultChangeError] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<string>("0");
+
   const { translateString }: UseTranslateValueResult = useTranslateValue();
   const translator: Translator = useTranslator();
+
+  const readProjectDefaultRunner: () => Promise<void> =
+    async (): Promise<void> => {
+      try {
+        setProjectDefaultRunner(
+          await RunnerChoicesLoader.loadProjectDefaultRunner(
+            ProjectUtil.getCurrentProjectId()!,
+          ),
+        );
+      } catch {
+        setProjectDefaultRunner(undefined);
+      }
+    };
 
   useAsyncEffect(async () => {
     setGlobalRunners(await RunnerChoicesLoader.loadGlobalRunners());
   }, []);
+
+  useAsyncEffect(async () => {
+    await readProjectDefaultRunner();
+  }, []);
+
+  /*
+   * Making a Runner the default writes one column, which a role may be
+   * allowed to edit or not: the ⋯ menu's actions are locked, with the
+   * reason, for someone who may not.
+   */
+  const setDefaultGate: PermissionGateResult = PermissionGate.checkColumnUpdate(
+    new Runner(),
+    "isProjectDefault",
+  );
+
+  const isDefaultActionShown: boolean =
+    setDefaultGate.isAllowed || Boolean(setDefaultGate.disabledReason);
+
+  // Writes the change the dialog asked about; the server moves the default.
+  const saveDefaultRunnerChange: () => Promise<void> =
+    async (): Promise<void> => {
+      if (!defaultRunnerChange) {
+        return;
+      }
+
+      setIsChangingDefault(true);
+      setDefaultChangeError("");
+
+      try {
+        await ModelAPI.updateById<Runner>({
+          modelType: Runner,
+          id: new ObjectID(defaultRunnerChange.runner._id?.toString() || ""),
+          data: {
+            isProjectDefault: defaultRunnerChange.makeDefault,
+          },
+        });
+
+        setDefaultRunnerChange(null);
+        setRefreshToggle((value: string): string => {
+          return String(Number(value) + 1);
+        });
+        await readProjectDefaultRunner();
+      } catch (err) {
+        setDefaultChangeError(API.getFriendlyMessage(err));
+      } finally {
+        setIsChangingDefault(false);
+      }
+    };
+
+  // The dialog that asks before the default moves.
+  const renderDefaultRunnerChangeDialog: () => ReactElement =
+    (): ReactElement => {
+      if (!defaultRunnerChange) {
+        return <></>;
+      }
+
+      const name: string = defaultRunnerChange.runner.name || "";
+
+      if (!defaultRunnerChange.makeDefault) {
+        return (
+          <ConfirmModal
+            title={translator.translateTemplate(
+              ProjectDefaultRunnerCopy.stopDefaultConfirmTitle,
+              { runner: name },
+            )}
+            description={ProjectDefaultRunnerCopy.stopDefaultConfirmDescription}
+            submitButtonText={ProjectDefaultRunnerCopy.stopDefaultConfirmButton}
+            submitButtonType={ButtonStyleType.PRIMARY}
+            isLoading={isChangingDefault}
+            error={defaultChangeError}
+            onClose={() => {
+              setDefaultRunnerChange(null);
+              setDefaultChangeError("");
+            }}
+            onSubmit={() => {
+              void saveDefaultRunnerChange();
+            }}
+          />
+        );
+      }
+
+      const currentDefaultName: string | undefined =
+        projectDefaultRunner &&
+        projectDefaultRunner.id.toLowerCase() !==
+          (defaultRunnerChange.runner._id?.toString() || "").toLowerCase()
+          ? projectDefaultRunner.name
+          : undefined;
+
+      const description: { template: string; current?: string | undefined } =
+        getMakeDefaultConfirmDescription(currentDefaultName);
+
+      /*
+       * A Runner that is not connected is said to be, before it is the
+       * default: a warning of its own under what moves, not one more
+       * sentence of it.
+       */
+      const isConnected: boolean =
+        getRunnerLiveStatus(defaultRunnerChange.runner.lastAlive) ===
+        RunnerLiveStatus.Connected;
+
+      return (
+        <ConfirmModal
+          title={translator.translateTemplate(
+            ProjectDefaultRunnerCopy.makeDefaultConfirmTitle,
+            { runner: name },
+          )}
+          description={translator.translateTemplate(description.template, {
+            current: description.current || "",
+          })}
+          submitButtonText={ProjectDefaultRunnerCopy.makeDefaultConfirmButton}
+          submitButtonType={ButtonStyleType.PRIMARY}
+          isLoading={isChangingDefault}
+          error={defaultChangeError}
+          onClose={() => {
+            setDefaultRunnerChange(null);
+            setDefaultChangeError("");
+          }}
+          onSubmit={() => {
+            void saveDefaultRunnerChange();
+          }}
+        >
+          {isConnected ? undefined : (
+            <Alert
+              type={AlertType.WARNING}
+              title={translator.translateTemplate(
+                ProjectDefaultRunnerCopy.makeDefaultNotConnectedWarning,
+                { runner: name },
+              )}
+              dataTestId={PROJECT_DEFAULT_NOT_CONNECTED_WARNING_TEST_ID}
+            />
+          )}
+        </ConfirmModal>
+      );
+    };
 
   if (globalRunners === null) {
     return <ComponentLoader />;
@@ -91,7 +286,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * A master admin on a server with no global Runner is told where to add
    * them, under the description everyone reads.
    */
-  const customCardDescription: string | ReactElement = hasGlobalRunners ? (
+  const baseCardDescription: string | ReactElement = hasGlobalRunners ? (
     GlobalRunnersCopy.customCardDescription
   ) : UserUtil.isMasterAdmin() ? (
     <span>
@@ -121,11 +316,34 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     GlobalRunnersCopy.onlyCardDescription
   );
 
+  /*
+   * Then, while the project has Runners and none of them is its default,
+   * that one can be made the default - the ⋯ menu's action, said where the
+   * Runners are. With a default, its row says so instead; with no Runner
+   * yet, adding one comes first.
+   */
+  const cardDescription: string | ReactElement =
+    projectDefaultRunner === null && hasProjectRunners ? (
+      <span>
+        {typeof baseCardDescription === "string"
+          ? translator.translateText(baseCardDescription)
+          : baseCardDescription}{" "}
+        <span data-testid="project-default-runner-hint">
+          {translator.translateText(
+            ProjectDefaultRunnerCopy.customCardSentence,
+          )}
+        </span>
+      </span>
+    ) : (
+      baseCardDescription
+    );
+
   return (
     <Fragment>
       {hasGlobalRunners ? (
         <GlobalRunnersTable
           projectUsesGlobalRunners={projectUsesGlobalRunners}
+          hasProjectDefaultRunner={Boolean(projectDefaultRunner)}
         />
       ) : (
         <></>
@@ -153,12 +371,16 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         isViewable={true}
         showRefreshButton={true}
+        refreshToggle={refreshToggle}
+        onFetchSuccess={(_items: Array<Runner>, totalCount: number): void => {
+          setHasProjectRunners(totalCount > 0);
+        }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: hasGlobalRunners
             ? GlobalRunnersCopy.customCardTitle
             : GlobalRunnersCopy.onlyCardTitle,
-          description: customCardDescription,
+          description: cardDescription,
         }}
         selectMoreFields={{
           _id: true,
@@ -171,6 +393,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * fetched without it reads as never connected.
            */
           lastAlive: true,
+          // Whether it may be the project default (the ⋯ menu's action).
+          canRunRunbooks: true,
+          // The default says so beside its name.
+          isProjectDefault: true,
         }}
         noItemsMessage={
           hasGlobalRunners
@@ -198,6 +424,54 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction();
                 onError(err as Error);
               }
+            },
+          },
+          {
+            /*
+             * Steps that pick no Runner run on this one instead: on every
+             * row but the default's, in the ⋯ menu, locked with why on a
+             * Runner that may not be it.
+             */
+            title: ProjectDefaultRunnerCopy.setDefaultTitle,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Check,
+            placement: ActionButtonPlacement.MoreMenu,
+            disabled: !setDefaultGate.isAllowed,
+            tooltip: setDefaultGate.disabledReason,
+            isVisible: (item: Runner): boolean => {
+              return item.isProjectDefault !== true && isDefaultActionShown;
+            },
+            getDisabledReason: (item: Runner): string | undefined => {
+              const refusal: ProjectDefaultRunnerRefusal | null =
+                getProjectDefaultRunnerRefusal(item);
+
+              return refusal
+                ? translator.translateText(
+                    PROJECT_DEFAULT_REFUSAL_TEXT[refusal],
+                  )
+                : undefined;
+            },
+            onClick: (item: Runner, onCompleteAction: VoidFunction): void => {
+              setDefaultChangeError("");
+              setDefaultRunnerChange({ runner: item, makeDefault: true });
+              onCompleteAction();
+            },
+          },
+          {
+            // Back to the Global Runner for the steps that pick no Runner.
+            title: ProjectDefaultRunnerCopy.stopDefaultTitle,
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            icon: IconProp.Close,
+            placement: ActionButtonPlacement.MoreMenu,
+            disabled: !setDefaultGate.isAllowed,
+            tooltip: setDefaultGate.disabledReason,
+            isVisible: (item: Runner): boolean => {
+              return item.isProjectDefault === true && isDefaultActionShown;
+            },
+            onClick: (item: Runner, onCompleteAction: VoidFunction): void => {
+              setDefaultChangeError("");
+              setDefaultRunnerChange({ runner: item, makeDefault: false });
+              onCompleteAction();
             },
           },
         ]}
@@ -228,9 +502,41 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ]}
         columns={[
           {
+            /*
+             * The project's default Runner - the one the steps that pick no
+             * Runner run on - says so beside its name, where a reader looks
+             * first, rather than in a column of its own that would push
+             * Last Seen under the row's buttons. A long name ends in an
+             * ellipsis of its own, as a plain name cell's does (the row
+             * shows it in full under the pointer), and the pill goes under
+             * it when the two do not fit on one line.
+             */
             field: { name: true },
             title: "Name",
             type: FieldType.Text,
+            getElement: (item: Runner): ReactElement => {
+              return (
+                <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="min-w-0 truncate" data-testid="runner-name">
+                    {item.name}
+                  </span>
+                  {item.isProjectDefault ? (
+                    <span data-testid="runner-project-default-pill">
+                      <Pill
+                        text={ProjectDefaultRunnerCopy.pillText}
+                        color={Green}
+                        size={PillSize.Small}
+                      />
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </span>
+              );
+            },
+            getExportValue: (item: Runner): string => {
+              return item.name || "";
+            },
           },
           {
             field: { description: true },
@@ -353,10 +659,13 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <UseGlobalRunnersCard
           projectId={ProjectUtil.getCurrentProjectId()!}
           onChange={setProjectUsesGlobalRunners}
+          hasProjectDefaultRunner={Boolean(projectDefaultRunner)}
         />
       ) : (
         <></>
       )}
+
+      {renderDefaultRunnerChangeDialog()}
 
       {showSetupAgent ? (
         <Modal

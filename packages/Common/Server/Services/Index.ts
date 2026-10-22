@@ -385,6 +385,7 @@ import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityDetectionService from "./SecurityDetectionService";
 import SecurityPlaybookService from "./SecurityPlaybookService";
 import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
+import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
 import AlertNoteTemplateService from "./AlertNoteTemplateService";
 
 // AlertEpisode Services
@@ -475,6 +476,8 @@ import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
 import HostOwnerTeamService from "./HostOwnerTeamService";
 import HostOwnerUserService from "./HostOwnerUserService";
+import HostCollectorConfigService from "./HostCollectorConfigService";
+import HostCollectorConfigVersionService from "./HostCollectorConfigVersionService";
 import IncomingCallPolicyService from "./IncomingCallPolicyService";
 import IncomingCallLogService from "./IncomingCallLogService";
 import IncomingCallPolicyPhoneNumberService from "./IncomingCallPolicyPhoneNumberService";
@@ -880,6 +883,7 @@ const services: Array<BaseService> = [
   SecurityDetectionService,
   SecurityPlaybookService,
   SecurityPlaybookRunService,
+  SecurityProtectedEntityService,
   AlertNoteTemplateService,
   AlertFeedService,
 
@@ -981,6 +985,8 @@ const services: Array<BaseService> = [
   HostOwnerRuleService,
   HostOwnerTeamService,
   HostOwnerUserService,
+  HostCollectorConfigService,
+  HostCollectorConfigVersionService,
   IncomingCallPolicyService,
   IncomingCallPolicyPhoneNumberService,
   IncomingCallPolicyEscalationRuleService,

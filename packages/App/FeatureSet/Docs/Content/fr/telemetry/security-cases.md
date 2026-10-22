@@ -5,6 +5,7 @@
 :::cards
 - [Origine des dossiers](#origine-des-dossiers): Les règles de détection, le renseignement sur les menaces, les produits connectés et les personnes.
 - [Traiter un dossier](#traiter-un-dossier): L'assigner, enquêter sur ses entités, le fermer avec un verdict.
+- [Notifications](#notifications): Qui est prévenu d'un nouveau dossier, d'une attribution et d'une étape en attente d'approbation.
 - [Playbooks](#playbooks): Des étapes qui s'exécutent sur un dossier, avec une approbation là où elle compte.
 - [La vue d'ensemble](#la-vue-densemble): Ce qui demande une intervention maintenant, et la rapidité de traitement des dossiers.
 :::
@@ -49,7 +50,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Polling** de la connexion |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Open Case** dans le panneau d'un événement | Impossible |
 
-Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **High and above**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
+Chaque source est activée par défaut. Une connexion ouvre des dossiers pour **Élevé et au-dessus**, sauf si vous choisissez un autre niveau ; les alertes de niveau inférieur sont tout de même importées comme événements.
 
 ### Comment les détections sont regroupées
 
@@ -108,6 +109,51 @@ Les verdicts sont comptabilisés sur la vue d'ensemble. Une règle dont les doss
 
 **Déclarer un incident** ouvre un incident OneUptime pour le dossier, avec la gravité de votre choix, et les relie dans les deux sens : la description de l'incident nomme le dossier, et l'en-tête du dossier renvoie vers l'incident. L'astreinte, les pages de statut et le post-mortem prennent ensuite le relais. Il faut un rôle qui puisse à la fois traiter des dossiers et créer des incidents.
 
+## Notifications
+
+OneUptime prévient les personnes concernées de trois choses sur un dossier. Personne n'a rien à configurer : un projet qui a seulement cliqué sur **Activer les recommandations** est prévenu de ses dossiers de priorité Élevé et Critique par e-mail et par push.
+
+| Notification | Qui est prévenu | Par défaut |
+| --- | --- | --- |
+| Nouveau dossier de sécurité | Toutes les personnes qui peuvent voir les dossiers du projet, quand un dossier s'ouvre ou monte en priorité, à partir de la priorité qu'elles ont choisie | Par e-mail et par push, pour les dossiers de priorité Élevé et Critique |
+| Dossier de sécurité qui m'est attribué | La personne à qui le dossier est attribué, et les membres de l'équipe à laquelle il est attribué | Par e-mail et par push |
+| Étape de playbook en attente de mon approbation | Les personnes du dossier qui peuvent approuver l'étape : la personne à qui il est attribué et les membres de son équipe. Quand aucune d'elles ne peut l'approuver, toutes les personnes du projet qui le peuvent | Par e-mail et par push |
+
+- Seules les personnes qui peuvent voir le dossier en sont prévenues : Project Owner, Project Admin, et les rôles Security Admin, Security Member et Security Viewer. Un rôle limité à certaines étiquettes n'est prévenu que des dossiers qui portent ces étiquettes.
+- Personne n'est prévenu de ce qu'il a fait lui-même : la personne qui ouvre un dossier à la main, l'attribue ou lance une exécution n'en reçoit pas de notification.
+- Chaque personne n'est prévenue qu'une fois d'un dossier. Un dossier qui s'ouvre en Medium puis monte à Critique atteint, quand il monte, les personnes qui ont choisi Élevé et Critique ou Critique uniquement, mais pas de nouveau celles qui ont choisi Moyen et au-dessus, déjà prévenues à son ouverture.
+- L'attaque de test lancée avec **Envoyer une attaque de test** ouvre un dossier qui ne prévient personne.
+- Un dossier Critique et une étape en attente d'approbation sont envoyés aussitôt, jamais retenus dans un [récapitulatif par e-mail](/docs/emails/notification-rollup).
+- La **Chronologie** du dossier indique qui a été prévenu, et quand.
+
+### Choisir ce dont vous êtes prévenu
+
+Chaque personne choisit pour elle-même, dans **Paramètres utilisateur → Paramètres de notification → Sécurité** : les canaux de chaque notification (e-mail, SMS, appel, push, Telegram, Slack, Microsoft Teams ou webhook), et, sous **Nouveau dossier de sécurité**, la priorité à partir de laquelle elle est prévenue :
+
+| Choix | Prévient des dossiers de priorité |
+| --- | --- |
+| Critique uniquement | Critique |
+| Élevé et Critique | Élevé et Critique (le choix par défaut) |
+| Moyen et au-dessus | Critique, Élevé et Medium |
+| Faible et au-dessus | Toutes sauf Informatifs |
+| Tous les dossiers | Toutes |
+
+Aucun message WhatsApp n'est envoyé pour les dossiers de sécurité. Une notification push ouvre l'application OneUptime, et son lien ouvre le dossier dans le navigateur.
+
+### Publier dans des canaux Slack et Microsoft Teams
+
+Pour publier dans un canal, ajoutez une règle sous **Produits → Événements de sécurité → Espace de travail → Slack** (ou **Microsoft Teams**). Quand ni l'un ni l'autre n'est connecté, la seule entrée de la section est **Connecter Slack ou Teams**. Une règle nomme les canaux où publier (et, dans Microsoft Teams, les conversations) et, si vous le souhaitez, les dossiers qu'elle concerne :
+
+| Condition | Correspond à |
+| --- | --- |
+| Priorité du dossier de sécurité | Critique, Élevé, Medium, Low ou Informatifs |
+| Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
+| Statut du dossier de sécurité | Nouveau, Investigation en cours, Confiné ou Fermé |
+| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product ou Manuel |
+| Étiquettes du dossier de sécurité | Les étiquettes du dossier |
+
+Les trois notifications sont chacune publiées dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
+
 ## Playbooks
 
 Un playbook est une liste d'étapes qui s'exécutent sur un dossier. Créez-en un sous **Produits → Événements de sécurité → Playbooks**, à partir d'un modèle ou de zéro, et ajoutez ses étapes sur sa page.
@@ -144,16 +190,19 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
 | Escalade | Page on-call | Exécute une politique d'astreinte |
 | Escalade | Déclarer un incident | Ouvre un incident OneUptime lié au dossier |
-| Confinement | Suspend the user in Okta | Suspend dans Okta chaque utilisateur du dossier |
-| Confinement | End the user's Okta sessions | Déconnecte d'Okta chaque utilisateur du dossier et révoque ses jetons |
-| Confinement | Contain the host in CrowdStrike | Applique le confinement réseau à chaque hôte du dossier avec CrowdStrike Falcon |
-| Confinement | Isolate the device in Microsoft Defender | Isole chaque hôte du dossier avec Microsoft Defender for Endpoint |
+| Confinement | Suspend the user in Okta | Suspend dans Okta l'utilisateur sur lequel porte le dossier |
+| Confinement | End the user's Okta sessions | Déconnecte d'Okta l'utilisateur sur lequel porte le dossier et révoque ses jetons |
+| Confinement | Contain the host in CrowdStrike | Applique le confinement réseau à l'hôte sur lequel porte le dossier avec CrowdStrike Falcon |
+| Confinement | Isolate the device in Microsoft Defender | Isole l'hôte sur lequel porte le dossier avec Microsoft Defender for Endpoint |
+| Confinement | Unsuspend the user in Okta | Lève dans Okta la suspension de l'utilisateur sur lequel porte le dossier |
+| Confinement | Lift containment in CrowdStrike | Lève le confinement réseau appliqué par CrowdStrike Falcon à l'hôte sur lequel porte le dossier |
+| Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Needs Approval** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Ce réglage est activé par défaut pour les quatre étapes de confinement, qui agissent en dehors de OneUptime.
+- **Needs Approval** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage.
 - **Only If Threat Intel Matched** : sauter l'étape, sauf si une étape **Check entities against threat intel** antérieure de la même exécution a trouvé un indicateur connu.
 - **Carry On If It Fails** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
 
@@ -163,11 +212,28 @@ Les étapes de confinement agissent via une [connexion d'événements de sécuri
 
 | Étape | Connexion | Ce qu'il faut |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un jeton d'API autorisé à gérer les utilisateurs |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API avec le scope Hosts en écriture |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Une application avec l'autorisation Machine.Isolate |
 
-Une étape de confinement agit sur au plus 10 des utilisateurs ou hôtes du dossier. Elle retrouve chacun dans le produit par son nom, et indique sur le dossier ce qu'elle a fait de chacun : confiné, déjà confiné, introuvable ou refusé.
+Une étape de confinement n'agit que sur les utilisateurs ou hôtes sur lesquels porte le dossier, jamais sur tous ceux que le dossier nomme :
+
+- La valeur selon laquelle une détection du dossier est regroupée, comme le compte selon lequel regroupe une règle de voyage impossible, ou l'hôte que nomme l'alerte d'un produit connecté.
+- Un utilisateur ou un hôte du dossier que votre renseignement sur les menaces connaît comme indicateur.
+
+Un dossier regroupé selon une adresse, comme une attaque par force brute contre votre VPN, ne porte sur aucun des deux : ses étapes de confinement sont sautées, et le compte qu'elle visait et la passerelle qu'elle a atteinte ne sont pas touchés. Une étape agit sur au plus 10 utilisateurs ou hôtes. Elle retrouve chacun dans le produit par son nom, et indique sur l'exécution ce qu'elle a fait de chacun : fait, déjà fait, introuvable, refusé ou protégé.
+
+#### Entités protégées
+
+**Protected Entities**, sous **Playbooks** dans le menu, liste les utilisateurs et les hôtes qu'aucun playbook ne confine, comme les comptes d'accès d'urgence, les contrôleurs de domaine et les passerelles VPN. Une valeur correspond quelle que soit sa casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` protège tous les comptes de service. Une étape signale un utilisateur ou un hôte protégé comme protégé et n'y touche pas. Ce sont les Security Admins qui gèrent la liste.
+
+#### Approbation
+
+Les quatre étapes qui coupent l'accès à quelqu'un attendent une approbation. Seul un Security Admin peut désactiver **Needs Approval** pour l'une d'elles, et OneUptime enregistre qui l'a fait. L'approbation liste sous **Act On** les utilisateurs ou hôtes sur lesquels l'étape agirait, tous cochés : décochez ceux qu'elle doit épargner. Ceux qui sont protégés ne sont pas proposés. La personne qui a lancé une exécution ne peut pas en approuver les étapes : quelqu'un d'autre le fait, mais elle peut toujours les rejeter.
+
+#### Annulation
+
+Les étapes d'annulation agissent sur les utilisateurs ou hôtes sur lesquels porte le dossier, comme les étapes qu'elles annulent. Une fois l'exécution arrêtée, un utilisateur ou un hôte confiné a aussi son propre bouton sur son étape : **Unsuspend**, **Lift Containment** ou **Libérer**. La fin d'une session Okta ne peut pas être annulée. Chaque annulation est conservée dans la chronologie du dossier et dans le journal d'audit du projet.
 
 ### Messages
 
@@ -199,7 +265,7 @@ Chaque exécution est listée, étape par étape, sur son dossier et sous **Prod
 | Échec | Une étape a échoué et l'exécution s'est arrêtée |
 | Annulé | Quelqu'un l'a annulée, ou a rejeté une étape |
 
-Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape et dans la chronologie du dossier. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions.
+Une étape en attente d'approbation affiche **Approve** et **Reject** sur l'exécution, avec un commentaire facultatif. Approuver poursuit l'exécution à partir de cette étape ; rejeter y met fin. La décision, son auteur et son commentaire sont conservés sur l'étape, dans la chronologie du dossier et dans le journal d'audit du projet. **En attente d'approbation**, sous **Playbooks** dans le menu, liste les exécutions qui attendent une décision et les compte ; **Exécutions de playbooks** liste toutes les exécutions.
 
 Une exécution dont le worker ne donne plus signe de vie, après un redémarrage par exemple, est reprise : une exécution en file d'attente est remise en file au bout de 2 minutes, et une exécution restée muette pendant 30 minutes passe en échec.
 
@@ -223,7 +289,7 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 ## Automatiser
 
 - **Flux de travail** : un dossier ou une note peut lancer un flux de travail quand il est créé, mis à jour ou supprimé. Une étape **Run a workflow** lance un flux de travail dont le déclencheur est un webhook.
-- **API** : les dossiers, les notes, les détections, les playbooks et les exécutions ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` et `/security-playbook-run`. Voir [Référence de l'API](/docs/api-reference/api-reference).
+- **API** : les dossiers, les notes, les détections, les playbooks, les exécutions et les entités protégées ont la même API REST que le reste de OneUptime, sous `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` et `/security-protected-entity`. Voir [Référence de l'API](/docs/api-reference/api-reference).
 - Agents IA : le serveur MCP dispose d'outils pour les dossiers, les notes, les détections et les playbooks. Voir [Serveur MCP](/docs/ai/mcp-server).
 
 ## Dépannage
@@ -232,12 +298,20 @@ Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sourc
 Vérifiez **Open a Case on Match** à l'étape **En cas de correspondance** de la règle. Une détection portant sur une entité qui a déjà un dossier ouvert s'ajoute à ce dossier au lieu d'en ouvrir un autre : cherchez-la sous **Détections** dans le dossier ouvert.
 :::
 
+:::details Personne n'a été prévenu d'un dossier
+Consultez la **Chronologie** du dossier, qui indique qui a été notifié. Une notification **Nouveau dossier de sécurité** va aux personnes dont la priorité choisie est atteinte par le dossier : un dossier Medium ne prévient donc personne qui ait gardé le choix par défaut, **Élevé et Critique**. Vérifiez que les personnes qui devraient être prévenues peuvent voir les dossiers de sécurité (avec un rôle de sécurité, ou comme Project Owner ou Project Admin), et que la notification est activée pour elles dans **Paramètres utilisateur → Paramètres de notification → Sécurité**.
+:::
+
 :::details Un playbook ne s'est pas exécuté
 Vérifiez qu'il est activé, que son réglage **Déclencheur** convient (avec Dossier ouvert, il ne s'exécute qu'une fois, à l'ouverture d'un dossier), et que le dossier remplit ses conditions **For Cases At Least**, **Only For Detections From** et **Only For These Detection Rules**. Un dossier ouvert à la main n'a pas de détection, donc un playbook limité à une source ou à des règles ne s'exécute pas dessus.
 :::
 
 :::details Une étape de confinement a échoué
 Ouvrez l'exécution sur le dossier : l'étape indique, pour chaque utilisateur ou hôte, si le produit l'a refusé, ne l'a pas trouvé ou n'a pas pu être joint. Vérifiez que l'identifiant de la connexion a le droit d'effectuer la modification, et utilisez **Tester la connexion** dans sa ligne.
+:::
+
+:::details Une étape de confinement a été sautée
+Le dossier ne porte sur aucun utilisateur ni aucun hôte, seulement sur une adresse par exemple, ou chaque utilisateur ou hôte sur lequel il porte est protégé. Ouvrez l'exécution sur le dossier : l'étape indique la raison.
 :::
 
 ## Étapes suivantes

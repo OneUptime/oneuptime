@@ -45,6 +45,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Playbooks** | Playbooks | Des étapes qui s'exécutent sur les dossiers, d'elles-mêmes ou à la main |
 | **En attente d'approbation** | Playbooks | Les étapes de playbook qui attendent que quelqu'un les approuve ou les rejette |
 | **Exécutions de playbooks** | Playbooks | Ce que chaque playbook a fait, étape par étape |
+| **Protected Entities** | Playbooks | Les utilisateurs et les hôtes qu'aucun playbook ne confine |
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
 
@@ -134,6 +135,12 @@ Un événement générique est lu d'après des noms de champs courants :
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Un mot de gravité devient un niveau OCSF : `info` se lit Informational, `warning` Low, `error` Medium, `alert` Critical et `emergency` Fatal.
 
@@ -178,7 +185,7 @@ La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous
 | AWS Security Hub | Findings, comme Detection et Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Événements de connexion, de MFA, de compte et de stratégie | [Okta System Log](/docs/integrations/okta) |
 
-- Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**High and above** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
+- Les alertes propres au produit d'un niveau égal ou supérieur à **Open Cases From** (**Élevé et au-dessus** sauf si vous choisissez un autre niveau, ou **Jamais**) ouvrent des [dossiers](/docs/telemetry/security-cases), regroupées selon l'utilisateur, l'hôte ou l'adresse qu'elles concernent.
 - Une connexion lit les enregistrements selon le moment où le produit les a créés, pas selon le moment de l'activité qu'ils décrivent. Une règle SIEM qui s'exécute toutes les heures crée des détections bien après les événements correspondants, et elles sont tout de même importées.
 - La première interrogation remonte 24 heures en arrière, donc une nouvelle connexion montre tout de suite des enregistrements récents.
 - **Tester la connexion**, dans la ligne de la connexion, vérifie l'accès au produit et que les workers de OneUptime tournent, sans rien importer. **Run now** interroge immédiatement.
@@ -193,6 +200,7 @@ Chaque événement est stocké avec des champs typés et son payload source :
 | Gravité | `severityName`, l'une des valeurs Unknown, Informational, Low, Medium, High, Critical, Fatal ou Other, et `severityId` |
 | Qui l'a fait | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Ce qui a été touché | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Le processus | `processName`, `processPath` et `processCommandLine` : au lancement d'un processus, le processus lancé, sinon le processus qui a agi. `parentProcessName`, `parentProcessPath` et `parentProcessCommandLine` : le processus qui l'a lancé |
 | Source | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Contenu | `message`, `mitreTactics`, `mitreTechniques` et `observables` : chaque utilisateur, hôte, adresse IP, domaine et hash extrait de l'événement |
 | Attributs | Tout le payload source, aplati en clés à points |
@@ -217,11 +225,11 @@ La barre de recherche parle le même langage que les autres explorateurs de tél
 | `@<attribute>:*` | L'attribut est présent | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | L'attribut contient le texte | `@finding_info.title:~ransom` |
 
-Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
+Un champ est soit un nom court (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`), soit le nom propre du champ, comme `severityName` ou `principalHost`. Tout autre nom est lu comme un attribut de la source. `observable:<value>` trouve chaque événement qui mentionne une valeur, de quelque côté de l'activité qu'elle se trouve.
 
 ### Facettes
 
-La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source** et **Hôte source**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
+La barre latérale compte les événements de la fenêtre par **Source**, **Gravité**, **Classe d'événements**, **Catégorie**, **Activité**, **Statut**, **Fournisseur**, **Produit**, **Règle de détection**, **Utilisateur source**, **Hôte source**, **Processus** et **Processus parent**. Cliquez sur une valeur pour ne garder que ses événements, ou sur le signe moins à côté pour les exclure. Cliquez à nouveau pour annuler. Le graphique et chaque comptage décrivent exactement les événements de la liste.
 
 ### Corréler
 
@@ -277,6 +285,7 @@ OneUptime exécute le noyau booléen de Sigma :
 - Les conditions combinent des sélections avec `and`, `or`, `not` et des parenthèses, ou avec `1 of selection_*`, `all of selection_*`, `any of them` et `all of them`.
 - Modificateurs de champ : `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` et `windash`. Le texte est comparé sans tenir compte de la casse, sauf si vous ajoutez `cased`.
 - Un champ est un champ typé (`principalUser`), une graphie Sigma courante de l'un d'eux (`CommandLine`, `src_ip`, `Hostname`) ou n'importe quelle clé d'attribut, écrite comme dans l'événement (`threat.matched`).
+- `Image` et `CommandLine` lisent le processus dont parle l'événement, celui qui a été lancé lors d'un lancement de processus (`processPath`, `processCommandLine`), et `ParentImage` et `ParentCommandLine` le processus qui l'a lancé (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` est le processus qui a agi, c'est-à-dire le parent lors d'un lancement.
 - `level` fixe la gravité : `informational`, `low`, `medium`, `high` ou `critical`, et `medium` s'il manque. Les ID ATT&CK dans `tags` (`attack.t1110`, `attack.ta0006`) remplissent les champs MITRE du constat.
 
 Les agrégations comme `| count() by principalIp > 5` sont refusées à l'enregistrement : utilisez plutôt **Champ de regroupement** et **Seuil de nombre de correspondances**. `logsource` est purement informatif et ne restreint rien : placez ce filtre dans une sélection, comme `className: Authentication`. Un `timeframe` est ignoré, car l'intervalle de la règle fixe sa fenêtre.
@@ -307,7 +316,7 @@ OneUptime vérifie chaque minute quelles règles activées ont dépassé leur in
 - Les fenêtres se suivent bout à bout, elles ne glissent pas. Avec un intervalle de 10 minutes, des échecs à 09:58 et à 10:01 peuvent tomber dans des exécutions différentes et sont comptés séparément, donc gardez une marge en choisissant un seuil.
 - Après une interruption, comme une panne du worker ou une règle réactivée, l'exécution suivante couvre toute l'interruption, jusqu'aux 24 dernières heures.
 - Un événement qui arrive avec plus de deux minutes de retard, une fois qu'une exécution a couvert son heure, est stocké et consultable, mais cette règle ne le lit jamais.
-- Au plus 100 groupes se déclenchent par exécution : ceux aux comptages les plus élevés.
+- Chaque groupe qui atteint le seuil devient un Detection Finding, jusqu'à 10 000 par exécution. Des alertes, des incidents et des dossiers s'ouvrent pour les 100 aux comptages les plus élevés ; les autres partagent un dossier sur la règle, et la **Dernière erreur** de la règle indique combien de groupes ont correspondu.
 
 ### Gravité
 

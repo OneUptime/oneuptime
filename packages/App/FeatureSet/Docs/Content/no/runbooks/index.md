@@ -36,7 +36,7 @@ flowchart TB
 
 Hver gang et runbook kjøres, opprettes en **kjøring**. Når den starter, kopieres runbookets trinn over på den, og OneUptime går gjennom dem i rekkefølge. Et Manual-trinn, eller et trinn som krever godkjenning, setter kjøringen på pause til noen handler.
 
-HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og kubectl-trinn kjører på en [Runner](/docs/runbooks/agents) som du installerer i din egen infrastruktur, slik at disse skriptene aldri kjører på OneUptimes servere. Et JavaScript-trinn kjører også på en av dine Runnere eller, hvis det ikke velger noen, på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse som bare når internett. Hvert trinns status, output og feilmelding registreres på kjøringen, som blir liggende på hendelsen, varselet eller begivenheten den kjørte for.
+HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og kubectl-trinn kjører på en [Runner](/docs/runbooks/agents) som du installerer i din egen infrastruktur, slik at disse skriptene aldri kjører på OneUptimes servere. Et JavaScript-trinn kjører også på en av dine Runnere eller, hvis det ikke velger noen og prosjektet ikke har noen [standard-Runner](/docs/runbooks/agents#prosjektets-standard-runner), på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse som bare når internett. Hvert trinns status, output og feilmelding registreres på kjøringen, som blir liggende på hendelsen, varselet eller begivenheten den kjørte for.
 
 ## Sentrale begreper
 
@@ -47,7 +47,7 @@ HTTP- og AI-trinn kjører på OneUptime Worker. Bash-, SSH- og kubectl-trinn kj�
 | **Runbook-regel** | En regel som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagte vedlikeholdshendelser som oppfyller betingelsene: monitorene deres, alvorlighetsgrad, etiketter, monitoretiketter, tittel eller beskrivelse. |
 | **Kjøring** | Én kjøring av et runbook. Opprettes når en regel utløses, når noen klikker **Kjør runbook** på en begivenhet, eller når noen klikker **Run Now** på selve runbooket. Den inneholder et øyeblikksbilde av trinnene og hvert trinns status og output. |
 | **Øyeblikksbilde** | Den frosne kopien av runbookets trinn som ligger på hver kjøring. Du kan redigere runbooket senere uten å skrive om historikken for tidligere kjøringer. |
-| **Runner** | En liten agent som du kjører på en vert i din egen infrastruktur. Den kjører JavaScript-, Bash-, SSH- og kubectl-trinnene som peker på den. Kalles også en runbook-agent. En global Runner, en av dem OneUptime kjører for alle prosjekter, kjører JavaScript-trinnene som ikke nevner noen. |
+| **Runner** | En liten agent som du kjører på en vert i din egen infrastruktur. Den kjører JavaScript-, Bash-, SSH- og kubectl-trinnene som peker på den. Kalles også en runbook-agent. En global Runner, en av dem OneUptime kjører for alle prosjekter, kjører JavaScript-trinnene som ikke nevner noen, med mindre prosjektet har en standard-Runner. |
 | **Variabel** | En verdi som trinn bruker ved navn, for eksempel en vert eller en URL: `{{global.variables.NAME}}` for en av prosjektets, som hver runbook kan bruke, eller `{{local.variables.NAME}}` for en av runbookens egne. |
 | **Hemmelighet** | En variabel der verdien er kryptert i hvile, aldri vises igjen og skjules i det trinnene skriver ut, for eksempel en SSH-nøkkel, et passord, en kubeconfig eller et API-token. Bare utlevert til Runnerne du lar bruke den; globale Runnere får den bare hvis du lar dem. |
 
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 En monitor åpner hendelsen `INC-4821 · db-primary connection timeout`. Regelen treffer, og en kjøring starter:
 
-- Trinn 1 (JavaScript) kjører på Runneren du valgte for det. Returverdien, for eksempel `{ lagMs: 412 }`, registreres. Et trinn som ikke velger noen Runner, kjører på en global Runner.
+- Trinn 1 (JavaScript) kjører på Runneren du valgte for det. Returverdien, for eksempel `{ lagMs: 412 }`, registreres. Et trinn som ikke velger noen Runner, kjører på prosjektets standard-Runner eller, hvis det ikke er angitt en, på en global Runner.
 - Trinn 2 (Manual) setter kjøringen på pause, og den viser **Venter på deg**. Den vakthavende sjekker dashbordet og klikker **Marker som ferdig**.
 - Trinn 3 (HTTP request) kjører, og svaret på `POST` registreres.
 - Trinn 4 (Manual) setter kjøringen på pause igjen til noen fullfører det.

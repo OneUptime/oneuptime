@@ -22,6 +22,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   // Whether the project uses them (Project.useGlobalRunners), for the description.
   projectUsesGlobalRunners: boolean;
+  /*
+   * Whether the project has a default Runner: steps that pick no Runner run
+   * on it, not on a global one - the description says so.
+   */
+  hasProjectDefaultRunner?: boolean | undefined;
 }
 
 export const GLOBAL_RUNNERS_TABLE_ID: string = "global-runners-table";
@@ -42,9 +47,11 @@ const GlobalRunnersTable: FunctionComponent<ComponentProps> = (
       showRefreshButton={true}
       cardProps={{
         title: GlobalRunnersCopy.globalCardTitle,
-        description: props.projectUsesGlobalRunners
-          ? GlobalRunnersCopy.globalCardDescription
-          : GlobalRunnersCopy.globalCardDescriptionWhenOff,
+        description: !props.projectUsesGlobalRunners
+          ? GlobalRunnersCopy.globalCardDescriptionWhenOff
+          : props.hasProjectDefaultRunner
+            ? GlobalRunnersCopy.globalCardDescriptionWithDefault
+            : GlobalRunnersCopy.globalCardDescription,
       }}
       fetchRequestOptions={{
         overrideRequestUrl: getGlobalRunnersUrl(),

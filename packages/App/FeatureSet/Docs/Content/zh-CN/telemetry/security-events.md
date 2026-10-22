@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | 在案例上自动或手动运行的步骤 |
 | **等待审批** | Playbooks | 等待有人批准或拒绝的剧本步骤 |
 | **剧本运行记录** | Playbooks | 每个剧本逐步做了什么 |
+| **Protected Entities** | Playbooks | 任何剧本都不会遏制的用户和主机 |
 | **Connections** | Connections | 您的日志、OneUptime 轮询的安全产品，以及它发送到的 SIEM |
 | **设置指南** | Connections | 发送事件的代码片段，已填好你的摄取密钥 |
 
@@ -134,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 表示严重程度的词会变成 OCSF 级别：`info` 读作 Informational，`warning` 读作 Low，`error` 读作 Medium，`alert` 读作 Critical，`emergency` 读作 Fatal。
 
@@ -178,7 +185,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Finding，作为 Detection Finding 和 Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | 登录、MFA、账户和策略事件 | [Okta System Log](/docs/integrations/okta) |
 
-- 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **High and above**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
+- 产品自身的警报，只要级别达到或高于 **Open Cases From**（默认为 **高及以上**，你也可以选择其他级别或 **从未**），就会打开 [案例](/docs/telemetry/security-cases)，并按它们涉及的用户、主机或地址分组。
 - 连接按产品创建记录的时间读取记录，而不是按记录所描述活动的时间。每小时运行一次的 SIEM 规则会在它匹配的事件之后很久才创建检测，这些检测仍然会被导入。
 - 第一次轮询会回溯 24 小时，所以新连接会立刻显示最近的记录。
 - 连接所在行中的 **测试连接** 会检查对产品的访问以及 OneUptime 自身的工作进程是否在运行，不会导入任何内容。**Run now** 会立即轮询。
@@ -193,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | 严重程度 | `severityName`，取值为 Unknown、Informational、Low、Medium、High、Critical、Fatal 或 Other 之一，以及 `severityId` |
 | 谁做的 | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 涉及了什么 | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| 进程 | `processName`、`processPath` 和 `processCommandLine`：在进程启动事件中是被启动的进程，其他事件中是执行操作的进程。`parentProcessName`、`parentProcessPath` 和 `parentProcessCommandLine`：启动它的进程 |
 | 来源 | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques` 和 `observables`：从事件中提取的每个用户、主机、IP 地址、域名和哈希 |
 | 属性 | 完整的来源负载，展平为以点分隔的键 |
@@ -217,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | 存在该属性 | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性包含该文本 | `@finding_info.title:~ransom` |
 
-字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
+字段要么是简称（`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`），要么是字段本身的名称，例如 `severityName` 或 `principalHost`。任何其他名称都会被读作来源属性。`observable:<value>` 会找出提到某个值的每个事件，无论该值出现在活动的哪一方。
 
 ### 分面
 
-侧栏按 **来源**、**严重程度**、**事件类别**、**Category**、**活动**、**状态**、**供应商**、**产品**、**Detection Rule**、**源用户** 和 **源主机** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
+侧栏按 **来源**、**严重程度**、**事件类别**、**Category**、**活动**、**状态**、**供应商**、**产品**、**Detection Rule**、**源用户**、**源主机**、**进程** 和 **父进程** 统计时间窗口内的事件。点击某个值只保留它的事件，点击旁边的减号则排除它们。再次点击即可撤销。图表和每个计数描述的正是列表中的事件。
 
 ### 关联分析
 
@@ -277,6 +285,7 @@ OneUptime 运行 Sigma 的布尔核心：
 - 条件用 `and`、`or`、`not` 和括号，或用 `1 of selection_*`、`all of selection_*`、`any of them` 和 `all of them` 组合选择项。
 - 字段修饰符：`contains`、`startswith`、`endswith`、`all`、`re`、`cased`、`gt`、`gte`、`lt`、`lte`、`cidr`、`exists` 和 `windash`。除非你加上 `cased`，否则文本比较不区分大小写。
 - 字段可以是类型化字段（`principalUser`）、它在 Sigma 中的常见写法（`CommandLine`、`src_ip`、`Hostname`），或任何属性键，按它在事件中的写法拼写（`threat.matched`）。
+- `Image` 和 `CommandLine` 读取事件所涉及的进程，在进程启动事件中即被启动的进程（`processPath`、`processCommandLine`），`ParentImage` 和 `ParentCommandLine` 读取启动它的进程（`parentProcessPath`、`parentProcessCommandLine`）。`principalProcess` 是执行操作的进程，在进程启动中即父进程。
 - `level` 设置严重程度：`informational`、`low`、`medium`、`high` 或 `critical`，缺省时为 `medium`。`tags` 中的 ATT&CK ID（`attack.t1110`、`attack.ta0006`）会填入检测结果的 MITRE 字段。
 
 像 `| count() by principalIp > 5` 这样的聚合会在保存时被拒绝：请改用 **Group By Field** 和 **Match Count Threshold** 。`logsource` 只起说明作用，不会缩小任何范围：请把这种过滤放进选择项，例如 `className: Authentication`。`timeframe` 会被忽略，因为规则的间隔决定了它的时间窗口。
@@ -307,7 +316,7 @@ OneUptime 每分钟检查一次已启用、且自上次运行以来已过了间�
 - 时间窗口首尾相接，不会滚动。间隔为 10 分钟时，09:58 和 10:01 的失败可能落在不同的运行中、被分开计数，所以选择阈值时请留出余量。
 - 出现空档之后，例如工作进程中断或规则被重新打开，下一次运行会覆盖整个空档，最多覆盖最近 24 小时。
 - 在某次运行已经覆盖其时间之后、迟到超过两分钟的事件，会被存储并可以搜索，但那条规则永远不会读取它。
-- 每次运行最多触发 100 个分组：计数最高的那些。
+- 每个达到阈值的分组都会成为一个 Detection Finding，每次运行最多 10,000 个。警报、事件和案例只为计数最高的 100 个分组打开；其余分组共用一个关于该规则的案例，规则的 **最近错误** 会说明有多少分组匹配。
 
 ### 严重程度
 

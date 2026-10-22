@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Шаги, которые выполняются для кейсов сами или вручную |
 | **Ожидает одобрения** | Playbooks | Шаги плейбуков, которые ждут, пока кто-то их одобрит или отклонит |
 | **Запуски плейбуков** | Playbooks | Что сделал каждый плейбук, шаг за шагом |
+| **Protected Entities** | Playbooks | Пользователи и хосты, к которым ни один плейбук не применяет сдерживание |
 | **Connections** | Connections | Ваши логи, продукты безопасности, которые опрашивает OneUptime, и SIEM, в которые он отправляет |
 | **Руководство по настройке** | Connections | Фрагменты кода для отправки событий с уже подставленным ключом приёма |
 
@@ -134,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Слово серьёзности становится уровнем OCSF: `info` читается как Informational, `warning` как Low, `error` как Medium, `alert` как Critical, а `emergency` как Fatal.
 
@@ -178,7 +185,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Findings, как Detection и Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | События входа, MFA, учётных записей и политик | [Okta System Log](/docs/integrations/okta) |
 
-- Собственные оповещения продукта с уровнем не ниже **Open Cases From** (**High and above**, если вы не выберете другой уровень или **Никогда**) открывают [кейсы](/docs/telemetry/security-cases), сгруппированные по пользователю, хосту или адресу, к которым они относятся.
+- Собственные оповещения продукта с уровнем не ниже **Open Cases From** (**Высокий и выше**, если вы не выберете другой уровень или **Никогда**) открывают [кейсы](/docs/telemetry/security-cases), сгруппированные по пользователю, хосту или адресу, к которым они относятся.
 - Подключение читает записи по времени, когда продукт их создал, а не по времени описываемой ими активности. Правило SIEM, которое выполняется раз в час, создаёт обнаружения намного позже совпавших событий, и они всё равно импортируются.
 - Первый опрос заглядывает на 24 часа назад, поэтому новое подключение сразу показывает недавние записи.
 - **Проверить подключение** в строке подключения проверяет доступ к продукту и работу собственных воркеров OneUptime и ничего не импортирует. **Run now** выполняет опрос немедленно.
@@ -193,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | Серьёзность | `severityName`, одно из значений Unknown, Informational, Low, Medium, High, Critical, Fatal или Other, и `severityId` |
 | Кто это сделал | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Что было затронуто | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Процесс | `processName`, `processPath` и `processCommandLine`: при запуске процесса — запущенный процесс, иначе — процесс, который действовал. `parentProcessName`, `parentProcessPath` и `parentProcessCommandLine`: процесс, который его запустил |
 | Источник | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Содержимое | `message`, `mitreTactics`, `mitreTechniques` и `observables`: каждый пользователь, хост, IP-адрес, домен и хеш, извлечённые из события |
 | Атрибуты | Все исходные данные источника, развёрнутые в ключи с точками |
@@ -217,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | Атрибут присутствует | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Атрибут содержит текст | `@finding_info.title:~ransom` |
 
-Поле — это либо краткое имя (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`), либо собственное имя поля, например `severityName` или `principalHost`. Любое другое имя читается как атрибут источника. `observable:<value>` находит каждое событие, где упоминается значение, на какой бы стороне активности оно ни было.
+Поле — это либо краткое имя (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`), либо собственное имя поля, например `severityName` или `principalHost`. Любое другое имя читается как атрибут источника. `observable:<value>` находит каждое событие, где упоминается значение, на какой бы стороне активности оно ни было.
 
 ### Фасеты
 
-Боковая панель подсчитывает события окна по полям **Источник**, **Серьёзность**, **Класс событий**, **Category**, **Активность**, **Статус**, **Поставщик**, **Продукт**, **Detection Rule**, **Пользователь-источник** и **Хост-источник**. Нажмите на значение, чтобы оставить только его события, или на минус рядом, чтобы исключить их. Нажмите ещё раз, чтобы отменить. График и каждый подсчёт описывают ровно события из списка.
+Боковая панель подсчитывает события окна по полям **Источник**, **Серьёзность**, **Класс событий**, **Category**, **Активность**, **Статус**, **Поставщик**, **Продукт**, **Detection Rule**, **Пользователь-источник**, **Хост-источник**, **Процесс** и **Родительский процесс**. Нажмите на значение, чтобы оставить только его события, или на минус рядом, чтобы исключить их. Нажмите ещё раз, чтобы отменить. График и каждый подсчёт описывают ровно события из списка.
 
 ### Корреляция
 
@@ -277,6 +285,7 @@ OneUptime выполняет булево ядро Sigma:
 - Условия объединяют выборки через `and`, `or`, `not` и скобки или через `1 of selection_*`, `all of selection_*`, `any of them` и `all of them`.
 - Модификаторы полей: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` и `windash`. Текст сравнивается без учёта регистра, если вы не добавите `cased`.
 - Поле — это типизированное поле (`principalUser`), распространённое написание такого поля в Sigma (`CommandLine`, `src_ip`, `Hostname`) или любой ключ атрибута в том виде, в каком он записан в событии (`threat.matched`).
+- `Image` и `CommandLine` читают процесс, о котором событие: при запуске процесса — запущенный процесс (`processPath`, `processCommandLine`), а `ParentImage` и `ParentCommandLine` — процесс, который его запустил (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` — это процесс, который действовал, то есть при запуске — родительский.
 - `level` задаёт серьёзность: `informational`, `low`, `medium`, `high` или `critical`, а при отсутствии — `medium`. ID ATT&CK в `tags` (`attack.t1110`, `attack.ta0006`) заполняют поля MITRE находки.
 
 Агрегации вроде `| count() by principalIp > 5` отклоняются при сохранении: используйте вместо них **Group By Field** и **Match Count Threshold**. `logsource` носит только информационный характер и ничего не сужает: поместите такой фильтр в выборку, например `className: Authentication`. `timeframe` игнорируется, потому что окно задаёт интервал правила.
@@ -307,7 +316,7 @@ Group By и Distinct Count принимают те же имена полей, �
 - Окна идут встык и не скользят. При интервале 10 минут ошибки в 09:58 и 10:01 могут попасть в разные запуски и считаться отдельно, поэтому оставляйте запас при выборе порога.
 - После перерыва, например сбоя воркера или повторного включения правила, следующий запуск покрывает весь перерыв, но не больше последних 24 часов.
 - Событие, пришедшее с опозданием больше чем на две минуты, когда запуск уже охватил его время, сохраняется и доступно для поиска, но это правило его никогда не прочитает.
-- За один запуск срабатывает не более 100 групп: с наибольшими подсчётами.
+- Каждая группа, достигшая порога, становится Detection Finding, до 10 000 за запуск. Оповещения, инциденты и кейсы открываются для 100 групп с наибольшими подсчётами; остальные делят один кейс о правиле, а **Последняя ошибка** правила говорит, сколько групп совпало.
 
 ### Серьёзность
 

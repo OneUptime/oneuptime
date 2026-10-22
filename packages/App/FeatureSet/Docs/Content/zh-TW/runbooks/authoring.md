@@ -12,7 +12,7 @@
 ## 開始之前
 
 - **能撰寫 Runbook 的角色。** Project Owner、Project Admin 和 Runbook Admin 可以建立 Runbook 並儲存其步驟。使用細部權限時，您需要 **Create Runbook** 和 **Edit Runbook** 。請參閱 [權限](/docs/runbooks/configuration#權限)。
-- **用於 Bash、SSH 和 kubectl 步驟的 Runner。** 這些步驟在您自己基礎架構中的 [Runner](/docs/runbooks/agents) 上執行，絕不在 OneUptime Worker 上執行。請先安裝一個。除非您選擇自己的某個 Runner，否則 JavaScript 步驟會在 [全域 Runner](/docs/runbooks/agents#全域-runner) 上執行。
+- **用於 Bash、SSH 和 kubectl 步驟的 Runner。** 這些步驟在您自己基礎架構中的 [Runner](/docs/runbooks/agents) 上執行，絕不在 OneUptime Worker 上執行。請先安裝一個。未選擇 Runner 的步驟會在您設定的 [專案預設 Runner](/docs/runbooks/agents#專案預設-runner) 上執行；如果沒有設定，JavaScript 步驟會在 [全域 Runner](/docs/runbooks/agents#全域-runner) 上執行。
 - **用於 SSH 和 kubectl 步驟的機密變數。** 步驟登入所用的金鑰、密碼或 kubeconfig 是一個機密 [Runbook 變數](/docs/runbooks/variables)。變數由 Project Owner 和 Project Admin 建立，Runbook Admin 在自己撰寫的步驟中選擇它們。kubectl 步驟也可以改用 Runner 自身的存取權限。
 - **用於 AI 步驟的 LLM 提供者。** 請參閱 [LLM 提供者](/docs/ai/llm-provider)。
 
@@ -64,7 +64,7 @@
 | [kubectl](#kubectl) | Runner | 一個 Runner，以及一個 kubeconfig 變數或 Runner 自身的存取權限 |
 | [AI](#ai) | OneUptime Worker | 一個 LLM 提供者 |
 
-在下面的每個自動步驟中，步驟的 **更多欄位** 先放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠和金鑰複雜密碼、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。
+在下面的每個自動步驟中，步驟的 **更多欄位** 先放步驟的 **Runner** （對於在 Runner 上執行的步驟），再放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠和金鑰複雜密碼、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。摺疊時，它會顯示步驟的 Runner，這樣不必開啟就能看到步驟在哪裡執行。
 
 ### Manual
 
@@ -78,7 +78,7 @@
 
 | 欄位 | 作用 | 預設值 |
 | --- | --- | --- |
-| **Runner** | 執行此步驟的 Runner： **全域 Runner** ，或您自己的某個 Runner。只有您選擇的 Runner 可以認領該工作；任何全域 Runner 都可以認領選擇 **全域 Runner** 的步驟。 | **全域 Runner** （如果有） |
+| **Runner** | 位於 **更多欄位** 中。執行此步驟的 Runner： **全域 Runner** ，或您自己的某個 Runner。只有您選擇的 Runner 可以認領該工作；任何全域 Runner 都可以認領選擇 **全域 Runner** 的步驟。 | 您設定的 [專案預設 Runner](/docs/runbooks/agents#專案預設-runner) ；否則為 **全域 Runner** （如果有） |
 | **Script** | 要執行的 JavaScript。用 `return` 傳回一個值即可記錄它；`console.log` 的每一行也會被記錄。擲回的錯誤會使步驟失敗。 | — |
 | **執行逾時** | Runner 在拆除沙箱之前允許程式碼執行的時間。 全域 Runner 最多讓它執行 5 分鐘。 | 30 秒 |
 | **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
@@ -117,7 +117,7 @@ return { durationMs: Date.now() - start };
 
 | 欄位 | 作用 | 預設值 |
 | --- | --- | --- |
-| **Runner** | 執行此步驟的 Runner。只有這個 Runner 可以認領該工作。 | — |
+| **Runner** | 位於 **更多欄位** 中。執行此步驟的 Runner。只有這個 Runner 可以認領該工作。全域 Runner 只執行 JavaScript 步驟。 | 您設定的專案預設 Runner |
 | **Bash 指令碼** | 指令碼。輸出（stdout 和 stderr）最多記錄 50 KB，非零的結束代碼會使步驟失敗。 | — |
 | **執行逾時** | Runner 在以 `SIGKILL` 終止指令碼之前允許它執行的時間。若步驟確實需要幾分鐘，請調高此值。 | 30 秒 |
 | **領取逾時** | Worker 等待 Runner 認領工作的時間。 | 2 分鐘 |
@@ -146,7 +146,7 @@ fi
 
 | 欄位 | 作用 |
 | --- | --- |
-| **Runner** | 開啟連線的 Runner。它必須能透過網路連到該機器。 |
+| **Runner** | 位於 **更多欄位** 中。開啟連線的 Runner。它必須能透過網路連到該機器。未選擇 Runner 的步驟在專案預設 Runner 上執行。 |
 | **SSH 目標** | 使用者和機器，寫法與在 `ssh` 之後相同：`deploy@10.0.4.21`。 |
 | **登入方式** | 保存私密金鑰或密碼的機密變數；值本身表明是哪一種。只提供機密變數；當步驟的 Runner 不能使用所選變數時，步驟會提示。 |
 | **Bash 指令碼** | 以登入的使用者身分在機器上用 `bash` 執行。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
@@ -168,7 +168,7 @@ systemctl status nginx --no-pager
 
 | 欄位 | 作用 |
 | --- | --- |
-| **Runner** | 執行 kubectl 的 Runner。它必須能連到叢集的 API 伺服器。 |
+| **Runner** | 位於 **更多欄位** 中。執行 kubectl 的 Runner。它必須能連到叢集的 API 伺服器。未選擇 Runner 的步驟在專案預設 Runner 上執行。 |
 | **Kubeconfig** | 保存叢集 kubeconfig 的機密變數，或 **Runner 自身的存取權限** ：使用 Runner 自己的 kubeconfig，或在叢集內執行時使用其服務帳戶。Runner 會把 kubeconfig 寫入只有它能讀取的檔案，並在指令碼結束時刪除。 |
 | **Script** | kubectl 指令。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
 | **執行逾時** | Runner 在用 `SIGKILL` 停止指令碼之前允許它執行的時長。預設 30 秒。 |
@@ -190,7 +190,7 @@ kubectl rollout status deployment/checkout-api --namespace checkout --timeout=12
 | 欄位 | 作用 |
 | --- | --- |
 | **Prompt** | 希望 AI 做什麼。例如：「檢視前面步驟的輸出，判斷繼續進行修復是否安全。」 |
-| **LLM provider** | 選用。 **Project default** 使用專案的預設提供者。當步驟需要特定模型時（例如處理不能離開您網路之資料的自行託管模型），請固定一個提供者。請參閱 [LLM 提供者](/docs/ai/llm-provider)。 |
+| **LLM provider** | 選用。 **專案預設** 使用專案的預設提供者。當步驟需要特定模型時（例如處理不能離開您網路之資料的自行託管模型），請固定一個提供者。請參閱 [LLM 提供者](/docs/ai/llm-provider)。 |
 | **Include previous step context** | 開啟後，AI 會看到此步驟之前執行過的所有步驟：標題、類型、狀態、輸出和錯誤訊息。每個步驟的輸出最多提供 4,000 個字元。 |
 | **Include trigger context** | 開啟後，AI 會看到啟動這次執行的內容：關聯的事件、警示或排定維護事件（描述、嚴重性、目前狀態、受影響的監測器、根本原因、狀態時間軸和公開備註），或手動執行 Runbook 的人。 |
 

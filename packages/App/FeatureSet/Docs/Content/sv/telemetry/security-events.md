@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | Steg som körs på ärenden, av sig själva eller manuellt |
 | **Väntar på godkännande** | Playbooks | Playbook-stegen som väntar på att någon godkänner eller avvisar dem |
 | **Playbook-körningar** | Playbooks | Vad varje playbook gjorde, steg för steg |
+| **Protected Entities** | Playbooks | De användare och värdar som ingen playbook begränsar |
 | **Connections** | Connections | Dina loggar, säkerhetsprodukterna som OneUptime hämtar från och de SIEM som det skickar till |
 | **Installationsguide** | Connections | Kodsnuttar för att skicka händelser, ifyllda med din ingestion-nyckel |
 
@@ -134,6 +135,12 @@ En generisk händelse läses utifrån vanliga fältnamn:
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 Ett ord för allvarlighetsgrad blir en OCSF-nivå: `info` läses som Informational, `warning` som Low, `error` som Medium, `alert` som Critical och `emergency` som Fatal.
 
@@ -178,7 +185,7 @@ Kortet **Dina loggar**, högst upp på **Connections**, gör loggarna du redan s
 | AWS Security Hub | Findings, som Detection och Compliance Findings | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | Händelser för inloggning, MFA, konton och policyer | [Okta System Log](/docs/integrations/okta) |
 
-- Produktens egna larm på eller över **Open Cases From** (**High and above** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
+- Produktens egna larm på eller över **Open Cases From** (**Hög och högre** om du inte väljer en annan nivå, eller **Aldrig**) öppnar [ärenden](/docs/telemetry/security-cases), grupperade efter användaren, värden eller adressen som de handlar om.
 - En anslutning läser poster efter tiden då produkten skapade dem, inte efter tiden för aktiviteten de beskriver. En SIEM-regel som körs varje timme skapar detektioner långt efter händelserna den träffade, och de importeras ändå.
 - Den första hämtningen tittar 24 timmar bakåt, så en ny anslutning visar nya poster direkt.
 - **Testa anslutningen**, i anslutningens rad, kontrollerar åtkomsten till produkten och att OneUptimes egna workers körs, och importerar ingenting. **Run now** hämtar direkt.
@@ -193,6 +200,7 @@ Varje händelse lagras med typade fält och källans nyttolast:
 | Allvarlighetsgrad | `severityName`, en av Unknown, Informational, Low, Medium, High, Critical, Fatal eller Other, och `severityId` |
 | Vem som gjorde det | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | Vad det berörde | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| Processen | `processName`, `processPath` och `processCommandLine`: vid en processtart den process som startade, annars den process som agerade. `parentProcessName`, `parentProcessPath` och `parentProcessCommandLine`: den process som startade den |
 | Källa | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | Innehåll | `message`, `mitreTactics`, `mitreTechniques` och `observables`: varje användare, värd, IP-adress, domän och hash som hämtats från händelsen |
 | Attribut | Hela källans nyttolast, utplattad till nycklar med punkter |
@@ -217,11 +225,11 @@ Sökfältet talar samma språk som de andra telemetriutforskarna (se [Söksyntax
 | `@<attribute>:*` | Attributet finns | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | Attributet innehåller texten | `@finding_info.title:~ransom` |
 
-Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
+Ett fält är antingen ett kort namn (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) eller fältets eget namn, till exempel `severityName` eller `principalHost`. Alla andra namn läses som ett källattribut. `observable:<value>` hittar varje händelse som nämner ett värde, oavsett på vilken sida av aktiviteten det fanns.
 
 ### Facetter
 
-Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare** och **Källvärd**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
+Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad**, **Händelseklass**, **Category**, **Aktivitet**, **Status**, **Leverantör**, **Produkt**, **Detection Rule**, **Källanvändare**, **Källvärd**, **Process** och **Överordnad process**. Klicka på ett värde för att bara behålla dess händelser, eller på minustecknet bredvid för att utesluta dem. Klicka igen för att ångra. Diagrammet och varje räkning beskriver exakt händelserna i listan.
 
 ### Korrelera
 
@@ -277,6 +285,7 @@ OneUptime kör den booleska kärnan i Sigma:
 - Villkor kombinerar urval med `and`, `or`, `not` och parenteser, eller med `1 of selection_*`, `all of selection_*`, `any of them` och `all of them`.
 - Fältmodifierare: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` och `windash`. Text jämförs utan hänsyn till versaler och gemener, om du inte lägger till `cased`.
 - Ett fält är ett typat fält (`principalUser`), en vanlig Sigma-stavning av ett (`CommandLine`, `src_ip`, `Hostname`) eller vilken attributnyckel som helst, stavad som i händelsen (`threat.matched`).
+- `Image` och `CommandLine` läser den process som händelsen handlar om, vid en processtart den som startade (`processPath`, `processCommandLine`), och `ParentImage` och `ParentCommandLine` den process som startade den (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` är den process som agerade, vilket vid en start är den överordnade.
 - `level` anger allvarlighetsgraden: `informational`, `low`, `medium`, `high` eller `critical`, och `medium` när den saknas. ATT&CK-ID:n i `tags` (`attack.t1110`, `attack.ta0006`) fyller i fyndets MITRE-fält.
 
 Aggregeringar som `| count() by principalIp > 5` avvisas när du sparar: använd **Group By Field** och **Match Count Threshold** i stället. `logsource` är bara informativ och begränsar ingenting: lägg det filtret i ett urval, till exempel `className: Authentication`. En `timeframe` ignoreras, eftersom regelns intervall bestämmer dess fönster.
@@ -307,7 +316,7 @@ OneUptime kontrollerar varje minut om det finns aktiverade regler vars intervall
 - Fönstren ligger efter varandra och glider inte. Med ett intervall på 10 minuter kan misslyckanden kl. 09:58 och 10:01 hamna i olika körningar och räknas var för sig, så lämna marginal när du väljer en tröskel.
 - Efter ett uppehåll, till exempel ett worker-avbrott eller en regel som slagits på igen, täcker nästa körning hela uppehållet, upp till de senaste 24 timmarna.
 - En händelse som kommer mer än två minuter för sent, efter att en körning redan har täckt dess tid, lagras och är sökbar, men den regeln läser den aldrig.
-- Högst 100 grupper löser ut per körning: de med högst räkning.
+- Varje grupp som når tröskeln blir ett Detection Finding, upp till 10 000 per körning. Larm, incidenter och ärenden öppnas för de 100 med högst räkning; resten delar ett ärende om regeln, och regelns **Senaste fel** säger hur många grupper som träffade.
 
 ### Allvarlighetsgrad
 

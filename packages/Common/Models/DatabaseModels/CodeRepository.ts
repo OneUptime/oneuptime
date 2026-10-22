@@ -476,7 +476,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Setup Command",
     description:
-      "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
+      "Optional. Leave it empty: the code agent learns how to set up, build and test the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root, in the cloned workspace, to install dependencies before the build and test commands check an AI-authored fix (e.g. 'npm ci').",
     example: "npm ci",
   })
   @Column({
@@ -519,7 +519,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Build Command",
     description:
-      "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
+      "Optional. Leave it empty: the code agent learns how to build the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root to check that an AI-authored fix builds (e.g. 'npm run build'); a failure is fed back to the code agent for bounded repair attempts before the pull request opens.",
     example: "npm run build",
   })
   @Column({
@@ -562,7 +562,7 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     title: "Test Command",
     description:
-      "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
+      "Optional. Leave it empty: the code agent learns how to test the repository from the repository itself (its AGENTS.md first) and checks its change that way. When set, a Runner of the project's own also runs it at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'); a failure is fed back to the code agent for bounded repair attempts before the pull request opens.",
     example: "npm test",
   })
   @Column({
@@ -574,8 +574,10 @@ export default class CodeRepository extends BaseModel {
 
   /*
    * The Runner AI works in this repository on (Types/Runner/
-   * CodeRepositoryRunner): it clones the repository, makes the change, runs
-   * the setup, build and test commands above and opens the pull request.
+   * CodeRepositoryRunner): it clones the repository, makes the change, builds
+   * and tests it the way the repository says to (its AGENTS.md first, and the
+   * setup, build and test commands above when an operator set them) and
+   * opens the pull request.
    * Only that Runner is handed the repository's AI work and a token for it.
    * Empty means a global Runner - the one OneUptime runs for every project -
    * while the project uses global Runners (Project.useGlobalRunners).
@@ -751,17 +753,28 @@ export default class CodeRepository extends BaseModel {
       Permission.EditCodeRepository,
     ],
   })
+  /*
+   * On for every repository unless someone turns it off. Nothing happens in
+   * a repository until a person with write access deliberately mentions the
+   * app, so the safe default and the useful one are the same. A null (a
+   * row from before the column had a default, or an API write of null)
+   * still means on: GitHubCommandAuthorizer.areCommandsEnabled reads
+   * `!== false`, and the Dashboard's switch reads the column's default.
+   */
   @TableColumn({
     required: false,
     type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: true,
     title: "Respond to GitHub Commands",
     description:
-      "Whether the OneUptime GitHub App acts on mentions, assignments and trigger labels in this repository. Only people with write access to the repository can command it, and it never merges anything. Unset means enabled.",
+      "Whether the OneUptime GitHub App acts on mentions, assignments and trigger labels in this repository. Only people with write access to the repository can command it, and it never merges anything. On by default.",
     example: true,
   })
   @Column({
     nullable: true,
     type: ColumnType.Boolean,
+    default: true,
   })
   public isGitHubCommandsEnabled?: boolean = undefined;
 

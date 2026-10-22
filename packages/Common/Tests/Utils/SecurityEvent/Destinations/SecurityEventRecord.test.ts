@@ -39,6 +39,12 @@ describe("readSecurityEventRecord", () => {
       principalHost: "",
       principalIp: "203.0.113.7",
       principalProcess: "",
+      processName: "cmd.exe",
+      processPath: "C:\\Windows\\System32\\cmd.exe",
+      processCommandLine: "cmd.exe /c whoami",
+      parentProcessName: "",
+      parentProcessPath: "",
+      parentProcessCommandLine: "",
       targetUser: "",
       targetHost: "web-03",
       targetIp: "",
@@ -56,6 +62,10 @@ describe("readSecurityEventRecord", () => {
     expect(record.targetPort).toBe(22);
     expect(record.mitreTactics).toEqual(["TA0006"]);
     expect(record.attributes).toEqual({ "a.b": "c", n: "5" });
+    expect(record.processName).toBe("cmd.exe");
+    expect(record.processPath).toBe("C:\\Windows\\System32\\cmd.exe");
+    expect(record.processCommandLine).toBe("cmd.exe /c whoami");
+    expect(record.parentProcessCommandLine).toBe("");
   });
 
   test("missing or broken values read as empty, never as a crash", () => {

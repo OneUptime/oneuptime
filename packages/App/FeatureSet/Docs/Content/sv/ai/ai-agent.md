@@ -20,7 +20,7 @@ Kod är där du ber OneUptime AI att arbeta i dina repositorier, så som du skul
 :::steps
 ### Öppna Kod
 
-Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)). **Arkiv** i sidomenyn listar de anslutna repositorierna, och varje repositoriums sida har samma ruta för det repositoriet.
+Öppna **Produkter → Kod**. Kod öppnas på **Vad ska AI göra?**: rutan där du ber om saker, med alla uppgifter under den, de senaste först. Finns det inget repositorium ännu erbjuder Kod i stället **Anslut GitHub** (se [Innan du börjar](#innan-du-börjar)). **Arkiv** i sidomenyn listar de repositorier som AI kan arbeta i, och samlar dem som GitHub App inte längre når under **Inte ansluten**. Varje repositoriums sida har samma ruta för det repositoriet.
 
 ### Välj repositoriet och branchen
 
@@ -89,7 +89,7 @@ flowchart TB
 3. Runnern hämtar uppgiftens kontext. För en begäran är det dess ord, kontexten som lades till och konversationen hittills; för ett undantag dess typ, dess meddelande och dess stack trace.
 4. Den klonar repositoriet till en egen arbetsyta och skapar en branch. En åtgärd av ett undantag heter `oneuptime-fix-exception-` följt av de första tecknen i körningens id. En begäran utgår från den branch som valdes när den ställdes, och dess pull request öppnas mot den. Ett svar arbetar i stället på branchen för uppgiftens öppna pull request.
 5. En kodagent, driven av ditt projekts LLM-leverantör, läser koden och skriver ändringen. OneUptime-servern gör LLM-anropen, så Runnern har aldrig din leverantörs API-nyckel, och varje anrop mäts och listas i AI-loggarna. En åtgärd av ett undantag, ett långsamt spår eller en incident läser också från produktionen medan den arbetar: undantagen, spåren, loggarna och mätvärdena för repositoriets tjänster (se [Produktionstelemetri i en åtgärd](#produktionstelemetri-i-en-åtgärd)).
-6. Om repositoriet har kontrollkommandon bygger och testar en egen Runner ändringen innan den committar något, och lämnar tillbaka ett fel till kodagenten att reparera (se [Kontroll före pull requesten](#kontroll-före-pull-requesten)).
+6. På en egen Runner bygger och testar kodagenten sin ändring så som repositoriets `AGENTS.md` säger innan något committas, och reparerar det som misslyckas (se [Kontroll före pull requesten](#kontroll-före-pull-requesten)).
 7. Runnern committar, pushar branchen, öppnar pull requesten (för en begäran bara när den ändrade kod) och tar bort arbetsytan.
 
 Sidan som uppgiften startades från visar dess status live. Varje uppgift listas i sitt repositorium under **Produkter → Kod**: dess sida är dess konversation, och varje turs **Logg** har en rad för varje fil som Runnern läste eller skrev och varje kommando den körde.
@@ -148,15 +148,18 @@ När ingen tjänst hör till repositoriet körs uppgiften utan produktionsteleme
 
 ## Kontroll före pull requesten
 
-Ett repositorium kan ha upp till tre kontrollkommandon på sin sida **Inställningar** i Kod:
+Ett repositorium beskriver hur det byggs och testas i en `AGENTS.md` i roten, filen som kodagenter läser. Innan kodagenten ändrar något läser den repositoriets `AGENTS.md` (eller dess `CLAUDE.md`, när det inte har någon `AGENTS.md`) från den branch som uppgiften utgår från, och arbetar så som den säger. Utan någon av dem tar den reda på det från repositoriets `CONTRIBUTING.md`, README, paketskript, `Makefile` eller CI-arbetsflöden. Det finns inget att ställa in i OneUptime.
 
-| Kommando | Exempel | När det körs |
-| --- | --- | --- |
-| **Setup Command** | `npm ci` | Först, för att installera beroenden. |
-| **Build Command** | `npm run build` | Efter setup. |
-| **Test Command** | `npm test` | Sist. |
+| Var AI arbetar | Vad den gör med repositoriets bygge och tester |
+| --- | --- |
+| En av dina Runners | Bygger och testar sin ändring innan pull requesten öppnas, rättar det som misslyckas och kontrollerar igen, och säger i sin sammanfattning vilka kontroller den körde. Varje kommando den kör får upp till 2 minuter, utan Runnerns egna inloggningsuppgifter i sin miljö. |
+| **Global Runner** | Kör inget kommando: den skriver ändringen och öppnar pull requesten, och ditt repositorys egen CI kontrollerar den. |
 
-När något av dem är satt kontrollerar varje åtgärdskörning sin ändring innan pull requesten öppnas:
+Inget från en pull request som kommer från en fork läses någonsin som repositoriets instruktioner: en revidering avvisar en sådan pull request, och en granskning läser basbranchen.
+
+### Kommandon som är satta på ett repositorium
+
+Kod frågar inte längre efter installations-, bygg- och testkommandon, men ett repositorium som har dem, satta tidigare eller via API:et eller Terraform, behåller dem. De visas skrivskyddade på kortet **Bygg- och testkommandon**, under **Fler inställningar** på repositoriets sida **Inställningar**, och **Ta bort kommandon** tar bort alla tre. Så länge något av dem är satt kontrollerar varje åtgärdskörning på en egen Runner också sin ändring med dem innan pull requesten öppnas:
 
 1. När kodagenten är klar körs kommandona i ordning i roten av repositoriet, på Runnern, i den klonade arbetsytan. Vart och ett får upp till 15 minuter och körs med `CI=true`, så att inget väntar på indata; det första felet stoppar omgången.
 2. Vid ett fel går slutet av det fallerande kommandots utdata tillbaka till samma kodagent som en reparationsuppgift, med instruktioner att rätta sin egen ändring i stället för att försvaga eller hoppa över tester, och kommandona körs igen. Den gör högst **2** reparationsförsök. De delar körningens LLM-budget, och deras ändringar hamnar i samma commit som åtgärden.
@@ -205,12 +208,12 @@ Du kopplar inte repositories till tjänster. När en uppgift startar hittar OneU
 
 ### Välj repositoryts Runner
 
-Varje repository väljer den Runner som AI arbetar i det på: klicka på **Redigera inställningar** på dess sida **Inställningar** i Kod och välj en i steget **Runner**. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
+Varje repository väljer den Runner som AI arbetar i det på: klicka på **Redigera** på kortet **Runner** på dess sida **Inställningar** i Kod och välj en. Ett repository som GitHub App importerar startar på projektets [standard-Runner](/docs/runbooks/agents#projektets-standard-runner) när projektet har en. Ett repository som inte väljer någon arbetar på **Global Runner**, som OneUptime kör för alla projekt.
 
 | Runner | Vad den gör med en uppgift |
 | --- | --- |
-| **Global Runner** | Skriver ändringen och öppnar pull requesten, utan dina installations-, bygg- och testkommandon: ditt repositorys egen CI kontrollerar ändringen. |
-| En av dina Runners | Kör också dina installations-, bygg- och testkommandon, på en värd som du kontrollerar. |
+| **Global Runner** | Skriver ändringen och öppnar pull requesten utan att bygga eller testa den: ditt repositorys egen CI kontrollerar ändringen. |
+| En av dina Runners | Bygger och testar också ändringen så som repositoriets `AGENTS.md` säger, på en värd som du kontrollerar. |
 
 Bara den Runner som ett repository väljer får dess uppgifter och en token för det. I ett projekt som stänger av **Använd globala Runners** under **Runbooks → Runbook-agenter** behöver varje repository en av projektets egna Runners. En Runners sida listar de repositoryn som väljer den.
 
@@ -233,7 +236,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### Välj den för repositoryt
 
-Klicka på **Redigera inställningar** på repositoryts sida **Inställningar** i Kod och välj Runnern i steget **Runner**. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
+Klicka på **Redigera** på kortet **Runner** på repositoryts sida **Inställningar** i Kod och välj Runnern. Runnern plockar upp ändringen vid nästa heartbeat, inom ungefär en minut; det finns inget att starta om.
 
 ### Kontrollera att den ansluter
 

@@ -5,6 +5,7 @@ Security Events gjør det deteksjonsreglene, trusseletterretningen og de tilkobl
 :::cards
 - [Hvor saker kommer fra](#hvor-saker-kommer-fra): Deteksjonsregler, trusseletterretning, tilkoblede produkter og personer.
 - [Behandle en sak](#behandle-en-sak): Tildel den, undersøk entitetene, og lukk den med en konklusjon.
+- [Varslinger](#varslinger): Hvem som får beskjed om en ny sak, en tildeling og et steg som venter på godkjenning.
 - [Playbooks](#playbooks): Steg som kjører på en sak, med godkjenning der det betyr noe.
 - [Oversikten](#oversikten): Det som trenger noen nå, og hvor raskt saker blir håndtert.
 :::
@@ -49,7 +50,7 @@ Hver av disse rettighetene kan også gis for seg, fra å opprette en sak til å 
 | Tilkoblede produkter | Et varsel fra selve produktet importeres på eller over tilkoblingens terskel | **Open Cases From** satt til **Aldri**, i tilkoblingens steg **Polling** |
 | Personer | Noen åpner en fra **Sikkerhetssaker**, eller med **Open Case** i panelet til en hendelse | Ingen |
 
-Alle kilder er på som standard. En tilkobling åpner saker for **High and above** med mindre du velger et annet nivå; varslene under det nivået importeres fortsatt som hendelser.
+Alle kilder er på som standard. En tilkobling åpner saker for **Høy og høyere** med mindre du velger et annet nivå; varslene under det nivået importeres fortsatt som hendelser.
 
 ### Slik grupperes deteksjoner
 
@@ -108,6 +109,51 @@ Konklusjonene telles på oversikten. En regel der sakene stadig lukkes som False
 
 **Erklær hendelse** åpner en OneUptime-hendelse (incident) for saken, med alvorlighetsgraden du velger, og kobler de to sammen begge veier: beskrivelsen av hendelsen nevner saken, og toppen av saken lenker til hendelsen. Vaktordningen, statussider og postmortem tar over derfra. Det krever en rolle som både kan behandle saker og opprette hendelser (incidents).
 
+## Varslinger
+
+OneUptime gir folk beskjed om tre ting på en sak. Ingen trenger å sette opp noe: et prosjekt som bare har klikket på **Slå på anbefalt**, får høre om sakene sine med prioritet High og Kritisk via e-post og push.
+
+| Varsling | Hvem som får beskjed | Som standard |
+| --- | --- | --- |
+| Ny sikkerhetssak | Alle som kan se prosjektets saker, når en sak åpnes eller stiger, på prioriteten de har valgt eller høyere | E-post og push, for saker med High og Kritisk |
+| Sikkerhetssak tildelt meg | Personen saken er tildelt, og medlemmene av teamet den er tildelt | E-post og push |
+| Playbook-trinn venter på min godkjenning | Personene på saken som kan godkjenne steget: personen den er tildelt, og medlemmene av teamet dens. Kan ingen av dem godkjenne, alle i prosjektet som kan | E-post og push |
+
+- Bare personer som kan se saken, får beskjed om den: Project Owners, Project Admins og rollene Security Admin, Security Member og Security Viewer. En rolle som er begrenset til noen etiketter, får bare beskjed om sakene med de etikettene.
+- Ingen får beskjed om det de selv gjorde: den som åpner en sak manuelt, tildeler den eller starter en kjøring, blir ikke varslet om det.
+- Hver person får høre om en sak én gang. En sak som åpnes på Medium og senere stiger til Kritisk, når ved stigningen fram til dem som valgte High eller Kritisk, og ikke på nytt til dem som valgte Medium, for de fikk høre om den da den ble åpnet.
+- Testangrepet fra **Send et testangrep** åpner en sak som ikke varsler noen.
+- En sak med Kritisk og et steg som venter på godkjenning, sendes med en gang og holdes aldri tilbake i en [e-postoppsummering](/docs/emails/notification-rollup).
+- Sakens **Tidslinje** viser hvem som fikk beskjed, og når.
+
+### Velg hva du får beskjed om
+
+Hver person velger selv, under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**: kanalene for hver varsling (e-post, SMS, anrop, push, Telegram, Slack, Microsoft Teams eller webhook), og under **Ny sikkerhetssak** prioriteten som varsler dem:
+
+| Valg | Varsler om saker med |
+| --- | --- |
+| Bare Kritisk | Kritisk |
+| Høy og Kritisk | High og Kritisk (standard) |
+| Middels og høyere | Kritisk, High og Medium |
+| Lav og høyere | Alle prioriteter unntatt Til orientering |
+| Alle saker | Alle prioriteter |
+
+Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner OneUptime-appen, og lenken i det åpner saken i nettleseren.
+
+### Legg ut i Slack- og Microsoft Teams-kanaler
+
+For å legge ut i en kanal legger du til en regel under **Produkter → Security Events → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+
+| Betingelse | Treffer på |
+| --- | --- |
+| Prioritet for sikkerhetssak | Kritisk, High, Medium, Low eller Til orientering |
+| Tittel på sikkerhetssak, Beskrivelse av sikkerhetssak | Tekst som tittelen eller beskrivelsen av saken inneholder, starter med eller slutter med |
+| Status for sikkerhetssak | Ny, Undersøker, Contained eller Lukket |
+| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product eller Manual |
+| Etiketter for sikkerhetssak | Etikettene på saken |
+
+De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **High**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
+
 ## Playbooks
 
 En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Security Events → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens.
@@ -144,16 +190,19 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Notify | Post to Microsoft Teams | Legger ut en oppsummering av saken i en Microsoft Teams-kanal |
 | Escalate | Page on-call | Kjører en vaktpolicy |
 | Escalate | Declare an incident | Åpner en OneUptime-hendelse (incident) som er koblet til saken |
-| Contain | Suspend the user in Okta | Suspenderer hver bruker i saken i Okta |
-| Contain | End the user's Okta sessions | Logger hver bruker i saken ut av Okta og tilbakekaller tokenene deres |
-| Contain | Contain the host in CrowdStrike | Isolerer hver vert i saken fra nettverket med CrowdStrike Falcon |
-| Contain | Isolate the device in Microsoft Defender | Isolerer hver vert i saken med Microsoft Defender for Endpoint |
+| Contain | Suspend the user in Okta | Suspenderer brukeren saken gjelder, i Okta |
+| Contain | End the user's Okta sessions | Logger brukeren saken gjelder, ut av Okta og tilbakekaller tokenene deres |
+| Contain | Contain the host in CrowdStrike | Isolerer verten saken gjelder, fra nettverket med CrowdStrike Falcon |
+| Contain | Isolate the device in Microsoft Defender | Isolerer verten saken gjelder, med Microsoft Defender for Endpoint |
+| Contain | Unsuspend the user in Okta | Opphever suspenderingen av brukeren saken gjelder, i Okta |
+| Contain | Lift containment in CrowdStrike | Opphever nettverksisoleringen i CrowdStrike Falcon for verten saken gjelder |
+| Contain | Release the device in Microsoft Defender | Frigir verten saken gjelder, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender saken som JSON til en URL |
 | Automate | Run a workflow | Starter en OneUptime-arbeidsflyt med saken som input |
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Needs Approval**: stoppe kjøringen før steget til noen godkjenner det på saken. Det er på som standard for de fire Contain-stegene, som handler utenfor OneUptime.
+- **Needs Approval**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av.
 - **Only If Threat Intel Matched**: hoppe over steget med mindre et tidligere steg **Check entities against threat intel** i kjøringen fant en kjent indikator.
 - **Carry On If It Fails**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
 
@@ -163,11 +212,28 @@ Contain-stegene handler gjennom en [tilkobling for sikkerhetshendelser](/docs/te
 
 | Steg | Tilkobling | Trenger |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Et API-token som har lov til å administrere brukere |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Et API-token som har lov til å administrere brukere |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | En API-klient med skrivetilgang til scopet Hosts |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | En app med tillatelsen Machine.Isolate |
 
-Et Contain-steg handler på høyst 10 av brukerne eller vertene i saken. Det finner hver av dem i produktet etter navn, og skriver på saken hva det gjorde med hver enkelt: inndemmet, allerede inndemmet, ikke funnet eller avvist.
+Et Contain-steg handler bare på brukerne eller vertene saken gjelder, aldri på alle som den nevner:
+
+- Verdien en deteksjon i saken er gruppert etter, for eksempel kontoen en regel for umulige reiser grupperer etter, eller verten som et varsel fra et tilkoblet produkt nevner.
+- En bruker eller vert i saken som trusseletterretningen din kjenner som en indikator.
+
+En sak som er gruppert etter en adresse, for eksempel et brute force-angrep mot VPN-en din, gjelder ingen av delene: Contain-stegene i den hoppes over, og den forsøkte kontoen og den rammede gatewayen får være i fred. Et steg handler på høyst 10 brukere eller verter. Det finner hver av dem i produktet etter navn, og skriver på kjøringen hva det gjorde med hver enkelt: utført, allerede utført, ikke funnet, avvist eller beskyttet.
+
+#### Beskyttede entiteter
+
+**Protected Entities**, under **Playbooks** i menyen, viser brukerne og vertene som ingen playbook demmer inn, for eksempel nødtilgangskontoer, domenekontrollere og VPN-gatewayer. En verdi treffer uten forskjell på store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` beskytter alle tjenestekontoer. Et steg melder en beskyttet bruker eller vert som beskyttet og lar den være i fred. Security Admins vedlikeholder listen.
+
+#### Godkjenning
+
+De fire stegene som stenger noen ute, venter på godkjenning. Bare en Security Admin kan slå av **Needs Approval** for ett av dem, og OneUptime registrerer hvem som gjorde det. Godkjenningen viser under **Act On** brukerne eller vertene steget ville handlet på, alle avkrysset: fjern krysset for dem det skal la være i fred. Beskyttede brukere og verter tilbys ikke. Den som startet en kjøring, kan ikke godkjenne stegene i den: det gjør noen andre, men vedkommende kan fortsatt avvise det.
+
+#### Angre
+
+Angrestegene handler på brukerne eller vertene saken gjelder, akkurat som stegene de angrer. Når kjøringen har stoppet, har en inndemmet bruker eller vert også en egen knapp på steget sitt: **Unsuspend**, **Lift Containment** eller **Frigi**. En avsluttet Okta-økt kan ikke angres. Alt som angres, lagres på tidslinjen til saken og i revisjonsloggen til prosjektet.
 
 ### Meldinger
 
@@ -199,7 +265,7 @@ Hver kjøring vises på saken sin og under **Produkter → Security Events → P
 | Mislyktes | Et steg feilet, og kjøringen stoppet |
 | Avbrutt | Noen avbrøt den eller avviste et steg |
 
-Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget og på tidslinjen til saken. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring.
+Et steg som venter på godkjenning, viser **Approve** og **Reject** på kjøringen, med en valgfri kommentar. Å godkjenne fører kjøringen videre fra det steget; å avvise avslutter den. Beslutningen, hvem som tok den, og kommentaren deres lagres på steget, på tidslinjen til saken og i revisjonsloggen til prosjektet. **Venter på godkjenning**, under **Playbooks** i menyen, viser kjøringene som venter på en beslutning, og teller dem; **Playbook-kjøringer** viser hver kjøring.
 
 En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart, plukkes opp igjen: en kjøring i kø settes i kø på nytt etter 2 minutter, og en kjøring som ikke har sagt noe på 30 minutter, markeres som mislykket.
 
@@ -223,7 +289,7 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 ## Automatiser
 
 - **Arbeidsflyter**: en sak eller et notat kan starte en arbeidsflyt når den opprettes, oppdateres eller slettes. Et steg **Run a workflow** starter en arbeidsflyt som har en webhook som utløser.
-- **API**: saker, notater, deteksjoner, playbooks og kjøringer har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` og `/security-playbook-run`. Se [API-referanse](/docs/api-reference/api-reference).
+- **API**: saker, notater, deteksjoner, playbooks, kjøringer og beskyttede entiteter har det samme REST-API-et som resten av OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` og `/security-protected-entity`. Se [API-referanse](/docs/api-reference/api-reference).
 - AI-agenter: MCP-serveren har verktøy for saker, notater, deteksjoner og playbooks. Se [MCP-server](/docs/ai/mcp-server).
 
 ## Feilsøking
@@ -232,12 +298,20 @@ Over dem viser en stripe hvordan sikkerhet er satt opp: kildene, deteksjonene, s
 Sjekk **Open a Case on Match** i regelens steg **Ved treff**. En deteksjon om en entitet som allerede har en åpen sak, legges til i den saken i stedet for å åpne en ny: se etter den under **Detections** på den åpne saken.
 :::
 
+:::details Ingen fikk beskjed om en sak
+Se på **Tidslinje** for saken, som viser hvem som ble varslet. En varsling om **Ny sikkerhetssak** går til personene som har valgt en prioritet saken når, så en sak med Medium varsler ingen som har beholdt standarden, **Høy og Kritisk**. Sjekk at personene som burde få beskjed, kan se sikkerhetssaker (en Security-rolle, Project Owner eller Project Admin), og at varslingen er slått på for dem under **Brukerinnstillinger → Varselinnstillinger → Sikkerhet**.
+:::
+
 :::details En playbook kjørte ikke
 Sjekk at den er aktivert, at innstillingen **Trigger** passer (Case Opened kjører én gang, når en sak åpnes), og at saken oppfyller innstillingene **For Cases At Least**, **Only For Detections From** og **Only For These Detection Rules**. En sak som er åpnet manuelt, har ingen deteksjon, så en playbook som er begrenset til en kilde eller til regler, kjører ikke på den.
 :::
 
 :::details Et Contain-steg mislyktes
 Åpne kjøringen på saken: steget forteller for hver bruker eller vert om produktet avviste den, ikke fant den eller ikke kunne nås. Sjekk at legitimasjonen til tilkoblingen har lov til å gjøre endringen, og bruk **Test tilkoblingen** i raden dens.
+:::
+
+:::details Et Contain-steg ble hoppet over
+Saken gjelder ingen bruker eller vert, bare en adresse for eksempel, eller alle brukerne eller vertene den gjelder, er beskyttet. Åpne kjøringen på saken: steget forteller hvilken av de to det er.
 :::
 
 ## Neste steg

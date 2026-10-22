@@ -572,6 +572,68 @@ export default class Runner extends BaseModel {
   })
   public isGlobalRunner?: boolean = undefined;
 
+  /*
+   * The project's default Runner: a runbook step that picks no Runner of
+   * its own runs on it, in place of the Global Runner (Types/Runner/
+   * RunnerChoice, the default order). One per project at most: making a
+   * Runner the default takes it from the project's other Runners, once the
+   * write succeeded (RunnerService, ProjectDefaultRow). Only a Runner that
+   * runs runbook steps may be it - never a global Runner, nor the
+   * in-cluster Runner the Kubernetes agent chart installed
+   * (Types/Runner/ProjectDefaultRunner). Off for every Runner until someone
+   * makes one the default, so no step moves by itself; written by those who
+   * edit Runners, from Runbooks -> Runners and the Runner's own page.
+   *
+   * Every creator of a Runner may give it a value on create - the table's
+   * create list: a client that sends what the API publishes sends false
+   * with every create, as the Terraform provider does. A Runner is created
+   * AS the default only by someone who may make one the default, the
+   * update list below (RunnerService.assertMayCreateAsProjectDefault):
+   * Create Runner alone, like a Project Member, never makes the Runner it
+   * creates the one every step that picks no Runner runs on.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.CreateRunner,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunner,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Project Default",
+    description:
+      "Whether this is the project's default Runner: runbook steps that pick no Runner run on it instead of the Global Runner.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isProjectDefault?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

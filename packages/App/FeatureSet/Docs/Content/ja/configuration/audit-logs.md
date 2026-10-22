@@ -91,9 +91,10 @@ flowchart TB
 | API キー | `API Key` |
 | ユーザーが接続する MCP クライアント | `MCP Client Authorization` |
 | インベントリ項目 | `Inventory Item` |
+| コレクター設定 | `Collector Config` |
 | vCenter サーバー | `vCenter` |
 | パケットキャプチャとそのダウンロード | `Packet Capture` |
-| セキュリティケースとプレイブック | `Security Case`、`Security Playbook` |
+| セキュリティケース、プレイブックとその実行、保護対象のエンティティ | `Security Case`、`Security Playbook`、`Security Playbook Run`、`Protected Entity` |
 
 管理者が他の人のアカウントで通知方法や個人のオンコールルールを追加または削除したときも記録されます。アドレスや番号そのものは記録されません。
 

@@ -69,7 +69,7 @@ Ouvrez une carte pour deux blocs de détails :
 
 | Bloc         | Ce qu'il montre                                                                                                                                                                                                 |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Received** | Les paramètres que le bloc a reçus, par nom et dans l'ordre de sa liste de paramètres, après le remplissage de toutes les variables. Un paramètre qui fait référence à une autre étape ou à une variable montre la référence à côté de la valeur qu'elle est devenue, et **Non résolu** quand elle n'est devenue rien. |
+| **Reçu** | Les paramètres que le bloc a reçus, par nom et dans l'ordre de sa liste de paramètres, après le remplissage de toutes les variables. Un paramètre qui fait référence à une autre étape ou à une variable montre la référence à côté de la valeur qu'elle est devenue, et **Non résolu** quand elle n'est devenue rien. |
 | **Returned** | Ce qu'il a produit, avec l'ID de chaque valeur (la dernière partie d'une référence `returnValues`). Les listes et les objets sont affichés en retrait.                                                         |
 
 Les étapes en échec, les étapes avec un avertissement et l'unique étape d'une exécution sont ouvertes d'emblée. Le compteur de l'onglet **Étapes** devient rouge quand quelque chose a échoué et orange quand une étape a un avertissement.
@@ -123,7 +123,7 @@ Un bloc qui ne s'exécute pas révèle en général un problème de liaison. Ouv
 :::
 
 :::details Une valeur est arrivée vide, ou sous forme de texte {{…}}
-Ouvrez l'exécution et regardez l'étape. Une référence qui ne s'est pas résolue est signalée sur l'étape elle-même par un avertissement, et son paramètre dans le bloc **Received** est marqué **Non résolu**.
+Ouvrez l'exécution et regardez l'étape. Une référence qui ne s'est pas résolue est signalée sur l'étape elle-même par un avertissement, et son paramètre dans le bloc **Reçu** est marqué **Non résolu**.
 
 - Si vous voyez le texte littéral `{{local.components.…}}`, la référence ne s'est pas résolue. C'est en général une faute de frappe dans l'ID du composant ou dans l'ID de la valeur de retour — rappelez-vous qu'il s'agit de l'**Identifiant** du bloc, pas du nom affiché dessus. Vérifiez aussi l'orthographe de `local.components` lui-même : `{{local.componets.api-get-1.returnValues.response-body}}` est envoyé comme texte littéral et l'exécution indique quand même **Exécuté**. Si l'exécution était un test **Run just this step**, le bloc précédent ne s'est pas exécuté du tout — exécutez plutôt tout le workflow.
 - Si vous voyez **Texte vide**, le bloc précédent s'est exécuté mais n'a pas produit ce champ.
@@ -132,7 +132,7 @@ Le même avertissement figure dans l'onglet **Full Log**, sur une ligne qui comm
 :::
 
 :::details Ça fonctionne quand je l'exécute à la main, mais pas depuis le déclencheur
-Ouvrez le **Constructeur**, cliquez sur **Exécuter le flux de travail** et remplissez les champs du déclencheur avec des valeurs qui ressemblent à ce qu'envoie le vrai déclencheur. Comparez ensuite les valeurs **Received** de cette exécution avec celles de la vraie exécution, côte à côte. La différence tient en général à un seul nom ou type de champ.
+Ouvrez le **Constructeur**, cliquez sur **Exécuter le flux de travail** et remplissez les champs du déclencheur avec des valeurs qui ressemblent à ce qu'envoie le vrai déclencheur. Comparez ensuite les valeurs **Reçu** de cette exécution avec celles de la vraie exécution, côte à côte. La différence tient en général à un seul nom ou type de champ.
 :::
 
 ## Réexécuter un workflow

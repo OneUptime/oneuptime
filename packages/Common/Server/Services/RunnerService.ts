@@ -46,6 +46,18 @@ import crypto from "crypto";
 import Select from "../Types/Database/Select";
 import PositiveNumber from "../../Types/PositiveNumber";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import ProjectDefaultRow from "../Utils/Database/ProjectDefaultRow";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import ColumnWriteRefusedException from "../Types/Database/Permissions/ColumnWriteRefusedException";
+import CallerPermission from "../Utils/Permission/CallerPermission";
+import Permission from "../../Types/Permission";
+import {
+  ProjectDefaultRunnerRefusal,
+  canBeProjectDefaultRunner,
+  describeDefaultRunnerStopsRunningRunbooks,
+  describeProjectDefaultRunnerRefusal,
+  getProjectDefaultRunnerRefusal,
+} from "../../Types/Runner/ProjectDefaultRunner";
 
 /*
  * What a global Runner row is, in the words every refusal about one uses.
@@ -260,6 +272,12 @@ export class Service extends ProjectReferencesService<Model> {
 
     Service.holdToGlobalRunnerShape(createBy.data, createBy.props.tenantId);
 
+    // Created as the project's default Runner: only one that may be it.
+    Service.assertMayBeProjectDefault(createBy.data);
+
+    // And only by someone who may make a Runner the default.
+    Service.assertMayCreateAsProjectDefault(createBy.data, createBy.props);
+
     if (!createBy.data.key) {
       createBy.data.key = ObjectID.generate().toString();
     }
@@ -276,6 +294,131 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return { createBy, carryForward: [] };
+  }
+
+  /*
+   * A Runner created as its project's default takes the default from the
+   * project's other Runners - only now that it exists, so a create that is
+   * refused or fails leaves the project's default where it was.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await ProjectDefaultRow.afterCreate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      createdItem: createdItem,
+    });
+
+    return await super.onCreateSuccess(onCreate, createdItem);
+  }
+
+  /*
+   * Refuses a Runner written as its project's default that may not be it
+   * (Types/Runner/ProjectDefaultRunner): a global Runner, the in-cluster
+   * Runner the Kubernetes agent chart installed, or one with "Runs
+   * Runbooks" off. `data` is the row as the write leaves it.
+   */
+  public static assertMayBeProjectDefault(data: {
+    isProjectDefault?: boolean | undefined;
+    isGlobalRunner?: boolean | undefined;
+    canRunRunbooks?: boolean | undefined;
+    name?: unknown;
+    hostInfo?: unknown;
+  }): void {
+    if (data.isProjectDefault !== true) {
+      return;
+    }
+
+    const refusal: ProjectDefaultRunnerRefusal | null =
+      getProjectDefaultRunnerRefusal(data);
+
+    if (refusal) {
+      throw new BadDataException(
+        describeProjectDefaultRunnerRefusal({
+          refusal,
+          ...(typeof data.name === "string" && data.name
+            ? { name: data.name }
+            : {}),
+        }),
+      );
+    }
+  }
+
+  /*
+   * A Runner created as its project's default is created by someone who may
+   * make a Runner the default: the column's update list, those who edit
+   * Runners. Every creator of a Runner may give the column a value - a
+   * client that sends what the API publishes sends false with every
+   * create - so its create list is the table's (Runner.isProjectDefault),
+   * and this refuses the one value that makes the new Runner the default,
+   * in the words the column check uses. Create Runner alone, like a Project
+   * Member, never makes the Runner it creates the one every runbook step
+   * that picks no Runner runs on. OneUptime and a master admin may.
+   */
+  public static assertMayCreateAsProjectDefault(
+    data: { isProjectDefault?: boolean | undefined },
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (data.isProjectDefault !== true || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const model: Model = new Model();
+
+    const mayMakeDefault: Array<Permission> =
+      model.getColumnAccessControlFor("isProjectDefault")?.update || [];
+
+    if (
+      CallerPermission.holdsAnyOf(props, mayMakeDefault, {
+        projectId: props.tenantId,
+      })
+    ) {
+      return;
+    }
+
+    throw new ColumnWriteRefusedException({
+      requestType: DatabaseRequestType.Create,
+      columnName: "isProjectDefault",
+      modelName: model.singularName,
+      permissions: mayMakeDefault,
+    });
+  }
+
+  /*
+   * The project's default Runner, when it has one that may be it: what a
+   * step that picks no Runner runs on (Utils/Runner/GlobalRunnerChoice).
+   * Read as OneUptime. A default that may no longer be it - "Runs Runbooks"
+   * turned off by an older server, say - is no default at all: the step
+   * goes on by the default order rather than to a Runner that never takes
+   * it.
+   */
+  @CaptureSpan()
+  public async findProjectDefaultRunner(
+    projectId: ObjectID,
+  ): Promise<Model | null> {
+    const runner: Model | null = await this.findOneBy({
+      query: {
+        projectId: projectId,
+        isProjectDefault: true,
+      },
+      select: {
+        _id: true,
+        name: true,
+        isGlobalRunner: true,
+        canRunRunbooks: true,
+        hostInfo: true,
+      },
+      props: { isRoot: true },
+    });
+
+    if (!runner || !canBeProjectDefaultRunner(runner)) {
+      return null;
+    }
+
+    return runner;
   }
 
   /*
@@ -313,7 +456,14 @@ export class Service extends ProjectReferencesService<Model> {
    *     is written: an SSH credential assigned to it at the same moment is
    *     either seen by this check, or sees the switch on in its own.
    *
-   * Root writes (registration, heartbeats, sign-off) are the server's own.
+   * And the project's default Runner (isProjectDefault) stays one that may
+   * be it (Types/Runner/ProjectDefaultRunner): an update may not make a
+   * global Runner, an agent row or one with "Runs Runbooks" off the
+   * default, nor turn "Runs Runbooks" off for the default while it stays
+   * the default - the steps that pick no Runner run on it.
+   *
+   * Root writes (registration, heartbeats, sign-off, and the default taken
+   * from a project's other Runners) are the server's own.
    * CardModelDetail posts every field of the Runner form, so a re-posted
    * unchanged name and a capability posted as false always pass: editing an
    * agent row's description or labels must still save. The Runners checked
@@ -360,10 +510,22 @@ export class Service extends ProjectReferencesService<Model> {
       turnsOnCapabilities.push('"Runs Runbooks"');
     }
 
+    // Whether the update makes Runners the project default.
+    const makesProjectDefault: boolean = data["isProjectDefault"] === true;
+
+    /*
+     * Whether it turns "Runs Runbooks" off for Runners it leaves the
+     * default - the ones it does not take the default from at once.
+     */
+    const stopsRunbooksOnDefault: boolean =
+      data["canRunRunbooks"] === false && data["isProjectDefault"] !== false;
+
     if (
       !isNameWritten &&
       turnsOnCapabilities.length === 0 &&
-      !writesAiCommandsOn
+      !writesAiCommandsOn &&
+      !makesProjectDefault &&
+      !stopsRunbooksOnDefault
     ) {
       return { updateBy, carryForward: null };
     }
@@ -383,10 +545,36 @@ export class Service extends ProjectReferencesService<Model> {
         hostInfo: true,
         canRunAiCommands: true,
         isGlobalRunner: true,
+        canRunRunbooks: true,
+        isProjectDefault: true,
       },
     );
 
     for (const runner of runners) {
+      /*
+       * Made the project default: the Runner as the update leaves it may
+       * be it - a "Runs Runbooks" the same update turns on counts.
+       */
+      if (makesProjectDefault) {
+        Service.assertMayBeProjectDefault({
+          isProjectDefault: true,
+          isGlobalRunner: runner.isGlobalRunner,
+          canRunRunbooks:
+            typeof data["canRunRunbooks"] === "boolean"
+              ? (data["canRunRunbooks"] as boolean)
+              : runner.canRunRunbooks,
+          name: runner.name,
+          hostInfo: runner.hostInfo,
+        });
+      }
+
+      // The default keeps running the steps that pick no Runner.
+      if (stopsRunbooksOnDefault && runner.isProjectDefault === true) {
+        throw new BadDataException(
+          describeDefaultRunnerStopsRunningRunbooks(runner.name || undefined),
+        );
+      }
+
       /*
        * A global Runner runs runbook steps only (a master admin may pause
        * them with "Runs Runbooks"): AI commands act in one project's own
@@ -572,13 +760,24 @@ export class Service extends ProjectReferencesService<Model> {
     await AiCommandCredentialReach.keepForUpdate(updateBy);
   }
 
-  // The update is written: its lock is given back.
+  /*
+   * The update is written: its lock is given back, and a Runner it made the
+   * project default takes the default from the project's other Runners -
+   * only the Runners the update actually wrote (ProjectDefaultRow).
+   */
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
     await AiCommandCredentialReach.giveBackAfterUpdate(onUpdate);
+
+    await ProjectDefaultRow.afterUpdate({
+      service: this,
+      defaultColumn: "isProjectDefault",
+      updatedData: onUpdate.updateBy.data,
+      updatedItemIds: updatedItemIds,
+    });
 
     return await super.onUpdateSuccess(onUpdate, updatedItemIds);
   }

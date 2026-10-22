@@ -22,6 +22,7 @@ flowchart TB
 - Um canal ativado envia para cada método verificado que você tem nele neste projeto, não só para um.
 - Um canal ativado sem um método verificado por trás não envia nada. **Your setup checklist** avisa sobre isso em **Staying informed**.
 - Uma novidade vai para os proprietários do registro: as pessoas indicadas como proprietárias e os membros das equipes proprietárias dele. Quando um registro não tem proprietários, ela vai para os proprietários do projeto. Um evento sobre ter sido adicionado como proprietário vai só para a pessoa adicionada.
+- Os casos de segurança não têm proprietários. Um caso novo vai para todos que podem ver os casos do projeto, na prioridade que cada um escolhe, e um caso atribuído vai para as pessoas a quem ele está atribuído. Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
 - Todo e-mail para proprietários termina com um link "Manage notification preferences" que leva de volta a esta página.
 
 ## Altere uma configuração
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Abra as suas configurações
 
-Vá até **Configurações do usuário → Configurações de notificação**. As abas são **Incidentes**, **Alertas**, **Monitoramento**, **Páginas de status**, **Manutenção programada** e **Plantão**.
+Vá até **Configurações do usuário → Configurações de notificação**. As abas são **Incidentes**, **Alertas**, **Monitoramento**, **Páginas de status**, **Manutenção programada**, **Plantão** e **Segurança**.
 
 ### Encontre o evento
 
@@ -52,6 +53,7 @@ Quando você entra em um projeto, estes eventos começam ativados, por e-mail. T
 | **Páginas de status** | Nenhum | **Página de status criada**, **Anúncio da página de status publicado**, **Adicionado como proprietário da página de status** |
 | **Manutenção programada** | **Maintenance reminder** | **Evento de manutenção criado**, **Estado da manutenção alterado**, **Nota de manutenção publicada**, **Adicionado como proprietário da manutenção** |
 | **Plantão** | **Você entra no plantão**, **Você é o próximo no plantão**, **Você sai do plantão**, **Adicionado à política de plantão**, **Removido da política de plantão**, **Chamada perdida**, e também por push: **Antes de o meu turno de prevenção começar**, **O meu próximo turno de prevenção é reatribuído** | Nenhum |
+| **Segurança** | Também por push: **Novo caso de segurança** (casos High e Crítico), **Caso de segurança atribuído a mim**, **Etapa de playbook aguardando minha aprovação** | Nenhum |
 
 > [!IMPORTANT]
 > **Status do monitor alterado** começa desativado. Para saber quando um monitor seu cai ou volta, ative-o na aba **Monitoramento**.
@@ -64,6 +66,16 @@ A aba **Plantão** é sobre você, não sobre os registros que são seus:
 - **Adicionado à política de plantão** e **Removido da política de plantão** avisam quando uma política de plantão começa ou deixa de nomear você.
 - **Antes de o meu turno de prevenção começar** envia lembretes nos horários que você escolhe em **Configurações do usuário → Calendário → Feed de calendário**, e **O meu próximo turno de prevenção é reatribuído** avisa quando outra pessoa cobre um turno sobre o qual você foi lembrado. Veja [Feeds de calendário](/docs/on-call/calendar-feeds#lembretes-e-avisos-de-reatribuição).
 - **Chamada perdida**, no cartão **Políticas de chamadas recebidas**, avisa os proprietários de uma política de chamadas recebidas que alguém ligou e não falou com ninguém. Veja [Política de chamadas recebidas](/docs/on-call/incoming-call-policy#chamadas-perdidas).
+
+## Casos de segurança
+
+A aba **Segurança** é sobre os casos de segurança que você pode ver:
+
+- **Novo caso de segurança** tem uma prioridade embaixo do nome: a prioridade mais baixa que um caso precisa ter para notificar você. Ela é **Alta e Crítica**, a menos que você escolha **Somente Crítica**, **Média e acima**, **Baixa e acima** ou **Todos os casos**.
+- **Caso de segurança atribuído a mim** acompanha os casos atribuídos a você e às equipes de que você faz parte.
+- **Etapa de playbook aguardando minha aprovação** pede que você aprove ou rejeite uma etapa de playbook em um caso no qual você pode aprovar etapas.
+
+Veja [Casos de segurança](/docs/telemetry/security-cases#notificações).
 
 ## Menos e-mails
 

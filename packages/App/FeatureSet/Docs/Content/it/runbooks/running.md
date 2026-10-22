@@ -134,7 +134,7 @@ L'interruttore **Esegui questo runbook** del runbook è disattivato, nella sua p
 :::
 
 :::details Un passaggio è fallito perché gli manca un Runner
-Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**. Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli il Runner del passaggio, fai clic su **Save Steps** ed esegui di nuovo il runbook.
+Il messaggio dice, ad esempio, "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Il passaggio è stato salvato senza **Runner**, e il progetto non ha un [Runner predefinito](/docs/runbooks/agents#il-runner-predefinito-del-progetto). Un passaggio JavaScript ha bisogno di un Runner proprio solo quando nessun [Runner globale](/docs/runbooks/agents#runner-globali) può eseguirlo. Apri i **Passaggi** del runbook, scegli il Runner del passaggio sotto **Altri campi**, fai clic su **Save Steps** ed esegui di nuovo il runbook.
 :::
 
 :::details Un passaggio è fallito perché nomina variabili che non può usare

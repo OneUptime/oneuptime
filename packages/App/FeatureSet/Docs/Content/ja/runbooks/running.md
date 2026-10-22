@@ -134,7 +134,7 @@ Runbook の **設定** ページで **この Runbook を実行** スイッチが
 :::
 
 :::details Runner がないためにステップが失敗した
-メッセージはたとえば「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.」です。ステップが **Runner** なしで保存されました。JavaScript のステップに自社の Runner が必要なのは、それを実行できる [グローバル Runner](/docs/runbooks/agents#グローバル-runner) がない場合だけです。Runbook の **ステップ** を開き、ステップの Runner を選んで **ステップを保存** をクリックし、Runbook を再実行します。
+メッセージはたとえば「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.」です。ステップが **Runner** なしで保存され、プロジェクトに [デフォルト Runner](/docs/runbooks/agents#プロジェクトのデフォルト-runner) もありません。JavaScript のステップに自社の Runner が必要なのは、それを実行できる [グローバル Runner](/docs/runbooks/agents#グローバル-runner) がない場合だけです。Runbook の **ステップ** を開き、ステップの **その他の項目** で Runner を選んで **ステップを保存** をクリックし、Runbook を再実行します。
 :::
 
 :::details 使えない変数を指定しているためにステップが失敗した

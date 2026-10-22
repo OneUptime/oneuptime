@@ -11,15 +11,16 @@ import { cleanup, render } from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
- * A code repository's Settings (Code > Tasks > a repository > Settings):
+ * A code repository's Settings (Code > a repository > Settings), its Pull
+ * Requests card under More settings:
  *
  *   - how many AI fix pull requests it takes is one choice - No limit, A
  *     limit (then the number), None - where a number's help explained
  *     "Leave empty for no cap, or 0 to block them". The choice writes the
  *     same column (null, the number, 0), read as OpenPullRequestCap reads
  *     it, and the page says the stored limit in words;
- *   - the GitHub trigger label is asked, and shown, only while the app
- *     answers GitHub commands.
+ *   - the GitHub trigger label has a card of its own beside it, asked
+ *     whatever GitHub Commands says (CodeRepositorySettingsPage.test.tsx).
  */
 
 const mockDetails: Array<Record<string, unknown>> = [];
@@ -29,6 +30,16 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
     __esModule: true,
     default: (props: Record<string, unknown>): null => {
       mockDetails.push(props);
+      return null;
+    },
+  };
+});
+
+// The GitHub Commands switch card reads the repository itself: not here.
+jest.mock("../../../UI/Components/ModelSwitch/ModelSwitchCard", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
       return null;
     },
   };
@@ -58,10 +69,13 @@ interface DetailField {
   getElement?: ((item: CodeRepository) => ReactElement) | undefined;
 }
 
+// The Pull Requests card, as the settings page drew it.
 function page(): Record<string, unknown> {
   render(<CodeRepositorySettings {...({} as unknown as PageComponentProps)} />);
 
-  return mockDetails[mockDetails.length - 1]!;
+  return mockDetails.filter((props: Record<string, unknown>): boolean => {
+    return props["name"] === "Repository > Pull Requests";
+  })[0]!;
 }
 
 function formFields(): Array<FormField> {
@@ -273,88 +287,43 @@ describe("the limit on AI fix pull requests", () => {
   });
 });
 
-describe("the build and test commands on the page", () => {
-  test("say what each does in a few plain words", () => {
-    const descriptionOf: (column: string) => string | undefined = (
-      column: string,
-    ): string | undefined => {
-      return (
-        detailFields().find((field: DetailField) => {
-          return Object.keys(field.field || {})[0] === column;
-        }) as { description?: string } | undefined
-      )?.description;
-    };
-
-    expect(descriptionOf("setupCommand")).toBe(
-      "Installs dependencies before an AI fix is checked.",
-    );
-    expect(descriptionOf("buildCommand")).toBe("Checks that an AI fix builds.");
-    expect(descriptionOf("testCommand")).toBe(
-      "Runs the tests against an AI fix.",
-    );
-
-    for (const column of ["setupCommand", "buildCommand", "testCommand"]) {
-      expect(descriptionOf(column)).not.toContain("AI-authored");
-      expect(descriptionOf(column)).not.toContain("executes");
-    }
-  });
-});
-
-describe("the GitHub trigger label", () => {
-  test("is asked only while the app answers GitHub commands", () => {
-    const label: FormField | undefined = formFields().find(
-      (field: FormField) => {
-        return Object.keys(field.field || {})[0] === "gitHubTriggerLabel";
+describe("the Pull Requests card", () => {
+  test("asks the main branch and the limit on one page: no build or test command, no trigger label", () => {
+    const columns: Array<string> = formFields().map(
+      (field: FormField): string => {
+        return Object.keys(
+          (field.field || field.overrideField || {}) as Record<string, unknown>,
+        )[0]!;
       },
     );
 
-    expect(label!.showIf!(values({ isGitHubCommandsEnabled: true }))).toBe(
-      true,
-    );
-    expect(label!.showIf!(values({ isGitHubCommandsEnabled: false }))).toBe(
-      false,
-    );
-  });
-
-  test("is shown on the page only while the app answers them", () => {
-    const label: DetailField | undefined = detailFields().find(
-      (field: DetailField) => {
-        return Object.keys(field.field || {})[0] === "gitHubTriggerLabel";
-      },
-    );
-    const on: CodeRepository = new CodeRepository();
-    on.isGitHubCommandsEnabled = true;
-    const off: CodeRepository = new CodeRepository();
-    off.isGitHubCommandsEnabled = false;
-
-    expect(label!.showIf!(on)).toBe(true);
-    expect(label!.showIf!(off)).toBe(false);
-  });
-});
-
-describe("the page's two cards", () => {
-  /*
-   * Code calls it a repository: the cards' buttons and their dialogs name
-   * what each edits - its details, its settings - not the model's own
-   * "Code Repository" ("Edit Code Repository" titled both dialogs).
-   */
-  test("each card's button and dialog name what it edits", () => {
-    render(
-      <CodeRepositorySettings {...({} as unknown as PageComponentProps)} />,
-    );
-
-    const cards: Array<Record<string, unknown>> = mockDetails.slice(-2);
-    expect(
-      cards.map((card: Record<string, unknown>) => {
-        return [
-          (card["cardProps"] as { title: string }).title,
-          card["editButtonText"],
-          card["editModalTitle"],
-        ];
-      }),
-    ).toEqual([
-      ["Repository Details", "Edit Details", "Repository Details"],
-      ["Repository Settings", "Edit Settings", "Repository Settings"],
+    expect(columns).toEqual([
+      "mainBranchName",
+      "maxOpenFixPullRequests",
+      "maxOpenFixPullRequests",
     ]);
+    expect(page()["formSteps"]).toBeUndefined();
+  });
+
+  test("shows the main branch and the limit, nothing more", () => {
+    expect(
+      detailFields().map((field: DetailField): string => {
+        return Object.keys(field.field || {})[0]!;
+      }),
+    ).toEqual(["mainBranchName", "maxOpenFixPullRequests"]);
+  });
+
+  /*
+   * Code calls it a repository: the card's button and its dialog name what
+   * it edits - its pull requests - not the model's own "Code Repository".
+   */
+  test("its button and dialog name what it edits", () => {
+    const card: Record<string, unknown> = page();
+
+    expect((card["cardProps"] as { title: string }).title).toBe(
+      "Pull Requests",
+    );
+    expect(card["editButtonText"]).toBe("Edit");
+    expect(card["editModalTitle"]).toBe("Pull Requests");
   });
 });

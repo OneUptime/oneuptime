@@ -206,12 +206,18 @@ export default abstract class GitHubTaskHandlerBase extends BaseTaskHandler {
     prompt: string;
     // The agent may query the repository's production telemetry.
     productionTelemetry?: boolean | undefined;
+    /*
+     * The run changes nothing (a review): the agent is not told to build
+     * and test a change (CodeAgentTask.skipsChangeChecks).
+     */
+    skipsChangeChecks?: boolean | undefined;
   }): Promise<CodeAgentResult> {
     const codeAgentTask: CodeAgentTask = {
       workingDirectory: data.repositoryPath,
       prompt: data.prompt,
       timeoutMs: GitHubTaskHandlerBase.CODE_AGENT_TIMEOUT_MS,
       ...(data.productionTelemetry ? { productionTelemetry: true } : {}),
+      ...(data.skipsChangeChecks ? { skipsChangeChecks: true } : {}),
     };
 
     const result: CodeAgentResult = await data.agent.executeTask(codeAgentTask);

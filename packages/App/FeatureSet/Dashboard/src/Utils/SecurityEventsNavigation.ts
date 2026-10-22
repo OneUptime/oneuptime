@@ -16,7 +16,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the runs
- *                    Waiting for Approval, and every Playbook Run
+ *                    Waiting for Approval, every Playbook Run, and the
+ *                    Protected Entities no playbook may contain
+ *   Workspace        the Slack and Microsoft Teams channels cases are
+ *                    posted to (SECURITY_EVENTS_WORKSPACE_PAGES)
  *   Connections      where events come from and where they are sent:
  *                    Connections, and the Setup Guide
  *
@@ -25,8 +28,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  * the views along the top of the case queue and the runs): "Can we create
  * side menu sections instead and have different pages for these things?"
  *
- * Detections and Connections are set up once and visited rarely, so they
- * start folded to their titles; each opens by itself on its own pages.
+ * Detections, Workspace and Connections are set up once and visited
+ * rarely, so they start folded to their titles; each opens by itself on
+ * its own pages.
  *
  * Kept free of React so the menu - its sections, their order, the pages
  * and their names - is pinned in a plain test, and the breadcrumbs, Search
@@ -174,6 +178,11 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         title: "Playbook Runs",
         icon: IconProp.Play,
       },
+      {
+        page: PageMap.SECURITY_PROTECTED_ENTITIES,
+        title: "Protected Entities",
+        icon: IconProp.Lock,
+      },
     ],
   },
   {
@@ -193,6 +202,79 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
     ],
   },
 ];
+
+/*
+ * THE WORKSPACE SECTION.
+ *
+ * The rules that post security cases to Slack and Microsoft Teams channels
+ * (and Teams chats), one page per workspace, and the page that connects one.
+ * The section is drawn as every product's Workspace section is
+ * (useWorkspaceSideMenuSection): an entry for each workspace the project has
+ * connected - "Slack", "Microsoft Teams" - or, with neither, one entry to
+ * the page that connects them, "Connect Slack or Teams"; folded, as every
+ * Workspace section is, and open by itself on its own pages. It is not in
+ * SECURITY_EVENTS_MENU, whose entries every project has: which of these it
+ * lists is known only once the project's connections are.
+ *
+ * It sits before Connections: the sections set up once close the menu, as
+ * Workspace comes before Settings in the other products' menus.
+ */
+export interface SecurityEventsWorkspacePages {
+  slack: PageMap;
+  microsoftTeams: PageMap;
+  // The page a project with nothing connected is sent to.
+  connect: PageMap;
+}
+
+export const SECURITY_EVENTS_WORKSPACE_SECTION_TITLE: string = "Workspace";
+
+export const SECURITY_EVENTS_WORKSPACE_PAGES: SecurityEventsWorkspacePages = {
+  slack: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_SLACK,
+  microsoftTeams: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
+  connect: PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS,
+};
+
+// The section the Workspace section is drawn in front of.
+export const SECURITY_EVENTS_WORKSPACE_SECTION_BEFORE: string = "Connections";
+
+/*
+ * Where each Workspace page is, as its breadcrumbs say it. Slack and
+ * Microsoft Teams are named as their entries are; the page that connects
+ * either shows both, so it is the section's own page, named once.
+ */
+const WORKSPACE_PAGE_TRAILS: Array<[PageMap, Array<string>]> = [
+  [
+    SECURITY_EVENTS_WORKSPACE_PAGES.slack,
+    ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE, "Slack"],
+  ],
+  [
+    SECURITY_EVENTS_WORKSPACE_PAGES.microsoftTeams,
+    [
+      "Security Events",
+      SECURITY_EVENTS_WORKSPACE_SECTION_TITLE,
+      "Microsoft Teams",
+    ],
+  ],
+  [
+    SECURITY_EVENTS_WORKSPACE_PAGES.connect,
+    ["Security Events", SECURITY_EVENTS_WORKSPACE_SECTION_TITLE],
+  ],
+];
+
+// The Workspace section's pages: Slack, Microsoft Teams, and the one that connects either.
+export function getSecurityEventsWorkspacePages(): Array<PageMap> {
+  return WORKSPACE_PAGE_TRAILS.map(
+    ([page]: [PageMap, Array<string>]): PageMap => {
+      return page;
+    },
+  );
+}
+
+export function isSecurityEventsWorkspacePage(
+  page: PageMap | undefined,
+): boolean {
+  return Boolean(page && getSecurityEventsWorkspacePages().includes(page));
+}
 
 /*
  * The pages that open on their own, outside the menu's layout: a case and a
@@ -260,11 +342,22 @@ export function getSecurityEventsMenuItemFor(
 /*
  * Where a page is, as its breadcrumbs say it: the product, the page's
  * section, and the page as the menu names it. A page named like its section
- * (Overview, Events, Playbooks, Connections) is not named twice.
+ * (Overview, Events, Playbooks, Workspace, Connections) is not named twice.
  */
 export function getSecurityEventsPageTrail(
   page: PageMap,
 ): Array<string> | undefined {
+  const workspaceTrail: [PageMap, Array<string>] | undefined =
+    WORKSPACE_PAGE_TRAILS.find(
+      ([candidate]: [PageMap, Array<string>]): boolean => {
+        return candidate === page;
+      },
+    );
+
+  if (workspaceTrail) {
+    return workspaceTrail[1];
+  }
+
   const section: SecurityEventsMenuSection | undefined =
     getSecurityEventsMenuSectionFor(page);
   const item: SecurityEventsMenuItem | undefined =

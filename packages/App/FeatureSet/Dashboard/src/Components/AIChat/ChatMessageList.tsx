@@ -9,8 +9,12 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useClipboardCopy, {
+  ClipboardCopy,
+  ClipboardCopyStatus,
+} from "Common/UI/Utils/UseClipboardCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import CitationChips from "./CitationChips";
 import SafeChatMarkdown from "./SafeChatMarkdown";
 import ToolApprovalCard, { ToolDecision } from "./ToolApprovalCard";
@@ -36,7 +40,12 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [copiedMessageId, setCopiedMessageId] = useState<string>("");
+  /*
+   * An answer's Copy says "Copied" once the answer is on the clipboard and
+   * "Copy failed" when the browser refused. It threw on a page served over
+   * plain http, where the browser has no clipboard API (issue #5132).
+   */
+  const clipboard: ClipboardCopy = useClipboardCopy({ copiedForMs: 1500 });
 
   const lastCompletedAssistantId: string | undefined = [...props.messages]
     .reverse()
@@ -54,17 +63,45 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
     if (!message.contentInMarkdown) {
       return;
     }
-    navigator.clipboard
-      .writeText(message.contentInMarkdown)
-      .then(() => {
-        setCopiedMessageId(message.id?.toString() || "");
-        setTimeout(() => {
-          setCopiedMessageId("");
-        }, 1500);
-      })
-      .catch(() => {
-        // clipboard unavailable — ignore
-      });
+
+    void clipboard.copy(
+      message.contentInMarkdown,
+      message.id?.toString() || "",
+    );
+  };
+
+  type RenderCopyButtonContentFunction = (messageId: string) => ReactElement;
+
+  // The icon and the word for one answer's Copy, after what it last did.
+  const renderCopyButtonContent: RenderCopyButtonContentFunction = (
+    messageId: string,
+  ): ReactElement => {
+    const status: ClipboardCopyStatus = clipboard.statusOf(messageId);
+
+    let icon: ReactElement = <Icon icon={IconProp.Copy} className="h-3 w-3" />;
+    let text: string | undefined = translator.translateText("Copy");
+    let textClassName: string = "";
+
+    if (status === ClipboardCopyStatus.Copied) {
+      icon = (
+        <Icon icon={IconProp.Check} className="h-3 w-3 text-emerald-500" />
+      );
+      text = translator.translateText("Copied");
+      textClassName = "text-emerald-500";
+    } else if (status === ClipboardCopyStatus.Failed) {
+      icon = <Icon icon={IconProp.Alert} className="h-3 w-3 text-red-600" />;
+      text = translator.translateText("Copy failed");
+      textClassName = "text-red-600";
+    }
+
+    return (
+      <>
+        {icon}
+        <span className={textClassName} aria-live="polite">
+          {text}
+        </span>
+      </>
+    );
   };
 
   /*
@@ -257,24 +294,11 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
                         onClick={() => {
                           copyMessage(message);
                         }}
+                        data-testid="ai-chat-copy-answer"
+                        data-copy-state={clipboard.statusOf(messageId)}
                         className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
                       >
-                        {copiedMessageId === messageId ? (
-                          <>
-                            <Icon
-                              icon={IconProp.Check}
-                              className="h-3 w-3 text-emerald-500"
-                            />
-                            <span className="text-emerald-500">
-                              {translator.translateText("Copied")}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Icon icon={IconProp.Copy} className="h-3 w-3" />
-                            <span>{translator.translateText("Copy")}</span>
-                          </>
-                        )}
+                        {renderCopyButtonContent(messageId)}
                       </button>
                       {props.onFeedback && (
                         <span className="flex items-center gap-0.5">

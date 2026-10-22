@@ -134,7 +134,7 @@ Runbookets kontakt **Kør dette runbook** er slået fra på dets side **Indstill
 :::
 
 :::details Et trin fejlede, fordi det mangler en Runner
-Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners." Trinnet blev gemt uden **Runner**. Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg trinnets Runner, klik på **Save Steps**, og kør runbooket igen.
+Meddelelsen lyder for eksempel "This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners." Trinnet blev gemt uden **Runner**, og projektet har ingen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner). Et JavaScript-trin har kun brug for sin egen Runner, når ingen [global Runner](/docs/runbooks/agents#globale-runnere) kan køre det. Åbn runbookets **Trin**, vælg trinnets Runner under **Flere felter**, klik på **Save Steps**, og kør runbooket igen.
 :::
 
 :::details Et trin fejlede, fordi det nævner variabler, det ikke kan bruge

@@ -91,9 +91,10 @@ flowchart TB
 | Ключи API | `API Key` |
 | Клиенты MCP, которые подключают люди | `MCP Client Authorization` |
 | Элементы инвентаря | `Inventory Item` |
+| Конфигурации коллектора | `Collector Config` |
 | Серверы vCenter | `vCenter` |
 | Захваты пакетов и их скачивания | `Packet Capture` |
-| Кейсы безопасности и плейбуки | `Security Case`, `Security Playbook` |
+| Кейсы безопасности, плейбуки и их запуски, а также защищённые сущности | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Также записывается, когда администратор добавляет или удаляет метод уведомления или личное правило дежурства в чужой учётной записи, без самого адреса или номера.
 

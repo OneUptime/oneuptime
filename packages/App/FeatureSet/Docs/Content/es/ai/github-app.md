@@ -118,11 +118,11 @@ También ignora todos los comentarios escritos por un bot, incluidos los suyos, 
 
 ## Lo que cuesta y cómo limitarlo
 
-Cada comando que inicia trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100.000 tokens de salida, y los comandos de compilación y prueba de tu repositorio cuando los has definido. Las consultas a producción de una reseña, 12 como máximo, se descuentan de esas mismas 40 llamadas.
+Cada comando que inicia trabajo es una ejecución completa del agente: un clon, hasta 40 llamadas al LLM y 100.000 tokens de salida, y, en un Runner propio, las comprobaciones de compilación y prueba que describe el `AGENTS.md` de tu repositorio. Las consultas a producción de una reseña, 12 como máximo, se descuentan de esas mismas 40 llamadas.
 
 Los comandos de GitHub son trabajo de IA fuera de los incidentes y las alertas, así que no se les aplica ningún límite diario de tareas de corrección; sí se aplican los límites diarios de IA del propio proyecto, cuando el proyecto los fija. El único otro límite es el que ya rige las tareas de [Código](/docs/ai/ai-agent):
 
-- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
+- **El tope de pull requests abiertos** (**Máximo de pull requests de corrección abiertas**, en **Más ajustes** de la página **Ajustes** del repositorio). **Pull requests de corrección con IA** está en **Sin límite** hasta que eliges **Un límite**, o **Ninguno**, que bloquea los pull requests de corrección de IA en ese repositorio. Las reseñas y las revisiones están exentas: ninguna añade un pull request a tu cola de revisión.
 
 Solo hay una ejecución de cada tipo activa a la vez por issue o pull request. Pedirlo dos veces te dice que ya está trabajando; pedir una reseña mientras corre una revisión inicia las dos, porque son peticiones distintas.
 
@@ -130,9 +130,9 @@ Si una ejecución no puede empezar, la app dice por qué en el hilo: nunca falla
 
 ## Desactivarla
 
-Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en la página **Ajustes** del repositorio. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
+Cada repositorio tiene un interruptor: **Responder a comandos de GitHub**, en la página **Ajustes** del repositorio. Está activado en todos los repositorios y se guarda en cuanto lo cambias. Desactivado, la app ignora las menciones, las asignaciones y la etiqueta de activación en ese repositorio, y le dice a quien pregunte dónde está el interruptor.
 
-La misma página contiene la **Etiqueta de activación de GitHub**, si quieres una etiqueta distinta de `oneuptime`.
+La misma página contiene la **Etiqueta de activación de GitHub**, en **Más ajustes**, si quieres una etiqueta distinta de `oneuptime`.
 
 ## A qué suscribirse
 

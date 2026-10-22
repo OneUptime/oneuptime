@@ -279,15 +279,45 @@ test.describe("Global Runners", () => {
       )._id;
       expect(runbookId).toBeTruthy();
 
-      // Its Steps page says the step runs on Global Runner.
+      /*
+       * Its Steps page says the step runs on Global Runner: on the folded
+       * step's line, on its folded More fields line, and - in the Runner
+       * dropdown under those More fields - that a global Runner is
+       * connected.
+       */
       await gotoProjectPage({
         page,
         projectId,
         url: urlFor(`/dashboard/${projectId}/runbooks/${runbookId}/steps`),
         ready: page.getByText("Ask from a global Runner").first(),
       });
+      const stepHeader: Locator = page
+        .getByTestId("runbook-step-header")
+        .filter({ hasText: "Ask from a global Runner" });
+      await expect(stepHeader).toContainText(
+        "JavaScript on Global Runner",
+        SERVER,
+      );
+      await stepHeader.getByRole("button", { expanded: false }).click();
+
+      const stepMoreFields: Locator = page.getByTestId(
+        "runbook-step-0-more-fields",
+      );
+      const stepMoreFieldsHeader: Locator = stepMoreFields.getByTestId(
+        "folded-section-header",
+      );
       await expect(
-        page.getByText(/Global Runner · Connected/).first(),
+        stepMoreFields.locator(
+          '[data-testid="folded-section-item"][data-item-key="runner"]',
+        ),
+      ).toHaveText("Runner: Global Runner");
+      await stepMoreFieldsHeader.click();
+      await expect(stepMoreFieldsHeader).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      await expect(
+        stepMoreFields.getByText(/Global Runner · Connected/).first(),
       ).toBeVisible(SERVER);
 
       // It runs there, and nothing outside the internet answers it.

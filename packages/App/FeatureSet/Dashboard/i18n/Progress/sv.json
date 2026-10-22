@@ -1,15 +1,17 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16602
+    "keys": 32602,
+    "untranslated": 16520
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "AI / LLM",
+    "Adapter",
     "Agenda",
     "Agent",
     "App",
     "Budget",
+    "CPU Ready {{percent}}",
     "CloudWatch Metric Streams",
     "Diagram",
     "Embedding",
@@ -41,11 +43,13 @@
     "Tokens",
     "Tunnel",
     "VMware vCenter",
+    "Version {{number}}",
     "agent {{version}}",
     "kubectl set image deployment/web * -n web",
     "port {{port}}",
     "samples",
     "syslog",
+    "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

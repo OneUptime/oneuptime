@@ -1,51 +1,76 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import VMwareResourceModel from "Common/Models/DatabaseModels/VMwareResource";
-import Card from "Common/UI/Components/Card/Card";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
-import AggregationType from "Common/Types/BaseDatabase/AggregationType";
+import VMwareCollectionMethod from "Common/Types/VMware/VMwareCollectionMethod";
+import OneUptimeDate from "Common/Types/Date";
 import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
-import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   VMwareResourceKind,
   externalIdFromRouteParam,
   fetchVMwareInventoryRow,
-  formatBytes,
-  formatMhz,
-  formatPercent,
-  displayNameForResource,
-  identityAttributesForResource,
+  fetchVMwareInventoryRows,
+  routeParamFromExternalId,
 } from "../Utils/VMwareResourceUtils";
-import OneUptimeDate from "Common/Types/Date";
-import ValueFormatter from "Common/Utils/ValueFormatter";
-import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  VMwareHostIdentity,
+  VMwareHostReportState,
+  VMwareHostVirtualMachineSummary,
+  getVMwareHostIdentity,
+  getVMwareHostLastReportAt,
+  getVMwareHostMetricAttributes,
+  getVMwareHostReportState,
+  summarizeVMwareHostVirtualMachines,
+  toFiniteNumber,
+} from "../Utils/VMwareHostData";
+import RecommendationFilterUtil, {
+  RECOMMENDATION_SELECTION_QUERY_PARAM,
+} from "../../../Components/Recommendations/RecommendationFilterUtil";
+import VMwareHostHero from "../../../Components/VMware/Host/VMwareHostHero";
+import VMwareHostReportNotice from "../../../Components/VMware/Host/VMwareHostReportNotice";
+import VMwareHostOverviewTab from "../../../Components/VMware/Host/VMwareHostOverviewTab";
+import VMwareHostVirtualMachinesTab from "../../../Components/VMware/Host/VMwareHostVirtualMachinesTab";
+import VMwareHostMetricsTab from "../../../Components/VMware/Host/VMwareHostMetricsTab";
+import VMwareHostLogsTab from "../../../Components/VMware/Host/VMwareHostLogsTab";
 
-const MIB: number = 1024 * 1024;
-const KIB: number = 1024;
+/*
+ * An ESXi host inside its vCenter: as deep as a host's page outside VMware,
+ * from what vCenter reports about the host. The hero says which host it is,
+ * where it sits and whether vCenter still reports it; the tabs hold its
+ * Overview (tiles, charts, what is open on it, its busiest VMs, network
+ * adapters, storage devices, host alerts, details and the AI agent), the
+ * virtual machines it runs, every metric chart, and its logs.
+ *
+ * ESXi runs no agent, so there is no operating system to read - processes,
+ * filesystems and load average have no ESXi equivalent vCenter reports.
+ * Seeing more of a host is one step from here: turning on its host alerts
+ * (Overview) and sending its syslog (Logs).
+ */
+
+export const VMWARE_HOST_TAB_OVERVIEW: string = "Overview";
+export const VMWARE_HOST_TAB_VIRTUAL_MACHINES: string = "Virtual Machines";
+export const VMWARE_HOST_TAB_METRICS: string = "Metrics";
+export const VMWARE_HOST_TAB_LOGS: string = "Logs";
 
 const VMwareVCenterHostDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const translator: Translator = useTranslator();
   /*
    * Route shape: .../vmware/:modelId/hosts/:subModelId — subModelId is
    * the percent-encoded inventory externalId ("host/<dc>/<host>"), not
@@ -58,45 +83,106 @@ const VMwareVCenterHostDetail: FunctionComponent<
 
   const [vcenter, setVCenter] = useState<VMwareVCenter | null>(null);
   const [row, setRow] = useState<VMwareResourceModel | null>(null);
+  const [virtualMachineRows, setVirtualMachineRows] = useState<
+    Array<VMwareResourceModel>
+  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
+  const [isLoadingVirtualMachines, setIsLoadingVirtualMachines] =
+    useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  const fetchData: PromiseVoidFunction = async (): Promise<void> => {
+  /*
+   * "View all virtual machines" on the Overview opens the Virtual Machines
+   * tab: Tabs keeps its own selection, so it is mounted again on that tab.
+   */
+  const [tabsKey, setTabsKey] = useState<number>(0);
+  const [initialTabName, setInitialTabName] = useState<string>(
+    VMWARE_HOST_TAB_OVERVIEW,
+  );
+
+  // Only the newest inventory read may commit (see fetchInventory).
+  const inventorySequence: React.MutableRefObject<number> = useRef<number>(0);
+
+  const fetchInventory: (vcenterName: string) => Promise<void> = async (
+    vcenterName: string,
+  ): Promise<void> => {
+    const sequence: number = ++inventorySequence.current;
+
+    const hostRow: VMwareResourceModel | null = await fetchVMwareInventoryRow({
+      vmwareVCenterId: modelId,
+      kind: VMwareResourceKind.Host,
+      externalId: externalId,
+    });
+
+    const identity: VMwareHostIdentity = getVMwareHostIdentity({
+      vcenterName: vcenterName,
+      externalId: externalId,
+      row: hostRow,
+    });
+
+    const vmRows: Array<VMwareResourceModel> = identity.hostName
+      ? await fetchVMwareInventoryRows({
+          vmwareVCenterId: modelId,
+          kind: VMwareResourceKind.VirtualMachine,
+          hostName: identity.hostName,
+          datacenterName: identity.datacenterName,
+        })
+      : [];
+
+    if (sequence !== inventorySequence.current) {
+      return;
+    }
+
+    setRow(hostRow);
+    setVirtualMachineRows(vmRows);
+    setIsLoadingVirtualMachines(false);
+  };
+
+  const fetchData: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
+    setError("");
+
     try {
       const item: VMwareVCenter | null = await ModelAPI.getItem({
         modelType: VMwareVCenter,
         id: modelId,
         select: {
           name: true,
+          collectionMethod: true,
         },
       });
+
+      if (!item?.name) {
+        setError("vCenter not found.");
+        setIsLoading(false);
+        return;
+      }
+
       setVCenter(item);
+      await fetchInventory(item.name);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
-    setIsLoading(false);
 
-    try {
-      const inventoryRow: VMwareResourceModel | null =
-        await fetchVMwareInventoryRow({
-          vmwareVCenterId: modelId,
-          kind: VMwareResourceKind.Host,
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
+    setIsLoading(false);
   };
 
   useEffect(() => {
     fetchData().catch((err: Error) => {
       setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
     });
   }, []);
+
+  const refreshInventory: () => void = (): void => {
+    if (!vcenter?.name) {
+      return;
+    }
+
+    fetchInventory(vcenter.name).catch(() => {
+      // The page keeps what it showed; the next refresh tries again.
+    });
+  };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -110,328 +196,186 @@ const VMwareVCenterHostDetail: FunctionComponent<
     return <ErrorMessage message="vCenter not found." />;
   }
 
-  const vcenterName: string = vcenter.name;
-  const hostName: string = row
-    ? displayNameForResource(row)
-    : externalId.substring(externalId.lastIndexOf("/") + 1);
+  const identity: VMwareHostIdentity = getVMwareHostIdentity({
+    vcenterName: vcenter.name,
+    externalId: externalId,
+    row: row,
+  });
+  const reportState: VMwareHostReportState = getVMwareHostReportState({
+    row: row,
+    now: OneUptimeDate.getCurrentDate(),
+  });
+  const lastReportAt: Date | null = getVMwareHostLastReportAt(row);
+  const virtualMachineSummary: VMwareHostVirtualMachineSummary =
+    summarizeVMwareHostVirtualMachines(virtualMachineRows);
 
-  /*
-   * Every chart filters on the host's RESOURCE attributes
-   * (resource.vcenter.datacenter.name + resource.vcenter.host.name) plus
-   * the vCenter identity — the vcenter receiver keys identity in
-   * resource attributes, not datapoint labels. Before the inventory row
-   * lands, fall back to the host name parsed from the externalId.
-   */
-  const idAttributes: Record<string, string> = row
-    ? identityAttributesForResource(vcenterName, row)
-    : {
-        "resource.vmware.vcenter.name": vcenterName,
-        "resource.vcenter.host.name": hostName,
-      };
-
-  const cpuQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_cpu",
-      title: "CPU Utilization",
-      description: translator.translateTemplate(
-        "vcenter.host.cpu.utilization for ESXi host {{hostName}} — already a percentage, no transform applied.",
-        { hostName: hostName },
-      ),
-      legend: "CPU",
-      legendUnit: "%",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.cpu.utilization",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  const memoryQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_memory",
-      title: "Memory Usage",
-      description: translator.translateTemplate(
-        "vcenter.host.memory.usage for ESXi host {{hostName}} (reported in MiB, shown in bytes).",
-        { hostName: hostName },
-      ),
-      legend: "Memory",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.memory.usage",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    transformValue: (value: number): number => {
-      return value * MIB;
-    },
-    yAxisValueFormatter: formatBytes,
+  const populate: (page: PageMap, subModelId?: string) => Route = (
+    page: PageMap,
+    subModelId?: string,
+  ): Route => {
+    return RouteUtil.populateRouteParams(
+      RouteMap[page] as Route,
+      subModelId !== undefined
+        ? { modelId: modelId, subModelId: subModelId }
+        : { modelId: modelId },
+    );
   };
 
   /*
-   * Throughput metrics from the vcenter receiver are already rates
-   * ({KiBy/s}) — plain gauges, no counter-delta math needed. Grouping
-   * by attributes splits them per `direction` (received/transmitted or
-   * read/write) and per NIC / disk `object`.
+   * The cluster's own page: a cluster's inventory id is
+   * "cluster/<datacenter>/<cluster>".
    */
-  const networkQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_network",
-      title: "Network Throughput",
-      description: translator.translateTemplate(
-        "vcenter.host.network.throughput per direction and NIC for ESXi host {{hostName}}.",
-        { hostName: hostName },
-      ),
-      legend: "Network",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.network.throughput",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    transformValue: (value: number): number => {
-      return value * KIB;
-    },
-    yAxisValueFormatter: (value: number): string => {
-      return ValueFormatter.formatValue(value, "By/s");
-    },
+  const clusterRoute: Route | undefined =
+    row?.clusterName && identity.datacenterName
+      ? populate(
+          PageMap.VMWARE_VCENTER_VIEW_CLUSTER_DETAIL,
+          routeParamFromExternalId(
+            `cluster/${identity.datacenterName}/${row.clusterName}`,
+          ),
+        )
+      : undefined;
+
+  const getVirtualMachineRoute: (vmExternalId: string) => Route = (
+    vmExternalId: string,
+  ): Route => {
+    return populate(
+      PageMap.VMWARE_VCENTER_VIEW_VIRTUAL_MACHINE_DETAIL,
+      routeParamFromExternalId(vmExternalId),
+    );
   };
 
-  const diskThroughputQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_disk_throughput",
-      title: "Disk Throughput",
-      description: translator.translateTemplate(
-        "vcenter.host.disk.throughput per direction and disk for ESXi host {{hostName}}.",
-        { hostName: hostName },
-      ),
-      legend: "Disk",
-      legendUnit: "",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.disk.throughput",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Avg,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-    transformValue: (value: number): number => {
-      return value * KIB;
-    },
-    yAxisValueFormatter: (value: number): string => {
-      return ValueFormatter.formatValue(value, "By/s");
-    },
-  };
-
-  const diskLatencyQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_disk_latency",
-      title: "Disk Latency (max)",
-      description: translator.translateTemplate(
-        "vcenter.host.disk.latency.max per disk for ESXi host {{hostName}}. Sustained values above ~20-50 ms point at storage contention.",
-        { hostName: hostName },
-      ),
-      legend: "Latency",
-      legendUnit: "ms",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.disk.latency.max",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Max,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  const packetErrorQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_packet_errors",
-      title: "Network Packet Errors",
-      description: translator.translateTemplate(
-        "vcenter.host.network.packet.error.rate for ESXi host {{hostName}} — anything above zero deserves a look at the physical NIC / switch port.",
-        { hostName: hostName },
-      ),
-      legend: "Errors",
-      legendUnit: "/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.network.packet.error.rate",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Max,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  const packetDropQuery: MetricQueryConfigData = {
-    metricAliasData: {
-      metricVariable: "host_packet_drops",
-      title: "Network Packet Drops",
-      description: translator.translateTemplate(
-        "vcenter.host.network.packet.drop.rate for ESXi host {{hostName}}.",
-        { hostName: hostName },
-      ),
-      legend: "Drops",
-      legendUnit: "/s",
-    },
-    metricQueryData: {
-      filterData: {
-        metricName: "vcenter.host.network.packet.drop.rate",
-        attributes: idAttributes,
-        aggegationType: AggregationType.Max,
-        aggregateBy: {},
-      },
-      groupBy: {
-        attributes: true,
-      },
-    },
-  };
-
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Host Name", value: hostName },
-    { title: "vCenter", value: vcenterName },
-  ];
-
-  if (row) {
-    if (row.datacenterName) {
-      summaryFields.push({ title: "Datacenter", value: row.datacenterName });
-    }
-    summaryFields.push({
-      title: "Cluster",
-      value: row.clusterName || "Standalone (not in a cluster)",
+  const getRecordRoute: (page: PageMap, id: ObjectID) => Route = (
+    page: PageMap,
+    id: ObjectID,
+  ): Route => {
+    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+      modelId: id,
     });
+  };
 
-    if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-      const usage: string =
-        row.latestCpuMhz !== null && row.latestCpuMhz !== undefined
-          ? ` (${formatMhz(Number(row.latestCpuMhz))}${
-              row.cpuCapacityMhz !== null && row.cpuCapacityMhz !== undefined
-                ? ` of ${formatMhz(Number(row.cpuCapacityMhz))}`
-                : ""
-            })`
-          : "";
-      summaryFields.push({
-        title: "CPU",
-        value: `${formatPercent(Number(row.latestCpuPercent))}${usage}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.hostCpu,
-      });
-    } else if (
-      row.cpuCapacityMhz !== null &&
-      row.cpuCapacityMhz !== undefined
-    ) {
-      summaryFields.push({
-        title: "CPU Capacity",
-        value: formatMhz(Number(row.cpuCapacityMhz)),
-        description: VMWARE_METRIC_DESCRIPTIONS.hostCpuCapacity,
-      });
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      const pct: string =
-        row.latestMemoryPercent !== null &&
-        row.latestMemoryPercent !== undefined
-          ? ` (${formatPercent(Number(row.latestMemoryPercent))})`
-          : "";
-      summaryFields.push({
-        title: "Memory (Used / Capacity)",
-        value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
-          row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-            ? Number(row.maxMemoryBytes)
-            : null,
-        )}${pct}`,
-        description: VMWARE_METRIC_DESCRIPTIONS.hostMemory,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.metricsUpdatedAt) {
-      summaryFields.push({
-        title: "Metrics Updated",
-        value: OneUptimeDate.fromNow(new Date(row.metricsUpdatedAt as Date)),
-      });
-    }
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
+  const showVirtualMachines: () => void = (): void => {
+    setInitialTabName(VMWARE_HOST_TAB_VIRTUAL_MACHINES);
+    setTabsKey((key: number): number => {
+      return key + 1;
+    });
+  };
 
   const tabs: Array<Tab> = [
     {
-      name: "Overview",
+      name: VMWARE_HOST_TAB_OVERVIEW,
       children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Host details not reported yet. Make sure the VMware agent is sending metrics."
+        <VMwareHostOverviewTab
+          vcenterId={modelId}
+          identity={identity}
+          externalId={externalId}
+          row={row}
+          virtualMachineRows={virtualMachineRows}
+          virtualMachineSummary={virtualMachineSummary}
+          clusterRoute={clusterRoute}
+          getVirtualMachineRoute={getVirtualMachineRoute}
+          getIncidentRoute={(incidentId: ObjectID): Route => {
+            return getRecordRoute(PageMap.INCIDENT_VIEW, incidentId);
+          }}
+          getAlertRoute={(alertId: ObjectID): Route => {
+            return getRecordRoute(PageMap.ALERT_VIEW, alertId);
+          }}
+          getMonitorRoute={(monitorId: ObjectID): Route => {
+            return getRecordRoute(PageMap.MONITOR_VIEW, monitorId);
+          }}
+          getRecommendationsRoute={(
+            recommendationIds: Array<string>,
+          ): Route => {
+            return populate(
+              PageMap.VMWARE_VCENTER_VIEW_RECOMMENDATIONS,
+            ).addQueryParams({
+              [RECOMMENDATION_SELECTION_QUERY_PARAM]:
+                RecommendationFilterUtil.toSelectionQuery(recommendationIds),
+            });
+          }}
+          incidentsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_INCIDENTS)}
+          alertsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_ALERTS)}
+          onShowVirtualMachines={showVirtualMachines}
+          onRefreshInventory={refreshInventory}
         />
       ),
     },
     {
-      name: "Metrics",
+      name: VMWARE_HOST_TAB_VIRTUAL_MACHINES,
+      /*
+       * The VMs, templates left out: the number the hero, "View all N
+       * virtual machines" and the vCenter's side menu give.
+       */
+      countBadge: virtualMachineSummary.total,
       children: (
-        <Card
-          title={translator.translateTemplate("Host Metrics: {{hostName}}", {
-            hostName: hostName,
-          })}
-          description="CPU, memory, network, disk throughput, disk latency and NIC errors for this ESXi host over the selected time range."
-        >
-          <ResourceMetricsTab
-            queryConfigs={[
-              cpuQuery,
-              memoryQuery,
-              networkQuery,
-              diskThroughputQuery,
-              diskLatencyQuery,
-              packetErrorQuery,
-              packetDropQuery,
-            ]}
-          />
-        </Card>
+        <VMwareHostVirtualMachinesTab
+          rows={virtualMachineRows}
+          isLoading={isLoadingVirtualMachines}
+          getVirtualMachineRoute={getVirtualMachineRoute}
+          onRefreshClick={refreshInventory}
+        />
+      ),
+    },
+    {
+      name: VMWARE_HOST_TAB_METRICS,
+      children: (
+        <VMwareHostMetricsTab
+          hostName={identity.hostName}
+          attributes={getVMwareHostMetricAttributes(identity)}
+        />
+      ),
+    },
+    {
+      name: VMWARE_HOST_TAB_LOGS,
+      children: (
+        <VMwareHostLogsTab
+          vcenterId={modelId}
+          vcenterName={identity.vcenterName}
+          hostName={identity.hostName}
+          clusterName={row?.clusterName || undefined}
+          isProbeCollected={
+            vcenter.collectionMethod === VMwareCollectionMethod.Probe
+          }
+          setupGuideRoute={populate(PageMap.VMWARE_VCENTER_VIEW_DOCUMENTATION)}
+        />
       ),
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="vmware-host-page">
+      <VMwareHostHero
+        hostName={identity.hostName}
+        reportState={reportState}
+        lastReportAt={lastReportAt}
+        datacenterName={identity.datacenterName}
+        clusterName={row?.clusterName || undefined}
+        clusterRoute={clusterRoute}
+        isStandalone={row ? !row.clusterName : undefined}
+        cpuCapacityMhz={toFiniteNumber(row?.cpuCapacityMhz)}
+        memoryCapacityBytes={toFiniteNumber(row?.maxMemoryBytes)}
+        virtualMachines={virtualMachineSummary}
+      />
+
+      <VMwareHostReportNotice
+        reportState={reportState}
+        lastReportAt={lastReportAt}
+        vcenterRoute={populate(PageMap.VMWARE_VCENTER_VIEW)}
+        hostsRoute={populate(PageMap.VMWARE_VCENTER_VIEW_HOSTS)}
+      />
+
+      {/*
+       * The tab row wraps on a phone, so Logs is never out of sight past
+       * the edge of the screen.
+       */}
+      <Tabs
+        key={tabsKey}
+        tabs={tabs}
+        initialTabName={initialTabName}
+        wrap={true}
+        onTabChange={() => {}}
+      />
+    </div>
+  );
 };
 
 export default VMwareVCenterHostDetail;

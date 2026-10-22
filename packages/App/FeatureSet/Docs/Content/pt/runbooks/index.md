@@ -36,7 +36,7 @@ flowchart TB
 
 Cada execução de um runbook é uma **execução**. Quando ela começa, as etapas do runbook são copiadas para ela, e o OneUptime as percorre em ordem. Uma etapa Manual, ou uma etapa que precisa de aprovação, pausa a execução até que alguém aja.
 
-As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, SSH e kubectl são executadas em um [Runner](/docs/runbooks/agents) que você instala na sua própria infraestrutura, então esses scripts nunca rodam nos servidores do OneUptime. Uma etapa JavaScript também roda em um dos seus Runners ou, se não escolher nenhum, em um [Runner global](/docs/runbooks/agents#runners-globais), em um sandbox que só alcança a internet. O status, a saída e a mensagem de erro de cada etapa ficam registrados na execução, que permanece ligada ao incidente, alerta ou evento para o qual ela rodou.
+As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, SSH e kubectl são executadas em um [Runner](/docs/runbooks/agents) que você instala na sua própria infraestrutura, então esses scripts nunca rodam nos servidores do OneUptime. Uma etapa JavaScript também roda em um dos seus Runners ou, se não escolher nenhum e o projeto não tiver um [Runner padrão](/docs/runbooks/agents#o-runner-padrão-do-projeto), em um [Runner global](/docs/runbooks/agents#runners-globais), em um sandbox que só alcança a internet. O status, a saída e a mensagem de erro de cada etapa ficam registrados na execução, que permanece ligada ao incidente, alerta ou evento para o qual ela rodou.
 
 ## Conceitos principais
 
@@ -47,7 +47,7 @@ As etapas HTTP e de IA são executadas no Worker do OneUptime. As etapas Bash, S
 | **Regra de runbook** | Uma regra que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção programada que atendem às suas condições: seus monitores, severidade, rótulos, rótulos dos monitores, título ou descrição. |
 | **Execução** | Uma execução de um runbook. É criada quando uma regra dispara, quando alguém clica em **Executar Runbook** em um evento ou quando alguém clica em **Run Now** no próprio runbook. Guarda um instantâneo das etapas e o status e a saída de cada etapa. |
 | **Instantâneo** | A cópia congelada das etapas do runbook que fica em cada execução. Você pode editar o runbook depois sem reescrever o histórico das execuções anteriores. |
-| **Runner** | Um pequeno agente que você executa em um host da sua própria infraestrutura. Ele executa as etapas JavaScript, Bash, SSH e kubectl que o indicam. Também chamado de agente de runbook. Um Runner global, um dos que o OneUptime executa para todos os projetos, executa as etapas JavaScript que não citam nenhum. |
+| **Runner** | Um pequeno agente que você executa em um host da sua própria infraestrutura. Ele executa as etapas JavaScript, Bash, SSH e kubectl que o indicam. Também chamado de agente de runbook. Um Runner global, um dos que o OneUptime executa para todos os projetos, executa as etapas JavaScript que não citam nenhum, a menos que o projeto tenha um Runner padrão. |
 | **Variável** | Um valor que as etapas usam pelo nome, como um host ou uma URL: `{{global.variables.NAME}}` para um do projeto, que qualquer runbook pode usar, ou `{{local.variables.NAME}}` para um do próprio runbook. |
 | **Segredo** | Uma variável cujo valor é criptografado em repouso, nunca mais é exibido e fica oculto no que as etapas imprimem, como uma chave SSH, uma senha, um kubeconfig ou um token de API. Entregue apenas aos Runners que você permite usá-lo; Runners globais o recebem só se você permitir. |
 
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 Um monitor abre o incidente `INC-4821 · db-primary connection timeout`. A regra corresponde e uma execução começa:
 
-- A etapa 1 (JavaScript) é executada no Runner que você escolheu para ela. Seu valor de retorno, como `{ lagMs: 412 }`, é capturado. Uma etapa que não escolhe nenhum Runner roda em um Runner global.
+- A etapa 1 (JavaScript) é executada no Runner que você escolheu para ela. Seu valor de retorno, como `{ lagMs: 412 }`, é capturado. Uma etapa que não escolhe nenhum Runner roda no Runner padrão do projeto ou, se não houver um, em um Runner global.
 - A etapa 2 (Manual) pausa a execução, que mostra **Aguardando você**. A pessoa de plantão confere o painel e clica em **Marcar como concluído**.
 - A etapa 3 (HTTP request) é executada, e a resposta ao `POST` é capturada.
 - A etapa 4 (Manual) pausa a execução de novo até que alguém a conclua.

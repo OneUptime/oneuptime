@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | گام‌هایی که خودکار یا دستی روی پرونده‌ها اجرا می‌شوند |
 | **در انتظار تأیید** | Playbooks | گام‌های پلی‌بوک که منتظرند کسی آن‌ها را تأیید یا رد کند |
 | **اجراهای پلی‌بوک** | Playbooks | آنچه هر پلی‌بوک گام به گام انجام داد |
+| **Protected Entities** | Playbooks | کاربران و میزبان‌هایی که هیچ پلی‌بوکی آن‌ها را مهار نمی‌کند |
 | **Connections** | Connections | لاگ‌های شما، محصولات امنیتی‌ای که OneUptime از آن‌ها دریافت می‌کند، و SIEM‌هایی که به آن‌ها می‌فرستد |
 | **راهنمای راه‌اندازی** | Connections | قطعه‌کدهایی برای ارسال رویدادها، با کلید دریافت دادهٔ شما پرشده |
 
@@ -134,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`، `category`، `type`، `action` |
 | `ruleName` | `rule`، `rule_name`، `signature`، `detection` |
 | `productName` | `product`، `product_name`، `source`، `log_source` |
+| `processName` | `process_name`، `process.name`، `proc.name`، `comm` |
+| `processPath` | `process_path`، `Image`، `NewProcessName`، `exe`، `process.executable` |
+| `processCommandLine` | `command_line`، `CommandLine`، `cmdline`، `process.command_line`، `proc.cmdline`، `process` |
+| `parentProcessName` | `parent_process_name`، `process.parent.name`، `proc.pname` |
+| `parentProcessPath` | `parent_process_path`، `ParentImage`، `ParentProcessName`، `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`، `ParentCommandLine`، `process.parent.command_line`، `proc.pcmdline` |
 
 واژه‌ای که شدت را بیان می‌کند به یک سطح OCSF تبدیل می‌شود: `info` به‌صورت Informational، `warning` به‌صورت Low، `error` به‌صورت Medium، `alert` به‌صورت Critical و `emergency` به‌صورت Fatal خوانده می‌شود.
 
@@ -178,7 +185,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Findingها، به‌صورت Detection و Compliance Finding | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | رویدادهای ورود، MFA، حساب و سیاست | [Okta System Log](/docs/integrations/okta) |
 
-- هشدارهای خود محصول در سطح **Open Cases From** یا بالاتر از آن (**High and above** ، مگر اینکه سطح دیگری برگزینید، یا **هرگز** ) [پرونده](/docs/telemetry/security-cases) باز می‌کنند، که بر پایهٔ کاربر، میزبان یا نشانی‌ای که دربارهٔ آن‌اند گروه‌بندی می‌شوند.
+- هشدارهای خود محصول در سطح **Open Cases From** یا بالاتر از آن (**بالا و بالاتر** ، مگر اینکه سطح دیگری برگزینید، یا **هرگز** ) [پرونده](/docs/telemetry/security-cases) باز می‌کنند، که بر پایهٔ کاربر، میزبان یا نشانی‌ای که دربارهٔ آن‌اند گروه‌بندی می‌شوند.
 - یک اتصال رکوردها را بر پایهٔ زمانی می‌خواند که محصول آن‌ها را ساخته است، نه زمان فعالیتی که توصیف می‌کنند. قاعدهٔ SIEMی که ساعتی یک بار اجرا می‌شود، تشخیص‌ها را مدت‌ها پس از رویدادهایی که با آن‌ها تطابق داشته می‌سازد، و آن‌ها باز هم وارد می‌شوند.
 - نخستین نظرسنجی ۲۴ ساعت به عقب نگاه می‌کند، پس یک اتصال تازه بی‌درنگ رکوردهای اخیر را نشان می‌دهد.
 - **آزمایش اتصال** ، در ردیف اتصال، دسترسی به محصول و در حال اجرا بودن کارگرهای خود OneUptime را بررسی می‌کند و چیزی وارد نمی‌کند. **Run now** بی‌درنگ نظرسنجی می‌کند.
@@ -193,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | شدت | `severityName` ، یکی از Unknown، Informational، Low، Medium، High، Critical، Fatal یا Other، و `severityId` |
 | چه کسی انجامش داد | `principalUser` ، `principalHost` ، `principalIp` ، `principalProcess` |
 | به چه چیزی دست زد | `targetUser` ، `targetHost` ، `targetIp` ، `targetPort` ، `targetResource` |
+| فرایند | `processName` ، `processPath` و `processCommandLine` : در اجرای یک فرایند، فرایندی که اجرا شد، و در غیر این صورت فرایندی که عمل کرد. `parentProcessName` ، `parentProcessPath` و `parentProcessCommandLine` : فرایندی که آن را اجرا کرد |
 | منبع | `productName` ، `vendorName` ، `ruleId` ، `ruleName` ، `eventUid` |
 | محتوا | `message` ، `mitreTactics` ، `mitreTechniques` و `observables` : هر کاربر، میزبان، نشانی IP، دامنه و هشی که از رویداد برداشته شده |
 | ویژگی‌ها | کل محتوای منبع، که به کلیدهای نقطه‌دار تخت شده است |
@@ -217,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | ویژگی وجود دارد | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | ویژگی آن متن را دارد | `@finding_info.title:~ransom` |
 
-یک فیلد یا نامی کوتاه است (`severity` ، `class` ، `category` ، `activity` ، `status` ، `vendor` ، `product` ، `rule` ، `user` ، `host` ، `ip` ، `targetuser` ، `targethost` ، `targetip` ، `observable` ، `tactic` ، `technique`) یا نام خود فیلد، مانند `severityName` یا `principalHost` . هر نام دیگری به‌صورت یک ویژگی منبع خوانده می‌شود. `observable:<value>` هر رویدادی را که از یک مقدار نام می‌برد پیدا می‌کند، در هر سویی از فعالیت که بوده باشد.
+یک فیلد یا نامی کوتاه است (`severity` ، `class` ، `category` ، `activity` ، `status` ، `vendor` ، `product` ، `rule` ، `user` ، `host` ، `ip` ، `targetuser` ، `targethost` ، `targetip` ، `processname` ، `commandline` ، `parentprocessname` ، `observable` ، `tactic` ، `technique`) یا نام خود فیلد، مانند `severityName` یا `principalHost` . هر نام دیگری به‌صورت یک ویژگی منبع خوانده می‌شود. `observable:<value>` هر رویدادی را که از یک مقدار نام می‌برد پیدا می‌کند، در هر سویی از فعالیت که بوده باشد.
 
 ### وجه‌ها
 
-نوار کناری رویدادهای پنجره را بر پایهٔ **منبع** ، **شدت** ، **کلاس رویداد** ، **Category** ، **فعالیت** ، **وضعیت** ، **فروشنده** ، **محصول** ، **Detection Rule** ، **کاربر مبدأ** و **میزبان مبدأ** می‌شمارد. روی یک مقدار کلیک کنید تا فقط رویدادهای آن بمانند، یا روی علامت منفی کنارش تا کنار گذاشته شوند. برای برگرداندن، دوباره کلیک کنید. نمودار و هر شمارش دقیقاً رویدادهای فهرست را توصیف می‌کنند.
+نوار کناری رویدادهای پنجره را بر پایهٔ **منبع** ، **شدت** ، **کلاس رویداد** ، **Category** ، **فعالیت** ، **وضعیت** ، **فروشنده** ، **محصول** ، **Detection Rule** ، **کاربر مبدأ** ، **میزبان مبدأ** ، **فرایند** و **فرایند والد** می‌شمارد. روی یک مقدار کلیک کنید تا فقط رویدادهای آن بمانند، یا روی علامت منفی کنارش تا کنار گذاشته شوند. برای برگرداندن، دوباره کلیک کنید. نمودار و هر شمارش دقیقاً رویدادهای فهرست را توصیف می‌کنند.
 
 ### هم‌بسته‌سازی
 
@@ -277,6 +285,7 @@ OneUptime هستهٔ بولی Sigma را اجرا می‌کند:
 - شرط‌ها گزینش‌ها را با `and` ، `or` ، `not` و پرانتزها، یا با `1 of selection_*` ، `all of selection_*` ، `any of them` و `all of them` ترکیب می‌کنند.
 - پیراینده‌های فیلد: `contains` ، `startswith` ، `endswith` ، `all` ، `re` ، `cased` ، `gt` ، `gte` ، `lt` ، `lte` ، `cidr` ، `exists` و `windash` . متن بدون توجه به بزرگی و کوچکی حروف مقایسه می‌شود، مگر اینکه `cased` را اضافه کنید.
 - یک فیلد یا فیلدی نوع‌دار است (`principalUser`)، یا نگارش رایج آن در Sigma (`CommandLine` ، `src_ip` ، `Hostname`)، یا هر کلید ویژگی، به همان شکلی که در رویداد نوشته شده (`threat.matched`).
+- `Image` و `CommandLine` فرایندی را می‌خوانند که رویداد دربارهٔ آن است، یعنی در اجرای یک فرایند همان فرایندی که اجرا شد (`processPath` ، `processCommandLine`)، و `ParentImage` و `ParentCommandLine` فرایندی را که آن را اجرا کرد (`parentProcessPath` ، `parentProcessCommandLine`). `principalProcess` فرایندی است که عمل کرد، که در یک اجرا همان فرایند والد است.
 - `level` شدت را تعیین می‌کند: `informational` ، `low` ، `medium` ، `high` یا `critical` ، و اگر نباشد `medium` . شناسه‌های ATT&CK در `tags` (`attack.t1110` ، `attack.ta0006`) فیلدهای MITRE یافته را پر می‌کنند.
 
 تجمیع‌هایی مانند `| count() by principalIp > 5` هنگام ذخیره رد می‌شوند: به‌جای آن‌ها **Group By Field** و **Match Count Threshold** را به کار ببرید. `logsource` فقط جنبهٔ اطلاعاتی دارد و چیزی را محدود نمی‌کند: آن فیلتر را در یک گزینش بگذارید، مانند `className: Authentication` . یک `timeframe` نادیده گرفته می‌شود، چون بازهٔ قاعده پنجرهٔ آن را تعیین می‌کند.
@@ -307,7 +316,7 @@ OneUptime هر دقیقه قاعده‌های فعالی را بررسی می‌
 - پنجره‌ها پشت سر هم‌اند، نه غلتان. با بازهٔ ۱۰ دقیقه‌ای، شکست‌هایی در ۰۹:۵۸ و ۱۰:۰۱ می‌توانند در اجراهای متفاوتی بیفتند و جدا شمرده شوند، پس هنگام برگزیدن آستانه حاشیه بگذارید.
 - پس از یک وقفه، مانند قطع کار یک کارگر یا قاعده‌ای که دوباره روشن شده، اجرای بعدی کل وقفه را پوشش می‌دهد، حداکثر تا ۲۴ ساعت گذشته.
 - رویدادی که بیش از دو دقیقه دیر می‌رسد، پس از آنکه اجرایی زمان آن را پوشش داده است، ذخیره می‌شود و قابل جستجوست، اما آن قاعده هرگز آن را نمی‌خواند.
-- در هر اجرا حداکثر ۱۰۰ گروه فعال می‌شوند: آن‌هایی که بیشترین شمارش را دارند.
+- هر گروهی که به آستانه برسد به یک Detection Finding تبدیل می‌شود، تا ۱۰٬۰۰۰ مورد در هر اجرا. برای ۱۰۰ گروهی که بیشترین شمارش را دارند هشدار، حادثه و پرونده باز می‌شود؛ بقیه در یک پرونده دربارهٔ قاعده جمع می‌شوند، و **آخرین خطا**ی قاعده می‌گوید چند گروه تطابق داشتند.
 
 ### شدت
 

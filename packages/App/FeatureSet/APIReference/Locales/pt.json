@@ -36,6 +36,7 @@
     "or": "ou",
     "copy": "Copiar",
     "copied": "Copiado!",
+    "copyFailed": "Falha ao copiar",
     "copyCode": "Copiar código",
     "copyRequest": "Copiar requisição",
     "headers": "Cabeçalhos",

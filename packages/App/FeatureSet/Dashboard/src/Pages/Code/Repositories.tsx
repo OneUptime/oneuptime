@@ -3,104 +3,93 @@ import CodeApi, {
   CodeRepositoriesResponse,
   CodeRepositoryListItem,
 } from "../../Components/Code/CodeApi";
-import { getRepositoryFullName } from "../../Components/Code/CodePaths";
-import CodeRepositoryRow from "../../Components/Code/CodeRepositoryRow";
+import {
+  CODE_REPOSITORIES_COPY,
+  CodeRepositoryGroups,
+  groupRepositories,
+  isFoundOnlyUnderNotConnected,
+  isGitHubDisconnected,
+  REPOSITORY_SEARCH_THRESHOLD,
+} from "../../Components/Code/CodeRepositoriesList";
+import CodeRepositoriesTable from "../../Components/Code/CodeRepositoriesTable";
 import { CODE_GITHUB_NOT_CONNECTED } from "../../Components/Code/CodeTaskCopy";
 import {
   ConnectGitHubEmptyState,
-  ConnectMoreRepositoriesButton,
-  GitHubMark,
   useGitHubConnect,
   UseGitHubConnect,
 } from "../../Components/Code/GitHubConnect";
 import IconProp from "Common/Types/Icon/IconProp";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import Icon from "Common/UI/Components/Icon/Icon";
+import {
+  TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+  TableHeaderSearchSlot,
+  TableHeaderToolbar,
+  renderTableHeaderMainButton,
+  renderTableHeaderMoreMenu,
+  useTableHeaderSearchShortcut,
+} from "Common/UI/Components/Table/TableHeaderControls";
+import TableEmptyState, {
+  TableEmptyStateAction,
+  TableEmptyStateKind,
+  TableEmptyStateProps,
+} from "Common/UI/Components/Table/TableEmptyState";
+import {
+  CLEAR_SEARCH,
+  getLoadErrorStateProps,
+} from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import API from "Common/UI/Utils/API/API";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
-// A search box appears once there are more repositories than fit at a glance.
-export const REPOSITORY_SEARCH_THRESHOLD: number = 6;
-
 /*
- * The most recently active repositories first, then by name: what a person
- * opens a repository for is usually where work is happening.
+ * The list rules live in Components/Code/CodeRepositoriesList (React-free);
+ * they are re-exported here for the pages and tests that read them from
+ * this page.
  */
-export const sortRepositories: (
-  repositories: Array<CodeRepositoryListItem>,
-) => Array<CodeRepositoryListItem> = (
-  repositories: Array<CodeRepositoryListItem>,
-): Array<CodeRepositoryListItem> => {
-  return [...repositories].sort(
-    (a: CodeRepositoryListItem, b: CodeRepositoryListItem): number => {
-      const activityA: number = a.stats.lastActivityAt
-        ? new Date(a.stats.lastActivityAt).getTime()
-        : 0;
-      const activityB: number = b.stats.lastActivityAt
-        ? new Date(b.stats.lastActivityAt).getTime()
-        : 0;
+export {
+  groupRepositories,
+  isFoundOnlyUnderNotConnected,
+  isGitHubDisconnected,
+  matchesRepositorySearch,
+  REPOSITORY_SEARCH_THRESHOLD,
+  sortRepositories,
+} from "../../Components/Code/CodeRepositoriesList";
 
-      if (activityA !== activityB) {
-        return activityB - activityA;
-      }
+export const CODE_REPOSITORIES_CARD_TEST_ID: string = "code-repositories-card";
 
-      return a.name.localeCompare(b.name);
-    },
-  );
-};
-
-// Whether a repository's name, organization/name or description holds the search.
-export const matchesRepositorySearch: (
-  repository: CodeRepositoryListItem,
-  search: string,
-) => boolean = (
-  repository: CodeRepositoryListItem,
-  search: string,
-): boolean => {
-  const needle: string = search.trim().toLowerCase();
-
-  if (!needle) {
-    return true;
-  }
-
-  return (
-    repository.name.toLowerCase().includes(needle) ||
-    getRepositoryFullName(repository).toLowerCase().includes(needle) ||
-    (repository.description || "").toLowerCase().includes(needle)
-  );
-};
+export const CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID: string =
+  "code-repositories-not-connected";
 
 /*
- * Whether GitHub reaches none of the repositories - the project's GitHub
- * connection is gone: said once over the list, with Connect GitHub, rather
- * than on every row.
- */
-export const isGitHubDisconnected: (
-  repositories: Array<CodeRepositoryListItem>,
-) => boolean = (repositories: Array<CodeRepositoryListItem>): boolean => {
-  return (
-    repositories.length > 0 &&
-    repositories.every((repository: CodeRepositoryListItem): boolean => {
-      return !repository.isConnected;
-    })
-  );
-};
-
-/*
- * Code's Repositories: the GitHub repositories connected to the project, as
- * a list - each with what needs someone, its tasks and when anything last
- * happened - and Connect repositories for more. A search box once there are
- * more than fit at a glance. With none yet, what Code is for and Connect
- * GitHub. Asking AI happens on Code's first page and on each repository's
- * page; this one is for finding a repository.
+ * Code's Repositories: the GitHub repositories of the project, drawn as
+ * every list in OneUptime is - a card with the shared table, its header's
+ * search, its main button (Connect repositories) and ⋯.
+ *
+ * The repositories AI can work in are the list, most recently active
+ * first. Those the project's GitHub App does not reach any more - imported
+ * by an installation the project has since left, or one the app was taken
+ * off - are listed apart, below it, folded: how many there are, why AI
+ * cannot work in them, and Connect GitHub, which puts every one the
+ * installation reaches back on it. They used to sit among the others, each
+ * with a "Not connected" pill, so a project with one connected repository
+ * and fourteen others saw its one at the end of the list.
+ *
+ * With none connected at all, the list says GitHub is not connected and
+ * offers Connect GitHub; with no repository yet, what Code is for and
+ * Connect GitHub.
  */
 const CodeRepositoriesPage: FunctionComponent<
   PageComponentProps
@@ -111,6 +100,9 @@ const CodeRepositoriesPage: FunctionComponent<
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const searchInputRef: MutableRefObject<HTMLInputElement | null> =
+    useRef<HTMLInputElement | null>(null);
 
   const load: () => Promise<void> = useCallback(async (): Promise<void> => {
     setIsLoading(true);
@@ -125,187 +117,415 @@ const CodeRepositoriesPage: FunctionComponent<
     setIsLoading(false);
   }, []);
 
-  const connection: UseGitHubConnect = useGitHubConnect({
-    onConnected: () => {
-      load().catch(() => {
-        // handled inside load
-      });
-    },
-  });
-
-  useEffect(() => {
+  const reload: () => void = (): void => {
     load().catch(() => {
       // handled inside load
     });
+  };
+
+  const connection: UseGitHubConnect = useGitHubConnect({
+    onConnected: reload,
+  });
+
+  useEffect(() => {
+    reload();
   }, [load]);
+
+  const repositories: Array<CodeRepositoryListItem> = data?.repositories || [];
+  const hasSearch: boolean = repositories.length > REPOSITORY_SEARCH_THRESHOLD;
+  const searchTerm: string = hasSearch ? search.trim() : "";
+
+  // The two lists as the search leaves them, and Not connected as a whole.
+  const groups: CodeRepositoryGroups = groupRepositories(
+    repositories,
+    searchTerm,
+  );
+  const allGroups: CodeRepositoryGroups = groupRepositories(repositories);
+
+  /*
+   * Not connected starts folded, and opens and closes as the reader says -
+   * except that a search finding repositories only there opens it, so what
+   * was found is in sight rather than counted behind a fold.
+   */
+  const [isNotConnectedOpen, setIsNotConnectedOpen] = useState<boolean>(false);
+  const isSearchFoundOnlyNotConnected: boolean = isFoundOnlyUnderNotConnected(
+    groups,
+    searchTerm,
+  );
+
+  useEffect(() => {
+    if (isSearchFoundOnlyNotConnected) {
+      setIsNotConnectedOpen(true);
+    }
+  }, [isSearchFoundOnlyNotConnected]);
+
+  const openSearch: () => void = (): void => {
+    setIsSearchOpen(true);
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+  };
+
+  useTableHeaderSearchShortcut(hasSearch, openSearch);
+
+  const clearSearch: () => void = (): void => {
+    setSearch("");
+  };
+
+  /*
+   * The header's controls, as every table's: the search (once there are more
+   * repositories than fit at a glance), Connect repositories - the main
+   * button - and the ⋯ with Refresh. With none connected, the list itself
+   * offers Connect GitHub: one way to connect, not two.
+   */
+  const getHeaderToolbar: (isDisconnected: boolean) => ReactElement = (
+    isDisconnected: boolean,
+  ): ReactElement => {
+    const connectButton: CardButtonSchema | null =
+      connection.isGitHubAppConfigured && !isDisconnected
+        ? {
+            title: "Connect repositories",
+            icon: IconProp.Add,
+            buttonStyle: ButtonStyleType.NORMAL,
+            disabled: connection.connectLock.isLocked,
+            tooltip: connection.connectLock.reason,
+            onClick: (): void => {
+              connection.connect();
+            },
+          }
+        : null;
+
+    const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(
+      [
+        {
+          title: "Refresh",
+          icon: IconProp.Refresh,
+          buttonStyle: ButtonStyleType.ICON,
+          onClick: reload,
+        },
+      ],
+      { dataTestId: "code-repositories-more" },
+    );
+
+    const isSearchExpanded: boolean = isSearchOpen || search.trim().length > 0;
+
+    return (
+      <TableHeaderToolbar
+        dataTestId="code-repositories-toolbar"
+        isSearchOpen={hasSearch && isSearchExpanded}
+        search={
+          hasSearch ? (
+            <TableHeaderSearchSlot
+              isOpen={isSearchExpanded}
+              onOpen={openSearch}
+              dataTestId="code-repository-search-slot"
+            >
+              <div
+                className={`flex w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 shadow-sm ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME}`}
+                onClick={() => {
+                  searchInputRef.current?.focus();
+                }}
+                role="presentation"
+              >
+                <Icon
+                  icon={IconProp.Search}
+                  className="h-4 w-4 flex-none text-gray-500"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  data-testid="code-repository-search"
+                  aria-label={translator.translateText(
+                    CODE_REPOSITORIES_COPY.searchPlaceholder,
+                  )}
+                  placeholder={translator.translateText(
+                    CODE_REPOSITORIES_COPY.searchPlaceholder,
+                  )}
+                  value={search}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setSearch(event.target.value);
+                  }}
+                  onBlur={() => {
+                    if (!search.trim()) {
+                      setIsSearchOpen(false);
+                    }
+                  }}
+                  onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (event.key === "Escape") {
+                      setSearch("");
+                      setIsSearchOpen(false);
+                      event.currentTarget.blur();
+                    }
+                  }}
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm leading-5 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 [&::-webkit-search-cancel-button]:hidden"
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    data-testid="code-repository-search-clear"
+                    aria-label={translator.translateText(CLEAR_SEARCH)}
+                    title={translator.translateText(CLEAR_SEARCH)}
+                    onMouseDown={(event: React.MouseEvent) => {
+                      event.preventDefault();
+                    }}
+                    onClick={() => {
+                      clearSearch();
+                      searchInputRef.current?.focus();
+                    }}
+                    className={TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME}
+                  >
+                    <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <></>
+                )}
+              </div>
+            </TableHeaderSearchSlot>
+          ) : undefined
+        }
+      >
+        {connectButton ? renderTableHeaderMainButton(connectButton) : <></>}
+        {moreMenu || <></>}
+      </TableHeaderToolbar>
+    );
+  };
+
+  // What the list of connected repositories shows with none to list.
+  const getConnectedEmptyState: () => TableEmptyStateProps =
+    (): TableEmptyStateProps => {
+      if (searchTerm) {
+        return {
+          kind: TableEmptyStateKind.Filtered,
+          title: translator.translateTemplate(
+            CODE_REPOSITORIES_COPY.noMatchTitle,
+          ),
+          // Found under Not connected, which the search opened, just below.
+          description:
+            groups.notConnected.length > 0
+              ? translator.translatePlural(
+                  {
+                    one: "{{count}} repository under Not connected matches it.",
+                    other:
+                      "{{count}} repositories under Not connected match it.",
+                  },
+                  groups.notConnected.length,
+                )
+              : undefined,
+          // What was found is just below: this says so in less room.
+          isCompact: groups.notConnected.length > 0,
+          actions: [
+            {
+              title: CLEAR_SEARCH,
+              icon: IconProp.Close,
+              onClick: clearSearch,
+              dataTestId: "code-repository-search-empty-clear",
+            },
+          ],
+          dataTestId: "code-repository-search-empty",
+        };
+      }
+
+      // GitHub reaches none of them: the project's connection is gone.
+      const actions: Array<TableEmptyStateAction> = [];
+
+      if (
+        connection.isGitHubAppConfigured &&
+        !connection.connectLock.isLocked
+      ) {
+        actions.push({
+          title: "Connect GitHub",
+          icon: IconProp.Link,
+          onClick: (): void => {
+            connection.connect();
+          },
+          dataTestId: "code-github-reconnect",
+        });
+      }
+
+      return {
+        kind: TableEmptyStateKind.Empty,
+        icon: IconProp.LinkSlash,
+        title: translator.translateTemplate(
+          CODE_REPOSITORIES_COPY.noneConnectedTitle,
+        ),
+        description: translator.translateTemplate(CODE_GITHUB_NOT_CONNECTED),
+        actions: actions,
+        ...(connection.isGitHubAppConfigured && connection.connectLock.isLocked
+          ? {
+              note: (
+                <span data-testid="code-github-disconnected-lock">
+                  {connection.connectLock.reason}
+                </span>
+              ),
+            }
+          : {}),
+        dataTestId: "code-github-disconnected",
+      };
+    };
 
   const renderBody: () => ReactElement = (): ReactElement => {
     if (isLoading && !data) {
       return (
-        <div
-          data-testid="code-repositories-loading"
-          role="status"
-          className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm"
+        <Card
+          title={CODE_REPOSITORIES_COPY.cardTitle}
+          description={CODE_REPOSITORIES_COPY.cardDescription}
         >
-          <span className="sr-only">
-            {translator.translateText("Loading…")}
-          </span>
-          {/* Rows in the making: a mark, a name, a line of facts. */}
-          {[0, 1, 2].map((index: number) => {
-            return (
-              <div
-                key={index}
-                aria-hidden="true"
-                className="flex items-center gap-3 px-4 py-3.5 sm:px-5"
-              >
-                <div className="h-9 w-9 flex-shrink-0 rounded-lg bg-gray-100 motion-safe:animate-pulse" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3.5 w-1/3 rounded bg-gray-100 motion-safe:animate-pulse" />
-                  <div className="h-3 w-1/2 rounded bg-gray-100 motion-safe:animate-pulse" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+          <div data-testid="code-repositories-loading" role="status">
+            <span className="sr-only">
+              {translator.translateText("Loading…")}
+            </span>
+            <CodeRepositoriesTable
+              id="code-repositories"
+              repositories={[]}
+              isLoading={true}
+            />
+          </div>
+        </Card>
       );
     }
 
     if (error && !data) {
       return (
-        <ErrorMessage
-          message={error}
-          onRefreshClick={() => {
-            load().catch(() => {
-              // handled inside load
-            });
-          }}
-        />
+        <Card
+          title={CODE_REPOSITORIES_COPY.cardTitle}
+          description={CODE_REPOSITORIES_COPY.cardDescription}
+        >
+          <div data-testid="code-repositories-error">
+            <TableEmptyState
+              {...getLoadErrorStateProps({
+                pluralLabel: "Repositories",
+                error: error,
+                onRetry: reload,
+                translate: (text: string): string => {
+                  return translator.translateTemplate(text);
+                },
+                translator: translator,
+              })}
+            />
+          </div>
+        </Card>
       );
     }
 
-    if (!data || data.repositories.length === 0) {
+    if (repositories.length === 0) {
       return <ConnectGitHubEmptyState connection={connection} />;
     }
 
-    const isDisconnected: boolean = isGitHubDisconnected(data.repositories);
-    const repositories: Array<CodeRepositoryListItem> = sortRepositories(
-      data.repositories,
-    ).filter((repository: CodeRepositoryListItem): boolean => {
-      return matchesRepositorySearch(repository, search);
-    });
+    const isDisconnected: boolean = isGitHubDisconnected(repositories);
+    const headerToolbar: ReactElement = getHeaderToolbar(isDisconnected);
 
     return (
-      <div className="space-y-4">
-        {isDisconnected ? (
-          <div
-            data-testid="code-github-disconnected"
-            className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-inset ring-amber-600/20"
+      <>
+        <div data-testid={CODE_REPOSITORIES_CARD_TEST_ID}>
+          <Card
+            title={CODE_REPOSITORIES_COPY.cardTitle}
+            description={CODE_REPOSITORIES_COPY.cardDescription}
+            headerLayout="toolbar"
+            buttons={[headerToolbar]}
           >
-            <Icon
-              icon={IconProp.LinkSlash}
-              className="h-4 w-4 flex-shrink-0 text-amber-600"
+            <CodeRepositoriesTable
+              id="code-repositories"
+              repositories={groups.connected}
+              emptyState={getConnectedEmptyState()}
             />
-            <p className="min-w-0 flex-1 leading-6">
-              {translator.translateText(CODE_GITHUB_NOT_CONNECTED)}
-            </p>
-            {connection.isGitHubAppConfigured ? (
-              connection.connectLock.isLocked ? (
+          </Card>
+        </div>
+
+        {allGroups.notConnected.length > 0 ? (
+          <FoldedSection
+            title={CODE_REPOSITORIES_COPY.notConnectedTitle}
+            icon={IconProp.LinkSlash}
+            items={[
+              {
+                key: "count",
+                title: translator.translatePlural(
+                  {
+                    one: "{{count}} repository",
+                    other: "{{count}} repositories",
+                  },
+                  groups.notConnected.length,
+                ),
+                isSet: false,
+              },
+            ]}
+            summary={CODE_REPOSITORIES_COPY.notConnectedSummary}
+            isCollapsed={!isNotConnectedOpen}
+            onToggle={(isCollapsed: boolean): void => {
+              setIsNotConnectedOpen(!isCollapsed);
+            }}
+            isElevated={true}
+            isBodyFlush={true}
+            className="mb-5"
+            dataTestId={CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID}
+          >
+            <div className="border-t border-gray-200 px-5 pb-6 pt-4 md:px-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
                 <p
-                  data-testid="code-github-disconnected-lock"
-                  className="w-full leading-6 text-amber-800"
+                  data-testid="code-not-connected-explanation"
+                  className="min-w-0 flex-1 basis-64 text-sm leading-6 text-gray-600"
                 >
-                  {connection.connectLock.reason}
+                  {translator.translateText(
+                    CODE_REPOSITORIES_COPY.notConnectedExplanation,
+                  )}
                 </p>
-              ) : (
-                <button
-                  type="button"
-                  data-testid="code-github-reconnect"
-                  onClick={() => {
-                    connection.connect();
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                >
-                  <GitHubMark className="h-4 w-4" />
-                  {translator.translateText("Connect GitHub")}
-                </button>
-              )
-            ) : (
-              <></>
-            )}
-          </div>
+                {/*
+                 * With none connected, the list above already offers Connect
+                 * GitHub: one way to connect, not two.
+                 */}
+                {connection.isGitHubAppConfigured && !isDisconnected ? (
+                  connection.connectLock.isLocked ? (
+                    <p
+                      data-testid="code-not-connected-lock"
+                      className="text-sm text-gray-500"
+                    >
+                      {connection.connectLock.reason}
+                    </p>
+                  ) : (
+                    <span data-testid="code-not-connected-reconnect">
+                      {renderTableHeaderMainButton({
+                        title: "Connect GitHub",
+                        icon: IconProp.Link,
+                        buttonStyle: ButtonStyleType.NORMAL,
+                        onClick: (): void => {
+                          connection.connect();
+                        },
+                      })}
+                    </span>
+                  )
+                ) : (
+                  <></>
+                )}
+              </div>
+              <CodeRepositoriesTable
+                id="code-repositories-not-connected-table"
+                repositories={groups.notConnected}
+                isNotConnected={true}
+                emptyState={{
+                  kind: TableEmptyStateKind.Filtered,
+                  title: translator.translateTemplate(
+                    CODE_REPOSITORIES_COPY.noMatchTitle,
+                  ),
+                  isCompact: true,
+                  actions: [
+                    {
+                      title: CLEAR_SEARCH,
+                      icon: IconProp.Close,
+                      onClick: clearSearch,
+                    },
+                  ],
+                }}
+              />
+            </div>
+          </FoldedSection>
         ) : (
           <></>
         )}
-
-        <div className="flex flex-wrap items-center gap-3">
-          <p
-            data-testid="code-repositories-count"
-            className="text-sm text-gray-500"
-          >
-            {translator.translatePlural(
-              { one: "{{count}} repository", other: "{{count}} repositories" },
-              data.repositories.length,
-            )}
-          </p>
-          <div className="ml-auto flex flex-wrap items-center gap-2 max-sm:w-full">
-            {data.repositories.length > REPOSITORY_SEARCH_THRESHOLD ? (
-              <div className="relative max-sm:w-full">
-                <Icon
-                  icon={IconProp.Search}
-                  className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="search"
-                  data-testid="code-repository-search"
-                  aria-label={translator.translateText("Find a repository")}
-                  placeholder={translator.translateText("Find a repository")}
-                  value={search}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                    setSearch(event.target.value);
-                  }}
-                  className="w-56 rounded-md border border-gray-300 bg-white py-1 pl-8 pr-3 text-sm leading-5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-sm:w-full"
-                />
-              </div>
-            ) : (
-              <></>
-            )}
-            {isDisconnected ? (
-              <></>
-            ) : (
-              <ConnectMoreRepositoriesButton connection={connection} />
-            )}
-          </div>
-        </div>
-
-        {repositories.length > 0 ? (
-          <ul
-            data-testid="code-repositories"
-            className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-          >
-            {repositories.map((repository: CodeRepositoryListItem) => {
-              return (
-                <CodeRepositoryRow
-                  key={repository.id}
-                  repository={repository}
-                  isNotConnectedSaid={isDisconnected}
-                />
-              );
-            })}
-          </ul>
-        ) : (
-          <p
-            data-testid="code-repository-search-empty"
-            className="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500"
-          >
-            {translator.translateText("No repository matches your search.")}
-          </p>
-        )}
-      </div>
+      </>
     );
   };
 
   return (
-    <div className="space-y-5">
+    <div>
       {connection.notices}
       {renderBody()}
     </div>

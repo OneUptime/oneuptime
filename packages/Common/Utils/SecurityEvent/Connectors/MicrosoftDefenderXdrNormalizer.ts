@@ -15,9 +15,12 @@ import {
   getSecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
+  ProcessFields,
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
+  joinPath,
   parseEventTime,
   readString,
   readStringArray,
@@ -99,6 +102,8 @@ const TARGET_ROLES: Array<string> = [
 interface EvidenceEntity {
   value: string;
   roles: Array<string>;
+  // A process evidence's image, command line and parent image.
+  process?: ProcessFields | undefined;
 }
 
 interface EvidenceSummary {
@@ -268,16 +273,40 @@ function summarizeEvidence(payload: JSONObject): EvidenceSummary {
         const imageName: string = image ? readString(image, "fileName") : "";
         const value: string = commandLine || imageName;
 
+        const parentFile: JSONValue = readValue(item, "parentProcessImageFile");
+        const parent: JSONObject | null = isObject(parentFile)
+          ? parentFile
+          : null;
+        const parentName: string = parent ? readString(parent, "fileName") : "";
+
         if (value) {
-          summary.processes.push({ value, roles });
+          /*
+           * fileDetails.filePath is the folder the file is in; Graph has no
+           * parent command line.
+           */
+          summary.processes.push({
+            value,
+            roles,
+            process: buildProcessFields({
+              process: {
+                name: imageName,
+                path: image
+                  ? joinPath(readString(image, "filePath"), imageName)
+                  : "",
+                commandLine,
+              },
+              parent: {
+                name: parentName,
+                path: parent
+                  ? joinPath(readString(parent, "filePath"), parentName)
+                  : "",
+              },
+            }),
+          });
         }
 
         summary.observables.push(imageName, ...fileObservables(image));
-
-        const parent: JSONValue = readValue(item, "parentProcessImageFile");
-        summary.observables.push(
-          ...fileObservables(isObject(parent) ? parent : null),
-        );
+        summary.observables.push(...fileObservables(parent));
 
         const account: JSONValue = readValue(item, "userAccount");
         const user: string = userAccountValue(
@@ -408,14 +437,20 @@ function hasRole(entity: EvidenceEntity, roles: Array<string>): boolean {
  * compromised, else the first entity of that kind at all; the target is
  * the first entity with a target-side role that is not the actor.
  */
-function pickPrincipal(entities: Array<EvidenceEntity>): string {
+function pickPrincipalEntity(
+  entities: Array<EvidenceEntity>,
+): EvidenceEntity | undefined {
   const explicit: EvidenceEntity | undefined = entities.find(
     (entity: EvidenceEntity): boolean => {
       return hasRole(entity, PRINCIPAL_ROLES);
     },
   );
 
-  return (explicit || entities[0])?.value || "";
+  return explicit || entities[0];
+}
+
+function pickPrincipal(entities: Array<EvidenceEntity>): string {
+  return pickPrincipalEntity(entities)?.value || "";
 }
 
 function pickTarget(
@@ -516,7 +551,9 @@ export default class MicrosoftDefenderXdrNormalizer {
     const principalHost: string = pickPrincipal(evidence.hosts);
     const principalUser: string = pickPrincipal(evidence.users);
     const principalIp: string = pickPrincipal(evidence.ips);
-    const principalProcess: string = pickPrincipal(evidence.processes);
+    const principalProcessEntity: EvidenceEntity | undefined =
+      pickPrincipalEntity(evidence.processes);
+    const principalProcess: string = principalProcessEntity?.value || "";
 
     const { categoryUid, categoryName } = ocsfCategoryForClassUid(
       DETECTION_FINDING_CLASS_UID,
@@ -552,6 +589,8 @@ export default class MicrosoftDefenderXdrNormalizer {
       principalHost,
       principalIp,
       principalProcess,
+      // The process evidence the alert is about, and its parent.
+      ...(principalProcessEntity?.process || buildProcessFields({})),
       targetUser: pickTarget(evidence.users, principalUser),
       targetHost: pickTarget(evidence.hosts, principalHost),
       targetIp: pickTarget(evidence.ips, principalIp),

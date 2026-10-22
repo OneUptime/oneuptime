@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | केस पर चलने वाले चरण, अपने आप या हाथ से |
 | **स्वीकृति की प्रतीक्षा में** | Playbooks | वे प्लेबुक चरण जो किसी के स्वीकार या अस्वीकार करने का इंतज़ार कर रहे हैं |
 | **प्लेबुक रन** | Playbooks | हर प्लेबुक ने चरण-दर-चरण क्या किया |
+| **Protected Entities** | Playbooks | वे उपयोगकर्ता और होस्ट जिन्हें कोई प्लेबुक कंटेन नहीं करती |
 | **Connections** | Connections | आपके लॉग, वे सुरक्षा उत्पाद जिनसे OneUptime पोल करता है, और वे SIEM जिन्हें वह भेजता है |
 | **सेटअप गाइड** | Connections | इवेंट भेजने के स्निपेट, आपकी इन्जेशन कुंजी भरी हुई |
 
@@ -134,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`, `category`, `type`, `action` |
 | `ruleName` | `rule`, `rule_name`, `signature`, `detection` |
 | `productName` | `product`, `product_name`, `source`, `log_source` |
+| `processName` | `process_name`, `process.name`, `proc.name`, `comm` |
+| `processPath` | `process_path`, `Image`, `NewProcessName`, `exe`, `process.executable` |
+| `processCommandLine` | `command_line`, `CommandLine`, `cmdline`, `process.command_line`, `proc.cmdline`, `process` |
+| `parentProcessName` | `parent_process_name`, `process.parent.name`, `proc.pname` |
+| `parentProcessPath` | `parent_process_path`, `ParentImage`, `ParentProcessName`, `process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`, `ParentCommandLine`, `process.parent.command_line`, `proc.pcmdline` |
 
 गंभीरता बताने वाला शब्द OCSF स्तर बन जाता है: `info` को Informational, `warning` को Low, `error` को Medium, `alert` को Critical और `emergency` को Fatal पढ़ा जाता है।
 
@@ -178,7 +185,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | AWS Security Hub | Findings, Detection और Compliance Findings के रूप में | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | साइन-इन, MFA, खाते और नीति के इवेंट | [Okta System Log](/docs/integrations/okta) |
 
-- उत्पाद के अपने जो अलर्ट **Open Cases From** के स्तर पर या उससे ऊपर हैं (डिफ़ॉल्ट रूप से **High and above**, जब तक आप कोई दूसरा स्तर या **कभी नहीं** न चुनें), वे [केस](/docs/telemetry/security-cases) खोलते हैं, जो उस उपयोगकर्ता, होस्ट या पते के हिसाब से समूहित होते हैं जिसके बारे में वे हैं।
+- उत्पाद के अपने जो अलर्ट **Open Cases From** के स्तर पर या उससे ऊपर हैं (डिफ़ॉल्ट रूप से **उच्च और ऊपर**, जब तक आप कोई दूसरा स्तर या **कभी नहीं** न चुनें), वे [केस](/docs/telemetry/security-cases) खोलते हैं, जो उस उपयोगकर्ता, होस्ट या पते के हिसाब से समूहित होते हैं जिसके बारे में वे हैं।
 - कनेक्शन रिकॉर्ड को उस समय के हिसाब से पढ़ता है जब उत्पाद ने उन्हें बनाया, न कि उस गतिविधि के समय से जिसका वे वर्णन करते हैं। हर घंटे चलने वाला SIEM नियम जिन इवेंट से मेल खाता है, उनके बहुत बाद पहचान बनाता है, और वे फिर भी इम्पोर्ट होती हैं।
 - पहला पोल 24 घंटे पीछे देखता है, इसलिए नया कनेक्शन तुरंत हाल के रिकॉर्ड दिखाता है।
 - कनेक्शन की पंक्ति में **कनेक्शन का परीक्षण करें** उत्पाद तक पहुँच और OneUptime के अपने वर्कर चल रहे हैं या नहीं, यह जाँचता है, और कुछ इम्पोर्ट नहीं करता। **Run now** तुरंत पोल करता है।
@@ -193,6 +200,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | गंभीरता | `severityName`, जो Unknown, Informational, Low, Medium, High, Critical, Fatal या Other में से एक है, और `severityId` |
 | किसने किया | `principalUser`, `principalHost`, `principalIp`, `principalProcess` |
 | किस पर असर हुआ | `targetUser`, `targetHost`, `targetIp`, `targetPort`, `targetResource` |
+| प्रक्रिया | `processName`, `processPath` और `processCommandLine`: किसी प्रक्रिया के शुरू होने पर वह प्रक्रिया जो शुरू हुई, वरना वह प्रक्रिया जिसने काम किया। `parentProcessName`, `parentProcessPath` और `parentProcessCommandLine`: वह प्रक्रिया जिसने उसे शुरू किया |
 | स्रोत | `productName`, `vendorName`, `ruleId`, `ruleName`, `eventUid` |
 | सामग्री | `message`, `mitreTactics`, `mitreTechniques` और `observables`: इवेंट से निकाला गया हर उपयोगकर्ता, होस्ट, IP पता, डोमेन और हैश |
 | विशेषताएँ | पूरा स्रोत पेलोड, बिंदु वाली कुंजियों में चपटा किया हुआ |
@@ -217,11 +225,11 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `@<attribute>:*` | विशेषता मौजूद है | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | विशेषता में यह टेक्स्ट है | `@finding_info.title:~ransom` |
 
-फ़ील्ड या तो एक छोटा नाम है (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) या फ़ील्ड का अपना नाम, जैसे `severityName` या `principalHost`। कोई भी दूसरा नाम स्रोत विशेषता के रूप में पढ़ा जाता है। `observable:<value>` हर वह इवेंट ढूँढता है जिसमें कोई मान आता है, चाहे वह गतिविधि के किसी भी तरफ़ हो।
+फ़ील्ड या तो एक छोटा नाम है (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `processname`, `commandline`, `parentprocessname`, `observable`, `tactic`, `technique`) या फ़ील्ड का अपना नाम, जैसे `severityName` या `principalHost`। कोई भी दूसरा नाम स्रोत विशेषता के रूप में पढ़ा जाता है। `observable:<value>` हर वह इवेंट ढूँढता है जिसमें कोई मान आता है, चाहे वह गतिविधि के किसी भी तरफ़ हो।
 
 ### फ़ैसेट
 
-साइडबार विंडो के इवेंट को **स्रोत**, **गंभीरता**, **इवेंट क्लास**, **Category**, **गतिविधि**, **स्थिति**, **विक्रेता**, **उत्पाद**, **Detection Rule**, **स्रोत उपयोगकर्ता** और **स्रोत होस्ट** के हिसाब से गिनता है। किसी मान पर क्लिक करके सिर्फ़ उसके इवेंट रखें, या उसके बगल के माइनस पर क्लिक करके उन्हें हटाएँ। इसे वापस लेने के लिए फिर से क्लिक करें। चार्ट और हर गिनती ठीक-ठीक सूची के इवेंट को बताते हैं।
+साइडबार विंडो के इवेंट को **स्रोत**, **गंभीरता**, **इवेंट क्लास**, **Category**, **गतिविधि**, **स्थिति**, **विक्रेता**, **उत्पाद**, **Detection Rule**, **स्रोत उपयोगकर्ता**, **स्रोत होस्ट**, **प्रक्रिया** और **पैरेंट प्रक्रिया** के हिसाब से गिनता है। किसी मान पर क्लिक करके सिर्फ़ उसके इवेंट रखें, या उसके बगल के माइनस पर क्लिक करके उन्हें हटाएँ। इसे वापस लेने के लिए फिर से क्लिक करें। चार्ट और हर गिनती ठीक-ठीक सूची के इवेंट को बताते हैं।
 
 ### सहसंबंध
 
@@ -277,6 +285,7 @@ OneUptime Sigma का बूलियन मूल हिस्सा चला
 - कंडीशन सिलेक्शन को `and`, `or`, `not` और कोष्ठकों से, या `1 of selection_*`, `all of selection_*`, `any of them` और `all of them` से जोड़ती हैं।
 - फ़ील्ड मॉडिफ़ायर: `contains`, `startswith`, `endswith`, `all`, `re`, `cased`, `gt`, `gte`, `lt`, `lte`, `cidr`, `exists` और `windash`। टेक्स्ट की तुलना अक्षरों के बड़े-छोटे होने को अनदेखा करके होती है, जब तक आप `cased` न जोड़ें।
 - फ़ील्ड एक टाइप किया गया फ़ील्ड है (`principalUser`), उसकी आम Sigma वर्तनी (`CommandLine`, `src_ip`, `Hostname`), या कोई भी विशेषता कुंजी, वैसे ही लिखी जैसे इवेंट में है (`threat.matched`)।
+- `Image` और `CommandLine` उस प्रक्रिया को पढ़ते हैं जिसके बारे में इवेंट है, यानी प्रक्रिया शुरू होने पर वह प्रक्रिया जो शुरू हुई (`processPath`, `processCommandLine`), और `ParentImage` और `ParentCommandLine` उस प्रक्रिया को जिसने उसे शुरू किया (`parentProcessPath`, `parentProcessCommandLine`)। `principalProcess` वह प्रक्रिया है जिसने काम किया, जो प्रक्रिया शुरू होने पर पैरेंट होती है।
 - `level` गंभीरता तय करता है: `informational`, `low`, `medium`, `high` या `critical`, और न होने पर `medium`। `tags` में ATT&CK ID (`attack.t1110`, `attack.ta0006`) निष्कर्ष के MITRE फ़ील्ड भरती हैं।
 
 `| count() by principalIp > 5` जैसे एग्रीगेशन सहेजते समय अस्वीकार हो जाते हैं: इसके बजाय **Group By Field** और **Match Count Threshold** इस्तेमाल करें। `logsource` सिर्फ़ जानकारी के लिए है और कुछ सीमित नहीं करता: वह फ़िल्टर किसी सिलेक्शन में डालें, जैसे `className: Authentication`। `timeframe` अनदेखा किया जाता है, क्योंकि नियम का अंतराल ही उसकी विंडो तय करता है।
@@ -307,7 +316,7 @@ OneUptime हर मिनट उन सक्षम नियमों को �
 - विंडो एक के बाद एक लगती हैं, रोलिंग नहीं होतीं। 10 मिनट के अंतराल पर 09:58 और 10:01 की विफलताएँ अलग-अलग रन में पड़ सकती हैं और अलग गिनी जाती हैं, इसलिए थ्रेशोल्ड चुनते समय गुंजाइश रखें।
 - किसी अंतराल के बाद, जैसे वर्कर रुकने या नियम के फिर से चालू होने पर, अगला रन पूरा अंतराल कवर करता है, ज़्यादा से ज़्यादा पिछले 24 घंटे तक।
 - जो इवेंट दो मिनट से ज़्यादा देर से आता है, जब कोई रन उसका समय पहले ही कवर कर चुका हो, वह सहेजा जाता है और खोजा जा सकता है, लेकिन वह नियम उसे कभी नहीं पढ़ता।
-- हर रन में ज़्यादा से ज़्यादा 100 समूह फ़ायर होते हैं: सबसे ज़्यादा गिनती वाले।
+- सीमा तक पहुँचने वाला हर समूह एक Detection Finding बनता है, हर रन में 10,000 तक। सबसे ज़्यादा गिनती वाले 100 समूहों के लिए अलर्ट, घटनाएँ और केस खुलते हैं; बाक़ी समूह नियम के बारे में एक केस साझा करते हैं, और नियम की **पिछली त्रुटि** बताती है कि कितने समूह मेल खाए।
 
 ### गंभीरता
 

@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16683
+    "keys": 32602,
+    "untranslated": 16604
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "1 week",
     "AI / LLM",
+    "Adapter",
     "Agenda",
     "Agent",
     "Alarm",
@@ -14,11 +15,13 @@
     "Apps",
     "Branch",
     "Budget",
+    "CPU Ready {{percent}}",
     "Capture",
     "Chats",
     "Client",
     "Cloud",
     "CloudWatch Metric Streams",
+    "Collector",
     "Component",
     "Context",
     "Details",
@@ -83,6 +86,7 @@
     "syslog",
     "tag",
     "teams",
+    "{{capacity}} CPU",
     "{{count}} B",
     "{{count}} KB",
     "{{count}} MB",

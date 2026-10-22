@@ -91,9 +91,10 @@ Monitor, incidenti, avvisi, pagine di stato, SLO e molte altre risorse hanno anc
 | Chiavi API | `API Key` |
 | Client MCP che le persone collegano | `MCP Client Authorization` |
 | Elementi dell'inventario | `Inventory Item` |
+| Configurazioni del collector | `Collector Config` |
 | vCenter | `vCenter` |
 | Catture dei pacchetti, e i loro download | `Packet Capture` |
-| Casi di sicurezza e playbook | `Security Case`, `Security Playbook` |
+| Casi di sicurezza, playbook e le loro esecuzioni, ed entità protette | `Security Case`, `Security Playbook`, `Security Playbook Run`, `Protected Entity` |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 

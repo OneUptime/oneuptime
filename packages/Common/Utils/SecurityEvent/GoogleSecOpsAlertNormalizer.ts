@@ -456,6 +456,14 @@ export default class GoogleSecOpsAlertNormalizer {
       principalHost: firstSample ? firstSample.principalHost : "",
       principalIp: firstSample ? firstSample.principalIp : "",
       principalProcess: firstSample ? firstSample.principalProcess : "",
+      processName: firstSample ? firstSample.processName : "",
+      processPath: firstSample ? firstSample.processPath : "",
+      processCommandLine: firstSample ? firstSample.processCommandLine : "",
+      parentProcessName: firstSample ? firstSample.parentProcessName : "",
+      parentProcessPath: firstSample ? firstSample.parentProcessPath : "",
+      parentProcessCommandLine: firstSample
+        ? firstSample.parentProcessCommandLine
+        : "",
       targetUser: firstSample ? firstSample.targetUser : "",
       targetHost: firstSample ? firstSample.targetHost : "",
       targetIp: firstSample ? firstSample.targetIp : "",

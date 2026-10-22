@@ -5,6 +5,7 @@ Security Events trasforma ciò che trovano le tue regole di rilevamento, la thre
 :::cards
 - [Da dove arrivano i casi](#da-dove-arrivano-i-casi): Regole di rilevamento, threat intelligence, prodotti collegati e persone.
 - [Gestire un caso](#gestire-un-caso): Assegnalo, indaga sulle sue entità e chiudilo con un verdetto.
+- [Notifiche](#notifiche): Chi viene avvisato di un nuovo caso, di un'assegnazione e di un passo in attesa di approvazione.
 - [Playbook](#playbook): Passi che vengono eseguiti su un caso, con un'approvazione dove serve.
 - [La panoramica](#la-panoramica): Cosa richiede attenzione adesso, e quanto velocemente vengono gestiti i casi.
 :::
@@ -49,7 +50,7 @@ Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione d
 | Prodotti collegati | Un avviso proprio del prodotto viene importato a un livello pari o superiore alla soglia della connessione | **Open Cases From** impostato su **Mai**, nel passo **Polling** della connessione |
 | Persone | Qualcuno ne apre uno da **Casi di sicurezza**, o con **Open Case** nel pannello di un evento | Nessuna impostazione |
 
-Ogni origine è attiva per impostazione predefinita. Una connessione apre casi per **High and above** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
+Ogni origine è attiva per impostazione predefinita. Una connessione apre casi per **Alta e superiori** a meno che tu non scelga un altro livello; gli avvisi al di sotto vengono comunque importati come eventi.
 
 ### Come vengono raggruppati i rilevamenti
 
@@ -108,6 +109,51 @@ I verdetti vengono conteggiati nella panoramica. Una regola i cui casi continuan
 
 **Dichiara incidente** apre un incidente di OneUptime per il caso, con la gravità che scegli, e collega i due in entrambe le direzioni: la descrizione dell'incidente nomina il caso, e l'intestazione del caso rimanda all'incidente. Da lì subentrano la reperibilità, le pagine di stato e il postmortem. Serve un ruolo che possa sia gestire i casi sia creare incidenti.
 
+## Notifiche
+
+OneUptime avvisa le persone di tre cose su un caso. Nessuno deve configurare nulla: un progetto che ha solo fatto clic su **Attiva quanto consigliato** viene avvisato dei suoi casi con priorità Alta e Critica via email e push.
+
+| Notifica | Chi viene avvisato | Per impostazione predefinita |
+| --- | --- | --- |
+| Nuovo caso di sicurezza | Tutti coloro che possono vedere i casi del progetto, quando un caso si apre o sale di priorità, a partire dalla priorità che hanno scelto | Email e push, per i casi con priorità Alta e Critica |
+| Caso di sicurezza assegnato a me | La persona a cui è assegnato il caso e i membri del team a cui è assegnato | Email e push |
+| Passaggio di playbook in attesa della mia approvazione | Le persone del caso che possono approvare il passo: la persona a cui è assegnato e i membri del suo team. Se nessuno di loro può approvarlo, tutti coloro nel progetto che possono farlo | Email e push |
+
+- Vengono avvisate solo le persone che possono vedere il caso: Project Owner, Project Admin e i ruoli Security Admin, Security Member e Security Viewer. Un ruolo limitato ad alcune etichette viene avvisato solo dei casi con quelle etichette.
+- Nessuno viene avvisato di ciò che ha fatto: chi apre un caso a mano, lo assegna o avvia un'esecuzione non riceve una notifica al riguardo.
+- Ogni persona viene avvisata di un caso una sola volta. Un caso che si apre con priorità Medium e poi sale a Critico raggiunge, quando sale, le persone che hanno scelto Alta e Critica o Solo Critica, e non di nuovo quelle che hanno scelto Media e superiori, già avvisate quando si è aperto.
+- L'attacco di prova di **Invia un attacco di prova** apre un caso che non avvisa nessuno.
+- Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup).
+- La **Cronologia** del caso indica chi è stato avvisato, e quando.
+
+### Scegliere di cosa essere avvisati
+
+Ognuno sceglie per sé, in **Impostazioni utente → Impostazioni notifiche → Sicurezza**: i canali di ogni notifica (email, SMS, chiamata, push, Telegram, Slack, Microsoft Teams o webhook) e, sotto **Nuovo caso di sicurezza**, la priorità a partire dalla quale viene avvisato:
+
+| Scelta | Avvisa dei casi con priorità |
+| --- | --- |
+| Solo Critica | Critico |
+| Alta e Critica | High e Critico (l'impostazione predefinita) |
+| Media e superiori | Critico, High e Medium |
+| Bassa e superiori | Tutte tranne Informativi |
+| Ogni caso | Tutte |
+
+Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push apre l'app OneUptime, e il suo link apre il caso nel browser.
+
+### Pubblicare nei canali di Slack e Microsoft Teams
+
+Per pubblicare in un canale, aggiungi una regola in **Prodotti → Security Events → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
+
+| Condizione | Corrisponde a |
+| --- | --- |
+| Priorità del caso di sicurezza | Critico, High, Medium, Low o Informativi |
+| Titolo del caso di sicurezza, Descrizione del caso di sicurezza | Un testo che il titolo o la descrizione del caso contiene, con cui inizia o con cui finisce |
+| Stato del caso di sicurezza | Nuovo, In esame, Contained o Chiuso |
+| Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product o Manual |
+| Etichette del caso di sicurezza | Le etichette del caso |
+
+Le tre notifiche vengono pubblicate ciascuna nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **High** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
+
 ## Playbook
 
 Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Security Events → Playbooks**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina.
@@ -144,16 +190,19 @@ Un playbook disabilitato non viene eseguito né da solo né a mano.
 | Notifica | Post to Microsoft Teams | Pubblica un riepilogo del caso in un canale Microsoft Teams |
 | Escalation | Page on-call | Esegue una politica di reperibilità |
 | Escalation | Declare an incident | Apre un incidente di OneUptime collegato al caso |
-| Contenimento | Suspend the user in Okta | Sospende in Okta ogni utente del caso |
-| Contenimento | End the user's Okta sessions | Disconnette da Okta ogni utente del caso e ne revoca i token |
-| Contenimento | Contain the host in CrowdStrike | Applica il contenimento di rete a ogni host del caso con CrowdStrike Falcon |
-| Contenimento | Isolate the device in Microsoft Defender | Isola ogni host del caso con Microsoft Defender for Endpoint |
+| Contenimento | Suspend the user in Okta | Sospende in Okta l'utente di cui tratta il caso |
+| Contenimento | End the user's Okta sessions | Disconnette da Okta l'utente di cui tratta il caso e ne revoca i token |
+| Contenimento | Contain the host in CrowdStrike | Applica il contenimento di rete all'host di cui tratta il caso con CrowdStrike Falcon |
+| Contenimento | Isolate the device in Microsoft Defender | Isola l'host di cui tratta il caso con Microsoft Defender for Endpoint |
+| Contenimento | Unsuspend the user in Okta | Revoca in Okta la sospensione dell'utente di cui tratta il caso |
+| Contenimento | Lift containment in CrowdStrike | Rimuove il contenimento di rete di CrowdStrike Falcon dall'host di cui tratta il caso |
+| Contenimento | Release the device in Microsoft Defender | Rilascia dall'isolamento in Microsoft Defender for Endpoint l'host di cui tratta il caso |
 | Automazione | Send a webhook | Invia il caso come JSON a un URL |
 | Automazione | Run a workflow | Avvia un flusso di lavoro di OneUptime con il caso come input |
 
 Un playbook ha al massimo 25 passi. Vengono eseguiti in ordine, ciascuno quando il precedente è terminato. Ogni passo può anche:
 
-- **Needs Approval**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. È attivo per impostazione predefinita nei quattro passi di contenimento, che agiscono fuori da OneUptime.
+- **Needs Approval**: fermare l'esecuzione prima del passo finché qualcuno non lo approva sul caso. I quattro passi che tagliano fuori qualcuno si fermano sempre, a meno che un Security Admin non lo disattivi.
 - **Only If Threat Intel Matched**: saltare il passo a meno che un precedente passo **Check entities against threat intel** della stessa esecuzione non abbia trovato un indicatore noto.
 - **Carry On If It Fails**: eseguire il passo successivo anche se questo non riesce. Se è disattivato, un passo non riuscito ferma l'esecuzione.
 
@@ -163,11 +212,28 @@ I passi di contenimento agiscono tramite una [connessione di eventi di sicurezza
 
 | Passo | Connessione | Serve |
 | --- | --- | --- |
-| Suspend the user in Okta, End the user's Okta sessions | Okta System Log | Un token API autorizzato a gestire gli utenti |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | Un client API con lo scope Hosts in scrittura |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | Un'app con il permesso Machine.Isolate |
+| Suspend the user in Okta, End the user's Okta sessions, Unsuspend the user in Okta | Okta System Log | Un token API autorizzato a gestire gli utenti |
+| Contain the host in CrowdStrike, Lift containment in CrowdStrike | CrowdStrike Falcon | Un client API con lo scope Hosts in scrittura |
+| Isolate the device in Microsoft Defender, Release the device in Microsoft Defender | Microsoft Defender XDR | Un'app con il permesso Machine.Isolate |
 
-Un passo di contenimento agisce al massimo su 10 utenti o host del caso. Cerca ciascuno nel prodotto per nome, e riporta sul caso cosa ha fatto con ognuno: contenuto, già contenuto, non trovato o rifiutato.
+Un passo di contenimento agisce solo sugli utenti o sugli host di cui tratta il caso, mai su tutti quelli che il caso nomina:
+
+- Il valore in base al quale è raggruppato un rilevamento del caso, come l'account per cui raggruppa una regola sui viaggi impossibili, o l'host nominato dall'avviso di un prodotto collegato.
+- Un utente o un host del caso che la tua threat intelligence conosce come indicatore.
+
+Un caso raggruppato in base a un indirizzo, come un attacco a forza bruta contro la tua VPN, non riguarda né l'uno né l'altro: i suoi passi di contenimento vengono saltati, e l'account che ha preso di mira e il gateway che ha colpito restano intatti. Un passo agisce al massimo su 10 utenti o host. Cerca ciascuno nel prodotto per nome, e riporta sull'esecuzione cosa ha fatto con ognuno: fatto, già fatto, non trovato, rifiutato o protetto.
+
+#### Entità protette
+
+**Protected Entities**, sotto **Playbooks** nel menu, elenca gli utenti e gli host a cui nessun playbook applica il contenimento, come gli account di accesso di emergenza, i controller di dominio e i gateway VPN. Un valore corrisponde a prescindere da maiuscole e minuscole, e `*` sta per qualsiasi sequenza di caratteri: `svc-*` protegge ogni account di servizio. Un passo segnala un utente o un host protetto come protetto e non lo tocca. Sono i Security Admin a gestire l'elenco.
+
+#### Approvazione
+
+I quattro passi che tagliano fuori qualcuno attendono un'approvazione. Solo un Security Admin può disattivare **Needs Approval** per uno di essi, e OneUptime registra chi l'ha fatto. L'approvazione elenca sotto **Act On** gli utenti o gli host su cui agirebbe il passo, tutti selezionati: deseleziona quelli che deve lasciare intatti. Quelli protetti non vengono proposti. Chi ha avviato un'esecuzione non può approvarne i passi: lo fa qualcun altro, anche se può comunque rifiutarli.
+
+#### Annullamento
+
+I passi di annullamento agiscono sugli utenti o sugli host di cui tratta il caso, come i passi che annullano. Una volta che l'esecuzione si è fermata, un utente o un host contenuto ha anche un proprio pulsante sul suo passo: **Unsuspend**, **Lift Containment** o **Rilascia**. La chiusura di una sessione Okta non si può annullare. Ogni annullamento resta nella cronologia del caso e nel registro di audit del progetto.
 
 ### Messaggi
 
@@ -199,7 +265,7 @@ Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events →
 | Non riuscito | Un passo non è riuscito e l'esecuzione si è fermata |
 | Annullato | Qualcuno l'ha annullata, o ha rifiutato un passo |
 
-Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo e nella cronologia del caso. **In attesa di approvazione**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione.
+Un passo in attesa di approvazione mostra **Approve** e **Reject** sull'esecuzione, con un commento facoltativo. Approvare fa proseguire l'esecuzione da quel passo; rifiutare la termina. La decisione, chi l'ha presa e il suo commento restano sul passo, nella cronologia del caso e nel registro di audit del progetto. **In attesa di approvazione**, sotto **Playbooks** nel menu, elenca le esecuzioni in attesa di una decisione e le conta; **Esecuzioni dei playbook** elenca ogni esecuzione.
 
 Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un riavvio, viene ripresa: un'esecuzione in coda viene rimessa in coda dopo 2 minuti, e un'esecuzione che tace da 30 minuti viene segnata come non riuscita.
 
@@ -223,7 +289,7 @@ Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i r
 ## Automatizzare
 
 - **Flussi di lavoro**: la creazione, la modifica o l'eliminazione di un caso o di una nota può avviare un flusso di lavoro. Un passo **Run a workflow** avvia un flusso di lavoro il cui trigger è un webhook.
-- **API**: casi, note, rilevamenti, playbook ed esecuzioni hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook` e `/security-playbook-run`. Vedi [Riferimento API](/docs/api-reference/api-reference).
+- **API**: casi, note, rilevamenti, playbook, esecuzioni ed entità protette hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run` e `/security-protected-entity`. Vedi [Riferimento API](/docs/api-reference/api-reference).
 - Agenti IA: il server MCP ha strumenti per casi, note, rilevamenti e playbook. Vedi [Server MCP](/docs/ai/mcp-server).
 
 ## Risoluzione dei problemi
@@ -232,12 +298,20 @@ Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i r
 Controlla **Open a Case on Match** nel passo **In caso di corrispondenza** della regola. Un rilevamento su un'entità che ha già un caso aperto si aggiunge a quel caso invece di aprirne un altro: cercalo in **Detections** sul caso aperto.
 :::
 
+:::details Nessuno è stato avvisato di un caso
+Guarda la **Cronologia** del caso, che indica chi è stato avvisato. Una notifica **Nuovo caso di sicurezza** va alle persone la cui priorità scelta viene raggiunta dal caso, quindi un caso Medium non avvisa nessuno che abbia mantenuto l'impostazione predefinita, **Alta e Critica**. Controlla che le persone che dovrebbero essere avvisate possano vedere i casi di sicurezza (con un ruolo di sicurezza, o come Project Owner o Project Admin) e che la notifica sia attiva per loro in **Impostazioni utente → Impostazioni notifiche → Sicurezza**.
+:::
+
 :::details Un playbook non è stato eseguito
 Controlla che sia abilitato, che la sua impostazione **Trigger** sia quella giusta (Case Opened si esegue una volta sola, all'apertura di un caso) e che il caso soddisfi le sue impostazioni **For Cases At Least**, **Only For Detections From** e **Only For These Detection Rules**. Un caso aperto a mano non ha rilevamenti, quindi un playbook limitato a un'origine o a determinate regole non viene eseguito su di esso.
 :::
 
 :::details Un passo di contenimento non è riuscito
 Apri l'esecuzione sul caso: il passo dice, per ogni utente o host, se il prodotto l'ha rifiutato, non l'ha trovato o non era raggiungibile. Controlla che la credenziale della connessione possa fare la modifica, e usa **Testa la connessione** nella sua riga.
+:::
+
+:::details Un passo di contenimento è stato saltato
+Il caso non riguarda nessun utente né host, per esempio solo un indirizzo, oppure ogni utente o host di cui tratta è protetto. Apri l'esecuzione sul caso: il passo indica il motivo.
 :::
 
 ## Passaggi successivi

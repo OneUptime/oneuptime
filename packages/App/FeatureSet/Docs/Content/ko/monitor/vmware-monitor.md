@@ -75,7 +75,7 @@ flowchart TB
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
 | **vCenter** | 모두 | 필수. 모든 쿼리를 `resource.vmware.vcenter.name` 으로 한정합니다. |
-| **Datacenter** | Custom Metric, 고급 | 선택 사항. 데이터센터 하나: `resource.vcenter.datacenter.name`. 모든 시리즈가 이 속성을 가집니다. |
+| **데이터센터** | Custom Metric, 고급 | 선택 사항. 데이터센터 하나: `resource.vcenter.datacenter.name`. 모든 시리즈가 이 속성을 가집니다. |
 | **클러스터** | Custom Metric, 고급 | 선택 사항. 클러스터 하나: `resource.vcenter.cluster.name`. 클러스터 자체의 시리즈와 그 안의 호스트, VM, 리소스 풀의 시리즈와 일치합니다. 독립형 ESXi 호스트에는 클러스터가 없습니다. |
 | **ESXi Host** | Custom Metric, 고급 | 선택 사항. ESXi 호스트 하나: `resource.vcenter.host.name`. 호스트 자체의 시리즈 **와** 그 호스트가 실행하는 모든 VM의 시리즈와 일치합니다. VM이 호스트의 이름을 가지기 때문입니다. |
 | **Virtual Machine** | Custom Metric, 고급 | 선택 사항. VM 하나: `resource.vcenter.vm.name`. VM 이름은 고유하지 않을 수 있으니, 두 VM이 같은 이름을 쓰면 호스트나 클러스터를 더하세요. |
@@ -127,11 +127,11 @@ OneUptime은 흔한 VMware 문제를 위한 템플릿 23개를 제공하며, **Q
 | Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`, `resource.vcenter.datastore.name` 별 Avg | 80% 초과: 씬 디스크와 스냅샷이 나머지를 빠르게 쓰므로 미리 보내는 경고 | 72% 이하 |
 | Datastore Capacity Critical | Datastore | 심각 | `vcenter.datastore.disk.utilization`, 데이터스토어별 Avg | 90% 초과: 가득 찬 데이터스토어는 거기에 디스크가 있는 모든 VM을 일시 중지시킴 | 81% 이하 |
 | Cluster Host Not Effective | 클러스터 | 심각 | `vcenter.cluster.host.count` 를 `effective = false` 로 필터링, `resource.vcenter.cluster.name` 별 Max | 0 초과: 호스트가 유지 관리 모드이거나, 연결이 끊겼거나, 응답하지 않아 클러스터가 설계보다 적은 용량으로 동작함 | 다시 0 |
-| Datacenter Hosts Unhealthy | Datacenter | 심각 | `vcenter.datacenter.host.count` 를 `status = red` 로 필터링, `resource.vcenter.datacenter.name` 별 Max | 0 초과: 호스트에 심각 경보가 있음(하드웨어 센서, 끊긴 스토리지 경로, HA 에이전트 오류 등) | 다시 0 |
-| Datacenter Hosts Degraded | Datacenter | Warning | `vcenter.datacenter.host.count` 를 `status = yellow` 로 필터링, 데이터센터별 Max | 0 초과: 호스트에 경고 경보가 있음 | 다시 0 |
-| Datacenter Hosts Powered Off | Datacenter | Warning | `vcenter.datacenter.host.count` 를 `power_state = off` 로 필터링, 데이터센터별 Max | 0 초과: 호스트의 전원이 꺼짐(충돌, 전원 상실, DPM에 의한 대기) | 다시 0 |
-| Datacenter VMs Unhealthy | Datacenter | Warning | `vcenter.datacenter.vm.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: VM에 심각 경보가 있음(실패한 HA 재시작, 잃어버린 데이터스토어, 끊긴 Tools 하트비트 등) | 다시 0 |
-| Datacenter Clusters Unhealthy | Datacenter | 심각 | `vcenter.datacenter.cluster.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: 클러스터에 심각 경보가 있음(HA 장애 조치 리소스 부족, HA 선출 실패, 심각한 vSAN 상태 검사 등) | 다시 0 |
+| Datacenter Hosts Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.host.count` 를 `status = red` 로 필터링, `resource.vcenter.datacenter.name` 별 Max | 0 초과: 호스트에 심각 경보가 있음(하드웨어 센서, 끊긴 스토리지 경로, HA 에이전트 오류 등) | 다시 0 |
+| Datacenter Hosts Degraded | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `status = yellow` 로 필터링, 데이터센터별 Max | 0 초과: 호스트에 경고 경보가 있음 | 다시 0 |
+| Datacenter Hosts Powered Off | 데이터센터 | Warning | `vcenter.datacenter.host.count` 를 `power_state = off` 로 필터링, 데이터센터별 Max | 0 초과: 호스트의 전원이 꺼짐(충돌, 전원 상실, DPM에 의한 대기) | 다시 0 |
+| Datacenter VMs Unhealthy | 데이터센터 | Warning | `vcenter.datacenter.vm.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: VM에 심각 경보가 있음(실패한 HA 재시작, 잃어버린 데이터스토어, 끊긴 Tools 하트비트 등) | 다시 0 |
+| Datacenter Clusters Unhealthy | 데이터센터 | 심각 | `vcenter.datacenter.cluster.count` 를 `status = red` 로 필터링, 데이터센터별 Max | 0 초과: 클러스터에 심각 경보가 있음(HA 장애 조치 리소스 부족, HA 선출 실패, 심각한 vSAN 상태 검사 등) | 다시 0 |
 | vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`, 클러스터별 Avg | 20 000 µs (20 ms) 초과: vSAN 데이터스토어의 모든 VM에서 스토리지가 느려짐. vSAN이 없는 클러스터에서는 조용함 | 18 000 µs 이하 |
 | vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`, 클러스터별 Max | 0 초과: 디스크 그룹이 따라가지 못해 vSAN이 클라이언트의 I/O를 늦춤 | 다시 0 |
 | Resource Pool Memory Swapped | 클러스터 | Warning | `vcenter.resource_pool.memory.swapped`, `resource.vcenter.resource_pool.inventory_path` 별 Max | 0 초과: 풀의 VM이 호스트 스왑에서 메모리를 얻음. 대개 풀의 메모리 제한이나 공유가 너무 낮기 때문 | 다시 0 |
@@ -260,7 +260,7 @@ vSAN이 있는 클러스터, 그 안의 호스트, vSAN 데이터스토어의 VM
 | `vcenter.vm.vsan.throughput` | `By/s` | VM의 vSAN 처리량. `direction` 별입니다 |
 
 > [!NOTE]
-> VM의 전원 상태는 메트릭이 아닙니다. 리시버는 전원이 켜진 VM에 대해서만 `vcenter.vm.cpu.*` 를 보내므로, OneUptime은 VM의 메모리 및 디스크 데이터와 같은 수집에서 CPU 데이터가 왔는지로 **Powered on** 과 **Powered off** 를 구분합니다. 결과는 vCenter의 **Virtual Machines** 페이지에 표시됩니다. 전원이 꺼진 호스트나 실행 중인 VM 수에 대해 알림을 보내려면 `power_state` 속성을 쓰세요. 대상은 `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, `vcenter.cluster.vm.count` 입니다.
+> VM의 전원 상태는 메트릭이 아닙니다. 리시버는 전원이 켜진 VM에 대해서만 `vcenter.vm.cpu.*` 를 보내므로, OneUptime은 VM의 메모리 및 디스크 데이터와 같은 수집에서 CPU 데이터가 왔는지로 **Powered on** 과 **Powered off** 를 구분합니다. 결과는 vCenter의 **가상 머신** 페이지에 표시됩니다. 전원이 꺼진 호스트나 실행 중인 VM 수에 대해 알림을 보내려면 `power_state` 속성을 쓰세요. 대상은 `vcenter.datacenter.host.count`, `vcenter.datacenter.vm.count`, `vcenter.cluster.vm.count` 입니다.
 
 ## 모니터링 기준
 

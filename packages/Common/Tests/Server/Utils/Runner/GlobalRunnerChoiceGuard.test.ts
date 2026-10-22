@@ -164,6 +164,112 @@ describe("where a step runs is decided by one rule", () => {
 });
 
 /*
+ * The default order - the work's own Runner, its project's default Runner,
+ * the Global Runner where the work allows it - is read in one place on the
+ * server: GlobalRunnerChoice, which reads the project's default through
+ * RunnerService.findProjectDefaultRunner (only a Runner that may be the
+ * default: ProjectDefaultRunner). A second reading of it would send a step
+ * that picked no Runner somewhere the step editor does not show, or to a
+ * default the server passes over. Other work that picks a Runner (an auto
+ * remediation or investigation rule) asks
+ * GlobalRunnerChoice.decideByDefaultOrder, never the order itself.
+ */
+const CALLS_THE_DEFAULT_ORDER: RegExp = /\bdecideRunnerByDefaultOrder\(/;
+const READS_THE_PROJECT_DEFAULT: RegExp = /\.findProjectDefaultRunner\(/;
+const WRITES_THE_PROJECT_DEFAULT: RegExp =
+  /defaultColumn:\s*"isProjectDefault"/;
+// A query of the default Runner by its column.
+const QUERIES_THE_PROJECT_DEFAULT: RegExp = /isProjectDefault\s*:/;
+
+describe("where work that picked no Runner runs is decided by one default order", () => {
+  test("only the rule and its server reader call the default order on the server", () => {
+    const calling: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        // The Dashboard's picker reads it too: the last test here.
+        return (
+          !file.startsWith("App/FeatureSet/Dashboard/") &&
+          CALLS_THE_DEFAULT_ORDER.test(read(file))
+        );
+      },
+    ).sort();
+
+    expect(calling).toEqual([
+      "Common/Server/Utils/Runner/GlobalRunnerChoice.ts",
+      "Common/Types/Runner/RunnerChoice.ts",
+    ]);
+  });
+
+  test("only the server reader reads the project's default Runner", () => {
+    const reading: Array<string> = SERVER_SOURCES.filter(
+      (file: string): boolean => {
+        return READS_THE_PROJECT_DEFAULT.test(read(file));
+      },
+    ).sort();
+
+    expect(reading).toEqual([
+      "Common/Server/Utils/Runner/GlobalRunnerChoice.ts",
+    ]);
+  });
+
+  test("RunnerService keeps one default per project, once the write succeeded, and reads it by the eligibility rule", () => {
+    const service: string = read("Common/Server/Services/RunnerService.ts");
+
+    // Twice: once from onCreateSuccess, once from onUpdateSuccess.
+    expect(
+      service.match(new RegExp(WRITES_THE_PROJECT_DEFAULT, "g")),
+    ).toHaveLength(2);
+    expect(service).toContain("ProjectDefaultRow.afterCreate({");
+    expect(service).toContain("ProjectDefaultRow.afterUpdate({");
+
+    const reader: string = service.slice(
+      service.indexOf("public async findProjectDefaultRunner("),
+    );
+
+    expect(reader).toContain("canBeProjectDefaultRunner(runner)");
+  });
+
+  test("the step editor's picker follows the same order, from the Dashboard", () => {
+    const model: string = read(
+      "App/FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel.ts",
+    );
+
+    expect(CALLS_THE_DEFAULT_ORDER.test(model)).toBe(true);
+  });
+
+  /*
+   * A repository the GitHub App imports starts on the project's default
+   * Runner when the project has one: a pick written once, when it is
+   * imported, through GlobalRunnerChoice - never a second reading of the
+   * default. Once imported, the repository's own pick decides where its AI
+   * work runs (Types/Runner/CodeRepositoryRunner), as every pick does.
+   */
+  test("a repository the GitHub App imports starts on the project's default Runner, read through GlobalRunnerChoice", () => {
+    const service: string = read(
+      "Common/Server/Services/CodeRepositoryService.ts",
+    );
+    const defaults: string = service.slice(
+      service.indexOf("public static async getNewRepositoryDefaults("),
+    );
+    const body: string = defaults.slice(0, defaults.indexOf("\n  }\n"));
+
+    expect(body).toContain("GlobalRunnerChoice.findProjectDefaultRunnerId(");
+    expect(READS_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+    // Never a query of its own for the default (a comment may name it).
+    expect(QUERIES_THE_PROJECT_DEFAULT.test(service)).toBe(false);
+
+    // Only new repositories: an import reads it where it creates one.
+    const importer: string = service.slice(
+      service.indexOf("public async importReposFromInstallation("),
+    );
+    expect(
+      importer.indexOf("Service.getNewRepositoryDefaults("),
+    ).toBeGreaterThan(
+      importer.indexOf("const codeRepository: Model = new Model();") - 400,
+    );
+  });
+});
+
+/*
  * Where a code repository's AI work runs is decided by its own one rule
  * (Types/Runner/CodeRepositoryRunner), read on the server by
  * CodeRepositoryRunnerChoice, and - for the claim and the queue depth - as

@@ -134,7 +134,7 @@ stateDiagram-v2
 :::
 
 :::details گامی شکست خورد چون Runner ندارد
-پیام برای نمونه این است: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or add one under Runbooks → Runners.» گام بدون **Runner** ذخیره شده. گام JavaScript فقط وقتی به Runner خودش نیاز دارد که هیچ [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) نتواند اجرایش کند. صفحه **گام‌ها** در رانبوک را باز کنید، Runner گام را انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
+پیام برای نمونه این است: «This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.» گام بدون **Runner** ذخیره شده و پروژه هم [Runner پیش‌فرض](/docs/runbooks/agents#runner-پیشفرض-پروژه) ندارد. گام JavaScript فقط وقتی به Runner خودش نیاز دارد که هیچ [Runner سراسری](/docs/runbooks/agents#runnerهای-سراسری) نتواند اجرایش کند. صفحه **گام‌ها** در رانبوک را باز کنید، Runner گام را زیر **فیلدهای بیشتر** انتخاب کنید، روی **Save Steps** کلیک کنید و رانبوک را دوباره اجرا کنید.
 :::
 
 :::details گامی شکست خورد چون نام متغیرهایی را می‌برد که نمی‌تواند از آن‌ها استفاده کند

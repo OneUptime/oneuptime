@@ -5,6 +5,7 @@ Security Events 會把偵測規則、威脅情資和已連線的安全性產品�
 :::cards
 - [案件從何而來](#案件從何而來): 偵測規則、威脅情資、已連線的產品和人員。
 - [處理案件](#處理案件): 指派案件、調查相關實體，並在給出結論後關閉。
+- [通知](#通知): 新案件、指派以及等待核准的步驟會通知誰。
 - [劇本](#劇本): 在案件上執行的步驟，關鍵步驟需要核准。
 - [概覽](#概覽): 當下需要有人處理的事項，以及案件的處理速度。
 :::
@@ -49,7 +50,7 @@ flowchart TB
 | 已連線的產品 | 匯入的產品本身警示達到或高於連線的閾值時 | 在連線的 **Polling** 步驟中，把 **Open Cases From** 設為 **從未** |
 | 人員 | 有人從 **安全案例** 開啟案件，或在事件面板中使用 **Open Case** 時 | 無 |
 
-所有來源預設都是開啟的。除非你選擇其他等級，否則連線會為 **High and above** 的警示開啟案件；低於該等級的警示仍會匯入為事件。
+所有來源預設都是開啟的。除非你選擇其他等級，否則連線會為 **高及以上** 的警示開啟案件；低於該等級的警示仍會匯入為事件。
 
 ### 偵測如何分組
 
@@ -108,6 +109,51 @@ flowchart TB
 
 **宣告事件** 會以你選擇的嚴重程度為此案件開啟一個 OneUptime 事件（incident），並在兩者之間建立雙向連結：事件的描述會寫明此案件，案件的頁首會連結到該事件。接下來就由待命、狀態頁面和事後分析接手。此操作需要一個既能處理案件、又能建立事件的角色。
 
+## 通知
+
+OneUptime 會就案件上的三件事通知相關人員。不需要任何人做任何設定：一個只點選了 **開啟推薦設定** 的專案，也會透過電子郵件和推播收到其 High 和 Critical 案件的通知。
+
+| 通知 | 通知誰 | 預設方式 |
+| --- | --- | --- |
+| 新的安全案例 | 所有能檢視專案案件的人：當案件以他們所選的優先順序或更高的優先順序開啟，或提升到該優先順序或更高時 | 電子郵件和推播，針對 High 和 Critical 案件 |
+| 指派給我的安全案例 | 案件被指派給的人，以及案件被指派給的團隊成員 | 電子郵件和推播 |
+| 等待我核准的劇本步驟 | 案件相關人員中能核准該步驟的人：案件被指派給的人及其團隊的成員。如果他們都無法核准，則通知專案中所有能核准的人 | 電子郵件和推播 |
+
+- 只有能檢視案件的人才會收到相關通知：Project Owner、Project Admin，以及 Security Admin、Security Member 和 Security Viewer 角色。僅限於某些標籤的角色，只會收到帶有這些標籤的案件的通知。
+- 沒有人會因為自己做的事而收到通知：手動開啟案件、指派案件或啟動執行的人不會收到相應的通知。
+- 每個人對一個案件只會收到一次通知。一個以 Medium 開啟、之後提升到 Critical 的案件，會在提升時通知選擇了 High 或 Critical 的人，而不會再次通知選擇了 Medium 的人，因為他們在案件開啟時就已經收到通知。
+- 透過 **傳送測試攻擊** 發起的測試攻擊會開啟一個不通知任何人的案件。
+- Critical 案件和等待核准的步驟會立即傳送，絕不會被壓在 [郵件彙總](/docs/emails/notification-rollup) 中延後傳送。
+- 案件的 **時間軸** 會顯示通知了誰以及何時通知。
+
+### 選擇你會收到的通知
+
+每個人都可以在 **使用者設定 → 通知設定 → 安全性** 下自行選擇：每種通知的管道（電子郵件、簡訊、電話、推播、Telegram、Slack、Microsoft Teams 或 Webhook），以及在 **新的安全案例** 下選擇會通知自己的優先順序：
+
+| 選項 | 通知哪些優先順序的案件 |
+| --- | --- |
+| 僅嚴重 | Critical |
+| 高和嚴重 | High 和 Critical（預設） |
+| 中及以上 | Critical、High 和 Medium |
+| 低及以上 | 除了 Informational 以外的所有優先順序 |
+| 所有案例 | 所有優先順序 |
+
+安全案件不會傳送 WhatsApp 訊息。推播通知會開啟 OneUptime 應用程式，其中的連結會在瀏覽器中開啟該案件。
+
+### 張貼到 Slack 和 Microsoft Teams 頻道
+
+若要張貼到頻道，請在 **產品 → Security Events → 工作區 → Slack**（或 **Microsoft Teams**）下新增一條規則。兩者都未連線時，該區段只有一個項目：**連線 Slack 或 Teams**。規則會指定要張貼到的頻道（在 Microsoft Teams 中還包括聊天），並可視需要指定它適用於哪些案件：
+
+| 條件 | 符合內容 |
+| --- | --- |
+| 安全案例優先順序 | 嚴重、High、Medium、Low 或資訊 |
+| 安全案例標題、安全案例描述 | 案件標題或描述中包含的文字，或其開頭、結尾的文字 |
+| 安全案例狀態 | 新增、調查中、Contained 或已關閉 |
+| 安全案例來源 | Detection Rule、Threat Intel、Connected Product 或 Manual |
+| 安全案例標籤 | 案件的標籤 |
+
+這三種通知都會張貼到案件當時所符合的每條規則的頻道。一條 **安全案例優先順序** 包含 **嚴重** 和 **High** 中任一項的規則，會在 High 和 Critical 案件開啟時張貼它們，並在 Medium 案件提升到 High 時張貼它。安全案件永遠不會有專屬的頻道。
+
 ## 劇本
 
 劇本是在案件上執行的一系列步驟。請在 **產品 → Security Events → Playbooks** 下從範本或空白建立劇本，然後在它的頁面上新增步驟。
@@ -144,16 +190,19 @@ flowchart TB
 | 通知 | Post to Microsoft Teams | 把案件摘要張貼到某個 Microsoft Teams 頻道 |
 | 呈報 | Page on-call | 執行一個待命策略 |
 | 呈報 | Declare an incident | 開啟一個與案件連結的 OneUptime 事件 |
-| 圍堵 | Suspend the user in Okta | 在 Okta 中暫停案件的每個使用者 |
-| 圍堵 | End the user's Okta sessions | 將案件的每個使用者登出 Okta，並撤銷其權杖 |
-| 圍堵 | Contain the host in CrowdStrike | 透過 CrowdStrike Falcon 對案件的每台主機進行網路圍堵 |
-| 圍堵 | Isolate the device in Microsoft Defender | 透過 Microsoft Defender for Endpoint 隔離案件的每台主機 |
+| 圍堵 | Suspend the user in Okta | 在 Okta 中暫停案件涉及的使用者 |
+| 圍堵 | End the user's Okta sessions | 將案件涉及的使用者登出 Okta，並撤銷其權杖 |
+| 圍堵 | Contain the host in CrowdStrike | 透過 CrowdStrike Falcon 對案件涉及的主機進行網路圍堵 |
+| 圍堵 | Isolate the device in Microsoft Defender | 透過 Microsoft Defender for Endpoint 隔離案件涉及的主機 |
+| 圍堵 | Unsuspend the user in Okta | 在 Okta 中取消暫停案件涉及的使用者 |
+| 圍堵 | Lift containment in CrowdStrike | 解除 CrowdStrike Falcon 對案件涉及的主機施加的網路圍堵 |
+| 圍堵 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中將案件涉及的主機解除隔離 |
 | 自動化 | Send a webhook | 把案件以 JSON 格式 POST 到某個 URL |
 | 自動化 | Run a workflow | 以案件作為輸入，啟動一個 OneUptime 工作流程 |
 
 一個劇本最多有 25 個步驟。它們會依序執行，每個步驟在前一個完成後才開始。每個步驟還可以設定：
 
-- **Needs Approval**：在執行到此步驟之前暫停，直到有人在案件上核准它。四個圍堵類步驟會在 OneUptime 之外執行動作，因此預設開啟此項。
+- **Needs Approval**：在執行到此步驟之前暫停，直到有人在案件上核准它。切斷某人存取的四個步驟一律如此，除非 Security Admin 將其關閉。
 - **Only If Threat Intel Matched**：除非本次執行中先前的 **Check entities against threat intel** 步驟找到了已知指標，否則略過此步驟。
 - **Carry On If It Fails**：即使此步驟失敗，也繼續執行下一個步驟。關閉此項時，失敗的步驟會停止本次執行。
 
@@ -163,11 +212,28 @@ flowchart TB
 
 | 步驟 | 連線 | 所需權限 |
 | --- | --- | --- |
-| Suspend the user in Okta、End the user's Okta sessions | Okta System Log | 一個有權管理使用者的 API 權杖 |
-| Contain the host in CrowdStrike | CrowdStrike Falcon | 一個具有 Hosts 寫入範圍的 API 用戶端 |
-| Isolate the device in Microsoft Defender | Microsoft Defender XDR | 一個具有 Machine.Isolate 權限的應用程式 |
+| Suspend the user in Okta、End the user's Okta sessions、Unsuspend the user in Okta | Okta System Log | 一個有權管理使用者的 API 權杖 |
+| Contain the host in CrowdStrike、Lift containment in CrowdStrike | CrowdStrike Falcon | 一個具有 Hosts 寫入範圍的 API 用戶端 |
+| Isolate the device in Microsoft Defender、Release the device in Microsoft Defender | Microsoft Defender XDR | 一個具有 Machine.Isolate 權限的應用程式 |
 
-一個圍堵類步驟最多作用於案件中的 10 個使用者或主機。它會依名稱在產品中找出每一個，並在案件上說明對每一個做了什麼：已圍堵、先前已被圍堵、找不到或遭到拒絕。
+圍堵類步驟只會作用於案件涉及的使用者或主機，絕不會作用於案件提到的所有使用者或主機：
+
+- 案件中某個偵測分組所依據的值，例如「不可能的旅行」規則分組所依據的帳戶，或已連線產品的警示中提到的主機。
+- 案件中被你的威脅情資列為指標的使用者或主機。
+
+依位址分組的案件，例如針對你的 VPN 的暴力破解，並不涉及上述任何一種：它的圍堵類步驟會被略過，它嘗試過的帳戶和它攻擊的閘道都不會被動到。一個步驟最多作用於 10 個使用者或主機。它會依名稱在產品中找出每一個，並在執行上說明對每一個做了什麼：已完成、先前已完成、找不到、遭到拒絕或受保護。
+
+#### 受保護的實體
+
+選單中 **Playbooks** 下的 **Protected Entities** 列出任何劇本都不會圍堵的使用者和主機，例如緊急存取帳戶、網域控制站和 VPN 閘道。比對值時不區分大小寫，`*` 代表任意字元序列：`svc-*` 會保護所有服務帳戶。步驟會將受保護的使用者或主機回報為受保護，並且不會動到它。這份清單由 Security Admin 維護。
+
+#### 核准
+
+切斷某人存取的四個步驟會等待核准。只有 Security Admin 可以為其中某個步驟關閉 **Needs Approval**，OneUptime 會記錄是誰關閉的。核准時會在 **Act On** 下列出該步驟將作用的使用者或主機，每一個都已勾選：取消勾選該步驟不該動到的那些。受保護的使用者或主機不會列為選項。啟動執行的人無法核准它的步驟：要由其他人核准，不過啟動者仍可拒絕該步驟。
+
+#### 復原
+
+復原類步驟和它們所復原的步驟一樣，作用於案件涉及的使用者或主機。執行停止後，被圍堵的使用者或主機在其步驟上還會有一個專屬按鈕：**Unsuspend**、**Lift Containment** 或 **釋出**。已結束的 Okta 工作階段無法復原。每次復原都會記錄在案件的時間軸上和專案的稽核日誌中。
 
 ### 訊息
 
@@ -199,7 +265,7 @@ flowchart TB
 | Failed | 某個步驟失敗，執行已停止 |
 | Cancelled | 有人取消了它，或拒絕了某個步驟 |
 
-等待核准的步驟會在執行上顯示 **Approve** 和 **Reject**，並可附上一則選用的意見。核准後，執行會從該步驟繼續；拒絕則會結束執行。核准決定、決定者及其意見都會記錄在該步驟和案件的時間軸上。選單中 **Playbooks** 下的 **等待核准** 列出等待決定的執行並顯示其數量；**劇本執行記錄** 列出所有執行。
+等待核准的步驟會在執行上顯示 **Approve** 和 **Reject**，並可附上一則選用的意見。核准後，執行會從該步驟繼續；拒絕則會結束執行。核准決定、決定者及其意見都會記錄在該步驟上、案件的時間軸上和專案的稽核日誌中。選單中 **Playbooks** 下的 **等待核准** 列出等待決定的執行並顯示其數量；**劇本執行記錄** 列出所有執行。
 
 如果某次執行不再收到工作程序的回應（例如在重新啟動之後），它會被重新接手：佇列中的執行會在 2 分鐘後重新排入佇列，30 分鐘都沒有任何回報的執行會被判定為失敗。
 
@@ -223,7 +289,7 @@ flowchart TB
 ## 自動化
 
 - **工作流程**：案件或備註在建立、更新或刪除時可以啟動工作流程。**Run a workflow** 步驟會啟動一個以 Webhook 為觸發器的工作流程。
-- **API**：與 OneUptime 的其他部分一樣，案件、備註、偵測、劇本和執行也都有 REST API，位於 `/security-case`、`/security-case-note`、`/security-detection`、`/security-playbook` 和 `/security-playbook-run` 之下。請參閱 [API 參考](/docs/api-reference/api-reference)。
+- **API**：與 OneUptime 的其他部分一樣，案件、備註、偵測、劇本、執行和受保護的實體也都有 REST API，位於 `/security-case`、`/security-case-note`、`/security-detection`、`/security-playbook`、`/security-playbook-run` 和 `/security-protected-entity` 之下。請參閱 [API 參考](/docs/api-reference/api-reference)。
 - AI 代理程式：MCP 伺服器提供了用於案件、備註、偵測和劇本的工具。請參閱 [MCP 伺服器](/docs/ai/mcp-server)。
 
 ## 疑難排解
@@ -232,12 +298,20 @@ flowchart TB
 檢查規則 **符合時** 步驟中的 **Open a Case on Match**。如果偵測涉及的實體已經有未關閉的案件，該偵測會併入那個案件，而不會另外開啟一個：請在那個未關閉案件的 **Detections** 下找它。
 :::
 
+:::details 案件沒有通知到任何人
+查看案件的 **時間軸**，其中會顯示通知了誰。**新的安全案例** 通知會傳送給案件達到其所選優先順序的人，因此 Medium 案件不會通知任何保留預設 **高和嚴重** 的人。請檢查應收到通知的人能否檢視安全案件（具有某個 Security 角色，或是 Project Owner 或 Project Admin），以及他們在 **使用者設定 → 通知設定 → 安全性** 下是否開啟了該通知。
+:::
+
 :::details 劇本沒有執行
 檢查劇本是否已啟用、它的 **觸發器** 設定是否合適（Case Opened 只在案件開啟時執行一次），以及案件是否符合它的 **For Cases At Least**、**Only For Detections From** 和 **Only For These Detection Rules** 設定。手動開啟的案件沒有偵測，因此限定了來源或規則的劇本不會在它上面執行。
 :::
 
 :::details 圍堵類步驟失敗
 在案件上開啟這次執行：該步驟會針對每個使用者或主機說明產品是拒絕了操作、找不到它，還是無法連線。請檢查連線的認證資訊是否有權進行此變更，並使用連線所在列中的 **測試連線**。
+:::
+
+:::details 圍堵類步驟被略過
+案件不涉及任何使用者或主機，例如只涉及一個位址，或者它涉及的每個使用者或主機都受到保護。在案件上開啟這次執行：該步驟會說明是哪一種情況。
 :::
 
 ## 後續步驟

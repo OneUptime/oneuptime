@@ -22,6 +22,7 @@ flowchart TB
 - Ein eingeschalteter Kanal sendet an jede verifizierte Methode, die Sie darauf in diesem Projekt haben, nicht nur an eine.
 - Ein eingeschalteter Kanal ohne verifizierte Methode dahinter sendet nichts. **Ihre Einrichtungs-Checkliste** sagt das unter **Auf dem Laufenden bleiben**.
 - Eine Neuigkeit geht an die Eigentümer des Datensatzes: die als Eigentümer genannten Personen und die Mitglieder seiner Eigentümer-Teams. Hat ein Datensatz keine Eigentümer, geht sie stattdessen an die Eigentümer des Projekts. Ein Ereignis darüber, als Eigentümer hinzugefügt worden zu sein, geht nur an die hinzugefügte Person.
+- Sicherheitsfälle haben keine Eigentümer. Ein neuer Fall geht an alle, die die Fälle des Projekts sehen können, ab der Priorität, die jede Person für sich wählt, und ein zugewiesener Fall an die Personen, denen er zugewiesen ist. Siehe [Sicherheitsfälle](/docs/telemetry/security-cases#benachrichtigungen).
 - Jede E-Mail an Eigentümer endet mit einem Link "Manage notification preferences", der hierher zurückführt.
 
 ## Eine Einstellung ändern
@@ -29,7 +30,7 @@ flowchart TB
 :::steps
 ### Ihre Einstellungen öffnen
 
-Gehen Sie zu **Benutzereinstellungen → Benachrichtigungseinstellungen**. Die Tabs sind **Vorfälle**, **Warnungen**, **Überwachung**, **Statusseiten**, **Geplante Wartung** und **Bereitschaft**.
+Gehen Sie zu **Benutzereinstellungen → Benachrichtigungseinstellungen**. Die Tabs sind **Vorfälle**, **Warnungen**, **Überwachung**, **Statusseiten**, **Geplante Wartung**, **Bereitschaft** und **Sicherheit**.
 
 ### Das Ereignis finden
 
@@ -52,6 +53,7 @@ Wenn Sie einem Projekt beitreten, sind diese Ereignisse per E-Mail eingeschaltet
 | **Statusseiten** | Keine | **Statusseite erstellt**, **Statusseiten-Ankündigung veröffentlicht**, **Als Eigentümer der Statusseite hinzugefügt** |
 | **Geplante Wartung** | **Wartungserinnerung** | **Wartungsereignis erstellt**, **Wartungsstatus geändert**, **Wartungsnotiz veröffentlicht**, **Als Eigentümer der Wartung hinzugefügt** |
 | **Bereitschaft** | **Ihr Bereitschaftsdienst beginnt**, **Sie sind als Nächstes im Bereitschaftsdienst**, **Ihr Bereitschaftsdienst endet**, **Zur Bereitschaftsdienst-Richtlinie hinzugefügt**, **Aus Bereitschaftsrichtlinie entfernt**, **Verpasster Anruf**, und zusätzlich per Push: **Bevor meine Bereitschaftsschicht beginnt**, **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** | Keine |
+| **Sicherheit** | Zusätzlich per Push: **Neuer Sicherheitsfall** (Fälle mit Priorität Hoch und Kritisch), **Mir zugewiesener Sicherheitsfall**, **Playbook-Schritt wartet auf meine Genehmigung** | Keine |
 
 > [!IMPORTANT]
 > **Überwachungsstatus geändert** beginnt ausgeschaltet. Um zu erfahren, wenn eine Überwachung, die Ihnen gehört, ausfällt oder wieder läuft, schalten Sie es auf dem Tab **Überwachung** ein.
@@ -64,6 +66,16 @@ Der Tab **Bereitschaft** handelt von Ihnen, nicht von Datensätzen, die Ihnen ge
 - **Zur Bereitschaftsdienst-Richtlinie hinzugefügt** und **Aus Bereitschaftsrichtlinie entfernt** sagen Ihnen, wann eine Bereitschaftsrichtlinie beginnt oder aufhört, Sie zu nennen.
 - **Bevor meine Bereitschaftsschicht beginnt** sendet Erinnerungen zu den Zeiten, die Sie unter **Benutzereinstellungen → Kalender → Kalender-Feed** wählen, und **Meine bevorstehende Bereitschaftsschicht wird neu zugewiesen** sagt Ihnen, wann jemand anderes eine Schicht übernimmt, an die Sie erinnert wurden. Siehe [Kalender-Feeds](/docs/on-call/calendar-feeds#erinnerungen-und-neuzuweisungs-hinweise).
 - **Verpasster Anruf**, auf der Karte **Richtlinien für eingehende Anrufe**, sagt den Eigentümern einer Richtlinie für eingehende Anrufe, dass ein Anrufer niemanden erreicht hat. Siehe [Richtlinie für eingehende Anrufe](/docs/on-call/incoming-call-policy#verpasste-anrufe).
+
+## Sicherheitsfälle
+
+Der Tab **Sicherheit** handelt von den Sicherheitsfällen, die Sie sehen können:
+
+- **Neuer Sicherheitsfall** hat unter seinem Namen eine Priorität: die niedrigste Priorität, ab der ein Fall Sie benachrichtigt. Sie steht auf **Hoch und Kritisch**, sofern Sie nicht **Nur Kritisch**, **Mittel und höher**, **Niedrig und höher** oder **Jeder Fall** wählen.
+- **Mir zugewiesener Sicherheitsfall** folgt den Fällen, die Ihnen und den Teams, in denen Sie sind, zugewiesen sind.
+- **Playbook-Schritt wartet auf meine Genehmigung** bittet Sie, einen Playbook-Schritt an einem Fall zu genehmigen oder abzulehnen, bei dem Sie genehmigen dürfen.
+
+Siehe [Sicherheitsfälle](/docs/telemetry/security-cases#benachrichtigungen).
 
 ## Weniger E-Mails
 

@@ -95,6 +95,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
     "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]:
     "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]:
+    "Connect Slack or Teams: connected from Project Settings > Slack / Microsoft Teams",
   [PageMap.INCIDENT_EPISODE_CREATE]:
     "an episode is created from Incidents > All Episodes, which is offered",
   [PageMap.ALERT_EPISODE_CREATE]:

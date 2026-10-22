@@ -12,6 +12,7 @@ import {
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import {
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
   parseEventTime,
@@ -400,6 +401,10 @@ export default class AwsSecurityHubNormalizer {
       principalHost: "",
       principalIp: sourceIp,
       principalProcess: processName || processPath,
+      // ASFF's Process names no command line and no parent but its pid.
+      ...buildProcessFields({
+        process: { name: processName, path: processPath },
+      }),
       targetUser: "",
       targetHost: principal.host,
       targetIp: destinationIp,

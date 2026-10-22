@@ -221,6 +221,7 @@ const PAGES_SEARCH_LEAVES_OUT: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTIONS]:
     "connect a chat tool",
   [PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTIONS]: "connect a chat tool",
+  [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "connect a chat tool",
 };
 
 /*

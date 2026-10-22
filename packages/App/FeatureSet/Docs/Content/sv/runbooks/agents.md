@@ -1,10 +1,11 @@
 # Runbook-agenter
 
-En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och kubectl-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners. Ett JavaScript-steg som inte väljer någon Runner körs i stället på en [global Runner](#globala-runners), en av dem som OneUptime kör för alla projekt.
+En **runbook-agent**, som heter **Runner** i instrumentpanelen, är en liten självhostad process som kör JavaScript-, Bash-, SSH- och kubectl-stegen i dina runbooks **i din egen infrastruktur**. OneUptime Worker kör aldrig dina skript: den köar dem, och den Runner som stegets författare valde tar varje jobb, kör det och skickar tillbaka resultatet. Den här sidan är till för dem som installerar och driver Runners. Ett steg som inte väljer någon Runner körs på [projektets standard-Runner](#projektets-standard-runner), om du har angett en; annars körs ett JavaScript-steg på en [global Runner](#globala-runners), en av dem som OneUptime kör för alla projekt.
 
 :::cards
 - [Installera en Runner](#installera-en-runner): Från instrumentpanelen till en ansluten container i fem steg.
 - [Peka ett steg mot en Runner](#peka-ett-steg-mot-en-runner): Bind ett steg till den Runner som ska köra det.
+- [Projektets standard-Runner](#projektets-standard-runner): Den Runner som ett steg körs på när det inte väljer någon.
 - [Globala Runners](#globala-runners): De Runners som OneUptime kör för alla projekt, och vad de kör.
 - [Tidsgränser](#tidsgränser): Claim- och körningstidsgränser och hur de samverkar.
 - [Miljövariabler](#miljövariabler): Vad containern läser vid start.
@@ -33,7 +34,7 @@ flowchart TB
 1. Du skapar en Runner i OneUptime. OneUptime genererar ett ID och en hemlig nyckel åt den.
 2. Du kör Runner-containern på en värd i din infrastruktur med det ID:t, den nyckeln och din OneUptime-URL.
 3. Runnern ber OneUptime om arbete var 5:e sekund och rapporterar var 60:e sekund att den lever.
-4. När du skriver ett JavaScript-, Bash-, SSH- eller kubectl-steg väljer du Runnern i en listruta. Steget binds till den Runnern. Ett JavaScript-steg kan behålla **Global Runner**, som rullgardinsmenyn väljer åt det.
+4. När du skriver ett JavaScript-, Bash-, SSH- eller kubectl-steg väljer du Runnern i en listruta under stegets **Fler fält**. Steget binds till den Runnern. Ett steg som inte väljer någon körs på projektets standard-Runner, om du har angett en, och annars körs ett JavaScript-steg på **Global Runner**.
 5. När steget körs köar Workern ett jobb med `targetAgentId` satt till den Runnern. Bara den Runnern kan ta det.
 6. Runnern kör jobbet lokalt — `bash -c <script>` för Bash och kubectl, en `isolated-vm`-sandlåda för JavaScript, en SSH-anslutning som kör skriptet med bash på maskinen — fångar resultatet, döljer stegets hemligheter i det och skickar tillbaka det. Worker återupptar runbooken med resultatet.
 
@@ -52,7 +53,7 @@ Med Runners körs de stegen på en värd som du styr, och du bestämmer vad den 
 
 ## Globala Runners
 
-Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScript-steg som inte väljer en egen Runner körs på en av dem, så du kan skriva det innan du installerar något alls. **Runbooks → Runbook-agenter** listar dem under **Globala Runners**, ovanför dina egna Runners, och rullgardinsmenyn **Runner** i ett JavaScript-steg erbjuder **Global Runner** först.
+Globala Runners är de Runners som OneUptime kör för alla projekt. Ett JavaScript-steg som inte väljer en egen Runner körs på en av dem, om inte projektet har en [standard-Runner](#projektets-standard-runner), så du kan skriva det innan du installerar något alls. **Runbooks → Runbook-agenter** listar dem under **Globala Runners**, ovanför dina egna Runners, och rullgardinsmenyn **Runner** i ett JavaScript-steg erbjuder **Global Runner** först, eller direkt efter projektets standard-Runner. Rullgardinsmenyn i ett Bash-, SSH- eller kubectl-steg visar den sist, nedtonad, med **Kör bara JavaScript-steg.** De stegen körs på en egen Runner, inne i ditt nätverk, aldrig på en som alla projekt delar.
 
 | | Global Runner | Din egen Runner |
 | --- | --- | --- |
@@ -69,7 +70,7 @@ En global Runner kör stegen från många projekt, så varje steg hålls åtskil
 - Den får en hemlig variabel bara när variabelns brytare **Globala Runners får använda den** är påslagen, och bara för ett steg i variabelns eget projekt. Den får aldrig en autentiseringsuppgift.
 - Ett projekt kör högst tre steg åt gången på globala Runners, så inget projekt håller dem för sig själv.
 
-Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner misslyckas då och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
+Välj en av dina egna Runners för ett steg som måste nå ditt nätverk, eller för att hålla steget på värdar som du styr. För att hålla varje steg på dina egna Runners stänger du av **Använd globala Runners** längst ned på **Runbooks → Runbook-agenter**. Ett JavaScript-steg som inte väljer någon Runner körs då på projektets standard-Runner eller misslyckas, om ingen är angiven, och säger det, tills det väljer en av dina; ett steg som väljer en av dina Runners behåller den i vilket fall som helst. Ett kodrepository som inte väljer någon Runner i sina inställningar i Kod arbetar också på en global Runner, och behöver en av dina medan reglaget är avstängt; se [Kod](/docs/ai/ai-agent#välj-repositoryts-runner).
 
 ### Var globala Runners kommer ifrån
 
@@ -142,7 +143,7 @@ Lägg till ett JavaScript-, Bash-, SSH- eller kubectl-steg i ditt runbooks **Ste
 
 ### Välj Runnern
 
-Stegets listruta **Runner** visar alla Runners i projektet och om de är anslutna. Om projektet inte har någon än säger steget det och hänvisar dig till **Runbooks › Runners**. Rullgardinsmenyn i ett JavaScript-steg erbjuder också **Global Runner**, först, och väljer den tills du väljer en av dina egna.
+Öppna stegets **Fler fält**: Dess listruta **Runner** visar alla Runners i projektet och om de är anslutna, och den hopfällda raden nämner den Runner som steget körs på. Om projektet inte har någon än säger steget det och hänvisar dig till **Runbooks › Runners**. Det första valet är det som ett steg som inte väljer någon Runner körs på: [projektets standard-Runner](#projektets-standard-runner), markerad med **Projektstandard**, eller annars, för ett JavaScript-steg, **Global Runner**.
 
 ### Spara stegen
 
@@ -152,6 +153,26 @@ Klicka på **Save Steps**. När en körning når steget köar Workern ett jobb t
 Bash körs med `bash -c`. JavaScript körs i en `isolated-vm`-sandlåda på Runnern utan åtkomst till filsystemet eller processer; det kan anropa publika HTTP-API:er med `axios`, men inte adresser på ett privat nätverk. Ett SSH- eller kubectl-steg loggar in med en hemlig [runbook-variabel](/docs/runbooks/variables), som måste lista stegets Runner under **Dina Runners som får använda den**.
 
 Behöver du mer än en Runner? Skapa dem och peka varje steg mot rätt Runner. För redundans kör du en extra Runner och delar upp stegen mellan dem, eller har ett reserv-runbook vars steg pekar mot den andra Runnern.
+
+## Projektets standard-Runner
+
+Ett projekt kan göra en av sina egna Runners till sin standard, på samma sätt som det gör en Twilio-konfiguration till sin standard. Varje runbook-steg som inte väljer någon Runner körs då på den: Bash-, SSH- och kubectl-steg, och JavaScript-steg, som annars skulle köras på en global Runner.
+
+För att göra en Runner till standard går du till **Runbooks → Runbook-agenter**, öppnar menyn **⋯** på Runnerns rad, klickar på **Ange som projektstandard** och bekräftar med **Gör till projektstandard**. Eller öppna Runnern och slå på **Använd som projektstandard** på dess kort **Projektstandard**. Listan markerar standarden med **Projektstandard**, bredvid dess namn, och det gör även ett stegs rullgardinsmeny **Runner**, på dess första val. Ett projekt har en standard-Runner: att göra en annan Runner till standard ersätter den. **Sluta använda som projektstandard**, i samma meny, eller reglaget på Runnerns sida, slutar använda den.
+
+Var ett steg som inte väljer någon Runner körs:
+
+| Projektet | Ett JavaScript-steg | Ett Bash-, SSH- eller kubectl-steg |
+| --- | --- | --- |
+| Har en standard-Runner | Standard-Runnern | Standard-Runnern |
+| Har ingen och använder globala Runners | En global Runner | Ingenstans: steget misslyckas och säger att det inte har någon Runner |
+| Har ingen och använder inte globala Runners | Ingenstans: steget misslyckas och säger det | Ingenstans: steget misslyckas och säger att det inte har någon Runner |
+
+Ett steg som har valt en Runner behåller den, vad standarden än är, och ett JavaScript-steg kan fortfarande själv välja **Global Runner**. Att ange en standard ändrar inget sparat steg.
+
+Standarden är en av projektets egna Runners som kör runbook-steg: inte en global Runner, inte den Runner i klustret som Kubernetes-agenten installerade, och inte en med **Kör Runbooks** avstängt. Så länge en Runner är standarden förblir dess **Kör Runbooks** påslaget. När standarden inte är ansluten säger ett stegs rullgardinsmeny det, och ett steg på den väntar på den, som på vilken Runner som helst, tills dess claim timeout har gått.
+
+Bara runbook-steg använder standarden. Ett kodrepository väljer sin Runner i sina inställningar i Kod, och en regel för automatisk åtgärd väljer sin egen.
 
 ## Driftanteckningar
 

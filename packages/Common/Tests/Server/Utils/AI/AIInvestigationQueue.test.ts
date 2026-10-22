@@ -28,7 +28,8 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  *
  * The invariants these tests lock in:
  *   (a) enqueue records a Queued AIRun (the durable intent) before any
- *       expensive work, and kicks inline processing;
+ *       expensive work, and sends it to the workers rather than running it
+ *       (AIInvestigationQueueWorkers.test.ts covers the workers' side);
  *   (b) the claim is a status-guarded CAS: a lost claim never executes,
  *       a won claim increments attemptCount and dispatches to the right
  *       subject runner;
@@ -76,7 +77,7 @@ describe("AIInvestigationQueue", () => {
     jest.restoreAllMocks();
   });
 
-  test("enqueue records a Queued run with the subject and kicks processing", async () => {
+  test("enqueue records a Queued run with the subject and sends it to the workers, running nothing itself", async () => {
     const projectId: ObjectID = ObjectID.generate();
     const incidentId: ObjectID = ObjectID.generate();
     const createdId: ObjectID = ObjectID.generate();
@@ -84,9 +85,13 @@ describe("AIInvestigationQueue", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: createdId } as unknown as AIRun);
-    const processRun: jest.SpyInstance = jest
-      .spyOn(AIInvestigationQueue, "processRun")
+    const sendToWorkers: jest.SpyInstance = jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
       .mockResolvedValue(undefined);
+    const processRun: jest.SpyInstance = jest.spyOn(
+      AIInvestigationQueue,
+      "processRun",
+    );
 
     await AIInvestigationQueue.enqueue({
       projectId,
@@ -119,20 +124,19 @@ describe("AIInvestigationQueue", () => {
     expect(
       (Semaphore.release as unknown as jest.Mock).mock.invocationCallOrder[0],
     ).toBeGreaterThan(create.mock.invocationCallOrder[0]!);
-    // The inline kick is detached; give the microtask a beat.
-    await new Promise((resolve: (value: unknown) => void) => {
-      setTimeout(resolve, 0);
-    });
-    expect(processRun).toHaveBeenCalledWith(
+    expect(sendToWorkers).toHaveBeenCalledWith(
       expect.objectContaining({
         id: createdId,
         attemptCount: 0,
+        handedBackCount: 0,
         triggeredByIncidentId: incidentId,
       }),
     );
-    expect(processRun.mock.invocationCallOrder[0]).toBeGreaterThan(
+    expect(sendToWorkers.mock.invocationCallOrder[0]).toBeGreaterThan(
       (Semaphore.release as unknown as jest.Mock).mock.invocationCallOrder[0]!,
     );
+    // A worker-role server runs it, not the process that enqueued it.
+    expect(processRun).not.toHaveBeenCalled();
   });
 
   test("enqueue keeps an alert investigation NotRecommended until completion wins", async () => {
@@ -142,7 +146,9 @@ describe("AIInvestigationQueue", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId,
@@ -172,9 +178,9 @@ describe("AIInvestigationQueue", () => {
       new Error("Redis unavailable"),
     );
     const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
-    const processRun: jest.SpyInstance = jest.spyOn(
+    const sendToWorkers: jest.SpyInstance = jest.spyOn(
       AIInvestigationQueue,
-      "processRun",
+      "sendToWorkers",
     );
 
     const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
@@ -185,7 +191,7 @@ describe("AIInvestigationQueue", () => {
     expect(runId).toBeNull();
     expect(create).not.toHaveBeenCalled();
     expect(Semaphore.release).not.toHaveBeenCalled();
-    expect(processRun).not.toHaveBeenCalled();
+    expect(sendToWorkers).not.toHaveBeenCalled();
   });
 
   test("enqueue rejects a run carrying both subject types before any budget or write", async () => {
@@ -212,7 +218,9 @@ describe("AIInvestigationQueue", () => {
     jest.spyOn(AIRunService, "create").mockResolvedValue({
       id: ObjectID.generate(),
     } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId,
@@ -230,7 +238,9 @@ describe("AIInvestigationQueue", () => {
     jest.spyOn(AIRunService, "create").mockResolvedValue({
       id: ObjectID.generate(),
     } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId,
@@ -815,7 +825,9 @@ describe("AIInvestigationQueue and the project's own daily AI limits", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId,
@@ -831,7 +843,9 @@ describe("AIInvestigationQueue and the project's own daily AI limits", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId,
@@ -860,7 +874,9 @@ describe("AIInvestigationQueue and the project's own daily AI limits", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     await AIInvestigationQueue.enqueue({
       projectId,

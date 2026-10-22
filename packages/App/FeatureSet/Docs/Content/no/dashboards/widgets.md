@@ -178,7 +178,7 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 | **Docker Swarm** | **Noder**, **Tjenester** | Docker Swarm-agenten |
 | **Podman** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Podman-agenten |
 | **Proxmox** | **Noder**, **Guests** | Proxmox-agenten |
-| **VMware** | **Verter**, **Virtual Machines** | VMware-agenten, eller et vCenter du kobler til |
+| **VMware** | **Verter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter du kobler til |
 | **Ceph** | **OSDs**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
 | **Lagringsarrayer** | **Volumer**, og **Hardware** som en vegg farget etter status | Storage Array-agenten |
 

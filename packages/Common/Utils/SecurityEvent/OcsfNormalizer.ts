@@ -11,9 +11,15 @@ import {
   ocsfEventClassByUid,
 } from "../../Types/SecurityEvent/OcsfEventClass";
 import {
+  ProcessFields,
+  ProcessReading,
   buildObservables,
+  buildProcessFields,
   contentHashEventUid,
   flattenPayload,
+  joinPath,
+  mergeProcessReadings,
+  namesProcess,
   parseEventTime,
   readNumber,
   readString,
@@ -31,6 +37,89 @@ import {
  *
  * https://schema.ocsf.io/
  */
+
+const PROCESS_ACTIVITY_CLASS_UID: number = 1007;
+const LAUNCH_ACTIVITY_ID: number = 1;
+
+// An OCSF Process object at `at`: its name, its executable's path, its command line.
+function readOcsfProcess(payload: JSONObject, at: string): ProcessReading {
+  return {
+    name:
+      readString(payload, `${at}.name`) ||
+      readString(payload, `${at}.file.name`),
+    path:
+      readString(payload, `${at}.file.path`) ||
+      readString(payload, `${at}.path`) ||
+      joinPath(
+        readString(payload, `${at}.file.parent_folder`),
+        readString(payload, `${at}.file.name`),
+      ),
+    commandLine: readString(payload, `${at}.cmd_line`),
+  };
+}
+
+/*
+ * A Process Activity launch: activity_id 1, or no activity named at all,
+ * since a launch is what nearly every process event is.
+ */
+function isLaunch(payload: JSONObject, classUid: number): boolean {
+  if (classUid !== PROCESS_ACTIVITY_CLASS_UID) {
+    return false;
+  }
+
+  const activityId: number | null = readNumber(payload, "activity_id");
+
+  if (activityId !== null) {
+    return activityId === LAUNCH_ACTIVITY_ID;
+  }
+
+  const activityName: string = readString(payload, "activity_name")
+    .trim()
+    .toLowerCase();
+
+  return !activityName || activityName === "launch";
+}
+
+/*
+ * The process an event is about, and its parent. `process` is the process
+ * Process Activity acted on; in a launch the actor's process is the one that
+ * started it, its parent, read together with `process.parent_process`, and
+ * in any other activity (an open, an injection) it is some other process,
+ * so only `process.parent_process` names the parent. Classes without
+ * `process` (network, file, module activity) name the actor's process,
+ * which is then the one the event is about.
+ */
+function readOcsfProcesses(
+  payload: JSONObject,
+  classUid: number,
+): ProcessFields {
+  const target: ProcessReading = readOcsfProcess(payload, "process");
+  const actor: ProcessReading = readOcsfProcess(payload, "actor.process");
+  const launch: boolean = isLaunch(payload, classUid);
+
+  if (namesProcess(target)) {
+    const ownParent: ProcessReading = readOcsfProcess(
+      payload,
+      "process.parent_process",
+    );
+
+    return buildProcessFields({
+      process: target,
+      parent: launch ? mergeProcessReadings(ownParent, actor) : ownParent,
+    });
+  }
+
+  // A Process Activity event that does not name its process: the actor is never it.
+  if (classUid === PROCESS_ACTIVITY_CLASS_UID) {
+    return buildProcessFields({ parent: launch ? actor : undefined });
+  }
+
+  return buildProcessFields({
+    process: actor,
+    parent: readOcsfProcess(payload, "actor.process.parent_process"),
+  });
+}
+
 export default class OcsfNormalizer {
   public static isOcsfEvent(payload: JSONObject): boolean {
     return readNumber(payload, "class_uid") !== null;
@@ -174,6 +263,7 @@ export default class OcsfNormalizer {
       principalHost,
       principalIp,
       principalProcess,
+      ...readOcsfProcesses(payload, classUid),
       targetUser,
       targetHost,
       targetIp,

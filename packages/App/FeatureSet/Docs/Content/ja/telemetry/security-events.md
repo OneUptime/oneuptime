@@ -45,6 +45,7 @@ flowchart TB
 | **Playbooks** | Playbooks | 自動で、または手動でケースに対して実行されるステップ |
 | **承認待ち** | Playbooks | 誰かの承認または却下を待っているプレイブックのステップ |
 | **プレイブックの実行** | Playbooks | 各プレイブックが行ったことをステップごとに |
+| **Protected Entities** | Playbooks | どのプレイブックも封じ込めないユーザーとホスト |
 | **接続** | 接続 | ログ、OneUptime がポーリングするセキュリティ製品、そして送信先の SIEM |
 | **セットアップガイド** | 接続 | イベントを送るためのスニペット。取り込みキーが入力済み |
 
@@ -134,6 +135,12 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 | `className` | `event_type`、`category`、`type`、`action` |
 | `ruleName` | `rule`、`rule_name`、`signature`、`detection` |
 | `productName` | `product`、`product_name`、`source`、`log_source` |
+| `processName` | `process_name`、`process.name`、`proc.name`、`comm` |
+| `processPath` | `process_path`、`Image`、`NewProcessName`、`exe`、`process.executable` |
+| `processCommandLine` | `command_line`、`CommandLine`、`cmdline`、`process.command_line`、`proc.cmdline`、`process` |
+| `parentProcessName` | `parent_process_name`、`process.parent.name`、`proc.pname` |
+| `parentProcessPath` | `parent_process_path`、`ParentImage`、`ParentProcessName`、`process.parent.executable` |
+| `parentProcessCommandLine` | `parent_command_line`、`ParentCommandLine`、`process.parent.command_line`、`proc.pcmdline` |
 
 重大度を表す語は OCSF のレベルに変換されます。 `info` は Informational、 `warning` は Low、 `error` は Medium、 `alert` は Critical、 `emergency` は Fatal として読み取られます。
 
@@ -178,7 +185,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | AWS Security Hub | Finding を Detection Finding と Compliance Finding として | [AWS Security Hub](/docs/integrations/aws-security-hub) |
 | Okta System Log | サインイン、MFA、アカウント、ポリシーのイベント | [Okta System Log](/docs/integrations/okta) |
 
-- 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **High and above**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
+- 製品自身のアラートのうち **Open Cases From** (別のレベルを選ばない限り **高以上**、または **なし**) 以上のものは、対象のユーザー、ホスト、アドレスごとにまとめられて [ケース](/docs/telemetry/security-cases) を開きます。
 - 接続は、レコードが表すアクティビティの時刻ではなく、製品がレコードを作成した時刻で読み取ります。1 時間ごとに実行される SIEM ルールは一致したイベントよりずっと後に検出を作成しますが、それも取り込まれます。
 - 最初のポーリングは 24 時間さかのぼるので、新しい接続ではすぐに最近のレコードが表示されます。
 - 接続の行にある **接続をテスト** は、製品へのアクセスと OneUptime 自身のワーカーが動いているかを確認し、何も取り込みません。 **今すぐ実行** はすぐにポーリングします。
@@ -193,6 +200,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | 重大度 | `severityName` (Unknown、Informational、Low、Medium、High、Critical、Fatal、Other のいずれか) と `severityId` |
 | 誰が行ったか | `principalUser`、`principalHost`、`principalIp`、`principalProcess` |
 | 何に触れたか | `targetUser`、`targetHost`、`targetIp`、`targetPort`、`targetResource` |
+| プロセス | `processName`、`processPath`、`processCommandLine`: プロセスの起動では起動したプロセス、それ以外では動作したプロセス。`parentProcessName`、`parentProcessPath`、`parentProcessCommandLine`: それを起動したプロセス |
 | ソース | `productName`、`vendorName`、`ruleId`、`ruleName`、`eventUid` |
 | 内容 | `message`、`mitreTactics`、`mitreTechniques`、`observables`: イベントから取り出したすべてのユーザー、ホスト、IP アドレス、ドメイン、ハッシュ |
 | 属性 | ソースのペイロード全体を、ドット区切りのキーに平坦化したもの |
@@ -217,11 +225,11 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 | `@<attribute>:*` | 属性が存在する | `@threat.indicator_id:*` |
 | `@<attribute>:~text` | 属性がテキストを含む | `@finding_info.title:~ransom` |
 
-項目は、短い名前 (`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`observable`、`tactic`、`technique`) か、 `severityName` や `principalHost` のような項目自体の名前です。それ以外の名前はソースの属性として読み取られます。 `observable:<value>` は、アクティビティのどちら側にあったかにかかわらず、その値に触れているすべてのイベントを見つけます。
+項目は、短い名前 (`severity`、`class`、`category`、`activity`、`status`、`vendor`、`product`、`rule`、`user`、`host`、`ip`、`targetuser`、`targethost`、`targetip`、`processname`、`commandline`、`parentprocessname`、`observable`、`tactic`、`technique`) か、 `severityName` や `principalHost` のような項目自体の名前です。それ以外の名前はソースの属性として読み取られます。 `observable:<value>` は、アクティビティのどちら側にあったかにかかわらず、その値に触れているすべてのイベントを見つけます。
 
 ### ファセット
 
-サイドバーは、ウィンドウ内のイベントを **ソース**、 **重大度**、 **イベントクラス**、 **カテゴリ**、 **アクティビティ**、 **ステータス**、 **ベンダー**、 **製品**、 **検出ルール**、 **送信元ユーザー**、 **送信元ホスト** ごとに数えます。値をクリックするとそのイベントだけを残し、横のマイナスをクリックすると除外します。もう一度クリックすると元に戻ります。グラフとすべての件数は、一覧にあるイベントをそのまま表します。
+サイドバーは、ウィンドウ内のイベントを **ソース**、 **重大度**、 **イベントクラス**、 **カテゴリ**、 **アクティビティ**、 **ステータス**、 **ベンダー**、 **製品**、 **検出ルール**、 **送信元ユーザー**、 **送信元ホスト**、 **プロセス**、 **親プロセス** ごとに数えます。値をクリックするとそのイベントだけを残し、横のマイナスをクリックすると除外します。もう一度クリックすると元に戻ります。グラフとすべての件数は、一覧にあるイベントをそのまま表します。
 
 ### 相関分析
 
@@ -277,6 +285,7 @@ OneUptime は Sigma のブール演算の中核部分を実行します。
 - 条件は、 `and`、 `or`、 `not` と括弧、または `1 of selection_*`、 `all of selection_*`、 `any of them`、 `all of them` でセレクションを組み合わせます。
 - 項目の修飾子: `contains`、 `startswith`、 `endswith`、 `all`、 `re`、 `cased`、 `gt`、 `gte`、 `lt`、 `lte`、 `cidr`、 `exists`、 `windash`。テキストは、 `cased` を付けない限り大文字と小文字を区別せずに比較されます。
 - 項目は、型付きの項目 (`principalUser`)、その一般的な Sigma の綴り (`CommandLine`、`src_ip`、`Hostname`)、またはイベントにあるとおりに綴った任意の属性キー (`threat.matched`) です。
+- `Image` と `CommandLine` はイベントの対象のプロセス、つまりプロセスの起動では起動したプロセス (`processPath`、`processCommandLine`) を読み、`ParentImage` と `ParentCommandLine` はそれを起動したプロセス (`parentProcessPath`、`parentProcessCommandLine`) を読みます。`principalProcess` は動作したプロセスで、起動では親プロセスにあたります。
 - `level` は重大度を設定します。 `informational`、 `low`、 `medium`、 `high`、 `critical` のいずれかで、ない場合は `medium` です。 `tags` 内の ATT&CK ID (`attack.t1110`、`attack.ta0006`) は、検出結果の MITRE 項目に入ります。
 
 `| count() by principalIp > 5` のような集計は保存時に拒否されます。代わりに **グループ化のフィールド** と **一致件数のしきい値** を使ってください。 `logsource` は情報としてのみ扱われ、何も絞り込みません。その絞り込みは `className: Authentication` のようにセレクションに入れてください。 `timeframe` は無視されます。ウィンドウはルールの間隔で決まるからです。
@@ -307,7 +316,7 @@ OneUptime は毎分、前回の実行から間隔が経過した有効なルー�
 - ウィンドウは連続していて、スライドしません。間隔が 10 分なら、09:58 と 10:01 の失敗は別々の実行に入り、別々に数えられることがあるので、しきい値には余裕を持たせてください。
 - ワーカーの停止やルールの再有効化などで間隔が空いた後は、次の実行が空白期間全体を、最大で直近 24 時間までカバーします。
 - 実行がその時刻をすでに処理した後で 2 分以上遅れて届いたイベントは、保存され検索もできますが、そのルールが読み取ることはありません。
-- 1 回の実行で発火するグループは最大 100 個で、件数の多いものが選ばれます。
+- しきい値に達したグループはすべて Detection Finding になり、1 回の実行で最大 10,000 件です。アラート、インシデント、ケースは件数の多い 100 個について開かれ、残りはルールについての 1 件のケースにまとめられます。ルールの **最終エラー** に、一致したグループの数が表示されます。
 
 ### 重大度
 

@@ -1,15 +1,17 @@
 {
   "baseline": {
-    "keys": 32062,
-    "untranslated": 16617
+    "keys": 32602,
+    "untranslated": 16535
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
     "Agenda",
     "App",
     "Budget",
+    "CPU Ready {{percent}}",
     "Client",
     "Cloud",
+    "Collector",
     "Embedding",
     "Failover",
     "Gateway",

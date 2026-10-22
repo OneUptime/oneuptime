@@ -36,7 +36,7 @@ flowchart TB
 
 Elke run van een runbook is een **uitvoering**. Bij de start worden de stappen van het runbook erop gekopieerd en loopt OneUptime ze op volgorde af. Een Manual-stap, of een stap die goedkeuring nodig heeft, pauzeert de uitvoering tot iemand handelt.
 
-HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
+HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen lopen op een [Runner](/docs/runbooks/agents) die u in uw eigen infrastructuur installeert, zodat die scripts nooit op de servers van OneUptime draaien. Een JavaScript-stap loopt ook op een van uw Runners of, als hij er geen kiest en het project geen [standaard-Runner](/docs/runbooks/agents#de-standaard-runner-van-het-project) heeft, op een [globale Runner](/docs/runbooks/agents#globale-runners), in een sandbox die alleen het internet bereikt. De status, uitvoer en foutmelding van elke stap worden vastgelegd op de uitvoering, die bij het incident, de waarschuwing of het evenement blijft waarvoor ze liep.
 
 ## Kernbegrippen
 
@@ -47,7 +47,7 @@ HTTP- en AI-stappen lopen op de OneUptime Worker. Bash-, SSH- en kubectl-stappen
 | **Runbook-regel** | Een regel die automatisch een of meer runbooks koppelt aan incidenten, waarschuwingen of geplande onderhoudsevenementen die aan de voorwaarden voldoen: hun monitoren, ernst, labels, monitorlabels, titel of beschrijving. |
 | **Uitvoering** | Eén run van een runbook. Ontstaat wanneer een regel afgaat, wanneer iemand op een evenement op **Runbook uitvoeren** klikt, of wanneer iemand op het runbook zelf op **Run Now** klikt. Bevat een momentopname van de stappen en de status en uitvoer van elke stap. |
 | **Momentopname** | De bevroren kopie van de stappen van het runbook die op elke uitvoering staat. U kunt het runbook later bewerken zonder de geschiedenis van eerdere uitvoeringen te herschrijven. |
-| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en kubectl-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen. |
+| **Runner** | Een kleine agent die u op een host in uw eigen infrastructuur draait. Hij voert de JavaScript-, Bash-, SSH- en kubectl-stappen uit die hem noemen. Ook wel runbook-agent genoemd. Een globale Runner, een van de Runners die OneUptime voor elk project draait, voert de JavaScript-stappen uit die er geen noemen, tenzij het project een standaard-Runner heeft. |
 | **Variabele** | Een waarde die stappen bij naam gebruiken, zoals een host of een URL: `{{global.variables.NAME}}` voor een van het project, die elk runbook kan gebruiken, of `{{local.variables.NAME}}` voor een van het runbook zelf. |
 | **Geheim** | Een variabele waarvan de waarde versleuteld wordt opgeslagen, nooit meer wordt getoond en verborgen wordt in wat stappen afdrukken, zoals een SSH-sleutel, een wachtwoord, een kubeconfig of een API-token. Alleen overhandigd aan de Runners die het van u mogen gebruiken; globale Runners krijgen het alleen als u dat toestaat. |
 
@@ -141,7 +141,7 @@ Runbooks:    [DB primary failover]
 
 Een monitor opent incident `INC-4821 · db-primary connection timeout`. De regel komt overeen en er start een uitvoering:
 
-- Stap 1 (JavaScript) loopt op de Runner die u ervoor hebt gekozen. De returnwaarde, zoals `{ lagMs: 412 }`, wordt vastgelegd. Een stap die geen Runner kiest, loopt op een globale Runner.
+- Stap 1 (JavaScript) loopt op de Runner die u ervoor hebt gekozen. De returnwaarde, zoals `{ lagMs: 412 }`, wordt vastgelegd. Een stap die geen Runner kiest, loopt op de standaard-Runner van het project of, als er geen is ingesteld, op een globale Runner.
 - Stap 2 (Manual) pauzeert de uitvoering, die **Wacht op u** toont. De persoon met dienst controleert het dashboard en klikt op **Markeer als voltooid**.
 - Stap 3 (HTTP request) loopt, en het antwoord op de `POST` wordt vastgelegd.
 - Stap 4 (Manual) pauzeert de uitvoering opnieuw tot iemand de stap voltooit.

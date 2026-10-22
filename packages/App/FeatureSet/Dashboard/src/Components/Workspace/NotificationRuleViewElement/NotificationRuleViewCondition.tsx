@@ -18,6 +18,10 @@ import ScheduledMaintenanceStateElement from "../../ScheduledMaintenanceState/Sc
 import MonitorStatusElement from "../../MonitorStatus/MonitorStatusElement";
 import LabelElement from "Common/UI/Components/Label/Label";
 import MonitorElement from "../../Monitor/Monitor";
+import {
+  SecurityCasePriorityPill,
+  SecurityCaseStatusPill,
+} from "../../SecurityCase/SecurityCasePills";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -235,7 +239,8 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
       checkOn === NotificationRuleConditionCheckOn.IncidentEpisodeLabels ||
       checkOn === NotificationRuleConditionCheckOn.MonitorLabels ||
       checkOn === NotificationRuleConditionCheckOn.ScheduledMaintenanceLabels ||
-      checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels
+      checkOn === NotificationRuleConditionCheckOn.OnCallDutyPolicyLabels ||
+      checkOn === NotificationRuleConditionCheckOn.SecurityCaseLabels
     ) {
       const selectedLabels: Array<Label> = props.labels.filter(
         (label: Label) => {
@@ -265,6 +270,52 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
             return <MonitorElement monitor={monitor} key={index} />;
           })}
         </div>
+      );
+    }
+
+    /*
+     * A security case's priority and status are the case's own fixed scales,
+     * stored as they are written: each drawn as the pill the case pages
+     * draw it with, in its colour.
+     */
+    if (
+      checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority ||
+      checkOn === NotificationRuleConditionCheckOn.SecurityCaseStatus
+    ) {
+      const isPriority: boolean =
+        checkOn === NotificationRuleConditionCheckOn.SecurityCasePriority;
+
+      valueElement = (
+        <div className="inline-flex flex-wrap items-center gap-1.5">
+          {selectedIds.map((value: string) => {
+            return isPriority ? (
+              <SecurityCasePriorityPill
+                key={value}
+                value={value}
+                isMinimal={true}
+              />
+            ) : (
+              <SecurityCaseStatusPill
+                key={value}
+                value={value}
+                isMinimal={true}
+              />
+            );
+          })}
+        </div>
+      );
+    }
+
+    // What raised the case: words of a fixed list, in the reader's language.
+    if (checkOn === NotificationRuleConditionCheckOn.SecurityCaseSource) {
+      valueElement = (
+        <span className="font-medium text-gray-900">
+          {selectedIds
+            .map((value: string): string => {
+              return translator.translateText(value) || value;
+            })
+            .join(", ")}
+        </span>
       );
     }
 

@@ -29,32 +29,46 @@ import {
   GLOBAL_RUNNER_CHOICE_LABEL,
   GLOBAL_RUNNER_CHOICE_VALUE,
   GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
+  GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT,
+  GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT,
+  GlobalRunnerUnavailableReason,
+  NEEDS_OWN_RUNNER_ADD_TEMPLATE,
+  NEEDS_OWN_RUNNER_TEMPLATE,
+  PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT,
+  PROJECT_DEFAULT_TAG,
   REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT,
   REMEDIATION_NO_RUNNER_CHOICE_DESCRIPTION,
   REMEDIATION_ADD_RUNNER_TEMPLATE,
   REMEDIATION_NO_RUNNER_CHOICE_LABEL,
+  RUNNER_NOT_CONNECTED_TEMPLATE,
   RunnerPickerModel,
   RunnerPickerOption,
   RunnerPickerOptionKind,
   RunnerPickerOutcome,
   RunnerPickerWork,
+  STEP_NO_GLOBAL_RUNNER_HELPER_TEXT,
   buildRunnerPickerModel,
+  getWaitingProjectRunner,
+  hasPickableOption,
   isGlobalRunnerChoiceWaiting,
 } from "./RunnerPickerModel";
 
 /*
  * The one Runner picker: which Runner runs a step (Runbooks -> a runbook ->
- * Steps), which Runner AI works in a code repository on (Code -> a
- * repository -> Settings), which Runner OneUptime AI runs an auto
- * remediation rule's commands on (the rule's More fields), and anywhere
- * else people pick a Runner.
+ * Steps, under the step's More fields), which Runner AI works in a code
+ * repository on (Code -> a repository -> Settings), which Runner OneUptime
+ * AI runs an auto remediation rule's commands on (the rule's More fields),
+ * and anywhere else people pick a Runner.
  *
- * The global choice - "Global Runner", the Runners OneUptime runs for every
- * project - comes first and is what a step that picked none shows, whenever
- * global Runners can run the step (RunnerPickerModel). The project's own
- * Runners follow, each with how it is doing. When there is nothing to pick,
- * one plain sentence says what to do instead of an empty box: a Bash, SSH or
- * Kubernetes step needs a Runner of the project's own.
+ * A step's first choice is what a step that picks no Runner runs on: the
+ * project's default Runner when the project has one ("prod-runner ·
+ * Project default · Connected"), and otherwise "Global Runner", the Runners
+ * OneUptime runs for every project, wherever they can run the step
+ * (RunnerPickerModel). The Global Runner stays in the list beside a project
+ * default, and where it cannot run the step - a Bash, SSH or kubectl step -
+ * it is drawn but cannot be picked, saying why. The project's own Runners
+ * follow, each with how it is doing. When there is nothing to pick, one
+ * plain sentence says what to do instead of an empty box.
  */
 
 export interface ComponentProps {
@@ -103,6 +117,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     props.work === RunnerPickerWork.CodeRepository;
   const isForRemediation: boolean =
     props.work === RunnerPickerWork.AutoRemediation;
+  const isForStep: boolean = !isForCodeRepository && !isForRemediation;
   // A pick the reader is not shown is one they may not see, not a broken one.
   const isPickOfTheProjectsOwn: boolean =
     isForCodeRepository || isForRemediation;
@@ -139,11 +154,43 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
   ): DropdownOption => {
     if (option.kind === RunnerPickerOptionKind.Global) {
       return {
-        value: GLOBAL_RUNNER_CHOICE_VALUE,
+        value: option.value,
         label: `${translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL)} · ${getStatusText(option)}`,
         description: isForCodeRepository
           ? CODE_GLOBAL_RUNNER_CHOICE_DESCRIPTION
           : GLOBAL_RUNNER_CHOICE_DESCRIPTION,
+      };
+    }
+
+    /*
+     * The Global Runner where it cannot run the step: in the list, so
+     * nobody wonders where it went, with why - and never picked.
+     */
+    if (option.kind === RunnerPickerOptionKind.GlobalUnavailable) {
+      return {
+        value: option.value,
+        label:
+          translator.translateText(GLOBAL_RUNNER_CHOICE_LABEL) ||
+          GLOBAL_RUNNER_CHOICE_LABEL,
+        description:
+          option.unavailableReason ===
+          GlobalRunnerUnavailableReason.ProjectTurnedOff
+            ? GLOBAL_RUNNER_TURNED_OFF_UNAVAILABLE_TEXT
+            : GLOBAL_RUNNER_STEP_TYPE_UNAVAILABLE_TEXT,
+        isDisabled: true,
+      };
+    }
+
+    /*
+     * A step's first choice while the project has a default Runner: that
+     * Runner, by its own name, tagged as the default.
+     */
+    if (option.kind === RunnerPickerOptionKind.ProjectDefault) {
+      return {
+        value: option.value,
+        label: `${option.name} · ${translator.translateText(PROJECT_DEFAULT_TAG)} · ${getStatusText(option)}`,
+        // The Runner's own name, drawn as named.
+        isUserContent: true,
       };
     }
 
@@ -183,6 +230,9 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
 
   const options: Array<DropdownOption> = model.options.map(toDropdownOption);
 
+  // Nothing in the list can be picked: one sentence says what to do instead.
+  const hasNothingToPick: boolean = !hasPickableOption(model);
+
   const selectedOption: DropdownOption | undefined = model.selected
     ? toDropdownOption(model.selected)
     : undefined;
@@ -211,7 +261,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     if (model.outcome === RunnerPickerOutcome.NeedsOwnRunner) {
       return (
         <TranslatedSentence
-          template="{{stepType}} steps run on a Runner of your own, inside your network. Add one under {{location}}, then pick it here."
+          template={NEEDS_OWN_RUNNER_ADD_TEMPLATE}
           slots={{
             stepType: props.stepTypeName || props.stepType,
             location: runnersLocation,
@@ -282,6 +332,34 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
       return translator.translateText(REMEDIATION_HIDDEN_RUNNER_HELPER_TEXT);
     }
 
+    /*
+     * A step global Runners never run, with no Runner to run it: why the
+     * Global Runner is not open to it, and the two ways on - pick one of
+     * the project's own, or make one the project default.
+     */
+    if (isForStep && model.outcome === RunnerPickerOutcome.NeedsOwnRunner) {
+      return (
+        <span className="text-amber-700">
+          {model.pickedGlobalRunner ? (
+            translator.translateText(PICKED_GLOBAL_RUNNER_NEEDS_OWN_TEXT)
+          ) : (
+            <TranslatedSentence
+              template={NEEDS_OWN_RUNNER_TEMPLATE}
+              slots={{
+                stepType: props.stepTypeName || props.stepType,
+                location: runnersLocation,
+              }}
+            />
+          )}
+        </span>
+      );
+    }
+
+    // A step that picked none on a server that runs no global Runner.
+    if (isForStep && model.outcome === RunnerPickerOutcome.NoGlobalRunner) {
+      return translator.translateText(STEP_NO_GLOBAL_RUNNER_HELPER_TEXT);
+    }
+
     if (model.outcome === RunnerPickerOutcome.GlobalRunner) {
       if (isForCodeRepository) {
         return translator.translateText(CODE_GLOBAL_RUNNER_HELPER_TEXT);
@@ -296,7 +374,8 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
     /*
      * A step global Runners could run - or a repository - in a project that
      * turned them off, picks one of the project's own: said here, since the
-     * global choice is not in the list.
+     * global choice cannot be picked (a step's list draws it as not open to
+     * it; a repository's leaves it out).
      */
     if (model.outcome === RunnerPickerOutcome.GlobalRunnersOff) {
       return translator.translateText(
@@ -340,6 +419,14 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
 
   const helperText: ReactNode = renderHelperText();
 
+  /*
+   * A step's own Runner - its pick, or the project's default - that is not
+   * connected: said before the run fails on it.
+   */
+  const waitingRunner: RunnerPickerOption | undefined = isForStep
+    ? getWaitingProjectRunner(model)
+    : undefined;
+
   return (
     <div data-testid={dataTestId}>
       {props.isFormField ? (
@@ -349,7 +436,7 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
           {translator.translateText("Runner")}
         </label>
       )}
-      {options.length === 0 ? (
+      {hasNothingToPick ? (
         <div
           className={`rounded-md border border-amber-200 bg-amber-50 px-3 py-2 ${lineClassName} text-amber-800`}
           data-testid={`${dataTestId}-nothing-to-pick`}
@@ -400,6 +487,18 @@ const RunnerPicker: FunctionComponent<ComponentProps> = (
                   ? CODE_GLOBAL_RUNNER_NOT_CONNECTED_TEXT
                   : GLOBAL_RUNNER_NOT_CONNECTED_TEXT,
               )}
+            </p>
+          ) : (
+            <></>
+          )}
+          {waitingRunner ? (
+            <p
+              className={`${lineClassName} text-amber-700 mt-1`}
+              data-testid={`${dataTestId}-runner-waiting`}
+            >
+              {translator.translateTemplate(RUNNER_NOT_CONNECTED_TEMPLATE, {
+                runner: waitingRunner.name,
+              })}
             </p>
           ) : (
             <></>

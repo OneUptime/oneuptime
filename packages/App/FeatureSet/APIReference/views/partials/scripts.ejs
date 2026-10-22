@@ -10,6 +10,7 @@
 <script id="reference-strings" type="application/json"><%- JSON.stringify({
    copy: t('ui.copy'),
    copied: t('ui.copied'),
+   copyFailed: t('ui.copyFailed'),
    themeLight: t('ui.themeLight'),
    themeDark: t('ui.themeDark'),
    themeSystem: t('ui.themeSystem'),
@@ -294,22 +295,141 @@
 
    /* ----------------------------------------------------------- copying -- */
 
-   function flashCopied(button) {
+   /*
+    * What a copy did, said to a screen reader: the buttons' own words change
+    * where nobody announces them. Made once, on the first copy.
+    */
+   var copyStatus = null;
+
+   function announce(text) {
+      if (!copyStatus) {
+         copyStatus = document.createElement('span');
+         copyStatus.setAttribute('role', 'status');
+         copyStatus.setAttribute('data-copy-status', '');
+         copyStatus.style.position = 'absolute';
+         copyStatus.style.width = '1px';
+         copyStatus.style.height = '1px';
+         copyStatus.style.overflow = 'hidden';
+         copyStatus.style.clip = 'rect(0, 0, 0, 0)';
+         copyStatus.style.whiteSpace = 'nowrap';
+         document.body.appendChild(copyStatus);
+      }
+      copyStatus.textContent = text;
+   }
+
+   /*
+    * The alert drawn in a button's copy icon's place while it says Copy
+    * failed - the triangle the rest of the product shows for it, so a
+    * failure never looks like the copy icon it was. Made the first time a
+    * copy fails, at the copy icon's size.
+    */
+   function alertIconFor(button, copyIcon) {
+      var alertIcon = button.querySelector('.alert-icon');
+
+      if (alertIcon || !copyIcon) {
+         return alertIcon;
+      }
+
+      var holder = document.createElement('span');
+      holder.innerHTML = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">' +
+         '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>';
+      alertIcon = holder.firstChild;
+      alertIcon.setAttribute('class', (copyIcon.getAttribute('class') || '').replace('copy-icon', 'alert-icon') + ' hidden');
+      copyIcon.parentNode.insertBefore(alertIcon, copyIcon.nextSibling);
+
+      return alertIcon;
+   }
+
+   /*
+    * "Copied!" only when the text reached the clipboard, and "Copy failed"
+    * when it did not - never the tick over an empty clipboard the button
+    * used to show when the browser refused (issue #5132).
+    */
+   function showCopyResult(button, copied) {
       var copyIcon = button.querySelector('.copy-icon');
       var checkIcon = button.querySelector('.check-icon');
+      var alertIcon = copied ? button.querySelector('.alert-icon') : alertIconFor(button, copyIcon);
       var label = button.querySelector('.copy-text');
+      var said = copied ? (strings.copied || 'Copied!') : (strings.copyFailed || 'Copy failed');
+
+      window.clearTimeout(button.__copyResetTimer);
 
       if (copyIcon) { copyIcon.classList.add('hidden'); }
-      if (checkIcon) { checkIcon.classList.remove('hidden'); }
-      if (label) { label.textContent = strings.copied || 'Copied!'; }
-      button.classList.add('copied');
+      if (checkIcon) { checkIcon.classList.toggle('hidden', !copied); }
+      if (alertIcon) { alertIcon.classList.toggle('hidden', copied); }
+      if (label) { label.textContent = said; }
+      button.classList.toggle('copied', copied);
+      button.classList.toggle('copy-failed', !copied);
+      button.setAttribute('data-copy-state', copied ? 'copied' : 'failed');
+      if (!label) {
+         /* A button without words says it on hover. */
+         button.setAttribute('title', said);
+      }
+      announce(said);
 
-      window.setTimeout(function () {
+      button.__copyResetTimer = window.setTimeout(function () {
          if (copyIcon) { copyIcon.classList.remove('hidden'); }
          if (checkIcon) { checkIcon.classList.add('hidden'); }
+         if (alertIcon) { alertIcon.classList.add('hidden'); }
          if (label) { label.textContent = strings.copy || 'Copy'; }
-         button.classList.remove('copied');
-      }, 2000);
+         button.classList.remove('copied', 'copy-failed');
+         button.removeAttribute('data-copy-state');
+         if (!label) { button.removeAttribute('title'); }
+      }, copied ? 2000 : 4000);
+   }
+
+   /*
+    * The page's own copy of Common/UI/Utils/Clipboard.ts: the async clipboard,
+    * then - on a page served over plain http, which has no navigator.clipboard,
+    * or when the async write is refused - the browser's older copy command.
+    * Resolves whether either one took the text.
+    */
+   function copyWithCommand(text) {
+      if (typeof document.execCommand !== 'function' || !document.body) {
+         return false;
+      }
+      var focused = document.activeElement;
+      var scratch = document.createElement('textarea');
+      scratch.value = text;
+      scratch.setAttribute('readonly', '');
+      scratch.setAttribute('aria-hidden', 'true');
+      scratch.setAttribute('tabindex', '-1');
+      scratch.style.position = 'fixed';
+      scratch.style.top = '0';
+      scratch.style.left = '-9999px';
+      scratch.style.opacity = '0';
+      /* iOS zooms the page into a focused field under 16px. */
+      scratch.style.fontSize = '16px';
+      document.body.appendChild(scratch);
+      try {
+         scratch.select();
+         scratch.setSelectionRange(0, text.length);
+         return document.execCommand('copy') === true;
+      } catch (error) {
+         return false;
+      } finally {
+         document.body.removeChild(scratch);
+         /* Selecting the scratch field took the focus: give it back. */
+         if (focused && focused !== document.body && typeof focused.focus === 'function') {
+            focused.focus();
+         }
+      }
+   }
+
+   function writeToClipboard(text) {
+      var useCommand = function () {
+         return copyWithCommand(text);
+      };
+      try {
+         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(text).then(function () {
+               return true;
+            }, useCommand);
+         }
+      } catch (error) {
+         /* Refused outright: the older command may still copy. */
+      }
+      return Promise.resolve(useCommand());
    }
 
    function copyText(text, button) {
@@ -317,30 +437,40 @@
          return;
       }
 
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-         navigator.clipboard.writeText(text).then(function () {
-            flashCopied(button);
-         }).catch(function () { /* Denied clipboard permission: leave the button alone. */ });
-         return;
+      writeToClipboard(text).then(function (copied) {
+         showCopyResult(button, copied);
+
+         if (!copied) {
+            /* What it would have copied, selected where it is: to copy by hand. */
+            var shown = sourceElementFor(button);
+            var selection = window.getSelection && window.getSelection();
+            if (shown && selection) {
+               selection.selectAllChildren(shown);
+            }
+         }
+      });
+   }
+
+   // The block around a copy button: what it reads from.
+   function copyScopeOf(button) {
+      return button.closest('[data-copy-scope]');
+   }
+
+   // The element a button's text is read from, to select when the copy fails.
+   function sourceElementFor(button) {
+      var scope = copyScopeOf(button);
+
+      if (!scope) {
+         return null;
       }
 
-      /* Older browsers, and any page served over plain http. */
-      var scratch = document.createElement('textarea');
-      scratch.value = text;
-      scratch.setAttribute('readonly', '');
-      scratch.style.position = 'fixed';
-      scratch.style.opacity = '0';
-      document.body.appendChild(scratch);
-      scratch.select();
-      try {
-         document.execCommand('copy');
-         flashCopied(button);
-      } catch (error) { /* Nothing else to try. */ }
-      document.body.removeChild(scratch);
+      return scope.querySelector('[data-copy-body]') ||
+         scope.querySelector('[data-copy-headers]') ||
+         scope.querySelector('code');
    }
 
    function textToCopyFor(button) {
-      var scope = button.closest('[data-copy-scope]');
+      var scope = copyScopeOf(button);
 
       if (!scope) {
          return '';

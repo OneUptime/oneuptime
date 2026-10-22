@@ -65,7 +65,9 @@ describe("AIInvestigationQueue — insight subject", () => {
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue({ id: createdId } as unknown as AIRun);
-    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+    jest
+      .spyOn(AIInvestigationQueue, "sendToWorkers")
+      .mockResolvedValue(undefined);
 
     const returnedId: ObjectID | null = await AIInvestigationQueue.enqueue({
       projectId: ObjectID.generate(),

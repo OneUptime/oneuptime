@@ -7,6 +7,7 @@ import SecurityLogFormat, {
 import SudoLogParser, {
   SudoCommand,
   readSudoCommand,
+  sudoCommandProcess,
 } from "../../../../Utils/SecurityEvent/LogParsers/SudoLogParser";
 import { NOT_SUDO_LINES, SUDO_LINES, logLine } from "./LogParserFixtures";
 
@@ -87,6 +88,12 @@ describe("SudoLogParser.parse", () => {
     expect(event.targetUser).toBe("root");
     expect(event.principalHost).toBe("web-03");
     expect(event.principalProcess).toBe("/usr/bin/cat /etc/shadow");
+    // The command is the process that started, and sudo its parent.
+    expect(event.processCommandLine).toBe("/usr/bin/cat /etc/shadow");
+    expect(event.processPath).toBe("/usr/bin/cat");
+    expect(event.processName).toBe("cat");
+    expect(event.parentProcessName).toBe("sudo");
+    expect(event.parentProcessPath).toBe("");
     expect(event.message).toBe(
       "alice ran /usr/bin/cat /etc/shadow as root on web-03",
     );
@@ -125,4 +132,42 @@ describe("SudoLogParser.parse", () => {
       expect(SudoLogParser.parse(logLine(line))).toEqual([]);
     }
   });
+});
+
+describe("the process a sudo command is", () => {
+  test("sudo logs the command with its executable's full path first", () => {
+    expect(sudoCommandProcess("/usr/bin/psql -l")).toEqual({
+      path: "/usr/bin/psql",
+      commandLine: "/usr/bin/psql -l",
+    });
+    expect(sudoCommandProcess("/bin/bash")).toEqual({
+      path: "/bin/bash",
+      commandLine: "/bin/bash",
+    });
+  });
+
+  test("a command that does not start with a path names no path", () => {
+    expect(sudoCommandProcess("list")).toEqual({
+      path: "",
+      commandLine: "list",
+    });
+  });
+
+  test.each([
+    ["wrong passwords", SUDO_LINES.wrongPassword],
+    ["a person sudo refused", SUDO_LINES.notInSudoers],
+  ])(
+    "%s ran nothing, so the event names no process",
+    (_name: string, line: string) => {
+      const event: NormalizedSecurityEvent = SudoLogParser.parse(
+        logLine(line),
+      )[0]!;
+
+      expect(event.processCommandLine).toBe("");
+      expect(event.processPath).toBe("");
+      expect(event.parentProcessName).toBe("");
+      // The command it asked for stays the principal process, as it was.
+      expect(event.principalProcess.length).toBeGreaterThan(0);
+    },
+  );
 });

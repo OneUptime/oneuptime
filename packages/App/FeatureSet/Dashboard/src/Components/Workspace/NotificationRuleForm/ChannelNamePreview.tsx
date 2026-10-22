@@ -9,6 +9,10 @@ import WorkspaceChannelName, {
   WorkspaceChannelNumberPrefixes,
 } from "Common/Utils/Workspace/WorkspaceChannelName";
 import React, { FunctionComponent, ReactElement } from "react";
+import {
+  canRuleCreateChannel,
+  ChannelRecordEventType,
+} from "./NotificationRuleOwnChannel";
 
 /*
  * THE NAME OF THE CHANNEL A RULE CREATES, AS PEOPLE WILL SEE IT.
@@ -24,6 +28,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * with (Common/Utils/Workspace/WorkspaceChannelName), from the project's own
  * number prefixes (GET /workspace-notification-rule/number-prefixes), so the
  * preview is the name the channel will have.
+ *
+ * A security case rule creates no channel (NotificationRuleOwnChannel), so
+ * it has no name to show.
  *
  * Every sentence is a whole sentence in the locale files, so it reads right
  * in every language. font-mono sits on each element that holds a channel
@@ -41,7 +48,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * name" would promise maint-sm-42, and the preview would show otherwise.
  */
 export const CHANNEL_NAME_PREFIX_DESCRIPTIONS: Record<
-  NotificationRuleEventType,
+  ChannelRecordEventType,
   string
 > = {
   [NotificationRuleEventType.Incident]: translationKey(
@@ -69,7 +76,7 @@ export const CHANNEL_NAME_PREFIX_DESCRIPTIONS: Record<
 
 // Which record the example name is for: "For incident INC-42."
 export const CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES: Record<
-  NotificationRuleEventType,
+  ChannelRecordEventType,
   string
 > = {
   [NotificationRuleEventType.Incident]: translationKey(
@@ -160,6 +167,8 @@ export interface ChannelNamePreviewProps extends ChannelNameExampleProps {
 }
 
 export interface ChannelNameExample {
+  // The kind of record the example is, one a rule can create a channel for.
+  eventType: ChannelRecordEventType;
   example: WorkspaceChannelNameExample;
   description: WorkspaceChannelNameDescription;
   prefix: string;
@@ -174,15 +183,22 @@ const getPrefixOf: (value: unknown) => string = (value: unknown): string => {
 
 /*
  * The name an example record's channel gets with the prefix, or null while
- * the project's number prefixes are not known.
+ * the project's number prefixes are not known, and for a rule that creates
+ * no channel.
  */
 export const getChannelNameExample: (
   props: ChannelNameExampleInput,
 ) => ChannelNameExample | null = (
   props: ChannelNameExampleInput,
 ): ChannelNameExample | null => {
+  const eventType: NotificationRuleEventType = props.eventType;
+
+  if (!canRuleCreateChannel(eventType)) {
+    return null;
+  }
+
   if (
-    WorkspaceChannelName.isNumberedRecord(props.eventType) &&
+    WorkspaceChannelName.isNumberedRecord(eventType) &&
     !props.numberPrefixes
   ) {
     return null;
@@ -191,12 +207,13 @@ export const getChannelNameExample: (
   const prefix: string = getPrefixOf(props.prefix);
 
   const example: WorkspaceChannelNameExample = WorkspaceChannelName.getExample({
-    eventType: props.eventType,
+    eventType: eventType,
     numberPrefixes: props.numberPrefixes,
     recordName: props.exampleRecordName,
   });
 
   return {
+    eventType: eventType,
     example: example,
     prefix: prefix,
     description: WorkspaceChannelName.describe({
@@ -214,18 +231,16 @@ export const getChannelNameExample: (
  */
 export const getChannelNamePreviewNotes: (data: {
   workspaceType: WorkspaceType;
-  eventType: NotificationRuleEventType;
   example: ChannelNameExample;
   translator: Translator;
 }) => Array<string> = (data: {
   workspaceType: WorkspaceType;
-  eventType: NotificationRuleEventType;
   example: ChannelNameExample;
   translator: Translator;
 }): Array<string> => {
   const notes: Array<string> = [
     data.translator.translateTemplate(
-      CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES[data.eventType],
+      CHANNEL_NAME_EXAMPLE_RECORD_SENTENCES[data.example.eventType],
       {
         record: data.example.example.recordName,
       },
@@ -304,7 +319,6 @@ export const ChannelNamePreview: FunctionComponent<ChannelNamePreviewProps> = (
 
   const notes: Array<string> = getChannelNamePreviewNotes({
     workspaceType: props.workspaceType,
-    eventType: props.eventType,
     example: example,
     translator: translator,
   });

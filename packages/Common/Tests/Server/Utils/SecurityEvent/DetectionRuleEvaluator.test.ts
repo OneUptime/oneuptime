@@ -22,8 +22,12 @@ jest.mock("isolated-vm", () => {
 });
 
 import DetectionRuleEvaluator, {
+  DETECTION_RULES_PROJECT_WORK,
   DetectionRuleEvaluationResult,
 } from "../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import SecurityProjectWork, {
+  SecurityProjectWorkLease,
+} from "../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
@@ -46,6 +50,7 @@ import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/Sec
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
   DETECTION_EVALUATION_DELAY_IN_SECONDS,
+  DETECTION_MAX_FINDINGS_PER_EVALUATION,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
@@ -59,6 +64,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { JSONObject } from "../../../../Types/JSON";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { getJestSpyOn } from "../../../Spy";
 import SecurityCaseIngest, {
   SecurityDetectionSignal,
@@ -379,8 +386,8 @@ describe("DetectionRuleEvaluator", () => {
     jest.restoreAllMocks();
   });
 
-  describe("evaluateAllDueRules scheduling", () => {
-    test("skips rules whose lastEvaluatedAt + interval is in the future and evaluates due ones", async () => {
+  describe("a project's turn: scheduling", () => {
+    test("skips rules whose lastEvaluatedAt + interval is in the future and evaluates due ones, the longest overdue first", async () => {
       const now: Date = OneUptimeDate.getCurrentDate();
 
       const dueRule: DetectionRule = buildRule({
@@ -414,6 +421,7 @@ describe("DetectionRuleEvaluator", () => {
         incidentsCreated: 0,
         findingsWritten: 0,
         casesOpened: 0,
+        overflowGroups: 0,
         error: null,
       };
 
@@ -422,7 +430,7 @@ describe("DetectionRuleEvaluator", () => {
         "evaluateRule",
       ).mockResolvedValue(stubResult as never);
 
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
 
       const evaluatedRuleIds: Array<string> = evaluateRuleSpy.mock.calls.map(
         (call: Array<unknown>): string => {
@@ -430,9 +438,10 @@ describe("DetectionRuleEvaluator", () => {
         },
       );
 
+      // A rule that never ran is the most overdue: it goes first.
       expect(evaluatedRuleIds).toEqual([
-        dueRule.id!.toString(),
         neverEvaluatedRule.id!.toString(),
+        dueRule.id!.toString(),
       ]);
     });
 
@@ -449,7 +458,7 @@ describe("DetectionRuleEvaluator", () => {
       );
 
       await expect(
-        DetectionRuleEvaluator.evaluateAllDueRules(),
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
       ).resolves.toBeUndefined();
 
       expect(spies.updateOneById).toHaveBeenCalledTimes(1);
@@ -460,6 +469,206 @@ describe("DetectionRuleEvaluator", () => {
       expect(updateArg.id.toString()).toBe(RULE_ID.toString());
       expect(updateArg.data["lastError"]).toBe("clickhouse exploded");
       expect(updateArg.data["lastEvaluatedAt"]).toBeInstanceOf(Date);
+    });
+
+    test("reads the project's enabled rules page by page, in a stable order", async () => {
+      const findAll: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findAllBy",
+      ).mockResolvedValue([] as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      const args: { query: JSONObject; sort: JSONObject; limit?: unknown } =
+        findAll.mock.calls[0]?.[0] as {
+          query: JSONObject;
+          sort: JSONObject;
+          limit?: unknown;
+        };
+
+      expect(args.query).toEqual({ projectId: PROJECT_ID, isEnabled: true });
+      expect(args.sort).toEqual({ _id: SortOrder.Ascending });
+      // findAllBy pages through in LIMIT_MAX batches; a limit would cap it again.
+      expect(args.limit).toBeUndefined();
+    });
+
+    function threeRulesToEvaluate(): Spy {
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        buildRule({ id: new ObjectID("abababab-abab-4aba-8aba-ababababab01") }),
+        buildRule({ id: new ObjectID("abababab-abab-4aba-8aba-ababababab02") }),
+        buildRule({ id: new ObjectID("abababab-abab-4aba-8aba-ababababab03") }),
+      ] as never);
+
+      return getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+    }
+
+    test("a turn that runs out of time leaves the rest for the next one", async () => {
+      const evaluateRuleSpy: Spy = threeRulesToEvaluate();
+      let checks: number = 0;
+
+      const lease: SecurityProjectWorkLease = {
+        hasTimeLeft: (): boolean => {
+          checks++;
+          return checks <= 1;
+        },
+        keep: async (): Promise<boolean> => {
+          return true;
+        },
+      };
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(
+        PROJECT_ID,
+        lease,
+      );
+
+      // The two left over are still due, and resume from their own lastEvaluatedAt.
+      expect(evaluateRuleSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a turn that loses its project's lease stops after the rule in hand", async () => {
+      const evaluateRuleSpy: Spy = threeRulesToEvaluate();
+      let keeps: number = 0;
+
+      const lease: SecurityProjectWorkLease = {
+        hasTimeLeft: (): boolean => {
+          return true;
+        },
+        keep: async (): Promise<boolean> => {
+          keeps++;
+          return keeps < 2;
+        },
+      };
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(
+        PROJECT_ID,
+        lease,
+      );
+
+      // Another worker may hold the project now: two rules, then it lets go.
+      expect(evaluateRuleSpy).toHaveBeenCalledTimes(2);
+      expect(keeps).toBe(2);
+    });
+  });
+
+  /*
+   * The cron's half: it reads every enabled rule in the instance - not
+   * the first 10,000 - and queues one turn for each project with a rule
+   * due. It evaluates nothing itself.
+   */
+  describe("enqueueProjectsWithDueRules", () => {
+    const PROJECT_B: ObjectID = new ObjectID(
+      "88888888-8888-4888-8888-888888888888",
+    );
+    const PROJECT_C: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+
+    function ruleIn(
+      projectId: ObjectID,
+      idSuffix: string,
+      options: {
+        lastEvaluatedAt?: Date;
+        evaluationIntervalInMinutes?: number;
+      } = {},
+    ): DetectionRule {
+      const rule: DetectionRule = buildRule({
+        id: new ObjectID(`eeeeeeee-eeee-4eee-8eee-${idSuffix}`),
+        ...options,
+      });
+      rule.projectId = projectId;
+      return rule;
+    }
+
+    function queuedProjectIds(enqueue: Spy): Array<string> {
+      const projectIds: Array<ObjectID> = enqueue.mock
+        .calls[0]?.[1] as Array<ObjectID>;
+
+      return Array.from(
+        new Set(
+          projectIds.map((projectId: ObjectID): string => {
+            return projectId.toString();
+          }),
+        ),
+      ).sort();
+    }
+
+    test("queues each project with a rule due, and none whose rules are all waiting", async () => {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const findAll: Spy = getJestSpyOn(
+        DetectionRuleService,
+        "findAllBy",
+      ).mockResolvedValue([
+        ruleIn(PROJECT_ID, "eeeeeeeeeee1", {
+          lastEvaluatedAt: OneUptimeDate.addRemoveMinutes(now, -30),
+        }),
+        ruleIn(PROJECT_ID, "eeeeeeeeeee2"),
+        ruleIn(PROJECT_B, "eeeeeeeeeee3", {
+          lastEvaluatedAt: now,
+          evaluationIntervalInMinutes: 60,
+        }),
+        ruleIn(PROJECT_C, "eeeeeeeeeee4"),
+      ] as never);
+      const enqueue: Spy = getJestSpyOn(
+        SecurityProjectWork,
+        "enqueueProjects",
+      ).mockResolvedValue(2 as never);
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      );
+
+      await expect(
+        DetectionRuleEvaluator.enqueueProjectsWithDueRules(),
+      ).resolves.toBe(2);
+
+      expect(enqueue).toHaveBeenCalledTimes(1);
+      expect(enqueue.mock.calls[0]?.[0]).toBe(DETECTION_RULES_PROJECT_WORK);
+      expect(queuedProjectIds(enqueue)).toEqual(
+        [PROJECT_ID.toString(), PROJECT_C.toString()].sort(),
+      );
+      expect(evaluateRuleSpy).not.toHaveBeenCalled();
+
+      // Only what the due check reads, in a stable order, with no cap.
+      expect(findAll).toHaveBeenCalledWith({
+        query: { isEnabled: true },
+        select: {
+          _id: true,
+          projectId: true,
+          evaluationIntervalInMinutes: true,
+          lastEvaluatedAt: true,
+        },
+        sort: { _id: SortOrder.Ascending },
+        props: { isRoot: true },
+      });
+    });
+
+    test("reads every enabled rule in the instance, past the first 10,000", async () => {
+      const waiting: DetectionRule = ruleIn(PROJECT_B, "eeeeeeeeeee5", {
+        lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
+        evaluationIntervalInMinutes: 60,
+      });
+      const pastTheFirstPage: DetectionRule = ruleIn(PROJECT_C, "eeeeeeeeeee6");
+
+      const findBy: Spy = getJestSpyOn(DetectionRuleService, "findBy")
+        .mockResolvedValueOnce(new Array(LIMIT_MAX).fill(waiting) as never)
+        .mockResolvedValueOnce([pastTheFirstPage] as never);
+      const enqueue: Spy = getJestSpyOn(
+        SecurityProjectWork,
+        "enqueueProjects",
+      ).mockResolvedValue(1 as never);
+
+      await DetectionRuleEvaluator.enqueueProjectsWithDueRules();
+
+      expect(findBy).toHaveBeenCalledTimes(2);
+      expect((findBy.mock.calls[1]?.[0] as { skip: number }).skip).toBe(
+        LIMIT_MAX,
+      );
+      // Pre-fix the cron stopped at LIMIT_MAX rules: this project was never evaluated.
+      expect(queuedProjectIds(enqueue)).toEqual([PROJECT_C.toString()]);
     });
   });
 
@@ -1091,7 +1300,7 @@ describe("DetectionRuleEvaluator", () => {
     });
   });
 
-  describe("evaluateAllDueRules field selection", () => {
+  describe("a project's turn: field selection", () => {
     test("selects the incident columns so opted-in rules do not read as off", async () => {
       /*
        * The gate is === true, so a rule fetched WITHOUT
@@ -1104,7 +1313,7 @@ describe("DetectionRuleEvaluator", () => {
         "findBy",
       ).mockResolvedValue([] as never);
 
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
 
       const select: JSONObject = (
         rulesFindBy.mock.calls[0]?.[0] as { select: JSONObject }
@@ -1129,7 +1338,7 @@ describe("DetectionRuleEvaluator", () => {
         "findBy",
       ).mockResolvedValue([] as never);
 
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
 
       const select: JSONObject = (
         rulesFindBy.mock.calls[0]?.[0] as { select: JSONObject }
@@ -1311,7 +1520,7 @@ describe("DetectionRuleEvaluator", () => {
         notYetDue,
       ] as never);
 
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
 
       const evaluated: Array<string> = evaluate.mock.calls.map(
         (call: Array<unknown>): string => {
@@ -1337,14 +1546,16 @@ describe("DetectionRuleEvaluator", () => {
       );
     });
 
-    test("at most DETECTION_MAX_GROUPS_PER_EVALUATION groups are asked for", async () => {
+    test("one group more than a run records is asked for, so it can tell when there were more", async () => {
       const spies: EvaluationSpies = installSpies();
 
       await DetectionRuleEvaluator.evaluateRule(buildRule());
 
       expect(findMatchesArg(spies).maxGroups).toBe(
-        DETECTION_MAX_GROUPS_PER_EVALUATION,
+        DETECTION_MAX_FINDINGS_PER_EVALUATION + 1,
       );
+      expect(DETECTION_MAX_FINDINGS_PER_EVALUATION).toBe(10000);
+      expect(DETECTION_MAX_GROUPS_PER_EVALUATION).toBe(100);
     });
   });
 
@@ -1534,7 +1745,7 @@ describe("DetectionRuleEvaluator", () => {
       expect(args.distinctCountExpression).toBeNull();
       // groupByField still compiles to an expression; maxGroups is intact.
       expect(args.groupByExpression).toBeInstanceOf(Statement);
-      expect(args.maxGroups).toBe(100);
+      expect(args.maxGroups).toBe(DETECTION_MAX_FINDINGS_PER_EVALUATION + 1);
     });
 
     test("a distinct-count rule queries with a compiled Statement for the distinct field", async () => {
@@ -1727,7 +1938,7 @@ describe("DetectionRuleEvaluator", () => {
    * The fix routes the write through ConnectorErrorMessage.recordFailure
    * with a clamped message. These tests pin both halves.
    */
-  describe("evaluateAllDueRules guarded failure bookkeeping", () => {
+  describe("a project's turn: guarded failure bookkeeping", () => {
     interface RecordedRuleWrite {
       ruleId: string;
       lastError: unknown;
@@ -1800,7 +2011,7 @@ describe("DetectionRuleEvaluator", () => {
 
       // Pre-fix this rejected: the varchar(500) write threw out of the loop.
       await expect(
-        DetectionRuleEvaluator.evaluateAllDueRules(),
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
       ).resolves.toBeUndefined();
 
       expect(spies.updateOneById).toHaveBeenCalledTimes(1);
@@ -1877,7 +2088,7 @@ describe("DetectionRuleEvaluator", () => {
         .mockResolvedValue(undefined as never);
 
       await expect(
-        DetectionRuleEvaluator.evaluateAllDueRules(),
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
       ).resolves.toBeUndefined();
 
       const evaluatedRuleIds: Array<string> = evaluateRuleSpy.mock.calls.map(
@@ -1953,7 +2164,7 @@ describe("DetectionRuleEvaluator", () => {
       }) as never);
 
       await expect(
-        DetectionRuleEvaluator.evaluateAllDueRules(),
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
       ).resolves.toBeUndefined();
 
       expect(evaluateRuleSpy).toHaveBeenCalledTimes(2);
@@ -2006,7 +2217,7 @@ describe("DetectionRuleEvaluator", () => {
       ).mockRejectedValue(buildClickhouseQueryEchoError() as never);
 
       await expect(
-        DetectionRuleEvaluator.evaluateAllDueRules(),
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
       ).resolves.toBeUndefined();
 
       const evaluatedRuleIds: Array<string> = evaluateRuleSpy.mock.calls.map(
@@ -2018,11 +2229,12 @@ describe("DetectionRuleEvaluator", () => {
       /*
        * lastEvaluatedAt = null is "always due", not "never due" — a rule
        * saved a second ago must run on the very next tick rather than
-       * waiting out an interval it has no baseline for.
+       * waiting out an interval it has no baseline for. It is the most
+       * overdue, so it goes first.
        */
       expect(evaluatedRuleIds).toEqual([
-        pastDueRule.id!.toString(),
         neverEvaluatedRule.id!.toString(),
+        pastDueRule.id!.toString(),
       ]);
 
       const stampedRuleIds: Array<string> = recordedWrites(spies).map(
@@ -2033,8 +2245,8 @@ describe("DetectionRuleEvaluator", () => {
 
       // The rule still inside its interval is neither run nor written to.
       expect(stampedRuleIds).toEqual([
-        pastDueRule.id!.toString(),
         neverEvaluatedRule.id!.toString(),
+        pastDueRule.id!.toString(),
       ]);
       expect(stampedRuleIds).not.toContain(insideIntervalRule.id!.toString());
     });
@@ -2062,9 +2274,9 @@ describe("DetectionRuleEvaluator", () => {
         .mockResolvedValue([] as never);
 
       // Tick one: ClickHouse is unhappy.
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
       // Tick two: it recovers.
-      await DetectionRuleEvaluator.evaluateAllDueRules();
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
 
       const writes: Array<RecordedRuleWrite> = recordedWrites(spies);
 
@@ -2078,6 +2290,212 @@ describe("DetectionRuleEvaluator", () => {
       // Explicitly null, not merely absent — the column has to be cleared.
       expect(writes[1]!.lastError).toBeNull();
       expect(writes[1]!.lastEvaluatedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  /*
+   * A noisy rule used to stop at DETECTION_MAX_GROUPS_PER_EVALUATION groups
+   * and drop the rest without a word. Now every group up to
+   * DETECTION_MAX_FINDINGS_PER_EVALUATION is a Detection Finding, the ones
+   * with the highest counts open alerts and cases of their own, and the
+   * rest share one case about the rule - whose Last Error says how many
+   * groups there were and what to change.
+   */
+  describe("a run that matches more groups than it opens cases for", () => {
+    const OVERFLOW_FINGERPRINT: string = `detection-rule:${RULE_ID.toString()}:overflow`;
+
+    // Highest count first, as the match query orders them.
+    function manyGroups(count: number): Array<DetectionMatchGroup> {
+      const groups: Array<DetectionMatchGroup> = [];
+
+      for (let index: number = 0; index < count; index++) {
+        groups.push(buildGroup(`user-${index}`, count - index + 1));
+      }
+
+      return groups;
+    }
+
+    function recordCases(): Spy {
+      return getJestSpyOn(
+        SecurityCaseIngest,
+        "recordDetections",
+      ).mockResolvedValue({
+        casesOpened: 1,
+        detectionsAdded: 1,
+        detectionsRepeated: 0,
+      } as never);
+    }
+
+    function recordedSignals(record: Spy): Array<SecurityDetectionSignal> {
+      return record.mock.calls[0]?.[0] as Array<SecurityDetectionSignal>;
+    }
+
+    function storedLastError(spies: EvaluationSpies): unknown {
+      return (spies.updateOneById.mock.calls[0]?.[0] as { data: JSONObject })
+        .data["lastError"];
+    }
+
+    test("every group is a finding; the top ones open alerts and cases, the rest share one case", async () => {
+      const groups: Array<DetectionMatchGroup> = manyGroups(
+        DETECTION_MAX_GROUPS_PER_EVALUATION + 50,
+      );
+      const spies: EvaluationSpies = installSpies({
+        groups,
+        severities: [buildSeverity("0001", "High")],
+      });
+      const record: Spy = recordCases();
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(buildRule());
+
+      expect(result.matchedGroups).toBe(150);
+      expect(result.overflowGroups).toBe(50);
+      expect(result.findingsWritten).toBe(150);
+      expect(result.alertsCreated).toBe(DETECTION_MAX_GROUPS_PER_EVALUATION);
+      expect(spies.alertCreate).toHaveBeenCalledTimes(
+        DETECTION_MAX_GROUPS_PER_EVALUATION,
+      );
+
+      const signals: Array<SecurityDetectionSignal> = recordedSignals(record);
+
+      // One per group with a case of its own, and one about the rule.
+      expect(signals).toHaveLength(DETECTION_MAX_GROUPS_PER_EVALUATION + 1);
+
+      const overflow: SecurityDetectionSignal = signals[signals.length - 1]!;
+      let overflowEvents: number = 0;
+
+      for (const group of groups.slice(DETECTION_MAX_GROUPS_PER_EVALUATION)) {
+        overflowEvents += group.matchCount;
+      }
+
+      expect(overflow.fingerprint).toBe(OVERFLOW_FINGERPRINT);
+      // It is about the rule, not an entity: nothing for a playbook to contain.
+      expect(overflow.entities).toEqual([]);
+      expect(overflow.groupValue).toBeUndefined();
+      expect(overflow.eventCount).toBe(overflowEvents);
+      expect(overflow.title).toBe(
+        "Brute Force Watch — more matches than one run opens cases for",
+      );
+      expect(overflow.description).toContain("`user-100`");
+      // A group with a case of its own is not among the rest.
+      expect(overflow.description).not.toContain("`user-99`");
+
+      expect(storedLastError(spies)).toBe(
+        "This run matched 150 groups. Alerts, incidents and cases opened for the 100 with the most matches; every one of them is a Detection Finding. Raise the Match Count Threshold, or group by a coarser field.",
+      );
+    });
+
+    test("past what a run reads, findings stop at the cap and Last Error says there were more", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: manyGroups(DETECTION_MAX_FINDINGS_PER_EVALUATION + 1),
+      });
+      recordCases();
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(
+          buildRule({ shouldCreateAlert: false }),
+        );
+
+      expect(result.matchedGroups).toBe(DETECTION_MAX_FINDINGS_PER_EVALUATION);
+      expect(result.findingsWritten).toBe(
+        DETECTION_MAX_FINDINGS_PER_EVALUATION,
+      );
+
+      // Written a thousand rows at a time, not in one insert of ten thousand.
+      expect(spies.insertJsonRows).toHaveBeenCalledTimes(10);
+
+      for (const call of spies.insertJsonRows.mock.calls) {
+        expect((call[0] as Array<JSONObject>).length).toBe(1000);
+      }
+
+      expect(storedLastError(spies)).toBe(
+        "This run matched more than 10,000 groups. Alerts, incidents and cases opened for the 100 with the most matches; the 10,000 with the most matches are Detection Findings, and the rest were not recorded. Raise the Match Count Threshold, or group by a coarser field.",
+      );
+    });
+
+    test("a rule that writes no findings says the rest were not recorded", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: manyGroups(DETECTION_MAX_GROUPS_PER_EVALUATION + 1),
+      });
+      recordCases();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({
+          shouldCreateAlert: false,
+          shouldWriteDetectionFinding: false,
+        }),
+      );
+
+      expect(spies.insertJsonRows).not.toHaveBeenCalled();
+      expect(storedLastError(spies)).toBe(
+        "This run matched 101 groups. Alerts, incidents and cases opened for the 100 with the most matches; the rest were not recorded, because Write Detection Finding on Match is off. Raise the Match Count Threshold, or group by a coarser field.",
+      );
+    });
+
+    test("a rule that opens no cases still says so in Last Error, and opens no case about it", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: manyGroups(DETECTION_MAX_GROUPS_PER_EVALUATION + 1),
+      });
+      const record: Spy = recordCases();
+
+      await DetectionRuleEvaluator.evaluateRule(
+        buildRule({ shouldCreateAlert: false, shouldCreateCase: false }),
+      );
+
+      expect(record).not.toHaveBeenCalled();
+      expect(String(storedLastError(spies))).toContain(
+        "This run matched 101 groups.",
+      );
+    });
+
+    test("exactly as many groups as a run opens cases for is no overflow", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: manyGroups(DETECTION_MAX_GROUPS_PER_EVALUATION),
+      });
+      const record: Spy = recordCases();
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(
+          buildRule({ shouldCreateAlert: false }),
+        );
+
+      expect(result.overflowGroups).toBe(0);
+
+      const fingerprints: Array<string> = recordedSignals(record).map(
+        (signal: SecurityDetectionSignal): string => {
+          return signal.fingerprint;
+        },
+      );
+
+      expect(fingerprints).toHaveLength(DETECTION_MAX_GROUPS_PER_EVALUATION);
+      expect(fingerprints).not.toContain(OVERFLOW_FINGERPRINT);
+      // Explicitly null, so an overflow on an earlier run is cleared.
+      expect(storedLastError(spies)).toBeNull();
+    });
+
+    test("a setup test never opens the case about the rule, nor touches the rule", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: manyGroups(DETECTION_MAX_GROUPS_PER_EVALUATION + 5),
+      });
+      const record: Spy = recordCases();
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule(), {
+        setupTest: {
+          restrictTo: SQL`1 = 1`,
+          startTime: new Date("2026-10-19T11:50:00.000Z"),
+          endTime: new Date("2026-10-19T12:01:00.000Z"),
+        },
+      });
+
+      const signals: Array<SecurityDetectionSignal> = recordedSignals(record);
+
+      expect(signals).toHaveLength(DETECTION_MAX_GROUPS_PER_EVALUATION);
+      expect(
+        signals.some((signal: SecurityDetectionSignal): boolean => {
+          return signal.fingerprint === OVERFLOW_FINGERPRINT;
+        }),
+      ).toBe(false);
+      expect(spies.updateOneById).not.toHaveBeenCalled();
     });
   });
 

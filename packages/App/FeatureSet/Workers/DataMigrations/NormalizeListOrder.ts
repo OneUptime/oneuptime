@@ -6,6 +6,7 @@ import AlertReminderRuleService from "Common/Server/Services/AlertReminderRuleSe
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import AlertStateService from "Common/Server/Services/AlertStateService";
 import DatabaseService from "Common/Server/Services/DatabaseService";
+import HostCollectorConfigService from "Common/Server/Services/HostCollectorConfigService";
 import IncidentCustomFieldService from "Common/Server/Services/IncidentCustomFieldService";
 import IncidentGroupingRuleService from "Common/Server/Services/IncidentGroupingRuleService";
 import IncidentMeasurementService from "Common/Server/Services/IncidentMeasurementService";
@@ -92,6 +93,8 @@ export default class NormalizeListOrder extends DataMigrationBase {
       StatusPageHistoryChartBarColorRuleService,
       IncomingCallPolicyEscalationRuleService,
       AIPostmortemRuleService,
+      // A project's Collector Configs: the first that matches a host wins.
+      HostCollectorConfigService,
       /*
        * A project's states, severities and monitor statuses. Their numbers
        * were kept unique per project before they were dragged, so this only
