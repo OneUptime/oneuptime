@@ -656,6 +656,20 @@ describe("Detection Rules page", () => {
   });
 
   describe("Create Monitor row action", () => {
+    /*
+     * Found by its title: a rule whose last run left a message leads its
+     * row with View Error (SecurityEventsDetectionStatusTables).
+     */
+    const createMonitorButton: () => CapturedActionButton | undefined = ():
+      | CapturedActionButton
+      | undefined => {
+      return capturedTableProps?.actionButtons?.find(
+        (actionButton: CapturedActionButton): boolean => {
+          return actionButton.title === "Create Monitor";
+        },
+      );
+    };
+
     test("navigates to monitor create carrying the rule id", () => {
       renderPage();
 
@@ -702,8 +716,7 @@ describe("Detection Rules page", () => {
     test("is enabled with the explainer tooltip when monitor create is allowed", () => {
       renderPage();
 
-      const button: CapturedActionButton | undefined =
-        capturedTableProps?.actionButtons?.[0];
+      const button: CapturedActionButton | undefined = createMonitorButton();
 
       expect(button?.disabled).toBe(false);
       expect(button?.tooltip).toContain("Detection Findings");
@@ -723,8 +736,7 @@ describe("Detection Rules page", () => {
 
       renderPage();
 
-      const button: CapturedActionButton | undefined =
-        capturedTableProps?.actionButtons?.[0];
+      const button: CapturedActionButton | undefined = createMonitorButton();
 
       expect(button?.disabled).toBe(true);
       expect(button?.tooltip).toBe("You need the Create Monitor permission.");

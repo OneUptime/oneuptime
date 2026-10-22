@@ -195,7 +195,7 @@ Lisez **Résumé de la dernière interrogation**. Aucun objet récupéré : la c
 :::
 
 :::details Des indicateurs existent, mais rien ne correspond
-La confrontation compare la valeur d'un indicateur aux observables d'un événement, pas à chaque champ : ouvrez dans **Événements** un événement qui aurait dû correspondre et vérifiez que ses observables contiennent la valeur. Seuls les indicateurs au statut **Actif** correspondent. Vérifiez **Erreur de la dernière correspondance** sur le flux.
+La confrontation compare la valeur d'un indicateur aux observables d'un événement, pas à chaque champ : ouvrez dans **Événements** un événement qui aurait dû correspondre et vérifiez que ses observables contiennent la valeur. Seuls les indicateurs au statut **Actif** correspondent. Si le **Statut** du flux indique **Échec de la comparaison**, **Voir l'erreur** dans sa ligne en donne la raison.
 :::
 
 :::details Une correspondance n'a pas ouvert d'alerte

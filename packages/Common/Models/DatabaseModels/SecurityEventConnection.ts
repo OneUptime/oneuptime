@@ -231,6 +231,7 @@ export default class SecurityEventConnection extends BaseModel {
     title: "Enabled",
     description: "Whether this connection is polled on its schedule.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -251,6 +252,7 @@ export default class SecurityEventConnection extends BaseModel {
     canReadOnRelationQuery: true,
     description: "How often new records are polled, in minutes.",
     defaultValue: 5,
+    isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -271,6 +273,7 @@ export default class SecurityEventConnection extends BaseModel {
     description:
       "For providers that distinguish alerting from non-alerting records: import only the alerting ones.",
     defaultValue: true,
+    isDefaultValueColumn: true,
     canReadOnRelationQuery: true,
   })
   @Column({ type: ColumnType.Boolean, nullable: false, default: true })

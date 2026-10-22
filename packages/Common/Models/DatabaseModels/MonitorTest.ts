@@ -570,7 +570,7 @@ export default class MonitorTest extends BaseModel {
     ],
   })
   @TableColumn({
-    isDefaultValueColumn: false,
+    isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
     defaultValue: true,

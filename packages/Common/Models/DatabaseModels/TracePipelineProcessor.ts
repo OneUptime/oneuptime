@@ -358,6 +358,7 @@ export default class TracePipelineProcessor extends BaseModel {
     title: "Enabled",
     description: "Whether this processor is active.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

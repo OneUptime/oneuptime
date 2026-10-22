@@ -9,6 +9,10 @@ import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableN
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
+import {
+  findAliasShadows,
+  findAliasesSpellingColumns,
+} from "../../Helpers/ClickhouseAliasScan";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -21,8 +25,23 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * TypeScript call site, so this file pins the rendered statements.
  *
  * Every service boundary is stubbed: executeQuery captures the Statement,
- * and the database handle only supplies the schema name. No ClickHouse.
+ * and the database handle only supplies the schema name. No ClickHouse:
+ * App/Tests/Workers/Jobs/ThreatIntel/ThreatIntelClickhouse runs the same
+ * statements on a real server, under both of its analyzers.
+ *
+ * Issue #5157: every one of these statements failed on every ClickHouse
+ * with ILLEGAL_AGGREGATION, because an alias spelled a column another
+ * aggregate of its SELECT read (`max(confidence) AS confidence` beside
+ * `argMax(stixId, confidence)`, `max(version) AS version` beside
+ * `argMax(validFrom, version)`). Each statement is held to the strict rule
+ * below: no alias is a name its SELECT reads, its own expression included.
  */
+
+// No alias of the statement spells a name its SELECT reads (issue #5157).
+function expectNoAliasSpellingAColumn(query: string): void {
+  expect(findAliasesSpellingColumns(query)).toEqual([]);
+  expect(findAliasShadows(query)).toEqual([]);
+}
 
 type Spy = ReturnType<typeof getJestSpyOn>;
 
@@ -121,9 +140,11 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
     const query: string = capturedQueryText(spy);
 
     // Version-aware current state: argMax over every read column.
-    expect(query).toContain("argMax(confidence, version)");
+    expect(query).toContain("argMax(confidence, version) AS confidenceLatest");
+    expect(query).toContain("argMax(feedName, version) AS feedNameLatest");
     expect(query).toContain("argMax(revoked, version) AS revokedLatest");
     expect(query).toContain("argMax(validUntil, version) AS validUntilLatest");
+    expect(query).toContain("stixId AS identityStixId");
 
     /*
      * THE regression pin for the revoked-duplicate masking bug: version
@@ -144,12 +165,34 @@ describe("ThreatIntelIndicatorService.findActiveIndicatorsByValues", () => {
      * per (feed, value), the highest-confidence one representing it.
      */
     expect(query).toContain(") GROUP BY feedId, indicatorValue");
-    expect(query).toContain("argMax(stixId, confidence)");
-    expect(query).toContain("max(confidence) AS confidence");
+    expect(query).toContain(
+      "argMax(identityStixId, confidenceLatest) AS stixId",
+    );
+    expect(query).toContain(
+      "argMax(feedNameLatest, confidenceLatest) AS feedName",
+    );
+    expect(query).toContain("max(confidenceLatest) AS confidence");
 
     // The value list rides as a bound array parameter.
     expect(query).toContain("indicatorValue IN");
     expect(query).not.toContain("evil.example");
+  });
+
+  test("no alias spells a name its SELECT reads, at either level (issue #5157)", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await ThreatIntelIndicatorService.findActiveIndicatorsByValues({
+      projectId: PROJECT_ID,
+      values: ["evil.example"],
+      now: NOW,
+    });
+
+    const query: string = capturedQueryText(spy);
+
+    expectNoAliasSpellingAColumn(query);
+    // What issue #5157's statement wrote: an aggregate inside an aggregate.
+    expect(query).not.toContain("max(confidence) AS confidence");
+    expect(query).not.toContain("argMax(stixId, confidence)");
   });
 
   test("maps result rows onto ActiveIndicator with numeric confidence", async () => {
@@ -237,7 +280,10 @@ describe("ThreatIntelIndicatorService.findIndicatorMatches", () => {
     expect(query).toContain("GROUP BY indicatorValue, stixId");
     expect(query).toContain("HAVING revokedLatest = false");
     expect(query).toContain(") GROUP BY indicatorValue");
-    expect(query).toContain("argMax(stixId, confidence)");
+    expect(query).toContain(
+      "argMax(identityStixId, confidenceLatest) AS stixId",
+    );
+    expect(query).toContain("max(confidenceLatest) AS confidence");
 
     /*
      * Findings never feed the matcher — Sigma's and our own class-2004
@@ -248,6 +294,20 @@ describe("ThreatIntelIndicatorService.findIndicatorMatches", () => {
 
     expect(query).toContain("GROUP BY i.indicatorValue");
     expect(query).toContain("ORDER BY matchCount DESC");
+  });
+
+  test("no alias spells a name its SELECT reads, at any of its three levels (issue #5157)", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await callFindIndicatorMatches();
+
+    const query: string = capturedQueryText(spy);
+
+    expectNoAliasSpellingAColumn(query);
+    expect(query).not.toContain("max(confidence) AS confidence");
+    // The outer level reads the joined columns by their table's name.
+    expect(query).toContain("any(i.confidence) AS confidence");
+    expect(query).toContain("any(i.stixId) AS stixId");
   });
 
   test("maps grouped rows onto IndicatorMatchGroup", async () => {
@@ -313,18 +373,36 @@ describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
     const query: string = capturedQueryText(spy);
 
     expect(query).toContain("GROUP BY stixId, indicatorValue");
-    expect(query).toContain("max(version) AS version");
+    expect(query).toContain("max(version) AS versionLatest");
     /*
      * max, not argMax: the poller's monotonic-retention clamp needs the
      * highest retention any version ever carried, not the latest
      * version's own.
      */
-    expect(query).toContain("max(retentionDate) AS retentionDate");
-    expect(query).toContain("argMax(validUntil, version) AS validUntil");
+    expect(query).toContain("max(retentionDate) AS retentionDateHighest");
+    expect(query).toContain("argMax(validUntil, version) AS validUntilLatest");
+    expect(query).toContain("argMax(validFrom, version) AS validFromLatest");
+    expect(query).toContain("argMax(confidence, version) AS confidenceLatest");
     // Deliberately NO active predicate — retraction must see dead rows too.
     expect(query).not.toContain("HAVING");
     expect(query).toContain("stixId IN");
     expect(query).not.toContain("indicator--0001");
+  });
+
+  test("no alias spells a name its SELECT reads: every aggregate reads version (issue #5157)", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await ThreatIntelIndicatorService.findLatestVersionsByStixIds({
+      projectId: PROJECT_ID,
+      feedId: FEED_ID,
+      stixIds: ["indicator--0001"],
+    });
+
+    const query: string = capturedQueryText(spy);
+
+    expectNoAliasSpellingAColumn(query);
+    // What issue #5157's first line quotes: max(version) inside every argMax.
+    expect(query).not.toContain("max(version) AS version,");
   });
 
   test("maps rows with numeric version and confidence", async () => {
@@ -332,13 +410,13 @@ describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
       {
         stixId: "indicator--0001",
         indicatorValue: "evil.example",
-        indicatorType: "domain-name",
-        indicatorName: "C2",
-        confidence: "85",
-        version: "1756000000000",
-        validFrom: "2026-08-01 00:00:00",
-        validUntil: "2026-12-31 00:00:00",
-        retentionDate: "2027-01-01",
+        indicatorTypeLatest: "domain-name",
+        indicatorNameLatest: "C2",
+        confidenceLatest: "85",
+        versionLatest: "1756000000000",
+        validFromLatest: "2026-08-01 00:00:00",
+        validUntilLatest: "2026-12-31 00:00:00",
+        retentionDateHighest: "2027-01-01",
       },
     ]);
 

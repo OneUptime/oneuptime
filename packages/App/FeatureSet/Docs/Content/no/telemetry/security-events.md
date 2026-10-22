@@ -387,7 +387,7 @@ Sjekk nøkkelen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Sj
 :::
 
 :::details En regel treffer aldri
-Sjekk at den er **Aktivert**, og les **Last Evaluated** og **Siste feil** i raden. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
+Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mislyktes** viser **Vis feil** i raden hvorfor. Åpne en hendelse du forventet at skulle treffe, og sammenlign den med regelen, felt for felt: en vanlig verdi må være lik hele feltet, så bruk `contains` eller `*` for en del av et felt. Et attributt navngis slik det er i hendelsen (`threat.matched`, ikke `attributes.threat.matched`). Med en terskel over 1 må treffene falle innenfor én kjøring.
 :::
 
 :::details En regel traff, men ingen varsler ble åpnet
