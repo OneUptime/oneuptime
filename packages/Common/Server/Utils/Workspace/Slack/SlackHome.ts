@@ -24,6 +24,10 @@ import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseConfig from "../../../DatabaseConfig";
 import GlobalCache from "../../../Infrastructure/GlobalCache";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import WorkspaceProjectResolver, {
+  WorkspaceProjectResolution,
+} from "../WorkspaceProjectResolution";
+import SlackModalMetadata from "./SlackModalMetadata";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -51,6 +55,12 @@ import SlackActionType from "./Actions/ActionTypes";
  * OneUptime, with ?connectAccount=true). A workspace connected to no
  * project gets no Home: there is no project to show, nor a token to draw it
  * with.
+ *
+ * A workspace can be connected to more than one project: the Home shows
+ * the project the person is in (WorkspaceProjectResolution) - the first of
+ * them, by name, when they are in several - and carries it, so its buttons
+ * act in the project it shows. Somebody connected in none of several is
+ * told where to connect rather than given one project's Connect button.
  *
  * The tab needs the manifest's features.app_home.home_tab_enabled and its
  * app_home_opened event. An app created from an older manifest has neither:
@@ -91,20 +101,20 @@ export default class SlackHome {
     }
 
     try {
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await WorkspaceProjectAuthTokenService.findOneBy({
-          query: {
-            workspaceProjectId: event.teamId,
-            workspaceType: WorkspaceType.Slack,
-          },
-          select: {
-            projectId: true,
-            authToken: true,
-          },
-          props: {
-            isRoot: true,
+      const resolution: WorkspaceProjectResolution =
+        await WorkspaceProjectResolver.resolve({
+          workspaceType: WorkspaceType.Slack,
+          workspaceId: event.teamId,
+          clues: {
+            workspaceUserId: event.slackUserId,
           },
         });
+
+      const personProject: WorkspaceProjectAuthToken | null =
+        WorkspaceProjectResolver.getPersonProject(resolution);
+
+      const projectAuth: WorkspaceProjectAuthToken | null =
+        personProject || resolution.connections[0] || null;
 
       if (!projectAuth?.projectId || !projectAuth.authToken) {
         logger.debug(
@@ -128,6 +138,8 @@ export default class SlackHome {
         projectId: projectAuth.projectId,
         projectAuthToken: projectAuth.authToken,
         slackUserId: event.slackUserId,
+        // Connected in none of several projects: where, not which.
+        ...(personProject ? {} : { connectUrl: null }),
       });
     } catch (err) {
       logger.error("Could not draw a Slack Home tab.");
@@ -145,16 +157,23 @@ export default class SlackHome {
     projectId: ObjectID;
     projectAuthToken: string;
     slackUserId: string;
+    /*
+     * What a person not connected is given to connect with: the project's
+     * Connect button by default; null for where in OneUptime instead.
+     */
+    connectUrl?: string | null | undefined;
   }): Promise<void> {
     const blocks: Array<WorkspaceMessageBlock> = await SlackHome.getBlocks({
       projectId: data.projectId,
       slackUserId: data.slackUserId,
+      connectUrl: data.connectUrl,
     });
 
     await SlackHome.viewsPublish({
       authToken: data.projectAuthToken,
       slackUserId: data.slackUserId,
       blocks: blocks,
+      projectId: data.projectId,
     });
   }
 
@@ -198,6 +217,8 @@ export default class SlackHome {
     projectId: ObjectID;
     slackUserId: string;
     now?: Date | undefined;
+    // See publish: the Connect button's link, or null for none.
+    connectUrl?: string | null | undefined;
   }): Promise<Array<WorkspaceMessageBlock>> {
     const userAuth: WorkspaceUserAuthToken | null =
       await WorkspaceUserAuthTokenService.findOneBy({
@@ -217,7 +238,10 @@ export default class SlackHome {
     if (!userAuth?.userId) {
       return WorkspaceHome.getNotConnectedBlocks({
         workspaceType: WorkspaceType.Slack,
-        connectUrl: await SlackHome.getConnectUrl(data.projectId),
+        connectUrl:
+          data.connectUrl !== undefined
+            ? data.connectUrl
+            : await SlackHome.getConnectUrl(data.projectId),
       });
     }
 
@@ -316,11 +340,15 @@ export default class SlackHome {
     }
   }
 
-  // views.publish: the Home view, for one person.
+  /*
+   * views.publish: the Home view, for one person. It carries the project it
+   * shows (SlackModalMetadata), so a press of its buttons is read there.
+   */
   private static async viewsPublish(data: {
     authToken: string;
     slackUserId: string;
     blocks: Array<WorkspaceMessageBlock>;
+    projectId: ObjectID;
   }): Promise<void> {
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
@@ -329,6 +357,9 @@ export default class SlackHome {
           user_id: data.slackUserId,
           view: {
             type: "home",
+            private_metadata: SlackModalMetadata.write("", {
+              projectId: data.projectId.toString(),
+            }),
             blocks: SlackUtil.getBlocksFromWorkspaceMessagePayload({
               messageBlocks: data.blocks,
               maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,

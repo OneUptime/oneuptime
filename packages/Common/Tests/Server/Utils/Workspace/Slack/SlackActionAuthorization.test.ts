@@ -9,6 +9,7 @@ import {
 import { stubPrivateRecords } from "../../../TestingUtils/PrivateRecords";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import IncidentState from "../../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
@@ -655,9 +656,43 @@ describe("Slack interactive actions still work for members who hold the permissi
     expect(addNoteSpy.mock.calls[0]![0].props.isRoot).toBeUndefined();
   });
 
-  test("a member cannot act on an incident outside their project or scope", async (): Promise<void> => {
+  test("a member cannot act on an incident outside their scope, and is told so - not that it is not there", async (): Promise<void> => {
     mockMember([Permission.ProjectMember]);
-    // The user-scoped, project-scoped lookup finds nothing.
+    // Their own read finds nothing (labels, owners); OneUptime's finds it.
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident.id = ObjectID.generate();
+        return incident;
+      }) as never);
+    const resolveSpy: SpyInstance<typeof IncidentStateTimelineService.create> =
+      jest
+        .spyOn(IncidentStateTimelineService, "create")
+        .mockResolvedValue(new IncidentStateTimeline());
+
+    await SlackIncidentActions.handleIncidentAction(
+      handlerArgs(
+        SlackActionType.ResolveIncident,
+        ObjectID.generate().toString(),
+      ),
+    );
+
+    expect(resolveSpy).not.toHaveBeenCalled();
+    expect(channelAnswerTexts()[0]).toContain(
+      "You do not have permission to resolve this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
+    );
+    expect(channelAnswerTexts()[0]).not.toContain("not found");
+  });
+
+  test("a member pressing a button on an incident that is gone is told it was not found", async (): Promise<void> => {
+    mockMember([Permission.ProjectMember]);
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(null);
     const resolveSpy: SpyInstance<typeof IncidentStateTimelineService.create> =
       jest
@@ -673,7 +708,7 @@ describe("Slack interactive actions still work for members who hold the permissi
 
     expect(resolveSpy).not.toHaveBeenCalled();
     expect(channelAnswerTexts()[0]).toContain(
-      "the incident was not found in this project",
+      "Could not resolve this incident: the incident was not found. It may have been deleted.",
     );
   });
 });
@@ -758,9 +793,10 @@ describe("SlackAuthAction.isAuthorized", (): void => {
     projectAuth.projectId = projectId;
     projectAuth.authToken = projectAuthToken;
     projectAuth.miscData = { botUserId: "B0BOT" } as never;
+    // The workspace's one connection (WorkspaceProjectResolution reads them all).
     jest
-      .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
-      .mockResolvedValue(projectAuth);
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([projectAuth]);
 
     const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
     userAuth.userId = userId;

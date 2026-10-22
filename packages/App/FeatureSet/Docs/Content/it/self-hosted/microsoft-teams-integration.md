@@ -369,7 +369,7 @@ Se non corrispondono, l'utente che scrive al bot ha effettuato l'accesso a un al
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Due o più progetti OneUptime hanno collegato lo stesso tenant Microsoft. Un messaggio del bot contiene solo un ID tenant, quindi OneUptime non può sapere quale progetto intendi e rifiuta invece di tirare a indovinare. Scollega Microsoft Teams da tutti i progetti tranne uno.
+Due o più progetti OneUptime sono collegati alla stessa organizzazione Microsoft 365, e niente nel messaggio li ha distinti. Il pulsante di una scheda agisce nel progetto del record a cui si riferisce, e un messaggio nel progetto del canale in cui viene inviato, altrimenti nell'unico progetto in cui è collegato l'account Microsoft Teams di chi lo invia. Invialo di nuovo da un canale del progetto che intendi, per esempio uno dei suoi canali degli incidenti. A chi non ha l'account collegato in nessuno dei progetti viene chiesto prima di collegarlo.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

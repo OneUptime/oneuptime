@@ -58,6 +58,7 @@ import WorkspaceConnectRequest, {
   WorkspacePendingMessage,
 } from "../WorkspaceConnectRequest";
 import { WorkspaceEventType } from "../WorkspaceMemberActions";
+import WorkspaceProjectResolver from "../WorkspaceProjectResolution";
 
 // A Teams channel OneUptime created for an incident / alert / ...
 export interface MicrosoftTeamsWatchedChannel {
@@ -1185,6 +1186,13 @@ export default class MicrosoftTeamsReactionNoteSync {
           purpose: purpose,
           pendingAction: pendingAction,
           button: link.button,
+          // In an organization connected to more than one project: which one.
+          projectName:
+            await WorkspaceProjectResolver.getSharedWorkspaceProjectName({
+              workspaceType: WorkspaceType.MicrosoftTeams,
+              workspaceId: place.tenantId,
+              projectId: projectId,
+            }),
         }),
         connectUrl: link.url,
       });

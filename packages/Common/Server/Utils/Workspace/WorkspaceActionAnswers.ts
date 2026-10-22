@@ -202,6 +202,14 @@ export default class WorkspaceActionAnswers {
    * a form opens only on a fresh press - it says what to press again. So it
    * does when the button opens the settings page without the press, and,
    * with no button at all, it says where the settings are.
+   *
+   * In a workspace connected to more than one project, it names the project
+   * (`projectName`): an account is connected in each project on its own, and
+   * somebody connected in another of them would otherwise be asked to
+   * connect an account they connected -
+   *
+   *   🔗 **Connect your Slack account in IRM Non-Prod to acknowledge this
+   *   incident.**
    */
   public static getConnectPrompt(data: {
     workspaceType: WorkspaceType;
@@ -210,14 +218,21 @@ export default class WorkspaceActionAnswers {
     again?: WorkspaceConnectRequestAgain | undefined;
     // OneClick when left out.
     button?: WorkspaceConnectButton | undefined;
+    // The project, named in a workspace connected to more than one.
+    projectName?: string | null | undefined;
   }): WorkspaceAnswer {
     const workspaceName: string = this.getWorkspaceName(data.workspaceType);
     const productName: string = ProductBrandingText.getProductName();
     const button: WorkspaceConnectButton =
       data.button || WorkspaceConnectButton.OneClick;
+    const projectName: string = (data.projectName || "").trim();
 
-    const ask: MarkdownText = mdText`🔗 **Connect your ${workspaceName} account to ${data.purpose}.**`;
-    const text: string = `Connect your ${workspaceName} account to ${data.purpose}`;
+    const ask: MarkdownText = projectName
+      ? mdText`🔗 **Connect your ${workspaceName} account in ${projectName} to ${data.purpose}.**`
+      : mdText`🔗 **Connect your ${workspaceName} account to ${data.purpose}.**`;
+    const text: string = projectName
+      ? `Connect your ${workspaceName} account in ${projectName} to ${data.purpose}`
+      : `Connect your ${workspaceName} account to ${data.purpose}`;
 
     if (button !== WorkspaceConnectButton.OneClick) {
       const then: MarkdownText = mdText`Once you're connected, ${this.getAgainPhrase(

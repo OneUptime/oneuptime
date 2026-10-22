@@ -28,6 +28,8 @@ flowchart TB
 - **每個團隊中的 OneUptime 應用程式**，也就是您希望接收通知的每個團隊。Microsoft 只允許機器人在已新增它的團隊中發布訊息。
 - **每個人自己的連接**：此人的 Microsoft Teams 帳戶連結到其 OneUptime 帳戶。按鈕、指令和回應都以此人的身分、依其在專案中的權限執行。
 
+一個 Microsoft 365 組織可以連接到多個專案，例如正式環境與測試環境。卡片上的按鈕會在卡片所涉及紀錄的專案中執行。傳給機器人的訊息會在其傳送所在頻道（例如事件的頻道）的專案中執行，否則會在傳送者的 Microsoft Teams 帳戶所連接的唯一專案中執行。如果無法據此判斷，機器人會列出此人所在的專案，並請此人從目標專案的頻道中重試。
+
 ## 開始之前
 
 - **可以連接專案的角色：** **Project Owner**、 **Project Admin** 或 **Project Member**。解除安裝需要 **Project Owner** 或 **Project Admin**。
@@ -195,7 +197,7 @@ flowchart TB
 - **立即被呼叫的人。** 您 @提及的人，以及您 @提及的標籤所連結待命排程中正在待命的人，前提是其後跟有訊息（請參閱 [待命標籤](#待命標籤)）。OneUptime 透過此人的 Microsoft Teams 帳戶所連接的 OneUptime 帳戶識別此人，否則透過此人在 Microsoft Teams 中的電子郵件地址識別。專案以外的人不會被呼叫。
 - **其他情況會收到卡片。** 如果沒有 @提及任何人（例如在與機器人的個人聊天中）、沒有訊息、提及了未連結您可見待命排程的標籤，或有 OneUptime 無法識別的人，機器人會以 **Page someone** 卡片回覆，其中已填入您輸入的內容，並說明哪些人無法選取。選擇人員、團隊、待命排程（呼叫此刻在該排程中待命的人）或待命策略（依其上報規則呼叫），然後提交。對話中的任何人都可以以自己的身分提交該卡片。呼叫完成後，卡片會被移除，以免有人用它重複呼叫。
 - **顯示位置。** 對話會以一張持續更新的卡片顯示這次呼叫：呼叫了誰、如何呼叫，以及誰已確認。機器人無法張貼它時，它的回覆會告訴您呼叫了誰，並附上警示的連結。
-- **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。
+- **誰可以呼叫。** 既能執行待命策略又能建立警示的人： **Project Owner**、 **Project Admin** 和 **Project Member**，或同時擁有 **On-Call Member** 和 **Alert Member** 的人（自訂角色中的 **Create On-Call Duty Policy Execution Log** 和 **Create Alert** ）。不經待命策略直接呼叫人員、團隊或待命排程，還需要存取專案中所有待命策略的權限。其他任何人都會在回覆中收到告知，並且不會呼叫任何人。在 OneUptime Cloud 上，呼叫需要 Growth 方案：低於此方案時，OneUptime 會說明所需的方案，並且不會呼叫任何人。
 
 ## 待命標籤
 
@@ -242,7 +244,7 @@ flowchart TB
 OneUptime 卡片上的按鈕以按下者的身分執行，無論是在個人聊天、頻道還是群組聊天中：也就是以其 Microsoft Teams 帳戶所連接的 OneUptime 帳戶的身分，依該帳戶在專案中的權限執行。事件、警示或片段上的 **Acknowledge**、 **Resolve**、 **Change State**、 **Add Note** 和 **Execute On-Call Policy**，以及排定維護活動上的 **Mark as Ongoing**、 **Mark as Complete**、 **Change State** 和 **Add Note**，各自會做出與 OneUptime 中相同操作一樣的變更，並在那裡記在此人名下：紀錄的狀態時間軸和動態會顯示是誰變更了其狀態，備註也歸此人所有。透過回應從訊息儲存的備註也以同樣方式發布。
 
 - **誰可以使用。** 能在 OneUptime 中做出同樣變更的人。確認、解決事件或變更其狀態需要變更其狀態的權限： **Project Owner**、 **Project Admin**、 **Project Member**、 **Incident Admin** 和 **Incident Member**，或自訂角色中的 **Create Incident State Timeline**。警示、片段或排定維護活動需要其自身類型的同等權限（例如 **Create Alert State Timeline** ），備註需要發布該類備註的權限。與 OneUptime 中的狀態面板一樣，它們不要求編輯事件或警示本身的權限。其他任何人都會收到告知，並且不會有任何變更。
-- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄或其他專案的紀錄上的按鈕，都會得到該紀錄 "was not found in this project, or you do not have access to it." 的回覆，並且不會有任何變更。在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
+- **哪些紀錄。** 與在 OneUptime 中一樣，是此人可以讀取的紀錄：如果角色僅限於某些標籤，則為帶有這些標籤的事件、警示、片段和活動。任何其他紀錄上的按鈕都會說明原因，並且不會有任何變更：對於此人的角色無法觸及的事件，回覆 "your access in this project does not include this incident. Ask a project admin for access to it."；對於此人不是負責人的私人事件，回覆 "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."；對於之後已刪除的事件，回覆 "the incident was not found. It may have been deleted." 在 OneUptime Cloud 上，專案方案不包含的變更會被拒絕，並說明所需的方案。
 - **Change State 提供什麼。** 依專案的順序，提供此人可以讀取、紀錄接下來可以轉入的狀態：不會提供早於其目前狀態的狀態，片段與事件、警示或排定維護活動一樣，因為狀態變更永遠不會讓紀錄在其清單中回退（請參閱 [順序是真正的限制，而不是顯示偏好](/docs/incidents/states-and-severities#順序是真正的限制而不是顯示偏好) ）。如果此人一個都無法讀取，機器人會說 "No incident states are available to you in this project. Ask a project admin for access to them."；如果紀錄處於它能到達的最後一個狀態，則會說 "There is no later state to move this incident to."。這兩種情況都不會顯示空白卡片。
 - **私人事件上的 Add Note。** 私人事件不能新增公開備註，因此它的卡片不會詢問備註類型，而是新增一則私人備註。在它設為私人之前送出的卡片也會新增私人備註，並說明這一點。請參閱[私人事件只能新增私人備註](/docs/incidents/notes-owners-and-feed#私人事件只能新增私人備註)。
 - **Escalate.** 卡片上的 **Escalate** 會針對卡片所涉及的事件、警示或片段執行其待命策略，以按下者的身分，並使用與 **Execute On-Call Policy** 相同的權限。不涉及其中任何一種的卡片會得到 "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there." 的回覆，並且不會呼叫任何人。

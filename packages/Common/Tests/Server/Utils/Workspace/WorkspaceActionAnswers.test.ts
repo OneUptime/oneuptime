@@ -446,6 +446,73 @@ describe("the Connect prompt", () => {
     }
   });
 
+  /*
+   * A workspace connected to more than one project: an account is connected
+   * in each project on its own, so the prompt names the project - somebody
+   * connected in the other one would otherwise be asked to connect an
+   * account they connected.
+   */
+  test("in a workspace connected to several projects, names the project to connect in - in the ask and the notification", () => {
+    expect(
+      WorkspaceActionAnswers.getConnectPrompt({
+        workspaceType: WorkspaceType.Slack,
+        purpose: "acknowledge this incident",
+        pendingAction: { kind: WorkspacePendingActionKind.Acknowledge },
+        projectName: "IRM Non-Prod",
+      }),
+    ).toEqual({
+      markdown:
+        "🔗 **Connect your Slack account in IRM Non-Prod to acknowledge this incident.** It takes one click, and OneUptime acknowledges it for you as soon as you're connected.",
+      text: "Connect your Slack account in IRM Non-Prod to acknowledge this incident",
+    });
+
+    // Without a button too, and in Microsoft Teams.
+    expect(
+      WorkspaceActionAnswers.getConnectPrompt({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        purpose: "see who is on call",
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Command,
+          label: "oncall",
+        },
+        button: WorkspaceConnectButton.None,
+        projectName: "Production",
+      }).markdown,
+    ).toBe(
+      "🔗 **Connect your Microsoft Teams account in Production to see who is on call.** In OneUptime, go to **User Settings → Workspace → Microsoft Teams** and press **Connect my account with Microsoft Teams**. Once you're connected, type **oncall** again.",
+    );
+  });
+
+  test("no project name - one project connected, or none read - asks as before; a blank one is no name", () => {
+    for (const projectName of [undefined, null, "", "   "]) {
+      expect(
+        WorkspaceActionAnswers.getConnectPrompt({
+          workspaceType: WorkspaceType.Slack,
+          purpose: "acknowledge this incident",
+          pendingAction: { kind: WorkspacePendingActionKind.Acknowledge },
+          projectName: projectName,
+        }).text,
+      ).toBe("Connect your Slack account to acknowledge this incident");
+    }
+  });
+
+  test("a project name is text in Markdown: it cannot close the bold, link or mention anyone", () => {
+    const answer: WorkspaceAnswer = WorkspaceActionAnswers.getConnectPrompt({
+      workspaceType: WorkspaceType.Slack,
+      purpose: "acknowledge this incident",
+      pendingAction: { kind: WorkspacePendingActionKind.Acknowledge },
+      projectName: "Prod** [click](https://evil.example) <!channel>",
+    });
+
+    expect(answer.markdown).not.toContain("[click](https://evil.example)");
+    expect(answer.markdown).not.toContain("<!channel>");
+    expect(answer.markdown).not.toContain("Prod** ");
+    // The notification is plain text, as typed.
+    expect(answer.text).toContain(
+      "Prod** [click](https://evil.example) <!channel>",
+    );
+  });
+
   test("the Connect button is named for the workspace", () => {
     expect(
       WorkspaceActionAnswers.getConnectButtonTitle(WorkspaceType.Slack),
