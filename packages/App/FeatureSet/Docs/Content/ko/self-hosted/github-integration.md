@@ -97,7 +97,7 @@ OneUptime은 두 묶음의 이벤트를 사용하며, 각각 하는 일이 다�
 | --- | --- |
 | **Issue comment** | issue **및** pull request에서의 `@mention` 명령 |
 | **Issues** | issue를 앱에 할당하기, 그리고 저장소의 트리거 레이블 |
-| **Pull request** | 앱에 리뷰 요청하기 |
+| **Pull request** | 앱에 리뷰 요청하기, 그리고 풀 리퀘스트가 열리고 바뀔 때의 프로덕션 리뷰 |
 | **Pull request review** | 제출된 리뷰 본문에 쓴 멘션 |
 | **Pull request review comment** | diff의 인라인 댓글에 쓴 멘션 |
 

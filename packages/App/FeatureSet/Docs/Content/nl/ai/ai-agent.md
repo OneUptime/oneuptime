@@ -8,6 +8,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 - [Hoe een herstelrun verloopt](#hoe-een-herstelrun-verloopt): Van een klik tot een pull request, stap voor stap.
 - [Waar hersteltaken starten](#waar-hersteltaken-starten): De taken die OneUptime start, en wat elke pull request doet.
 - [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel): Wat een herstel uit productie leest terwijl het de wijziging schrijft.
+- [Productiebeoordeling van pull requests](#productiebeoordeling-van-pull-requests): Wat productie zegt over de code die elke pull request wijzigt.
 - [Voordat je begint](#voordat-je-begint): Een model, een gekoppelde repository en een Runner.
 - [Als een herstel mislukt](#als-een-herstel-mislukt): Wat er gebeurt met een run die een fout geeft, vastloopt of wacht.
 :::
@@ -145,6 +146,27 @@ Wat de agent kan lezen, bepaalt de OneUptime-server op basis van de taak zelf:
 - **Begrensd.** Hoogstens **12** query's per run, die elk meetellen voor de 40 aanroepen van de run.
 
 Als er geen service bij de repository hoort, draait de taak zonder productietelemetrie, zoals voorheen.
+
+## Productiebeoordeling van pull requests
+
+OneUptime weet wat je code in productie doet, dus kan het een pull request beoordelen met wat niemand ziet die de diff leest. Zet **Pull requests beoordelen aan de hand van productie** aan op de pagina **Instellingen** van een repository in Code, en elke pull request die iemand met schrijfrechten opent of bijwerkt, krijgt één opmerking die zegt wat productie laat zien van de code die hij wijzigt. De opmerking wordt bij elke push ter plekke bijgewerkt, en de pagina **Productiebeoordelingen** van de repository in Code bewaart elke beoordeling, met **Opnieuw beoordelen**.
+
+| Hij leest | Van de code die de pull request wijzigt |
+| --- | --- |
+| **Uitzonderingen** | De uitzonderingen die in de afgelopen 7 dagen in de gewijzigde regels, functies en bestanden zijn gegooid, nieuwe en niet-afgehandelde gemarkeerd. |
+| **Operaties** | De getracete operaties die de gewijzigde code in het afgelopen uur uitvoeren: hun spans, fouten en p95. |
+| **Zware functies** | De functies van de gewijzigde code die in het afgelopen uur een deel van de profielen van de services innemen. |
+| **Incidenten** | De incidenten van de services uit de afgelopen 30 dagen die nog open zijn, of waarvan de hoofdoorzaak of postmortem de gewijzigde code noemt. Nooit een privé-incident. |
+| **Deploys** | De deploys van de services uit de afgelopen 7 dagen die OneUptime verdenkt van een regressie. |
+
+Als productie iets laat zien, leest OneUptime AI het naast de diff en voegt **Aandachtspunten** toe: een paar korte punten, elk gebaseerd op de feiten. Dit draait alleen zolang AI voor het project aan staat, hooguit 10 keer per dag voor een pull request en 100 keer voor een repository, en wordt gemeten zoals elke AI-aanroep; de feiten worden elke keer zonder AI gelezen. Als productie niets over de wijziging laat zien, plaatst OneUptime niets.
+
+- **Alleen totalen.** De opmerking bevat aantallen, duren en namen van code: nooit het bericht van een uitzondering, een logregel, de titel van een incident of persoonsgegevens.
+- **Openbare repository's krijgen een link.** Iedereen kan de pull requests van een openbare repository lezen, dus daar linkt de opmerking alleen naar de beoordeling in OneUptime, die alleen leden van het project kunnen openen. **Opmerking bij productiebeoordeling**, onder **Meer instellingen** op de pagina **Instellingen** van de repository, kan overal **Alleen een link naar de beoordeling** plaatsen, of **De beoordeling, ook in een openbare repository**.
+- **Externe bijdragers kunnen er geen starten.** Een pull request wordt alleen vanzelf beoordeeld als de auteur, en wie er ook naar pushte, naar de repository mag schrijven. Een van iemand anders - een externe bijdrager, een fork, een bot - wordt beoordeeld als iemand met schrijfrechten er `@oneuptime production review` op reageert, of in Code op **Opnieuw beoordelen** klikt.
+- **Alleen lezen.** Een beoordeling kloont niets en voert niets van de pull request uit. De diff en de titel zijn gegevens voor OneUptime AI, nooit instructies: de AI heeft geen tools, en wat hij schrijft, wordt als tekst in de opmerking gezet.
+
+De schakelaar staat aan voor de repository's die de GitHub App vanaf nu verbindt. Een repository die werd verbonden voordat hij bestond, houdt hem uit tot je hem aanzet.
 
 ## Controle vóór de pull request
 

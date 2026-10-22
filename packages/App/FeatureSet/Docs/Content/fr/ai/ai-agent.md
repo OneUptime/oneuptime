@@ -8,6 +8,7 @@ Code est l'endroit où vous demandez à OneUptime AI de travailler dans vos dép
 - [Déroulement d'une exécution de correction](#déroulement-dune-exécution-de-correction): D'un clic à une pull request, étape par étape.
 - [Où démarrent les tâches de correction](#où-démarrent-les-tâches-de-correction): Les tâches que OneUptime lance, et ce que fait chaque pull request.
 - [Télémétrie de production dans une correction](#télémétrie-de-production-dans-une-correction): Ce qu'une correction lit de la production pendant qu'elle écrit la modification.
+- [Revue de production des pull requests](#revue-de-production-des-pull-requests): Ce que la production dit du code que modifie chaque pull request.
 - [Avant de commencer](#avant-de-commencer): Un modèle, un dépôt connecté et un Runner.
 - [Quand une correction échoue](#quand-une-correction-échoue): Ce qui arrive à une exécution qui échoue, se bloque ou attend.
 :::
@@ -145,6 +146,27 @@ Ce que l'agent peut lire est décidé par le serveur OneUptime, à partir de la 
 - **Limité.** Au plus **12** requêtes par exécution, chacune décomptée des 40 appels de l'exécution.
 
 Quand aucun service ne correspond au dépôt, la tâche s'exécute sans télémétrie de production, comme avant.
+
+## Revue de production des pull requests
+
+OneUptime sait ce que fait votre code en production : il peut donc relire une pull request avec ce que personne ne voit en lisant le diff. Activez **Relire les demandes de tirage au regard de la production** sur la page **Paramètres** d'un dépôt dans Code, et chaque pull request qu'une personne ayant l'accès en écriture ouvre ou met à jour reçoit un commentaire qui dit ce que la production montre du code qu'elle modifie. Le commentaire est modifié sur place à chaque push, et la page **Revues de production** du dépôt dans Code garde chaque revue, avec **Relire à nouveau**.
+
+| Ce qu'elle lit | Du code que modifie la pull request |
+| --- | --- |
+| **Exceptions** | Les exceptions levées dans les lignes, fonctions et fichiers modifiés ces 7 derniers jours, les nouvelles et les non gérées signalées. |
+| **Opérations** | Les opérations tracées qui exécutent le code modifié dans la dernière heure : leurs spans, leurs erreurs et leur p95. |
+| **Fonctions coûteuses** | Les fonctions du code modifié qui prennent une part des profils des services dans la dernière heure. |
+| **Incidents** | Les incidents des services des 30 derniers jours encore ouverts, ou dont la cause racine ou le post-mortem cite le code modifié. Jamais un incident privé. |
+| **Déploiements** | Les déploiements des services des 7 derniers jours que OneUptime soupçonne d'une régression. |
+
+Quand la production dit quelque chose, OneUptime AI le lit à côté du diff et ajoute **Points d'attention** : quelques points courts, chacun fondé sur les faits. Elle ne tourne que tant que l'IA est activée pour le projet, au plus 10 fois par jour pour une pull request et 100 pour un dépôt, et elle est comptée comme tout appel d'IA ; les faits sont lus à chaque fois sans elle. Quand la production ne montre rien du changement, OneUptime ne publie rien.
+
+- **Des agrégats uniquement.** Le commentaire contient des nombres, des durées et des noms de code : jamais le message d'une exception, une ligne de journal, le titre d'un incident ni des données personnelles.
+- **Les dépôts publics reçoivent un lien.** Tout le monde peut lire les pull requests d'un dépôt public : là, le commentaire ne fait que renvoyer vers la revue dans OneUptime, que seuls les membres du projet peuvent ouvrir. **Commentaire de revue de production**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt, peut publier **Seulement un lien vers la revue** partout, ou **La revue, même sur un dépôt public**.
+- **Les contributeurs externes ne peuvent pas en lancer.** Une pull request n'est relue d'elle-même que si son auteur, et quiconque y a poussé des commits, peuvent écrire dans le dépôt. Celle de quelqu'un d'autre - un contributeur externe, un fork, un bot - est relue quand une personne ayant l'accès en écriture y commente `@oneuptime production review`, ou clique sur **Relire à nouveau** dans Code.
+- **Lecture seule.** Une revue ne clone rien et n'exécute rien de la pull request. Son diff et son titre sont des données pour OneUptime AI, jamais des instructions : l'IA n'a aucun outil, et ce qu'elle écrit est placé dans le commentaire sous forme de texte.
+
+L'interrupteur est activé pour les dépôts que la GitHub App connecte à partir de maintenant. Un dépôt connecté avant qu'il existe le garde désactivé jusqu'à ce que vous l'activiez.
 
 ## Vérification avant la pull request
 

@@ -8,6 +8,7 @@ Código es donde le pides a OneUptime AI que trabaje en tus repositorios, como s
 - [Cómo funciona una ejecución de corrección](#cómo-funciona-una-ejecución-de-corrección): De un clic a un pull request, paso a paso.
 - [Dónde empiezan las tareas de corrección](#dónde-empiezan-las-tareas-de-corrección): Las tareas que inicia OneUptime, y lo que hace cada pull request.
 - [Telemetría de producción en una corrección](#telemetría-de-producción-en-una-corrección): Lo que una corrección lee de producción mientras escribe el cambio.
+- [Revisión de producción de pull requests](#revisión-de-producción-de-pull-requests): Lo que producción dice del código que cambia cada pull request.
 - [Antes de empezar](#antes-de-empezar): Un modelo, un repositorio conectado y un Runner.
 - [Cuando una corrección falla](#cuando-una-corrección-falla): Qué pasa con una ejecución que falla, se detiene o espera.
 :::
@@ -145,6 +146,27 @@ Lo que el agente puede leer lo decide el servidor de OneUptime, a partir de la p
 - **Acotado.** Como máximo **12** consultas por ejecución, y cada una se descuenta de las 40 llamadas de la ejecución.
 
 Cuando ningún servicio corresponde al repositorio, la tarea se ejecuta sin telemetría de producción, como antes.
+
+## Revisión de producción de pull requests
+
+OneUptime sabe lo que hace tu código en producción, así que puede revisar una pull request con lo que nadie ve al leer el diff. Activa **Revisar pull requests frente a producción** en la página **Ajustes** de un repositorio en Código, y cada pull request que alguien con acceso de escritura abre o actualiza recibe un comentario que dice lo que producción muestra del código que cambia. El comentario se edita en su sitio con cada push, y la página **Revisiones de producción** del repositorio en Código guarda cada revisión, con **Volver a revisar**.
+
+| Lo que lee | Del código que cambia la pull request |
+| --- | --- |
+| **Excepciones** | Las excepciones lanzadas en las líneas, funciones y archivos modificados en los últimos 7 días, con las nuevas y las no controladas marcadas. |
+| **Operaciones** | Las operaciones trazadas que ejecutan el código modificado en la última hora: sus spans, sus errores y su p95. |
+| **Funciones costosas** | Las funciones del código modificado que ocupan una parte de los perfiles de los servicios en la última hora. |
+| **Incidentes** | Los incidentes de los servicios de los últimos 30 días que siguen abiertos, o cuya causa raíz o post mortem menciona el código modificado. Nunca un incidente privado. |
+| **Despliegues** | Los despliegues de los servicios de los últimos 7 días que OneUptime sospecha de una regresión. |
+
+Cuando producción dice algo, OneUptime AI lo lee junto al diff y añade **Qué vigilar**: unos pocos puntos breves, cada uno basado en los datos. Solo se ejecuta mientras la IA está activada en el proyecto, como mucho 10 veces al día por pull request y 100 por repositorio, y se mide como cualquier llamada de IA; los datos se leen siempre sin ella. Cuando producción no muestra nada del cambio, OneUptime no publica nada.
+
+- **Solo agregados.** El comentario contiene recuentos, duraciones y nombres de código: nunca el mensaje de una excepción, una línea de registro, el título de un incidente ni datos personales.
+- **Los repositorios públicos reciben un enlace.** Cualquiera puede leer las pull requests de un repositorio público, así que allí el comentario solo enlaza a la revisión en OneUptime, que solo los miembros del proyecto pueden abrir. **Comentario de revisión de producción**, en **Más ajustes** de la página **Ajustes** del repositorio, puede publicar **Solo un enlace a la revisión** en todos, o **La revisión, incluso en un repositorio público**.
+- **Los colaboradores externos no pueden iniciar una.** Una pull request se revisa sola solo cuando su autor, y quien haya hecho push en ella, pueden escribir en el repositorio. La de cualquier otra persona - un colaborador externo, un fork, un bot - se revisa cuando alguien con acceso de escritura comenta `@oneuptime production review` en ella, o pulsa **Volver a revisar** en Código.
+- **Solo lectura.** Una revisión no clona nada ni ejecuta nada de la pull request. Su diff y su título son datos para OneUptime AI, nunca instrucciones: la IA no tiene herramientas, y lo que escribe se coloca en el comentario como texto.
+
+El interruptor está activado para los repositorios que la GitHub App conecte a partir de ahora. Un repositorio conectado antes de que existiera lo mantiene desactivado hasta que lo actives.
 
 ## Verificación antes del pull request
 

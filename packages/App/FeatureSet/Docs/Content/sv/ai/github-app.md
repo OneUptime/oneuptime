@@ -14,6 +14,7 @@ OneUptime GitHub App är mer än en anslutning till din kod: du kan prata med de
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Varje kommando börjar med ett omnämnande av appen. Omnämnandet kan stå var s
 | Kommando | Vad som händer | Förstås också |
 | --- | --- | --- |
 | `@oneuptime review` | Klonar branchen, läser den ändrade koden och koden runt den, kontrollerar vad produktionen säger om den, och publicerar en granskning som en kommentar. Ändrar inget. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Granskar pull requesten mot produktion nu, oavsett vem som öppnade den: undantagen, operationerna, incidenterna och driftsättningarna kring den ändrade koden, i en kommentar som redigeras på plats (se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests)). Klonar ingenting och kör ingenting. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Klonar pull requestens egen branch, gör ändringen och pushar nya commits till den branchen. Öppnar aldrig en andra pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Allt du skriver efter omnämnandet som inte är ett känt kommando läses som en begäran om revidering, eftersom det nästan alltid är vad det är:
@@ -100,6 +102,8 @@ Det den hittar hamnar under en rubrik **Production context** i granskningen, var
 
 Inget behöver ställas in: tjänsterna är de som OneUptime hittar det här repositoriet för, precis som för en åtgärd (se [Produktionstelemetri i en åtgärd](/docs/ai/ai-agent#produktionstelemetri-i-en-åtgärd)). Frågorna läser bara, körs på OneUptime-servern och läser inget från en annan tjänst, ett annat projekt eller en privat incident. Ett repository vars tjänster inte skickar någon telemetri till projektet granskas utifrån enbart koden.
 
+Slå på **Granska pull-förfrågningar mot produktion** i repositoriets inställningar för att få varje pull request granskad mot produktion av sig själv: se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
+
 ## Vem som får ge den kommandon
 
 **Bara personer med write-, maintain- eller admin-behörighet till repositoriet.** OneUptime frågar GitHub om kommentatorns behörighet till det repositoriet varje gång; det litar inte på märket "contributor" som GitHub visar bredvid en kommentar, eftersom det beskriver tidigare aktivitet snarare än nuvarande behörighet.
@@ -142,7 +146,7 @@ Prenumerera i inställningarna **Permissions & events** för din GitHub App på:
 | --- | --- |
 | **Issue comment** | `@mention`-kommandon i issues och pull requests |
 | **Issues** | att tilldela en issue till appen, och utlösaretiketten |
-| **Pull request** | en granskning som begärts av appen |
+| **Pull request** | en granskning som begärts av appen, och produktionsgranskningar av pull requests när de öppnas och ändras |
 | **Pull request review** | ett omnämnande i texten i en inskickad granskning |
 | **Pull request review comment** | ett omnämnande i en inbäddad kommentar till diffen |
 

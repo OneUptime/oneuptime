@@ -8,6 +8,7 @@ Kode er stedet, hvor du beder OneUptime AI om at arbejde i dine repositorier, s�
 - [Sådan forløber en rettelseskørsel](#sådan-forløber-en-rettelseskørsel): Fra et klik til en pull request, trin for trin.
 - [Hvor rettelsesopgaver starter](#hvor-rettelsesopgaver-starter): Opgaverne, OneUptime starter, og hvad hver pull request gør.
 - [Produktionstelemetri i en rettelse](#produktionstelemetri-i-en-rettelse): Hvad en rettelse læser fra produktionen, mens den skriver ændringen.
+- [Produktionsgennemgang af pull requests](#produktionsgennemgang-af-pull-requests): Hvad produktionen siger om den kode, hver pull request ændrer.
 - [Før du begynder](#før-du-begynder): En model, et forbundet repositorie og en Runner.
 - [Når en rettelse mislykkes](#når-en-rettelse-mislykkes): Hvad der sker med en kørsel, der fejler, går i stå eller venter.
 :::
@@ -145,6 +146,27 @@ Hvad agenten kan læse, afgøres af OneUptime-serveren ud fra selve opgaven:
 - **Begrænset.** Højst **12** forespørgsler pr. kørsel, som hver tæller med i kørslens 40 kald.
 
 Når ingen tjeneste hører til repositoriet, kører opgaven uden produktionstelemetri, som før.
+
+## Produktionsgennemgang af pull requests
+
+OneUptime ved, hvad din kode gør i produktion, så den kan gennemgå en pull request med det, ingen kan se ved at læse diffen. Slå **Gennemgå pull requests i forhold til produktion** til på et repositories side **Indstillinger** i Kode, så får hver pull request, som en person med skriveadgang åbner eller pusher til, én kommentar, der siger, hvad produktionen viser om den kode, den ændrer. Kommentaren redigeres på stedet ved hvert push, og repositoriets side **Produktionsgennemgange** i Kode gemmer hver gennemgang med **Gennemgå igen**.
+
+| Den læser | Om den kode, pull requesten ændrer |
+| --- | --- |
+| **Undtagelser** | De undtagelser, der er kastet i de ændrede linjer, funktioner og filer de seneste 7 dage, med nye og ikke-håndterede markeret. |
+| **Operationer** | De sporede operationer, der kører den ændrede kode i den seneste time: deres spans, fejl og p95. |
+| **Tunge funktioner** | Den ændrede kodes funktioner, der tager en del af tjenesternes profiler i den seneste time. |
+| **Hændelser** | Tjenesternes hændelser fra de seneste 30 dage, der stadig er åbne, eller hvis grundlæggende årsag eller postmortem nævner den ændrede kode. Aldrig en privat hændelse. |
+| **Udrulninger** | Tjenesternes udrulninger fra de seneste 7 dage, som OneUptime mistænker for en regression. |
+
+Når produktionen viser noget, læser OneUptime AI det ved siden af diffen og tilføjer **Hvad du skal holde øje med**: nogle få korte punkter, der hver bygger på fakta. Det kører kun, mens AI er slået til for projektet, højst 10 gange om dagen for en pull request og 100 for et repositorie, og måles som ethvert AI-kald; fakta læses hver gang uden det. Når produktionen ikke viser noget om ændringen, slår OneUptime intet op.
+
+- **Kun samlede tal.** Kommentaren indeholder antal, varigheder og navne på kode: aldrig en undtagelses besked, en loglinje, en hændelses titel eller personoplysninger.
+- **Offentlige repositorier får et link.** Alle kan læse et offentligt repositories pull requests, så dér linker kommentaren kun til gennemgangen i OneUptime, som kun projektets medlemmer kan åbne. **Kommentar fra produktionsgennemgang** under **Yderligere indstillinger** på repositoriets side **Indstillinger** kan slå **Kun et link til gennemgangen** op overalt eller **Gennemgangen, også i et offentligt repositorium**.
+- **Eksterne bidragydere kan ikke starte en.** En pull request gennemgås kun af sig selv, når dens forfatter, og den, der har pushet til den, kan skrive til repositoriet. En fra alle andre - en ekstern bidragyder, en fork, en bot - gennemgås, når en person med skriveadgang kommenterer `@oneuptime production review` på den eller klikker på **Gennemgå igen** i Kode.
+- **Kun læsning.** En gennemgang kloner intet og kører intet fra pull requesten. Dens diff og titel er data for OneUptime AI, aldrig instruktioner: AI'en har ingen værktøjer, og det, den skriver, sættes ind i kommentaren som tekst.
+
+Kontakten er slået til for de repositorier, som GitHub App forbinder fra nu af. Et repositorie, der blev forbundet, før den fandtes, beholder den slået fra, indtil du slår den til.
 
 ## Kontrol før pull requesten
 
