@@ -60,6 +60,7 @@ const FILE_REFERENCES_ADDED_LATER: Array<string> = [
 ];
 const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   // Security cases and their detections and notes came after the backfill.
+  "SecurityCase.aiTriageReport",
   "SecurityCase.closingNote",
   "SecurityCase.description",
   "SecurityCaseNote.note",

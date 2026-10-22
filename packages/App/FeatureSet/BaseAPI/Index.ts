@@ -584,9 +584,7 @@ import LogPipelineProcessorService, {
 import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
-import DetectionRuleService, {
-  Service as DetectionRuleServiceType,
-} from "Common/Server/Services/DetectionRuleService";
+import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
 import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectionAPI";
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
@@ -1624,7 +1622,6 @@ import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import LogPipeline from "Common/Models/DatabaseModels/LogPipeline";
 import LogPipelineProcessor from "Common/Models/DatabaseModels/LogPipelineProcessor";
 import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
-import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
@@ -3925,12 +3922,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // Detection rules' CRUD, and drafting one with OneUptime AI.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<DetectionRule, DetectionRuleServiceType>(
-        DetectionRule,
-        DetectionRuleService,
-      ).getRouter(),
+      new DetectionRuleAPI().getRouter(),
     );
 
     app.use(

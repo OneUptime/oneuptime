@@ -248,14 +248,20 @@ describe("search_security_events", () => {
     expect(findBy).toHaveBeenCalledTimes(1);
   });
 
-  test("formats events for the model (redacted) and a table widget (raw)", async () => {
+  /*
+   * A security question is about its observables: the model reads the
+   * addresses and the emails (a sign-in from [redacted-ip] cannot be judged,
+   * nor looked up in threat intel) - and the secrets stay redacted, as in
+   * every other tool's results (keepSecurityObservables).
+   */
+  test("formats events for the model (observables kept, secrets redacted) and a table widget (raw)", async () => {
     const time: Date = new Date("2026-09-17T11:00:00.000Z");
     jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([
       securityEvent({
         time: time,
         severityName: "High",
         className: "Authentication",
-        message: "Failed login for alice@example.com",
+        message: "Failed login for alice@example.com password=hunter2hunter2",
         principalUser: "alice",
         principalHost: "web-01",
         principalIp: "203.0.113.9",
@@ -272,9 +278,9 @@ describe("search_security_events", () => {
 
     expect(result.rowCount).toBe(1);
     expect(result.dataForLlm).toBe(
-      `- time=${time.toISOString()} | severity=High | class=Authentication | message=Failed login for [redacted-email] | principalUser=alice | principalHost=web-01 | principalIp=[redacted-ip] | targetHost=db-01 | vendor=Okta | rule=Brute force`,
+      `- time=${time.toISOString()} | severity=High | class=Authentication | message=Failed login for alice@example.com password=[redacted] | principalUser=alice | principalHost=web-01 | principalIp=203.0.113.9 | targetHost=db-01 | vendor=Okta | rule=Brute force`,
     );
-    expect(result.redactionCount).toBe(2);
+    expect(result.redactionCount).toBe(1);
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.SecurityEvents,
     });
@@ -291,7 +297,9 @@ describe("search_security_events", () => {
     ).toEqual(["time", "severity", "class", "message", "principalHost"]);
     const rows: Array<JSONObject> = result.widget?.data.rows || [];
     expect(rows[0]!["principalIp"]).toBe("203.0.113.9");
-    expect(rows[0]!["message"]).toBe("Failed login for alice@example.com");
+    expect(rows[0]!["message"]).toBe(
+      "Failed login for alice@example.com password=hunter2hunter2",
+    );
     expect(result.widget?.data.link).toEqual({
       type: AIChatCitationTargetType.SecurityEvents,
     });

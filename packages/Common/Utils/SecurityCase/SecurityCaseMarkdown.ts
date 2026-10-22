@@ -259,6 +259,8 @@ function triggerPhrase(trigger: string): string {
       return "when the case opened";
     case "Detection Added":
       return "for a new detection";
+    case "Triaged as Likely Malicious":
+      return "when AI triage read the case as Likely Malicious";
     default:
       return "by hand";
   }

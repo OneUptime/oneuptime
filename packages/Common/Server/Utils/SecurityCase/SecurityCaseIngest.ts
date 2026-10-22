@@ -10,6 +10,7 @@ import SecurityCaseService, {
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import logger from "../Logger";
 import SecurityPlaybookLauncher from "../SecurityPlaybook/SecurityPlaybookLauncher";
+import SecurityCaseTriage from "../AI/Security/SecurityCaseTriage";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { Blue500, Red500 } from "../../../Types/BrandColors";
@@ -413,6 +414,21 @@ export default class SecurityCaseIngest {
             onlyPlaybooksThatStayInside: signal.isSetupTest === true,
           });
         });
+
+        /*
+         * OneUptime AI triages the new case when the project triages new
+         * cases (SecurityCaseTriage). A setup test's case is not: the test
+         * sends nothing outside OneUptime, and an LLM provider is outside.
+         * Its card still offers Triage with AI.
+         */
+        if (signal.isSetupTest !== true) {
+          launches.push((): Promise<ObjectID | null> => {
+            return SecurityCaseTriage.triageNewCase({
+              projectId,
+              securityCaseId: opened.id!,
+            });
+          });
+        }
       } catch (error) {
         logger.error(
           `SecurityCaseIngest: could not record the detection "${signal.title}" for project ${projectId.toString()}:`,

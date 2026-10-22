@@ -445,6 +445,29 @@ describe("InvestigationRunDetails usage", () => {
     expect(list).not.toHaveTextContent("steps");
   });
 
+  /*
+   * A security case's triage searches security events, looks up threat
+   * intel and reads entities' activity - not only telemetry - so its count
+   * says "queries".
+   */
+  test("a security case's triage counts its queries without calling them telemetry", () => {
+    renderDetails({ subjectType: "securityCase" });
+
+    const items: Array<HTMLElement> =
+      within(headerUsage()).getAllByRole("listitem");
+
+    expect(items[0]).toHaveTextContent(/^3 queries$/);
+    expect(headerUsage()).not.toHaveTextContent("telemetry");
+
+    renderDetails({
+      subjectType: "securityCase",
+      evidence: [incidentsItem],
+      events: events([{ eventType: AIRunEventType.RunStarted }]),
+    });
+
+    expect(screen.getAllByText(/^1 query$/).length).toBeGreaterThanOrEqual(1);
+  });
+
   test("keeps tokens and model out of the header and in the body's footer", () => {
     renderDetails();
 
