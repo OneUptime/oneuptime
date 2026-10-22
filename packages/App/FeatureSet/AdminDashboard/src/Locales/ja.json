@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} は電話番号ではありません。各番号を国番号付きで入力し、{{example}} のようにカンマで区切ってください。",
   "Twilio Primary Phone Number": "Twilio プライマリ電話番号",
   "Twilio Secondary Phone Numbers": "Twilio セカンダリ電話番号",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "受信者の国番号と一致するときに、メインの番号の代わりに使う番号。"
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "受信者の国番号と一致するときに、メインの番号の代わりに使う番号。",
+  "Use This Account For": "このアカウントの用途",
+  "Calls and SMS": "通話と SMS",
+  "Calls and SMS go out from this account.": "通話と SMS はこのアカウントから送信されます。",
+  "SMS only": "SMS のみ",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "このアカウントは通話を発信しません。プロジェクトは独自の Twilio 設定で発信できます。",
+  "Calls only": "通話のみ",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "このアカウントは SMS を送信しません。プロジェクトは独自の Twilio 設定で送信できます。",
+  "Calls go out from this number.": "通話はこの番号から発信されます。",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "各 SMS はこれらのいずれかの番号から送信されます。受信者の国の番号、なければ最初の番号です。",
+  "Used For": "用途"
 }

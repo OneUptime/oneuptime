@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} 不是电话号码。请输入带国家代码的每个号码，并用逗号分隔，例如 {{example}}。",
   "Twilio Primary Phone Number": "Twilio 主电话号码",
   "Twilio Secondary Phone Numbers": "Twilio 备用电话号码",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "当与收件人的国家代码匹配时，用于替代主号码的号码。"
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "当与收件人的国家代码匹配时，用于替代主号码的号码。",
+  "Use This Account For": "此账户用于",
+  "Calls and SMS": "通话和短信",
+  "Calls and SMS go out from this account.": "通话和短信都从此账户发出。",
+  "SMS only": "仅短信",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "此账户不拨打电话。项目可以通过自己的 Twilio 配置拨打。",
+  "Calls only": "仅通话",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "此账户不发送短信。项目可以通过自己的 Twilio 配置发送。",
+  "Calls go out from this number.": "通话从此号码拨出。",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "每条短信从其中一个号码发送：收件人所在国家/地区的号码，没有则用第一个。",
+  "Used For": "用途"
 }
