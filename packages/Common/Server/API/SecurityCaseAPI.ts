@@ -67,9 +67,8 @@ import AIRunService from "../Services/AIRunService";
 import { EVIDENCE_CITATION_ID_REGEX } from "../Utils/AI/SRE/InvestigationEvidence";
 import {
   MAX_EVIDENCE_EVENTS,
-  pinPropsToTenant,
   rerunInvestigationEvidence,
-} from "./AIInvestigationAPI";
+} from "../Utils/AI/SRE/InvestigationEvidenceRerun";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -651,8 +650,11 @@ export default class SecurityCaseAPI extends BaseAPI<
             await CommonAPI.getDatabaseCommonInteractionProps(req);
           const projectId: ObjectID =
             CommonAPI.assertAuthenticatedProjectMember(props);
-          const viewerProps: DatabaseCommonInteractionProps =
-            pinPropsToTenant(props);
+          // Every read and the re-run inside the tenant, never multi-tenant.
+          const viewerProps: DatabaseCommonInteractionProps = {
+            ...props,
+            isMultiTenantRequest: false,
+          };
 
           CommonAPI.assertCanReadTable({
             modelType: SecurityCase,

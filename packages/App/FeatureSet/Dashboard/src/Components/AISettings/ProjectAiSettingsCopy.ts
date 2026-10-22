@@ -833,7 +833,7 @@ export const SECURITY_AI_SWITCHES: Array<
     column: "enableAutomaticSecurityCaseTriage",
     title: translationKey("Triage new cases"),
     description: translationKey(
-      "OneUptime AI reads each new case and posts what happened, whether it looks real, and what to do next. It changes nothing.",
+      "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
     ),
   },
 ];

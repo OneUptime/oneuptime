@@ -79,10 +79,15 @@ const OFF_FOR_NEW_PROJECTS: Array<string> = [
   ...FIX_PULL_REQUEST_SWITCHES,
 ];
 
-// The six switches, written out so a column dropped from the list fails here.
+/*
+ * The seven switches, written out so a column dropped from the list fails
+ * here. Triaging new security cases is read-only, like investigating new
+ * incidents, so it starts on too.
+ */
 const AI_SWITCHES: Array<NewProjectAiDefaultColumn> = [
   "enableAutomaticIncidentInvestigation",
   "enableAutomaticAlertInvestigation",
+  "enableAutomaticSecurityCaseTriage",
   "enableAutomaticPostmortemDraft",
   "enableAiInsights",
   "enableInsightFixTasks",
@@ -130,7 +135,7 @@ async function runOnBeforeCreate(
 }
 
 describe("NEW_PROJECT_AI_DEFAULT_COLUMNS", () => {
-  it("lists the six per-feature AI switches", () => {
+  it("lists the seven per-feature AI switches", () => {
     expect([...NEW_PROJECT_AI_DEFAULT_COLUMNS].sort()).toEqual(
       [...AI_SWITCHES].sort(),
     );
