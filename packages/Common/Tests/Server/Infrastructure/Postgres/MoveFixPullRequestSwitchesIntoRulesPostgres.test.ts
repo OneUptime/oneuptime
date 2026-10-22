@@ -1,4 +1,4 @@
-import { MoveFixPullRequestSwitchesIntoRules1805800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-MoveFixPullRequestSwitchesIntoRules";
+import { MoveFixPullRequestSwitchesIntoRules1805820000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805820000000-MoveFixPullRequestSwitchesIntoRules";
 import {
   AutomaticFixPullRequest,
   AutomaticFixPullRequestBlocker,
@@ -437,7 +437,7 @@ describePostgres("MoveFixPullRequestSwitchesIntoRules against Postgres", () => {
     );
 
     await runInSchema(async (queryRunner: QueryRunner) => {
-      await new MoveFixPullRequestSwitchesIntoRules1805800000000().up(
+      await new MoveFixPullRequestSwitchesIntoRules1805820000000().up(
         queryRunner,
       );
     });
@@ -709,7 +709,7 @@ describePostgres("MoveFixPullRequestSwitchesIntoRules against Postgres", () => {
   describe("down()", () => {
     beforeAll(async () => {
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new MoveFixPullRequestSwitchesIntoRules1805800000000().down(
+        await new MoveFixPullRequestSwitchesIntoRules1805820000000().down(
           queryRunner,
         );
       });

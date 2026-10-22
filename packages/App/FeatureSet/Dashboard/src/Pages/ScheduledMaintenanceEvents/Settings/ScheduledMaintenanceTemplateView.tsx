@@ -484,6 +484,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 changeMonitorStatusTo: {
                   name: true,
                   color: true,
+                  // Marked Archived: an event made from it changes none.
+                  isArchived: true,
                 },
               },
               title: "Change Monitor Status to",

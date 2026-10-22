@@ -112,6 +112,18 @@ Rangen avgjør hvilken alvorlighetsgrad som vinner der OneUptime sammenligner de
 
 En alvorlighetsgrad tilkaller ingen på egen hånd. For å tilkalle etter alvorlighetsgrad legger du til en vaktregel der **Varsel Alvorligheter** samsvarer med den: se [Varselregler og innstillinger](/docs/alerts/settings). Endrer du et varsels alvorlighetsgrad, skrives en oppføring i feeden, og påminnelsesregelen samsvares på nytt.
 
+## Arkivere en status eller alvorlighetsgrad
+
+Arkiver en status eller alvorlighetsgrad som teamet ditt ikke lenger skal bruke, i stedet for å slette den. Arkivering endrer ingen varsler. Sletting av en status fjerner radene dens fra hvert varsels historikk, og en alvorlighetsgrad kan ikke slettes så lenge varsler har den.
+
+- **Arkiver** ligger i radens meny **⋯**. Den spør først og viser reglene, målingene, monitorkriteriene og arbeidsflytene som er satt opp til å bruke verdien: De fortsetter å bruke den til du endrer dem.
+- **Ingen kan velge den igjen.** **Endre tilstand**, varselets topptekst, Slack, Microsoft Teams, regler og monitorkriterier utelater den. API-et, Terraform og MCP avviser den og nevner verdien og hvor den kan fjernes fra arkivet.
+- **Varsler beholder den.** Et varsel som har den, beholder den ved hver senere redigering, statustidslinjen viser den fortsatt, og du kan fortsatt filtrere på den.
+- **Arkiverte verdier vises for seg**, i den sammenslåtte delen **Arkiverte varselsstatuser** eller **Arkiverte alvorlighetsgrader for varsler** under tabellen, med hvem som arkiverte hver enkelt og når. **Fjern fra arkiv** setter en tilbake slik den var.
+- **Noen kan ikke arkiveres.** Den opprettede, den bekreftede og den løste statusen, og prosjektets siste alvorlighetsgrad som ikke er arkivert. Deres **Arkiver** er låst, med begrunnelsen.
+
+**Slett** forteller først hva den ville gjøre. Så lenge varsler eller episoder har verdien, avvises slettingen, og dialogen viser dem. Ellers viser den hva slettingen ville endre, og tilbyr **Arkiver i stedet**.
+
 ## Flytt et varsel gjennom tilstandene
 
 | Måte                 | Hvor                                                                                      | Hva det spørres om                                                                                                                   |

@@ -166,6 +166,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Backwards moves are refused",
     "Moving to the state it is already in is refused",
     "Pickers offer only the states after the current one",
+    // Archiving a state.
+    "Nobody can pick it again.",
+    "Archived states are listed apart",
+    "The four built-in states can't be archived",
   ],
   [TEMPLATES_AND_RECURRING]: ["Your plan.", "Your role."],
   [RULES_AND_SETTINGS]: [

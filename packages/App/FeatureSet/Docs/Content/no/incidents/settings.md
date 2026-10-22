@@ -477,6 +477,10 @@ Legg til de andre rollene teamet ditt bruker, som Responder, Communications Lead
 
 Roller er bare definisjoner. Du tildeler folk til dem per hendelse — erklæringsveiviseren spør på trinnet **Vakt og roller**, med et felt **Tildel hendelsesroller**, og hver hendelse har en side **Roller** i sidemenyen. Kriteriene til en monitor og en grupperingsregel for hendelser kan velge folk til dem på forhånd. Hvert av disse skjemaene spør med de samme kortene, ett per rolle: en rolle med merket **Primær** er Hendelsesleder eller en annen primær rolle, og en rolle for én person fjerner velgeren når den har en. På kortet **Roller** for en hendelse tilbyr en rolle for flere personer **Add More**.
 
+### Arkivere en rolle
+
+Arkiver en rolle teamet ditt ikke lenger bruker fra radens meny **⋯**, i stedet for å slette den. De som har den på en hendelse, beholder den, men ingen kan få den igjen: Rollevelgerne utelater den eller viser den bare med personene som har den, og API-et avviser den. Den primære rollen, og alle roller som ikke kan slettes, kan ikke arkiveres. Arkiverte roller vises for seg, i den sammenslåtte delen **Arkiverte hendelsesroller**, der **Fjern fra arkiv** setter en tilbake.
+
 ## Nummerprefikser
 
 Hver hendelse får et nummer fra en teller per prosjekt. Uten prefiks vises det som `#42`; med et vises det som `INC-42`. Sier teamet ditt "INC-42" høyt, få produktet til å si det samme. Nye prosjekter starter med `INC-` for hendelser og `IE-` for hendelsesepisoder.

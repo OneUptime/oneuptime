@@ -477,6 +477,10 @@ Añade los demás roles que usa tu equipo, como Respondedor, Responsable de comu
 
 Los roles son solo definiciones. Asignas personas a ellos en cada incidente: el asistente de declaración lo pregunta en su paso **Guardia y roles**, con un campo **Asignar roles del incidente**, y cada incidente tiene una página **Roles** en su menú lateral. Los criterios de un monitor y una regla de agrupación de incidentes pueden elegir personas para ellos de antemano. Cada uno de estos formularios pregunta con las mismas tarjetas, una por rol: un rol marcado como **Principal** es Comandante de incidente u otro rol principal, y un rol que admite una sola persona quita su selector en cuanto tiene una. En la tarjeta **Roles** de un incidente, un rol que admite varias personas ofrece **Añadir más**.
 
+### Archivar un rol
+
+Archive un rol que su equipo ya no usa desde el menú **⋯** de su fila, en lugar de eliminarlo. Quienes lo tienen en un incidente lo conservan, pero nadie puede volver a recibirlo: los selectores de roles lo omiten, o solo lo muestran con las personas que lo tienen, y la API lo rechaza. El rol principal, y cualquier rol que no se pueda eliminar, no se pueden archivar. Los roles archivados se listan aparte, en la sección plegada **Roles de incidente archivados**, donde **Desarchivar** devuelve uno.
+
 ## Prefijos de número
 
 Cada incidente recibe un número de un contador propio del proyecto. Sin prefijo se muestra como `#42`; con uno, como `INC-42`. Si tu equipo dice «INC-42» en voz alta, haz que el producto también lo diga. Los proyectos nuevos empiezan con `INC-` para los incidentes e `IE-` para los episodios de incidente.

@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
 import ChangeMonitorStatusToElement from "../../../Components/MonitorStatus/ChangeMonitorStatusToElement";
+import ArchivableValuePill from "../../../Components/ArchivableValue/ArchivableValuePill";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../../Utils/PageMap";
@@ -13,7 +14,6 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -253,6 +253,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 incidentSeverity: {
                   color: true,
                   name: true,
+                  // Marked Archived: an incident declared from it picks another.
+                  isArchived: true,
                 },
               },
               title: "Incident Severity",
@@ -265,9 +267,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
 
                 return (
-                  <Pill
+                  <ArchivableValuePill
                     color={item.incidentSeverity.color || Black}
-                    text={item.incidentSeverity.name || "Unknown"}
+                    name={item.incidentSeverity.name || "Unknown"}
+                    isArchived={item.incidentSeverity.isArchived}
                   />
                 );
               },
@@ -277,6 +280,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 initialIncidentState: {
                   color: true,
                   name: true,
+                  // Marked Archived: an incident declared from it starts as usual.
+                  isArchived: true,
                 },
               },
               title: "Initial Incident State",
@@ -292,9 +297,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
 
                 return (
-                  <Pill
+                  <ArchivableValuePill
                     color={item.initialIncidentState.color || Black}
-                    text={item.initialIncidentState.name || "Unknown"}
+                    name={item.initialIncidentState.name || "Unknown"}
+                    isArchived={item.initialIncidentState.isArchived}
                   />
                 );
               },
@@ -576,6 +582,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 changeMonitorStatusTo: {
                   name: true,
                   color: true,
+                  // Marked Archived: an incident declared from it changes none.
+                  isArchived: true,
                 },
               },
               title: "Change Monitor Status to",

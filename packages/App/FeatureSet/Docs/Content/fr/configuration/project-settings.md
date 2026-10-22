@@ -71,6 +71,10 @@ Cliquez sur **Créer : Étiquette**. Donnez-lui un **Nom** et, si vous le souhai
 
 Sur OneUptime Cloud, créer et modifier des étiquettes demande le forfait Growth. Voir [Étiquettes](/docs/permissions/index#étiquettes) pour la façon dont les étiquettes restreignent les autorisations, et [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) pour étiqueter les ressources à leur création.
 
+### Archiver une étiquette
+
+Pour retirer une étiquette, archivez-la depuis le menu **⋯** de sa ligne au lieu de la supprimer. Tout ce qui a l'étiquette la conserve, et vous pouvez toujours filtrer par celle-ci, mais personne ne peut plus l'ajouter à quoi que ce soit : chaque sélecteur d'étiquettes l'exclut, et l'API, Terraform et MCP la refusent. La boîte de dialogue liste les règles et permissions configurées pour utiliser l'étiquette, qui continuent à l'utiliser tant que vous ne les modifiez pas. Les étiquettes archivées sont listées à part, dans la section repliée **Étiquettes archivées**, où **Désarchiver** en remet une. **Supprimer** liste d'abord tout ce dont l'étiquette serait retirée, et propose **Archiver plutôt**.
+
 ## Notifications
 
 **Paramètres du projet → Notifications** contient la façon dont le projet envoie ses notifications :

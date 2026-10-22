@@ -477,6 +477,10 @@ Voeg de andere rollen toe die je team gebruikt, zoals Responder, Communications 
 
 Rollen zijn alleen definities. Je wijst er per incident mensen aan toe — de meldwizard vraagt erom in de stap **Bereikbaarheid en rollen**, met een veld **Incidentrollen toewijzen**, en elk incident heeft een pagina **Rollen** in het zijmenu. De criteria van een monitor en een groeperingsregel voor incidenten kunnen er van tevoren mensen voor kiezen. Elk van deze formulieren vraagt erom met dezelfde kaarten, één per rol: een rol met het label **Primair** is Incident Commander of een andere primaire rol, en een rol voor één persoon laat zijn kiezer weg zodra hij er een heeft. Op de kaart **Rollen** van een incident biedt een rol voor meerdere personen **Add More** aan.
 
+### Een rol archiveren
+
+Archiveer een rol die uw team niet meer gebruikt via het menu **⋯** van de rij, in plaats van die te verwijderen. Wie de rol bij een incident heeft, behoudt hem, maar niemand kan hem nog krijgen: de rolkiezers laten hem weg, of tonen hem alleen met de mensen die hem hebben, en de API weigert hem. De primaire rol, en elke rol die niet kan worden verwijderd, kunnen niet worden gearchiveerd. Gearchiveerde rollen staan apart, in de ingeklapte sectie **Gearchiveerde incidentrollen**, waar **Uit archief halen** er een terugzet.
+
 ## Nummervoorvoegsels
 
 Elk incident krijgt een nummer uit een teller per project. Zonder voorvoegsel verschijnt het als `#42`; met een voorvoegsel als `INC-42`. Zegt je team hardop "INC-42", laat het product het dan ook zeggen. Nieuwe projecten beginnen met `INC-` voor incidenten en `IE-` voor incidentepisodes.

@@ -16,7 +16,7 @@ import {
   REMEDIATION_RULE_PULL_REQUEST_COLUMNS,
 } from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
-import { SIGNAL_COLUMNS } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-MoveFixPullRequestSwitchesIntoRules";
+import { SIGNAL_COLUMNS } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805820000000-MoveFixPullRequestSwitchesIntoRules";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";

@@ -961,10 +961,28 @@ describe("FormRecordOptions: the records a choice question can offer", () => {
       source: FormTargetOptionsSource.IncidentSeverity,
     });
 
+    // A choice a submitter makes: never an archived severity.
     expect(
       (severityFindBy.mock.calls[0]![0] as { query: Record<string, unknown> })
         .query,
-    ).toEqual({ projectId: PROJECT_ID });
+    ).toEqual({ projectId: PROJECT_ID, isArchived: false });
+  });
+
+  test("never offers an archived label, even one the question names", async () => {
+    const labelFindBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(LabelService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await FormRecordOptions.load({
+      projectId: PROJECT_ID,
+      source: FormTargetOptionsSource.Label,
+      ids: [WEB_MONITOR_ID],
+    });
+
+    expect(
+      (labelFindBy.mock.calls[0]![0] as { query: Record<string, unknown> })
+        .query["isArchived"],
+    ).toBe(false);
   });
 
   test("reads labels with their colors", async () => {

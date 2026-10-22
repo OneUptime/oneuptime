@@ -477,6 +477,10 @@ Lägg till de andra rollerna som ditt team använder, som Responder, Communicati
 
 Roller är bara definitioner. Du tilldelar personer till dem per incident — deklarationsguiden frågar i sitt steg **Jour och roller**, med ett fält **Tilldela incidentroller**, och varje incident har en sida **Roller** i sin sidomeny. En monitors kriterier och en grupperingsregel för incidenter kan välja personer till dem i förväg. Vart och ett av de formulären frågar med samma kort, ett per roll: en roll med märket **Primär** är Incidentansvarig eller en annan primär roll, och en roll för en person tar bort sin väljare när den har en. På en incidents kort **Roller** erbjuder en roll för flera personer **Add More**.
 
+### Arkivera en roll
+
+Arkivera en roll som ditt team inte längre använder från radens meny **⋯**, i stället för att ta bort den. De som har den på en incident behåller den, men ingen kan få den igen: Rollväljarna utelämnar den eller visar den bara med de personer som har den, och API:et avvisar den. Den primära rollen, och alla roller som inte kan tas bort, kan inte arkiveras. Arkiverade roller listas för sig, i det hopfällda avsnittet **Arkiverade incidentroller**, där **Avarkivera** återställer en.
+
 ## Nummerprefix
 
 Varje incident får ett nummer från en räknare per projekt. Utan prefix visas det som `#42`; med ett visas det som `INC-42`. Säger ditt team "INC-42" högt, låt produkten säga samma sak. Nya projekt börjar med `INC-` för incidenter och `IE-` för incidentepisoder.

@@ -38,6 +38,11 @@ import Response from "../Utils/Response";
 import SecurityPlaybookActions from "../Utils/SecurityPlaybook/SecurityPlaybookActions";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
+import ArchivedValueCheck from "../Utils/Database/ArchivedValueCheck";
+import {
+  ARCHIVABLE_VALUES,
+  ArchivableValueType,
+} from "../../Utils/ArchivableValues";
 import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import SecurityLogSource from "../../Models/DatabaseModels/SecurityLogSource";
 import SecurityPlaybook from "../../Models/DatabaseModels/SecurityPlaybook";
@@ -314,7 +319,7 @@ export default class SecurityCaseAPI extends BaseAPI<
           const severity: IncidentSeverity | null =
             await IncidentSeverityService.findOneBy({
               query: { _id: severityId, projectId },
-              select: { _id: true },
+              select: { _id: true, name: true, isArchived: true },
               props: { isRoot: true },
             });
 
@@ -322,6 +327,17 @@ export default class SecurityCaseAPI extends BaseAPI<
             throw new BadDataException(
               "That incident severity does not exist.",
             );
+          }
+
+          // A person's pick: never an archived severity (ArchivedValueCheck).
+          if (severity.isArchived) {
+            ArchivedValueCheck.refuseValues([
+              {
+                definition:
+                  ARCHIVABLE_VALUES[ArchivableValueType.IncidentSeverity],
+                name: severity.name || "",
+              },
+            ]);
           }
 
           const result: { incident: Incident; incidentNumber: string } =

@@ -71,6 +71,10 @@ Klicka på **Skapa Etikett**. Ge den ett **Namn** och, om du vill, en **Beskrivn
 
 I OneUptime Cloud kräver det Growth-planen att skapa och ändra etiketter. Se [Etiketter](/docs/permissions/index#etiketter) för hur etiketter begränsar behörigheter, och [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules) för att sätta etiketter på resurser när de skapas.
 
+### Arkivera en etikett
+
+För att fasa ut en etikett arkiverar du den från radens meny **⋯** i stället för att ta bort den. Allt som har etiketten behåller den, och du kan fortfarande filtrera på den, men ingen kan lägga till den på något igen: Varje etikettväljare utelämnar den, och API:et, Terraform och MCP avvisar den. Dialogen listar de regler och behörigheter som är inställda på att använda etiketten, och som fortsätter att använda den tills du ändrar dem. Arkiverade etiketter listas för sig, i det hopfällda avsnittet **Arkiverade etiketter**, där **Avarkivera** återställer en. **Ta bort** listar först allt som etiketten skulle tas bort från och erbjuder **Arkivera i stället**.
+
 ## Aviseringar
 
 **Projektinställningar → Aviseringar** innehåller hur projektet skickar aviseringar:

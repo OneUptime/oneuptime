@@ -477,6 +477,10 @@ Adicione as outras funções que sua equipe usa, como Respondedor, Responsável 
 
 As funções são só definições. Você atribui pessoas a elas incidente por incidente — o assistente de declaração pergunta isso na etapa **Plantão e funções**, com um campo **Atribuir funções do incidente**, e cada incidente tem uma página **Funções** no menu lateral. Os critérios de um monitor e uma regra de agrupamento de incidentes podem escolher pessoas para elas com antecedência. Cada um desses formulários pergunta com os mesmos cartões, um por função: uma função marcada como **Principal** é Comandante do incidente ou outra função principal, e uma função que aceita uma pessoa retira o seletor dela depois que tem uma. No cartão **Funções** de um incidente, uma função que aceita várias pessoas oferece **Add More**.
 
+### Arquivar uma função
+
+Arquive uma função que sua equipe não usa mais pelo menu **⋯** da sua linha, em vez de excluí-la. Quem a tem em um incidente a mantém, mas ninguém pode recebê-la novamente: os seletores de funções a deixam de fora, ou só a mostram com as pessoas que a têm, e a API a recusa. A função principal, e qualquer função que não possa ser excluída, não podem ser arquivadas. As funções arquivadas são listadas à parte, na seção recolhida **Funções de incidente arquivadas**, onde **Desarquivar** devolve uma.
+
 ## Prefixos de número
 
 Todo incidente recebe um número de um contador do projeto. Sem prefixo, ele aparece como `#42`; com um, aparece como `INC-42`. Se sua equipe diz «INC-42» em voz alta, faça o produto dizer isso também. Os projetos novos começam com `INC-` para incidentes e `IE-` para episódios de incidente.

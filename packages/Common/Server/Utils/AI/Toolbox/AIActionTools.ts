@@ -661,7 +661,8 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
 
     const severities: Array<IncidentSeverity> =
       await IncidentSeverityService.findBy({
-        query: {},
+        // The severities an incident may be changed to: never an archived one.
+        query: { isArchived: false },
         select: { _id: true, name: true, order: true },
         sort: { order: SortOrder.Ascending },
         limit: 50,

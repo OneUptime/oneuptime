@@ -477,6 +477,10 @@ Aggiungete gli altri ruoli che usa il vostro team, come Responder, Responsabile 
 
 I ruoli sono solo definizioni. Vi assegnate le persone incidente per incidente — la procedura guidata di dichiarazione lo chiede nel suo passaggio **Reperibilità e ruoli**, con un campo **Assegna ruoli incidente**, e ogni incidente ha una pagina **Ruoli** nel suo menu laterale. I criteri di un monitor e una regola di raggruppamento degli incidenti possono scegliere persone per essi in anticipo. Ognuno di questi moduli chiede con le stesse schede, una per ruolo: un ruolo contrassegnato come **Principale** è Comandante dell'incidente o un altro ruolo principale, e un ruolo che accetta una sola persona toglie il suo selettore non appena ne ha una. Sulla scheda **Ruoli** di un incidente, un ruolo che accetta più persone offre **Add More**.
 
+### Archiviare un ruolo
+
+Archivia un ruolo che il tuo team non usa più dal menu **⋯** della sua riga, invece di eliminarlo. Chi lo ricopre in un incidente lo mantiene, ma nessuno può più riceverlo: i selettori dei ruoli lo escludono, o lo mostrano solo con le persone che lo ricoprono, e l'API lo rifiuta. Il ruolo principale, e qualsiasi ruolo che non può essere eliminato, non possono essere archiviati. I ruoli archiviati sono elencati a parte, nella sezione compressa **Ruoli incidente archiviati**, dove **Annulla archiviazione** ne ripristina uno.
+
 ## Prefissi dei numeri
 
 Ogni incidente riceve un numero da un contatore del progetto. Senza prefisso compare come `#42`; con uno compare come `INC-42`. Se il vostro team dice «INC-42» ad alta voce, fatelo dire anche al prodotto. I nuovi progetti partono con `INC-` per gli incidenti e `IE-` per gli episodi degli incidenti.

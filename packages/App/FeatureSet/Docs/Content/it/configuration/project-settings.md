@@ -71,6 +71,10 @@ Fai clic su **Crea: Etichetta**. Dalle un **Nome** e, se vuoi, una **Descrizione
 
 Su OneUptime Cloud, creare e modificare etichette richiede il piano Growth. Vedi [Etichette](/docs/permissions/index#etichette) per come le etichette limitano i permessi, e [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules) per etichettare le risorse quando vengono create.
 
+### Archiviare un'etichetta
+
+Per ritirare un'etichetta, archiviala dal menu **⋯** della sua riga invece di eliminarla. Tutto ciò che ha l'etichetta la mantiene e puoi ancora filtrare in base a essa, ma nessuno può più aggiungerla a nulla: ogni selettore di etichette la esclude, e l'API, Terraform e MCP la rifiutano. La finestra di dialogo elenca le regole e le autorizzazioni configurate per usare l'etichetta, che continuano a usarla finché non le modifichi. Le etichette archiviate sono elencate a parte, nella sezione compressa **Etichette archiviate**, dove **Annulla archiviazione** ne ripristina una. **Elimina** elenca prima tutto ciò da cui l'etichetta verrebbe rimossa, e offre **Archivia invece**.
+
 ## Notifiche
 
 **Impostazioni del progetto → Notifiche** raccoglie il modo in cui il progetto invia le notifiche:

@@ -62,7 +62,6 @@ import {
   DiscoveryImportTemplateChoice,
   RECOMMENDED_TEMPLATE_CHOICE_VALUE,
   getDiscoveryImportBlocker,
-  getTemplateChoiceValue,
 } from "./DiscoveryImportOutcome";
 import {
   DEFAULT_DISCOVERY_REVIEW_QUERY,
@@ -70,6 +69,7 @@ import {
   getImportedAddresses,
   getPickedTemplate,
   getReviewHosts,
+  keepPickedTemplate,
 } from "./DiscoveryImportReview";
 import DiscoveryImportProgressPanel from "./DiscoveryImportProgressPanel";
 import {
@@ -79,6 +79,7 @@ import {
 import {
   DiscoveryImportProjectFacts,
   loadDiscoveryImportProjectFacts,
+  mergeRefreshedFacts,
 } from "./DiscoveryImportProjectFacts";
 import useDiscoveryImportPolling, {
   DiscoveryImportPolling,
@@ -515,14 +516,10 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
 
       // The recommended template, picked up front for whoever turns monitors on.
       setSettings((current: DiscoveryImportSettings) => {
-        if (current.monitorTemplateId || loaded.templates.length === 0) {
-          return current;
-        }
-
-        return {
-          ...current,
-          monitorTemplateId: getTemplateChoiceValue(loaded.templates[0]!),
-        };
+        return keepPickedTemplate({
+          settings: current,
+          templates: loaded.templates,
+        });
       });
     } catch (err) {
       setFactsError(API.getFriendlyMessage(err));
@@ -536,6 +533,77 @@ const DiscoveryImportDialog: FunctionComponent<DiscoveryImportDialogProps> = (
     setStep(DiscoveryImportStep.Monitoring);
     void loadFacts();
   };
+
+  /*
+   * The project's templates, read again each time the reader comes back to
+   * this window while choosing how the devices are monitored: "Manage
+   * templates" opens the templates in a new tab, and a template made there
+   * belongs in the list at once, without closing the dialog and losing the
+   * choices made in it (OneUptime issue #5145). Quietly: a read that fails
+   * keeps the list the step has, and nothing is read while an import is
+   * being started or before the step's first read is in.
+   */
+  const factsRef: React.MutableRefObject<DiscoveryImportProjectFacts | null> =
+    useRef<DiscoveryImportProjectFacts | null>(null);
+  factsRef.current = isLoadingFacts ? null : facts;
+  const isActingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  isActingRef.current = isActing;
+  const factsRefreshRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    if (step !== DiscoveryImportStep.Monitoring) {
+      return;
+    }
+
+    const onWindowFocus: () => void = (): void => {
+      if (!factsRef.current || isActingRef.current) {
+        return;
+      }
+
+      factsRefreshRef.current += 1;
+      const request: number = factsRefreshRef.current;
+
+      loadDiscoveryImportProjectFacts()
+        .then((loaded: DiscoveryImportProjectFacts) => {
+          const current: DiscoveryImportProjectFacts | null = factsRef.current;
+
+          if (
+            request !== factsRefreshRef.current ||
+            isActingRef.current ||
+            shownStepRef.current !== DiscoveryImportStep.Monitoring ||
+            !current
+          ) {
+            return;
+          }
+
+          const merged: DiscoveryImportProjectFacts | null =
+            mergeRefreshedFacts({ current: current, loaded: loaded });
+
+          if (!merged) {
+            return;
+          }
+
+          setFacts(merged);
+          setSettings((settingsNow: DiscoveryImportSettings) => {
+            return keepPickedTemplate({
+              settings: settingsNow,
+              templates: merged.templates,
+            });
+          });
+        })
+        .catch(() => {
+          // The list the step already has stands.
+        });
+    };
+
+    window.addEventListener("focus", onWindowFocus);
+
+    return () => {
+      // A read still on its way is not applied to another step.
+      factsRefreshRef.current += 1;
+      window.removeEventListener("focus", onWindowFocus);
+    };
+  }, [step]);
 
   const startImport: () => Promise<void> = async (): Promise<void> => {
     if (blocker || isActing || !scanId) {

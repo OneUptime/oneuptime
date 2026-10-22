@@ -88,6 +88,11 @@ flowchart TB
 | تیم‌ها | `Team` |
 | نقش‌های سفارشی، و تیم‌هایی که یکی می‌گیرند | `Custom Role`، `Team Custom Role` |
 | برچسب‌ها | `Label` |
+| وضعیت‌ها و شدت‌های حادثه | `Incident State`، `Incident Severity` |
+| وضعیت‌ها و شدت‌های هشدار | `Alert State`، `Alert Severity` |
+| وضعیت‌های مانیتور | `Monitor Status` |
+| وضعیت‌های نگهداری زمان‌بندی‌شده | `Scheduled Maintenance State` |
+| نقش‌های حادثه | `Incident Role` |
 | کلیدهای API | `API Key` |
 | کلاینت‌های MCP که افراد وصل می‌کنند | `MCP Client Authorization` |
 | اقلام موجودی | `Inventory Item` |

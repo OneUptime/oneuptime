@@ -1,10 +1,10 @@
 import {
-  MoveFixPullRequestSwitchesIntoRules1805800000000,
+  MoveFixPullRequestSwitchesIntoRules1805820000000,
   SIGNAL_COLUMNS,
   getAddRuleKeepingChoiceStatements,
   getCarryOverStatements,
   getRestoreProjectSwitchesStatement,
-} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-MoveFixPullRequestSwitchesIntoRules";
+} from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805820000000-MoveFixPullRequestSwitchesIntoRules";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -31,10 +31,10 @@ import { QueryRunner } from "typeorm";
  */
 
 const OWN_CLASS_NAME: string =
-  "MoveFixPullRequestSwitchesIntoRules1805800000000";
+  "MoveFixPullRequestSwitchesIntoRules1805820000000";
 
 const MIGRATION_FILE_NAME: string =
-  "1805800000000-MoveFixPullRequestSwitchesIntoRules.ts";
+  "1805820000000-MoveFixPullRequestSwitchesIntoRules.ts";
 
 const MIGRATIONS_DIRECTORY: string = path.join(
   __dirname,
@@ -68,7 +68,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new MoveFixPullRequestSwitchesIntoRules1805800000000()[direction](
+  await new MoveFixPullRequestSwitchesIntoRules1805820000000()[direction](
     queryRunner,
   );
 
@@ -106,7 +106,7 @@ describe("MoveFixPullRequestSwitchesIntoRules migration - identity and registrat
     );
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
-    expect(new MoveFixPullRequestSwitchesIntoRules1805800000000().name).toBe(
+    expect(new MoveFixPullRequestSwitchesIntoRules1805820000000().name).toBe(
       OWN_CLASS_NAME,
     );
   });

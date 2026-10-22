@@ -41,6 +41,8 @@ import {
   toIncidentRoleChoice,
 } from "../../IncidentRole/IncidentRoleAssignments";
 import ProjectUtil from "Common/UI/Utils/Project";
+import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import MonitorCriteriaAlignmentUtil, {
   CriteriaSeedIds,
   MonitorStepsAlignmentResult,
@@ -152,6 +154,28 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
 
+    /*
+     * Archived statuses, severities, labels and roles are never offered for
+     * a new pick (Common/Utils/ArchivableValues): every list is read with
+     * the archive switch, and only the archived values this monitor's saved
+     * criteria already use are kept as options - so its form still shows
+     * them, marked Archived and never offered for anything new.
+     */
+    const keptArchivedIds: (values: Array<BaseModel>) => Array<string> = (
+      values: Array<BaseModel>,
+    ): Array<string> => {
+      return ArchivedValuePicker.getIdsNamedIn(
+        props.initialValue ? props.initialValue.toJSON() : null,
+        values
+          .filter((value: BaseModel): boolean => {
+            return ArchivedValuePicker.isArchived(value);
+          })
+          .map((value: BaseModel): string => {
+            return value._id?.toString() || "";
+          }),
+      );
+    };
+
     try {
       const monitorStatusList: ListResult<MonitorStatus> =
         await ModelAPI.getList({
@@ -165,6 +189,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             isOperationalState: true,
             isOfflineState: true,
             priority: true,
+            isArchived: true,
           },
 
           sort: {
@@ -179,10 +204,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
        */
       if (monitorStatusList.data) {
         setMonitorStatusDropdownOptions(
-          DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: monitorStatusList.data,
-            labelField: "name",
-            valueField: "_id",
+          ArchivedValuePicker.getPickerOptions({
+            values: monitorStatusList.data,
+            options: DropdownUtil.getDropdownOptionsFromEntityArray({
+              array: monitorStatusList.data,
+              labelField: "name",
+              valueField: "_id",
+            }),
+            keptIds: keptArchivedIds(monitorStatusList.data),
           }),
         );
 
@@ -214,6 +243,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           sort: {
             order: SortOrder.Ascending,
@@ -230,11 +260,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
             name: true,
             color: true,
             order: true,
+            isArchived: true,
           },
           sort: {
             order: SortOrder.Ascending,
           },
         });
+
+      // The severities a new criteria may take: the ones not archived.
+      const liveIncidentSeverities: Array<IncidentSeverity> =
+        ArchivedValuePicker.getLiveValues(incidentSeverityList.data || []);
+      const liveAlertSeverities: Array<AlertSeverity> =
+        ArchivedValuePicker.getLiveValues(alertSeverityList.data || []);
 
       const onCallPolicyList: ListResult<OnCallDutyPolicy> =
         await ModelAPI.getList({
@@ -250,41 +287,44 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (incidentSeverityList.data) {
         setIncidentSeverityDropdownOptions(
-          DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: incidentSeverityList.data,
-            labelField: "name",
-            valueField: "_id",
+          ArchivedValuePicker.getPickerOptions({
+            values: incidentSeverityList.data,
+            options: DropdownUtil.getDropdownOptionsFromEntityArray({
+              array: incidentSeverityList.data,
+              labelField: "name",
+              valueField: "_id",
+            }),
+            keptIds: keptArchivedIds(incidentSeverityList.data),
           }),
         );
 
-        // Use the first (highest priority) severity as default for templates
+        // Use the first (highest priority) live severity as default for templates
         if (
-          incidentSeverityList.data.length > 0 &&
-          incidentSeverityList.data[0]?._id
+          liveIncidentSeverities.length > 0 &&
+          liveIncidentSeverities[0]?._id
         ) {
           setDefaultIncidentSeverityId(
-            new ObjectID(incidentSeverityList.data[0]._id),
+            new ObjectID(liveIncidentSeverities[0]._id),
           );
         }
       }
 
       if (alertSeverityList.data) {
         setAlertSeverityDropdownOptions(
-          DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: alertSeverityList.data,
-            labelField: "name",
-            valueField: "_id",
+          ArchivedValuePicker.getPickerOptions({
+            values: alertSeverityList.data,
+            options: DropdownUtil.getDropdownOptionsFromEntityArray({
+              array: alertSeverityList.data,
+              labelField: "name",
+              valueField: "_id",
+            }),
+            keptIds: keptArchivedIds(alertSeverityList.data),
           }),
         );
 
-        // Use the first (highest priority) severity as default for templates
-        if (
-          alertSeverityList.data.length > 0 &&
-          alertSeverityList.data[0]?._id
-        ) {
-          setDefaultAlertSeverityId(
-            new ObjectID(alertSeverityList.data[0]._id),
-          );
+        // Use the first (highest priority) live severity as default for templates
+        if (liveAlertSeverities.length > 0 && liveAlertSeverities[0]?._id) {
+          setDefaultAlertSeverityId(new ObjectID(liveAlertSeverities[0]._id));
         }
       }
 
@@ -308,6 +348,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         select: {
           name: true,
           color: true,
+          isArchived: true,
         },
         sort: {
           name: SortOrder.Ascending,
@@ -316,10 +357,14 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (labelList.data) {
         setLabelDropdownOptions(
-          DropdownUtil.getDropdownOptionsFromEntityArray({
-            array: labelList.data,
-            labelField: "name",
-            valueField: "_id",
+          ArchivedValuePicker.getPickerOptions({
+            values: labelList.data,
+            options: DropdownUtil.getDropdownOptionsFromEntityArray({
+              array: labelList.data,
+              labelField: "name",
+              valueField: "_id",
+            }),
+            keptIds: keptArchivedIds(labelList.data),
           }),
         );
       }
@@ -357,6 +402,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       );
 
       if (incidentRoleList.data) {
+        /*
+         * Every role, archived ones marked: each incident's picker shows an
+         * archived role only where its criteria already assign it
+         * (getPickableIncidentRoleChoices).
+         */
         setIncidentRoleOptions(incidentRoleList.data.map(toIncidentRoleChoice));
       }
 
@@ -371,10 +421,10 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         })?.id || undefined;
 
       const incidentSeverityId: ObjectID | undefined =
-        incidentSeverityList.data[0]?.id || undefined;
+        liveIncidentSeverities[0]?.id || undefined;
 
       const alertSeverityId: ObjectID | undefined =
-        alertSeverityList.data[0]?.id || undefined;
+        liveAlertSeverities[0]?.id || undefined;
 
       /*
        * The "expires soon" alert a new SSL Certificate or Domain monitor
@@ -385,7 +435,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
        */
       const warningAlertSeverityId: ObjectID | undefined =
         MonitorRecommendationSeverityMapper.getMappingFromRankedIds(
-          alertSeverityList.data
+          liveAlertSeverities
             .map((alertSeverity: AlertSeverity) => {
               return alertSeverity.id;
             })

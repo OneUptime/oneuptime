@@ -1054,8 +1054,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: IncidentStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,
@@ -1071,8 +1073,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: AlertStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,
@@ -1087,8 +1091,10 @@ export default class WorkspaceMemberActions {
         return await WorkspaceActionAuthorization.findReadable({
           service: ScheduledMaintenanceStateService,
           props: data.props,
+          // A state to move to: never an archived one.
           query: {
             projectId: data.projectId,
+            isArchived: false,
           },
           select: {
             _id: true,

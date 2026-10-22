@@ -496,6 +496,7 @@ export default class LogSavedView extends BaseModel {
     canReadOnRelationQuery: true,
     description: "Number of logs per page for this saved view.",
     defaultValue: 100,
+    isDefaultValueColumn: true,
   })
   @Column({
     type: ColumnType.Number,
@@ -576,6 +577,7 @@ export default class LogSavedView extends BaseModel {
     title: "Is Default",
     description: "Whether this saved log view should be applied by default.",
     defaultValue: false,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

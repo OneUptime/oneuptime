@@ -195,7 +195,7 @@ Leia **Last Poll Summary**. Nenhum objeto trazido: a coleção está vazia ou n�
 :::
 
 :::details Há indicadores, mas nada corresponde
-A comparação confronta o valor de um indicador com os observables de um evento, não com cada campo: abra em **Eventos** um evento que você esperava que correspondesse e confira se os observables dele contêm o valor. Só correspondem os indicadores com o status **Ativo**. Confira **Last Match Error** no feed.
+A comparação confronta o valor de um indicador com os observables de um evento, não com cada campo: abra em **Eventos** um evento que você esperava que correspondesse e confira se os observables dele contêm o valor. Só correspondem os indicadores com o status **Ativo**. Se o **Status** do feed indicar **Falha na comparação**, **Ver erro** na linha dele mostra o motivo.
 :::
 
 :::details Uma correspondência não abriu um alerta
