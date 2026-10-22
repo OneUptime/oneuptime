@@ -905,9 +905,9 @@ export default class CodeRepository extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.ShortText,
-    title: "Production Review in Pull Requests",
+    title: "Production Review Comment",
     description:
-      "What a pull request's production review comment shows. Review (the default): the review, or only a link to it in OneUptime on a public repository. Link: only a link, whatever the repository. ReviewEvenIfPublic: the review, even on a public repository.",
+      "What a production review posts on a pull request. Review (the default): the review, or only a link to it in OneUptime on a public repository. Link: only a link, whatever the repository. ReviewEvenIfPublic: the review, even on a public repository.",
     example: "Review",
   })
   @Column({

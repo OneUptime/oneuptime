@@ -26,8 +26,9 @@ import { getJestSpyOn } from "../../Spy";
  * OneUptime is.
  *
  *   - Cards, not a stepped dialog: Repository Details, the GitHub Commands
- *     switch, Runner, and More settings, folded, holding Pull Requests and
- *     GitHub Trigger Label. The Edit Settings dialog walked four steps -
+ *     switch, the Production Review switch, Runner, and More settings,
+ *     folded, holding Pull Requests, GitHub Trigger Label and Production
+ *     Review Comment. The Edit Settings dialog walked four steps -
  *     Pull Requests, GitHub Commands, Runner, Build & Test - and Build &
  *     Test is gone: the code agent reads how to build and test from the
  *     repository's AGENTS.md.
@@ -38,6 +39,12 @@ import { getJestSpyOn } from "../../Spy";
  *   - Build and test commands an operator set before are shown read-only
  *     under More settings, with Remove Commands, which asks first; a
  *     repository with none shows nothing of them.
+ *   - "Review Pull Requests Against Production" is one switch that saves the
+ *     moment it is flipped, and is OFF for a repository that never set it -
+ *     every repository connected before it existed - as the server reads
+ *     it. What a review posts on a pull request is one choice under More
+ *     settings, on the default (the review, or a link on a public
+ *     repository) for a repository that never chose.
  *
  * CardModelDetail is a stand-in that records its props (each card's own
  * suite draws it); the switch card, More settings and the commands card are
@@ -79,7 +86,15 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import CodeRepositorySettings, {
   CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID,
   CODE_REPOSITORY_MORE_SETTINGS_TEST_ID,
+  CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings";
+import {
+  PRODUCTION_REVIEW_CONTENT_ANSWERS,
+  PRODUCTION_REVIEW_CONTENT_COPY,
+  PRODUCTION_REVIEW_CONTENT_FIELD_KEY,
+  PRODUCTION_REVIEW_SETTINGS_COPY,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeProductionReviewCopy";
+import { ProductionReviewPullRequestContent } from "../../../Types/CodeRepository/ProductionReview";
 import {
   CodeRepositoryRunnerCopy,
   CodeRepositoryRunnerPicker,
@@ -249,7 +264,7 @@ async function pullRequestsCardReads(
 }
 
 describe("a repository's settings are cards, not a stepped dialog", () => {
-  test("Repository Details, Runner, then Pull Requests and GitHub Trigger Label under More settings - and no card walks steps", () => {
+  test("Repository Details, Runner, then Pull Requests, GitHub Trigger Label and Production Review Comment under More settings - and no card walks steps", () => {
     draw();
 
     const names: Array<unknown> = mockDetails.map(
@@ -263,6 +278,7 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
       "Repository > Runner",
       "Repository > Pull Requests",
       "Repository > GitHub Trigger Label",
+      "Repository > Production Review Comment",
     ]);
 
     for (const props of mockDetails) {
@@ -300,6 +316,7 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
         "Repository > Runner",
         "Repository > Pull Requests",
         "Repository > GitHub Trigger Label",
+        "Repository > Production Review Comment",
       ].map((name: string): Array<unknown> => {
         const props: Record<string, unknown> = card(name);
 
@@ -314,6 +331,7 @@ describe("a repository's settings are cards, not a stepped dialog", () => {
       ["Runner", "Edit", "Runner"],
       ["Pull Requests", "Edit", "Pull Requests"],
       ["GitHub Trigger Label", "Edit", "GitHub Trigger Label"],
+      ["Production Review Comment", "Edit", "Production Review Comment"],
     ]);
   });
 });
@@ -629,6 +647,7 @@ describe("More settings", () => {
     expect(header).toHaveAttribute("aria-expanded", "false");
     expect(folded()).toHaveTextContent("Pull Requests");
     expect(folded()).toHaveTextContent("GitHub Trigger Label");
+    expect(folded()).toHaveTextContent("Production Review Comment");
     // No commands, nothing about them.
     expect(folded()).not.toHaveTextContent("Build and Test Commands");
   });
@@ -892,6 +911,8 @@ describe("the settings' words and rules, as plain functions", () => {
       ["pull-requests", false, undefined],
       // The default label in another case is still the default.
       ["trigger-label", false, undefined],
+      // Never chosen: the default, the review or a link on a public one.
+      ["production-review-comment", false, undefined],
     ]);
   });
 
@@ -907,11 +928,340 @@ describe("the settings' words and rules, as plain functions", () => {
       value: "None: AI opens no fix pull requests here",
       translateValue: true,
     });
-    expect(items[2]).toMatchObject({
+    expect(items[3]).toMatchObject({
       key: "commands",
       title: "Build and Test Commands",
       isSet: true,
       value: "Configured",
     });
+  });
+
+  test("a production review comment other than the default shows what it is, in the form's words", () => {
+    const stored: Array<[unknown, boolean, string | undefined]> = [
+      [undefined, false, undefined],
+      [null, false, undefined],
+      ["Review", false, undefined],
+      // An answer this Dashboard does not know reads as the default.
+      ["SomethingNew", false, undefined],
+      ["Link", true, "Only a link to the review"],
+      ["ReviewEvenIfPublic", true, "The review, even on a public repository"],
+    ];
+
+    for (const [content, isSet, value] of stored) {
+      const item: FoldedSectionItem | undefined =
+        getRepositoryMoreSettingsItems(
+          {
+            productionReviewPullRequestContent: content as string | undefined,
+          },
+          english,
+        ).find((each: FoldedSectionItem): boolean => {
+          return each.key === "production-review-comment";
+        });
+
+      expect({ content, isSet: item?.isSet, value: item?.value }).toEqual({
+        content,
+        isSet,
+        value,
+      });
+      expect(item?.title).toBe("Production Review Comment");
+    }
+  });
+});
+
+describe("Review Pull Requests Against Production: one switch, off until turned on", () => {
+  // The switch itself carries the card's test id (ModelSwitchRow).
+  async function reviewSwitch(): Promise<HTMLElement> {
+    const toggle: HTMLElement = await screen.findByRole("switch", {
+      name: "Review Pull Requests Against Production",
+    });
+
+    expect(toggle).toHaveAttribute(
+      "data-testid",
+      CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID,
+    );
+
+    return toggle;
+  }
+
+  test("a repository that never set it - connected before it existed - reads as off, as the server reads it", async () => {
+    stored = {};
+    draw();
+
+    expect(await reviewSwitch()).toHaveAttribute("aria-checked", "false");
+    // Read through its own card, by its one column.
+    expect(
+      getItemMock.mock.calls.some((call: Array<unknown>): boolean => {
+        const select: Record<string, unknown> = (
+          call[0] as { select: Record<string, unknown> }
+        ).select;
+
+        return (
+          select["isProductionReviewEnabled"] === true &&
+          Object.keys(select).length === 1
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("a stored null reads as off, and a stored true as on", async () => {
+    stored = { isProductionReviewEnabled: null };
+    draw();
+    expect(await reviewSwitch()).toHaveAttribute("aria-checked", "false");
+
+    cleanup();
+    stored = { isProductionReviewEnabled: true };
+    draw();
+    expect(await reviewSwitch()).toHaveAttribute("aria-checked", "true");
+  });
+
+  test("flipping it saves at once - on, then off again - with nothing else", async () => {
+    stored = { isProductionReviewEnabled: false };
+    draw();
+
+    fireEvent.click(await reviewSwitch());
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+    expect(updateByIdMock.mock.calls[0]![0]).toMatchObject({
+      modelType: CodeRepository,
+      data: { isProductionReviewEnabled: true },
+    });
+    expect(
+      Object.keys(
+        (updateByIdMock.mock.calls[0]![0] as { data: Record<string, unknown> })
+          .data,
+      ),
+    ).toEqual(["isProductionReviewEnabled"]);
+    expect(
+      String(
+        (updateByIdMock.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
+      ),
+    ).toBe(REPOSITORY_ID);
+
+    // Saved, and on: the next flip is a save of its own.
+    expect(await screen.findByText("Saved")).toBeInTheDocument();
+    expect(await reviewSwitch()).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(await reviewSwitch());
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(2);
+    });
+    expect(updateByIdMock.mock.calls[1]![0]).toMatchObject({
+      data: { isProductionReviewEnabled: false },
+    });
+  });
+
+  test("its card sits right under GitHub Commands, and says what on does in one short line", async () => {
+    draw();
+
+    const toggle: HTMLElement = await reviewSwitch();
+    const commands: HTMLElement = await screen.findByRole("switch", {
+      name: "Respond to GitHub Commands",
+    });
+
+    // GitHub Commands first, then Production Review: both are how the app acts on GitHub.
+    expect(
+      commands.compareDocumentPosition(toggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("Production Review")).toBeInTheDocument();
+    expect(
+      screen.getByText(PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription),
+    ).toBeInTheDocument();
+    expect(PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription).toBe(
+      "When someone with write access opens or updates a pull request, OneUptime comments with what production shows of the code it changes.",
+    );
+    // Two short lines at most (ShortDescriptionsGuard).
+    expect(
+      PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription.length,
+    ).toBeLessThanOrEqual(150);
+  });
+});
+
+describe("Production Review Comment: what a review posts on a pull request", () => {
+  function fields(): Array<FormField> {
+    return card("Repository > Production Review Comment")[
+      "formFields"
+    ] as Array<FormField>;
+  }
+
+  test("its Edit asks one question - three answers, each with a line of its own - and carries the column it writes", () => {
+    draw();
+
+    const [choice, column] = fields();
+
+    expect(fields()).toHaveLength(2);
+    expect(choice!.fieldType).toBe(FormFieldSchemaType.RadioButton);
+    expect(choice!.formOnly).toBe(true);
+    expect(choice!.overrideFieldKey).toBe(PRODUCTION_REVIEW_CONTENT_FIELD_KEY);
+    expect(columnsOf(choice!)).toEqual(["productionReviewPullRequestContent"]);
+    expect(choice!.title).toBe("What the Comment Shows");
+    expect(choice!.required).toBe(true);
+    // The answers say it all: no API description under the question.
+    expect(choice!.hideColumnDescription).toBe(true);
+    expect(choice!.description).toBeUndefined();
+    expect(
+      (choice!.radioButtonOptions || []).map(
+        (option: { value: unknown; title: string; description?: string }) => {
+          return [option.value, option.title, option.description];
+        },
+      ),
+    ).toEqual([
+      [
+        "Review",
+        "The review, or a link on a public repository",
+        "Private repositories show the review. Public ones only link to it in OneUptime, since anyone on the internet can read them.",
+      ],
+      [
+        "Link",
+        "Only a link to the review",
+        "Every pull request links to its review in OneUptime, which only members of this project can open. Nothing from production is posted.",
+      ],
+      [
+        "ReviewEvenIfPublic",
+        "The review, even on a public repository",
+        "Anyone who can read the repository sees its exception counts, slow operations and incident numbers. Never a message or a log line.",
+      ],
+    ]);
+
+    // The column itself is never drawn, only read and sent.
+    expect(columnsOf(column!)).toEqual(["productionReviewPullRequestContent"]);
+    expect(column!.formOnly).toBeUndefined();
+    expect((column!.showIf as () => boolean)()).toBe(false);
+  });
+
+  test("a repository that never chose opens on the default; one that chose opens on its choice", () => {
+    draw();
+
+    const getDefaultValue: (values: Record<string, unknown>) => unknown =
+      fields()[0]!.getDefaultValue as unknown as (
+        values: Record<string, unknown>,
+      ) => unknown;
+
+    expect(getDefaultValue({})).toBe("Review");
+    expect(getDefaultValue({ productionReviewPullRequestContent: null })).toBe(
+      "Review",
+    );
+    expect(
+      getDefaultValue({ productionReviewPullRequestContent: "Link" }),
+    ).toBe("Link");
+    expect(
+      getDefaultValue({
+        productionReviewPullRequestContent: "Link",
+        [PRODUCTION_REVIEW_CONTENT_FIELD_KEY]: "ReviewEvenIfPublic",
+      }),
+    ).toBe("ReviewEvenIfPublic");
+  });
+
+  test("a pick writes the column it stands for; anything else changes nothing", () => {
+    draw();
+
+    const onChange: (
+      value: unknown,
+      current: Record<string, unknown>,
+      set: (values: Record<string, unknown>) => void,
+    ) => void = fields()[0]!.onChange as unknown as (
+      value: unknown,
+      current: Record<string, unknown>,
+      set: (values: Record<string, unknown>) => void,
+    ) => void;
+
+    const written: Array<Record<string, unknown>> = [];
+
+    const keep: (values: Record<string, unknown>) => void = (
+      values: Record<string, unknown>,
+    ): void => {
+      written.push(values);
+    };
+
+    for (const content of PRODUCTION_REVIEW_CONTENT_ANSWERS) {
+      onChange(content, { name: "checkout-api" }, keep);
+    }
+
+    onChange("Everything", { name: "checkout-api" }, keep);
+
+    expect(written).toEqual(
+      PRODUCTION_REVIEW_CONTENT_ANSWERS.map(
+        (content: ProductionReviewPullRequestContent) => {
+          return {
+            name: "checkout-api",
+            [PRODUCTION_REVIEW_CONTENT_FIELD_KEY]: content,
+            productionReviewPullRequestContent: content,
+          };
+        },
+      ),
+    );
+  });
+
+  test("the card shows the answer picked, in the form's words, with no label over it", () => {
+    draw();
+
+    const props: Record<string, unknown> = card(
+      "Repository > Production Review Comment",
+    );
+    const shown: Array<DetailField> = (
+      props["modelDetailProps"] as { fields: Array<DetailField> }
+    ).fields;
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0]!.title).toBeUndefined();
+    expect((props["cardProps"] as { description: string }).description).toBe(
+      "What a production review posts on a pull request.",
+    );
+
+    for (const [content, title] of [
+      [undefined, "The review, or a link on a public repository"],
+      ["Review", "The review, or a link on a public repository"],
+      ["Link", "Only a link to the review"],
+      ["ReviewEvenIfPublic", "The review, even on a public repository"],
+    ] as Array<[string | undefined, string]>) {
+      const item: CodeRepository = new CodeRepository();
+
+      if (content) {
+        item.productionReviewPullRequestContent =
+          content as ProductionReviewPullRequestContent;
+      }
+
+      cleanup();
+      render(shown[0]!.getElement!(item));
+      expect(
+        screen.getByTestId("production-review-content-value"),
+      ).toHaveTextContent(title);
+      expect(PRODUCTION_REVIEW_CONTENT_COPY).toBeDefined();
+    }
+  });
+
+  test("what the card read shows on More settings' folded header", async () => {
+    draw();
+
+    const item: CodeRepository = new CodeRepository();
+    item._id = REPOSITORY_ID;
+    item.productionReviewPullRequestContent =
+      ProductionReviewPullRequestContent.Link;
+
+    await act(async () => {
+      (
+        card("Repository > Production Review Comment")["modelDetailProps"] as {
+          onItemLoaded: (item: CodeRepository) => void;
+        }
+      ).onItemLoaded(item);
+    });
+
+    const chips: Array<string> = within(
+      screen.getByTestId(CODE_REPOSITORY_MORE_SETTINGS_TEST_ID),
+    )
+      .getAllByTestId("folded-section-item")
+      .filter((chip: HTMLElement): boolean => {
+        return chip.getAttribute("data-item-set") === "true";
+      })
+      .map((chip: HTMLElement): string => {
+        return chip.textContent || "";
+      });
+
+    expect(chips).toEqual([
+      "Production Review Comment: Only a link to the review",
+    ]);
   });
 });

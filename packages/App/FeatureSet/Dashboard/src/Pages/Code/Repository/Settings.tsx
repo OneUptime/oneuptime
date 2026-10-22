@@ -40,6 +40,16 @@ import {
   getRepositoryMoreSettingsItems,
 } from "../../../Components/Code/CodeRepositorySettingsCopy";
 import CodeApi from "../../../Components/Code/CodeApi";
+import {
+  PRODUCTION_REVIEW_CONTENT_ANSWERS,
+  PRODUCTION_REVIEW_CONTENT_COPY,
+  PRODUCTION_REVIEW_CONTENT_FIELD_KEY,
+  PRODUCTION_REVIEW_SETTINGS_COPY,
+  getPickedProductionReviewContent,
+  getValuesForProductionReviewContent,
+  readProductionReviewContent,
+} from "../../../Components/Code/CodeProductionReviewCopy";
+import { ProductionReviewPullRequestContent } from "Common/Types/CodeRepository/ProductionReview";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import React, {
   Fragment,
@@ -55,6 +65,9 @@ export const CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID: string =
 export const CODE_REPOSITORY_MORE_SETTINGS_TEST_ID: string =
   "code-repository-more-settings";
 
+export const CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID: string =
+  "code-repository-production-review";
+
 /*
  * A repository's settings in Code, asking as little as they can - the way
  * every settings page in OneUptime is drawn: a card per question, a switch
@@ -66,12 +79,16 @@ export const CODE_REPOSITORY_MORE_SETTINGS_TEST_ID: string =
  *     where Code's Repositories folds it;
  *   - GitHub Commands: whether the GitHub App answers mentions, the trigger
  *     label and assignments here - on by default;
+ *   - Production Review: whether OneUptime reviews the repository's pull
+ *     requests against production on its own - on for repositories
+ *     connected from now on, off for those connected before it existed;
  *   - Runner: where AI works in it (CodeRepository.runnerId): a Runner of
  *     the project's own, or a global Runner when it picks none;
  *   - More settings, folded: where AI's pull requests open and how many may
- *     be open at once, the trigger label, and - only on a repository that
- *     has them - the build and test commands an operator set before AI read
- *     how to build and test from the repository's own AGENTS.md.
+ *     be open at once, the trigger label, what a production review posts on
+ *     a pull request, and - only on a repository that has them - the build
+ *     and test commands an operator set before AI read how to build and
+ *     test from the repository's own AGENTS.md.
  *
  * It used to be one card whose Edit Settings opened a four-step dialog
  * (Pull Requests, GitHub Commands, Runner, Build & Test), whose GitHub
@@ -244,6 +261,24 @@ const CodeRepositorySettings: FunctionComponent<
           return CODE_REPOSITORY_SETTINGS_COPY.gitHubCommandsSwitchDescription;
         }}
         dataTestId={CODE_REPOSITORY_GITHUB_COMMANDS_TEST_ID}
+      />
+
+      {/*
+       * One switch, saved the moment it is flipped: whether OneUptime
+       * reviews the repository's pull requests against production on its
+       * own. Unset - every repository connected before it existed - reads
+       * as off, as the server reads it.
+       */}
+      <ModelSwitchCard<CodeRepository>
+        modelType={CodeRepository}
+        modelId={modelId}
+        column="isProductionReviewEnabled"
+        cardTitle={PRODUCTION_REVIEW_SETTINGS_COPY.cardTitle}
+        title={PRODUCTION_REVIEW_SETTINGS_COPY.switchTitle}
+        getDescription={(): string => {
+          return PRODUCTION_REVIEW_SETTINGS_COPY.switchDescription;
+        }}
+        dataTestId={CODE_REPOSITORY_PRODUCTION_REVIEW_TEST_ID}
       />
 
       {/*
@@ -515,6 +550,126 @@ const CodeRepositorySettings: FunctionComponent<
                 title: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelFieldTitle,
                 placeholder: DEFAULT_GITHUB_TRIGGER_LABEL,
                 fieldType: FieldType.Text,
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {/*
+         * What a production review posts on a pull request: the review, or
+         * only a link to it in OneUptime on a public repository (the
+         * default); only a link; or the review even on a public repository.
+         * One choice, held in a form value of its own so a repository that
+         * never chose opens on the default; a pick writes the column.
+         */}
+        <CardModelDetail<CodeRepository>
+          name="Repository > Production Review Comment"
+          cardProps={{
+            title: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardTitle,
+            description: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardDescription,
+          }}
+          isEditable={true}
+          editButtonText="Edit"
+          editModalTitle={PRODUCTION_REVIEW_SETTINGS_COPY.contentCardTitle}
+          formFields={[
+            {
+              overrideField: {
+                productionReviewPullRequestContent: true,
+              },
+              overrideFieldKey: PRODUCTION_REVIEW_CONTENT_FIELD_KEY,
+              formOnly: true,
+              title: PRODUCTION_REVIEW_SETTINGS_COPY.contentFieldTitle,
+              fieldType: FormFieldSchemaType.RadioButton,
+              radioButtonOptions: PRODUCTION_REVIEW_CONTENT_ANSWERS.map(
+                (content: ProductionReviewPullRequestContent) => {
+                  return {
+                    value: content,
+                    title: PRODUCTION_REVIEW_CONTENT_COPY[content].title,
+                    description:
+                      PRODUCTION_REVIEW_CONTENT_COPY[content].description,
+                  };
+                },
+              ),
+              required: true,
+              hideColumnDescription: true,
+              dataTestId: "production-review-content",
+              getDefaultValue: (values: FormValues<CodeRepository>): string => {
+                return getPickedProductionReviewContent(values);
+              },
+              onChange: (
+                value: unknown,
+                currentValues: FormValues<CodeRepository>,
+                setNewFormValues: (values: FormValues<CodeRepository>) => void,
+              ): void => {
+                if (
+                  !(
+                    PRODUCTION_REVIEW_CONTENT_ANSWERS as Array<unknown>
+                  ).includes(value)
+                ) {
+                  return;
+                }
+
+                setNewFormValues(
+                  getValuesForProductionReviewContent({
+                    values: currentValues,
+                    content: value as ProductionReviewPullRequestContent,
+                  }),
+                );
+              },
+            } as ModelField<CodeRepository>,
+            /*
+             * The column the choice writes: never drawn, here so that the
+             * form reads it and sends what was picked.
+             */
+            {
+              field: {
+                productionReviewPullRequestContent: true,
+              },
+              title: PRODUCTION_REVIEW_SETTINGS_COPY.contentFieldTitle,
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              hideColumnDescription: true,
+              showIf: (): boolean => {
+                return false;
+              },
+            },
+          ]}
+          modelDetailProps={{
+            modelType: CodeRepository,
+            id: "model-detail-code-repository-production-review-comment",
+            onItemLoaded: (item: CodeRepository): void => {
+              setSettings((current: CodeRepositorySettingsValues | null) => {
+                return {
+                  ...(current || {}),
+                  productionReviewPullRequestContent:
+                    item.productionReviewPullRequestContent,
+                };
+              });
+            },
+            fields: [
+              /*
+               * The card says what it is for: its value - the answer picked,
+               * in the form's words - needs no label of its own.
+               */
+              {
+                field: {
+                  productionReviewPullRequestContent: true,
+                },
+                fieldType: FieldType.Element,
+                getElement: (item: CodeRepository): ReactElement => {
+                  return (
+                    <span data-testid="production-review-content-value">
+                      {translator.translateText(
+                        PRODUCTION_REVIEW_CONTENT_COPY[
+                          readProductionReviewContent(
+                            item.productionReviewPullRequestContent,
+                          )
+                        ].title,
+                      )}
+                    </span>
+                  );
+                },
               },
             ],
             modelId: modelId,

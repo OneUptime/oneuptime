@@ -56,6 +56,7 @@ import {
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
+  CodeTaskListKind,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
@@ -108,15 +109,8 @@ export const CODE_TASK_REVIEW_AGAIN_REFUSED_MESSAGE: string =
 export const CODE_TASK_NOT_A_PRODUCTION_REVIEW_MESSAGE: string =
   "Only a pull request's production review can be reviewed again.";
 
-/*
- * Which of a repository's tasks a list reads: the work people asked of AI
- * and OneUptime started (Tasks), or the production reviews of its pull
- * requests (Production reviews) - each its own page in Code.
- */
-export enum CodeTaskListKind {
-  Tasks = "tasks",
-  ProductionReviews = "productionReviews",
-}
+// Which of a repository's tasks a list reads (Types/AI/CodeTask).
+export { CodeTaskListKind };
 
 export const CODE_TASK_BRANCHES_UNREADABLE_MESSAGE: string =
   "OneUptime could not read this repository's branches from GitHub. Try again in a moment.";
@@ -969,6 +963,12 @@ export default class CodeTaskAPI {
 
     if (repository.repositoryUrl) {
       json.repositoryUrl = repository.repositoryUrl.toString();
+    }
+
+    // Read with the repository: unset (null) is off, as the server has it.
+    if (repository.isProductionReviewEnabled !== undefined) {
+      json.isProductionReviewEnabled =
+        repository.isProductionReviewEnabled === true;
     }
 
     return json;

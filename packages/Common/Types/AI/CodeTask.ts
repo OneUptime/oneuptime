@@ -382,6 +382,17 @@ export interface CodeTaskOriginJSON {
   url?: string | undefined;
 }
 
+/*
+ * Which of a repository's tasks a list reads (POST /code-task/list `kind`):
+ * the work people asked of AI and OneUptime started (Tasks, the default),
+ * or the production reviews of its pull requests (ProductionReviews) - each
+ * its own page in Code.
+ */
+export enum CodeTaskListKind {
+  Tasks = "tasks",
+  ProductionReviews = "productionReviews",
+}
+
 // One task in a list.
 export interface CodeTaskSummaryJSON {
   id: string;
@@ -480,6 +491,12 @@ export interface CodeTaskRepositoryJSON {
   repositoryUrl?: string | undefined;
   // Connected through the GitHub App, so AI can work in it.
   isConnected: boolean;
+  /*
+   * Whether OneUptime reviews its pull requests against production on its
+   * own (CodeRepository.isProductionReviewEnabled; unset is off). Left out
+   * where the column was not read.
+   */
+  isProductionReviewEnabled?: boolean | undefined;
 }
 
 /*

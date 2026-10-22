@@ -35,13 +35,15 @@ import {
 import ProductionReviewQueue, {
   ProductionReviewRequest,
 } from "../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
-import { CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import GitHubCommandType from "../../../Types/CodeRepository/GitHubCommand";
 import { ProductionReviewTrigger } from "../../../Types/CodeRepository/ProductionReview";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import GitHubUtil from "../../../Server/Utils/CodeRepository/GitHub/GitHub";
 import CodeTaskPresenter from "../../../Server/Utils/AI/CodeTask/CodeTaskPresenter";
-import { CODE_TASK_BUSY_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
+import {
+  CODE_TASK_BUSY_MESSAGE,
+  CODE_TASK_PRODUCTION_REVIEW_REPLY_MESSAGE,
+} from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../../../Server/Utils/AI/CodeTask/CodeTaskStats";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import GitHubInstallationBinding from "../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
@@ -1196,11 +1198,9 @@ describe("reviewing a pull request against production again", () => {
 
   beforeEach(() => {
     world.task = reviewTask();
-    jest
-      .spyOn(AIRunService, "findOneById")
-      .mockImplementation(async () => {
-        return world.task;
-      });
+    jest.spyOn(AIRunService, "findOneById").mockImplementation(async () => {
+      return world.task;
+    });
     requestSpy = jest
       .spyOn(ProductionReviewQueue, "request")
       .mockImplementation(async () => {
@@ -1488,5 +1488,38 @@ describe("the repositories, at a glance", () => {
           .calls[0]![0] as { props: unknown }
       ).props,
     ).toBe(MEMBER);
+  });
+
+  /*
+   * Code's pages say whether a repository's pull requests are reviewed
+   * against production: on only when it was turned on - unset, as every
+   * repository connected before the setting existed has it, is off, as the
+   * server reads it.
+   */
+  test("says whether production review is on: on only when it was turned on", async () => {
+    const CodeTaskAPI: typeof import("../../../Server/API/CodeTaskAPI").default =
+      (await import("../../../Server/API/CodeTaskAPI")).default;
+    const value: CodeRepository = repository();
+
+    expect(CodeTaskAPI.toRepositoryJSON(value, true)).not.toHaveProperty(
+      "isProductionReviewEnabled",
+    );
+
+    value.isProductionReviewEnabled = true;
+    expect(
+      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+    ).toBe(true);
+
+    value.isProductionReviewEnabled = false;
+    expect(
+      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+    ).toBe(false);
+
+    (
+      value as unknown as { isProductionReviewEnabled: null }
+    ).isProductionReviewEnabled = null;
+    expect(
+      CodeTaskAPI.toRepositoryJSON(value, true).isProductionReviewEnabled,
+    ).toBe(false);
   });
 });
