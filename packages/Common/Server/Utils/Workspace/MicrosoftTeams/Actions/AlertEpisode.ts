@@ -191,9 +191,14 @@ export default class MicrosoftTeamsAlertEpisodeActions {
         props: databaseProps,
       });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!episode) {
-        await turnContext.sendActivity("Alert episode not found.");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: "see this alert episode",
+          service: AlertEpisodeService,
+          id: new ObjectID(actionValue),
+          props: databaseProps,
+        });
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.

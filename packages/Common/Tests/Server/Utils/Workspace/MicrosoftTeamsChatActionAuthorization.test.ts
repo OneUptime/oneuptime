@@ -10,6 +10,8 @@ import { stubPrivateRecords } from "../../TestingUtils/PrivateRecords";
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../Models/DatabaseModels/Incident";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
 import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
@@ -323,8 +325,15 @@ describe("Microsoft Teams monitor enable / disable", (): void => {
   });
 
   test("an update that matched no row is refused, not reported as done", async (): Promise<void> => {
-    // A monitor in another project, or outside the user's labels.
+    // A monitor outside the user's labels: there, but not theirs to change.
     jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(0);
+    jest
+      .spyOn(MonitorService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new Monitor() : null;
+      }) as never);
     const turnContext: TurnContext = createTurnContext();
 
     await expect(
@@ -338,10 +347,29 @@ describe("Microsoft Teams monitor enable / disable", (): void => {
         turnContext: turnContext,
       }),
     ).rejects.toThrow(
-      "You do not have permission to enable this monitor: the monitor was not found in this project",
+      "You do not have permission to enable this monitor: your access in this project does not include this monitor. Ask a project admin for access to it.",
     );
 
     expect(turnContext.sendActivity).not.toHaveBeenCalled();
+  });
+
+  test("an update of a monitor that is gone says it was not found", async (): Promise<void> => {
+    jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(0);
+    jest.spyOn(MonitorService, "findOneBy").mockResolvedValue(null);
+
+    await expect(
+      MicrosoftTeamsMonitorActions.handleBotMonitorAction({
+        actionType: MicrosoftTeamsMonitorActionType.DisableMonitor,
+        actionValue: ObjectID.generate().toString(),
+        value: {},
+        projectId: projectId,
+        oneUptimeUserId: userId,
+        databaseProps: createDatabaseProps([Permission.MonitorMember]),
+        turnContext: createTurnContext(),
+      }),
+    ).rejects.toThrow(
+      "Could not disable this monitor: the monitor was not found. It may have been deleted.",
+    );
   });
 
   test("a permission refusal from the update names the action", async (): Promise<void> => {
@@ -486,59 +514,73 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.MonitorViewer,
     ]);
-    const findSpy: SpyInstance<typeof MonitorService.findOneBy> = jest
+    const findSpy: SpyInstance<typeof MonitorService.findOneBy> =
+      jest
       .spyOn(MonitorService, "findOneBy")
-      .mockResolvedValue(null);
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new Monitor() : null;
+      }) as never);
     const turnContext: TurnContext = createTurnContext();
     const monitorId: ObjectID = ObjectID.generate();
 
-    await MicrosoftTeamsMonitorActions.handleBotMonitorAction({
-      actionType: MicrosoftTeamsMonitorActionType.ViewMonitor,
-      actionValue: monitorId.toString(),
-      value: {},
-      projectId: projectId,
-      oneUptimeUserId: userId,
-      databaseProps: props,
-      turnContext: turnContext,
-    });
+    // Thrown for handleBotInvokeActivity to tell them, as every refusal is.
+    await expect(
+      MicrosoftTeamsMonitorActions.handleBotMonitorAction({
+        actionType: MicrosoftTeamsMonitorActionType.ViewMonitor,
+        actionValue: monitorId.toString(),
+        value: {},
+        projectId: projectId,
+        oneUptimeUserId: userId,
+        databaseProps: props,
+        turnContext: turnContext,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to see this monitor: your access in this project does not include this monitor. Ask a project admin for access to it.",
+    );
 
-    expect(findSpy).toHaveBeenCalledTimes(1);
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
     expect(findSpy.mock.calls[0]![0].query).toMatchObject({
       _id: monitorId.toString(),
       projectId: projectId,
     });
-    // One outside their read is answered like one the project does not have.
-    expect(turnContext.sendActivity).toHaveBeenCalledWith("Monitor not found.");
+    expect(turnContext.sendActivity).not.toHaveBeenCalled();
   });
 
   test("viewing an on-call policy reads it as the member, in their project", async (): Promise<void> => {
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.OnCallViewer,
     ]);
-    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> =
+      jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
-      .mockResolvedValue(null);
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new OnCallDutyPolicy() : null;
+      }) as never);
     const turnContext: TurnContext = createTurnContext();
     const policyId: ObjectID = ObjectID.generate();
 
-    await MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
-      actionType: MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty,
-      turnContext: turnContext,
-      actionPayload: { onCallDutyPolicyId: policyId.toString() },
-      projectId: projectId,
-      databaseProps: props,
-    });
+    await expect(
+      MicrosoftTeamsOnCallDutyActions.handleBotOnCallDutyAction({
+        actionType: MicrosoftTeamsOnCallDutyActionType.ViewOnCallDuty,
+        turnContext: turnContext,
+        actionPayload: { onCallDutyPolicyId: policyId.toString() },
+        projectId: projectId,
+        databaseProps: props,
+      }),
+    ).rejects.toThrow(
+      "You do not have permission to see this on-call policy: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+    );
 
-    expect(findSpy).toHaveBeenCalledTimes(1);
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
     expect(findSpy.mock.calls[0]![0].query).toMatchObject({
       _id: policyId.toString(),
       projectId: projectId,
     });
-    expect(turnContext.sendActivity).toHaveBeenCalledWith(
-      "OnCallDutyPolicy not found",
-    );
+    expect(turnContext.sendActivity).not.toHaveBeenCalled();
   });
 
   test("a member who may not execute on-call policies cannot escalate one, and is told why", async (): Promise<void> => {
@@ -576,9 +618,14 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
       .spyOn(OnCallDutyPolicyExecutionLogService, "create")
       .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(new Incident());
-    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> = jest
+    const findSpy: SpyInstance<typeof OnCallDutyPolicyService.findOneBy> =
+      jest
       .spyOn(OnCallDutyPolicyService, "findOneBy")
-      .mockResolvedValue(null);
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new OnCallDutyPolicy() : null;
+      }) as never);
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.OnCallMember,
       Permission.IncidentMember,
@@ -596,7 +643,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy for this incident: the on-call policy was not found in this project",
+      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this on-call policy. Ask a project admin for access to it.",
     );
 
     expect(findSpy.mock.calls[0]![0].props).toBe(props);
@@ -609,10 +656,15 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
     > = jest
       .spyOn(OnCallDutyPolicyExecutionLogService, "create")
       .mockResolvedValue(new OnCallDutyPolicyExecutionLog());
-    // Outside their labels, or another project's: not found for them.
-    const incidentLookup: SpyInstance<typeof IncidentService.findOneBy> = jest
+    // Outside their labels: there, but not for them.
+    const incidentLookup: SpyInstance<typeof IncidentService.findOneBy> =
+      jest
       .spyOn(IncidentService, "findOneBy")
-      .mockResolvedValue(null);
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        return findOneBy.props.isRoot ? new Incident() : null;
+      }) as never);
     const props: DatabaseCommonInteractionProps = createDatabaseProps([
       Permission.OnCallMember,
       Permission.IncidentMember,
@@ -630,7 +682,7 @@ describe("Microsoft Teams monitor and on-call policy views", (): void => {
         databaseProps: props,
       }),
     ).rejects.toThrow(
-      "You do not have permission to execute this on-call policy for this incident: the incident was not found in this project",
+      "You do not have permission to execute this on-call policy for this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
     );
 
     expect(incidentLookup.mock.calls[0]![0].props).toBe(props);

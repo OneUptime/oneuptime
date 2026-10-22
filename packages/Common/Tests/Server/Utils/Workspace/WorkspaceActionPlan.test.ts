@@ -1,9 +1,17 @@
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
+import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import CallerPlan from "../../../../Server/Utils/Billing/CallerPlan";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { PlanType } from "../../../../Types/Billing/SubscriptionPlan";
+import BadDataException from "../../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
@@ -183,6 +191,164 @@ describe("WorkspaceActionAuthorization.assertCanCreate on the project's plan", (
       }),
     ).resolves.toBeUndefined();
 
+    expect(currentPlanSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * THE PROPS A CHAT ACTS WITH CARRY THE PROJECT'S PLAN, AS A DASHBOARD
+ * REQUEST'S DO.
+ *
+ * A customer on OneUptime Cloud: `/oneuptime page @nitin test` answered
+ * "Could not page: OneUptime could not confirm which plan this project is
+ * on, so nothing was changed." - every time. The member's props were built
+ * without the plan, and the page's own check (OnCallPageService, before it
+ * creates anything) refuses props that carry none wherever a plan decides,
+ * never reading "no plan" as any plan. getProjectMemberProps now gives them
+ * the project's plan, as CommonAPI gives an API request's.
+ */
+describe("WorkspaceActionAuthorization.getProjectMemberProps on the project's plan", () => {
+  beforeEach(() => {
+    const membership: TeamMember = new TeamMember();
+    membership.teamId = ObjectID.generate();
+
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([membership]);
+    jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+    jest
+      .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue(
+        chatMemberProps().userTenantAccessPermission![projectId.toString()]!,
+      );
+  });
+
+  test("billing on: the props carry the project's plan, read once", async () => {
+    projectPlan = PlanType.Growth;
+
+    const props: DatabaseCommonInteractionProps =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      });
+
+    expect(props.currentPlan).toBe(PlanType.Growth);
+    expect(props.isSubscriptionUnpaid).toBe(false);
+    expect(currentPlanSpy).toHaveBeenCalledTimes(1);
+    expect(currentPlanSpy).toHaveBeenCalledWith(projectId);
+  });
+
+  test("billing on: a check made before anything is created - as a page's is - passes on the plan that includes it", async () => {
+    projectPlan = PlanType.Growth;
+
+    const props: DatabaseCommonInteractionProps =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      });
+
+    expect(() => {
+      ModelPermission.checkTableWritePermission(
+        OnCallDutyPolicyExecutionLog,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+
+  test("billing on: the same check is refused with the plan it needs below that plan, never 'could not confirm'", async () => {
+    projectPlan = PlanType.Free;
+
+    const props: DatabaseCommonInteractionProps =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      });
+
+    let refusal: unknown = null;
+
+    try {
+      ModelPermission.checkTableWritePermission(
+        OnCallDutyPolicyExecutionLog,
+        props,
+        DatabaseRequestType.Create,
+      );
+    } catch (error) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(PaymentRequiredException);
+    expect((refusal as Error).message).toBe(
+      "Please upgrade your plan to Growth to access this feature",
+    );
+  });
+
+  test("before: props without the plan were refused by that check as 'could not confirm which plan'", () => {
+    // The props getProjectMemberProps used to hand out, with billing on.
+    let refusal: unknown = null;
+
+    try {
+      ModelPermission.checkTableWritePermission(
+        OnCallDutyPolicyExecutionLog,
+        chatMemberProps(),
+        DatabaseRequestType.Create,
+      );
+    } catch (error) {
+      refusal = error;
+    }
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+  });
+
+  test("billing on: a plan that cannot be read refuses the action with that sentence, never 'any plan'", async () => {
+    currentPlanSpy.mockImplementation((async () => {
+      throw new BadDataException("Project does not have any plans");
+    }) as never);
+
+    const refusal: unknown = await WorkspaceActionAuthorization.getProjectMemberProps(
+      {
+        userId: userId,
+        projectId: projectId,
+      },
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(CallerPlan.PLAN_UNKNOWN_MESSAGE);
+  });
+
+  test("billing off: no plan is read, and the props carry none", async () => {
+    setTestBillingEnabled(false);
+
+    const props: DatabaseCommonInteractionProps =
+      await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      });
+
+    expect(props.currentPlan).toBeUndefined();
+    expect(currentPlanSpy).not.toHaveBeenCalled();
+    expect(() => {
+      ModelPermission.checkTableWritePermission(
+        OnCallDutyPolicyExecutionLog,
+        props,
+        DatabaseRequestType.Create,
+      );
+    }).not.toThrow();
+  });
+
+  test("not a member: refused as before, and no plan is read for them", async () => {
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
+
+    await expect(
+      WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: userId,
+        projectId: projectId,
+      }),
+    ).rejects.toThrow(WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE);
     expect(currentPlanSpy).not.toHaveBeenCalled();
   });
 });

@@ -177,9 +177,14 @@ export default class MicrosoftTeamsAlertActions {
         props: databaseProps,
       });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!alert) {
-        await turnContext.sendActivity("Alert not found.");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: "see this alert",
+          service: AlertService,
+          id: new ObjectID(actionValue),
+          props: databaseProps,
+        });
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.

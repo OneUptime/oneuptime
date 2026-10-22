@@ -137,20 +137,21 @@ beforeEach(() => {
   jest
     .spyOn(DatabaseConfig, "getDashboardUrl")
     .mockResolvedValue(URL.fromString(DASHBOARD_URL));
+  // The workspace's connections (WorkspaceProjectResolution reads them all).
   jest
-    .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
+    .spyOn(WorkspaceProjectAuthTokenService, "findBy")
     .mockImplementation((async () => {
       projectReads++;
 
       if (!workspaceConnected) {
-        return null;
+        return [];
       }
 
       const projectAuth: WorkspaceProjectAuthToken =
         new WorkspaceProjectAuthToken();
       projectAuth.projectId = PROJECT_ID;
       projectAuth.authToken = SLACK_PROJECT_TOKEN;
-      return projectAuth;
+      return [projectAuth];
     }) as never);
   jest
     .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
@@ -323,7 +324,7 @@ describe("SlackMessagesWelcome.handleMessagesTabOpened", () => {
       return undefined;
     }) as never);
     (
-      WorkspaceProjectAuthTokenService.findOneBy as unknown as jest.Mock
+      WorkspaceProjectAuthTokenService.findBy as unknown as jest.Mock
     ).mockImplementationOnce(async () => {
       throw new Error('relation "WorkspaceProjectAuthToken" does not exist');
     });

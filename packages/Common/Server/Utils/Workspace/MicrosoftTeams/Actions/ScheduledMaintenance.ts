@@ -64,6 +64,28 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
   public static readonly NO_STATES_MESSAGE: string =
     "No scheduled maintenance states are available to you in this project. Ask a project admin for access to them.";
 
+  /*
+   * What a press on an event does, completing "You do not have permission
+   * to ..." for an event its member may not read.
+   */
+  public static getEventAction(actionType: string): string {
+    switch (actionType) {
+      case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing:
+        return "mark this scheduled maintenance event as ongoing";
+      case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete:
+        return "mark this scheduled maintenance event as complete";
+      case MicrosoftTeamsScheduledMaintenanceActionType.AddScheduledMaintenanceNote:
+      case MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote:
+      case MicrosoftTeamsScheduledMaintenanceActionType.SubmitScheduledMaintenanceNote:
+        return "add a note to this scheduled maintenance event";
+      case MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState:
+      case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState:
+        return "change the state of this scheduled maintenance event";
+      default:
+        return "see this scheduled maintenance event";
+    }
+  }
+
   @CaptureSpan()
   public static isScheduledMaintenanceAction(data: {
     actionType: string;
@@ -311,17 +333,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       );
 
       /*
-       * Read as the member: an event they may not read is answered like
-       * one that is not there, before anything about it is shown. This is
-       * the press's one read of it: it reads what View shows and what the
-       * buttons below need - its state and its number - and they act on it
-       * as read here.
+       * Read as the member: an event they may not read is refused with why
+       * - their access, a deleted event - before anything about it is
+       * shown (WorkspaceMemberActions.readEventForMember; answered by
+       * handleBotInvokeActivity). This is the press's one read of it: it
+       * reads what View shows and what the buttons below need - its state
+       * and its number - and they act on it as read here.
        */
       const found: {
         record: ScheduledMaintenance;
         event: WorkspaceEventRecord;
-      } | null =
-        await WorkspaceMemberActions.findEventForMember<ScheduledMaintenance>({
+      } =
+        await WorkspaceMemberActions.readEventForMember<ScheduledMaintenance>({
           event: {
             type: WorkspaceEventType.ScheduledMaintenance,
             id: scheduledMaintenanceId,
@@ -336,15 +359,10 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
               name: true,
             },
           },
+          action: MicrosoftTeamsScheduledMaintenanceActions.getEventAction(
+            actionType,
+          ),
         });
-
-      if (!found) {
-        logger.error("ScheduledMaintenance not found", {
-          scheduledMaintenanceId: scheduledMaintenanceId.toString(),
-        });
-        await turnContext.sendActivity("ScheduledMaintenance not found");
-        return;
-      }
 
       const scheduledMaintenance: ScheduledMaintenance = found.record;
       const event: WorkspaceEventRecord = found.event;

@@ -1,6 +1,4 @@
-import DatabaseBaseModel, {
-  DatabaseBaseModelType,
-} from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
@@ -30,7 +28,6 @@ import WorkspaceIncidentNumberWordReader, {
   WorkspaceIncidentNumberWord,
 } from "./WorkspaceIncidentNumberWord";
 import type { WorkspaceCustomFieldsForm } from "./WorkspaceIncidentCustomFields";
-import DatabaseService from "../../Services/DatabaseService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
 import IncidentService from "../../Services/IncidentService";
@@ -817,8 +814,7 @@ export default class WorkspaceIncidentActions {
     if (!severity?.id) {
       throw await WorkspaceActionAuthorization.getUnreadableRefusal({
         action: "change the severity of this incident",
-        service:
-          IncidentSeverityService as unknown as DatabaseService<DatabaseBaseModel>,
+        service: IncidentSeverityService,
         id: data.severityId,
         props: data.props,
         readError: readError,
@@ -1031,8 +1027,7 @@ export default class WorkspaceIncidentActions {
     if (!role?.id) {
       throw await WorkspaceActionAuthorization.getUnreadableRefusal({
         action: "assign a role on this incident",
-        service:
-          IncidentRoleService as unknown as DatabaseService<DatabaseBaseModel>,
+        service: IncidentRoleService,
         id: data.roleId,
         props: data.props,
         readError: readError,

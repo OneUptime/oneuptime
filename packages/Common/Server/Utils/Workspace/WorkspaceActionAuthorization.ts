@@ -355,15 +355,19 @@ export default class WorkspaceActionAuthorization {
    * plan is the plan's refusal, as it was thrown.
    */
   @CaptureSpan()
-  public static async getUnreadableRefusal(data: {
+  public static async getUnreadableRefusal<
+    TBaseModel extends DatabaseBaseModel,
+  >(data: {
     // Completes "You do not have permission to ...": "acknowledge this incident".
     action: string;
-    service: DatabaseService<DatabaseBaseModel>;
+    service: DatabaseService<TBaseModel>;
     id: ObjectID;
     props: DatabaseCommonInteractionProps;
     readError?: unknown;
   }): Promise<Error> {
-    const { service, props } = data;
+    const props: DatabaseCommonInteractionProps = data.props;
+    const service: DatabaseService<DatabaseBaseModel> =
+      data.service as unknown as DatabaseService<DatabaseBaseModel>;
     const projectId: ObjectID | undefined = props.tenantId;
 
     if (data.readError instanceof PaymentRequiredException) {

@@ -366,6 +366,19 @@ beforeEach(() => {
       return projectAuth;
     }) as never);
 
+  // The workspace's one connection, as WorkspaceProjectResolution reads them.
+  jest
+    .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+    .mockImplementation((async () => {
+      const projectAuth: WorkspaceProjectAuthToken =
+        new WorkspaceProjectAuthToken();
+      projectAuth.projectId = PROJECT_ID;
+      projectAuth.workspaceType = WorkspaceType.Slack;
+      projectAuth.authToken = "xoxb-project";
+      projectAuth.miscData = { botUserId: "B0BOT" } as never;
+      return [projectAuth];
+    }) as never);
+
   // Jane's Slack account is connected; so is Nitin's.
   jest
     .spyOn(WorkspaceUserAuthTokenService, "findOneBy")

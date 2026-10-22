@@ -3876,9 +3876,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         !tenantResolution.projectAuth ||
         !tenantResolution.projectAuth.projectId
       ) {
-        await data.turnContext.sendActivity(
-          await this.getTenantResolutionFailureText(tenantResolution),
-        );
+        await this.answerTenantResolutionFailure({
+          turnContext: data.turnContext,
+          resolution: tenantResolution,
+        });
         return;
       }
 
@@ -4707,9 +4708,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         !tenantResolution.projectAuth ||
         !tenantResolution.projectAuth.projectId
       ) {
-        await data.turnContext.sendActivity(
-          await this.getTenantResolutionFailureText(tenantResolution),
-        );
+        await this.answerTenantResolutionFailure({
+          turnContext: data.turnContext,
+          resolution: tenantResolution,
+        });
         return;
       }
 
@@ -5257,24 +5259,31 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   /*
-   * getTenantResolutionFailureMessage, saying more when the activity's clues
-   * were read: the projects the person is in, by name, or that their
-   * account is connected in none of them (WorkspaceProjectResolution).
+   * Tells the sender why their activity was not acted on
+   * (getTenantResolutionFailureMessage) - saying more when its clues were
+   * read: the projects they are in, by name, or that their account is
+   * connected in none of them (WorkspaceProjectResolution), in a reply that
+   * mentions them, as every refusal is (MicrosoftTeamsActionAnswer).
    */
   @CaptureSpan()
-  public static async getTenantResolutionFailureText(
-    resolution: MicrosoftTeamsTenantResolution,
-  ): Promise<string> {
-    if (resolution.isAmbiguous && resolution.resolution) {
-      return (
-        await WorkspaceProjectResolver.getAmbiguousAnswer({
+  public static async answerTenantResolutionFailure(data: {
+    turnContext: TurnContext;
+    resolution: MicrosoftTeamsTenantResolution;
+  }): Promise<void> {
+    if (data.resolution.isAmbiguous && data.resolution.resolution) {
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: data.turnContext,
+        answer: await WorkspaceProjectResolver.getAmbiguousAnswer({
           workspaceType: WorkspaceType.MicrosoftTeams,
-          resolution: resolution.resolution,
-        })
-      ).text;
+          resolution: data.resolution.resolution,
+        }),
+      });
+      return;
     }
 
-    return this.getTenantResolutionFailureMessage(resolution);
+    await data.turnContext.sendActivity(
+      this.getTenantResolutionFailureMessage(data.resolution),
+    );
   }
 
   /*

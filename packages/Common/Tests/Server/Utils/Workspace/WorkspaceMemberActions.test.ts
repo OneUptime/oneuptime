@@ -203,8 +203,15 @@ interface RecordKind {
   type: WorkspaceEventType;
   noun: string;
   subject: string;
-  // Stubs the member's read of the record; null is a record they may not read.
-  stubRead: (currentStateId: ObjectID | null) => AnySpy;
+  /*
+   * Stubs the member's read of the record; null is a record that is not
+   * there for anybody. With `isOutsideMemberRead`, it is there, but only
+   * OneUptime's own read finds it (their labels, their owners).
+   */
+  stubRead: (
+    currentStateId: ObjectID | null,
+    isOutsideMemberRead?: boolean,
+  ) => AnySpy;
   // Stubs the state timeline create.
   stubCreate: () => AnySpy;
   recordColumn: string;
@@ -220,8 +227,14 @@ function readOf(data: {
     projectId?: ObjectID | undefined;
   } & Record<string, unknown>;
   stateColumn: string;
-}): (currentStateId: ObjectID | null) => AnySpy {
-  return (currentStateId: ObjectID | null): AnySpy => {
+}): (
+  currentStateId: ObjectID | null,
+  isOutsideMemberRead?: boolean,
+) => AnySpy {
+  return (
+    currentStateId: ObjectID | null,
+    isOutsideMemberRead?: boolean,
+  ): AnySpy => {
     const spy: AnySpy = jest.spyOn(
       data.service as { findOneBy: () => Promise<unknown> },
       "findOneBy",
@@ -235,6 +248,17 @@ function readOf(data: {
     record["id"] = ObjectID.generate();
     record["projectId"] = projectId;
     record[data.stateColumn] = currentStateId;
+
+    if (isOutsideMemberRead) {
+      return spy.mockImplementation(
+        async (findOneBy: unknown): Promise<unknown> => {
+          return (findOneBy as { props: { isRoot?: boolean } }).props.isRoot
+            ? record
+            : null;
+        },
+      );
+    }
+
     return spy.mockResolvedValue(record);
   };
 }
@@ -458,7 +482,7 @@ describe("WorkspaceMemberActions.changeState", (): void => {
   );
 
   test.each(RECORD_KINDS)(
-    "refuses $name the member may not read, like one that is not there, and writes nothing",
+    "refuses $name that is gone as not found - it may have been deleted - and writes nothing",
     async (kind: RecordKind): Promise<void> => {
       kind.stubRead(null);
       const createSpy: AnySpy = kind.stubCreate();
@@ -471,7 +495,7 @@ describe("WorkspaceMemberActions.changeState", (): void => {
         }),
       ).rejects.toThrow(
         new NotAuthorizedException(
-          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+          `Could not change this ${kind.noun}: the ${kind.noun} was not found. It may have been deleted.`,
         ),
       );
 
@@ -480,27 +504,60 @@ describe("WorkspaceMemberActions.changeState", (): void => {
   );
 
   test.each(RECORD_KINDS)(
-    "answers a read of $name the member's permissions or plan refuse with the same sentence",
+    "refuses $name that is there but outside the member's read with that - never as one that is not there - and writes nothing",
+    async (kind: RecordKind): Promise<void> => {
+      kind.stubRead(ObjectID.generate(), true);
+      const createSpy: AnySpy = kind.stubCreate();
+
+      const refusal: Promise<void> = WorkspaceMemberActions.changeState({
+        event: { type: kind.type, id: ObjectID.generate() },
+        stateId: ObjectID.generate(),
+        props: memberProps,
+      });
+
+      await expect(refusal).rejects.toThrow(
+        new NotAuthorizedException(
+          `You do not have permission to change this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+        ),
+      );
+      await expect(refusal).rejects.not.toThrow("not found");
+
+      expect(createSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(RECORD_KINDS)(
+    "answers a read of $name the member's permissions refuse with the permission, and one the plan refuses with the plan",
     async (kind: RecordKind): Promise<void> => {
       const readSpy: AnySpy = kind.stubRead(null);
       const createSpy: AnySpy = kind.stubCreate();
 
-      for (const refusal of [
+      readSpy.mockRejectedValueOnce(
         new NotAuthorizedException("You do not have permissions to read."),
-        new PaymentRequiredException("Upgrade your plan."),
-      ]) {
-        readSpy.mockRejectedValueOnce(refusal);
+      );
 
-        await expect(
-          WorkspaceMemberActions.changeState({
-            event: { type: kind.type, id: ObjectID.generate() },
-            stateId: ObjectID.generate(),
-            props: memberProps,
-          }),
-        ).rejects.toThrow(
-          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
-        );
-      }
+      await expect(
+        WorkspaceMemberActions.changeState({
+          event: { type: kind.type, id: ObjectID.generate() },
+          stateId: ObjectID.generate(),
+          props: memberProps,
+        }),
+      ).rejects.toThrow(
+        `You do not have permission to change this ${kind.noun}. You do not have permissions to read.`,
+      );
+
+      const plan: PaymentRequiredException = new PaymentRequiredException(
+        "Upgrade your plan.",
+      );
+      readSpy.mockRejectedValueOnce(plan);
+
+      await expect(
+        WorkspaceMemberActions.changeState({
+          event: { type: kind.type, id: ObjectID.generate() },
+          stateId: ObjectID.generate(),
+          props: memberProps,
+        }),
+      ).rejects.toBe(plan);
 
       expect(createSpy).not.toHaveBeenCalled();
     },
@@ -647,7 +704,7 @@ describe("WorkspaceMemberActions.acknowledge", (): void => {
           props: memberProps,
         }),
       ).rejects.toThrow(
-        `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+        `Could not change this ${kind.noun}: the ${kind.noun} was not found. It may have been deleted.`,
       );
 
       expect(createSpy).not.toHaveBeenCalled();
@@ -822,7 +879,7 @@ describe("WorkspaceMemberActions.resolve", (): void => {
         props: memberProps,
       }),
     ).rejects.toThrow(
-      "The scheduled maintenance event was not found in this project, or you do not have access to it.",
+      "Could not change this scheduled maintenance event: the scheduled maintenance event was not found. It may have been deleted.",
     );
 
     expect(completedSpy).not.toHaveBeenCalled();
@@ -1136,7 +1193,7 @@ describe("WorkspaceMemberActions: the record as the check read it", (): void => 
         }),
       ).rejects.toThrow(
         new NotAuthorizedException(
-          `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+          `Could not change this ${kind.noun}: the ${kind.noun} was not found. It may have been deleted.`,
         ),
       );
 
@@ -1760,7 +1817,7 @@ describe("WorkspaceMemberActions.findStateOptions", (): void => {
 
       await expect(optionsFor(optionsKind)).rejects.toThrow(
         new NotAuthorizedException(
-          `The ${optionsKind.kind.noun} was not found in this project, or you do not have access to it.`,
+          `Could not change this ${optionsKind.kind.noun}: the ${optionsKind.kind.noun} was not found. It may have been deleted.`,
         ),
       );
       expect(findSpy).not.toHaveBeenCalled();
@@ -1847,7 +1904,7 @@ describe("WorkspaceMemberActions.executeOnCallPolicy", (): void => {
           props: memberProps,
         }),
       ).rejects.toThrow(
-        `The ${kind.noun} was not found in this project, or you do not have access to it.`,
+        `Could not change this ${kind.noun}: the ${kind.noun} was not found. It may have been deleted.`,
       );
 
       expect(createSpy).not.toHaveBeenCalled();

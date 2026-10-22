@@ -197,9 +197,14 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
           props: databaseProps,
         });
 
+      // Not readable to them: why (answered by handleBotInvokeActivity).
       if (!episode) {
-        await turnContext.sendActivity("Incident episode not found.");
-        return;
+        throw await WorkspaceActionAuthorization.getUnreadableRefusal({
+          action: "see this incident episode",
+          service: IncidentEpisodeService,
+          id: new ObjectID(actionValue),
+          props: databaseProps,
+        });
       }
 
       // The title and the state and severity names are plain text, escaped as MarkdownEscape says a title must be.

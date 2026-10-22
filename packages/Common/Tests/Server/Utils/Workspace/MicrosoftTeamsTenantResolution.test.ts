@@ -81,7 +81,21 @@ import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
+import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
+import IncidentService from "../../../../Server/Services/IncidentService";
+import AlertService from "../../../../Server/Services/AlertService";
+import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
+import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import MonitorService from "../../../../Server/Services/MonitorService";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ProjectService from "../../../../Server/Services/ProjectService";
+import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import { WorkspaceProjectEvidence } from "../../../../Server/Utils/Workspace/WorkspaceProjectResolution";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import Project from "../../../../Models/DatabaseModels/Project";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ObjectID from "../../../../Types/ObjectID";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
@@ -298,6 +312,14 @@ beforeEach(() => {
   (CardFactory.heroCard as jest.Mock).mockReset();
   (TeamsInfo.getMembers as jest.Mock).mockReset();
   (TeamsInfo.getPagedMembers as jest.Mock).mockReset();
+
+  /*
+   * A tenant connected to several projects is told apart by the activity's
+   * own clues (WorkspaceProjectResolution): the sender's Microsoft Teams
+   * account, connected here in none of them unless a test says otherwise,
+   * so the activity stays ambiguous.
+   */
+  jest.spyOn(WorkspaceUserAuthTokenService, "findBy").mockResolvedValue([]);
 });
 
 describe("MicrosoftTeamsUtil.resolveProjectByTenantId - row counting", () => {
@@ -850,8 +872,14 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - tenant resolution", () =
     });
 
     expect(resolveSpy).toHaveBeenCalledTimes(1);
+    // With the clues the message carries: who sent it, and where.
     expect(resolveSpy).toHaveBeenCalledWith({
       tenantId: "tenant-from-activity",
+      clues: {
+        recordIds: [],
+        channelId: undefined,
+        workspaceUserId: AAD_OBJECT_ID,
+      },
     });
   });
 
@@ -1133,7 +1161,15 @@ describe("MicrosoftTeamsUtil.handleBotInvokeActivity - tenant resolution", () =>
     });
 
     expect(resolveSpy).toHaveBeenCalledTimes(1);
-    expect(resolveSpy).toHaveBeenCalledWith({ tenantId: "tenant-from-invoke" });
+    // With the clues the card carries: its record, who pressed, and where.
+    expect(resolveSpy).toHaveBeenCalledWith({
+      tenantId: "tenant-from-invoke",
+      clues: {
+        recordIds: ["some-id"],
+        channelId: undefined,
+        workspaceUserId: AAD_OBJECT_ID,
+      },
+    });
   });
 
   test("a missing channelData.tenant.id replies about the organization and never resolves a tenant", async () => {
@@ -1179,6 +1215,204 @@ describe("MicrosoftTeamsUtil.handleBotInvokeActivity - tenant resolution", () =>
 
     expect(resolveSpy).not.toHaveBeenCalled();
     expect(joinedSentText(context.sendActivity)).toContain(NO_TENANT_FRAGMENT);
+  });
+});
+
+/*
+ * ONE ORGANIZATION, SEVERAL PROJECTS - TOLD APART BY WHAT THE ACTIVITY CARRIES.
+ *
+ * A Slack customer's incident buttons were read in the wrong one of two
+ * projects; the same organization on Microsoft Teams was refused outright.
+ * Every Teams activity now acts as the member the sender's account is
+ * connected to, with their own permissions, so a tenant connected to
+ * several projects is told apart by the activity itself - the record a
+ * card's button is about, the channel it was sent in, the one project the
+ * sender is in - and refused only when none of those tells.
+ */
+describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apart by the activity", () => {
+  const PRODUCTION: ObjectID = new ObjectID(
+    "f1000000-0000-4000-8000-000000000001",
+  );
+  const STAGING: ObjectID = new ObjectID(
+    "f1000000-0000-4000-8000-000000000002",
+  );
+  const MEMBER: ObjectID = new ObjectID("f1000000-0000-4000-8000-0000000000a1");
+  const INCIDENT: ObjectID = new ObjectID(
+    "f1000000-0000-4000-8000-0000000000b1",
+  );
+
+  function linkSender(projectIds: Array<ObjectID>): void {
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findBy")
+      .mockResolvedValue(
+        projectIds.map((projectId: ObjectID): WorkspaceUserAuthToken => {
+          const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+          link.projectId = projectId;
+          link.userId = MEMBER;
+          return link;
+        }),
+      );
+    jest
+      .spyOn(WorkspaceActionAuthorization, "isProjectMember")
+      .mockResolvedValue(true);
+  }
+
+  test("resolveProjectByTenantId without clues still refuses two projects", async () => {
+    mockFindBy([
+      buildProjectAuthRow({ projectId: PRODUCTION }),
+      buildProjectAuthRow({ projectId: STAGING }),
+    ]);
+
+    const resolution: MicrosoftTeamsTenantResolution =
+      await MicrosoftTeamsUtil.resolveProjectByTenantId({
+        tenantId: TENANT_ID,
+      });
+
+    expect(resolution.projectAuth).toBeNull();
+    expect(resolution.isAmbiguous).toBe(true);
+    expect(resolution.resolution).toBeUndefined();
+  });
+
+  test("the sender, a member of one of the two: that project, and the message is answered there", async () => {
+    mockFindBy([
+      buildProjectAuthRow({ projectId: PRODUCTION }),
+      buildProjectAuthRow({ projectId: STAGING }),
+    ]);
+    linkSender([STAGING]);
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    stubChatCapture();
+
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "show active incidents" }),
+      turnContext: context.turnContext,
+    });
+
+    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      STAGING.toString(),
+    );
+    expect(joinedSentText(context.sendActivity)).not.toContain(
+      AMBIGUOUS_FRAGMENT,
+    );
+  });
+
+  test("a card's button acts in its record's project, whatever the sender is in", async () => {
+    mockFindBy([
+      buildProjectAuthRow({ projectId: PRODUCTION }),
+      buildProjectAuthRow({ projectId: STAGING }),
+    ]);
+    // Records of the other kinds a button can name: none with that id.
+    for (const service of [
+      AlertService,
+      AlertEpisodeService,
+      IncidentEpisodeService,
+      MonitorService,
+      OnCallDutyPolicyService,
+      ScheduledMaintenanceService,
+    ] as Array<{ findOneBy: () => Promise<unknown> }>) {
+      jest.spyOn(service, "findOneBy").mockResolvedValue(null as never);
+    }
+
+    // The incident is the production project's.
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async () => {
+        const incident: Incident = new Incident();
+        incident.id = INCIDENT;
+        incident.projectId = PRODUCTION;
+        return incident;
+      }) as never);
+    const userLookupSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockResolvedValue(MEMBER);
+
+    const activity: JSONObject = invokeActivity();
+    activity["value"] = {
+      action: "AcknowledgeIncident",
+      actionValue: INCIDENT.toString(),
+    };
+
+    const resolution: MicrosoftTeamsTenantResolution =
+      await MicrosoftTeamsUtil.resolveProjectByTenantId({
+        tenantId: TENANT_ID,
+        clues: MicrosoftTeamsUtil.getProjectClues({
+          activity: activity,
+          actionValue: INCIDENT.toString(),
+        }),
+      });
+
+    expect(resolution.projectAuth?.projectId?.toString()).toBe(
+      PRODUCTION.toString(),
+    );
+    expect(resolution.isAmbiguous).toBe(false);
+    expect(resolution.resolution?.decidedBy).toBe(
+      WorkspaceProjectEvidence.Record,
+    );
+
+    // Through the entry point: the press is authorized in that project.
+    await MicrosoftTeamsUtil.handleBotInvokeActivity({
+      activity: activity,
+      turnContext: buildTurnContext().turnContext,
+    });
+
+    expect(
+      (
+        userLookupSpy.mock.calls[0]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(PRODUCTION.toString());
+  });
+
+  test("a member of both, in a personal chat: told so, the projects named, and nothing is read in either", async () => {
+    mockFindBy([
+      buildProjectAuthRow({ projectId: PRODUCTION }),
+      buildProjectAuthRow({ projectId: STAGING }),
+    ]);
+    linkSender([PRODUCTION, STAGING]);
+    jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+      return [
+        [PRODUCTION, "Production"],
+        [STAGING, "Staging"],
+      ].map((entry: Array<ObjectID | string>): Project => {
+        const project: Project = new Project();
+        project.id = entry[0] as ObjectID;
+        project.name = entry[1] as string;
+        return project;
+      });
+    }) as never);
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    stubChatCapture();
+
+    const context: FakeTurnContext = buildTurnContext();
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: messageActivity({ text: "show active incidents" }),
+      turnContext: context.turnContext,
+    });
+
+    const sent: string = joinedSentText(context.sendActivity);
+    expect(sent).toContain(AMBIGUOUS_FRAGMENT);
+    expect(sent).toContain("Production");
+    expect(sent).toContain("Staging");
+    expect(sent).toContain(
+      "try it again from a channel of the one you mean, such as one of its incident channels.",
+    );
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("getTenantResolutionFailureMessage says what to do, not to disconnect a project", () => {
+    const message: string = MicrosoftTeamsUtil.getTenantResolutionFailureMessage(
+      {
+        projectAuth: null,
+        isAmbiguous: true,
+        candidateProjectIds: [PRODUCTION, STAGING],
+      },
+    );
+
+    expect(message).toContain(AMBIGUOUS_FRAGMENT);
+    expect(message).toContain("Try it again from a channel of the one you mean");
+    expect(message).not.toContain("disconnect");
   });
 });
 
