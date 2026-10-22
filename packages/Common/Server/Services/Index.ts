@@ -158,7 +158,6 @@ import MonitorOwnerRuleService from "./MonitorOwnerRuleService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
-import RunbookCredentialService from "./RunbookCredentialService";
 import RunbookOwnerRuleService from "./RunbookOwnerRuleService";
 import RunbookOwnerUserService from "./RunbookOwnerUserService";
 import RunbookOwnerTeamService from "./RunbookOwnerTeamService";
@@ -679,7 +678,6 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
-  RunbookCredentialService,
   RunbookOwnerRuleService,
   RunbookOwnerUserService,
   RunbookOwnerTeamService,

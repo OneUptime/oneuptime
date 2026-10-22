@@ -12,7 +12,7 @@ It serves three kinds of work:
 | --- | --- | --- |
 | Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
 | AI code fixes | when a code repository picks it | Claims the AI code-fix runs of the code repositories that pick this Runner in their settings in Code, works in them and opens pull requests **ready for review**. Never writes to the default or protected branches, and never merges. |
-| Runs AI Remediation Commands | off | AI auto-remediation may execute policy-checked Bash and SSH commands on this host (or over its assigned SSH credentials). Suggest-mode commands run only after one-click human approval; FullAuto runs only commands matching the rule's operator allowlist. A built-in denylist refuses destructive commands regardless. |
+| Runs AI Remediation Commands | off | AI auto-remediation may execute policy-checked Bash commands on this host. Suggest-mode commands run only after one-click human approval; FullAuto runs only commands matching the rule's operator allowlist. A built-in denylist refuses destructive commands regardless. |
 
 The two capabilities are set **in the dashboard**, on the Runner itself; AI
 code fixes follow the code repositories that pick the Runner, in Code. The
@@ -39,7 +39,7 @@ Kubernetes AI agent is online, the server refuses the legacy Runner's
 registration; the Runner keeps retrying, so a `helm rollback` of the chart
 within a week of the upgrade brings it back once the AI agent has stopped.
 After a week offline, OneUptime removes the old Runner's row if nothing else
-uses it (no credentials or secrets, runbooks, code fixes or remediation
+uses it (no secret runbook variables, runbooks, code fixes or remediation
 rules). A Runner rolled back after that registers again but is not bound to
 its cluster: bind it with the API or Terraform (the cluster's **AI Access
 Runner**), or upgrade the chart again.
@@ -73,7 +73,7 @@ step. It starts claiming that repository's work on its next heartbeat.
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
 | `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule: `false` refuses code-fix work even for a code repository that picks this Runner. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
-| `ONEUPTIME_KUBECTL_ALLOW_WRITES` | unset | Whether OneUptime AI may run kubectl **writes** (remediations) from this host. When set it fails closed: only `true` (any case) allows them; `false` and any other value refuse every non-read kubectl before it starts. Unset allows writes on an ordinary Runner (the Kubernetes credential's RBAC bounds them) and refuses them on the legacy in-cluster Runner, whose chart always sets it from `aiAccess.remediation.enabled`. Reads are unaffected. |
+| `ONEUPTIME_KUBECTL_ALLOW_WRITES` | unset | Whether OneUptime AI may run kubectl **writes** (remediations) from this host. When set it fails closed: only `true` (any case) allows them; `false` and any other value refuse every non-read kubectl before it starts. Unset allows writes on an ordinary Runner, which OneUptime no longer sends kubectl, and refuses them on the legacy in-cluster Runner, whose chart always sets it from `aiAccess.remediation.enabled`. Reads are unaffected. |
 | `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | unset | Whether OneUptime AI may run kubectl **node operations** from this host: cordon, uncordon, drain, taint, and label, annotate or patch on a Node. Parsed like `ONEUPTIME_KUBECTL_ALLOW_WRITES`: when set, only `true` (any case) allows them and any other value refuses them before kubectl starts; unset allows them on an ordinary Runner and refuses them on the legacy in-cluster Runner, whose chart sets it from `aiAccess.remediation.nodeOperations`. Nodes are cluster-scoped, so this switch — not the namespace list below — is what bounds them. Needs writes allowed; reads are unaffected. |
 | `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` | unset (cluster-wide) | Comma-separated namespaces kubectl writes may change; reads are never restricted. A write is judged by what it changes, the way kubectl reads it: a namespaced object by its namespace (`-n`, or the default namespace when `-n` is missing), and a write across all namespaces is refused; a Namespace object by its **name** (`label namespace X` changes `X`, whatever `-n` says), so only a listed namespace can be changed; any other cluster-scoped object (a PersistentVolume, StorageClass, IngressClass, ClusterRole, CRD, …) is outside every namespace and refused while this list is set (left to RBAC when it is empty). Node operations are not namespace-scoped: `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` governs them. A custom resource is judged by `-n` (the Runner cannot look up its scope), even one whose name looks like a built-in cluster-scoped kind (`nodes.example.com`). |
 | `ONEUPTIME_RUNNER_POD_NAMESPACE` | unset | The namespace this Runner's own pod runs in (earlier Kubernetes agent charts set it for their in-cluster Runner). kubectl writes into it are always refused, and so are writes to the Namespace object of that name; in-cluster a namespaced write with no `-n` counts as one. |
@@ -107,10 +107,11 @@ and every one of them defaults to off: the project-level setting, the **Runs
 AI Remediation Commands** toggle on this Runner, and the opt-in on each
 individual auto-remediation rule. Turning any one of them off stops the work.
 
-SSH credentials work the same way as runbook credentials: the server resolves
-them at claim time and delivers them only inside the claimed job. The AI that
-composes a command never sees a credential — it can only name which one the
-Runner should use.
+OneUptime AI composes no SSH command for a Runner: such a command reached
+another host with a runbook credential, and runbook credentials were removed.
+A host is fixed through its own AI agent, or by a runbook whose SSH step signs
+in with a secret runbook variable. A command queued with a credential before
+the upgrade is failed when a Runner claims it, saying why.
 
 The Runner does not take the control plane's word for any of this. Before
 executing, it re-checks its own capability grant and the built-in denylist of
@@ -124,9 +125,12 @@ within a minute by default — like every other capability.
 
 OneUptime AI runs kubectl through the cluster's Kubernetes AI agent or
 through a Runner: read-only during investigations, policy-tiered changes
-during remediations. This section covers kubectl on a Runner — an ordinary
-Runner bound to a cluster together with a Kubernetes credential, or the
-deprecated in-cluster Runner of an earlier Kubernetes agent chart. The Runner
+during remediations. This section covers kubectl on a Runner: the
+deprecated in-cluster Runner of an earlier Kubernetes agent chart, the only
+Runner OneUptime still sends a cluster's kubectl to. An ordinary Runner
+reached a cluster with a Kubernetes runbook credential, and runbook
+credentials were removed, so OneUptime fails such a command on any other
+Runner, saying why. The Runner
 re-checks every command itself before it starts: its own argv guard (no
 credential, cluster, file or verbose-logging flags, and no `--overrides` or
 `--override-type`, in any spelling kubectl accepts), the shared kubectl

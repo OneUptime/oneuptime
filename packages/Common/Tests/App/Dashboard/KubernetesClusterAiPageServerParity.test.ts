@@ -23,7 +23,6 @@ import {
   AI_AGENT_SILENT_TEXT,
   AiAgentAttention,
   AiAgentAttentionStep,
-  canSwitchToAiAgent,
   getAiAgentAttention,
   getAiAgentCardCommand,
   getAiAgentCardState,
@@ -36,7 +35,6 @@ import {
   getAiAgentSummary,
   getAttentionGaps,
   getAutomaticInvestigation,
-  isAdvancedRunnerTarget,
   isLegacyRunnerTarget,
   parseStatus,
   shouldShowWriteAccessCommands,
@@ -58,7 +56,6 @@ import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClu
 import KubernetesClusterService, {
   normalizeKubectlAllowlistForWrite,
 } from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService, {
   Service as RunnerServiceClass,
 } from "../../../Server/Services/RunnerService";
@@ -74,7 +71,6 @@ import {
 } from "../../Server/TestingUtils/RowsCallerMayWrite";
 import KubernetesAiAgent from "../../../Models/DatabaseModels/KubernetesAiAgent";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../../Models/DatabaseModels/Runner";
@@ -95,7 +91,6 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 
@@ -106,9 +101,9 @@ import FeedMarkdown from "../../../Utils/Markdown/FeedMarkdown";
  *
  * - who may loosen: the page's rule (getKubernetesAiAccessLooseningChanges)
  *   gives the verdict KubernetesClusterService's write hook gives, for the
- *   same saved settings, the same change and the same answer to "does this
- *   cluster have a Kubernetes AI agent?" — Off -> Ask for approval and
- *   clearing a binding while an agent exists included;
+ *   same saved settings and the same change the form sends — Off -> Ask
+ *   for approval included. The form sends no Runner or credential: its
+ *   pickers went with runbook credentials (Runbooks > Runners > AI Access);
  * - the status the real service computes drives the page's card: every
  *   state of the "Kubernetes AI agent" card, the Needs attention item (one
  *   headline, a step per gap in this page's words), the write-access
@@ -124,10 +119,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CLUSTER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
+// The cluster's previous in-cluster Runner, the only one it can be bound to.
 const RUNNER_ID: string = "44444444-4444-4444-8444-444444444444";
+// A Runner outside the cluster, which reached it only with a credential.
 const OTHER_RUNNER_ID: string = "77777777-7777-4777-8777-777777777777";
-const CREDENTIAL_ID: string = "55555555-5555-4555-8555-555555555555";
-const OTHER_CREDENTIAL_ID: string = "88888888-8888-4888-8888-888888888888";
 const AGENT_ID: string = "99999999-9999-4999-8999-999999999990";
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
@@ -180,17 +175,18 @@ interface StoredSettings {
   aiRemediationMode: KubernetesAiRemediationMode;
   aiKubectlCommandAllowlist: unknown;
   aiAccessRunnerId: string | null;
-  aiAccessCredentialId: string | null;
   hasAiAgent: boolean;
 }
 
-// A cluster bound to an advanced Runner, with no AI agent unless said.
+/*
+ * A cluster bound to its previous in-cluster Runner, with no AI agent
+ * unless said.
+ */
 function stored(overrides: Partial<StoredSettings> = {}): StoredSettings {
   return {
     aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
     aiAccessRunnerId: RUNNER_ID,
-    aiAccessCredentialId: null,
     hasAiAgent: false,
     ...overrides,
   };
@@ -204,10 +200,6 @@ function asPageSaved(
     isAiInvestigationEnabled: true,
     aiRemediationMode: settings.aiRemediationMode,
     aiKubectlCommandAllowlist: settings.aiKubectlCommandAllowlist,
-    aiAccessRunnerId: settings.aiAccessRunnerId,
-    aiAccessRunnerName: settings.aiAccessRunnerId ? "bash-runner" : null,
-    aiAccessCredentialId: settings.aiAccessCredentialId,
-    aiAccessCredentialName: settings.aiAccessCredentialId ? "prod token" : null,
   };
 }
 
@@ -254,14 +246,12 @@ function serveStoredCluster(settings: StoredSettings): void {
       id: CLUSTER_ID,
       _id: CLUSTER_ID.toString(),
       projectId: PROJECT_ID,
+      clusterIdentifier: "prod-us",
       isAiInvestigationEnabled: true,
       aiRemediationMode: settings.aiRemediationMode,
       aiKubectlCommandAllowlist: settings.aiKubectlCommandAllowlist,
       aiAccessRunnerId: settings.aiAccessRunnerId
         ? new ObjectID(settings.aiAccessRunnerId)
-        : null,
-      aiAccessCredentialId: settings.aiAccessCredentialId
-        ? new ObjectID(settings.aiAccessCredentialId)
         : null,
     } as unknown as KubernetesCluster,
   ]);
@@ -313,7 +303,6 @@ function pageSaysLoosens(
     getKubernetesAiAccessLooseningChanges({
       saved: asPageSaved(settings),
       changes,
-      hasAiAgent: settings.hasAiAgent,
     }).length > 0
   );
 }
@@ -332,12 +321,6 @@ beforeEach(() => {
   jest
     .spyOn(RunnerService, "findOneBy")
     .mockResolvedValue({ id: new ObjectID(RUNNER_ID) } as unknown as Runner);
-  jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-    id: new ObjectID(CREDENTIAL_ID),
-    credentialType: RunbookCredentialType.Kubernetes,
-    name: "prod token",
-    runners: [{ _id: RUNNER_ID, id: new ObjectID(RUNNER_ID) }],
-  } as unknown as RunbookCredential);
 });
 
 afterEach(() => {
@@ -455,58 +438,6 @@ describe("who may loosen: the page and the server agree", () => {
       changes: { aiKubectlCommandAllowlist: [] },
     },
     {
-      name: "unbind the Runner of a cluster without an AI agent",
-      settings: stored(),
-      changes: { aiAccessRunnerId: null },
-    },
-    // Regression (§11): with an agent, clearing hands the cluster to it.
-    {
-      name: "unbind the Runner of a cluster with an AI agent",
-      settings: stored({ hasAiAgent: true }),
-      changes: { aiAccessRunnerId: null },
-    },
-    {
-      name: "unbind the Runner and credential of a cluster with an AI agent",
-      settings: stored({
-        aiAccessCredentialId: CREDENTIAL_ID,
-        hasAiAgent: true,
-      }),
-      changes: { aiAccessRunnerId: null, aiAccessCredentialId: null },
-    },
-    {
-      name: "unbind the credential of a cluster with an AI agent",
-      settings: stored({
-        aiAccessCredentialId: CREDENTIAL_ID,
-        hasAiAgent: true,
-      }),
-      changes: { aiAccessCredentialId: null },
-    },
-    {
-      name: "unbind the credential of a cluster without an AI agent",
-      settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
-      changes: { aiAccessCredentialId: null },
-    },
-    {
-      name: "bind another Runner",
-      settings: stored(),
-      changes: { aiAccessRunnerId: OTHER_RUNNER_ID },
-    },
-    {
-      name: "re-send the bound Runner",
-      settings: stored({ hasAiAgent: true }),
-      changes: { aiAccessRunnerId: RUNNER_ID },
-    },
-    {
-      name: "bind a credential",
-      settings: stored(),
-      changes: { aiAccessCredentialId: CREDENTIAL_ID },
-    },
-    {
-      name: "bind another credential",
-      settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
-      changes: { aiAccessCredentialId: OTHER_CREDENTIAL_ID },
-    },
-    {
       name: "turn investigation off",
       settings: stored({ hasAiAgent: true }),
       changes: { isAiInvestigationEnabled: false },
@@ -540,6 +471,49 @@ describe("who may loosen: the page and the server agree", () => {
       });
     });
   }
+
+  /*
+   * The form sends no Runner and no credential, so the page names no
+   * loosening for one. A Runner written through the API is the server's
+   * alone to judge: binding another one loosens, clearing the bound one
+   * does not - and the form never offers either.
+   */
+  test("a Runner is the server's alone to judge: the form sends none", async () => {
+    for (const changes of [
+      { aiAccessRunnerId: OTHER_RUNNER_ID },
+      { aiAccessRunnerId: null },
+    ] as Array<JSONObject>) {
+      expect(pageSaysLoosens(stored(), changes)).toBe(false);
+    }
+
+    expect(
+      await serverSaysLoosens(stored(), { aiAccessRunnerId: OTHER_RUNNER_ID }),
+    ).toBe(true);
+    for (const hasAiAgent of [true, false]) {
+      expect(
+        await serverSaysLoosens(stored({ hasAiAgent }), {
+          aiAccessRunnerId: null,
+        }),
+      ).toBe(false);
+    }
+
+    const saved: KubernetesAiAccessSavedSettings = asPageSaved(stored());
+    for (const canConfigureUnattended of [true, false]) {
+      const offered: KubernetesAiAccessOfferedFields =
+        getKubernetesAiAccessOfferedFields({ saved, canConfigureUnattended });
+      const changes: JSONObject = getKubernetesAiAccessSettingsChanges({
+        saved,
+        values: {
+          ...getKubernetesAiAccessSettingsInitialValues(saved),
+          aiAccessRunnerId: OTHER_RUNNER_ID,
+          clearAiAccessRunner: true,
+        } as unknown as FormValues<KubernetesAiAccessSettingsFormValues>,
+        offered,
+      });
+
+      expect(Object.keys(changes)).toEqual([]);
+    }
+  });
 
   // The modes the modal offers a member are exactly the ones the server accepts.
   test("the modes offered to a member are the ones the server lets them save", async () => {
@@ -617,12 +591,6 @@ describe("a cluster editor's tightening through the form is accepted end to end"
       edits: { kubectlAllowlistText: "" },
       expected: { aiKubectlCommandAllowlist: [] },
     },
-    {
-      name: "unbinds the Runner and the credential of a cluster without an AI agent",
-      settings: stored({ aiAccessCredentialId: CREDENTIAL_ID }),
-      edits: { clearAiAccessRunner: true, clearAiAccessCredential: true },
-      expected: { aiAccessRunnerId: null, aiAccessCredentialId: null },
-    },
   ];
 
   for (const edit of MEMBER_EDITS) {
@@ -632,10 +600,6 @@ describe("a cluster editor's tightening through the form is accepted end to end"
         getKubernetesAiAccessOfferedFields({
           saved,
           canConfigureUnattended: false,
-          isRunnerPickerAvailable: false,
-          isCredentialPickerAvailable: false,
-          isAdvancedBinding: saved.aiAccessRunnerId !== null,
-          hasAiAgent: edit.settings.hasAiAgent,
         });
       const changes: JSONObject = getKubernetesAiAccessSettingsChanges({
         saved,
@@ -651,41 +615,11 @@ describe("a cluster editor's tightening through the form is accepted end to end"
         getKubernetesAiAccessLooseningChanges({
           saved,
           changes,
-          hasAiAgent: edit.settings.hasAiAgent,
         }),
       ).toEqual([]);
       expect(await serverSaysLoosens(edit.settings, changes)).toBe(false);
     });
   }
-
-  /*
-   * The unbind switch is gone for a member once the cluster has an agent
-   * — and the server would refuse the write it used to send.
-   */
-  test("a member is not offered the unbind the server would refuse", async () => {
-    const settings: StoredSettings = stored({
-      aiAccessCredentialId: CREDENTIAL_ID,
-      hasAiAgent: true,
-    });
-    const offered: KubernetesAiAccessOfferedFields =
-      getKubernetesAiAccessOfferedFields({
-        saved: asPageSaved(settings),
-        canConfigureUnattended: false,
-        isRunnerPickerAvailable: false,
-        isCredentialPickerAvailable: false,
-        isAdvancedBinding: true,
-        hasAiAgent: true,
-      });
-
-    expect(offered.runnerClear).toBe(false);
-    expect(offered.credentialClear).toBe(false);
-    expect(
-      await serverSaysLoosens(settings, {
-        aiAccessRunnerId: null,
-        aiAccessCredentialId: null,
-      }),
-    ).toBe(true);
-  });
 });
 
 function fakeCluster(
@@ -698,7 +632,6 @@ function fakeCluster(
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.Disabled,
     aiKubectlCommandAllowlist: undefined,
@@ -725,8 +658,12 @@ function fakeLegacyRunner(overrides: Record<string, unknown> = {}): Runner {
   } as unknown as Runner;
 }
 
-// A Runner an operator created, outside the chart.
-function fakeAdvancedRunner(overrides: Record<string, unknown> = {}): Runner {
+/*
+ * A Runner an operator created, outside the cluster: it reached the
+ * cluster only with a Kubernetes runbook credential, so it is no access
+ * target any more.
+ */
+function fakeOutsideRunner(overrides: Record<string, unknown> = {}): Runner {
   return {
     id: new ObjectID(OTHER_RUNNER_ID),
     _id: OTHER_RUNNER_ID,
@@ -777,8 +714,8 @@ function projectSwitchGapCodes(
 }
 
 /*
- * The server resolves the access target (agent, previous Runner, advanced
- * Runner, none) and the page reads the result. Each state of the card is
+ * The server resolves the access target (agent, previous Runner, none)
+ * and the page reads the result. Each state of the card is
  * checked against what the real status produces for it.
  */
 describe("the AI agent card follows the real status", () => {
@@ -1000,19 +937,31 @@ describe("the AI agent card follows the real status", () => {
     expect(getAiAgentCardState(status)).toBe("connected");
   });
 
-  test("an advanced Runner wins over an online agent, and can be switched back to it", async () => {
-    const status: KubernetesClusterAiAccessStatus = await realStatus({
-      cluster: fakeCluster({
-        aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
-        aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
-      }),
-      runner: fakeAdvancedRunner(),
+  /*
+   * A Runner outside the cluster reached it with a Kubernetes runbook
+   * credential. Those are gone, so such a binding is no access target: the
+   * agent is, when there is one, and the page shows the agent's states.
+   */
+  test("a Runner outside the cluster is no target: the agent is", async () => {
+    const withAgent: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster(OUTSIDE_BINDING),
+      runner: fakeOutsideRunner(),
       agentRow: makeAgentRow(),
     });
-    expect(isAdvancedRunnerTarget(status)).toBe(true);
-    expect(getAiAgentCardState(status)).toBe("advanced_runner");
-    expect(canSwitchToAiAgent(status)).toBe(true);
-    expect(getAiAgentCardCommand(status)).toBeNull();
+    expect(getAiAgentCardState(withAgent)).toBe("connected");
+    expect(isLegacyRunnerTarget(withAgent)).toBe(false);
+
+    const withoutAgent: KubernetesClusterAiAccessStatus = await realStatus({
+      cluster: fakeCluster(OUTSIDE_BINDING),
+      runner: fakeOutsideRunner(),
+    });
+    expect(getAiAgentCardState(withoutAgent)).toBe("not_installed");
+    expect(getAiAgentCardCommand(withoutAgent)).toBe("install");
+    expect(withoutAgent.accessMethod).toBe("none");
+    expect(gapCodes(withoutAgent)[0]).toBe("ai_agent_not_connected");
+    expect(withoutAgent.gaps[0]!.description).toContain(
+      'Runner "bash-runner" is still selected for this cluster, but it is not this cluster\'s in-cluster Runner, so OneUptime AI does not use it.',
+    );
   });
 
   test("project gates become Needs attention rows the page acts on", async () => {
@@ -1046,29 +995,30 @@ describe("the AI agent card follows the real status", () => {
    * opens AI Features.
    */
   test("a cluster reached through a Runner answers to Enable AI alone", async () => {
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
-      id: new ObjectID(CREDENTIAL_ID),
-      credentialType: RunbookCredentialType.Kubernetes,
-      name: "prod token",
-      runners: [{ _id: OTHER_RUNNER_ID, id: new ObjectID(OTHER_RUNNER_ID) }],
-    } as unknown as RunbookCredential);
     const cluster: KubernetesCluster = fakeCluster({
-      aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
-      aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
+      ...LEGACY_BINDING,
       aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     });
-
+    const writableRunner: Runner = fakeLegacyRunner({
+      hostInfo: {
+        kubernetes: {
+          inCluster: true,
+          allowWrites: true,
+          clusterIdentifier: "prod-us",
+        },
+      },
+    });
     const aiOn: KubernetesClusterAiAccessStatus = await realStatus({
       cluster,
-      runner: fakeAdvancedRunner(),
+      runner: writableRunner,
     });
-    expect(isAdvancedRunnerTarget(aiOn)).toBe(true);
+    expect(isLegacyRunnerTarget(aiOn)).toBe(true);
     expect(projectSwitchGapCodes(aiOn)).toEqual([]);
     expect(aiOn.isRemediationReady).toBe(true);
 
     const aiOff: KubernetesClusterAiAccessStatus = await realStatus({
       cluster,
-      runner: fakeAdvancedRunner(),
+      runner: writableRunner,
       gates: { ...READY_GATES, isAiEnabled: false },
     });
     expect(projectSwitchGapCodes(aiOff)).toEqual(["project_ai_disabled"]);
@@ -1149,30 +1099,13 @@ function minutesAgo(minutes: number): Date {
   );
 }
 
-/*
- * The cluster's Kubernetes credential, assigned to `runnerId` (the
- * advanced Runner unless said), or none at all.
- */
-function serveCredential(runnerId: string | null = OTHER_RUNNER_ID): void {
-  jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue(
-    runnerId
-      ? ({
-          id: new ObjectID(CREDENTIAL_ID),
-          credentialType: RunbookCredentialType.Kubernetes,
-          name: "prod token",
-          runners: [{ _id: runnerId, id: new ObjectID(runnerId) }],
-        } as unknown as RunbookCredential)
-      : null,
-  );
-}
-
-const ADVANCED_BINDING: Record<string, unknown> = {
-  aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
-  aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
-};
-
 const LEGACY_BINDING: Record<string, unknown> = {
   aiAccessRunnerId: new ObjectID(RUNNER_ID),
+};
+
+// A binding to a Runner outside the cluster, made before credentials went.
+const OUTSIDE_BINDING: Record<string, unknown> = {
+  aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
 };
 
 /*
@@ -1224,7 +1157,6 @@ async function everyServerStatus(): Promise<Array<NamedStatus>> {
   const cases: Array<{
     name: string;
     data: Parameters<typeof realStatus>[0];
-    credentialFor?: string | null;
   }> = [
     {
       name: "the agent, ready",
@@ -1347,85 +1279,20 @@ async function everyServerStatus(): Promise<Array<NamedStatus>> {
       },
     },
     {
-      name: "an advanced Runner, ready",
+      name: "a Runner outside the cluster, no agent",
       data: {
-        cluster: fakeCluster({ ...FIXES_ON, ...ADVANCED_BINDING }),
-        runner: fakeAdvancedRunner(),
+        cluster: fakeCluster({ ...FIXES_ON, ...OUTSIDE_BINDING }),
+        runner: fakeOutsideRunner(),
       },
     },
     {
-      name: "an advanced Runner, offline",
+      name: "a Runner outside the cluster, the agent ready",
       data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner({ lastAlive: minutesAgo(60) }),
-      },
-    },
-    {
-      name: "an advanced Runner, never connected",
-      data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner({ lastAlive: undefined }),
-      },
-    },
-    {
-      name: "an advanced Runner, signed off",
-      data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner({
-          connectionStatus: RunnerConnectionStatus.Disconnected,
+        cluster: fakeCluster({ ...FIXES_ON, ...OUTSIDE_BINDING }),
+        runner: fakeOutsideRunner(),
+        agentRow: makeAgentRow({
+          posture: agentPosture({ allowWrites: true }),
         }),
-      },
-    },
-    {
-      name: "an advanced Runner, not accepting AI commands",
-      data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner({ canRunAiCommands: false }),
-      },
-    },
-    {
-      name: "an advanced Runner without a credential",
-      data: {
-        cluster: fakeCluster({
-          aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
-        }),
-        runner: fakeAdvancedRunner(),
-      },
-    },
-    {
-      name: "an advanced Runner whose credential is another Runner's",
-      data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner(),
-      },
-      credentialFor: RUNNER_ID,
-    },
-    {
-      name: "an advanced Runner whose credential was deleted",
-      data: {
-        cluster: fakeCluster(ADVANCED_BINDING),
-        runner: fakeAdvancedRunner(),
-      },
-      credentialFor: null,
-    },
-    {
-      name: "an advanced Runner in a pod of no named cluster, fixes on",
-      data: {
-        cluster: fakeCluster({
-          ...FIXES_ON,
-          aiAccessRunnerId: new ObjectID(OTHER_RUNNER_ID),
-        }),
-        runner: fakeAdvancedRunner({
-          hostInfo: { kubernetes: { inCluster: true, allowWrites: false } },
-        }),
-      },
-    },
-    {
-      name: "an advanced Runner, AI off for the project",
-      data: {
-        cluster: fakeCluster({ ...FIXES_ON, ...ADVANCED_BINDING }),
-        runner: fakeAdvancedRunner(),
-        gates: { ...READY_GATES, isAiEnabled: false },
       },
     },
     {
@@ -1444,11 +1311,6 @@ async function everyServerStatus(): Promise<Array<NamedStatus>> {
   const statuses: Array<NamedStatus> = [];
 
   for (const testCase of cases) {
-    serveCredential(
-      testCase.credentialFor === undefined
-        ? OTHER_RUNNER_ID
-        : testCase.credentialFor,
-    );
     statuses.push({
       name: testCase.name,
       status: await pageStatus(testCase.data),
@@ -1471,7 +1333,6 @@ const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
   "runner_offline",
   "runner_ai_commands_disabled",
   "runner_cluster_mismatch",
-  "credential_missing",
   "investigation_disabled",
   "remediation_write_access_missing",
   "project_ai_disabled",
@@ -1480,9 +1341,6 @@ const ATTENTION_GAP_CODES: Array<KubernetesAiAccessGapCode> = [
 
 const UPGRADE_STEP: string =
   "Upgrade the Kubernetes agent chart with the command above. The Kubernetes AI agent replaces the previous in-cluster Runner.";
-
-const CHOOSE_CREDENTIAL_STEP: string =
-  "With Change below, choose a Kubernetes credential the Runner may use, or clear the Runner to use the Kubernetes AI agent.";
 
 describe("Needs attention, from the server's own statuses", () => {
   test("a new cluster: one item, two steps, no self-reference", async () => {
@@ -1524,7 +1382,7 @@ describe("Needs attention, from the server's own statuses", () => {
         return [
           "the agent, ready",
           "the agent, fixes off",
-          "an advanced Runner, ready",
+          "a Runner outside the cluster, the agent ready",
         ].includes(entry.name);
       },
     );
@@ -1660,13 +1518,18 @@ describe("Needs attention, from the server's own statuses", () => {
             shown: shouldShowWriteAccessCommands(status),
           }).toEqual({ ...where, shown: true });
         }
-        // Runner pickers and Runner fixes exist only for an advanced binding.
-        if (text.includes("With Change below") || text.includes("the Runner")) {
-          expect({
-            ...where,
-            advanced: isAdvancedRunnerTarget(status),
-          }).toEqual({ ...where, advanced: true });
-        }
+        /*
+         * There are no Runner or credential pickers under Change any more,
+         * and no Runner outside the cluster to fix: no step points at one.
+         */
+        expect({ ...where, text }).toEqual({
+          ...where,
+          text: expect.not.stringContaining("With Change below"),
+        });
+        expect({ ...where, text }).toEqual({
+          ...where,
+          text: expect.not.stringContaining("credential"),
+        });
         if (text.startsWith("Reset the Kubernetes AI agent")) {
           expect({
             ...where,
@@ -1778,7 +1641,12 @@ describe("Needs attention, from the server's own statuses", () => {
     }
   });
 
-  test("an advanced Runner: fixed on the Runner, or swapped under Change", async () => {
+  /*
+   * A Runner outside the cluster is ignored: with no agent, the one step is
+   * installing it - nothing is fixed on that Runner, and nothing is chosen
+   * under Change.
+   */
+  test("a Runner outside the cluster: install the agent, nothing to fix on the Runner", async () => {
     const byName: Map<string, KubernetesClusterAiAccessStatus> = new Map<
       string,
       KubernetesClusterAiAccessStatus
@@ -1789,108 +1657,26 @@ describe("Needs attention, from the server's own statuses", () => {
         },
       ),
     );
-    const expected: Array<[string, Array<[string, string, string | null]>]> = [
-      [
-        "an advanced Runner, offline",
-        [
-          [
-            "runner_offline",
-            "Start the Runner and make sure it can reach your OneUptime URL.",
-            "view_runner",
-          ],
-        ],
-      ],
-      [
-        "an advanced Runner, never connected",
-        [
-          [
-            "runner_offline",
-            "Start the Runner and make sure it can reach your OneUptime URL.",
-            "view_runner",
-          ],
-        ],
-      ],
-      [
-        "an advanced Runner, signed off",
-        [
-          [
-            "runner_offline",
-            "Start the Runner and make sure it can reach your OneUptime URL.",
-            "view_runner",
-          ],
-        ],
-      ],
-      [
-        "an advanced Runner, not accepting AI commands",
-        [
-          [
-            "runner_ai_commands_disabled",
-            "Choose the Runner again to let OneUptime AI run kubectl on it.",
-            "choose_runner_again",
-          ],
-        ],
-      ],
-      [
-        "an advanced Runner without a credential",
-        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
-      ],
-      [
-        "an advanced Runner whose credential is another Runner's",
-        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
-      ],
-      [
-        "an advanced Runner whose credential was deleted",
-        [["credential_missing", CHOOSE_CREDENTIAL_STEP, "view_runner"]],
-      ],
-      [
-        "an advanced Runner in a pod of no named cluster, fixes on",
-        [
-          ["runner_cluster_mismatch", CHOOSE_CREDENTIAL_STEP, "view_runner"],
-          [
-            "remediation_write_access_missing",
-            "Set ONEUPTIME_KUBECTL_ALLOW_WRITES=true on the Runner's host and restart it.",
-            null,
-          ],
-        ],
-      ],
-      [
-        "an advanced Runner, AI off for the project",
-        [
-          [
-            "project_ai_disabled",
-            "Turn on AI for this project.",
-            "open_ai_features",
-          ],
-        ],
-      ],
-    ];
+    const status: KubernetesClusterAiAccessStatus = byName.get(
+      "a Runner outside the cluster, no agent",
+    )!;
 
-    for (const [name, steps] of expected) {
-      const status: KubernetesClusterAiAccessStatus = byName.get(name)!;
-
-      expect({ name, advanced: isAdvancedRunnerTarget(status) }).toEqual({
-        name,
-        advanced: true,
-      });
-      expect({
-        name,
-        steps: (getAiAgentAttention(status)?.steps || []).map(
-          (step: AiAgentAttentionStep): [string, string, string | null] => {
-            return [step.gap.code, step.text, step.action];
-          },
-        ),
-      }).toEqual({ name, steps });
-    }
-
-    /*
-     * Enable AI is the one switch for a Runner's commands too: off, it
-     * blocks investigation and fixes alike.
-     */
     expect(
-      getAiAgentAttention(
-        byName.get("an advanced Runner, AI off for the project")!,
-      )?.title,
-    ).toBe("OneUptime AI can't investigate this cluster or run fixes on it");
+      (getAiAgentAttention(status)?.steps || []).map(
+        (step: AiAgentAttentionStep): [string, string, string | null] => {
+          return [step.gap.code, step.text, step.action];
+        },
+      ),
+    ).toEqual([
+      [
+        "ai_agent_not_connected",
+        "Install the Kubernetes AI agent with the command above.",
+        null,
+      ],
+    ]);
+    expect(getAiAgentAttention(status)?.title).toBe(
+      "OneUptime AI can't investigate this cluster or run fixes on it",
+    );
   });
 
   test("a read-only executor with fixes on: the commands below for the agent", async () => {

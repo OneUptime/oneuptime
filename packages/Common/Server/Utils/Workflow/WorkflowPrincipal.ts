@@ -39,13 +39,12 @@ import UserType from "../../../Types/UserType";
  * (LogComponentError).
  *
  * One thing a Project Admin may do is not lent to a step: read the settings
- * that hold credentials - runbook credentials, SMTP servers, call and SMS
- * providers, SNMP credentials, video call connections and API keys. Whoever
- * may edit a workflow decides what its steps do, with whatever its
+ * that hold credentials - SMTP servers, call and SMS providers, SNMP
+ * credentials, video call connections, API keys and outside MCP servers.
+ * Whoever may edit a workflow decides what its steps do, with whatever its
  * variables, webhooks and runs hand them, so a step names none of those
- * settings, and makes no change that takes the read of runbook credentials
- * (letting OneUptime AI's commands use them): a person who may read them
- * has to (RelationListPermission.mayReadTable, RunbookCredentialReaders).
+ * settings: a person who may read them has to
+ * (RelationListPermission.mayReadTable).
  *
  * Nor is a step lent what a Project Admin may do to who may do what in the
  * project: it creates, changes and deletes no team, team member, team

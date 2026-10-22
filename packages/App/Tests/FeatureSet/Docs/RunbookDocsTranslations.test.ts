@@ -25,8 +25,7 @@ import { describe, expect, it } from "@jest/globals";
 
 /*
  * The Runbooks pages - the overview, authoring, rules, running, triggers,
- * variables, the Runner (agents) guide, AI Access (credentials) and
- * configuration & safety - are
+ * variables, the Runner (agents) guide and configuration & safety - are
  * translated into every docs language, and each translation says what the
  * English page says: the same sections, tables, lists, code and diagrams,
  * links that land on a heading in the reader's language, a title that is
@@ -63,7 +62,6 @@ const PAGES: ReadonlyArray<RunbookPage> = [
   { page: "runbooks/triggers", navTitle: "Runbook Triggers" },
   { page: "runbooks/variables", navTitle: "Runbook Variables" },
   { page: "runbooks/agents", navTitle: "Runbook Agents" },
-  { page: "runbooks/credentials", navTitle: "AI Access" },
   {
     page: "runbooks/configuration",
     navTitle: "Runbook Configuration & Safety",
@@ -104,10 +102,6 @@ const STEP_TYPE_LABELS: Array<string> = STEP_TYPE_NAMES.filter(
 const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   // The step types table: the editor and the execution page name them in English.
   "runbooks/index": STEP_TYPE_LABELS,
-  "runbooks/credentials": [
-    // A permission's name, as a custom role's permission list shows it.
-    "Create Runbook Credential",
-  ],
   "runbooks/variables": [
     // A permission's name, as a custom role's permission list shows it.
     "Create Runbook Variable",

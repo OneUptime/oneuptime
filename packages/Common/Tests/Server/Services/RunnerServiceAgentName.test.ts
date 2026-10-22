@@ -1,4 +1,4 @@
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
+import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
   getKubernetesAgentRunnerNameForCluster,
@@ -7,7 +7,7 @@ import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
+import RunbookVariable from "../../../Models/DatabaseModels/RunbookVariable";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -17,7 +17,6 @@ import {
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { getDeletedAgentRunnerRebindNote } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import ObjectID from "../../../Types/ObjectID";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import {
   stubGenericReferenceCheck,
@@ -42,9 +41,8 @@ beforeEach(() => {
  *
  * A Runner row whose name starts with "kubernetes-agent/" is one the
  * telemetry ingestion key can mint and re-key, so every "never hand it a
- * credential, a secret or shell work" guard keys on that name (or on an
- * agent posture). That only holds if nobody but registration can write the
- * marker:
+ * secret or shell work" guard keys on that name (or on an agent posture).
+ * That only holds if nobody but registration can write the marker:
  *
  * - a non-root rename of an agent row is refused (case-only renames too);
  * - a non-root rename of any row INTO the prefix, and a non-root create
@@ -72,7 +70,7 @@ interface HookAccess {
   onBeforeUpdate(updateBy: UpdateBy<Runner>): Promise<OnUpdate<Runner>>;
 }
 
-interface CredentialHookAccess<T extends DatabaseBaseModel> {
+interface SecretHookAccess<T extends DatabaseBaseModel> {
   onBeforeUpdate(updateBy: UpdateBy<T>): Promise<OnUpdate<T>>;
 }
 
@@ -479,28 +477,32 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
 
   /*
    * The point of a server-owned marker: after a refused rename the row is
-   * still an agent row, so a credential still cannot be assigned to it.
+   * still an agent row, so a secret still cannot be assigned to it.
    */
-  it("after a refused rename, assigning a credential to the row is still refused", async () => {
+  it("after a refused rename, assigning a secret to the row is still refused", async () => {
     await refusal(hooks.onBeforeUpdate(update({ name: "prod-in-cluster" })));
 
-    const credentialHooks: CredentialHookAccess<RunbookCredential> =
-      RunbookCredentialService as unknown as CredentialHookAccess<RunbookCredential>;
+    const secretHooks: SecretHookAccess<RunbookVariable> =
+      RunbookVariableService as unknown as SecretHookAccess<RunbookVariable>;
 
-    const credential: RunbookCredential = new RunbookCredential();
-    credential.credentialType = RunbookCredentialType.Kubernetes;
+    // The variable the update writes is a secret.
+    const secret: RunbookVariable = new RunbookVariable();
+    secret.isSecret = true;
+    jest
+      .spyOn(RunbookVariableService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([secret]);
 
     await expect(
-      credentialHooks.onBeforeUpdate({
+      secretHooks.onBeforeUpdate({
         query: { _id: ObjectID.generate().toString() },
         data: {
           runners: [{ _id: AGENT_RUNNER_ID.toString() }],
-        } as unknown as RunbookCredential,
+        } as unknown as RunbookVariable,
         limit: 1,
         skip: 0,
         props: rootProps(),
-      } as unknown as UpdateBy<RunbookCredential>),
-    ).rejects.toThrow(/never given a credential/);
+      } as unknown as UpdateBy<RunbookVariable>),
+    ).rejects.toThrow(/never given a secret/);
   });
 });
 
@@ -541,13 +543,13 @@ describe("RunnerService lookups leave agent rows out", () => {
       await expect(
         RunnerService.assertNoKubernetesAgentRunners({
           runners: [AGENT_RUNNER_ID],
-          assignedWhat: "credential",
+          assignedWhat: "secret",
         }),
-      ).rejects.toThrow(/never given a credential/);
+      ).rejects.toThrow(/never given a secret/);
     }
   });
 
-  it("negative control: an ordinary Runner in a pod may be assigned credentials", async () => {
+  it("negative control: an ordinary Runner in a pod may be assigned secrets", async () => {
     jest
       .spyOn(RunnerService, "findBy")
       .mockResolvedValue([
@@ -557,7 +559,7 @@ describe("RunnerService lookups leave agent rows out", () => {
     await expect(
       RunnerService.assertNoKubernetesAgentRunners({
         runners: [HOST_RUNNER_ID],
-        assignedWhat: "credential",
+        assignedWhat: "secret",
       }),
     ).resolves.toBeUndefined();
   });

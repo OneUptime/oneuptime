@@ -53,7 +53,7 @@ beforeEach(() => {
  *
  * - the cluster's AI page is re-read LIVE for every command. A cluster
  *   whose remediation was turned off, lost readiness (project switches
- *   included), was re-bound to another Runner or credential, or cannot be
+ *   included), was re-bound to another Runner, or cannot be
  *   read at all refuses the command — nothing is enqueued, nothing is
  *   recorded — and stays off-limits for the rest of the run. A cluster
  *   moved to "ask for approval", or from Bypass approval to Automatic, or
@@ -92,7 +92,6 @@ const RUNNER_ID: ObjectID = new ObjectID(
 const OTHER_RUNNER_ID: ObjectID = new ObjectID(
   "45454545-4545-4545-8545-454545454545",
 );
-const CREDENTIAL_ID: string = "55555555-5555-4555-8555-555555555555";
 const JOB_ID: ObjectID = new ObjectID("66666666-6666-4666-8666-666666666666");
 
 const SAFE_WRITE: string = "kubectl rollout restart deployment/web -n web";
@@ -277,15 +276,11 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
     jest.restoreAllMocks();
   });
 
-  it("executes when the live page still matches the run's snapshot, with the snapshot's Runner, credential and step id — one live read per command", async () => {
+  it("executes when the live page still matches the run's snapshot, with the snapshot's Runner and step id, and no credential — one live read per command", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit({
-      clusterTargets: [
-        cluster({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-      ],
+      clusterTargets: [cluster()],
     });
-    liveStatus.mockResolvedValue(
-      cluster({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-    );
+    liveStatus.mockResolvedValue(cluster());
 
     const first: ToolCallOutcome = await execute(toolkit, kubectlArgs());
     const second: ToolCallOutcome = await execute(
@@ -314,7 +309,8 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
     expect((enqueueArgs["targetAgentId"] as ObjectID).toString()).toBe(
       RUNNER_ID.toString(),
     );
-    expect(enqueueArgs["credentialId"]).toBe(CREDENTIAL_ID);
+    // Runbook credentials were removed: no job names one.
+    expect(enqueueArgs).not.toHaveProperty("credentialId");
     expect(enqueueArgs["stepId"]).toBe(`${INLINE_COMMAND_STEP_ID_PREFIX}1`);
   });
 
@@ -448,7 +444,7 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
 
     expectNothingRanOrRecorded(toolkit, outcome);
     expect(outcome.textForLlm).toContain(
-      "re-bound to a different Runner or credential",
+      "re-bound to a different Runner during this run",
     );
 
     // Nor does the run pick the new binding up on its own afterwards.
@@ -457,24 +453,23 @@ describe("RemediationCommandToolkit re-reads the cluster's AI page before every 
     expect(enqueueKubectl).not.toHaveBeenCalled();
   });
 
-  it("refuses when the cluster's credential changed mid-run — in either direction", async () => {
-    liveStatus.mockResolvedValue(
-      cluster({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-    );
-    const inCluster: RemediationCommandToolkit = buildToolkit();
-    const first: ToolCallOutcome = await execute(inCluster, kubectlArgs());
-    expectNothingRanOrRecorded(inCluster, first);
+  /*
+   * The credential a Runner outside the cluster reached it with is no part
+   * of the snapshot any more: a status that still names one (an older
+   * server's) is compared by its Runner alone, and the change runs.
+   */
+  it("compares the live page by its Runner alone: a credential a status still names changes nothing", async () => {
+    liveStatus.mockResolvedValue({
+      ...cluster(),
+      credentialId: "55555555-5555-4555-8555-555555555555",
+    } as KubernetesClusterAiAccessStatus);
+    const toolkit: RemediationCommandToolkit = buildToolkit();
 
-    liveStatus.mockResolvedValue(cluster());
-    const credentialed: RemediationCommandToolkit = buildToolkit({
-      clusterTargets: [
-        cluster({ accessMethod: "credential", credentialId: CREDENTIAL_ID }),
-      ],
-    });
-    const second: ToolCallOutcome = await execute(credentialed, kubectlArgs());
-    expect(second.success).toBe(false);
-    expect(second.textForLlm).toContain("re-bound");
-    expect(enqueueKubectl).not.toHaveBeenCalled();
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+    expect(enqueueKubectl.mock.calls[0]![0]).not.toHaveProperty("credentialId");
   });
 
   it("fails CLOSED when the live page cannot be read", async () => {

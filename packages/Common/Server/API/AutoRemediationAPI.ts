@@ -18,6 +18,9 @@ import {
   AiRemediationCommand,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
+  REMOVED_SSH_COMMAND_MESSAGE,
+  REMOVED_SSH_COMMAND_NEXT_STEP,
+  isRemovedSshCommand,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
@@ -39,7 +42,6 @@ import { getKubernetesAiPlanApprovalEditRefusal } from "../../Types/Kubernetes/K
  * disagree about who may start an execution.
  */
 import { assertCanExecuteRunbooks } from "../Utils/Runbook/RunbookExecutePermission";
-import AiRemediationCredentialUse from "../Utils/AutoRemediation/AiRemediationCredentialUse";
 import RunbookRunAccess from "../Utils/Runbook/RunbookRunAccess";
 import { Indigo500 } from "../../Types/BrandColors";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -97,10 +99,10 @@ const router: ExpressRouter = Express.getRouter();
  * concurrent approvals can never double-start a runbook.
  *
  * Approving an AI command plan is held to the approver: what it lets run
- * must be what they may do - start runbooks, change the Kubernetes
- * clusters and the resources the plan changes and, for a command that runs
- * with a credential OneUptime AI picked, read runbook credentials
- * (AiRemediationCredentialUse).
+ * must be what they may do - start runbooks, and change the Kubernetes
+ * clusters and the resources the plan changes. A plan with an SSH command,
+ * composed before runbook credentials were removed, is never approved: its
+ * SSH command reached a host with a runbook credential, and those are gone.
  */
 
 async function getLoggedInProps(
@@ -221,8 +223,8 @@ async function findAiAgentTargetStatus(data: {
  * The AI agent's side of the Runner consent re-check. The agent is not a
  * Runner row, so there is no canRunAiCommands flag to re-read — the chart
  * that installed it is its consent. What can still have changed is whether
- * it is connected, and it only ever runs Kubectl steps, so a Bash or SSH
- * step aimed at it fails the click for the same reason as on the legacy
+ * it is connected, and it only ever runs Kubectl steps, so a Bash step
+ * aimed at it fails the click for the same reason as on the legacy
  * in-cluster Runner.
  */
 function assertAiAgentCanRunPlan(data: {
@@ -253,7 +255,7 @@ function assertAiAgentCanRunPlan(data: {
 }
 
 /*
- * What to do about a write-scope refusal, three ways by who runs kubectl for
+ * What to do about a write-scope refusal, two ways by who runs kubectl for
  * the cluster — the same split as RemediationCommandToolkit
  * .getRunnerScopeSettings, which words the refusal itself:
  *
@@ -262,9 +264,7 @@ function assertAiAgentCanRunPlan(data: {
  * - the chart's previous in-cluster Runner: the chart no longer ships it,
  *   so the way to widen its scope is to upgrade to the AI agent — which
  *   replaces the Runner, so this plan (composed for the Runner) cannot be
- *   approved again and a new one is needed;
- * - any other Runner (a credential Runner): no chart configures it, its
- *   scope is set where it runs.
+ *   approved again and a new one is needed.
  */
 export function getScopeRefusalNextStep(
   runner: KubernetesClusterAiAccessStatus["runner"],
@@ -273,22 +273,15 @@ export function getScopeRefusalNextStep(
     return "Dismiss the suggestion and let a new plan be composed, or change the AI agent's write access (aiAgent.remediation.*) on the Kubernetes agent chart and approve again.";
   }
 
-  if (
-    isKubernetesAgentRunnerName(runner?.name) ||
-    isKubernetesAgentRunnerPosture(runner?.posture)
-  ) {
-    return "Dismiss the suggestion and let a new plan be composed. To allow changes like this, upgrade the Kubernetes agent chart to the AI agent and set aiAgent.remediation.*.";
-  }
-
-  return "Dismiss the suggestion and let a new plan be composed, or change the Runner's write scope on the Runner's host and approve again.";
+  return "Dismiss the suggestion and let a new plan be composed. To allow changes like this, upgrade the Kubernetes agent chart to the AI agent and set aiAgent.remediation.*.";
 }
 
 /*
  * Approval-time re-check of a Kubectl command's cluster. The plan named the
- * cluster, the Runner and the credential it was composed for; any of them
- * can have changed since (the operator turned remediation off on the
- * cluster's AI agent page, re-pointed it at another Runner, swapped or
- * removed the credential, the agent went offline). CommandPlanExecutor
+ * cluster and what ran its kubectl when it was composed; either can have
+ * changed since (the operator turned remediation off on the cluster's AI
+ * agent page, its Kubernetes AI agent took over from its Runner, the agent
+ * went offline). CommandPlanExecutor
  * hard-stops on the same conditions right before each command runs — this
  * makes the Approve click fail up front, with the first blocking gap named,
  * instead of claiming the plan and having it stop one command in. Each
@@ -350,14 +343,6 @@ async function assertKubectlCommandsStillRunnable(data: {
       );
     }
 
-    if (
-      (status.credentialId || undefined) !== (command.credentialId || undefined)
-    ) {
-      throw new BadDataException(
-        `Cluster "${status.clusterName}" (command ${command.sequence}) is no longer reached with the credential this plan was composed for. Dismiss the suggestion and let a new plan be composed with the current credential.`,
-      );
-    }
-
     /*
      * The Runner's write scope as it reports it now (its chart's write
      * namespaces, its own namespace, node operations): a command or rollback
@@ -392,8 +377,8 @@ async function assertKubectlCommandsStillRunnable(data: {
 
 /*
  * A cluster's in-cluster kubectl agent (the Runner a kubernetes-agent chart
- * registers) claims Kubectl jobs only. A Bash or SSH step aimed at it would
- * sit unclaimed until its claim timeout, fail, and skip the rest of the
+ * registers) claims Kubectl jobs only. A Bash step aimed at it would sit
+ * unclaimed until its claim timeout, fail, and skip the rest of the
  * plan AFTER the approver clicked — so it fails the click instead. A
  * Kubectl step legitimately names that same Runner (it is how the cluster
  * is reached), so the check is per step type, not per Runner.
@@ -1044,18 +1029,18 @@ router.post(
           AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
 
         /*
-         * And an SSH command runs with the credential OneUptime AI picked
-         * from its Runner's: approving confirms that pick, so it needs the
-         * approver's read of runbook credentials - as naming one in a
-         * runbook step does (AiRemediationCredentialUse). Asked before
-         * anything else is read: it depends on the approver and the plan
-         * alone.
+         * A plan composed before runbook credentials were removed may hold
+         * an SSH command, which reached a host with one: it never runs, so
+         * the plan is not approved. Asked before anything else is read: it
+         * depends on the plan alone.
          */
-        if (plan) {
-          AiRemediationCredentialUse.assertApproverMayUseCredentials({
-            plan: plan,
-            props: props,
-          });
+        const removedSshCommand: AiRemediationCommand | undefined =
+          plan?.commands.find(isRemovedSshCommand);
+
+        if (removedSshCommand) {
+          throw new BadDataException(
+            `Command ${removedSshCommand.sequence} of this plan runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE} ${REMOVED_SSH_COMMAND_NEXT_STEP}`,
+          );
         }
 
         /*

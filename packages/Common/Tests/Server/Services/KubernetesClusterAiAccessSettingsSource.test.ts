@@ -5,7 +5,6 @@ import KubernetesClusterAiAccessService, {
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgentService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -59,7 +58,6 @@ function fakeCluster(
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     aiKubectlCommandAllowlist: undefined,
@@ -88,8 +86,11 @@ function fakeAgent(aiSettings: AgentAiSettings | undefined): KubernetesAiAgent {
   } as unknown as KubernetesAiAgent;
 }
 
-// An online Runner an operator bound, outside the chart.
-function advancedRunner(): Runner {
+/*
+ * An online Runner an operator bound, outside the cluster: it reached the
+ * cluster with a Kubernetes runbook credential until those were removed.
+ */
+function outsideRunner(): Runner {
   return {
     id: RUNNER_ID,
     _id: RUNNER_ID.toString(),
@@ -124,9 +125,6 @@ beforeEach(() => {
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
-  jest
-    .spyOn(RunbookCredentialService, "countBy")
-    .mockResolvedValue(new PositiveNumber(0));
   jest
     .spyOn(RunbookVariableService, "countBy")
     .mockResolvedValue(new PositiveNumber(0));
@@ -215,16 +213,23 @@ describe("status.aiSettingsSource", () => {
     expect((await statusOf(fakeCluster())).aiSettingsSource).toBe("oneuptime");
   });
 
-  it("oneuptime: AI reaches the cluster through a Runner an operator bound", async () => {
+  /*
+   * A Runner outside the cluster, still bound from before runbook
+   * credentials were removed, used to run AI's kubectl instead of the agent,
+   * so the agent set nothing. It is ignored now: the agent runs the
+   * commands, and its configuration sets them.
+   */
+  it("agent_configuration: a Runner outside the cluster still bound is ignored", async () => {
     agentLookup.mockResolvedValue(fakeAgent(CONFIGURED));
-    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(advancedRunner());
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(outsideRunner());
 
     const status: KubernetesClusterAiAccessStatus = await statusOf(
       fakeCluster({ aiAccessRunnerId: RUNNER_ID }),
     );
 
-    expect(status.accessMethod).not.toBe("in_cluster");
-    expect(status.aiSettingsSource).toBe("oneuptime");
+    expect(status.runner?.kind).toBe("ai_agent");
+    expect(status.accessMethod).toBe("in_cluster");
+    expect(status.aiSettingsSource).toBe("agent_configuration");
   });
 });
 

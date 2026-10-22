@@ -24,6 +24,13 @@
  * only what it was started with: writes, the node switch and its write
  * namespaces (runnerNameOf, hostInfoOf).
  *
+ * Runbook credentials were removed, so the server hands no Runner a
+ * credential any more and its two callers are asked about the in-cluster
+ * rows only. The credential rows stay for the Runner's own rule: a Runner
+ * still reads a credential a job carries (KubectlWriteScope's
+ * usesCredential), and KubectlWriteScopeExecutorParity keeps that reading
+ * pinned for as long as the Runner has it.
+ *
  * Each case pins its expected answer per runner, in RUNNERS order: "A" the
  * write is let through, "R" it is refused. Pinning the answer (not only
  * comparing the callers) keeps three callers that drift the same way from
@@ -197,13 +204,6 @@ export function postureOf(
   }
 
   return posture;
-}
-
-// How the cluster's AI access reaches the cluster through this Runner.
-export function accessMethodOf(
-  runner: KubectlWriteScopeParityRunner,
-): "in_cluster" | "credential" {
-  return runner.usesCredential ? "credential" : "in_cluster";
 }
 
 export interface KubectlWriteScopeParityCase {

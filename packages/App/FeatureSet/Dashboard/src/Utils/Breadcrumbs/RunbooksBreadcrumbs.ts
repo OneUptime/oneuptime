@@ -93,11 +93,6 @@ export function getRunbooksBreadcrumbs(path: string): Array<Link> | undefined {
       "Runners",
       "View Runner",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.RUNBOOKS_RUNNER_CREDENTIALS, [
-      "Project",
-      "Runbooks",
-      "AI Access",
-    ]),
   };
   return breadcrumpLinksMap[path];
 }

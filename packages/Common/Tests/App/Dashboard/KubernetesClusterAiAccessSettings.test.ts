@@ -26,8 +26,6 @@ import {
   KubernetesAiAccessConfirmation,
   KubernetesAiAccessOfferedFields,
   KubernetesAiAccessSavedSettings,
-  KubernetesAiCredentialDirectoryEntry,
-  KubernetesAiRunnerDirectoryEntry,
   INVESTIGATION_ON_SENTENCE,
   KUBECTL_ALLOWLIST_FIELD_DESCRIPTION,
   REMEDIATION_MODES_BY_AUTONOMY,
@@ -35,26 +33,18 @@ import {
   REMEDIATION_MODE_SHORT_NAMES,
   REMEDIATION_MODE_SUMMARIES,
   SavedKubectlAllowlist,
-  buildKubernetesAiCredentialDirectory,
-  buildKubernetesAiCredentialOptions,
-  buildKubernetesAiRunnerDirectory,
-  buildKubernetesAiRunnerOptions,
   capitalizeFirst,
   getAllowlistInEffect,
   getEveryModeProtections,
   getEveryModeProtectionsSentence,
   getKubectlAllowlistRemovalOnlyError,
   getKubernetesAiAccessAdminPermissionTitles,
-  getKubernetesAiAccessBindingError,
-  getKubernetesAiAccessChosenRunnerId,
   getKubernetesAiAccessConfirmation,
   getKubernetesAiAccessLooseningChanges,
   getKubernetesAiAccessOfferedFields,
   getKubernetesAiAccessSettingsChanges,
   getKubernetesAiAccessSettingsInitialValues,
   getKubernetesAiAccessSubmittedFields,
-  getKubernetesAiCredentialAssignmentError,
-  getKubernetesAiCredentialFieldDescription,
   getPermissionTitles,
   isAllowlistFieldShown,
   isRemediationModeOpenToEveryEditor,
@@ -74,8 +64,6 @@ import {
   PROJECT_AI_SETTINGS_PERMISSIONS,
   canChangeProjectAiSettings,
   canConfigureUnattendedKubernetesAiAccess,
-  canPickKubernetesCredential,
-  canPickKubernetesRunner,
   canReadKubectlJobs,
   canResetKubernetesAiAgent,
   getAccessTestPermissionGate,
@@ -83,8 +71,6 @@ import {
   getAccessTestPermissionRequirement,
   getKubectlJobsPermissionTitles,
   getKubernetesAiAccessEditCapabilities,
-  getKubernetesCredentialPermissionTitles,
-  getKubernetesRunnerPermissionTitles,
   holdsKubernetesAiAccessPermission,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessPermissions";
 import {
@@ -101,7 +87,6 @@ import {
 import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
 import { AgentAiFixesMode } from "../../../Types/AI/AgentAiSettings";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import { AiRemediationCommandPolicyVerdict } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { JSONObject } from "../../../Types/JSON";
@@ -112,8 +97,6 @@ import {
 import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
-import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import PermissionGate, {
   PermissionGateResult,
@@ -132,10 +115,11 @@ import path from "path";
  * helm commands it prints (KubernetesAiAccessSetup), who may loosen what AI
  * does — relative to the saved settings, as the server decides it — what a
  * Change actually sends, when a save is confirmed first, how the allowlist
- * is read and checked (by KubectlPolicy, the matcher's own rules), which
- * Runners and credentials an advanced binding's pickers offer
+ * is read and checked (by KubectlPolicy, the matcher's own rules)
  * (KubernetesAiAccessSettings), and the permission reads
- * (KubernetesAiAccessPermissions). The status helpers are covered by
+ * (KubernetesAiAccessPermissions). The modal edits the investigation
+ * switch, the fixes mode and the allowlist only: its Runner and credential
+ * pickers went with runbook credentials (Runbooks > Runners > AI Access). The status helpers are covered by
  * KubernetesClusterAiAgentStatus.test.ts, the rendered page by
  * KubernetesClusterAiPage.test.tsx, and the server-side parity checks by
  * KubernetesClusterAiPageServerParity.test.ts.
@@ -143,7 +127,6 @@ import path from "path";
 
 const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const RUNNER_ID: string = "55555555-0000-4000-8000-000000000005";
-const OTHER_RUNNER_ID: string = "55555555-0000-4000-8000-000000000006";
 const CREDENTIAL_ID: string = "77777777-0000-4000-8000-000000000007";
 
 const BASE_PERMISSIONS: Array<Permission> = [
@@ -292,7 +275,7 @@ function grantNothingYet(): void {
   jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue(null);
 }
 
-// Saved settings of a cluster bound to an advanced (outside-the-chart) Runner.
+// A cluster's saved AI settings.
 function makeSaved(
   overrides: Partial<KubernetesAiAccessSavedSettings> = {},
 ): KubernetesAiAccessSavedSettings {
@@ -300,61 +283,30 @@ function makeSaved(
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
-    aiAccessRunnerId: RUNNER_ID,
-    aiAccessRunnerName: "bash-runner",
-    aiAccessCredentialId: null,
-    aiAccessCredentialName: null,
     ...overrides,
   };
-}
-
-// Saved settings of a cluster reached through its Kubernetes AI agent.
-function makeAgentSaved(
-  overrides: Partial<KubernetesAiAccessSavedSettings> = {},
-): KubernetesAiAccessSavedSettings {
-  return makeSaved({
-    aiAccessRunnerId: null,
-    aiAccessRunnerName: null,
-    ...overrides,
-  });
 }
 
 const NOTHING_OFFERED: KubernetesAiAccessOfferedFields = {
   allowlist: false,
   allowlistRemoveOnly: false,
-  runner: false,
-  credential: false,
-  runnerClear: false,
-  credentialClear: false,
 };
 
 const EVERYTHING_OFFERED: KubernetesAiAccessOfferedFields = {
   allowlist: true,
   allowlistRemoveOnly: false,
-  runner: true,
-  credential: true,
-  runnerClear: false,
-  credentialClear: false,
 };
 
-// What a cluster editor without the admin set and without the pickers gets.
+// What a cluster editor without the admin set gets.
 const TIGHTEN_ONLY_OFFERED: KubernetesAiAccessOfferedFields = {
   allowlist: true,
   allowlistRemoveOnly: true,
-  runner: false,
-  credential: false,
-  runnerClear: true,
-  credentialClear: true,
 };
 
 type SettingsFormValues = FormValues<{
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: string;
   kubectlAllowlistText: string;
-  aiAccessRunnerId: string;
-  aiAccessCredentialId: string;
-  clearAiAccessRunner: boolean;
-  clearAiAccessCredential: boolean;
 }>;
 
 // What the form holds for a saved state, with the given edits applied.
@@ -391,41 +343,6 @@ function makeRunner(
         }
       : {}),
   });
-}
-
-function makeCredential(
-  id: string,
-  name: string,
-  runnerIds: Array<string> | undefined,
-  credentialType: RunbookCredentialType = RunbookCredentialType.Kubernetes,
-): RunbookCredential {
-  return Object.assign(new RunbookCredential(), {
-    _id: id,
-    name,
-    credentialType,
-    ...(runnerIds
-      ? {
-          runners: runnerIds.map((runnerId: string): Runner => {
-            return Object.assign(new Runner(), { _id: runnerId });
-          }),
-        }
-      : {}),
-  });
-}
-
-function optionValues(options: Array<DropdownOption>): Array<string> {
-  return options.map((option: DropdownOption): string => {
-    return String(option.value);
-  });
-}
-
-function optionLabel(
-  options: Array<DropdownOption>,
-  value: string,
-): string | undefined {
-  return options.find((option: DropdownOption): boolean => {
-    return option.value === value;
-  })?.label;
 }
 
 beforeEach(() => {
@@ -954,34 +871,36 @@ describe("the stored allowlist", () => {
 });
 
 describe("reading the saved settings", () => {
-  test("takes the binding from the FK column or the relation", () => {
-    const fromRelation: KubernetesAiAccessSavedSettings =
+  /*
+   * The Change modal edits the investigation switch, the fixes mode and the
+   * kubectl allowlist. A Runner the cluster is still bound to (its own
+   * in-cluster Runner, the only one the server lets a cluster hold) is not
+   * read into the form, so no save can send it.
+   */
+  test("reads the switch, the mode and the allowlist, and no Runner or credential", () => {
+    const saved: KubernetesAiAccessSavedSettings =
       readKubernetesAiAccessSavedSettings(
         Object.assign(new KubernetesCluster(), {
           isAiInvestigationEnabled: true,
           aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+          aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+          aiAccessRunnerId: new ObjectID(RUNNER_ID),
           aiAccessRunner: Object.assign(new Runner(), {
             _id: RUNNER_ID,
-            name: "bash-runner",
+            name: "kubernetes-agent/prod-east",
           }),
         }),
       );
-    expect(fromRelation.aiAccessRunnerId).toBe(RUNNER_ID);
-    expect(fromRelation.aiAccessRunnerName).toBe("bash-runner");
-    expect(fromRelation.aiAccessCredentialId).toBeNull();
+    expect(saved).toEqual({
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+      aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+    });
 
-    const fromColumn: KubernetesAiAccessSavedSettings =
-      readKubernetesAiAccessSavedSettings(
-        Object.assign(new KubernetesCluster(), {
-          aiAccessRunnerId: new ObjectID(RUNNER_ID),
-          aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
-        }),
-      );
-    expect(fromColumn.aiAccessRunnerId).toBe(RUNNER_ID);
-    expect(fromColumn.aiAccessCredentialId).toBe(CREDENTIAL_ID);
-    expect(fromColumn.aiRemediationMode).toBe(
-      KubernetesAiRemediationMode.Disabled,
-    );
+    expect(
+      readKubernetesAiAccessSavedSettings(new KubernetesCluster())
+        .aiRemediationMode,
+    ).toBe(KubernetesAiRemediationMode.Disabled);
   });
 
   /*
@@ -1024,139 +943,68 @@ describe("reading the saved settings", () => {
     }
   });
 
-  test("seeds the form with the allowlist as lines and both clear switches off", () => {
+  test("seeds the form with the switch, the mode and the allowlist as lines, and nothing else", () => {
     const initial: SettingsFormValues =
       getKubernetesAiAccessSettingsInitialValues(
         makeSaved({
           aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, "kubectl *"],
         }),
       );
-    expect(initial.kubectlAllowlistText).toBe(
-      `${SET_IMAGE_PATTERN}\nkubectl *`,
-    );
-    expect(initial.clearAiAccessRunner).toBe(false);
-    expect(initial.clearAiAccessCredential).toBe(false);
-    expect(initial.aiAccessRunnerId).toBe(RUNNER_ID);
-    expect(initial.aiAccessCredentialId).toBe("");
+    expect(initial).toEqual({
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+      kubectlAllowlistText: `${SET_IMAGE_PATTERN}\nkubectl *`,
+    });
   });
 });
 
 describe("what the Change modal offers", () => {
-  test("an admin on an advanced binding with both pickers gets the pickers and a free allowlist", () => {
+  test("an admin gets a free allowlist", () => {
     expect(
       getKubernetesAiAccessOfferedFields({
         saved: makeSaved({ aiKubectlCommandAllowlist: [] }),
         canConfigureUnattended: true,
-        isRunnerPickerAvailable: true,
-        isCredentialPickerAvailable: true,
-        isAdvancedBinding: true,
-        hasAiAgent: true,
       }),
     ).toEqual(EVERYTHING_OFFERED);
   });
 
-  /*
-   * The pickers are removed for every cluster without an advanced binding:
-   * it is reached through its Kubernetes AI agent, and there is nothing to
-   * pick. Even an admin who could list Runners gets none.
-   */
-  test("a cluster without an advanced binding gets no Runner or credential field at all", () => {
-    for (const saved of [
-      makeAgentSaved(),
-      // Still bound to the previous in-cluster Runner.
-      makeSaved({ aiAccessRunnerName: "kubernetes-agent/prod-east" }),
-    ]) {
-      for (const canConfigureUnattended of [true, false]) {
-        const offered: KubernetesAiAccessOfferedFields =
-          getKubernetesAiAccessOfferedFields({
-            saved,
-            canConfigureUnattended,
-            isRunnerPickerAvailable: true,
-            isCredentialPickerAvailable: true,
-            isAdvancedBinding: false,
-            hasAiAgent: true,
-          });
-        expect({
-          runner: offered.runner,
-          credential: offered.credential,
-          runnerClear: offered.runnerClear,
-          credentialClear: offered.credentialClear,
-        }).toEqual({
-          runner: false,
-          credential: false,
-          runnerClear: false,
-          credentialClear: false,
-        });
-      }
-    }
-  });
-
-  /*
-   * Unbinding an advanced Runner used to be a tightening every editor could
-   * make. With an AI agent row it moves the cluster to the agent — which
-   * may hold broader write RBAC — so the switch is no longer offered to a
-   * cluster editor without the admin set (critique finding 2).
-   */
-  test("a cluster editor may unbind an advanced binding only while the cluster has no AI agent", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
+  test("a cluster editor without the admin set may only remove from the saved allowlist", () => {
     expect(
       getKubernetesAiAccessOfferedFields({
-        saved,
+        saved: makeSaved(),
         canConfigureUnattended: false,
-        isRunnerPickerAvailable: false,
-        isCredentialPickerAvailable: false,
-        isAdvancedBinding: true,
-        hasAiAgent: false,
       }),
     ).toEqual(TIGHTEN_ONLY_OFFERED);
-
-    expect(
-      getKubernetesAiAccessOfferedFields({
-        saved,
-        canConfigureUnattended: false,
-        isRunnerPickerAvailable: false,
-        isCredentialPickerAvailable: false,
-        isAdvancedBinding: true,
-        hasAiAgent: true,
-      }),
-    ).toEqual({
-      ...TIGHTEN_ONLY_OFFERED,
-      runnerClear: false,
-      credentialClear: false,
-    });
   });
 
-  test("an admin who may not list Runners may still unbind, with or without an agent", () => {
-    for (const hasAiAgent of [true, false]) {
-      const offered: KubernetesAiAccessOfferedFields =
-        getKubernetesAiAccessOfferedFields({
-          saved: makeSaved(),
-          canConfigureUnattended: true,
-          isRunnerPickerAvailable: false,
-          isCredentialPickerAvailable: true,
-          isAdvancedBinding: true,
-          hasAiAgent,
-        });
-      expect(offered.runner).toBe(false);
-      expect(offered.runnerClear).toBe(true);
-      expect(offered.credential).toBe(true);
-      // Nothing bound: nothing to unbind.
-      expect(offered.credentialClear).toBe(false);
+  /*
+   * Runbooks > Runners > AI Access is gone, and the Runner and credential
+   * pickers with it: whoever opens the modal, it offers the switch, the
+   * mode and the allowlist, nothing more.
+   */
+  test("offers no Runner or credential field, whoever opens it", () => {
+    for (const canConfigureUnattended of [true, false]) {
+      for (const isSetByAgent of [true, false, undefined]) {
+        const offered: KubernetesAiAccessOfferedFields =
+          getKubernetesAiAccessOfferedFields({
+            saved: makeSaved(),
+            canConfigureUnattended,
+            isSetByAgent,
+          });
+        expect(Object.keys(offered).sort()).toEqual(
+          isSetByAgent
+            ? ["allowlist", "allowlistRemoveOnly", "investigationAndFixes"]
+            : ["allowlist", "allowlistRemoveOnly"],
+        );
+      }
     }
   });
 
   test("nothing to remove means no allowlist field for a cluster editor", () => {
     expect(
       getKubernetesAiAccessOfferedFields({
-        saved: makeAgentSaved({ aiKubectlCommandAllowlist: [] }),
+        saved: makeSaved({ aiKubectlCommandAllowlist: [] }),
         canConfigureUnattended: false,
-        isRunnerPickerAvailable: false,
-        isCredentialPickerAvailable: false,
-        isAdvancedBinding: false,
-        hasAiAgent: true,
       }),
     ).toEqual({
       ...NOTHING_OFFERED,
@@ -1166,18 +1014,14 @@ describe("what the Change modal offers", () => {
     // An unclean stored allowlist is offered, so it can be cleared.
     expect(
       getKubernetesAiAccessOfferedFields({
-        saved: makeAgentSaved({ aiKubectlCommandAllowlist: { a: 1 } }),
+        saved: makeSaved({ aiKubectlCommandAllowlist: { a: 1 } }),
         canConfigureUnattended: false,
-        isRunnerPickerAvailable: false,
-        isCredentialPickerAvailable: false,
-        isAdvancedBinding: false,
-        hasAiAgent: true,
       }).allowlist,
     ).toBe(true);
   });
 
   test("the allowlist field shows, and is sent, only while Automatic is chosen", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeAgentSaved();
+    const saved: KubernetesAiAccessSavedSettings = makeSaved();
 
     expect(isAllowlistFieldShown(formValues(saved))).toBe(true);
     expect(
@@ -1285,9 +1129,7 @@ describe("what an edit sends", () => {
   });
 
   test("an untouched form sends nothing", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
+    const saved: KubernetesAiAccessSavedSettings = makeSaved();
     for (const offered of [EVERYTHING_OFFERED, TIGHTEN_ONLY_OFFERED]) {
       expect(
         getKubernetesAiAccessSettingsChanges({
@@ -1421,122 +1263,32 @@ describe("what an edit sends", () => {
     ).toEqual({});
   });
 
-  test("binds, re-binds and clears the Runner and credential only when offered", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, {
-          aiAccessRunnerId: OTHER_RUNNER_ID,
-          aiAccessCredentialId: null,
-        }),
-        offered: EVERYTHING_OFFERED,
-      }),
-    ).toEqual({
-      aiAccessRunnerId: OTHER_RUNNER_ID,
-      aiAccessCredentialId: null,
-    });
-
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, { aiAccessRunnerId: "" }),
-        offered: EVERYTHING_OFFERED,
-      }),
-    ).toEqual({ aiAccessRunnerId: null });
-
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, {
-          aiAccessRunnerId: OTHER_RUNNER_ID,
-          aiAccessCredentialId: null,
-        }),
-        offered: NOTHING_OFFERED,
-      }),
-    ).toEqual({});
-  });
-
-  test("a clear switch sends null and nothing else, and only when it is on", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, {
-          clearAiAccessRunner: true,
-          clearAiAccessCredential: true,
-          kubectlAllowlistText: "",
-        }),
-        offered: TIGHTEN_ONLY_OFFERED,
-      }),
-    ).toEqual({
-      aiAccessRunnerId: null,
-      aiAccessCredentialId: null,
-      aiKubectlCommandAllowlist: [],
-    });
-
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved),
-        offered: TIGHTEN_ONLY_OFFERED,
-      }),
-    ).toEqual({});
-
-    // A clear-only offer can never send an id, whatever the form holds.
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, {
-          aiAccessRunnerId: OTHER_RUNNER_ID,
-          aiAccessCredentialId: "77777777-0000-4000-8000-00000000000a",
-          clearAiAccessRunner: false,
-        }),
-        offered: TIGHTEN_ONLY_OFFERED,
-      }),
-    ).toEqual({});
-
-    // Not offered: the switch is ignored.
-    expect(
-      getKubernetesAiAccessSettingsChanges({
-        saved,
-        values: formValues(saved, { clearAiAccessRunner: true }),
-        offered: NOTHING_OFFERED,
-      }),
-    ).toEqual({});
-  });
-
-  test("the chosen Runner follows the picker, the clear switch, or the saved binding", () => {
+  /*
+   * The form holds no Runner or credential field. A value one left in the
+   * form state - a draft from before the pickers were removed - is never
+   * sent, whatever the modal offers.
+   */
+  test("never sends a Runner or credential, whatever the form holds", () => {
     const saved: KubernetesAiAccessSavedSettings = makeSaved();
-    expect(
-      getKubernetesAiAccessChosenRunnerId({
-        saved,
-        values: formValues(saved, {
-          aiAccessRunnerId: { value: OTHER_RUNNER_ID, label: "x" },
+
+    for (const offered of [
+      EVERYTHING_OFFERED,
+      TIGHTEN_ONLY_OFFERED,
+      NOTHING_OFFERED,
+    ]) {
+      expect(
+        getKubernetesAiAccessSettingsChanges({
+          saved,
+          values: formValues(saved, {
+            aiAccessRunnerId: RUNNER_ID,
+            aiAccessCredentialId: CREDENTIAL_ID,
+            clearAiAccessRunner: true,
+            clearAiAccessCredential: true,
+          }),
+          offered,
         }),
-        offered: EVERYTHING_OFFERED,
-      }),
-    ).toBe(OTHER_RUNNER_ID);
-    expect(
-      getKubernetesAiAccessChosenRunnerId({
-        saved,
-        values: formValues(saved, { clearAiAccessRunner: true }),
-        offered: TIGHTEN_ONLY_OFFERED,
-      }),
-    ).toBeNull();
-    expect(
-      getKubernetesAiAccessChosenRunnerId({
-        saved,
-        values: formValues(saved),
-        offered: NOTHING_OFFERED,
-      }),
-    ).toBe(RUNNER_ID);
+      ).toEqual({});
+    }
   });
 });
 
@@ -1561,14 +1313,12 @@ describe("loosening changes", () => {
         changes: {
           aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
         },
-        hasAiAgent: false,
       }),
     ).toEqual(["switching fixes to Bypass approval"]);
     expect(
       getKubernetesAiAccessLooseningChanges({
         saved: fromOff,
         changes: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
-        hasAiAgent: false,
       }),
     ).toEqual(["switching fixes to Automatic"]);
     // Regression (§11): turning fixes on at all needs the admin set now.
@@ -1578,7 +1328,6 @@ describe("loosening changes", () => {
         changes: {
           aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
         },
-        hasAiAgent: false,
       }),
     ).toEqual(["switching fixes to Ask for approval"]);
 
@@ -1587,7 +1336,6 @@ describe("loosening changes", () => {
       getKubernetesAiAccessLooseningChanges({
         saved: fromBypass,
         changes: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
-        hasAiAgent: false,
       }),
     ).toEqual([]);
     for (const mode of [
@@ -1599,7 +1347,6 @@ describe("loosening changes", () => {
         getKubernetesAiAccessLooseningChanges({
           saved: fromAutomatic,
           changes: { aiRemediationMode: mode },
-          hasAiAgent: true,
         }),
       ).toEqual([]);
     }
@@ -1608,7 +1355,6 @@ describe("loosening changes", () => {
       getKubernetesAiAccessLooseningChanges({
         saved: fromOff,
         changes: { aiRemediationMode: "automatic" },
-        hasAiAgent: false,
       }),
     ).toEqual([]);
   });
@@ -1623,7 +1369,6 @@ describe("loosening changes", () => {
         getKubernetesAiAccessLooseningChanges({
           saved,
           changes: { aiKubectlCommandAllowlist: allowlist },
-          hasAiAgent: false,
         }),
       ).toEqual([]);
     }
@@ -1637,7 +1382,6 @@ describe("loosening changes", () => {
             "kubectl delete pod * -n web",
           ],
         },
-        hasAiAgent: false,
       }),
     ).toEqual([
       'adding the kubectl allowlist pattern "kubectl delete pod * -n web"',
@@ -1652,84 +1396,31 @@ describe("loosening changes", () => {
             "kubectl set image deployment/api * -n prod",
           ],
         },
-        hasAiAgent: false,
       }),
     ).toEqual([
       'adding the kubectl allowlist patterns "kubectl set image deployment/web * -n prod", "kubectl set image deployment/api * -n prod"',
     ]);
   });
 
-  test("binding another Runner or a credential loosens; re-sending the bound one never does", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    for (const hasAiAgent of [true, false]) {
-      expect(
-        getKubernetesAiAccessLooseningChanges({
-          saved,
-          changes: { aiAccessRunnerId: OTHER_RUNNER_ID },
-          hasAiAgent,
-        }),
-      ).toEqual(["binding a different Runner"]);
-      expect(
-        getKubernetesAiAccessLooseningChanges({
-          saved: makeSaved(),
-          changes: { aiAccessCredentialId: CREDENTIAL_ID },
-          hasAiAgent,
-        }),
-      ).toEqual(["binding a Kubernetes credential"]);
-
-      for (const changes of [
-        { aiAccessRunnerId: RUNNER_ID },
-        { aiAccessCredentialId: CREDENTIAL_ID },
-        { isAiInvestigationEnabled: true },
-        { isAiInvestigationEnabled: false },
-      ] as Array<JSONObject>) {
-        expect(
-          getKubernetesAiAccessLooseningChanges({ saved, changes, hasAiAgent }),
-        ).toEqual([]);
-      }
-    }
-  });
-
   /*
-   * Regression (§11 "clearing a Runner binding with an agent row needs
-   * admin"): clearing the binding used to be a tightening every editor
-   * could make. With an agent row it changes the resolved access target to
-   * the agent, so it loosens; without one it only takes access away.
+   * The form sends no Runner or credential, so the page names no loosening
+   * for one: a Runner bound through the API is the server's alone to judge,
+   * and it refuses every Runner but the cluster's own in-cluster one
+   * (KubernetesClusterService.validateAiAccessBindingPairs).
    */
-  test("clearing the Runner or credential loosens exactly when the cluster has an AI agent", () => {
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessCredentialId: CREDENTIAL_ID,
-    });
-
-    expect(
-      getKubernetesAiAccessLooseningChanges({
-        saved,
-        changes: { aiAccessRunnerId: null, aiAccessCredentialId: null },
-        hasAiAgent: true,
-      }),
-    ).toEqual([
-      "switching this cluster to its Kubernetes AI agent",
-      "removing the Kubernetes credential",
-    ]);
-    expect(
-      getKubernetesAiAccessLooseningChanges({
-        saved,
-        changes: { aiAccessRunnerId: null, aiAccessCredentialId: null },
-        hasAiAgent: false,
-      }),
-    ).toEqual([]);
-
-    // Clearing what is not bound changes nothing.
-    expect(
-      getKubernetesAiAccessLooseningChanges({
-        saved: makeAgentSaved(),
-        changes: { aiAccessRunnerId: null, aiAccessCredentialId: null },
-        hasAiAgent: true,
-      }),
-    ).toEqual([]);
+  test("names no loosening for a Runner or credential, which the form never sends", () => {
+    for (const changes of [
+      { aiAccessRunnerId: RUNNER_ID },
+      { aiAccessRunnerId: null },
+      { aiAccessCredentialId: CREDENTIAL_ID },
+      { aiAccessCredentialId: null },
+      { isAiInvestigationEnabled: true },
+      { isAiInvestigationEnabled: false },
+    ] as Array<JSONObject>) {
+      expect(
+        getKubernetesAiAccessLooseningChanges({ saved: makeSaved(), changes }),
+      ).toEqual([]);
+    }
   });
 
   test("capitalizes the first loosening for the refusal", () => {
@@ -2068,395 +1759,6 @@ describe("confirming a save that lets riskier changes run unattended", () => {
   });
 });
 
-/*
- * The Runner picker exists only for a cluster already bound to a Runner
- * outside the chart. The Kubernetes AI agent replaces the chart's previous
- * in-cluster Runner, so no kubernetes-agent row is ever offered — this
- * cluster's included — and switching back to the agent is "leave the
- * Runner empty".
- */
-describe("Runner picker options (advanced bindings)", () => {
-  const runners: Array<Runner> = [
-    makeRunner("r-this", "kubernetes-agent/prod-east", true, "prod-east"),
-    makeRunner("r-other-cluster", "kubernetes-agent/prod-eu", true, "prod-eu"),
-    makeRunner("r-renamed", "prod-eu-kubectl", true, "prod-eu"),
-    makeRunner("r-host", "bash-runner"),
-    makeRunner("r-off", "ops-runner", false),
-  ];
-
-  /*
-   * A Runner has no "Runs AI Remediation Commands" switch any more: choosing
-   * it here is what lets OneUptime AI run kubectl on it (the server's
-   * RunnerAiCommandsPick), so one that never ran AI commands is offered too.
-   */
-  test("offer every Runner outside the chart, whether or not it ran AI commands before", () => {
-    const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
-      runners,
-      boundRunnerId: null,
-      boundRunnerName: null,
-    });
-
-    expect(options).toEqual([
-      { value: "r-host", label: "bash-runner" },
-      { value: "r-off", label: "ops-runner" },
-    ]);
-  });
-
-  test("keep the bound Runner, saying why it cannot serve the cluster", () => {
-    expect(
-      optionLabel(
-        buildKubernetesAiRunnerOptions({
-          runners,
-          boundRunnerId: "r-this",
-          boundRunnerName: "kubernetes-agent/prod-east",
-        }),
-        "r-this",
-      ),
-    ).toBe(
-      "kubernetes-agent/prod-east (currently bound — installed by the Kubernetes agent chart, which now uses the Kubernetes AI agent)",
-    );
-
-    // A posture-only agent row is an agent row too (the server's rule).
-    expect(
-      optionLabel(
-        buildKubernetesAiRunnerOptions({
-          runners,
-          boundRunnerId: "r-renamed",
-          boundRunnerName: "prod-eu-kubectl",
-        }),
-        "r-renamed",
-      ),
-    ).toMatch(/currently bound — installed by the Kubernetes agent chart/);
-
-    // Bound before it ran AI commands: saving the binding again allows them.
-    expect(
-      optionLabel(
-        buildKubernetesAiRunnerOptions({
-          runners,
-          boundRunnerId: "r-off",
-          boundRunnerName: "ops-runner",
-        }),
-        "r-off",
-      ),
-    ).toBe("ops-runner");
-
-    const boundToUnlisted: Array<DropdownOption> =
-      buildKubernetesAiRunnerOptions({
-        runners,
-        boundRunnerId: "r-gone",
-        boundRunnerName: "old-runner",
-      });
-    expect(boundToUnlisted[0]).toEqual({
-      value: "r-gone",
-      label: "old-runner (currently bound)",
-    });
-    expect(
-      buildKubernetesAiRunnerOptions({
-        runners: [],
-        boundRunnerId: "r-gone",
-        boundRunnerName: null,
-      }),
-    ).toEqual([
-      { value: "r-gone", label: "The bound Runner (currently bound)" },
-    ]);
-  });
-
-  test("skip a row without an id", () => {
-    expect(
-      buildKubernetesAiRunnerOptions({
-        runners: [Object.assign(new Runner(), { name: "no-id" })],
-        boundRunnerId: null,
-        boundRunnerName: null,
-      }),
-    ).toEqual([]);
-  });
-
-  test("the directory names each Runner and says which are agent rows", () => {
-    const directory: Record<string, KubernetesAiRunnerDirectoryEntry> =
-      buildKubernetesAiRunnerDirectory(runners);
-    expect(directory["r-this"]).toEqual({
-      name: "kubernetes-agent/prod-east",
-      isAgent: true,
-    });
-    expect(directory["r-renamed"]!.isAgent).toBe(true);
-    expect(directory["r-host"]).toEqual({
-      name: "bash-runner",
-      isAgent: false,
-    });
-  });
-});
-
-describe("credential picker options", () => {
-  const credentials: Array<RunbookCredential> = [
-    makeCredential("c-ssh", "ssh key", ["r-host"], RunbookCredentialType.SSH),
-    makeCredential("c-host", "prod-east token", ["r-host"]),
-    makeCredential("c-other", "staging token", ["r-other-host"]),
-    makeCredential("c-both", "shared token", ["r-host", "r-other-host"]),
-  ];
-
-  const HOST_RUNNER: { id: string; name: string } = {
-    id: "r-host",
-    name: "bash-runner",
-  };
-
-  test("offer only Kubernetes credentials assigned to the chosen Runner", () => {
-    expect(
-      optionValues(
-        buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: null,
-          boundCredentialName: null,
-          runner: HOST_RUNNER,
-        }),
-      ),
-    ).toEqual(["c-host", "c-both"]);
-
-    expect(
-      optionValues(
-        buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: null,
-          boundCredentialName: null,
-          runner: { id: "r-other-host", name: "other" },
-        }),
-      ),
-    ).toEqual(["c-other", "c-both"]);
-  });
-
-  test("offer none for a kubernetes-agent Runner, or before a Runner is chosen, and say why", () => {
-    for (const runner of [
-      { id: "r-this", name: "kubernetes-agent/prod-east" },
-      { id: null, name: null },
-    ]) {
-      expect(
-        buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: null,
-          boundCredentialName: null,
-          runner,
-        }),
-      ).toEqual([]);
-    }
-
-    expect(
-      getKubernetesAiCredentialFieldDescription({
-        id: "r-this",
-        name: "kubernetes-agent/prod-east",
-      }),
-    ).toMatch(
-      /^No credential can be chosen: "kubernetes-agent\/prod-east" is an in-cluster Runner/,
-    );
-    expect(
-      getKubernetesAiCredentialFieldDescription({ id: null, name: null }),
-    ).toMatch(/Choose the Runner first/);
-    expect(getKubernetesAiCredentialFieldDescription(HOST_RUNNER)).toMatch(
-      /assigned to "bash-runner"/,
-    );
-  });
-
-  test("keep the bound credential, saying why it does not fit", () => {
-    const forHost: Array<DropdownOption> = buildKubernetesAiCredentialOptions({
-      credentials,
-      boundCredentialId: "c-other",
-      boundCredentialName: "staging token",
-      runner: HOST_RUNNER,
-    });
-    expect(optionValues(forHost)).toEqual(["c-host", "c-other", "c-both"]);
-    expect(optionLabel(forHost, "c-other")).toBe(
-      "staging token (currently bound — not assigned to bash-runner)",
-    );
-
-    const forAgent: Array<DropdownOption> = buildKubernetesAiCredentialOptions({
-      credentials,
-      boundCredentialId: "c-host",
-      boundCredentialName: "prod-east token",
-      runner: { id: "r-this", name: "kubernetes-agent/prod-east" },
-    });
-    expect(forAgent).toHaveLength(1);
-    expect(optionLabel(forAgent, "c-host")).toMatch(
-      /currently bound — kubernetes-agent\/prod-east is an in-cluster Runner and is never given a credential/,
-    );
-
-    expect(
-      optionLabel(
-        buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: "c-ssh",
-          boundCredentialName: "ssh key",
-          runner: HOST_RUNNER,
-        }),
-        "c-ssh",
-      ),
-    ).toMatch(/not a Kubernetes credential/);
-
-    expect(
-      buildKubernetesAiCredentialOptions({
-        credentials,
-        boundCredentialId: "c-gone",
-        boundCredentialName: null,
-        runner: HOST_RUNNER,
-      })[0],
-    ).toEqual({
-      value: "c-gone",
-      label: "The bound credential (currently bound)",
-    });
-  });
-
-  test("offer a credential whose assignments could not be read", () => {
-    expect(
-      optionValues(
-        buildKubernetesAiCredentialOptions({
-          credentials: [makeCredential("c-unknown", "unknown", undefined)],
-          boundCredentialId: null,
-          boundCredentialName: null,
-          runner: HOST_RUNNER,
-        }),
-      ),
-    ).toEqual(["c-unknown"]);
-  });
-
-  test("the directory names each credential and its Runners", () => {
-    const directory: Record<string, KubernetesAiCredentialDirectoryEntry> =
-      buildKubernetesAiCredentialDirectory([
-        ...credentials,
-        makeCredential("c-unknown", "", undefined),
-      ]);
-    expect(directory["c-both"]).toEqual({
-      name: "shared token",
-      runnerIds: ["r-host", "r-other-host"],
-    });
-    expect(directory["c-unknown"]).toEqual({
-      name: "c-unknown",
-      runnerIds: undefined,
-    });
-  });
-});
-
-describe("a Runner and credential that cannot work together", () => {
-  test("a credential not assigned to the Runner is refused, naming both", () => {
-    expect(
-      getKubernetesAiCredentialAssignmentError({
-        runner: { id: "r-host", name: "bash-runner" },
-        credentialId: "c-other",
-        credentialName: "staging token",
-        credentialRunnerIds: ["r-other-host"],
-      }),
-    ).toMatch(/"staging token" is not assigned to Runner "bash-runner"/);
-
-    for (const credentialRunnerIds of [["r-host"], undefined]) {
-      expect(
-        getKubernetesAiCredentialAssignmentError({
-          runner: { id: "r-host", name: "bash-runner" },
-          credentialId: "c-host",
-          credentialName: "prod-east token",
-          credentialRunnerIds,
-        }),
-      ).toBeNull();
-    }
-    expect(
-      getKubernetesAiCredentialAssignmentError({
-        runner: { id: "r-host", name: "bash-runner" },
-        credentialId: null,
-        credentialName: null,
-        credentialRunnerIds: undefined,
-      }),
-    ).toBeNull();
-  });
-
-  test("a credential without a Runner asks for one", () => {
-    expect(
-      getKubernetesAiCredentialAssignmentError({
-        runner: { id: null, name: null },
-        credentialId: "c-host",
-        credentialName: null,
-        credentialRunnerIds: ["r-host"],
-      }),
-    ).toMatch(/^The Kubernetes credential is only used through a Runner/);
-  });
-
-  test("a kubernetes-agent Runner with a credential asks for the credential to be cleared", () => {
-    const error: string | null = getKubernetesAiCredentialAssignmentError({
-      runner: { id: "r-this", name: "kubernetes-agent/prod-east" },
-      credentialId: "c-host",
-      credentialName: "prod-east token",
-      credentialRunnerIds: ["r-this"],
-    });
-    expect(error).toMatch(/is an in-cluster Runner/);
-    expect(error).toMatch(/Clear the Kubernetes credential/);
-    expect(error).not.toMatch(/not assigned/);
-  });
-
-  describe("on save", () => {
-    const runners: Record<string, KubernetesAiRunnerDirectoryEntry> =
-      buildKubernetesAiRunnerDirectory([
-        makeRunner("r-this", "kubernetes-agent/prod-east", true, "prod-east"),
-        makeRunner("r-host", "bash-runner"),
-        makeRunner("r-other-host", "other-runner"),
-      ]);
-    const credentials: Record<string, KubernetesAiCredentialDirectoryEntry> =
-      buildKubernetesAiCredentialDirectory([
-        makeCredential("c-host", "prod-east token", ["r-host"]),
-        makeCredential("c-other", "staging token", ["r-other-host"]),
-      ]);
-    const saved: KubernetesAiAccessSavedSettings = makeSaved({
-      aiAccessRunnerId: "r-host",
-      aiAccessRunnerName: "bash-runner",
-      aiAccessCredentialId: "c-host",
-      aiAccessCredentialName: "prod-east token",
-    });
-
-    test("refuses setting a credential the Runner cannot use", () => {
-      expect(
-        getKubernetesAiAccessBindingError({
-          saved,
-          changes: { aiAccessCredentialId: "c-other" },
-          runners,
-          credentials,
-        }),
-      ).toMatch(/"staging token" is not assigned to Runner "bash-runner"/);
-    });
-
-    test("refuses binding a Runner the kept credential is not assigned to", () => {
-      expect(
-        getKubernetesAiAccessBindingError({
-          saved,
-          changes: { aiAccessRunnerId: "r-other-host" },
-          runners,
-          credentials,
-        }),
-      ).toMatch(/"prod-east token" is not assigned to Runner "other-runner"/);
-      expect(
-        getKubernetesAiAccessBindingError({
-          saved,
-          changes: { aiAccessRunnerId: "r-this" },
-          runners,
-          credentials,
-        }),
-      ).toMatch(/Clear the Kubernetes credential/);
-    });
-
-    test("never refuses unbinding, a matching pair, or an unrelated edit", () => {
-      for (const changes of [
-        { aiAccessRunnerId: null },
-        { aiAccessCredentialId: null },
-        { aiAccessRunnerId: "r-this", aiAccessCredentialId: null },
-        { aiAccessRunnerId: "r-other-host", aiAccessCredentialId: "c-other" },
-        { isAiInvestigationEnabled: false },
-      ] as Array<JSONObject>) {
-        expect({
-          changes,
-          error: getKubernetesAiAccessBindingError({
-            saved,
-            changes,
-            runners,
-            credentials,
-          }),
-        }).toEqual({ changes, error: null });
-      }
-    });
-  });
-});
-
 describe("who may loosen a cluster's AI access", () => {
   test("uses the same permissions as an unattended auto-remediation rule", () => {
     expect(KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS).toEqual(
@@ -2504,7 +1806,7 @@ describe("who may loosen a cluster's AI access", () => {
       Permission.SettingsAdmin,
       Permission.SettingsMember,
       Permission.EditKubernetesCluster,
-      Permission.ReadRunbookCredential,
+      Permission.ReadRunner,
     ]) {
       grant([...BASE_PERMISSIONS, permission]);
       expect(canConfigureUnattendedKubernetesAiAccess()).toBe(false);
@@ -2566,19 +1868,6 @@ describe("who may loosen a cluster's AI access", () => {
     grant([...BASE_PERMISSIONS, Permission.ProjectAdmin]);
     expect(getKubernetesAiAccessEditCapabilities()).toEqual({
       canConfigureUnattended: true,
-      canPickRunner: true,
-      canPickCredential: true,
-    });
-
-    grant([
-      ...BASE_PERMISSIONS,
-      Permission.ProjectMember,
-      Permission.EditAutoRemediationRule,
-    ]);
-    expect(getKubernetesAiAccessEditCapabilities()).toEqual({
-      canConfigureUnattended: true,
-      canPickRunner: true,
-      canPickCredential: false,
     });
 
     grant([
@@ -2589,61 +1878,24 @@ describe("who may loosen a cluster's AI access", () => {
     ]);
     expect(getKubernetesAiAccessEditCapabilities()).toEqual({
       canConfigureUnattended: true,
-      canPickRunner: false,
-      canPickCredential: false,
     });
 
+    // Reading Runners no longer unlocks anything here: there is no picker.
     grant([
       ...BASE_PERMISSIONS,
       Permission.ProjectMember,
-      Permission.ReadRunbookCredential,
+      Permission.ReadRunner,
     ]);
     expect(getKubernetesAiAccessEditCapabilities()).toEqual({
       canConfigureUnattended: false,
-      canPickRunner: false,
-      canPickCredential: false,
     });
-  });
-
-  /*
-   * One rule for the credential picker: reading runbook credentials -
-   * RunbookCredential's own read list, what the server asks of whoever binds
-   * one (RunbookCredentialReaders) - on top of loosening.
-   */
-  test("offers the credential picker to whoever may loosen and read runbook credentials", () => {
-    grant([
-      ...BASE_PERMISSIONS,
-      Permission.EditAutoRemediationRule,
-      Permission.ReadRunner,
-      Permission.ReadRunbookCredential,
-    ]);
-    expect(getKubernetesAiAccessEditCapabilities()).toEqual({
-      canConfigureUnattended: true,
-      canPickRunner: true,
-      canPickCredential: true,
-    });
-
-    // A block on the read takes the picker away, even from an admin.
-    grant(
-      [...BASE_PERMISSIONS, Permission.ProjectAdmin],
-      [Permission.ReadRunbookCredential],
-    );
-    expect(getKubernetesAiAccessEditCapabilities().canPickCredential).toBe(
-      false,
-    );
-
-    expect(getKubernetesCredentialPermissionTitles()).toEqual(
-      PermissionGate.getPermissionTitles(
-        new RunbookCredential().getReadPermissions(),
-      ),
-    );
   });
 
   // The page's titles and PermissionGate's must never disagree.
   test("names permissions exactly as PermissionGate does, without a browser", () => {
     for (const permissions of [
       KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-      new RunbookCredential().getReadPermissions(),
+      new Runner().getReadPermissions(),
       PROJECT_AI_SETTINGS_PERMISSIONS,
       [Permission.ProjectOwner, Permission.ProjectOwner],
     ]) {
@@ -2687,51 +1939,6 @@ describe("who may change the project's AI settings from the cluster page", () =>
       grant([...BASE_PERMISSIONS, permission]);
       expect(canChangeProjectAiSettings()).toBe(false);
     }
-  });
-});
-
-describe("Runner and credential picker permissions", () => {
-  test("the Runner picker is withheld from cluster editors who may not read Runners", () => {
-    for (const permissions of [
-      [Permission.SettingsAdmin],
-      [Permission.SettingsMember],
-      [Permission.EditKubernetesCluster, Permission.ReadKubernetesCluster],
-    ]) {
-      grant([...BASE_PERMISSIONS, ...permissions]);
-      expect(canPickKubernetesRunner()).toBe(false);
-    }
-  });
-
-  test("the Runner picker is offered to Runner readers and a master admin", () => {
-    for (const permission of [
-      Permission.ProjectMember,
-      Permission.ReadRunner,
-      Permission.RunbookViewer,
-    ]) {
-      grant([...BASE_PERMISSIONS, permission]);
-      expect(canPickKubernetesRunner()).toBe(true);
-    }
-
-    grantNothingYet();
-    expect(canPickKubernetesRunner()).toBe(false);
-
-    jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
-    expect(canPickKubernetesRunner()).toBe(true);
-  });
-
-  test("the credential picker needs permission to read credentials", () => {
-    expect(canPickKubernetesCredential()).toBe(false);
-    grant([...BASE_PERMISSIONS, Permission.ReadRunbookCredential]);
-    expect(canPickKubernetesCredential()).toBe(true);
-  });
-
-  test("name the permissions that would unlock them", () => {
-    expect(getKubernetesRunnerPermissionTitles()).toEqual(
-      expect.arrayContaining(["Read Runbook Agent", "Project Member"]),
-    );
-    expect(getKubernetesCredentialPermissionTitles().join(", ")).toMatch(
-      /Runbook Credential/,
-    );
   });
 });
 
@@ -3085,80 +2292,6 @@ describe("a kubernetes-agent Runner, by the server's rule", () => {
     expect(isKubernetesAgentRunnerRow(null)).toBe(false);
     expect(isKubernetesAgentRunnerRow({})).toBe(false);
   });
-
-  test("the Runner picker never offers an agent row, whatever it is named", () => {
-    const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
-      runners: [postureOnly, upperCaseName, podNoCluster, hostRunner],
-      boundRunnerId: null,
-      boundRunnerName: null,
-    });
-    // A Runner in a pod that names no cluster is an ordinary Runner.
-    expect(optionValues(options)).toEqual(["r-pod", "r-host"]);
-  });
-
-  test("the credential picker offers nothing for an agent row the name does not mark", () => {
-    const credentials: Array<RunbookCredential> = [
-      makeCredential(CREDENTIAL_ID, "prod token", ["r-renamed"]),
-    ];
-    const runner: { id: string; name: string; isAgent: boolean } = {
-      id: "r-renamed",
-      name: "prod-eu-kubectl",
-      isAgent: true,
-    };
-
-    expect(
-      buildKubernetesAiCredentialOptions({
-        credentials,
-        boundCredentialId: null,
-        boundCredentialName: null,
-        runner,
-      }),
-    ).toEqual([]);
-    expect(
-      getKubernetesAiCredentialAssignmentError({
-        runner,
-        credentialId: CREDENTIAL_ID,
-        credentialName: "prod token",
-        credentialRunnerIds: ["r-renamed"],
-      }),
-    ).toMatch(/is an in-cluster Runner/);
-
-    const ordinary: { id: string; name: string; isAgent: boolean } = {
-      ...runner,
-      isAgent: false,
-    };
-    expect(
-      optionValues(
-        buildKubernetesAiCredentialOptions({
-          credentials,
-          boundCredentialId: null,
-          boundCredentialName: null,
-          runner: ordinary,
-        }),
-      ),
-    ).toEqual([CREDENTIAL_ID]);
-  });
-
-  test("saving a credential with an agent row the name does not mark is refused", () => {
-    const runners: Record<string, KubernetesAiRunnerDirectoryEntry> =
-      buildKubernetesAiRunnerDirectory([postureOnly]);
-    const credentials: Record<string, KubernetesAiCredentialDirectoryEntry> =
-      buildKubernetesAiCredentialDirectory([
-        makeCredential(CREDENTIAL_ID, "prod token", ["r-renamed"]),
-      ]);
-
-    expect(
-      getKubernetesAiAccessBindingError({
-        saved: makeAgentSaved(),
-        changes: {
-          aiAccessRunnerId: "r-renamed",
-          aiAccessCredentialId: CREDENTIAL_ID,
-        },
-        runners,
-        credentials,
-      }),
-    ).toMatch(/"prod-eu-kubectl" is an in-cluster Runner/);
-  });
 });
 
 /*
@@ -3266,35 +2399,25 @@ describe("in the reader's language", () => {
 
     expect(
       getKubernetesAiAccessLooseningChanges({
-        saved: makeSaved({ aiAccessCredentialId: CREDENTIAL_ID }),
+        saved: makeSaved(),
         changes: {
           aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
           aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
-          aiAccessRunnerId: OTHER_RUNNER_ID,
-          aiAccessCredentialId: null,
         },
-        hasAiAgent: true,
       }),
     ).toEqual([
       "‹switching fixes to ‹Bypass approval››",
       `‹adding the kubectl allowlist pattern "${PATCH_PATTERN}"›`,
-      "‹binding a different Runner›",
-      "‹removing the Kubernetes credential›",
     ]);
     expect(
       getKubernetesAiAccessLooseningChanges({
         saved: makeSaved({ aiKubectlCommandAllowlist: [] }),
         changes: {
           aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
-          aiAccessRunnerId: null,
-          aiAccessCredentialId: CREDENTIAL_ID,
         },
-        hasAiAgent: true,
       }),
     ).toEqual([
       `‹adding the kubectl allowlist patterns "${SET_IMAGE_PATTERN}", "${PATCH_PATTERN}"›`,
-      "‹switching this cluster to its Kubernetes AI agent›",
-      "‹binding a Kubernetes credential›",
     ]);
   });
 
@@ -3366,80 +2489,6 @@ describe("in the reader's language", () => {
         storedValue: [SET_IMAGE_PATTERN],
       }),
     ).toMatch(LOOKED_UP);
-  });
-
-  test("the credential field's help and the binding errors", async () => {
-    await i18next.changeLanguage("xx");
-
-    for (const runner of [
-      { id: null, name: null },
-      { id: RUNNER_ID, name: "bash-runner", isAgent: false },
-      { id: RUNNER_ID, name: null, isAgent: false },
-      { id: RUNNER_ID, name: "kubernetes-agent/prod-east", isAgent: true },
-    ]) {
-      expect(getKubernetesAiCredentialFieldDescription(runner)).toMatch(
-        LOOKED_UP,
-      );
-    }
-    expect(
-      getKubernetesAiCredentialFieldDescription({
-        id: RUNNER_ID,
-        name: null,
-        isAgent: false,
-      }),
-    ).toContain("‹the chosen Runner›");
-
-    for (const data of [
-      { runner: { id: null, name: null }, credentialName: "prod token" },
-      { runner: { id: null, name: null }, credentialName: null },
-      {
-        runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
-        credentialName: "prod token",
-      },
-      {
-        runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
-        credentialName: null,
-      },
-      {
-        runner: { id: RUNNER_ID, name: "kubernetes-agent/prod", isAgent: true },
-        credentialName: "prod token",
-      },
-    ]) {
-      expect(
-        getKubernetesAiCredentialAssignmentError({
-          runner: data.runner,
-          credentialId: CREDENTIAL_ID,
-          credentialName: data.credentialName,
-          credentialRunnerIds: [OTHER_RUNNER_ID],
-        }),
-      ).toMatch(LOOKED_UP);
-    }
-  });
-
-  test("a bound Runner or credential whose name is unknown is named in the reader's words", async () => {
-    await i18next.changeLanguage("xx");
-
-    expect(
-      optionLabel(
-        buildKubernetesAiRunnerOptions({
-          runners: [],
-          boundRunnerId: RUNNER_ID,
-          boundRunnerName: null,
-        }),
-        RUNNER_ID,
-      ),
-    ).toBe("‹‹The bound Runner› (currently bound)›");
-    expect(
-      optionLabel(
-        buildKubernetesAiCredentialOptions({
-          credentials: [],
-          boundCredentialId: CREDENTIAL_ID,
-          boundCredentialName: null,
-          runner: { id: RUNNER_ID, name: "bash-runner", isAgent: false },
-        }),
-        CREDENTIAL_ID,
-      ),
-    ).toBe("‹‹The bound credential› (currently bound)›");
   });
 
   test("the write-access notes and the disclosure, the namespaces listed in the reader's words", async () => {

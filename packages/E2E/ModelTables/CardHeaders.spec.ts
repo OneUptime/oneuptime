@@ -139,6 +139,38 @@ async function open(
   });
   await expect(page.getByTestId("card-header").first()).toBeVisible();
   await expect(page.getByTestId("table-skeleton-loader")).toHaveCount(0);
+  await finishFirstPaintTransitions(page);
+}
+
+/*
+ * The fixture's Tailwind is written in the page as elements appear
+ * (tailwind.js), so an element whose classes carry a transition animates
+ * into its styles on first paint: the table's search box (transition-all)
+ * grows its padding in over 200 ms, and a box read meanwhile is short - the
+ * phone's 42px search slot once read 41. Boxes are read once every finite
+ * animation has run its course. The product's stylesheet is built ahead of
+ * time, so nothing animates there on first paint.
+ */
+async function finishFirstPaintTransitions(page: Page): Promise<void> {
+  await page.evaluate(async (): Promise<void> => {
+    await new Promise((resolve: (value: unknown) => void) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    await Promise.all(
+      document
+        .getAnimations()
+        .filter((animation: Animation): boolean => {
+          return animation.effect?.getTiming().iterations !== Infinity;
+        })
+        .map((animation: Animation): Promise<unknown> => {
+          return animation.finished.catch(() => {
+            return undefined;
+          });
+        }),
+    );
+  });
 }
 
 /*

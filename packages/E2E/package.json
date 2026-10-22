@@ -63,6 +63,7 @@
     "test-global-runners-ui": "playwright test --config playwright.global-runners-ui.config.ts",
     "test-resource-topology-ui": "playwright test --config playwright.resource-topology-ui.config.ts",
     "test-runbook-variables-ui": "playwright test --config playwright.runbook-variables-ui.config.ts",
+    "test-runbooks-menu-ui": "playwright test --config playwright.runbooks-menu-ui.config.ts",
     "test-runbook-steps-ui": "playwright test --config playwright.runbook-steps-ui.config.ts",
     "test-postmortem-rules-ui": "playwright test --config playwright.postmortem-rules-ui.config.ts",
     "test-sign-in-options-ui": "playwright test --config playwright.sign-in-options-ui.config.ts",

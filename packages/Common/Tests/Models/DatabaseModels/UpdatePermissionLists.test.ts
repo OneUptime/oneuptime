@@ -625,7 +625,6 @@ describe("a relation and its ID column", () => {
     ["TeamPermission", "deletedByUser"],
     ["ApiKeyPermission", "deletedByUser"],
     ["DataMigration", "createdByUser"],
-    ["RunbookCredential", "createdByUser"],
     ["StatusPageAnnouncementTemplate", "createdByUser"],
     ["StatusPageSubscriberNotificationTemplate", "createdByUser"],
     ["StatusPageSubscriberNotificationTemplateStatusPage", "createdByUser"],

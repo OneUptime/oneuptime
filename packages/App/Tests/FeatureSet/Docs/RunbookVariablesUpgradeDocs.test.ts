@@ -1,9 +1,13 @@
 import { inlineCode } from "./DocsTranslationChecks";
 import {
+  UpgradingHeading,
   flattened,
+  headingAtEnglishPlace,
   otherChangesItemAtEnglishPlace,
   otherChangesItems,
+  upgradingHeadings,
 } from "./UpgradingDocsNotes";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   RunbookVariableScope,
@@ -11,19 +15,16 @@ import {
 } from "Common/Types/Runbook/RunbookVariableReference";
 import { RUNNER_FEATURE_KUBECTL_SCRIPT } from "Common/Types/Runbook/RunnerFeatures";
 import {
+  LEGACY_KUBERNETES_CREDENTIAL_TYPE,
   MovedCredential,
   moveStep,
 } from "Common/Server/Utils/Runbook/RunbookVariablesMove";
-import {
-  getLegacyKubernetesStepForOlderRunner,
-  mayKeepLegacyKubernetesFields,
-} from "Common/Types/Runbook/RunbookLegacySteps";
+import { LEGACY_KUBERNETES_STEP_FIELDS } from "Common/Types/Runbook/RunbookLegacySteps";
 import {
   KubernetesAction,
   KubernetesWorkloadKind,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -46,9 +47,10 @@ import path from "path";
  *   - {{runbookSecrets.NAME}} still reads the global variable NAME;
  *   - a kubectl step that runs a script goes only to a Runner that says it
  *     can run one, and an older Runner fails it saying so;
- *   - a moved Kubernetes step keeps its credential and action, which an
- *     older Runner is handed instead, until its script or kubeconfig is
- *     changed.
+ *   - a moved Kubernetes step kept its credential and action for an older
+ *     Runner until runbook credentials were removed: the note says so, in
+ *     the past, and links to the note on the removal; a step moved now, or
+ *     moved before, keeps neither, and no Runner is handed the old action.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -62,6 +64,9 @@ const PREVIOUS_LEAD: string =
 const NEXT_LEAD: string = "**Visitors keep their own address in more setups.**";
 
 const VARIABLES_LINK: string = "(/docs/runbooks/variables)";
+// The note on the removal of runbook credentials, on the same page.
+const REMOVAL_HEADING: string = "Runbook credentials are removed";
+const REMOVAL_LINK: string = "(#runbook-credentials-are-removed)";
 
 const TRANSLATIONS: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
   (language: string): boolean => {
@@ -102,8 +107,7 @@ describe("the English upgrade note on runbook variables", () => {
       "global ones under **Runbooks → Settings → Global Variables**, which every runbook can use, and a runbook's own under its **Settings → Variables**.",
       "Every runbook secret is now a secret global variable of the same name, with its value, its Runners and its switch for global Runners, now called **Global Runners can use it**, and `{{runbookSecrets.NAME}}` still reads it.",
       "An SSH step now runs a bash script and signs in with a secret variable, and a Kubernetes step is now a kubectl step that runs a script of kubectl commands with a kubeconfig variable.",
-      "The credentials stay, under **Runbooks → Runners → AI Access**, for OneUptime AI's own commands.",
-      "A moved Kubernetes step also keeps its credential and action, so a Runner older than this release still runs it as it did.",
+      "The credentials stayed, on the **AI Access** page under **Runbooks → Runners**, for OneUptime AI's own commands, and a moved Kubernetes step kept its credential and action, so a Runner older than this release still ran it as it did, until [runbook credentials were removed](#runbook-credentials-are-removed).",
       "A new kubectl step, and a moved one once its script or kubeconfig is changed, needs a Runner of this release: an older one fails such a step and says so, so update your Runners.",
     ]) {
       expect({ claim, said: ENGLISH_NOTE.includes(claim) }).toEqual({
@@ -113,6 +117,32 @@ describe("the English upgrade note on runbook variables", () => {
     }
 
     expect(ENGLISH_NOTE).toContain(`[Runbook Variables]${VARIABLES_LINK}`);
+  });
+
+  it("says no more that the credentials stay, or that an older Runner is still handed a moved step", () => {
+    for (const gone of [
+      "The credentials stay, under",
+      "**Runbooks → Runners → AI Access**",
+      "also keeps its credential and action",
+      "still runs it as it did",
+    ]) {
+      expect({ gone, said: ENGLISH_NOTE.includes(gone) }).toEqual({
+        gone,
+        said: false,
+      });
+    }
+  });
+
+  it("links to the note on the removal, a heading of the same page", () => {
+    const slugs: Array<string> = upgradingHeadings("en").map(
+      (heading: UpgradingHeading): string => {
+        return heading.slug;
+      },
+    );
+
+    expect(REMOVAL_LINK).toBe(`(#${slugifyMarkdownHeading(REMOVAL_HEADING)})`);
+    expect(slugs).toContain(slugifyMarkdownHeading(REMOVAL_HEADING));
+    expect(ENGLISH_NOTE).toContain(REMOVAL_LINK);
   });
 });
 
@@ -152,7 +182,7 @@ describe("the note is true to the upgrade", () => {
     );
   });
 
-  it("keeps a moved Kubernetes step's credential and action for an older Runner, until its script or kubeconfig changes", () => {
+  it("moves a Kubernetes step to its kubectl script with no credential or action beside it, and takes them off a step moved before", () => {
     const legacy: JSONObject = {
       credentialId: "11111111-1111-4111-8111-111111111111",
       action: KubernetesAction.RestartWorkload,
@@ -171,7 +201,7 @@ describe("the note is true to the upgrade", () => {
         [
           "11111111-1111-4111-8111-111111111111",
           {
-            credentialType: RunbookCredentialType.Kubernetes,
+            credentialType: LEGACY_KUBERNETES_CREDENTIAL_TYPE,
             kubeconfigVariable: "prod-kubeconfig",
           },
         ],
@@ -180,30 +210,36 @@ describe("the note is true to the upgrade", () => {
     });
     const config: JSONObject = moved!["config"] as JSONObject;
 
-    // An older Runner is handed the action, as the step was written ...
-    expect(getLegacyKubernetesStepForOlderRunner(config)).toEqual(legacy);
+    // The script and the kubeconfig, and nothing an older Runner was handed.
+    expect(String(config["script"])).toContain("kubectl");
+    expect(String(config["kubeconfig"])).toContain("prod-kubeconfig");
 
-    // ... while the step is unchanged; a changed script or kubeconfig drops it.
-    expect(mayKeepLegacyKubernetesFields({ config, heldConfig: config })).toBe(
-      true,
-    );
-    expect(
-      mayKeepLegacyKubernetesFields({
-        config: { ...config, script: "kubectl get pods" },
-        heldConfig: config,
-      }),
-    ).toBe(false);
-    expect(
-      mayKeepLegacyKubernetesFields({
-        config: { ...config, kubeconfig: "" },
-        heldConfig: config,
-      }),
-    ).toBe(false);
+    for (const field of LEGACY_KUBERNETES_STEP_FIELDS) {
+      expect({ field, kept: field in config }).toEqual({ field, kept: false });
+    }
 
+    /*
+     * A step the first move left with its credential and action beside its
+     * script has them taken off, and keeps its script and kubeconfig.
+     */
+    const movedBefore: JSONObject | null = moveStep({
+      step: {
+        id: "k2",
+        type: RunbookStepType.Kubernetes,
+        config: { ...config, ...legacy },
+      },
+      credentials: new Map<string, MovedCredential>(),
+      secretNames: new Map<string, string>(),
+    });
+
+    expect(movedBefore!["config"]).toEqual(config);
+
+    // No Runner is handed the old action any more.
     const ingress: string = source(
       "App/FeatureSet/Runbook/API/RunnerIngress.ts",
     );
-    expect(ingress).toContain("RunnerIngressAPI.claimLegacyKubernetesStep(");
+
+    expect(ingress).not.toContain("claimLegacyKubernetesStep");
   });
 });
 
@@ -222,6 +258,11 @@ describe("every translation carries the note", () => {
       expect(inlineCode(note).sort()).toEqual(inlineCode(ENGLISH_NOTE).sort());
 
       expect(note).toContain(VARIABLES_LINK);
+
+      // The link to the note on the removal names that note's heading here.
+      expect(note).toContain(
+        `(#${headingAtEnglishPlace(language, REMOVAL_HEADING).slug})`,
+      );
 
       // A translated lead, not the English words.
       expect(note.startsWith(`- ${NOTE_LEAD}`)).toBe(false);

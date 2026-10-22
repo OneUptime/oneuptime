@@ -2,9 +2,10 @@
  * OneUptime AI access to a Kubernetes cluster.
  *
  * AI reaches a cluster through one access target: the Kubernetes AI agent
- * the kubernetes-agent chart installs (its own identity, never a Runner), the
- * chart's previous in-cluster Runner, or an existing Runner plus a Kubernetes
- * credential. Two switches decide what AI may do there: whether it may run
+ * the kubernetes-agent chart installs (its own identity, never a Runner), or
+ * the chart's previous in-cluster Runner. (An existing Runner plus a
+ * Kubernetes runbook credential was a third, until runbook credentials were
+ * removed.) Two switches decide what AI may do there: whether it may run
  * read-only kubectl during investigations, and how it may remediate.
  * Everything here is shared by the server, the Runner binary, the Kubernetes
  * AI agent and the dashboard so they never disagree about what a mode or a
@@ -118,14 +119,14 @@ export type KubernetesAiAccessGapCode =
    * cluster its pod lives in, so in-cluster access is refused for it.
    */
   | "runner_cluster_mismatch"
-  | "credential_missing"
   /*
-   * A Kubernetes credential is selected for this cluster, but the bound
-   * Runner is a kubernetes-agent Runner (of another cluster). Such a Runner
-   * is minted with the telemetry ingestion key, so it is never handed
-   * credential material: a cross-cluster credential needs a Runner created
-   * in the dashboard.
+   * Retired with runbook credentials: a Runner outside the cluster bound
+   * with a Kubernetes credential it could not use (credential_missing), or
+   * a credential selected for another cluster's in-cluster Runner
+   * (credential_on_agent_runner). The server no longer produces either;
+   * they stay for compatibility.
    */
+  | "credential_missing"
   | "credential_on_agent_runner"
   | "investigation_disabled"
   | "remediation_disabled"
@@ -230,8 +231,7 @@ export type KubernetesAgentPosture = KubernetesRunnerPosture;
  *           a Runner). It authenticates to the API server with its own
  *           ServiceAccount, so its accessMethod is "in_cluster".
  * runner:   a Runner row — the chart's previous in-cluster Runner
- *           (accessMethod "in_cluster") or a Runner holding a Kubernetes
- *           credential (accessMethod "credential").
+ *           (accessMethod "in_cluster").
  *
  * accessMethod says how kubectl authenticates; this says which identity runs
  * it. Tell the AI agent and the legacy in-cluster Runner apart ONLY by this.
@@ -335,10 +335,11 @@ export interface KubernetesClusterAiAccessStatus {
   runner: KubernetesAiAccessRunnerSummary | null;
   /*
    * "in_cluster" when the target uses its own ServiceAccount (the
-   * Kubernetes AI agent or the chart's previous in-cluster Runner),
-   * "credential" when it is a Runner using a Kubernetes credential.
+   * Kubernetes AI agent or the chart's previous in-cluster Runner) and it
+   * reported this cluster; "none" otherwise. ("credential", a Runner using
+   * a Kubernetes runbook credential, went with runbook credentials.)
    */
-  accessMethod: "in_cluster" | "credential" | "none";
+  accessMethod: "in_cluster" | "none";
   /*
    * The cluster's Kubernetes AI agent row, whether or not it is the active
    * target; null when no agent ever registered for the cluster.
@@ -355,9 +356,6 @@ export interface KubernetesClusterAiAccessStatus {
    * ones above. Absent (an older server) reads as both off.
    */
   automaticRemediation?: KubernetesAiAutomaticRemediationSettings | undefined;
-  // Set with accessMethod "credential": the RunbookCredential the jobs name.
-  credentialId?: string | undefined;
-  credentialName?: string | undefined;
   /*
    * Operator-authored kubectl patterns that Automatic mode may run without
    * approval even though they are RiskyWrite. Normalized; empty when unset.
@@ -713,8 +711,8 @@ export const KUBERNETES_AI_AGENT_ALIVE_WINDOW_IN_MINUTES: number = 5;
  *                                    not present its key. Clears on its own;
  *                                    the body carries retryAfterSeconds (and
  *                                    the response a Retry-After header).
- * runner_holds_more_than_defaults:   the offline row holds credentials,
- *                                    secrets, extra capabilities or another
+ * runner_holds_more_than_defaults:   the offline row holds secrets,
+ *                                    extra capabilities or another
  *                                    cluster's binding, so only a request
  *                                    that proves continuity may re-key it.
  *                                    Needs an operator.

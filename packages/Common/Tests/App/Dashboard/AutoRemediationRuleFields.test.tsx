@@ -259,10 +259,15 @@ describe("a rule's Runner", () => {
 
     expect(changes).toEqual([PROD_ID]);
     expect(shown()).toBe("prod-eu-runner · Connected");
+    /*
+     * Bash only: OneUptime AI's SSH commands reached another host with a
+     * runbook credential, and runbook credentials were removed.
+     */
     expect(help()).toHaveTextContent(
-      "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.",
+      "OneUptime AI may also run Bash commands on this Runner, inside your network.",
     );
     expect(help()).toHaveTextContent(REMEDIATION_OWN_RUNNER_HELPER_TEXT);
+    expect(help()).not.toHaveTextContent("SSH");
   });
 
   test("picking the AI agent again stores no Runner", async () => {

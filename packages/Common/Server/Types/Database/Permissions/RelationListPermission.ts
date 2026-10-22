@@ -66,8 +66,8 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * The settings that hold credentials OneUptime uses for the record that
  * names them: the SMTP server a status page sends its email through, the
  * call and SMS provider a status page or an incoming call policy uses, the
- * credential the AI reaches a cluster with, the SNMP credentials a network
- * device or site is polled with, the video call provider a meeting is
+ * SNMP credentials a network device or site is polled with, the video call
+ * provider a meeting is
  * started with, the API key a permission is granted to, and the outside MCP
  * servers whose tools OneUptime AI uses for an investigation or an auto
  * remediation rule, signed in with what the server holds, and the security
@@ -91,7 +91,6 @@ const CREDENTIAL_SETTINGS: Array<string> = [
   "NetworkSnmpCredentialProfile",
   "ProjectCallSMSConfig",
   "ProjectSMTPConfig",
-  "RunbookCredential",
   "SecurityEventConnection",
   "VideoCallConnection",
 ];
@@ -342,9 +341,7 @@ export default class RelationListPermission {
    * holds one of the table's read permissions, or its read wildcard, and no
    * block with no labels takes any of them away. Asked in the props' own
    * project (tenantId). For a service that reads such a reference from a
-   * column no metadata describes (a runbook's steps name the credentials
-   * they run with), and for the read of runbook credentials that lets
-   * OneUptime AI's commands use them (RunbookCredentialReaders).
+   * column no metadata describes.
    */
   public static mayReadTable(
     modelType: DatabaseBaseModelType,
@@ -400,9 +397,8 @@ export default class RelationListPermission {
    * step is not lent the read of one. A step acts as a Project Admin
    * (WorkflowPrincipal), who may read them, but whoever may edit a workflow
    * decides what its steps do, so a step reads none: getTableRead answers it
-   * no reader, a write that names one is refused saying a person has to
-   * make the change (checkNamedLists), and a refusal of the read of runbook
-   * credentials says so too (RunbookCredentialReaders.getWorkflowNote).
+   * no reader, and a write that names one is refused saying a person has
+   * to make the change (checkNamedLists).
    */
   public static isReadWithheldFromWorkflow(
     modelType: DatabaseBaseModelType,

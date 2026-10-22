@@ -218,7 +218,12 @@ describe("the old Settings URLs forward to Runbooks", () => {
   test.each([
     [`${SETTINGS}/runners`, `${RUNBOOKS}/runners`],
     [`${SETTINGS}/runners/${RUNNER_ID}`, `${RUNBOOKS}/runners/${RUNNER_ID}`],
-    [`${SETTINGS}/runner-credentials`, `${RUNBOOKS}/runner-credentials`],
+    /*
+     * Runner Credentials (later Runbooks > Runners > AI Access) is gone with
+     * runbook credentials: its old address lands on Runners, the section it
+     * lived in.
+     */
+    [`${SETTINGS}/runner-credentials`, `${RUNBOOKS}/runners`],
   ])("%s arrives at %s", (oldUrl: string, newUrl: string) => {
     visit(oldUrl);
 
@@ -232,7 +237,7 @@ describe("the old Settings URLs forward to Runbooks", () => {
       [`${SETTINGS}/runners/${RUNNER_ID}`]:
         RouteMap[PageMap.RUNBOOKS_RUNNER_VIEW]!.toString(),
       [`${SETTINGS}/runner-credentials`]:
-        RouteMap[PageMap.RUNBOOKS_RUNNER_CREDENTIALS]!.toString(),
+        RouteMap[PageMap.RUNBOOKS_RUNNERS]!.toString(),
     };
 
     for (const [oldUrl, pattern] of Object.entries(destinations)) {
@@ -275,7 +280,7 @@ describe("the old Settings URLs forward to Runbooks", () => {
     ],
     [
       `${SETTINGS}/runner-credentials?filter=ssh#top`,
-      `${RUNBOOKS}/runner-credentials?filter=ssh#top`,
+      `${RUNBOOKS}/runners?filter=ssh#top`,
     ],
   ])("%s keeps its query string and hash", (oldUrl: string, newUrl: string) => {
     visit(oldUrl);
@@ -332,7 +337,6 @@ describe("the forwarding table", () => {
     const moved: Array<[keyof typeof MOVED_RUNNER_SETTINGS_PATHS, string]> = [
       ["runners", PageMap.RUNBOOKS_RUNNERS],
       ["runnerView", PageMap.RUNBOOKS_RUNNER_VIEW],
-      ["runnerCredentials", PageMap.RUNBOOKS_RUNNER_CREDENTIALS],
     ];
 
     for (const [name, page] of moved) {
@@ -340,5 +344,26 @@ describe("the forwarding table", () => {
         `/dashboard/:projectId/runbooks/${MOVED_RUNNER_SETTINGS_PATHS[name]}`,
       ).toBe(RouteMap[page]!.toString());
     }
+  });
+
+  /*
+   * The third went with runbook credentials: no page has its path any
+   * more, in Runbooks or anywhere else, so it forwards to Runners.
+   */
+  test("the Runner Credentials path is no page's any more", () => {
+    const credentialsPath: string = `/dashboard/:projectId/runbooks/${MOVED_RUNNER_SETTINGS_PATHS.runnerCredentials}`;
+
+    for (const route of Object.values(RouteMap)) {
+      expect(route?.toString()).not.toBe(credentialsPath);
+    }
+    expect(
+      Object.keys(PageMap).filter((key: string): boolean => {
+        return (
+          key.includes("RUNNER_CREDENTIAL") ||
+          key.includes("RUNBOOK_CREDENTIAL") ||
+          key.includes("AI_ACCESS")
+        );
+      }),
+    ).toEqual([]);
   });
 });

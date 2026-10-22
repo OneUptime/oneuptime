@@ -2,9 +2,11 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import { isSshPrivateKey } from "Common/Types/Runbook/RunbookLegacySteps";
-import { KUBECONFIG_CREDENTIAL_TYPE } from "Common/Types/Runbook/RunnerFeatures";
+import {
+  KUBECONFIG_CREDENTIAL_TYPE,
+  SSH_CREDENTIAL_TYPE,
+} from "Common/Types/Runbook/RunnerFeatures";
 import {
   RunbookJobVariableSource,
   getRunbookJobSecretFields,
@@ -39,13 +41,10 @@ import RunbookVariableResolver, {
  *   - an SSH step that takes a script (no credentialId): its host, user and
  *     port, its script - also sent as `command`, which a Runner older than
  *     scripts runs - and, as `credential`, its key or password and the
- *     key's passphrase, in the shape an SSH credential was always sent in;
+ *     key's passphrase, in the shape every Runner reads (SSH_CREDENTIAL_TYPE);
  *   - a kubectl step (Kubernetes, with a script): its script, and its
  *     kubeconfig as `credential` - none when it uses the Runner's own
- *     access. The action a step moved from a Kubernetes action keeps for a
- *     Runner older than kubectl scripts (RunbookLegacySteps) is not handed
- *     over with it: only such a Runner gets that, and none of this
- *     (RunnerIngress.claimLegacyKubernetesStep).
+ *     access.
  *
  * What it may have is RunbookVariableResolver's one rule. A step that names
  * a variable it may not have is refused with the reason, never handed over
@@ -53,9 +52,10 @@ import RunbookVariableResolver, {
  * listed (secretValues), so the Runner hides them in what the step prints,
  * and the server does again (RunnerJobService.submitResult).
  *
- * Steps written before variables - an SSH or Kubernetes step that names a
- * credential - are not read here: the credential path serves them as before.
- * Nor is anything OneUptime AI composed: its commands are never filled in.
+ * A job that names a runbook credential - a step written before variables
+ * and never moved - is not read here: runbook credentials are gone, and the
+ * claim fails such a job, saying how to fix the step (RunnerIngress). Nor is
+ * anything OneUptime AI composed: its commands are never filled in.
  */
 
 export type PreparedJobVariables =
@@ -204,7 +204,7 @@ export default class RunbookJobVariables {
           command: script,
         },
         credential: {
-          credentialType: RunbookCredentialType.SSH,
+          credentialType: SSH_CREDENTIAL_TYPE,
           hostname: host,
           port,
           username,

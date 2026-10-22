@@ -4,8 +4,7 @@ import { afterEach, describe, expect, it } from "@jest/globals";
 /*
  * Contract under test — CommandAllowlist.normalize, the single reader of a
  * rule's operator-authored command allowlist: the runner reads a rule's
- * allowlist with it, and so does the check of who may save a rule that runs
- * its commands without asking (AiRemediationCredentialUse).
+ * allowlist with it.
  *
  * The column is jsonb, and the dashboard's JSON form field can persist
  * either a real array or a JSON STRING containing one. The runner used to
