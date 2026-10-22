@@ -557,13 +557,19 @@ const TRIAGES = {
       SPRAY_EVIDENCE,
     ),
   },
+  /*
+   * The web shell: Critical over its High, and Enrich New Cases again - its
+   * run on this case failed, so the card offers Run playbook (a suggested
+   * playbook with a run still going on its case shows that run instead).
+   */
   138: {
     verdict: SecurityCaseAiVerdict.LikelyMalicious,
     suggestedPriority: SecurityCasePriority.Critical,
+    suggestedPlaybookId: ID.playbook(1),
     triagedAt: ago(1 * HOUR + 58 * MINUTE),
     evidence: [],
     report:
-      "## 🧠 AI — Security Case Triage\n\n**Summary**\nAn encoded PowerShell command ran on web-03 under the IIS application pool, which runs no PowerShell otherwise. It looks like a web shell.\n\n**Assessment**\nLikely malicious: an encoded command started by the web server's own process is not something this team runs.\n\n**Suggested next steps**\n1. Isolate web-03 and capture its memory.\n2. Look for new files under the site's upload folders.",
+      "## 🧠 AI — Security Case Triage\n\n**Summary**\nAn encoded PowerShell command ran on web-03 under the IIS application pool, which runs no PowerShell otherwise. It looks like a web shell.\n\n**Assessment**\nLikely malicious: an encoded command started by the web server's own process is not something this team runs.\n\n**Suggested next steps**\n1. Run Enrich New Cases again: its run on this case failed before it read web-03's activity.\n2. Isolate web-03 and capture its memory.\n3. Look for new files under the site's upload folders.",
   },
   139: {
     verdict: SecurityCaseAiVerdict.Inconclusive,

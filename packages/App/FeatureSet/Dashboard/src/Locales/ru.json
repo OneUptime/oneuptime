@@ -33283,5 +33283,6 @@
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "У автора нет права записи в этот репозиторий, поэтому запрос проверяется снова только по просьбе человека с правом записи.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Этот репозиторий не подключён через GitHub App, поэтому его запросы на слияние не проверяются.",
   "Last thrown {{time}}": "Последний раз: {{time}}",
-  "Someone who can edit this case can start a triage.": "Тот, кто может редактировать этот кейс, может запустить оценку."
+  "Someone who can edit this case can start a triage.": "Тот, кто может редактировать этот кейс, может запустить оценку.",
+  "This playbook is already running on this case. Its run is under Playbook Runs.": "Этот плейбук уже запущен по этому кейсу. Запуск — в разделе «Запуски плейбуков»."
 }

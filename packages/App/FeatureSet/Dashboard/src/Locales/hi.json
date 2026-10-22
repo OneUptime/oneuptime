@@ -33283,5 +33283,6 @@
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "इसके लेखक के पास इस रिपॉजिटरी में लिखने की अनुमति नहीं है, इसलिए इसकी दोबारा समीक्षा तभी होती है जब लिखने की अनुमति वाला कोई व्यक्ति कहे।",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "यह रिपॉजिटरी GitHub App के ज़रिए कनेक्ट नहीं है, इसलिए इसके पुल रिक्वेस्ट की समीक्षा नहीं होती।",
   "Last thrown {{time}}": "आखिरी बार {{time}}",
-  "Someone who can edit this case can start a triage.": "जो इस केस को संपादित कर सकता है, वह ट्राइएज शुरू कर सकता है।"
+  "Someone who can edit this case can start a triage.": "जो इस केस को संपादित कर सकता है, वह ट्राइएज शुरू कर सकता है।",
+  "This playbook is already running on this case. Its run is under Playbook Runs.": "यह प्लेबुक इस केस पर पहले से चल रही है। उसका रन प्लेबुक रन में है।"
 }

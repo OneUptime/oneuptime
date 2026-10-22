@@ -12,6 +12,7 @@ import {
   getSecurityCaseAiReasonAction,
   getSecurityCaseAiStage,
   getSecurityCaseAiTriageAccess,
+  getSuggestedPlaybookRunInProgress,
   getSecurityCaseAiStepLabel,
   getSecurityCaseAiVerdictSentence,
   isBlockingTriageReason,
@@ -27,6 +28,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../Utils/AI/InvestigationReport";
 import { describe, expect, test } from "@jest/globals";
 
@@ -337,6 +339,34 @@ describe("what the card offers", () => {
     expect(SecurityCaseAiCopy.whoCanTriage).toBe(
       "Someone who can edit this case can start a triage.",
     );
+  });
+
+  test("a suggested playbook's run still going on the case stands in for Run playbook; a finished one does not", () => {
+    // Queued, running or held for an approval: a second run would repeat it.
+    expect(
+      getSuggestedPlaybookRunInProgress(SecurityPlaybookRunStatus.Queued),
+    ).toBe(SecurityPlaybookRunStatus.Queued);
+    expect(
+      getSuggestedPlaybookRunInProgress(SecurityPlaybookRunStatus.Running),
+    ).toBe(SecurityPlaybookRunStatus.Running);
+    expect(
+      getSuggestedPlaybookRunInProgress(
+        SecurityPlaybookRunStatus.WaitingForApproval,
+      ),
+    ).toBe(SecurityPlaybookRunStatus.WaitingForApproval);
+    // Finished, whatever the outcome: Run playbook again.
+    for (const finished of [
+      SecurityPlaybookRunStatus.Succeeded,
+      SecurityPlaybookRunStatus.Failed,
+      SecurityPlaybookRunStatus.Cancelled,
+    ]) {
+      expect(getSuggestedPlaybookRunInProgress(finished)).toBeNull();
+    }
+    // No run, or a status this Dashboard does not know: nothing stands in.
+    expect(getSuggestedPlaybookRunInProgress(undefined)).toBeNull();
+    expect(getSuggestedPlaybookRunInProgress(null)).toBeNull();
+    expect(getSuggestedPlaybookRunInProgress("")).toBeNull();
+    expect(getSuggestedPlaybookRunInProgress("Paused")).toBeNull();
   });
 
   test("the suggested priority is one click only when the case is at another", () => {

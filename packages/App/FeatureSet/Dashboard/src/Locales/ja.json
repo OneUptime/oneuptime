@@ -33283,5 +33283,6 @@
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "作成者にはこのリポジトリへの書き込み権限がないため、書き込み権限のある人が依頼したときだけ再レビューされます。",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "このリポジトリは GitHub App で接続されていないため、プルリクエストはレビューされません。",
   "Last thrown {{time}}": "最終発生 {{time}}",
-  "Someone who can edit this case can start a triage.": "このケースを編集できるユーザーは、トリアージを開始できます。"
+  "Someone who can edit this case can start a triage.": "このケースを編集できるユーザーは、トリアージを開始できます。",
+  "This playbook is already running on this case. Its run is under Playbook Runs.": "このプレイブックはこのケースですでに実行中です。実行は「プレイブックの実行」にあります。"
 }

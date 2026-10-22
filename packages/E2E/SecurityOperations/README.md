@@ -47,9 +47,10 @@ Stubbed:
   Enrich New Cases; `/security-case/setup/test` opens CASE-150, the brute force case a test attack
   opens.
 - OneUptime AI's routes answer as the server would on the fixture's own triages: CASE-142 (the
-  spray, Likely Malicious, suggesting Contain Compromised Okta Users), CASE-138 (Likely
-  Malicious, suggesting Critical over its High), CASE-139 (Inconclusive) and CASE-137 (Likely
-  Benign) carry the read on their `ai*` columns, as the runner writes it.
+  spray, Likely Malicious, suggesting Contain Compromised Okta Users, whose run on it waits for
+  an approval), CASE-138 (Likely Malicious, suggesting Critical over its High and Enrich New
+  Cases, whose run on it failed), CASE-139 (Inconclusive) and CASE-137 (Likely Benign) carry the
+  read on their `ai*` columns, as the runner writes it.
   `POST /security-case/:id/ai-triage` answers each one's finished run and the checks its report
   cites; `/ai-triage/evidence` answers a cited check's rows, pinned to when the triage read them;
   `/ai-triage/start` on CASE-141 (not read yet) starts a run the fixture walks one status read at a
@@ -130,8 +131,10 @@ that list is not empty.
   in dark and on a phone.
 - **OneUptime AI**: a triaged case leads with the AI card - its read, the playbook it suggests and
   a cited report, above the detections; a citation opens the check behind it and re-runs it on the
-  case's own route with the triage's run; Run playbook opens the run dialog on the suggested
-  playbook and runs nothing; Triage with AI on a case nobody has read shows each check as it runs,
+  case's own route with the triage's run; a suggested playbook whose run on the case is still
+  going shows that run's status in place of Run playbook; Run playbook (its last run failed) opens
+  the run dialog on the suggested playbook and runs nothing; Triage with AI on a case nobody has
+  read shows each check as it runs,
   then the read, and Set priority sets the suggested priority; the case lists show each case's read
   beside its title; Draft with AI writes a Sigma correlation into the detection rule form from a
   sentence, names the rule after it and saves nothing; Security Events → AI → Settings is one

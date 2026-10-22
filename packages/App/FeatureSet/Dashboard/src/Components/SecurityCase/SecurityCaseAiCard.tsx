@@ -34,6 +34,7 @@ import {
   getSecurityCaseAiTriageAccess,
   getSecurityCaseAiStepLabel,
   getSecurityCaseAiVerdictSentence,
+  getSuggestedPlaybookRunInProgress,
   isBlockingTriageReason,
   isTriageOnItsWay,
   readSecurityCaseAiResult,
@@ -43,24 +44,30 @@ import {
 import {
   SecurityCaseAiVerdictPill,
   SecurityCasePriorityPill,
+  SecurityPlaybookRunStatusPill,
 } from "./SecurityCasePills";
 import {
   getProjectBalanceAccess,
   ProjectBalanceAccess,
 } from "../ProjectBalance/ProjectBalanceAccess";
+import { RUN_POLL_INTERVAL_IN_MS } from "../SecurityPlaybook/useSecurityPlaybookRuns";
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
+import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityPlaybookRunStatus from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import {
   ParsedInvestigationReport,
   parseInvestigationReport,
@@ -114,6 +121,11 @@ export const SECURITY_CASE_AI_STEPS_SHOWN: number = 5;
 
 export interface ComponentProps {
   securityCase: SecurityCase;
+  /*
+   * Bumped by the page when a playbook run starts or moves on, so whether
+   * the suggested playbook is already running on the case is read again.
+   */
+  refreshToggle?: string | undefined;
   // The case was read again with the triage's result on it.
   onTriaged: () => void;
   // Sets the case's priority to the one OneUptime AI suggested.
@@ -133,7 +145,8 @@ export interface ComponentProps {
  *   - Triaging: what it is doing, check by check. It changes nothing.
  *   - Triaged: OneUptime AI's read (its pill), the priority and playbook it
  *     suggests - each one click, through the case's own actions (Set
- *     priority, Run Playbook and that playbook's approvals) - and its report
+ *     priority, Run Playbook and that playbook's approvals; a playbook
+ *     already running on the case shows its run's status instead) - and its report
  *     with every claim cited: a citation opens the check behind it under
  *     Evidence checked, with the rows it read, re-run with the reader's own
  *     permissions. Ask about this case opens Ask AI on the case.
@@ -160,6 +173,11 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
   const [startError, setStartError] = useState<string>("");
   const [isStarting, setIsStarting] = useState<boolean>(false);
   const [playbookName, setPlaybookName] = useState<string | null>(null);
+  // The suggested playbook's run still going on this case, if one is.
+  const [suggestedPlaybookRun, setSuggestedPlaybookRun] =
+    useState<SecurityPlaybookRunStatus | null>(null);
+  // Bumped to read that run again while it is still going.
+  const [suggestedRunCheck, setSuggestedRunCheck] = useState<number>(0);
   const [focusRequest, setFocusRequest] = useState<EvidenceFocusRequest | null>(
     null,
   );
@@ -275,6 +293,81 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
       isCurrent = false;
     };
   }, [isAiOffered, result.suggestedPlaybookId]);
+
+  /*
+   * Whether the suggested playbook is already on its way on this case (its
+   * latest run here, not finished): then the card shows that run's status
+   * in place of Run playbook, which would start a second run asking for the
+   * same approval again. Read again when the page says a run started or
+   * moved on, and every few seconds while that run is still going - as
+   * Playbook Runs below is - so its end brings Run playbook back.
+   */
+  useEffect(() => {
+    const playbookId: string | undefined = result.suggestedPlaybookId;
+
+    if (
+      !isAiOffered ||
+      !playbookId ||
+      !ObjectID.isValidUUID(playbookId) ||
+      !ObjectID.isValidUUID(caseId)
+    ) {
+      setSuggestedPlaybookRun(null);
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    ModelAPI.getList<SecurityPlaybookRun>({
+      modelType: SecurityPlaybookRun,
+      query: {
+        securityCaseId: new ObjectID(caseId),
+        securityPlaybookId: new ObjectID(playbookId),
+      },
+      select: { _id: true, status: true },
+      sort: { createdAt: SortOrder.Descending },
+      limit: 1,
+      skip: 0,
+    })
+      .then((runs: ListResult<SecurityPlaybookRun>) => {
+        if (isCurrent) {
+          setSuggestedPlaybookRun(
+            getSuggestedPlaybookRunInProgress(runs.data[0]?.status),
+          );
+        }
+      })
+      .catch(() => {
+        // Not knowing leaves Run playbook, as before the run was read.
+        if (isCurrent) {
+          setSuggestedPlaybookRun(null);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    isAiOffered,
+    caseId,
+    result.suggestedPlaybookId,
+    props.refreshToggle,
+    suggestedRunCheck,
+  ]);
+
+  useEffect(() => {
+    if (!suggestedPlaybookRun) {
+      return;
+    }
+
+    const timer: ReturnType<typeof setInterval> = setInterval(() => {
+      setSuggestedRunCheck((count: number): number => {
+        return count + 1;
+      });
+    }, RUN_POLL_INTERVAL_IN_MS);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [suggestedPlaybookRun]);
 
   /*
    * The report as drawn: without the runner's own heads-up about text
@@ -626,26 +719,44 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
             </dt>
             {/*
               The playbook's whole name, wrapping on a phone rather than
-              cut short: it is what Run playbook would start.
+              cut short: it is what Run playbook would start - or, when it
+              is already running on the case, its run's status, as Playbook
+              Runs shows it.
             */}
             <dd className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <span className="min-w-0 break-words text-sm font-medium text-gray-900">
                 {playbookName}
               </span>
-              <Button
-                title={SecurityCaseAiCopy.runPlaybookButton}
-                icon={IconProp.Play}
-                buttonStyle={ButtonStyleType.NORMAL}
-                buttonSize={ButtonSize.Small}
-                className={CARD_BUTTON_CLASS_NAME}
-                disabled={props.isWorking}
-                onClick={() => {
-                  props.onRunPlaybook(
-                    new ObjectID(result.suggestedPlaybookId!),
-                  );
-                }}
-                dataTestId="security-case-ai-run-playbook"
-              />
+              {suggestedPlaybookRun ? (
+                <span
+                  className="inline-flex"
+                  data-testid="security-case-ai-suggested-playbook-run"
+                >
+                  <SecurityPlaybookRunStatusPill
+                    value={suggestedPlaybookRun}
+                    tooltip={
+                      translator.translateText(
+                        SecurityCaseAiCopy.suggestedPlaybookRunning,
+                      ) || undefined
+                    }
+                  />
+                </span>
+              ) : (
+                <Button
+                  title={SecurityCaseAiCopy.runPlaybookButton}
+                  icon={IconProp.Play}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  buttonSize={ButtonSize.Small}
+                  className={CARD_BUTTON_CLASS_NAME}
+                  disabled={props.isWorking}
+                  onClick={() => {
+                    props.onRunPlaybook(
+                      new ObjectID(result.suggestedPlaybookId!),
+                    );
+                  }}
+                  dataTestId="security-case-ai-run-playbook"
+                />
+              )}
             </dd>
           </div>
         ) : (

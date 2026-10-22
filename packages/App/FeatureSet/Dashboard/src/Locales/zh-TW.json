@@ -33283,5 +33283,6 @@
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "其作者沒有此儲存庫的寫入權限，因此只有在擁有寫入權限的人要求時才會再次審查。",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "此儲存庫未透過 GitHub App 連線，因此不會審查其拉取請求。",
   "Last thrown {{time}}": "最近一次 {{time}}",
-  "Someone who can edit this case can start a triage.": "能編輯此案例的人可以開始研判。"
+  "Someone who can edit this case can start a triage.": "能編輯此案例的人可以開始研判。",
+  "This playbook is already running on this case. Its run is under Playbook Runs.": "此 Playbook 已在這個案例上執行。它的執行在「劇本執行記錄」中。"
 }

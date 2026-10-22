@@ -36,6 +36,7 @@ const getAiTriageMock: MockFunction = getJestMockFunction();
 const startAiTriageMock: MockFunction = getJestMockFunction();
 const loadRowsMock: MockFunction = getJestMockFunction();
 const getItemMock: MockFunction = getJestMockFunction();
+const getListMock: MockFunction = getJestMockFunction();
 
 let permissionsForTest: Array<string> = ["ProjectOwner"];
 
@@ -151,7 +152,10 @@ import {
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
+import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import SecurityPlaybookRunStatus from "../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import ObjectID from "../../../Types/ObjectID";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
@@ -223,6 +227,36 @@ function triagedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
   } as Partial<SecurityCase>);
 }
 
+// The answer to the card's read of the suggested playbook's latest run here.
+function runsOnCase(statuses: Array<SecurityPlaybookRunStatus>): {
+  data: Array<SecurityPlaybookRun>;
+  count: number;
+  skip: number;
+  limit: number;
+} {
+  return {
+    data: statuses.map((value: SecurityPlaybookRunStatus) => {
+      const row: SecurityPlaybookRun = new SecurityPlaybookRun();
+      row._id = RUN_ID;
+      row.status = value;
+      return row;
+    }),
+    count: statuses.length,
+    skip: 0,
+    limit: 1,
+  };
+}
+
+// A triaged case whose suggested playbook the reader may read.
+function withPlaybookNamed(name: string): void {
+  getItemMock.mockImplementation(async () => {
+    const model: SecurityPlaybook = new SecurityPlaybook();
+    model.name = name;
+    model.isEnabled = true;
+    return model;
+  });
+}
+
 interface Handlers {
   onTriaged: ReturnType<typeof jest.fn>;
   onSetPriority: ReturnType<typeof jest.fn>;
@@ -232,32 +266,48 @@ interface Handlers {
 function draw(
   row: SecurityCase,
   overrides: Partial<CardProps> = {},
-): Handlers & { container: HTMLElement } {
+): Handlers & {
+  container: HTMLElement;
+  // Draws the card again with these props over the first ones.
+  redraw: (next: Partial<CardProps>) => void;
+} {
   const handlers: Handlers = {
     onTriaged: jest.fn(),
     onSetPriority: jest.fn(),
     onRunPlaybook: jest.fn(),
   };
 
-  const { container } = render(
-    <MemoryRouter>
-      <SecurityCaseAiCard
-        securityCase={row}
-        onTriaged={handlers.onTriaged as unknown as () => void}
-        onSetPriority={
-          handlers.onSetPriority as unknown as (
-            priority: SecurityCasePriority,
-          ) => void
-        }
-        onRunPlaybook={
-          handlers.onRunPlaybook as unknown as (id: ObjectID) => void
-        }
-        {...overrides}
-      />
-    </MemoryRouter>,
-  );
+  const card: (props: Partial<CardProps>) => React.ReactElement = (
+    props: Partial<CardProps>,
+  ): React.ReactElement => {
+    return (
+      <MemoryRouter>
+        <SecurityCaseAiCard
+          securityCase={row}
+          onTriaged={handlers.onTriaged as unknown as () => void}
+          onSetPriority={
+            handlers.onSetPriority as unknown as (
+              priority: SecurityCasePriority,
+            ) => void
+          }
+          onRunPlaybook={
+            handlers.onRunPlaybook as unknown as (id: ObjectID) => void
+          }
+          {...props}
+        />
+      </MemoryRouter>
+    );
+  };
 
-  return { ...handlers, container };
+  const { container, rerender } = render(card(overrides));
+
+  return {
+    ...handlers,
+    container,
+    redraw: (next: Partial<CardProps>): void => {
+      rerender(card({ ...overrides, ...next }));
+    },
+  };
 }
 
 // A click, and whatever answer it waits on, inside one act.
@@ -289,6 +339,14 @@ beforeEach(() => {
     return getItemMock(...args);
   }) as never);
   getItemMock.mockResolvedValue(null);
+  // The suggested playbook's runs on the case: none, unless a test says so.
+  getListMock.mockReset();
+  jest.spyOn(ModelAPI, "getList").mockImplementation(((
+    ...args: Array<unknown>
+  ) => {
+    return getListMock(...args);
+  }) as never);
+  getListMock.mockResolvedValue(runsOnCase([]));
 });
 
 afterEach(() => {
@@ -674,6 +732,110 @@ describe("triaged", () => {
     expect(
       screen.queryByTestId("security-case-ai-suggested-playbook"),
     ).not.toBeInTheDocument();
+  });
+
+  test("a suggested playbook already running on the case shows its run, not a second Run playbook", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    withPlaybookNamed("Contain Host");
+    getListMock.mockResolvedValue(
+      runsOnCase([SecurityPlaybookRunStatus.WaitingForApproval]),
+    );
+
+    draw(triagedCase());
+
+    const running: HTMLElement = await screen.findByTestId(
+      "security-case-ai-suggested-playbook-run",
+    );
+
+    expect(running).toHaveTextContent("Waiting for Approval");
+    expect(
+      screen.getByTestId("security-case-ai-suggested-playbook"),
+    ).toHaveTextContent("Contain Host");
+    expect(
+      screen.queryByTestId("security-case-ai-run-playbook"),
+    ).not.toBeInTheDocument();
+
+    // The case's own runs of that playbook, the latest only.
+    const options: {
+      query: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      limit: number;
+    } = getListMock.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      limit: number;
+    };
+
+    expect(String(options.query["securityCaseId"])).toBe(CASE_ID);
+    expect(String(options.query["securityPlaybookId"])).toBe(PLAYBOOK_ID);
+    expect(options.sort).toEqual({ createdAt: SortOrder.Descending });
+    expect(options.limit).toBe(1);
+  });
+
+  test("a finished run leaves Run playbook, and the page's refresh reads the run again", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    withPlaybookNamed("Contain Host");
+    getListMock.mockResolvedValue(
+      runsOnCase([SecurityPlaybookRunStatus.Failed]),
+    );
+
+    const { redraw } = draw(triagedCase(), { refreshToggle: "first" });
+
+    expect(
+      await screen.findByTestId("security-case-ai-run-playbook"),
+    ).toBeEnabled();
+    expect(
+      screen.queryByTestId("security-case-ai-suggested-playbook-run"),
+    ).not.toBeInTheDocument();
+
+    // Someone ran it: the page says runs moved on, and the card reads again.
+    getListMock.mockResolvedValue(
+      runsOnCase([SecurityPlaybookRunStatus.Running]),
+    );
+    redraw({ refreshToggle: "second" });
+
+    expect(
+      await screen.findByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveTextContent("Running");
+    expect(
+      screen.queryByTestId("security-case-ai-run-playbook"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a run that cannot be read leaves Run playbook, as before it was read", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+    withPlaybookNamed("Contain Host");
+    getListMock.mockRejectedValue(new Error("Network down"));
+
+    draw(triagedCase());
+
+    expect(
+      await screen.findByTestId("security-case-ai-run-playbook"),
+    ).toBeEnabled();
+  });
+
+  test("no suggested playbook, no read of its runs", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    draw(
+      triagedCase({
+        aiSuggestedPlaybookId: undefined,
+      } as Partial<SecurityCase>),
+    );
+
+    expect(await screen.findByTestId("security-case-ai-triaged")).toBeVisible();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test("text written to steer an AI is said first", async () => {

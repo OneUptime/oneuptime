@@ -33283,5 +33283,6 @@
   "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "작성자에게 이 저장소의 쓰기 권한이 없어, 쓰기 권한이 있는 사람이 요청할 때만 다시 검토합니다.",
   "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "이 저장소는 GitHub App으로 연결되어 있지 않아 풀 리퀘스트를 검토하지 않습니다.",
   "Last thrown {{time}}": "마지막 발생 {{time}}",
-  "Someone who can edit this case can start a triage.": "이 케이스를 편집할 수 있는 사람은 트리아지를 시작할 수 있습니다."
+  "Someone who can edit this case can start a triage.": "이 케이스를 편집할 수 있는 사람은 트리아지를 시작할 수 있습니다.",
+  "This playbook is already running on this case. Its run is under Playbook Runs.": "이 플레이북은 이 케이스에서 이미 실행 중입니다. 실행 내역은 플레이북 실행에 있습니다."
 }

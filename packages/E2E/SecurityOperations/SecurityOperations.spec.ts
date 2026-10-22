@@ -67,6 +67,8 @@ const DOMAIN_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-00000
 const AI_SETTINGS_PATH: string = `${PRODUCT}/ai/settings`;
 // The admin API key case OneUptime AI read as Likely Benign.
 const API_KEY_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000137`;
+// The web shell case, whose suggested playbook's run on it failed.
+const POWERSHELL_CASE_PATH: string = `${PRODUCT}/cases/20000000-0000-4000-8000-000000000138`;
 // The spray case's triage run, whose cited checks re-run.
 const SPRAY_TRIAGE_RUN_ID: string = "29000000-0000-4000-8000-000000000142";
 
@@ -2281,9 +2283,17 @@ test.describe("OneUptime AI on the Security pages", () => {
     await expect(
       card.getByTestId("security-case-ai-suggested-playbook"),
     ).toContainText("Contain Compromised Okta Users");
+    /*
+     * That playbook's run on the case waits for an approval already: the
+     * card says so where Run playbook would be, rather than start a second
+     * run asking for the same approval.
+     */
     await expect(
-      card.getByTestId("security-case-ai-run-playbook"),
-    ).toBeEnabled();
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveText("Waiting for Approval");
+    await expect(card.getByTestId("security-case-ai-run-playbook")).toHaveCount(
+      0,
+    );
     // The report, as the people reading it see it.
     await expect(card).toContainText(
       "This is a password spray that most likely succeeded.",
@@ -2353,15 +2363,21 @@ test.describe("OneUptime AI on the Security pages", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, SPRAY_CASE_PATH);
+    // The web shell: OneUptime AI suggests Enrich New Cases, whose run failed.
+    await open(page, POWERSHELL_CASE_PATH);
     const card: Locator = aiCard(page);
 
-    await card.getByTestId("security-case-ai-run-playbook").click({
-      timeout: 30000,
-    });
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook"),
+    ).toContainText("Enrich New Cases", { timeout: 30000 });
+    // A finished run leaves Run playbook one click away.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveCount(0);
+    await card.getByTestId("security-case-ai-run-playbook").click();
     const dialog: Locator = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText("Contain Compromised Okta Users");
+    await expect(dialog).toContainText("Enrich New Cases");
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     // Nothing ran: a person starts the playbook.
@@ -2399,6 +2415,10 @@ test.describe("OneUptime AI on the Security pages", () => {
     await expect(
       card.getByTestId("security-case-ai-suggested-playbook"),
     ).toContainText("Escalate Known-Bad Indicators");
+    // Its run on this case is going already: said, rather than run twice.
+    await expect(
+      card.getByTestId("security-case-ai-suggested-playbook-run"),
+    ).toHaveText("Running");
 
     // The case is High; OneUptime AI suggests Critical. One click sets it.
     await card.getByTestId("security-case-ai-set-priority").click();
@@ -2593,7 +2613,7 @@ test.describe("OneUptime AI on the Security pages", () => {
     ).toBeVisible({ timeout: 30000 });
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     expect(await overflowOf(aiCard(page))).toBeLessThanOrEqual(1);
-    // The suggested playbook is named in full, beside or above Run playbook.
+    // The suggested playbook is named in full, beside or above its run's status.
     const playbookName: Locator = aiCard(page)
       .getByTestId("security-case-ai-suggested-playbook")
       .getByText("Contain Compromised Okta Users", { exact: true });

@@ -355,6 +355,7 @@ const SecurityCaseViewPage: FunctionComponent<PageComponentProps> = (
             */}
             <SecurityCaseAiCard
               securityCase={securityCase}
+              refreshToggle={refreshToggle}
               isWorking={isWorking}
               onTriaged={refreshAll}
               onSetPriority={(priority: SecurityCasePriority) => {

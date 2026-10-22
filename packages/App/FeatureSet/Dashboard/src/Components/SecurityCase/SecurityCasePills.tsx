@@ -25,7 +25,8 @@ interface ValuePillProps {
   isMinimal?: boolean | undefined;
 }
 
-interface AiVerdictPillProps extends ValuePillProps {
+// A pill that says more on hover: OneUptime AI's read, a run's status.
+interface TooltipPillProps extends ValuePillProps {
   // Already in the reader's language.
   tooltip?: string | undefined;
 }
@@ -73,9 +74,9 @@ export const SecurityCaseStatusPill: FunctionComponent<ValuePillProps> = (
  * the verdicts each read suggests, with the AI mark in front so it is never
  * taken for the verdict a person set.
  */
-export const SecurityCaseAiVerdictPill: FunctionComponent<
-  AiVerdictPillProps
-> = (props: AiVerdictPillProps): ReactElement => {
+export const SecurityCaseAiVerdictPill: FunctionComponent<TooltipPillProps> = (
+  props: TooltipPillProps,
+): ReactElement => {
   if (!props.value) {
     return <NoValue />;
   }
@@ -110,8 +111,8 @@ export const SecurityCaseVerdictPill: FunctionComponent<ValuePillProps> = (
 };
 
 export const SecurityPlaybookRunStatusPill: FunctionComponent<
-  ValuePillProps
-> = (props: ValuePillProps): ReactElement => {
+  TooltipPillProps
+> = (props: TooltipPillProps): ReactElement => {
   if (!props.value) {
     return <NoValue />;
   }
@@ -122,6 +123,7 @@ export const SecurityPlaybookRunStatusPill: FunctionComponent<
       color={getSecurityPlaybookRunStatusColor(props.value)}
       size={props.size}
       isMinimal={props.isMinimal}
+      tooltip={props.tooltip}
     />
   );
 };

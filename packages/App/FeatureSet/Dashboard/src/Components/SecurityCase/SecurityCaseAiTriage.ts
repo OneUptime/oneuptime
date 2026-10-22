@@ -12,6 +12,9 @@ import SecurityCaseAiVerdict, {
 import SecurityCasePriority, {
   isSecurityCasePriority,
 } from "Common/Types/SecurityCase/SecurityCasePriority";
+import SecurityPlaybookRunStatus, {
+  isFinishedSecurityPlaybookRunStatus,
+} from "Common/Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "Common/Utils/AI/InvestigationReport";
 
@@ -375,6 +378,30 @@ export function canStartTriage(
 }
 
 /*
+ * Whether the playbook OneUptime AI suggests is already on its way on the
+ * case: its latest run there, while that run has not finished (queued,
+ * running, or held for an approval). The card then shows that run's status
+ * in place of Run playbook - a second run would ask for the same approval
+ * again - and the run itself waits under Playbook Runs. A finished run, or
+ * none, leaves Run playbook one click away.
+ */
+export function getSuggestedPlaybookRunInProgress(
+  latestRunStatus: SecurityPlaybookRunStatus | string | null | undefined,
+): SecurityPlaybookRunStatus | null {
+  if (
+    !latestRunStatus ||
+    !Object.values(SecurityPlaybookRunStatus).includes(
+      latestRunStatus as SecurityPlaybookRunStatus,
+    ) ||
+    isFinishedSecurityPlaybookRunStatus(latestRunStatus)
+  ) {
+    return null;
+  }
+
+  return latestRunStatus as SecurityPlaybookRunStatus;
+}
+
+/*
  * Whether the reader may start a triage, from the permission gate's answer
  * on updating the case (PermissionGate.check): yes; no, and the gate says
  * why (a Security Viewer), so the card greys the button and says who can;
@@ -548,6 +575,7 @@ export const SecurityCaseAiCopy: {
   setPriorityButton: string;
   suggestedPlaybook: string;
   runPlaybookButton: string;
+  suggestedPlaybookRunning: string;
   askButton: string;
   askPrompt: string;
   promptInjectionTitle: string;
@@ -591,6 +619,10 @@ export const SecurityCaseAiCopy: {
   setPriorityButton: translationKey("Set priority"),
   suggestedPlaybook: translationKey("Suggested playbook"),
   runPlaybookButton: translationKey("Run playbook"),
+  // On the status of the suggested playbook's run, in place of Run playbook.
+  suggestedPlaybookRunning: translationKey(
+    "This playbook is already running on this case. Its run is under Playbook Runs.",
+  ),
   askButton: translationKey("Ask about this case"),
   askPrompt: translationKey("What should I check next on this case, and why?"),
   promptInjectionTitle: translationKey(
