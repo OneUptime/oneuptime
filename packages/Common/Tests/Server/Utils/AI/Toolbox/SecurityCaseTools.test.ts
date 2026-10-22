@@ -164,6 +164,10 @@ describe("query_security_cases", () => {
       params: { securityCaseId: caseId.toString() },
     });
     expect(result.rowCount).toBe(2);
+    // What Evidence checked lists it as, in words a person reads.
+    expect(result.citationLabel).toBe(
+      "Security case CASE-42 Brute force from 203.0.113.9 (1 detection)",
+    );
   });
 
   test("a case the caller cannot read is not found", async () => {
@@ -309,6 +313,9 @@ describe("lookup_threat_intel", () => {
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.ThreatIntel,
     });
+    expect(result.citationLabel).toBe(
+      "Threat intel lookup of 2 values: 1 known-bad",
+    );
   });
 
   test("nothing to look up is an error the model can fix", async () => {
@@ -369,6 +376,9 @@ describe("security_entity_activity", () => {
     expect(result.dataForLlm).toContain("deploy");
     expect(result.dataForLlm).toContain("not seen in window");
     expect(result.rowCount).toBe(1);
+    expect(result.citationLabel).toBe(
+      `Security activity of 2 values over ${MAX_ACTIVITY_HOURS} hours`,
+    );
   });
 
   test("a week back by default", async () => {
@@ -376,9 +386,18 @@ describe("security_entity_activity", () => {
       .spyOn(SecurityEventService, "findObservableActivity")
       .mockResolvedValue([]);
 
-    await SecurityEntityActivityTool.execute({ values: ["deploy"] }, context());
+    const result: ToolExecutionResult =
+      await SecurityEntityActivityTool.execute(
+        { values: ["deploy"] },
+        context(),
+      );
 
     const call: JSONObject = callArg(activity);
+
+    // One value, counted as one.
+    expect(result.citationLabel).toBe(
+      `Security activity of 1 value over ${DEFAULT_ACTIVITY_HOURS} hours`,
+    );
 
     expect(
       (call["endTime"] as Date).getTime() -

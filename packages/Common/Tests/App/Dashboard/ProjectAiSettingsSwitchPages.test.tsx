@@ -1373,12 +1373,19 @@ describe("Security Events → AI → Settings", () => {
     ).toEqual(["Triage new cases"]);
     expect(titlesOf(SECURITY_AI_SWITCHES)).toEqual(["Triage new cases"]);
     expect(switches[0]).toHaveAttribute("aria-checked", "false");
+    /*
+     * The card says what the Incidents' and Alerts' AI settings say: the
+     * same title, and that it works on its own and can be turned off.
+     */
+    expect(SecurityAiSettingsCopy.cardTitle).toBe(
+      AI_LANE_PAGE_COPY[AiLane.Incident].switchesCardTitle,
+    );
     expect(
-      screen.getByRole("heading", { name: SecurityAiSettingsCopy.cardTitle }),
+      screen.getByRole("heading", { name: "What OneUptime AI does" }),
     ).toBeVisible();
     expect(
       screen.getByText(
-        "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.",
+        "It works on security cases on its own. Turn off anything you do not want it to do.",
       ),
     ).toBeVisible();
     expect(card).toHaveTextContent(

@@ -315,7 +315,7 @@ describe("POST /security-case/:caseId/ai-triage/evidence", () => {
         citationId: "C1",
         resultSummary: {
           rowCount: 1,
-          citationLabel: "Threat intel lookup of 1 value(s) - 1 known-bad",
+          citationLabel: "Threat intel lookup of 1 value: 1 known-bad",
         },
         createdAt: new Date("2026-10-14T11:00:01.000Z"),
       },
@@ -384,7 +384,7 @@ describe("POST /security-case/:caseId/ai-triage/evidence", () => {
         result: {
           dataForLlm: "value: 203.0.113.9, match: known-bad",
           rowCount: 1,
-          citationLabel: "Threat intel lookup of 1 value(s) - 1 known-bad",
+          citationLabel: "Threat intel lookup of 1 value: 1 known-bad",
           redactionCount: 0,
           isTruncated: false,
         },

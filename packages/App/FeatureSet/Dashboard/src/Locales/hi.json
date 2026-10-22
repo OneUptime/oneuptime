@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "प्राथमिकता सेट करें",
   "Set up an LLM provider": "LLM प्रदाता सेट करें",
   "Show failed sign-ins in the last hour, by user and source IP address.": "पिछले एक घंटे के विफल साइन-इन उपयोगकर्ता और स्रोत IP पते के अनुसार दिखाओ।",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "इस केस के डेटा में कुछ टेक्स्ट एआई के लिए निर्देशों जैसा लगता है। OneUptime AI ने इसे डेटा माना और फ़ैसला आप पर छोड़ता है।",
   "Starting a playbook": "प्लेबुक शुरू की जा रही है",
   "Suggested playbook": "सुझाई गई प्लेबुक",
   "Suggested priority": "सुझाई गई प्राथमिकता",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "तब तक सुरक्षा केस का ट्राइएज नहीं होता।",
   "Unusual activity": "असामान्य गतिविधि",
   "What OneUptime AI checked": "OneUptime AI ने क्या जाँचा",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "सुरक्षा केस खुलने पर OneUptime AI अपने आप क्या करता है। फ़ैसला और प्राथमिकता कोई व्यक्ति तय करता है और हर प्लेबुक भी वही चलाता है।",
   "What next?": "आगे क्या?",
   "What should I check next on this case, and why?": "इस केस में मुझे आगे क्या जाँचना चाहिए, और क्यों?",
   "What should I do next on this case? Name the playbook that fits, if one does.": "इस केस में मुझे आगे क्या करना चाहिए? अगर कोई प्लेबुक फ़िट बैठती है तो उसका नाम बताओ।",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "पिछले 24 घंटों में किन उपयोगकर्ताओं या होस्ट में असामान्य सुरक्षा गतिविधि हुई?",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "उदा. पाँच मिनट के अंदर एक IP पते से दस विफल साइन-इन",
   "security case": "सुरक्षा केस",
-  "security events": "सुरक्षा इवेंट"
+  "security events": "सुरक्षा इवेंट",
+  "Close Draft with AI": "एआई से ड्राफ़्ट बंद करें",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI अपने आप सुरक्षा केस पर काम करता है। जो आप नहीं चाहते कि वह करे, उसे बंद करें।",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI ने इस केस को {{read}} आँका है। आपने जो पाया, वह चुनें।",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI ने इसे डेटा माना और फ़ैसला आप पर छोड़ता है।",
+  "Text in this case reads like instructions to an AI": "इस केस में कुछ टेक्स्ट एआई के लिए निर्देशों जैसा लगता है",
+  "What was found and what was done, for whoever reads this case next.": "क्या मिला और क्या किया गया, ताकि यह केस आगे पढ़ने वाले को पता रहे।"
 }

@@ -158,18 +158,39 @@ playbook = ${PLAYBOOK_ID.toUpperCase()}`;
 
   /*
    * The case's data held text written to steer an AI: the read such text is
-   * after - let the case go - is the one never taken from it.
+   * after - let the case go - is the one never taken from it, and neither
+   * is anything else the same answer suggested (its Low priority would be
+   * one click away on the card).
    */
-  test("text written to steer an AI sets a benign read aside for Inconclusive", () => {
+  test("text written to steer an AI sets a benign read aside for Inconclusive, with nothing it suggested", () => {
     expect(read(BENIGN_ANSWER, { injection: true })).toEqual({
       verdict: SecurityCaseAiVerdict.Inconclusive,
-      suggestedPriority: SecurityCasePriority.Low,
+      suggestedPriority: undefined,
       suggestedPlaybookId: undefined,
       verdictSetAside: true,
     });
     expect(read("Verdict: false-positive", { injection: true }).verdict).toBe(
       SecurityCaseAiVerdict.Inconclusive,
     );
+  });
+
+  test("a dismissing read set aside keeps no playbook it named", () => {
+    const answer: string = `Verdict: false-positive
+Priority: informational
+Playbook: ${PLAYBOOK_ID}`;
+
+    expect(read(answer)).toEqual({
+      verdict: SecurityCaseAiVerdict.LikelyFalsePositive,
+      suggestedPriority: SecurityCasePriority.Informational,
+      suggestedPlaybookId: PLAYBOOK_ID,
+      verdictSetAside: false,
+    });
+    expect(read(answer, { injection: true })).toEqual({
+      verdict: SecurityCaseAiVerdict.Inconclusive,
+      suggestedPriority: undefined,
+      suggestedPlaybookId: undefined,
+      verdictSetAside: true,
+    });
   });
 
   test("a malicious or inconclusive read stands whatever the data held", () => {

@@ -1,4 +1,8 @@
 import AppLink from "../AppLink/AppLink";
+import {
+  getSettingsAction,
+  SettingsAction,
+} from "../AI/InvestigationNotStarted";
 import InvestigationNotice, {
   NOTICE_ICON_CLASS_NAME,
   noticeFailedIcon,
@@ -21,6 +25,7 @@ import {
   SecurityCaseTriageStep,
   canStartTriage,
   didLatestTriageNotFinish,
+  getFailedTriageDescription,
   getSecurityCaseAiBadge,
   getSecurityCaseAiCreditsAction,
   getSecurityCaseAiReasonAction,
@@ -31,6 +36,7 @@ import {
   isTriageOnItsWay,
   readSecurityCaseAiResult,
   shouldOfferSuggestedPriority,
+  withoutTriageInjectionLead,
 } from "./SecurityCaseAiTriage";
 import {
   SecurityCaseAiVerdictPill,
@@ -91,6 +97,13 @@ import React, {
 } from "react";
 
 export const SECURITY_CASE_AI_CARD_ID: string = "security-case-ai-card";
+
+/*
+ * Every button in the card sits on the content's left edge and keeps its
+ * row's gap: Button carries md:ml-3 for dialog footers, which pushed the
+ * first button of each row 12px in from the text above it.
+ */
+const CARD_BUTTON_CLASS_NAME: string = "!ml-0";
 
 // How often the card asks while a triage is on its way.
 export const SECURITY_CASE_AI_POLL_INTERVAL_MS: number = 3000;
@@ -257,9 +270,23 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     };
   }, [isAiOffered, result.suggestedPlaybookId]);
 
+  /*
+   * The report as drawn: without the runner's own heads-up about text
+   * written to steer an AI, which the card says first in the reader's
+   * language. Copy report keeps it (InvestigationReportView copies
+   * result.report).
+   */
   const report: ParsedInvestigationReport | null = useMemo(() => {
-    return result.report ? parseInvestigationReport(result.report) : null;
-  }, [result.report]);
+    if (!result.report) {
+      return null;
+    }
+
+    return parseInvestigationReport(
+      result.promptInjectionSuspected
+        ? withoutTriageInjectionLead(result.report)
+        : result.report,
+    );
+  }, [result.report, result.promptInjectionSuspected]);
 
   // A citation chip opens the check behind it under Evidence checked.
   const focusCitation: (citationId: string) => void = useCallback(
@@ -342,6 +369,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         buttonSize={isPrimary ? ButtonSize.Normal : ButtonSize.Small}
         isLoading={isStarting}
         disabled={!canStart || isStarting}
+        className={CARD_BUTTON_CLASS_NAME}
         tooltip={
           updateGate.isAllowed
             ? undefined
@@ -397,6 +425,44 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * Where to fix what stops a triage - for someone who may fix it. Everyone
+   * else is told who can, in the words the incident card uses for the same
+   * setting (getSettingsAction).
+   */
+  const renderReasonAction: () => ReactElement = (): ReactElement => {
+    if (reasonCode === "insufficient_ai_balance") {
+      return renderCreditsAction();
+    }
+
+    if (!reasonCode || !reasonAction) {
+      return <></>;
+    }
+
+    const settings: SettingsAction | null =
+      reasonCode === "provider_missing" ||
+      reasonCode === "project_daily_limit_reached"
+        ? getSettingsAction(reasonCode, "incident")
+        : null;
+
+    if (settings && !PermissionGate.holdsAnyOf(settings.permissions)) {
+      return (
+        <span data-testid="security-case-ai-reason-who-can">
+          {translator.translateText(settings.whoCanAct)}
+        </span>
+      );
+    }
+
+    return (
+      <AppLink
+        className="font-medium text-indigo-600 hover:underline"
+        to={RouteUtil.populateRouteParams(RouteMap[reasonAction.page] as Route)}
+      >
+        <>{translator.translateText(reasonAction.label)}</>
+      </AppLink>
+    );
+  };
+
   const renderReason: () => ReactElement = (): ReactElement => {
     if (!reasonCode || !blockingReason) {
       return <></>;
@@ -408,20 +474,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
         title={SecurityCaseAiCopy.reasons[reasonCode]}
         testId="security-case-ai-reason"
       >
-        {reasonCode === "insufficient_ai_balance" ? (
-          renderCreditsAction()
-        ) : reasonAction ? (
-          <AppLink
-            className="font-medium text-indigo-600 hover:underline"
-            to={RouteUtil.populateRouteParams(
-              RouteMap[reasonAction.page] as Route,
-            )}
-          >
-            <>{translator.translateText(reasonAction.label)}</>
-          </AppLink>
-        ) : (
-          <></>
-        )}
+        {renderReasonAction()}
       </InvestigationNotice>
     );
   };
@@ -508,6 +561,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                   title={SecurityCaseAiCopy.setPriorityButton}
                   buttonStyle={ButtonStyleType.NORMAL}
                   buttonSize={ButtonSize.Small}
+                  className={CARD_BUTTON_CLASS_NAME}
                   disabled={props.isWorking}
                   onClick={() => {
                     if (result.suggestedPriority) {
@@ -545,6 +599,7 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Play}
                 buttonStyle={ButtonStyleType.NORMAL}
                 buttonSize={ButtonSize.Small}
+                className={CARD_BUTTON_CLASS_NAME}
                 disabled={props.isWorking}
                 onClick={() => {
                   props.onRunPlaybook(
@@ -582,10 +637,14 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
                 className={`${NOTICE_ICON_CLASS_NAME} text-amber-500`}
               />
             }
-            title={SecurityCaseAiCopy.promptInjection}
+            title={SecurityCaseAiCopy.promptInjectionTitle}
             role="status"
             testId="security-case-ai-prompt-injection"
-          />
+          >
+            {translator.translateText(
+              SecurityCaseAiCopy.promptInjectionDescription,
+            )}
+          </InvestigationNotice>
         ) : (
           <></>
         )}
@@ -641,32 +700,46 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
 
         {renderStartError()}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-gray-100 pt-4">
-          <Button
-            title={SecurityCaseAiCopy.askButton}
-            icon={IconProp.ChatBubbleLeftRight}
-            buttonStyle={ButtonStyleType.NORMAL}
-            buttonSize={ButtonSize.Small}
-            onClick={askAboutCase}
-            dataTestId="security-case-ai-ask"
-          />
-          {triageButton(SecurityCaseAiCopy.triageAgainButton, false)}
-          {result.triagedAt ? (
-            <span
-              className="text-xs text-gray-500"
-              title={formatFeedFullTime(result.triagedAt, clock)}
-              data-testid="security-case-ai-triaged-when"
-            >
-              {translator.translateTemplate(SecurityCaseAiCopy.triagedWhen, {
-                // "5 minutes ago", in the reader's language.
-                when:
-                  formatFeedTimeAgo(result.triagedAt, clock) ||
-                  OneUptimeDate.fromNow(result.triagedAt),
-              })}
-            </span>
-          ) : (
-            <></>
-          )}
+        {/*
+          The way on from the read: ask about it, or read the case afresh -
+          and when the project cannot triage now (no LLM provider, no AI
+          credits, its daily limit), what stops it and where to fix it, in
+          place of a Triage again that could not start.
+        */}
+        <div className="space-y-4 border-t border-gray-100 pt-4">
+          {renderReason()}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Button
+              title={SecurityCaseAiCopy.askButton}
+              icon={IconProp.ChatBubbleLeftRight}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              className={CARD_BUTTON_CLASS_NAME}
+              onClick={askAboutCase}
+              dataTestId="security-case-ai-ask"
+            />
+            {blockingReason ? (
+              <></>
+            ) : (
+              triageButton(SecurityCaseAiCopy.triageAgainButton, false)
+            )}
+            {result.triagedAt ? (
+              <span
+                className="text-xs text-gray-500"
+                title={formatFeedFullTime(result.triagedAt, clock)}
+                data-testid="security-case-ai-triaged-when"
+              >
+                {translator.translateTemplate(SecurityCaseAiCopy.triagedWhen, {
+                  // "5 minutes ago", in the reader's language.
+                  when:
+                    formatFeedTimeAgo(result.triagedAt, clock) ||
+                    OneUptimeDate.fromNow(result.triagedAt),
+                })}
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -710,8 +783,9 @@ const SecurityCaseAiCard: FunctionComponent<ComponentProps> = (
             indicator={noticeFailedIcon}
             title={SecurityCaseAiCopy.failedTitle}
             role="status"
+            testId="security-case-ai-failed-notice"
           >
-            {translator.translateText(SecurityCaseAiCopy.failedDescription)}
+            {translator.translateText(getFailedTriageDescription(status))}
           </InvestigationNotice>
           {renderReason()}
           {renderStartError()}

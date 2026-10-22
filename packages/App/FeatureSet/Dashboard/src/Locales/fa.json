@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "تعیین اولویت",
   "Set up an LLM provider": "راه‌اندازی ارائه‌دهندهٔ LLM",
   "Show failed sign-ins in the last hour, by user and source IP address.": "ورودهای ناموفق یک ساعت گذشته را بر اساس کاربر و نشانی IP مبدأ نشان بده.",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "بخشی از متن داده‌های این پرونده شبیه دستورهایی برای هوش مصنوعی است. OneUptime AI آن را داده در نظر گرفت و تصمیم را به شما می‌سپارد.",
   "Starting a playbook": "شروع یک پلی‌بوک",
   "Suggested playbook": "پلی‌بوک پیشنهادی",
   "Suggested priority": "اولویت پیشنهادی",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "تا آن زمان، پرونده‌های امنیتی بررسی اولیه نمی‌شوند.",
   "Unusual activity": "فعالیت غیرعادی",
   "What OneUptime AI checked": "آنچه OneUptime AI بررسی کرد",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "کاری که OneUptime AI هنگام باز شدن پرونده‌های امنیتی خودش انجام می‌دهد. نتیجه و اولویت را یک نفر تعیین می‌کند و هر پلی‌بوک را هم او اجرا می‌کند.",
   "What next?": "قدم بعدی؟",
   "What should I check next on this case, and why?": "در این پرونده بعد از این چه چیزی را بررسی کنم و چرا؟",
   "What should I do next on this case? Name the playbook that fits, if one does.": "در این پرونده بعد از این چه کنم؟ اگر پلی‌بوکی مناسب است، نامش را بگو.",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "کدام کاربران یا میزبان‌ها در 24 ساعت گذشته فعالیت امنیتی غیرعادی داشتند؟",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "مثلاً ده ورود ناموفق از یک نشانی IP در پنج دقیقه",
   "security case": "پروندهٔ امنیتی",
-  "security events": "رویدادهای امنیتی"
+  "security events": "رویدادهای امنیتی",
+  "Close Draft with AI": "بستن پیش‌نویس با هوش مصنوعی",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI خودش روی پرونده‌های امنیتی کار می‌کند. هر کاری را که نمی‌خواهید انجام دهد خاموش کنید.",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI این پرونده را «{{read}}» ارزیابی کرد. آنچه خودتان یافتید را انتخاب کنید.",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI آن را داده در نظر گرفت و تصمیم را به شما می‌سپارد.",
+  "Text in this case reads like instructions to an AI": "متنی در این پرونده شبیه دستورهایی برای هوش مصنوعی است",
+  "What was found and what was done, for whoever reads this case next.": "چه چیزی پیدا شد و چه کاری انجام شد، برای کسی که بعداً این پرونده را می‌خواند."
 }

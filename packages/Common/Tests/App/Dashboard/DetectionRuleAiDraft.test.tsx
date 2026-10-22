@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -181,7 +182,7 @@ describe("what may be drafted from", () => {
         "e.g. Ten failed sign-ins from one IP address within five minutes",
       replaces: "The draft replaces the rule above.",
       draftButton: "Draft rule",
-      cancelButton: "Cancel",
+      closeButton: "Close Draft with AI",
       drafted: "OneUptime AI wrote this rule. Read it before you save.",
       emptyDraft:
         "OneUptime AI did not write a rule. Try describing it differently.",
@@ -276,12 +277,37 @@ describe("open", () => {
     expect(submitButton()).toBeEnabled();
   });
 
-  test("Cancel puts it away without asking", () => {
+  test("the x beside its question puts it away without asking", () => {
     draw();
 
     fireEvent.click(openButton());
     describeRule(DESCRIPTION);
-    fireEvent.click(screen.getByTestId("detection-rule-ai-draft-cancel"));
+
+    /*
+     * One way to put the box away, named for what it closes: a second
+     * "Cancel" in the dialog read as the dialog's own Cancel.
+     */
+    const close: HTMLElement = screen.getByRole("button", {
+      name: "Close Draft with AI",
+    });
+    expect(close).toBe(screen.getByTestId("detection-rule-ai-draft-cancel"));
+    expect(close).toHaveAttribute("type", "button");
+    expect(
+      within(screen.getByTestId(DETECTION_RULE_AI_DRAFT_TEST_ID)).queryByRole(
+        "button",
+        { name: "Cancel" },
+      ),
+    ).toBeNull();
+    // The box's one action.
+    expect(
+      within(screen.getByTestId(DETECTION_RULE_AI_DRAFT_TEST_ID))
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.getAttribute("aria-label") || button.textContent || "";
+        }),
+    ).toEqual(["Close Draft with AI", "Draft rule"]);
+
+    fireEvent.click(close);
 
     expect(openButton()).toHaveTextContent("Draft with AI");
     expect(draftMock).not.toHaveBeenCalled();

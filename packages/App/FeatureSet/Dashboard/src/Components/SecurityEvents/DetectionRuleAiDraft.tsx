@@ -38,7 +38,8 @@ export interface ComponentProps {
  * the person to read, change and save. Nothing is saved by drafting.
  *
  * One quiet button until it is wanted; open, a box for the description and
- * one action. Not drawn with the project's AI off.
+ * one action, with an x beside its question to put it away (the dialog has
+ * its own Cancel). Not drawn with the project's AI off.
  */
 const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,7 +97,7 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
           onClick={() => {
             setIsOpen(true);
           }}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="-ml-2.5 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-violet-500" />
           <span>
@@ -127,13 +128,37 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
       className="mt-3 space-y-2 border-t border-gray-100 pt-3"
       data-testid={DETECTION_RULE_AI_DRAFT_TEST_ID}
     >
-      <label
-        id={labelId}
-        className="flex items-center gap-1.5 text-sm font-medium text-gray-900"
-      >
-        <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-violet-500" />
-        {translator.translateText(DetectionRuleAiDraftCopy.label)}
-      </label>
+      <div className="flex items-center justify-between gap-3">
+        {/* The mark beside the label, not in it: Icon draws a div. */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Icon
+            icon={IconProp.Sparkles}
+            className="h-4 w-4 flex-shrink-0 text-violet-500"
+          />
+          <label
+            id={labelId}
+            className="min-w-0 text-sm font-medium text-gray-900"
+          >
+            {translator.translateText(DetectionRuleAiDraftCopy.label)}
+          </label>
+        </div>
+        <button
+          type="button"
+          aria-label={translator.translateText(
+            DetectionRuleAiDraftCopy.closeButton,
+          )}
+          title={translator.translateText(DetectionRuleAiDraftCopy.closeButton)}
+          disabled={isDrafting}
+          onClick={() => {
+            setIsOpen(false);
+            setError("");
+          }}
+          data-testid="detection-rule-ai-draft-cancel"
+          className="-my-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Icon icon={IconProp.Close} className="h-4 w-4" />
+        </button>
+      </div>
       <TextArea
         ariaLabelledby={labelId}
         value={description}
@@ -166,29 +191,19 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <div className="flex flex-wrap items-center gap-2">
+      <div>
         <Button
           title={DetectionRuleAiDraftCopy.draftButton}
           icon={IconProp.Sparkles}
           buttonStyle={ButtonStyleType.PRIMARY}
           buttonSize={ButtonSize.Small}
+          className="!ml-0"
           isLoading={isDrafting}
           disabled={!canDraftDetectionRule(description) || isDrafting}
           onClick={() => {
             void draft();
           }}
           dataTestId="detection-rule-ai-draft-submit"
-        />
-        <Button
-          title={DetectionRuleAiDraftCopy.cancelButton}
-          buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
-          disabled={isDrafting}
-          onClick={() => {
-            setIsOpen(false);
-            setError("");
-          }}
-          dataTestId="detection-rule-ai-draft-cancel"
         />
       </div>
     </div>

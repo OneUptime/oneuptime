@@ -20,7 +20,7 @@ export const DetectionRuleAiDraftCopy: {
   placeholder: string;
   replaces: string;
   draftButton: string;
-  cancelButton: string;
+  closeButton: string;
   drafted: string;
   emptyDraft: string;
 } = {
@@ -32,7 +32,11 @@ export const DetectionRuleAiDraftCopy: {
   ),
   replaces: translationKey("The draft replaces the rule above."),
   draftButton: translationKey("Draft rule"),
-  cancelButton: translationKey("Cancel"),
+  /*
+   * The box's own close, an x beside its question: a second "Cancel" in
+   * the dialog read as the dialog's own.
+   */
+  closeButton: translationKey("Close Draft with AI"),
   drafted: translationKey(
     "OneUptime AI wrote this rule. Read it before you save.",
   ),

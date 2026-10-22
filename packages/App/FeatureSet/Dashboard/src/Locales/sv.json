@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "Ange prioritet",
   "Set up an LLM provider": "Konfigurera en LLM-leverantör",
   "Show failed sign-ins in the last hour, by user and source IP address.": "Visa misslyckade inloggningar den senaste timmen per användare och käll-IP-adress.",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "En del text i ärendets data liknar instruktioner till en AI. OneUptime AI behandlade den som data och överlåter beslutet åt dig.",
   "Starting a playbook": "Startar en playbook",
   "Suggested playbook": "Föreslagen playbook",
   "Suggested priority": "Föreslagen prioritet",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "Tills dess bedöms inga säkerhetsärenden.",
   "Unusual activity": "Ovanlig aktivitet",
   "What OneUptime AI checked": "Vad OneUptime AI kontrollerade",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "Vad OneUptime AI gör på egen hand när säkerhetsärenden öppnas. En person avgör utfall och prioritet och kör varje playbook.",
   "What next?": "Vad nu?",
   "What should I check next on this case, and why?": "Vad bör jag kontrollera härnäst i det här ärendet, och varför?",
   "What should I do next on this case? Name the playbook that fits, if one does.": "Vad bör jag göra härnäst i det här ärendet? Nämn den playbook som passar, om det finns en.",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "Vilka användare eller värdar hade ovanlig säkerhetsaktivitet de senaste 24 timmarna?",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "t.ex. Tio misslyckade inloggningar från en IP-adress inom fem minuter",
   "security case": "säkerhetsärende",
-  "security events": "säkerhetshändelser"
+  "security events": "säkerhetshändelser",
+  "Close Draft with AI": "Stäng utkast med AI",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI arbetar med säkerhetsärenden på egen hand. Stäng av det du inte vill att den ska göra.",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI bedömde det här ärendet som {{read}}. Välj det du kom fram till.",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI behandlade den som data och överlåter beslutet åt dig.",
+  "Text in this case reads like instructions to an AI": "Text i det här ärendet liknar instruktioner till en AI",
+  "What was found and what was done, for whoever reads this case next.": "Vad som hittades och vad som gjordes, för den som läser ärendet härnäst."
 }

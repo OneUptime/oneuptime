@@ -5,7 +5,10 @@ import {
   SecurityPlaybookTriggerOption,
   getSecurityPlaybookTriggerOptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
-import { getInitialCloseVerdict } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseActionModals";
+import {
+  getCloseVerdictAiRead,
+  getInitialCloseVerdict,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseActionModals";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCaseVerdict from "../../../Types/SecurityCase/SecurityCaseVerdict";
@@ -145,5 +148,61 @@ describe("the verdict the Close Case dialog starts on", () => {
         ),
       ).toBe(SecurityCaseVerdict.TruePositive);
     }
+  });
+
+  // With AI off nothing of OneUptime AI is drawn, so nothing of it is picked.
+  test("with the project's AI off, the read picks nothing", () => {
+    for (const aiVerdict of Object.values(SecurityCaseAiVerdict)) {
+      expect(getInitialCloseVerdict(caseWith({ aiVerdict }), false)).toBe(
+        SecurityCaseVerdict.TruePositive,
+      );
+    }
+    expect(
+      getInitialCloseVerdict(
+        caseWith({ verdict: SecurityCaseVerdict.BenignPositive }),
+        false,
+      ),
+    ).toBe(SecurityCaseVerdict.BenignPositive);
+  });
+});
+
+/*
+ * What the dialog says over its verdicts: OneUptime AI's read, so a person
+ * knows where the verdict it starts on came from and that the pick is theirs.
+ */
+describe("the AI read the Close Case dialog names", () => {
+  function caseWith(values: Partial<SecurityCase>): SecurityCase {
+    const securityCase: SecurityCase = new SecurityCase();
+    Object.assign(securityCase, values);
+    return securityCase;
+  }
+
+  test("every read is named while the case has no verdict of its own", () => {
+    for (const aiVerdict of Object.values(SecurityCaseAiVerdict)) {
+      expect(getCloseVerdictAiRead(caseWith({ aiVerdict }))).toBe(aiVerdict);
+    }
+  });
+
+  test("nothing when the case was never read, has a verdict, or AI is off", () => {
+    expect(getCloseVerdictAiRead(caseWith({}))).toBeUndefined();
+    expect(
+      getCloseVerdictAiRead(
+        caseWith({
+          verdict: SecurityCaseVerdict.TruePositive,
+          aiVerdict: SecurityCaseAiVerdict.LikelyBenign,
+        }),
+      ),
+    ).toBeUndefined();
+    expect(
+      getCloseVerdictAiRead(
+        caseWith({ aiVerdict: SecurityCaseAiVerdict.LikelyMalicious }),
+        false,
+      ),
+    ).toBeUndefined();
+    expect(
+      getCloseVerdictAiRead(
+        caseWith({ aiVerdict: "Safe" as SecurityCaseAiVerdict }),
+      ),
+    ).toBeUndefined();
   });
 });

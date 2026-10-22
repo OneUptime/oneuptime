@@ -158,6 +158,7 @@ import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriori
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../Utils/AI/InvestigationReport";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const CASE_ID: string = "20000000-0000-4000-8000-000000000042";
@@ -174,8 +175,14 @@ const REPORT: string = [
   "Likely malicious: the address is known-bad [C1].",
   "",
   "**Evidence checked**",
-  "- **[C1]** Threat intel lookup of 1 value(s) - 1 known-bad — 1 row(s)",
+  "- **[C1]** Threat intel lookup of 1 value: 1 known-bad — 1 row(s)",
 ].join("\n");
+
+// The runner's own heads-up on a steered case (getPromptInjectionReportLead).
+const RUNNER_HEADS_UP: string = [
+  SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX,
+  " - a sign of an attempt to steer the triage. OneUptime AI treated it as data and leaves the call to a person.",
+].join("");
 
 function status(
   overrides: Partial<SecurityCaseTriageStatusView> = {},
@@ -375,6 +382,40 @@ describe("not triaged yet", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("where to fix it goes only to who may; everyone else is told who can", async () => {
+    permissionsForTest = ["SecurityMember"];
+    getAiTriageMock.mockResolvedValue(
+      status({ notStartedCode: "provider_missing" }),
+    );
+
+    draw(securityCase());
+
+    const reason: HTMLElement = await screen.findByTestId(
+      "security-case-ai-reason",
+    );
+
+    expect(within(reason).queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      within(reason).getByTestId("security-case-ai-reason-who-can"),
+    ).toHaveTextContent("A project administrator can review these settings.");
+  });
+
+  test("the daily limit's fix goes to who may change the limits", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ notStartedCode: "project_daily_limit_reached" }),
+    );
+
+    draw(securityCase());
+
+    const reason: HTMLElement = await screen.findByTestId(
+      "security-case-ai-reason",
+    );
+
+    expect(within(reason).getByRole("link")).toHaveTextContent(
+      "Go to Project Settings → AI → AI Features",
+    );
+  });
+
   test("a role that cannot work cases sees the button disabled", async () => {
     permissionsForTest = ["SecurityViewer"];
     getAiTriageMock.mockResolvedValue(status());
@@ -571,10 +612,77 @@ describe("triaged", () => {
       } as Partial<SecurityCase>),
     );
 
+    const notice: HTMLElement = await screen.findByTestId(
+      "security-case-ai-prompt-injection",
+    );
+
+    // A short title, and what OneUptime AI did about it under it.
     expect(
-      await screen.findByTestId("security-case-ai-prompt-injection"),
-    ).toHaveTextContent(SecurityCaseAiCopy.promptInjection);
+      within(notice).getByText(SecurityCaseAiCopy.promptInjectionTitle),
+    ).toBeVisible();
+    expect(
+      within(notice).getByText(SecurityCaseAiCopy.promptInjectionDescription),
+    ).toBeVisible();
     expect(screen.getByText("Inconclusive")).toBeVisible();
+  });
+
+  test("the report drawn leaves out the runner's own heads-up, which the notice says first", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    const lines: Array<string> = REPORT.split("\n");
+    // As the runner posts it: the heads-up right under the heading.
+    lines.splice(1, 0, "", RUNNER_HEADS_UP);
+
+    draw(
+      triagedCase({
+        aiVerdict: SecurityCaseAiVerdict.Inconclusive,
+        aiTriagePromptInjectionSuspected: true,
+        aiTriageReport: lines.join("\n"),
+      } as Partial<SecurityCase>),
+    );
+
+    await screen.findByTestId("security-case-ai-prompt-injection");
+
+    const drawn: string = screen
+      .getAllByTestId("report-markdown")
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      })
+      .join("\n");
+
+    expect(drawn).toContain("A brute force against web-1");
+    expect(drawn).not.toContain("Heads up:");
+    // Said once, by the card, in the reader's language.
+    expect(
+      screen.getAllByText(/reads like instructions to an AI/i),
+    ).toHaveLength(1);
+  });
+
+  test("a heads-up the model wrote further down stays in the report", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({ run: run(AIRunStatus.Completed) }),
+    );
+
+    const body: string = REPORT.split("\n**Evidence checked**")[0] || "";
+
+    draw(
+      triagedCase({
+        aiTriageReport: [body, "", RUNNER_HEADS_UP].join("\n"),
+        aiTriagePromptInjectionSuspected: true,
+      } as Partial<SecurityCase>),
+    );
+
+    await screen.findByTestId("security-case-ai-prompt-injection");
+
+    expect(
+      screen
+        .getAllByTestId("report-markdown")
+        .some((element: HTMLElement): boolean => {
+          return (element.textContent || "").includes("Heads up:");
+        }),
+    ).toBe(true);
   });
 
   test("a later triage that did not finish is said under the read it left", async () => {
@@ -630,6 +738,65 @@ describe("triaged", () => {
     });
   });
 
+  /*
+   * The project cannot triage now (here: its daily AI limit): the read stays,
+   * and where Triage again would sit - a button that could not start - the
+   * card says what stops it and where to fix it.
+   */
+  test("what stops another triage is said under the read, in place of Triage again", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        run: run(AIRunStatus.Completed),
+        notStartedCode: "project_daily_limit_reached",
+      }),
+    );
+
+    draw(triagedCase());
+
+    const reason: HTMLElement = await screen.findByTestId(
+      "security-case-ai-reason",
+    );
+
+    expect(screen.getByTestId("security-case-ai-triaged")).toContainElement(
+      reason,
+    );
+    expect(reason).toHaveTextContent(
+      SecurityCaseAiCopy.reasons.project_daily_limit_reached,
+    );
+    expect(within(reason).getByRole("link")).toBeVisible();
+    expect(
+      screen.queryByTestId("security-case-ai-triage-button"),
+    ).not.toBeInTheDocument();
+    // Asking about the read still works.
+    expect(screen.getByTestId("security-case-ai-ask")).toBeEnabled();
+    expect(
+      screen.getByTestId("security-case-ai-triaged-when"),
+    ).toBeInTheDocument();
+  });
+
+  test("the automatic switch being off stops nobody's Triage again", async () => {
+    getAiTriageMock.mockResolvedValue(
+      status({
+        run: run(AIRunStatus.Completed),
+        notStartedCode: "automatic_triage_disabled",
+        isAutomaticTriageOn: false,
+      }),
+    );
+
+    draw(triagedCase());
+
+    const again: HTMLElement = await screen.findByTestId(
+      "security-case-ai-triage-button",
+    );
+
+    await waitFor(() => {
+      expect(again).toBeEnabled();
+    });
+    expect(
+      screen.queryByTestId("security-case-ai-reason"),
+    ).not.toBeInTheDocument();
+  });
+
   test("a citation opens the check behind it, and its rows are re-run on the case's own route", async () => {
     getAiTriageMock.mockResolvedValue(
       status({
@@ -638,7 +805,7 @@ describe("triaged", () => {
           {
             citationId: "C1",
             toolName: "lookup_threat_intel",
-            label: "Threat intel lookup of 1 value(s) - 1 known-bad",
+            label: "Threat intel lookup of 1 value: 1 known-bad",
             rowCount: 1,
             queryArguments: { values: ["203.0.113.9"] },
             canLoadRows: true,
@@ -718,6 +885,13 @@ describe("failed", () => {
     expect(
       screen.getByText(SecurityCaseAiCopy.failedTitle),
     ).toBeInTheDocument();
+    // Why it stopped, as the server recorded it - as the incident card says it.
+    expect(
+      screen.getByTestId("security-case-ai-failed-notice"),
+    ).toHaveTextContent("Boom");
+    expect(
+      screen.queryByText(SecurityCaseAiCopy.failedDescription),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("security-case-ai-triage-button"),
     ).toHaveTextContent(SecurityCaseAiCopy.tryAgainButton);
@@ -735,5 +909,9 @@ describe("failed", () => {
     draw(securityCase());
 
     expect(await screen.findByTestId("security-case-ai-failed")).toBeVisible();
+    // No reason recorded: the card's own sentence.
+    expect(
+      screen.getByTestId("security-case-ai-failed-notice"),
+    ).toHaveTextContent(SecurityCaseAiCopy.failedDescription);
   });
 });

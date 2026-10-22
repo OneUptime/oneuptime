@@ -10,6 +10,7 @@ import {
   SECURITY_CASE_TRIAGE_REPORT_HEADING,
 } from "../../../../../Server/Utils/AI/Security/SecurityCaseTriagePrompt";
 import { SecurityCaseTriageDecision } from "../../../../../Server/Utils/AI/Security/SecurityCaseTriageDecision";
+import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../../../Utils/AI/InvestigationReport";
 import AIInvestigationEngine, {
   InvestigationRequest,
 } from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -371,7 +372,7 @@ describe("SecurityCaseTriageRunner.executeTriage", () => {
     expect(feed["eventType"]).toBe(SecurityCaseFeedEventType.AiTriage);
     expect(feed["securityCaseId"]).toBe(securityCaseId);
     expect(feed["feedInfoInMarkdown"]).toBe(
-      "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **Critical** and suggests a playbook.",
+      "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **Critical** and a playbook.",
     );
     expect(feed["moreInformationInMarkdown"]).toBe(report);
 
@@ -525,6 +526,15 @@ describe("SecurityCaseTriageRunner's report and timeline entry", () => {
     });
 
     expect(steered.split("\n")[2]).toBe(getPromptInjectionReportLead());
+    /*
+     * The case's AI card knows the heads-up by these words, and leaves it
+     * out of the report it draws (it says the same first).
+     */
+    expect(
+      getPromptInjectionReportLead().startsWith(
+        SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX,
+      ),
+    ).toBe(true);
 
     // A report without the brand heading starts with it.
     expect(
@@ -560,6 +570,28 @@ describe("SecurityCaseTriageRunner's report and timeline entry", () => {
       ).toString(),
     ).toBe(
       "**OneUptime AI triaged this case: Likely False Positive.** It suggests priority **Low**.",
+    );
+    // "suggests" once, however many suggestions follow it.
+    expect(
+      SecurityCaseTriageRunner.buildFeedHeadline(
+        decision({
+          verdict: SecurityCaseAiVerdict.LikelyMalicious,
+          suggestedPlaybookId: "7c1e8a1e-4a7d-4b8f-9b8e-2f3c4d5e6f70",
+        }),
+      ).toString(),
+    ).toBe(
+      "**OneUptime AI triaged this case: Likely Malicious.** It suggests a playbook.",
+    );
+    expect(
+      SecurityCaseTriageRunner.buildFeedHeadline(
+        decision({
+          verdict: SecurityCaseAiVerdict.LikelyMalicious,
+          suggestedPriority: SecurityCasePriority.High,
+          suggestedPlaybookId: "7c1e8a1e-4a7d-4b8f-9b8e-2f3c4d5e6f70",
+        }),
+      ).toString(),
+    ).toBe(
+      "**OneUptime AI triaged this case: Likely Malicious.** It suggests priority **High** and a playbook.",
     );
   });
 

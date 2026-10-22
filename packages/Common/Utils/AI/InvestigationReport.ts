@@ -35,6 +35,17 @@ export const AI_SECURITY_CASE_TRIAGE_HEADING_TEXT: string =
  */
 export const FOLLOW_UP_REPORT_LEAD_PREFIX: string = "**Checked again**";
 
+/*
+ * How the runner's heads-up starts on a security case's triage report when
+ * the case's data held text written to steer an AI
+ * (SecurityCaseTriageRunner.getPromptInjectionReportLead): the paragraph
+ * right under the brand heading. The timeline and Copy report keep it; the
+ * case's AI card says the same first, in the reader's language, and draws
+ * the report without it (SecurityCaseAiTriage.withoutTriageInjectionLead).
+ */
+export const SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX: string =
+  "**Heads up:** some text in this case's data reads like instructions to an AI";
+
 // A lead is one short paragraph; anything longer is the model's own text.
 const MAX_FOLLOW_UP_LEAD_LENGTH: number = 1000;
 

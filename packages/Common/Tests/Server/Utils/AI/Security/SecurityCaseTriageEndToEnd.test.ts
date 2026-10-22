@@ -32,6 +32,7 @@ import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEn
 import SecurityCasePriority from "../../../../../Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus from "../../../../../Types/SecurityCase/SecurityCaseStatus";
 import SecurityDetectionSource from "../../../../../Types/SecurityCase/SecurityDetectionSource";
+import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../../../Utils/AI/InvestigationReport";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -394,7 +395,20 @@ describe("a security case's triage, end to end on recorded model answers", () =>
 
     expect(data["aiVerdict"]).toBe(SecurityCaseAiVerdict.Inconclusive);
     expect(data["aiTriagePromptInjectionSuspected"]).toBe(true);
-    expect(data["aiTriageReport"] as string).toContain("**Heads up:**");
+    // Nothing the steered answer suggested is kept: no Low to set in a click.
+    expect(data["aiSuggestedPriority"]).toBeNull();
+    expect(data["aiSuggestedPlaybookId"]).toBeNull();
+    /*
+     * The heads-up leads the report, under its heading, in the words the
+     * case's AI card knows to leave out (it says the same first).
+     */
+    const lines: Array<string> = (data["aiTriageReport"] as string).split("\n");
+
+    expect(lines[0]).toBe("## 🧠 AI — Security Case Triage");
+    expect(lines[1]).toBe("");
+    expect(
+      (lines[2] || "").startsWith(SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX),
+    ).toBe(true);
   });
 
   test("the same benign answer stands when nothing it read was written to steer it", async () => {

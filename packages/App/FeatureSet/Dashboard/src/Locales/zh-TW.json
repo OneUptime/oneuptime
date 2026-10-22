@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "設定優先順序",
   "Set up an LLM provider": "設定 LLM 供應商",
   "Show failed sign-ins in the last hour, by user and source IP address.": "依使用者和來源 IP 位址顯示過去 1 小時內的登入失敗。",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "這個案例的資料中有些文字看起來像是寫給 AI 的指令。OneUptime AI 將其視為資料，並把判斷交給你。",
   "Starting a playbook": "正在啟動 Playbook",
   "Suggested playbook": "建議的 Playbook",
   "Suggested priority": "建議的優先順序",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "在此之前，安全案例不會被研判。",
   "Unusual activity": "異常活動",
   "What OneUptime AI checked": "OneUptime AI 檢查了什麼",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "安全案例開啟時 OneUptime AI 自動執行的操作。結論和優先順序由人決定，每個 Playbook 也由人執行。",
   "What next?": "下一步？",
   "What should I check next on this case, and why?": "這個案例接下來我該檢查什麼？為什麼？",
   "What should I do next on this case? Name the playbook that fits, if one does.": "這個案例接下來我該怎麼做？如果有合適的 Playbook，請指出。",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "過去 24 小時內哪些使用者或主機有異常的安全活動？",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "例如：五分鐘內同一 IP 位址登入失敗十次",
   "security case": "安全案例",
-  "security events": "安全事件"
+  "security events": "安全事件",
+  "Close Draft with AI": "關閉 AI 起草",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI 會自動處理安全案例。關閉你不希望它做的事。",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI 將這個案例研判為「{{read}}」。請選擇你確認的結論。",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI 將其視為資料，並把判斷交給你。",
+  "Text in this case reads like instructions to an AI": "這個案例中有文字看起來像寫給 AI 的指令",
+  "What was found and what was done, for whoever reads this case next.": "發現了什麼、做了什麼，留給下一個閱讀此案例的人。"
 }

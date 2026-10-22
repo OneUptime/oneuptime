@@ -789,13 +789,17 @@ export const SECURITY_AI_SWITCHES: Array<
   },
 ];
 
+/*
+ * The card's words are the Incidents' and Alerts' AI settings' own: the same
+ * title, and a sentence that says it works on its own and can be turned off.
+ */
 export const SecurityAiSettingsCopy: {
   cardTitle: string;
   cardDescription: string;
 } = {
-  cardTitle: translationKey("OneUptime AI"),
+  cardTitle: SWITCHES_CARD_TITLE,
   cardDescription: translationKey(
-    "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.",
+    "It works on security cases on its own. Turn off anything you do not want it to do.",
   ),
 };
 

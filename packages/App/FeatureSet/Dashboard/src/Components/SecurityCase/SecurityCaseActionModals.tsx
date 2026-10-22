@@ -1,4 +1,6 @@
 import SecurityCaseApi, { DeclaredIncident } from "./SecurityCaseApi";
+import { SecurityCaseAiCopy } from "./SecurityCaseAiTriage";
+import useAiOffered from "../../Utils/UseAiOffered";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
@@ -7,7 +9,10 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { getSuggestedCloseVerdict } from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
+import SecurityCaseAiVerdict, {
+  getSuggestedCloseVerdict,
+  isSecurityCaseAiVerdict,
+} from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict, {
   SECURITY_CASE_VERDICTS,
@@ -21,6 +26,11 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 // The verdict cards, each with what it means: TruePositive first, the one that needs follow-up.
@@ -60,21 +70,43 @@ interface CaseModalProps {
  * OneUptime AI's read suggests (a person still picks), else True Positive.
  * A case whose data held text written to steer an AI is never started on
  * a dismissing verdict: its AI read is Inconclusive anyway, and suggests
- * none.
+ * none. With the project's AI off nothing of OneUptime AI is drawn, so
+ * nothing of it is picked either.
  */
 export function getInitialCloseVerdict(
   securityCase: SecurityCase,
+  isAiOffered: boolean = true,
 ): SecurityCaseVerdict {
   if (securityCase.verdict) {
     return securityCase.verdict;
   }
 
   const suggested: SecurityCaseVerdict | undefined =
-    securityCase.aiTriagePromptInjectionSuspected === true
+    !isAiOffered || securityCase.aiTriagePromptInjectionSuspected === true
       ? undefined
       : getSuggestedCloseVerdict(securityCase.aiVerdict);
 
   return suggested || SecurityCaseVerdict.TruePositive;
+}
+
+/*
+ * OneUptime AI's read of the case, which the close dialog says over its
+ * verdicts ("OneUptime AI read this case as Likely Benign. Pick what you
+ * found."), so a person knows where the verdict it starts on came from and
+ * that the pick is theirs: while the case has no verdict of its own yet,
+ * and only with the project's AI on.
+ */
+export function getCloseVerdictAiRead(
+  securityCase: SecurityCase,
+  isAiOffered: boolean = true,
+): SecurityCaseAiVerdict | undefined {
+  if (!isAiOffered || securityCase.verdict) {
+    return undefined;
+  }
+
+  return isSecurityCaseAiVerdict(securityCase.aiVerdict)
+    ? securityCase.aiVerdict
+    : undefined;
 }
 
 /*
@@ -87,6 +119,12 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
 ): ReactElement => {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
+  const aiRead: SecurityCaseAiVerdict | undefined = getCloseVerdictAiRead(
+    props.securityCase,
+    isAiOffered,
+  );
 
   return (
     <BasicFormModal<JSONObject>
@@ -100,12 +138,20 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
       formProps={{
         name: "security-case-close",
         initialValues: {
-          verdict: getInitialCloseVerdict(props.securityCase),
+          verdict: getInitialCloseVerdict(props.securityCase, isAiOffered),
         },
         fields: [
           {
             field: { verdict: true },
             title: "Verdict",
+            ...(aiRead
+              ? {
+                  description: translator.translateTemplate(
+                    SecurityCaseAiCopy.closeVerdictHint,
+                    { read: translatableTerm(aiRead) },
+                  ),
+                }
+              : {}),
             fieldType: FormFieldSchemaType.CardSelect,
             required: true,
             cardSelectOptions: VERDICT_CARD_OPTIONS,
@@ -116,8 +162,9 @@ export const CloseSecurityCaseModal: FunctionComponent<CaseModalProps> = (
             title: "Closing Note",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
+            // The label says it is optional; the sentence says what it is for.
             description:
-              "Optional. What was found and what was done - for whoever reads this case next.",
+              "What was found and what was done, for whoever reads this case next.",
             placeholder:
               "e.g. Confirmed with the user; the sign-ins were theirs.",
           },

@@ -18,11 +18,14 @@ import {
   parseSecurityCaseTriageStatus,
   readSecurityCaseAiResult,
   shouldOfferSuggestedPriority,
+  getFailedTriageDescription,
+  withoutTriageInjectionLead,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseAiTriage";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import SecurityCaseAiVerdict from "../../../Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "../../../Types/SecurityCase/SecurityCasePriority";
+import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "../../../Utils/AI/InvestigationReport";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -456,5 +459,100 @@ describe("readSecurityCaseAiResult", () => {
       triagedAt: undefined,
       promptInjectionSuspected: false,
     });
+  });
+});
+
+/*
+ * The report the card draws for a case whose data held text written to
+ * steer an AI: the card says so first, in the reader's language, so the
+ * runner's own heads-up - under the brand heading, in its own words - is
+ * left out. Nothing the model wrote is touched.
+ */
+describe("withoutTriageInjectionLead", () => {
+  const HEADING: string = "## 🧠 AI — Security Case Triage";
+  const LEAD: string = [
+    SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX,
+    " - a sign of an attempt to steer the triage. OneUptime AI treated it as data and leaves the call to a person.",
+  ].join("");
+  const BODY: string = "**Summary**\nA brute force from 203.0.113.9.";
+
+  test("drops the runner's heads-up under the heading, and the blank line after it", () => {
+    expect(
+      withoutTriageInjectionLead([HEADING, "", LEAD, "", BODY].join("\n")),
+    ).toBe([HEADING, "", BODY].join("\n"));
+  });
+
+  test("drops it from the top of a report with no heading", () => {
+    expect(withoutTriageInjectionLead([LEAD, "", BODY].join("\n"))).toBe(BODY);
+  });
+
+  test("a report without it is left as it is", () => {
+    const report: string = [HEADING, "", BODY].join("\n");
+
+    expect(withoutTriageInjectionLead(report)).toBe(report);
+    expect(withoutTriageInjectionLead("")).toBe("");
+  });
+
+  test("the same words further down are the model's, and stay", () => {
+    const report: string = [HEADING, "", BODY, "", LEAD].join("\n");
+
+    expect(withoutTriageInjectionLead(report)).toBe(report);
+  });
+
+  test("a first paragraph in other words stays", () => {
+    const report: string = [
+      HEADING,
+      "",
+      "**Heads up:** the model's own note.",
+      "",
+      BODY,
+    ].join("\n");
+
+    expect(withoutTriageInjectionLead(report)).toBe(report);
+  });
+
+  // The server's words, from one constant both read.
+  test("the prefix is the runner's opening", () => {
+    expect(SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX).toBe(
+      "**Heads up:** some text in this case's data reads like instructions to an AI",
+    );
+  });
+});
+
+describe("getFailedTriageDescription", () => {
+  test("why the run stopped, as the server recorded it", () => {
+    expect(
+      getFailedTriageDescription(
+        status({
+          run: {
+            ...run(AIRunStatus.Error)!,
+            errorMessage: "The LLM provider did not answer in time.",
+          },
+        }),
+      ),
+    ).toBe("The LLM provider did not answer in time.");
+  });
+
+  test("the card's own sentence when nothing was recorded", () => {
+    expect(
+      getFailedTriageDescription(status({ run: run(AIRunStatus.Error) })),
+    ).toBe(SecurityCaseAiCopy.failedDescription);
+    expect(getFailedTriageDescription(null)).toBe(
+      SecurityCaseAiCopy.failedDescription,
+    );
+  });
+});
+
+describe("the card's words for a steered case and the close dialog", () => {
+  test("a short title, what was done under it, and the read over the verdicts", () => {
+    expect(SecurityCaseAiCopy.promptInjectionTitle).toBe(
+      "Text in this case reads like instructions to an AI",
+    );
+    expect(SecurityCaseAiCopy.promptInjectionDescription).toBe(
+      "OneUptime AI treated it as data and leaves the call to you.",
+    );
+    expect(SecurityCaseAiCopy.closeVerdictHint).toBe(
+      "OneUptime AI read this case as {{read}}. Pick what you found.",
+    );
   });
 });

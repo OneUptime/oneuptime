@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "Priorität setzen",
   "Set up an LLM provider": "LLM-Anbieter einrichten",
   "Show failed sign-ins in the last hour, by user and source IP address.": "Zeige fehlgeschlagene Anmeldungen der letzten Stunde nach Benutzer und Quell-IP-Adresse.",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "Ein Text in den Daten dieses Falls liest sich wie Anweisungen an eine KI. OneUptime AI hat ihn als Daten behandelt und überlässt Ihnen die Entscheidung.",
   "Starting a playbook": "Playbook wird gestartet",
   "Suggested playbook": "Vorgeschlagenes Playbook",
   "Suggested priority": "Vorgeschlagene Priorität",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "Bis dahin werden Sicherheitsfälle nicht triagiert.",
   "Unusual activity": "Ungewöhnliche Aktivität",
   "What OneUptime AI checked": "Was OneUptime AI geprüft hat",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "Was OneUptime AI selbstständig tut, wenn Sicherheitsfälle eröffnet werden. Ein Mensch entscheidet über Urteil und Priorität und führt jedes Playbook aus.",
   "What next?": "Wie geht es weiter?",
   "What should I check next on this case, and why?": "Was sollte ich als Nächstes an diesem Fall prüfen, und warum?",
   "What should I do next on this case? Name the playbook that fits, if one does.": "Was sollte ich als Nächstes an diesem Fall tun? Nenne das passende Playbook, falls es eines gibt.",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "Welche Benutzer oder Hosts hatten in den letzten 24 Stunden ungewöhnliche Sicherheitsaktivität?",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "z. B. Zehn fehlgeschlagene Anmeldungen von einer IP-Adresse innerhalb von fünf Minuten",
   "security case": "Sicherheitsfall",
-  "security events": "Sicherheitsereignisse"
+  "security events": "Sicherheitsereignisse",
+  "Close Draft with AI": "Mit KI entwerfen schließen",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI arbeitet selbstständig an Sicherheitsfällen. Schalten Sie aus, was sie nicht tun soll.",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI hat diesen Fall als {{read}} eingeschätzt. Wählen Sie, was Sie festgestellt haben.",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI hat ihn als Daten behandelt und überlässt Ihnen die Entscheidung.",
+  "Text in this case reads like instructions to an AI": "Text in diesem Fall liest sich wie Anweisungen an eine KI",
+  "What was found and what was done, for whoever reads this case next.": "Was festgestellt und was getan wurde, für alle, die diesen Fall als Nächste lesen."
 }

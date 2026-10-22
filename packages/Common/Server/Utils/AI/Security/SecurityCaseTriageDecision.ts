@@ -29,7 +29,9 @@ import { findLabelledValues } from "../LabelledAnswerLines";
  *     Inconclusive;
  *   - a benign or false-positive read of a case whose data held text
  *     written to steer an AI (InstructionLikeText) reads Inconclusive: that
- *     is the read such text is after, so it is the one never taken from it;
+ *     is the read such text is after, so it is the one never taken from it -
+ *     and nothing else it suggested is kept either (a lower priority, a
+ *     playbook), since the same steered answer wrote it;
  *   - a priority or playbook that cannot be read is no suggestion.
  *
  * The LAST line of each label wins (the model may quote the format before
@@ -114,10 +116,13 @@ export function readSecurityCaseTriageDecision(data: {
       ? playbookWord.toLowerCase()
       : undefined;
 
+  // A read set aside suggests nothing: the steered answer wrote it all.
   return {
     verdict: verdictSetAside ? SecurityCaseAiVerdict.Inconclusive : written,
-    suggestedPriority: toPriority(lastValue(text, "priority", PRIORITY_VALUE)),
-    suggestedPlaybookId: playbookId,
+    suggestedPriority: verdictSetAside
+      ? undefined
+      : toPriority(lastValue(text, "priority", PRIORITY_VALUE)),
+    suggestedPlaybookId: verdictSetAside ? undefined : playbookId,
     verdictSetAside,
   };
 }

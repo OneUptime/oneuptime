@@ -13,6 +13,7 @@ import SecurityCasePriority, {
   isSecurityCasePriority,
 } from "Common/Types/SecurityCase/SecurityCasePriority";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX } from "Common/Utils/AI/InvestigationReport";
 
 /*
  * THE CASE'S AI CARD, as data: what OneUptime AI did with the case and what
@@ -382,6 +383,59 @@ export function getSecurityCaseAiStepLabel(toolName: string): string {
   return describeEvidenceTool(toolName).description;
 }
 
+/*
+ * What the card says under "The triage did not finish": why the run stopped,
+ * as the server recorded it (as the incident card says it), or else that
+ * OneUptime AI could not finish.
+ */
+export function getFailedTriageDescription(
+  status: SecurityCaseTriageStatusView | null | undefined,
+): string {
+  return status?.run?.errorMessage || SecurityCaseAiCopy.failedDescription;
+}
+
+/*
+ * The report as the card draws it. When the case's data held text written to
+ * steer an AI, the runner puts a heads-up first in the report, right under
+ * its heading (SecurityCaseTriageRunner.getPromptInjectionReportLead), for
+ * the timeline and Copy report. The card says the same first, in the
+ * reader's language, so it draws the report without that paragraph - only
+ * where the runner writes it, and only in the runner's own words: anything
+ * the model wrote stays.
+ */
+export function withoutTriageInjectionLead(markdown: string): string {
+  const lines: Array<string> = markdown.split("\n");
+  const isFilled: (line: string) => boolean = (line: string): boolean => {
+    return line.trim() !== "";
+  };
+
+  let index: number = lines.findIndex(isFilled);
+
+  // The brand heading ("## 🧠 AI — Security Case Triage"), when there is one.
+  if (index !== -1 && lines[index]!.trim().startsWith("## ")) {
+    const heading: number = index;
+
+    index = lines.findIndex((line: string, at: number): boolean => {
+      return at > heading && isFilled(line);
+    });
+  }
+
+  if (
+    index === -1 ||
+    !lines[index]!.trim().startsWith(SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX)
+  ) {
+    return markdown;
+  }
+
+  // The paragraph, and the blank line that ended it.
+  const isFollowedByBlank: boolean =
+    index + 1 < lines.length && !isFilled(lines[index + 1]!);
+
+  lines.splice(index, isFollowedByBlank ? 2 : 1);
+
+  return lines.join("\n");
+}
+
 // What the card says of each read, in a sentence under its pill.
 export function getSecurityCaseAiVerdictSentence(
   verdict: SecurityCaseAiVerdict | undefined,
@@ -469,9 +523,11 @@ export const SecurityCaseAiCopy: {
   runPlaybookButton: string;
   askButton: string;
   askPrompt: string;
-  promptInjection: string;
+  promptInjectionTitle: string;
+  promptInjectionDescription: string;
   triagedWhen: string;
   noPermission: string;
+  closeVerdictHint: string;
   badges: {
     triaging: string;
     triaged: string;
@@ -510,12 +566,19 @@ export const SecurityCaseAiCopy: {
   runPlaybookButton: translationKey("Run playbook"),
   askButton: translationKey("Ask about this case"),
   askPrompt: translationKey("What should I check next on this case, and why?"),
-  promptInjection: translationKey(
-    "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.",
+  promptInjectionTitle: translationKey(
+    "Text in this case reads like instructions to an AI",
+  ),
+  promptInjectionDescription: translationKey(
+    "OneUptime AI treated it as data and leaves the call to you.",
   ),
   triagedWhen: translationKey("Triaged {{when}}"),
   noPermission: translationKey(
     "A role that can work security cases can ask OneUptime AI to triage one.",
+  ),
+  // Over Close Case's verdicts, when OneUptime AI has read the case.
+  closeVerdictHint: translationKey(
+    "OneUptime AI read this case as {{read}}. Pick what you found.",
   ),
   badges: {
     triaging: translationKey("Triaging"),

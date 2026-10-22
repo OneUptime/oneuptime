@@ -359,7 +359,12 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                 {item.title || ""}
               </span>
             </AppLink>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
+            {/*
+              Where the case came from, how many detections it holds and
+              OneUptime AI's read of it, on one line while they fit; the
+              read wraps under them, on the cell's edge, when they do not.
+            */}
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
               <Icon
                 icon={getSecurityDetectionSourceIcon(item.source)}
                 className="h-3 w-3 text-gray-400"
@@ -384,7 +389,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
               */}
               {isAiOffered && item.aiVerdict ? (
                 <span
-                  className="ml-1 inline-flex"
+                  className="inline-flex"
                   data-testid="security-case-row-ai-verdict"
                 >
                   <SecurityCaseAiVerdictPill

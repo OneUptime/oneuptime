@@ -93,6 +93,9 @@ export function getSecurityTriageAiName(): string {
 /*
  * The report's first line when the case's data held text written to steer
  * an AI. Markdown of OneUptime's own, with the product's name placed as text.
+ * It starts with SECURITY_CASE_TRIAGE_INJECTION_LEAD_PREFIX, which the case's
+ * AI card reads to leave it out of the report it draws (it says the same
+ * first, in the reader's language).
  */
 export function getPromptInjectionReportLead(): string {
   return mdText`**Heads up:** some text in this case's data reads like instructions to an AI - a sign of an attempt to steer the triage. ${getSecurityTriageAiName()} treated it as data and leaves the call to a person.`.toString();
@@ -375,17 +378,16 @@ export default class SecurityCaseTriageRunner {
     const suggestions: Array<MarkdownText> = [];
 
     if (decision.suggestedPriority) {
-      suggestions.push(
-        mdText`suggests priority **${decision.suggestedPriority}**`,
-      );
+      suggestions.push(mdText`priority **${decision.suggestedPriority}**`);
     }
 
     if (decision.suggestedPlaybookId) {
-      suggestions.push(mdText`suggests a playbook`);
+      suggestions.push(mdText`a playbook`);
     }
 
+    // "It suggests priority **High** and a playbook."
     return suggestions.length > 0
-      ? mdText`**${getSecurityTriageAiName()} triaged this case: ${verdict}.** It ${FeedMarkdown.join(suggestions, " and ")}.`
+      ? mdText`**${getSecurityTriageAiName()} triaged this case: ${verdict}.** It suggests ${FeedMarkdown.join(suggestions, " and ")}.`
       : mdText`**${getSecurityTriageAiName()} triaged this case: ${verdict}.**`;
   }
 }

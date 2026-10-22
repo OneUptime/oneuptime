@@ -28376,7 +28376,6 @@
   "Optional. The person working the case.": "Optional. The person working the case.",
   "Optional. The team the case belongs to.": "Optional. The team the case belongs to.",
   "Optional. The team the case belongs to. Choose a person, a team, or both.": "Optional. The team the case belongs to. Choose a person, a team, or both.",
-  "Optional. What was found and what was done - for whoever reads this case next.": "Optional. What was found and what was done - for whoever reads this case next.",
   "Optional. When an entity is a known indicator, the case's priority rises to at least this.": "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
   "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.": "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
   "Optional. Who the case is assigned to.": "Optional. Who the case is assigned to.",
@@ -33124,7 +33123,6 @@
   "Set priority": "우선순위 설정",
   "Set up an LLM provider": "LLM 공급자 설정",
   "Show failed sign-ins in the last hour, by user and source IP address.": "지난 1시간 동안 실패한 로그인을 사용자와 원본 IP 주소별로 보여 주세요.",
-  "Some text in this case's data reads like instructions to an AI. OneUptime AI treated it as data and leaves the call to you.": "이 케이스의 데이터에 AI에 대한 지시처럼 읽히는 텍스트가 있습니다. OneUptime AI는 이를 데이터로 처리했으며 판단은 사용자에게 맡깁니다.",
   "Starting a playbook": "플레이북 시작 중",
   "Suggested playbook": "제안된 플레이북",
   "Suggested priority": "제안된 우선순위",
@@ -33153,7 +33151,6 @@
   "Until it has one, security cases are not triaged.": "그 전까지는 보안 케이스가 트리아지되지 않습니다.",
   "Unusual activity": "이례적인 활동",
   "What OneUptime AI checked": "OneUptime AI가 확인한 내용",
-  "What OneUptime AI does on its own as security cases open. A person decides the verdict and priority, and runs every playbook.": "보안 케이스가 열릴 때 OneUptime AI가 자동으로 하는 일입니다. 판정과 우선순위는 사람이 정하고 모든 플레이북도 사람이 실행합니다.",
   "What next?": "다음 단계는?",
   "What should I check next on this case, and why?": "이 케이스에서 다음에 무엇을 확인해야 하며, 그 이유는 무엇인가요?",
   "What should I do next on this case? Name the playbook that fits, if one does.": "이 케이스에서 다음에 무엇을 해야 하나요? 맞는 플레이북이 있으면 알려 주세요.",
@@ -33163,5 +33160,11 @@
   "Which users or hosts had unusual security activity in the last 24 hours?": "지난 24시간 동안 이례적인 보안 활동이 있었던 사용자나 호스트는 무엇인가요?",
   "e.g. Ten failed sign-ins from one IP address within five minutes": "예: 5분 안에 한 IP 주소에서 10번 실패한 로그인",
   "security case": "보안 케이스",
-  "security events": "보안 이벤트"
+  "security events": "보안 이벤트",
+  "Close Draft with AI": "AI 초안 작성 닫기",
+  "It works on security cases on its own. Turn off anything you do not want it to do.": "OneUptime AI가 보안 케이스를 스스로 처리합니다. 원하지 않는 작업은 끄세요.",
+  "OneUptime AI read this case as {{read}}. Pick what you found.": "OneUptime AI는 이 케이스를 '{{read}}'(으)로 판정했습니다. 직접 확인한 결과를 선택하세요.",
+  "OneUptime AI treated it as data and leaves the call to you.": "OneUptime AI는 이를 데이터로 처리했으며 판단은 사용자에게 맡깁니다.",
+  "Text in this case reads like instructions to an AI": "이 케이스에 AI에 대한 지시처럼 읽히는 텍스트가 있습니다",
+  "What was found and what was done, for whoever reads this case next.": "무엇을 발견했고 무엇을 했는지, 다음에 이 케이스를 읽을 사람을 위해 남깁니다."
 }

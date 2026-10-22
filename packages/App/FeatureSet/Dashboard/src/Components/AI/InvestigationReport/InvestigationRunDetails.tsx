@@ -59,6 +59,13 @@ export interface UsageLineProps {
   kubectlActivity?: KubectlActivitySummary | undefined;
   stepCount?: number | undefined;
   modelName?: string | undefined;
+  /*
+   * What the count calls a query: "telemetry query" (the default), or just
+   * "query" for a run that reads more than telemetry - a security case's
+   * triage searches security events, looks up threat intel and reads
+   * entities' activity.
+   */
+  queryWording?: "telemetry" | "plain" | undefined;
   // Queries run and steps taken. Defaults to true.
   showCounts?: boolean | undefined;
   // Tokens spent and the model that spent them. Defaults to true.
@@ -315,13 +322,21 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
     items.push(
       <li key="queries" className={USAGE_ITEM_CLASS_NAME}>
         <Icon icon={IconProp.Database} className={USAGE_ICON_CLASS_NAME} />
-        {translator.translatePlural(
-          {
-            one: "{{count}} telemetry query",
-            other: "{{count}} telemetry queries",
-          },
-          queryCount,
-        )}
+        {props.queryWording === "plain"
+          ? translator.translatePlural(
+              {
+                one: "{{count}} query",
+                other: "{{count}} queries",
+              },
+              queryCount,
+            )
+          : translator.translatePlural(
+              {
+                one: "{{count}} telemetry query",
+                other: "{{count}} telemetry queries",
+              },
+              queryCount,
+            )}
       </li>,
     );
   }
@@ -458,6 +473,9 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const idPrefix: string = useId();
   const contextKey: string = `${props.subjectType}:${props.subjectId}:${props.runId || ""}`;
+  // A security case's triage reads more than telemetry: its count says "queries".
+  const queryWording: "telemetry" | "plain" =
+    props.subjectType === "securityCase" ? "plain" : "telemetry";
   const focusRequestId: number | null = props.focusRequest
     ? props.focusRequest.requestId
     : null;
@@ -547,6 +565,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           kubectlActivity={props.kubectlActivity}
           stepCount={stepCount}
           modelName={props.modelName}
+          queryWording={queryWording}
         />
       </div>
     );
@@ -756,6 +775,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             kubectlActivity={props.kubectlActivity}
             stepCount={stepCount}
             showCost={false}
+            queryWording={queryWording}
             className="mt-1"
           />
         </div>

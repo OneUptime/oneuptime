@@ -454,7 +454,7 @@ async function readOneCase(
   return {
     dataForLlm: `Case:\n${caseText.text}\n\nDetections (latest first, at most ${MAX_CASE_DETECTIONS}):\n${detectionText.text}`,
     rowCount: 1 + detectionRows.length,
-    citationLabel: `Security case ${caseLabel(securityCase)} and ${detectionRows.length} detection(s)`,
+    citationLabel: `Security case ${caseLabel(securityCase)} (${detectionRows.length} ${detectionRows.length === 1 ? "detection" : "detections"})`,
     citationTarget: target,
     redactionCount: caseText.redactionCount + detectionText.redactionCount,
     isTruncated: caseText.isTruncated || detectionText.isTruncated,
@@ -555,7 +555,7 @@ export const LookupThreatIntelTool: ObservabilityTool = {
     return {
       dataForLlm: serialized.text,
       rowCount: best.size,
-      citationLabel: `Threat intel lookup of ${values.length} value(s) - ${best.size} known-bad`,
+      citationLabel: `Threat intel lookup of ${values.length} ${values.length === 1 ? "value" : "values"}: ${best.size} known-bad`,
       citationTarget: { type: AIChatCitationTargetType.ThreatIntel },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
@@ -676,13 +676,13 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
     return {
       dataForLlm: `Window: the last ${hours} hour(s), ${startTime.toISOString()} - ${endTime.toISOString()}.\n${serialized.text}`,
       rowCount: activity.length,
-      citationLabel: `Security activity of ${values.length} value(s) over ${hours} hour(s)`,
+      citationLabel: `Security activity of ${values.length} ${values.length === 1 ? "value" : "values"} over ${hours} ${hours === 1 ? "hour" : "hours"}`,
       citationTarget: { type: AIChatCitationTargetType.SecurityEvents },
       redactionCount: serialized.redactionCount,
       isTruncated: serialized.isTruncated,
       widget: WidgetBuilder.table({
         title: "Entity activity",
-        description: `The last ${hours} hour(s)`,
+        description: `The last ${hours} ${hours === 1 ? "hour" : "hours"}`,
         columns: [
           { key: "value", title: "Value", type: "text" },
           { key: "events", title: "Events", type: "number" },
