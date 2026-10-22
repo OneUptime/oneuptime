@@ -1,6 +1,5 @@
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import DocsNav, { NavGroup } from "./Nav";
-import { ExpressRequest } from "Common/Server/Utils/Express";
 
 /*
  * Where the docs' old addresses go.
@@ -101,23 +100,5 @@ export const getDocsCategoryTarget: (
   return page === null ? null : `/docs/${lang}/${page}`;
 };
 
-/*
- * A redirect's target, with the query string the request arrived with -
- * taken as the raw bytes of the original URL, so a campaign's parameters
- * reach the page exactly as they were sent.
- */
-export const withQueryOf: (req: ExpressRequest, target: string) => string = (
-  req: ExpressRequest,
-  target: string,
-): string => {
-  const originalUrl: string = req.originalUrl || "";
-  const separator: number = originalUrl.indexOf("?");
-  const query: string =
-    separator === -1 ? "" : originalUrl.slice(separator + 1);
-
-  if (!query) {
-    return target;
-  }
-
-  return `${target}${target.includes("?") ? "&" : "?"}${query}`;
-};
+// Shared with the API reference's redirects.
+export { withQueryOf } from "Common/Server/Utils/RedirectTarget";
