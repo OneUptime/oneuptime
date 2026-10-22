@@ -6,84 +6,88 @@ import {
   getSection,
   read,
 } from "./KubernetesAiAgentDocsSupport";
-import {
-  AI_LANE_SWITCHES,
-  AiLane,
-  ProjectAiSwitchDefinition,
-} from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { dashboardLocale } from "./DocsDashboardLabels";
+import { AUTO_REMEDIATION_MORE_FIELDS_COPY } from "../../../FeatureSet/Dashboard/src/Components/AutoRemediation/AutoRemediationRuleCopy";
+import { RULE_CODE_REPOSITORIES_FIELD_COPY } from "../../../FeatureSet/Dashboard/src/Components/Code/RuleCodeRepositoriesCopy";
+import { REMEDIATION_NO_RUNNER_PLACEHOLDER } from "../../../FeatureSet/Dashboard/src/Components/Runner/RunnerPickerModel";
+import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import {
   AUTOMATIC_FIX_SWITCH_COLUMNS,
-  getAutomaticFixPullRequestColumns,
-} from "Common/Types/AI/AutomaticFixSwitches";
+  REMEDIATION_RULE_PULL_REQUEST_COLUMNS,
+} from "Common/Types/AI/AutomaticFixPullRequests";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
+import { SIGNAL_COLUMNS } from "Common/Server/Infrastructure/Postgres/SchemaMigrations/1805800000000-MoveFixPullRequestSwitchesIntoRules";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
 import path from "path";
 
 /*
- * "The two dots below should be auto-turned on when the 'Fix new alerts
- * automatically' is turned on, and it should actually be a child of 'Fix
- * new alerts automatically'." - the maintainer.
+ * "Both of these toggles should be inside of Remediation Rule, inside of
+ * More, and they should be checked by default. They should be true by
+ * default. If there are no rules, by the way, this should happen by
+ * default." - the maintainer.
  *
- * The two pull-request switches are part of fixing now: drawn under it
- * while it is on, on and off with it, and opening pull requests only while
- * it is on (Common/Types/AI/AutomaticFixSwitches). The docs say so in the
- * words the dashboard uses, and the upgrade note says what that changes for
- * an existing project and for API and Terraform users.
+ * The two pull requests fixing opens - a fix to the code, and the telemetry
+ * an investigation found missing - are each auto remediation rule's now
+ * (Common/Types/AI/AutomaticFixPullRequests): on for a new rule, on with no
+ * rule, opening only while fixing is on, in the code repositories the rules
+ * name. The docs say so in the words the dashboard uses, and the upgrade
+ * note says what that changes for an existing project and for API and
+ * Terraform users.
  */
 
 const THIRTEEN_TO_FOURTEEN_HEADING: string =
   "## Upgrading from OneUptime 13 → 14";
-const NOTE_HEADING: string = "### The pull-request switches are part of fixing";
+const NOTE_HEADING: string =
+  "### The pull-request switches moved into the auto remediation rules";
 const FIXING_NOTE_HEADING: string =
   "### Fixing new incidents and alerts has a switch of its own";
 const NEXT_NOTE_HEADING: string = "### Verify the edition and the license";
 const NEW_PROJECTS_NOTE_HEADING: string =
   "### New projects start with every AI feature on";
 
+// The switches as the AI card drew them, before the rules held them.
+const OLD_SWITCH_TITLES: Array<string> = [
+  "Open a fix pull request when an investigation finds a code change",
+  "Open a pull request that adds missing telemetry",
+];
+
 const AI_AGENT_PAGE: string = path.join(DOCS_CONTENT_DIR, "ai/ai-agent.md");
 const INCIDENT_SETTINGS_PAGE: string = path.join(
   DOCS_CONTENT_DIR,
   "incidents/settings.md",
 );
-const FA_AI_SRE_PAGE: string = path.join(
-  DOCS_CONTENT_DIR,
-  "..",
-  "fa",
-  "ai",
-  "ai-sre.md",
-);
+
+// Any run of whitespace, read as one space.
+const WHITESPACE: RegExp = /\s+/g;
+
+// A capital letter of a camelCase field.
+const CAPITAL: RegExp = /[A-Z]/g;
 
 function flat(text: string): string {
-  return text.replace(/\s+/g, " ").trim();
+  return text.replace(WHITESPACE, " ").trim();
 }
-
-// The two pull-request switches' titles, as the dashboard draws them.
-function pullRequestTitles(lane: AiLane): Array<string> {
-  return (AI_LANE_SWITCHES[lane][1]!.children || []).map(
-    (definition: ProjectAiSwitchDefinition<string>): string => {
-      return definition.title;
-    },
-  );
-}
-
-// Every column the three switches of both lanes write.
-const ALL_COLUMNS: Array<string> = [
-  AutoRemediationTriggerEntity.Incident,
-  AutoRemediationTriggerEntity.Alert,
-].flatMap((signal: AutoRemediationTriggerEntity): Array<string> => {
-  return [
-    AUTOMATIC_FIX_SWITCH_COLUMNS[signal].fix,
-    ...getAutomaticFixPullRequestColumns(signal),
-  ];
-});
 
 // camelCase to the Terraform provider's snake_case attribute.
 function terraformName(column: string): string {
-  return column.replace(/[A-Z]/g, (letter: string): string => {
+  return column.replace(CAPITAL, (letter: string): string => {
     return `_${letter.toLowerCase()}`;
   });
 }
+
+const RETIRED_PROJECT_FIELDS: Array<string> = [
+  "enableAutomaticIncidentCodeFixes",
+  "enableIncidentInstrumentationFixTasks",
+  "enableAutomaticAlertCodeFixes",
+  "enableAlertInstrumentationFixTasks",
+];
+
+const RULE_FIELDS: Array<string> = [
+  REMEDIATION_RULE_PULL_REQUEST_COLUMNS.CodeFix,
+  REMEDIATION_RULE_PULL_REQUEST_COLUMNS.MissingTelemetry,
+  "codeRepositories",
+];
 
 describe("the upgrade note", () => {
   const upgrading: string = read(UPGRADING_PAGE);
@@ -103,69 +107,76 @@ describe("the upgrade note", () => {
         return heading === NOTE_HEADING;
       }),
     ).toHaveLength(1);
+    expect(upgrading).not.toContain(
+      "### The pull-request switches are part of fixing",
+    );
   });
 
-  it("names both switches as the dashboard titles them, and where they now sit", () => {
-    for (const title of pullRequestTitles(AiLane.Incident)) {
+  it("names the switches as they were drawn, and where they went: under each rule's More fields, on for a new rule", () => {
+    for (const title of OLD_SWITCH_TITLES) {
       expect(note).toContain(`**${title}**`);
     }
     expect(note).toContain(
-      "now sit under **Fix new incidents automatically** (or **Fix new alerts automatically**)",
+      `as **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** and **${AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle}** under its **More fields**, both on for a new rule.`,
     );
     expect(note).toContain(
-      "They are shown only while fixing is on, turning fixing on turns both on, and turning it off turns both off.",
-    );
-    expect(note).toContain(
-      "While fixing is on, either one can be turned off on its own.",
+      "A pull request still opens on its own only while **Fix new incidents automatically** (or **Fix new alerts automatically**) is on:",
     );
   });
 
-  it("says plainly what changes for an existing project, and how to get the pull requests back", () => {
+  it("says what opens with no rule, and with rules - in which repositories", () => {
     expect(note).toContain(
-      "A pull request opens on its own only while fixing is on as well as its own switch.",
+      "With no rule, both pull requests open, in any connected repository.",
     );
     expect(note).toContain(
-      "A project that had a pull-request switch on and fixing off stops opening those pull requests by itself. Turn fixing on to get them back.",
+      `With rules, a pull request opens only for an incident (or alert) a rule matches, when a matching rule has it on, and only in the repositories the matching rules name under **${RULE_CODE_REPOSITORIES_FIELD_COPY.title}**.`,
     );
     expect(note).toContain(
-      "keep **Fixes** off on their **AI agent** pages (the default) and add no auto remediation rule",
-    );
-    expect(note).toContain("The upgrade changes no stored setting.");
-    expect(note).toContain(
-      "A new project starts with the pull-request switches off, like fixing.",
-    );
-    expect(note).toContain(
-      "**Open Fix PR from this analysis** on an investigation is unchanged: it needs neither switch.",
+      "A rule that names none allows every connected repository",
     );
   });
 
-  it("tells API and Terraform users the server stores what they write, and to set all three at once", () => {
-    for (const column of getAutomaticFixPullRequestColumns(
-      AutoRemediationTriggerEntity.Incident,
-    ).concat(
-      getAutomaticFixPullRequestColumns(AutoRemediationTriggerEntity.Alert),
-    )) {
+  it("says every project keeps its choice, and names the rule the upgrade adds as the migration names it", () => {
+    expect(note).toContain("Every project keeps its choice:");
+    expect(SIGNAL_COLUMNS.map((signal: { ruleName: string }) => {
+      return signal.ruleName;
+    })).toEqual(["All incidents", "All alerts"]);
+    expect(note).toContain(
+      `With no enabled rule of that kind, it gets one, **${SIGNAL_COLUMNS[0]!.ruleName}** (or **${SIGNAL_COLUMNS[1]!.ruleName}**)`,
+    );
+    expect(note).toContain(
+      "fixes without asking the way OneUptime AI fixed with no rule, and holds the two switches as the project had them.",
+    );
+    expect(note).toContain(
+      "**Open Fix PR from this analysis** on an investigation is unchanged.",
+    );
+  });
+
+  it("says a rule's Runner lists Runners only, and what a rule that picked none reads", () => {
+    expect(note).toContain("A rule's **Runner** lists your own Runners only.");
+    expect(note).toContain(
+      "commands on the affected cluster or host always go through its AI agent, whatever the rule picks.",
+    );
+    expect(note).toContain(`**${REMEDIATION_NO_RUNNER_PLACEHOLDER}**`);
+  });
+
+  it("tells API and Terraform users which project fields are gone, and the rule fields that hold them now", () => {
+    for (const column of RETIRED_PROJECT_FIELDS) {
       expect(note).toContain(`\`${column}\``);
     }
     expect(note).toContain(
       `\`${terraformName("enableAutomaticIncidentCodeFixes")}\``,
     );
-    expect(note).toContain(
-      "does not turn the pull-request fields on or off with `enableAutomaticIncidentRemediation`",
-    );
-    expect(note).toContain(
-      "set all three in one request to turn fixing on with its pull requests",
-    );
-  });
 
-  it("the Terraform name it gives is the provider's snake_case of the field", () => {
-    expect(terraformName("enableAutomaticIncidentCodeFixes")).toBe(
-      "enable_automatic_incident_code_fixes",
+    for (const column of RULE_FIELDS) {
+      expect(note).toContain(`\`${column}\``);
+      expect(note).toContain(`\`${terraformName(column)}\``);
+    }
+
+    expect(terraformName(REMEDIATION_RULE_PULL_REQUEST_COLUMNS.CodeFix)).toBe(
+      "open_code_fix_pull_requests",
     );
-    // The same rule names the fixing switch in the note before it.
-    expect(flat(getSection(upgrading, FIXING_NOTE_HEADING))).toContain(
-      `\`${terraformName("enableAutomaticIncidentRemediation")}\``,
-    );
+    expect(note).toContain("remove them from your configuration.");
   });
 
   it("the new-projects note no longer counts the pull requests among what starts on, and links here", () => {
@@ -173,15 +184,14 @@ describe("the upgrade note", () => {
       getSection(upgrading, NEW_PROJECTS_NOTE_HEADING),
     );
 
-    expect(newProjects).not.toContain(
-      "automatic code fixes and instrumentation fixes",
-    );
     expect(newProjects).toContain(
       "The pull requests OneUptime AI opens for incidents and alerts are part of fixing, which starts off",
     );
 
-    const link: string = `(#${slugify(NOTE_HEADING.replace(/^### /, ""))})`;
-    expect(link).toBe("(#the-pull-request-switches-are-part-of-fixing)");
+    const link: string = `(#${slugify(NOTE_HEADING.replace("### ", ""))})`;
+    expect(link).toBe(
+      "(#the-pull-request-switches-moved-into-the-auto-remediation-rules)",
+    );
     expect(newProjects).toContain(link);
   });
 });
@@ -191,59 +201,87 @@ describe("the AI SRE page", () => {
   const codeFixes: string = flat(
     getSection(read(AI_SRE_PAGE), "## Automatic code fixes"),
   );
+  const rules: string = flat(
+    getSection(read(AI_SRE_PAGE), "## Which incidents are investigated and fixed"),
+  );
 
-  it("says the pull requests are drawn under fixing, and on and off with it", () => {
-    const titles: Array<string> = pullRequestTitles(AiLane.Incident).map(
-      (title: string): string => {
-        return `_${title}_`;
-      },
-    );
+  it("no longer names the switches the AI card had", () => {
+    for (const title of OLD_SWITCH_TITLES) {
+      expect(page).not.toContain(title);
+    }
+    // The Runner choice a rule no longer offers.
+    expect(page).not.toContain("**AI agent on the cluster or host**");
+  });
 
+  it("says the pull requests are part of fixing, and each rule sets them", () => {
     expect(page).toContain(
-      `Two more switches are part of it, drawn under it while it is on: ${titles[0]} and ${titles[1]}.`,
+      "Fixing starts off, and the pull requests that are part of it open only while it is on",
     );
-    expect(page).toContain("Fixing builds on top of investigations:");
-    expect(page).not.toContain("One further setting builds on top of");
-  });
-
-  it("says, for both signals, that the fix pull request opens only while fixing is on, and both start off", () => {
-    expect(codeFixes).toContain(
-      "is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings**, and under **Fix new alerts automatically** on **Alerts → AI → Settings**, and opens pull requests only while that switch is on.",
+    expect(page).toContain(
+      "each auto remediation rule sets them: with no rule both open, and a rule can turn either off under its **More fields**",
     );
     expect(codeFixes).toContain(
-      "Both start **off**, for new projects too; turning fixing on turns it on, and turning fixing off turns it off.",
+      "they open only while **Fix new incidents automatically** (on **Incidents → AI → Settings**) or **Fix new alerts automatically** (on **Alerts → AI → Settings**) is on, and fixing starts **off**, for new projects too.",
     );
     expect(codeFixes).toContain(
-      "A second switch under fixing, **Open a pull request that adds missing telemetry**",
+      `With no auto remediation rule they open for every investigation that qualifies; with rules, each rule says for what it matches, with **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** under its **More fields**, on for a new rule.`,
     );
-    expect(codeFixes).toContain("comes on and goes off with fixing too");
-    expect(codeFixes).not.toContain("A second switch beside it");
-  });
-
-  it("says the auto remediation rules narrow the cluster and host fixes and runbooks, not the pull requests", () => {
     expect(codeFixes).toContain(
-      "Auto remediation rules narrow those fixes and the runbooks, not the pull requests: while fixing is on, every investigation that qualifies can open one.",
+      `**${AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle}**, beside it under a rule's **More fields** and on for a new rule too,`,
     );
   });
 
-  it("says how to get the pull requests without OneUptime AI changing clusters or hosts", () => {
+  it("says rules hold the pull requests to what they match, and to the repositories they name", () => {
+    expect(codeFixes).toContain(
+      "With rules set up, a pull request opens only for an incident (or alert) a rule matches, when a matching rule has that pull request on, and only in the code repositories the matching rules name; a matching rule that names none allows every connected repository.",
+    );
     expect(codeFixes).toContain(
       "To get the pull requests without OneUptime AI changing your clusters or hosts, turn fixing on, keep **Fixes** off on each Kubernetes cluster's and host's **AI agent** page (off is their default), and add no auto remediation rule",
     );
   });
 
-  it("names every field the switches write, and says the server turns none of them on by itself", () => {
-    for (const column of ALL_COLUMNS) {
+  it("names the fields the API and Terraform write, and links to the upgrade note", () => {
+    for (const signal of [
+      AutoRemediationTriggerEntity.Incident,
+      AutoRemediationTriggerEntity.Alert,
+    ]) {
+      expect(codeFixes).toContain(
+        `\`${AUTOMATIC_FIX_SWITCH_COLUMNS[signal]}\``,
+      );
+    }
+
+    for (const column of RULE_FIELDS) {
       expect(codeFixes).toContain(`\`${column}\``);
     }
+
+    for (const column of RETIRED_PROJECT_FIELDS) {
+      expect(codeFixes).not.toContain(column);
+    }
+
     expect(codeFixes).toContain(
-      "The server turns none of them on or off by itself, so to turn fixing on with its pull requests, set all three in one request.",
+      `(/docs/installation/upgrading#${slugify(NOTE_HEADING.replace("### ", ""))})`,
+    );
+  });
+
+  it("lists a rule's Runner, code repositories and pull requests under More fields, as the form draws them", () => {
+    expect(rules).toContain(
+      `- **Runner** — where OneUptime AI runs Bash commands for the rule, inside your network. It lists your own Runners, the project's default first, and a new rule starts on the default; with **${REMEDIATION_NO_RUNNER_PLACEHOLDER}**, OneUptime AI runs no commands of its own for the rule.`,
+    );
+    expect(rules).toContain(
+      `- **${RULE_CODE_REPOSITORIES_FIELD_COPY.title}** — the repositories OneUptime AI may read while it fixes, and open pull requests in. With none picked (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}**) it may use every repository connected to the project.`,
+    );
+    expect(rules).toContain(
+      `- **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** and **${AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle}** — whether OneUptime AI opens a fix pull request, or one that adds missing telemetry, for the incidents the rule matches`,
+    );
+    // An investigation rule names the repositories it may read, too.
+    expect(rules).toContain(
+      `and the code repositories it may read (**${RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}** when it names none).`,
     );
   });
 });
 
-describe("the other pages that name the switch", () => {
-  it("Fix Tasks says the automatic fix pull request is part of fixing, not set independently or on by default", () => {
+describe("the other pages that name the pull requests", () => {
+  it("Code says the automatic fix pull request is part of fixing, and each rule's", () => {
     const section: string = flat(
       getSection(
         read(AI_AGENT_PAGE),
@@ -252,27 +290,53 @@ describe("the other pages that name the switch", () => {
     );
 
     expect(section).toContain(
-      "It is part of fixing: it sits under **Fix new incidents automatically** on **Incidents → AI → Settings** (and under **Fix new alerts automatically** on **Alerts → AI → Settings**), comes on when fixing is turned on, and opens pull requests only while fixing is on. Both start off, for new projects too.",
+      "Eligible fixes happen without the click while **Fix new incidents automatically** is on",
     );
-    expect(section).not.toContain("set independently");
-    expect(section).not.toContain("**on by default for new projects**");
+    expect(section).toContain(
+      `With no auto remediation rule every eligible fix opens; with rules, only one for what a rule matches, when the rule has **${AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle}** on (a new rule does), in the code repositories it names.`,
+    );
+    for (const title of OLD_SWITCH_TITLES) {
+      expect(section).not.toContain(title);
+    }
   });
 
-  it("the incident settings page puts the pull requests under fixing", () => {
-    expect(flat(read(INCIDENT_SETTINGS_PAGE))).toContain(
-      "fixing them automatically (off until you turn it on), with the fix and missing-telemetry pull requests that are part of fixing drawn under it, and drafting postmortems on or off",
+  it("the incident settings page no longer draws pull requests under fixing", () => {
+    const settings: string = flat(read(INCIDENT_SETTINGS_PAGE));
+
+    expect(settings).toContain(
+      "fixing them automatically (off until you turn it on), and drafting postmortems on or off",
     );
+    expect(settings).toContain(
+      "narrow which incidents are investigated and fixed, and with which code repositories and pull requests,",
+    );
+    expect(settings).not.toContain("drawn under it");
   });
 
-  it("the Persian AI SRE page no longer calls the fix pull request switch independent", () => {
-    const fa: string = flat(read(FA_AI_SRE_PAGE));
+  /*
+   * Every language names the rule's new fields the way its Dashboard
+   * draws them.
+   */
+  it.each(
+    SUPPORTED_DOCS_LANGUAGE_CODES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )("the %s AI SRE page names a rule's pull requests and repositories as its Dashboard does", (language: string) => {
+    const translated: string = fs.readFileSync(
+      path.join(DOCS_CONTENT_DIR, "..", language, "ai", "ai-sre.md"),
+      "utf8",
+    );
+    const locale: Record<string, unknown> = dashboardLocale(language);
 
-    expect(fa).not.toContain(
-      "مستقل زیر **Incidents > AI > Settings** و **Alerts > AI > Settings** پیکربندی می‌شود",
-    );
-    expect(fa).not.toContain("به‌طور پیش‌فرض خاموش و مستقل");
-    expect(fa).toContain(
-      "زیر **اصلاح خودکار حوادث تازه** در **حوادث** > **هوش مصنوعی** > **تنظیمات** و زیر **اصلاح خودکار هشدارهای تازه** در **هشدارها** > **هوش مصنوعی** > **تنظیمات** قرار دارد",
-    );
+    for (const label of [
+      AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle,
+      AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle,
+      RULE_CODE_REPOSITORIES_FIELD_COPY.title,
+      RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder,
+      REMEDIATION_NO_RUNNER_PLACEHOLDER,
+    ]) {
+      expect([label, translated.includes(`**${String(locale[label])}**`)]).toEqual(
+        [label, true],
+      );
+    }
   });
 });
