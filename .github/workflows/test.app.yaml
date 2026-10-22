@@ -411,12 +411,7 @@ jobs:
           # the eight. Security Events Empty States (about 3 minutes, Chromium
           # only) moved here from group 3 later that day, when this group took
           # 15 to 17 minutes: about 20 for the nine. Code moved on to group 9
-          # when this group took 22.6 minutes on the next run. Security
-          # Operations grew by about two minutes on 2026-10-22 (5.4 minutes
-          # locally for its 69 tests): OneUptime AI on the Security pages -
-          # the case's AI card in every state and for a Security Viewer,
-          # Triage with AI, Draft with AI and AI Settings, at a laptop's and a
-          # phone's width, light and dark.
+          # when this group took 22.6 minutes on the next run.
           - group: 8
             browsers: chromium
             suites: >-
