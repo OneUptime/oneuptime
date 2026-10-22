@@ -5,7 +5,10 @@ import {
   ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_MAX_PAGES_AGAIN,
   getOnCallAcknowledgementTimeoutInMinutes,
 } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A POLICY'S ACKNOWLEDGEMENT TIMEOUT, IN THE DASHBOARD: ONE PLAIN CHOICE,
@@ -65,7 +68,7 @@ export const AcknowledgementTimeoutCopy: {
   minutesTitle: string;
   minutesDescription: string;
   rowTitle: string;
-  pageAgainSummary: { one: string; other: string };
+  pageAgainSummary: PluralTemplate;
   foldedValue: string;
 } = {
   cardTitle: translationKey("Acknowledgement Timeout"),
@@ -100,10 +103,8 @@ export const AcknowledgementTimeoutCopy: {
    * 30 minutes". A plural, looked up with the minutes as its count.
    */
   pageAgainSummary: {
-    one: translationKey("Page again if not resolved within {{count}} minute"),
-    other: translationKey(
-      "Page again if not resolved within {{count}} minutes",
-    ),
+    one: "Page again if not resolved within {{count}} minute",
+    other: "Page again if not resolved within {{count}} minutes",
   },
   // What More settings says it is set to, folded: "30 min".
   foldedValue: translationKey("{{minutes}} min"),
