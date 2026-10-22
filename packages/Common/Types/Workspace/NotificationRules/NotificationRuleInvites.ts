@@ -1,3 +1,4 @@
+import ObjectID from "../../ObjectID";
 import NotificationRuleEventType from "./EventType";
 
 /*
@@ -142,6 +143,64 @@ export default class NotificationRuleInvites {
     }
 
     return Boolean(rule[NOTIFICATION_RULE_INVITEE_SWITCH[data.invitee]]);
+  }
+
+  /*
+   * The on-call schedules the rule names, whose on-call person joins its
+   * channel (CreateChannelNotificationRule.inviteOnCallSchedulesToNewChannel),
+   * each once and in the rule's order. Read from the rule as it is stored -
+   * the ids the Dashboard saves, or ObjectIDs as JSON - and only real ids:
+   * the rule is configuration a person or the API wrote, and a schedule id
+   * that is not one must not stop its channel from being set up.
+   */
+  public static getOnCallScheduleIds(
+    rule: { inviteOnCallSchedulesToNewChannel?: unknown } | undefined | null,
+  ): Array<ObjectID> {
+    const value: unknown = rule?.inviteOnCallSchedulesToNewChannel;
+
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const ids: Array<ObjectID> = [];
+
+    for (const entry of value) {
+      const id: string = NotificationRuleInvites.readId(entry);
+
+      if (
+        ObjectID.isValidUUID(id) &&
+        !ids.some((known: ObjectID): boolean => {
+          return known.toString().toLowerCase() === id.toLowerCase();
+        })
+      ) {
+        ids.push(new ObjectID(id));
+      }
+    }
+
+    return ids;
+  }
+
+  // An id as a rule stores it: a string, an ObjectID, or one as JSON.
+  private static readId(entry: unknown): string {
+    if (typeof entry === "string") {
+      return entry.trim();
+    }
+
+    if (entry instanceof ObjectID) {
+      return entry.toString().trim();
+    }
+
+    if (entry && typeof entry === "object") {
+      const record: Record<string, unknown> = entry as Record<string, unknown>;
+
+      for (const key of ["value", "_id"]) {
+        if (typeof record[key] === "string") {
+          return (record[key] as string).trim();
+        }
+      }
+    }
+
+    return "";
   }
 
   // The kinds of people the rule adds to its channel, in the form's order.
