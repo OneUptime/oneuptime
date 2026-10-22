@@ -659,6 +659,75 @@ describe.each([
       expect(fieldNamed(props, "runnerId").defaultValue).toBe(RUNNER_ID);
     });
 
+    /*
+     * Folded, the line names the Runner a rule picks - the project's default
+     * a new rule starts on included - as a runbook step's line does: where
+     * the rule's Bash commands run is never hidden by the fold.
+     */
+    test("folded, the line names the Runner the rule picks, and says nothing of none", async () => {
+      const OFFICE_RUNNER_ID: string = "aaaaaaaa-0000-4000-8000-000000000002";
+
+      jest
+        .spyOn(ProjectUtil, "getCurrentProjectId")
+        .mockReturnValue(new ObjectID("dddddddd-0000-4000-8000-000000000001"));
+      jest.spyOn(RunnerChoicesLoader, "loadForRemediation").mockResolvedValue({
+        projectRunners: [
+          {
+            id: OFFICE_RUNNER_ID,
+            name: "office-runner",
+            liveStatus: RunnerLiveStatus.NeverConnected,
+          },
+          {
+            id: RUNNER_ID,
+            name: "prod-runner",
+            liveStatus: RunnerLiveStatus.Connected,
+            isProjectDefault: true,
+          },
+        ],
+        globalRunners: [],
+        projectUsesGlobalRunners: true,
+      } as never);
+
+      await act(async () => {
+        render(<AutoRemediationRulesTable lane={lane} />);
+      });
+
+      const runner: CapturedField = fieldNamed(
+        mockCapturedTableProps[mockCapturedTableProps.length - 1] || {},
+        "runnerId",
+      );
+      const folded: (formValues: Values) => string | null =
+        runner.getFoldedValue!;
+
+      // The default a new rule starts on is named: it is where commands run.
+      expect(folded(values({ runnerId: runner.defaultValue }))).toBe(
+        "prod-runner",
+      );
+      // A pick as the form holds it: an id, or an ObjectID read from the rule.
+      expect(folded(values({ runnerId: new ObjectID(RUNNER_ID) }))).toBe(
+        "prod-runner",
+      );
+      // One not connected says so, as the picker does.
+      expect(folded(values({ runnerId: OFFICE_RUNNER_ID }))).toBe(
+        "office-runner · Never connected",
+      );
+      // No Runner is the field's empty answer: named, never as set.
+      expect(folded(values({}))).toBeNull();
+      expect(folded(values({ runnerId: null }))).toBeNull();
+      // One the reader was not shown is never an id.
+      expect(
+        folded(values({ runnerId: "aaaaaaaa-0000-4000-8000-0000000000ff" })),
+      ).toBe("A Runner you do not have access to");
+    });
+
+    test("folded, a Runner picked before the Runners are read is not named yet", () => {
+      const runner: CapturedField = fieldNamed(tableFor(lane), "runnerId");
+
+      expect(
+        runner.getFoldedValue!(values({ runnerId: RUNNER_ID })),
+      ).toBeNull();
+    });
+
     test("a project with no default Runner starts a new rule on none", async () => {
       jest
         .spyOn(ProjectUtil, "getCurrentProjectId")
@@ -1139,6 +1208,14 @@ describe("what a rule fixes with", () => {
 });
 
 describe("the line under More fields, folded", () => {
+  /*
+   * A new rule keeps every default, and that is one sentence - not one
+   * per field, each starting "OneUptime AI may".
+   */
+  const EVERYTHING_AND_PULL_REQUESTS: string =
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.";
+  const EVERYTHING: string =
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.";
   const ALL_MCP_SERVERS: string =
     "OneUptime AI may use all of your MCP servers.";
   const ALL_REPOSITORIES_AND_PULL_REQUESTS: string =
@@ -1152,12 +1229,17 @@ describe("the line under More fields, folded", () => {
     "c1111111-1111-4111-8111-111111111111",
   ];
 
-  test("names the defaults left: any runbook, every MCP server, every repository and its pull requests", () => {
+  test("a new rule keeps every default, said in one sentence", () => {
     expect(getAutoRemediationMoreFieldsSummary(values({}))).toEqual([
-      "OneUptime AI may run any of your runbooks.",
-      ALL_MCP_SERVERS,
-      ALL_REPOSITORIES_AND_PULL_REQUESTS,
+      EVERYTHING_AND_PULL_REQUESTS,
     ]);
+    expect(
+      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everythingAndPullRequests,
+    ).toBe(EVERYTHING_AND_PULL_REQUESTS);
+    expect(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everything).toBe(EVERYTHING);
+  });
+
+  test("once some are set, names each default left: any runbook, every MCP server, every repository and its pull requests", () => {
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ runbooks: PICKED_RUNBOOKS }),
@@ -1202,15 +1284,25 @@ describe("the line under More fields, folded", () => {
           openTelemetryPullRequests: false,
         }),
       ),
-    ).toEqual([
-      AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook,
-      ALL_MCP_SERVERS,
-      ALL_REPOSITORIES,
-    ]);
+    ).toEqual([EVERYTHING]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({
+          runbooks: PICKED_RUNBOOKS,
+          openCodeFixPullRequests: false,
+          openTelemetryPullRequests: false,
+        }),
+      ),
+    ).toEqual([ALL_MCP_SERVERS, ALL_REPOSITORIES]);
     // One still on still opens pull requests.
     expect(
       getAutoRemediationMoreFieldsSummary(
         values({ openCodeFixPullRequests: false }),
+      ),
+    ).toEqual([EVERYTHING_AND_PULL_REQUESTS]);
+    expect(
+      getAutoRemediationMoreFieldsSummary(
+        values({ runbooks: PICKED_RUNBOOKS, openCodeFixPullRequests: false }),
       ),
     ).toContain(ALL_REPOSITORIES_AND_PULL_REQUESTS);
     expect(ALL_REPOSITORIES).toBe(

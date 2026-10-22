@@ -24,8 +24,9 @@ The suite drives the pages the way a person does:
 
 - the Fix step asks one question, Approval, with no OneUptime AI or Runbooks
   choice; More fields is folded under it, and its line says what the defaults
-  do (OneUptime AI may run any runbook, may use every MCP server, and may
-  read all connected repositories and open pull requests in them);
+  do in one sentence while a rule keeps them all (OneUptime AI may use any of
+  your runbooks, MCP servers and connected repositories, and open pull
+  requests in them), then one sentence for each default left;
 - open, More fields holds the runbooks OneUptime AI may run ("Any runbook"
   when none is picked) and the Runner OneUptime AI runs the rule's Bash
   commands on: the project's own Runners with how each is doing, the default
@@ -35,13 +36,19 @@ The suite drives the pages the way a person does:
   the Kubernetes agent chart installed and never a global Runner;
 - a rule made without opening More fields is sent as OneUptime AI's, with no
   runbook, no Runner, every repository and both pull requests on; the
-  runbooks and the Runner picked are sent, and the folded line names them;
+  runbooks and the Runner picked are sent, and the folded line names them -
+  the Runner by name ("Runner: prod-eu-runner", the default a new rule starts
+  on included, with " · Never connected" for one that is not connected), as
+  a runbook step's line names its Runner;
 - "Run them every time" appears once the rule names runbooks: the rule starts
   them for every match, picks no Runner, and needs a runbook to run;
 - a project with no Runner of its own reads No Runner, has nothing to pick,
   and is told where to add one;
 - the code repositories OneUptime AI may use ("All connected repositories"
-  when none is picked, with a link to Code › Repositories) and the rule's two
+  when none is picked, with a link to Code › Repositories), drawn like the
+  Runbooks and MCP Servers pickers beside it (one height, chips, no chevron),
+  each hint close under its own box and a field's gap above the next, and
+  the rule's two
   pull request switches, Fix pull requests and Telemetry pull requests, on for
   a new rule - they moved here from the AI settings card, which now draws
   fixing alone; picks are sent and counted on the folded line, a saved rule

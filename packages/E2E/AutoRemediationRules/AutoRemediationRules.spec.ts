@@ -86,10 +86,20 @@ const APPROVAL_DESCRIPTION: string =
   "OneUptime AI works out each fix. Choose whether it waits for someone to approve it.";
 const FIX_WITHOUT_ASKING_DESCRIPTION: string =
   "OneUptime AI fixes on its own where the AI agent's settings allow it, and with the runbooks and MCP servers you pick under More fields.";
-// What More fields says, folded, while a new rule holds its defaults.
-const DEFAULTS_SUMMARY: string = "OneUptime AI may run any of your runbooks.";
+/*
+ * What More fields says, folded, while a new rule holds every default: one
+ * sentence, not one for each field. Once some are set, one sentence for
+ * each default left (ANY_RUNBOOK_SUMMARY, REPOSITORIES_SUMMARY).
+ */
+const DEFAULTS_SUMMARY: string =
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.";
+const ANY_RUNBOOK_SUMMARY: string =
+  "OneUptime AI may run any of your runbooks.";
 const REPOSITORIES_SUMMARY: string =
   "OneUptime AI may read all connected repositories, and open pull requests in them.";
+// An investigation rule's, while it holds both of its defaults.
+const INVESTIGATION_DEFAULTS_SUMMARY: string =
+  "OneUptime AI may use any of your MCP servers and connected repositories.";
 const RUNBOOKS_DESCRIPTION: string =
   "OneUptime AI may run any of your runbooks. Pick some to let it run only those.";
 const RUNNER_DESCRIPTION: string =
@@ -331,6 +341,15 @@ const repositoriesPicker: (dialog: Locator) => Locator = (
   return dialog.getByRole("combobox", { name: "Code Repositories" });
 };
 
+// The repositories picked, as the picker's chips draw them (EntityDropdown).
+const repositoryChips: (dialog: Locator) => Locator = (
+  dialog: Locator,
+): Locator => {
+  return dialog
+    .getByTestId("rule-code-repositories-picker")
+    .locator("div.flex-wrap > span span.truncate");
+};
+
 const pullRequestSwitch: (dialog: Locator, title: string) => Locator = (
   dialog: Locator,
   title: string,
@@ -483,8 +502,10 @@ test.describe("the Fix step", () => {
       "aria-expanded",
       "false",
     );
-    await expect(foldedSummary(dialog)).toContainText(DEFAULTS_SUMMARY);
-    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
+    // One sentence for them all, not one per field, each "OneUptime AI may".
+    await expect(foldedSummary(dialog)).not.toContainText(ANY_RUNBOOK_SUMMARY);
+    await expect(foldedSummary(dialog)).not.toContainText(REPOSITORIES_SUMMARY);
     // The agent on a cluster or host is no default of the rule's to name.
     await expect(foldedSummary(dialog)).not.toContainText(
       "fixes through the AI agent",
@@ -589,10 +610,50 @@ test.describe("the Fix step", () => {
     await page.keyboard.press("Escape");
     await screenshot(page, "runner-project-default");
 
+    /*
+     * Folded, the line names it - as a runbook step's names its Runner - so
+     * where the rule's commands run is read without opening the fold.
+     */
+    await moreFieldsButton(dialog).click();
+    const folded: Array<string> = await dialog
+      .getByTestId("folded-section-item")
+      .allInnerTexts();
+    expect(folded.join(" ")).toContain("Runner: prod-eu-runner");
+
     await create(page, dialog);
 
     const sent: Recorded = await recorded(page);
     expect(sent.creates[0]!.data["runnerId"]).toBe(RUNNER_IDS["prodEu"]);
+  });
+
+  test("folded, a rule with No Runner names the field alone, and one not connected says so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+
+    const foldedItems: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      return (
+        await dialog.getByTestId("folded-section-item").allInnerTexts()
+      ).map((text: string): string => {
+        return text.replace(/\s+/g, " ").trim();
+      });
+    };
+
+    // No Runner is the field's empty answer: "Runner", with nothing after it.
+    expect(await foldedItems()).toContain("Runner");
+
+    await openMoreFields(dialog);
+    await pickOption(page, runnerPicker(dialog), /^office-runner/);
+    await moreFieldsButton(dialog).click();
+
+    expect(await foldedItems()).toContain(
+      "Runner: office-runner · Never connected",
+    );
   });
 
   test("a rule's pick can be cleared back to No Runner", async ({
@@ -671,7 +732,12 @@ test.describe("the Fix step", () => {
     // Folded again, its line says what is set.
     await moreFieldsButton(dialog).click();
     await expect(dialog).toContainText("Runbooks: 2");
+    await expect(dialog).toContainText("Runner: prod-eu-runner");
     await expect(foldedSummary(dialog)).not.toContainText(DEFAULTS_SUMMARY);
+    await expect(foldedSummary(dialog)).not.toContainText(ANY_RUNBOOK_SUMMARY);
+    // The defaults still left are each said: every MCP server and repository.
+    await expect(foldedSummary(dialog)).toContainText(ALL_MCP_SERVERS_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
     // "Run them every time" is off, so the line does not name it: named, it read as on.
     const folded: Array<string> = await dialog
       .getByTestId("folded-section-item")
@@ -817,7 +883,7 @@ test.describe("MCP servers", () => {
 
     // Not on the step itself: folded, its line says what the default does.
     await expect(mcpServersPicker(dialog)).toBeHidden();
-    await expect(dialog).toContainText(ALL_MCP_SERVERS_SUMMARY);
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
     await expect(mcpServersPicker(dialog)).toBeVisible();
@@ -857,6 +923,9 @@ test.describe("MCP servers", () => {
       .allInnerTexts();
     expect(folded.join(" ")).toContain("MCP Servers: 1");
     await expect(dialog).not.toContainText(ALL_MCP_SERVERS_SUMMARY);
+    // The defaults left, each said: any runbook, every repository.
+    await expect(foldedSummary(dialog)).toContainText(ANY_RUNBOOK_SUMMARY);
+    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
 
     await create(page, dialog);
 
@@ -929,9 +998,11 @@ test.describe("MCP servers", () => {
       .getByRole("textbox", { name: /^Name/ })
       .fill("Investigate with AWS");
 
-    // On the Investigate step, folded, with what the default does.
+    // On the Investigate step, folded, with what the defaults do.
     await expect(mcpServersPicker(dialog)).toBeHidden();
-    await expect(dialog).toContainText(ALL_MCP_SERVERS_SUMMARY);
+    await expect(foldedSummary(dialog)).toHaveText(
+      INVESTIGATION_DEFAULTS_SUMMARY,
+    );
 
     await openMoreFields(dialog);
     await expect(dialog).toContainText(INVESTIGATION_MCP_DESCRIPTION);
@@ -1371,7 +1442,10 @@ test.describe("people and screens", () => {
     }
 
     await expect(dialog).toContainText(GERMAN[NO_RUNNER]!);
-    await expect(dialog).toContainText(GERMAN[ALL_REPOSITORIES]!);
+    // The repositories box's placeholder, as the MCP servers box draws its own.
+    await expect(
+      dialog.getByRole("combobox", { name: GERMAN["Code Repositories"]! }),
+    ).toHaveAttribute("placeholder", GERMAN[ALL_REPOSITORIES]!);
     await screenshot(page, "german");
   });
 });
@@ -1391,11 +1465,14 @@ test.describe("code repositories and pull requests", () => {
     const dialog: Locator = await openFixStep(page, card);
 
     await expect(repositoriesPicker(dialog)).toBeHidden();
-    await expect(foldedSummary(dialog)).toContainText(REPOSITORIES_SUMMARY);
+    await expect(foldedSummary(dialog)).toHaveText(DEFAULTS_SUMMARY);
 
     await openMoreFields(dialog);
     await expect(repositoriesPicker(dialog)).toBeVisible();
-    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    await expect(repositoriesPicker(dialog)).toHaveAttribute(
+      "placeholder",
+      ALL_REPOSITORIES,
+    );
     await expect(dialog).toContainText(REMEDIATION_REPOSITORIES_DESCRIPTION);
     await expect(dialog).not.toContainText("Code Repositories (Optional)");
 
@@ -1501,6 +1578,17 @@ test.describe("code repositories and pull requests", () => {
     await pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS).click();
     await moreFieldsButton(dialog).click();
 
+    // Every other default kept: one sentence, with no pull request in it.
+    await expect(foldedSummary(dialog)).toHaveText(
+      "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.",
+    );
+    await expect(foldedSummary(dialog)).not.toContainText("pull request");
+
+    // With a runbook picked, the repositories' own sentence says it.
+    await openMoreFields(dialog);
+    await pickOption(page, runbooksPicker(dialog), "Restart checkout");
+    await page.keyboard.press("Escape");
+    await moreFieldsButton(dialog).click();
     await expect(foldedSummary(dialog)).toContainText(
       "OneUptime AI may read all connected repositories.",
     );
@@ -1521,11 +1609,7 @@ test.describe("code repositories and pull requests", () => {
 
     await expect(dialog).toContainText("Code Repositories: 1");
     await openMoreFields(dialog);
-    await expect(
-      dialog
-        .getByTestId("rule-code-repositories-picker")
-        .locator(".ou-select__multi-value__label"),
-    ).toHaveText(["checkout"]);
+    await expect(repositoryChips(dialog)).toHaveText(["checkout"]);
     await expect(pullRequestSwitch(dialog, FIX_PULL_REQUESTS)).toBeChecked();
     await expect(
       pullRequestSwitch(dialog, TELEMETRY_PULL_REQUESTS),
@@ -1553,6 +1637,86 @@ test.describe("code repositories and pull requests", () => {
     expect(update!.data["openTelemetryPullRequests"]).toBe(false);
   });
 
+  /*
+   * The three lists of what OneUptime AI may use - runbooks, MCP servers and
+   * code repositories - are one kind of field, so they look alike: a search
+   * box of one height with the picks as chips over it, and no chevron (that
+   * is the single-pick Runner's). And a line under a box belongs to it: it
+   * sits close under its own box, a field's gap above the next field.
+   */
+  test("the repositories picker looks like the Runbooks and MCP Servers pickers, and each hint sits under its own field", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    const heights: Array<number> = [];
+
+    for (const picker of [
+      runbooksPicker(dialog),
+      mcpServersPicker(dialog),
+      repositoriesPicker(dialog),
+    ]) {
+      const box: { height: number } | null = await picker.boundingBox();
+      expect(box).not.toBeNull();
+      heights.push(Math.round(box!.height));
+    }
+
+    expect(new Set(heights).size).toBe(1);
+    await expect(
+      dialog
+        .getByTestId("rule-code-repositories-picker")
+        .locator(".ou-select__control"),
+    ).toHaveCount(0);
+
+    const top: (locator: Locator) => Promise<number> = async (
+      locator: Locator,
+    ): Promise<number> => {
+      return (await locator.boundingBox())!.y;
+    };
+
+    const bottom: (locator: Locator) => Promise<number> = async (
+      locator: Locator,
+    ): Promise<number> => {
+      const box: { y: number; height: number } | null =
+        await locator.boundingBox();
+      return box!.y + box!.height;
+    };
+
+    const nextFields: Array<[string, Locator, Locator]> = [
+      [
+        "rule-mcp-servers-hint",
+        mcpServersPicker(dialog),
+        // The label holds the title and a space before its "(Optional)" slot.
+        dialog.locator("label").filter({ hasText: /^Code Repositories\s*$/ }),
+      ],
+      [
+        "rule-code-repositories-hint",
+        repositoriesPicker(dialog),
+        pullRequestSwitch(dialog, FIX_PULL_REQUESTS),
+      ],
+    ];
+
+    for (const [hintTestId, box, next] of nextFields) {
+      const hint: Locator = dialog.getByTestId(hintTestId);
+      const underItsBox: number = (await top(hint)) - (await bottom(box));
+      const aboveTheNext: number = (await top(next)) - (await bottom(hint));
+
+      expect(underItsBox).toBeLessThan(aboveTheNext);
+      // A field's gap: as wide as the one between two fields with no hint.
+      expect(aboveTheNext).toBeGreaterThanOrEqual(16);
+    }
+
+    await dialogScreenshot(
+      dialog,
+      dialog.getByTestId("rule-code-repositories-hint"),
+      "more-fields-one-look",
+    );
+  });
+
   test("a project with no repository has nothing to pick, and is told where to connect one", async ({
     page,
   }: {
@@ -1564,7 +1728,10 @@ test.describe("code repositories and pull requests", () => {
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
-    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    await expect(repositoriesPicker(dialog)).toHaveAttribute(
+      "placeholder",
+      ALL_REPOSITORIES,
+    );
     await expect(dialog.getByTestId("rule-code-repositories-hint")).toHaveText(
       REPOSITORIES_HINT,
     );
@@ -1583,7 +1750,10 @@ test.describe("code repositories and pull requests", () => {
     const dialog: Locator = await openFixStep(page, card);
     await openMoreFields(dialog);
 
-    await expect(dialog).toContainText(ALL_REPOSITORIES);
+    await expect(repositoriesPicker(dialog)).toHaveAttribute(
+      "placeholder",
+      ALL_REPOSITORIES,
+    );
     // Nothing on the form says it failed: the rule uses every repository.
     await expect(dialog.getByRole("alert")).toHaveCount(0);
 
@@ -1641,8 +1811,8 @@ test.describe("code repositories and pull requests", () => {
       .getByRole("textbox", { name: /^Name/ })
       .fill("Investigate billing");
 
-    await expect(foldedSummary(dialog)).toContainText(
-      "OneUptime AI may read all connected repositories.",
+    await expect(foldedSummary(dialog)).toHaveText(
+      INVESTIGATION_DEFAULTS_SUMMARY,
     );
     await openMoreFields(dialog);
     await expect(dialog).toContainText(INVESTIGATION_REPOSITORIES_DESCRIPTION);

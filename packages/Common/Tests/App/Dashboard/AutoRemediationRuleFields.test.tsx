@@ -218,9 +218,14 @@ describe("a rule's Runner", () => {
 
     render(<RunnerHarness initialValue={null} />);
 
-    expect(
-      screen.getByTestId(AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID),
-    ).toBeInTheDocument();
+    const loading: HTMLElement = screen.getByTestId(
+      AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID,
+    );
+    expect(loading).toBeInTheDocument();
+    // The menu's own place and height (Dropdown's margins, its 40px box).
+    for (const className of ["mt-2", "mb-1", "h-10", "w-full", "rounded-lg"]) {
+      expect(loading.classList.contains(className)).toBe(true);
+    }
     expect(String(loadSpy.mock.calls[0]![0])).toBe(PROJECT_ID);
 
     await act(async () => {

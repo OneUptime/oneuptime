@@ -111,6 +111,7 @@ import {
   getExternalMcpServerFailureHint,
   getExternalMcpServerStatus,
   getInvestigationRuleMoreFieldsSummary,
+  INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES,
   hasRuleMcpServers,
   readStoredExternalMcpServerTools,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
@@ -647,11 +648,14 @@ describe("how a server is doing", () => {
     expect(hasRuleMcpServers({ externalMcpServers: [{ _id: "a" }] })).toBe(
       true,
     );
+    // A new rule keeps both defaults: one sentence says so.
     expect(getInvestigationRuleMoreFieldsSummary({})).toEqual([
-      "OneUptime AI may use all of your MCP servers.",
-      "OneUptime AI may read all connected repositories.",
+      "OneUptime AI may use any of your MCP servers and connected repositories.",
     ]);
-    // Each default is said only while it is left as it is.
+    expect(INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES.everything).toBe(
+      "OneUptime AI may use any of your MCP servers and connected repositories.",
+    );
+    // Once one is set, each default is said only while it is left as it is.
     expect(
       getInvestigationRuleMoreFieldsSummary({
         externalMcpServers: [{ _id: "a" }],

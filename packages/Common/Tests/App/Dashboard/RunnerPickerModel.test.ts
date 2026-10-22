@@ -19,6 +19,7 @@ import {
   getGlobalRunnersLiveStatus,
   getNewRuleRunnerId,
   getProjectDefaultRunner,
+  getRuleRunnerFoldedValue,
   getRunnerSummary,
   getWaitingProjectRunner,
   hasPickableOption,
@@ -1056,6 +1057,66 @@ describe("an auto remediation rule's Runner", () => {
     );
     expect(getNewRuleRunnerId([BASTION, STAGING])).toBeUndefined();
     expect(getNewRuleRunnerId([])).toBeUndefined();
+  });
+
+  /*
+   * What a rule's folded More fields line says after "Runner", as a runbook
+   * step's line names its Runner: the rule's pick - the default included -
+   * by its own name, with how it is doing only when it is not connected.
+   */
+  test("folded, a rule's Runner is named by its pick - the default included - and not connected says so", () => {
+    const runners: Array<RunnerPickerRunner> = [BASTION, PROD_DEFAULT, STAGING];
+
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: PROD_DEFAULT.id,
+        projectRunners: runners,
+      }),
+    ).toEqual({ isHidden: false, name: "prod-default" });
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: BASTION.id,
+        projectRunners: runners,
+      }),
+    ).toEqual({ isHidden: false, name: "prod-bastion" });
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: STAGING.id,
+        projectRunners: runners,
+      }),
+    ).toEqual({
+      isHidden: false,
+      name: "staging-runner",
+      notConnectedStatus: RunnerLiveStatus.Disconnected,
+    });
+    // Ids are compared as ids, whatever their case.
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: BASTION.id.toUpperCase(),
+        projectRunners: runners,
+      })?.name,
+    ).toBe("prod-bastion");
+  });
+
+  test("folded, no Runner is nothing to name; a pick not shown is hidden; unread Runners name nothing yet", () => {
+    const runners: Array<RunnerPickerRunner> = [BASTION, PROD_DEFAULT];
+
+    // "No Runner" is the field's empty answer, even with a project default.
+    expect(
+      getRuleRunnerFoldedValue({ runnerId: "", projectRunners: runners }),
+    ).toBeUndefined();
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: "aaaaaaaa-0000-4000-8000-0000000000ff",
+        projectRunners: runners,
+      }),
+    ).toEqual({ isHidden: true, name: "" });
+    expect(
+      getRuleRunnerFoldedValue({
+        runnerId: BASTION.id,
+        projectRunners: null,
+      }),
+    ).toBeUndefined();
   });
 
   test("negative control: a runbook step and a code repository still offer Global Runner", () => {

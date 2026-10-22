@@ -281,10 +281,12 @@ describe.each([
       expect(field.placeholder).toBe("All MCP servers");
       expect(field.title).toBe("MCP Servers");
 
-      // Folded, its line says what each default does - until some are picked.
+      /*
+       * Folded, its line says what the defaults do - in one sentence while
+       * a rule keeps both, then each until it is picked.
+       */
       expect(field.collapsibleSection?.getSummary?.({} as never)).toEqual([
-        "OneUptime AI may use all of your MCP servers.",
-        "OneUptime AI may read all connected repositories.",
+        "OneUptime AI may use any of your MCP servers and connected repositories.",
       ]);
       expect(
         field.collapsibleSection?.getSummary?.({

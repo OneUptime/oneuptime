@@ -59,6 +59,9 @@ import ProjectUtil from "../../../UI/Utils/Project";
  * able to read and investigate all the repos that are connected" - the
  * maintainer. So:
  *
+ *   - it is drawn as the Runbooks and MCP Servers pickers beside it are
+ *     (EntityDropdown: chips over a search box, no chevron), so the fold
+ *     reads as one set of fields;
  *   - nothing picked reads "All connected repositories", never "(Optional)";
  *   - it lists the project's repositories by name, GitHub's full name under
  *     each, and stores the ones picked by id;
@@ -144,26 +147,44 @@ function picker(): HTMLElement {
   return screen.getByTestId(RULE_CODE_REPOSITORIES_PICKER_TEST_ID);
 }
 
+function searchBox(): HTMLInputElement {
+  return within(picker()).getByRole("combobox") as HTMLInputElement;
+}
+
+// The menu, opened as a person does: the search box takes the focus.
 function openMenu(): Array<HTMLElement> {
-  fireEvent.keyDown(within(picker()).getByRole("combobox"), {
-    key: "ArrowDown",
-    code: "ArrowDown",
-  });
+  fireEvent.focus(searchBox());
 
-  return screen.getAllByRole("option");
+  return screen.queryAllByRole("option");
 }
 
+// What the box says while nothing is typed in it.
 function placeholder(): string {
-  return picker().querySelector(".ou-select__placeholder")?.textContent || "";
+  return searchBox().getAttribute("placeholder") || "";
 }
 
-// The chips of the repositories picked, in order.
+// The chips of the repositories picked, in order (EntityDropdown's chip row).
+function chips(): Array<Element> {
+  return Array.from(picker().querySelectorAll("div.flex-wrap > span"));
+}
+
 function picked(): Array<string> {
-  return Array.from(
-    picker().querySelectorAll(".ou-select__multi-value__label"),
-  ).map((chip: Element): string => {
-    return chip.textContent || "";
+  return chips().map((chip: Element): string => {
+    return (chip.querySelector("span.truncate")?.textContent || "").trim();
   });
+}
+
+// Takes a picked repository out with its chip's own button.
+function removeChip(name: string): void {
+  const chip: Element | undefined = chips().find((candidate: Element) => {
+    return (
+      (candidate.querySelector("span.truncate")?.textContent || "").trim() ===
+      name
+    );
+  });
+
+  expect(chip).toBeDefined();
+  fireEvent.click(chip!.querySelector("button") as Element);
 }
 
 beforeEach(() => {
@@ -225,6 +246,40 @@ describe("a rule's code repositories", () => {
     expect(placeholder()).toBe("All connected repositories");
   });
 
+  test("while it reads them, it holds the box's own place and height", () => {
+    listSpy.mockReturnValue(new Promise<never>(() => {}) as never);
+
+    render(<PickerHarness initialValue={undefined} />);
+
+    const loading: HTMLElement = screen.getByTestId(
+      RULE_CODE_REPOSITORIES_LOADING_TEST_ID,
+    );
+
+    // EntityDropdown's margins and its 38px box, so nothing jumps.
+    for (const className of [
+      "mt-2",
+      "mb-1",
+      "h-[38px]",
+      "w-full",
+      "rounded-lg",
+    ]) {
+      expect(loading.classList.contains(className)).toBe(true);
+    }
+  });
+
+  test("is drawn as the Runbooks and MCP Servers pickers are: a search box, no chevron", async () => {
+    await renderPicker(undefined);
+
+    expect(
+      within(picker()).getByTestId(
+        `${RULE_CODE_REPOSITORIES_PICKER_TEST_ID}-dropdown`,
+      ),
+    ).toBe(searchBox());
+    // Not the react-select picker the Runner field uses.
+    expect(picker().querySelector(".ou-select__control")).toBeNull();
+    expect(picker().querySelector("svg")).toBeNull();
+  });
+
   test("nothing picked reads All connected repositories", async () => {
     await renderPicker(undefined);
 
@@ -251,16 +306,19 @@ describe("a rule's code repositories", () => {
     fireEvent.click(openMenu()[1]!);
     expect(changes[changes.length - 1]).toEqual([CHECKOUT_ID]);
 
-    fireEvent.click(openMenu()[0]!);
-    expect(changes[changes.length - 1]).toEqual([CHECKOUT_ID, BILLING_ID]);
+    // A picked one leaves the menu: billing is the one left to pick.
+    const left: Array<HTMLElement> = openMenu();
+    expect(left).toHaveLength(1);
+    expect(left[0]).toHaveTextContent("billing");
+    fireEvent.click(left[0]!);
+    expect([...changes[changes.length - 1]!].sort()).toEqual(
+      [BILLING_ID, CHECKOUT_ID].sort(),
+    );
     // Drawn in the list's order, by name.
     expect(picked()).toEqual(["billing", "checkout"]);
 
-    const clear: Element | null = picker().querySelector(
-      ".ou-select__clear-indicator",
-    );
-    expect(clear).not.toBeNull();
-    fireEvent.mouseDown(clear as Element, { button: 0 });
+    removeChip("billing");
+    removeChip("checkout");
 
     expect(changes[changes.length - 1]).toEqual([]);
     expect(picked()).toEqual([]);
@@ -297,11 +355,10 @@ describe("a rule's code repositories", () => {
     await renderPicker(undefined);
 
     expect(placeholder()).toBe("All connected repositories");
-    fireEvent.keyDown(within(picker()).getByRole("combobox"), {
-      key: "ArrowDown",
-      code: "ArrowDown",
-    });
-    expect(screen.queryAllByRole("option")).toEqual([]);
+    expect(openMenu()).toEqual([]);
+    expect(screen.getByTestId("entity-dropdown-menu")).toHaveTextContent(
+      "No options.",
+    );
   });
 
   test("under it: where repositories are connected, as a link", () => {
