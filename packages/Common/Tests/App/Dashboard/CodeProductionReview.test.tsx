@@ -342,13 +342,11 @@ function summary(data: Partial<CodeTaskSummaryJSON> = {}): CodeTaskSummaryJSON {
   };
 }
 
-// A review whose pull request's title is not known yet.
+// A review whose pull request's title is not known yet: an empty title.
 function untitled(
   data: Partial<CodeTaskSummaryJSON> = {},
 ): CodeTaskSummaryJSON {
-  const value: CodeTaskSummaryJSON = summary(data);
-  delete value.title;
-  return value;
+  return summary({ ...data, title: "" });
 }
 
 function turn(data: Partial<CodeTaskTurnJSON> = {}): CodeTaskTurnJSON {
