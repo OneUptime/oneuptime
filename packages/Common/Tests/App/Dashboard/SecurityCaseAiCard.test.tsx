@@ -825,9 +825,13 @@ describe("triaged", () => {
       status({ run: run(AIRunStatus.Completed) }),
     );
 
+    // A read that suggests a priority and no playbook.
     draw(
-      triagedCase({
-        aiSuggestedPlaybookId: undefined,
+      securityCase({
+        aiVerdict: SecurityCaseAiVerdict.LikelyMalicious,
+        aiSuggestedPriority: SecurityCasePriority.Critical,
+        aiTriageReport: REPORT,
+        aiTriagedAt: new Date(Date.now() - 5 * 60 * 1000),
       } as Partial<SecurityCase>),
     );
 
@@ -835,6 +839,9 @@ describe("triaged", () => {
     await act(async () => {
       await Promise.resolve();
     });
+    expect(
+      screen.queryByTestId("security-case-ai-suggested-playbook"),
+    ).not.toBeInTheDocument();
     expect(getListMock).not.toHaveBeenCalled();
   });
 
