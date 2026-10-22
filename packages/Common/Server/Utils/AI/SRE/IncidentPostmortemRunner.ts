@@ -19,6 +19,12 @@ import PostmortemRules, {
   PostmortemRuleTemplate,
 } from "./PostmortemRules";
 import PostmortemTemplatePick from "./PostmortemTemplatePick";
+import LlmProviderChoice, { RuleLlmProviderChoice } from "../LlmProviderChoice";
+import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
+import {
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "../../../../Types/AI/LlmProviderChoice";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FeedMarkdown, {
@@ -55,6 +61,12 @@ import FeedMarkdown, {
  * that fits best when there are several (PostmortemTemplatePick). The rules
  * are read when the incident resolves, and again when a draft that waited
  * for its calls is written.
+ *
+ * That rule's LLM provider writes the draft - the template pick included -
+ * when it picks one (Server/Utils/AI/LlmProviderChoice), and the provider
+ * checks ask about it: a rule's own provider drafts in a project whose
+ * default cannot. The draft's feed item names the provider a rule picked,
+ * and says why another was used when it could not be.
  */
 const MAX_FEED_PREVIEW_CHARS: number = 6000;
 
@@ -91,6 +103,12 @@ export default class AIIncidentPostmortemRunner {
    */
   public static async isEnabledForProject(
     projectId: ObjectID,
+    /*
+     * The LLM provider the postmortem rule that matched picks, when one
+     * does: the provider, AI credits and spend asked about are the ones
+     * the draft would use.
+     */
+    llmProviderId?: ObjectID | undefined,
   ): Promise<boolean> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
@@ -105,24 +123,48 @@ export default class AIIncidentPostmortemRunner {
       props: { isRoot: true },
     });
 
-    if (
-      !project ||
-      project.enableAi === false ||
-      project.enableAutomaticPostmortemDraft !== true
-    ) {
+    if (!AIIncidentPostmortemRunner.isDraftingOn(project)) {
       return false;
     }
 
     if (
-      (await AIInvestigationEngine.getProviderOrBalanceReason(projectId)) !==
-      null
+      (await AIInvestigationEngine.getProviderOrBalanceReason(
+        projectId,
+        llmProviderId,
+      )) !== null
     ) {
       return false;
     }
+
+    // The spend limit stops a draft only on a provider AI credits pay for.
+    const llmProvider: LlmProvider | null | undefined = llmProviderId
+      ? (
+          await LlmProviderChoice.decide({
+            projectId,
+            pickedProviderId: llmProviderId,
+          })
+        ).providerRow
+      : undefined;
 
     return (
-      (await AIService.getReachedProjectDailyLimit({ projectId, project })) ===
-      null
+      (await AIService.getReachedProjectDailyLimit({
+        projectId,
+        project,
+        ...(llmProvider !== undefined ? { llmProvider } : {}),
+      })) === null
+    );
+  }
+
+  /*
+   * The two switches: AI on, and drafting on (=== true: unset reads as
+   * off). The cheap half of isEnabledForProject, asked before the incident
+   * and its rules are read.
+   */
+  private static isDraftingOn(project: Project | null): boolean {
+    return Boolean(
+      project &&
+        project.enableAi !== false &&
+        project.enableAutomaticPostmortemDraft === true,
     );
   }
 
@@ -136,7 +178,17 @@ export default class AIIncidentPostmortemRunner {
     const { incidentId, projectId } = data;
 
     try {
-      if (!(await this.isEnabledForProject(projectId))) {
+      // The switches first: with drafting off, nothing else is read.
+      const project: Project | null = await ProjectService.findOneById({
+        id: projectId,
+        select: {
+          enableAi: true,
+          enableAutomaticPostmortemDraft: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!AIIncidentPostmortemRunner.isDraftingOn(project)) {
         return;
       }
 
@@ -159,6 +211,15 @@ export default class AIIncidentPostmortemRunner {
         await AIIncidentPostmortemRunner.getDraftPlan({ projectId, incident });
 
       if (!plan) {
+        return;
+      }
+
+      /*
+       * A provider to write it with, AI credits for it and room under the
+       * daily AI limits - for the provider the matching rule picks, when it
+       * picks one.
+       */
+      if (!(await this.isEnabledForProject(projectId, plan.llmProviderId))) {
         return;
       }
 
@@ -268,10 +329,7 @@ export default class AIIncidentPostmortemRunner {
       return;
     }
 
-    if (
-      !AIIncidentPostmortemRunner.isDraftable(incident) ||
-      !(await this.isEnabledForProject(incident.projectId))
-    ) {
+    if (!AIIncidentPostmortemRunner.isDraftable(incident)) {
       return;
     }
 
@@ -282,7 +340,10 @@ export default class AIIncidentPostmortemRunner {
         incident,
       });
 
-    if (!plan) {
+    if (
+      !plan ||
+      !(await this.isEnabledForProject(incident.projectId, plan.llmProviderId))
+    ) {
       return;
     }
 
@@ -351,6 +412,49 @@ export default class AIIncidentPostmortemRunner {
     return plan;
   }
 
+  /*
+   * What the draft's feed item says of its LLM provider, after the sentence
+   * that says what it was drafted from: nothing when no rule picked one;
+   * the provider the rule picked; or the one used instead, and why.
+   */
+  public static describeDraftProvider(data: {
+    choice: RuleLlmProviderChoice;
+    ruleName: string;
+  }): MarkdownText {
+    const choice: RuleLlmProviderChoice = data.choice;
+
+    if (!choice.activity) {
+      return mdText``;
+    }
+
+    const rule: MarkdownText = data.ruleName
+      ? mdText`postmortem rule **${data.ruleName}**`
+      : mdText`the postmortem rule`;
+
+    if (!choice.fallbackReason && choice.provider) {
+      return mdText` It was written with **${choice.provider.name}**, the LLM provider of ${rule}.`;
+    }
+
+    // What happened to the rule's provider: "The LLM provider of ... <why>."
+    const why: string =
+      choice.fallbackReason === LlmProviderFallbackReason.CreditsUsedUp
+        ? "runs on AI credits, which are used up"
+        : choice.fallbackReason === LlmProviderFallbackReason.SpendLimitReached
+          ? "is stopped by the project's daily AI spend limit"
+          : "is no longer available";
+
+    if (!choice.provider) {
+      return mdText` The LLM provider of ${rule} ${why}.`;
+    }
+
+    const used: string =
+      choice.source === LlmProviderSource.Global
+        ? "the global LLM provider"
+        : "the project's default LLM provider";
+
+    return mdText` It was written with **${choice.provider.name}**, ${used}, because the LLM provider of ${rule} ${why}.`;
+  }
+
   // A postmortem the draft may be written into: none yet, and not on the status page.
   private static isDraftable(incident: Incident): boolean {
     // Never clobber an existing postmortem (human or previously drafted).
@@ -380,6 +484,16 @@ export default class AIIncidentPostmortemRunner {
     const { incidentId, projectId } = data;
 
     /*
+     * The LLM provider the draft is written with: the one the rule that
+     * matched picks, else what it falls back to (LlmProviderChoice).
+     */
+    const llmProviderChoice: RuleLlmProviderChoice =
+      await LlmProviderChoice.decideIfPicked({
+        projectId,
+        pickedProviderId: data.plan.llmProviderId,
+      });
+
+    /*
      * The template the draft follows: none (OneUptime AI's standard
      * outline), the matching rule's one template, or the one OneUptime AI
      * picks from its several.
@@ -389,6 +503,7 @@ export default class AIIncidentPostmortemRunner {
         projectId,
         incidentId,
         templates: data.plan.templates,
+        llmProviderId: llmProviderChoice.llmProviderId,
       });
 
     /*
@@ -400,9 +515,11 @@ export default class AIIncidentPostmortemRunner {
      * (FeedMarkdown.aiWritten).
      */
     const draft: string = FeedMarkdown.aiWritten(
-      await IncidentService.generatePostmortemFromAI(
-        template ? { incidentId, template: template.outline } : { incidentId },
-      ),
+      await IncidentService.generatePostmortemFromAI({
+        incidentId,
+        ...(template ? { template: template.outline } : {}),
+        llmProviderId: llmProviderChoice.llmProviderId,
+      }),
     ).toString();
 
     if (!draft || !draft.trim()) {
@@ -435,13 +552,20 @@ export default class AIIncidentPostmortemRunner {
       ? mdText`, following the postmortem template **${template.name || "Unnamed template"}**`
       : mdText``;
 
+    // The LLM provider a postmortem rule picked, or why another wrote it.
+    const writtenWith: MarkdownText =
+      AIIncidentPostmortemRunner.describeDraftProvider({
+        choice: llmProviderChoice,
+        ruleName: data.plan.rule?.name || "",
+      });
+
     await IncidentFeedService.createIncidentFeedItem({
       incidentId,
       projectId,
       incidentFeedEventType: IncidentFeedEventType.PostmortemNote,
       displayColor: Blue500,
       feedInfoInMarkdown:
-        mdText`## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${data.incidentNumber} from ${sources}${followed}. It has been saved on the incident for you to review and edit.`.toString(),
+        mdText`## 🧠 AI — Draft Postmortem\n\nOneUptime AI drafted a postmortem for incident #${data.incidentNumber} from ${sources}${followed}.${writtenWith} It has been saved on the incident for you to review and edit.`.toString(),
       moreInformationInMarkdown:
         draft.length > MAX_FEED_PREVIEW_CHARS
           ? mdText`${FeedMarkdown.asMarkdown(draft.substring(0, MAX_FEED_PREVIEW_CHARS))}\n\n…(truncated — the full draft is saved on the incident.)`.toString()

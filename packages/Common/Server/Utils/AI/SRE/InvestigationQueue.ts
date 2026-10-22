@@ -234,6 +234,14 @@ export default class AIInvestigationQueue {
      * for it, so it never hands the subject to remediation when it settles.
      */
     ruleWaitMinutes?: number | undefined;
+    /*
+     * The LLM provider the rule behind the run picks
+     * (Types/AI/LlmProviderChoice): recorded on the run
+     * (AIRun.llmProviderId), and decided on when it starts
+     * (AIInvestigationEngine.executeRun). None: the project's default
+     * provider, else the global one.
+     */
+    llmProviderId?: ObjectID | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -358,6 +366,9 @@ export default class AIInvestigationQueue {
     }
     if (data.ruleWaitMinutes && data.ruleWaitMinutes > 0) {
       run.ruleWaitMinutes = data.ruleWaitMinutes;
+    }
+    if (data.llmProviderId) {
+      run.llmProviderId = data.llmProviderId;
     }
 
     let createdRun: AIRun | null;

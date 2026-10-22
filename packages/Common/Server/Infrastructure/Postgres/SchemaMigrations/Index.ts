@@ -170,6 +170,8 @@ import { AddOnCallAcknowledgementTimeoutIndex1805970000000 } from "./18059700000
 import { AddSecurityCaseAiTriage1805980000000 } from "./1805980000000-AddSecurityCaseAiTriage";
 import { AddAIRunSecurityCaseIndex1805990000000 } from "./1805990000000-AddAIRunSecurityCaseIndex";
 import { AddTelegramPollForUpdates1806020000000 } from "./1806020000000-AddTelegramPollForUpdates";
+import { AddRuleLlmProviders1806030000000 } from "./1806030000000-AddRuleLlmProviders";
+import { AddRuleLlmProviderIndexesAndKeys1806040000000 } from "./1806040000000-AddRuleLlmProviderIndexesAndKeys";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1542,4 +1544,6 @@ export default [
   AddSecurityCaseAiTriage1805980000000,
   AddAIRunSecurityCaseIndex1805990000000,
   AddTelegramPollForUpdates1806020000000,
+  AddRuleLlmProviders1806030000000,
+  AddRuleLlmProviderIndexesAndKeys1806040000000,
 ];

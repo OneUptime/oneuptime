@@ -1,6 +1,7 @@
 import IncidentPostmortemTemplate from "./IncidentPostmortemTemplate";
 import IncidentSeverity from "./IncidentSeverity";
 import Label from "./Label";
+import LlmProvider from "./LlmProvider";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import User from "./User";
@@ -469,6 +470,71 @@ export default class AIPostmortemRule extends RuleBaseModel {
     },
   })
   public postmortemTemplates?: Array<IncidentPostmortemTemplate> = undefined;
+
+  /*
+   * The LLM provider OneUptime AI drafts the postmortems of the incidents
+   * this rule matches with: one of the project's own providers, or a global
+   * one. None picked is the project's default provider, else the global
+   * one. The first rule that matches decides, as it decides the templates
+   * (Server/Utils/AI/SRE/PostmortemRules; Types/AI/LlmProviderChoice).
+   */
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "llmProviderId",
+    type: TableColumnType.Entity,
+    modelType: LlmProvider,
+    title: "LLM Provider",
+    description:
+      "The LLM provider OneUptime AI uses for everything this rule drafts: one of the project's providers or a global one. Empty: the project's default provider, else the global one.",
+  })
+  @ManyToOne(
+    () => {
+      return LlmProvider;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "llmProviderId" })
+  public llmProvider?: LlmProvider = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "ID of the LLM provider OneUptime AI uses for everything this rule drafts. Empty: the project's default provider, else the global one.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [Permission.ProjectOwner, Permission.ProjectAdmin],

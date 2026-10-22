@@ -34,8 +34,17 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  useMemo,
   useRef,
 } from "react";
+import {
+  RuleLlmProviderChoices,
+  withRuleLlmProviderSummary,
+} from "../AI/RuleLlmProviderCopy";
+import {
+  getRuleLlmProviderFormField,
+  useRuleLlmProviderChoices,
+} from "../AI/RuleLlmProviderField";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_REMEDIATION_RULES_TABLE_ID,
@@ -198,13 +207,27 @@ function isEditingOlderRuleOfKind(
 }
 
 /*
- * The Fix step's More fields: one section, built once, for the fields that
- * follow one another at the end of the step (FormStepsScan groups by it).
+ * The Fix step's More fields: one section, built once per table, for the
+ * fields that follow one another at the end of the step (FormStepsScan
+ * groups by it). Its summary names the default LLM provider first, from the
+ * providers as the table last read them, then what the rest's defaults do.
  */
-const MORE_FIELDS: FormFieldCollapsibleSection<AutoRemediationRule> =
-  getAdvancedFormSection<AutoRemediationRule>({
-    getSummary: getAutoRemediationMoreFieldsSummary,
+export function getAutoRemediationRuleMoreFields(
+  getLlmProviderChoices: () => RuleLlmProviderChoices | null,
+): FormFieldCollapsibleSection<AutoRemediationRule> {
+  return getAdvancedFormSection<AutoRemediationRule>({
+    getSummary: (
+      values: FormValues<AutoRemediationRule>,
+    ): Array<string> | undefined => {
+      return withRuleLlmProviderSummary(
+        getAutoRemediationMoreFieldsSummary(values),
+        values,
+        // A rule that runs its runbooks every time uses no AI to name.
+        isRunbooksEveryTime(values) ? null : getLlmProviderChoices(),
+      );
+    },
   });
+}
 
 /*
  * What a rule saves for its Fix With: the form always says, so a rule that
@@ -253,6 +276,25 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
   const runnerChoicesRef: MutableRefObject<RunnerChoices | null> =
     useRef<RunnerChoices | null>(runnerChoices);
   runnerChoicesRef.current = runnerChoices;
+
+  /*
+   * The project's LLM providers, for the folded line to name a rule's
+   * provider - or the default one - by, read through a ref the same way.
+   */
+  const llmProviderChoices: RuleLlmProviderChoices | null =
+    useRuleLlmProviderChoices();
+  const llmProviderChoicesRef: MutableRefObject<RuleLlmProviderChoices | null> =
+    useRef<RuleLlmProviderChoices | null>(llmProviderChoices);
+  llmProviderChoicesRef.current = llmProviderChoices;
+
+  const moreFields: FormFieldCollapsibleSection<AutoRemediationRule> =
+    useMemo(() => {
+      return getAutoRemediationRuleMoreFields(
+        (): RuleLlmProviderChoices | null => {
+          return llmProviderChoicesRef.current;
+        },
+      );
+    }, []);
 
   // "Runner: prod-eu-runner" - or with " · Disconnected" when it is not connected.
   const getRunnerFoldedValue: (
@@ -578,7 +620,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksTitle,
           description: AUTO_REMEDIATION_MORE_FIELDS_COPY.runbooksDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: Runbook,
@@ -606,7 +648,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           // The switch draws it beside itself; the field's own, not the column's.
           description: AUTO_REMEDIATION_MORE_FIELDS_COPY.everyTimeDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.CustomComponent,
           customElementDrawsOwnLabel: true,
           required: false,
@@ -652,6 +694,25 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
             );
           },
         },
+        /*
+         * The LLM provider OneUptime AI fixes with - its runbook picks, its
+         * commands, its MCP fixes and the rule's pull requests: none is the
+         * default. Not for a rule that runs its runbooks every time: no AI
+         * decides anything for it. After the switch that turns AI off, never
+         * first in More fields: the fold keeps its place (open or not) by its
+         * first field, and this one comes and goes with the switch.
+         */
+        getRuleLlmProviderFormField<AutoRemediationRule>({
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          dataTestId: "auto-remediation-llm-provider-field",
+          getChoices: (): RuleLlmProviderChoices | null => {
+            return llmProviderChoicesRef.current;
+          },
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return !isRunbooksEveryTime(values);
+          },
+        }),
         {
           /*
            * Where OneUptime AI runs the rule's Bash commands: the project's
@@ -661,7 +722,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerTitle,
           description: AUTO_REMEDIATION_MORE_FIELDS_COPY.runnerDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           // Empty is an answer of its own - no Runner - not "(Optional)".
@@ -713,7 +774,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: RULE_MCP_SERVERS_FIELD_COPY.title,
           description: RULE_MCP_SERVERS_FIELD_COPY.remediationDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
           dropdownModal: {
             type: ExternalMcpServer,
@@ -750,7 +811,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: RULE_CODE_REPOSITORIES_FIELD_COPY.title,
           description: RULE_CODE_REPOSITORIES_FIELD_COPY.remediationDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.CustomComponent,
           required: false,
           // Empty is an answer of its own - all of them - not "(Optional)".
@@ -792,7 +853,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixTitle,
           description: AUTO_REMEDIATION_MORE_FIELDS_COPY.codeFixDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           // Its own line, not the column's (written for the API reference).
@@ -804,7 +865,7 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryTitle,
           description: AUTO_REMEDIATION_MORE_FIELDS_COPY.telemetryDescription,
           stepId: "remediation",
-          collapsibleSection: MORE_FIELDS,
+          collapsibleSection: moreFields,
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
           // Its own line, not the column's (written for the API reference).

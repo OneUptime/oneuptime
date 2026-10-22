@@ -17,6 +17,7 @@ import logger, { LogAttributes } from "../../Logger";
 import IncidentAlertRuleMatcher from "../../Rules/IncidentAlertRuleMatcher";
 import logIfRuleReadWasTruncated from "../../Rules/RuleEngineRuleRead";
 import { RuleEvaluation } from "../../PatternWorkScope";
+import { getRuleLlmProviderId } from "../../../../Types/AI/LlmProviderChoice";
 
 /*
  * Postmortem rules: which resolved incidents OneUptime AI drafts a
@@ -33,6 +34,11 @@ import { RuleEvaluation } from "../../PatternWorkScope";
  *
  * A rule's conditions are read exactly as Investigation Rules and Auto
  * Remediation Rules read theirs (IncidentAlertRuleMatcher).
+ *
+ * The rule that decides the templates decides the LLM provider the draft is
+ * written with too (PostmortemDraftPlan.llmProviderId,
+ * Types/AI/LlmProviderChoice): its pick, else the project's default
+ * provider, else the global one - as with no rule.
  *
  * The first match decides, rather than every match together, because a
  * rule's templates are what it is for: a narrow rule ("SEV1 database
@@ -77,6 +83,11 @@ export interface PostmortemDraftPlan {
    * standard outline, rather than not at all.
    */
   templates: Array<PostmortemRuleTemplate>;
+  /*
+   * The LLM provider the rule that matched picks for the draft. Absent: the
+   * project's default provider, else the global one.
+   */
+  llmProviderId?: ObjectID | undefined;
 }
 
 export const POSTMORTEM_DRAFT_PLAN_WITHOUT_RULES: PostmortemDraftPlan = {
@@ -100,6 +111,7 @@ const RULE_SELECT: {
   labels: { _id: true };
   monitorLabels: { _id: true };
   postmortemTemplates: { _id: true };
+  llmProviderId: true;
 } = {
   _id: true,
   name: true,
@@ -114,6 +126,8 @@ const RULE_SELECT: {
   labels: { _id: true },
   monitorLabels: { _id: true },
   postmortemTemplates: { _id: true },
+  // The LLM provider the rule picks: none when empty.
+  llmProviderId: true,
 };
 
 /*
@@ -174,11 +188,16 @@ export default class PostmortemRules {
           return null;
         }
 
+        const llmProviderId: string = getRuleLlmProviderId(rule);
+
         return {
           isInScope: true,
           rulesChecked: rules.length,
           rule: { id: rule.id!, name: rule.name || "" },
           templates: templates,
+          ...(llmProviderId && ObjectID.isValidUUID(llmProviderId)
+            ? { llmProviderId: new ObjectID(llmProviderId) }
+            : {}),
         };
       }
     }

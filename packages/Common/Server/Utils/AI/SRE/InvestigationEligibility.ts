@@ -12,6 +12,7 @@ import logger from "../../Logger";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIAlertInvestigationRunner from "./AlertInvestigationRunner";
 import AIIncidentInvestigationRunner from "./IncidentInvestigationRunner";
+import InvestigationRules from "./InvestigationRules";
 
 export interface InvestigationSubject {
   projectId: ObjectID;
@@ -317,10 +318,17 @@ export default class InvestigationEligibility {
       }
 
       const disabled: InvestigationNotStartedCode | null =
-        await AIInvestigationEngine.getDisabledReason(
-          subject.projectId,
-          subject.alertId ? "Alert" : "Incident",
-        );
+        await AIInvestigationEngine.getDisabledReasonForSubject({
+          projectId: subject.projectId,
+          subjectType: subject.alertId ? "Alert" : "Incident",
+          getRuleLlmProviderId: async (): Promise<ObjectID | undefined> => {
+            return await InvestigationRules.getSubjectLlmProviderId({
+              projectId: subject.projectId,
+              incidentId: subject.incidentId,
+              alertId: subject.alertId,
+            });
+          },
+        });
       if (disabled) {
         return this.currentReason(disabled, subject);
       }
