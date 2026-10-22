@@ -177,7 +177,12 @@ export function isOnCallAcknowledgementTimeoutDue(data: {
 export function hasOnCallPagesAgainLeft(
   pagesAgainSoFar: number | null | undefined,
 ): boolean {
-  const count: number = Number(pagesAgainSoFar || 0);
+  // None so far: the first page again is still to come.
+  if (pagesAgainSoFar === null || pagesAgainSoFar === undefined) {
+    return true;
+  }
+
+  const count: number = Number(pagesAgainSoFar);
 
   // A count that is not a number pages nobody again: it cannot be trusted.
   if (!Number.isFinite(count)) {
