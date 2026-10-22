@@ -169,6 +169,7 @@ import { AddOnCallAcknowledgementTimeout1805960000000 } from "./1805960000000-Ad
 import { AddOnCallAcknowledgementTimeoutIndex1805970000000 } from "./1805970000000-AddOnCallAcknowledgementTimeoutIndex";
 import { AddSecurityCaseAiTriage1805980000000 } from "./1805980000000-AddSecurityCaseAiTriage";
 import { AddAIRunSecurityCaseIndex1805990000000 } from "./1805990000000-AddAIRunSecurityCaseIndex";
+import { AddTelegramPollForUpdates1806020000000 } from "./1806020000000-AddTelegramPollForUpdates";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1540,4 +1541,5 @@ export default [
   AddOnCallAcknowledgementTimeoutIndex1805970000000,
   AddSecurityCaseAiTriage1805980000000,
   AddAIRunSecurityCaseIndex1805990000000,
+  AddTelegramPollForUpdates1806020000000,
 ];

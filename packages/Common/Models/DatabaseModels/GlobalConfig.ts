@@ -661,6 +661,25 @@ export default class GlobalConfig extends GlobalConfigModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Poll Telegram for Messages",
+    description:
+      "When enabled, OneUptime fetches the bot's messages from Telegram over outbound HTTPS instead of waiting for Telegram to call its webhook. For servers Telegram cannot reach, such as one behind a VPN or firewall.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public telegramPollForUpdates?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     type: TableColumnType.ShortText,
     title: "Email Server Type",
     description: "Email Server Type",

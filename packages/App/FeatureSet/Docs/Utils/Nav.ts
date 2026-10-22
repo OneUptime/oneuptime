@@ -1530,6 +1530,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/self-hosted/private-network-access",
       },
       {
+        title: "Behind a VPN or Firewall",
+        url: "/docs/self-hosted/behind-a-firewall",
+      },
+      {
         title: "Architecture",
         url: "/docs/self-hosted/architecture",
       },
