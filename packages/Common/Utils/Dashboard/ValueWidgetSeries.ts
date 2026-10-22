@@ -183,11 +183,11 @@ export const getValueWidgetSeries: (
       series.push({ timestamp: new Date(timeMs), value: usable[index]!.value });
     } else {
       const combined: number | null = combineValues(
-        usable.slice(index, end).map(
-          (entry: { timeMs: number; value: number }): number => {
+        usable
+          .slice(index, end)
+          .map((entry: { timeMs: number; value: number }): number => {
             return entry.value;
-          },
-        ),
+          }),
       );
 
       if (combined !== null && Number.isFinite(combined)) {

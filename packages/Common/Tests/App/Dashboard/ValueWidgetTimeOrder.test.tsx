@@ -300,11 +300,7 @@ function linePoints(svg: Element): Array<[number, number]> {
  * Where the line draws a value: the box's height less its 4px padding,
  * scaled between the series' lowest and highest values.
  */
-function expectedY(
-  svg: Element,
-  value: number,
-  values: Array<number>,
-): number {
+function expectedY(svg: Element, value: number, values: Array<number>): number {
   const height: number = Number(svg.getAttribute("height"));
   const lowest: number = Math.min(...values);
   const highest: number = Math.max(...values);
@@ -367,7 +363,10 @@ beforeEach(() => {
 
 describe.each(ORDERS)(
   "the metric Value widget, its buckets $name",
-  (order: { name: string; order: (buckets: Array<Bucket>) => Array<Bucket> }) => {
+  (order: {
+    name: string;
+    order: (buckets: Array<Bucket>) => Array<Bucket>;
+  }) => {
     const buckets: Array<AggregatedModel> = order
       .order(RISING_WEEK)
       .map(bucketAt);
@@ -455,7 +454,9 @@ describe.each(ORDERS)(
 
 describe("the metric Value widget's other shapes of series", () => {
   test("its tooltip names both halves of the week and what each added up to", async () => {
-    renderMetricWidget({ buckets: RISING_WEEK.slice().reverse().map(bucketAt) });
+    renderMetricWidget({
+      buckets: RISING_WEEK.slice().reverse().map(bucketAt),
+    });
 
     const chip: HTMLElement = await screen.findByTestId(TREND_TEST_ID);
 
@@ -473,9 +474,11 @@ describe("the metric Value widget's other shapes of series", () => {
     expect(details).toHaveTextContent(
       `Up ${RISING_TOTALS.percent}% from the first half of the time range`,
     );
-    expect(halves.map((half: HTMLElement): string | null => {
-      return half.getAttribute("data-half");
-    })).toEqual(["first", "second"]);
+    expect(
+      halves.map((half: HTMLElement): string | null => {
+        return half.getAttribute("data-half");
+      }),
+    ).toEqual(["first", "second"]);
     expect(within(halves[0]!).getByText("First half")).toBeInTheDocument();
     expect(halves[0]!).toHaveTextContent(formatted(RISING_TOTALS.first));
     expect(within(halves[1]!).getByText("Second half")).toBeInTheDocument();
@@ -526,16 +529,18 @@ describe("the metric Value widget's other shapes of series", () => {
   test("a bucket with no number leaves a line with no NaN in it", async () => {
     const withNulls: Array<AggregatedModel> = RISING_WEEK.map(
       (bucket: Bucket): AggregatedModel => {
-        return bucketAt(bucket.hour % 10 === 0 ? { ...bucket, value: null } : bucket);
+        return bucketAt(
+          bucket.hour % 10 === 0 ? { ...bucket, value: null } : bucket,
+        );
       },
     ).reverse();
 
     renderMetricWidget({ buckets: withNulls });
 
     const svg: Element = await screen.findByTestId(SPARKLINE_TEST_ID);
-    const points: string = svg.querySelector("polyline")!.getAttribute(
-      "points",
-    )!;
+    const points: string = svg
+      .querySelector("polyline")!
+      .getAttribute("points")!;
 
     expect(points).not.toContain("NaN");
     expect(linePoints(svg)).toHaveLength(168 - 17);
@@ -597,7 +602,10 @@ describe("the metric Value widget's other shapes of series", () => {
   test("a falling latency is good news: green", async () => {
     const falling: Array<AggregatedModel> = RISING_WEEK.map(
       (bucket: Bucket): AggregatedModel => {
-        return bucketAt({ hour: bucket.hour, value: bucket.hour < 84 ? 400 : 300 });
+        return bucketAt({
+          hour: bucket.hour,
+          value: bucket.hour < 84 ? 400 : 300,
+        });
       },
     ).reverse();
 
@@ -629,7 +637,9 @@ describe("the metric Value widget's other shapes of series", () => {
   });
 
   test("the trend splits the time range the results were asked for", async () => {
-    renderMetricWidget({ buckets: RISING_WEEK.slice().reverse().map(bucketAt) });
+    renderMetricWidget({
+      buckets: RISING_WEEK.slice().reverse().map(bucketAt),
+    });
 
     await screen.findByTestId(TREND_TEST_ID);
 
@@ -796,7 +806,9 @@ describe("the Value widget's view", () => {
       screen.getByTestId(TREND_TEST_ID),
     );
 
-    expect(details).toHaveTextContent("Down 25% from the first half of the time range");
+    expect(details).toHaveTextContent(
+      "Down 25% from the first half of the time range",
+    );
     expect(details).toHaveTextContent("400 ms");
     expect(details).toHaveTextContent("300 ms");
   });

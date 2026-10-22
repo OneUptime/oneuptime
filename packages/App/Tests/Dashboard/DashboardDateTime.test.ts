@@ -593,14 +593,23 @@ describe("getDashboardSpanLabels", () => {
     OneUptimeDate.setUserTimezone(UTC);
 
     expect(
-      getDashboardSpanLabels("2026-10-22T09:00:00.000Z", "2026-10-22T10:00:00.000Z"),
+      getDashboardSpanLabels(
+        "2026-10-22T09:00:00.000Z",
+        "2026-10-22T10:00:00.000Z",
+      ),
     ).toEqual({ start: "09:00", end: "10:00" });
   });
 
   it("is null when either end is not a time", () => {
-    expect(getDashboardSpanLabels(null, at("2026-10-22T10:00:00.000Z"))).toBeNull();
-    expect(getDashboardSpanLabels(at("2026-10-22T10:00:00.000Z"), undefined)).toBeNull();
-    expect(getDashboardSpanLabels("not a date", "2026-10-22T10:00:00.000Z")).toBeNull();
+    expect(
+      getDashboardSpanLabels(null, at("2026-10-22T10:00:00.000Z")),
+    ).toBeNull();
+    expect(
+      getDashboardSpanLabels(at("2026-10-22T10:00:00.000Z"), undefined),
+    ).toBeNull();
+    expect(
+      getDashboardSpanLabels("not a date", "2026-10-22T10:00:00.000Z"),
+    ).toBeNull();
     expect(getDashboardSpanLabeller("", "")).toBeNull();
   });
 

@@ -212,7 +212,9 @@ describe("ValueWidgetData.getMetricValueWidgetSeries", () => {
 
     expect(series).toHaveLength(168);
     expect(series[0]!.timestamp.getTime()).toBe(WEEK_START_MS);
-    expect(series[167]!.timestamp.getTime()).toBe(WEEK_START_MS + 167 * HOUR_MS);
+    expect(series[167]!.timestamp.getTime()).toBe(
+      WEEK_START_MS + 167 * HOUR_MS,
+    );
     expect(series[0]!.value).toBe(100);
     expect(series[167]!.value).toBe(250);
   });

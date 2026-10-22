@@ -779,7 +779,8 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     expect(end!.x).toBeGreaterThanOrEqual(line!.x + line!.width);
 
     // ... and inside the tile.
-    const tile: { x: number; width: number } | null = await widget.boundingBox();
+    const tile: { x: number; width: number } | null =
+      await widget.boundingBox();
     expect(start!.x).toBeGreaterThanOrEqual(tile!.x);
     expect(end!.x + end!.width).toBeLessThanOrEqual(tile!.x + tile!.width);
 
@@ -962,7 +963,9 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     );
   });
 
-  test("say it in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
+  test("say it in German", async ({
+    page,
+  }: { page: Page }, testInfo: TestInfo) => {
     atDesktopOnly();
     await openApp(page, "?lang=de");
 

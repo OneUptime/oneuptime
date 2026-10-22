@@ -61,7 +61,10 @@ const FA: Record<string, string> = readLocale("fa");
 const HOUR_MS: number = 60 * 60 * 1000;
 const WEEK_START_MS: number = Date.UTC(2026, 9, 15, 10, 0, 0);
 
-function weekOf(firstHalf: number, secondHalf: number): Array<ValueWidgetPoint> {
+function weekOf(
+  firstHalf: number,
+  secondHalf: number,
+): Array<ValueWidgetPoint> {
   return Array.from({ length: 168 }, (_unused: unknown, hour: number) => {
     return {
       timestamp: new Date(WEEK_START_MS + hour * HOUR_MS),
@@ -160,9 +163,7 @@ describe("the Value widget in German", () => {
   });
 
   test("a fall, a flat week and a rise from nothing", () => {
-    const { rerender } = render(
-      <ValueWidgetView {...viewProps(400, 300)} />,
-    );
+    const { rerender } = render(<ValueWidgetView {...viewProps(400, 300)} />);
 
     expect(screen.getByTestId(TREND_TEST_ID)).toHaveAccessibleName(
       "25% weniger als in der ersten Hälfte des Zeitraums",

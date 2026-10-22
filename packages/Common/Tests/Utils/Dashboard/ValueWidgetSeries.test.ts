@@ -210,7 +210,9 @@ describe("getValueWidgetSeries: oldest first, whatever order it came in", () => 
 
     expect(series).toHaveLength(168);
     expect(series[0]!.timestamp.getTime()).toBe(WEEK_START_MS);
-    expect(series[167]!.timestamp.getTime()).toBe(WEEK_START_MS + 167 * HOUR_MS);
+    expect(series[167]!.timestamp.getTime()).toBe(
+      WEEK_START_MS + 167 * HOUR_MS,
+    );
     expect(series[0]!.value).toBe(100);
     expect(series[167]!.value).toBe(250);
 
@@ -427,9 +429,7 @@ describe("getValueWidgetTrend: the second half of the range against the first", 
   });
 
   test("one bucket is nothing to compare: no trend", () => {
-    expect(
-      weekTrend([point(WEEK_END_MS - HOUR_MS, 7)], sum, true),
-    ).toBeNull();
+    expect(weekTrend([point(WEEK_END_MS - HOUR_MS, 7)], sum, true)).toBeNull();
     expect(weekTrend([], sum, true)).toBeNull();
   });
 
@@ -694,7 +694,10 @@ describe("getValueWidgetTrend: the second half of the range against the first", 
     for (let index: number = 0; index < 168; index++) {
       for (const share of [1, 2, 3]) {
         grouped.push(
-          point(WEEK_START_MS + index * HOUR_MS, (index < 84 ? 10 : 20) * share),
+          point(
+            WEEK_START_MS + index * HOUR_MS,
+            (index < 84 ? 10 : 20) * share,
+          ),
         );
       }
     }
