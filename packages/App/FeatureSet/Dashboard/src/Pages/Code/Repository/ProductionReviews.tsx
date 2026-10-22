@@ -4,6 +4,9 @@ import CodeApi, {
 } from "../../../Components/Code/CodeApi";
 import { CODE_COLUMN_CLASS_NAME } from "../../../Components/Code/CodeAskBox";
 import { getRepositorySettingsRoute } from "../../../Components/Code/CodePaths";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import {
   PRODUCTION_REVIEW_COPY,
   getProductionReviewCommand,
@@ -90,6 +93,16 @@ const CodeRepositoryProductionReviews: FunctionComponent<
   const isOn: boolean =
     repository.repository.isProductionReviewEnabled === true;
   /*
+   * A repository the GitHub App no longer reaches has nothing reviewed,
+   * whatever its switch says: the status says that, and how to connect it.
+   */
+  const isConnected: boolean = repository.repository.isConnected;
+  const status: "on" | "off" | "not-connected" = !isConnected
+    ? "not-connected"
+    : isOn
+      ? "on"
+      : "off";
+  /*
    * The command is answered only while the GitHub App answers commands in
    * the repository (unset is on): the page never offers one it ignores.
    */
@@ -116,6 +129,29 @@ const CodeRepositoryProductionReviews: FunctionComponent<
       </>
     </Link>
   );
+  const connectLink: ReactElement = (
+    <Link
+      to={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CODE_REPOSITORIES] as Route,
+      )}
+      dataTestId="code-production-reviews-connect"
+      className="font-medium text-indigo-600 hover:text-indigo-500"
+    >
+      <>{translator.translateText(PRODUCTION_REVIEW_COPY.connectGitHub)}</>
+    </Link>
+  );
+  const pillClassName: string =
+    status === "on"
+      ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
+      : status === "not-connected"
+        ? "bg-amber-50 text-amber-800 ring-amber-600/20"
+        : "bg-gray-100 text-gray-600 ring-gray-500/20";
+  const dotClassName: string =
+    status === "on"
+      ? "bg-emerald-500"
+      : status === "not-connected"
+        ? "bg-amber-500"
+        : "bg-gray-400";
 
   return (
     <div
@@ -128,25 +164,19 @@ const CodeRepositoryProductionReviews: FunctionComponent<
         </p>
         <div
           data-testid="code-production-reviews-status"
-          data-production-review={isOn ? "on" : "off"}
+          data-production-review={status}
           className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm"
         >
           <span
-            className={`inline-flex flex-shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-              isOn
-                ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                : "bg-gray-100 text-gray-600 ring-gray-500/20"
-            }`}
+            className={`inline-flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${pillClassName}`}
           >
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                isOn ? "bg-emerald-500" : "bg-gray-400"
-              }`}
-            />
+            <span className={`h-1.5 w-1.5 rounded-full ${dotClassName}`} />
             {translator.translateText(
-              isOn
+              status === "on"
                 ? PRODUCTION_REVIEW_COPY.statusOnLabel
-                : PRODUCTION_REVIEW_COPY.statusOffLabel,
+                : status === "not-connected"
+                  ? PRODUCTION_REVIEW_COPY.statusNotConnectedLabel
+                  : PRODUCTION_REVIEW_COPY.statusOffLabel,
             )}
           </span>
           <div
@@ -154,7 +184,11 @@ const CodeRepositoryProductionReviews: FunctionComponent<
             className="min-w-0 flex-1 basis-56"
           >
             <p className="text-gray-700">
-              {isOn ? (
+              {status === "not-connected" ? (
+                translator.translateText(
+                  PRODUCTION_REVIEW_COPY.statusNotConnected,
+                )
+              ) : isOn ? (
                 translator.translateText(PRODUCTION_REVIEW_COPY.statusOn)
               ) : areCommandsOn ? (
                 <TranslatedSentence
@@ -171,7 +205,7 @@ const CodeRepositoryProductionReviews: FunctionComponent<
              * On, the pull requests of anyone who cannot write to the
              * repository - outside contributors, forks - wait to be asked.
              */}
-            {isOn && areCommandsOn ? (
+            {status === "on" && areCommandsOn ? (
               <p
                 data-testid="code-production-reviews-status-others"
                 className="mt-1 text-gray-500"
@@ -185,7 +219,13 @@ const CodeRepositoryProductionReviews: FunctionComponent<
               <></>
             )}
           </div>
-          {repository.canAsk ? settingsLink : <></>}
+          {status === "not-connected" ? (
+            connectLink
+          ) : repository.canAsk ? (
+            settingsLink
+          ) : (
+            <></>
+          )}
         </div>
       </div>
 

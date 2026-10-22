@@ -33111,5 +33111,6 @@
   "Starting in a minute or so.": "1분 정도 후에 시작됩니다.",
   "{{self}} in its own code": "자체 코드에서 {{self}}",
   "Nothing was posted on the pull request.": "풀 리퀘스트에 아무것도 게시되지 않았습니다.",
-  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "작성자에게 이 저장소의 쓰기 권한이 없어, 쓰기 권한이 있는 사람이 요청할 때만 다시 검토합니다."
+  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "작성자에게 이 저장소의 쓰기 권한이 없어, 쓰기 권한이 있는 사람이 요청할 때만 다시 검토합니다.",
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "이 저장소는 GitHub App으로 연결되어 있지 않아 풀 리퀘스트를 검토하지 않습니다."
 }

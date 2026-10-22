@@ -2803,6 +2803,21 @@ test.describe("a repository's pull requests, reviewed against production", () =>
     await expect(
       page.locator("code", { hasText: "production review" }),
     ).toHaveCount(0);
+
+    // One GitHub no longer reaches reviews nothing, switch on or not: connect it.
+    await page.goto(`${REVIEWS}?connected=none&review=on`);
+    const notConnected: Locator = page.getByTestId(
+      "code-production-reviews-status",
+    );
+    await expect(notConnected).toHaveAttribute(
+      "data-production-review",
+      "not-connected",
+    );
+    await expect(notConnected).toContainText(
+      "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
+    );
+    await page.getByTestId("code-production-reviews-connect").click();
+    await expect(page).toHaveURL(`${DASHBOARD}/code/repositories`);
   });
 
   test("a review: the pull request, the commit, what production shows of the changed code - each linked into OneUptime - and what never leaves OneUptime", async ({

@@ -33111,5 +33111,6 @@
   "Starting in a minute or so.": "Startar om ungefär en minut.",
   "{{self}} in its own code": "{{self}} i egen kod",
   "Nothing was posted on the pull request.": "Inget publicerades på pull-förfrågan.",
-  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Författaren har inte skrivbehörighet till det här arkivet, så den granskas bara igen när någon med skrivbehörighet ber om det."
+  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Författaren har inte skrivbehörighet till det här arkivet, så den granskas bara igen när någon med skrivbehörighet ber om det.",
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Det här arkivet är inte anslutet via GitHub App, så dess pull-förfrågningar granskas inte."
 }

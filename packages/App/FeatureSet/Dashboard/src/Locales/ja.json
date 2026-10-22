@@ -33111,5 +33111,6 @@
   "Starting in a minute or so.": "1 分ほどで開始します。",
   "{{self}} in its own code": "自身のコードで {{self}}",
   "Nothing was posted on the pull request.": "プルリクエストには何も投稿されていません。",
-  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "作成者にはこのリポジトリへの書き込み権限がないため、書き込み権限のある人が依頼したときだけ再レビューされます。"
+  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "作成者にはこのリポジトリへの書き込み権限がないため、書き込み権限のある人が依頼したときだけ再レビューされます。",
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "このリポジトリは GitHub App で接続されていないため、プルリクエストはレビューされません。"
 }

@@ -68,9 +68,10 @@
  *   - delay=<ms>        how long each request takes
  *   - lang=de|ja        the Dashboard's German or Japanese words
  *   - theme=dark        dark mode (server.js)
- *   - review=off|unset  checkout-api's Production Review is off, or never
- *                       set (a repository connected before it existed);
- *                       by default on
+ *   - review=off|unset|on  checkout-api's Production Review is off, never
+ *                       set (a repository connected before it existed), or
+ *                       on even where GitHub no longer reaches it
+ *                       (connected=none); by default on while connected
  *   - reviews=none      no pull request of checkout-api reviewed yet
  *   - reviewcomment=Link|ReviewEvenIfPublic  what checkout-api's production
  *                       review comment shows; by default never chosen (the
@@ -456,6 +457,11 @@ if (checkoutSettings && params.get("ghcommands") === "unset") {
 
 if (checkoutSettings && params.get("review") === "off") {
   checkoutSettings.isProductionReviewEnabled = false;
+}
+
+// On whatever else is asked: a repository turned on, then no longer reached.
+if (checkoutSettings && params.get("review") === "on") {
+  checkoutSettings.isProductionReviewEnabled = true;
 }
 
 if (checkoutSettings && params.get("review") === "unset") {

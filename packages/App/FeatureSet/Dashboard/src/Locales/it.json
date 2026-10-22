@@ -33111,5 +33111,6 @@
   "Starting in a minute or so.": "Inizia tra circa un minuto.",
   "{{self}} in its own code": "{{self}} nel proprio codice",
   "Nothing was posted on the pull request.": "Non è stato pubblicato nulla sulla pull request.",
-  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Il suo autore non ha accesso in scrittura a questo repository, quindi viene rivista di nuovo solo quando lo chiede qualcuno con accesso in scrittura."
+  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Il suo autore non ha accesso in scrittura a questo repository, quindi viene rivista di nuovo solo quando lo chiede qualcuno con accesso in scrittura.",
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Questo repository non è collegato tramite la GitHub App, quindi le sue pull request non vengono riviste."
 }

@@ -47,6 +47,9 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOffLabel: string;
   statusOff: string;
   statusOffNoCommands: string;
+  statusNotConnectedLabel: string;
+  statusNotConnected: string;
+  connectGitHub: string;
   openSettings: string;
   turnOnInSettings: string;
   listTitle: string;
@@ -130,6 +133,16 @@ export const PRODUCTION_REVIEW_COPY: {
   statusOffNoCommands: translationKey(
     "Pull requests are not reviewed against production.",
   ),
+  /*
+   * The GitHub App no longer reaches the repository (Code's Repositories
+   * folds it under Not connected): nothing is reviewed, whatever the switch.
+   */
+  statusNotConnectedLabel: translationKey("Not connected"),
+  statusNotConnected: translationKey(
+    "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
+  ),
+  // Repositories, where GitHub is connected - as a task's blocker links it.
+  connectGitHub: translationKey("Connect GitHub"),
   openSettings: translationKey("Change in Settings"),
   turnOnInSettings: translationKey("Turn on in Settings"),
   // The list's heading: what its rows are.

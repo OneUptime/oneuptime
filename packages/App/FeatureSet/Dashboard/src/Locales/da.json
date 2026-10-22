@@ -33111,5 +33111,6 @@
   "Starting in a minute or so.": "Starter om cirka et minut.",
   "{{self}} in its own code": "{{self}} i egen kode",
   "Nothing was posted on the pull request.": "Der blev ikke slået noget op på pull requesten.",
-  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Forfatteren har ikke skriveadgang til dette repositorium, så den gennemgås kun igen, når en person med skriveadgang beder om det."
+  "Its author cannot write to this repository, so it is reviewed again only when someone with write access asks.": "Forfatteren har ikke skriveadgang til dette repositorium, så den gennemgås kun igen, når en person med skriveadgang beder om det.",
+  "This repository is not connected through the GitHub App, so its pull requests are not reviewed.": "Dette repositorium er ikke forbundet via GitHub App, så dets pull requests gennemgås ikke."
 }

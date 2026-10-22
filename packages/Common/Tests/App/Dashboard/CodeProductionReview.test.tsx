@@ -1317,6 +1317,7 @@ describe("a repository's Production Reviews", () => {
     data: {
       isProductionReviewEnabled?: boolean;
       isGitHubCommandsEnabled?: boolean;
+      isConnected?: boolean;
       canAsk?: boolean;
     } = {},
   ): Record<string, unknown> {
@@ -1326,7 +1327,7 @@ describe("a repository's Production Reviews", () => {
         name: "checkout-api",
         organizationName: "acme",
         repositoryName: "checkout-api",
-        isConnected: true,
+        isConnected: data.isConnected ?? true,
         isProductionReviewEnabled: data.isProductionReviewEnabled ?? true,
         isGitHubCommandsEnabled: data.isGitHubCommandsEnabled ?? true,
       },
@@ -1521,6 +1522,31 @@ describe("a repository's Production Reviews", () => {
     expect(
       screen.queryByTestId("code-production-reviews-status-others"),
     ).toBeNull();
+  });
+
+  test("a repository the GitHub App no longer reaches says nothing is reviewed, whatever its switch - and links to connect it", async () => {
+    getRepositoryMock.mockResolvedValue(
+      repositoryAnswer({ isConnected: false, canAsk: false }) as never,
+    );
+    listTasksMock.mockResolvedValue(listAnswer([]) as never);
+
+    draw(<CodeRepositoryProductionReviews {...PAGE_PROPS} />);
+
+    const status: HTMLElement = await screen.findByTestId(
+      "code-production-reviews-status",
+    );
+    expect(status).toHaveAttribute("data-production-review", "not-connected");
+    expect(status).toHaveTextContent("Not connected");
+    expect(status).toHaveTextContent(
+      "This repository is not connected through the GitHub App, so its pull requests are not reviewed.",
+    );
+    // Not "On", and no command that nothing would answer.
+    expect(status).not.toHaveTextContent("each time it changes");
+    expect(status.querySelector("code")).toBeNull();
+    expect(
+      within(status).getByTestId("code-production-reviews-connect"),
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/code/repositories`);
+    expect(screen.queryByTestId("code-production-reviews-settings")).toBeNull();
   });
 
   test("the command names the app this OneUptime was set up with", async () => {
