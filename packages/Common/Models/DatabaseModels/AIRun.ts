@@ -523,6 +523,41 @@ export default class AIRun extends BaseModel {
   })
   public ruleWaitMinutes?: number = undefined;
 
+  /*
+   * The LLM provider the rule that started this run picked for it - an
+   * investigation rule, an auto remediation rule, or the rule behind a fix
+   * pull request - recorded when the run was created. Empty when no rule
+   * picked one: the run uses the project's default provider, else the
+   * global one. Kept as written, with no foreign key: a run queued before
+   * its provider was deleted still knows it had one, falls back when it
+   * starts, and says so in its activity (Server/Utils/AI/LlmProviderChoice).
+   * The provider each LLM call used is on its LlmLog row.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "LLM Provider ID",
+    description:
+      "The LLM provider the rule that started this run picked for it. Empty when no rule picked one: the project's default provider, else the global one.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public llmProviderId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

@@ -303,7 +303,7 @@ export class Service extends DatabaseService<Model> {
    * a second, subtly different copy of this comparison is how one entry point
    * ends up accepting a provider another one rejects.
    */
-  private isProviderUsableBy(provider: Model, projectId: ObjectID): boolean {
+  public isProviderUsableBy(provider: Model, projectId: ObjectID): boolean {
     if (provider.isGlobalLlm === true) {
       return true;
     }
