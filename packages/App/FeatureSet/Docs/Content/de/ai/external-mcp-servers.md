@@ -81,7 +81,7 @@ Damit OneUptime AI einen Server nicht mehr nutzt, schalten Sie **OneUptime AI di
 
 ## Die Server wählen, die eine Regel nutzen darf
 
-Untersuchungsregeln und Auto-Behebungsregeln können jeweils die MCP-Server nennen, die OneUptime AI für das nutzen darf, worauf sie passen. Das Feld ist **MCP-Server** unter **Weitere Felder**. Bis Sie einige auswählen, sagt der eingeklappte Abschnitt **OneUptime AI darf alle Ihre MCP-Server nutzen.**
+Untersuchungsregeln und Auto-Behebungsregeln können jeweils die MCP-Server nennen, die OneUptime AI für das nutzen darf, worauf sie passen. Das Feld ist **MCP-Server** unter **Weitere Felder**. Bis Sie einige auswählen, darf OneUptime AI alle nutzen, und der eingeklappte Abschnitt sagt das.
 
 - **Keiner ausgewählt** – alle eingeschalteten Server des Projekts.
 - **Einige ausgewählt** – nur diese. Bei einer Auto-Behebungsregel, die ohne Nachfrage behebt, ist das Nennen ihrer Server auch das, was OneUptime AI deren Änderungen ohne Nachfrage vornehmen lässt.

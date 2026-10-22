@@ -46,6 +46,8 @@ import {
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import { AI_REMEDIATION_PLANNING_FEATURE } from "../../../Services/AIService";
 import AIInvestigationEngine from "../SRE/AIInvestigationEngine";
+import RemediationCodeRepositories from "./RemediationCodeRepositories";
+import { CodeRepositoryAllowance } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIInvestigationQueue from "../SRE/InvestigationQueue";
 import PostedRootCause from "../SRE/PostedRootCause";
 import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
@@ -365,6 +367,16 @@ export default class RemediationPlanRunner {
       }),
     );
 
+    /*
+     * The code repositories the pick may read: its rule's, or every
+     * connected one for the project's own pick.
+     */
+    const codeRepositoryAllowance: CodeRepositoryAllowance =
+      await RemediationCodeRepositories.forRule({
+        projectId,
+        autoRemediationRuleId: suggestion!.autoRemediationRuleId,
+      });
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -374,6 +386,7 @@ export default class RemediationPlanRunner {
         incidentId: suggestion!.incidentId,
         alertId: suggestion!.alertId,
         contextSummary,
+        codeRepositoryAllowance,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;

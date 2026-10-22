@@ -12,11 +12,18 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import AutoRemediationTriggerEntity from "../../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
   AutomaticFixPullRequest,
-  AutomaticFixPullRequestBlocker,
-  getAutomaticFixPullRequestBlocker,
-  getAutomaticFixPullRequestSelect,
+  AutomaticFixPullRequestDecision,
+  AutomaticFixPullRequestRules,
+  decideAutomaticFixPullRequest,
+  describeAutomaticFixPullRequestBlocker,
   getAutomaticFixSignal,
-} from "../../../../Types/AI/AutomaticFixSwitches";
+  getAutomaticFixSwitchSelect,
+} from "../../../../Types/AI/AutomaticFixPullRequests";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  toStoredCodeRepositoryIds,
+} from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
@@ -24,6 +31,7 @@ import ProjectService from "../../../Services/ProjectService";
 import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
 import PostedRootCause from "./PostedRootCause";
+import RemediationRulePullRequests from "./RemediationRulePullRequests";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -39,31 +47,40 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * this form, but the durable recommendation remains a server-side gate so a
  * stale or forged client cannot turn a non-code investigation into a PR.
  *
- * AUTOMATIC: for projects with the subject lane's incident or alert
- * automatic-code-fix setting on, under its fixing switch ("Fix new
- * incidents automatically" or alerts) - the pull request is one of the ways
- * OneUptime AI fixes, so it opens only while fixing is on
- * (Types/AI/AutomaticFixSwitches); both start off, and unset reads as off -
- * an investigation that ends with a POSITIVE code-fix classification (per
+ * AUTOMATIC: while the subject lane's fixing switch ("Fix new incidents
+ * automatically" or alerts) is on, and the project has no auto remediation
+ * rule for the lane or a rule that matches the subject has "Fix pull
+ * requests" on (on by default) - the pull request is one of the ways
+ * OneUptime AI fixes, so it follows fixing and its rules
+ * (Types/AI/AutomaticFixPullRequests) - an investigation that ends with a
+ * POSITIVE code-fix classification (per
  * the structured G6 signal, never a regex over the analysis prose) enqueues
  * the same FixFromIncident task with no human click. Confidence alone is not
  * sufficient: operational and other non-code causes do not open PRs. Like its
  * InstrumentationTaskTrigger sibling it runs only after the Recommended
  * decision and snapshot are durable, and it never throws. The PR opens ready
- * for review and is always human-reviewed — the setting moves the human gate
- * from PR creation to PR review, never past it.
+ * for review, in one of the repositories the matching rules name (every
+ * connected one when they name none), and is always human-reviewed — the
+ * setting moves the human gate from PR creation to PR review, never past it.
  */
 
 export interface AutoFixTaskGateInput {
-  /*
-   * The project row with enableAi, the subject lane's fixing switch and its
-   * code-fix opt-in selected.
-   */
+  // The project row with enableAi and the subject lane's fixing switch selected.
   project: Project | null;
-  // Exactly one subject selects the incident or alert opt-in.
+  // Exactly one subject selects the incident or alert lane.
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
-  // Whether the project has at least one GitHub-App-connected repository.
+  /*
+   * The lane's enabled auto remediation rules and the ones that match the
+   * subject (RemediationRulePullRequests), null when they could not be
+   * read - or left out while they have not been read yet, which asks only
+   * the project's switches.
+   */
+  rules?: AutomaticFixPullRequestRules | null | undefined;
+  /*
+   * Whether a GitHub-App-connected repository the rules allow exists: one
+   * the agent can actually open the pull request in.
+   */
   hasConnectedRepository: boolean;
   // A non-terminal FixFromIncident run for the same subject, if any.
   existingRun: AIRun | null;
@@ -73,6 +90,8 @@ export interface AutoFixTaskGateDecision {
   enqueue: boolean;
   // Human-readable reason recorded in the debug log when skipping.
   reason: string;
+  // The repositories the pull request may open in, once it may open.
+  repositories: CodeRepositoryAllowance;
 }
 
 export default class FixFromIncidentTaskTrigger {
@@ -268,21 +287,28 @@ export default class FixFromIncidentTaskTrigger {
 
   /*
    * The pure trigger decision for the AUTOMATIC form, separated from IO so
-   * it can be tested directly: the project's fixing switch and its code-fix
-   * setting (both === true), a repository the agent can actually open a PR
+   * it can be tested directly: Enable AI, the lane's fixing switch and its
+   * auto remediation rules (Types/AI/AutomaticFixPullRequests), a
+   * repository the rules allow that the agent can actually open a PR
    * against, and the per-subject dedupe guard. The caller has already
-   * established and durably persisted the code-fix-recommended investigation
-   * prerequisite.
+   * established and durably persisted the code-fix-recommended
+   * investigation prerequisite.
    */
   public static shouldAutoEnqueueFixTask(
     input: AutoFixTaskGateInput,
   ): AutoFixTaskGateDecision {
+    const skip: (reason: string) => AutoFixTaskGateDecision = (
+      reason: string,
+    ): AutoFixTaskGateDecision => {
+      return { enqueue: false, reason, repositories: EVERY_CODE_REPOSITORY };
+    };
+
     if (!input.project) {
-      return { enqueue: false, reason: "project not found" };
+      return skip("project not found");
     }
 
     if (input.project.enableAi === false) {
-      return { enqueue: false, reason: "AI is disabled for the project" };
+      return skip("AI is disabled for the project");
     }
 
     const signal: AutoRemediationTriggerEntity | null = getAutomaticFixSignal({
@@ -291,46 +317,40 @@ export default class FixFromIncidentTaskTrigger {
     });
 
     if (!signal) {
-      return {
-        enqueue: false,
-        reason: "exactly one incident or alert subject is required",
-      };
+      return skip("exactly one incident or alert subject is required");
     }
 
-    const signalLabel: "incident" | "alert" =
-      signal === AutoRemediationTriggerEntity.Incident ? "incident" : "alert";
-
     /*
-     * Strictly === true for both switches: the columns default to false, so
-     * unset/legacy rows never enqueue. The pull request is part of fixing,
-     * so it waits for the fixing switch as well as its own.
+     * The fixing switch first (strictly === true: the column defaults to
+     * false, so an unset or legacy row never enqueues), then - once they
+     * are read - the rules: none for the lane, or a matching one with fix
+     * pull requests on.
      */
-    const blocker: AutomaticFixPullRequestBlocker | null =
-      getAutomaticFixPullRequestBlocker({
+    const decision: AutomaticFixPullRequestDecision =
+      decideAutomaticFixPullRequest({
         project: input.project,
         signal,
         pullRequest: AutomaticFixPullRequest.CodeFix,
+        rules:
+          input.rules === undefined
+            ? { rulesSetUp: false, matchingRules: [] }
+            : input.rules,
       });
 
-    if (blocker === AutomaticFixPullRequestBlocker.FixOff) {
-      return {
-        enqueue: false,
-        reason: `project has fixing new ${signalLabel}s automatically off, and its fix pull requests open only while it is on`,
-      };
-    }
-
-    if (blocker === AutomaticFixPullRequestBlocker.PullRequestOff) {
-      return {
-        enqueue: false,
-        reason: `project has not opted in to automatic ${signalLabel} code fixes`,
-      };
+    if (decision.blocker) {
+      return skip(
+        describeAutomaticFixPullRequestBlocker({
+          blocker: decision.blocker,
+          signal,
+          pullRequest: AutomaticFixPullRequest.CodeFix,
+        }),
+      );
     }
 
     if (!input.hasConnectedRepository) {
-      return {
-        enqueue: false,
-        reason: "project has no GitHub-App-connected repository",
-      };
+      return skip(
+        "project has no GitHub-App-connected repository the auto remediation rules allow",
+      );
     }
 
     /*
@@ -339,16 +359,15 @@ export default class FixFromIncidentTaskTrigger {
      * re-investigation) must not fan out into duplicate PRs.
      */
     if (input.existingRun) {
-      return {
-        enqueue: false,
-        reason:
-          "a non-terminal FixFromIncident run already exists for this subject",
-      };
+      return skip(
+        "a non-terminal FixFromIncident run already exists for this subject",
+      );
     }
 
     return {
       enqueue: true,
-      reason: "passed opt-in, repository and dedupe gates",
+      reason: "passed fixing, rule, repository and dedupe gates",
+      repositories: decision.repositories,
     };
   }
 
@@ -396,22 +415,19 @@ export default class FixFromIncidentTaskTrigger {
         return;
       }
 
-      // Enable AI, the lane's fixing switch and its code-fix switch.
+      // Enable AI and the lane's fixing switch.
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
         select: {
           enableAi: true,
-          ...getAutomaticFixPullRequestSelect(
-            signal,
-            AutomaticFixPullRequest.CodeFix,
-          ),
+          ...getAutomaticFixSwitchSelect(signal),
         },
         props: { isRoot: true },
       });
 
       /*
-       * Cheapest gate first: skip the repository count for the (default)
-       * not-opted-in case.
+       * Cheapest gate first: the project's switches, before the rules are
+       * read and the repositories counted (fixing starts off).
        */
       const optInDecision: AutoFixTaskGateDecision =
         this.shouldAutoEnqueueFixTask({
@@ -500,8 +516,41 @@ export default class FixFromIncidentTaskTrigger {
         return;
       }
 
+      /*
+       * The lane's auto remediation rules: with none, every subject's fix
+       * opens in any connected repository; with some, only a subject a rule
+       * with fix pull requests on matches, in the repositories those rules
+       * name.
+       */
+      const rules: AutomaticFixPullRequestRules | null =
+        await RemediationRulePullRequests.getRulesForSignal({
+          projectId,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        });
+
+      const ruleDecision: AutoFixTaskGateDecision =
+        this.shouldAutoEnqueueFixTask({
+          project,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+          rules,
+          hasConnectedRepository: true,
+          existingRun: null,
+        });
+
+      if (!ruleDecision.enqueue) {
+        logger.debug(
+          `AI: not auto-enqueueing fix task for project ${projectId.toString()} — ${ruleDecision.reason}.`,
+        );
+        return;
+      }
+
       const hasConnectedRepository: boolean =
-        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(projectId);
+        await SubjectCodeFixRun.hasGitHubAppConnectedRepository(
+          projectId,
+          ruleDecision.repositories,
+        );
 
       const existingRun: AIRun | null =
         await SubjectCodeFixRun.findNonTerminalRunForSubject({
@@ -514,6 +563,7 @@ export default class FixFromIncidentTaskTrigger {
         project,
         incidentId: data.incidentId,
         alertId: data.alertId,
+        rules,
         hasConnectedRepository,
         existingRun,
       });
@@ -525,6 +575,9 @@ export default class FixFromIncidentTaskTrigger {
         return;
       }
 
+      const allowedCodeRepositoryIds: Array<string> | undefined =
+        toStoredCodeRepositoryIds(decision.repositories);
+
       const createdRun: AIRun =
         await SubjectCodeFixRun.enqueueSubjectCodeFixRun({
           projectId,
@@ -534,6 +587,7 @@ export default class FixFromIncidentTaskTrigger {
           taskContext: {
             sourceInvestigationRunId: data.investigationRunId.toString(),
             sourceInvestigationAnalysisMarkdown: data.analysisMarkdown,
+            ...(allowedCodeRepositoryIds ? { allowedCodeRepositoryIds } : {}),
           },
         });
 

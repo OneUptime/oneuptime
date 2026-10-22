@@ -400,7 +400,7 @@ Ingenting stängs av. Regler, kluster och resurser som en av växlarna höll tys
 
 ### Nya projekt börjar med alla AI-funktioner påslagna
 
-Ett projekt som skapas efter uppgraderingen börjar med alla AI-funktioner påslagna, inte bara automatisk utredning av incidenter och varningar: utkast till postmortems (Incidenter → AI → Inställningar), och AI Insights med dess pull-förfrågningar med korrigeringar och automatisk arkivering av undantag för förväntade avslag (AI → Insikter → Inställningar). De pull-förfrågningar som OneUptime AI öppnar för incidenter och varningar hör till åtgärdandet, som börjar avstängt; se [Växlarna för pull-förfrågningar hör till åtgärdandet](#växlarna-för-pull-förfrågningar-hör-till-åtgärdandet).
+Ett projekt som skapas efter uppgraderingen börjar med alla AI-funktioner påslagna, inte bara automatisk utredning av incidenter och varningar: utkast till postmortems (Incidenter → AI → Inställningar), och AI Insights med dess pull-förfrågningar med korrigeringar och automatisk arkivering av undantag för förväntade avslag (AI → Insikter → Inställningar). De pull-förfrågningar som OneUptime AI öppnar för incidenter och varningar hör till åtgärdandet, som börjar avstängt; se [Växlarna för pull-förfrågningar har flyttat in i reglerna för automatisk åtgärd](#växlarna-för-pull-förfrågningar-har-flyttat-in-i-reglerna-för-automatisk-åtgärd).
 
 Projekt som redan finns behåller sina inställningar; uppgraderingen slår inte på något. Påslaget betyder inte heller att något körs: varje funktion behöver fortfarande en LLM-leverantör (och AI-krediter på OneUptime Cloud), och de som öppnar pull-förfrågningar behöver ett anslutet kodförråd och en Runner med förmågan för kodfixar. Stäng av vilken som helst av dem på dess inställningssida, eller alla med **Aktivera AI**.
 
@@ -453,18 +453,22 @@ Uppgraderingen låter varje projekt fortsätta åtgärda det som det åtgärdade
 
 API-klienter och Terraform-konfigurationer kan slå på åtgärdande med projektets `enableAutomaticIncidentRemediation` och `enableAutomaticAlertRemediation` (`enable_automatic_incident_remediation` och `enable_automatic_alert_remediation` i Terraform), och ange vad en regel åtgärdar med i dess `remediationAction` (`OneUptimeAI` eller `Runbooks`). En regel som skapas utan, med runbooks och utan AI-inställning, är en regel med **Runbooks**, så som den skulle ha körts tidigare.
 
-### Växlarna för pull-förfrågningar hör till åtgärdandet
+### Växlarna för pull-förfrågningar har flyttat in i reglerna för automatisk åtgärd
 
-**Öppna en pull-förfrågan med en korrigering när en utredning hittar en kodändring** och **Öppna en pull-förfrågan som lägger till saknad telemetri** (Incidenter eller Varningar → AI → Inställningar) ligger nu under **Åtgärda nya incidenter automatiskt** (eller **Åtgärda nya larm automatiskt**). De visas bara medan åtgärdandet är påslaget; att slå på åtgärdandet slår på båda, och att stänga av det stänger av båda. Medan åtgärdandet är påslaget kan var och en av dem stängas av för sig.
+**Open a fix pull request when an investigation finds a code change** och **Open a pull request that adds missing telemetry** är inte längre växlar på **Incidenter → AI → Inställningar** och **Varningar → AI → Inställningar**. I stället har varje regel för automatisk åtgärd dem, som **Pull requests med korrigeringar** och **Pull requests med telemetri** under **Fler fält**, båda påslagna för en ny regel. En pull-förfrågan öppnas fortfarande bara av sig själv så länge **Åtgärda nya incidenter automatiskt** (eller **Åtgärda nya larm automatiskt**) är på:
 
-Vad som ändras efter uppgraderingen:
+- Utan regler öppnas båda pull-förfrågningarna, i vilket anslutet repository som helst.
+- Med regler öppnas en pull-förfrågan bara för en incident (eller ett larm) som en regel matchar, när en matchande regel har den påslagen, och bara i de repositorier som de matchande reglerna nämner under **Kodrepositorier**. En regel som inte nämner något tillåter alla anslutna repositorier; utredningsregler nämner på samma sätt de repositorier som OneUptime AI får läsa.
 
-- En pull-förfrågan öppnas bara av sig själv medan åtgärdandet är påslaget utöver dess egen växel. Ett projekt som hade en växel för pull-förfrågningar påslagen och åtgärdandet avstängt slutar öppna de pull-förfrågningarna av sig självt. Slå på åtgärdandet för att få tillbaka dem. För att hindra OneUptime AI från att ändra dina kluster eller värdar låter du **Åtgärder** vara avstängt på deras sidor **AI-agent** (standardvärdet) och lägger inte till någon regel för automatisk åtgärd.
-- Uppgraderingen ändrar ingen lagrad inställning. En växel för pull-förfrågningar som var påslagen under ett åtgärdande som var avstängt förblir påslagen och väntar; inställningssidan visar den så snart åtgärdandet slås på, och att slå på åtgärdandet slår på den i vilket fall som helst.
-- Ett nytt projekt börjar med växlarna för pull-förfrågningar avstängda, precis som åtgärdandet. Utredningar, utkast till postmortems och AI Insights börjar fortfarande påslagna.
-- **Open Fix PR from this analysis** på en utredning är oförändrad: den behöver ingen av växlarna.
+Varje projekt behåller sitt val:
 
-API-klienter och Terraform-konfigurationer behåller sina fält (`enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes`, `enableAlertInstrumentationFixTasks`, eller `enable_automatic_incident_code_fixes` och resten i Terraform). Servern lagrar det de skriver, och slår inte av eller på fälten för pull-förfrågningar med `enableAutomaticIncidentRemediation` (eller fältet för varningar): sätt alla tre i en och samma förfrågan för att slå på åtgärdandet med dess pull-förfrågningar.
+- Ett projekt med åtgärdandet avstängt, eller med båda växlarna påslagna, behåller sina regler som de är, och deras växlar börjar påslagna.
+- I ett projekt med åtgärdandet påslaget och en växel avstängd stängs den växeln av i var och en av dess regler av den typen. Utan någon aktiverad regel av den typen får det en, **All incidents** (eller **All alerts**): den matchar alla, åtgärdar utan att fråga så som OneUptime AI åtgärdade utan regler, och håller de två växlarna så som projektet hade dem. Slå på en växel i den, eller ta bort den, för att öppna de pull-förfrågningarna.
+- **Open Fix PR from this analysis** på en utredning är oförändrad.
+
+En regels **Runner** listar bara dina egna Runners. **AI agent on the cluster or host** finns inte längre där: kommandon i det berörda klustret eller på den berörda värden går alltid genom dess AI-agent, vad regeln än väljer. En regel som inte hade valt någon visar **Ingen Runner** och åtgärdar som tidigare.
+
+API-klienter och Terraform-konfigurationer förlorar projektfälten `enableAutomaticIncidentCodeFixes`, `enableIncidentInstrumentationFixTasks`, `enableAutomaticAlertCodeFixes` och `enableAlertInstrumentationFixTasks` (`enable_automatic_incident_code_fixes` och resten i Terraform): ta bort dem från din konfiguration. `openCodeFixPullRequests` och `openTelemetryPullRequests` för en regel för automatisk åtgärd (`open_code_fix_pull_requests` och `open_telemetry_pull_requests`) är `true` om du inte anger dem, och en regel av båda typerna nämner sina repositorier i `codeRepositories` (`code_repositories`), tomt för alla anslutna repositorier.
 
 ### Kontrollera utgåvan och licensen
 

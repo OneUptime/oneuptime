@@ -154,28 +154,33 @@ const project = record(Project, {
   enableAutomaticIncidentInvestigation: true,
   enableAutomaticIncidentRemediation: false,
   enableAutomaticPostmortemDraft: true,
-  enableAutomaticIncidentCodeFixes: false,
-  enableIncidentInstrumentationFixTasks: false,
 });
 
+/*
+ * Live severities: a picker lists only the ones not archived (it asks for
+ * isArchived false, and this fixture's query matching reads a flag as set).
+ */
 const SEVERITIES = [
   record(IncidentSeverity, {
     _id: "50000000-0000-4000-8000-0000000000e1",
     name: "Critical",
     color: new Color("#dc2626"),
     order: 1,
+    isArchived: false,
   }),
   record(IncidentSeverity, {
     _id: "50000000-0000-4000-8000-0000000000e2",
     name: "Major",
     color: new Color("#ea580c"),
     order: 2,
+    isArchived: false,
   }),
   record(IncidentSeverity, {
     _id: "50000000-0000-4000-8000-0000000000e3",
     name: "Minor",
     color: new Color("#ca8a04"),
     order: 3,
+    isArchived: false,
   }),
 ];
 

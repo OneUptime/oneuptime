@@ -111,6 +111,7 @@ import {
   getExternalMcpServerFailureHint,
   getExternalMcpServerStatus,
   getInvestigationRuleMoreFieldsSummary,
+  INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES,
   hasRuleMcpServers,
   readStoredExternalMcpServerTools,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerCopy";
@@ -123,6 +124,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerFormFields";
 import { readExternalMcpServerCheck } from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/ExternalMcpServerTestApi";
 import TestExternalMcpServerModal from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/TestExternalMcpServerModal";
+import RuleMcpServersFieldHint from "../../../../App/FeatureSet/Dashboard/src/Components/ExternalMcpServer/RuleMcpServersFieldHint";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -155,6 +157,7 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
+import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
 
 const PROJECT_ID: string = "ca1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b01";
@@ -647,9 +650,30 @@ describe("how a server is doing", () => {
     expect(hasRuleMcpServers({ externalMcpServers: [{ _id: "a" }] })).toBe(
       true,
     );
+    // A new rule keeps both defaults: one sentence says so.
     expect(getInvestigationRuleMoreFieldsSummary({})).toEqual([
-      "OneUptime AI may use all of your MCP servers.",
+      "OneUptime AI may use any of your MCP servers and connected repositories.",
     ]);
+    expect(INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES.everything).toBe(
+      "OneUptime AI may use any of your MCP servers and connected repositories.",
+    );
+    // Once one is set, each default is said only while it is left as it is.
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        externalMcpServers: [{ _id: "a" }],
+      }),
+    ).toEqual(["OneUptime AI may read all connected repositories."]);
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        codeRepositories: [{ _id: "c1111111-1111-4111-8111-111111111111" }],
+      }),
+    ).toEqual(["OneUptime AI may use all of your MCP servers."]);
+    expect(
+      getInvestigationRuleMoreFieldsSummary({
+        externalMcpServers: [{ _id: "a" }],
+        codeRepositories: ["c1111111-1111-4111-8111-111111111111"],
+      }),
+    ).toBeUndefined();
   });
 });
 
@@ -1225,5 +1249,32 @@ describe("where it is", () => {
     expect(
       RouteMap[PageMap.SETTINGS_AI_EXTERNAL_MCP_SERVER_VIEW]?.toString(),
     ).toBe("/dashboard/:projectId/settings/external-mcp-servers/:id");
+  });
+
+  /*
+   * Under a rule's MCP Servers field: where the servers are added. In a new
+   * tab, as the Runner field's link to Runbooks › Runners: the rule being
+   * edited in its dialog stays, and the picker searches the servers again
+   * when it next opens.
+   */
+  test("a rule's MCP Servers field links to the page, in a new tab", () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+
+    render(<RuleMcpServersFieldHint />);
+
+    const hint: HTMLElement = screen.getByTestId("rule-mcp-servers-hint");
+    expect(hint).toHaveTextContent(
+      "Add and manage MCP servers on the External MCP Servers page.",
+    );
+
+    const link: HTMLElement = within(hint).getByTestId("rule-mcp-servers-link");
+    expect(link).toHaveTextContent("External MCP Servers");
+    expect(link).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/settings/external-mcp-servers`,
+    );
+    expect(link).toHaveAttribute("target", "_blank");
   });
 });

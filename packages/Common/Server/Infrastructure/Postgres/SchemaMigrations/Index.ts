@@ -160,6 +160,7 @@ import { RemoveRunbookCredentials1805780000000 } from "./1805780000000-RemoveRun
 import { AddArchiveToValues1805800000000 } from "./1805800000000-AddArchiveToValues";
 import { AddArchiveToValuesUserKeys1805810000000 } from "./1805810000000-AddArchiveToValuesUserKeys";
 import { AddThreatIntelFeedSources1805820000000 } from "./1805820000000-AddThreatIntelFeedSources";
+import { MoveFixPullRequestSwitchesIntoRules1805830000000 } from "./1805830000000-MoveFixPullRequestSwitchesIntoRules";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1522,4 +1523,5 @@ export default [
   AddArchiveToValues1805800000000,
   AddArchiveToValuesUserKeys1805810000000,
   AddThreatIntelFeedSources1805820000000,
+  MoveFixPullRequestSwitchesIntoRules1805830000000,
 ];
