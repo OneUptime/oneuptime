@@ -71,7 +71,7 @@ export const RULE_LLM_PROVIDER_FIELD_COPY: {
   projectDefaultPlaceholder: translationKey("Project default ({{provider}})"),
   globalPlaceholder: translationKey("Global provider ({{provider}})"),
   // In the empty box while the providers are not known.
-  defaultPlaceholder: translationKey("Default provider"),
+  defaultPlaceholder: translationKey("Default LLM provider"),
   noProviderPlaceholder: translationKey("No LLM provider yet"),
   manageHint: translationKey(
     "Add and manage providers on the {{llmProvidersLink}} page.",
