@@ -288,7 +288,8 @@ function report(
         serviceName: "checkout-api",
         at: minutesAgo(180),
         version: "v2.14.0",
-        impact: "p95 latency of POST /api/charges rose from 420 ms to 1.2 s after it.",
+        impact:
+          "p95 latency of POST /api/charges rose from 420 ms to 1.2 s after it.",
       },
     ],
     points: [
@@ -523,7 +524,9 @@ describe("the review: what production shows of the changed code", () => {
       within(second!).getByTestId("production-review-exception-count"),
     ).toHaveTextContent("17 in all");
     expect(second).toHaveTextContent("In a changed file");
-    expect(within(second!).queryByTestId("production-review-exception-new")).toBeNull();
+    expect(
+      within(second!).queryByTestId("production-review-exception-new"),
+    ).toBeNull();
     expect(
       within(second!).queryByTestId("production-review-exception-unhandled"),
     ).toBeNull();
@@ -604,9 +607,9 @@ describe("the review: what production shows of the changed code", () => {
     expect(url.searchParams.get("file")).toBe("src/payments/charge.ts");
     expect(url.searchParams.get("startTime")).toBe("2026-10-22T07:00:00.000Z");
     expect(url.searchParams.get("endTime")).toBe("2026-10-22T08:00:00.000Z");
-    expect(
-      within(row).getByRole("link").getAttribute("href"),
-    ).toBe(getHotFunctionRoute(value.hotFunctions[0]!, value).toString());
+    expect(within(row).getByRole("link").getAttribute("href")).toBe(
+      getHotFunctionRoute(value.hotFunctions[0]!, value).toString(),
+    );
   });
 
   test("incidents: only those open on the services or naming the change, each linked, then how many there were in all", () => {
@@ -867,9 +870,7 @@ describe("a review's page", () => {
         ],
       }),
     );
-    expect(
-      screen.getByTestId("production-review-posting"),
-    ).toHaveTextContent(
+    expect(screen.getByTestId("production-review-posting")).toHaveTextContent(
       "This repository is public, so the pull request only links to this review.",
     );
 
@@ -909,10 +910,10 @@ describe("a review's page", () => {
       "Starting soon: a review waits a minute after the pull request last changed.",
     );
     expect(screen.queryByTestId("production-review")).toBeNull();
-    // While it works, Review again waits too.
+    // While it works, Review again waits too: the line above says why.
     expect(screen.getByTestId("production-review-again")).toBeDisabled();
     expect(screen.getByTestId("production-review-again")).toHaveTextContent(
-      "Reviewing…",
+      "Review again",
     );
   });
 
@@ -1061,7 +1062,9 @@ describe("a review's page", () => {
   });
 
   test("the latest review the task holds is read from its newest turn that has one", () => {
-    const older: ProductionReviewReport = report({ reviewedAt: minutesAgo(90) });
+    const older: ProductionReviewReport = report({
+      reviewedAt: minutesAgo(90),
+    });
     const newer: ProductionReviewReport = report({ reviewedAt: minutesAgo(1) });
 
     expect(getLatestProductionReview([])).toBeNull();
@@ -1256,9 +1259,9 @@ describe("a repository's Production Reviews", () => {
     expect(status).toHaveTextContent(
       "A pull request is reviewed only when someone with write access comments @oneuptime production review on it.",
     );
-    expect(within(status).getByText("@oneuptime production review").tagName).toBe(
-      "CODE",
-    );
+    expect(
+      within(status).getByText("@oneuptime production review").tagName,
+    ).toBe("CODE");
 
     const empty: HTMLElement = await screen.findByTestId(
       "code-production-reviews-empty",
@@ -1323,7 +1326,9 @@ describe("a repository's Production Reviews", () => {
     ).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /try again|refresh/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /try again|refresh/i }),
+      );
     });
 
     expect(

@@ -148,7 +148,7 @@ const CodeName: FunctionComponent<{
 }): ReactElement => {
   return (
     <code
-      className={`break-all rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800 ${props.className || ""}`}
+      className={`rounded bg-gray-100 px-1 py-0.5 font-mono text-xs text-gray-800 [overflow-wrap:anywhere] ${props.className || ""}`}
     >
       {props.children}
     </code>
@@ -336,7 +336,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 
     if (report.aiNote) {
       return (
-        <p
+        <div
           data-testid="production-review-ai-note"
           data-ai-note={report.aiNote.code}
           className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 sm:px-5"
@@ -345,8 +345,10 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
             icon={IconProp.Sparkles}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          <span>{text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}</span>
-        </p>
+          <p className="min-w-0">
+            {text(PRODUCTION_REVIEW_AI_NOTES[report.aiNote.code])}
+          </p>
+        </div>
       );
     }
 
@@ -441,7 +443,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                       exception.exceptionId,
                     )}
                   >
-                    <span className="break-all text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
                       {exception.type}
                     </span>
                   </RowName>
@@ -827,7 +829,7 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
 
       {renderUnread()}
 
-      <p
+      <div
         data-testid="production-review-aggregates"
         className="flex items-start gap-2 text-xs leading-5 text-gray-500"
       >
@@ -835,8 +837,8 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
           icon={IconProp.Lock}
           className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-400"
         />
-        <span>{text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}</span>
-      </p>
+        <p className="min-w-0">{text(PRODUCTION_REVIEW_COPY.aggregatesOnly)}</p>
+      </div>
     </div>
   );
 };

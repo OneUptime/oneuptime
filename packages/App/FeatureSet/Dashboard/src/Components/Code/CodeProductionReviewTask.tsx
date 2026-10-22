@@ -146,7 +146,7 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
     // Not reviewed this time, and why: closed, a draft, turned off.
     if (turn?.errorMessage) {
       return (
-        <p
+        <div
           data-testid="production-review-skipped"
           className="flex items-start gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 sm:px-5"
         >
@@ -154,8 +154,8 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
             icon={IconProp.InformationCircle}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
-          <span className="break-words">{turn.errorMessage}</span>
-        </p>
+          <p className="min-w-0 break-words">{turn.errorMessage}</p>
+        </div>
       );
     }
 
@@ -195,17 +195,19 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
             ? text(PRODUCTION_REVIEW_COPY.updatesOnChange)
             : text(PRODUCTION_REVIEW_COPY.updatesWhenAsked)}
         </p>
+        {/*
+         * Waits while a review is asked for or runs - the line above the
+         * review says which - so it is never pressed twice for one push.
+         */}
         <button
           type="button"
           data-testid="production-review-again"
           disabled={isWorking || props.isAskingAgain}
           onClick={props.onReviewAgain}
-          className="inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+          className="inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          {isWorking || props.isAskingAgain
-            ? text(PRODUCTION_REVIEW_COPY.rowReviewing)
-            : text(PRODUCTION_REVIEW_COPY.reviewAgain)}
+          {text(PRODUCTION_REVIEW_COPY.reviewAgain)}
         </button>
       </div>
     );
@@ -329,7 +331,7 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
         </div>
 
         {report ? (
-          <p
+          <div
             data-testid="production-review-posting"
             data-posting={report.posting}
             className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
@@ -359,7 +361,7 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-          </p>
+          </div>
         ) : (
           <></>
         )}

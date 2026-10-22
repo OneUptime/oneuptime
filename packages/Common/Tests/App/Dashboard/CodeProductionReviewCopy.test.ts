@@ -219,9 +219,9 @@ describe("the words are the Dashboard's to translate", () => {
         CodeFixTaskType.GitHubPullRequestProductionReview
       ],
     ).toBe("Production Review");
-    expect(getRecipeLabel(CodeFixTaskType.GitHubPullRequestProductionReview)).toBe(
-      PRODUCTION_REVIEW_COPY.recipeLabel,
-    );
+    expect(
+      getRecipeLabel(CodeFixTaskType.GitHubPullRequestProductionReview),
+    ).toBe(PRODUCTION_REVIEW_COPY.recipeLabel);
   });
 
   test("every kind of closeness, match, part and AI note has its words", () => {
@@ -251,9 +251,7 @@ describe("the command that asks for a review on GitHub", () => {
   test("is the GitHub App's mention, as GitHub makes its slug from the app's name", () => {
     expect(getGitHubAppSlug("OneUptime")).toBe("oneuptime");
     expect(getGitHubAppSlug("Acme OneUptime Bot")).toBe("acme-oneuptime-bot");
-    expect(getGitHubAppSlug("  --Acme  (Prod)  App-- ")).toBe(
-      "acme-prod-app",
-    );
+    expect(getGitHubAppSlug("  --Acme  (Prod)  App-- ")).toBe("acme-prod-app");
     expect(getGitHubAppSlug("oneuptime-app")).toBe("oneuptime-app");
     // Nothing configured: the app's own name.
     expect(getGitHubAppSlug("")).toBe("oneuptime");
@@ -416,7 +414,10 @@ describe("what the pull request shows of a review", () => {
 
     expect(
       getValuesForProductionReviewContent({
-        values: { name: "checkout-api", productionReviewPullRequestContent: null },
+        values: {
+          name: "checkout-api",
+          productionReviewPullRequestContent: null,
+        },
         content: ProductionReviewPullRequestContent.Link,
       }),
     ).toEqual({
@@ -482,9 +483,10 @@ describe("figures, as a review draws them", () => {
     for (const category of Object.values(ProfileCategory)) {
       const noun: string = getProfileCategoryNoun(category);
 
-      expect({ noun, label: PRODUCTION_REVIEW_PROFILE_KIND_LABELS[noun] }).toEqual(
-        { noun, label: expect.any(String) },
-      );
+      expect({
+        noun,
+        label: PRODUCTION_REVIEW_PROFILE_KIND_LABELS[noun],
+      }).toEqual({ noun, label: expect.any(String) });
     }
 
     expect(getProfileKindLabel("CPU time", english)).toBe("CPU time");
