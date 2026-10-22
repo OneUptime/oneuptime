@@ -303,6 +303,17 @@ describe("a threat intel feed created from the Dashboard (issue #5158)", () => {
     // No Enabled switch on a new feed.
     expect(within(dialog).queryByText("Enabled")).toBeNull();
 
+    // The Source step: a TAXII collection, and the feed's name.
+    fireEvent.click(
+      within(dialog).getByRole("radio", { name: /^TAXII collection/ }),
+    );
+    fireEvent.change(
+      within(dialog).getByPlaceholderText("e.g. Partner threat feed"),
+      { target: { value: "Corporate MISP" } },
+    );
+    await settle();
+    await next(dialog);
+
     fireEvent.change(
       within(dialog).getByPlaceholderText("https://taxii.example.com/api1/"),
       { target: { value: "https://taxii.example.com/api1/" } },
@@ -312,10 +323,6 @@ describe("a threat intel feed created from the Dashboard (issue #5158)", () => {
         "e.g. 91a7b528-80eb-42ed-a74d-c6fbd5a26116",
       ),
       { target: { value: "91a7b528-80eb-42ed-a74d-c6fbd5a26116" } },
-    );
-    fireEvent.change(
-      within(dialog).getByPlaceholderText("e.g. Corporate MISP"),
-      { target: { value: "Corporate MISP" } },
     );
     await settle();
 
@@ -338,6 +345,7 @@ describe("a threat intel feed created from the Dashboard (issue #5158)", () => {
     const row: StoredRow = inserted(feeds);
 
     expect(row["name"]).toBe("Corporate MISP");
+    expect(row["feedType"]).toBe("taxii");
     expect(row["apiRootUrl"]).toBe("https://taxii.example.com/api1/");
     expect(Object.prototype.hasOwnProperty.call(row, "isEnabled")).toBe(false);
     expect(

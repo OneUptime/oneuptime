@@ -50,12 +50,12 @@ flowchart TB
 | Инструмент | Направление | Что делает |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Входящее | Вызывает дежурных по отчётам об инцидентах Huntress и устраняет инцидент, когда отчёт закрывается. |
-| [Google SecOps](/docs/integrations/google-secops) | Входящее | Передаёт обнаружения Google SecOps в События безопасности. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Входящее | Передаёт инциденты Microsoft Sentinel в События безопасности. |
+| [Google SecOps](/docs/integrations/google-secops) | Оба | Передаёт обнаружения и индикаторы Google SecOps в События безопасности и отправляет туда то, что находит OneUptime. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Оба | Передаёт инциденты Microsoft Sentinel в События безопасности и отправляет туда то, что находит OneUptime. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Входящее | Передаёт оповещения Microsoft Defender XDR в События безопасности. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Входящее | Передаёт оповещения CrowdStrike Falcon в События безопасности. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Входящее | Передаёт notable events Splunk в События безопасности. |
-| [Elastic Security](/docs/integrations/elastic-security) | Входящее | Передаёт оповещения об обнаружениях Elastic Security в События безопасности. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Оба | Передаёт notable events Splunk в События безопасности и отправляет туда то, что находит OneUptime. |
+| [Elastic Security](/docs/integrations/elastic-security) | Оба | Передаёт оповещения об обнаружениях Elastic Security в События безопасности и отправляет туда то, что находит OneUptime. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Входящее | Передаёт находки AWS Security Hub в События безопасности. |
 | [Okta System Log](/docs/integrations/okta) | Входящее | Передаёт входы, изменения учётных записей и обнаружения угроз Okta в События безопасности. |
 

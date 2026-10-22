@@ -442,3 +442,61 @@ describe("ThreatIntelIndicatorService.findLatestVersionsByStixIds", () => {
     ]);
   });
 });
+
+describe("ThreatIntelIndicatorService.findActiveValuesForFeed", () => {
+  /*
+   * The list poller's read: the values one feed's identity (a list's
+   * single stixId) holds active now, so a new copy of the list can let go
+   * of the values it no longer has.
+   */
+  test("reads one feed's identity, resolved version-aware, active now and bounded", async () => {
+    const spy: Spy = stubExecuteQuery([
+      { indicatorValue: "192.0.2.1", indicatorTypeLatest: "ipv4-addr" },
+    ]);
+
+    const held: Array<{ indicatorValue: string; indicatorType: string }> =
+      await ThreatIntelIndicatorService.findActiveValuesForFeed({
+        projectId: PROJECT_ID,
+        feedId: FEED_ID,
+        stixId: "list",
+        now: NOW,
+        limit: 100000,
+      });
+
+    expect(held).toEqual([
+      { indicatorValue: "192.0.2.1", indicatorType: "ipv4-addr" },
+    ]);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const statement: Statement = spy.mock.calls[0]![0] as Statement;
+
+    expect(statement.query).toContain("GROUP BY indicatorValue");
+    expect(statement.query).toContain(
+      "argMax(indicatorType, version) AS indicatorTypeLatest",
+    );
+    expect(statement.query).toContain("HAVING revokedLatest = false");
+    expect(statement.query).toContain("LIMIT");
+    expectNoAliasSpellingAColumn(statement.query);
+
+    // Every value is bound as a parameter, never written into the SQL.
+    expect(statement.query).not.toContain(PROJECT_ID.toString());
+    expect(statement.query).not.toContain(FEED_ID.toString());
+    expect(Object.values(statement.query_params)).toEqual(
+      expect.arrayContaining(["list", 100000]),
+    );
+  });
+
+  test("a body with no data key holds nothing", async () => {
+    stubExecuteQuery(undefined);
+
+    expect(
+      await ThreatIntelIndicatorService.findActiveValuesForFeed({
+        projectId: PROJECT_ID,
+        feedId: FEED_ID,
+        stixId: "list",
+        now: NOW,
+        limit: 10,
+      }),
+    ).toEqual([]);
+  });
+});

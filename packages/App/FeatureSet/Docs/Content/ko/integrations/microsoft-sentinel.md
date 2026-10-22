@@ -159,6 +159,75 @@ Microsoft Entra ID나 Azure Resource Manager의 오류로 실행이 완전히 �
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
+## Microsoft Sentinel로 보안 이벤트 보내기
+
+OneUptime은 찾은 것을 Azure Monitor의 Logs Ingestion API를 통해 Microsoft Sentinel로도 보낼 수 있으며, Sentinel이 실행되는 작업 영역의 사용자 지정 테이블에 씁니다. 그러면 분석 규칙, 헌팅 쿼리, 통합 문서가 다른 테이블과 나란히 `OneUptimeSecurityEvents_CL` 을 쿼리합니다.
+
+:::steps
+### 테이블과 데이터 수집 규칙 만들기
+
+Azure Portal에서 작업 영역의 **Tables → Create → New custom log (DCR-based)** 를 엽니다. 테이블 이름을 `OneUptimeSecurityEvents` 로 하고, 새 데이터 수집 규칙을 만들며, 양식이 요구하면 데이터 수집 엔드포인트도 만듭니다. 아래 샘플을 샘플 파일로 업로드하고, 변환은 그대로 둔 채 테이블을 만듭니다.
+
+### 애플리케이션이 보낼 수 있게 하기
+
+[애플리케이션 등록](#애플리케이션-등록) 에서처럼 애플리케이션을 등록하고 클라이언트 비밀을 줍니다. 그런 다음 데이터 수집 규칙을 열고 **Access control (IAM) → Add → Add role assignment** 에서 **Monitoring Metrics Publisher** 를 고른 뒤 애플리케이션을 선택합니다.
+
+### 대상 추가하기
+
+**제품 → Security Events → Connections**를 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Microsoft Sentinel을 고른 뒤 **다음** 을 클릭합니다. **디렉터리(테넌트) ID**, **애플리케이션(클라이언트) ID**, **Client secret**, 데이터 수집 엔드포인트(또는 규칙)의 **Overview** 에 있는 **로그 수집 엔드포인트**, 규칙의 **JSON View** 에 있는 **데이터 수집 규칙 변경 불가 ID** 를 입력합니다. **스트림** 은 선택 사항이며, 비워 두면 `Custom-OneUptimeSecurityEvents_CL` 입니다.
+
+### 테스트 이벤트를 보내고 전송 시작하기
+
+**테스트 이벤트 보내기** 를 클릭하면 몇 분 안에 테이블에 행 하나가 도착합니다. 그런 다음 **보낼 내용** 에서 **탐지만** 을 그대로 두거나 **모든 보안 이벤트** 를 고르고, **전송 시작** 을 클릭합니다.
+:::
+
+테이블의 모든 열이 들어 있는 행 하나짜리 샘플 파일:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Logs Ingestion API는 호출당 최대 1 MB를 받으므로, 행은 최대 500개씩 배치로 갑니다. Azure가 거부한 배치는 받지 않는 행을 찾을 때까지 나뉘고 그 행은 빠지며, 스로틀링(`429`)은 다시 시도합니다.
+- `403` 은 애플리케이션에 규칙의 **Monitoring Metrics Publisher** 가 없다는 뜻이고, `404` 는 변경 불가 ID나 스트림이 잘못되었다는 뜻입니다.
+- OneUptime이 Microsoft Sentinel에서 가져온 인시던트는 절대 Microsoft Sentinel로 다시 보내지 않습니다.
+
 ## 문제 해결
 
 연결의 **마지막 오류**는 실패한 단계를 나타내는 접두사 뒤에, 자격 증명을 가린 전체 오류 메시지를 보관합니다. 연결에 오류가 있으면 **작업** 열에서 **오류 보기**를 선택해 읽고, 대화 상자의 **오류 복사**로 복사합니다. 먼저 접두사를 읽으세요.

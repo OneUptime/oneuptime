@@ -69,7 +69,7 @@ export const SecurityEventDestinationsEmptyState: FunctionComponent<{
       kind={TableEmptyStateKind.Empty}
       icon={IconProp.PaperAirplane}
       title="Nothing is sent to a SIEM yet"
-      description="Google SecOps is supported today."
+      description="Google SecOps, Splunk, Microsoft Sentinel and Elastic Security are supported."
       isCompact={true}
       dataTestId="security-event-destinations-empty"
       actions={[

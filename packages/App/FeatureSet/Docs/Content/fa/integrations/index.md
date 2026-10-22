@@ -50,12 +50,12 @@ flowchart TB
 | ابزار | جهت | کاری که می‌کند |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | ورودی | برای گزارش‌های حادثه Huntress آنکال را فرا می‌خواند، و با بسته شدن گزارش حادثه را رفع می‌کند. |
-| [Google SecOps](/docs/integrations/google-secops) | ورودی | تشخیص‌های Google SecOps را به رویدادهای امنیتی می‌آورد. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | ورودی | حادثه‌های Microsoft Sentinel را به رویدادهای امنیتی می‌آورد. |
+| [Google SecOps](/docs/integrations/google-secops) | هر دو | تشخیص‌ها و شاخص‌های Google SecOps را به رویدادهای امنیتی می‌آورد و آنچه OneUptime پیدا می‌کند را به Google SecOps می‌فرستد. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | هر دو | حادثه‌های Microsoft Sentinel را به رویدادهای امنیتی می‌آورد و آنچه OneUptime پیدا می‌کند را به Microsoft Sentinel می‌فرستد. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | ورودی | هشدارهای Microsoft Defender XDR را به رویدادهای امنیتی می‌آورد. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | ورودی | هشدارهای CrowdStrike Falcon را به رویدادهای امنیتی می‌آورد. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | ورودی | رویدادهای قابل توجه (notable event) Splunk را به رویدادهای امنیتی می‌آورد. |
-| [Elastic Security](/docs/integrations/elastic-security) | ورودی | هشدارهای تشخیص Elastic Security را به رویدادهای امنیتی می‌آورد. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | هر دو | رویدادهای قابل توجه (notable event) Splunk را به رویدادهای امنیتی می‌آورد و آنچه OneUptime پیدا می‌کند را به Splunk می‌فرستد. |
+| [Elastic Security](/docs/integrations/elastic-security) | هر دو | هشدارهای تشخیص Elastic Security را به رویدادهای امنیتی می‌آورد و آنچه OneUptime پیدا می‌کند را به Elastic Security می‌فرستد. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | ورودی | یافته‌های AWS Security Hub را به رویدادهای امنیتی می‌آورد. |
 | [Okta System Log](/docs/integrations/okta) | ورودی | ورودهای Okta، تغییرات حساب و تشخیص تهدیدها را به رویدادهای امنیتی می‌آورد. |
 

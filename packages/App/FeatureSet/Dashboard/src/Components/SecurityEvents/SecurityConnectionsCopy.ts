@@ -1,5 +1,6 @@
 import SecurityLogFormat from "Common/Types/SecurityEvent/SecurityLogFormat";
 import SecurityEventDestinationScope from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
+import SecurityEventDestinationProvider from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationProvider";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -71,6 +72,30 @@ export const SECURITY_EVENT_DESTINATION_SCOPE_TEXTS: Record<
 };
 
 /*
+ * Each SIEM's line under its name in the Send to your SIEM picker, by the
+ * catalog's provider: how OneUptime sends to it. The picker draws the
+ * catalog's own words; these only put them in the locale files. A SIEM's
+ * name is a name and is never translated.
+ */
+export const SECURITY_EVENT_DESTINATION_TEXTS: Record<
+  SecurityEventDestinationProvider,
+  string
+> = {
+  [SecurityEventDestinationProvider.GoogleSecOps]: translationKey(
+    "As UDM events, through the Chronicle API.",
+  ),
+  [SecurityEventDestinationProvider.Splunk]: translationKey(
+    "Through its HTTP Event Collector (HEC), with CIM field names.",
+  ),
+  [SecurityEventDestinationProvider.MicrosoftSentinel]: translationKey(
+    "To a workspace's custom table, through the Azure Monitor Logs Ingestion API.",
+  ),
+  [SecurityEventDestinationProvider.ElasticSecurity]: translationKey(
+    "As Elastic Common Schema (ECS) documents in an Elasticsearch data stream.",
+  ),
+};
+
+/*
  * The destination form's fields, by the catalog's field key. The form draws
  * the catalog's own title and description; these only put the same words
  * in the locale files.
@@ -95,6 +120,111 @@ export const SECURITY_EVENT_DESTINATION_FIELD_TEXTS: Record<
     title: translationKey("Service account JSON"),
     description: translationKey(
       "A Google Cloud service-account key (JSON) with a role that can import events (chronicle.events.import), such as Chronicle API Editor. Encrypted at rest and never returned by the API.",
+    ),
+  },
+  // Splunk's HTTP Event Collector.
+  hecUrl: {
+    title: translationKey("HEC URL"),
+    description: translationKey(
+      "The HTTP Event Collector's address: on Splunk Cloud https://http-inputs-<stack>.splunkcloud.com, on Splunk Enterprise port 8088.",
+    ),
+  },
+  index: {
+    title: translationKey("Index"),
+    description: translationKey(
+      "The index events are written to. Leave empty for the token's default index.",
+    ),
+  },
+  sourceType: {
+    title: translationKey("Source type"),
+    description: translationKey(
+      "The sourcetype events carry. Leave empty for oneuptime:security.",
+    ),
+  },
+  hecToken: {
+    title: translationKey("HEC token"),
+    description: translationKey(
+      "An HTTP Event Collector token (Settings > Data inputs > HTTP Event Collector). Encrypted at rest and never returned by the API.",
+    ),
+  },
+  // Microsoft Sentinel, through the Azure Monitor Logs Ingestion API.
+  tenantId: {
+    title: translationKey("Directory (tenant) ID"),
+    description: translationKey(
+      "The Microsoft Entra tenant that owns the app registration.",
+    ),
+  },
+  clientId: {
+    title: translationKey("Application (client) ID"),
+    description: translationKey(
+      "The app registration given the Monitoring Metrics Publisher role on the data collection rule.",
+    ),
+  },
+  logsIngestionEndpoint: {
+    title: translationKey("Logs ingestion endpoint"),
+    description: translationKey(
+      "The data collection endpoint's (or rule's) logs ingestion URL, from its Overview page in the Azure portal.",
+    ),
+  },
+  dcrImmutableId: {
+    title: translationKey("Data collection rule immutable ID"),
+    description: translationKey(
+      "The immutable ID of the data collection rule that sends to your Sentinel workspace's custom table.",
+    ),
+  },
+  streamName: {
+    title: translationKey("Stream"),
+    description: translationKey(
+      "The data collection rule's input stream. Leave empty for Custom-OneUptimeSecurityEvents_CL.",
+    ),
+  },
+  cloud: {
+    title: translationKey("Cloud"),
+    description: translationKey(
+      "Which Azure cloud hosts the tenant and workspace.",
+    ),
+  },
+  clientSecret: {
+    title: translationKey("Client secret"),
+    description: translationKey(
+      "A client secret of the app registration. Encrypted at rest and never returned by the API.",
+    ),
+  },
+  // Elasticsearch, in Elastic Common Schema.
+  elasticsearchUrl: {
+    title: translationKey("Elasticsearch URL"),
+    description: translationKey(
+      "The Elasticsearch endpoint, on Elastic Cloud copied from the deployment's page, without a trailing path.",
+    ),
+  },
+  dataStream: {
+    title: translationKey("Data stream"),
+    description: translationKey(
+      "The data stream documents are written to. Leave empty for logs-oneuptime.security-default.",
+    ),
+  },
+  apiKey: {
+    title: translationKey("API key"),
+    description: translationKey(
+      "An Elasticsearch API key (the encoded value) that can create documents in the data stream. Encrypted at rest and never returned by the API.",
+    ),
+  },
+};
+
+/*
+ * The connection form's provider options (ConnectorField.isOption), by the
+ * catalog's field key: asked on the form's last step with the connection's
+ * other options. The form draws the catalog's own words; these only put
+ * them in the locale files.
+ */
+export const SECURITY_EVENT_CONNECTION_OPTION_TEXTS: Record<
+  string,
+  SecurityConnectionsText
+> = {
+  closeAlertsWhenCaseCloses: {
+    title: translationKey("Close alerts when their case closes"),
+    description: translationKey(
+      "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
     ),
   },
 };

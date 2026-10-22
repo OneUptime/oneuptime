@@ -54,7 +54,26 @@ export interface ConnectorField {
   placeholder?: string | undefined;
   options?: Array<ConnectorFieldOption> | undefined;
   defaultValue?: string | boolean | number | undefined;
+  /*
+   * A choice about what the connection does rather than where it connects:
+   * the form asks it with the connection's other options (Open Cases From),
+   * on its last step, instead of with the product's settings.
+   */
+  isOption?: boolean | undefined;
+  /*
+   * A setting most people leave as it is - optional, with a default the
+   * description names: the form folds it under More fields.
+   */
+  isAdvanced?: boolean | undefined;
 }
+
+/*
+ * The connection setting that closes a product's alerts when the security
+ * case they opened is closed in OneUptime (SecurityCaseSourceAlerts): a
+ * toggle in the catalog of every provider whose alerts OneUptime can close.
+ */
+export const CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY: string =
+  "closeAlertsWhenCaseCloses";
 
 /*
  * A two-option presentation of alertingOnly: the alerting records are
@@ -570,6 +589,16 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
           required: true,
           placeholder:
             "projects/{project}/locations/{location}/instances/{instance}",
+        },
+        {
+          key: CLOSE_ALERTS_WHEN_CASE_CLOSES_KEY,
+          title: "Close alerts when their case closes",
+          description:
+            "Closing a security case closes its Google SecOps alerts too, with the case's verdict and closing note. The connection's service account needs the Chronicle API Editor role.",
+          type: "toggle",
+          required: false,
+          defaultValue: false,
+          isOption: true,
         },
       ],
       secretFields: [

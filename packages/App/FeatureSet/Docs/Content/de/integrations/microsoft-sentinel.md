@@ -159,6 +159,75 @@ Klicken Sie an einer Verbindung auf **Diagnose**, um ihre letzten Läufe zu sehe
 
 Jede Anfrage in einem Test hat eine Frist von 20 Sekunden. Ein Test importiert nie etwas und verschiebt nie den Cursor, und jede fehlgeschlagene Prüfung sagt, was zu ändern ist.
 
+## Sicherheitsereignisse an Microsoft Sentinel senden
+
+OneUptime kann das, was es findet, auch an Microsoft Sentinel senden, über die Logs Ingestion API von Azure Monitor, in eine benutzerdefinierte Tabelle des Arbeitsbereichs, auf dem Sentinel läuft. Ihre Analyseregeln, Hunting-Abfragen und Arbeitsmappen fragen dann `OneUptimeSecurityEvents_CL` neben Ihren anderen Tabellen ab.
+
+:::steps
+### Die Tabelle und ihre Datensammlungsregel erstellen
+
+Öffnen Sie im Azure-Portal im Arbeitsbereich **Tables → Create → New custom log (DCR-based)**. Nennen Sie die Tabelle `OneUptimeSecurityEvents`, erstellen Sie eine neue Datensammlungsregel und einen Datensammlungsendpunkt, falls das Formular danach fragt. Laden Sie das Beispiel unten als Beispieldatei hoch, lassen Sie die Transformation, wie sie ist, und erstellen Sie die Tabelle.
+
+### Eine Anwendung senden lassen
+
+Registrieren Sie eine Anwendung und geben Sie ihr einen geheimen Clientschlüssel, wie unter [Eine Anwendung registrieren](#eine-anwendung-registrieren). Öffnen Sie dann die Datensammlungsregel, **Access control (IAM) → Add → Add role assignment**, wählen Sie **Monitoring Metrics Publisher** und wählen Sie die Anwendung aus.
+
+### Das Ziel hinzufügen
+
+Öffnen Sie **Produkte → Sicherheitsereignisse → Verbindungen**. Klicken Sie unter **An Ihr SIEM senden** auf **Ziel hinzufügen**, wählen Sie Microsoft Sentinel unter **SIEM** und klicken Sie auf **Weiter**. Tragen Sie die **Verzeichnis-ID (Tenant)**, die **Anwendungs-ID (Client)** und das **Client-Secret** ein, den **Logs-Ingestion-Endpunkt** von der Seite **Overview** des Datensammlungsendpunkts (oder der Regel) und die **Unveränderliche ID der Datensammlungsregel** aus der **JSON View** der Regel. **Stream** ist optional: Bleibt es leer, ist es `Custom-OneUptimeSecurityEvents_CL`.
+
+### Ein Testereignis senden und das Senden starten
+
+Klicken Sie auf **Testereignis senden**: Innerhalb weniger Minuten erreicht eine Zeile die Tabelle. Behalten Sie dann unter **Was gesendet wird** die Option **Nur Erkennungen** oder wählen Sie **Alle Sicherheitsereignisse**, und klicken Sie auf **Senden starten**.
+:::
+
+Die Beispieldatei, eine Zeile mit jeder Spalte der Tabelle:
+
+```json title="oneuptime-security-events-sample.json"
+[
+  {
+    "TimeGenerated": "2026-10-21T10:00:00.000Z",
+    "EventId": "0193c0de-cccc-4aaa-8bbb-000000000001",
+    "EventUid": "okta-1",
+    "ClassName": "Authentication",
+    "CategoryName": "Identity & Access Management",
+    "ActivityName": "Logon",
+    "Severity": "Medium",
+    "SeverityId": 3,
+    "Status": "Failure",
+    "Message": "Failed sign-in for alice",
+    "VendorName": "Okta",
+    "ProductName": "Okta System Log",
+    "RuleId": "",
+    "RuleName": "",
+    "MitreTactics": [],
+    "MitreTechniques": [],
+    "PrincipalUser": "alice@example.com",
+    "PrincipalHost": "laptop-7",
+    "PrincipalIp": "203.0.113.7",
+    "TargetUser": "",
+    "TargetHost": "app.example.com",
+    "TargetIp": "198.51.100.20",
+    "TargetPort": 443,
+    "TargetResource": "",
+    "ProcessName": "",
+    "ProcessCommandLine": "",
+    "ParentProcessName": "",
+    "Observables": [
+      "alice@example.com",
+      "203.0.113.7"
+    ],
+    "Attributes": {
+      "okta.outcome.reason": "INVALID_CREDENTIALS"
+    }
+  }
+]
+```
+
+- Die Logs Ingestion API nimmt bis zu 1 MB pro Aufruf an, daher gehen Zeilen in Stapeln von bis zu 500. Ein Stapel, den Azure ablehnt, wird geteilt, bis die Zeile gefunden ist, die es nicht annimmt, und diese wird ausgelassen; Drosselung (`429`) wird erneut versucht.
+- Ein `403` heißt, dass der Anwendung **Monitoring Metrics Publisher** an der Regel fehlt, und ein `404` eine falsche unveränderliche ID oder einen falschen Stream.
+- Vorfälle, die OneUptime aus Microsoft Sentinel importiert hat, werden nie an Microsoft Sentinel zurückgesendet.
+
 ## Fehlerbehebung
 
 Der **Letzter Fehler** der Verbindung bewahrt die vollständige Fehlermeldung, mit geschwärzten Anmeldedaten, hinter einem Präfix, das den fehlgeschlagenen Schritt nennt. Hat eine Verbindung einen Fehler, wählen Sie in ihrer Spalte **Aktionen** die Aktion **Fehler anzeigen**, um ihn zu lesen, und im Dialog **Fehler kopieren**, um ihn zu kopieren. Lesen Sie zuerst das Präfix.

@@ -7,6 +7,11 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import {
+  SecurityEventDestinationCatalog,
+  SecurityEventDestinationDefinition,
+} from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1591,35 +1596,139 @@ test.describe("connections: your logs and your SIEM", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("Send to Google SecOps opens the form on the SIEM's own settings, then what to send", async ({
+  /*
+   * The SIEMs of the destination catalog, in its order, each with the
+   * first setting its Connection step asks for and the settings it folds
+   * under More fields (the ones most people leave at their defaults).
+   */
+  const SIEMS: ReadonlyArray<{
+    title: string;
+    firstSetting: string;
+    folded: Array<string>;
+  }> = [
+    {
+      title: "Google SecOps",
+      firstSetting: "Instance resource name",
+      folded: [],
+    },
+    {
+      title: "Splunk",
+      firstSetting: "HEC URL",
+      folded: ["Index", "Source type"],
+    },
+    {
+      title: "Microsoft Sentinel",
+      firstSetting: "Directory (tenant) ID",
+      folded: ["Stream", "Cloud"],
+    },
+    {
+      title: "Elastic Security",
+      firstSetting: "Elasticsearch URL",
+      folded: ["Data stream"],
+    },
+  ];
+
+  test("Send to your SIEM picks the SIEM first, then opens that SIEM's own settings", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
 
+    // The empty state's button and the card's Add destination open the same form.
     await siemCard(page)
-      .getByRole("button", { name: "Send to Google SecOps" })
+      .getByRole("button", { name: "Send to your SIEM", exact: true })
       .click();
     const dialog: Locator = page.getByRole("dialog", {
-      name: "Send to Google SecOps",
+      name: "Send to your SIEM",
     });
     await expect(dialog).toBeVisible();
-    await expect(dialog.locator("[aria-current='step']")).toHaveText(
-      "Connection",
-    );
-    await expect(
-      dialog.getByText("Instance resource name").first(),
-    ).toBeVisible();
-    await expect(
-      dialog.getByTestId("security-event-destination-send-test"),
-    ).toBeDisabled();
-    await screenshot(page, "connections-siem-form-desktop", {
+    await expect(dialog.locator("[aria-current='step']")).toHaveText("SIEM");
+    await expect(dialog.getByRole("radio")).toHaveCount(SIEMS.length);
+    /*
+     * Each card says in a line of its own how OneUptime sends to that SIEM;
+     * what is sent - detections, or every event - is the form's last step,
+     * not four repeats of one sentence.
+     */
+    for (const definition of SecurityEventDestinationCatalog) {
+      const card: Locator = dialog
+        .locator("[role='radio']")
+        .filter({ hasText: definition.title });
+      await expect(card).toContainText(definition.description);
+      await expect(card).not.toContainText("detections");
+    }
+    expect(
+      new Set(
+        SecurityEventDestinationCatalog.map(
+          (definition: SecurityEventDestinationDefinition): string => {
+            return definition.description;
+          },
+        ),
+      ).size,
+    ).toBe(SecurityEventDestinationCatalog.length);
+    await screenshot(page, "connections-siem-picker-desktop", {
       fullPage: false,
     });
-
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    for (const siem of SIEMS) {
+      await siemCard(page)
+        .getByRole("button", { name: "Add destination", exact: true })
+        .click();
+      await expect(dialog).toBeVisible();
+      await expect(dialog.locator("[aria-current='step']")).toHaveText("SIEM");
+
+      await dialog
+        .locator("[role='radio']")
+        .filter({ hasText: siem.title })
+        .click();
+      await dialog.getByRole("button", { name: "Next", exact: true }).click();
+      await expect(dialog.locator("[aria-current='step']")).toHaveText(
+        "Connection",
+      );
+      // That SIEM's settings, and none of another's.
+      await expect(
+        dialog.getByText(siem.firstSetting, { exact: true }).first(),
+      ).toBeVisible();
+      for (const other of SIEMS) {
+        if (other.title !== siem.title) {
+          await expect(
+            dialog.getByText(other.firstSetting, { exact: true }),
+          ).toHaveCount(0);
+        }
+      }
+      // What most people leave at its default waits under More fields.
+      const moreFields: Locator = dialog.getByRole("button", {
+        name: /^More fields/,
+      });
+      if (siem.folded.length === 0) {
+        await expect(moreFields).toHaveCount(0);
+      } else {
+        await expect(moreFields).toHaveAttribute("aria-expanded", "false");
+        await expect(dialog.getByTestId("folded-section-item")).toHaveText(
+          siem.folded,
+        );
+        for (const title of siem.folded) {
+          await expect(
+            dialog.getByLabel(new RegExp(`^${escapeRegExp(title)}`)),
+          ).toBeHidden();
+        }
+      }
+      // Nothing is filled in, so there is nothing to test yet.
+      await expect(
+        dialog.getByTestId("security-event-destination-send-test"),
+      ).toBeDisabled();
+      if (siem.title === "Splunk") {
+        await screenshot(page, "connections-siem-form-desktop", {
+          fullPage: false,
+        });
+      }
+
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+
     expect((await fixture(page)).creates).toEqual([]);
   });
 

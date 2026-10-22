@@ -158,8 +158,9 @@ describe("GoogleSecOpsSender", () => {
         SecurityEventDestinationProvider.GoogleSecOps,
       ),
     ).toBeInstanceOf(GoogleSecOpsSender);
+    // A product OneUptime does not send to has no sender.
     expect(() => {
-      return SecurityEventDestinationRegistry.getSender("splunk");
+      return SecurityEventDestinationRegistry.getSender("crowdstrike-falcon");
     }).toThrow(BadDataException);
   });
 

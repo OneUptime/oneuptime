@@ -50,12 +50,12 @@ Jira या Dynamics 365 जैसा दो-तरफ़ा इंटिग्�
 | टूल | दिशा | क्या करता है |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | इनबाउंड | Huntress घटना रिपोर्ट पर ऑन-कॉल को पेज करता है, और रिपोर्ट बंद होने पर घटना सुलझाता है। |
-| [Google SecOps](/docs/integrations/google-secops) | इनबाउंड | Google SecOps डिटेक्शन को सुरक्षा इवेंट में लाता है। |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | इनबाउंड | Microsoft Sentinel घटनाओं को सुरक्षा इवेंट में लाता है। |
+| [Google SecOps](/docs/integrations/google-secops) | दोनों | Google SecOps डिटेक्शन और संकेतकों को सुरक्षा इवेंट में लाता है, और OneUptime जो पाता है उसे Google SecOps को भेजता है। |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | दोनों | Microsoft Sentinel घटनाओं को सुरक्षा इवेंट में लाता है, और OneUptime जो पाता है उसे Microsoft Sentinel को भेजता है। |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | इनबाउंड | Microsoft Defender XDR अलर्ट को सुरक्षा इवेंट में लाता है। |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | इनबाउंड | CrowdStrike Falcon अलर्ट को सुरक्षा इवेंट में लाता है। |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | इनबाउंड | Splunk notable event को सुरक्षा इवेंट में लाता है। |
-| [Elastic Security](/docs/integrations/elastic-security) | इनबाउंड | Elastic Security डिटेक्शन अलर्ट को सुरक्षा इवेंट में लाता है। |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | दोनों | Splunk notable event को सुरक्षा इवेंट में लाता है, और OneUptime जो पाता है उसे Splunk को भेजता है। |
+| [Elastic Security](/docs/integrations/elastic-security) | दोनों | Elastic Security डिटेक्शन अलर्ट को सुरक्षा इवेंट में लाता है, और OneUptime जो पाता है उसे Elastic Security को भेजता है। |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | इनबाउंड | AWS Security Hub फ़ाइंडिंग को सुरक्षा इवेंट में लाता है। |
 | [Okta System Log](/docs/integrations/okta) | इनबाउंड | Okta साइन-इन, खाते के बदलाव और खतरे के डिटेक्शन को सुरक्षा इवेंट में लाता है। |
 

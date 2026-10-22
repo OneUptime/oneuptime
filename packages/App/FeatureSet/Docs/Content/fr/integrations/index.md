@@ -50,12 +50,12 @@ Commencez par le haut du tableau : plus une façon est haute, moins il y a à ma
 | Outil | Sens | Ce qu'il fait |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Entrant | Prévient l'astreinte pour les rapports d'incident Huntress, et résout l'incident quand le rapport est clos. |
-| [Google SecOps](/docs/integrations/google-secops) | Entrant | Amène les détections de Google SecOps dans les Événements de sécurité. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Entrant | Amène les incidents de Microsoft Sentinel dans les Événements de sécurité. |
+| [Google SecOps](/docs/integrations/google-secops) | Les deux | Amène les détections et les indicateurs de Google SecOps dans les Événements de sécurité, et lui envoie ce que OneUptime trouve. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Les deux | Amène les incidents de Microsoft Sentinel dans les Événements de sécurité, et lui envoie ce que OneUptime trouve. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Entrant | Amène les alertes de Microsoft Defender XDR dans les Événements de sécurité. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Entrant | Amène les alertes de CrowdStrike Falcon dans les Événements de sécurité. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Entrant | Amène les notable events de Splunk dans les Événements de sécurité. |
-| [Elastic Security](/docs/integrations/elastic-security) | Entrant | Amène les alertes de détection d'Elastic Security dans les Événements de sécurité. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Les deux | Amène les notable events de Splunk dans les Événements de sécurité, et lui envoie ce que OneUptime trouve. |
+| [Elastic Security](/docs/integrations/elastic-security) | Les deux | Amène les alertes de détection d'Elastic Security dans les Événements de sécurité, et lui envoie ce que OneUptime trouve. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Entrant | Amène les constats d'AWS Security Hub dans les Événements de sécurité. |
 | [Okta System Log](/docs/integrations/okta) | Entrant | Amène les connexions, les modifications de comptes et les détections de menaces d'Okta dans les Événements de sécurité. |
 
