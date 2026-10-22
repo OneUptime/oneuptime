@@ -169,6 +169,21 @@ export default class GitHubCommandParser {
    * better served by the surface default than by a guess.
    */
   private static readonly verbPhrases: Array<VerbPhraseGroup> = [
+    /*
+     * Before Review: "review production" starts with "review", and the
+     * first group that matches wins.
+     */
+    {
+      phrases: [
+        "production review",
+        "review against production",
+        "review in production",
+        "review production",
+        "check production",
+        "production check",
+      ],
+      commandType: GitHubCommandType.ProductionReview,
+    },
     {
       phrases: [
         "code review",
@@ -357,6 +372,7 @@ export default class GitHubCommandParser {
   }): boolean {
     if (
       data.commandType === GitHubCommandType.Review ||
+      data.commandType === GitHubCommandType.ProductionReview ||
       data.commandType === GitHubCommandType.Revise
     ) {
       return data.surface === GitHubCommandSurface.PullRequest;

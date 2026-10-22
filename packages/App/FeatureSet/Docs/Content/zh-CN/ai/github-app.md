@@ -14,6 +14,7 @@ OneUptime GitHub App 不只是与你代码的一个连接：你可以在存储�
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ flowchart TB
 | 命令 | 会发生什么 | 同样能理解 |
 | --- | --- | --- |
 | `@oneuptime review` | 克隆分支，读取更改的代码及其周围的代码，检查生产环境对这些代码说明了什么，并以评论形式发布审查。不做任何更改。 | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | 无论拉取请求由谁打开，立即根据生产环境审查它：已更改代码周围的异常、操作、事件和部署，放在一条原地更新的评论中（请参阅 [拉取请求的生产审查](/docs/ai/ai-agent#拉取请求的生产审查)）。不克隆任何内容，也不运行任何内容。 | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | 克隆拉取请求自己的分支，做出更改，并向该分支推送新的提交。从不打开第二个拉取请求。 | `revise`, `please revise`, `rework`, `redo` |
 
 你在提及之后写的任何不属于已知命令的内容，都会被当作修订请求，因为它几乎总是如此：
@@ -100,6 +102,8 @@ OneUptime 掌握着它所审查的代码的遥测，因此审查能说出只读 
 
 它无需任何设置：这些服务就是 OneUptime 为此存储库找到的服务，与它为修复所做的一样（请参阅 [修复中的生产遥测](/docs/ai/ai-agent#修复中的生产遥测)）。这些查询是只读的，在 OneUptime 服务器上运行，不会读取其他服务、项目或私密事件的任何内容。如果存储库的服务没有向项目发送遥测，就只根据它的代码进行审查。
 
+要让每个拉取请求都自动根据生产环境接受审查，请在存储库设置中开启 **根据生产环境审查拉取请求**：请参阅 [拉取请求的生产审查](/docs/ai/ai-agent#拉取请求的生产审查)。
+
 ## 谁可以向它下达命令
 
 **只有对存储库拥有 write、maintain 或 admin 权限的人。** OneUptime 每次都会向 GitHub 查询评论者在该存储库上的权限；它不信任 GitHub 在评论旁显示的 "contributor" 徽章，因为该徽章描述的是过去的活动，而不是当前的权限。
@@ -142,7 +146,7 @@ GitHub 命令是事件和警报之外的 AI 工作，因此不适用每日修复
 | --- | --- |
 | **Issue comment** | issue 和拉取请求上的 `@mention` 命令 |
 | **Issues** | 把 issue 分配给应用，以及触发标签 |
-| **Pull request** | 向应用请求的审查 |
+| **Pull request** | 向应用请求的审查，以及拉取请求打开和变更时的生产审查 |
 | **Pull request review** | 已提交审查正文中的提及 |
 | **Pull request review comment** | diff 行内评论中的提及 |
 

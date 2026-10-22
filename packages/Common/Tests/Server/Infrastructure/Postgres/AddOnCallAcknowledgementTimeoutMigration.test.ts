@@ -7,8 +7,8 @@ import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import Migrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddOnCallAcknowledgementTimeout1805920000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805920000000-AddOnCallAcknowledgementTimeout";
-import { AddOnCallAcknowledgementTimeoutIndex1805930000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805930000000-AddOnCallAcknowledgementTimeoutIndex";
+import { AddOnCallAcknowledgementTimeout1805960000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805960000000-AddOnCallAcknowledgementTimeout";
+import { AddOnCallAcknowledgementTimeoutIndex1805970000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1805970000000-AddOnCallAcknowledgementTimeoutIndex";
 
 /*
  * The two migrations behind an on-call policy's acknowledgement timeout
@@ -38,14 +38,14 @@ const MIGRATIONS_DIR: string = path.join(
   "SchemaMigrations",
 );
 
-const COLUMNS_FILE: string = "1805920000000-AddOnCallAcknowledgementTimeout.ts";
+const COLUMNS_FILE: string = "1805960000000-AddOnCallAcknowledgementTimeout.ts";
 const INDEX_FILE: string =
-  "1805930000000-AddOnCallAcknowledgementTimeoutIndex.ts";
-const COLUMNS_NAME: string = "AddOnCallAcknowledgementTimeout1805920000000";
-const INDEX_NAME: string = "AddOnCallAcknowledgementTimeoutIndex1805930000000";
+  "1805970000000-AddOnCallAcknowledgementTimeoutIndex.ts";
+const COLUMNS_NAME: string = "AddOnCallAcknowledgementTimeout1805960000000";
+const INDEX_NAME: string = "AddOnCallAcknowledgementTimeoutIndex1805970000000";
 // The newest migration when these were renumbered on top of it.
 const GENERATED_AFTER: string =
-  "AddIncidentPostmortemStatusIndexesAndKey1805910000000";
+  "AddProductionReviewToCodeRepository1805950000000";
 
 const POLICY_TABLE: string = "OnCallDutyPolicy";
 const RUN_TABLE: string = "OnCallDutyPolicyExecutionLog";
@@ -142,10 +142,10 @@ describe("registration", () => {
     const columns: number = names.indexOf(COLUMNS_NAME);
 
     expect(Migrations[columns]).toBe(
-      AddOnCallAcknowledgementTimeout1805920000000,
+      AddOnCallAcknowledgementTimeout1805960000000,
     );
     expect(Migrations[columns + 1]).toBe(
-      AddOnCallAcknowledgementTimeoutIndex1805930000000,
+      AddOnCallAcknowledgementTimeoutIndex1805970000000,
     );
   });
 
@@ -160,10 +160,10 @@ describe("registration", () => {
   });
 
   test("their names match their classes and their files' timestamps, in order", () => {
-    expect(new AddOnCallAcknowledgementTimeout1805920000000().name).toBe(
+    expect(new AddOnCallAcknowledgementTimeout1805960000000().name).toBe(
       COLUMNS_NAME,
     );
-    expect(new AddOnCallAcknowledgementTimeoutIndex1805930000000().name).toBe(
+    expect(new AddOnCallAcknowledgementTimeoutIndex1805970000000().name).toBe(
       INDEX_NAME,
     );
     expect(COLUMNS_FILE.split("-")[0]).toBe(COLUMNS_NAME.slice(-13));
@@ -240,7 +240,7 @@ describe("the columns", () => {
   test("run in an ordinary transaction", () => {
     expect(
       (
-        new AddOnCallAcknowledgementTimeout1805920000000() as unknown as {
+        new AddOnCallAcknowledgementTimeout1805960000000() as unknown as {
           transaction?: boolean;
         }
       ).transaction,
@@ -274,7 +274,7 @@ describe("the clock index", () => {
 
   test("is built online, outside a transaction, under TypeORM's name for it", () => {
     expect(
-      new AddOnCallAcknowledgementTimeoutIndex1805930000000().transaction,
+      new AddOnCallAcknowledgementTimeoutIndex1805970000000().transaction,
     ).toBe(false);
     expect(INDEX_MIGRATION.up).not.toContain("queryRunner.query(");
     expect(INDEX_MIGRATION.up.match(ONLINE_CREATE_INDEX)).toHaveLength(1);

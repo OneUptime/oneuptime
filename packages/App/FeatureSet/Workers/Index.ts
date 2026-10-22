@@ -255,6 +255,7 @@ import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
+import "./Jobs/AIAgent/ReviewPullRequestsInProduction";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";

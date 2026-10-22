@@ -1,5 +1,7 @@
 import { CodeTaskResponse } from "./CodeApi";
-import { getRepositoryRoute } from "./CodePaths";
+import { getProductionReviewsRoute, getRepositoryRoute } from "./CodePaths";
+import { PRODUCTION_REVIEW_COPY } from "./CodeProductionReviewCopy";
+import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -13,6 +15,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * knows only that it is some task's log. The repository and the task are
  * named as they are (record names); Project, Code and Log are translated
  * where the trail is drawn.
+ *
+ * A pull request's production review sits under its repository's
+ * Production Reviews: Project > Code > the repository > Production Reviews
+ * > Pull request #42.
  */
 export const getCodeTaskTrail: (data: {
   taskId: string;
@@ -48,6 +54,31 @@ export const getCodeTaskTrail: (data: {
       to: getRepositoryRoute(data.response.repository.id),
       isRecordName: true,
     });
+  }
+
+  if (
+    data.response.task.recipe ===
+    CodeFixTaskType.GitHubPullRequestProductionReview
+  ) {
+    if (data.response.repository) {
+      links.push({
+        title: PRODUCTION_REVIEW_COPY.pageTitle,
+        to: getProductionReviewsRoute(data.response.repository.id),
+      });
+    }
+
+    links.push({
+      title: data.response.task.origin.label
+        ? data.translator.translateTemplate(
+            PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+            { label: data.response.task.origin.label },
+          )
+        : data.translator.translateTemplate(PRODUCTION_REVIEW_COPY.recipeLabel),
+      to: taskRoute,
+      isRecordName: true,
+    });
+
+    return links;
   }
 
   links.push({

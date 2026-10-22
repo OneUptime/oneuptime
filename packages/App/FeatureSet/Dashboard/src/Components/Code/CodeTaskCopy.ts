@@ -119,6 +119,8 @@ export const CODE_TASK_RECIPE_LABELS: Record<string, string> = {
   [CodeFixTaskType.GitHubPullRequestReview]: translationKey(
     "Review GitHub Pull Request",
   ),
+  [CodeFixTaskType.GitHubPullRequestProductionReview]:
+    translationKey("Production Review"),
   [CodeFixTaskType.CodeRequest]: translationKey("Request"),
 };
 

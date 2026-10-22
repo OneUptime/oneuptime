@@ -97,7 +97,7 @@ OneUptime nutzt zwei Gruppen von Ereignissen, und sie erfüllen verschiedene Auf
 | --- | --- |
 | **Issue comment** | `@mention`-Befehle in Issues **und** in Pull Requests |
 | **Issues** | einem Issue die App zuweisen, und das Trigger-Label des Repositorys |
-| **Pull request** | ein Review von der App anfordern |
+| **Pull request** | ein Review von der App anfordern, und Produktionsprüfungen von Pull Requests, wenn sie geöffnet werden und sich ändern |
 | **Pull request review** | eine Erwähnung im Text eines abgeschickten Reviews |
 | **Pull request review comment** | eine Erwähnung in einem Inline-Kommentar im Diff |
 

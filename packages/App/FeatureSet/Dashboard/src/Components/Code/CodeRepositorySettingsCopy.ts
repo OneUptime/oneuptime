@@ -4,6 +4,12 @@ import {
   FixPullRequestLimit,
   getFixPullRequestLimit,
 } from "../CodeRepository/FixPullRequestLimit";
+import {
+  PRODUCTION_REVIEW_CONTENT_COPY,
+  PRODUCTION_REVIEW_SETTINGS_COPY,
+  readProductionReviewContent,
+} from "./CodeProductionReviewCopy";
+import { ProductionReviewPullRequestContent } from "Common/Types/CodeRepository/ProductionReview";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -13,18 +19,21 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *
  * The page asks as little as it can. Connecting GitHub already picked what
  * most teams want (CodeRepositoryService.getNewRepositoryDefaults), so what
- * is left is a switch and what AI works on, in sight:
+ * is left is two switches and what AI works on, in sight:
  *
  *   - GitHub Commands: one switch, saved the moment it is flipped - on by
  *     default;
+ *   - Production Review: one switch - on for repositories connected from
+ *     now on - that has OneUptime review pull requests against production;
  *   - Runner: where AI works, with Edit.
  *
  * and, folded under More settings, what most never change: where AI's pull
  * requests open and how many may be open at once, the label that hands an
- * issue to the GitHub App, and - only on a repository that has them - the
- * build and test commands an operator set before AI read how to build and
- * test from the repository's own AGENTS.md. Code no longer asks for those
- * commands: they are shown, run, and can be removed.
+ * issue to the GitHub App, what a production review posts on a pull
+ * request, and - only on a repository that has them - the build and test
+ * commands an operator set before AI read how to build and test from the
+ * repository's own AGENTS.md. Code no longer asks for those commands: they
+ * are shown, run, and can be removed.
  */
 
 // What a repository holds that this page reads.
@@ -35,6 +44,7 @@ export interface CodeRepositorySettingsValues {
   setupCommand?: string | undefined | null;
   buildCommand?: string | undefined | null;
   testCommand?: string | undefined | null;
+  productionReviewPullRequestContent?: string | undefined | null;
 }
 
 // The label that hands an issue to the GitHub App when none is set.
@@ -71,7 +81,7 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   runnerCardTitle: translationKey("Runner"),
   runnerCardDescription: translationKey("Where AI works in this repository."),
   moreSettingsDescription: translationKey(
-    "Where AI's pull requests open, how many may be open at once, and the label that hands an issue to the GitHub App.",
+    "Where AI's pull requests open, how many may be open at once, the label that hands an issue to the GitHub App, and what production reviews post.",
   ),
   pullRequestsCardTitle: translationKey("Pull Requests"),
   pullRequestsCardDescription: translationKey(
@@ -142,8 +152,9 @@ export function getGitHubTriggerLabel(
 /*
  * What More settings lists while it is folded: its cards by name, and the
  * ones set to something other than their default with what they are set to
- * ("Pull Requests: Up to 3 open at once", "GitHub Trigger Label: ai-fix").
- * The commands card is listed only on a repository that has commands.
+ * ("Pull Requests: Up to 3 open at once", "GitHub Trigger Label: ai-fix",
+ * "Production Review Comment: Only a link to the review"). The commands
+ * card is listed only on a repository that has commands.
  */
 export function getRepositoryMoreSettingsItems(
   repository: CodeRepositorySettingsValues | null | undefined,
@@ -154,6 +165,8 @@ export function getRepositoryMoreSettingsItems(
   const hasCustomLabel: boolean =
     Boolean(label) &&
     label.toLowerCase() !== DEFAULT_GITHUB_TRIGGER_LABEL.toLowerCase();
+  const reviewContent: ProductionReviewPullRequestContent =
+    readProductionReviewContent(repository?.productionReviewPullRequestContent);
 
   const items: Array<FoldedSectionItem> = [
     {
@@ -183,6 +196,17 @@ export function getRepositoryMoreSettingsItems(
       title: CODE_REPOSITORY_SETTINGS_COPY.triggerLabelCardTitle,
       isSet: hasCustomLabel,
       ...(hasCustomLabel ? { value: label } : {}),
+    },
+    {
+      key: "production-review-comment",
+      title: PRODUCTION_REVIEW_SETTINGS_COPY.contentCardTitle,
+      isSet: reviewContent !== ProductionReviewPullRequestContent.Review,
+      ...(reviewContent !== ProductionReviewPullRequestContent.Review
+        ? {
+            value: PRODUCTION_REVIEW_CONTENT_COPY[reviewContent].title,
+            translateValue: true,
+          }
+        : {}),
     },
   ];
 

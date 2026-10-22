@@ -5,7 +5,8 @@ import Link from "Common/Types/Link";
 
 /*
  * Code's trails. A repository's pages sit under Repositories, where it is
- * listed: Project > Code > Repositories > the repository (> Settings) - so
+ * listed: Project > Code > Repositories > the repository (> Settings, >
+ * Production Reviews) - so
  * each crumb is the page above, and the repository's crumb, named by the
  * repository, opens its page. A task's page replaces its own with Code >
  * the repository > Task #42 once it has read the task
@@ -32,6 +33,10 @@ export function getCodeBreadcrumbs(path: string): Array<Link> | undefined {
       "Repository",
       "Settings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS,
+      ["Project", "Code", "Repositories", "Repository", "Production Reviews"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.CODE_REPOSITORY_VIEW_DELETE, [
       "Project",
       "Code",

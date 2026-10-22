@@ -87,6 +87,7 @@ export const CodeRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: `repositories/${RouteParams.ModelID}/production-reviews`,
   [PageMap.CODE_TASK_VIEW]: `tasks/${RouteParams.ModelID}`,
   [PageMap.CODE_TASK_VIEW_LOG]: `tasks/${RouteParams.ModelID}/log`,
 };
@@ -2892,6 +2893,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${
       CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]
     }`,
   ),
 

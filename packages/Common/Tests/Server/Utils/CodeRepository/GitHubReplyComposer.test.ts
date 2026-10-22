@@ -305,6 +305,14 @@ function everyComposerOutput(): Array<ComposedComment> {
         appSlug: APP_SLUG,
       }),
     },
+    {
+      method: "unsupportedOnSurface",
+      scenario: "a production review asked for on an issue",
+      body: GitHubReplyComposer.unsupportedOnSurface({
+        commandType: GitHubCommandType.ProductionReview,
+        appSlug: APP_SLUG,
+      }),
+    },
   ];
 }
 
@@ -1203,6 +1211,18 @@ describe("unsupportedOnSurface", () => {
     expect(body).not.toContain("I can only review");
   });
 
+  test("a production review asked for on an issue says it reviews pull requests against production", () => {
+    const body: string = GitHubReplyComposer.unsupportedOnSurface({
+      commandType: GitHubCommandType.ProductionReview,
+      appSlug: APP_SLUG,
+    });
+
+    expect(body).toContain(
+      "I can only review pull requests against production, and this is an issue. Run that command on a pull request.",
+    );
+    expect(body).not.toContain(`@${APP_SLUG}`);
+  });
+
   test("an implement asked for on a pull request redirects to revise or review", () => {
     const body: string = GitHubReplyComposer.unsupportedOnSurface({
       commandType: GitHubCommandType.Implement,
@@ -1265,6 +1285,7 @@ describe("help", () => {
    */
   test("really does print every command, mention and all", () => {
     expect(body).toContain(`@${APP_SLUG} review`);
+    expect(body).toContain(`@${APP_SLUG} production review`);
     expect(body).toContain(`@${APP_SLUG} revise this`);
     expect(body).toContain(`@${APP_SLUG} implement this`);
     expect(body).toContain(`@${APP_SLUG} status`);

@@ -240,6 +240,47 @@ export interface TraceAnalyticsTableRow {
 }
 
 /*
+ * Which operations of some services run which code: a sample of their
+ * recent spans that carry OpenTelemetry's code attributes (the file and the
+ * function a span was started in), grouped (getCodeLocationSample).
+ */
+export interface CodeLocationSampleRequest {
+  projectId: ObjectID;
+  startTime: Date;
+  endTime: Date;
+  serviceIds: Array<ObjectID>;
+  // The spans read at most, and the groups answered at most.
+  sampleSize: number;
+  limit: number;
+}
+
+export interface CodeLocationSampleRow {
+  serviceId: string;
+  // The span's name: the operation.
+  name: string;
+  // code.filepath, or the newer code.file.path.
+  filePath: string;
+  // code.function, or the newer code.function.name.
+  functionName: string;
+  // Spans of the sample in the group.
+  count: number;
+}
+
+// The attribute keys a span names its code with, older names first.
+export const CODE_FILE_PATH_ATTRIBUTE_KEYS: Array<string> = [
+  "code.filepath",
+  "code.file.path",
+];
+
+export const CODE_FUNCTION_ATTRIBUTE_KEYS: Array<string> = [
+  "code.function",
+  "code.function.name",
+];
+
+// How long the code location sample may read before it stops with an error.
+export const CODE_LOCATION_SAMPLE_TIME_LIMIT_IN_SECONDS: number = 20;
+
+/*
  * Per-service latency profile over a whole window (no time buckets). Only
  * the two aggregates proj_agg_by_service stores — see
  * getServiceLatencyProfile for why nothing else may be added here.
@@ -1657,6 +1698,130 @@ export class TraceAggregationService {
    * one 15-minute tick; false negatives are what we must not have.
    */
   private static readonly LATENCY_PROFILE_PARTIAL_ELAPSED_RATIO: number = 0.9;
+
+  /*
+   * Which operations of these services run which code, from their recent
+   * spans that say where they were started (code.filepath / code.file.path,
+   * code.function / code.function.name) - what a production review of a
+   * pull request matches the files and functions it changes against.
+   *
+   * Unattended, and asked for a repository at most every half hour, so it
+   * reads little: only granules that hold one of the keys (has() on
+   * attributeKeys is what idx_attribute_keys answers, so a project whose
+   * spans carry none reads almost nothing), at most `sampleSize` spans of
+   * them (no ORDER BY in the inner read, so ClickHouse stops as soon as it
+   * has them), four threads and small blocks, and it stops with an error
+   * at its time limit rather than answer with part of the groups.
+   */
+  @CaptureSpan()
+  public static async getCodeLocationSample(
+    request: CodeLocationSampleRequest,
+  ): Promise<Array<CodeLocationSampleRow>> {
+    if (request.serviceIds.length === 0) {
+      return [];
+    }
+
+    const statement: Statement =
+      TraceAggregationService.buildCodeLocationSampleStatement(request);
+
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || [])
+      .map((row: JSONObject): CodeLocationSampleRow => {
+        return {
+          serviceId: String(row["serviceId"] || "").toLowerCase(),
+          name: String(row["name"] || ""),
+          filePath: String(row["f1"] || row["f2"] || ""),
+          functionName: String(row["fn1"] || row["fn2"] || ""),
+          count: Number(row["cnt"] || 0),
+        };
+      })
+      .filter((row: CodeLocationSampleRow): boolean => {
+        return (
+          Boolean(row.serviceId) &&
+          Boolean(row.name) &&
+          (Boolean(row.filePath) || Boolean(row.functionName))
+        );
+      });
+  }
+
+  public static buildCodeLocationSampleStatement(
+    request: CodeLocationSampleRequest,
+  ): Statement {
+    const [oldFileKey, newFileKey] = CODE_FILE_PATH_ATTRIBUTE_KEYS as [
+      string,
+      string,
+    ];
+    const [oldFunctionKey, newFunctionKey] = CODE_FUNCTION_ATTRIBUTE_KEYS as [
+      string,
+      string,
+    ];
+
+    const statement: Statement = SQL`SELECT serviceId, name, f1, f2, fn1, fn2, count() AS cnt FROM (SELECT toString(primaryEntityId) AS serviceId, name, attributes[${{
+      type: TableColumnType.Text,
+      value: oldFileKey,
+    }}] AS f1, attributes[${{
+      type: TableColumnType.Text,
+      value: newFileKey,
+    }}] AS f2, attributes[${{
+      type: TableColumnType.Text,
+      value: oldFunctionKey,
+    }}] AS fn1, attributes[${{
+      type: TableColumnType.Text,
+      value: newFunctionKey,
+    }}] AS fn2 FROM ${TraceAggregationService.TABLE_NAME} WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: request.projectId,
+    }} AND startTime >= ${{
+      type: TableColumnType.Date,
+      value: request.startTime,
+    }} AND startTime <= ${{
+      type: TableColumnType.Date,
+      value: request.endTime,
+    }} AND (has(attributeKeys, ${{
+      type: TableColumnType.Text,
+      value: oldFileKey,
+    }}) OR has(attributeKeys, ${{
+      type: TableColumnType.Text,
+      value: newFileKey,
+    }}) OR has(attributeKeys, ${{
+      type: TableColumnType.Text,
+      value: oldFunctionKey,
+    }}) OR has(attributeKeys, ${{
+      type: TableColumnType.Text,
+      value: newFunctionKey,
+    }}))`;
+
+    TelemetryReadScopeUtil.appendServiceFilter(statement, {
+      serviceIds: request.serviceIds,
+    });
+
+    statement.append(TraceAggregationService.RETENTION_FILTER);
+
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: request.sampleSize,
+      }}) GROUP BY serviceId, name, f1, f2, fn1, fn2 ORDER BY cnt DESC LIMIT ${{
+        type: TableColumnType.Number,
+        value: request.limit,
+      }}`,
+    );
+
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: CODE_LOCATION_SAMPLE_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+        boundScanMemory: true,
+      }),
+    );
+
+    return statement;
+  }
 
   /**
    * Per-service span volume + p99 latency over the whole window, served by

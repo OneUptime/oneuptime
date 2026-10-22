@@ -41,6 +41,14 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "Common/Types/AI/CodeFixTaskType";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import {
+  PRODUCTION_REVIEW_LIMITS,
+  PRODUCTION_REVIEW_WINDOWS,
+  ProductionReviewPosting,
+  ProductionReviewPullRequestContent,
+  ProductionReviewSection,
+  ProductionReviewUtil,
+} from "Common/Types/CodeRepository/ProductionReview";
 import LlmType from "Common/Types/LLM/LlmType";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
@@ -1190,7 +1198,9 @@ describe("GitHub App", () => {
           ? "revise this"
           : verb === "implement"
             ? "implement this"
-            : verb,
+            : verb === "production"
+              ? "production review"
+              : verb,
       );
 
       for (const phrase of understood) {
@@ -1880,5 +1890,188 @@ describe("AI SRE and the infrastructure AI agents", () => {
     expect(
       flat(englishSection(INFRASTRUCTURE_AI_AGENTS, "## How it works")),
     ).toContain("The agent asks for<br/>work every 3 seconds");
+  });
+});
+
+/*
+ * The Code page's production review of pull requests, held to what the
+ * server does (Common/Server/Utils/CodeRepository/ProductionReview) and to
+ * the words Code draws: the switch and its default, the windows each part
+ * reads, OneUptime AI's daily reads, what a public repository's pull
+ * requests show, who starts a review on their own, and the command.
+ */
+describe("Production review of pull requests", () => {
+  const SECTION: string = "## Production review of pull requests";
+  const section: string = flat(englishSection(CODE_PAGE, SECTION));
+  const reads: Array<Array<string>> = tableWithHeader(
+    englishSection(CODE_PAGE, SECTION),
+    "It reads",
+  );
+
+  it("names the switch, the page, Review again and What to watch as Code draws them", () => {
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+    );
+    const menu: string = flat(
+      dashboardSource("Pages/Code/Repository/SideMenu.tsx"),
+    );
+
+    expect(copy).toContain(
+      'switchTitle: translationKey("Review Pull Requests Against Production"),',
+    );
+    expect(copy).toContain('pageTitle: translationKey("Production Reviews"),');
+    expect(copy).toContain('reviewAgain: translationKey("Review again"),');
+    expect(copy).toContain('pointsTitle: translationKey("What to watch"),');
+    expect(menu).toContain('title: "Production Reviews",');
+    expect(section).toContain(
+      `Turn on ${bold("Review Pull Requests Against Production")} on a repository's ${bold("Settings")} page in Code`,
+    );
+    expect(section).toContain(
+      `the repository's ${bold("Production Reviews")} page in Code keeps each review, with ${bold("Review again")}.`,
+    );
+    expect(section).toContain(
+      `adds ${bold("What to watch")}: a few short points`,
+    );
+  });
+
+  it("reads each part over the window the server reads it over", () => {
+    expect(PRODUCTION_REVIEW_WINDOWS).toEqual({
+      exceptionsDays: 7,
+      tracesHours: 1,
+      profilesHours: 1,
+      incidentsDays: 30,
+      deploysDays: 7,
+    });
+    expect(rowStartingWith(reads, bold("Exceptions"))[1]).toContain(
+      `in the last ${PRODUCTION_REVIEW_WINDOWS.exceptionsDays} days`,
+    );
+    expect(rowStartingWith(reads, bold("Operations"))[1]).toContain(
+      "in the last hour",
+    );
+    expect(rowStartingWith(reads, bold("Hot functions"))[1]).toContain(
+      "in the last hour",
+    );
+    expect(rowStartingWith(reads, bold("Incidents"))[1]).toContain(
+      `incidents of the last ${PRODUCTION_REVIEW_WINDOWS.incidentsDays} days`,
+    );
+    expect(rowStartingWith(reads, bold("Deploys"))[1]).toContain(
+      `deploys of the last ${PRODUCTION_REVIEW_WINDOWS.deploysDays} days`,
+    );
+    expect(Object.values(ProductionReviewSection).sort()).toEqual(
+      [
+        "Deploys",
+        "Exceptions",
+        "Incidents",
+        "Operations",
+        "Profiles",
+        "Services",
+      ].sort(),
+    );
+  });
+
+  it("holds OneUptime AI's reads to the server's daily limits, and only while AI is on", () => {
+    const runner: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+      ),
+    );
+
+    expect(PRODUCTION_REVIEW_LIMITS.maxAiReadsPerPullRequestPerDay).toBe(10);
+    expect(PRODUCTION_REVIEW_LIMITS.maxAiReadsPerRepositoryPerDay).toBe(100);
+    expect(runner).toContain("await AIService.isProjectAIEnabled(projectId)");
+    expect(section).toContain(
+      `It runs only while AI is on for the project, at most ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerPullRequestPerDay} times a day for a pull request and ${PRODUCTION_REVIEW_LIMITS.maxAiReadsPerRepositoryPerDay} for a repository`,
+    );
+    expect(section).toContain(
+      "When production shows nothing about the change, OneUptime posts nothing.",
+    );
+  });
+
+  it("posts only a link on a public repository unless the repository chose otherwise, in the words of its choice", () => {
+    const copy: string = flat(
+      dashboardSource("Components/Code/CodeProductionReviewCopy.ts"),
+    );
+
+    expect(
+      ProductionReviewUtil.getPosting({ content: undefined, isPublic: true }),
+    ).toBe(ProductionReviewPosting.Link);
+    expect(
+      ProductionReviewUtil.getPosting({ content: undefined, isPublic: false }),
+    ).toBe(ProductionReviewPosting.Review);
+    expect(
+      ProductionReviewUtil.getPosting({
+        content: ProductionReviewPullRequestContent.Link,
+        isPublic: false,
+      }),
+    ).toBe(ProductionReviewPosting.Link);
+    expect(
+      ProductionReviewUtil.getPosting({
+        content: ProductionReviewPullRequestContent.ReviewEvenIfPublic,
+        isPublic: true,
+      }),
+    ).toBe(ProductionReviewPosting.Review);
+
+    expect(copy).toContain(
+      'contentCardTitle: translationKey("Production Review Comment"),',
+    );
+    expect(copy).toContain(
+      'title: translationKey("Only a link to the review"),',
+    );
+    expect(copy).toContain(
+      'title: translationKey("The review, even on a public repository"),',
+    );
+    expect(section).toContain(
+      `${bold("Production Review Comment")}, under ${bold("More settings")} on the repository's ${bold("Settings")} page, can post ${bold("Only a link to the review")} everywhere, or ${bold("The review, even on a public repository")}.`,
+    );
+  });
+
+  it("reviews on its own only for people who can write to the repository; the command asks for anyone else", () => {
+    const trigger: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewGitHubTrigger.ts",
+      ),
+    );
+    const parser: string = flat(
+      readRepoFile(
+        "Common/Server/Utils/CodeRepository/GitHub/GitHubCommandParser.ts",
+      ),
+    );
+
+    expect(trigger).toContain('return notHandled("author-cannot-write");');
+    expect(trigger).toContain('return notHandled("sender-cannot-write");');
+    expect(trigger).toContain('return notHandled("bot-or-unknown-author");');
+    expect(parser).toContain('"production review",');
+    expect(section).toContain(
+      "A pull request is reviewed on its own only when its author, and whoever pushed to it, can write to the repository.",
+    );
+    expect(codeIn(section)).toContain("@oneuptime production review");
+  });
+
+  it("is on for repositories connected from now on, and off for those connected before it", () => {
+    const service: string = flat(
+      readRepoFile("Common/Server/Services/CodeRepositoryService.ts"),
+    );
+    const model: string = flat(
+      readRepoFile("Common/Models/DatabaseModels/CodeRepository.ts"),
+    );
+
+    expect(service).toContain("isProductionReviewEnabled: true,");
+    expect(model).toContain(
+      "public isProductionReviewEnabled?: boolean = undefined;",
+    );
+    expect(section).toContain(
+      "The switch is on for the repositories the GitHub App connects from now on. A repository connected before it existed keeps it off until you turn it on.",
+    );
+  });
+
+  it("the GitHub App page names the command and sends people to this section", () => {
+    const app: string = flat(englishPage(GITHUB_APP));
+
+    expect(app).toContain(
+      "| `@oneuptime production review` | Reviews the pull request against production now, whoever opened it",
+    );
+    expect(app).toContain(
+      `turn on ${bold("Review Pull Requests Against Production")} in the repository's settings: see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).`,
+    );
   });
 });

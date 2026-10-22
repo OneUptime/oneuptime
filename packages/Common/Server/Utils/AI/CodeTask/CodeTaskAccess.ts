@@ -58,6 +58,8 @@ export const CODE_TASK_REPOSITORY_SELECT: Select<CodeRepository> = {
   mainBranchName: true,
   repositoryUrl: true,
   createdAt: true,
+  isProductionReviewEnabled: true,
+  isGitHubCommandsEnabled: true,
 };
 
 // At most this many repositories are listed on Code's first page.

@@ -14,6 +14,7 @@ OneUptime GitHub App 不只是與你程式碼的一個連線：你可以在儲�
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ flowchart TB
 | 命令 | 會發生什麼 | 同樣能理解 |
 | --- | --- | --- |
 | `@oneuptime review` | 複製分支，讀取變更的程式碼及其周圍的程式碼，檢查正式環境對這些程式碼說明了什麼，並以留言形式發布審查。不做任何變更。 | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | 無論拉取請求由誰開啟，立即根據正式環境審查它：已變更程式碼周圍的例外、操作、事件和部署，放在一則原地更新的留言中（請參閱 [拉取請求的正式環境審查](/docs/ai/ai-agent#拉取請求的正式環境審查)）。不複製任何內容，也不執行任何內容。 | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | 複製拉取請求自己的分支，做出變更，並向該分支推送新的提交。從不開啟第二個拉取請求。 | `revise`, `please revise`, `rework`, `redo` |
 
 你在提及之後寫的任何不屬於已知命令的內容，都會被當作修訂請求，因為它幾乎總是如此：
@@ -100,6 +102,8 @@ OneUptime 掌握著它所審查的程式碼的遙測，因此審查能說出只�
 
 它不需要任何設定：這些服務就是 OneUptime 為此儲存庫找到的服務，與它為修正所做的一樣（請參閱 [修正中的正式環境遙測](/docs/ai/ai-agent#修正中的正式環境遙測)）。這些查詢是唯讀的，在 OneUptime 伺服器上執行，不會讀取其他服務、專案或私人事件的任何內容。如果儲存庫的服務沒有向專案傳送遙測，就只根據它的程式碼進行審查。
 
+要讓每個拉取請求都自動根據正式環境接受審查，請在儲存庫設定中開啟 **根據正式環境審查拉取請求**：請參閱 [拉取請求的正式環境審查](/docs/ai/ai-agent#拉取請求的正式環境審查)。
+
 ## 誰可以向它下達命令
 
 **只有對儲存庫擁有 write、maintain 或 admin 權限的人。** OneUptime 每次都會向 GitHub 查詢留言者在該儲存庫上的權限；它不信任 GitHub 在留言旁顯示的 "contributor" 徽章，因為該徽章描述的是過去的活動，而不是目前的權限。
@@ -142,7 +146,7 @@ GitHub 命令是事件和警示之外的 AI 工作，因此不適用每日修正
 | --- | --- |
 | **Issue comment** | issue 和拉取請求上的 `@mention` 命令 |
 | **Issues** | 把 issue 指派給應用程式，以及觸發標籤 |
-| **Pull request** | 向應用程式要求的審查 |
+| **Pull request** | 向應用程式要求的審查，以及拉取請求開啟和變更時的正式環境審查 |
 | **Pull request review** | 已提交審查內文中的提及 |
 | **Pull request review comment** | diff 行內留言中的提及 |
 

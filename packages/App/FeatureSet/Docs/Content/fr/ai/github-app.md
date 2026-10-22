@@ -14,6 +14,7 @@ La GitHub App de OneUptime est plus qu'une connexion à votre code : vous pouvez
 @oneuptime implement this                          →  a pull request that closes the issue
 @oneuptime revise this — use exponential backoff   →  new commits on this pull request's branch
 @oneuptime review                                  →  a code review posted on this pull request
+@oneuptime production review                       →  what production shows of the changed code
 ```
 
 > [!NOTE]
@@ -47,6 +48,7 @@ Chaque commande commence par une mention de l'app. La mention peut se trouver n'
 | Commande | Ce qui se passe | Également comprise |
 | --- | --- | --- |
 | `@oneuptime review` | Clone la branche, lit le code modifié et le code qui l'entoure, vérifie ce qu'en dit la production, et publie une relecture sous forme de commentaire. Ne change rien. | `code review`, `please review`, `can you review`, `review this` |
+| `@oneuptime production review` | Relit maintenant la pull request au regard de la production, quel que soit son auteur : les exceptions, opérations, incidents et déploiements autour du code modifié, dans un seul commentaire modifié sur place (voir [Revue de production des pull requests](/docs/ai/ai-agent#revue-de-production-des-pull-requests)). Ne clone rien et n'exécute rien. | `review against production`, `review production`, `check production` |
 | `@oneuptime revise this — <what you want changed>` | Clone la branche de la pull request elle-même, fait la modification et pousse de nouveaux commits sur cette branche. N'ouvre jamais une deuxième pull request. | `revise`, `please revise`, `rework`, `redo` |
 
 Tout ce que vous écrivez après la mention et qui n'est pas une commande connue est lu comme une demande de révision, car c'est presque toujours ce dont il s'agit :
@@ -100,6 +102,8 @@ Ce qu'il trouve figure sous un titre **Production context** de la relecture, cha
 
 Il n'y a rien à configurer : les services sont ceux pour lesquels OneUptime trouve ce dépôt, comme il le fait pour une correction (voir [Télémétrie de production dans une correction](/docs/ai/ai-agent#télémétrie-de-production-dans-une-correction)). Les requêtes sont en lecture seule, s'exécutent sur le serveur OneUptime et ne lisent rien d'un autre service, d'un autre projet ni d'un incident privé. Un dépôt dont les services n'envoient aucune télémétrie au projet est relu à partir de son seul code.
 
+Pour que chaque pull request soit relue d'elle-même au regard de la production, activez **Relire les demandes de tirage au regard de la production** dans les paramètres du dépôt : voir [Revue de production des pull requests](/docs/ai/ai-agent#revue-de-production-des-pull-requests).
+
 ## Qui peut lui donner des ordres
 
 **Seules les personnes ayant un accès write, maintain ou admin au dépôt.** OneUptime demande à chaque fois à GitHub l'autorisation de l'auteur du commentaire sur ce dépôt ; il ne se fie pas au badge "contributor" que GitHub affiche à côté d'un commentaire, qui décrit une activité passée plutôt qu'un accès actuel.
@@ -142,7 +146,7 @@ Dans les paramètres **Permissions & events** de votre GitHub App, abonnez-vous 
 | --- | --- |
 | **Issue comment** | les commandes `@mention` dans les issues et les pull requests |
 | **Issues** | l'assignation d'une issue à l'app, et l'étiquette de déclenchement |
-| **Pull request** | une relecture demandée à l'app |
+| **Pull request** | une relecture demandée à l'app, et les revues de production des pull requests quand elles s'ouvrent et changent |
 | **Pull request review** | une mention dans le corps d'une relecture soumise |
 | **Pull request review comment** | une mention dans un commentaire en ligne sur le diff |
 

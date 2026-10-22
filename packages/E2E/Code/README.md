@@ -70,6 +70,13 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- a repository's pull requests reviewed against production: Production
+  Reviews (on, or off with the GitHub command that asks for one), each pull
+  request's review with every part of production linked into OneUptime,
+  Review again keeping the last review until the new one is in, a read-only
+  member, and the setting - one switch, and Production Review Comment under
+  More settings (`?review=off|unset`, `?reviews=none`,
+  `?reviewcomment=Link|ReviewEvenIfPublic`);
 - the old addresses forwarding with their ids, query strings and hashes, and
   GitHub's way back still saying GitHub connected;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
@@ -77,6 +84,7 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
-`lists`), so the tests check what was sent as well as what was drawn. The
+`lists`, `reviewLists`, `reviewAgains`), so the tests check what was sent as
+well as what was drawn. The
 query string steers the fixture; `Fixture/Fixture.js` lists every switch.
 Screenshots go to `output/playwright/code-ui/`.

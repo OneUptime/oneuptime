@@ -19,12 +19,12 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * so each is added without rewriting its table, and nothing is backfilled.
  * The index the worker reads the running clocks through is on a table that
  * already holds rows, so it is built online, in the migration registered
- * right after this one: AddOnCallAcknowledgementTimeoutIndex1805930000000.
+ * right after this one: AddOnCallAcknowledgementTimeoutIndex1805970000000.
  */
-export class AddOnCallAcknowledgementTimeout1805920000000
+export class AddOnCallAcknowledgementTimeout1805960000000
   implements MigrationInterface
 {
-  public name: string = "AddOnCallAcknowledgementTimeout1805920000000";
+  public name: string = "AddOnCallAcknowledgementTimeout1805960000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
