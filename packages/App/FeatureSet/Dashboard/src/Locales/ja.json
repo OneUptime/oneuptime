@@ -33008,5 +33008,8 @@
   "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.": "これらの状態にあるメンテナンスイベントはその状態のままで、履歴にも表示され続けます。再び選択することはできません。",
   "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.": "これらのステータスのモニターは、ステータスが変わるまでそのままです。再び選択することはできません。",
   "People who hold these roles on incidents keep them. Nobody can be given them again.": "インシデントでこれらのロールを担当している人はそのまま保持します。新たに割り当てることはできません。",
-  "These keep using it until you change them:": "次の項目は、変更するまでこれを使い続けます:"
+  "These keep using it until you change them:": "次の項目は、変更するまでこれを使い続けます:",
+  "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI は、どの MCP サーバーと接続済みリポジトリでも使えます。",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI は、どの Runbook、MCP サーバー、接続済みリポジトリでも使え、そのリポジトリにプルリクエストを作成できます。",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI は、どの Runbook、MCP サーバー、接続済みリポジトリでも使えます。"
 }

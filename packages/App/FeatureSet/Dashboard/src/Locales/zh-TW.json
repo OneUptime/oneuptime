@@ -33008,5 +33008,8 @@
   "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.": "處於這些狀態的維護事件會維持該狀態，歷程記錄中也仍會顯示。任何人都無法再選擇它們。",
   "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.": "處於這些狀態的監測器會維持該狀態，直到其狀態改變。任何人都無法再選擇它們。",
   "People who hold these roles on incidents keep them. Nobody can be given them again.": "在事件中擔任這些角色的人員會保留它們。任何人都無法再被指派這些角色。",
-  "These keep using it until you change them:": "以下項目會繼續使用它，直到您變更它們："
+  "These keep using it until you change them:": "以下項目會繼續使用它，直到您變更它們：",
+  "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何 MCP 伺服器和已連線的儲存庫。",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI 可以使用您的任何運行手冊、MCP 伺服器和已連線的儲存庫，並在這些儲存庫中開啟 Pull Request。",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI 可以使用您的任何運行手冊、MCP 伺服器和已連線的儲存庫。"
 }

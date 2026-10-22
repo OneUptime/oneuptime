@@ -81,7 +81,7 @@ Para que OneUptime AI deje de usar un servidor, desactiva **Permitir que OneUpti
 
 ## Elegir los servidores que puede usar una regla
 
-Las reglas de investigación y las reglas de autorremediación pueden nombrar cada una los servidores MCP que OneUptime AI puede usar para lo que coincide con ellas. El campo es **Servidores MCP**, en **Más campos**. Hasta que eliges algunos, la sección plegada dice **OneUptime AI puede usar todos tus servidores MCP.**
+Las reglas de investigación y las reglas de autorremediación pueden nombrar cada una los servidores MCP que OneUptime AI puede usar para lo que coincide con ellas. El campo es **Servidores MCP**, en **Más campos**. Hasta que eliges algunos, OneUptime AI puede usarlos todos, y la sección plegada lo dice.
 
 - **Ninguno elegido**: todos los servidores activados del proyecto.
 - **Algunos elegidos**: solo esos. En una regla de autorremediación que corrige sin preguntar, nombrar sus servidores es también lo que permite a OneUptime AI hacer sus cambios sin preguntar.

@@ -397,12 +397,30 @@ export function hasRuleMcpServers(values: unknown): boolean {
 }
 
 /*
+ * What an investigation rule's folded More fields says while it names no
+ * MCP server and no code repository, as a new rule does: both defaults in
+ * one sentence.
+ */
+export const INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES: {
+  everything: string;
+} = {
+  everything: translationKey(
+    "OneUptime AI may use any of your MCP servers and connected repositories.",
+  ),
+};
+
+/*
  * The sentences an investigation rule's folded More fields says while it
- * names no MCP server, and no code repository: what each default does.
+ * names no MCP server, or no code repository: what each default does - one
+ * sentence while it keeps both.
  */
 export function getInvestigationRuleMoreFieldsSummary(
   values: unknown,
 ): Array<string> | undefined {
+  if (!hasRuleMcpServers(values) && !hasRuleCodeRepositories(values)) {
+    return [INVESTIGATION_RULE_MORE_FIELDS_SUMMARIES.everything];
+  }
+
   const sentences: Array<string> = [];
 
   if (!hasRuleMcpServers(values)) {

@@ -13,10 +13,11 @@ import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { readCodeRepositoryIds } from "Common/Types/CodeRepository/CodeRepositoryAllowance";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import Dropdown, {
+import {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import EntityDropdown from "Common/UI/Components/EntityDropdown/EntityDropdown";
 import Link from "Common/UI/Components/Link/Link";
 import Skeleton from "Common/UI/Components/Skeleton/Skeleton";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -36,6 +37,10 @@ import React, {
  * may use for what the rule matches. Empty is an answer of its own, "All
  * connected repositories", so it is drawn as the placeholder and never as
  * "(Optional)".
+ *
+ * It is drawn as the Runbooks and MCP Servers pickers beside it are
+ * (EntityDropdown): the repositories picked as chips over a search box, and
+ * a menu that lists each by name with GitHub's organization/name beside it.
  *
  * It reads the project's repositories itself rather than through the form's
  * dropdown loader: Code's repositories are a paid feature on OneUptime
@@ -129,10 +134,13 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
     props.dataTestId || RULE_CODE_REPOSITORIES_PICKER_TEST_ID;
 
   if (!repositories) {
-    // The menu's own height, so the fields below do not jump when it arrives.
+    /*
+     * The box's own place and height (EntityDropdown's), so the fields
+     * below do not jump when it arrives.
+     */
     return (
       <Skeleton
-        className="h-10 w-full rounded-md"
+        className="mt-2 mb-1 h-[38px] w-full rounded-lg"
         dataTestId={RULE_CODE_REPOSITORIES_LOADING_TEST_ID}
       />
     );
@@ -144,12 +152,16 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
     choice: RuleCodeRepositoryChoice,
   ): DropdownOption => {
     return {
-      value: choice.id,
+      // As the rule holds its ids: lower-cased (readCodeRepositoryIds).
+      value: choice.id.toLowerCase(),
+      /*
+       * A repository's name is drawn as it is called (EntityDropdown never
+       * looks a label up); the words for one the reader may not read are
+       * translated here.
+       */
       label: choice.isHidden
         ? translator.translateText(choice.name) || choice.name
         : choice.name,
-      // A repository's name is drawn as it is called.
-      isUserContent: true,
       ...(choice.fullName ? { description: choice.fullName } : {}),
     };
   };
@@ -160,17 +172,20 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
     hiddenLabel: RULE_CODE_REPOSITORIES_FIELD_COPY.hiddenRepository,
   }).map(toOption);
 
-  const selected: Array<DropdownOption> = options.filter(
-    (option: DropdownOption): boolean => {
-      return pickedIds.includes(String(option.value).toLowerCase());
-    },
-  );
+  // The repositories picked, as chips in the list's order: by name, hidden last.
+  const selectedIds: Array<string> = options
+    .filter((option: DropdownOption): boolean => {
+      return pickedIds.includes(String(option.value));
+    })
+    .map((option: DropdownOption): string => {
+      return String(option.value);
+    });
 
   return (
     <div data-testid={dataTestId}>
-      <Dropdown
+      <EntityDropdown
         options={options}
-        value={selected}
+        value={selectedIds}
         isMultiSelect={true}
         placeholder={RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}
         dataTestId={`${dataTestId}-dropdown`}
@@ -200,7 +215,8 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
 
 /*
  * Under the field: where the repositories it lists are connected, as a
- * link - so a project with none yet finds the page.
+ * link - so a project with none yet finds the page. Close under its box
+ * and a field's gap above the next field, as the MCP Servers hint is.
  */
 export const RuleCodeRepositoriesFieldHint: FunctionComponent =
   (): ReactElement => {
@@ -208,7 +224,7 @@ export const RuleCodeRepositoriesFieldHint: FunctionComponent =
 
     return (
       <p
-        className="mt-1.5 text-xs text-gray-500"
+        className="mt-1.5 mb-2 text-xs text-gray-500"
         data-testid={RULE_CODE_REPOSITORIES_HINT_TEST_ID}
       >
         <TranslatedSentence

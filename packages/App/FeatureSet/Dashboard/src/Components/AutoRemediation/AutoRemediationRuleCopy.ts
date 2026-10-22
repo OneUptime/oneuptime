@@ -229,16 +229,27 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
 };
 
 /*
- * What More fields' defaults do, under its folded line: one sentence for
- * each default left as it is - any runbook, every MCP server, every
- * connected repository (and the pull requests opened in them). Nothing for
+ * What More fields' defaults do, under its folded line. A new rule keeps
+ * them all - any runbook, every MCP server, every connected repository and
+ * the pull requests opened in them - and that is said in one sentence: the
+ * fold is the form's quietest line, and three sentences that each began
+ * "OneUptime AI may" took more room than the fields they stood for. Once
+ * some are set, one sentence for each default left as it is; nothing for
  * what is set: the line names it.
  */
 export const AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES: {
+  everythingAndPullRequests: string;
+  everything: string;
   anyRunbook: string;
   allRepositoriesAndPullRequests: string;
   allRepositories: string;
 } = {
+  everythingAndPullRequests: translationKey(
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.",
+  ),
+  everything: translationKey(
+    "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.",
+  ),
   anyRunbook: translationKey("OneUptime AI may run any of your runbooks."),
   allRepositoriesAndPullRequests: translationKey(
     "OneUptime AI may read all connected repositories, and open pull requests in them.",
@@ -403,34 +414,47 @@ export function hasRuleRunner(
 /*
  * The sentences under More fields while it is folded: what the defaults
  * left do - any runbook, every MCP server, every connected repository and
- * the pull requests opened in them. A rule that runs its runbooks every
- * time, or one saved before rules were simplified, has no runbook or MCP
- * default to describe (its fields say what it does); the repositories and
- * pull requests are every rule's.
+ * the pull requests opened in them; one sentence while a rule keeps them
+ * all, as a new rule does. A rule that runs its runbooks every time, or one
+ * saved before rules were simplified, has no runbook or MCP default to
+ * describe (its fields say what it does); the repositories and pull
+ * requests are every rule's.
  */
 export function getAutoRemediationMoreFieldsSummary(
   values: FormValues<AutoRemediationRule>,
 ): Array<string> | undefined {
-  const sentences: Array<string> = [];
   const isAiFix: boolean =
     !isRunbooksEveryTime(values) && !isOlderAutoRemediationRule(values);
+  const isAnyRunbook: boolean = isAiFix && !hasRuleRunbooks(values);
+  const isEveryMcpServer: boolean = isAiFix && !hasRuleMcpServers(values);
+  const isEveryRepository: boolean = !hasRuleCodeRepositories(values);
+  const opensPullRequests: boolean =
+    doesEditedRuleOpenPullRequest(values, AutomaticFixPullRequest.CodeFix) ||
+    doesEditedRuleOpenPullRequest(
+      values,
+      AutomaticFixPullRequest.MissingTelemetry,
+    );
 
-  if (isAiFix && !hasRuleRunbooks(values)) {
+  // Every default kept, as a new rule does: one sentence says it.
+  if (isAnyRunbook && isEveryMcpServer && isEveryRepository) {
+    return [
+      opensPullRequests
+        ? AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everythingAndPullRequests
+        : AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.everything,
+    ];
+  }
+
+  const sentences: Array<string> = [];
+
+  if (isAnyRunbook) {
     sentences.push(AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.anyRunbook);
   }
 
-  if (isAiFix && !hasRuleMcpServers(values)) {
+  if (isEveryMcpServer) {
     sentences.push(RULE_MCP_SERVERS_FIELD_COPY.allServersSummary);
   }
 
-  if (!hasRuleCodeRepositories(values)) {
-    const opensPullRequests: boolean =
-      doesEditedRuleOpenPullRequest(values, AutomaticFixPullRequest.CodeFix) ||
-      doesEditedRuleOpenPullRequest(
-        values,
-        AutomaticFixPullRequest.MissingTelemetry,
-      );
-
+  if (isEveryRepository) {
     sentences.push(
       opensPullRequests
         ? AUTO_REMEDIATION_MORE_FIELDS_SUMMARIES.allRepositoriesAndPullRequests

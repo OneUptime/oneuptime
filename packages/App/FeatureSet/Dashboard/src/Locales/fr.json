@@ -33008,5 +33008,8 @@
   "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.": "Les événements de maintenance dans ces états y restent, et leur historique les affiche toujours. Personne ne peut plus les choisir.",
   "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.": "Les moniteurs avec ces statuts les gardent jusqu'à ce que leur statut change. Personne ne peut plus les choisir.",
   "People who hold these roles on incidents keep them. Nobody can be given them again.": "Les personnes qui occupent ces rôles sur des incidents les conservent. Personne ne peut plus les recevoir.",
-  "These keep using it until you change them:": "Ces éléments continuent à l'utiliser tant que vous ne les modifiez pas :"
+  "These keep using it until you change them:": "Ces éléments continuent à l'utiliser tant que vous ne les modifiez pas :",
+  "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI peut utiliser tous vos serveurs MCP et dépôts connectés.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI peut utiliser tous vos runbooks, serveurs MCP et dépôts connectés, et y ouvrir des pull requests.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI peut utiliser tous vos runbooks, serveurs MCP et dépôts connectés."
 }

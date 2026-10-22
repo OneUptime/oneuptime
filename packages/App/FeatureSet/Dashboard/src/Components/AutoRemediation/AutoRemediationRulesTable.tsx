@@ -23,10 +23,19 @@ import Runbook from "Common/Models/DatabaseModels/Runbook";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
-import { AutoRemediationFixKind } from "Common/Types/AutoRemediation/AutoRemediationFix";
+import {
+  AutoRemediationFixKind,
+  getRuleRunnerId,
+} from "Common/Types/AutoRemediation/AutoRemediationFix";
+import { getRunnerLiveStatusLabel } from "Common/Types/Runner/RunnerLiveStatus";
 import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  MutableRefObject,
+  ReactElement,
+  useRef,
+} from "react";
 import {
   AI_LANE_ADVANCED_CARD_TITLES,
   AI_LANE_REMEDIATION_RULES_TABLE_ID,
@@ -72,7 +81,12 @@ import {
   RuleCodeRepositoriesPicker,
 } from "../Code/RuleCodeRepositoriesField";
 import { RunnerChoices } from "../Runner/RunnerChoices";
-import { getNewRuleRunnerId } from "../Runner/RunnerPickerModel";
+import {
+  CODE_HIDDEN_RUNNER_LABEL,
+  RuleRunnerFoldedValue,
+  getNewRuleRunnerId,
+  getRuleRunnerFoldedValue,
+} from "../Runner/RunnerPickerModel";
 
 export interface ComponentProps {
   lane: AiLane;
@@ -230,6 +244,49 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
   const newRuleRunnerId: string | undefined = runnerChoices
     ? getNewRuleRunnerId(runnerChoices.projectRunners)
     : undefined;
+
+  /*
+   * The same Runners, for the folded More fields line to name the rule's
+   * pick by. Read through a ref: a form may hold on to the fields it was
+   * opened with, and the line must name the Runners as last read.
+   */
+  const runnerChoicesRef: MutableRefObject<RunnerChoices | null> =
+    useRef<RunnerChoices | null>(runnerChoices);
+  runnerChoicesRef.current = runnerChoices;
+
+  // "Runner: prod-eu-runner" - or with " · Disconnected" when it is not connected.
+  const getRunnerFoldedValue: (
+    values: FormValues<AutoRemediationRule>,
+  ) => string | null = (
+    values: FormValues<AutoRemediationRule>,
+  ): string | null => {
+    const folded: RuleRunnerFoldedValue | undefined = getRuleRunnerFoldedValue({
+      runnerId: getRuleRunnerId({
+        runnerId: (values as { runnerId?: unknown }).runnerId,
+      }),
+      projectRunners: runnerChoicesRef.current
+        ? runnerChoicesRef.current.projectRunners
+        : null,
+    });
+
+    if (!folded) {
+      return null;
+    }
+
+    if (folded.isHidden) {
+      return (
+        translateText(CODE_HIDDEN_RUNNER_LABEL) || CODE_HIDDEN_RUNNER_LABEL
+      );
+    }
+
+    if (!folded.notConnectedStatus) {
+      return folded.name;
+    }
+
+    const status: string = getRunnerLiveStatusLabel(folded.notConnectedStatus);
+
+    return `${folded.name} · ${translateText(status) || status}`;
+  };
 
   return (
     <ModelTable<AutoRemediationRule>
@@ -613,6 +670,11 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           hideColumnDescription: true,
           ...(newRuleRunnerId ? { defaultValue: newRuleRunnerId } : {}),
           dataTestId: "auto-remediation-runner-field",
+          /*
+           * Named with the Runner it picks, the project's default included -
+           * where the rule's commands run is never hidden by the fold.
+           */
+          getFoldedValue: getRunnerFoldedValue,
           /*
            * A rule that runs its runbooks every time composes no commands,
            * nor does an older rule that picks a runbook.

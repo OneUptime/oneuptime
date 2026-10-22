@@ -33008,5 +33008,8 @@
   "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.": "이 상태에 있는 유지 관리 이벤트는 그대로 유지되며, 기록에도 계속 표시됩니다. 다시 선택할 수는 없습니다.",
   "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.": "이 상태의 모니터는 상태가 바뀔 때까지 그대로 유지됩니다. 다시 선택할 수는 없습니다.",
   "People who hold these roles on incidents keep them. Nobody can be given them again.": "인시던트에서 이 역할을 맡은 사람은 그대로 유지합니다. 다시 지정할 수는 없습니다.",
-  "These keep using it until you change them:": "다음 항목은 변경하기 전까지 계속 이를 사용합니다:"
+  "These keep using it until you change them:": "다음 항목은 변경하기 전까지 계속 이를 사용합니다:",
+  "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI는 모든 MCP 서버와 연결된 저장소를 사용할 수 있습니다.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI는 모든 런북, MCP 서버, 연결된 저장소를 사용하고 그 저장소에 풀 리퀘스트를 열 수 있습니다.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI는 모든 런북, MCP 서버, 연결된 저장소를 사용할 수 있습니다."
 }

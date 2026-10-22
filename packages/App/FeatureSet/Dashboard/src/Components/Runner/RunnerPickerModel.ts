@@ -912,6 +912,63 @@ export function getNewRuleRunnerId(
   })?.id;
 }
 
+/*
+ * What a rule's folded More fields line says after "Runner": the Runner the
+ * rule picks - the project's default a new rule starts on included - by
+ * name, with how it is doing when it is not connected, so where its Bash
+ * commands run is read without opening the fold, as a runbook step's is
+ * ("More fields · Runbooks, Runner: prod-eu-runner, ..."). Undefined while
+ * it picks none - "No Runner", the field's empty answer - or while the
+ * Runners are not read yet. A pick the reader was not shown is hidden: the
+ * line names it as one they do not have access to.
+ */
+export interface RuleRunnerFoldedValue {
+  isHidden: boolean;
+  // The Runner's own name, drawn as named; empty for a hidden one.
+  name: string;
+  // Set only when it is not connected now.
+  notConnectedStatus?: RunnerLiveStatus | undefined;
+}
+
+export function getRuleRunnerFoldedValue(data: {
+  // The rule's pick, as the form holds it (getRuleRunnerId).
+  runnerId: string;
+  // The project's own Runners, or null while they are read.
+  projectRunners: Array<RunnerPickerRunner> | null;
+}): RuleRunnerFoldedValue | undefined {
+  if (!data.runnerId || !data.projectRunners) {
+    return undefined;
+  }
+
+  // A rule's picker reads its own Runners only: no step, no global Runner.
+  const model: RunnerPickerModel = buildRunnerPickerModel({
+    work: RunnerPickerWork.AutoRemediation,
+    stepType: "",
+    currentRunnerId: data.runnerId,
+    projectRunners: data.projectRunners,
+    globalRunners: [],
+    projectUsesGlobalRunners: false,
+  });
+
+  if (model.outcome === RunnerPickerOutcome.UnknownRunner) {
+    return { isHidden: true, name: "" };
+  }
+
+  if (!model.selected) {
+    return undefined;
+  }
+
+  const liveStatus: RunnerLiveStatus | undefined = model.selected.liveStatus;
+
+  return {
+    isHidden: false,
+    name: model.selected.name,
+    ...(liveStatus && liveStatus !== RunnerLiveStatus.Connected
+      ? { notConnectedStatus: liveStatus }
+      : {}),
+  };
+}
+
 // Whether the picker has a choice that can be picked: else it says what to do.
 export function hasPickableOption(model: RunnerPickerModel): boolean {
   return model.options.some((option: RunnerPickerOption): boolean => {

@@ -33008,5 +33008,8 @@
   "Maintenance events in these states stay in them, and their history still shows them. Nobody can pick them again.": "Vedlikeholdshendelser i disse statusene blir i dem, og historikken deres viser dem fortsatt. Ingen kan velge dem igjen.",
   "Monitors in these statuses stay in them until their status changes. Nobody can pick them again.": "Monitorer i disse statusene blir i dem til statusen deres endres. Ingen kan velge dem igjen.",
   "People who hold these roles on incidents keep them. Nobody can be given them again.": "De som har disse rollene på hendelser, beholder dem. Ingen kan få dem igjen.",
-  "These keep using it until you change them:": "Disse fortsetter å bruke den til du endrer dem:"
+  "These keep using it until you change them:": "Disse fortsetter å bruke den til du endrer dem:",
+  "OneUptime AI may use any of your MCP servers and connected repositories.": "OneUptime AI kan bruke alle MCP-servere og tilkoblede repositorier du har.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories, and open pull requests in them.": "OneUptime AI kan bruke alle runbooks, MCP-servere og tilkoblede repositorier du har, og åpne pull-forespørsler i dem.",
+  "OneUptime AI may use any of your runbooks, MCP servers and connected repositories.": "OneUptime AI kan bruke alle runbooks, MCP-servere og tilkoblede repositorier du har."
 }

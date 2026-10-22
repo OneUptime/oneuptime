@@ -116,10 +116,13 @@ export const AutoRemediationRunnerPicker: FunctionComponent<
   const choices: RunnerChoices | null = useAutoRemediationRunnerChoices();
 
   if (!choices) {
-    // The menu's own height, so the fields below do not jump when it arrives.
+    /*
+     * The menu's own place and height, so the fields below do not jump
+     * when it arrives.
+     */
     return (
       <Skeleton
-        className="h-10 w-full rounded-md"
+        className="mt-2 mb-1 h-10 w-full rounded-lg"
         dataTestId={AUTO_REMEDIATION_RUNNER_LOADING_TEST_ID}
       />
     );
