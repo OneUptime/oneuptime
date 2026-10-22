@@ -12,10 +12,18 @@ import {
   DETECTION_MATCH_COUNT_THRESHOLD_MIN,
   DETECTION_MAX_GROUPS_PER_EVALUATION,
   DETECTION_MAX_LOOKBACK_IN_MINUTES,
+  DETECTION_CORRELATION_TYPE_ATTRIBUTE,
   DETECTION_RULE_ID_ATTRIBUTE,
   DETECTION_RULE_NAME_ATTRIBUTE,
   DETECTION_SIGMA_ID_ATTRIBUTE,
+  DETECTION_SUMMARY_ATTRIBUTE,
 } from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import {
+  SIGMA_CORRELATION_MAX_GROUP_BY_FIELDS,
+  SIGMA_CORRELATION_MAX_TEMPORAL_RULES,
+  SIGMA_CORRELATION_MIN_TEMPORAL_RULES,
+  SIGMA_UNSUPPORTED_CORRELATION_TYPES,
+} from "Common/Types/SecurityEvent/SigmaCorrelation";
 import {
   SIGMA_DEFAULT_LEVEL,
   SIGMA_LEVEL_TO_OCSF_SEVERITY,
@@ -25,6 +33,8 @@ import {
 import {
   SecurityEventsGuide,
   SecurityEventsGuideLevel,
+  SecurityEventsGuideTemplate,
+  fillGuideTemplate,
   markdownTable,
 } from "./SecurityEventsGuide";
 
@@ -113,6 +123,70 @@ export const SIGMA_SELECTIONS_EXAMPLE_YAML: string = `detection:
     - 'password spray'
     - 'credential stuffing'
   condition: selection_logon and (selection_admin or keywords)`;
+
+/*
+ * The correlation the guide walks through: the Sigma correlation
+ * specification's own example, in OneUptime's fields. Exported so a test
+ * parses it the way a save does.
+ */
+export const CORRELATION_RULE_EXAMPLE_YAML: string = `title: Failed sign-ins, then a success
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection`;
+
+// A first-seen rule: a sign-in from an address the account never used.
+export const NEW_VALUE_RULE_EXAMPLE_YAML: string = `title: Sign-in from a new address
+correlation:
+  type: new_value
+  rules:
+    - successful_sign_in
+  group-by:
+    - principalUser
+  timespan: 14d
+  condition:
+    field: principalIp
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection`;
 
 export interface SigmaModifierDoc {
   modifier: string;
@@ -384,9 +458,12 @@ This rule matches failed authentication events from any IP outside \`10.x.x.x\`.
 
 | Column | What it tells you |
 | --- | --- |
-| **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
+| **Type** | **Single event**, or a correlation's kind: **Event count**, **Distinct values**, **Events together**, **Sequence** or **First seen** (see **Correlation Rules**). |
+| **Status** | Whether the rule works: **Enabled** when its last run came back clean, **Run failed** when it failed, **Needs attention** when a run left a note, **Waiting for first run** while a new rule waits for its first run, and **Disabled**. |
 | **Last Match** | The last run in which at least one group fired. |
-| **Last Error** | Why the last run failed, e.g. a query that timed out. It clears on the next successful run. |
+| **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
+
+When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**.
 
 Disabled rules are not evaluated. Use the **Create Monitor** row action to watch a rule's findings over time — see **Alerts & Findings**.
 `;
@@ -420,7 +497,7 @@ Text is compared **case-insensitively** unless you add \`|cased\`. Regular expre
 
 Combine selections with \`and\`, \`or\`, \`not\` and parentheses, or with quantifiers: \`1 of selection_*\`, \`all of selection_*\`, \`any of them\`, \`all of them\`. A \`timeframe\` under \`detection\` is ignored — the rule's Evaluation Interval sets the window.
 
-Aggregations such as \`| count() by principalIp > 5\` are **not** supported and are rejected at save. Use the rule's **Group By Field** and **Match Count Threshold** instead — see **Evaluation**.
+Aggregations in the condition, such as \`| count() by principalIp > 5\` (Sigma's old syntax), are rejected at save. Count with the rule's **Group By Field** and **Match Count Threshold** — see **Evaluation** — or write a Sigma correlation — see **Correlation Rules**.
 
 #### Field modifiers
 
@@ -513,6 +590,49 @@ Group By and Distinct Count accept the same field names as the rule itself — t
 At most ${DETECTION_MAX_GROUPS_PER_EVALUATION} groups fire per run — the ones with the highest counts. Groups beyond that are not alerted for that window, so if a rule regularly hits the limit, tighten its selections or group by a coarser field.
 `;
 
+const correlationsMarkdown: string = `
+A correlation rule finds a pattern across several events rather than in one: a burst, a sequence, things that happen together, or a value seen for the first time. It is a [Sigma correlation](https://github.com/SigmaHQ/sigma-specification), written in the same YAML as the rules it reads, separated by \`---\`:
+
+\`\`\`yaml
+${CORRELATION_RULE_EXAMPLE_YAML}
+\`\`\`
+
+This rule fires when five failed sign-ins from one address are followed by a sign-in from it that worked, within ten minutes. The rule is named after the correlation's \`title\`, and its \`level\` and \`tags\` are the rule's.
+
+#### Types
+
+| Type | Fires when | Shown as |
+| --- | --- | --- |
+| \`event_count\` | One group reaches a number of events within the timespan | Event count |
+| \`value_count\` | One group shows a number of different values of \`condition.field\` within the timespan | Distinct values |
+| \`temporal\` | Every rule it reads matches for the same group within the timespan, in any order (or at least \`gte\` of them) | Events together |
+| \`temporal_ordered\` | The rules match in the order listed, for the same group, within the timespan | Sequence |
+| \`new_value\` | A group shows a value of \`condition.field\` it has not shown in the timespan before the run: OneUptime's own type | First seen |
+
+\`value_sum\`, \`value_avg\` and \`value_percentile\` are refused when you save.
+
+#### Writing one
+
+- **\`rules\`** names the rules it reads, by their \`name\` or \`id\`: rules in the same YAML, or your other detection rules. A rule it reads can be turned off: it is then only a step, and fires nothing by itself.
+- **\`group-by\`** takes up to ${SIGMA_CORRELATION_MAX_GROUP_BY_FIELDS} fields, the same names a rule takes. Events whose field is empty are left out: a sequence "by the same user" of events naming no user is not one. **\`aliases\`** name the field each rule keeps a value in, so the source address of one rule can be grouped with the destination of another.
+- **\`timespan\`** is a whole number and a unit: \`30s\`, \`10m\`, \`2h\`, \`1d\`. At most \`24h\`; for \`new_value\`, how far back "seen before" reaches, \`1d\` to \`30d\`.
+- **\`condition\`**: a count to reach for \`event_count\` and \`value_count\` (\`gte: 10\`, or a range such as \`gt: 100\` and \`lte: 200\`), and the field counted or that must be new for \`value_count\` and \`new_value\`.
+- A \`temporal\` or \`temporal_ordered\` correlation reads ${SIGMA_CORRELATION_MIN_TEMPORAL_RULES} to ${SIGMA_CORRELATION_MAX_TEMPORAL_RULES} rules, and a step can be an \`event_count\` correlation of the same file, as in the example above.
+
+A first-seen rule, OneUptime's \`new_value\`:
+
+\`\`\`yaml
+${NEW_VALUE_RULE_EXAMPLE_YAML}
+\`\`\`
+
+#### When it fires
+
+- **Counts are rolling.** Every timespan that ends in a run is counted, in steps of a sixtieth of the timespan, so a burst is counted whole whichever runs it straddles. A group fires only when it has events in the run.
+- **Sequences fire once.** A chain whose last step happens in a run fires, even when its first step came in an earlier one; a chain an earlier run reported does not fire again.
+- **First seen is first for someone known.** A run's events are compared with the timespan before the run, for groups seen before it: a user's first sign-in ever is not "a new address for them".
+- Each finding carries \`${DETECTION_CORRELATION_TYPE_ATTRIBUTE}\` and \`${DETECTION_SUMMARY_ATTRIBUTE}\`, what happened in a sentence. The **Rule Library** has ready-made correlations: look for **Sequence** and **First seen**.
+`;
+
 const severityLevelsMarkdown: string = `
 A rule's Sigma \`level\` is its severity. It decides two things.
 
@@ -599,14 +719,19 @@ const troubleshootingMarkdown: string = `
 The form shows the parser's reason. The usual causes:
 
 - A modifier that is not in the list under **Writing Rules**.
-- An aggregation in the condition (\`| count() ...\`) — use Group By Field and Match Count Threshold instead.
+- An aggregation in the condition (\`| count() ...\`) — use Group By Field and Match Count Threshold, or a correlation.
+- A correlation that names a rule neither its YAML nor your detection rules hold, a type OneUptime does not run (${SIGMA_UNSUPPORTED_CORRELATION_TYPES.map(
+  (type: string): string => {
+    return `\`${type}\``;
+  },
+).join(", ")}), or a timespan out of bounds.
 - A condition that names a selection that does not exist, or a \`1 of x*\` pattern that matches none.
 - A nested map as a field value — values must be text, numbers, booleans, \`null\`, or lists of those.
 
 #### The rule never matches
 
 - **Last Evaluated** is *Never* or old: check the rule is **Enabled**.
-- **Last Error** is set: the last run failed; the message says why.
+- **Status** reads **Run failed**: the last run failed; **View Error** in its row says why.
 - Find an event you expected to match in **Events** and compare it with your rule, field by field. Plain values must equal the whole field — use \`|contains\` or \`*\` for partial matches.
 - Fields that are not typed columns or common spellings are read from the event's attributes, spelled exactly as they appear there — \`threat.matched\`, not \`attributes.threat.matched\`.
 - \`logsource\` does not filter anything; a rule that relies on it matches more than you expect, not less.
@@ -631,9 +756,21 @@ const detectionRuleLevels: Array<SecurityEventsGuideLevel> =
   SIGMA_LEVELS_IN_ORDER.map((level: SigmaLevel): SecurityEventsGuideLevel => {
     return {
       label: level,
+      // As a rule's YAML writes it: `level: high`.
+      isLabelAValue: true,
       severity: SIGMA_LEVEL_TO_OCSF_SEVERITY[level],
     };
   });
+
+// The second step's sentence, as the card looks it up in the reader's language.
+const RULE_RUNS: SecurityEventsGuideTemplate = {
+  sentence:
+    "Every {{min}}–{{max}} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.",
+  values: {
+    min: DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES,
+    max: DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES,
+  },
+};
 
 const DetectionRulesGuide: SecurityEventsGuide = {
   id: "detection-rules",
@@ -650,13 +787,14 @@ const DetectionRulesGuide: SecurityEventsGuide = {
     {
       title: "The rule runs on a schedule",
       icon: IconProp.Clock,
-      description: `Every ${DETECTION_EVALUATION_INTERVAL_MIN_IN_MINUTES}–${DETECTION_EVALUATION_INTERVAL_MAX_IN_MINUTES} minutes (you choose), the rule's Sigma detection is checked against the events since its last run.`,
+      description: fillGuideTemplate(RULE_RUNS),
+      descriptionTemplate: RULE_RUNS,
     },
     {
       title: "Matches are counted",
       icon: IconProp.Funnel,
       description:
-        "Matches are split by the Group By Field, and a group fires only once its count reaches the Match Count Threshold.",
+        "A single rule's matches are split by the Group By Field, and a group fires once it reaches the Match Count Threshold. A correlation fires when its events line up within its timespan.",
     },
     {
       title: "Alerts and findings",
@@ -667,11 +805,13 @@ const DetectionRulesGuide: SecurityEventsGuide = {
   ],
   levels: {
     title: "Severity levels",
+    linkText: "How severity levels are chosen",
     description:
       "A rule's Sigma level sets the severity of its findings, and picks the alert severity when the rule does not set one.",
     items: detectionRuleLevels,
     sectionId: "severity-levels",
   },
+  // Keys in SecurityEventsGuideCopy, which the card looks up when it opens.
   guideTitle: "Detection Rules Guide",
   guideDescription:
     "How Sigma rules are evaluated, counted and turned into alerts — and how to write them.",
@@ -683,6 +823,11 @@ const DetectionRulesGuide: SecurityEventsGuide = {
       markdown: writingRulesMarkdown,
     },
     { id: "evaluation", title: "Evaluation", markdown: evaluationMarkdown },
+    {
+      id: "correlations",
+      title: "Correlation Rules",
+      markdown: correlationsMarkdown,
+    },
     {
       id: "severity-levels",
       title: "Severity Levels",

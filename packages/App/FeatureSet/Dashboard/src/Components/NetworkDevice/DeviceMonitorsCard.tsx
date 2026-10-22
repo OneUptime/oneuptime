@@ -35,9 +35,10 @@ export interface ComponentProps {
 /*
  * "Monitors alerting on this device" card for the device Overview. The
  * monitor list is resolved by DeviceMonitorLookupUtil (the monitor bound to
- * the device, plus a client-side filter over the project's Network Device
- * monitors) and passed in by the page so the Health charts can share the
- * same fetch.
+ * the device, a client-side filter over the project's Network Device
+ * monitors, and the Ping, IP, Port and NTP monitors a discovery import made
+ * for it) and passed in by the page so the Health charts can share the same
+ * fetch.
  *
  * An empty list means two opposite things depending on the device:
  *
@@ -172,10 +173,16 @@ const DeviceMonitorsCard: FunctionComponent<ComponentProps> = (
           ? "Monitors reporting on this device"
           : "Monitors alerting on this device"
       }
+      /*
+       * Every kind of monitor the card lists: Network Device monitors that
+       * read the device's polls and traps, and - since a discovery import
+       * can give each device one from a template (OneUptime issue #5145) -
+       * Ping, IP, Port and NTP monitors that check its address.
+       */
       description={
         props.isMonitorBacked
-          ? "The monitor bound to this device decides its status, plus any Network Device monitors that reference it."
-          : "Network Device monitors that evaluate this device's polls and traps and open incidents or alerts."
+          ? "The monitor bound to this device decides its status; any other monitors here check it too."
+          : "Monitors that check this device and open incidents or alerts."
       }
     >
       {getCardContent()}

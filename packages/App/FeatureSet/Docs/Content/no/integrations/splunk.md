@@ -147,6 +147,28 @@ Klikk på **Diagnostics** på en tilkobling for å se de siste kjøringene og ar
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre.
 
+## Send sikkerhetshendelser til Splunk
+
+OneUptime kan også sende det den finner til Splunk, gjennom HTTP Event Collector (HEC), slik at søkene og dashbordene dine ser OneUptimes deteksjoner ved siden av dine egne. Hver sikkerhetshendelse er én HEC-hendelse med sourcetypen `oneuptime:security`, og feltene heter det Splunks Common Information Model kaller dem: `src`, `src_ip`, `src_user`, `dest`, `dest_ip`, `dest_port`, `user`, `signature` og `severity`.
+
+:::steps
+### Opprett et HEC-token
+
+Åpne **Settings → Data inputs → HTTP Event Collector** i Splunk Web, og klikk på **New Token**. Gi det et navn, velg indeksene det kan skrive til og standardindeksen, og kopier verdien til tokenet. På Splunk Cloud lytter HEC på `https://http-inputs-<stack>.splunkcloud.com`; på Splunk Enterprise på port `8088` når **Global Settings** har slått på tokener.
+
+### Legg til målet
+
+Åpne **Produkter → Security Events → Connections**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Splunk under **SIEM**, og klikk på **Neste**. Fyll inn **HEC-URL**, og lim inn tokenet i **HEC-token**. **Index** og **Kildetype** er valgfrie: står de tomme, går hendelsene til tokenets standardindeks med sourcetypen `oneuptime:security`.
+
+### Send en testhendelse og begynn å sende
+
+Klikk på **Send en testhendelse**: én informativ hendelse går til Splunk med innstillingene i skjemaet, og ingenting lagres. Søk etter den med `sourcetype="oneuptime:security"`. Behold deretter **Bare deteksjoner** under **Hva som skal sendes**, eller velg **Alle sikkerhetshendelser**, og klikk på **Begynn å sende**.
+:::
+
+- **HEC-URL** må bruke `https`, med et sertifikat OneUptime stoler på: sertifikatkontroller hoppes aldri over.
+- Hendelser sendes i bunter på opptil 500. En hendelse Splunk avviser, utelates og nevnes i **Vis feil**, en travel collector (`503`) prøves på nytt, og et avvist token eller en avvist indeks stopper sendingen til du retter det.
+- Notable events som OneUptime har importert fra Splunk, sendes aldri tilbake dit.
+
 ## Feilsøking
 
 **Siste feil** for tilkoblingen lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Kopier feil** i dialogboksen for å kopiere den. Les prefikset først.

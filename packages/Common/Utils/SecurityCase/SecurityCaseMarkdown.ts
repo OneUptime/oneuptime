@@ -5,6 +5,7 @@ import FeedMarkdown, {
 } from "../Markdown/FeedMarkdown";
 import { describeMitreId } from "../../Types/SecurityEvent/MitreAttack";
 import { SecurityEntity } from "../../Types/SecurityCase/SecurityEntity";
+import { isStixIndicatorId } from "../../Types/SecurityEvent/ThreatIntelConstants";
 
 /*
  * The Markdown a security case's feed and its notifications are written in.
@@ -399,6 +400,13 @@ export function detectionRuleMatchMarkdown(data: {
   windowEnd: string;
   sampleMessage?: string | undefined;
   observables: Array<string>;
+  /*
+   * A correlation rule's match, in one sentence (CorrelationRuleMatcher):
+   * "Failed sign-ins (5+ events in 10 minutes), then Successful sign-in,
+   * 3 minutes apart". Its rule titles and values come from rules and events,
+   * so it is placed as escaped text.
+   */
+  correlationSummary?: string | undefined;
 }): MarkdownText {
   const parts: Array<MarkdownValue> = [];
 
@@ -409,6 +417,10 @@ export function detectionRuleMatchMarkdown(data: {
   parts.push(
     mdText`Detection rule **${data.ruleName}** matched ${String(data.matchCount)} security event${data.matchCount === 1 ? "" : "s"} between ${data.windowStart} and ${data.windowEnd}.`,
   );
+
+  if (data.correlationSummary) {
+    parts.push(mdText`What happened: ${data.correlationSummary}.`);
+  }
 
   if (data.distinctCount) {
     parts.push(
@@ -460,8 +472,9 @@ export function threatIntelMatchMarkdown(data: {
     parts.push(mdText`Indicator: ${data.indicatorName}`);
   }
 
-  if (data.stixId) {
-    parts.push(mdText`STIX indicator: ${FeedMarkdown.code(data.stixId)}`);
+  // A list's or Google SecOps's indicators have no STIX id to show.
+  if (isStixIndicatorId(data.stixId)) {
+    parts.push(mdText`STIX indicator: ${FeedMarkdown.code(data.stixId!)}`);
   }
 
   if (data.sampleMessage) {

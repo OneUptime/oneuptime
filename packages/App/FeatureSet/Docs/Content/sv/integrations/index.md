@@ -50,12 +50,12 @@ Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre fin
 | Verktyg | Riktning | Vad det gör |
 | --- | --- | --- |
 | [Huntress](/docs/integrations/huntress) | Inkommande | Larmar jouren vid incidentrapporter från Huntress och löser incidenten när rapporten stängs. |
-| [Google SecOps](/docs/integrations/google-secops) | Inkommande | Hämtar detektioner från Google SecOps till Säkerhetshändelser. |
-| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Inkommande | Hämtar incidenter från Microsoft Sentinel till Säkerhetshändelser. |
+| [Google SecOps](/docs/integrations/google-secops) | Båda | Hämtar detektioner och indikatorer från Google SecOps till Säkerhetshändelser, och skickar dit det OneUptime hittar. |
+| [Microsoft Sentinel](/docs/integrations/microsoft-sentinel) | Båda | Hämtar incidenter från Microsoft Sentinel till Säkerhetshändelser, och skickar dit det OneUptime hittar. |
 | [Microsoft Defender XDR](/docs/integrations/microsoft-defender-xdr) | Inkommande | Hämtar larm från Microsoft Defender XDR till Säkerhetshändelser. |
 | [CrowdStrike Falcon](/docs/integrations/crowdstrike-falcon) | Inkommande | Hämtar larm från CrowdStrike Falcon till Säkerhetshändelser. |
-| [Splunk Enterprise Security](/docs/integrations/splunk) | Inkommande | Hämtar notable events från Splunk till Säkerhetshändelser. |
-| [Elastic Security](/docs/integrations/elastic-security) | Inkommande | Hämtar detektionslarm från Elastic Security till Säkerhetshändelser. |
+| [Splunk Enterprise Security](/docs/integrations/splunk) | Båda | Hämtar notable events från Splunk till Säkerhetshändelser, och skickar dit det OneUptime hittar. |
+| [Elastic Security](/docs/integrations/elastic-security) | Båda | Hämtar detektionslarm från Elastic Security till Säkerhetshändelser, och skickar dit det OneUptime hittar. |
 | [AWS Security Hub](/docs/integrations/aws-security-hub) | Inkommande | Hämtar fynd från AWS Security Hub till Säkerhetshändelser. |
 | [Okta System Log](/docs/integrations/okta) | Inkommande | Hämtar inloggningar, kontoändringar och hotdetektioner från Okta till Säkerhetshändelser. |
 

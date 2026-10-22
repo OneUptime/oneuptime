@@ -118,3 +118,52 @@ export function getPickedTemplate(data: {
     }) || null
   );
 }
+
+/*
+ * The settings once the project's templates are read - when the step opens,
+ * and again each time the reader comes back to the dialog's window, since
+ * "Manage templates" opens the templates in a new tab (OneUptime issue
+ * #5145). The template they pick stays picked while it is still listed; one
+ * that is gone gives way to the first choice (the recommended one), as when
+ * the step first opened. With no template left to pick, nothing is picked
+ * and the import makes no monitors: the step shows "Status only", and the
+ * import must not wait for a template that cannot be picked.
+ */
+export function keepPickedTemplate(data: {
+  settings: DiscoveryImportSettings;
+  templates: ReadonlyArray<DiscoveryImportTemplateChoice>;
+}): DiscoveryImportSettings {
+  const first: DiscoveryImportTemplateChoice | undefined = data.templates[0];
+
+  if (!first) {
+    if (
+      data.settings.alerting === DiscoveryImportAlerting.None &&
+      !data.settings.monitorTemplateId
+    ) {
+      return data.settings;
+    }
+
+    return {
+      ...data.settings,
+      alerting: DiscoveryImportAlerting.None,
+      monitorTemplateId: undefined,
+    };
+  }
+
+  const picked: string = data.settings.monitorTemplateId || "";
+
+  const isStillListed: boolean = data.templates.some(
+    (choice: DiscoveryImportTemplateChoice): boolean => {
+      return getTemplateChoiceValue(choice) === picked;
+    },
+  );
+
+  if (picked && isStillListed) {
+    return data.settings;
+  }
+
+  return {
+    ...data.settings,
+    monitorTemplateId: getTemplateChoiceValue(first),
+  };
+}

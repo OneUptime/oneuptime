@@ -70,7 +70,9 @@ const SHARED_RECORD_QUERIES: Dictionary<Dictionary<unknown>> = {
  * provider a meeting is
  * started with, the API key a permission is granted to, and the outside MCP
  * servers whose tools OneUptime AI uses for an investigation or an auto
- * remediation rule, signed in with what the server holds.
+ * remediation rule, signed in with what the server holds, and the security
+ * tool connection a threat-intel feed reads Google SecOps's indicators
+ * through, with the connection's key.
  *
  * Their records are read as a whole table - no label or owner narrows a
  * read of them - so a write that names one is held to its caller's
@@ -89,6 +91,7 @@ const CREDENTIAL_SETTINGS: Array<string> = [
   "NetworkSnmpCredentialProfile",
   "ProjectCallSMSConfig",
   "ProjectSMTPConfig",
+  "SecurityEventConnection",
   "VideoCallConnection",
 ];
 
@@ -129,8 +132,8 @@ const CREDENTIAL_SETTINGS: Array<string> = [
  * monitor statuses, files - are not held to a read here: every member reads
  * them, and the reference check answers a record that is not the project's.
  * The settings that hold credentials (SMTP, call and SMS, credentials, SNMP
- * credentials, video call providers, API keys, outside MCP servers) are
- * read as a whole table
+ * credentials, video call providers, API keys, outside MCP servers,
+ * security tool connections) are read as a whole table
  * too, and a write names one only when its caller may read that table
  * (CREDENTIAL_SETTINGS, isHeldToTableRead) - never through a workflow's
  * step, which holds no read of them.

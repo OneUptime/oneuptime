@@ -47,6 +47,13 @@ import PermissionGate, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
+import DetectionRuleSummary, {
+  DetectionRuleTypeLabel,
+} from "../../Components/SecurityEvents/DetectionRuleSummary";
+import {
+  DetectionRuleShape,
+  readDetectionRuleShape,
+} from "../../Components/SecurityEvents/DetectionRuleShape";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -65,6 +72,19 @@ const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
  */
 const advancedSection: FormFieldCollapsibleSection<DetectionRule> =
   getAdvancedFormSection<DetectionRule>();
+
+/*
+ * A single Sigma rule counts its matches by the form's Group By Field,
+ * Distinct Count Field and Match Count Threshold; a correlation says how it
+ * counts in its own YAML, so the form leaves those three out for it.
+ */
+export function countsByFormFields(values: FormValues<DetectionRule>): boolean {
+  const shape: DetectionRuleShape | null = readDetectionRuleShape(
+    values.sigmaRuleYaml,
+  );
+
+  return !shape || !shape.isCorrelation;
+}
 
 const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -172,7 +192,21 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Sigma Rule (YAML)",
             stepId: "sigma-rule",
             description:
-              "The Sigma rule to evaluate against incoming security events, in YAML.",
+              "One Sigma rule, or a Sigma correlation with the rules it reads, in YAML.",
+            // What a correlation looks for, in a sentence, as it is typed.
+            getFooterElement: (
+              values: FormValues<DetectionRule>,
+            ): ReactElement | undefined => {
+              const shape: DetectionRuleShape | null = readDetectionRuleShape(
+                values.sigmaRuleYaml,
+              );
+
+              return shape && shape.isCorrelation ? (
+                <div className="mt-2">
+                  <DetectionRuleSummary shape={shape} />
+                </div>
+              ) : undefined;
+            },
             /*
              * YAML, not Markdown. Markdown put a rich-text toolbar (Bold, H1)
              * over a Sigma rule, and the editor behind it round-trips its value
@@ -280,6 +314,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               groupByField: true,
             },
+            showIf: countsByFormFields,
             title: "Group By Field",
             stepId: "on-match",
             description:
@@ -293,6 +328,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               distinctCountField: true,
             },
+            showIf: countsByFormFields,
             title: "Distinct Count Field",
             stepId: "on-match",
             description:
@@ -306,6 +342,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             field: {
               matchCountThreshold: true,
             },
+            showIf: countsByFormFields,
             title: "Match Count Threshold",
             stepId: "on-match",
             description:
@@ -383,6 +420,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Enabled",
           },
         ]}
+        selectMoreFields={{
+          sigmaRuleYaml: true,
+        }}
         columns={[
           {
             field: {
@@ -390,6 +430,28 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              sigmaRuleYaml: true,
+            },
+            title: "Type",
+            type: FieldType.Element,
+            disableSort: true,
+            getElement: (item: DetectionRule): ReactElement => {
+              const shape: DetectionRuleShape | null = readDetectionRuleShape(
+                item.sigmaRuleYaml,
+              );
+
+              return shape ? (
+                <DetectionRuleTypeLabel
+                  shape={shape}
+                  dataTestId="detection-rule-type"
+                />
+              ) : (
+                <span className="text-gray-500">-</span>
+              );
+            },
           },
           {
             field: {

@@ -436,19 +436,61 @@ const googleSecOpsFields: Array<ConnectorField> = [
 ];
 
 /*
+ * The settings a poll needs and checks. The connection's options (Close
+ * alerts when their case closes) are left out: a poll never reads one, and
+ * no value of one is wrong, so no Last Error can name it.
+ */
+const googleSecOpsSettingFields: Array<ConnectorField> =
+  googleSecOpsFields.filter((field: ConnectorField): boolean => {
+    return !field.isOption;
+  });
+
+/*
  * ---------------------------------------------------------------------------
  * Constants derived from the producing sources
  * ---------------------------------------------------------------------------
  */
 
 /* Every message GoogleSecOpsClient can throw, as written in the source. */
-const clientThrownMessages: Array<string> = matchAllGroups(
+const allClientThrownMessages: Array<string> = matchAllGroups(
   CLIENT_API_EXCEPTION_PATTERN,
   clientSource,
 ).map((groups: Array<string>): string => {
   // Group 1 is the template-literal form, group 2 the plain-string form.
   return groups[1] || groups[2] || "";
 });
+
+/*
+ * GoogleSecOpsClient also serves two readers that are not a connection's
+ * poll. A Google SecOps threat-intel feed reads the IOC matches through it
+ * (searchEnterpriseIocMatches): what that throws lands in the FEED's Last
+ * Error, never in a connection's, so the connection guidance does not name
+ * it - the Threat Intel guide does. Closing a case's alerts
+ * (updateAlertFeedback) returns Google's answer instead of throwing.
+ */
+const iocMatchesSearchBody: string = sliceBetween(
+  clientSource,
+  "public async searchEnterpriseIocMatches(",
+  "* Helpers. Everything below",
+);
+const updateAlertFeedbackBody: string = sliceBetween(
+  clientSource,
+  "public async updateAlertFeedback(",
+  "public async searchEnterpriseIocMatches(",
+);
+const feedOnlyClientMessages: Array<string> = matchAllGroups(
+  CLIENT_API_EXCEPTION_PATTERN,
+  iocMatchesSearchBody,
+).map((groups: Array<string>): string => {
+  return groups[1] || groups[2] || "";
+});
+
+/* Every message GoogleSecOpsClient can throw into a connection's Last Error. */
+const clientThrownMessages: Array<string> = allClientThrownMessages.filter(
+  (message: string): boolean => {
+    return !feedOnlyClientMessages.includes(message);
+  },
+);
 
 /* The subset that carries an HTTP status, i.e. a remote rejection. */
 const clientHttpErrorTemplates: Array<string> = clientThrownMessages.filter(
@@ -979,6 +1021,76 @@ describe("Google SecOps Last Error guidance does not overclaim", () => {
   }
 });
 
+describe("What a connection's guidance leaves to the readers that are not a poll", () => {
+  test("the IOC matches search is a threat-intel feed's: neither the connector nor the poller calls it", () => {
+    expect(clientSource).toContain("public async searchEnterpriseIocMatches(");
+    expect(connectorSource).not.toContain("searchEnterpriseIocMatches");
+    expect(pollerSource).not.toContain("searchEnterpriseIocMatches");
+    expect(executorSource).not.toContain("searchEnterpriseIocMatches");
+    expect(
+      readRepoFile(
+        "Common/Server/Utils/SecurityEvent/ThreatIntel/GoogleSecOpsIndicatorSource.ts",
+      ),
+    ).toContain("searchEnterpriseIocMatches");
+  });
+
+  test("what the IOC matches search throws names its step, and only it is held apart", () => {
+    expect(feedOnlyClientMessages.length).toBe(2);
+
+    for (const message of feedOnlyClientMessages) {
+      expect(message.startsWith("Google SecOps IOC matches search ")).toBe(
+        true,
+      );
+    }
+
+    // Every other message the client throws is still one a poll can reach.
+    expect(clientThrownMessages.length).toBe(
+      allClientThrownMessages.length - feedOnlyClientMessages.length,
+    );
+  });
+
+  test("the Threat Intel guide names what the IOC matches search throws, where a feed's Last Error shows it", () => {
+    const guide: string = readRepoFile(
+      "App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/ThreatIntelGuide.ts",
+    );
+    const httpTemplate: string | undefined = feedOnlyClientMessages.find(
+      (message: string): boolean => {
+        return message.includes(HTTP_STATUS_INTERPOLATION);
+      },
+    );
+
+    expect(httpTemplate).toBeDefined();
+
+    const prefix: string = httpTemplate!.slice(
+      0,
+      indexOfOrThrow(httpTemplate!, HTTP_TAIL_MARKER),
+    );
+
+    expect(guide).toContain(`${prefix}${HTTP_TAIL_MARKER}403)`);
+  });
+
+  test("closing a case's alerts returns Google's answer and throws nothing", () => {
+    expect(updateAlertFeedbackBody).toContain("legacy:legacyUpdateAlert");
+    expect(updateAlertFeedbackBody).not.toContain("new APIException(");
+  });
+
+  test("a connection's option is no setting a poll checks", () => {
+    const options: Array<string> = googleSecOpsFields
+      .filter((field: ConnectorField): boolean => {
+        return Boolean(field.isOption);
+      })
+      .map((field: ConnectorField): string => {
+        return field.key;
+      });
+
+    expect(options).toEqual(["closeAlertsWhenCaseCloses"]);
+
+    for (const key of options) {
+      expect(resolveSettingsBody).not.toContain(`"${key}"`);
+    }
+  });
+});
+
 describe("Every error prefix the guidance names is really produced", () => {
   test("the client's HTTP error templates yield distinct, non-empty prefixes", () => {
     expect(httpErrorPrefixes.length).toBeGreaterThan(0);
@@ -1501,7 +1613,7 @@ describe("Messages the guidance quotes outside the Google buckets are really pro
       "message.startsWith(title) ? message : `${title}: ${message}`",
     );
 
-    for (const field of googleSecOpsFields) {
+    for (const field of googleSecOpsSettingFields) {
       expect(resolveSettingsBody).toContain(
         `\${this.fieldTitle("${field.key}")} is required.`,
       );
@@ -1523,7 +1635,7 @@ describe("Messages the guidance quotes outside the Google buckets are really pro
         indexOfOrThrow(guidance.lastError, ONEUPTIME_ARM_MARKER),
       );
 
-      for (const field of googleSecOpsFields) {
+      for (const field of googleSecOpsSettingFields) {
         expect({
           text: guidance.name,
           field: field.title,
@@ -2357,10 +2469,14 @@ describe("Upgrade guidance matches the data migration and the API", () => {
     >;
 
     expect(data["provider"]).toBe(SecurityEventConnectorProvider.GoogleSecOps);
+    // A connection's options are left at their defaults by the example.
     expect(
       Object.keys(data["config"] as Record<string, unknown>).sort(),
     ).toEqual(
       googleSecOps.configFields
+        .filter((field: ConnectorField): boolean => {
+          return !field.isOption;
+        })
         .map((field: ConnectorField): string => {
           return field.key;
         })

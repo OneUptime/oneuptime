@@ -105,7 +105,12 @@ describe("registry wiring", () => {
           return definition.provider;
         },
       ),
-    ).toEqual(["google-secops"]);
+    ).toEqual([
+      "google-secops",
+      "splunk",
+      "microsoft-sentinel",
+      "elastic-security",
+    ]);
   });
 
   test("the Connections page draws your logs and your SIEM", () => {

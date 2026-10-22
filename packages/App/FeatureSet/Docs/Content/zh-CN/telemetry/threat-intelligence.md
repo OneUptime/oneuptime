@@ -1,9 +1,10 @@
 # 威胁情报(STIX/TAXII)
 
-威胁情报源会把已知恶意的 IP 地址、域名、URL、电子邮件地址和文件哈希带进 OneUptime，并在你的 [安全事件](/docs/telemetry/security-events) 提到其中之一时告诉你。每个情报源订阅一个包含 STIX 2.1 指标的 TAXII 2.1 集合：可以是你自己的 MISP、OpenCTI 或 OpenTAXII 服务器，也可以是某个提供商的集合。OneUptime 自身不提供任何情报源内容：就像 Sigma 规则一样，集合由你自己提供。
+威胁情报源会把已知恶意的 IP 地址、域名、URL、电子邮件地址和文件哈希带进 OneUptime，并在你的 [安全事件](/docs/telemetry/security-events) 提到其中之一时告诉你。一个情报源读取一个来源：https 地址上的指标列表（例如 OneUptime 一键添加的免费列表）、来自你自己的 MISP、OpenCTI 或 OpenTAXII 服务器或某个提供商、包含 STIX 2.1 指标的 TAXII 2.1 集合，或者 Google SecOps 在你的事件中发现的指标。
 
 :::cards
-- [订阅情报源](#订阅情报源): TAXII 服务器、集合以及登录方式。
+- [添加免费列表](#添加免费列表): Feodo Tracker、Emerging Threats 和 Tor 出口节点，一键添加。
+- [订阅情报源](#订阅情报源): 列表的地址、TAXII 集合或 Google SecOps 连接。
 - [会摄取什么](#会摄取什么): OneUptime 保留的指标模式，以及保留多久。
 - [如何找到匹配](#如何找到匹配): 事件到达时打标签，并每分钟比对一次。
 - [威胁级别](#威胁级别): 指标的 confidence 如何变成严重程度。
@@ -11,9 +12,9 @@
 
 ## 工作原理
 
-```mermaid title="从 TAXII 集合到警报"
+```mermaid title="从情报源到警报"
 flowchart TB
-    taxii["TAXII 2.1 集合"] -->|"按情报源的<br/>间隔轮询"| indicators["指标：IP、<br/>域名、URL、<br/>邮箱、哈希"]
+    taxii["列表、TAXII 集合<br/>或 Google SecOps"] -->|"按情报源的<br/>间隔轮询"| indicators["指标：IP、<br/>域名、URL、<br/>邮箱、哈希"]
     events["新的安全事件"] --> tag["到达时用<br/>threat.* 属性<br/>打标签"]
     indicators --> tag
     indicators --> match["每分钟与<br/>最近的事件比对"]
@@ -22,9 +23,23 @@ flowchart TB
 
 ## 开始之前
 
-- 一个发布 STIX 2.1 `indicator` 对象的 TAXII 2.1 服务器，以及要轮询的集合的 ID。情报源可以匿名登录，也可以使用 bearer 令牌或 HTTP 基本身份验证登录。
+- 对于列表：一个 `https` 地址，下载得到每行一个指标的文本文件。
+- 对于 TAXII 情报源：一个发布 STIX 2.1 `indicator` 对象的 TAXII 2.1 服务器，以及要轮询的集合的 ID。TAXII 情报源可以匿名登录，也可以使用 bearer 令牌或 HTTP 基本身份验证登录。
+- 对于 Google SecOps 情报源：一个服务账户能够搜索指标匹配的 [Google SecOps 连接](/docs/integrations/google-secops#设置托管连接器)，`roles/chronicle.viewer` 角色可以做到。
 - 不支持要求 TLS 客户端证书（双向 TLS）的服务器，例如 CISA AIS。MITRE 的公共 ATT&CK 服务器发布的是技术和组织，而不是指标，所以指向它的情报源会一直为空。
 - 一个可以创建情报源的角色：Project Owner、Project Admin、Security Admin 或 Security Member。Security Viewer 可以读取情报源和指标。请参阅 [角色](/docs/permissions/reference#角色)。
+
+## 添加免费列表
+
+**Threat Intel** 上的 **免费列表** 卡片可以一键添加免费的封锁列表：在某个列表上点击 **添加列表**，OneUptime 就会创建一个按该列表的计划下载它的情报源。项目已在读取的列表会显示 **已添加**。
+
+| 列表 | 发布者 | 读取 | 置信度 | 匹配时打开 |
+| --- | --- | --- | --- | --- |
+| Feodo Tracker 僵尸网络 C2 服务器 | abuse.ch | 每小时 | 90，Critical | 一个案例和一个警报 |
+| Emerging Threats 失陷主机 | Proofpoint Emerging Threats | 每天 | 70，High | 一个案例和一个警报 |
+| Tor 出口节点 | The Tor Project | 每小时 | 30，Low | 一个案例 |
+
+每个列表的卡片都链接到它的条款：Feodo Tracker 可免费用于任何用途（CC0），Emerging Threats 列表采用 BSD 许可证。从列表添加的情报源和其他情报源一样编辑和删除。
 
 ## 订阅情报源
 
@@ -35,19 +50,23 @@ flowchart TB
 
 ### 创建情报源
 
-点击 **创建Threat Intel Feed**，填写它的三个步骤：**TAXII 服务器**、**登录** 和 **匹配时**。各字段见下表。
+点击 **创建Threat Intel Feed**，选择它的 **来源**：**指标列表**、**TAXII 集合** 或 **Google SecOps**。下一步只询问该来源所需的内容：列表的 **列表 URL**、集合的 **TAXII 服务器** 和 **登录**，或者 **Google SecOps 连接**。**匹配时** 在最后。各字段见下表。
 
 ### 检查第一次轮询
 
-一两分钟内，情报源所在行会显示 **Last Polled** ，**Last Poll Summary** 会说明这次轮询取回了什么。指标会出现在情报源下方的 **Indicators** 表中。
+一两分钟内，情报源所在行会显示 **Last Polled** ，**Last Poll Summary** 会说明这次轮询取回了什么。指标会出现在情报源下方的 **指标** 表中。
 :::
 
 | 字段 | 填写内容 |
 | --- | --- |
+| **来源** | 指标从哪里来。它在创建情报源时确定：换一个来源就是一个新的情报源。 |
+| **列表 URL** | 对于列表：一个文本文件的 `https` 地址，文件每行一个 IP 地址、域名、URL 或文件哈希。 |
+| **Confidence** | 对于列表：列表的可信程度，1 到 100。列表上的每个指标都会获得这个值，它决定 [威胁级别](#威胁级别)；留空则为 Medium。 |
+| **Google SecOps 连接** | 对于 Google SecOps：用其密钥读取 Google SecOps 所发现指标的连接。没有连接时，**连接 Google SecOps** 会打开 **Connections**。 |
 | **TAXII API Root URL** | 服务器的 TAXII 2.1 API 根，例如 `https://taxii.example.com/api1/`。集合在它下面寻址。 |
 | **Collection ID** | 发布指标的集合。 |
-| **Poll Interval (Minutes)** | 获取新对象的频率：1 到 1440 分钟，默认 60。 |
-| **Minimum Confidence** | STIX `confidence` 低于该值的指标会被跳过：0 到 100，设为 0 时全部保留。没有 confidence 的指标总能通过。 |
+| **Poll Interval (Minutes)** | 读取来源的频率：1 到 1440 分钟，默认 60。列表最多每 15 分钟读取一次。 |
+| **Minimum Confidence** | 对于 TAXII 集合或 Google SecOps：置信度低于该值的指标会被跳过，0 到 100，设为 0 时全部保留。没有置信度的指标总能通过。 |
 | **登录** | OneUptime 的登录方式：公共集合选 **无需登录**，服务器运营方提供的令牌选 **Bearer 令牌**，HTTP 基本身份验证选 **用户名和密码**。 |
 | **API Token**、**Basic Auth Username** 和 **Basic Auth Password** | 只询问所选登录方式需要的项。 |
 | **Open a Case on Match** | 默认打开：每个提到指标的事件都会打开一个关于该指标的 [案例](/docs/telemetry/security-cases)，或并入已有的关于该指标的未关闭案例。 |
@@ -57,7 +76,7 @@ flowchart TB
 | **事件严重性** | 与 **警报严重性** 相同，用于事件。 |
 | **Write Detection Finding on Match** | 默认打开：每次匹配都会向事件流写入一个检测结果。 |
 
-令牌和密码会被加密，保存后不会再显示。要更改它们，请在情报源所在行中选择 **Update Credentials** ，然后选择 **Bearer 令牌**、**用户名和密码** 或会清除已保存内容的 **无需登录** ：你的选择会替换情报源的登录方式，所以保存令牌会清除已保存的密码，反之亦然。
+TAXII 情报源的令牌和密码会被加密，保存后不会再显示。要更改它们，请在情报源所在行中选择 **Update Credentials** ，然后选择 **Bearer 令牌**、**用户名和密码** 或会清除已保存内容的 **无需登录** ：你的选择会替换情报源的登录方式，所以保存令牌会清除已保存的密码，反之亦然。
 
 ### 如何轮询情报源
 
@@ -67,9 +86,22 @@ flowchart TB
 
 已停用的情报源既不会被轮询，也不会被比对。它已经拥有的指标会继续为新事件打标签，直到它们过期。
 
+### 如何读取列表
+
+- 每次轮询都会下载整个列表并逐行读取：读取每行的第一个值，直到空格、制表符、逗号或分号为止。以 `#`、`;` 或 `//` 开头的行是注释，地址或域名后面的端口会被去掉，像 `198.51.100.0/24` 这样的地址范围会被跳过。
+- 一个值在最后一次读到它的轮询之后的 2 天内保持为活动指标，列表删除的值从下一次轮询起不再匹配。没有变化的列表每天也会重写一次。
+- 一个列表最多包含 50,000 个指标。**Last Poll Summary** 会说明读取了多少个、跳过了多少行、遗漏了多少个。
+- 地址必须使用 `https`，并遵守与连接相同的出站规则：在 OneUptime Cloud 上，私有地址会被拒绝。
+
+### 如何读取 Google SecOps
+
+- 每次轮询都会读取 Google SecOps 自上次轮询以来记录的指标匹配，以及 Mandiant 的属性：匹配到的域名、地址或文件哈希，它的置信度、类别，以及与它相关的活动和攻击者。第一次轮询读取最近 7 天。
+- 一个指标在 Google SecOps 最后一次看到它之后的 30 天内保持活动，或直到它的来源表示它不再活动；分析师在 Google SecOps 中静音的指标在这里也不再匹配。
+- Google SecOps 标记为活跃入侵的匹配为 Critical，高优先级的匹配至少为 High。
+
 ## 会摄取什么
 
-OneUptime 保留模式为下列类型之一上的简单相等比较的 STIX `indicator` 对象：
+对于 TAXII 集合，OneUptime 保留模式为下列类型之一上的简单相等比较的 STIX `indicator` 对象。列表和 Google SecOps 提供同样的类型：
 
 | 类型 | 示例模式 |
 | --- | --- |
@@ -97,7 +129,7 @@ OneUptime 保留模式为下列类型之一上的简单相等比较的 STIX `ind
 - 已撤销的指标，或被更新为过去的 `valid_until` 的指标，在更新被轮询到时立即停止匹配。提供商从更新后的模式中删除的值也是如此。
 - 值以小写形式存储，匹配时不区分大小写。
 
-**Indicators** 表按存储的样子列出指标，并显示 **状态** 为 **活动**、**已过期** 或 **Revoked** 。重新轮询的指标可能会暂时显示两次，已过期或已撤销的行会一直留在列表中，直到存储清理将其删除，最多在过期后约一个月。比对始终会检查有效期和撤销状态，所以这样的行永远不会匹配。
+**指标** 表按存储的样子列出指标，并显示 **状态** 为 **活动**、**已过期** 或 **Revoked** 。重新轮询的指标可能会暂时显示两次，已过期或已撤销的行会一直留在列表中，直到存储清理将其删除，最多在过期后约一个月。比对始终会检查有效期和撤销状态，所以这样的行永远不会匹配。
 
 ## 如何找到匹配
 
@@ -108,7 +140,7 @@ OneUptime 保留模式为下列类型之一上的简单相等比较的 STIX `ind
 | 属性 | 值 |
 | --- | --- |
 | `threat.matched` | 在打过标签的事件上始终为 `"true"` |
-| `threat.indicator_id` | STIX 指标的 ID |
+| `threat.indicator_id` | STIX 指标的 ID；对于那些来源，则为 `list` 或 `google-secops` |
 | `threat.indicator_type` | 指标的类型，例如 `ipv4-addr` 或 `file-hash-sha256` |
 | `threat.indicator_value` | 匹配到的值，小写 |
 | `threat.feed` / `threat.feed_id` | 指标来自的情报源 |
@@ -149,7 +181,7 @@ detection:
 | 属性 | 值 |
 | --- | --- |
 | `oneuptime.threat.feed_id` / `oneuptime.threat.feed_name` | 情报源 |
-| `oneuptime.threat.indicator_id` | STIX 指标的 ID |
+| `oneuptime.threat.indicator_id` | STIX 指标的 ID；对于那些来源，则为 `list` 或 `google-secops` |
 | `oneuptime.threat.indicator_type` / `oneuptime.threat.indicator_value` | 匹配到了什么 |
 | `oneuptime.threat.confidence` | 指标的 confidence |
 | `oneuptime.threat.match_count` | 这个检测结果背后有多少个事件 |
@@ -196,6 +228,14 @@ detection:
 
 :::details 有指标，但什么都没匹配
 比对是把指标的值与事件的 observable 进行比较，而不是与每个字段比较：请在 **事件** 中打开一个你预期会匹配的事件，检查它的 observable 中是否包含该值。只有状态为 **活动** 的指标才会匹配。如果情报源的 **状态** 显示 **匹配失败** ，可以通过它所在行的 **查看错误** 查看原因。
+:::
+
+:::details 列表情报源的最近错误显示地址返回了一个网页
+**列表 URL** 打开的是一个页面，例如登录页或错误页，而不是列表：请在浏览器中打开它，并复制文件本身的地址。文本中不含任何 IP 地址、域名、URL 或文件哈希的列表也会以同样方式被拒绝，情报源的指标保持原样。
+:::
+
+:::details Google SecOps 情报源的最近错误显示 HTTP 403
+连接的服务账户无法搜索指标匹配：请授予它 `roles/chronicle.viewer`。如果连接已被删除，情报源会说明这一点：编辑它并选择另一个 **Google SecOps 连接**。
 :::
 
 :::details 匹配了，但没有打开警报

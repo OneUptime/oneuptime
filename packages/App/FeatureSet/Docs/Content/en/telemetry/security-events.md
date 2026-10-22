@@ -288,7 +288,64 @@ OneUptime runs the boolean core of Sigma:
 - `Image` and `CommandLine` read the process the event is about, the one that started in a process launch (`processPath`, `processCommandLine`), and `ParentImage` and `ParentCommandLine` the process that started it (`parentProcessPath`, `parentProcessCommandLine`). `principalProcess` is the process that acted, which in a launch is the parent.
 - `level` sets the severity: `informational`, `low`, `medium`, `high` or `critical`, and `medium` when missing. ATT&CK ids in `tags` (`attack.t1110`, `attack.ta0006`) fill the finding's MITRE fields.
 
-Aggregations such as `| count() by principalIp > 5` are refused when you save: use **Group By Field** and **Match Count Threshold** instead. `logsource` is informational only and narrows nothing: put that filter in a selection, such as `className: Authentication`. A `timeframe` is ignored, because the rule's interval sets its window.
+Aggregations such as `| count() by principalIp > 5` are refused when you save: use a [correlation rule](#correlation-rules), or **Group By Field** and **Match Count Threshold**, instead. `logsource` is informational only and narrows nothing: put that filter in a selection, such as `className: Authentication`. A `timeframe` is ignored, because the rule's interval sets its window.
+
+### Correlation rules
+
+A [Sigma correlation](https://sigmahq.io/docs/meta/correlations.html) fires on several events together rather than one. Paste it into **Sigma Rule (YAML)** with the rules it reads, as YAML documents separated by `---`, or name rules the project already has by their Sigma `name` or `id`. The **Rule Library** has ready-made ones, such as failed sign-ins followed by a success.
+
+| Type | Fires when | Shown as |
+| --- | --- | --- |
+| `event_count` | One group reaches a number of events within the `timespan` | Event count |
+| `value_count` | One group shows a number of different values of a field within the `timespan` | Distinct values |
+| `temporal` | Every rule matches for the same group within the `timespan`, in any order | Events together |
+| `temporal_ordered` | The rules match in their order for the same group within the `timespan` | Sequence |
+| `new_value` | A group shows a value of a field it has not shown within the `timespan` | First seen |
+
+```yaml title="failed-then-success.yml"
+title: Failed sign-ins, then a success from the same address
+level: high
+correlation:
+  type: temporal_ordered
+  rules:
+    - failed_sign_ins
+    - successful_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+---
+title: Five failed sign-ins
+name: failed_sign_ins
+correlation:
+  type: event_count
+  rules:
+    - failed_sign_in
+  group-by:
+    - principalIp
+  timespan: 10m
+  condition:
+    gte: 5
+---
+title: Failed sign-in
+name: failed_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Failure
+  condition: selection
+---
+title: Successful sign-in
+name: successful_sign_in
+detection:
+  selection:
+    className: Authentication
+    statusName: Success
+  condition: selection
+```
+
+- A group is the value of the `group-by` fields, such as one address. Counts are rolling: a burst that two runs split is still counted whole within its `timespan`, which is at most 24 hours.
+- `new_value` is OneUptime's own type, since Sigma has no "first seen" correlation: it compares with up to 30 days of history. `value_sum`, `value_avg`, `value_percentile` and `value_median` are refused when you save.
+- The **Type** column of **Detection Rules** names each rule's kind, and the form says in a sentence what the rule looks for.
 
 ### Evaluation settings
 

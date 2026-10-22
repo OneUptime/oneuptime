@@ -32,6 +32,18 @@ import {
   getRecommendedDetectionRules,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { SecurityEventDestinationCatalog } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
+import {
+  DETECTION_RULE_TYPE_DEFINITIONS,
+  DetectionRuleType,
+  DetectionRuleTypeDefinition,
+  SIGMA_UNSUPPORTED_CORRELATION_TYPES,
+} from "Common/Types/SecurityEvent/SigmaCorrelation";
+import ThreatIntelFeedType, {
+  RECOMMENDED_THREAT_INTEL_LISTS,
+  THREAT_INTEL_FEED_TYPE_DEFINITIONS,
+  ThreatIntelFeedTypeDefinition,
+} from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import {
   SECURITY_PLAYBOOK_ACTIONS,
   SecurityPlaybookActionCategory,
@@ -817,16 +829,91 @@ describe("security-events.ejs", () => {
 
   test("claims threat intel the way the feature actually works", () => {
     /*
-     * Threat intel shipped as bring-your-own STIX/TAXII feeds: the page
-     * must claim the enrichment attributes and the customer-supplied
-     * collections, and must no longer list threat intelligence under
-     * "Not in the box" (the scope list still excludes UEBA/baselining
-     * and bundled feed content).
+     * A feed reads one of three sources: a list of indicators (the free
+     * blocklists the Threat Intel page adds in one click), a STIX/TAXII
+     * collection, or the indicators Google SecOps matched. The page claims
+     * the enrichment attributes and every source, counts the free lists as
+     * the catalog does, and no longer says the customer brings every
+     * collection; it still says OneUptime curates no feed of its own.
      */
+    const numberWords: Array<string> = ["zero", "one", "two", "three", "four"];
+
     expect(html).toContain("STIX/TAXII");
     expect(html).toContain("threat.*");
-    expect(html).toContain("You bring the TAXII collections");
+    expect(html).toContain(
+      `${numberWords[RECOMMENDED_THREAT_INTEL_LISTS.length]} free blocklists added in one click`,
+    );
+    expect(html).toContain("the indicators Google SecOps found");
+    expect(html).toContain("OneUptime curates no feed of its own");
+    expect(html).not.toContain("You bring the TAXII collections");
     expect(html).not.toContain("Threat intelligence enrichment, UEBA");
+    expect(
+      THREAT_INTEL_FEED_TYPE_DEFINITIONS.map(
+        (definition: ThreatIntelFeedTypeDefinition): string => {
+          return definition.type;
+        },
+      ),
+    ).toEqual([
+      ThreatIntelFeedType.List,
+      ThreatIntelFeedType.Taxii,
+      ThreatIntelFeedType.GoogleSecOps,
+    ]);
+  });
+
+  test("names every SIEM it sends to, as the destination catalog lists them", () => {
+    /*
+     * Send to your SIEM sends to each provider of the destination catalog;
+     * the page and its SEO entry name every one, and Google SecOps alerts
+     * close when their case does.
+     */
+    const seo: PageSEOData = PageSEOConfig["/product/security-events"]!;
+    const sendRow: string = html.slice(
+      html.indexOf('id="sec-send-to-siem"'),
+      html.indexOf("</div>", html.indexOf('id="sec-send-to-siem"')),
+    );
+
+    expect(sendRow.length).toBeGreaterThan(0);
+    for (const definition of SecurityEventDestinationCatalog) {
+      expect(sendRow).toContain(`>${definition.title}<`);
+      expect(seo.softwareApplication!.description).toContain(definition.title);
+    }
+
+    expect(html).toContain("Send it what OneUptime finds.");
+    expect(html).toContain("close its alerts when their case closes here");
+    expect(seo.softwareApplication!.features).toContain(
+      "Security events sent to Splunk, Microsoft Sentinel and Elastic Security",
+    );
+  });
+
+  test("claims the correlations the parser takes, and names the ones it refuses", () => {
+    /*
+     * The correlation types the rule form takes (event count, distinct
+     * values, events together, sequence and first seen) are claimed; the
+     * value_* aggregations the parser refuses stay under "Not in the box".
+     */
+    expect(
+      DETECTION_RULE_TYPE_DEFINITIONS.map(
+        (definition: DetectionRuleTypeDefinition): string => {
+          return definition.type;
+        },
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        DetectionRuleType.EventCount,
+        DetectionRuleType.ValueCount,
+        DetectionRuleType.Temporal,
+        DetectionRuleType.TemporalOrdered,
+        DetectionRuleType.NewValue,
+      ]),
+    );
+    expect(html).toContain(
+      "Sigma correlations: counts, distinct values, sequences &amp; first seen",
+    );
+
+    expect(SIGMA_UNSUPPORTED_CORRELATION_TYPES.length).toBeGreaterThan(0);
+    for (const refused of SIGMA_UNSUPPORTED_CORRELATION_TYPES) {
+      expect(html).toContain(`>${refused}</span>`);
+    }
   });
 
   test("no longer lists the rule library or case management as missing", () => {
