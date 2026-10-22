@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"Outbound HTTPS, Runner ID and key"| ingest
-    ingest -->|"Claimed job, with its secrets or credential"| runner
+    ingest -->|"Claimed job, with its secrets"| runner
     runner -->|"Script, SSH or Kubernetes API"| targets
 ```
 
@@ -61,13 +61,12 @@ Global Runners are the Runners OneUptime runs for every project. A JavaScript st
 | What a step can reach | Public internet addresses | What its host can reach |
 | Longest a step runs | 5 minutes | 1 hour |
 | Secret variables | The ones you let global Runners use | The ones that list it |
-| Credentials | None | The ones you assign to it |
 
 A global Runner runs the steps of many projects, so each step is kept apart from every other:
 
 - Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it: no files, no processes, no environment variables, and nothing kept from one step to the next.
 - Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.
-- It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.
+- It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.
 - A project runs at most three steps on global Runners at once, so no project keeps them to itself.
 
 Pick one of your own Runners for a step that must reach your network, or to keep the step on hosts you control. To keep every step on your own Runners, turn **Use global Runners** off at the bottom of **Runbooks → Runners**. A JavaScript step that picks no Runner then runs on the project's default Runner or, with none set, fails, saying so, until it picks one of yours; a step that picks one of your Runners keeps it either way. A code repository that picks no Runner in its settings in Code works on a global Runner too, and needs one of yours while the switch is off; see [Code](/docs/ai/ai-agent#pick-the-repositorys-runner).
@@ -98,7 +97,7 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Runs Runbooks** | Under **More fields** | On by default. Lets this Runner take runbook steps. |
 | **Labels** | Under **More fields** | Optional. |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An auto remediation rule picks the Runner OneUptime AI runs its commands on, and a Kubernetes cluster's AI settings the Runner its kubectl runs on: picking a Runner there is what lets OneUptime AI's commands run on it. Picking one that holds SSH credentials takes permission to read runbook credentials; see [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands).
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An auto remediation rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.
 
 ### 2. Copy the install command
 

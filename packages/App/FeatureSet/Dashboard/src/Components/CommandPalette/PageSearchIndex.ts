@@ -2599,22 +2599,11 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.Play,
             keywords: ["runbook runs"],
           },
-        ],
-      },
-      {
-        title: "Runners",
-        pages: [
           {
             page: PageMap.RUNBOOKS_RUNNERS,
             title: "Runners",
             icon: IconProp.Terminal,
             keywords: ["runbook runners", "agents"],
-          },
-          {
-            page: PageMap.RUNBOOKS_RUNNER_CREDENTIALS,
-            title: "AI Access",
-            icon: IconProp.Key,
-            keywords: ["runner credentials", "ssh hosts for ai"],
           },
         ],
       },

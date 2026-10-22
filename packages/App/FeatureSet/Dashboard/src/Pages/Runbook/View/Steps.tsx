@@ -41,8 +41,11 @@ import {
   HTTP_HEADERS_TITLE,
   KUBECONFIG_TITLE,
   KUBECTL_EXAMPLES,
+  LEGACY_KUBERNETES_STEP_NOTICE,
+  LEGACY_SSH_STEP_NOTICE,
   MANUAL_INSTRUCTIONS_TITLE,
   NEEDS_APPROVAL_LABEL,
+  NO_LONGER_RUNS_LABEL,
   NO_PASSPHRASE_LABEL,
   REQUIRE_APPROVAL_DESCRIPTION,
   REQUIRE_APPROVAL_TITLE,
@@ -1364,9 +1367,10 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   /*
-   * An SSH or Kubernetes step written with a credential, through the API
-   * (every stored one was rewritten when variables came in): shown as it
-   * is - it still runs - with one button that turns it into a script step.
+   * An SSH or Kubernetes step written with a runbook credential, through
+   * the API (the data migrations rewrote every stored one): shown as it is
+   * - it no longer runs, as runbook credentials were removed, which its
+   * header says too - with one button that turns it into a script step.
    */
   const renderLegacyCredentialStep: (
     step: RunbookStep,
@@ -1381,11 +1385,15 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <p>
             {translator.translateText(
               step.type === RunbookStepType.SSH
-                ? "This step signs in with a runbook credential and runs one command. It still runs as it is. Turn it into a script step to sign in with a variable instead."
-                : "This step restarts or scales one workload with a runbook credential. It still runs as it is. Turn it into a kubectl script that does the same, then pick its kubeconfig.",
+                ? LEGACY_SSH_STEP_NOTICE
+                : LEGACY_KUBERNETES_STEP_NOTICE,
             )}
           </p>
-          <div className="mt-3">
+          {/*
+           * The button lines up with the sentence above it: Button keeps a
+           * left margin of its own for a dialog's footer.
+           */}
+          <div className="mt-3 [&>button]:ml-0 [&>button]:md:ml-0">
             <Button
               title="Turn into a script step"
               icon={IconProp.Code}
@@ -2326,6 +2334,36 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               <span className="max-sm:sr-only">
                                                 {translator.translateText(
                                                   NEEDS_APPROVAL_LABEL,
+                                                )}
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <></>
+                                          )}
+                                          {/*
+                                           * A step written with a runbook
+                                           * credential no longer runs: said
+                                           * on the step, open or folded, so
+                                           * a runbook that holds one never
+                                           * reads as if every step runs. A
+                                           * phone shows the sign alone, as
+                                           * the approval lock does.
+                                           */}
+                                          {isLegacyCredentialStep(step) ? (
+                                            <div
+                                              className="inline-flex flex-shrink-0 items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-200"
+                                              title={translator.translateText(
+                                                NO_LONGER_RUNS_LABEL,
+                                              )}
+                                              data-testid={`runbook-step-${idx}-no-longer-runs`}
+                                            >
+                                              <Icon
+                                                icon={IconProp.Alert}
+                                                className="h-3 w-3"
+                                              />
+                                              <span className="max-sm:sr-only">
+                                                {translator.translateText(
+                                                  NO_LONGER_RUNS_LABEL,
                                                 )}
                                               </span>
                                             </div>

@@ -10,7 +10,6 @@ import KubernetesAiAgentService from "../../../Server/Services/KubernetesAiAgent
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../Server/Services/ProjectService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import RunbookVariableService from "../../../Server/Services/RunbookVariableService";
 import RunnerService from "../../../Server/Services/RunnerService";
@@ -20,7 +19,6 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import LlmProvider from "../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../Models/DatabaseModels/Project";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
-import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../../Models/DatabaseModels/Runner";
@@ -56,10 +54,11 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * Runner an operator bound with a Kubernetes credential
  * (project_ai_command_execution_disabled). Those gaps are retired:
  *
- * - with Enable AI on, no access target — that advanced Runner, the
- *   cluster's Kubernetes AI agent, the chart's previous in-cluster Runner —
- *   and no kind of resource has a project switch gap, and every Fixes mode
- *   but Off is remediation-ready;
+ * - with Enable AI on, no access target — the cluster's Kubernetes AI
+ *   agent, the chart's previous in-cluster Runner — and no kind of resource
+ *   has a project switch gap, and every Fixes mode but Off is
+ *   remediation-ready (that operator-bound Runner is no target any more: it
+ *   reached the cluster with a runbook credential, and those were removed);
  * - with Enable AI off, the one project switch gap is project_ai_disabled
  *   (ai_disabled_for_project on a resource), and it blocks both;
  * - end to end, from the project row to the status: a row that still
@@ -74,9 +73,6 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 );
 const RUNNER_ID: ObjectID = new ObjectID(
   "34343434-3434-4434-8434-343434343434",
-);
-const CREDENTIAL_ID: ObjectID = new ObjectID(
-  "45454545-4545-4545-8545-454545454545",
 );
 const AGENT_ID: ObjectID = new ObjectID("56565656-5656-4656-8656-565656565656");
 const RESOURCE_ID: ObjectID = new ObjectID(
@@ -120,10 +116,9 @@ const FIXING_RESOURCE_MODES: Array<ResourceAiRemediationMode> = [
   ResourceAiRemediationMode.BypassApproval,
 ];
 
-type ClusterTargetType = "advanced_runner" | "ai_agent" | "legacy_runner";
+type ClusterTargetType = "ai_agent" | "legacy_runner";
 
 const CONNECTED_TARGET_TYPES: Array<ClusterTargetType> = [
-  "advanced_runner",
   "ai_agent",
   "legacy_runner",
 ];
@@ -136,7 +131,6 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     ...overrides,
@@ -182,21 +176,6 @@ function legacyRunner(overrides: Record<string, unknown> = {}): Runner {
   } as unknown as Runner;
 }
 
-// A Runner an operator created in the dashboard: it reaches with a credential.
-function advancedRunner(): Runner {
-  return legacyRunner({ name: "platform-ops-runner", hostInfo: {} });
-}
-
-function kubernetesCredential(): RunbookCredential {
-  return {
-    id: CREDENTIAL_ID,
-    _id: CREDENTIAL_ID.toString(),
-    name: "prod kubeconfig",
-    credentialType: "Kubernetes",
-    runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
-  } as unknown as RunbookCredential;
-}
-
 function clusterGapCodes(
   status: KubernetesClusterAiAccessStatus,
 ): Array<KubernetesAiAccessGapCode> {
@@ -218,15 +197,11 @@ function clusterProjectSwitchGaps(
 describe("a cluster's AI access status: Enable AI is the only project switch", () => {
   let runnerLookup: jest.SpyInstance;
   let agentLookup: jest.SpyInstance;
-  let credentialLookup: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
-    jest
-      .spyOn(RunbookCredentialService, "countBy")
-      .mockResolvedValue(new PositiveNumber(0));
     jest
       .spyOn(RunbookVariableService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
@@ -239,7 +214,6 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
       .mockResolvedValue(new PositiveNumber(0));
     runnerLookup = jest.spyOn(RunnerService, "findOneBy");
     agentLookup = jest.spyOn(KubernetesAiAgentService, "findForCluster");
-    credentialLookup = jest.spyOn(RunbookCredentialService, "findOneBy");
   });
 
   afterEach(() => {
@@ -251,28 +225,17 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
     target: ClusterTargetType | "none",
   ): Record<string, unknown> {
     switch (target) {
-      case "advanced_runner":
-        runnerLookup.mockResolvedValue(advancedRunner());
-        agentLookup.mockResolvedValue(null);
-        credentialLookup.mockResolvedValue(kubernetesCredential());
-        return {
-          aiAccessRunnerId: RUNNER_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
-        };
       case "ai_agent":
         runnerLookup.mockResolvedValue(null);
         agentLookup.mockResolvedValue(agent());
-        credentialLookup.mockResolvedValue(null);
         return { aiAccessRunnerId: undefined };
       case "legacy_runner":
         runnerLookup.mockResolvedValue(legacyRunner());
         agentLookup.mockResolvedValue(null);
-        credentialLookup.mockResolvedValue(null);
         return { aiAccessRunnerId: RUNNER_ID };
       default:
         runnerLookup.mockResolvedValue(null);
         agentLookup.mockResolvedValue(null);
-        credentialLookup.mockResolvedValue(null);
         return { aiAccessRunnerId: undefined };
     }
   }
@@ -306,33 +269,10 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
     }
 
     expect(accessMethods).toEqual({
-      advanced_runner: "credential/runner",
       ai_agent: "in_cluster/ai_agent",
       legacy_runner: "in_cluster/runner",
       none: "none/none",
     });
-  });
-
-  /*
-   * The advanced Runner is the target "Enable AI command execution" used
-   * to hold back: every fixing mode is ready on it now with Enable AI alone.
-   */
-  it("an advanced Runner with a credential is remediation-ready in every fixing mode with Enable AI on", async () => {
-    for (const mode of FIXING_CLUSTER_MODES) {
-      const status: KubernetesClusterAiAccessStatus = await statusOf({
-        target: "advanced_runner",
-        mode,
-        gates: AI_ON,
-      });
-
-      expect({ mode, gaps: clusterGapCodes(status) }).toEqual({
-        mode,
-        gaps: [],
-      });
-      expect(status.remediationMode).toBe(mode);
-      expect(status.isInvestigationReady).toBe(true);
-      expect(status.isRemediationReady).toBe(true);
-    }
   });
 
   it("every connected target is ready for both in every fixing mode with Enable AI on", async () => {
@@ -453,13 +393,11 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
       jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
         cluster({
           aiAccessRunnerId: RUNNER_ID,
-          aiAccessCredentialId: CREDENTIAL_ID,
           aiRemediationMode: KubernetesAiRemediationMode.Automatic,
         }),
       );
-      runnerLookup.mockResolvedValue(advancedRunner());
+      runnerLookup.mockResolvedValue(legacyRunner());
       agentLookup.mockResolvedValue(null);
-      credentialLookup.mockResolvedValue(kubernetesCredential());
       jest
         .spyOn(ProjectService, "findOneById")
         .mockResolvedValue(project as unknown as Project);
@@ -471,7 +409,7 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
       jest.spyOn(AIService, "getAiBalanceBlocker").mockResolvedValue(null);
     }
 
-    it("Enable AI on, the retired switches off: remediation-ready through the advanced Runner", async () => {
+    it("Enable AI on, the retired switches off: remediation-ready through the previous in-cluster Runner", async () => {
       mockRows({
         enableAi: true,
         enableAutoRemediation: false,
@@ -484,7 +422,7 @@ describe("a cluster's AI access status: Enable AI is the only project switch", (
           projectId: PROJECT_ID,
         });
 
-      expect(status?.accessMethod).toBe("credential");
+      expect(status?.accessMethod).toBe("in_cluster");
       expect(status?.gaps).toEqual([]);
       expect(status?.isInvestigationReady).toBe(true);
       expect(status?.isRemediationReady).toBe(true);

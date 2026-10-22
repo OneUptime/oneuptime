@@ -207,8 +207,10 @@ describe("the cluster side menu's AI section", () => {
     await renderClusterMenu();
 
     const basic: Array<MenuLink> = linksIn("Basic");
+    // Topology sits right after Overview, as on every resource (#5160).
     expect(titlesOf(basic)).toEqual([
       "Overview",
+      "Topology",
       "Resource Usage",
       "Recommendations",
       "Costs",

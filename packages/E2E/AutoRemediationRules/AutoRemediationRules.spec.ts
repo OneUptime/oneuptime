@@ -85,8 +85,9 @@ const NO_RUNNER: string = "AI agent on the cluster or host";
 const ADD_RUNNER_HELP: string =
   "Add a Runner under Runbooks › Runners for OneUptime AI to run commands on, then pick it here.";
 const RUNNER_HELP_TEST_ID: string = "auto-remediation-runner-picker-help";
+// Bash only: runbook credentials, which SSH commands reached a host with, are gone.
 const OWN_RUNNER_HELP: string =
-  "OneUptime AI may also run Bash and SSH commands on this Runner, inside your network.";
+  "OneUptime AI may also run Bash commands on this Runner, inside your network.";
 const EVERY_TIME: string = "Run them every time";
 const OLDER_COMMANDS_NOTE: string =
   "This older rule only has OneUptime AI run commands on its Runners.";

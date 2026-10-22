@@ -5,7 +5,6 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Project from "../../Models/DatabaseModels/Project";
-import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner, {
   RunnerConnectionStatus,
 } from "../../Models/DatabaseModels/Runner";
@@ -27,15 +26,12 @@ import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
 } from "../../Types/AI/AgentAiSettings";
-import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
   RunnerLiveStatus,
   getRunnerLiveStatus,
 } from "../../Types/Runner/RunnerLiveStatus";
 import {
-  KUBECTL_ALLOW_WRITES_ENV,
-  KUBECTL_WRITE_NAMESPACES_ENV,
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   KUBERNETES_AI_AGENT_COMPONENT,
   KUBERNETES_AI_AGENT_DISPLAY_NAME,
@@ -73,7 +69,6 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import LlmProviderService from "./LlmProviderService";
 import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
-import RunbookCredentialService from "./RunbookCredentialService";
 import RunbookVariableService from "./RunbookVariableService";
 import RunnerService, {
   Service as RunnerServiceClass,
@@ -107,10 +102,11 @@ export {
  *
  * AI reaches a cluster through ONE access target, resolved from liveness by
  * resolveKubernetesAiAccessTarget: the cluster's Kubernetes AI agent (its
- * own identity, a KubernetesAiAgent row), the chart's previous in-cluster
- * Runner, or a Runner an operator bound together with a Kubernetes
- * credential. The status, the enqueue chokepoint and the access test all
- * ask the same function, so they never disagree about which one it is.
+ * own identity, a KubernetesAiAgent row) or the chart's previous in-cluster
+ * Runner. (A Runner an operator bound together with a Kubernetes runbook
+ * credential was the third, until runbook credentials were removed.) The
+ * status, the enqueue chokepoint and the access test all ask the same
+ * function, so they never disagree about which one it is.
  *
  * It also still registers the previous in-cluster Runner older charts
  * install: that Runner registers with the project's telemetry ingestion key
@@ -184,7 +180,6 @@ export const CLUSTER_AI_ACCESS_SELECT: Record<string, boolean> = {
   name: true,
   clusterIdentifier: true,
   aiAccessRunnerId: true,
-  aiAccessCredentialId: true,
   isAiInvestigationEnabled: true,
   aiRemediationMode: true,
   aiKubectlCommandAllowlist: true,
@@ -238,15 +233,11 @@ export const AI_AGENT_NOT_CONNECTED_NEXT_STEP: string = `Install the Kubernetes 
 
 /*
  * Who runs kubectl for a cluster, as the chart-value wording tells them
- * apart: the Kubernetes AI agent (aiAgent.* values), the previous in-cluster
- * Runner an older chart installed (its values are aiAccess.*, and the fix is
- * upgrading the chart to the AI agent), or a Runner an operator runs with a
- * Kubernetes credential (its own ONEUPTIME_KUBECTL_* environment).
+ * apart: the Kubernetes AI agent (aiAgent.* values), or the previous
+ * in-cluster Runner an older chart installed (its values are aiAccess.*,
+ * and the fix is upgrading the chart to the AI agent).
  */
-export type KubernetesAiAccessExecutorKind =
-  | "ai_agent"
-  | "legacy_runner"
-  | "credential_runner";
+export type KubernetesAiAccessExecutorKind = "ai_agent" | "legacy_runner";
 
 /*
  * What to do about a read-only executor while remediation is on. For the
@@ -268,34 +259,23 @@ export const AGENT_SET_INVESTIGATION_NEXT_STEP: string = `Set aiAgent.investigat
 
 export const AGENT_SET_FIXES_NEXT_STEP: string = `Set aiAgent.fixes to ask-for-approval, automatic or bypass-approval on the Kubernetes agent chart; ${CLUSTER_AI_AGENT_PAGE} shows the command.`;
 
-// The same for a Runner no chart configures: its own environment.
-export const CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP: string = `Set ${KUBECTL_ALLOW_WRITES_ENV}=true on the Runner's host and restart it (${KUBECTL_WRITE_NAMESPACES_ENV} limits the namespaces it may change).`;
-
 export function getRemediationWriteAccessNextStep(
   kind: KubernetesAiAccessExecutorKind,
 ): string {
-  switch (kind) {
-    case "ai_agent":
-      return REMEDIATION_WRITE_ACCESS_NEXT_STEP;
-    case "legacy_runner":
-      return LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP;
-    default:
-      return CREDENTIAL_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP;
-  }
+  return kind === "legacy_runner"
+    ? LEGACY_RUNNER_REMEDIATION_WRITE_ACCESS_NEXT_STEP
+    : REMEDIATION_WRITE_ACCESS_NEXT_STEP;
 }
 
 /*
  * The one access target AI reaches a cluster through right now (see
  * resolveKubernetesAiAccessTarget), with the row it was resolved from.
  *
- * advanced_runner: a Runner an operator bound that is not a kubernetes-agent
- *                  row — reached with the cluster's Kubernetes credential.
  * ai_agent:        the cluster's Kubernetes AI agent (online or not).
  * legacy_runner:   the cluster's previous in-cluster Runner, bound to it.
  * none:            nothing can reach the cluster.
  */
 export type KubernetesAiAccessTarget =
-  | { type: "advanced_runner"; runner: Runner; isOnline: boolean }
   | { type: "ai_agent"; agent: KubernetesAiAgent; isOnline: boolean }
   | { type: "legacy_runner"; runner: Runner; isOnline: boolean }
   | { type: "none" };
@@ -307,7 +287,6 @@ export function getKubernetesAiAccessTargetId(
   switch (target.type) {
     case "ai_agent":
       return target.agent.id?.toString() || null;
-    case "advanced_runner":
     case "legacy_runner":
       return target.runner.id?.toString() || null;
     default:
@@ -322,18 +301,18 @@ export function getKubernetesAiAccessTargetId(
  * previous in-cluster Runner the cluster is still bound to — no dashboard
  * step either way:
  *
- * 1. a bound Runner that is not a kubernetes-agent row: the advanced Runner
- *    an operator chose (with its Kubernetes credential). An explicit
- *    operator choice wins over everything the chart installs.
- * 2. the cluster's AI agent, when online.
- * 3. the bound Runner, when it is THIS cluster's previous in-cluster Runner
+ * 1. the cluster's AI agent, when online.
+ * 2. the bound Runner, when it is THIS cluster's previous in-cluster Runner
  *    and online (the agent is not, or was never installed).
- * 4. the cluster's AI agent, offline (its offline gap says what to check).
- * 5. the bound previous in-cluster Runner, offline.
- * 6. nothing.
+ * 3. the cluster's AI agent, offline (its offline gap says what to check).
+ * 4. the bound previous in-cluster Runner, offline.
+ * 5. nothing.
  *
- * A bound Runner that is another cluster's kubernetes-agent row is none of
- * these: its ServiceAccount can never reach this cluster. Pure: liveness is
+ * Any other bound Runner is none of these: another cluster's
+ * kubernetes-agent row, whose ServiceAccount can never reach this cluster,
+ * or a Runner outside the cluster, which reached it only with a Kubernetes
+ * runbook credential (gone; the data migration that removed them cleared
+ * such bindings, and a write that binds one is refused). Pure: liveness is
  * decided by the caller (isRunnerOnline, KubernetesAiAgentService.isOnline).
  */
 export function resolveKubernetesAiAccessTarget(data: {
@@ -357,17 +336,6 @@ export function resolveKubernetesAiAccessTarget(data: {
       data.boundRunner.id.toString() === data.aiAccessRunnerId.toString())
       ? data.boundRunner
       : null;
-
-  if (
-    boundRunner &&
-    !RunnerServiceClass.isKubernetesAgentRunnerRow(boundRunner)
-  ) {
-    return {
-      type: "advanced_runner",
-      runner: boundRunner,
-      isOnline: data.isBoundRunnerOnline,
-    };
-  }
 
   const legacyRunner: Runner | null =
     boundRunner &&
@@ -527,14 +495,12 @@ interface RunnerPresence {
 
 /*
  * How the resolved access target reaches the cluster, for the status: the
- * target's summary (runner), how kubectl authenticates, the credential when
- * it is one, and every gap that stops the target itself.
+ * target's summary (runner), how kubectl authenticates, and every gap that
+ * stops the target itself.
  */
 interface ResolvedTargetAccess {
   runner: KubernetesAiAccessRunnerSummary | null;
   accessMethod: KubernetesClusterAiAccessStatus["accessMethod"];
-  credentialId?: string | undefined;
-  credentialName?: string | undefined;
   gaps: Array<KubernetesAiAccessGap>;
 }
 
@@ -823,9 +789,9 @@ class KubernetesClusterAiAccessServiceClass {
 
   /*
    * The readiness computation proper. Resolves the cluster's access target
-   * (resolveKubernetesAiAccessTarget), reads the bound Runner, the agent row
-   * and the credential as root (the cluster row is already tenant-scoped by
-   * the caller) and folds project gates in. Always sets aiAgent (the
+   * (resolveKubernetesAiAccessTarget), reads the bound Runner and the agent
+   * row as root (the cluster row is already tenant-scoped by the caller)
+   * and folds project gates in. Always sets aiAgent (the
    * cluster's agent whether or not it is the target) and
    * automaticInvestigation.
    */
@@ -867,9 +833,8 @@ class KubernetesClusterAiAccessServiceClass {
     /*
      * Where investigation and fixes are set: by the cluster's Kubernetes AI
      * agent (its configuration, or its defaults on a cluster nobody
-     * configured) unless AI reaches the cluster through a Runner an
-     * operator bound. The columns above already hold the agent's values —
-     * it writes them on every report that changes them.
+     * configured), or in OneUptime. The columns above already hold the
+     * agent's values — it writes them on every report that changes them.
      */
     const aiSettingsSource: AgentAiSettingsSource =
       KubernetesAiAgentService.getAiSettingsSource({
@@ -877,7 +842,6 @@ class KubernetesClusterAiAccessServiceClass {
           ? parseKubernetesAgentPosture(loaded.agent.posture)?.aiSettings
           : undefined,
         cluster,
-        isBoundToAdvancedRunner: loaded.target.type === "advanced_runner",
       });
     const isSetByAgent: boolean =
       isAgentAiSettingsSourceAgent(aiSettingsSource);
@@ -970,8 +934,6 @@ class KubernetesClusterAiAccessServiceClass {
         incidents: gates.automaticRemediation?.incidents === true,
         alerts: gates.automaticRemediation?.alerts === true,
       },
-      credentialId: access.credentialId,
-      credentialName: access.credentialName,
       kubectlAllowlist: this.normalizeAllowlist(
         cluster.aiKubectlCommandAllowlist,
       ),
@@ -1034,11 +996,9 @@ class KubernetesClusterAiAccessServiceClass {
           remediationMode,
         });
       case "legacy_runner":
-      case "advanced_runner":
-        return this.getRunnerAccess({
+        return this.getLegacyRunnerAccess({
           cluster,
           runner: target.runner,
-          isLegacy: target.type === "legacy_runner",
           remediationMode,
         });
       default:
@@ -1076,12 +1036,12 @@ class KubernetesClusterAiAccessServiceClass {
   }
 
   /*
-   * A Runner still bound to a cluster that has no access target is another
-   * cluster's in-cluster Runner (a kubernetes-agent row that is not this
-   * cluster's): its ServiceAccount can never reach this cluster, so it is
-   * ignored. Said, so the status does not read as if nothing were
-   * selected; installing the agent (the gap's step) is still the fix.
-   * Empty when nothing is bound.
+   * A Runner still bound to a cluster that has no access target is not this
+   * cluster's in-cluster Runner: another cluster's (its ServiceAccount can
+   * never reach this cluster), or one outside any cluster bound before
+   * runbook credentials were removed. It is ignored. Said, so the status
+   * does not read as if nothing were selected; installing the agent (the
+   * gap's step) is still the fix. Empty when nothing is bound.
    */
   private getIgnoredBoundRunnerNote(data: {
     cluster: KubernetesCluster;
@@ -1194,25 +1154,20 @@ class KubernetesClusterAiAccessServiceClass {
   }
 
   /*
-   * A Runner as the target: the chart's previous in-cluster Runner of this
-   * cluster (isLegacy), or a Runner an operator bound, which reaches the
-   * cluster with the cluster's Kubernetes credential.
+   * The chart's previous in-cluster Runner of this cluster as the target.
    */
-  private async getRunnerAccess(data: {
+  private getLegacyRunnerAccess(data: {
     cluster: KubernetesCluster;
     runner: Runner;
-    isLegacy: boolean;
     remediationMode: KubernetesAiRemediationMode;
-  }): Promise<ResolvedTargetAccess> {
-    const { cluster, runner, isLegacy, remediationMode } = data;
+  }): ResolvedTargetAccess {
+    const { cluster, runner, remediationMode } = data;
     const gaps: Array<KubernetesAiAccessGap> = [];
     const posture: KubernetesRunnerPosture | undefined =
       parseKubernetesRunnerPosture(runner.hostInfo);
     const presence: RunnerPresence = this.getRunnerPresence(runner);
 
     let accessMethod: KubernetesClusterAiAccessStatus["accessMethod"] = "none";
-    let credentialId: string | undefined = undefined;
-    let credentialName: string | undefined = undefined;
 
     const summary: KubernetesAiAccessRunnerSummary = {
       id: runner.id!.toString(),
@@ -1227,13 +1182,13 @@ class KubernetesClusterAiAccessServiceClass {
     };
 
     if (!presence.isOnline) {
-      gaps.push(this.getRunnerOfflineGap({ runner, presence, isLegacy }));
+      gaps.push(this.getRunnerOfflineGap({ runner, presence }));
     }
 
     /*
-     * Binding a Runner to the cluster is what lets it run OneUptime AI's
-     * commands (RunnerAiCommandsPick), so a bound Runner without them is
-     * one bound before that - set right by binding it again.
+     * Registration lets the in-cluster Runner run OneUptime AI's kubectl,
+     * so one without it was registered before that - set right by binding
+     * it again.
      */
     if (runner.canRunAiCommands !== true) {
       gaps.push({
@@ -1250,8 +1205,7 @@ class KubernetesClusterAiAccessServiceClass {
      * which reaches whatever cluster the pod lives in. So it is usable only
      * when the Runner's posture names THIS cluster — a Runner that is
      * in-cluster somewhere else would run every command for this cluster
-     * against the wrong one. The previous in-cluster Runner of this cluster
-     * ignores a credential still selected: in-cluster access wins.
+     * against the wrong one.
      */
     const isInClusterForThisCluster: boolean = isInClusterPostureForCluster(
       posture,
@@ -1260,85 +1214,18 @@ class KubernetesClusterAiAccessServiceClass {
 
     if (isInClusterForThisCluster) {
       accessMethod = "in_cluster";
-    } else if (isLegacy) {
+    } else {
       /*
        * This cluster's previous in-cluster Runner by its name, but its last
        * report does not say it runs here (a heartbeat that dropped its
-       * posture). It is never given a credential, so it cannot be used —
-       * and the AI agent, which needs neither, is the way forward.
+       * posture), so it cannot be used — and the AI agent is the way
+       * forward.
        */
       gaps.push({
         code: "runner_cluster_mismatch",
         title: "The previous in-cluster Runner has not reported this cluster",
         description: `Runner "${runner.name}" has not reported that it runs in this cluster, so OneUptime AI does not use it.`,
         nextStep: `Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over.\n\n${AI_AGENT_INSTALL_COMMAND}`,
-        blocks: "both",
-      });
-    } else if (cluster.aiAccessCredentialId) {
-      const credential: RunbookCredential | null =
-        await RunbookCredentialService.findOneBy({
-          query: {
-            _id: cluster.aiAccessCredentialId.toString(),
-            projectId: cluster.projectId!,
-          },
-          select: {
-            _id: true,
-            name: true,
-            credentialType: true,
-            runners: { _id: true },
-          },
-          props: { isRoot: true },
-        });
-
-      const isAssignedToRunner: boolean = Boolean(
-        credential?.runners?.some((assigned: Runner) => {
-          return assigned.id?.toString() === runner.id?.toString();
-        }),
-      );
-
-      if (
-        !credential ||
-        credential.credentialType !== RunbookCredentialType.Kubernetes ||
-        !isAssignedToRunner
-      ) {
-        gaps.push({
-          code: "credential_missing",
-          title: "The Kubernetes credential is not usable by the Runner",
-          description: !credential
-            ? "The credential bound to this cluster no longer exists."
-            : credential.credentialType !== RunbookCredentialType.Kubernetes
-              ? `"${credential.name}" is not a Kubernetes credential.`
-              : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
-          nextStep: `Create a Kubernetes credential (API server URL + ServiceAccount token) under Runbooks → AI Access, assign it to the Runner, and select it on ${CLUSTER_AI_AGENT_PAGE}.`,
-          blocks: "both",
-        });
-      } else {
-        accessMethod = "credential";
-        credentialId = credential.id!.toString();
-        credentialName = credential.name;
-      }
-    } else if (posture?.inCluster) {
-      /*
-       * In-cluster, but for no named cluster. Say so explicitly: the
-       * operator picked this Runner believing "in-cluster" meant "in this
-       * cluster". (A Runner that names a cluster reports an agent posture,
-       * so it is a kubernetes-agent row and never reaches this branch:
-       * another cluster's is no target at all — see
-       * getIgnoredBoundRunnerNote.)
-       */
-      gaps.push({
-        code: "runner_cluster_mismatch",
-        title: "The bound Runner did not report which cluster it runs in",
-        description: `Runner "${runner.name}" reports that it runs inside a Kubernetes cluster but not which one, so OneUptime AI cannot tell whether that is this cluster.`,
-        nextStep: `Clear the Runner on ${CLUSTER_AI_AGENT_PAGE} to use this cluster's Kubernetes AI agent, or select a Kubernetes credential for this cluster that is assigned to the Runner.`,
-        blocks: "both",
-      });
-    } else {
-      gaps.push({
-        code: "credential_missing",
-        title: "The Runner has no credential for this cluster",
-        description: `Runner "${runner.name}" runs outside the cluster, so it needs a Kubernetes credential to reach the API server.`,
-        nextStep: `Select a Kubernetes credential assigned to this Runner on ${CLUSTER_AI_AGENT_PAGE} — or clear the Runner there to use the Kubernetes AI agent, which needs no credential.`,
         blocks: "both",
       });
     }
@@ -1350,15 +1237,10 @@ class KubernetesClusterAiAccessServiceClass {
     ) {
       gaps.push({
         code: "remediation_write_access_missing",
-        title: isLegacy
-          ? "The previous in-cluster Runner is read-only"
-          : "The Runner is read-only",
-        description: isLegacy
-          ? "The Kubernetes agent was installed without write access, so kubectl changes would be refused by the cluster."
-          : `Runner "${runner.name}" reports that it may not change the cluster, so kubectl changes would be refused.`,
-        nextStep: getRemediationWriteAccessNextStep(
-          isLegacy ? "legacy_runner" : "credential_runner",
-        ),
+        title: "The previous in-cluster Runner is read-only",
+        description:
+          "The Kubernetes agent was installed without write access, so kubectl changes would be refused by the cluster.",
+        nextStep: getRemediationWriteAccessNextStep("legacy_runner"),
         blocks: "remediation",
       });
     }
@@ -1366,8 +1248,6 @@ class KubernetesClusterAiAccessServiceClass {
     return {
       runner: summary,
       accessMethod,
-      credentialId,
-      credentialName,
       gaps,
     };
   }
@@ -1390,59 +1270,29 @@ class KubernetesClusterAiAccessServiceClass {
     };
   }
 
+  /*
+   * The previous in-cluster Runner is not coming back by itself after a
+   * chart upgrade (the new chart does not install it), and there is nothing
+   * to fix in it: the step is the upgrade to the AI agent.
+   */
   private getRunnerOfflineGap(data: {
     runner: Runner;
     presence: RunnerPresence;
-    // The Runner is this cluster's previous in-cluster Runner.
-    isLegacy: boolean;
   }): KubernetesAiAccessGap {
-    const { runner, presence, isLegacy } = data;
+    const { runner, presence } = data;
     const lastAliveText: string = runner.lastAlive
       ? OneUptimeDate.getDateAsFormattedString(runner.lastAlive)
       : "an unknown time";
 
-    /*
-     * The previous in-cluster Runner is not coming back by itself after a
-     * chart upgrade (the new chart does not install it), and there is
-     * nothing to fix in it: the step is the upgrade to the AI agent.
-     */
-    if (isLegacy) {
-      return {
-        code: "runner_offline",
-        title: presence.isSignedOff
-          ? "The previous in-cluster Runner signed off"
-          : "The previous in-cluster Runner is offline",
-        description: presence.isSignedOff
-          ? `Runner "${runner.name}" shut down after its last report at ${lastAliveText}.`
-          : `Runner "${runner.name}" last reported in at ${lastAliveText}.`,
-        nextStep: `Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over.\n\n${AI_AGENT_INSTALL_COMMAND}`,
-        blocks: "both",
-      };
-    }
-
-    if (presence.isSignedOff) {
-      return {
-        code: "runner_offline",
-        title: "The Runner signed off",
-        description: `Runner "${runner.name}" shut down cleanly after its last heartbeat at ${lastAliveText}: its container was stopped.`,
-        nextStep: `Start the Runner container again, or clear the Runner on ${CLUSTER_AI_AGENT_PAGE} to use the Kubernetes AI agent.`,
-        blocks: "both",
-      };
-    }
-
-    const isNeverConnected: boolean =
-      presence.liveStatus === RunnerLiveStatus.NeverConnected;
-
     return {
       code: "runner_offline",
-      title: isNeverConnected
-        ? "The Runner has never connected"
-        : "The Runner is offline",
-      description: isNeverConnected
-        ? `Runner "${runner.name}" exists but has not reported in yet.`
+      title: presence.isSignedOff
+        ? "The previous in-cluster Runner signed off"
+        : "The previous in-cluster Runner is offline",
+      description: presence.isSignedOff
+        ? `Runner "${runner.name}" shut down after its last report at ${lastAliveText}.`
         : `Runner "${runner.name}" last reported in at ${lastAliveText}.`,
-      nextStep:
-        "Start the Runner container and make sure it can reach your OneUptime URL.",
+      nextStep: `Upgrade the Kubernetes agent chart: the Kubernetes AI agent replaces this Runner and your settings carry over.\n\n${AI_AGENT_INSTALL_COMMAND}`,
       blocks: "both",
     };
   }
@@ -1724,9 +1574,9 @@ class KubernetesClusterAiAccessServiceClass {
    *   at once.
    * - Without that proof it can re-key only a row that holds NOTHING beyond
    *   the agent defaults. An offline window is predictable (every helm
-   *   upgrade opens one), so a row an operator gave more — a credential or
-   *   secret assigned to it, runbooks turned on, a code repository that
-   *   picks it, or another cluster bound to it — is refused: re-keying it
+   *   upgrade opens one), so a row an operator gave more — a secret
+   *   assigned to it, runbooks turned on, a code repository that picks it,
+   *   or another cluster bound to it — is refused: re-keying it
    *   would hand all of that
    *   to whoever holds the ingestion key. The operator removes the extras
    *   (the Runner then comes back still bound), or upgrades the chart to
@@ -2060,7 +1910,6 @@ class KubernetesClusterAiAccessServiceClass {
         id: cluster.id!,
         data: {
           aiAccessRunnerId: runner.id!,
-          aiAccessCredentialId: null,
           isAiInvestigationEnabled: true,
           aiRemediationMode: appliedRemediationMode,
           aiAccessConfiguredAt: OneUptimeDate.getCurrentDate(),
@@ -2179,9 +2028,9 @@ class KubernetesClusterAiAccessServiceClass {
    *   AND holds nothing beyond the agent defaults. Anyone holding the
    *   ingestion key looks exactly like a restarted pod, and the offline
    *   window is predictable (every helm upgrade opens one), so a row an
-   *   operator gave more — credentials or secrets assigned to it, runbooks
-   *   turned on, a code repository that picks it, another cluster bound to
-   *   it — must not be
+   *   operator gave more — secrets assigned to it, runbooks turned on, a
+   *   code repository that picks it, another cluster bound to it — must not
+   *   be
    *   handed to a registration that cannot prove it is the same Runner.
    *
    * Refused otherwise — WITHOUT rotating anything — so an ingestion key
@@ -2324,23 +2173,6 @@ class KubernetesClusterAiAccessServiceClass {
       holdings.push({
         description: `the Runner of ${pickingRepositories} code repository(ies)`,
         remedy: `pick another Runner in the settings of its ${pickingRepositories} code repository(ies) in Code`,
-      });
-    }
-
-    const assignedCredentials: number = (
-      await RunbookCredentialService.countBy({
-        query: {
-          projectId: data.projectId,
-          runners: QueryHelper.inRelationArray([data.runner.id!]),
-        },
-        props: { isRoot: true },
-      })
-    ).toNumber();
-
-    if (assignedCredentials > 0) {
-      holdings.push({
-        description: `${assignedCredentials} Runner credential(s) assigned`,
-        remedy: `unassign its ${assignedCredentials} Runner credential(s)`,
       });
     }
 

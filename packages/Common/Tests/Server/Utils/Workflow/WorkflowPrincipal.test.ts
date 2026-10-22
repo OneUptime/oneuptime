@@ -12,10 +12,8 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import NetworkSnmpCredentialProfile from "../../../../Models/DatabaseModels/NetworkSnmpCredentialProfile";
 import ProjectCallSMSConfig from "../../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import ProjectSmtpConfig from "../../../../Models/DatabaseModels/ProjectSmtpConfig";
-import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import VideoCallConnection from "../../../../Models/DatabaseModels/VideoCallConnection";
 import RelationListPermission from "../../../../Server/Types/Database/Permissions/RelationListPermission";
-import RunbookCredentialReaders from "../../../../Server/Utils/AutoRemediation/RunbookCredentialReaders";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -266,9 +264,9 @@ describe("the principal", () => {
 
   /*
    * One thing a Project Admin may do that a step is not lent: read the
-   * settings that hold credentials (RelationListPermission.mayReadTable,
-   * RunbookCredentialReaders). The props carry nothing to ask about instead:
-   * no person, and nobody who saved the workflow.
+   * settings that hold credentials (RelationListPermission.mayReadTable).
+   * The props carry nothing to ask about instead: no person, and nobody
+   * who saved the workflow.
    */
   test("holds Project Admin, yet is lent no read of a setting that holds credentials", () => {
     const props: DatabaseCommonInteractionProps = principal();
@@ -292,7 +290,6 @@ describe("the principal", () => {
     );
 
     for (const modelType of [
-      RunbookCredential,
       ProjectSmtpConfig,
       ProjectCallSMSConfig,
       NetworkSnmpCredentialProfile,
@@ -302,8 +299,6 @@ describe("the principal", () => {
       expect(RelationListPermission.isHeldToTableRead(modelType)).toBe(true);
       expect(RelationListPermission.mayReadTable(modelType, props)).toBe(false);
     }
-
-    expect(RunbookCredentialReaders.mayRead(props)).toBe(false);
   });
 
   test("still reads what a Project Admin reads that holds no credentials", () => {

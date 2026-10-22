@@ -159,6 +159,11 @@ const REMOVED_SETTINGS: Array<string> = [
   "AI command execution",
   // A code repository picks its Runner in Code instead.
   "Runs AI Code Fixes",
+  /*
+   * Runbooks > Runners > AI Access, the page that held the runbook
+   * credentials: it is gone, and so is its Dashboard label.
+   */
+  "AI Access",
 ];
 
 // The names the upgrade gives the rules it adds.
@@ -380,6 +385,11 @@ const PROSE_LEADS: Array<string> = [
   "Settings you chose stay.",
   "A configuration that names them wins.",
   "Nothing chosen yet: the agent's defaults.",
+  "The credentials are deleted.",
+  "OneUptime AI runs no SSH command.",
+  "A cluster bound to a Runner outside it is cleared.",
+  "The four Runbook Credential permissions are removed",
+  "API and Terraform.",
   "edition label in the Admin Dashboard header",
   "Compose:",
   "Helm:",

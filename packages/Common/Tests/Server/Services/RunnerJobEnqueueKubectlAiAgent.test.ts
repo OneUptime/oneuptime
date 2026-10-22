@@ -5,7 +5,6 @@ import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
-import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import RemediationCommandToolkit from "../../../Server/Utils/AI/Remediation/RemediationCommandTools";
 import logger from "../../../Server/Utils/Logger";
@@ -41,8 +40,8 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   a rollback → a job for the agent is refused);
  * - an agent job is written with targetKubernetesAiAgentId and no
  *   targetAgentId (that column's foreign key is to Runner), carries no
- *   credential (refused outright), and needs the agent's posture to name
- *   this cluster;
+ *   credential (no job does, since runbook credentials were removed), and
+ *   needs the agent's posture to name this cluster;
  * - a remediation write the agent's posture rules out is refused in the
  *   agent's words (aiAgent.remediation.*), before anything is created;
  * - parity (spec §5.5): a write with no -n on an agent target gets the same
@@ -84,7 +83,6 @@ function cluster(overrides: Record<string, unknown> = {}): KubernetesCluster {
     name: "prod-us",
     clusterIdentifier: "prod-us",
     aiAccessRunnerId: undefined,
-    aiAccessCredentialId: undefined,
     isAiInvestigationEnabled: true,
     aiRemediationMode: KubernetesAiRemediationMode.Automatic,
     ...overrides,
@@ -246,25 +244,22 @@ describe("RunnerJobService.enqueueAiKubectlCommand for the cluster's Kubernetes 
     }
   });
 
-  it("refuses any credential: the agent runs kubectl with its own ServiceAccount only", async () => {
-    const credentialId: string = "55555555-5555-4555-8555-555555555555";
+  /*
+   * The agent runs kubectl with its own ServiceAccount only. No job names a
+   * credential since runbook credentials were removed: one a caller still
+   * passes is not read, and never reaches the agent.
+   */
+  it("names no credential: the agent runs kubectl with its own ServiceAccount only", async () => {
+    const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand({
+      ...args(),
+      credentialId: "55555555-5555-4555-8555-555555555555",
+    } as unknown as EnqueueArgs);
 
-    // Not the cluster's credential: refused by the binding first.
-    await expect(
-      RunnerJobService.enqueueAiKubectlCommand(args({ credentialId })),
-    ).rejects.toThrow(BadDataException);
-
-    // Even the cluster's own selected credential is never sent to the agent.
-    clusterLookup.mockResolvedValue(
-      cluster({ aiAccessCredentialId: new ObjectID(credentialId) }),
+    expect(job.targetKubernetesAiAgentId?.toString()).toBe(AGENT_ID.toString());
+    expect(job.payload).not.toHaveProperty("credentialId");
+    expect(JSON.stringify(job.payload)).not.toContain(
+      "55555555-5555-4555-8555-555555555555",
     );
-
-    await expect(
-      RunnerJobService.enqueueAiKubectlCommand(args({ credentialId })),
-    ).rejects.toThrow(
-      /Kubernetes AI agent, which runs kubectl with its own ServiceAccount and is never given a credential/,
-    );
-    expect(createdRows).toHaveLength(0);
   });
 
   it("refuses the agent when its report does not name this cluster", async () => {
@@ -345,16 +340,32 @@ describe("RunnerJobService.enqueueAiKubectlCommand for the cluster's Kubernetes 
       expect(job.targetKubernetesAiAgentId).toBeUndefined();
     });
 
-    it("refuses a job for the agent while an advanced Runner an operator bound is the target", async () => {
+    /*
+     * A Runner outside the cluster an operator bound was the target, before
+     * the agent, until runbook credentials - what it reached the cluster
+     * with - were removed. Still bound, it is ignored: the agent is the
+     * target, and a job for that Runner is refused.
+     */
+    it("a Runner outside the cluster still bound is ignored: the job goes to the agent", async () => {
       clusterLookup.mockResolvedValue(cluster({ aiAccessRunnerId: RUNNER_ID }));
       runnerLookup.mockResolvedValue(
         legacyRunner({ name: "platform-ops-runner", hostInfo: {} }),
       );
 
+      const job: RunnerJob =
+        await RunnerJobService.enqueueAiKubectlCommand(args());
+
+      expect(job.targetKubernetesAiAgentId?.toString()).toBe(
+        AGENT_ID.toString(),
+      );
+      expect(job.targetAgentId).toBeUndefined();
+
       await expect(
-        RunnerJobService.enqueueAiKubectlCommand(args()),
-      ).rejects.toThrow(BadDataException);
-      expect(createdRows).toHaveLength(0);
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ targetAgentId: RUNNER_ID }),
+        ),
+      ).rejects.toThrow(/no longer reached through this Runner or agent/);
+      expect(createdRows).toHaveLength(1);
     });
 
     it("refuses anything once the cluster has no agent and no Runner", async () => {
@@ -521,7 +532,6 @@ describe("parity: getRunnerScopeRefusal and enqueueAiKubectlCommand on an agent 
       .spyOn(KubernetesClusterService, "findOneBy")
       .mockResolvedValue(cluster());
     jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(null);
-    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue(null);
     jest
       .spyOn(KubernetesAiAgentService, "findForCluster")
       .mockImplementation(async (): Promise<KubernetesAiAgent> => {
@@ -611,7 +621,10 @@ describe("parity: getRunnerScopeRefusal and enqueueAiKubectlCommand on an agent 
     expect(chokepoint).toContain(
       "the namespace the cluster's Kubernetes AI agent itself runs in",
     );
-    // Neither judges it against "default", as a credential's kubeconfig would.
+    /*
+     * Neither judges it against "default", as a Kubernetes runbook
+     * credential's kubeconfig did until runbook credentials were removed.
+     */
     expect(toolkit).not.toContain('"default"');
     expect(chokepoint).not.toContain('"default"');
   });

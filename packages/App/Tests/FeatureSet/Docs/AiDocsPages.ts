@@ -80,11 +80,7 @@ export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
       "Create On-Call Duty Policy Execution Log",
       "Create Runbook Execution",
     ],
-    [AI_SRE]: [
-      "Manage Billing",
-      "Edit Auto Remediation Rule",
-      "Read Runbook Credential",
-    ],
+    [AI_SRE]: ["Manage Billing", "Edit Auto Remediation Rule"],
     [INFRASTRUCTURE_AI_AGENTS]: ["Edit Auto Remediation Rule"],
     [LLM_PROVIDERS]: [
       "Project Owner",
@@ -267,7 +263,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets.",
     "not",
     "without",
-    "Commands on Runners and the credentials they run with.",
+    "Commands on Runners.",
     "Several rules.",
     "Changes during the wait.",
     "When the wait ends.",

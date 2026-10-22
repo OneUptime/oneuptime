@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"HTTPS sortant, ID et clé de l'agent"| ingest
-    ingest -->|"Tâche prise en charge, avec ses secrets ou son identifiant"| runner
+    ingest -->|"Tâche prise en charge, avec ses secrets"| runner
     runner -->|"Script, SSH ou API Kubernetes"| targets
 ```
 
@@ -61,13 +61,12 @@ Les agents Runbook globaux sont les agents qu'OneUptime fait tourner pour chaque
 | Ce qu'une étape peut atteindre | Les adresses publiques d'Internet | Ce que son hôte peut atteindre |
 | Durée maximale d'une étape | 5 minutes | 1 heure |
 | Variables secrètes | Celles que vous laissez utiliser aux agents globaux | Celles qui le listent |
-| Identifiants | Aucun | Ceux que vous lui attribuez |
 
 Un agent Runbook global exécute les étapes de nombreux projets, c'est pourquoi chaque étape est tenue à l'écart de toutes les autres :
 
 - Chaque étape s'exécute dans son propre bac à sable `isolated-vm`, créé pour cette étape et jeté après elle : pas de fichiers, pas de processus, pas de variables d'environnement, et rien de conservé d'une étape à l'autre.
 - Ses requêtes HTTP n'atteignent que les adresses publiques d'Internet, jamais une adresse privée, de bouclage ou de lien local ni un point de terminaison de métadonnées cloud, si bien qu'un agent global n'atteint jamais votre réseau.
-- Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable. Il ne reçoit jamais d'identifiant.
+- Il ne reçoit une variable secrète que lorsque son réglage **Les agents Runbook globaux peuvent l'utiliser** est activé, et seulement pour une étape du propre projet de la variable.
 - Un projet exécute au plus trois étapes à la fois sur les agents globaux, si bien qu'aucun projet ne les garde pour lui seul.
 
 Choisissez l'un de vos propres agents pour une étape qui doit atteindre votre réseau, ou pour garder l'étape sur des hôtes que vous contrôlez. Pour garder chaque étape sur vos propres agents, désactivez **Utiliser les agents Runbook globaux** en bas de **Runbooks → Agents de runbook**. Une étape JavaScript qui ne choisit aucun agent s'exécute alors sur l'agent Runbook par défaut du projet ou, s'il n'y en a pas, échoue, en le disant, jusqu'à ce qu'elle choisisse l'un des vôtres ; une étape qui choisit l'un de vos agents le garde dans tous les cas. Un dépôt de code qui ne choisit aucun agent dans ses paramètres dans Code travaille lui aussi sur un agent Runbook global, et a besoin de l'un des vôtres tant que l'option est désactivée ; voir [Code](/docs/ai/ai-agent#choisir-le-runner-du-dépôt).
@@ -98,7 +97,7 @@ Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez
 | **Exécute les runbooks** | Sous **Plus de champs** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
 | **Étiquettes** | Sous **Plus de champs** | Facultatif. |
 
-Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle de remédiation automatique choisit l'agent sur lequel OneUptime AI exécute ses commandes, et les paramètres IA d'un cluster Kubernetes celui sur lequel s'exécute son kubectl : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent. Choisir un agent qui détient des identifiants SSH demande l'autorisation de lire les identifiants de runbook ; voir [Agents Runbook qui exécutent les commandes d'OneUptime AI](/docs/runbooks/credentials#agents-runbook-qui-exécutent-les-commandes-doneuptime-ai).
+Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle de remédiation automatique choisit l'agent sur lequel OneUptime AI exécute ses commandes : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent.
 
 ### 2. Copier la commande d'installation
 

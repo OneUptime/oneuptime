@@ -95,7 +95,7 @@ Runbook は **製品** の **ダッシュボードと自動化** グループに
 | Runbook の **所有者** | 担当する人とチームを追加します。 |
 | Runbook の **設定** | Runbook を削除せずに **この Runbook を実行** をオフにします。 |
 | **Runbook → 実行** | プロジェクト内のすべての Runbook のすべての実行です。 |
-| **Runbook → Runner** と **Runbook → Runner → AI のアクセス** | [Runner](/docs/runbooks/agents) をインストールし、OneUptime AI のコマンドが Runner を通じて持つ [アクセス](/docs/runbooks/credentials) を管理します。 |
+| **Runbook → Runner** | Runbook のステップが実行される [Runner](/docs/runbooks/agents) をインストールします。 |
 | **Runbook → 設定** | すべての Runbook が [使える](/docs/runbooks/variables) **グローバル変数** と、新しい Runbook に所有者とラベルを追加する **所有者ルール** と **ラベルルール** を管理します。 |
 | **インシデント / アラート / 定期メンテナンス → ルール → Runbook ルール** | Runbook を自動で開始するルールを作成します。 |
 | インシデント、アラート、メンテナンスイベント → **Runbook** | 関連付けられた実行を確認し、 **Runbook を実行** をクリックして新しく開始します。 |

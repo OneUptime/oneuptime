@@ -66,8 +66,6 @@ import ResourceCommandJobRunner, {
 } from "../ResourceAccess/ResourceCommandJobRunner";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "../ResourceAccess/ResourceAccessToolNames";
 import {
-  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
-  KUBECTL_WRITE_NAMESPACES_ENV,
   KubectlCommandTier,
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -92,7 +90,6 @@ import KubectlWriteScope, {
 } from "../../../../Utils/AiRemediation/KubectlWriteScope";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
-import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AIRunService from "../../../Services/AIRunService";
 import AutoRemediationRuleEngineService, {
@@ -108,7 +105,6 @@ import AutoRemediationRuleEngineService, {
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
-import RunbookCredentialService from "../../../Services/RunbookCredentialService";
 import RunnerJobService, {
   isTerminalAgentJobStatus,
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
@@ -154,17 +150,19 @@ import { describeGitOpsOwner } from "../../../../Utils/AiRemediation/GitOpsOwner
  * executed inline, and how many auto-executions remain.
  *
  * Targets come in two shapes:
- *   - Runners (Bash on the Runner's host, SSH over an assigned credential),
- *     from the Runners the rule names (its Runner) that are online and run
- *     AI commands - never any other;
- *   - Kubernetes clusters (Kubectl through the cluster's bound Runner), from
- *     the clusters the signal is about whose AI page allows remediation.
+ *   - Runners (Bash on the Runner's own host), from the Runners the rule
+ *     names (its Runner) that are online and run AI commands - never any
+ *     other. (SSH to another host, with a runbook credential assigned to the
+ *     Runner, went with runbook credentials.)
+ *   - Kubernetes clusters (Kubectl through the cluster's Kubernetes AI
+ *     agent, or its previous in-cluster Runner), from the clusters the
+ *     signal is about whose AI page allows remediation.
  *
  * Modes:
  *   Suggest  — the model gets list_command_targets and
  *              propose_remediation_commands. Nothing executes.
  *   FullAuto — the model gets list_command_targets and
- *              execute_remediation_command. Bash/SSH run only when they pass
+ *              execute_remediation_command. Bash runs only when it passes
  *              the structural guard AND the rule's operator allowlist;
  *              Kubectl changes run when KubectlPolicy's
  *              evaluateForAutoExecution approves them: SafeWrite, RiskyWrite
@@ -250,7 +248,7 @@ export const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
 const HEARTBEAT_TOUCH_INTERVAL_MS: number = 15_000;
 
 /*
- * What the model sees of a Bash/SSH command's output — the same cap as a
+ * What the model sees of a Bash command's output — the same cap as a
  * kubectl command's, generous enough that a diagnostic's answer is never
  * cut off in the part that matters.
  */
@@ -742,7 +740,7 @@ export default class RemediationCommandToolkit {
         name: "list_command_targets",
         description: this.isResourceRound()
           ? "List where this remediation may run commands: the infrastructure resource this round is about (stepType ResourceCommand runs ONE command on it through its own AI agent), with its resourceId, programs, remediation mode, write scope and command allowlist. Call this before composing any command."
-          : "List where this remediation may run commands: Runners (Bash runs on the Runner's host; SSH runs on an assigned credential's host) and Kubernetes clusters (Kubectl runs through the cluster's Kubernetes AI agent or Runner). Call this before composing any command.",
+          : "List where this remediation may run commands: Runners (Bash runs on the Runner's own host) and Kubernetes clusters (Kubectl runs through the cluster's Kubernetes AI agent or Runner). Call this before composing any command.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -779,8 +777,8 @@ export default class RemediationCommandToolkit {
       const allowedRunners: Array<Runner> = runners.filter((runner: Runner) => {
         /*
          * A cluster's in-cluster kubectl agent is a host target nowhere: it
-         * only ever claims Kubectl jobs, so a Bash/SSH job aimed at it would
-         * sit unclaimed until it timed out. It reaches the model as its
+         * only ever claims Kubectl jobs, so a Bash job aimed at it would sit
+         * unclaimed until it timed out. It reaches the model as its
          * cluster's "via" Runner instead.
          */
         if (RemediationCommandToolkit.isKubernetesAgentRunner(runner)) {
@@ -790,40 +788,12 @@ export default class RemediationCommandToolkit {
       });
 
       for (const runner of allowedRunners) {
-        const credentials: Array<RunbookCredential> =
-          await RunbookCredentialService.findBy({
-            query: {
-              projectId: this.options.projectId,
-              runners: QueryHelper.inRelationArray([runner.id!]),
-            },
-            select: {
-              _id: true,
-              name: true,
-              credentialType: true,
-              sshHostname: true,
-              sshUsername: true,
-            },
-            limit: 25,
-            skip: 0,
-            props: { isRoot: true },
-          });
-
-        const sshCredentials: Array<string> = credentials
-          .filter((credential: RunbookCredential) => {
-            return String(credential.credentialType) === "SSH";
-          })
-          .map((credential: RunbookCredential) => {
-            return `{credentialId: ${credential.id?.toString()}, name: "${credential.name}", target: ${credential.sshUsername || "?"}@${credential.sshHostname || "?"}}`;
-          });
-
         rows.push({
           targetType: "Runner",
           runnerId: runner.id?.toString() || "",
           name: runner.name || "Runner",
           description: runner.description || "",
-          stepTypes: "Bash, SSH",
-          sshCredentials:
-            sshCredentials.length > 0 ? sshCredentials.join("; ") : "(none)",
+          stepTypes: "Bash",
         });
       }
     }
@@ -1107,8 +1077,7 @@ export default class RemediationCommandToolkit {
   /*
    * Where the cluster's bound Runner lets AI-composed kubectl writes land,
    * as it last reported (its posture): the namespaces it may write in (the
-   * Kubernetes agent's chart, or a credential Runner's own
-   * ONEUPTIME_KUBECTL_WRITE_NAMESPACES), its own namespace (never), whether
+   * Kubernetes agent's chart), its own namespace (never), whether
    * it may change nodes, and how it judges objects that live outside every
    * namespace. The whole scope, for a prompt; list_command_targets gives its
    * two halves a field each. "Not reported" only for a Runner that reported
@@ -1127,10 +1096,10 @@ export default class RemediationCommandToolkit {
 
   /*
    * Did the Runner report its write scope — its write namespaces, its own
-   * namespace or its node switch? Every Runner that enforces one reports it
-   * (the Kubernetes agent's and a credential Runner alike); a posture
-   * without any of the three is a Runner that predates the scope, where its
-   * RBAC alone decides.
+   * namespace or its node switch? Every executor that enforces one reports
+   * it (the Kubernetes AI agent and the chart's previous in-cluster
+   * Runner); a posture without any of the three is a Runner that predates
+   * the scope, where its RBAC alone decides.
    */
   private static reportsWriteScope(
     posture: KubernetesRunnerPosture | undefined,
@@ -1246,12 +1215,11 @@ export default class RemediationCommandToolkit {
    * spawns kubectl, and the one the enqueue chokepoint asks), with the
    * inputs the Runner reported: its write namespaces, its own namespace,
    * its node switch (absent is not second-guessed), and where a missing -n
-   * lands — the Runner pod's own namespace in-cluster, "default" for a
-   * kubeconfig built from a credential. The Kubernetes agent's Runner
-   * reports its chart's scope; a credential Runner reports the one it was
-   * started with (ONEUPTIME_KUBECTL_WRITE_NAMESPACES, and the node switch),
-   * with no namespace of its own. A Runner that reported no scope enforces
-   * none, and is not second-guessed.
+   * lands — the pod's own namespace, since kubectl always runs in-cluster
+   * now (a Runner outside the cluster reached it with a Kubernetes runbook
+   * credential, whose kubeconfig defaulted to "default", until runbook
+   * credentials were removed). The executor reports its chart's scope. A
+   * Runner that reported no scope enforces none, and is not second-guessed.
    *
    * One sentence (or two) the model or a human can act on; callers add
    * what happened.
@@ -1284,7 +1252,7 @@ export default class RemediationCommandToolkit {
         writeNamespaces: posture.writeNamespaces || [],
         podNamespace: posture.podNamespace || null,
         allowNodeOperations: posture.allowNodeOperations !== false,
-        usesCredential: data.cluster.accessMethod !== "in_cluster",
+        usesCredential: false,
       });
 
     return refusal
@@ -1302,16 +1270,14 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Where the target's write scope is set, for a refusal to name — three
+   * Where the target's write scope is set, for a refusal to name — two
    * ways, by who runs kubectl for the cluster:
    *
    * - the Kubernetes AI agent (runner.kind "ai_agent"): the chart's
    *   aiAgent.remediation.* values;
-   * - the chart's previous in-cluster Runner (by its server-owned name, or
-   *   its posture): its values are aiAccess.remediation.*, and changing
-   *   them now means upgrading the chart to the AI agent, which replaces it;
-   * - any other Runner — a credential Runner, which no chart configures:
-   *   its own environment.
+   * - the chart's previous in-cluster Runner: its values are
+   *   aiAccess.remediation.*, and changing them now means upgrading the
+   *   chart to the AI agent, which replaces it.
    */
   public static getRunnerScopeSettings(
     cluster: Pick<KubernetesClusterAiAccessStatus, "runner">,
@@ -1325,22 +1291,11 @@ export default class RemediationCommandToolkit {
       };
     }
 
-    const isAgentRunner: boolean =
-      isKubernetesAgentRunnerName(cluster.runner?.name) ||
-      isKubernetesAgentRunnerPosture(cluster.runner?.posture);
-
-    if (isAgentRunner) {
-      return {
-        namespaces:
-          "aiAccess.remediation.namespaces on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces",
-        nodeOperations:
-          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.nodeOperations",
-      };
-    }
-
     return {
-      namespaces: `${KUBECTL_WRITE_NAMESPACES_ENV} on the Runner's host`,
-      nodeOperations: `${KUBECTL_ALLOW_NODE_OPERATIONS_ENV} on the Runner's host`,
+      namespaces:
+        "aiAccess.remediation.namespaces on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.namespaces",
+      nodeOperations:
+        "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart; after upgrading to the Kubernetes AI agent, aiAgent.remediation.nodeOperations",
     };
   }
 
@@ -1459,7 +1414,7 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "execute_remediation_command",
-        description: `Execute ONE remediation command immediately. Bash/SSH: only commands matching the rule's operator-authored allowlist AND free of shell chaining (no ;, &&, |, redirection, substitution) will run. Kubectl: this tool is for CHANGES only — read-only kubectl (get, describe, logs, rollout status, ...) goes through run_kubectl and is refused here. Safe changes run (${KUBECTL_SAFE_CHANGES_SUMMARY}). Riskier changes (${KUBECTL_RISKIER_CHANGES_SUMMARY}) are refused unless the cluster allowlist names their exact shape (${KUBECTL_ALLOWLIST_SUMMARY}) or the cluster bypasses approvals — ${
+        description: `Execute ONE remediation command immediately. Bash: only commands matching the rule's operator-authored allowlist AND free of shell chaining (no ;, &&, |, redirection, substitution) will run. Kubectl: this tool is for CHANGES only — read-only kubectl (get, describe, logs, rollout status, ...) goes through run_kubectl and is refused here. Safe changes run (${KUBECTL_SAFE_CHANGES_SUMMARY}). Riskier changes (${KUBECTL_RISKIER_CHANGES_SUMMARY}) are refused unless the cluster allowlist names their exact shape (${KUBECTL_ALLOWLIST_SUMMARY}) or the cluster bypasses approvals — ${
           this.options.proposesRefusedCommands
             ? "a refused riskier change is recorded and proposed for one-click approval when this round ends, provided no other change ran"
             : "put those in your recommendations"
@@ -1583,7 +1538,7 @@ export default class RemediationCommandToolkit {
       runnerId: {
         type: "string",
         description:
-          "For Bash/SSH: the Runner to execute on (from list_command_targets). Not needed for Kubectl.",
+          "For Bash: the Runner to execute on (from list_command_targets). Not needed for Kubectl.",
       },
       kubernetesClusterId: {
         type: "string",
@@ -1592,19 +1547,14 @@ export default class RemediationCommandToolkit {
       },
       stepType: {
         type: "string",
-        enum: ["Bash", "SSH", "Kubectl"],
+        enum: ["Bash", "Kubectl"],
         description:
-          "Bash runs on the Runner's own host. SSH runs on the host of the credential you pass. Kubectl runs a single kubectl command on the cluster.",
+          "Bash runs on the Runner's own host. Kubectl runs a single kubectl command on the cluster.",
       },
       command: {
         type: "string",
         description:
-          'The exact command. Bash/SSH: one simple command — no chaining, pipes, redirection or substitution. Kubectl: one line starting with "kubectl", e.g. "kubectl rollout restart deployment/web -n web"; a patch body must be JSON, e.g. kubectl patch deployment/web -n web -p \'{"spec":{"replicas":3}}\'.',
-      },
-      credentialId: {
-        type: "string",
-        description:
-          "Required for SSH: an SSH credential assigned to this Runner (from list_command_targets).",
+          'The exact command. Bash: one simple command — no chaining, pipes, redirection or substitution. Kubectl: one line starting with "kubectl", e.g. "kubectl rollout restart deployment/web -n web"; a patch body must be JSON, e.g. kubectl patch deployment/web -n web -p \'{"spec":{"replicas":3}}\'.',
       },
       timeoutInMs: {
         type: "number",
@@ -1956,7 +1906,6 @@ export default class RemediationCommandToolkit {
           kubernetesClusterId: clusterId,
           stepId: `${INLINE_COMMAND_STEP_ID_PREFIX}${command.sequence}`,
           targetAgentId: new ObjectID(command.runnerId),
-          credentialId: command.credentialId,
           command: command.command,
           timeoutInMs: command.timeoutInMs,
           claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
@@ -2157,7 +2106,6 @@ export default class RemediationCommandToolkit {
           stepType: command.stepType,
           targetAgentId: new ObjectID(command.runnerId),
           command: command.command,
-          credentialId: command.credentialId,
           timeoutInMs: command.timeoutInMs,
           claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
         });
@@ -2502,7 +2450,7 @@ export default class RemediationCommandToolkit {
 
   /*
    * Null when the command may auto-execute in FullAuto; otherwise why not.
-   * Bash/SSH: denylist, structural guard and the rule allowlist, for the
+   * Bash: denylist, structural guard and the rule allowlist, for the
    * forward command AND its rollback. Kubectl: the tier policy with the
    * cluster's allowlist; a rollback must itself be auto-approvable because
    * it runs unattended. A kubectl refusal that a human's click would lift
@@ -2989,8 +2937,8 @@ export default class RemediationCommandToolkit {
    * Re-read the command's cluster from its AI page. Refuses — and stops the
    * run from changing that cluster again — when remediation was turned off
    * or lost readiness (project switches included: the status folds them
-   * in), when the cluster was re-bound to another Runner or credential, or
-   * when the status cannot be read (fail closed). Otherwise the run's
+   * in), when the cluster was re-bound to another Runner (or its Kubernetes
+   * AI agent took over), or when the status cannot be read (fail closed). Otherwise the run's
    * snapshot of the cluster is replaced with the live one, so the policy
    * verdict that follows uses the CURRENT mode and allowlist: a cluster
    * moved from Bypass approval to Automatic refuses the next riskier change,
@@ -3042,14 +2990,10 @@ export default class RemediationCommandToolkit {
       };
     }
 
-    if (
-      !status.runner ||
-      status.runner.id !== command.runnerId ||
-      (status.credentialId || undefined) !== (command.credentialId || undefined)
-    ) {
+    if (!status.runner || status.runner.id !== command.runnerId) {
       this.revokeCluster(clusterId);
       return {
-        text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run (or its Kubernetes AI agent took over from its Runner). ${stopText}`,
+        text: `Cluster "${status.clusterName}" was re-bound to a different Runner during this run (or its Kubernetes AI agent took over from its Runner). ${stopText}`,
       };
     }
 
@@ -3512,7 +3456,7 @@ export default class RemediationCommandToolkit {
   /*
    * The in-cluster kubectl agent a kubernetes-agent chart registered: by the
    * server-owned row name, or by the posture the claim path narrows to
-   * Kubectl-only. Either way it never claims a Bash or SSH job.
+   * Kubectl-only. Either way it never claims a Bash job.
    */
   private static isKubernetesAgentRunner(runner: Runner): boolean {
     return (
@@ -3719,9 +3663,9 @@ export default class RemediationCommandToolkit {
   /*
    * Parse one command's arguments and validate every reference: step type,
    * target (Runner with capability and rule pinning, or a ready cluster),
-   * credential (project + assignment to that Runner + type), and the hard
-   * policy floor (bash denylist / kubectl Denied tier). Allowlist
-   * evaluation is the caller's concern — it differs between modes.
+   * and the hard policy floor (bash denylist / kubectl Denied tier).
+   * Allowlist evaluation is the caller's concern — it differs between
+   * modes.
    */
   private async parseAndValidateCommand(
     args: JSONObject,
@@ -3732,9 +3676,9 @@ export default class RemediationCommandToolkit {
 
     /*
      * The step types this round offers — what its schema's stepType enum
-     * lists: ResourceCommand on a resource round; Bash, SSH and Kubectl on
-     * every other round, where ResourceCommand is as unknown as it always
-     * was (so a Kubernetes or rule round's refusal keeps its words).
+     * lists: ResourceCommand on a resource round; Bash and Kubectl on every
+     * other round, where ResourceCommand is as unknown as it always was (so
+     * a Kubernetes or rule round's refusal keeps its words).
      */
     const offeredStepTypes: Array<RunbookStepType> = this.isResourceRound()
       ? [RunbookStepType.ResourceCommand]
@@ -3805,7 +3749,7 @@ export default class RemediationCommandToolkit {
 
     /*
      * A resource command runs on the resource's own AI agent, never on a
-     * Runner, so it must never fall through to the Bash/SSH path below.
+     * Runner, so it must never fall through to the Bash path below.
      * Only a resource round (resourceTargets) offers it — any other round
      * refused it with the step types it offers, above; this is the belt
      * and braces.
@@ -3895,54 +3839,14 @@ export default class RemediationCommandToolkit {
     }
 
     /*
-     * The in-cluster kubectl agent claims only Kubectl jobs: a Bash or SSH
-     * step aimed at it would wait out its claim timeout and fail. Refused
-     * here, with the way to reach its cluster instead.
+     * The in-cluster kubectl agent claims only Kubectl jobs: a Bash step
+     * aimed at it would wait out its claim timeout and fail. Refused here,
+     * with the way to reach its cluster instead.
      */
     if (RemediationCommandToolkit.isKubernetesAgentRunner(runner)) {
       return {
-        errorText: `Runner "${runner.name || runnerId.toString()}" is a Kubernetes cluster's in-cluster kubectl agent: it runs only Kubectl steps, never Bash or SSH. To change that cluster, use stepType Kubectl with the cluster's kubernetesClusterId from list_command_targets.`,
+        errorText: `Runner "${runner.name || runnerId.toString()}" is a Kubernetes cluster's in-cluster kubectl agent: it runs only Kubectl steps, never Bash. To change that cluster, use stepType Kubectl with the cluster's kubernetesClusterId from list_command_targets.`,
       };
-    }
-
-    const credentialIdRaw: string | undefined = ToolArgs.getString(
-      args,
-      "credentialId",
-    );
-
-    let credentialName: string | undefined = undefined;
-
-    if (stepType === RunbookStepType.SSH) {
-      if (!credentialIdRaw || !ObjectID.isValidUUID(credentialIdRaw)) {
-        return {
-          errorText:
-            "SSH commands need a valid credentialId assigned to the target Runner — find one with list_command_targets.",
-        };
-      }
-
-      /*
-       * Assignment check only — no secret columns are selected here; the
-       * Runner resolves the actual credential material at claim time.
-       */
-      const credential: RunbookCredential | null =
-        await RunbookCredentialService.findOneBy({
-          query: {
-            _id: credentialIdRaw,
-            projectId: this.options.projectId,
-            runners: QueryHelper.inRelationArray([runnerId]),
-          },
-          select: { _id: true, name: true, credentialType: true },
-          props: { isRoot: true },
-        });
-
-      if (!credential || String(credential.credentialType) !== "SSH") {
-        return {
-          errorText:
-            "The credentialId is not an SSH credential assigned to that Runner in this project. Use list_command_targets.",
-        };
-      }
-
-      credentialName = credential.name;
     }
 
     return {
@@ -3951,9 +3855,6 @@ export default class RemediationCommandToolkit {
         stepType,
         runnerId: runnerId.toString(),
         runnerNameSnapshot: runner.name || "Runner",
-        credentialId:
-          stepType === RunbookStepType.SSH ? credentialIdRaw : undefined,
-        credentialNameSnapshot: credentialName,
         command: commandText,
         timeoutInMs,
         rationale,
@@ -3965,9 +3866,9 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Kubectl: the target is a cluster, the Runner is whichever one the
-   * cluster's AI page bound, and the credential (if any) is the cluster's.
-   * The model never picks either — it can only name a cluster it was shown.
+   * Kubectl: the target is a cluster, and what runs the command is the
+   * cluster's Kubernetes AI agent (or its previous in-cluster Runner). The
+   * model never picks it — it can only name a cluster it was shown.
    */
   private parseKubectlCommand(data: {
     args: JSONObject;
@@ -4053,8 +3954,6 @@ export default class RemediationCommandToolkit {
         stepType: RunbookStepType.Kubectl,
         runnerId: cluster.runner.id,
         runnerNameSnapshot: cluster.runner.name,
-        credentialId: cluster.credentialId,
-        credentialNameSnapshot: cluster.credentialName,
         kubernetesClusterId: cluster.clusterId,
         kubernetesClusterNameSnapshot: cluster.clusterName,
         kubectlTier: policy.tier,
@@ -4334,7 +4233,7 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * Bash/SSH output. A shell step can run kubectl (or cat a kubeconfig)
+   * Bash output. A shell step can run kubectl (or cat a kubeconfig)
    * just as well as the kubectl lane can, and what it prints is persisted
    * on the suggestion for humans AND handed to the model — so it goes
    * through the one chain every kubectl output goes through (structural

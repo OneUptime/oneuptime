@@ -429,11 +429,6 @@ describe("the project's stepped forms", () => {
       "CardModelDetail: Device Settings",
       ["device-details", "address", "monitoring", "snmp"],
     ],
-    [
-      `${DASHBOARD}/Pages/Runbook/Runners/RunnerCredentials.tsx`,
-      "ModelTable: Runbooks > AI Access",
-      ["credential", "ssh", "ssh-authentication", "kubernetes", "runners"],
-    ],
     /*
      * Its one Rules step drew the whole rule (its own form, so the scan sees
      * one field there - see LongFormStepsGuard for that form). A rule for

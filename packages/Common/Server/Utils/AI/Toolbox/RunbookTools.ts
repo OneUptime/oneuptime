@@ -130,6 +130,28 @@ function describeStepInstructions(step: RunbookStep): string {
 }
 
 /*
+ * What a step's row says beside its instructions when it was written with a
+ * runbook credential (through the API, and never moved to variables):
+ * runbook credentials were removed, so a run that reaches it fails
+ * (REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE). Said, so OneUptime AI never
+ * reads such a runbook as one whose every step runs.
+ */
+export const REMOVED_CREDENTIAL_STEP_NOTE: string =
+  "This step was written with a runbook credential, and runbook credentials were removed: a run that reaches it fails until someone turns it into a script step on the runbook's Steps page.";
+
+function isWrittenWithRemovedCredential(step: RunbookStep): boolean {
+  if (step.type === RunbookStepType.SSH) {
+    return isLegacySSHStepConfig(step.config);
+  }
+
+  if (step.type === RunbookStepType.Kubernetes) {
+    return isLegacyKubernetesStepConfig(step.config);
+  }
+
+  return false;
+}
+
+/*
  * Steps in execution order, tolerating malformed entries in the JSON column,
  * read the way a run takes them: an approval a client still writes after a
  * step (requireApproval) is the approval before the next step, or a Manual
@@ -146,7 +168,7 @@ function parseSteps(steps: JSONArray | undefined): Array<RunbookStep> {
 export const QueryRunbooksTool: ObservabilityTool = {
   name: "query_runbooks",
   description:
-    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type, the exact instructions/script/command it runs, and whether the run stops for someone to approve it before it runs (requireApprovalBeforeRunning) — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
+    "Query runbooks (predefined response/remediation procedures) in this project. Without arguments it lists runbooks with their id, name, description, step count and whether they are enabled. Pass runbookId to read one runbook's full ordered steps — each step's title, type, the exact instructions/script/command it runs, and whether the run stops for someone to approve it before it runs (requireApprovalBeforeRunning) or fails when it reaches the step (noLongerRuns) — plus its recent executions (status, when, who triggered it). Use this to answer 'what does the runbook say to do?' and to find the runbookId to pass to run_runbook.",
   inputSchema: {
     type: "object",
     properties: {
@@ -278,6 +300,10 @@ export const QueryRunbooksTool: ObservabilityTool = {
             type: step.type,
             description: step.description,
             instructions: describeStepInstructions(step),
+            // A step written with a runbook credential fails when it is reached.
+            noLongerRuns: isWrittenWithRemovedCredential(step)
+              ? REMOVED_CREDENTIAL_STEP_NOTE
+              : undefined,
             // The run stops before this step until someone approves it.
             requireApprovalBeforeRunning: stepRequiresApprovalBeforeRunning(
               step,

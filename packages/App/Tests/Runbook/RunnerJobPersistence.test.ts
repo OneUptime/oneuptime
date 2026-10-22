@@ -6,13 +6,11 @@ import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerService from "Common/Server/Services/RunnerService";
+import RunbookVariable from "Common/Models/DatabaseModels/RunbookVariable";
+import RunbookVariableService from "Common/Server/Services/RunbookVariableService";
 import logger from "Common/Server/Utils/Logger";
 import PositiveNumber from "Common/Types/PositiveNumber";
-import {
-  KubernetesAction,
-  KubernetesWorkloadKind,
-  RunbookStep,
-} from "Common/Types/Runbook/RunbookStep";
+import { RunbookStep } from "Common/Types/Runbook/RunbookStep";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   runBashStep,
@@ -41,11 +39,14 @@ import {
  * before Postgres — and run the real enqueue and the real validator on the row
  * that comes out. A step type whose job row cannot be persisted is a step type
  * that does not work, however well its payload is assembled.
+ *
+ * The SSH and Kubernetes steps here are written as they are now: a script,
+ * signing in with secret runbook variables. (They named a runbook
+ * credential when #3209 was filed; runbook credentials were removed.)
  * ---------------------------------------------------------------------------
  */
 
 const AGENT_ID: string = ObjectID.generate().toString();
-const CREDENTIAL_ID: string = ObjectID.generate().toString();
 const CREATED_JOB_ID: string = ObjectID.generate().toString();
 
 function makeCtx(): StepExecutionContext {
@@ -70,8 +71,10 @@ function makeStep(
 
 function sshStep(overrides: Record<string, unknown> = {}): RunbookStep {
   return makeStep(RunbookStepType.SSH, {
-    credentialId: CREDENTIAL_ID,
-    command: "systemctl restart nginx",
+    host: "10.0.0.5",
+    username: "deploy",
+    signIn: "{{global.variables.WEB_KEY}}",
+    script: "systemctl restart nginx",
     agentId: AGENT_ID,
     ...overrides,
   });
@@ -79,11 +82,8 @@ function sshStep(overrides: Record<string, unknown> = {}): RunbookStep {
 
 function kubernetesStep(overrides: Record<string, unknown> = {}): RunbookStep {
   return makeStep(RunbookStepType.Kubernetes, {
-    credentialId: CREDENTIAL_ID,
-    action: KubernetesAction.RestartWorkload,
-    workloadKind: KubernetesWorkloadKind.Deployment,
-    namespace: "production",
-    workloadName: "api",
+    kubeconfig: "{{global.variables.PROD_KUBECONFIG}}",
+    script: "kubectl rollout restart deployment/api --namespace production",
     agentId: AGENT_ID,
     ...overrides,
   });
@@ -185,6 +185,19 @@ function stubDatabase(): Harness {
     projectId: makeCtx().projectId,
     isGlobalRunner: false,
   } as unknown as Runner);
+
+  /*
+   * The secret variables the SSH and kubectl steps sign in with, checked
+   * before a job is sent (names only: values are read when a Runner takes
+   * the job).
+   */
+  jest.spyOn(RunbookVariableService, "findBy").mockResolvedValue([
+    Object.assign(new RunbookVariable(), { name: "WEB_KEY", isSecret: true }),
+    Object.assign(new RunbookVariable(), {
+      name: "PROD_KUBECONFIG",
+      isSecret: true,
+    }),
+  ] as never);
 
   return { createSpy, pollSpy, findSpy };
 }
@@ -329,11 +342,15 @@ describe("#3209 — a dispatched step's job row can actually be persisted", () =
     );
     expect(row.targetAgentId?.toString()).toBe(AGENT_ID);
     expect(row.payload).toEqual({
-      credentialId: CREDENTIAL_ID,
-      command: "systemctl restart nginx",
+      host: "10.0.0.5",
+      username: "deploy",
+      port: 22,
+      signIn: "{{global.variables.WEB_KEY}}",
+      script: "systemctl restart nginx",
     });
-    // The credential is resolved at claim time; the row references it by id only.
+    // The key is filled in at claim time; the row names its variable only.
     expect(JSON.stringify(row)).not.toContain("privateKey");
+    expect(JSON.stringify(row)).not.toContain("credentialId");
   });
 
   test("a create failure still surfaces on the step rather than escaping the execution", async () => {
@@ -363,40 +380,30 @@ describe("#3209 — the AI remediation lane has the same empty-script shape", ()
       .mockResolvedValue(new PositiveNumber(0));
   });
 
-  test("an AI-composed SSH command is persisted and passes required-field validation", async () => {
-    /*
-     * enqueueAiCommand writes the same empty script + payload layout the
-     * runbook executors do, so it was broken by the same declaration — an
-     * approved remediation plan would have failed at the last step, after a
-     * human had already approved it.
-     */
+  /*
+   * enqueueAiCommand wrote the same empty script + payload layout for an
+   * AI-composed SSH command, so it was broken by the same declaration. An
+   * SSH command reached its host with a runbook credential; runbook
+   * credentials were removed, and the lane no longer takes one at all.
+   */
+  test("an AI-composed SSH command is refused before anything is persisted", async () => {
     const { createSpy }: Harness = stubDatabase();
 
-    await RunnerJobService.enqueueAiCommand({
-      projectId: new ObjectID("proj1"),
-      aiRunId: new ObjectID("run1"),
-      autoRemediationSuggestionId: new ObjectID("sugg1"),
-      stepId: "cmd-1",
-      stepType: RunbookStepType.SSH,
-      targetAgentId: new ObjectID(AGENT_ID),
-      command: "systemctl restart nginx",
-      credentialId: CREDENTIAL_ID,
-      timeoutInMs: 60_000,
-    });
+    await expect(
+      RunnerJobService.enqueueAiCommand({
+        projectId: new ObjectID("proj1"),
+        aiRunId: new ObjectID("run1"),
+        autoRemediationSuggestionId: new ObjectID("sugg1"),
+        stepId: "cmd-1",
+        stepType: RunbookStepType.SSH,
+        targetAgentId: new ObjectID(AGENT_ID),
+        command: "systemctl restart nginx",
+        timeoutInMs: 60_000,
+      }),
+    ).rejects.toThrow('AI remediation does not execute step type "SSH".');
 
-    expect(countBySpy).toHaveBeenCalled();
-
-    const row: RunnerJob = persistedRow(createSpy);
-
-    expect(row.script).toBe("");
-    expect(row.origin).toBe(RunnerJobOrigin.AiRemediation);
-    expect(row.payload).toEqual({
-      credentialId: CREDENTIAL_ID,
-      command: "systemctl restart nginx",
-    });
-    expect(() => {
-      return runRealCreateValidation(row);
-    }).not.toThrow();
+    expect(countBySpy).not.toHaveBeenCalled();
+    expect(createSpy).not.toHaveBeenCalled();
   });
 
   test("an AI-composed Bash command still persists with the command as its script", async () => {

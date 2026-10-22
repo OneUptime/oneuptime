@@ -97,9 +97,9 @@ Runbook-variabler tok plassen til runbook-hemmeligheter og til påloggingsinform
 - all påloggingsinformasjon et trinn nevnte, ble hemmelige globale variabler med samme Runnere, oppkalt etter den: `<name>-ssh-key` (og `<name>-ssh-key-passphrase`, for en nøkkel som hadde en), `<name>-ssh-password` eller `<name>-kubeconfig`;
 - hvert SSH-trinn som nevnte påloggingsinformasjon, logger på maskinen sin med dem og kjører kommandoen sin som skriptet, og hvert Kubernetes-trinn ble et kubectl-trinn som kjører den `kubectl patch` handlingen gjorde, uten å trenge mer tilgang enn trinnet hadde.
 
-En Runner som er eldre enn denne utgivelsen, kan ikke kjøre et kubectl-skript. Derfor beholdt hvert Kubernetes-trinn som ble flyttet slik, også påloggingsinformasjonen og handlingen sin, og en eldre Runner kjører trinnet med dem, slik den gjorde. Så snart du endrer trinnets skript eller kubeconfig, beholder det dem ikke lenger: som hvert nye kubectl-trinn trenger det da en Runner fra denne utgivelsen, og en eldre får det til å feile og sier at Runneren må oppdateres.
+En Runner som er eldre enn denne utgivelsen (14.0.79), kan ikke kjøre et kubectl-skript: den får et kubectl-trinn til å feile og sier at Runneren må oppdateres. Hvert Kubernetes-trinn som ble flyttet slik, beholdt først påloggingsinformasjonen og handlingen sin ved siden av skriptet for en slik Runner; de forsvant med runbook-påloggingsinformasjonen, så hvert kubectl-trinn trenger en Runner fra 14.0.79 eller nyere.
 
-Et trinn som er skrevet gjennom API-et med påloggingsinformasjon, kjører fortsatt med den, og siden med trinn tilbyr **Gjør om til et skripttrinn**. Påloggingsinformasjonen blir også, for det OneUptime AIs egne kommandoer når: se [AI-tilgang](/docs/runbooks/credentials).
+Runbook-påloggingsinformasjon er siden fjernet, og et trinn som fortsatt nevnte påloggingsinformasjon, ble først flyttet på samme måte. Et trinn som nevner påloggingsinformasjon, kjører ikke lenger, og siden med trinn tilbyr **Gjør om til et skripttrinn**; en lagring gjennom API-et eller Terraform som gir et trinn påloggingsinformasjon, avvises. Se [Runbook-påloggingsinformasjon er fjernet](/docs/installation/upgrading#runbook-påloggingsinformasjon-er-fjernet).
 
 ## Neste trinn
 

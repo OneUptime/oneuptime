@@ -27,7 +27,7 @@ flowchart TB
     end
     worker --> ingest
     runner -->|"HTTPS in uscita, ID e chiave del Runner"| ingest
-    ingest -->|"Lavoro preso in carico, con i suoi segreti o la sua credenziale"| runner
+    ingest -->|"Lavoro preso in carico, con i suoi segreti"| runner
     runner -->|"Script, SSH o API di Kubernetes"| targets
 ```
 
@@ -61,13 +61,12 @@ I Runner globali sono i Runner che OneUptime esegue per ogni progetto. Un passag
 | Cosa può raggiungere un passaggio | Indirizzi pubblici di internet | Ciò che raggiunge il suo host |
 | Durata massima di un passaggio | 5 minuti | 1 ora |
 | Variabili segrete | Quelle che lasci usare ai Runner globali | Quelle che lo elencano |
-| Credenziali | Nessuna | Quelle che gli assegni |
 
 Un Runner globale esegue i passaggi di molti progetti, quindi ogni passaggio è tenuto separato da tutti gli altri:
 
 - Ogni passaggio viene eseguito in una propria sandbox `isolated-vm`, creata per quel passaggio e scartata dopo: niente file, niente processi, niente variabili d'ambiente e niente che resti da un passaggio al successivo.
 - Le sue richieste HTTP raggiungono solo indirizzi pubblici di internet, mai un indirizzo privato, di loopback o link-local né un endpoint di metadati cloud, quindi un Runner globale non raggiunge mai la tua rete.
-- Riceve una variabile segreta solo quando il suo interruttore **I Runner globali possono usarlo** è attivo, e solo per un passaggio del progetto della variabile. Non riceve mai una credenziale.
+- Riceve una variabile segreta solo quando il suo interruttore **I Runner globali possono usarlo** è attivo, e solo per un passaggio del progetto della variabile.
 - Un progetto esegue al massimo tre passaggi alla volta sui Runner globali, così nessun progetto li tiene per sé.
 
 Scegli uno dei tuoi Runner per un passaggio che deve raggiungere la tua rete, o per tenere il passaggio su host che controlli. Per tenere ogni passaggio sui tuoi Runner, disattiva **Usa i Runner globali** in fondo a **Runbook → Agenti di runbook**. Un passaggio JavaScript che non sceglie alcun Runner viene allora eseguito sul Runner predefinito del progetto oppure, se non ce n'è uno, fallisce, dicendolo, finché non sceglie uno dei tuoi; un passaggio che sceglie uno dei tuoi Runner lo mantiene in ogni caso. Un repository di codice che non sceglie alcun Runner nelle sue impostazioni in Codice lavora anch'esso su un Runner globale, e ha bisogno di uno dei tuoi finché l'interruttore è disattivato; vedi [Codice](/docs/ai/ai-agent#scegli-il-runner-del-repository).
@@ -98,7 +97,7 @@ Vai in **Runbook → Agenti di runbook** e crea un nuovo agente. Fai clic su **C
 | **Esegue i runbook** | In **Altri campi** | Attivo per impostazione predefinita. Consente a questo Runner di prendere passaggi di runbook. |
 | **Etichette** | In **Altri campi** | Facoltative. |
 
-Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; non serve riavviarlo. L'IA non è una funzionalità. Un repository di codice sceglie, nelle sue impostazioni in Codice, il Runner su cui l'IA ci lavora, e la pagina del Runner elenca i repository che lo scelgono. Una regola di rimedio automatico sceglie il Runner su cui OneUptime AI esegue i suoi comandi, e le impostazioni IA di un cluster Kubernetes il Runner su cui gira il suo kubectl: è scegliere lì un Runner a permettere ai comandi di OneUptime AI di eseguirsi su di esso. Sceglierne uno che ha credenziali SSH richiede l'autorizzazione a leggere le credenziali dei runbook; vedi [Runner che eseguono i comandi di OneUptime AI](/docs/runbooks/credentials#runner-che-eseguono-i-comandi-di-oneuptime-ai).
+Un Runner applica una modifica alle sue funzionalità al successivo heartbeat; non serve riavviarlo. L'IA non è una funzionalità. Un repository di codice sceglie, nelle sue impostazioni in Codice, il Runner su cui l'IA ci lavora, e la pagina del Runner elenca i repository che lo scelgono. Una regola di rimedio automatico sceglie il Runner su cui OneUptime AI esegue i suoi comandi: è scegliere lì un Runner a permettere ai comandi di OneUptime AI di eseguirsi su di esso.
 
 ### 2. Copia il comando di installazione
 

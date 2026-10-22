@@ -1,4 +1,7 @@
-import { QueryRunbooksTool } from "../../../../Server/Utils/AI/Toolbox/RunbookTools";
+import {
+  QueryRunbooksTool,
+  REMOVED_CREDENTIAL_STEP_NOTE,
+} from "../../../../Server/Utils/AI/Toolbox/RunbookTools";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -349,6 +352,113 @@ describe("query_runbooks — SSH and kubectl steps", () => {
     expect(result.dataForLlm).toContain(
       "Kubernetes ScaleWorkload on Deployment jobs/workers (replicas: 4)",
     );
+  });
+
+  /*
+   * Runbook credentials were removed, so a step still written with one fails
+   * when a run reaches it (REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE). Its row
+   * says so beside what it did, so OneUptime AI never reads - or proposes -
+   * such a runbook as one whose every step runs; no other step's row does.
+   */
+  test("a step written with a credential says it no longer runs; a moved or script step does not", async () => {
+    jest.spyOn(RunbookService, "findOneById").mockResolvedValue(
+      buildRunbook({
+        steps: [
+          {
+            id: "step-ssh-legacy",
+            order: 1,
+            type: "SSH",
+            title: "Clear the cache",
+            config: {
+              credentialId: "90000000-0000-4000-8000-000000000c01",
+              command: "redis-cli FLUSHALL",
+            },
+          },
+          {
+            id: "step-kubernetes-legacy",
+            order: 2,
+            type: "Kubernetes",
+            title: "Scale workers",
+            config: {
+              credentialId: "90000000-0000-4000-8000-000000000c01",
+              action: "ScaleWorkload",
+              workloadKind: "Deployment",
+              namespace: "jobs",
+              workloadName: "workers",
+              replicas: 4,
+            },
+          },
+          {
+            id: "step-ssh",
+            order: 3,
+            type: "SSH",
+            title: "Restart the database proxy",
+            config: {
+              host: "db-1.internal",
+              signIn: "{{global.variables.PROD_DB_SSH_KEY}}",
+              script: "sudo systemctl restart pgbouncer",
+            },
+          },
+          {
+            /*
+             * Moved to a kubectl script by the data migration, which kept
+             * its credential for an older Runner: it runs.
+             */
+            id: "step-kubectl-moved",
+            order: 4,
+            type: "Kubernetes",
+            title: "Restart checkout",
+            config: {
+              credentialId: "90000000-0000-4000-8000-000000000c01",
+              script: "kubectl rollout restart deployment/checkout-api",
+            },
+          },
+          {
+            id: "step-bash",
+            order: 5,
+            type: "Bash",
+            title: "Check the queue",
+            config: { script: "redis-cli LLEN jobs" },
+          },
+        ] as JSONArray,
+      }) as never,
+    );
+    jest
+      .spyOn(RunbookExecutionService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const result: ToolExecutionResult = await QueryRunbooksTool.execute(
+      { runbookId: RUNBOOK_ID.toString() },
+      ctx,
+    );
+
+    // The serialized line of the step titled `title`.
+    const lineOf: (title: string) => string = (title: string): string => {
+      const line: string | undefined = result.dataForLlm
+        .split("\n")
+        .find((candidate: string) => {
+          return candidate.includes(`title=${title}`);
+        });
+
+      expect({ title, found: Boolean(line) }).toEqual({ title, found: true });
+
+      return line!;
+    };
+
+    expect(REMOVED_CREDENTIAL_STEP_NOTE).toContain(
+      "runbook credentials were removed",
+    );
+    expect(lineOf("Clear the cache")).toContain(REMOVED_CREDENTIAL_STEP_NOTE);
+    expect(lineOf("Scale workers")).toContain(REMOVED_CREDENTIAL_STEP_NOTE);
+
+    for (const title of [
+      "Restart the database proxy",
+      "Restart checkout",
+      "Check the queue",
+    ]) {
+      expect(lineOf(title)).not.toContain("noLongerRuns");
+      expect(lineOf(title)).not.toContain(REMOVED_CREDENTIAL_STEP_NOTE);
+    }
   });
 });
 

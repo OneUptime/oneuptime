@@ -1248,7 +1248,7 @@ API, SSO, or the Slack and Microsoft Teams apps.
   `lastSavedByUserId` column on workflows. That column is dropped on start,
   the API and Terraform no longer return it, and a step is refused whoever
   saved the workflow. See
-  [Runners that run OneUptime AI's commands](/docs/runbooks/credentials#runners-that-run-oneuptime-ais-commands)
+  [Runbook credentials are removed](#runbook-credentials-are-removed)
   and [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - **An LLM provider's Additional Parameters are read like its API key,
   and its Base URL is changed only by those who may read them.** A
@@ -1518,13 +1518,15 @@ API, SSO, or the Slack and Microsoft Teams apps.
   secret variable, and a Kubernetes step is now a kubectl step that runs a
   script of kubectl commands with a kubeconfig variable. Every stored step
   was moved to that shape, with what its credential held copied into secret
-  global variables, and does what it did. The credentials stay, under
-  **Runbooks → Runners → AI Access**, for OneUptime AI's own commands. A
-  moved Kubernetes step also keeps its credential and action, so a Runner
-  older than this release still runs it as it did. A new kubectl step, and a
-  moved one once its script or kubeconfig is changed, needs a Runner of this
-  release: an older one fails such a step and says so, so update your
-  Runners. See [Runbook Variables](/docs/runbooks/variables).
+  global variables, and does what it did. The credentials stayed, on the
+  **AI Access** page under **Runbooks → Runners**, for OneUptime AI's own
+  commands, and a moved Kubernetes step kept its credential and action, so a
+  Runner older than this release still ran it as it did, until
+  [runbook credentials were removed](#runbook-credentials-are-removed). A
+  new kubectl step, and a moved one once its script or kubeconfig is
+  changed, needs a Runner of this release: an older one fails such a step
+  and says so, so update your Runners. See
+  [Runbook Variables](/docs/runbooks/variables).
 - **Visitors keep their own address in more setups.** OneUptime counts a
   visitor by the address they connect from, for its sign-in limits, its other
   limits per address and its IP allowlists. Its ingress now listens on IPv6 as
@@ -1755,6 +1757,41 @@ command for each option instead of saving anything.
 [AI SRE — Cluster access](/docs/ai/ai-sre#cluster-access-let-oneuptime-ai-run-kubectl)
 and [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)
 have the commands.
+
+### Runbook credentials are removed
+
+The **AI Access** page under **Runbooks → Runners** is gone, and the runbook
+credentials it held with it. They were how OneUptime AI's own commands reached a server
+over SSH, or a Kubernetes cluster from a Runner outside it. Hosts and
+Kubernetes clusters have AI agents of their own now, which run OneUptime
+AI's commands with their own access, and runbook steps sign in with
+[runbook variables](/docs/runbooks/variables).
+
+What changes after the upgrade:
+
+- **The credentials are deleted.** A runbook step that still named one is
+  moved to secret runbook variables first, the way the move to variables
+  moved the others, and runs as it did. A Kubernetes step moved earlier
+  keeps no credential or action for an older Runner any more: every kubectl
+  step needs a Runner of 14.0.79 or later.
+- **OneUptime AI runs no SSH command.** A plan that holds one is no longer
+  approved, and a command queued before the upgrade fails, saying why. A
+  host is fixed through its [AI agent](/docs/ai/infrastructure-ai-agents),
+  or by a runbook whose SSH step signs in with a variable.
+- **A cluster bound to a Runner outside it is cleared.** OneUptime AI reaches
+  it through its Kubernetes AI agent, which the Kubernetes agent chart
+  installs, and its AI settings follow that agent's configuration like any
+  other cluster's. A cluster still bound to its previous in-cluster Runner
+  keeps it until the chart is upgraded.
+- **The four Runbook Credential permissions are removed** from every team,
+  API key and custom role that held them. Nothing else they hold changes.
+- **API and Terraform.** `RunbookCredential` and the Terraform resource
+  `oneuptime_runbook_credential` are gone, and so is a Kubernetes cluster's
+  `aiAccessCredentialId` (`ai_access_credential_id`). A save that gives a
+  runbook step a `credentialId` is refused: write the step as a script that
+  signs in with a variable.
+
+The **AI Access** page's old address opens **Runbooks → Runners**.
 
 ### Enable AI is the only AI switch
 

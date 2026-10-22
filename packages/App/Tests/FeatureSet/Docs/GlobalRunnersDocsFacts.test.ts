@@ -144,10 +144,13 @@ describe("the Global Runners section of runbooks/agents", () => {
     for (const sentence of [
       "Each step runs in an `isolated-vm` sandbox of its own, made for that step and thrown away after it",
       "Its HTTP requests reach public internet addresses only, never a private, loopback or link-local address or a cloud metadata endpoint, so a global Runner never reaches your network.",
-      "It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project. It never gets a credential.",
+      "It gets a secret variable only when the variable's **Global Runners can use it** switch is on, and only for a step of the variable's own project.",
     ]) {
       expect(SECTION).toContain(sentence);
     }
+
+    // Runbook credentials are gone: no Runner is handed one, global or not.
+    expect(SECTION).not.toContain("credential");
 
     // The secrets a global Runner is handed: its step's own project's, switched on.
     expect(VARIABLE_RESOLVER).toContain(
@@ -156,8 +159,11 @@ describe("the Global Runners section of runbooks/agents", () => {
     expect(VARIABLE_RESOLVER).toContain(
       "return toStoredBoolean(data.row.isAvailableToGlobalRunners) === true",
     );
-    // A credential is failed, not handed over.
-    expect(RUNNER_INGRESS).toContain("GLOBAL_RUNNER_CREDENTIAL_REFUSAL");
+    // A job that still names a runbook credential is failed, not handed over.
+    expect(RUNNER_INGRESS).toContain(
+      "errorMessage: RunnerIngressAPI.getRemovedCredentialRefusal(job),",
+    );
+    expect(RUNNER_INGRESS).not.toContain("GLOBAL_RUNNER_CREDENTIAL_REFUSAL");
   });
 
   it("names the Dashboard's words as the Dashboard draws them", () => {

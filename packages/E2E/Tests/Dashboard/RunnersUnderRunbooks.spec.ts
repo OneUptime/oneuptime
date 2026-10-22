@@ -34,8 +34,9 @@ const OWN_RUNNERS_CARD_HEADING: RegExp = /^(?:Custom )?Runners$/;
  * the Runner is created through the dashboard, read back through the API,
  * opened, reached again through the old Project Settings bookmarks, and
  * deleted. A temporary project isolates it and is deleted even when the test
- * fails. Growth, because Runner Credentials are a Growth feature when billing
- * is on.
+ * fails. Growth, so every Runbooks page - runbook variables among them - is
+ * open when billing is on. The addresses of Runner Credentials, later AI
+ * Access, open the Runners: it is gone, with the runbook credentials it held.
  *
  * cd packages/E2E && HOST=localhost HTTP_PROTOCOL=http \
  *   npx playwright test Tests/Dashboard/RunnersUnderRunbooks.spec.ts \
@@ -57,14 +58,13 @@ test.describe("Runners live under Runbooks", () => {
     try {
       const runbooksPath: string = `/dashboard/${projectId}/runbooks`;
       const runnersPath: string = `${runbooksPath}/runners`;
-      const credentialsPath: string = `${runbooksPath}/runner-credentials`;
+      // AI Access's address: the page is gone, and the address opens the Runners.
+      const aiAccessPath: string = `${runbooksPath}/runner-credentials`;
       const settingsPath: string = `/dashboard/${projectId}/settings`;
       const runnerName: string = "e2e-runbooks-runner";
 
       const runnersLink: Locator = page.locator(`a[href='${runnersPath}']`);
-      const credentialsLink: Locator = page.locator(
-        `a[href='${credentialsPath}']`,
-      );
+      const aiAccessLink: Locator = page.locator(`a[href='${aiAccessPath}']`);
       const breadcrumb: Locator = page.getByRole("navigation", {
         name: "Breadcrumb",
       });
@@ -92,33 +92,24 @@ test.describe("Runners live under Runbooks", () => {
       };
 
       /*
-       * The Runbooks menu lists both Runner pages, in a Runners section that
-       * starts folded down to its title, like every rarely used section: its
-       * rows are hidden until it is opened.
+       * The Runbooks menu lists the Runners with the runbooks and their
+       * executions, in its first section, which is open: AI Access, which
+       * stood beside them in a folded section of their own, is gone with the
+       * runbook credentials it held, and so is that section.
        */
-      const runnersSectionToggle: Locator = page
-        .locator("aside[role='navigation'][aria-label='Main navigation']")
-        .locator(
-          "xpath=.//h6[normalize-space(.)='Runners']/ancestor::button[1]",
-        );
       await gotoProjectPage({
         page,
         projectId,
         url: urlFor(runbooksPath),
-        ready: runnersSectionToggle,
+        ready: runnersLink.first(),
       });
-      await expect(runnersSectionToggle).toHaveAttribute(
-        "aria-expanded",
-        "false",
-      );
-      await expect(runnersLink.first()).toBeHidden();
-      await runnersSectionToggle.click();
-      await expect(runnersSectionToggle).toHaveAttribute(
-        "aria-expanded",
-        "true",
-      );
       await expect(runnersLink.first()).toBeVisible();
-      await expect(credentialsLink.first()).toBeVisible();
+      await expect(aiAccessLink).toHaveCount(0);
+      await expect(
+        page
+          .locator("aside[role='navigation'][aria-label='Main navigation']")
+          .locator("xpath=.//h6[normalize-space(.)='Runners']"),
+      ).toHaveCount(0);
 
       // Its Runners entry opens the list, under Runbooks.
       await runnersLink.first().click();
@@ -127,10 +118,9 @@ test.describe("Runners live under Runbooks", () => {
       await expect(breadcrumb).toContainText("Runners");
       await expect(breadcrumb).not.toContainText("Settings");
       /*
-       * The menu section is a heading called Runners too: this is the card
-       * of the project's own Runners. On a server that runs a global Runner
-       * - every Docker Compose install does - the global ones have a card of
-       * their own above it, and this one is Custom Runners.
+       * The card of the project's own Runners. On a server that runs a
+       * global Runner - every Docker Compose install does - the global ones
+       * have a card of their own above it, and this one is Custom Runners.
        */
       await expect(
         page
@@ -142,7 +132,7 @@ test.describe("Runners live under Runbooks", () => {
        * Create a Runner through the form: one page - Name, Description, and
        * More fields folded at its end, holding "Runs Runbooks" (on) and the
        * labels. A Runner has no switch for OneUptime AI's commands: an auto
-       * remediation rule, or a cluster's AI settings, picks the Runner.
+       * remediation rule picks the Runner.
        */
       await page
         .getByTestId("card-button")
@@ -208,10 +198,13 @@ test.describe("Runners live under Runbooks", () => {
       await expect(page).toHaveURL(urlFor(runnerPath), SERVER);
       await expect(runnerDetails).toBeVisible(SERVER);
 
-      await page.goto(urlFor(`${settingsPath}/runner-credentials`));
-      await expect(page).toHaveURL(urlFor(credentialsPath), SERVER);
-      // Runner Credentials is AI Access now: what OneUptime AI reaches through a Runner.
-      await expect(breadcrumb).toContainText("AI Access", SERVER);
+      // Runner Credentials, later AI Access, is gone: both its addresses open the Runners.
+      for (const gone of [`${settingsPath}/runner-credentials`, aiAccessPath]) {
+        await page.goto(urlFor(gone));
+        await expect(page).toHaveURL(urlFor(runnersPath), SERVER);
+        await expect(row).toBeVisible(SERVER);
+        await expect(breadcrumb).not.toContainText("AI Access");
+      }
 
       await page.goto(urlFor(`${settingsPath}/runners`));
       await expect(page).toHaveURL(urlFor(runnersPath), SERVER);

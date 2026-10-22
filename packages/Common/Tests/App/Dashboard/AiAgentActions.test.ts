@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import {
   AI_AGENT_RESET_AGENT_TEST_ID,
-  AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
   AI_AGENT_TEST_CONNECTION_TEST_ID,
   AiAgentAction,
   AiAgentActionId,
@@ -45,14 +44,12 @@ type Handler = ReturnType<typeof jest.fn<() => void>>;
 
 interface Handlers {
   onRun: Handler;
-  onSwitch: Handler;
   onReset: Handler;
 }
 
 function makeHandlers(): Handlers {
   return {
     onRun: jest.fn<() => void>(),
-    onSwitch: jest.fn<() => void>(),
     onReset: jest.fn<() => void>(),
   };
 }
@@ -67,14 +64,10 @@ function makeInput(
     hasTarget?: boolean;
     gate?: PermissionGateResult;
     isRunning?: boolean;
-    switchToAgent?: "offered" | "not_offered" | "absent";
     isResetOffered?: boolean;
     isActing?: boolean;
   } = {},
 ): AiAgentActionsInput {
-  const switchToAgent: "offered" | "not_offered" | "absent" =
-    overrides.switchToAgent || "offered";
-
   return {
     testConnection: {
       hasTarget: overrides.hasTarget ?? true,
@@ -83,13 +76,6 @@ function makeInput(
       isRunning: overrides.isRunning ?? false,
       onRun: handlers.onRun,
     },
-    switchToAgent:
-      switchToAgent === "absent"
-        ? undefined
-        : {
-            isOffered: switchToAgent === "offered",
-            onClick: handlers.onSwitch,
-          },
     resetAgent: {
       isOffered: overrides.isResetOffered ?? true,
       onClick: handlers.onReset,
@@ -147,7 +133,6 @@ describe("Test connection", () => {
     testAction.onClick();
 
     expect(handlers.onRun).toHaveBeenCalledTimes(1);
-    expect(handlers.onSwitch).not.toHaveBeenCalled();
     expect(handlers.onReset).not.toHaveBeenCalled();
   });
 
@@ -219,7 +204,7 @@ describe("Test connection", () => {
     expect(testAction.disabledReason).toBe(REQUIREMENT);
   });
 
-  test("is not held up by a reset or switch in flight", () => {
+  test("is not held up by a reset in flight", () => {
     const handlers: Handlers = makeHandlers();
     const testAction: AiAgentAction = get(
       getAiAgentActions(makeInput(handlers, { isActing: true })),
@@ -234,68 +219,24 @@ describe("Test connection", () => {
   });
 });
 
+/*
+ * "Switch to the AI agent" moved a cluster bound to a Runner outside it
+ * over to its agent. Runbook credentials - what such a Runner reached the
+ * cluster with - are gone, and so is the action: nothing hands it in, and
+ * the menu offers only the test and the reset.
+ */
 describe("Switch to the AI agent", () => {
-  test("is offered when the page offers it, with its own icon", () => {
-    const handlers: Handlers = makeHandlers();
+  test("is gone: the menu's actions are the test and the reset only", () => {
     const actions: Array<AiAgentAction> = getAiAgentActions(
-      makeInput(handlers),
-    );
-    const switchAction: AiAgentAction = get(actions, "switch_to_agent");
-
-    expect(switchAction).toEqual({
-      id: "switch_to_agent",
-      text: "Switch to the AI agent",
-      icon: IconProp.ArrowCircleRight,
-      isDisabled: false,
-      disabledReason: undefined,
-      dataTestId: AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
-      onClick: expect.any(Function),
-    });
-    // One above the other in a menu, the two must not look alike.
-    expect(switchAction.icon).not.toBe(get(actions, "reset_agent").icon);
-
-    switchAction.onClick();
-
-    expect(handlers.onSwitch).toHaveBeenCalledTimes(1);
-    expect(handlers.onRun).not.toHaveBeenCalled();
-    expect(handlers.onReset).not.toHaveBeenCalled();
-  });
-
-  test("is left out when the page does not offer it", () => {
-    expect(
-      find(
-        getAiAgentActions(
-          makeInput(makeHandlers(), { switchToAgent: "not_offered" }),
-        ),
-        "switch_to_agent",
-      ),
-    ).toBeUndefined();
-  });
-
-  test("is never offered by a page without it (every resource but a Kubernetes cluster)", () => {
-    expect(
-      find(
-        getAiAgentActions(
-          makeInput(makeHandlers(), { switchToAgent: "absent" }),
-        ),
-        "switch_to_agent",
-      ),
-    ).toBeUndefined();
-  });
-
-  test("is locked while another page action is in flight", () => {
-    const handlers: Handlers = makeHandlers();
-    const switchAction: AiAgentAction = get(
-      getAiAgentActions(makeInput(handlers, { isActing: true })),
-      "switch_to_agent",
+      makeInput(makeHandlers()),
     );
 
-    expect(switchAction.isDisabled).toBe(true);
-    expect(switchAction.disabledReason).toBeUndefined();
-
-    switchAction.onClick();
-
-    expect(handlers.onSwitch).not.toHaveBeenCalled();
+    expect(ids(actions)).toEqual(["test_connection", "reset_agent"]);
+    expect(
+      actions.some((action: AiAgentAction): boolean => {
+        return action.dataTestId === "ai-agent-switch-button";
+      }),
+    ).toBe(false);
   });
 });
 
@@ -321,7 +262,6 @@ describe("Reset agent", () => {
 
     expect(handlers.onReset).toHaveBeenCalledTimes(1);
     expect(handlers.onRun).not.toHaveBeenCalled();
-    expect(handlers.onSwitch).not.toHaveBeenCalled();
   });
 
   test("is left out when the page does not offer it", () => {
@@ -359,30 +299,21 @@ describe("Reset agent", () => {
 });
 
 describe("the list", () => {
-  test("is the test, then the switch, then the reset", () => {
+  test("is the test, then the reset", () => {
     expect(ids(getAiAgentActions(makeInput(makeHandlers())))).toEqual([
       "test_connection",
-      "switch_to_agent",
       "reset_agent",
     ]);
   });
 
-  test("keeps that order with any of them left out", () => {
-    expect(
-      ids(
-        getAiAgentActions(
-          makeInput(makeHandlers(), { switchToAgent: "not_offered" }),
-        ),
-      ),
-    ).toEqual(["test_connection", "reset_agent"]);
+  test("keeps that order with either of them left out", () => {
     expect(
       ids(getAiAgentActions(makeInput(makeHandlers(), { hasTarget: false }))),
-    ).toEqual(["switch_to_agent", "reset_agent"]);
+    ).toEqual(["reset_agent"]);
     expect(
       ids(
         getAiAgentActions(
           makeInput(makeHandlers(), {
-            switchToAgent: "absent",
             isResetOffered: false,
           }),
         ),
@@ -395,7 +326,6 @@ describe("the list", () => {
       getAiAgentActions(
         makeInput(makeHandlers(), {
           hasTarget: false,
-          switchToAgent: "not_offered",
           isResetOffered: false,
         }),
       ),
@@ -404,7 +334,6 @@ describe("the list", () => {
       getAiAgentActions(
         makeInput(makeHandlers(), {
           gate: UNKNOWN,
-          switchToAgent: "absent",
           isResetOffered: false,
         }),
       ),
@@ -454,7 +383,6 @@ describe("the list", () => {
             makeInput(makeHandlers(), {
               gate: row.gate,
               isResetOffered: row.isResetOffered,
-              switchToAgent: "absent",
             }),
           ),
         ),
@@ -490,13 +418,8 @@ describe("the list", () => {
   test("the test ids are the ones the old header buttons carried", () => {
     expect([
       AI_AGENT_TEST_CONNECTION_TEST_ID,
-      AI_AGENT_SWITCH_TO_AGENT_TEST_ID,
       AI_AGENT_RESET_AGENT_TEST_ID,
-    ]).toEqual([
-      "ai-agent-test-button",
-      "ai-agent-switch-button",
-      "ai-agent-reset-button",
-    ]);
+    ]).toEqual(["ai-agent-test-button", "ai-agent-reset-button"]);
   });
 
   /*

@@ -14,13 +14,12 @@ import {
  *   - an SSH step that takes a script in its payload's host, username,
  *     signIn (the key or password), passphrase and script;
  *   - a kubectl step (Kubernetes, with a script) in its payload's
- *     kubeconfig and script. The action a step moved from a Kubernetes
- *     action keeps beside them for an older Runner (its payload's
- *     legacyStep, RunbookLegacySteps) names none.
+ *     kubeconfig and script.
  *
- * An SSH or Kubernetes job that names a credential (a step written before
- * runbook variables, or a command OneUptime AI composed) names none: its
- * credential is resolved apart, and AI commands are never filled in.
+ * An SSH or Kubernetes job that names a runbook credential (a step written
+ * before runbook variables and never moved, or a command OneUptime AI
+ * composed before runbook credentials were removed) names none: the claim
+ * fails it. AI commands are never filled in.
  *
  * Read the same way when a Runner takes the job (to fill them in) and when
  * its result comes back (to hide the secrets it was given).
