@@ -16,6 +16,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { PASS_ON_PAGE_TEXT } from "../PassOn/PassOnPage";
+import { withEscalatedStatusLabel } from "../PassOn/PassedOnStatus";
 import OnCallDutyPolicyEscalationRule from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRule";
 import OnCallDutyPolicyExecutionLogTimeline from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLogTimeline";
 import User from "Common/Models/DatabaseModels/User";
@@ -176,8 +178,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
             },
             type: FieldType.Dropdown,
             title: "Status",
-            filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              OnCallDutyExecutionLogTimelineStatus,
+            // An escalated line is stored "Passed On" and offered as Escalated.
+            filterDropdownOptions: withEscalatedStatusLabel(
+              DropdownUtil.getDropdownOptionsFromEnum(
+                OnCallDutyExecutionLogTimelineStatus,
+              ),
             ),
           },
         ]}
@@ -449,14 +454,11 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                   />
                 );
               } else if (
-                // They could not take it, and passed it on.
+                // They could not take it, and escalated it (stored "Passed On").
                 item["status"] === OnCallDutyExecutionLogTimelineStatus.PassedOn
               ) {
                 return (
-                  <Pill
-                    color={Yellow}
-                    text={OnCallDutyExecutionLogTimelineStatus.PassedOn}
-                  />
+                  <Pill color={Yellow} text={PASS_ON_PAGE_TEXT.passedOnStatus} />
                 );
               }
 

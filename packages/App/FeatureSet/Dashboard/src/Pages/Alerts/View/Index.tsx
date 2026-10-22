@@ -444,7 +444,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     // A rule's channel arrives a moment after a new alert is created.
     recordStartedAt: alertStartedAt,
   });
-  // "Pass it on", for somebody an on-call policy is paging about it.
+  // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Alert,
     recordId: modelId,

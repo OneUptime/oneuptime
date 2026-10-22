@@ -19,19 +19,20 @@ import {
   getPassOnAnswerLines,
   getPassOnAnswerTitle,
   getPassOnQuestionLines,
+  getPassOnQuestionTitle,
   isAnyPassedOn,
   passOnPages,
 } from "./PassOnPage";
 
 /*
- * "PASS IT ON" IN A RECORD'S HEADER, FOR THE PERSON BEING PAGED.
+ * "ESCALATE" IN A RECORD'S HEADER, FOR THE PERSON BEING PAGED.
  *
  * Reads whether the signed-in person is being paged about the record, and
- * when they are, hands the header a "Pass it on" button and the dialog it
- * opens: what passing on will do, then - once passed on - what it did. For
- * everybody else it hands nothing, and the header is as it was. If whether
- * they are paged cannot be read, the button is left out: it is a shortcut,
- * and acknowledging works as it always did.
+ * when they are, hands the header an "Escalate" button and the dialog it
+ * opens: "Escalate Incident?" with what escalating will do, then - once
+ * escalated - what it did. For everybody else it hands nothing, and the
+ * header is as it was. If whether they are paged cannot be read, the button
+ * is left out: it is a shortcut, and acknowledging works as it always did.
  */
 
 export interface PassOnPageControls {
@@ -59,7 +60,7 @@ interface LoadedPages {
 }
 
 /*
- * The dialog's text: a warning first when passing on leaves nobody being
+ * The dialog's text: a warning first when escalating leaves nobody being
  * paged (PassOnDialogLine), then each sentence as a paragraph of its own.
  */
 function dialogText(
@@ -87,7 +88,7 @@ function dialogText(
 export default function usePassOnPage(data: {
   recordType: OnCallPageRecordType;
   recordId: ObjectID;
-  // After a page was passed on: the record's feed has news.
+  // After a page was escalated: the record's feed has news.
   onPassedOn?: (() => void) | undefined;
 }): PassOnPageControls {
   const translator: Translator = useTranslator();
@@ -159,11 +160,13 @@ export default function usePassOnPage(data: {
           {
             /*
              * No tooltip: the header shows one only on a disabled action, and
-             * the dialog says what passing on does before it does it.
+             * the dialog says what escalating does before it does it. The
+             * arrow points up the levels: escalating hands the page up to
+             * the next one. The id keeps the action's first name.
              */
             id: "pass-on-page",
             label: PASS_ON_PAGE_TEXT.button,
-            icon: IconProp.Forward,
+            icon: IconProp.ArrowCircleUp,
             onClick: () => {
               setAnswers([]);
               setError("");
@@ -178,9 +181,9 @@ export default function usePassOnPage(data: {
   if (stage === DialogStage.Asking || stage === DialogStage.Passing) {
     dialog = (
       <ConfirmModal
-        title={PASS_ON_PAGE_TEXT.dialogTitle}
+        title={getPassOnQuestionTitle(data.recordType)}
         description={dialogText(
-          getPassOnQuestionLines(pages, translator),
+          getPassOnQuestionLines(pages, translator, data.recordType),
           "pass-on-preview",
         )}
         submitButtonText={PASS_ON_PAGE_TEXT.button}
@@ -195,9 +198,9 @@ export default function usePassOnPage(data: {
   if (stage === DialogStage.Done) {
     dialog = (
       <ConfirmModal
-        title={getPassOnAnswerTitle(answers)}
+        title={getPassOnAnswerTitle(answers, data.recordType)}
         description={dialogText(
-          getPassOnAnswerLines(answers, translator),
+          getPassOnAnswerLines(answers, translator, data.recordType),
           "pass-on-answer",
         )}
         submitButtonText="Close"

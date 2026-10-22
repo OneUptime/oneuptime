@@ -37,12 +37,16 @@ import OnCallPageLinkToken, {
 } from "../Utils/OnCall/OnCallPageLinkToken";
 import {
   CANT_TAKE_IT,
+  ESCALATE,
+  ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE,
+  ON_CALL_PAGE_ALREADY_ESCALATED_TITLE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
-  ON_CALL_PAGE_NOT_PAGED_AGAIN,
+  ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE,
   OnCallPassOnAnswer,
   OnCallPassOnRefusal,
   OnCallPassOnResult,
-  PASS_IT_ON,
+  getOnCallPageEscalatedTitle,
+  getOnCallPageNotPagedAgainSentence,
   getOnCallPassOnRefusalSentence,
   getOnCallPassOnSentence,
   isOnCallPassOnPagingStopped,
@@ -101,8 +105,8 @@ interface NotificationRecord {
 }
 
 /*
- * What a page that offers passing on says under its heading, and - when
- * passing on leaves nobody being paged - the warning it draws apart.
+ * What a page that offers escalating says under its heading, and - when
+ * escalating leaves nobody being paged - the warning it draws apart.
  */
 interface PassOnWording {
   explanation: string;
@@ -168,7 +172,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           }
 
           /*
-           * The second key passes the page on - only for a call that offered
+           * The second key escalates the page - only for a call that offered
            * it: its address carries the page's own token
            * (OnCallPageLinks.getCallResponseUrl). A call placed before, with
            * no "press 2" in it, answers as it always did.
@@ -245,7 +249,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
               select: {
                 _id: true,
                 projectId: true,
-                // Whose page it is, for "Can't take it? Pass it on" below.
+                // Whose page it is, for "Can't take it? Escalate" below.
                 userId: true,
                 onCallDutyPolicyExecutionLogId: true,
                 triggeredByIncidentId: true,
@@ -318,9 +322,9 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
 
           /*
-           * "Can't take it? Pass it on" beside Acknowledge - for a link that
+           * "Can't take it? Escalate" beside Acknowledge - for a link that
            * carries the page's own token (OnCallPageLinkToken), while the
-           * page is still the person's to pass on. The texts, the WhatsApp
+           * page is still the person's to escalate. The texts, the WhatsApp
            * messages and the chat messages all lead here.
            */
           const passOn: JSONObject | null = await this.getPassOnBlock({
@@ -328,6 +332,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             itemId: itemId,
             timelineItem: timelineItem,
             timezone: timelineItem.user?.timezone?.toString(),
+            recordNoun: notificationType,
           });
 
           return Response.render(
@@ -518,10 +523,11 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     );
 
     /*
-     * "Can't take it? Pass it on" - the page a message's Pass it on link
-     * opens: what passing on would do, and the button that does it. Like the
+     * "Can't take it? Escalate" - the page a message's Escalate link opens:
+     * what escalating would do, and the button that does it. Like the
      * acknowledge page, it asks first: mail scanners open every link in an
-     * email, and the button is a form, which they do not send.
+     * email, and the button is a form, which they do not send. Its address
+     * keeps the action's first name, pass-on, so links already sent work.
      */
     this.router.get(
       `${new this.entityType()
@@ -591,13 +597,15 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           }
 
           /*
-           * The heading asks; under it, what passing on does - for them
-           * first, then for the page. The person followed "Can't take it?
-           * Pass it on" to get here, so the page does not ask that again.
+           * The heading asks - "Escalate Incident INC-42?" - and under it,
+           * what escalating does, then that they are not paged again. The
+           * person followed "Can't take it? Escalate" to get here, so the
+           * page does not ask that again.
            */
           const wording: PassOnWording = this.getPassOnWording({
             result: preview.result,
             timezone: record.timezone,
+            recordNoun: record.notificationType,
           });
 
           return Response.render(
@@ -605,10 +613,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             res,
             "/usr/src/Common/Server/Views/PassOnUserOnCallNotification.ejs",
             {
-              title: `Pass on ${record.labelInSentence}?`,
+              title: `${ESCALATE} ${record.labelInSentence}?`,
               message: wording.explanation,
               ...(wording.warning ? { warning: wording.warning } : {}),
-              passOnText: PASS_IT_ON,
+              passOnText: ESCALATE,
               passOnFormUrl: (
                 await OnCallPageLinks.getPassOnUrl(itemId)
               ).toString(),
@@ -630,7 +638,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       },
     );
 
-    // The pass-on button: passes the page on, and says what came of it.
+    // The Escalate button: escalates the page, and says what came of it.
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/pass-on/:itemId`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
@@ -778,14 +786,16 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   }
 
   /*
-   * The acknowledge page's "Can't take it? Pass it on", or null: for a link
-   * with the page's own token, while the page is the person's to pass on.
+   * The acknowledge page's "Can't take it? Escalate", or null: for a link
+   * with the page's own token, while the page is the person's to escalate.
    */
   private async getPassOnBlock(data: {
     token: unknown;
     itemId: ObjectID;
     timelineItem: UserOnCallLogTimeline;
     timezone: string | undefined;
+    // "Incident", "Alert Episode": for "not paged again for this incident".
+    recordNoun: string;
   }): Promise<JSONObject | null> {
     if (
       !data.timelineItem.userId ||
@@ -810,20 +820,21 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     const wording: PassOnWording = this.getPassOnWording({
       result: preview.result,
       timezone: data.timezone,
+      recordNoun: data.recordNoun,
     });
 
     return {
       lead: CANT_TAKE_IT,
       explanation: wording.explanation,
       ...(wording.warning ? { warning: wording.warning } : {}),
-      buttonText: PASS_IT_ON,
+      buttonText: ESCALATE,
       formUrl: (await OnCallPageLinks.getPassOnUrl(data.itemId)).toString(),
       tokenParam: ON_CALL_PAGE_LINK_TOKEN_PARAM,
       token: String(data.token),
     };
   }
 
-  // What passing on came to, or why it could not - on a page of its own.
+  // What escalating came to, or why it could not - on a page of its own.
   private renderPassOnAnswer(data: {
     req: ExpressRequest;
     res: ExpressResponse;
@@ -835,7 +846,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
     const heading: string =
       answer.passedOn && answer.result
-        ? "You passed it on"
+        ? getOnCallPageEscalatedTitle(record.notificationType)
         : this.getRefusalHeading(answer.refusal);
 
     let message: string = getOnCallPassOnRefusalSentence(answer, {
@@ -847,13 +858,16 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       const sentence: string = getOnCallPassOnSentence(answer.result, {
         timezone: record.timezone,
       });
+      const notPagedAgain: string = getOnCallPageNotPagedAgainSentence(
+        record.notificationType,
+      );
 
       // Nobody is left to page: said as a warning (OnCallPassOnWarning).
       if (isOnCallPassOnPagingStopped(answer.result)) {
-        message = ON_CALL_PAGE_NOT_PAGED_AGAIN;
+        message = notPagedAgain;
         warning = sentence;
       } else {
-        message = `${sentence} ${ON_CALL_PAGE_NOT_PAGED_AGAIN}`;
+        message = `${sentence} ${notPagedAgain}`;
       }
     }
 
@@ -884,42 +898,49 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
   private getRefusalHeading(refusal: OnCallPassOnRefusal | undefined): string {
     switch (refusal) {
       case OnCallPassOnRefusal.RecordAcknowledged:
-        return "Already acknowledged";
+        return ON_CALL_PAGE_ALREADY_ACKNOWLEDGED_TITLE;
       case OnCallPassOnRefusal.AlreadyPassedOn:
-        return "Already passed on";
+        return ON_CALL_PAGE_ALREADY_ESCALATED_TITLE;
       // A link outlives its page by days at most: one past its week is why.
       case OnCallPassOnRefusal.InvalidLink:
         return "This link has expired";
       case OnCallPassOnRefusal.PageOver:
       case OnCallPassOnRefusal.NotPaged:
       default:
-        return "Nothing to pass on";
+        return ON_CALL_PAGE_NOTHING_TO_ESCALATE_TITLE;
     }
   }
 
   /*
-   * What the pages that offer passing on say under their heading: that the
-   * person is not paged about it again, and what passing on does. When it
-   * leaves nobody being paged (isOnCallPassOnPagingStopped), that sentence
-   * is a warning of its own, drawn apart (OnCallPassOnWarning.ejs).
+   * What the pages that offer escalating say under their heading, in the
+   * order of the Dashboard's dialog: what escalating does - "This will
+   * immediately page Platform leads (Level 2 of 3), without waiting." - then
+   * that the person is not paged again for it. When it leaves nobody being
+   * paged (isOnCallPassOnPagingStopped), that sentence is a warning of its
+   * own, drawn apart (OnCallPassOnWarning.ejs).
    */
   private getPassOnWording(data: {
     result: OnCallPassOnResult;
     timezone: string | undefined;
+    // "Incident", "Alert Episode".
+    recordNoun: string;
   }): PassOnWording {
     const sentence: string = getOnCallPassOnSentence(data.result, {
       timezone: data.timezone,
     });
+    const notPagedAgain: string = getOnCallPageNotPagedAgainSentence(
+      data.recordNoun,
+    );
 
     if (isOnCallPassOnPagingStopped(data.result)) {
-      return { explanation: ON_CALL_PAGE_NOT_PAGED_AGAIN, warning: sentence };
+      return { explanation: notPagedAgain, warning: sentence };
     }
 
-    return { explanation: `${ON_CALL_PAGE_NOT_PAGED_AGAIN} ${sentence}` };
+    return { explanation: `${sentence} ${notPagedAgain}` };
   }
 
   /*
-   * The second key of a call: passes the person's page on and says what came
+   * The second key of a call: escalates the person's page and says what came
    * of it, in a sentence or two the call reads out.
    */
   private async passOnFromCall(data: {
@@ -947,7 +968,7 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
 
     if (answer.passedOn && answer.result) {
       // "by 3:34 AM CEST": a time read out is the person's own.
-      return `You passed this ${noun} on. ${getOnCallPassOnSentence(
+      return `You escalated this ${noun}. ${getOnCallPassOnSentence(
         answer.result,
         { timezone: timelineItem.user?.timezone?.toString() || undefined },
       )} Good bye.`;

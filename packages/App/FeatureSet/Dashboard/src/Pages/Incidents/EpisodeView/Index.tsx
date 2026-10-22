@@ -295,7 +295,7 @@ const IncidentEpisodeView: FunctionComponent<
         : undefined,
   });
 
-  // "Pass it on", for somebody an on-call policy is paging about it.
+  // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.IncidentEpisode,
     recordId: modelId,

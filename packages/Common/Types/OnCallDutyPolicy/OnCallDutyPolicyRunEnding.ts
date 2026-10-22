@@ -16,13 +16,32 @@ export const ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE: string =
   "Execution completed.";
 
 /*
- * A run that ended because everybody it paged passed the page on
+ * A run that ended because everybody it paged escalated the page
  * (OnCallPagePassOn): nobody was left to page, and nobody took it. Its Slack
  * and Microsoft Teams message says nobody could take the record, and its
  * feed says why paging stopped.
  */
 export const ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE: string =
+  "Execution completed: everybody it paged escalated it.";
+
+/*
+ * The same ending as runs wrote it before the action was renamed from "Pass
+ * it on" to Escalate. Those runs keep their message; it is read the same.
+ */
+export const LEGACY_ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE: string =
   "Execution completed: everybody it paged passed it on.";
+
+// Whether a run ended because everybody it paged escalated - in either words.
+export function isOnCallPolicyRunEverybodyPassedOnMessage(
+  message: string | undefined | null,
+): boolean {
+  const trimmed: string = (message || "").trim();
+
+  return (
+    trimmed === ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE ||
+    trimmed === LEGACY_ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE
+  );
+}
 
 // How the message of a run that stopped because its record was handled starts.
 export const ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START: string =

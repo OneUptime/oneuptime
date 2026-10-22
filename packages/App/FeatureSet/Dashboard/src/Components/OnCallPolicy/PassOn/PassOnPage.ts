@@ -13,6 +13,8 @@ import {
   OnCallPassOnRefusal,
   OnCallPassOnResult,
   OnCallPassOnRule,
+  getOnCallPassOnLevelCount,
+  getOnCallPassOnLevelName,
   getOnCallPassOnTimeOfDay,
   isOnCallPassOnPagingStopped,
   isOnCallPassOnTimeToday,
@@ -22,6 +24,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
+  ComposedValue,
   composedValue,
   translationKey,
   Translator,
@@ -29,50 +32,113 @@ import {
 import { formatNameList } from "../../AiAccess/AiAccessModes";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" ON A RECORD'S PAGE.
+ * "CAN'T TAKE IT? ESCALATE" ON A RECORD'S PAGE.
  *
  * The person an on-call policy is paging about an incident, an alert or an
- * episode sees "Pass it on" in the record's header, beside the state
- * buttons - nobody else does. It asks first, saying what passing on will do
- * ("Escalation rule 2 of 3 (Level 2) is paged right away, without
- * waiting." / "Bob Smith is still being paged."), and then says what it did.
- * What passing a page on means is in Common/Types/OnCallDutyPolicy/
- * OnCallPagePassOn; the server does it (OnCallPagePassOnAPI).
+ * episode sees "Escalate" in the record's header, beside the state buttons
+ * - nobody else does. It asks first, in the maintainer's words, saying what
+ * escalating will do:
+ *
+ *   Escalate Incident?
+ *   This will immediately page Platform leads (Level 2 of 3), without
+ *     waiting.
+ *   You will not be paged again for this incident.
+ *   [Cancel] [Escalate]
+ *
+ * and then says what it did. What escalating a page means is in
+ * Common/Types/OnCallDutyPolicy/OnCallPagePassOn (whose code keeps the
+ * action's first name, "pass on"); the server does it (OnCallPagePassOnAPI).
  *
  * React-free: the words, the requests and the answers, so they can be read
  * and tested on their own. The sentences are the Dashboard's translation
- * keys (src/Locales/README.md), each a whole sentence.
+ * keys (src/Locales/README.md), each a whole sentence, and in English they
+ * are word for word what the server says (getOnCallPassOnSentence).
  */
 
 export const PASS_ON_PAGE_TEXT: {
   button: string;
-  dialogTitle: string;
-  notPagedAgain: string;
-  doneTitle: string;
   alreadyAcknowledgedTitle: string;
   alreadyPassedOnTitle: string;
   nothingToPassOnTitle: string;
   failed: string;
   passedOnStatus: string;
 } = {
-  button: translationKey("Pass it on"),
-  dialogTitle: translationKey("Pass it on?"),
-  notPagedAgain: translationKey("You won't be paged about it again."),
-  doneTitle: translationKey("You passed it on"),
+  // The header's button, and the dialog's.
+  button: translationKey("Escalate"),
   /*
-   * The dialog's title when nothing was passed on, by why - the headings the
-   * pages a message's links open use (UserOnCallLogTimelineAPI).
+   * The dialog's title when nothing was escalated, by why - the headings the
+   * pages a message's links open use (UserOnCallLogTimelineAPI). Never the
+   * button's own word: "Escalate" over a refusal reads as an instruction.
    */
   alreadyAcknowledgedTitle: translationKey("Already acknowledged"),
-  alreadyPassedOnTitle: translationKey("Already passed on"),
-  nothingToPassOnTitle: translationKey("Nothing to pass on"),
-  failed: translationKey("Could not pass it on. Please try again."),
+  alreadyPassedOnTitle: translationKey("Already escalated"),
+  nothingToPassOnTitle: translationKey("Nothing to escalate"),
+  failed: translationKey("Could not escalate. Please try again."),
   /*
-   * The status a page passed on has, on the run's Execution Timeline and in
-   * a person's Notification Logs: their pills look it up by this key.
+   * The status an escalated page has, on the run's Execution Timeline and in
+   * a person's Notification Logs. It is stored as "Passed On"; their pills
+   * and status filters draw it with this word (PassedOnStatus).
    */
-  passedOnStatus: translationKey("Passed On"),
+  passedOnStatus: translationKey("Escalated"),
 };
+
+/*
+ * What the dialog says that depends on what the record is: the question,
+ * the title once it is done, and the line that the reader is not paged
+ * again. Both kinds of episode are an "episode" on their pages.
+ */
+export interface PassOnRecordText {
+  question: string;
+  doneTitle: string;
+  notPagedAgain: string;
+}
+
+const EPISODE_TEXT: PassOnRecordText = {
+  question: translationKey("Escalate Episode?"),
+  doneTitle: translationKey("Episode escalated"),
+  notPagedAgain: translationKey(
+    "You will not be paged again for this episode.",
+  ),
+};
+
+export const PASS_ON_RECORD_TEXT: Record<
+  OnCallPageRecordType,
+  PassOnRecordText
+> = {
+  [OnCallPageRecordType.Incident]: {
+    question: translationKey("Escalate Incident?"),
+    doneTitle: translationKey("Incident escalated"),
+    notPagedAgain: translationKey(
+      "You will not be paged again for this incident.",
+    ),
+  },
+  [OnCallPageRecordType.Alert]: {
+    question: translationKey("Escalate Alert?"),
+    doneTitle: translationKey("Alert escalated"),
+    notPagedAgain: translationKey(
+      "You will not be paged again for this alert.",
+    ),
+  },
+  [OnCallPageRecordType.IncidentEpisode]: EPISODE_TEXT,
+  [OnCallPageRecordType.AlertEpisode]: EPISODE_TEXT,
+};
+
+// The words for a record, by its kind - an incident's for anything else.
+export function getPassOnRecordText(
+  recordType: OnCallPageRecordType,
+): PassOnRecordText {
+  return (
+    PASS_ON_RECORD_TEXT[recordType] ||
+    PASS_ON_RECORD_TEXT[OnCallPageRecordType.Incident]
+  );
+}
+
+// The dialog's question: "Escalate Incident?".
+export function getPassOnQuestionTitle(
+  recordType: OnCallPageRecordType,
+): string {
+  return getPassOnRecordText(recordType).question;
+}
 
 // <api>/on-call-page/pass-on/<record type>/<record id>
 export function getPassOnPageRoute(data: {
@@ -82,7 +148,7 @@ export function getPassOnPageRoute(data: {
   return `${ON_CALL_PAGE_PASS_ON_ROUTE}/${data.recordType}/${data.recordId.toString()}`;
 }
 
-// The open pages in a GET answer: each with what passing it on would do.
+// The open pages in a GET answer: each with what escalating it would do.
 export function readOpenPages(json: unknown): Array<OnCallOpenPage> {
   const pages: unknown = (json as JSONObject | undefined)?.["pages"];
 
@@ -111,7 +177,7 @@ export function readOpenPages(json: unknown): Array<OnCallOpenPage> {
     });
 }
 
-// The answers in a POST answer: one per page passed on, or why not.
+// The answers in a POST answer: one per page escalated, or why not.
 export function readPassOnAnswers(json: unknown): Array<OnCallPassOnAnswer> {
   const answers: unknown = (json as JSONObject | undefined)?.["answers"];
 
@@ -158,7 +224,7 @@ export async function fetchOpenPages(data: {
   return readOpenPages(response.jsonData);
 }
 
-// Passes the signed-in person's open pages about the record on.
+// Escalates the signed-in person's open pages about the record.
 export async function passOnPages(data: {
   recordType: OnCallPageRecordType;
   recordId: ObjectID;
@@ -179,34 +245,47 @@ export async function passOnPages(data: {
   return readPassOnAnswers(response.jsonData);
 }
 
-interface RuleValues {
-  order: string;
-  count: string;
-  name: string;
-}
-
-// The rule's place and name, as a sentence's values: "2", "3", "Level 2".
-function ruleValues(
+/*
+ * A level of the policy as a sentence's value, in the sentence's language:
+ * "Platform leads (Level 2 of 3)" - its name, then its place - or "Level 2
+ * of 3" when it has no name of its own (no name, or the one its place gives
+ * it: getOnCallPassOnLevelName). Null when the rule is not known.
+ *
+ * In every sentence the level is what the policy pages - the object of
+ * "page" - so a language may word the level for that place (a case, an
+ * article) in its own translation of these two keys.
+ */
+function levelValue(
   rule: OnCallPassOnRule | undefined,
   ruleCount: number,
-  translator: Translator,
-): RuleValues | null {
+): ComposedValue | null {
   if (!rule || !rule.order) {
     return null;
   }
 
-  return {
-    order: translator.formatNumber(rule.order),
-    count: translator.formatNumber(Math.max(ruleCount, rule.order)),
-    name: (rule.name || "").trim() || `#${rule.order}`,
-  };
+  const name: string | undefined = getOnCallPassOnLevelName(rule);
+  const count: number = getOnCallPassOnLevelCount(rule, ruleCount);
+
+  return composedValue((sentence: Translator): string => {
+    const place: { order: string; count: string } = {
+      order: sentence.formatNumber(rule.order),
+      count: sentence.formatNumber(count),
+    };
+
+    return name
+      ? sentence.translateTemplate("{{name}} (Level {{order}} of {{count}})", {
+          ...place,
+          name: name,
+        })
+      : sentence.translateTemplate("Level {{order}} of {{count}}", place);
+  });
 }
 
 /*
  * "Ana, Bob and Carl", joined in the language of the sentence it goes into
  * (formatNameList).
  */
-function names(list: Array<string>): ReturnType<typeof composedValue> {
+function names(list: Array<string>): ComposedValue {
   return composedValue((sentence: Translator): string => {
     return formatNameList(list, "and", sentence);
   });
@@ -214,7 +293,7 @@ function names(list: Array<string>): ReturnType<typeof composedValue> {
 
 /*
  * "6:40 PM GMT" - when the policy moves on, on the reader's own clock. A
- * rule's wait is minutes away, so on the same day the time says it, and a
+ * level's wait is minutes away, so on the same day the time says it, and a
  * date in front of it would only stand between the reader and the clock;
  * a time on another day keeps its date (getOnCallPassOnTime words the
  * server's sentences the same way).
@@ -226,7 +305,7 @@ export function formatPassOnTime(at: Date, now?: Date | undefined): string {
 }
 
 /*
- * What passing a page on would do, or did, in the reader's language: the
+ * What escalating a page would do, or did, in the reader's language: the
  * Dashboard's words for the server's sentences (getOnCallPassOnSentence).
  * `now` is when it is read, for whether a time needs its date.
  */
@@ -235,49 +314,60 @@ export function describePassOnResult(
   translator: Translator,
   now?: Date | undefined,
 ): string {
-  const rule: RuleValues | null = ruleValues(
+  const level: ComposedValue | null = levelValue(
     result.rule,
     result.ruleCount,
-    translator,
   );
 
   switch (result.outcome) {
     case OnCallPassOnOutcome.NextRulePaged: {
-      if (!rule) {
-        return result.isPreview
+      if (result.isPreview) {
+        return level
           ? translator.translateTemplate(
-              "The next escalation rule is paged right away, without waiting.",
+              "This will immediately page {{level}}, without waiting.",
+              { level: level },
             )
           : translator.translateTemplate(
-              "The next escalation rule is being paged now.",
+              "This will immediately page the next level, without waiting.",
             );
       }
 
-      if (result.isPreview) {
+      if (!level) {
         return translator.translateTemplate(
-          "Escalation rule {{order}} of {{count}} ({{name}}) is paged right away, without waiting.",
-          { ...rule },
+          "The policy is now paging the next level.",
         );
       }
 
       return result.pagedNames.length > 0
         ? translator.translateTemplate(
-            "Escalation rule {{order}} of {{count}} ({{name}}) is paging {{names}} now.",
-            { ...rule, names: names(result.pagedNames) },
+            "The policy is now paging {{level}}: {{names}}.",
+            { level: level, names: names(result.pagedNames) },
+          )
+        : translator.translateTemplate("The policy is now paging {{level}}.", {
+            level: level,
+          });
+    }
+    case OnCallPassOnOutcome.PolicyStartedAgain: {
+      if (result.isPreview) {
+        return level
+          ? translator.translateTemplate(
+              "There is no level after yours, so this will immediately page {{level}} again, without waiting.",
+              { level: level },
+            )
+          : translator.translateTemplate(
+              "There is no level after yours, so this will immediately page the first level again, without waiting.",
+            );
+      }
+
+      return level
+        ? translator.translateTemplate(
+            "There was no level after yours, so the policy started over and is paging {{level}} again.",
+            { level: level },
           )
         : translator.translateTemplate(
-            "Escalation rule {{order}} of {{count}} ({{name}}) is next, and is being paged now.",
-            { ...rule },
+            "There was no level after yours, so the policy started over and is paging the first level again.",
           );
     }
-    case OnCallPassOnOutcome.PolicyStartedAgain:
-      return result.isPreview
-        ? translator.translateTemplate(
-            "This is the policy's last escalation rule, so the policy starts again from escalation rule 1 right away.",
-          )
-        : translator.translateTemplate(
-            "That was the policy's last escalation rule, so the policy started again from escalation rule 1.",
-          );
     case OnCallPassOnOutcome.OthersStillPaged: {
       const still: string = translator.translatePlural(
         {
@@ -288,22 +378,20 @@ export function describePassOnResult(
         { names: names(result.stillPagedNames) },
       );
 
-      const next: RuleValues | null = ruleValues(
-        result.nextRule,
-        result.ruleCount,
-        translator,
-      );
-
       if (result.isDirectPage || !result.nextStepAt) {
         return still;
       }
 
+      const next: ComposedValue | null = levelValue(
+        result.nextRule,
+        result.ruleCount,
+      );
       const time: string = formatPassOnTime(result.nextStepAt, now);
 
       const then: string = next
         ? translator.translateTemplate(
-            "If nobody acknowledges by {{time}}, escalation rule {{order}} of {{count}} ({{name}}) is next.",
-            { ...next, time: time },
+            "If nobody acknowledges by {{time}}, the policy pages {{level}} next.",
+            { level: next, time: time },
           )
         : translator.translateTemplate(
             "If nobody acknowledges by {{time}}, the policy moves on.",
@@ -313,13 +401,13 @@ export function describePassOnResult(
       return `${still} ${then}`;
     }
     case OnCallPassOnOutcome.AlreadyEscalated:
-      return rule
+      return level
         ? translator.translateTemplate(
-            "The policy has moved on already: escalation rule {{order}} of {{count}} ({{name}}) is paging now.",
-            { ...rule },
+            "The policy has moved on already and is paging {{level}} now.",
+            { level: level },
           )
         : translator.translateTemplate(
-            "The policy has moved on already: a later escalation rule is paging now.",
+            "The policy has moved on already and is paging a later level now.",
           );
     case OnCallPassOnOutcome.PagingStopped:
     default:
@@ -339,7 +427,7 @@ export function describePassOnResult(
   }
 }
 
-// Why a page could not be passed on, in the reader's language.
+// Why a page could not be escalated, in the reader's language.
 export function describePassOnRefusal(
   answer: OnCallPassOnAnswer,
   translator: Translator,
@@ -348,14 +436,16 @@ export function describePassOnRefusal(
     case OnCallPassOnRefusal.RecordAcknowledged:
       return (answer.acknowledgedByName || "").trim()
         ? translator.translateTemplate(
-            "{{name}} acknowledged it already, so there is nothing to pass on.",
+            "{{name}} acknowledged it already, so there is nothing to escalate.",
             { name: (answer.acknowledgedByName || "").trim() },
           )
         : translator.translateTemplate(
-            "Somebody acknowledged it already, so there is nothing to pass on.",
+            "Somebody acknowledged it already, so there is nothing to escalate.",
           );
     case OnCallPassOnRefusal.AlreadyPassedOn:
-      return translator.translateTemplate("You passed this page on already.");
+      return translator.translateTemplate(
+        "You escalated it already, so you will not be paged again for it.",
+      );
     case OnCallPassOnRefusal.PageOver:
       return translator.translateTemplate(
         "This page is over: the on-call policy has stopped paging.",
@@ -371,7 +461,7 @@ export function describePassOnRefusal(
 
 /*
  * One sentence per page: with two policies paging the person about the same
- * record, each is named before what passing it on does there.
+ * record, each is named before what escalating does there.
  */
 function perPage<T>(
   items: Array<T>,
@@ -395,7 +485,7 @@ function perPage<T>(
   });
 }
 
-// What the dialog says before passing on: the person's own pages about it.
+// What the dialog says before escalating: the person's own pages about it.
 export function describePassOnPreview(
   pages: Array<OnCallOpenPage>,
   translator: Translator,
@@ -412,7 +502,7 @@ export function describePassOnPreview(
   );
 }
 
-// What the dialog says once it has passed them on - or why it could not.
+// What the dialog says once it has escalated them - or why it could not.
 export function describePassOnAnswers(
   answers: Array<OnCallPassOnAnswer>,
   translator: Translator,
@@ -431,7 +521,7 @@ export function describePassOnAnswers(
   );
 }
 
-// Whether any of the answers passed a page on.
+// Whether any of the answers escalated a page.
 export function isAnyPassedOn(answers: Array<OnCallPassOnAnswer>): boolean {
   return answers.some((answer: OnCallPassOnAnswer): boolean => {
     return answer.passedOn;
@@ -439,7 +529,7 @@ export function isAnyPassedOn(answers: Array<OnCallPassOnAnswer>): boolean {
 }
 
 /*
- * A line of the dialog: a sentence, or - when passing on leaves nobody being
+ * A line of the dialog: a sentence, or - when escalating leaves nobody being
  * paged (isOnCallPassOnPagingStopped) - a warning, drawn apart and first.
  * Nobody is on the record then, and the person reading may decide to take
  * it after all.
@@ -463,27 +553,32 @@ function warningsFirst(
   ];
 }
 
-function notPagedAgain(translator: Translator): PassOnDialogLine {
+// "You will not be paged again for this incident."
+function notPagedAgain(
+  translator: Translator,
+  recordType: OnCallPageRecordType,
+): PassOnDialogLine {
+  const text: string = getPassOnRecordText(recordType).notPagedAgain;
+
   return {
-    text:
-      translator.translateText(PASS_ON_PAGE_TEXT.notPagedAgain) ||
-      PASS_ON_PAGE_TEXT.notPagedAgain,
+    text: translator.translateText(text) || text,
     isWarning: false,
   };
 }
 
 /*
- * What the dialog says before passing on: that the person is not paged
- * about it again, then what passing on does on each of their pages.
+ * What the dialog says before escalating, in the maintainer's order: what
+ * escalating does on each of the person's pages, then that they are not
+ * paged again for the record.
  */
 export function getPassOnQuestionLines(
   pages: Array<OnCallOpenPage>,
   translator: Translator,
+  recordType: OnCallPageRecordType,
 ): Array<PassOnDialogLine> {
   const sentences: Array<string> = describePassOnPreview(pages, translator);
 
   return warningsFirst([
-    notPagedAgain(translator),
     ...sentences.map((text: string, index: number): PassOnDialogLine => {
       const page: OnCallOpenPage | undefined = pages[index];
 
@@ -492,17 +587,19 @@ export function getPassOnQuestionLines(
         isWarning: Boolean(page && isOnCallPassOnPagingStopped(page.preview)),
       };
     }),
+    notPagedAgain(translator, recordType),
   ]);
 }
 
 /*
- * What the dialog says once it has passed them on: what came of each page -
- * or why there was nothing to pass on - and, when it passed any on, that the
- * person is not paged about it again.
+ * What the dialog says once it has escalated them: what came of each page -
+ * or why there was nothing to escalate - and, when it escalated any, that
+ * the person is not paged again for the record.
  */
 export function getPassOnAnswerLines(
   answers: Array<OnCallPassOnAnswer>,
   translator: Translator,
+  recordType: OnCallPageRecordType,
 ): Array<PassOnDialogLine> {
   const sentences: Array<string> = describePassOnAnswers(answers, translator);
 
@@ -522,23 +619,24 @@ export function getPassOnAnswerLines(
   );
 
   if (isAnyPassedOn(answers)) {
-    lines.push(notPagedAgain(translator));
+    lines.push(notPagedAgain(translator, recordType));
   }
 
   return warningsFirst(lines);
 }
 
 /*
- * The dialog's title once it has asked the server: "You passed it on", or,
- * when nothing was passed on, why in a few words - "Already acknowledged",
- * "Already passed on", "Nothing to pass on" - with the sentence under it
+ * The dialog's title once it has asked the server: "Incident escalated", or,
+ * when nothing was escalated, why in a few words - "Already acknowledged",
+ * "Already escalated", "Nothing to escalate" - with the sentence under it
  * saying the rest.
  */
 export function getPassOnAnswerTitle(
   answers: Array<OnCallPassOnAnswer>,
+  recordType: OnCallPageRecordType,
 ): string {
   if (isAnyPassedOn(answers)) {
-    return PASS_ON_PAGE_TEXT.doneTitle;
+    return getPassOnRecordText(recordType).doneTitle;
   }
 
   const refusals: Array<OnCallPassOnRefusal | undefined> = answers.map(

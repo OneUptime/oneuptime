@@ -28,7 +28,7 @@ import {
 import User from "../../Models/DatabaseModels/User";
 
 /*
- * "CAN'T TAKE IT? PASS IT ON" FROM THE DASHBOARD AND THE MOBILE APP
+ * "CAN'T TAKE IT? ESCALATE" FROM THE DASHBOARD AND THE MOBILE APP
  * (OnCallPagePassOn).
  *
  * GET  /on-call-page/pass-on/<record type>/<record id>
