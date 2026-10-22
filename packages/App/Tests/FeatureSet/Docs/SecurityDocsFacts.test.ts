@@ -39,6 +39,7 @@ import {
 import { DocsHeading, readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import OutboundUserAgent from "Common/Server/Utils/OutboundUserAgent";
@@ -1240,9 +1241,27 @@ describe("the Security Events page", () => {
     expect(steps[2]).toContain("The **Name** fills in from the rule's `title`");
     expect(steps[2]).toContain("**Enabled** is on its edit form");
     expect(page_).toContain("getDetectionRuleNameAfterYamlChange(");
-    expect(page_).toContain(
-      'title: "Enabled", stepId: "sigma-rule", fieldType: FormFieldSchemaType.Toggle, required: false, // A new rule runs (createInitialValues); turning it off is an edit. doNotShowWhenCreating: true,',
+
+    const enabledField: string = page_.slice(
+      page_.indexOf('title: "Enabled", stepId: "sigma-rule",'),
     );
+
+    expect(
+      enabledField.startsWith(
+        'title: "Enabled", stepId: "sigma-rule", fieldType: FormFieldSchemaType.Toggle, required: false,',
+      ),
+    ).toBe(true);
+    expect(enabledField.slice(0, enabledField.indexOf("},"))).toContain(
+      "doNotShowWhenCreating: true,",
+    );
+    /*
+     * "A new rule runs": the create sends no isEnabled, and the server
+     * stores the column's default of on (issue #5158).
+     */
+    expect(new DetectionRule().isDefaultValueColumn("isEnabled")).toBe(true);
+    expect(
+      new DetectionRule().getTableColumnMetadata("isEnabled").defaultValue,
+    ).toBe(true);
 
     expect(steps[3]).toContain("keep **Open a Case on Match** on");
     // What a match raises: the choice's answers, the default first.

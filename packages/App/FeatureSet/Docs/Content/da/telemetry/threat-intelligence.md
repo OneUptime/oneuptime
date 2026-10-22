@@ -227,7 +227,7 @@ Læs **Last Poll Summary**. Ingen objekter hentet: samlingen er tom eller udgive
 :::
 
 :::details Der findes indikatorer, men intet matcher
-Matchning sammenligner en indikators værdi med en begivenheds observables, ikke med hvert felt: åbn en begivenhed, du forventede ville matche, under **Begivenheder**, og tjek, at dens observables indeholder værdien. Kun indikatorer med statussen **Aktiv** matcher. Tjek **Last Match Error** på feedet.
+Matchning sammenligner en indikators værdi med en begivenheds observables, ikke med hvert felt: åbn en begivenhed, du forventede ville matche, under **Begivenheder**, og tjek, at dens observables indeholder værdien. Kun indikatorer med statussen **Aktiv** matcher. Står der **Sammenligning mislykkedes** i feedets **Status**, viser **Vis fejl** i dets række hvorfor.
 :::
 
 :::details Et listefeeds Seneste fejl siger, at adressen svarede med en webside

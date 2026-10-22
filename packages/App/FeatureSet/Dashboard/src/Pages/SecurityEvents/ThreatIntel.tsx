@@ -37,6 +37,21 @@ import {
   TaxiiSignIn,
   getTaxiiSignIn,
 } from "../../Components/SecurityEvents/SecurityMatchRaises";
+import {
+  SecurityDetectionStatus,
+  getThreatIntelFeedMessages,
+  getThreatIntelFeedStatus,
+} from "../../Components/SecurityEvents/SecurityDetectionStatus";
+import {
+  SecurityDetectionErrors,
+  getViewErrorActionButton,
+  useSecurityDetectionErrors,
+} from "../../Components/SecurityEvents/SecurityDetectionErrorModal";
+import {
+  IndicatorConfidenceCell,
+  IndicatorTypeCell,
+  getIndicatorTypeFilterOptions,
+} from "../../Components/SecurityEvents/ThreatIntelIndicatorCells";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -88,6 +103,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
    * Hooks run before the reseller gate below can return early — React
    * requires the same hooks in the same order on every render.
    */
+  // A feed's last messages in full, from its row's View Error.
+  const feedErrors: SecurityDetectionErrors<ThreatIntelFeed> =
+    useSecurityDetectionErrors<ThreatIntelFeed>(getThreatIntelFeedMessages);
+
   const [currentlyEditingItem, setCurrentlyEditingItem] =
     useState<ThreatIntelFeed | null>(null);
 
@@ -316,7 +335,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             description: "Disabled feeds are neither polled nor matched.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            // A new feed is polled (createInitialValues); pausing is an edit.
+            /*
+             * A new feed is polled: the create sends no isEnabled and the
+             * column's default, on, is stored (#5158). Pausing is an edit.
+             */
             doNotShowWhenCreating: true,
           },
           {
@@ -620,6 +642,11 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         searchableFields={["name", "description"]}
         showViewIdButton={true}
         actionButtons={[
+          // On a feed whose poll or check left a message, the row's button.
+          getViewErrorActionButton<ThreatIntelFeed>({
+            getMessages: getThreatIntelFeedMessages,
+            show: feedErrors.show,
+          }),
           {
             title: "Create Monitor",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -727,16 +754,60 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             },
             title: "Status",
             type: FieldType.Boolean,
+            /*
+             * Whether the feed works, not only whether it is on: a failed
+             * poll or check reads red here, with View Error on its row
+             * (SecurityDetectionStatus). It reads the error columns below,
+             * which the table selects even while they are hidden.
+             */
             getElement: (item: ThreatIntelFeed): ReactElement => {
-              if (item.isEnabled) {
-                return <Pill color={Green} text="Enabled" />;
-              }
-              return <Pill color={Red} text="Disabled" />;
+              const status: SecurityDetectionStatus =
+                getThreatIntelFeedStatus(item);
+
+              return (
+                <Pill
+                  color={status.color}
+                  text={status.text}
+                  tooltip={status.tooltip}
+                />
+              );
             },
           },
+          {
+            field: {
+              lastPolledAt: true,
+            },
+            title: "Last Polled",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
+          {
+            field: {
+              lastMatchAt: true,
+            },
+            title: "Last Match",
+            type: FieldType.DateTime,
+            noValueMessage: "Never",
+          },
           /*
-           * The interval is the feed's own setting, on its Edit form:
-           * shown from Customize Columns, not on every row.
+           * One line, cut short with the whole summary under the pointer:
+           * as a paragraph it made every row of a wide table as tall as its
+           * longest summary, in a column the card had scrolled out of view.
+           */
+          {
+            field: {
+              lastPollSummary: true,
+            },
+            title: "Last Poll Summary",
+            type: FieldType.Text,
+            noValueMessage: "-",
+          },
+          /*
+           * The rest start hidden (Customize Columns brings them back): the
+           * interval is the feed's setting, and the two messages, empty while
+           * the feed works, show through the Status and View Error. The
+           * matching side stays separate from the polling side, so a broken
+           * TAXII server and a broken match query are told apart.
            */
           {
             field: {
@@ -749,43 +820,14 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              lastPolledAt: true,
-            },
-            title: "Last Polled",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
-          },
-          {
-            field: {
-              lastPollSummary: true,
-            },
-            title: "Last Poll Summary",
-            /*
-             * What the last poll did is a sentence on every row: one line,
-             * cut short with the whole of it on hover. Wrapped in the few
-             * words a ten-column table left it, it stood every row five
-             * lines tall.
-             */
-            type: FieldType.Text,
-            noValueMessage: "-",
-          },
-          {
-            field: {
               lastError: true,
             },
             title: "Last Error",
             type: FieldType.LongText,
             noValueMessage: "-",
-            // An error is read whole: it wraps, so a failing feed's row stands out.
             wrapContent: true,
+            isHiddenByDefault: true,
           },
-          /*
-           * The matching side, separate from the polling side above —
-           * the split the help content promises, so a broken TAXII
-           * server and a broken match query are distinguishable here.
-           * Last Evaluated moves every minute while all is well: shown
-           * from Customize Columns; Last Match Error says when it is not.
-           */
           {
             field: {
               lastEvaluatedAt: true,
@@ -797,20 +839,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           },
           {
             field: {
-              lastMatchAt: true,
-            },
-            title: "Last Match",
-            type: FieldType.DateTime,
-            noValueMessage: "Never",
-          },
-          {
-            field: {
               lastMatchError: true,
             },
             title: "Last Match Error",
             type: FieldType.LongText,
             noValueMessage: "-",
             wrapContent: true,
+            isHiddenByDefault: true,
           },
         ]}
       />
@@ -844,8 +879,10 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
         filters={[
           {
             field: { indicatorType: true },
-            type: FieldType.Text,
+            type: FieldType.Dropdown,
             title: "Type",
+            // A pick of the types, named as the column names them.
+            filterDropdownOptions: getIndicatorTypeFilterOptions(),
           },
           {
             field: { indicatorValue: true },
@@ -873,6 +910,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             field: { indicatorType: true },
             title: "Type",
             type: FieldType.Text,
+            // "IPv4 address", as the guide names it; the stored type on hover.
+            getElement: (item: ThreatIntelIndicator): ReactElement => {
+              return <IndicatorTypeCell type={item.indicatorType} />;
+            },
+            getExportValue: (item: ThreatIntelIndicator): string => {
+              return item.indicatorType || "";
+            },
           },
           {
             field: { revoked: true },
@@ -911,12 +955,27 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Confidence",
             type: FieldType.Number,
             noValueMessage: "-",
+            /*
+             * STIX's 0 is "not specified", and an unscored indicator matches
+             * as Medium: "Not scored", as the threat levels name it, not a
+             * 0 that reads as the lowest confidence.
+             */
+            getElement: (item: ThreatIntelIndicator): ReactElement => {
+              return <IndicatorConfidenceCell confidence={item.confidence} />;
+            },
+            getExportValue: (item: ThreatIntelIndicator): string => {
+              return item.confidence === undefined || item.confidence === null
+                ? ""
+                : String(item.confidence);
+            },
           },
+          // Valid Until says when an indicator stops matching; this, when it began.
           {
             field: { validFrom: true },
             title: "Valid From",
             type: FieldType.DateTime,
             noValueMessage: "-",
+            isHiddenByDefault: true,
           },
           {
             field: { validUntil: true },
@@ -1057,6 +1116,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
           }}
         />
       )}
+
+      {feedErrors.element}
     </div>
   );
 };

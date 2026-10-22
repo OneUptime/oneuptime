@@ -444,7 +444,7 @@ Controlla la chiave in `x-oneuptime-token` e il percorso, `/security-events/v1/i
 :::
 
 :::details Una regola non corrisponde mai
-Controlla che sia **Abilitato**, e leggi **Last Evaluated** e **Ultimo errore** nella sua riga. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
+Controlla il suo **Stato**: con **Disabilitato** la regola non viene eseguita, e con **Esecuzione non riuscita**, **Visualizza errore** nella sua riga mostra il motivo. Apri un evento che ti aspettavi corrispondesse e confrontalo con la regola, campo per campo: un valore semplice deve essere uguale all'intero campo, quindi usa `contains` o `*` per una parte. Un attributo si nomina come nell'evento (`threat.matched`, non `attributes.threat.matched`). Con una soglia maggiore di 1, le corrispondenze devono cadere in una sola esecuzione.
 :::
 
 :::details Una regola ha corrisposto, ma non si è aperto nessun avviso

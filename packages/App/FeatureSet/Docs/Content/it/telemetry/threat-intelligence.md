@@ -227,7 +227,7 @@ Leggi **Last Poll Summary**. Nessun oggetto recuperato: la raccolta è vuota o n
 :::
 
 :::details Gli indicatori ci sono, ma non corrisponde nulla
-Il confronto paragona il valore di un indicatore agli observable di un evento, non a ogni campo: apri in **Eventi** un evento che ti aspettavi corrispondesse e controlla che i suoi observable contengano il valore. Corrispondono solo gli indicatori con lo stato **Attivo**. Controlla **Last Match Error** sul feed.
+Il confronto paragona il valore di un indicatore agli observable di un evento, non a ogni campo: apri in **Eventi** un evento che ti aspettavi corrispondesse e controlla che i suoi observable contengano il valore. Corrispondono solo gli indicatori con lo stato **Attivo**. Se lo **Stato** del feed indica **Confronto non riuscito**, **Visualizza errore** nella sua riga mostra il motivo.
 :::
 
 :::details L'Ultimo errore di un feed di elenco dice che l'indirizzo ha risposto con una pagina web

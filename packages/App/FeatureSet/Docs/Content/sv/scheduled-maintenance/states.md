@@ -130,6 +130,15 @@ Håll dina tillstånd under **Schemalagd**: varje ny händelse börjar där, och
 > [!NOTE]
 > På OneUptime Cloud krävs abonnemanget **Growth** eller högre för att lägga till eller ändra underhållstillstånd. Alla abonnemang kan läsa dem, använda dem och ta bort ett tillstånd du har lagt till.
 
+## Arkivera en status
+
+Arkivera en egen status som ditt team inte längre ska använda, i stället för att ta bort den. Arkivering ändrar ingen händelse: En händelse i statusen stannar i den och går vidare som vanligt, och dess statustidslinje visar den fortfarande.
+
+- **Arkivera** finns i radens meny **⋯**. Den frågar först och listar de mätningar och arbetsflöden som är inställda på att använda statusen.
+- **Ingen kan välja den igen.** Händelsens sidhuvud, **Ändra tillstånd**, Slack och Microsoft Teams utelämnar den, och API:et, Terraform och MCP avvisar den. Du kan fortfarande filtrera händelser på den.
+- **Arkiverade statusar listas för sig**, i det hopfällda avsnittet **Arkiverade statusar för schemalagt underhåll** under tabellen. **Avarkivera** återställer en som den var.
+- **De fyra inbyggda statusarna kan inte arkiveras**: OneUptime flyttar händelser till dem. Deras **Arkivera** är låst, med skälet.
+
 ## Tillståndstidslinjen
 
 Händelsens sida **Tillståndstidslinje** är registret över varje tillstånd den har varit i. Dess kort, **Statustidslinje**, ritar dem som en tidslinje: ett band med varje tillstånd så långt som det varade, och under det varje ändring, den senaste först. **Tabell**, i kortets sidhuvud, listar dem som rader i stället, med **Status för schemalagt underhåll**, **Börjar den**, **Slutar den**, **Varaktighet**, om prenumeranterna skulle meddelas och hur deras avisering gick.

@@ -477,6 +477,10 @@ Ajoutez les autres rôles qu'utilise votre équipe, comme Intervenant, Responsab
 
 Les rôles ne sont que des définitions. Vous y affectez des personnes incident par incident — l'assistant de déclaration le demande à son étape **Astreinte et rôles**, avec un champ **Attribuer les rôles de l'incident**, et chaque incident a une page **Rôles** dans son menu latéral. Les critères d'un moniteur et une règle de regroupement d'incidents peuvent choisir des personnes pour eux à l'avance. Chacun de ces formulaires le demande avec les mêmes cartes, une par rôle : un rôle marqué **Principal** est Responsable d'incident ou un autre rôle principal, et un rôle tenu par une personne retire son sélecteur une fois qu'il en a une. Sur la carte **Rôles** d'un incident, un rôle qui accepte plusieurs personnes propose **Ajouter d'autres**.
 
+### Archiver un rôle
+
+Archivez un rôle que votre équipe n'utilise plus depuis le menu **⋯** de sa ligne, au lieu de le supprimer. Les personnes qui l'occupent sur un incident le conservent, mais personne ne peut plus le recevoir : les sélecteurs de rôles l'excluent, ou ne l'affichent qu'avec les personnes qui l'occupent, et l'API le refuse. Le rôle principal, et tout rôle qui ne peut pas être supprimé, ne peuvent pas être archivés. Les rôles archivés sont listés à part, dans la section repliée **Rôles d'incident archivés**, où **Désarchiver** en remet un.
+
 ## Préfixes de numéro
 
 Chaque incident reçoit un numéro d'un compteur propre au projet. Sans préfixe, il s'affiche `#42` ; avec un préfixe, `INC-42`. Si votre équipe dit « INC-42 » à voix haute, faites-le dire au produit aussi. Les nouveaux projets démarrent avec `INC-` pour les incidents et `IE-` pour les épisodes d'incident.

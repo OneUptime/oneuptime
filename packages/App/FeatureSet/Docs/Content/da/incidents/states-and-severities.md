@@ -153,6 +153,18 @@ Hvor alvorsgraden gør mere end at beskrive: under **Hændelser → Regler → V
 
 **At ændre en hændelses alvorsgrad** — under **Rediger** på hændelsens kort **Hændelsesdetaljer**, via API'et eller Terraform (`incidentSeverityId`), med et workflow eller med AI-værktøjerne — gør de samme fire ting, uanset hvordan det sendes: hændelsens feed får en post **Incident updated**, der nævner den nye alvorsgrad, hændelsens SLA-frister beregnes igen, dens påmindelsesregel matches igen, og hændelsesmetrikkerne tæller én ændring af alvorsgrad. At gemme den alvorsgrad, hændelsen allerede har, gør ingen af dem, så redigerer du kun titlen på en hændelse, forbliver dens SLA-frister, påmindelser og antal ændringer af alvorsgrad, som de var. En advarsels alvorsgrad virker på samme måde for dens feedpost og dens påmindelser.
 
+## Arkivér en status eller alvorsgrad
+
+Arkivér en status eller alvorsgrad, som dit team ikke længere skal bruge, i stedet for at slette den. Arkivering ændrer ingen hændelse. Sletning af en status fjerner dens rækker fra hver hændelses historik, og en alvorsgrad kan ikke slettes, så længe hændelser har den.
+
+- **Arkiver** findes i rækkens menu **⋯**. Den spørger først og viser de regler, skabeloner, målinger, monitorkriterier og arbejdsgange, der er sat op til at bruge værdien: De bliver ved med at bruge den, indtil du ændrer dem.
+- **Ingen kan vælge den igen.** Meldeformularen, **Skift tilstand**, hændelsens overskrift, Slack, Microsoft Teams, regler, skabeloner og monitorkriterier udelader den. API'et, Terraform og MCP afviser den og nævner værdien og hvor den kan fjernes fra arkivet.
+- **Hændelser beholder den.** En hændelse, der har den, beholder den ved enhver senere redigering, dens tidslinje over statusser viser den stadig, og du kan stadig filtrere efter den.
+- **Arkiverede værdier vises for sig**, i den sammenfoldede sektion **Arkiverede hændelsesstatusser** eller **Arkiverede hændelsesalvorsgrader** under tabellen, med hvem der arkiverede hver enkelt og hvornår. **Fjern fra arkiv** sætter en tilbage, som den var.
+- **Nogle kan ikke arkiveres.** Den oprettede, den kvitterede og den løste status samt projektets sidste alvorsgrad, der ikke er arkiveret. Deres **Arkiver** er låst, med begrundelsen.
+
+**Slet** fortæller først, hvad den ville gøre. Så længe hændelser eller episoder har værdien, afvises sletningen, og dialogen viser dem. Ellers viser den, hvad sletningen ville ændre, og tilbyder **Arkivér i stedet**.
+
 ## Flyt en hændelse gennem dens tilstande
 
 Der er fire måder, en hændelse skifter tilstand på:

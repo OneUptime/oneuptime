@@ -153,6 +153,18 @@ Là où la gravité fait plus que décrire : dans **Incidents → Règles → R�
 
 **Changer la gravité d'un incident** — via **Modifier** sur la carte **Détails de l'incident** de l'incident, par l'API ou Terraform (`incidentSeverityId`), avec un workflow ou avec les outils d'IA — fait les quatre mêmes choses quelle que soit la façon dont c'est envoyé : le fil d'activité de l'incident reçoit une entrée **Incident updated** qui nomme la nouvelle gravité, les échéances SLA de l'incident sont recalculées, sa règle de rappel est de nouveau appariée, et les métriques d'incident comptent un changement de gravité. Enregistrer la gravité que l'incident a déjà ne fait rien de tout cela, si bien que modifier seulement le titre d'un incident laisse ses échéances SLA, ses rappels et son compteur de changements de gravité tels qu'ils étaient. La gravité d'une alerte fonctionne de la même façon pour son entrée de fil d'activité et ses rappels.
 
+## Archiver un état ou une gravité
+
+Archivez un état ou une gravité que votre équipe ne doit plus utiliser, au lieu de le supprimer. L'archivage ne modifie aucun incident. Supprimer un état retire ses lignes de l'historique de chaque incident, et une gravité ne peut pas être supprimée tant que des incidents l'ont.
+
+- **Archiver** se trouve dans le menu **⋯** de la ligne. Il demande d'abord confirmation et liste les règles, modèles, mesures, critères de moniteur et flux de travail configurés pour utiliser la valeur : ils continuent à l'utiliser tant que vous ne les modifiez pas.
+- **Personne ne peut plus la choisir.** Le formulaire de déclaration, **Modifier l'état**, l'en-tête de l'incident, Slack, Microsoft Teams, les règles, les modèles et les critères de moniteur l'excluent. L'API, Terraform et MCP la refusent, en nommant la valeur et l'endroit où la désarchiver.
+- **Les incidents la conservent.** Un incident qui l'a la conserve à chaque modification ultérieure, sa chronologie d'états l'affiche toujours, et vous pouvez toujours filtrer par celle-ci.
+- **Les valeurs archivées sont listées à part**, dans la section repliée **États d'incident archivés** ou **Gravités d'incident archivées** sous le tableau, avec qui a archivé chacune et quand. **Désarchiver** en remet une telle qu'elle était.
+- **Certaines ne peuvent pas être archivées.** Les états créé, accusé et résolu, ainsi que la dernière gravité non archivée du projet. Leur **Archiver** est verrouillé, avec la raison.
+
+**Supprimer** indique d'abord ce que la suppression ferait. Tant que des incidents ou des épisodes ont la valeur, la suppression est refusée et la boîte de dialogue les liste. Sinon, elle liste ce que la suppression changerait et propose **Archiver plutôt**.
+
 ## Faire passer un incident d'un état à l'autre
 
 Un incident change d'état de quatre façons :

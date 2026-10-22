@@ -4,6 +4,7 @@ import DatabaseService from "../../../Server/Services/DatabaseService";
 import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import ObjectID from "../../../Types/ObjectID";
+import { ArchivedValueStub, stubArchivedValues } from "./ArchivedValues";
 
 /*
  * Answers the lookups ProjectScopedReferenceValidator makes - which ids are
@@ -48,9 +49,16 @@ export interface ProjectDirectory {
    * when left out.
    */
   shared?: Record<string, Array<string>> | undefined;
+  /*
+   * The archived states, severities, monitor statuses, labels and incident
+   * roles a write may name (stubArchivedValues). None when left out.
+   */
+  archived?: Array<ArchivedValueStub> | undefined;
 }
 
 export interface ProjectDirectoryStub {
+  // Each read of the archived values a write names, by table.
+  archivedLookups: Array<{ table: string; ids: Array<string> }>;
   // Each findIdsInProject call: the model's table name, project and ids.
   recordLookups: Array<{
     model: string;
@@ -73,7 +81,11 @@ const lower: (ids: Array<string>) => Set<string> = (
 export function stubProjectDirectory(
   directory: ProjectDirectory,
 ): ProjectDirectoryStub {
-  const stub: ProjectDirectoryStub = { recordLookups: [], memberLookups: [] };
+  const stub: ProjectDirectoryStub = {
+    archivedLookups: stubArchivedValues(directory.archived || []),
+    recordLookups: [],
+    memberLookups: [],
+  };
   const isTheProject: (id: ObjectID) => boolean = (id: ObjectID): boolean => {
     return (
       !directory.projectId ||

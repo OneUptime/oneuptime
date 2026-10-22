@@ -425,62 +425,23 @@ describe("the feeds table", () => {
   });
 
   /*
-   * Ten columns stood a feed's row five lines tall: the interval (the
-   * feed's own setting) and Last Evaluated (which moves every minute while
-   * all is well) start hidden, and the sentences wrap within a width of
-   * their own instead of one word a line.
+   * Where a feed's indicators come from sits by its name on every row;
+   * the rest of the columns are the status tables' (see
+   * SecurityEventsDetectionStatusTables).
    */
-  test("shows what most people read on every row, and the rest from Customize Columns", async () => {
+  test("Source sits next to the name, on every row", async () => {
     await renderPage();
 
-    type Column = {
-      title: string;
-      isHiddenByDefault?: boolean;
-      wrapContent?: boolean;
-      contentClassName?: string;
-    };
+    type Column = { title: string; isHiddenByDefault?: boolean };
 
     const columns: Array<Column> = capturedFeedTableProps?.columns || [];
 
-    const titles: (shown: boolean) => Array<string> = (
-      shown: boolean,
-    ): Array<string> => {
-      return columns
-        .filter((column: Column) => {
-          return Boolean(column.isHiddenByDefault) !== shown;
-        })
-        .map((column: Column) => {
-          return column.title;
-        });
-    };
-
-    expect(titles(true)).toEqual([
-      "Name",
-      "Source",
-      "Status",
-      "Last Polled",
-      "Last Poll Summary",
-      "Last Error",
-      "Last Match",
-      "Last Match Error",
-    ]);
-    expect(titles(false)).toEqual(["Interval (Minutes)", "Last Evaluated"]);
-
-    const byTitle: (title: string) => Column | undefined = (
-      title: string,
-    ): Column | undefined => {
-      return columns.find((column: Column) => {
-        return column.title === title;
-      });
-    };
-
-    // An error is read whole, so a failing feed's row stands out.
-    for (const title of ["Last Error", "Last Match Error"]) {
-      expect([title, byTitle(title)?.wrapContent]).toEqual([title, true]);
-    }
-
-    // What a poll did, on every row: one line, the whole of it on hover.
-    expect(byTitle("Last Poll Summary")?.wrapContent).toBeUndefined();
+    expect(
+      columns.slice(0, 3).map((column: Column): string => {
+        return column.title;
+      }),
+    ).toEqual(["Name", "Source", "Status"]);
+    expect(columns[1]?.isHiddenByDefault).toBeUndefined();
   });
 
   // A project with no feed has Free Lists right above the empty table.

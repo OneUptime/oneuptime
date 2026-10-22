@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * a connection leaves its feeds in place, without a connection, and the feed
  * says so on its next poll.
  */
-export class AddThreatIntelFeedSources1805800000000
+export class AddThreatIntelFeedSources1805820000000
   implements MigrationInterface
 {
-  public name: string = "AddThreatIntelFeedSources1805800000000";
+  public name: string = "AddThreatIntelFeedSources1805820000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -153,6 +153,18 @@ Dove la gravità fa più che descrivere: in **Incidenti → Regole → Regole di
 
 **Cambiare la gravità di un incidente** — con **Modifica** sulla scheda **Dettagli dell'incidente** dell'incidente, tramite l'API o Terraform (`incidentSeverityId`), con un workflow o con gli strumenti di IA — fa le stesse quattro cose in qualunque modo venga inviata: il feed dell'incidente riceve una voce **Incident updated** che nomina la nuova gravità, le scadenze dello SLA dell'incidente vengono ricalcolate, la sua regola di promemoria viene riabbinata, e le metriche degli incidenti contano un cambio di gravità. Salvare la gravità che l'incidente ha già non fa nulla di tutto ciò, quindi modificare solo il titolo di un incidente lascia le sue scadenze SLA, i suoi promemoria e il conteggio dei cambi di gravità come erano. La gravità di un avviso funziona allo stesso modo per la sua voce di feed e i suoi promemoria.
 
+## Archiviare uno stato o una gravità
+
+Archivia uno stato o una gravità che il tuo team non deve più usare, invece di eliminarlo. L'archiviazione non modifica alcun incidente. Eliminare uno stato toglie le sue righe dalla cronologia di ogni incidente, e una gravità non può essere eliminata finché ci sono incidenti che la hanno.
+
+- **Archivia** si trova nel menu **⋯** della riga. Chiede prima conferma ed elenca le regole, i modelli, le misurazioni, i criteri dei monitor e i flussi di lavoro configurati per usare il valore: continuano a usarlo finché non li modifichi.
+- **Nessuno può più sceglierlo.** Il modulo di dichiarazione, **Cambia stato**, l'intestazione dell'incidente, Slack, Microsoft Teams, le regole, i modelli e i criteri dei monitor lo escludono. L'API, Terraform e MCP lo rifiutano, indicando il valore e dove annullarne l'archiviazione.
+- **Gli incidenti lo mantengono.** Un incidente che lo ha lo mantiene a ogni modifica successiva, la sua cronologia degli stati lo mostra ancora e puoi ancora filtrare in base a esso.
+- **I valori archiviati sono elencati a parte**, nella sezione compressa **Stati incidente archiviati** o **Gravità incidente archiviate** sotto la tabella, con chi ha archiviato ciascuno e quando. **Annulla archiviazione** ne ripristina uno com'era.
+- **Alcuni non possono essere archiviati.** Gli stati creato, confermato e risolto, e l'ultima gravità non archiviata del progetto. Il loro **Archivia** è bloccato, con il motivo.
+
+**Elimina** dice prima cosa farebbe. Finché incidenti o episodi hanno il valore, l'eliminazione viene rifiutata e la finestra di dialogo li elenca. Altrimenti elenca cosa cambierebbe l'eliminazione e offre **Archivia invece**.
+
 ## Far passare un incidente da uno stato all'altro
 
 Un incidente cambia stato in quattro modi:

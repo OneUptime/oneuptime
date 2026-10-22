@@ -444,7 +444,7 @@ Confira a chave em `x-oneuptime-token` e o caminho, `/security-events/v1/ingest`
 :::
 
 :::details Uma regra nunca corresponde
-Confira se ela está **Habilitado**, e leia **Last Evaluated** e **Último erro** na linha dela. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
+Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com **Falha na execução**, **Ver erro** na linha dela mostra o motivo. Abra um evento com o qual você esperava que ela correspondesse e compare-o com a regra, campo a campo: um valor simples precisa ser igual ao campo inteiro, então use `contains` ou `*` para uma parte. Um atributo é nomeado como está no evento (`threat.matched`, não `attributes.threat.matched`). Com um limite acima de 1, as correspondências precisam cair em uma única execução.
 :::
 
 :::details Uma regra correspondeu, mas nenhum alerta abriu

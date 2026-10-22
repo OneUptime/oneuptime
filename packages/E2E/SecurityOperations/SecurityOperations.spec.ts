@@ -2018,9 +2018,10 @@ test.describe("detection rules and threat intel", () => {
   });
 
   /*
-   * Ten columns stood every feed's row five lines tall. The interval and
-   * Last Evaluated wait in Customize Columns; what a poll did wraps in a
-   * width of its own.
+   * Ten columns stood every feed's row five lines tall. The interval, Last
+   * Evaluated and the two messages wait in Customize Columns (the Status
+   * and View Error say when there is something to read); what a poll did
+   * is one line, whole on hover.
    */
   test("the feeds table shows what most people read, each healthy row one line", async ({
     page,
@@ -2045,14 +2046,17 @@ test.describe("detection rules and threat intel", () => {
       "Source",
       "Status",
       "Last Polled",
-      "Last Poll Summary",
-      "Last Error",
       "Last Match",
-      "Last Match Error",
+      "Last Poll Summary",
     ]) {
       expect(headers.join(" | ")).toContain(shown);
     }
-    for (const hidden of ["Interval (Minutes)", "Last Evaluated"]) {
+    for (const hidden of [
+      "Interval (Minutes)",
+      "Last Error",
+      "Last Evaluated",
+      "Last Match Error",
+    ]) {
       expect(headers.join(" | ")).not.toContain(hidden);
     }
 

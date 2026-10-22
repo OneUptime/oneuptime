@@ -201,19 +201,17 @@ A threat intel feed reads one source of known-bad IP addresses, domains, URLs, e
 
 #### Reading the table
 
-The columns split into the **polling** side and the **matching** side, so a source that cannot be read and a broken match are easy to tell apart.
-
 | Column | What it tells you |
 | --- | --- |
 | **Source** | Where the feed's indicators come from: a list, a TAXII collection or Google SecOps. |
+| **Status** | Whether the feed works: **Enabled** when its last poll and check came back clean, **Poll failed** or **Matching failed** when one of them failed, **Needs attention** when a check left a note, **Waiting for first poll** while a new feed waits for its first poll, and **Disabled**. |
 | **Last Polled** | When the source was last read. |
-| **Last Poll Summary** | What that poll did: the indicators read and stored, and how many were skipped as unsupported, below minimum confidence, or already inactive. It says so when more pages remain. |
-| **Last Error** | Why the last poll failed — the failing step and the start of the server's response. It clears on the next successful poll. |
-| **Last Evaluated** | When the feed's indicators were last matched against events. |
 | **Last Match** | The last check that found at least one match. |
-| **Last Match Error** | Why the last match check failed. It clears on the next successful check. |
+| **Last Poll Summary** | What that poll did: the indicators read and stored, and how many were skipped as unsupported, below minimum confidence, or already inactive. It says so when more pages remain. |
 
-**Interval (Minutes)** and **Last Evaluated** start hidden: turn them on under the table's **Columns**.
+When there is something to read, **View Error** in the feed's row shows it in full: **Last Error** for the polling side (the failing step and the start of the server's response) and **Last Match Error** for the matching side, so a source that cannot be read and a broken match are easy to tell apart. Each clears on the next successful poll or check.
+
+**Interval (Minutes)**, **Last Error**, **Last Evaluated** (when the indicators were last matched against events) and **Last Match Error** start hidden: turn them on under the table's **Columns**.
 
 The **Indicators** table below the feeds lists every indicator that has been ingested — see **Indicators**.
 `;
@@ -455,9 +453,11 @@ const troubleshootingMarkdown: string = `
 #### A Google SecOps feed fails
 
 - The connection was deleted, or is not a Google SecOps connection: edit the feed and choose one.
-- \`Google SecOps IOC matches search failed (HTTP 403)\`: the connection's service account cannot read indicator matches. Grant it the Chronicle API Viewer role. Last Error quotes the rest of Google's answer.
+- \`Google SecOps IOC matches search failed (HTTP 403)\`: the connection's service account cannot read indicator matches. Grant it the Chronicle API Viewer role. **View Error** quotes the rest of Google's answer.
 
-#### Last Error is set after a poll
+#### The Status reads Poll failed
+
+**View Error** in the feed's row shows the poll's message:
 
 - \`401\` or \`403\`: the credentials are wrong or missing — replace them with **Update Credentials**. A \`403\` can also be the provider's firewall blocking the user agent (see **Feeds & Polling**).
 - \`404\`: check the API Root URL — it usually ends in a path such as \`/api1/\` — and the Collection ID.
@@ -476,7 +476,7 @@ Read **Last Poll Summary**:
 
 - Matching compares indicator values with an event's **observables**, not with every field. Open an event you expected to match in **Events** and check its observables contain the value.
 - Only **Active** indicators match — check the Status column in the Indicators table.
-- Check **Last Match Error** on the feed.
+- If the feed's **Status** reads **Matching failed**, **View Error** in its row shows why.
 - Events whose timestamps fall before the feed's previous check are not matched on schedule.
 
 #### A match did not open an alert

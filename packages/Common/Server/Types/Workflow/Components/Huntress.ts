@@ -162,6 +162,7 @@ export default class HuntressWorkflowTrigger extends TriggerCode {
           _id: true,
           name: true,
           order: true,
+          isArchived: true,
         },
         sort: {
           order: SortOrder.Ascending,
@@ -209,12 +210,27 @@ export default class HuntressWorkflowTrigger extends TriggerCode {
       );
     }
 
-    const rank: number = Math.min(
-      HUNTRESS_INCIDENT_SEVERITY_RANK[data.severity],
-      severities.length - 1,
+    /*
+     * The trigger's own pick above is kept even if it has been archived
+     * since - a workflow runs as it was built - but the rank picks only
+     * among the severities that are not archived.
+     */
+    const liveSeverities: Array<IncidentSeverity> = severities.filter(
+      (severity: IncidentSeverity): boolean => {
+        return severity.isArchived !== true;
+      },
     );
 
-    return severities[rank]?.id?.toString() || "";
+    if (liveSeverities.length === 0) {
+      return "";
+    }
+
+    const rank: number = Math.min(
+      HUNTRESS_INCIDENT_SEVERITY_RANK[data.severity],
+      liveSeverities.length - 1,
+    );
+
+    return liveSeverities[rank]?.id?.toString() || "";
   }
 
   /*

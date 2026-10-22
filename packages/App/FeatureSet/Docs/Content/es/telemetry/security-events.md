@@ -444,7 +444,7 @@ Comprueba la clave en `x-oneuptime-token` y la ruta, `/security-events/v1/ingest
 :::
 
 :::details Una regla nunca coincide
-Comprueba que está **Habilitado** y lee **Última evaluación** y **Último error** en su fila. Abre un evento que esperabas que coincidiera y compáralo con la regla, campo a campo: un valor simple debe ser igual al campo entero, así que usa `contains` o `*` para una parte. Un atributo se nombra como está en el evento (`threat.matched`, no `attributes.threat.matched`). Con un umbral mayor que 1, las coincidencias tienen que caer en una sola ejecución.
+Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **La ejecución falló**, **Ver error** en su fila muestra por qué. Abre un evento que esperabas que coincidiera y compáralo con la regla, campo a campo: un valor simple debe ser igual al campo entero, así que usa `contains` o `*` para una parte. Un atributo se nombra como está en el evento (`threat.matched`, no `attributes.threat.matched`). Con un umbral mayor que 1, las coincidencias tienen que caer en una sola ejecución.
 :::
 
 :::details Una regla coincidió, pero no se abrió ninguna alerta

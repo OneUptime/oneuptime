@@ -171,6 +171,15 @@ Jede Statusänderung wird in der **Status-Zeitachse** des Monitors festgehalten:
 
 Eine Änderung des Monitorstatus benachrichtigt seine Eigentümer nur, wenn sie **Überwachungsstatus geändert** in ihren Benachrichtigungseinstellungen eingeschaltet haben: Es ist zu Beginn aus. Ein Monitor, der in seinen **Standard-Überwachungsstatus** zurückgeht, weil kein Kriterium zutraf, benachrichtigt niemanden. Siehe [Was für ein neues Mitglied eingeschaltet ist](/docs/notifications/notification-settings#was-für-ein-neues-mitglied-eingeschaltet-ist).
 
+## Einen Monitorstatus archivieren
+
+Archivieren Sie einen Status, den Ihr Team nicht mehr verwenden soll, statt ihn zu löschen. Das Archivieren ändert keinen Monitor: Ein Monitor in diesem Status bleibt darin, bis sich sein Status ändert, und seine Statuszeitachse zeigt ihn weiterhin.
+
+- **Archivieren** steht im Menü **⋯** der Zeile. Es fragt zuerst nach und listet die Monitorkriterien, Vorlagen und Statusseiten auf, die so eingerichtet sind, dass sie den Status verwenden: Sie verwenden ihn weiter, bis Sie sie ändern.
+- **Niemand kann ihn erneut auswählen.** Ein Kriterium, das Statusmenü eines Monitors, der Monitorstatus eines Vorfalls oder Wartungsereignisses und die Ausfallstatus einer Statusseite lassen ihn weg. Die API, Terraform und MCP lehnen ihn ab.
+- **Archivierte Status werden getrennt aufgeführt**, im eingeklappten Abschnitt **Archivierte Monitor-Status** unter der Tabelle. **Aus Archiv entfernen** stellt einen so wieder her, wie er war.
+- **Die eingebauten Status lassen sich nicht archivieren.** Neue Monitore beginnen im Betriebsstatus, und OneUptime behandelt einen Monitor im Offline-Status als ausgefallen. Ihr **Archivieren** ist gesperrt, mit Begründung.
+
 ## Fehlerbehebung
 
 :::details Die Website ist ausgefallen, aber der Monitor bleibt betriebsbereit

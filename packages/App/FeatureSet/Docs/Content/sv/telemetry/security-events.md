@@ -444,7 +444,7 @@ Kontrollera nyckeln i `x-oneuptime-token` och sökvägen, `/security-events/v1/i
 :::
 
 :::details En regel träffar aldrig
-Kontrollera att den är **Aktiverad**, och läs **Last Evaluated** och **Senaste fel** i dess rad. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
+Kontrollera dess **Status**: med **Inaktiverad** körs regeln inte, och med **Körningen misslyckades** visar **Visa fel** i dess rad varför. Öppna en händelse som du väntade dig skulle träffa och jämför den med regeln, fält för fält: ett vanligt värde måste vara lika med hela fältet, så använd `contains` eller `*` för en del av ett fält. Ett attribut namnges som i händelsen (`threat.matched`, inte `attributes.threat.matched`). Med en tröskel över 1 måste träffarna infalla inom en körning.
 :::
 
 :::details En regel träffade, men inget larm öppnades

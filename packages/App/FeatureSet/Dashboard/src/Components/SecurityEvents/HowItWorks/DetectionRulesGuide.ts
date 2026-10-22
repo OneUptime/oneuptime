@@ -458,9 +458,12 @@ This rule matches failed authentication events from any IP outside \`10.x.x.x\`.
 
 | Column | What it tells you |
 | --- | --- |
-| **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
+| **Type** | **Single event**, or a correlation's kind: **Event count**, **Distinct values**, **Events together**, **Sequence** or **First seen** (see **Correlation Rules**). |
+| **Status** | Whether the rule works: **Enabled** when its last run came back clean, **Run failed** when it failed, **Needs attention** when a run left a note, **Waiting for first run** while a new rule waits for its first run, and **Disabled**. |
 | **Last Match** | The last run in which at least one group fired. |
-| **Last Error** | Why the last run failed, e.g. a query that timed out. It clears on the next successful run. |
+| **Last Evaluated** | When the rule last ran. *Never* means it has not run yet; an enabled rule runs within a minute. |
+
+When a run fails or leaves a note, **View Error** in the rule's row shows its **Last Error** in full, e.g. a query that timed out. It clears on the next successful run. **Interval (Minutes)** and **Last Error** start hidden: turn them on under the table's **Columns**.
 
 Disabled rules are not evaluated. Use the **Create Monitor** row action to watch a rule's findings over time — see **Alerts & Findings**.
 `;
@@ -728,7 +731,7 @@ The form shows the parser's reason. The usual causes:
 #### The rule never matches
 
 - **Last Evaluated** is *Never* or old: check the rule is **Enabled**.
-- **Last Error** is set: the last run failed; the message says why.
+- **Status** reads **Run failed**: the last run failed; **View Error** in its row says why.
 - Find an event you expected to match in **Events** and compare it with your rule, field by field. Plain values must equal the whole field — use \`|contains\` or \`*\` for partial matches.
 - Fields that are not typed columns or common spellings are read from the event's attributes, spelled exactly as they appear there — \`threat.matched\`, not \`attributes.threat.matched\`.
 - \`logsource\` does not filter anything; a rule that relies on it matches more than you expect, not less.

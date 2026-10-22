@@ -376,6 +376,7 @@ export default class TraceSavedView extends BaseModel {
     title: "Is Default",
     description: "Whether this saved trace view should be applied by default.",
     defaultValue: false,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,

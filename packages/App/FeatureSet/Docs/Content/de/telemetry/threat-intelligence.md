@@ -227,7 +227,7 @@ Lesen Sie **Zusammenfassung der letzten Abfrage**. Keine Objekte geholt: Die Sam
 :::
 
 :::details Indikatoren existieren, aber nichts trifft
-Der Abgleich vergleicht den Wert eines Indikators mit den Observables eines Ereignisses, nicht mit jedem Feld: Öffnen Sie unter **Ereignisse** ein Ereignis, das hätte treffen sollen, und prüfen Sie, dass seine Observables den Wert enthalten. Nur Indikatoren mit dem Status **Aktiv** treffen. Prüfen Sie **Letzter Treffer-Fehler** am Feed.
+Der Abgleich vergleicht den Wert eines Indikators mit den Observables eines Ereignisses, nicht mit jedem Feld: Öffnen Sie unter **Ereignisse** ein Ereignis, das hätte treffen sollen, und prüfen Sie, dass seine Observables den Wert enthalten. Nur Indikatoren mit dem Status **Aktiv** treffen. Lautet der **Status** des Feeds **Abgleich fehlgeschlagen**, zeigt **Fehler anzeigen** in seiner Zeile den Grund.
 :::
 
 :::details Letzter Fehler eines Listen-Feeds: Die Adresse antwortete mit einer Webseite

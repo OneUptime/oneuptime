@@ -227,7 +227,7 @@ Les **Last Poll Summary**. Ingen objekter hentet: samlingen er tom eller publise
 :::
 
 :::details Det finnes indikatorer, men ingenting treffer
-Sammenligningen sammenligner en indikators verdi med en hendelses observables, ikke med hvert felt: åpne en hendelse du forventet at skulle treffe, under **Hendelser**, og sjekk at observablene inneholder verdien. Bare indikatorer med statusen **Aktiv** treffer. Sjekk **Last Match Error** på feeden.
+Sammenligningen sammenligner en indikators verdi med en hendelses observables, ikke med hvert felt: åpne en hendelse du forventet at skulle treffe, under **Hendelser**, og sjekk at observablene inneholder verdien. Bare indikatorer med statusen **Aktiv** treffer. Står det **Sammenligning mislyktes** i feedens **Status**, viser **Vis feil** i raden hvorfor.
 :::
 
 :::details Siste feil for en listefeed sier at adressen svarte med en nettside

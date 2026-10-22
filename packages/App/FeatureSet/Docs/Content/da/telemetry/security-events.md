@@ -444,7 +444,7 @@ Tjek nøglen i `x-oneuptime-token` og stien, `/security-events/v1/ingest`. Tjek 
 :::
 
 :::details En regel matcher aldrig
-Tjek, at den er **Aktiveret**, og læs **Last Evaluated** og **Seneste fejl** i dens række. Åbn en begivenhed, du forventede ville matche, og sammenlign den med reglen felt for felt: en almindelig værdi skal være lig med hele feltet, så brug `contains` eller `*` til en del af et felt. En attribut navngives som i begivenheden (`threat.matched`, ikke `attributes.threat.matched`). Med en tærskel over 1 skal matchene falde inden for én kørsel.
+Tjek dens **Status**: med **Deaktiveret** kører reglen ikke, og med **Kørsel mislykkedes** viser **Vis fejl** i dens række hvorfor. Åbn en begivenhed, du forventede ville matche, og sammenlign den med reglen felt for felt: en almindelig værdi skal være lig med hele feltet, så brug `contains` eller `*` til en del af et felt. En attribut navngives som i begivenheden (`threat.matched`, ikke `attributes.threat.matched`). Med en tærskel over 1 skal matchene falde inden for én kørsel.
 :::
 
 :::details En regel matchede, men ingen advarsel blev åbnet

@@ -415,6 +415,7 @@ export default class WorkflowVariable extends BaseModel {
     description:
       "Is this variable a secret. If true, then it'll not be in the logs",
     defaultValue: false,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
@@ -459,6 +460,7 @@ export default class WorkflowVariable extends BaseModel {
     description:
       "Static: the content you save is used as is. OAuth 2.0: OneUptime fetches an access token from your identity provider and refreshes it automatically when a workflow uses it after it has expired.",
     defaultValue: WorkflowVariableType.Static,
+    isDefaultValueColumn: true,
     example: "OAuth 2.0",
   })
   @Column({

@@ -444,7 +444,7 @@ Check the key in `x-oneuptime-token` and the path, `/security-events/v1/ingest`.
 :::
 
 :::details A rule never matches
-Check that it is **Enabled**, and read **Last Evaluated** and **Last Error** in its row. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
+Check its **Status**: a **Disabled** rule does not run, and when it reads **Run failed**, **View Error** in its row shows why. Open an event you expected to match and compare it with the rule, field by field: a plain value must equal the whole field, so use `contains` or `*` for part of one. An attribute is named as it is in the event (`threat.matched`, not `attributes.threat.matched`). With a threshold above 1, the matches must fall in one run.
 :::
 
 :::details A rule matched, but no alert opened

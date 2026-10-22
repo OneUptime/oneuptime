@@ -227,7 +227,7 @@ Läs **Last Poll Summary**. Inga objekt hämtade: samlingen är tom eller public
 :::
 
 :::details Det finns indikatorer, men ingenting träffar
-Matchningen jämför en indikators värde med en händelses observables, inte med varje fält: öppna en händelse som du väntade dig skulle träffa under **Händelser** och kontrollera att dess observables innehåller värdet. Bara indikatorer med statusen **Aktiv** träffar. Kontrollera **Last Match Error** på flödet.
+Matchningen jämför en indikators värde med en händelses observables, inte med varje fält: öppna en händelse som du väntade dig skulle träffa under **Händelser** och kontrollera att dess observables innehåller värdet. Bara indikatorer med statusen **Aktiv** träffar. Står det **Jämförelsen misslyckades** i flödets **Status**, visar **Visa fel** i dess rad varför.
 :::
 
 :::details Senaste fel för ett listflöde säger att adressen svarade med en webbsida

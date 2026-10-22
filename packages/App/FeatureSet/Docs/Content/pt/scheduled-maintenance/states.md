@@ -130,6 +130,15 @@ Mantenha seus estados abaixo de **Agendado**: todo evento novo começa ali, e um
 > [!NOTE]
 > No OneUptime Cloud, adicionar ou alterar estados de manutenção requer o plano **Growth** ou superior. Todos os planos podem lê-los, usá-los e excluir um estado que você adicionou.
 
+## Arquivar um estado
+
+Arquive um estado próprio que sua equipe não deve mais usar, em vez de excluí-lo. Arquivar não altera nenhum evento: um evento nesse estado permanece nele e segue como de costume, e sua linha do tempo de estados ainda o mostra.
+
+- **Arquivar** fica no menu **⋯** da linha. Ele pede confirmação primeiro e lista as medições e os fluxos de trabalho configurados para usar o estado.
+- **Ninguém pode escolhê-lo novamente.** O cabeçalho do evento, **Alterar estado**, Slack e Microsoft Teams o deixam de fora, e a API, o Terraform e o MCP o recusam. Você ainda pode filtrar os eventos por ele.
+- **Os estados arquivados são listados à parte**, na seção recolhida **Estados de manutenção programada arquivados** abaixo da tabela. **Desarquivar** devolve um como era.
+- **Os quatro estados integrados não podem ser arquivados**: o OneUptime move os eventos para eles. O **Arquivar** deles fica bloqueado, com o motivo.
+
 ## A linha do tempo de estado
 
 A página **Linha do tempo de estado** do evento é o registro de cada estado em que ele esteve. O cartão dela, **Linha do tempo de status**, os desenha como uma linha do tempo: uma faixa com cada estado do tamanho que durou e, abaixo, cada mudança, a mais recente primeiro. **Tabela**, no cabeçalho do cartão, os lista como linhas, com **Status da manutenção programada**, **Começa em**, **Termina em**, **Duração**, se os assinantes deviam ser avisados e como foi a notificação deles.

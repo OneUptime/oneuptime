@@ -413,6 +413,7 @@ export default class ThreatIntelFeed extends BaseModel {
     title: "Enabled",
     description: "Whether this feed is polled and matched.",
     defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
     nullable: false,
