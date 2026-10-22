@@ -64,7 +64,7 @@ describe("SecurityCaseIncidentContext", () => {
 
   test("a case not triaged yet says nothing of a read", () => {
     const section: string = SecurityCaseIncidentContext.buildContextSection([
-      makeCase({ aiVerdict: undefined } as Partial<SecurityCase>),
+      makeCase({ aiVerdict: undefined } as unknown as Partial<SecurityCase>),
     ]);
 
     expect(section).not.toContain("triage read it as");

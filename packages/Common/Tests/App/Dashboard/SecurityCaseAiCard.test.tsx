@@ -217,9 +217,9 @@ function triagedCase(overrides: Partial<SecurityCase> = {}): SecurityCase {
 }
 
 interface Handlers {
-  onTriaged: jest.Mock;
-  onSetPriority: jest.Mock;
-  onRunPlaybook: jest.Mock;
+  onTriaged: ReturnType<typeof jest.fn>;
+  onSetPriority: ReturnType<typeof jest.fn>;
+  onRunPlaybook: ReturnType<typeof jest.fn>;
 }
 
 function draw(
@@ -591,8 +591,10 @@ describe("triaged", () => {
     getAiTriageMock.mockResolvedValue(
       status({ run: run(AIRunStatus.Completed) }),
     );
-    const dispatch: jest.SpiedFunction<typeof GlobalEvents.dispatchEvent> =
-      jest.spyOn(GlobalEvents, "dispatchEvent");
+    const dispatch: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      GlobalEvents,
+      "dispatchEvent",
+    );
 
     draw(triagedCase());
 

@@ -671,13 +671,15 @@ describe("Detection Rules page", () => {
       ) => React.ReactElement | undefined;
     };
 
-    function drawFooter(values: Record<string, unknown>): jest.Mock {
+    function drawFooter(
+      values: Record<string, unknown>,
+    ): ReturnType<typeof jest.fn> {
       renderPage();
 
       const field: FooterField = fieldTitled(
         "Sigma Rule (YAML)",
       ) as unknown as FooterField;
-      const setValue: jest.Mock = jest.fn();
+      const setValue: ReturnType<typeof jest.fn> = jest.fn();
 
       expect(field.getFooterElement).toBeDefined();
       render(
@@ -720,7 +722,9 @@ describe("Detection Rules page", () => {
         .spyOn(SecurityCaseApi, "draftDetectionRule")
         .mockResolvedValue({ sigmaRuleYaml: "title: Drafted\n", title: "" });
 
-      const setValue: jest.Mock = drawFooter({ sigmaRuleYaml: "" });
+      const setValue: ReturnType<typeof jest.fn> = drawFooter({
+        sigmaRuleYaml: "",
+      });
 
       fireEvent.click(screen.getByTestId("detection-rule-ai-draft-open"));
       fireEvent.change(

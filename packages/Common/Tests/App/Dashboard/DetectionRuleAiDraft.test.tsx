@@ -83,12 +83,12 @@ const DESCRIPTION: string =
   "Ten failed sign-ins from one IP address within five minutes";
 
 interface Drawn {
-  onDraft: jest.Mock;
+  onDraft: ReturnType<typeof jest.fn>;
   container: HTMLElement;
 }
 
 function draw(hasRule: boolean = false): Drawn {
-  const onDraft: jest.Mock = jest.fn();
+  const onDraft: ReturnType<typeof jest.fn> = jest.fn();
   const { container } = render(
     <DetectionRuleAiDraft
       hasRule={hasRule}

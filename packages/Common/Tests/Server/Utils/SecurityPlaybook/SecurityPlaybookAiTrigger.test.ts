@@ -66,8 +66,8 @@ function install(data: {
 
   jest
     .spyOn(SecurityPlaybookService, "findBy")
-    .mockImplementation(async (args: { query?: JSONObject }) => {
-      triggers.push(args.query?.["trigger"]);
+    .mockImplementation(async (args: { query?: unknown }) => {
+      triggers.push((args.query as JSONObject | undefined)?.["trigger"]);
       return data.playbooks as never;
     });
 
@@ -81,8 +81,10 @@ function install(data: {
 
   jest
     .spyOn(SecurityPlaybookRunService, "countBy")
-    .mockImplementation(async (args: { query?: JSONObject }) => {
-      const id: string = String(args.query?.["securityPlaybookId"] || "");
+    .mockImplementation(async (args: { query?: unknown }) => {
+      const id: string = String(
+        (args.query as JSONObject | undefined)?.["securityPlaybookId"] || "",
+      );
       return new PositiveNumber(
         (data.alreadyRan || []).includes(id) ? 1 : 0,
       ) as never;
@@ -289,8 +291,10 @@ describe("SecurityPlaybookLauncher, Triaged as Likely Malicious", () => {
   });
 
   test("the detection triggers are never limited to once per case", async () => {
-    const count: jest.SpiedFunction<typeof SecurityPlaybookRunService.countBy> =
-      jest.spyOn(SecurityPlaybookRunService, "countBy");
+    const count: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      SecurityPlaybookRunService,
+      "countBy",
+    );
     install({
       playbooks: [
         playbook("0001", { trigger: SecurityPlaybookTrigger.DetectionAdded }),
