@@ -425,7 +425,11 @@ jobs:
           # the next suites. Runbooks Menu (about 25 seconds locally, a minute
           # with its bundle, Chromium only: the Runbooks side menu at 1280 and
           # 390 pixels after AI Access went) joined them the same day: about
-          # 17 for the five.
+          # 17 for the five. Postmortems (about 40 seconds locally, a minute
+          # and a half with its bundle, Chromium only: Incidents > Postmortems,
+          # an incident's Postmortem page and Postmortem Statuses, at a
+          # laptop's and a phone's width, dark and German) joined them on
+          # 2026-10-22: about 18.5 for the six.
           - group: 9
             browsers: chromium
             suites: >-
@@ -434,6 +438,7 @@ jobs:
               test-home-overview-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
+              test-postmortems-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -600,6 +605,8 @@ jobs:
             output/playwright/model-tables-ui/test-results
             output/playwright/postmortem-rules-ui/*.png
             output/playwright/postmortem-rules-ui/test-results
+            output/playwright/postmortems-ui/*.png
+            output/playwright/postmortems-ui/test-results
             output/playwright/public-addresses-ui/*.png
             output/playwright/public-addresses-ui/test-results
             output/playwright/rules-menu-section-ui/*.png

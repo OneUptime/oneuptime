@@ -93,6 +93,7 @@ flowchart TB
 | وضعیت‌های مانیتور | `Monitor Status` |
 | وضعیت‌های نگهداری زمان‌بندی‌شده | `Scheduled Maintenance State` |
 | نقش‌های حادثه | `Incident Role` |
+| وضعیت‌های گزارش پس از حادثه | `Postmortem Status` |
 | کلیدهای API | `API Key` |
 | کلاینت‌های MCP که افراد وصل می‌کنند | `MCP Client Authorization` |
 | اقلام موجودی | `Inventory Item` |

@@ -661,6 +661,9 @@ import IncidentMemberService, {
 import IncidentStateService, {
   Service as IncidentStateServiceType,
 } from "Common/Server/Services/IncidentStateService";
+import IncidentPostmortemStatusService, {
+  Service as IncidentPostmortemStatusServiceType,
+} from "Common/Server/Services/IncidentPostmortemStatusService";
 import MonitorTestService, {
   Service as MonitorTestServiceType,
 } from "Common/Server/Services/MonitorTestService";
@@ -1407,6 +1410,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import IncidentPostmortemStatus from "Common/Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
 import FormSubmission from "Common/Models/DatabaseModels/FormSubmission";
@@ -4091,6 +4095,14 @@ const BaseAPIFeatureSet: FeatureSet = {
         IncidentState,
         IncidentStateService,
       ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new ArchivableValueAPI<
+        IncidentPostmortemStatus,
+        IncidentPostmortemStatusServiceType
+      >(IncidentPostmortemStatus, IncidentPostmortemStatusService).getRouter(),
     );
 
     app.use(

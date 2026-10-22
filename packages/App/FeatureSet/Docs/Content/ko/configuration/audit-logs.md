@@ -93,6 +93,7 @@ flowchart TB
 | 모니터 상태 | `Monitor Status` |
 | 예정된 유지 관리 상태 | `Scheduled Maintenance State` |
 | 인시던트 역할 | `Incident Role` |
+| 포스트모템 상태 | `Postmortem Status` |
 | API 키 | `API Key` |
 | 사람들이 연결하는 MCP 클라이언트 | `MCP Client Authorization` |
 | 인벤토리 항목 | `Inventory Item` |

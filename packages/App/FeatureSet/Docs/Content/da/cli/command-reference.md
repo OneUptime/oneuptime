@@ -189,7 +189,7 @@ Poster tager `list`, `get`, `create`, `update`, `delete` og `count`:
 | Område | Kommandoer |
 | --- | --- |
 | Overvågning | `monitor`, `monitor-status`, `monitor-status-event` |
-| Hændelser | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert` |
+| Hændelser | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
 | Advarsler | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note` |
 | Statussider | `status-page`, `status-page-announcement` |
 | Planlagt vedligeholdelse | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |

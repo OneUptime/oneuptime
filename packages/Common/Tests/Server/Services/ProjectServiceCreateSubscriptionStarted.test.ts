@@ -135,6 +135,7 @@ describe("ProjectService project creation - subscription_started", () => {
     "addDefaultProjectTeams",
     "addDefaultMonitorStatus",
     "addDefaultIncidentState",
+    "addDefaultIncidentPostmortemStatuses",
     "addDefaultScheduledMaintenanceState",
     "addDefaultAlertState",
     "addDefaultIncidentRoles",

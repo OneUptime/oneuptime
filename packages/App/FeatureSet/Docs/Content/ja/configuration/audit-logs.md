@@ -93,6 +93,7 @@ flowchart TB
 | モニターステータス | `Monitor Status` |
 | 定期メンテナンスの状態 | `Scheduled Maintenance State` |
 | インシデントロール | `Incident Role` |
+| ポストモーテムのステータス | `Postmortem Status` |
 | API キー | `API Key` |
 | ユーザーが接続する MCP クライアント | `MCP Client Authorization` |
 | インベントリ項目 | `Inventory Item` |

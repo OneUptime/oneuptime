@@ -6,7 +6,8 @@
  * generated for the real models: an agent archives and unarchives a value by
  * updating isArchived, can list only the values that are still live, and
  * never says when or by whom a value was archived - OneUptime stamps those
- * from the switch. Incident roles are not on MCP at all.
+ * from the switch. Postmortem statuses too: an agent moves a postmortem to a
+ * live one. Incident roles are not on MCP at all.
  */
 
 import { describe, expect, it, jest } from "@jest/globals";
@@ -18,6 +19,7 @@ import { JSONSchema, JSONSchemaProperty, McpToolInfo } from "../Types/McpTypes";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentPostmortemStatus from "Common/Models/DatabaseModels/IncidentPostmortemStatus";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -86,6 +88,13 @@ const VALUES: Array<ArchivableValueTools> = [
     update: "update_label",
     create: "create_label",
     list: "list_labels",
+  },
+  {
+    table: "IncidentPostmortemStatus",
+    modelType: IncidentPostmortemStatus,
+    update: "update_postmortem_status",
+    create: "create_postmortem_status",
+    list: "list_postmortem_statuses",
   },
 ];
 
