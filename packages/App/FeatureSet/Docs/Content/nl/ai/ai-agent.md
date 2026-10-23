@@ -9,6 +9,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 - [Waar hersteltaken starten](#waar-hersteltaken-starten): De taken die OneUptime start, en wat elke pull request doet.
 - [Productietelemetrie in een herstel](#productietelemetrie-in-een-herstel): Wat een herstel uit productie leest terwijl het de wijziging schrijft.
 - [Productiebeoordeling van pull requests](#productiebeoordeling-van-pull-requests): Wat productie zegt over de code die elke pull request wijzigt.
+- [Een repository verbinden](#een-repository-verbinden): GitHub, GitLab, Forgejo of Gitea, of elke Git-server.
 - [Voordat je begint](#voordat-je-begint): Een model, een gekoppelde repository en een Runner.
 - [Als een herstel mislukt](#als-een-herstel-mislukt): Wat er gebeurt met een run die een fout geeft, vastloopt of wacht.
 :::
@@ -21,7 +22,7 @@ Code is waar je OneUptime AI vraagt om in je repository's te werken, zoals je ee
 :::steps
 ### Open Code
 
-Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan (zie [Voordat je begint](#voordat-je-begint)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die de GitHub App niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository.
+Open **Producten → Code**. Code opent op **Wat moet AI doen?**: het vak waarin je vraagt, met alle taken eronder, de nieuwste eerst. Is er nog geen repository, dan biedt Code in plaats daarvan **GitHub verbinden** aan, met GitLab, Forgejo of Gitea en elke Git-server eronder (zie [Een repository verbinden](#een-repository-verbinden)). **Repository's**, in het zijmenu, toont de repository's waarin AI kan werken, en bundelt onder **Niet verbonden** de repository's die OneUptime niet meer bereikt. De pagina van elke repository heeft hetzelfde vak voor die repository.
 
 ### Kies de repository en de branch
 
@@ -204,6 +205,25 @@ Een fix mergen lost niets op totdat hij draait. Zodra een pull request met een f
 
 Totdat een deploy hem uitlevert, staat bij de fix **Gemerged, wacht op een deploy**, daarna **Gedeployed, wordt in productie gevolgd** zolang hij gevolgd wordt. Een fix die binnen 14 dagen in geen enkele vastgelegde deploy zit, of waarover productie niets kan zeggen, staat op **Niet geverifieerd in productie**. [Automatische codefixes](/docs/ai/ai-sre#automatische-codefixes) beschrijft de regels. Een regressietest, betere foutafhandeling, een review en een verzoek in Code worden niet gevolgd: productie kan niet laten zien wat ze veranderen.
 
+## Een repository verbinden
+
+Open **Repository's** in het zijmenu van Code en klik op **Repository's verbinden**: Code vraagt waar je code staat en verbindt elke plek op zijn eigen manier. Wat AI in een repository doet, hangt af van waar die staat:
+
+| Waar de code staat | Hoe hij verbindt | Wat AI er doet |
+| --- | --- | --- |
+| **GitHub** | De OneUptime GitHub App, geïnstalleerd op de repository's die hij kiest. | Alles op deze pagina, met opdrachten vanuit GitHub (zie [GitHub App](/docs/ai/github-app)) en [productiebeoordelingen](#productiebeoordeling-van-pull-requests). |
+| **GitLab**, op GitLab.com of je eigen | Een toegangstoken: een persoonlijk, groeps- of projecttoken met de scopes `api` en `write_repository`, en minstens de rol Developer. | Taken en fixes, elke wijziging in een merge request; de branchkiezer; de code waar een stacktrace of een profiel doorheen loopt; of een fix is samengevoegd en wat productie liet zien nadat hij was uitgerold. |
+| **Forgejo of Gitea**, op Codeberg of je eigen | Een toegangstoken met lees- en schrijftoegang tot repository's en leestoegang tot de gebruiker. | Hetzelfde als op GitLab, elke wijziging in een pull request. |
+| **Elke Git-server**, via HTTPS | Het adres waarmee je de repository kloont, een gebruikersnaam en een wachtwoord of toegangstoken dat de repository kan lezen en ernaar kan pushen. | AI kloont de repository en pusht elke wijziging naar een nieuwe branch, die zijn antwoord noemt: jij opent de pull request. Op Bitbucket en Azure DevOps linkt hij naar waar je hem opent. |
+
+Opdrachten uit opmerkingen en productiebeoordelingen hebben de GitHub App nodig, dus voorlopig werken ze alleen in GitHub-repository's, en de **Instellingen** van de repository zeggen dat.
+
+Voor GitLab, Forgejo of Gitea voer je het adres van de server in (GitLab.com en Codeberg zijn al ingevuld) en het token, en kies je de repository's om te verbinden: de lijst biedt alleen de repository's aan waarnaar het token kan pushen, en later meer verbinden kan het token hergebruiken. OneUptime controleert elk token bij zijn server voordat het het bewaart, bewaart het versleuteld en toont het nooit meer. De **Instellingen** van de repository tonen de server, het account en de laatste tekens van het token, met **Toegangstoken vervangen**. Weigert de server een verlopen of ingetrokken token, dan tonen zijn repository's **Token geweigerd** en werkt AI er niet meer in, tot het vervangen van het token elke repository die het gebruikt weer verbindt.
+
+### Een Git-server op een privénetwerk
+
+OneUptime Cloud bereikt alleen Git-servers op internet, nooit een privé-, loopback- of link-local-adres. Verbind een server die alleen je eigen netwerk bereikt als **Elke Git-server**: Code zegt dat het hem niet bereikt, en **Toch verbinden** verbindt hem voor een van je eigen Runners op dat netwerk. Kies die Runner op de kaart **Runner** van de repository (zie [De Runner van de repository kiezen](#de-runner-van-de-repository-kiezen)). Een globale Runner werkt er nooit in, en OneUptime leest er op de server niets van, dus de branchkiezer biedt alleen de hoofdbranch aan. Een zelf gehoste OneUptime, en zijn globale Runner, bereiken de Git-servers van het eigen netwerk.
+
 ## Voordat je begint
 
 Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI Assistance** van de uitzondering controleren alle drie voordat ze aanbieden te starten, en zeggen wat er ontbreekt.
@@ -212,6 +232,7 @@ Een taak heeft drie dingen nodig. Het vraagvak van Code en de pagina **AI Assist
 | --- | --- | --- |
 | Een LLM-provider | Niets in te stellen: een project zonder eigen provider gebruikt de globale provider, betaald uit de AI-tegoeden van het project. Een eigen provider, onder **Projectinstellingen → AI → LLM-providers**, gaat voor. | Stel de omgevingsvariabelen `GLOBAL_LLM_PROVIDER_*` eenmalig in op de server, of voeg een provider toe aan het project. |
 | Een repository gekoppeld via de GitHub App | **Producten → Code**, dan **GitHub verbinden**. Is de app al op het GitHub-account geïnstalleerd, klik dan in plaats daarvan op **Een bestaande installatie koppelen**: opnieuw installeren koppelt hem niet. Vereist het Growth-abonnement. | Hetzelfde, zodra je instantie een GitHub App heeft (zie [GitHub-integratie](/docs/self-hosted/github-integration)). |
+| Of een repository op GitLab, Forgejo of Gitea, of op elke Git-server | **Repository's** in Code, dan **Repository's verbinden** (zie [Een repository verbinden](#een-repository-verbinden)). Vereist het Growth-abonnement. | Hetzelfde, zonder GitHub App om in te stellen. |
 | Een Runner die AI-codecorrecties uitvoert | Niets te draaien: een repository die er geen kiest, werkt op de globale Runners van OneUptime. | De service `runner` van Docker Compose, of de Runner van de Helm-chart (`runner.enabled`, standaard aan), registreert zichzelf en voert AI-codecorrecties uit in elke repository die geen Runner kiest. |
 
 Op een zelf gehoste instantie is de globale provider één blok in `config.env` (Docker Compose) of in je Helm-waarden. Voor een zelf gehoste Ollama:
@@ -284,7 +305,7 @@ Zolang herstellen aan staat, zet een onderzoek dat eindigt met een zekere, onder
 
 Al het andere is gelijk aan de knop:
 
-- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een repository nodig die via de GitHub App is gekoppeld, een die de matchende regels noemen als ze er noemen, en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
+- De pull request opent klaar voor review, geschreven vanuit de geplaatste analyse, en heeft een gekoppelde repository nodig, een die de matchende regels noemen als ze er noemen, en een Runner die online is om erin te werken: die de repository kiest, of een globale Runner.
 - Hij telt mee voor de dagelijkse limiet voor hersteltaken van dat signaal (**Daily Incident AI Fix Task Limit** of **Daily Alert AI Fix Task Limit**, onder **Meer instellingen** op de AI-instellingenpagina ervan) en voor het maximum aan open pull requests van de repository, als een van beide is ingesteld. Niet ingesteld beperkt geen van beide iets.
 - Elke trigger zoekt eerst naar een hersteltaak die al in de wachtrij staat of draait voor hetzelfde incident of dezelfde waarschuwing, zodat een automatische trigger en een klik normaal één taak worden, niet twee pull requests. De controle is een lezing vóór het schrijven, geen vergrendeling, dus twee triggers op precies hetzelfde moment kunnen er nog allebei door komen.
 - De run wordt door het systeem geschreven, aan niemand toegeschreven, en niets wordt vanzelf gemerged.
@@ -306,12 +327,6 @@ Een taak die langer dan 30 minuten wacht terwijl de Runner die hem moet oppakken
 ## Privacy
 
 De kloon van je repository staat in een werkruimte in de container van de Runner en wordt verwijderd als de run eindigt, geslaagd of niet. De Runner heeft nooit de API-sleutel van je LLM-provider: de OneUptime-server doet de LLM-aanroepen voor hem, en voert ook de query's op productietelemetrie uit. OneUptime bewaart je repository niet en traint niet op je code. Het log van de taak bewaart de eerste 300 tekens van de uitvoer van elke stap, zodat je kunt nagaan wat de Runner deed, en daar kunnen stukjes code in staan. Draai een zelf gehoste Runner met je eigen LLM-provider (lokale Ollama inbegrepen), en je code verlaat nooit je infrastructuur.
-
-## Op de roadmap
-
-Gepland, en **vandaag nog niet beschikbaar**:
-
-- **Ondersteuning voor GitLab.** Repositories worden alleen via de GitHub App gekoppeld.
 
 ## Volgende stappen
 
