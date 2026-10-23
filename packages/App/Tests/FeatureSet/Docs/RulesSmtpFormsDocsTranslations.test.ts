@@ -39,6 +39,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
+  CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
   INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE,
   INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
   LABEL_RULE_ADDS_NOTHING_MESSAGE,
@@ -442,6 +443,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     `| ${INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE} |`,
     `| ${OWNER_RULE_ADDS_NOTHING_MESSAGE} |`,
     `| ${INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE} |`,
+    `| ${CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE} |`,
   ],
   [SMTP]: [
     ':::details "Cannot send email. Please check your SMTP config."',

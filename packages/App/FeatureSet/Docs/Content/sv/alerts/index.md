@@ -75,7 +75,7 @@ Gå till **Varningar → Alla varningar** och klicka på **Skapa varning**. Form
 
 ### Beskriv larmet
 
-Fyll i **Titel** och välj en **Varningsallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**.
+Fyll i **Titel** och välj en **Varningsallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till varningen du skapar, och varje team du är medlem i är ett klick bort under väljaren.
 
 ### Välj vad det påverkar och vem som larmas
 
@@ -83,7 +83,7 @@ Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Öv
 
 ### Skapa det
 
-Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa varning**. Larmets egen sida öppnas, och reglerna börjar köras.
+Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa varning**. Larmets egen sida öppnas, och reglerna börjar köras. I sammanfattningen nämner raden **Ägare** varje ägarregel som kommer att lägga till någon, och vem: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 :::
 
 Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identified** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).

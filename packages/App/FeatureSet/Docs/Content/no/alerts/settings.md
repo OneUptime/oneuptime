@@ -94,8 +94,8 @@ En regel tilkaller så snart et varsel samsvarer med den. For å la den vente p�
 
 **Eierregler** legger til eierbrukere og -team på nye varsler som samsvarer, og **Etikettregler** legger til etiketter. Å opprette en tar to trinn: **Treff**, betingelsene, og deretter **Eiere** eller **Etiketter**, det regelen legger til. Regelens **Navn** følger det du velger, til du skriver ditt eget.
 
-- **En regel kan arve.** Sammenfoldet under **Arv eiere** eller **Arv etiketter** gir seks brytere eierne eller etikettene videre fra varselets monitor, verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester. Episoderegler har ingen slike brytere.
-- **En ny regel må legge til noe**: Velg minst én eier eller etikett, eller slå på en bryter.
+- **En regel kan arve.** Sammenfoldet under **Arv eiere** eller **Arv etiketter** gir seks brytere eierne eller etikettene videre fra varselets monitor, verter, Kubernetes-klynger, Docker-verter, Podman-verter og tjenester. Episoderegler har ingen slike brytere. En eierregels **Arv eiere** slutter med **Oppretterens team**: av teamene som står der, blir hvert team som personen som oppretter varselet, er med i, også eier.
+- **En ny regel må legge til noe**: Velg minst én eier eller etikett, eller slå på en bryter. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
 - **Varsle eiere**, under **Flere felt** i en eierregel, avgjør om personene som legges til, får beskjed.
 
 [Etikett- og eierregler](/docs/configuration/label-and-owner-rules) går gjennom skjemaet trinn for trinn for alle typer ressurser.

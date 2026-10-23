@@ -1134,6 +1134,104 @@ describe.each(EPISODE_CASES)(
   },
 );
 
+/*
+ * The Create Episode forms' review: the plan the create carries out, of the
+ * episode the form holds, with nothing written. An episode has no creator's
+ * team and inherits nothing, so each rule brings whom it names.
+ */
+describe.each(EPISODE_CASES)(
+  "$name owner rule engine previewing an episode being created",
+  (episodeCase: EpisodeCase) => {
+    const testCase: EngineCase = episodeCase.engineCase;
+
+    interface PreviewEntry {
+      rule: BaseModel;
+      notify: boolean;
+      userIds: Array<string>;
+      teamIds: Array<string>;
+      creatorTeamIds: Array<string>;
+    }
+
+    const preview: (episode: BaseModel) => Promise<Array<PreviewEntry>> = (
+      episode: BaseModel,
+    ): Promise<Array<PreviewEntry>> => {
+      return (
+        testCase.engine as unknown as {
+          previewRules: (episode: BaseModel) => Promise<Array<PreviewEntry>>;
+        }
+      ).previewRules(episode);
+    };
+
+    it("lists each matching rule with whom it names, and writes nothing", async () => {
+      const harness: Harness = setup(testCase);
+      const feedItem: jest.SpyInstance = spy(
+        testCase.engine,
+        "createRuleExecutedFeedItem",
+      );
+
+      spy(testCase.ruleService, "findBy").mockResolvedValue([
+        fakeRule(testCase, {
+          notifyOwners: false,
+          users: [USER_A],
+          teams: [TEAM_A],
+        }),
+        fakeRule(testCase, {
+          id: OTHER_RULE_ID,
+          namePattern: "^billing",
+          users: [USER_B],
+        }),
+      ]);
+
+      const entries: Array<PreviewEntry> = await preview(runTarget(testCase));
+
+      expect(entries).toHaveLength(1);
+      expect(entries[0]!.rule.id?.toString()).toBe(RULE_ID.toString());
+      expect(entries[0]!.notify).toBe(false);
+      expect(entries[0]!.userIds).toEqual([USER_A.toString()]);
+      expect(entries[0]!.teamIds).toEqual([TEAM_A.toString()]);
+      expect(entries[0]!.creatorTeamIds).toEqual([]);
+
+      expect(harness.writes).toEqual([]);
+      expect(harness.ownerUserFindBy).not.toHaveBeenCalled();
+      expect(harness.ownerTeamFindBy).not.toHaveBeenCalled();
+      expect(feedItem).not.toHaveBeenCalled();
+    });
+
+    it("reads the project's enabled rules with the select the create reads them with", async () => {
+      setup(testCase);
+      const findBy: jest.SpyInstance = spy(
+        testCase.ruleService,
+        "findBy",
+      ).mockResolvedValue([]);
+
+      expect(await preview(runTarget(testCase))).toEqual([]);
+      expect(findBy).toHaveBeenCalledTimes(1);
+      expect(findBy.mock.calls[0]![0].select).toBe(
+        engineOf(testCase).ruleSelect,
+      );
+      expect(findBy.mock.calls[0]![0].query).toMatchObject({
+        isEnabled: true,
+      });
+      expect(String(findBy.mock.calls[0]![0].query.projectId)).toBe(
+        PROJECT_ID.toString(),
+      );
+    });
+
+    it("reads nothing for an episode of no project", async () => {
+      setup(testCase);
+      const findBy: jest.SpyInstance = spy(
+        testCase.ruleService,
+        "findBy",
+      ).mockResolvedValue([]);
+
+      expect(
+        await preview(runTarget(testCase, { projectId: undefined })),
+      ).toEqual([]);
+      expect(findBy).not.toHaveBeenCalled();
+    });
+  },
+);
+
 describe("status page and alert episode owner rule engines", () => {
   it.each([findCase("status page"), findCase("alert episode")])(
     "$name adds owners through the resource service's addOwners with the run's notify flag",

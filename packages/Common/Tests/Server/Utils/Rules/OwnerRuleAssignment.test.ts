@@ -1401,3 +1401,101 @@ describe("OwnerRuleAssignment and the project's teams", () => {
     expect(ids(added.userIds)).toEqual([USER_A.toString()]);
   });
 });
+
+/*
+ * THE OWNERS PICKED IN A CREATE FORM, ADDED ONCE THE RECORD EXISTS: what the
+ * episode services do with misc data's ownerUsers and ownerTeams, as the
+ * incident and alert services do - quietly (a person's create never asks for
+ * the owners it names to be told), for the record's creator, and nothing at
+ * all when none were picked.
+ */
+describe("OwnerRuleAssignment.addOwnersPickedOnCreate", () => {
+  const props: DatabaseCommonInteractionProps = {
+    tenantId: PROJECT_ID,
+    userId: CREATED_BY,
+  };
+
+  function addPicked(
+    services: WritableServices,
+    miscDataProps: Record<string, unknown> | undefined,
+  ): Promise<OwnersToAssign> {
+    return OwnerRuleAssignment.addOwnersPickedOnCreate({
+      ownerUserService: services.ownerUserService,
+      ownerTeamService: services.ownerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: MONITOR_ID,
+      projectId: PROJECT_ID,
+      miscDataProps: miscDataProps as never,
+      props: props,
+    });
+  }
+
+  it("adds the people and teams picked, quietly, on the record", async () => {
+    const services: WritableServices = writableServices({});
+
+    const added: OwnersToAssign = await addPicked(services, {
+      ownerUsers: [USER_A.toString()],
+      ownerTeams: [TEAM_A, TEAM_B.toString()],
+    });
+
+    expect(ids(added.userIds)).toEqual([USER_A.toString()]);
+    expect(ids(added.teamIds)).toEqual([TEAM_A.toString(), TEAM_B.toString()]);
+
+    const userRows: Array<MonitorOwnerUser> = writtenRows<MonitorOwnerUser>(
+      services.createUser,
+    );
+    const teamRows: Array<MonitorOwnerTeam> = writtenRows<MonitorOwnerTeam>(
+      services.createTeam,
+    );
+
+    expect(userRows).toHaveLength(1);
+    expect(teamRows).toHaveLength(2);
+
+    for (const row of [...userRows, ...teamRows]) {
+      expect(row.monitorId!.toString()).toBe(MONITOR_ID.toString());
+      expect(row.projectId!.toString()).toBe(PROJECT_ID.toString());
+      // Marked told already: the create's owners are added without a message.
+      expect(row.isOwnerNotified).toBe(true);
+    }
+  });
+
+  it("writes for the person who created the record", async () => {
+    const services: WritableServices = writableServices({});
+
+    await addPicked(services, { ownerTeams: [TEAM_A] });
+
+    expect(services.createTeam.mock.calls[0]![0]).toMatchObject({ props });
+  });
+
+  it("skips an owner the record already has, as every add does", async () => {
+    const services: WritableServices = writableServices({
+      existingTeams: [ownerTeam(TEAM_A)],
+    });
+
+    const added: OwnersToAssign = await addPicked(services, {
+      ownerTeams: [TEAM_A, TEAM_B],
+    });
+
+    expect(ids(added.teamIds)).toEqual([TEAM_B.toString()]);
+  });
+
+  it("reads nothing and writes nothing when none were picked", async () => {
+    for (const miscDataProps of [
+      undefined,
+      {},
+      { ownerUsers: [], ownerTeams: [] },
+      // Not a list: not a pick.
+      { ownerUsers: USER_A.toString() },
+    ]) {
+      const services: WritableServices = writableServices({});
+
+      const added: OwnersToAssign = await addPicked(services, miscDataProps);
+
+      expect(added).toEqual({ userIds: [], teamIds: [] });
+      expect(services.userFindBy).not.toHaveBeenCalled();
+      expect(services.teamFindBy).not.toHaveBeenCalled();
+      expect(services.createUser).not.toHaveBeenCalled();
+      expect(services.createTeam).not.toHaveBeenCalled();
+    }
+  });
+});

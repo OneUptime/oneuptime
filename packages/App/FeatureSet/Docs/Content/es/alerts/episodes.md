@@ -139,6 +139,8 @@ En **Detalles del episodio**, rellena el **Título** y, si quieres, una **Graved
 
 En **Guardia y propietarios**, elige una **Política de guardia** que se ejecute cuando se cree el episodio, y sus **Propietarios**. Después haz clic en **Crear episodio**.
 
+Cada equipo del que eres miembro está a un clic bajo **Propietarios**, y el resumen lista las reglas de propietario que añadirán más.
+
 ### Añadir las alertas
 
 Abre la página **Alertas miembro** del episodio, haz clic en **Añadir alertas** y marca las alertas que le pertenecen, tantas como necesites a la vez. Para empezar por las alertas, selecciónalas en la lista **Alertas** y elige **Añadir a un episodio nuevo** en **Acciones masivas** (consulta [Episodios](/docs/incidents/episodes)).

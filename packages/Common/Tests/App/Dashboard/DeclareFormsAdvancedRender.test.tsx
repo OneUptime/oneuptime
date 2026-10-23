@@ -336,12 +336,16 @@ describe("Declare Incident", () => {
     expect(advancedHeader()).toHaveAttribute("aria-expanded", "false");
     expect(advancedChips()).toEqual([]);
 
-    // Folded, the header names the four; the fields themselves are hidden.
+    /*
+     * Folded, the header names the five - the owners too, the declarer's
+     * teams one click away under them; the fields themselves are hidden.
+     */
     expect(listedNames(advancedHeader())).toEqual([
       "Declared At",
       "Initial State",
       "Labels",
       "Private Incident",
+      "Owners",
     ]);
 
     for (const folded of [
@@ -349,6 +353,7 @@ describe("Declare Incident", () => {
       "Initial State",
       "Labels",
       "Private Incident",
+      "Owners",
     ]) {
       expect(
         getByTextOutsideFoldedHeaders(document.body, folded),
@@ -575,9 +580,15 @@ describe("Create Alert", () => {
       "Initial State",
       "Labels",
       "Private Alert",
+      "Owners",
     ]);
 
-    for (const folded of ["Initial State", "Labels", "Private Alert"]) {
+    for (const folded of [
+      "Initial State",
+      "Labels",
+      "Private Alert",
+      "Owners",
+    ]) {
       expect(
         getByTextOutsideFoldedHeaders(document.body, folded),
       ).not.toBeVisible();

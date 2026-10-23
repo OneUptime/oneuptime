@@ -43,12 +43,18 @@ import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import { getOwnersOnCreateFieldOptions } from "../../Components/OwnersOnCreate/OwnersOnCreateField";
+import { OwnerRulePreviewEvent } from "Common/Types/Rules/OwnerRulePreview";
 
 /*
  * Creating an episode asks for its title, severity and description. The
- * state it starts in and its labels are folded under one "Advanced" header
- * at the end of Episode Details: it says "Configured" when one of them holds
- * something, and opens by itself when one fails validation.
+ * state it starts in, its labels and its owners - the creator's own teams
+ * one click away - are folded under one "More fields" header at the end of
+ * Episode Details: it says "Configured" when one of them holds something,
+ * and opens by itself when one fails validation. The review step always
+ * lists the owners, with the owner rules that will add more
+ * (OwnersOnCreate).
  */
 const advancedSection: FormFieldCollapsibleSection<IncidentEpisode> =
   getAdvancedFormSection<IncidentEpisode>();
@@ -217,6 +223,19 @@ const EpisodeCreate: FunctionComponent<
                     </div>
                   );
                 },
+              }),
+              /*
+               * People and teams in one picker, kept in ownerUsers /
+               * ownerTeams: IncidentEpisodeService asks whether the creator
+               * may add them before the episode is saved, and adds them as
+               * its owners once it exists.
+               */
+              getOwnersFormField<IncidentEpisode>({
+                stepId: "episode-details",
+                collapsibleSection: advancedSection,
+                ...getOwnersOnCreateFieldOptions<IncidentEpisode>(
+                  OwnerRulePreviewEvent.IncidentEpisode,
+                ),
               }),
               {
                 field: {

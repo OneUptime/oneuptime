@@ -94,8 +94,8 @@ En regel tilkalder, så snart en advarsel matcher den. For at lade den vente på
 
 **Ejerregler** tilføjer ejerbrugere og -teams til nye advarsler, der matcher, og **Etiketregler** tilføjer etiketter. At oprette en tager to trin: **Match**, betingelserne, og derefter **Ejere** eller **Etiketter**, det, reglen tilføjer. Reglens **Navn** følger det, du vælger, indtil du skriver dit eget.
 
-- **En regel kan nedarve.** Foldet sammen under **Nedarv ejere** eller **Nedarv etiketter** giver seks kontakter ejerne eller etiketterne videre fra advarslens monitor, hosts, Kubernetes-klynger, Docker-hosts, Podman-hosts og tjenester. Episoderegler har ingen sådanne kontakter.
-- **En ny regel skal tilføje noget**: Vælg mindst én ejer eller etiket, eller slå en kontakt til.
+- **En regel kan nedarve.** Foldet sammen under **Nedarv ejere** eller **Nedarv etiketter** giver seks kontakter ejerne eller etiketterne videre fra advarslens monitor, hosts, Kubernetes-klynger, Docker-hosts, Podman-hosts og tjenester. Episoderegler har ingen sådanne kontakter. En ejerregels **Nedarv ejere** slutter med **Opretterens team**: af de teams, der står der, bliver hvert team, som personen, der opretter advarslen, er med i, også ejer.
+- **En ny regel skal tilføje noget**: Vælg mindst én ejer eller etiket, eller slå en kontakt til. På en ejerregel for hændelser eller advarsler er et team under **Opretterens team** også nok.
 - **Underret ejere**, under **Flere felter** på en ejerregel, afgør, om de tilføjede personer får besked.
 
 [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) gennemgår formularen trin for trin for alle typer ressourcer.

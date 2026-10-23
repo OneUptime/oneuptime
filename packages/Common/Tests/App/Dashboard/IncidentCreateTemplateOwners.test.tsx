@@ -13,21 +13,22 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Regression: an incident declared from a template in the dashboard lost the
- * template's owners.
+ * An incident declared from a template takes the template's owners.
  *
- * The Create page read the template's owner teams and users and put them into
- * the form's initial values as ownerTeams / ownerUsers. But a ModelForm sends
- * only its model's columns and, as misc data, the values of its inputs that
- * have an overrideFieldKey - and the form has had no owner inputs since the
- * Owners step was removed (483578ba4d). So the ids were read and then
- * silently dropped, and IncidentService.onCreateSuccess, which adds the
- * owners it finds in miscDataProps.ownerUsers / ownerTeams, never saw them.
+ * They once went missing: the page put them into the form's initial values,
+ * and the form had no owner input to send them (the Owners step was removed
+ * in 483578ba4d). Then the page kept them beside the form and its
+ * onBeforeCreate added them to the misc data - out of sight, and out of the
+ * declarer's hands.
  *
- * The page now keeps the template's owners beside the form, and its
- * onBeforeCreate - whose misc data object is the one the request carries
- * (ModelFormOnBeforeCreateMiscData.test.tsx pins that) - puts them there.
- * ModelForm is stubbed to capture what it is handed.
+ * Now Declare Incident asks for owners again, under More fields at the end
+ * of Incident Details (Components/OwnersOnCreate): the owners people picker,
+ * kept in ownerUsers and ownerTeams. The template's owners START that field
+ * - shown, and changeable, like the template's labels - and ModelForm sends
+ * the field's picks as the misc data IncidentService reads
+ * (ModelFormPeoplePicker.test.tsx: "starts with the owners a page hands it,
+ * and sends them on untouched"). The page's onBeforeCreate leaves them as
+ * the form sends them. ModelForm is stubbed to capture what it is handed.
  */
 
 jest.mock("react-i18next", () => {
@@ -125,6 +126,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 
 const TEMPLATE_ID: string = "66666666-6666-4666-8666-000000000001";
 const USER_A: string = "0000000e-0000-4000-8000-000000000001";
@@ -253,24 +255,29 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// The form's Owners field, as the page hands it to ModelForm.
+function ownersField(): Record<string, unknown> | undefined {
+  return lastForm().fields.find((field: Record<string, unknown>): boolean => {
+    return field["fieldType"] === FormFieldSchemaType.PeoplePicker;
+  });
+}
+
 describe("declaring an incident from a template with owners", () => {
-  test("sends the template's owner users and teams to the server", async () => {
+  test("starts the Owners field with the template's owner users and teams", async () => {
     await renderCreate();
 
-    expect(await miscDataSent()).toEqual({
-      ownerUsers: [USER_A, USER_B],
-      ownerTeams: [TEAM_A],
-    });
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([USER_A, USER_B]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([TEAM_A]);
+    // Still declared from the template.
+    expect(lastForm().initialValues["title"]).toBe("Checkout outage");
   });
 
-  test("sends them as plain ids, which the server takes as they are", async () => {
+  test("starts it with plain ids, which the server takes as they are", async () => {
     await renderCreate();
 
-    const sent: Record<string, unknown> = await miscDataSent();
-
     for (const id of [
-      ...(sent["ownerUsers"] as Array<unknown>),
-      ...(sent["ownerTeams"] as Array<unknown>),
+      ...(lastForm().initialValues["ownerUsers"] as Array<unknown>),
+      ...(lastForm().initialValues["ownerTeams"] as Array<unknown>),
     ]) {
       expect(typeof id).toBe("string");
       expect(ObjectID.isValidUUID(id as string)).toBe(true);
@@ -293,44 +300,67 @@ describe("declaring an incident from a template with owners", () => {
     }
   });
 
-  test("keeps them beside the form, not in it", async () => {
+  test("the field they start keeps its picks in ownerUsers and ownerTeams, under More fields", async () => {
     await renderCreate();
 
-    expect(lastForm().initialValues).not.toHaveProperty(["ownerUsers"]);
-    expect(lastForm().initialValues).not.toHaveProperty(["ownerTeams"]);
-    // Still declared from the template.
-    expect(lastForm().initialValues["title"]).toBe("Checkout outage");
+    const field: Record<string, unknown> | undefined = ownersField();
+
+    expect(field).toBeDefined();
+    expect(field!["stepId"]).toBe("incident-details");
+    expect(field!["collapsibleSection"]).toBeDefined();
+    expect(
+      (
+        (field!["peoplePicker"] as { kinds: Array<{ valueKey: string }> })
+          .kinds || []
+      ).map((kind: { valueKey: string }): string => {
+        return kind.valueKey;
+      }),
+    ).toEqual(["ownerUsers", "ownerTeams"]);
   });
 
-  test("keeps what the rest of the page put in the misc data", async () => {
+  test("the page sends the owners as the form picked them, beside the rest of the misc data", async () => {
     await renderCreate();
 
+    // The declarer took a user away and kept the team.
     expect(
       await miscDataSent({
         incidentRoles: ["role-1"],
         "customFields:Impact": "High",
+        ownerUsers: [USER_B],
+        ownerTeams: [TEAM_A],
       }),
     ).toEqual({
       incidentRoles: ["role-1"],
-      ownerUsers: [USER_A, USER_B],
+      ownerUsers: [USER_B],
       ownerTeams: [TEAM_A],
     });
   });
 
-  test("only users: no team key is sent", async () => {
+  test("owners all taken away are not put back", async () => {
+    await renderCreate();
+
+    expect(await miscDataSent({ ownerUsers: [], ownerTeams: [] })).toEqual({
+      ownerUsers: [],
+      ownerTeams: [],
+    });
+  });
+
+  test("only users: the field starts with no team", async () => {
     ownerTeamIds = [];
 
     await renderCreate();
 
-    expect(await miscDataSent()).toEqual({ ownerUsers: [USER_A, USER_B] });
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([USER_A, USER_B]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([]);
   });
 
-  test("only teams: no user key is sent", async () => {
+  test("only teams: the field starts with no user", async () => {
     ownerUserIds = [];
 
     await renderCreate();
 
-    expect(await miscDataSent()).toEqual({ ownerTeams: [TEAM_A] });
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([TEAM_A]);
   });
 
   test("an owner row without an id is skipped", async () => {
@@ -339,15 +369,18 @@ describe("declaring an incident from a template with owners", () => {
 
     await renderCreate();
 
-    expect(await miscDataSent()).toEqual({ ownerUsers: [USER_A] });
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([USER_A]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([]);
   });
 
-  test("a template with no owners sends no owner keys", async () => {
+  test("a template with no owners starts the field empty, and sends no owner keys of its own", async () => {
     ownerUserIds = [];
     ownerTeamIds = [];
 
     await renderCreate();
 
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([]);
     expect(await miscDataSent()).toEqual({});
   });
 
@@ -356,24 +389,28 @@ describe("declaring an incident from a template with owners", () => {
 
     await renderCreate();
 
+    expect(lastForm().initialValues).not.toHaveProperty(["ownerUsers"]);
+    expect(lastForm().initialValues).not.toHaveProperty(["ownerTeams"]);
     expect(await miscDataSent()).toEqual({});
   });
 });
 
 describe("declaring an incident without a template", () => {
-  test("reads no owners and sends none", async () => {
+  test("reads no owners, starts none, and still offers the Owners field", async () => {
     queryString = {};
 
     await renderCreate();
 
     expect(ownerRequests(IncidentTemplateOwnerUser)).toHaveLength(0);
     expect(ownerRequests(IncidentTemplateOwnerTeam)).toHaveLength(0);
+    expect(lastForm().initialValues).not.toHaveProperty(["ownerUsers"]);
+    expect(ownersField()).toBeDefined();
     expect(await miscDataSent()).toEqual({});
   });
 });
 
 describe("declaring from alerts with a template", () => {
-  test("sends the template's owners along with the alerts to link", async () => {
+  test("starts the template's owners, and sends the alerts to link beside them", async () => {
     queryString = {
       incidentTemplateId: TEMPLATE_ID,
       [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: ALERT_ID,
@@ -405,7 +442,14 @@ describe("declaring from alerts with a template", () => {
     await renderCreate();
 
     expect(getItemMock).toHaveBeenCalledTimes(1);
-    expect(await miscDataSent()).toEqual({
+    expect(lastForm().initialValues["ownerUsers"]).toEqual([USER_A, USER_B]);
+    expect(lastForm().initialValues["ownerTeams"]).toEqual([TEAM_A]);
+    expect(
+      await miscDataSent({
+        ownerUsers: [USER_A, USER_B],
+        ownerTeams: [TEAM_A],
+      }),
+    ).toEqual({
       [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
       ownerUsers: [USER_A, USER_B],
       ownerTeams: [TEAM_A],

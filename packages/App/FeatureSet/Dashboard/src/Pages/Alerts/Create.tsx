@@ -66,15 +66,21 @@ import {
 import useRecordToCreateFrom, {
   RecordToCreateFromState,
 } from "../../Components/CreateFromRecord/useRecordToCreateFrom";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import { getOwnersOnCreateFieldOptions } from "../../Components/OwnersOnCreate/OwnersOnCreateField";
+import { OwnerRulePreviewEvent } from "Common/Types/Rules/OwnerRulePreview";
 
 /*
  * Creating an alert asks for what it cannot exist without - a title and a
- * severity - and its description. The state it starts in, its labels and
- * whether it is private are folded under one "Advanced" header at the end of
- * Alert Details: it says "Configured" when one of them holds something, and
- * opens by itself when one fails validation. Root cause and remediation
- * notes are not asked here: they are written on the alert's own Root Cause
- * and Remediation pages once there is something to say.
+ * severity - and its description. The state it starts in, its labels,
+ * whether it is private and its owners - the creator's own teams one click
+ * away - are folded under one "More fields" header at the end of Alert
+ * Details: it says "Configured" when one of them holds something, and opens
+ * by itself when one fails validation. The review step always lists the
+ * owners, with the owner rules that will add more (OwnersOnCreate). Root
+ * cause and remediation notes are not asked here: they are written on the
+ * alert's own Root Cause and Remediation pages once there is something to
+ * say.
  */
 const advancedSection: FormFieldCollapsibleSection<Alert> =
   getAdvancedFormSection<Alert>();
@@ -287,6 +293,19 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   required: false,
                   collapsibleSection: advancedSection,
                 },
+                /*
+                 * Who owns the alert besides its creator, who becomes an
+                 * owner anyway: their teams one click away under the picker.
+                 * Always on the review step, with the owner rules that will
+                 * add more.
+                 */
+                getOwnersFormField<Alert>({
+                  stepId: "alert-details",
+                  collapsibleSection: advancedSection,
+                  ...getOwnersOnCreateFieldOptions<Alert>(
+                    OwnerRulePreviewEvent.Alert,
+                  ),
+                }),
                 {
                   field: {
                     monitor: true,

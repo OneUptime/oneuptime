@@ -996,7 +996,8 @@ const INHERITING_PAGES: Array<InheritingPageCase> = [
     kind: "owners",
     foldTitle: "Inherit Owners",
     monitorsSwitch: "Inherit Owners From Monitors",
-    summary: "Optionally assign owners from related entities to the incident.",
+    summary:
+      "Optionally assign owners from related entities, or the creator's team, to the incident.",
   },
   {
     name: "Alerts > Settings > Owner Rules",
@@ -1004,7 +1005,8 @@ const INHERITING_PAGES: Array<InheritingPageCase> = [
     kind: "owners",
     foldTitle: "Inherit Owners",
     monitorsSwitch: "Inherit Owners From Monitor",
-    summary: "Optionally assign owners from related entities to the alert.",
+    summary:
+      "Optionally assign owners from related entities, or the creator's team, to the alert.",
   },
   {
     name: "Scheduled Maintenance > Settings > Owner Rules",

@@ -94,8 +94,8 @@ A rule pages as soon as an alert matches it. To make it wait for working hours i
 
 **Owner Rules** add owner users and teams to new alerts that match, and **Label Rules** add labels. Creating one takes two steps: **Match**, the conditions, then **Owners** or **Labels**, what the rule adds. The rule's **Name** follows what you pick until you type your own.
 
-- **A rule can inherit.** Folded under **Inherit Owners** or **Inherit Labels**, six switches hand on the owners or labels of the alert's monitor, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. Episode rules have no such switches.
-- **A new rule has to add something**: pick at least one owner or label, or turn on a switch.
+- **A rule can inherit.** Folded under **Inherit Owners** or **Inherit Labels**, six switches hand on the owners or labels of the alert's monitor, hosts, Kubernetes clusters, Docker hosts, Podman hosts and services. Episode rules have no such switches. An owner rule's **Inherit Owners** ends with **Creator's Team**: of the teams listed there, each one the person who creates the alert is in becomes an owner too.
+- **A new rule has to add something**: pick at least one owner or label, or turn on a switch. On an incident or alert owner rule, a team under **Creator's Team** is enough too.
 - **Notify Owners**, under **More fields** on an owner rule, decides whether the people added are told.
 
 [Label and Owner Rules](/docs/configuration/label-and-owner-rules) covers the form step by step, for every kind of resource.

@@ -56,6 +56,11 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/incident-episode-member/add-incidents",
   // An incident call's transcript and what OneUptime AI read in it (#4875).
   "/incident-video-call/",
+  /*
+   * Which owner rules would run for an incident, alert or episode being
+   * created, and who they would add: the review step of the create forms.
+   */
+  "/owner-rule-preview",
 ];
 
 /*
@@ -134,6 +139,15 @@ const GUARDED_PAGES: Array<GuardedPage> = [
   {
     page: ["Components", "VideoCall", "CallTranscriptApi.ts"],
     routePrefix: "/incident-video-call/",
+  },
+  /*
+   * The Owners row on the review step of Declare Incident, Create Alert and
+   * both Create Episode forms asks which owner rules would run - each
+   * event's route in a call of its own - through this one module.
+   */
+  {
+    page: ["Components", "OwnersOnCreate", "OwnerRulePreviewApi.ts"],
+    routePrefix: "/owner-rule-preview",
   },
 ];
 

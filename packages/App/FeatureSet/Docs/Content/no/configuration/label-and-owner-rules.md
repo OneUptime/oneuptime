@@ -57,7 +57,7 @@ I trinnet **Etiketter** velger du **Etiketter å legge til**. I en eierregel het
 I det siste trinnet klikker du igjen på knappen som er oppkalt etter regelen, for eksempel **Opprett Monitor Label Rule**. Regelen starter som aktivert, og listen viser den med et grønt merke **Aktivert**.
 :::
 
-En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et rødt merke **Deaktivert**.
+En ny regel må legge til noe: minst én etikett (eller eier) eller, i en regel for hendelser, varsler eller planlagt vedlikehold, noe den arver (se nedenfor). For å sette en regel på pause uten å slette den slår du av **Aktivert** i redigeringsskjemaet; listen viser da et rødt merke **Deaktivert**. På en eierregel for hendelser eller varsler holder det også med et team under **Oppretterens team**.
 
 ### Uansett hvordan regelen opprettes
 
@@ -68,9 +68,10 @@ Det samme gjelder for en regel som opprettes via API-et, Terraform, en arbeidsfl
 | Etikettregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Etikettregel for hendelser, varsler eller planlagt vedlikehold | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Eierregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Eierregel for hendelser, varsler eller planlagt vedlikehold | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Eierregel for hendelser eller varsler | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Eierregel for planlagt vedlikehold | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: sett `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) til minst én post i prosjektet, eller en av regelens brytere `inheritLabelsFrom…` (`inheritOwnersFrom…`) til `true`, en JSON-boolean.
+- **API**: sett `labelsToAdd` (eller `ownerUsers` / `ownerTeams`) til minst én post i prosjektet, eller en av regelens brytere `inheritLabelsFrom…` (`inheritOwnersFrom…`) til `true`, en JSON-boolean. På en eierregel for hendelser eller varsler holder det også med et team i `creatorTeams`.
 - **Terraform**: en ressurs for en etikett- eller eierregel som ikke legger til noe, feiler ved `terraform apply` med meldingen over. Gi den `labels_to_add` (eller `owner_users` / `owner_teams`), eller slå på en av arvebryterne.
 
 Regler du allerede har, røres ikke: se [Rediger en regel](#rediger-en-regel).
@@ -93,6 +94,12 @@ En regel som arver, kan la **Etiketter å legge til** (eller **Eiere**) stå tom
 | **Arv etiketter fra overvåking**, i en varselregel | _Arv etiketter fra: overvåking_ |
 
 Navnet følger bryterne til du velger en etikett (da får regelen navn etter etikettene sine) eller skriver et eget navn.
+
+### Oppretterens team
+
+En eierregel for hendelser eller varsler har én oppføring til, sist i delen **Arv eiere**: **Oppretterens team**, en liste over team. Når personen som erklærer en samsvarende hendelse, eller oppretter et samsvarende varsel, er medlem av et team på listen, blir det teamet også eier. Det er en liste og ikke alle personens team, fordi folk som standard blir med i prosjektets team **Medlemmer**, og å gjøre alle til eiere hjelper ingen. En hendelse eller et varsel som en monitor, en arbeidsflyt, et skjema eller en API-nøkkel oppretter, har ingen oppretter og får ingen av disse teamene. De varsles slik regelens **Varsle eiere** sier, og en regel som bare legger til dem, heter _Legg til oppretterens team som eier_. Gjennom API-et er listen `creatorTeams`.
+
+Personen som erklærer en hendelse eller oppretter et varsel, blir en av eierne uansett hva reglene sier, og opprettingsskjemaene nevner i sammendraget hver eierregel som vil kjøre, og hvem den vil legge til: se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 
 ## Rediger en regel
 
