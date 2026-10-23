@@ -491,6 +491,8 @@ const HomeFeatureSet: FeatureSet = {
         githubStars,
         githubContributors,
         githubCommits,
+        // The homepage's air-gapped section states the air-gapped page's own facts.
+        airGapped: getAirGappedContent(),
       });
     });
 

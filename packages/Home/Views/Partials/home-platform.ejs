@@ -1,8 +1,9 @@
 <%
   /*
-   * The core products, each a card with a crop of its screen. A card's crop
-   * is the screen at its own width, scaled to fit the card and faded out at
-   * the edge, so it reads as a glimpse of the product.
+   * The core products, each a card with a glimpse of its screen: the screen
+   * drawn at `frame`'s width and scale, moved up by `crop` to the part that
+   * shows what the product does (a cropped screen starts flush with the top),
+   * and faded out at the bottom.
    */
   const platformCards = [
     {
@@ -11,7 +12,9 @@
       text: 'Check websites, APIs and servers every 10 seconds from around the world, and run synthetic checks of real user flows.',
       mock: 'mock-detect',
       span: 'lg:col-span-4',
-      scale: 'scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      // From the uptime history down: the history bars and the response-time chart.
+      crop: '-mt-[379px]',
     },
     {
       href: '/product/status-page',
@@ -19,7 +22,8 @@
       text: 'Branded pages on your own domain that update from your monitors and notify subscribers.',
       mock: 'mock-communicate',
       span: 'lg:col-span-2',
-      scale: 'scale-[0.5] sm:scale-[0.75] lg:scale-[0.7]',
+      frame: 'top-6 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:w-[28rem] lg:scale-[0.72]',
+      crop: '',
     },
     {
       href: '/product/on-call',
@@ -27,7 +31,9 @@
       text: 'Schedules, escalations and alerts by phone, SMS, Slack or Teams, with one timeline per incident.',
       mock: 'mock-respond',
       span: 'lg:col-span-2',
-      scale: 'scale-[0.5] sm:scale-[0.75] lg:scale-[0.7]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:w-[28rem] lg:scale-[0.72]',
+      // From the incident itself down: its state, then the feed.
+      crop: '-mt-[83px]',
     },
     {
       href: '/product/observability',
@@ -35,7 +41,9 @@
       text: 'OpenTelemetry-native observability: go from an alert to the slow trace and the exact log line.',
       mock: 'mock-diagnose',
       span: 'lg:col-span-4',
-      scale: 'scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      frame: 'top-0 w-[45rem] scale-[0.5] sm:scale-[0.75] lg:scale-[0.92]',
+      // The waterfall.
+      crop: '-mt-[338px]',
     },
   ];
 -%>
@@ -49,9 +57,11 @@
     <div class="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-6">
       <% platformCards.forEach(function (card) { -%>
       <a href="<%= card.href %>" class="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] transition-colors hover:border-gray-300 <%= card.span %>">
-        <div class="relative h-64 overflow-hidden bg-gradient-to-b from-slate-50 to-white sm:h-80" aria-hidden="true">
-          <div class="pointer-events-none absolute left-6 top-6 w-[45rem] origin-top-left select-none <%= card.scale %>">
-            <%- include('./home-mocks/' + card.mock) -%>
+        <div class="relative h-48 overflow-hidden bg-gradient-to-b from-slate-50 to-white sm:h-80" aria-hidden="true">
+          <div class="pointer-events-none absolute left-6 origin-top-left select-none <%= card.frame %>">
+            <div class="<%= card.crop %>">
+              <%- include('./home-mocks/' + card.mock) -%>
+            </div>
           </div>
           <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
         </div>

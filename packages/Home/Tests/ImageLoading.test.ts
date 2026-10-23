@@ -66,7 +66,7 @@ describe("the homepage", () => {
     expect(hero).not.toBeNull();
     expect(hero.querySelectorAll("img, picture, video")).toHaveLength(0);
     expect(hero.querySelector("h1")!.textContent!.trim()).toBe(
-      "Know when things break. Fix them before customers notice.",
+      "Less downtime. Fewer tools. No lock-in.",
     );
   });
 
