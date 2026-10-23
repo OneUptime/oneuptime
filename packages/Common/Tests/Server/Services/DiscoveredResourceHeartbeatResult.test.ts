@@ -174,9 +174,9 @@ describe("each discovered kind's heartbeat hands back what it found", () => {
       await expect(heartbeat(id)).resolves.toEqual({ isRowGone: true });
 
       expect(write).toHaveBeenCalledTimes(1);
-      expect(
-        (write.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
-      ).toBe(id.toString());
+      expect((write.mock.calls[0]![0] as { id: ObjectID }).id.toString()).toBe(
+        id.toString(),
+      );
     },
   );
 

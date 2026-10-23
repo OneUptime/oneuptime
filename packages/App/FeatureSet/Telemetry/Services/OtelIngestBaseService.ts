@@ -499,10 +499,10 @@ export default abstract class OtelIngestBaseService {
       id = await SingleFlight.run(
         `discovered-resource:${kind.namespace}:${key}`,
         async (): Promise<string | null> => {
-          const found: string | null = await this.findOrCreateDiscoveredResource(
-            resource,
-            { fresh: false },
-          );
+          const found: string | null =
+            await this.findOrCreateDiscoveredResource(resource, {
+              fresh: false,
+            });
 
           if (found) {
             await this.setEntityIdInCaches(
@@ -519,7 +519,10 @@ export default abstract class OtelIngestBaseService {
     }
 
     if (id) {
-      this.discoveredResourceIdentities.set(`${kind.namespace}:${id}`, resource);
+      this.discoveredResourceIdentities.set(
+        `${kind.namespace}:${id}`,
+        resource,
+      );
     }
 
     return id;
@@ -1753,13 +1756,12 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const clusterIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "KubernetesCluster",
           projectId: data.projectId,
           identity: clusterName,
-        },
-      );
+        });
 
       if (!clusterIdStr) {
         return null;
@@ -1870,21 +1872,19 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null = this.getProxmoxClusterNameFromAttributes(
-        data.attributes,
-      );
+      const clusterName: string | null =
+        this.getProxmoxClusterNameFromAttributes(data.attributes);
 
       if (!clusterName) {
         return null;
       }
 
-      const clusterIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "ProxmoxCluster",
           projectId: data.projectId,
           identity: clusterName,
-        },
-      );
+        });
 
       if (!clusterIdStr) {
         return null;
@@ -2002,13 +2002,12 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const vcenterIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const vcenterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "VMwareVCenter",
           projectId: data.projectId,
           identity: vcenterName,
-        },
-      );
+        });
 
       if (!vcenterIdStr) {
         return null;
@@ -2245,21 +2244,19 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null = this.getDockerSwarmClusterNameFromAttributes(
-        data.attributes,
-      );
+      const clusterName: string | null =
+        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
 
       if (!clusterName) {
         return null;
       }
 
-      const clusterIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "DockerSwarmCluster",
           projectId: data.projectId,
           identity: clusterName,
-        },
-      );
+        });
 
       if (!clusterIdStr) {
         return null;
@@ -2373,13 +2370,12 @@ export default abstract class OtelIngestBaseService {
         return null;
       }
 
-      const clusterIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const clusterIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "CephCluster",
           projectId: data.projectId,
           identity: clusterName,
-        },
-      );
+        });
 
       if (!clusterIdStr) {
         return null;
@@ -2854,16 +2850,20 @@ export default abstract class OtelIngestBaseService {
                 "cloud.provider",
               ) || undefined,
             cloudRegion:
-              this.readTrimmedStringAttribute(data.attributes, "cloud.region") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "cloud.region",
+              ) || undefined,
             cloudAccountId:
               this.readTrimmedStringAttribute(
                 data.attributes,
                 "cloud.account.id",
               ) || undefined,
             functionVersion:
-              this.readTrimmedStringAttribute(data.attributes, "faas.version") ||
-              undefined,
+              this.readTrimmedStringAttribute(
+                data.attributes,
+                "faas.version",
+              ) || undefined,
             runtimeName:
               this.readTrimmedStringAttribute(
                 data.attributes,
@@ -3042,8 +3042,8 @@ export default abstract class OtelIngestBaseService {
         region: cloudRegion,
       });
 
-      const resourceIdStr: string | null = await this.resolveDiscoveredResourceId(
-        {
+      const resourceIdStr: string | null =
+        await this.resolveDiscoveredResourceId({
           kindName: "CloudResource",
           projectId: data.projectId,
           identity: resourceIdentifier,
@@ -3054,8 +3054,7 @@ export default abstract class OtelIngestBaseService {
             cloudRegion: cloudRegion || undefined,
             cloudAccountId: cloudAccountId || undefined,
           },
-        },
-      );
+        });
 
       if (!resourceIdStr) {
         return null;
@@ -4856,7 +4855,9 @@ export default abstract class OtelIngestBaseService {
         id: hostIdStr,
         fenceScope: "host",
         armedFences: armedFences,
-        heartbeat: async (hostId: ObjectID): Promise<ResourceHeartbeatResult> => {
+        heartbeat: async (
+          hostId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",

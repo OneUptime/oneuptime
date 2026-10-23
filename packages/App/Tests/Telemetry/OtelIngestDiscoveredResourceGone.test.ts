@@ -135,7 +135,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
     kind: DiscoveredResourceKinds.ProxmoxCluster,
     identity: "pve-1",
     attributes: [stringAttribute("proxmox.cluster.name", "pve-1")] as JSONArray,
-    findOrCreate: { service: ProxmoxClusterService, method: "findOrCreateByName" },
+    findOrCreate: {
+      service: ProxmoxClusterService,
+      method: "findOrCreateByName",
+    },
     heartbeat: { service: ProxmoxClusterService, method: "updateLastSeen" },
   },
   {
@@ -146,7 +149,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
     attributes: [
       stringAttribute("vmware.vcenter.name", "vcsa-prod"),
     ] as JSONArray,
-    findOrCreate: { service: VMwareVCenterService, method: "findOrCreateByName" },
+    findOrCreate: {
+      service: VMwareVCenterService,
+      method: "findOrCreateByName",
+    },
     heartbeat: { service: VMwareVCenterService, method: "updateLastSeen" },
   },
   {
@@ -189,7 +195,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
     attributes: [
       stringAttribute("storage.array.name", "pure-prod-01"),
     ] as JSONArray,
-    findOrCreate: { service: StorageArrayService, method: "findOrCreateByName" },
+    findOrCreate: {
+      service: StorageArrayService,
+      method: "findOrCreateByName",
+    },
     heartbeat: { service: StorageArrayService, method: "updateLastSeen" },
   },
   {
@@ -275,7 +284,10 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       stringAttribute("host.name", "vm-1"),
       stringAttribute("os.type", "linux"),
     ] as JSONArray,
-    findOrCreate: { service: HostService, method: "findOrCreateByHostIdentifier" },
+    findOrCreate: {
+      service: HostService,
+      method: "findOrCreateByHostIdentifier",
+    },
     heartbeat: { service: HostService, method: "updateLastSeen" },
   },
 ];
@@ -474,13 +486,13 @@ describe.each(DISCOVER_CASES)(
       rows = [NEW_ID];
 
       // Another worker re-pointed the key between this batch's read and its heartbeat.
-      (
-        heartbeat.service[heartbeat.method] as jest.Mock
-      ).mockImplementationOnce(async (): Promise<ResourceHeartbeatResult> => {
-        heartbeats.push(GONE_ID);
-        redis.set(redisKey, NEW_ID);
-        return { isRowGone: true };
-      });
+      (heartbeat.service[heartbeat.method] as jest.Mock).mockImplementationOnce(
+        async (): Promise<ResourceHeartbeatResult> => {
+          heartbeats.push(GONE_ID);
+          redis.set(redisKey, NEW_ID);
+          return { isRowGone: true };
+        },
+      );
 
       await expect(discover()).resolves.toBe(NEW_ID);
 

@@ -374,7 +374,11 @@ describe("DiscoveredResourceIdCache", () => {
       await DiscoveredResourceIdCache.afterDelete({
         tableName: "DockerHost",
         rows: [
-          row({ _id: HOST_ID, projectId: PROJECT_ID, hostIdentifier: "test01" }),
+          row({
+            _id: HOST_ID,
+            projectId: PROJECT_ID,
+            hostIdentifier: "test01",
+          }),
         ],
       });
 
@@ -497,12 +501,9 @@ describe("DiscoveredResourceIdCache", () => {
     test("the memos services keep of their own are told, and one that throws stops none of the others", async () => {
       const told: Array<string> = [];
 
-      DiscoveredResourceIdCache.registerLocalLayer(
-        "PodmanHost",
-        (): void => {
-          throw new Error("a memo that throws");
-        },
-      );
+      DiscoveredResourceIdCache.registerLocalLayer("PodmanHost", (): void => {
+        throw new Error("a memo that throws");
+      });
       DiscoveredResourceIdCache.registerLocalLayer(
         "PodmanHost",
         (entry: { projectId: string; identity: string }): void => {
@@ -563,7 +564,11 @@ describe("DiscoveredResourceIdCache", () => {
       await DiscoveredResourceIdCache.afterUpdate({
         tableName: "DockerHost",
         rowsBefore: [
-          row({ _id: HOST_ID, projectId: PROJECT_ID, hostIdentifier: "test01" }),
+          row({
+            _id: HOST_ID,
+            projectId: PROJECT_ID,
+            hostIdentifier: "test01",
+          }),
         ],
         written: { hostIdentifier: "test02" },
       });
@@ -578,7 +583,11 @@ describe("DiscoveredResourceIdCache", () => {
       await DiscoveredResourceIdCache.afterUpdate({
         tableName: "DockerHost",
         rowsBefore: [
-          row({ _id: HOST_ID, projectId: PROJECT_ID, hostIdentifier: "test01" }),
+          row({
+            _id: HOST_ID,
+            projectId: PROJECT_ID,
+            hostIdentifier: "test01",
+          }),
         ],
         written: { hostIdentifier: " TEST01 ", description: "edge box" },
       });
@@ -594,7 +603,11 @@ describe("DiscoveredResourceIdCache", () => {
       await DiscoveredResourceIdCache.afterUpdate({
         tableName: "DockerHost",
         rowsBefore: [
-          row({ _id: HOST_ID, projectId: PROJECT_ID, hostIdentifier: "test01" }),
+          row({
+            _id: HOST_ID,
+            projectId: PROJECT_ID,
+            hostIdentifier: "test01",
+          }),
         ],
         written: { lastSeenAt: new Date(), otelCollectorStatus: "connected" },
       });
@@ -609,7 +622,9 @@ describe("DiscoveredResourceIdCache", () => {
 
       await DiscoveredResourceIdCache.afterUpdate({
         tableName: "CephCluster",
-        rowsBefore: [row({ _id: HOST_ID, projectId: PROJECT_ID, name: "ceph" })],
+        rowsBefore: [
+          row({ _id: HOST_ID, projectId: PROJECT_ID, name: "ceph" }),
+        ],
         written: { name: "Production Ceph" },
       });
 
@@ -649,9 +664,9 @@ describe("DiscoveredResourceIdCache", () => {
 
   describe("what a delete reads", () => {
     test("the identity column of each kind its table is", () => {
-      expect(DiscoveredResourceIdCache.getColumnsToRead("DockerHost")).toEqual(
-        ["hostIdentifier"],
-      );
+      expect(DiscoveredResourceIdCache.getColumnsToRead("DockerHost")).toEqual([
+        "hostIdentifier",
+      ]);
       expect(
         DiscoveredResourceIdCache.getColumnsToRead("KubernetesCluster"),
       ).toEqual(["clusterIdentifier"]);
@@ -667,9 +682,7 @@ describe("DiscoveredResourceIdCache", () => {
       expect(
         DiscoveredResourceIdCache.getColumnsToRead("DatabaseServer"),
       ).toEqual([]);
-      expect(DiscoveredResourceIdCache.getColumnsToRead("Monitor")).toEqual(
-        [],
-      );
+      expect(DiscoveredResourceIdCache.getColumnsToRead("Monitor")).toEqual([]);
       expect(DiscoveredResourceIdCache.getColumnsToRead(null)).toEqual([]);
     });
   });

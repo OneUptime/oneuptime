@@ -208,10 +208,7 @@ export default class DuplicateRowMerge {
           ORDER BY "keptId", "createdAt" ASC, "_id" ASC`,
       );
 
-    const groups: Map<string, Array<string>> = new Map<
-      string,
-      Array<string>
-    >();
+    const groups: Map<string, Array<string>> = new Map<string, Array<string>>();
 
     for (const row of rows) {
       const duplicates: Array<string> = groups.get(row.keptId) || [];

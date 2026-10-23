@@ -16,7 +16,11 @@ import Host from "../../../../Models/DatabaseModels/Host";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Models from "../../../../Models/DatabaseModels/Index";
 import logger from "../../../../Server/Utils/Logger";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -165,7 +169,10 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
   });
 
   test("a duplicate created while the index was being built is merged, and the index built again", async () => {
-    buildFailures.set(EXPECTED_BUILDS[0]!, [UNIQUE_VIOLATION, UNIQUE_VIOLATION]);
+    buildFailures.set(EXPECTED_BUILDS[0]!, [
+      UNIQUE_VIOLATION,
+      UNIQUE_VIOLATION,
+    ]);
 
     await new MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000().up(
       runner,
@@ -291,9 +298,11 @@ describe("MergeDuplicateHostsAndAddUniqueHostIdentifier", () => {
           "isArchived",
           "createdByUserId",
         ]) {
-          expect([merge.table, column, merge.latestOf.includes(column)]).toEqual(
-            [merge.table, column, false],
-          );
+          expect([
+            merge.table,
+            column,
+            merge.latestOf.includes(column),
+          ]).toEqual([merge.table, column, false]);
           expect([
             merge.table,
             column,

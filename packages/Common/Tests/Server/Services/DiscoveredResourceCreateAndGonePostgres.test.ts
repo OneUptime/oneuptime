@@ -450,10 +450,9 @@ describePostgres(
         redis.clear();
         ResourceHeartbeat.clearRecentHeartbeatMemo();
         await expect(
-          DockerHostService.updateLastSeen(
-            new ObjectID(Array.from(ids)[0]!),
-            { osType: "linux" },
-          ),
+          DockerHostService.updateLastSeen(new ObjectID(Array.from(ids)[0]!), {
+            osType: "linux",
+          }),
         ).resolves.toEqual({ isRowGone: false });
       });
 
@@ -505,18 +504,18 @@ describePostgres(
           });
         const id: ObjectID = new ObjectID(created._id!.toString());
 
-        await expect(DockerHostService.hasRowWithIdWithoutHooks(id)).resolves.toBe(
-          true,
-        );
+        await expect(
+          DockerHostService.hasRowWithIdWithoutHooks(id),
+        ).resolves.toBe(true);
 
         await DockerHostService.deleteOneById({
           id,
           props: { isRoot: true },
         });
 
-        await expect(DockerHostService.hasRowWithIdWithoutHooks(id)).resolves.toBe(
-          false,
-        );
+        await expect(
+          DockerHostService.hasRowWithIdWithoutHooks(id),
+        ).resolves.toBe(false);
         await expect(
           DockerHostService.hasRowWithIdWithoutHooks(ObjectID.generate()),
         ).resolves.toBe(false);

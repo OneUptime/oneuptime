@@ -4456,10 +4456,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
 
         if (Object.keys(extras).length > 0) {
-          await IoTFleetService.updateLastSeen(
-            new ObjectID(liveIdStr),
-            extras,
-          );
+          await IoTFleetService.updateLastSeen(new ObjectID(liveIdStr), extras);
         }
       } catch (err) {
         logger.warn(

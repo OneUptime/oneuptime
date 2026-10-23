@@ -103,7 +103,11 @@ import {
  * nor tries to create it. A create that loses the race is refused by it, and
  * the service reads the row that won.
  */
-@Index("IDX_docker_host_project_lower_host_identifier", ["projectId", "hostIdentifier"], UNSYNCHRONIZED_INDEX)
+@Index(
+  "IDX_docker_host_project_lower_host_identifier",
+  ["projectId", "hostIdentifier"],
+  UNSYNCHRONIZED_INDEX,
+)
 @TableMetadata({
   tableName: "DockerHost",
   singularName: "Docker Host",

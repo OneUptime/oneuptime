@@ -37,7 +37,7 @@ import { DataSource, QueryRunner } from "typeorm";
  * or DATABASE_NAME, endpoint from MERGE_DUPLICATE_HOSTS_TEST_DATABASE_HOST /
  * _PORT (default localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MERGE_DUPLICATE_HOSTS_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -340,10 +340,11 @@ describePostgres(
       const projectId: string = ObjectID.generate().toString();
       const otherProjectId: string = ObjectID.generate().toString();
 
-      const host: (values: Record<string, unknown>) => Promise<string> =
-        async (values: Record<string, unknown>): Promise<string> => {
-          return (await insertRow(table, values))["_id"] as string;
-        };
+      const host: (values: Record<string, unknown>) => Promise<string> = async (
+        values: Record<string, unknown>,
+      ): Promise<string> => {
+        return (await insertRow(table, values))["_id"] as string;
+      };
 
       // The oldest: what is kept. Never written to by the agent since.
       const keptId: string = await host({
@@ -714,8 +715,7 @@ describePostgres(
     describe.each(HOST_TABLES)("%s", (table: string) => {
       test("the fixture refers to the duplicates from every child the catalog lists", async () => {
         const fixture: HostFixture = fixtures.get(table)!;
-        const references: Array<Reference> =
-          await referencesOfHostTable(table);
+        const references: Array<Reference> = await referencesOfHostTable(table);
 
         // Every foreign key to the table, and every id column without one.
         expect(references.length).toBeGreaterThanOrEqual(

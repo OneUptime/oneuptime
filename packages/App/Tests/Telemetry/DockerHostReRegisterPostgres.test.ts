@@ -136,9 +136,7 @@ describePostgres(
 
     async function liveHosts(
       projectId: ObjectID,
-    ): Promise<
-      Array<{ id: string; status: string; lastSeenAt: Date | null }>
-    > {
+    ): Promise<Array<{ id: string; status: string; lastSeenAt: Date | null }>> {
       return await database.query(
         `SELECT "_id"::text AS "id", "otelCollectorStatus" AS "status", "lastSeenAt"
            FROM "${schema}"."DockerHost"
@@ -295,9 +293,7 @@ describePostgres(
         });
 
       // Everything a batch touches besides the Docker host's own path.
-      jest
-        .spyOn(ingest, "runBatchHostEnrichment")
-        .mockResolvedValue(undefined);
+      jest.spyOn(ingest, "runBatchHostEnrichment").mockResolvedValue(undefined);
       jest.spyOn(ingest, "submitMetricsBuffer").mockResolvedValue(undefined);
       for (const method of OTHER_DISCOVERIES_RETURNING_NULL) {
         jest.spyOn(ingest, method).mockResolvedValue(null);
@@ -438,9 +434,9 @@ describePostgres(
         ),
       ).toBe(first!.id);
       // The deleted id's maintenance fence is held - only the refusal can tell.
-      expect(
-        redis.has(`otel-maintenance-fence:docker-host:${first!.id}`),
-      ).toBe(true);
+      expect(redis.has(`otel-maintenance-fence:docker-host:${first!.id}`)).toBe(
+        true,
+      );
 
       await send(projectId);
 

@@ -225,7 +225,10 @@ export class MergeDuplicateHostsAndAddUniqueHostIdentifier1806700000000
         await build();
         return;
       } catch (error) {
-        if (getErrorCode(error) !== UNIQUE_VIOLATION || attempt >= MAX_ATTEMPTS) {
+        if (
+          getErrorCode(error) !== UNIQUE_VIOLATION ||
+          attempt >= MAX_ATTEMPTS
+        ) {
           throw error;
         }
 

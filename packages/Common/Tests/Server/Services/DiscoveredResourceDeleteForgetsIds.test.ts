@@ -40,14 +40,12 @@ function serviceOf<TModel extends BaseModel>(
 ): DatabaseService<TModel> {
   const service: DatabaseService<TModel> = new DatabaseService<TModel>(model);
 
-  jest
-    .spyOn(service as never, "_findBy")
-    .mockImplementation((async (findBy: {
-      select: Record<string, unknown>;
-    }): Promise<Array<TModel>> => {
-      reads.push({ select: { ...(findBy.select || {}) } });
-      return rows;
-    }) as never);
+  jest.spyOn(service as never, "_findBy").mockImplementation((async (findBy: {
+    select: Record<string, unknown>;
+  }): Promise<Array<TModel>> => {
+    reads.push({ select: { ...(findBy.select || {}) } });
+    return rows;
+  }) as never);
   jest
     .spyOn(service as never, "readRowsShowingImages")
     .mockImplementation((async (items: Array<TModel>) => {
@@ -67,7 +65,9 @@ function serviceOf<TModel extends BaseModel>(
   jest
     .spyOn(service as never, "getRealtimeAccessBeforeDelete")
     .mockResolvedValue(new Map() as never);
-  jest.spyOn(service, "onTriggerWorkflow").mockResolvedValue(undefined as never);
+  jest
+    .spyOn(service, "onTriggerWorkflow")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(service, "onTriggerRealtime" as never)
     .mockResolvedValue(undefined as never);

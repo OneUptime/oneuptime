@@ -177,9 +177,9 @@ describe("ResourceHeartbeat: a row that is gone", () => {
     ).resolves.toEqual({ isRowGone: true });
 
     // The enrichment gates were released, so the next batch retries.
-    expect(
-      cache.has(`${NAMESPACE}-fingerprint:${resourceId.toString()}`),
-    ).toBe(false);
+    expect(cache.has(`${NAMESPACE}-fingerprint:${resourceId.toString()}`)).toBe(
+      false,
+    );
     expect(
       cache.has(`${NAMESPACE}-write-window:${resourceId.toString()}`),
     ).toBe(false);
