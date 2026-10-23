@@ -290,13 +290,41 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
             data-testid="security-getting-started-actions"
           >
             {isAllDone ? (
-              <Button
-                title="Done"
-                icon={IconProp.Check}
-                buttonStyle={ButtonStyleType.PRIMARY}
-                dataTestId="security-getting-started-done"
-                onClick={props.onDone}
-              />
+              <>
+                <Button
+                  title="Done"
+                  icon={IconProp.Check}
+                  buttonStyle={ButtonStyleType.PRIMARY}
+                  dataTestId="security-getting-started-done"
+                  onClick={props.onDone}
+                />
+                {/*
+                 * Every step is done - a test attack opened its case - while
+                 * something the last click named is still missing: Try
+                 * again stays at hand beside Done, under the box that says
+                 * what.
+                 */}
+                {showTryAgain ? (
+                  <Button
+                    title="Try again"
+                    icon={IconProp.Refresh}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    isLoading={isTurningOn}
+                    disabled={!turnOnGate.isAllowed || isTurningOn}
+                    tooltip={
+                      turnOnGate.isAllowed
+                        ? undefined
+                        : turnOnGate.disabledReason
+                    }
+                    dataTestId="security-turn-on-try-again"
+                    onClick={() => {
+                      void turnOnRecommended();
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+              </>
             ) : (
               <>
                 {showTurnOn ? (

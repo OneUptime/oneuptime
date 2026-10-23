@@ -795,6 +795,50 @@ describe("when Turn on recommended cannot do everything", () => {
     ).toHaveTextContent("and 2 more");
   });
 
+  test("a test attack that completes the steps while something is still missing: Done leads, and Try again stays beside it", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        rulesAdded: 19,
+        logsTurnedOn: true,
+        playbookAdded: true,
+        problems: [problem()],
+      }),
+    );
+    jest.spyOn(SecurityCaseApi, "runSetupTest").mockResolvedValue({
+      eventsSent: 12,
+      caseId: CASE_ID,
+      caseNumber: "#7",
+      ruleAdded: false,
+    } as SecuritySetupTestResult);
+    answerStatus(
+      status(),
+      status({ ...SET_UP, enabledRules: 19 }),
+      status({ ...SET_UP, enabledRules: 19, openCases: 1 }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-run-setup-test"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).toHaveTextContent(
+        "Security is set up",
+      );
+    });
+    // The rule still missing is still said, and can still be tried again.
+    expect(rows(problemsBox())).toEqual([
+      "Password spraying - Something went wrong while adding it.",
+    ]);
+    expect(buttonTitles(actions())).toEqual(["Done", "Try again"]);
+    expect(screen.getByTestId("security-turn-on-try-again")).toBeEnabled();
+  });
+
   test("a test attack that fails says so in the card, in the same box", async () => {
     jest
       .spyOn(SecurityCaseApi, "runSetupTest")
