@@ -34,6 +34,10 @@ import FilterCondition from "Common/Types/Filter/FilterCondition";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
+import StatusPageSummaryUtil, {
+  STATUS_PAGE_SUMMARY_GROUP_SEPARATOR,
+} from "Common/Types/StatusPage/StatusPageSummary";
+import ExternalStatusPageComponentStatusUtil from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
 import {
   DEFAULT_SQL_CONNECTION_TIMEOUT_IN_MS,
   DEFAULT_SQL_MAX_ROWS,
@@ -2185,11 +2189,16 @@ describe("External Status Page Monitor", () => {
     );
     const incidentIo: number = auto.indexOf("tryIncidentIo(");
     const atlassian: number = auto.indexOf("tryAtlassianStatuspage(");
+    const oneUptime: number = auto.indexOf("tryOneUptimeStatusPage(");
     const feed: number = auto.indexOf("tryRssAtomFeed(");
 
     expect(incidentIo).toBeGreaterThan(0);
     expect(atlassian).toBeGreaterThan(incidentIo);
-    expect(feed).toBeGreaterThan(atlassian);
+    expect(oneUptime).toBeGreaterThan(atlassian);
+    expect(feed).toBeGreaterThan(oneUptime);
+    expect(page).toContain(
+      "3. Then it asks for a OneUptime status page's summary (`/status-page-api/summary/<page>`).",
+    );
     expect(probe).toContain(
       "// If all methods fail, just check if the URL is reachable\n        response = await ExternalStatusPageMonitorUtil.tryBasicHttpCheck(",
     );
@@ -2221,16 +2230,162 @@ describe("External Status Page Monitor", () => {
     );
   });
 
-  it("counts a feed's items of the last 24 hours as active incidents", () => {
+  it("counts a feed's items of the last 24 hours as active incidents, none dated ahead", () => {
     expect(probe).toContain(
       'const pubDate: string = (item["pubDate"] as string) || "";',
     );
     expect(probe).toContain(
       '(entry["updated"] as string) || (entry["published"] as string) || "";',
     );
-    expect(probe.split("if (hoursDiff <= 24) {").length - 1).toBe(2);
+    expect(
+      probe.split("if (ExternalStatusPageMonitorUtil.isRecentFeedItem(")
+        .length - 1,
+    ).toBe(2);
+    expect(probe).toContain(
+      "export const EXTERNAL_STATUS_PAGE_FEED_ACTIVE_WINDOW_IN_MS: number =\n  24 * 60 * 60 * 1000;",
+    );
+    expect(probe).toContain(
+      "ageInMs >= -EXTERNAL_STATUS_PAGE_FEED_CLOCK_SKEW_IN_MS &&",
+    );
     expect(page).toContain(
-      "On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date.",
+      "On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date. An item dated ahead does not count until its date.",
+    );
+  });
+
+  it("reads a OneUptime status page's summary, at the address the page says", () => {
+    const oneUptime: string = section(page, "## OneUptime status pages");
+
+    expect(oneUptime).toContain("`/status-page-api/summary/<page>`");
+    expect(
+      StatusPageSummaryUtil.getSummaryUrl("https://status.example.com"),
+    ).toBe(
+      "https://status.example.com/status-page-api/summary/status.example.com",
+    );
+    expect(
+      StatusPageSummaryUtil.getSummaryUrl(
+        "https://oneuptime.com/status-page/5e000000-0000-4000-8000-000000000001",
+      ),
+    ).toBe(
+      "https://oneuptime.com/status-page-api/summary/5e000000-0000-4000-8000-000000000001",
+    );
+    expect(oneUptime).toContain("`https://status.example.com`");
+    expect(oneUptime).toContain(
+      "`https://oneuptime.com/status-page/<status-page-id>`",
+    );
+
+    // A group inside another, as the summary names it.
+    expect(`Core${STATUS_PAGE_SUMMARY_GROUP_SEPARATOR}Databases`).toBe(
+      "Core / Databases",
+    );
+    expect(oneUptime).toContain(
+      "a group inside another reads `Core / Databases`",
+    );
+
+    // The provider is named as the dropdown names it.
+    expect(boldItems(oneUptime)).toContain(
+      ExternalStatusPageProviderType.OneUptime,
+    );
+    expect(probe).toContain(
+      "} else if (provider === ExternalStatusPageProviderType.OneUptime) {",
+    );
+  });
+
+  it("tabulates the component status each status on a OneUptime page stands for, as the provider reads it", () => {
+    const rows: Array<Array<string>> = tableRows(
+      section(page, "## OneUptime status pages"),
+    );
+
+    expect(rows.length).toBe(8);
+
+    for (const row of rows) {
+      const [onThePage, componentStatus] = row as [string, string];
+      const expected: string = codeItems(componentStatus)[0] as string;
+      const names: Array<string> = codeItems(onThePage);
+
+      if (onThePage === "The project's operational status") {
+        expect(
+          ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: { name: "All good", color: null, isOperational: true },
+            isUnderMaintenance: false,
+          }),
+        ).toBe(expected);
+        continue;
+      }
+
+      if (onThePage === "Any other status") {
+        expect(
+          ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: {
+              name: "Investigating",
+              color: null,
+              isOperational: false,
+            },
+            isUnderMaintenance: false,
+          }),
+        ).toBe(expected);
+        continue;
+      }
+
+      if (onThePage.startsWith("A status the page hides")) {
+        expect(onThePage).toContain("**Show current status**");
+        expect(
+          ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: null,
+            isUnderMaintenance: false,
+          }),
+        ).toBe(expected);
+        continue;
+      }
+
+      expect({ onThePage, named: names.length > 0 }).toEqual({
+        onThePage,
+        named: true,
+      });
+
+      for (const name of names) {
+        expect({
+          name,
+          status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: { name: name, color: null, isOperational: false },
+            isUnderMaintenance: false,
+          }),
+        }).toEqual({ name, status: expected });
+      }
+    }
+  });
+
+  it("puts a resource under maintenance while an event in progress affects it, whatever its status", () => {
+    const oneUptime: string = section(page, "## OneUptime status pages");
+
+    for (const status of [
+      { name: "Operational", color: null, isOperational: true },
+      { name: "Offline", color: null, isOperational: false },
+      null,
+    ]) {
+      expect(
+        ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+          status: status,
+          isUnderMaintenance: true,
+        }),
+      ).toBe("under_maintenance");
+    }
+
+    expect(oneUptime).toContain(
+      "the component is `under_maintenance`, whatever status its monitors are in",
+    );
+    expect(probe).toContain(
+      "status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({",
+    );
+    expect(probe).toContain("isUnderMaintenance: resource.isUnderMaintenance,");
+  });
+
+  it("fails a private or allowlisted OneUptime page with why, when the provider is chosen", () => {
+    const oneUptime: string = section(page, "## OneUptime status pages");
+
+    expect(probe).toContain("if (response.status === 401 && data.isChosen) {");
+    expect(probe).toContain("if (response.status === 403 && data.isChosen) {");
+    expect(oneUptime).toContain(
+      "with **OneUptime Status Page** chosen, the check fails and says so.",
     );
   });
 

@@ -1,4 +1,7 @@
-import { StatusPageApiInternalUrl, TrustedProxyHops } from "../../EnvironmentConfig";
+import {
+  StatusPageApiInternalUrl,
+  TrustedProxyHops,
+} from "../../EnvironmentConfig";
 import { resolveClientIp } from "../ClientIp";
 import { ExpressRequest } from "../Express";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -217,8 +220,8 @@ export default class StatusPageRssFeed {
   }
 
   /*
-   * When a maintenance window is, in UTC: "Scheduled from Sat, 25 Oct 2026
-   * 02:00 UTC to Sat, 25 Oct 2026 04:00 UTC." - or "Scheduled for ..." when
+   * When a maintenance window is, in UTC: "Scheduled from Sun, 25 Oct 2026
+   * 02:00 UTC to Sun, 25 Oct 2026 04:00 UTC." - or "Scheduled for ..." when
    * it has no end. Empty when it has no start.
    */
   public static describeWindow(
@@ -236,7 +239,7 @@ export default class StatusPageRssFeed {
     return `Scheduled from ${StatusPageRssFeed.formatUtc(startsAt)} to ${StatusPageRssFeed.formatUtc(endsAt)}.`;
   }
 
-  // "Sat, 25 Oct 2026 02:00 UTC".
+  // "Sun, 25 Oct 2026 02:00 UTC".
   public static formatUtc(date: Date): string {
     const pad: (value: number) => string = (value: number): string => {
       return value.toString().padStart(2, "0");

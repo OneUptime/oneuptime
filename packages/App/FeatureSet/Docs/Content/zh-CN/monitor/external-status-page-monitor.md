@@ -2,10 +2,13 @@
 
 外部状态页监视器会关注你所依赖的服务（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等众多服务）的公开状态页，并在该服务商报告故障或性能下降时向你告警。用它在服务商报告上游问题的第一时间得知，并把这些问题与你自己的问题区分开。
 
+它也能逐个资源读取用 OneUptime 制作的状态页，并区分计划维护与故障：监视另一个团队的项目，或状态页运行在 OneUptime 上的服务商。
+
 :::cards
 - [创建监视器](#创建外部状态页监视器): 粘贴状态页 URL，并选择要关注的内容。
 - [限定范围](#配置选项): 只关注一个组件组或一个组件。
 - [条件](#监控条件): 默认情况下什么算作宕机。
+- [OneUptime 状态页](#oneuptime-状态页): 另一个项目的资源及其维护。
 - [常用状态页](#常用状态页-url): 大多数团队所依赖服务的 URL。
 :::
 
@@ -39,6 +42,7 @@ flowchart TB
 | **Auto**（默认） | 自动识别状态页格式 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供的状态页（JSON API） |
 | **incident.io** | 由 incident.io 提供的状态页（例如 `https://status.openai.com`） |
+| **OneUptime Status Page** | 用 OneUptime 制作的状态页：每个资源的状态，以及哪些正在维护 |
 | **RSS** | 提供 RSS 订阅源的状态页 |
 | **Atom** | 提供 Atom 订阅源的状态页 |
 
@@ -48,8 +52,9 @@ flowchart TB
 
 1. 首先尝试 incident.io 状态页 API（`/proxy/<host>`）。
 2. 接着尝试 Atlassian Statuspage JSON API（`/api/v2/status.json`、`/api/v2/components.json` 和 `/api/v2/incidents/unresolved.json`）。
-3. 如果都失败，就尝试把页面解析为 RSS 或 Atom 订阅源。
-4. 最后的兜底是一次基本的 HTTP 可达性检查。
+3. 接着请求 OneUptime 状态页的摘要（`/status-page-api/summary/<page>`）。
+4. 如果都失败，就尝试把页面解析为 RSS 或 Atom 订阅源。
+5. 最后的兜底是一次基本的 HTTP 可达性检查。
 
 > [!NOTE]
 > 之所以先检查 incident.io，是因为一些 incident.io 状态页（例如 `https://status.openai.com`）还暴露了一个功能有限、兼容 Atlassian 的端点，其中省略了组件组和进行中的事件。先检查 incident.io 可以确保使用更丰富、包含分组信息的数据。
@@ -89,7 +94,7 @@ flowchart TB
 | 选项 | 填写内容 | 默认值 |
 | --- | --- | --- |
 | **状态页 URL** | 状态页的 URL。对于由 Atlassian Statuspage 和 incident.io 提供的站点，通常是根 URL（例如 `https://status.example.com`）。对于 RSS/Atom 订阅源，请直接输入订阅源的 URL。 | — |
-| **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**RSS** 或 **Atom**。 | **Auto** |
+| **提供商** | **Auto** 表示自动识别格式；如果你知道格式，可选择 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
 | **Component Group Filter (Optional)** | 监视器限定到的组。位于 **更多字段** 下。 | 所有组 |
 | **组件名称过滤器（可选）** | 要关注的组件。位于 **更多字段** 下。 | 范围内的所有组件 |
 | **超时（ms）** | 等待状态页的最长时间。位于 **更多字段** 下。 | `10000`（10 秒） |
@@ -101,7 +106,7 @@ flowchart TB
 
 设置了组件组后，**进行中的事件数** 和 **整体状态** 只根据该组中的组件计算：影响无关组（例如 ChatGPT）的事件不会触发限定到 "APIs" 组的监视器。
 
-**Atlassian Statuspage** 和 **incident.io** 服务商支持按组件组过滤。RSS 和 Atom 订阅源不提供组件组。
+**Atlassian Statuspage**、**incident.io** 和 **OneUptime Status Page** 服务商支持按组件组过滤。RSS 和 Atom 订阅源不提供组件组。
 
 ### 组件名称过滤器
 
@@ -124,9 +129,9 @@ flowchart TB
 | **External Status Page Active Incidents** | 状态页上当前进行中的事件数（设置了过滤器时限定到该组件组 / 组件） | 等于、不等于以及数值比较 |
 | **External Status Page Response Time (in ms)** | 获取状态页数据所花的时间 | 大于、小于、大于或等于、小于或等于 |
 
-整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。这些比较区分大小写。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
+整体状态就是页面上写的内容，因此其取值因服务商而异：Atlassian Statuspage 报告它自己的描述，例如 `All Systems Operational`；OneUptime 状态页报告范围内组件中最差的状态，例如 `under_maintenance`；订阅源报告 `operational` 或 `degraded_performance`；可达性检查报告 `reachable` 或 `unreachable`。这些比较区分大小写。要针对故障告警，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常更可靠。
 
-对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。
+对于 RSS 或 Atom 订阅源，最近 24 小时内的条目算作进行中的事件：RSS 条目按发布日期，Atom 条目按更新日期。日期在未来的条目要到该日期才计入。
 
 ### 默认条件
 
@@ -138,6 +143,49 @@ flowchart TB
 | Online | 以下 **全部** 成立：页面在线；范围内没有进行中的事件 | 把监视器标记为在线 |
 
 由于进行中的事件数和组件状态都遵循组件组 / 组件名称过滤器，这些默认条件会自动只针对你关心的组件。
+
+## OneUptime 状态页
+
+要监视用 OneUptime 制作的状态页（另一个团队的项目，或者服务商在 OneUptime Cloud 或自托管 OneUptime 上的页面），把提供商选为 **OneUptime Status Page** ，或保留 **Auto** 。在 **状态页 URL** 中输入页面自己的地址：有域名就输入域名，例如 `https://status.example.com`，没有就输入 `https://oneuptime.com/status-page/<status-page-id>`。
+
+监视器读取页面的摘要 `/status-page-api/summary/<page>`（参见 [读取摘要](/docs/status-pages/public-api#读取摘要)）：只读取页面向访客展示的内容，不读取另一个项目的其他任何内容。页面上的每个资源（一个监视器或一个监视器组）都是一个组件，使用页面为它起的名称，位于页面的分组中；一个分组中的分组写作 `Core / Databases`。用 **组件名称过滤器（可选）** 监视一个资源，用 **Component Group Filter (Optional)** 监视一个分组。
+
+组件的状态是它在页面上的状态所代表的值，因此组件状态条件的用法与任何状态页相同：
+
+| 页面上 | 组件状态 |
+| --- | --- |
+| 项目的正常运行状态 | `operational` |
+| 名为 `Degraded` 的状态 | `degraded_performance` |
+| 名为 `Offline`、`Down` 或 `Major Outage` 的状态 | `major_outage` |
+| 名为 `Partial Outage` 的状态 | `partial_outage` |
+| 名为 `Full Outage` 的状态 | `full_outage` |
+| 名为 `Maintenance` 的状态 | `under_maintenance` |
+| 其他任何状态 | `degraded_performance` |
+| 页面隐藏的状态（**Show current status** 已关闭） | `unknown` |
+
+当进行中的计划维护事件影响某个资源时（事件指定了该资源的某个监视器，或其监视器组中的某个监视器），无论其监视器处于什么状态，该组件都是 `under_maintenance`：事件占用监视器期间，监视器不会被检查。尚未开始或已经结束的事件不会改变任何东西。页面上进行中的事件计入它们影响的资源。
+
+[默认条件](#默认条件) 绝不会把维护当成故障：在另一个项目的计划工作期间，监视器保持在线。
+
+### 在你的监视器上显示上游维护
+
+:::steps
+### 添加条件
+
+在监视器的条件中点击 **添加条件** 。为它设置过滤器 **External Status Page Component Status** 、 **等于** 、 **Under Maintenance** ，并在 **将监视器状态更改为** 中选择你的维护状态。
+
+### 把它移到最上面
+
+把新条件拖到其他条件上方：第一个匹配的条件生效。
+
+### 用测试监视器检查
+
+在另一个项目有维护进行时点击 **测试监视器** ：受影响的组件显示 `under_maintenance`。
+:::
+
+### OneUptime 状态页允许监视器读取的内容
+
+任何人都能打开的页面，会按访客看到的样子被读取。要求登录、SSO 或密码的私有页面无法读取：选择了 **OneUptime Status Page** 时，检查会失败并说明原因。设置了 IP 允许列表的页面必须放行探测器的地址：请从该网络内部的探测器进行监视。
 
 ## 模板变量
 
@@ -151,7 +199,7 @@ flowchart TB
 | `{{overallStatus}}`       | 整体状态指示值 |
 | `{{activeIncidentCount}}` | 进行中的事件数（如果有过滤器，则限定在过滤器范围内） |
 | `{{componentStatuses}}`   | 组件状态的 JSON 数组（`name`、`status`、`description`、`groupName`） |
-| `{{provider}}`            | 识别出的服务商（Atlassian Statuspage、incident.io、RSS、Atom）；可达性检查之后为空 |
+| `{{provider}}`            | 识别出的服务商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；可达性检查之后为空 |
 | `{{componentGroup}}`      | 监视器限定到的组件组（如果有） |
 | `{{componentName}}`       | 监视器限定到的组件（如果有） |
 
@@ -203,6 +251,10 @@ flowchart TB
 
 :::details Auto 选错了格式，或者找不到任何组件
 把 **提供商** 设置为你知道该页面所使用的那一个。对于 RSS 或 Atom 订阅源，请输入订阅源本身的 URL，而不是状态页的 URL。
+:::
+
+:::details OneUptime 状态页不显示任何组件
+把 **提供商** 选为 **OneUptime Status Page** ，然后点击 **测试监视器** ：结果会说明页面是否为私有，或其 IP 允许列表是否把探测器挡在外面。很久没有更新的自托管 OneUptime 还不提供摘要：在更新之前，该页面只会得到可达性检查，或被当作订阅源读取。
 :::
 
 :::details 无法访问内部状态页

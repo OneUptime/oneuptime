@@ -33391,5 +33391,8 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "केवल कॉल के लिए इस्तेमाल होता है: सब्सक्राइबर टेक्स्ट मैसेज OneUptime भेजता है।",
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes एजेंट जैसे ही इवेंट भेजता है, वे यहाँ दिखते हैं।",
   "Try another namespace, kind or reason, or a longer time range.": "कोई दूसरा Namespace, प्रकार या कारण आज़माएँ, या लंबी समय सीमा चुनें।",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया।"
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया।",
+  "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "पहचाना गया प्रदाता (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom)।",
+  "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime इस स्थिति पृष्ठ को कैसे पढ़ता है। 'Auto' आपके लिए फ़ॉर्मैट पहचान लेता है।",
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "केवल एक कंपोनेंट समूह पर नज़र रखें, जैसे 'APIs'। RSS और Atom फ़ीड में समूह नहीं होते।"
 }

@@ -1,10 +1,11 @@
 # API pubblica
 
-Ogni pagina di stato risponde a un piccolo insieme di endpoint JSON in sola lettura: la sua panoramica, la disponibilità, gli incidenti, gli episodi, gli eventi di manutenzione pianificata e gli annunci. Sono gli endpoint che la pagina di stato stessa carica, quindi restituiscono esattamente ciò che vede un visitatore, e una pagina pubblica non richiede alcuna chiave API. Usali per mostrare il tuo stato nella tua app, in un chatbot o su uno schermo a parete.
+Ogni pagina di stato risponde a un piccolo insieme di endpoint JSON in sola lettura: la sua panoramica, un riepilogo, la disponibilità, gli incidenti, gli episodi, gli eventi di manutenzione pianificata e gli annunci. Sono gli endpoint che la pagina di stato stessa carica, quindi restituiscono esattamente ciò che vede un visitatore, e una pagina pubblica non richiede alcuna chiave API. Usali per mostrare il tuo stato nella tua app, in un chatbot o su uno schermo a parete.
 
 :::cards
 - [Endpoint](#endpoint): Un endpoint per ogni cosa che mostra la pagina.
 - [Leggere la panoramica](#leggere-la-panoramica): L'intera pagina in una richiesta, con curl, Node.js e Python.
+- [Leggere il riepilogo](#leggere-il-riepilogo): Lo stato di ogni risorsa, e cosa è in manutenzione.
 - [Disponibilità in un intervallo di date](#disponibilità-in-un-intervallo-di-date): La disponibilità per risorsa e per gruppo, fino a 90 giorni.
 - [Errori](#errori): Cosa significa ogni codice di stato.
 :::
@@ -50,6 +51,7 @@ Dove un percorso qui sotto riporta `{statusPageIdOrDomain}`, puoi inviare l'ID d
 | Endpoint | Metodi | Restituisce |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Tutto ciò che mostra la panoramica: lo stato complessivo, le risorse e i gruppi, gli incidenti e gli episodi attivi, la manutenzione pianificata, gli annunci in corso e i dati delle barre di disponibilità. |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | La pagina in breve: lo stato generale, lo stato di ogni risorsa e se una manutenzione in corso la riguarda, gli incidenti attivi, e la manutenzione in corso e in arrivo. |
 | `/uptime/{statusPageId}` | `POST` | Le percentuali di disponibilità per risorsa e per gruppo, in un intervallo di date. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | Gli incidenti che la pagina elenca, con le loro note pubbliche e i cambi di stato. |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Un incidente. |
@@ -137,6 +139,60 @@ Lo stato complessivo è il peggior stato attuale dei monitor e dei gruppi di mon
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo stesso per gli episodi di incidenti. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Gli eventi di manutenzione pianificata in arrivo o in corso, le loro note pubbliche e i cambi di stato. |
 | `activeAnnouncements` | Gli annunci visibili adesso: iniziati e non ancora terminati. |
+
+## Leggere il riepilogo
+
+Il riepilogo è la panoramica ridotta a ciò che uno strumento di monitoraggio chiede a una pagina: lo stato di ogni risorsa, e se un evento di manutenzione pianificata in corso la riguarda. Resta piccolo per quanta cronologia mostri la pagina, ed è ciò che legge il [monitor di pagina di stato esterna](/docs/monitor/external-status-page-monitor#pagine-di-stato-oneuptime) di un altro OneUptime. Viene dalla stessa cache della panoramica, dopo le stesse regole di accesso.
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+La risposta:
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| Chiave | Nel riepilogo |
+| --- | -------------- |
+| `overallStatus` | Lo stato generale della pagina, come lo mostra il suo banner: `name`, `color` e `isOperational`. |
+| `resources` | Ogni risorsa che la pagina mostra, nel suo ordine: il suo `name` sulla pagina, il suo `groupName` con i gruppi sopra, il suo `currentStatus`, e `isUnderMaintenance`. |
+| `activeIncidents` | Gli incidenti non risolti che la pagina mostra, ciascuno con gli `affectedResourceIds` delle risorse che riguarda. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Gli eventi di manutenzione pianificata in corso e ancora in arrivo, ciascuno con i suoi `affectedResourceIds`. |
+
+Il `currentStatus` di una risorsa è `null` quando la pagina non lo mostra. `isUnderMaintenance` è `true` finché un evento in corso nomina uno dei monitor della risorsa, o un monitor del suo gruppo di monitor, qualunque sia lo stato di quei monitor.
 
 ## Disponibilità in un intervallo di date
 
@@ -341,7 +397,7 @@ Un errore risponde con un codice di stato e un corpo JSON che ne spiega il motiv
 
 ## Altri modi per leggere una pagina di stato
 
-- **RSS.** Ogni pagina di stato serve `/rss`, un feed dei suoi incidenti, annunci ed eventi di manutenzione pianificata. Vedi [Il badge incorporabile e il feed RSS](/docs/status-pages/index#il-badge-incorporabile-e-il-feed-rss).
+- **RSS.** Ogni pagina di stato serve `/rss`, un feed dei suoi incidenti, annunci ed eventi di manutenzione pianificata, ciascuno datato come lo data la pagina. Vedi [Il badge incorporabile e il feed RSS](/docs/status-pages/index#il-badge-incorporabile-e-il-feed-rss).
 - **llms.txt.** Accanto a `/rss`, ogni pagina di stato serve `/llms.txt`, che indirizza gli agenti di IA verso il feed RSS e il JSON della panoramica.
 - **MCP.** Gli agenti di IA possono leggere la pagina tramite il server MCP di OneUptime all'indirizzo `https://oneuptime.com/mcp`, senza chiave API, passando l'ID o il dominio della pagina come `statusPageIdOrDomain`. È attivo per impostazione predefinita; disattivalo con **Abilita server MCP** in **IA → MCP** nel menu laterale della pagina. Vedi [Server MCP](/docs/ai/mcp-server).
 - **L'API REST.** Per creare o modificare pagine di stato, risorse, iscritti e annunci, usa l'[API di OneUptime](/docs/api-reference/api-reference) con una chiave API.

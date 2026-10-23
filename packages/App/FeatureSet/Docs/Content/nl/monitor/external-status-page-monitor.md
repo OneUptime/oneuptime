@@ -2,10 +2,13 @@
 
 Een monitor voor externe statuspagina's houdt de openbare statuspagina in de gaten van een dienst waarvan u afhankelijk bent — AWS, GCP, Azure, GitHub, OpenAI, Anthropic en vele andere — en waarschuwt u als die provider een storing of verminderde prestaties meldt. Gebruik hem om problemen bij uw leveranciers te horen zodra de provider ze meldt, en om ze te onderscheiden van uw eigen problemen.
 
+Hij leest ook statuspagina's die met OneUptime zijn gemaakt, resource voor resource, en houdt gepland onderhoud uit elkaar met een storing: volg het project van een ander team, of een leverancier wiens statuspagina op OneUptime draait.
+
 :::cards
 - [De monitor maken](#een-monitor-voor-externe-statuspaginas-maken): Plak de URL van een statuspagina en kies wat u wilt volgen.
 - [Afbakenen](#configuratieopties): Volg één componentgroep of één component.
 - [Criteria](#bewakingscriteria): Wat standaard als uitgevallen telt.
+- [OneUptime-statuspagina's](#oneuptime-statuspaginas): De resources van een ander project, en het onderhoud ervan.
 - [Populaire statuspagina's](#populaire-statuspagina-urls): URL's van de diensten waarvan de meeste teams afhankelijk zijn.
 :::
 
@@ -39,6 +42,7 @@ U kunt hem gebruiken om:
 | **Auto** (standaard) | Stelt het formaat van de statuspagina automatisch vast |
 | **Atlassian Statuspage** | Statuspagina's die draaien op Atlassian Statuspage (JSON-API) |
 | **incident.io** | Statuspagina's die draaien op incident.io (bijv. `https://status.openai.com`) |
+| **OneUptime Status Page** | Statuspagina's die met OneUptime zijn gemaakt: de status van elke resource, en wat in onderhoud is |
 | **RSS** | Statuspagina's die een RSS-feed aanbieden |
 | **Atom** | Statuspagina's die een Atom-feed aanbieden |
 
@@ -48,8 +52,9 @@ Staat de provider op **Auto**, dan stelt OneUptime het formaat van de statuspagi
 
 1. Eerst probeert het de API voor statuspagina's van incident.io (`/proxy/<host>`).
 2. Daarna probeert het de JSON-API van Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` en `/api/v2/incidents/unresolved.json`).
-3. Mislukken die, dan probeert het de pagina als RSS- of Atom-feed te lezen.
-4. Als laatste terugvaloptie voert het een eenvoudige controle op HTTP-bereikbaarheid uit.
+3. Dan vraagt het de samenvatting op van een OneUptime-statuspagina (`/status-page-api/summary/<page>`).
+4. Mislukken die, dan probeert het de pagina als RSS- of Atom-feed te lezen.
+5. Als laatste terugvaloptie voert het een eenvoudige controle op HTTP-bereikbaarheid uit.
 
 > [!NOTE]
 > incident.io wordt als eerste gecontroleerd, omdat sommige statuspagina's van incident.io (zoals `https://status.openai.com`) ook een beperkt, met Atlassian compatibel endpoint aanbieden dat componentgroepen en actieve incidenten weglaat. Door incident.io eerst te controleren, worden de rijkere gegevens met groepen gebruikt.
@@ -89,7 +94,7 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 | Optie | Wat u invoert | Standaard |
 | --- | --- | --- |
 | **URL statuspagina** | De URL van de statuspagina. Voor sites die draaien op Atlassian Statuspage en incident.io is dit meestal de hoofd-URL (bijv. `https://status.example.com`). Voer voor RSS-/Atom-feeds direct de URL van de feed in. | — |
-| **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **RSS** of **Atom** als u het kent. | **Auto** |
+| **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Auto** |
 | **Component Group Filter (Optional)** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
 | **Filter op componentnaam (optioneel)** | Het component dat u volgt. Onder **Meer velden**. | Alle componenten binnen de afbakening |
 | **Time-out (ms)** | Hoe lang maximaal op de statuspagina wordt gewacht. Onder **Meer velden**. | `10000` (10 seconden) |
@@ -101,7 +106,7 @@ Deelt de statuspagina haar componenten in groepen in, dan kunt u de monitor afba
 
 Is er een componentgroep ingesteld, dan worden het **aantal actieve incidenten** en de **algemene status** berekend met alleen de componenten in die groep — een incident in een groep die er niets mee te maken heeft (bijvoorbeeld ChatGPT) laat een monitor die tot de groep "APIs" is afgebakend, niet afgaan.
 
-Filteren op componentgroep wordt ondersteund voor de providers **Atlassian Statuspage** en **incident.io**. RSS- en Atom-feeds kennen geen componentgroepen.
+Filteren op componentgroep wordt ondersteund voor de providers **Atlassian Statuspage**, **incident.io** en **OneUptime Status Page**. RSS- en Atom-feeds kennen geen componentgroepen.
 
 ### Filter op componentnaam
 
@@ -124,9 +129,9 @@ U kunt criteria instellen die bepalen wanneer de externe dienst als online of of
 | **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (afgebakend tot de componentgroep / het component als er een filter is ingesteld) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
 | **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 
-De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Bij deze vergelijkingen tellen hoofdletters mee. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
+De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een OneUptime-statuspagina de slechtste status van haar componenten binnen het bereik, zoals `under_maintenance`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Bij deze vergelijkingen tellen hoofdletters mee. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
 
-Bij een RSS- of Atom-feed tellen de items van de laatste 24 uur als actieve incidenten: een RSS-item op zijn publicatiedatum, een Atom-item op zijn bijwerkdatum.
+Bij een RSS- of Atom-feed tellen de items van de laatste 24 uur als actieve incidenten: een RSS-item op zijn publicatiedatum, een Atom-item op zijn bijwerkdatum. Een item met een datum in de toekomst telt pas vanaf die datum.
 
 ### Standaardcriteria
 
@@ -138,6 +143,49 @@ Standaard maakt OneUptime criteria op basis van wat voor een statuspagina echt t
 | Online | **Alle** van: de pagina is online; er zijn geen actieve incidenten binnen de afbakening | Markeert de monitor als online |
 
 Omdat het aantal actieve incidenten en de componentstatussen de filters op componentgroep / componentnaam volgen, richten deze standaardcriteria zich automatisch alleen op de componenten die voor u tellen.
+
+## OneUptime-statuspagina's
+
+Kies **OneUptime Status Page** als provider, of laat **Auto** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
+
+De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Volg één resource met **Filter op componentnaam (optioneel)**, of één groep met **Component Group Filter (Optional)**.
+
+De status van een component is de waarde waar zijn status op de pagina voor staat, zodat de criteria voor componentstatus werken zoals op elke statuspagina:
+
+| Op de pagina | Componentstatus |
+| --- | --- |
+| De operationele status van het project | `operational` |
+| Een status met de naam `Degraded` | `degraded_performance` |
+| Een status met de naam `Offline`, `Down` of `Major Outage` | `major_outage` |
+| Een status met de naam `Partial Outage` | `partial_outage` |
+| Een status met de naam `Full Outage` | `full_outage` |
+| Een status met de naam `Maintenance` | `under_maintenance` |
+| Elke andere status | `degraded_performance` |
+| Een status die de pagina verbergt, met **Show current status** uit | `unknown` |
+
+Zolang een lopende geplande onderhoudsgebeurtenis een resource raakt, omdat ze een van de monitors ervan noemt of een monitor in de monitorgroep ervan, is de component `under_maintenance`, in welke status de monitors ook staan: een monitor wordt niet gecontroleerd zolang een gebeurtenis hem vasthoudt. Een gebeurtenis die nog moet komen, of voorbij is, verandert niets. De actieve incidenten van de pagina tellen voor de resources die ze raken.
+
+De [standaardcriteria](#standaardcriteria) zien onderhoud nooit aan voor een storing: de monitor blijft online tijdens het geplande werk van het andere project.
+
+### Onderhoud van het andere project op uw monitor tonen
+
+:::steps
+### Het criterium toevoegen
+
+Klik in de criteria van de monitor op **Criteria toevoegen**. Geef het het filter **External Status Page Component Status**, **Gelijk aan**, **Under Maintenance**, en kies uw onderhoudsstatus bij **Monitorstatus wijzigen naar**.
+
+### Het bovenaan zetten
+
+Sleep het nieuwe criterium boven de andere: het eerste criterium dat overeenkomt, wint.
+
+### Het controleren met Monitor testen
+
+Klik op **Monitor testen** terwijl er bij het andere project onderhoud loopt: de component die het raakt, toont `under_maintenance`.
+:::
+
+### Wat een OneUptime-statuspagina de monitor laat lezen
+
+Een pagina die iedereen kan openen, wordt gelezen zoals haar bezoekers haar zien. Een privépagina, die om een aanmelding, SSO of een wachtwoord vraagt, kan niet worden gelezen: met **OneUptime Status Page** gekozen mislukt de controle en zegt ze waarom. Een pagina met een IP-toelatingslijst moet het adres van de probe toelaten: volg haar vanaf een probe binnen dat netwerk.
 
 ## Sjabloonvariabelen
 
@@ -151,7 +199,7 @@ Als u incidenten of waarschuwingen maakt vanuit monitoren voor externe statuspag
 | `{{overallStatus}}`       | De waarde van de algemene statusindicator |
 | `{{activeIncidentCount}}` | Aantal actieve incidenten (afgebakend tot het filter, als dat er is) |
 | `{{componentStatuses}}`   | JSON-array met componentstatussen (`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | De vastgestelde provider (Atlassian Statuspage, incident.io, RSS, Atom); leeg na een controle op bereikbaarheid |
+| `{{provider}}`            | De vastgestelde provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leeg na een controle op bereikbaarheid |
 | `{{componentGroup}}`      | De componentgroep waartoe de monitor is afgebakend, als die er is |
 | `{{componentName}}`       | Het component waartoe de monitor is afgebakend, als dat er is |
 
@@ -203,6 +251,10 @@ Misschien komen de filters nergens mee overeen, wat er gezond uitziet, of krijgt
 
 :::details Auto kiest het verkeerde formaat, of vindt geen componenten
 Zet de **Provider** op de provider waarvan u weet dat de pagina hem gebruikt. Voer voor een RSS- of Atom-feed de URL van de feed zelf in, niet die van de statuspagina.
+:::
+
+:::details Een OneUptime-statuspagina toont geen componenten
+Kies **OneUptime Status Page** als **Provider** en klik op **Monitor testen**: het resultaat zegt of de pagina privé is, of dat haar IP-toelatingslijst de probe buitensluit. Een zelf gehoste OneUptime die al een tijd niet is bijgewerkt, levert nog geen samenvatting: tot dan krijgt de pagina de controle op bereikbaarheid, of wordt ze als feed gelezen.
 :::
 
 :::details Een interne statuspagina is niet bereikbaar

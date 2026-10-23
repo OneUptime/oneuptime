@@ -2,10 +2,13 @@
 
 外部狀態頁監測器會留意你所依賴之服務（AWS、GCP、Azure、GitHub、OpenAI、Anthropic 等眾多服務）的公開狀態頁面，並在該供應商回報服務中斷或效能下降時對你發出警示。用它在供應商回報上游問題的第一時間得知，並把這些問題與你自己的問題區分開來。
 
+它也能逐一讀取用 OneUptime 製作的狀態頁面中的資源，並分辨計畫維護與服務中斷：監測另一個團隊的專案，或狀態頁面執行在 OneUptime 上的供應商。
+
 :::cards
 - [建立監測器](#建立外部狀態頁監測器): 貼上狀態頁面的 URL，並選擇要留意的內容。
 - [限定範圍](#設定選項): 只留意一個元件群組或一個元件。
 - [條件](#監控條件): 預設情況下什麼算是停止運作。
+- [OneUptime 狀態頁面](#oneuptime-狀態頁面): 另一個專案的資源及其維護。
 - [常用狀態頁面](#常用狀態頁面-url): 大多數團隊所依賴之服務的 URL。
 :::
 
@@ -39,6 +42,7 @@ flowchart TB
 | **Auto**（預設） | 自動判斷狀態頁面的格式 |
 | **Atlassian Statuspage** | 由 Atlassian Statuspage 提供的狀態頁面（JSON API） |
 | **incident.io** | 由 incident.io 提供的狀態頁面（例如 `https://status.openai.com`） |
+| **OneUptime Status Page** | 用 OneUptime 製作的狀態頁面：每個資源的狀態，以及哪些正在維護 |
 | **RSS** | 提供 RSS 摘要的狀態頁面 |
 | **Atom** | 提供 Atom 摘要的狀態頁面 |
 
@@ -48,8 +52,9 @@ flowchart TB
 
 1. 首先嘗試 incident.io 狀態頁面 API（`/proxy/<host>`）。
 2. 接著嘗試 Atlassian Statuspage JSON API（`/api/v2/status.json`、`/api/v2/components.json` 和 `/api/v2/incidents/unresolved.json`）。
-3. 如果都失敗，就嘗試把頁面剖析為 RSS 或 Atom 摘要。
-4. 最後的退路是一次基本的 HTTP 連線能力檢查。
+3. 接著要求 OneUptime 狀態頁面的狀態概要（`/status-page-api/summary/<page>`）。
+4. 如果都失敗，就嘗試把頁面剖析為 RSS 或 Atom 摘要。
+5. 最後的退路是一次基本的 HTTP 連線能力檢查。
 
 > [!NOTE]
 > 之所以先檢查 incident.io，是因為某些 incident.io 狀態頁面（例如 `https://status.openai.com`）也公開了一個功能有限、與 Atlassian 相容的端點，其中省略了元件群組和進行中的事件。先檢查 incident.io 可以確保使用更豐富、包含群組資訊的資料。
@@ -89,7 +94,7 @@ flowchart TB
 | 選項 | 要輸入的內容 | 預設值 |
 | --- | --- | --- |
 | **狀態頁面 URL** | 狀態頁面的 URL。對於由 Atlassian Statuspage 和 incident.io 提供的網站，通常是根 URL（例如 `https://status.example.com`）。對於 RSS/Atom 摘要，請直接輸入摘要的 URL。 | — |
-| **提供者** | **Auto** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**RSS** 或 **Atom**。 | **Auto** |
+| **提供者** | **Auto** 表示自動判斷格式；如果你知道格式，可選擇 **Atlassian Statuspage**、**incident.io**、**OneUptime Status Page**、**RSS** 或 **Atom**。 | **Auto** |
 | **Component Group Filter (Optional)** | 監測器限定到的群組。位於 **更多欄位** 下。 | 所有群組 |
 | **元件名稱篩選器（選填）** | 要留意的元件。位於 **更多欄位** 下。 | 範圍內的所有元件 |
 | **逾時（ms）** | 等待狀態頁面的最長時間。位於 **更多欄位** 下。 | `10000`（10 秒） |
@@ -101,7 +106,7 @@ flowchart TB
 
 設定了元件群組後，**進行中的事件數** 和 **整體狀態** 只會根據該群組中的元件計算：影響無關群組（例如 ChatGPT）的事件不會觸發限定到 "APIs" 群組的監測器。
 
-**Atlassian Statuspage** 和 **incident.io** 供應商支援依元件群組篩選。RSS 和 Atom 摘要不提供元件群組。
+**Atlassian Statuspage**、**incident.io** 和 **OneUptime Status Page** 供應商支援依元件群組篩選。RSS 和 Atom 摘要不提供元件群組。
 
 ### 元件名稱篩選器
 
@@ -124,9 +129,9 @@ flowchart TB
 | **External Status Page Active Incidents** | 狀態頁面上目前進行中的事件數（設定篩選器時限定到該元件群組 / 元件） | 等於、不等於以及數值比較 |
 | **External Status Page Response Time (in ms)** | 取得狀態頁面資料所花的時間 | 大於、小於、大於或等於、小於或等於 |
 
-整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。這些比較會區分大小寫。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
+整體狀態就是頁面上寫的內容，因此其值會因供應商而異：Atlassian Statuspage 回報它自己的描述，例如 `All Systems Operational`；OneUptime 狀態頁面回報範圍內元件中最差的狀態，例如 `under_maintenance`；摘要回報 `operational` 或 `degraded_performance`；連線能力檢查回報 `reachable` 或 `unreachable`。這些比較會區分大小寫。若要針對服務中斷發出警示，**External Status Page Active Incidents** 和 **External Status Page Component Status** 通常比較可靠。
 
-對於 RSS 或 Atom 摘要，最近 24 小時內的項目算作進行中的事件：RSS 項目依發布日期，Atom 項目依更新日期。
+對於 RSS 或 Atom 摘要，最近 24 小時內的項目算作進行中的事件：RSS 項目依發布日期，Atom 項目依更新日期。日期在未來的項目要到該日期才計入。
 
 ### 預設條件
 
@@ -138,6 +143,49 @@ flowchart TB
 | Online | 下列 **全部** 成立：頁面在線上；範圍內沒有進行中的事件 | 將監測器標示為上線 |
 
 由於進行中的事件數和元件狀態都遵循元件群組 / 元件名稱篩選器，這些預設條件會自動只針對你在意的元件。
+
+## OneUptime 狀態頁面
+
+若要監測用 OneUptime 製作的狀態頁面（另一個團隊的專案，或供應商在 OneUptime Cloud 或自行託管的 OneUptime 上的頁面），請把提供者選為 **OneUptime Status Page** ，或保留 **Auto** 。在 **狀態頁面 URL** 中輸入頁面本身的位址：有網域就輸入網域，例如 `https://status.example.com`，沒有就輸入 `https://oneuptime.com/status-page/<status-page-id>`。
+
+監測器讀取頁面的狀態概要 `/status-page-api/summary/<page>`（請參閱 [讀取狀態概要](/docs/status-pages/public-api#讀取狀態概要)）：只讀取頁面向訪客顯示的內容，不讀取另一個專案的其他任何內容。頁面上的每個資源（一個監測器或一個監測器群組）都是一個元件，使用頁面為它取的名稱，位於頁面的群組中；群組中的群組寫作 `Core / Databases`。用 **元件名稱篩選器（選填）** 監測一個資源，用 **Component Group Filter (Optional)** 監測一個群組。
+
+元件的狀態是它在頁面上的狀態所代表的值，因此元件狀態條件的用法與任何狀態頁面相同：
+
+| 頁面上 | 元件狀態 |
+| --- | --- |
+| 專案的正常運作狀態 | `operational` |
+| 名為 `Degraded` 的狀態 | `degraded_performance` |
+| 名為 `Offline`、`Down` 或 `Major Outage` 的狀態 | `major_outage` |
+| 名為 `Partial Outage` 的狀態 | `partial_outage` |
+| 名為 `Full Outage` 的狀態 | `full_outage` |
+| 名為 `Maintenance` 的狀態 | `under_maintenance` |
+| 其他任何狀態 | `degraded_performance` |
+| 頁面隱藏的狀態（**Show current status** 已關閉） | `unknown` |
+
+當進行中的排定維護事件影響某個資源時（事件指定了該資源的某個監測器，或其監測器群組中的某個監測器），無論其監測器處於什麼狀態，該元件都是 `under_maintenance`：事件佔用監測器期間，監測器不會被檢查。尚未開始或已經結束的事件不會改變任何事。頁面上進行中的事件會計入它們影響的資源。
+
+[預設條件](#預設條件) 絕不會把維護當成服務中斷：在另一個專案的計畫工作期間，監測器保持在線。
+
+### 在你的監測器上顯示上游維護
+
+:::steps
+### 新增條件
+
+在監測器的條件中點選 **新增條件準則** 。為它設定篩選器 **External Status Page Component Status** 、 **等於** 、 **Under Maintenance** ，並在 **將監測器狀態變更為** 中選擇你的維護狀態。
+
+### 把它移到最上面
+
+把新條件拖到其他條件上方：第一個符合的條件生效。
+
+### 用測試監測器檢查
+
+在另一個專案有維護進行時點選 **測試監測器** ：受影響的元件會顯示 `under_maintenance`。
+:::
+
+### OneUptime 狀態頁面允許監測器讀取的內容
+
+任何人都能開啟的頁面，會依訪客看到的樣子被讀取。要求登入、SSO 或密碼的私人頁面無法讀取：選擇 **OneUptime Status Page** 時，檢查會失敗並說明原因。設定了 IP 允許清單的頁面必須放行探測器的位址：請從該網路內部的探測器進行監測。
 
 ## 範本變數
 
@@ -151,7 +199,7 @@ flowchart TB
 | `{{overallStatus}}`       | 整體狀態指標值 |
 | `{{activeIncidentCount}}` | 進行中的事件數（如果有篩選器，則限定在篩選器範圍內） |
 | `{{componentStatuses}}`   | 元件狀態的 JSON 陣列（`name`、`status`、`description`、`groupName`） |
-| `{{provider}}`            | 判斷出的供應商（Atlassian Statuspage、incident.io、RSS、Atom）；連線能力檢查之後為空 |
+| `{{provider}}`            | 判斷出的供應商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）；連線能力檢查之後為空 |
 | `{{componentGroup}}`      | 監測器限定到的元件群組（如果有） |
 | `{{componentName}}`       | 監測器限定到的元件（如果有） |
 
@@ -203,6 +251,10 @@ flowchart TB
 
 :::details Auto 選錯了格式，或找不到任何元件
 把 **提供者** 設定為你知道該頁面所使用的那一個。對於 RSS 或 Atom 摘要，請輸入摘要本身的 URL，而不是狀態頁面的 URL。
+:::
+
+:::details OneUptime 狀態頁面沒有顯示任何元件
+把 **提供者** 選為 **OneUptime Status Page** ，然後點選 **測試監測器** ：結果會說明頁面是否為私人頁面，或其 IP 允許清單是否把探測器擋在外面。很久沒有更新的自行託管 OneUptime 還不提供狀態概要：在更新之前，該頁面只會得到連線能力檢查，或被當作摘要讀取。
 :::
 
 :::details 無法連線到內部狀態頁面

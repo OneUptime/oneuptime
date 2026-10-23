@@ -33391,5 +33391,8 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。",
   "Events appear here as the Kubernetes agent sends them.": "イベントは Kubernetes エージェントが送信するとここに表示されます。",
   "Try another namespace, kind or reason, or a longer time range.": "別の Namespace、種類、理由を選ぶか、より長い時間範囲を選んでください。",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。"
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。",
+  "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "検出されたプロバイダー（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）。",
+  "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime がこのステータスページを読み取る方法。「自動」では形式が自動的に検出されます。",
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "1 つのコンポーネントグループ ('APIs' など) だけを監視します。RSS と Atom のフィードにはグループがありません。"
 }

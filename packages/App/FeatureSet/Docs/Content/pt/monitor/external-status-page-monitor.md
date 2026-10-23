@@ -2,10 +2,13 @@
 
 Um monitor de página de status externa acompanha a página de status pública de um serviço do qual você depende (AWS, GCP, Azure, GitHub, OpenAI, Anthropic e muitos outros) e alerta você quando esse provedor informa uma interrupção ou desempenho degradado. Use-o para saber de problemas nos seus provedores assim que eles os informam, e para separá-los dos seus.
 
+Ele também lê páginas de status criadas com o OneUptime, recurso por recurso, e distingue manutenção planejada de uma interrupção: acompanhe o projeto de outra equipe, ou um provedor cuja página de status roda no OneUptime.
+
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-página-de-status-externa): Cole a URL de uma página de status e escolha o que acompanhar.
 - [Delimitar o escopo](#opções-de-configuração): Acompanhe um grupo de componentes ou um componente.
 - [Critérios](#critérios-de-monitoramento): O que conta como fora do ar, logo de saída.
+- [Páginas de status do OneUptime](#páginas-de-status-do-oneuptime): Os recursos de outro projeto, e a manutenção dele.
 - [Páginas de status populares](#urls-de-páginas-de-status-populares): URLs dos serviços dos quais a maioria das equipes depende.
 :::
 
@@ -39,6 +42,7 @@ Você pode usá-lo para:
 | **Auto** (padrão) | Detecta automaticamente o formato da página de status |
 | **Atlassian Statuspage** | Páginas de status baseadas no Atlassian Statuspage (API JSON) |
 | **incident.io** | Páginas de status baseadas no incident.io (por exemplo, `https://status.openai.com`) |
+| **OneUptime Status Page** | Páginas de status criadas com o OneUptime: o status de cada recurso, e o que está em manutenção |
 | **RSS** | Páginas de status que oferecem um feed RSS |
 | **Atom** | Páginas de status que oferecem um feed Atom |
 
@@ -48,8 +52,9 @@ Com **Auto**, o OneUptime detecta automaticamente o formato da página de status
 
 1. Primeiro, tenta a API de páginas de status do incident.io (`/proxy/<host>`).
 2. Depois, tenta a API JSON do Atlassian Statuspage (`/api/v2/status.json`, `/api/v2/components.json` e `/api/v2/incidents/unresolved.json`).
-3. Se essas falharem, tenta ler a página como um feed RSS ou Atom.
-4. Como último recurso, faz uma verificação básica de acessibilidade HTTP.
+3. Em seguida, pede o resumo de uma página de status do OneUptime (`/status-page-api/summary/<page>`).
+4. Se essas falharem, tenta ler a página como um feed RSS ou Atom.
+5. Como último recurso, faz uma verificação básica de acessibilidade HTTP.
 
 > [!NOTE]
 > O incident.io é verificado primeiro porque algumas páginas de status do incident.io (como `https://status.openai.com`) também expõem um endpoint limitado compatível com o Atlassian, que omite os grupos de componentes e os incidentes ativos. Verificar o incident.io primeiro garante que sejam usados os dados mais completos, que conhecem os grupos.
@@ -89,7 +94,7 @@ Selecione as **Sondas** e um **Intervalo de monitoramento** (começa em **A cada
 | Opção | O que informar | Padrão |
 | --- | --- | --- |
 | **URL da Página de Status** | A URL da página de status. Em sites baseados no Atlassian Statuspage e no incident.io, costuma ser a URL raiz (por exemplo, `https://status.example.com`). Para feeds RSS/Atom, informe diretamente a URL do feed. | — |
-| **Provedor** | **Auto** para detectar o formato, ou **Atlassian Statuspage**, **incident.io**, **RSS** ou **Atom** se você souber. | **Auto** |
+| **Provedor** | **Auto** para detectar o formato, ou **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** ou **Atom** se você souber. | **Auto** |
 | **Component Group Filter (Optional)** | O grupo ao qual limitar o monitor. Em **Mais campos**. | Todos os grupos |
 | **Filtro de nome de componente (opcional)** | O componente a acompanhar. Em **Mais campos**. | Todos os componentes do escopo |
 | **Tempo limite (ms)** | O tempo máximo de espera pela página de status. Em **Mais campos**. | `10000` (10 segundos) |
@@ -101,7 +106,7 @@ Se a página de status organiza seus componentes em grupos, você pode limitar o
 
 Quando um grupo de componentes está definido, o **número de incidentes ativos** e o **status geral** são calculados só com os componentes desse grupo: um incidente que afeta um grupo sem relação (por exemplo, o ChatGPT) não vai disparar um monitor limitado ao grupo "APIs".
 
-A filtragem por grupo de componentes é compatível com os provedores **Atlassian Statuspage** e **incident.io**. Feeds RSS e Atom não expõem grupos de componentes.
+A filtragem por grupo de componentes é compatível com os provedores **Atlassian Statuspage**, **incident.io** e **OneUptime Status Page**. Feeds RSS e Atom não expõem grupos de componentes.
 
 ### Filtro de nome de componente
 
@@ -124,9 +129,9 @@ Você pode configurar critérios para decidir quando o serviço externo é consi
 | **External Status Page Active Incidents** | O número de incidentes ativos no momento informados na página de status (limitado ao grupo ou componente quando há um filtro) | Igual a, Diferente de e as comparações numéricas |
 | **External Status Page Response Time (in ms)** | Quanto tempo leva para baixar os dados da página de status | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
 
-O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Essas comparações diferenciam maiúsculas de minúsculas. Para alertar sobre interrupções, **External Status Page Active Incidents** e **External Status Page Component Status** costumam ser mais confiáveis.
+O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; uma página de status do OneUptime, o pior status entre os componentes no escopo, como `under_maintenance`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Essas comparações diferenciam maiúsculas de minúsculas. Para alertar sobre interrupções, **External Status Page Active Incidents** e **External Status Page Component Status** costumam ser mais confiáveis.
 
-Em um feed RSS ou Atom, os itens das últimas 24 horas contam como incidentes ativos: um item RSS pela data de publicação, uma entrada Atom pela data de atualização.
+Em um feed RSS ou Atom, os itens das últimas 24 horas contam como incidentes ativos: um item RSS pela data de publicação, uma entrada Atom pela data de atualização. Um item com data no futuro só conta a partir dessa data.
 
 ### Critérios padrão
 
@@ -138,6 +143,49 @@ Por padrão, o OneUptime cria critérios baseados no que realmente importa em um
 | Online | **Todos** de: a página está online; não há incidentes ativos no escopo | Marca o monitor como online |
 
 Como o número de incidentes ativos e os status dos componentes respeitam os filtros de grupo e de nome de componente, esses critérios padrão miram automaticamente só nos componentes que interessam a você.
+
+## Páginas de status do OneUptime
+
+Escolha **OneUptime Status Page** como provedor, ou deixe **Auto**, para acompanhar uma página de status criada com o OneUptime: o projeto de outra equipe, ou a página de um provedor no OneUptime Cloud ou num OneUptime auto-hospedado. Informe o endereço da própria página em **URL da Página de Status**: o domínio dela, como `https://status.example.com`, ou `https://oneuptime.com/status-page/<status-page-id>` para uma página sem domínio próprio.
+
+O monitor lê o resumo da página, `/status-page-api/summary/<page>` (veja [Ler o resumo](/docs/status-pages/public-api#ler-o-resumo)): só o que a página mostra aos visitantes, e nada mais do outro projeto. Cada recurso da página, um monitor ou um grupo de monitores, é um componente, com o nome que a página dá a ele, no grupo da página; um grupo dentro de outro fica `Core / Databases`. Acompanhe um recurso com **Filtro de nome de componente (opcional)**, ou um grupo com **Component Group Filter (Optional)**.
+
+O status de um componente é o valor que o status dele na página representa, então os critérios de status de componente funcionam como em qualquer página de status:
+
+| Na página | Status do componente |
+| --- | --- |
+| O status operacional do projeto | `operational` |
+| Um status chamado `Degraded` | `degraded_performance` |
+| Um status chamado `Offline`, `Down` ou `Major Outage` | `major_outage` |
+| Um status chamado `Partial Outage` | `partial_outage` |
+| Um status chamado `Full Outage` | `full_outage` |
+| Um status chamado `Maintenance` | `under_maintenance` |
+| Qualquer outro status | `degraded_performance` |
+| Um status que a página oculta, com **Show current status** desligado | `unknown` |
+
+Enquanto um evento de manutenção programada em andamento afeta um recurso, porque nomeia um dos monitores dele ou um monitor do grupo de monitores dele, o componente fica `under_maintenance`, seja qual for o status dos monitores: um monitor não é verificado enquanto um evento o segura. Um evento que ainda vai acontecer, ou que já terminou, não muda nada. Os incidentes ativos da página contam para os recursos que eles afetam.
+
+Os [critérios padrão](#critérios-padrão) nunca tomam uma manutenção por uma interrupção: o monitor continua online durante o trabalho planejado do outro projeto.
+
+### Mostrar no seu monitor a manutenção do outro projeto
+
+:::steps
+### Adicionar o critério
+
+Nos critérios do monitor, clique em **Adicionar critérios**. Dê a ele o filtro **External Status Page Component Status**, **Igual a**, **Under Maintenance**, e escolha o seu status de manutenção em **Alterar status do monitor para**.
+
+### Levá-lo para o topo
+
+Arraste o novo critério para cima dos outros: vence o primeiro critério que corresponde.
+
+### Conferir com Testar monitor
+
+Clique em **Testar monitor** enquanto o outro projeto tem uma manutenção em andamento: o componente afetado mostra `under_maintenance`.
+:::
+
+### O que uma página de status do OneUptime deixa o monitor ler
+
+Uma página que qualquer pessoa pode abrir é lida como os visitantes a veem. Uma página privada, que pede login, SSO ou uma senha, não pode ser lida: com **OneUptime Status Page** escolhido, a verificação falha e diz por quê. Uma página com uma lista de IPs permitidos precisa liberar o endereço da sonda: acompanhe-a a partir de uma sonda dentro dessa rede.
 
 ## Variáveis de modelo
 
@@ -151,7 +199,7 @@ Ao criar incidentes ou alertas a partir de monitores de página de status extern
 | `{{overallStatus}}`       | O valor do indicador de status geral |
 | `{{activeIncidentCount}}` | Número de incidentes ativos (limitado pelo filtro, se houver) |
 | `{{componentStatuses}}`   | Array JSON de status de componentes (`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | Provedor detectado (Atlassian Statuspage, incident.io, RSS, Atom); vazio após uma verificação de acessibilidade |
+| `{{provider}}`            | Provedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vazio após uma verificação de acessibilidade |
 | `{{componentGroup}}`      | Grupo de componentes ao qual o monitor está limitado, se houver |
 | `{{componentName}}`       | Componente ao qual o monitor está limitado, se houver |
 
@@ -203,6 +251,10 @@ Os filtros podem não corresponder a nada, o que parece saudável, ou a página 
 
 :::details O Auto escolhe o formato errado, ou não encontra componentes
 Defina o **Provedor** que você sabe que a página usa. Para um feed RSS ou Atom, informe a URL do próprio feed em vez da URL da página de status.
+:::
+
+:::details Uma página de status do OneUptime não mostra componentes
+Escolha **OneUptime Status Page** como **Provedor** e clique em **Testar monitor**: o resultado diz se a página é privada, ou se a lista de IPs permitidos dela barra a sonda. Um OneUptime auto-hospedado que não é atualizado há algum tempo ainda não serve um resumo: até ser, a página recebe a verificação de acessibilidade, ou é lida como um feed.
 :::
 
 :::details Uma página de status interna não pode ser acessada

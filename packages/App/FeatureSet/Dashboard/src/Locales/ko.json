@@ -33391,5 +33391,8 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "통화에만 사용: 구독자 문자 메시지는 OneUptime이 보냅니다.",
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes 에이전트가 이벤트를 보내면 여기에 표시됩니다.",
   "Try another namespace, kind or reason, or a longer time range.": "다른 Namespace, 종류 또는 사유를 선택하거나 더 긴 시간 범위를 선택하세요.",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "이 클러스터의 노드, 워크로드, 오토스케일러, 볼륨에 대해 Kubernetes가 보고한 내용입니다."
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "이 클러스터의 노드, 워크로드, 오토스케일러, 볼륨에 대해 Kubernetes가 보고한 내용입니다.",
+  "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "감지된 공급자(Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
+  "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime이 이 상태 페이지를 읽는 방법입니다. 'Auto'가 형식을 알아서 감지합니다.",
+  "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "하나의 구성 요소 그룹만 지켜봅니다(예: 'APIs'). RSS와 Atom 피드에는 그룹이 없습니다."
 }
