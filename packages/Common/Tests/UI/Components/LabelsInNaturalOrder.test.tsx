@@ -7,10 +7,17 @@ import { initReactI18next } from "react-i18next";
 import Dropdown, {
   DropdownOption,
 } from "../../../UI/Components/Dropdown/Dropdown";
-import EventItem from "../../../UI/Components/EventItem/EventItem";
+import EventItem, {
+  EVENT_ITEM_LABEL_CLASS_NAME,
+  EVENT_ITEM_LABELS_CLASS_NAME,
+} from "../../../UI/Components/EventItem/EventItem";
 import LabelsElement, {
   DETAIL_LABELS_TEST_ID,
 } from "../../../UI/Components/Label/Labels";
+import {
+  WRAPPING_PILL_CLASS_NAME,
+  WRAPPING_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
 import Page from "../../../UI/Components/Page/Page";
 import { DetailValueContext } from "../../../UI/Components/Detail/DetailValueContext";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -155,6 +162,73 @@ describe("labels read in natural order wherever they are shown", () => {
 
     expect(row).not.toBeNull();
     expect(pillTexts(row)).toEqual(IN_ORDER);
+  });
+
+  /*
+   * On a status page an event's labels sat on one line that never wrapped:
+   * a project's long labels ran out of the incident's box and past a
+   * phone's edge (1,300px past it with the issue's labels). They wrap now,
+   * and a label longer than the box runs onto a second line in its pill.
+   */
+  test("a status page's event: its labels wrap in the box, a long one onto a second line in its pill", () => {
+    const { container } = render(
+      <EventItem
+        eventTitle="Checkout is failing for some customers"
+        eventType="Incident"
+        eventTypeColor={new Color("#ef4444")}
+        isDetailItem={true}
+        eventSecondDescription="Declared at 18:02 UTC"
+        eventTimeline={[]}
+        labels={JOINED.map((name: string) => {
+          return { name: name, color: new Color("#6366f1") };
+        })}
+      />,
+    );
+
+    const row: HTMLElement = container.querySelector(
+      ".active-event-box-body-labels",
+    ) as HTMLElement;
+
+    expect(row.className).toBe(EVENT_ITEM_LABELS_CLASS_NAME);
+    expect(row).toHaveClass("flex-wrap");
+    // Not the one line that never wrapped.
+    expect(row).not.toHaveClass("space-x-1");
+
+    for (const item of Array.from(row.children)) {
+      expect((item as HTMLElement).className).toBe(EVENT_ITEM_LABEL_CLASS_NAME);
+    }
+
+    const pills: Array<HTMLElement> = within(row).getAllByTestId("pill");
+
+    expect(pills).toHaveLength(JOINED.length);
+
+    for (const pill of pills) {
+      expect(pill.className.trim()).toBe(WRAPPING_PILL_CLASS_NAME);
+    }
+
+    for (const text of within(row).getAllByTestId("pill-text")) {
+      expect(text.className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+      expect(text).not.toHaveClass("truncate");
+    }
+  });
+
+  test("a detail card's field: a label longer than the column runs onto a second line in its pill, never cut short", () => {
+    render(
+      <DetailValueContext.Provider value={true}>
+        <LabelsElement labels={makeLabels(JOINED)} />
+      </DetailValueContext.Provider>,
+    );
+
+    const field: HTMLElement = screen.getByTestId(DETAIL_LABELS_TEST_ID);
+
+    for (const pill of within(field).getAllByTestId("pill")) {
+      expect(pill.className.trim()).toBe(WRAPPING_PILL_CLASS_NAME);
+    }
+
+    for (const text of within(field).getAllByTestId("pill-text")) {
+      expect(text.className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+      expect(text).not.toHaveClass("truncate");
+    }
   });
 
   test("beside a record in a picker: its labels in order, the first ones shown", () => {

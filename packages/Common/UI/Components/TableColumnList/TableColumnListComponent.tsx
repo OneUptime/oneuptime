@@ -1,4 +1,3 @@
-import Button, { ButtonStyleType } from "../Button/Button";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
 import PlaceholderText from "../Detail/PlaceholderText";
 import { useIsTableCard, useIsTableCell } from "../Table/TableCellContext";
@@ -21,6 +20,25 @@ import useTranslateValue from "../../Utils/Translation";
  * (TableColumnListFold, React-free for App's docs facts).
  */
 export { getTableColumnListVisibleCount, TABLE_COLUMN_LIST_VISIBLE_COUNT };
+
+/*
+ * "2 more labels" and "Show less": one button, on a 24px line of its own
+ * under the items - the line an item takes. It was a padded grey button:
+ * 36px tall, so it floated a gap below the list and left another under it,
+ * in a grey (gray-400) that read at 2.5:1 against a white row. It is the
+ * product's show-more link now, as a facet or a long text has it: small,
+ * medium, indigo, underlined under the pointer.
+ *
+ * Its box starts where the items do, its words 4px in, and the keyboard's
+ * ring is drawn inside the box (ring-inset): a table's cell clips its
+ * content at the column's edges (TABLE_CELL_TRUNCATE_CLASS_NAMES), and a
+ * ring drawn outside lost its left side there.
+ */
+export const TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME: string =
+  "flex min-h-6 items-center";
+
+export const TABLE_COLUMN_LIST_TOGGLE_CLASS_NAME: string =
+  "rounded px-1 text-xs font-medium leading-5 text-indigo-600 underline-offset-2 transition-colors duration-150 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500";
 
 export interface ComponentProps<TGenericObject extends GenericObject | string> {
   items: Array<TGenericObject>;
@@ -146,44 +164,42 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
         <></>
       )}
 
-      {remainingItems.length > 0 && !showMoreItems ? (
-        <Button
-          className="-ml-3"
-          dataTestId={props.dataTestId ? `${props.dataTestId}-more` : undefined}
-          onClick={() => {
-            return setShowMoreItems(true);
-          }}
-          /*
-           * "2 more labels": the page's own sentence for the count, or the
-           * count and then the page's words looked up on their own ("2
-           * weitere Labels") - the whole title is no key, so the button's
-           * own lookup leaves it as it is.
-           */
-          title={
-            props.getMoreText
-              ? props.getMoreText(remainingItems.length)
-              : `${remainingItems.length} ${
-                  translateString(props.moreText || "more") ||
-                  props.moreText ||
-                  "more"
-                }`
-          }
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-        />
-      ) : (
-        <></>
-      )}
-
-      {showMoreItems ? (
-        <Button
-          className="-ml-3"
-          dataTestId={props.dataTestId ? `${props.dataTestId}-less` : undefined}
-          onClick={() => {
-            return setShowMoreItems(false);
-          }}
-          title="Show less"
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-        />
+      {/*
+       * One button that opens the list and folds it again, so the keyboard
+       * stays on it: two buttons, one for each, dropped the focus on the
+       * page's body as the one pressed went away.
+       */}
+      {remainingItems.length > 0 ? (
+        <div className={TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME}>
+          <button
+            type="button"
+            className={TABLE_COLUMN_LIST_TOGGLE_CLASS_NAME}
+            data-testid={
+              props.dataTestId
+                ? `${props.dataTestId}-${showMoreItems ? "less" : "more"}`
+                : undefined
+            }
+            aria-expanded={showMoreItems}
+            onClick={() => {
+              setShowMoreItems(!showMoreItems);
+            }}
+          >
+            {showMoreItems
+              ? translateString("Show less") || "Show less"
+              : /*
+                 * "2 more labels": the page's own sentence for the count,
+                 * or the count and then the page's words looked up on
+                 * their own ("2 weitere Ressourcen").
+                 */
+                props.getMoreText
+                ? props.getMoreText(remainingItems.length)
+                : `${remainingItems.length} ${
+                    translateString(props.moreText || "more") ||
+                    props.moreText ||
+                    "more"
+                  }`}
+          </button>
+        </div>
       ) : (
         <></>
       )}

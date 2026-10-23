@@ -42,6 +42,20 @@ export interface EventItemLabel {
   color: Color;
 }
 
+/*
+ * An event's labels on a status page: side by side, onto the next line
+ * when the box is full, and a label longer than the box runs onto a second
+ * line inside its pill (Pill's isWrapping) - a visitor on a phone has
+ * nothing to point with to read one cut short. They sat on one line that
+ * never wrapped, and a project's long labels ("4.Business
+ * System=Customer Mobile App") ran out of the incident's box and past the
+ * page's edge.
+ */
+export const EVENT_ITEM_LABELS_CLASS_NAME: string =
+  "mt-3 flex flex-wrap gap-1.5 active-event-box-body-labels";
+
+export const EVENT_ITEM_LABEL_CLASS_NAME: string = "min-w-0 max-w-full";
+
 export interface ComponentProps {
   eventTitle: string;
   eventResourcesAffected?: Array<string> | undefined;
@@ -141,7 +155,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
         )}
 
         {props.labels && props.labels.length > 0 ? (
-          <div className="flex space-x-1 mt-3 active-event-box-body-labels">
+          <div className={EVENT_ITEM_LABELS_CLASS_NAME}>
             {/*
              * In natural order, as labels are listed everywhere
              * (Utils/LabelOrder).
@@ -153,8 +167,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
               },
             ).map((label: EventItemLabel, i: number) => {
               return (
-                <div key={i}>
-                  <Pill text={label.name} color={label.color} />
+                <div key={i} className={EVENT_ITEM_LABEL_CLASS_NAME}>
+                  <Pill
+                    text={label.name}
+                    color={label.color}
+                    isWrapping={true}
+                  />
                 </div>
               );
             })}

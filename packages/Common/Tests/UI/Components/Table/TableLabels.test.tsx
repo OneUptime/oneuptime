@@ -16,7 +16,7 @@ import LabelsElement, {
   DETAIL_LABELS_TEST_ID,
   TABLE_LABEL_LINE_CLASS_NAME,
   TABLE_LABELS_CLASS_NAME,
-  TABLE_LABELS_MORE_TEXT,
+  TABLE_LABELS_MORE_TEMPLATE,
   TABLE_LABELS_TEST_ID,
 } from "../../../../UI/Components/Label/Labels";
 import TableColumnListComponent, {
@@ -227,7 +227,11 @@ describe("a record's labels in a table's cell", () => {
 
     expect(more.tagName).toBe("BUTTON");
     expect(more).toHaveAccessibleName("3 more labels");
-    expect(TABLE_LABELS_MORE_TEXT).toBe("more labels");
+    // One sentence for the count, in each language's plural forms.
+    expect(TABLE_LABELS_MORE_TEMPLATE).toEqual({
+      one: "{{count}} more label",
+      other: "{{count}} more labels",
+    });
     // Inside the list, under the labels it stands for.
     expect(screen.getByTestId(TABLE_LABELS_TEST_ID)).toContainElement(more);
   });
@@ -353,11 +357,12 @@ describe("a record's labels in a table's cell", () => {
   });
 
   test("'N more labels' and 'Show less' are said in the reader's language", () => {
-    const more: string = GERMAN_FILE["more labels"] as string;
+    const more: string = GERMAN_FILE["{{count}} more labels"] as string;
     const less: string = GERMAN_FILE["Show less"] as string;
 
-    expect(more).toBeTruthy();
-    expect(more).not.toBe("more labels");
+    // In the words the German Labels column is titled in.
+    expect(GERMAN_FILE["Labels"]).toBe("Beschriftungen");
+    expect(more).toBe("{{count}} weitere Beschriftungen");
     expect(less).not.toBe("Show less");
 
     render(
@@ -366,9 +371,117 @@ describe("a record's labels in a table's cell", () => {
       </I18nextProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: `3 ${more}` }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "3 weitere Beschriftungen" }),
+    );
 
     expect(screen.getByRole("button", { name: less })).toBeInTheDocument();
+  });
+
+  /*
+   * The count and "more labels" looked up on their own read "2 ещё меток"
+   * in Russian and "2 他のラベル" in Japanese: the count belongs inside the
+   * sentence, in the language's own plural form.
+   */
+  test.each([
+    ["ru", 6, "Ещё меток: 3"],
+    // Russian's "one" form takes 21 too.
+    ["ru", 24, "Ещё 21 метка"],
+    ["ja", 6, "ほか 3 件のラベル"],
+    ["ko", 6, "레이블 3개 더"],
+    ["zh-CN", 6, "另外 3 个标签"],
+    ["fr", 6, "3 autres étiquettes"],
+    ["da", 6, "3 etiketter mere"],
+  ])(
+    "in %s, %i labels fold to the sentence '%s'",
+    async (code: string, count: number, sentence: string) => {
+      const file: Record<string, string> = JSON.parse(
+        fs.readFileSync(
+          path.join(
+            __dirname,
+            `../../../../../App/FeatureSet/Dashboard/src/Locales/${code}.json`,
+          ),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const reader: i18n = createInstance();
+
+      await reader.init({
+        lng: code,
+        fallbackLng: code,
+        resources: { [code]: { translation: file } },
+        interpolation: { escapeValue: false },
+        keySeparator: false,
+        nsSeparator: false,
+      });
+
+      const names: Array<string> = Array.from(
+        { length: count },
+        (_value: unknown, index: number): string => {
+          return `${index + 1}. Label`;
+        },
+      );
+
+      render(
+        <I18nextProvider i18n={reader}>
+          {inCell(<LabelsElement labels={makeLabels(names)} />)}
+        </I18nextProvider>,
+      );
+
+      expect(
+        screen.getByTestId(`${TABLE_LABELS_TEST_ID}-more`),
+      ).toHaveAccessibleName(sentence);
+    },
+  );
+
+  test("every language words the fold as a sentence of its own, with the count inside it", () => {
+    const localesDirectory: string = path.join(
+      __dirname,
+      "../../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+    const readLocale: (fileName: string) => Record<string, string> = (
+      fileName: string,
+    ): Record<string, string> => {
+      return JSON.parse(
+        fs.readFileSync(path.join(localesDirectory, fileName), "utf8"),
+      ) as Record<string, string>;
+    };
+    const english: Record<string, string> = readLocale("en.json");
+    const fileNames: Array<string> = fs
+      .readdirSync(localesDirectory)
+      .filter((fileName: string): boolean => {
+        return fileName.endsWith(".json");
+      });
+
+    expect(fileNames).toHaveLength(17);
+    expect(english["{{count}} more labels"]).toBe("{{count}} more labels");
+    expect(english["{{count}} more labels_one"]).toBe("{{count}} more label");
+
+    for (const fileName of fileNames) {
+      const file: Record<string, string> = readLocale(fileName);
+
+      for (const key of [
+        "{{count}} more labels",
+        "{{count}} more labels_one",
+      ]) {
+        const sentence: string = file[key] || "";
+
+        expect([fileName, key, sentence.includes("{{count}}")]).toEqual([
+          fileName,
+          key,
+          true,
+        ]);
+
+        // Translated everywhere but English.
+        if (fileName !== "en.json") {
+          expect([fileName, key, sentence === english[key]]).toEqual([
+            fileName,
+            key,
+            false,
+          ]);
+        }
+      }
+    }
   });
 
   test("a row of a real table body draws them so", () => {

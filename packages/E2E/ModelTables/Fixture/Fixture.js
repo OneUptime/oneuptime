@@ -1239,10 +1239,16 @@ const KIND_ROWS = isEmpty
         source.currentMonitorStatus,
         { labels: source.labels },
       );
-      // Every other row leaves its optional values unset.
+      /*
+       * Every other row leaves its optional values unset - but its labels
+       * under data=labels, so a phone's card shows four labels and the
+       * fold of five ("2 more labels") too.
+       */
       if (index % 2 === 1) {
         record.description = "";
-        record.labels = [];
+        if (!isNumberedLabels) {
+          record.labels = [];
+        }
       }
       record.disableActiveMonitoring = index === 2;
       return record;

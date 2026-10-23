@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。",
   "Events appear here as the Kubernetes agent sends them.": "イベントは Kubernetes エージェントが送信するとここに表示されます。",
   "Try another namespace, kind or reason, or a longer time range.": "別の Namespace、種類、理由を選ぶか、より長い時間範囲を選んでください。",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。"
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。",
+  "{{count}} more labels": "ほか {{count}} 件のラベル",
+  "{{count}} more labels_one": "ほか {{count}} 件のラベル"
 }

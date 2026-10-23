@@ -6,6 +6,8 @@ import TableColumnListComponent from "../TableColumnList/TableColumnListComponen
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import useTranslateValue from "../../Utils/Translation";
+import { PluralTemplate, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
@@ -33,6 +35,10 @@ export interface ComponentProps {
  *
  * The first line is a value's 24px one (min-h-6), the pills centred on it,
  * so they sit level with the values beside them in the row.
+ *
+ * On the one page about the record a label is read whole: one longer than
+ * the column runs onto a second line inside its pill (Pill's isWrapping)
+ * rather than end in "..." - on a phone nothing points to show the rest.
  */
 export const DETAIL_LABELS_CLASS_NAME: string =
   "flex min-h-6 flex-wrap items-center gap-1.5";
@@ -72,13 +78,22 @@ export const TABLE_LABEL_LINE_CLASS_NAME: string = "flex min-h-6 items-center";
 
 export const TABLE_LABELS_TEST_ID: string = "table-labels";
 
-// What "N more" says after its count: "2 more labels".
-export const TABLE_LABELS_MORE_TEXT: string = "more labels";
+/*
+ * What the fold says: "2 more labels", a sentence of its own in the
+ * reader's language and plural forms ("Ещё меток: 5", "ほか 2 件のラベル",
+ * "2 weitere Beschriftungen"). The count and "more labels" looked up on
+ * their own read "2 ещё меток" and "2 他のラベル".
+ */
+export const TABLE_LABELS_MORE_TEMPLATE: PluralTemplate = {
+  one: "{{count}} more label",
+  other: "{{count}} more labels",
+};
 
 const LabelsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
   const isDetailValue: boolean = useIsDetailValue();
   const isTableCell: boolean = useIsTableCell();
   const isTableCard: boolean = useIsTableCard();
@@ -95,6 +110,10 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   const noItemsMessage: string =
     translateString("No labels attached.") || "No labels attached.";
 
+  const getMoreText: (count: number) => string = (count: number): string => {
+    return translator.translatePlural(TABLE_LABELS_MORE_TEMPLATE, count);
+  };
+
   if (isDetailValue && labels.length > 0) {
     return (
       <div
@@ -106,6 +125,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
             <LabelElement
               key={label.id?.toString() || String(index)}
               label={label}
+              isWrapping={true}
             />
           );
         })}
@@ -126,7 +146,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
     return (
       <TableColumnListComponent<LabelModel>
         items={labels}
-        moreText={TABLE_LABELS_MORE_TEXT}
+        getMoreText={getMoreText}
         noItemsMessage={noItemsMessage}
         className={TABLE_LABELS_CLASS_NAME}
         dataTestId={TABLE_LABELS_TEST_ID}
@@ -149,7 +169,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent<LabelModel>
       items={labels}
-      moreText={TABLE_LABELS_MORE_TEXT}
+      getMoreText={getMoreText}
       className={labels.length > 0 ? "-mb-1 -mt-1" : ""}
       getEachElement={(label: LabelModel) => {
         return (

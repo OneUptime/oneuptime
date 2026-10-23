@@ -6,6 +6,8 @@ import React, { ReactElement } from "react";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import TableColumnListComponent, {
   getTableColumnListVisibleCount,
+  TABLE_COLUMN_LIST_TOGGLE_CLASS_NAME,
+  TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME,
   TABLE_COLUMN_LIST_VISIBLE_COUNT,
 } from "../../../UI/Components/TableColumnList/TableColumnListComponent";
 
@@ -243,5 +245,133 @@ describe("TableColumnListComponent", () => {
     expect(
       screen.getByRole("button", { name: "Weniger anzeigen" }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * "N more" and "Show less" are one button: it opens the list and folds it
+ * again, so a keyboard that pressed it is still on it. They were two
+ * buttons, one put in place of the other, and the focus fell to the page's
+ * body as the one pressed went away. It sits on a 24px line of its own
+ * under the items, in the indigo of the product's other show-more links -
+ * not a padded button 36px tall in a grey that read at 2.5:1.
+ */
+describe("the button that opens and folds the list", () => {
+  function toggle(): HTMLElement {
+    return screen.getByRole("button");
+  }
+
+  test("is one button: pressing it keeps the focus on it, and it says which way it goes", () => {
+    render(list(items("A", "B", "C", "D", "E")));
+
+    const button: HTMLElement = toggle();
+
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(button).toHaveAccessibleName("2 more labels");
+    expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveAttribute("aria-expanded", "false");
+
+    button.focus();
+    fireEvent.click(button);
+
+    // The same element, still focused, now folding the list.
+    expect(toggle()).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(button).toHaveAccessibleName("Weniger anzeigen");
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(shownItems()).toEqual(["A", "B", "C", "D", "E"]);
+
+    fireEvent.click(button);
+
+    expect(toggle()).toBe(button);
+    expect(document.activeElement).toBe(button);
+    expect(button).toHaveAccessibleName("2 more labels");
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(shownItems()).toEqual(["A", "B", "C"]);
+  });
+
+  test("its test id says which way it goes, on the same element", () => {
+    render(
+      <TableColumnListComponent<Item>
+        items={items("A", "B", "C", "D", "E")}
+        moreText="more labels"
+        noItemsMessage="No labels attached."
+        dataTestId="row-labels"
+        getEachElement={(item: Item): ReactElement => {
+          return <span data-testid="item">{item.name}</span>;
+        }}
+      />,
+    );
+
+    const more: HTMLElement = screen.getByTestId("row-labels-more");
+
+    fireEvent.click(more);
+
+    expect(screen.getByTestId("row-labels-less")).toBe(more);
+    expect(screen.queryByTestId("row-labels-more")).toBeNull();
+  });
+
+  test("sits on a line of its own under the items, the list's last line", () => {
+    render(list(items("A", "B", "C", "D", "E")));
+
+    const button: HTMLElement = toggle();
+    const line: HTMLElement = button.parentElement as HTMLElement;
+
+    expect(line.className).toBe(TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME);
+    expect(line).toHaveClass("min-h-6");
+    expect(line.parentElement?.lastElementChild).toBe(line);
+
+    fireEvent.click(button);
+
+    // Under every item once the list is open, still its last line.
+    expect(line.parentElement?.lastElementChild).toBe(line);
+    expect(
+      screen.getAllByTestId("item").every((item: HTMLElement): boolean => {
+        return Boolean(
+          item.compareDocumentPosition(button) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("reads as the product's show-more link: small indigo words, underlined under the pointer, ringed inside its box for the keyboard", () => {
+    render(list(items("A", "B", "C", "D", "E")));
+
+    const button: HTMLElement = toggle();
+
+    expect(button.className).toBe(TABLE_COLUMN_LIST_TOGGLE_CLASS_NAME);
+
+    for (const token of [
+      "text-xs",
+      "font-medium",
+      "text-indigo-600",
+      "hover:text-indigo-700",
+      "hover:underline",
+      "focus-visible:ring-2",
+      // A cell clips at the column's edges: a ring outside lost its left side.
+      "focus-visible:ring-inset",
+      "focus-visible:ring-indigo-500",
+    ]) {
+      expect([token, button.classList.contains(token)]).toEqual([token, true]);
+    }
+
+    // Not the grey that read at 2.5:1, nor the button's 36px of padding.
+    for (const token of ["text-gray-400", "py-2", "px-3", "-ml-3", "md:ml-3"]) {
+      expect([token, button.classList.contains(token)]).toEqual([token, false]);
+    }
+  });
+
+  test("a list that shows every item has no button at all, nor its line", () => {
+    const { container } = render(list(items("A", "B", "C", "D")));
+
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(
+      Array.from(container.querySelectorAll("div")).filter(
+        (element: HTMLDivElement): boolean => {
+          return element.className === TABLE_COLUMN_LIST_TOGGLE_LINE_CLASS_NAME;
+        },
+      ),
+    ).toEqual([]);
   });
 });

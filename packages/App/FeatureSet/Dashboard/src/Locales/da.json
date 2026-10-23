@@ -927,7 +927,7 @@
   "Create from Template": "Opret fra skabelon",
   "View Documentation": "Vis dokumentation",
   "Watch Demo": "Se demo",
-  "No labels attached.": "Ingen mærkater tilknyttet.",
+  "No labels attached.": "Ingen etiketter tilknyttet.",
   "more label": "mere mærkat",
   "more labels": "flere mærkater",
   "more Runners": "flere runbook-agenter",
@@ -33391,5 +33391,7 @@
   "Used for calls only: OneUptime sends subscriber text messages.": "Bruges kun til opkald: OneUptime sender sms'er til abonnenter.",
   "Events appear here as the Kubernetes agent sends them.": "Hændelser vises her, efterhånden som Kubernetes-agenten sender dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prøv et andet namespace, en anden type eller årsag, eller et længere tidsrum.",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hvad Kubernetes har rapporteret om denne klynges noder, arbejdsbelastninger, autoscalere og diskenheder."
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hvad Kubernetes har rapporteret om denne klynges noder, arbejdsbelastninger, autoscalere og diskenheder.",
+  "{{count}} more labels": "{{count}} etiketter mere",
+  "{{count}} more labels_one": "{{count}} etiket mere"
 }

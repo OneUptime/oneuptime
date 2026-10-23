@@ -23,7 +23,8 @@ The pages:
   numbered the way that customer numbers theirs ("1.Category=Application",
   "2.SubCategory=Website", ... "10.Owner=..."), each monitor's handed over
   in a scrambled order, one longer than a column may grow, five on one
-  monitor;
+  monitor (the gallery's rows keep all their labels then, so a phone's
+  card shows four and the fold of five too);
 - `/dashboard/<project>/status-pages` - Status Pages (a long name beside a
   column of prose);
 - `/dashboard/<project>/settings/teams` - Settings > Teams;
@@ -67,6 +68,11 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
   to the column's 20rem, and only a longer one ends in "...", whole under
   the pointer; on a phone a long one runs onto a next line inside its pill;
   the Labels facet offers them in the same order, in both themes;
+- "N more labels" is a link on a 24px line of its own under the labels (a
+  row of five folded is as tall as a row of four), at WCAG AA in both
+  themes; the keyboard opens and folds the list and stays on the link, its
+  ring whole inside the column; a phone's card folds and opens the same
+  way; German says "2 weitere Beschriftungen";
 - an empty value is a quiet dash read out as "Not set", not "No labels
   attached." on every row; Yes is a tick, No the dash;
 - the Duration says its two largest units, the whole of it under the
