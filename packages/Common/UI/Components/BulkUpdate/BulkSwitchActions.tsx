@@ -12,6 +12,7 @@ import {
   PluralTemplate,
   translatableTerm,
   TranslatableTerm,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -91,7 +92,7 @@ export const ENABLE_SWITCH_ACTION: BulkSwitchAction = {
     one: "Are you sure you want to enable {{count}} {{itemName}}?",
     other: "Are you sure you want to enable {{count}} {{itemsName}}?",
   },
-  alreadyReason: "Already enabled.",
+  alreadyReason: translationKey("Already enabled."),
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} enabled",
@@ -116,7 +117,7 @@ export const DISABLE_SWITCH_ACTION: BulkSwitchAction = {
     one: "Are you sure you want to disable {{count}} {{itemName}}?",
     other: "Are you sure you want to disable {{count}} {{itemsName}}?",
   },
-  alreadyReason: "Already disabled.",
+  alreadyReason: translationKey("Already disabled."),
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} disabled",
@@ -148,7 +149,7 @@ export const UNSUBSCRIBE_SWITCH_ACTION: BulkSwitchAction = {
     one: "Are you sure you want to unsubscribe {{count}} {{itemName}}?",
     other: "Are you sure you want to unsubscribe {{count}} {{itemsName}}?",
   },
-  alreadyReason: "Already unsubscribed.",
+  alreadyReason: translationKey("Already unsubscribed."),
   resultLabels: {
     succeeded: {
       one: "{{count}} {{itemName}} unsubscribed",

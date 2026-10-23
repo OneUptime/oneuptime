@@ -28,6 +28,17 @@ export interface BulkSwitchConsequence {
 export const BULK_SWITCH_CONSEQUENCES: Readonly<
   Record<string, Readonly<Record<string, BulkSwitchConsequence>>>
 > = {
+  /*
+   * The other way round: Disable Monitoring on is a disabled monitor, so its
+   * "on" is what Disable does.
+   */
+  Monitor: {
+    disableActiveMonitoring: {
+      on: translationKey(
+        "A disabled monitor is not checked, and opens no incidents or alerts, until it is enabled again.",
+      ),
+    },
+  },
   Workflow: {
     isEnabled: {
       on: translationKey(
