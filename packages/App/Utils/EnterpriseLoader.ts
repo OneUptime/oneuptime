@@ -46,12 +46,12 @@ import JobDictionary from "../FeatureSet/Workers/Utils/JobDictionary";
 
 /*
  * Cron jobs the enterprise module owns. Earlier releases registered the first
- * five and the OneUptime Cloud marketplace jobs from core, and the
- * self-hosted marketplace usage job runs only where a marketplace is named,
- * so their repeatable definitions can still be in Redis on any install; a
- * Community process (or an Enterprise process that registers only some of
- * them - the license-server and OneUptime Cloud marketplace jobs run only
- * with billing) would then fail every run with "No job found". Core registers
+ * five and OneUptime Cloud's billing jobs from core, and the self-hosted
+ * marketplace usage job runs only where a marketplace is named, so their
+ * repeatable definitions can still be in Redis on any install; a Community
+ * process (or an Enterprise process that registers only some of them - the
+ * license-server and OneUptime Cloud billing jobs run only with billing)
+ * would then fail every run with "No job found". Core registers
  * a no-op handler for each name still missing after ee had its turn. Nothing
  * is removed from Redis: the migrate job never loads ee and would delete live
  * Enterprise crons.
@@ -77,6 +77,16 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
   "Marketplace:ReportUsage",
   "Marketplace:SyncPurchases",
   "Marketplace:VercelBilling",
+  /*
+   * OneUptime Cloud's metered plan usage report and subscription jobs.
+   * Earlier releases registered them from core in every edition (they did
+   * nothing without billing); ee registers them only with billing on.
+   */
+  "MeteredPlan:ReportTelemetryMeteredPlan",
+  "PaymentProvider:CheckSubscriptionStatus",
+  "PaymentProvider:PopulatePlanNameInProject",
+  "PaymentProvider:UpdateTeamMembersIfNull",
+  "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

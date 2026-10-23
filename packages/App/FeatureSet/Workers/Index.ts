@@ -69,12 +69,14 @@ import "./Jobs/IncidentPublicNote/SendNotificationToSubscribers";
 import "./Jobs/IncidentStateTimeline/SendNotificationToSubscribers";
 import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
-import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
 /*
- * OneUptime Cloud's cloud marketplace and Vercel Marketplace jobs (hourly
- * usage, daily status sync, Vercel invoices) belong to the enterprise module
- * and are registered by EnterpriseLoader.registerWorkerJobs() in init() below.
+ * OneUptime Cloud's billing jobs - the cloud marketplace and Vercel
+ * Marketplace jobs (hourly usage, daily status sync, Vercel invoices), the
+ * metered plan usage report and the subscription jobs (subscription status,
+ * plan names, seat counts, overdue reminders) - belong to the enterprise
+ * module and are registered by EnterpriseLoader.registerWorkerJobs() in
+ * init() below.
  */
 
 // Monitor Owners
@@ -125,10 +127,6 @@ import "./Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities";
  * WITHOUT being asked, so its silence is indistinguishable from good news.
  */
 import "./Jobs/OnCallDutyPolicy/WeeklyReadinessDigest";
-// Payments.
-import "./Jobs/PaymentProvider/CheckSubscriptionStatus";
-import "./Jobs/PaymentProvider/PopulatePlanNameInProject";
-import "./Jobs/PaymentProvider/UpdateTeamMembersIfNull";
 import "./Jobs/ScheduledMaintenance/ChangeStateToEnded";
 
 // Scheduled Event
@@ -426,8 +424,6 @@ import "Common/Server/Utils/OnCall/OnCallShiftReminderListener";
  */
 
 import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
-
-import "./Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue";
 
 /*
  * Enterprise license jobs (usage reporting, license notification emails,

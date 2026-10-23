@@ -14,9 +14,11 @@ import {
 /*
  * The Billing area of the enterprise module: OneUptime Cloud's payment
  * provider, Stripe, which core's BillingService hands every payment-provider
- * call to (EnterpriseEdition.getBillingProvider). Only with billing on: with
- * billing off there is no provider and no Stripe client is ever built, so a
- * self-hosted installation never talks to Stripe.
+ * call to (EnterpriseEdition.getBillingProvider), and the jobs that keep
+ * projects' subscriptions and metered usage in step with it. Only with
+ * billing on: with billing off there is no provider, no Stripe client is ever
+ * built and no job is registered, so a self-hosted installation never talks
+ * to Stripe.
  */
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
@@ -33,15 +35,28 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
   );
 });
 
-import BillingArea, { getBillingProvider } from "../../../Server/Billing/Index";
+import BillingArea, {
+  BILLING_JOB_NAMES,
+  getBillingProvider,
+  registerBillingWorkerJobs,
+} from "../../../Server/Billing/Index";
 import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
 import EnterpriseModule, { ENTERPRISE_AREAS } from "../../../Server/Index";
 import EnterpriseArea from "../../../Server/Types/EnterpriseArea";
+import JobDictionary from "App/FeatureSet/Workers/Utils/JobDictionary";
+import { ENTERPRISE_OWNED_JOB_NAMES } from "App/Utils/EnterpriseLoader";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import Queue, { QueueName } from "Common/Server/Infrastructure/Queue";
 import BillingService from "Common/Server/Services/BillingService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import BillingProvider from "Common/Server/Types/Billing/BillingProvider";
 import Errors from "Common/Server/Utils/Errors";
 import logger from "Common/Server/Utils/Logger";
+import {
+  EVERY_DAY,
+  EVERY_FIFTEEN_MINUTE,
+  EVERY_WEEK,
+} from "Common/Utils/CronTime";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
 
 /*
@@ -96,10 +111,17 @@ const stripeConstructions: () => number = (): number => {
     .length;
 };
 
+let addJobSpy: { mock: { calls: Array<Array<unknown>> } };
+
 beforeAll(() => {
   jest.spyOn(logger, "debug").mockImplementation((): void => {
     return undefined;
   });
+  addJobSpy = jest
+    .spyOn(Queue, "addJob")
+    .mockResolvedValue(undefined as never) as unknown as {
+    mock: { calls: Array<Array<unknown>> };
+  };
 });
 
 afterAll(() => {
@@ -131,10 +153,24 @@ describe("the Billing area", () => {
     );
   });
 
-  test("adds no route and no job: Stripe's webhook stays core's BillingAPI", () => {
+  test("adds no route: Stripe's webhook stays core's BillingAPI", () => {
     expect(BillingArea.getApiRouters).toBeUndefined();
     expect(BillingArea.getIdentityRouters).toBeUndefined();
-    expect(BillingArea.registerWorkerJobs).toBeUndefined();
+  });
+
+  test("registers the billing jobs, whose names core keeps placeholders for", () => {
+    expect(BillingArea.registerWorkerJobs).toBe(registerBillingWorkerJobs);
+    expect(BILLING_JOB_NAMES).toEqual([
+      "MeteredPlan:ReportTelemetryMeteredPlan",
+      "PaymentProvider:CheckSubscriptionStatus",
+      "PaymentProvider:PopulatePlanNameInProject",
+      "PaymentProvider:UpdateTeamMembersIfNull",
+      "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
+    ]);
+
+    for (const jobName of BILLING_JOB_NAMES) {
+      expect(ENTERPRISE_OWNED_JOB_NAMES).toContain(jobName);
+    }
   });
 });
 
@@ -236,5 +272,94 @@ describe("core's BillingService, with the enterprise module loaded", () => {
       Errors.BillingService.BILLING_NOT_ENABLED,
     );
     expect(retrieveCalls()).toBe(0);
+  });
+});
+
+/*
+ * In this order: requiring a job module is its registration, and a module is
+ * required at most once per process, so billing off has to come first.
+ */
+describe("the billing jobs", () => {
+  // Every RunCron call core's queue saw for a job: [queue, name, name, data, options].
+  const schedulingCallsOf: (jobName: string) => Array<Array<unknown>> = (
+    jobName: string,
+  ): Array<Array<unknown>> => {
+    return addJobSpy.mock.calls.filter((call: Array<unknown>): boolean => {
+      return call[1] === jobName;
+    });
+  };
+
+  test("with billing off none is registered or scheduled, through the area or the assembled module", async () => {
+    await registerBillingWorkerJobs();
+    await BillingArea.registerWorkerJobs?.();
+
+    for (const jobName of BILLING_JOB_NAMES) {
+      expect({
+        jobName,
+        registered: JobDictionary.has(jobName),
+        scheduled: schedulingCallsOf(jobName).length,
+      }).toEqual({ jobName, registered: false, scheduled: 0 });
+    }
+  });
+
+  test("with billing on all five are registered with core's JobDictionary, each on its schedule on the worker queue and none on startup", async () => {
+    setTestBillingEnabled(true);
+
+    await registerBillingWorkerJobs();
+
+    // config.example.env is not a development environment.
+    const schedules: Record<string, string> = {
+      "MeteredPlan:ReportTelemetryMeteredPlan": EVERY_DAY,
+      "PaymentProvider:CheckSubscriptionStatus": EVERY_DAY,
+      "PaymentProvider:PopulatePlanNameInProject": EVERY_WEEK,
+      "PaymentProvider:UpdateTeamMembersIfNull": EVERY_FIFTEEN_MINUTE,
+      "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue":
+        EVERY_DAY,
+    };
+
+    expect(Object.keys(schedules)).toEqual([...BILLING_JOB_NAMES]);
+
+    for (const jobName of BILLING_JOB_NAMES) {
+      expect({ jobName, registered: JobDictionary.has(jobName) }).toEqual({
+        jobName,
+        registered: true,
+      });
+      expect(schedulingCallsOf(jobName)).toEqual([
+        [
+          QueueName.Worker,
+          jobName,
+          jobName,
+          {},
+          { scheduleAt: schedules[jobName] },
+        ],
+      ]);
+    }
+  });
+
+  test("asking again schedules nothing twice", async () => {
+    setTestBillingEnabled(true);
+
+    const before: number = addJobSpy.mock.calls.length;
+
+    await registerBillingWorkerJobs();
+    await BillingArea.registerWorkerJobs?.();
+
+    expect(addJobSpy.mock.calls.length).toBe(before);
+  });
+
+  test("a registered job does nothing once billing is off", async () => {
+    const findAllBy: { mock: { calls: Array<unknown> } } = jest
+      .spyOn(ProjectService, "findAllBy")
+      .mockResolvedValue([] as never) as unknown as {
+      mock: { calls: Array<unknown> };
+    };
+
+    for (const jobName of BILLING_JOB_NAMES) {
+      await expect(
+        JobDictionary.getJobFunction(jobName)(),
+      ).resolves.toBeUndefined();
+    }
+
+    expect(findAllBy.mock.calls).toEqual([]);
   });
 });

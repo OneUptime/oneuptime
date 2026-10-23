@@ -1,4 +1,4 @@
-import RunCron from "../../Utils/Cron";
+import RunCron from "App/FeatureSet/Workers/Utils/Cron";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {

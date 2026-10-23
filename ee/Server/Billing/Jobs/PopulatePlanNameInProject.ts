@@ -1,4 +1,4 @@
-import RunCron from "../../Utils/Cron";
+import RunCron from "App/FeatureSet/Workers/Utils/Cron";
 import SubscriptionPlan, {
   PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";

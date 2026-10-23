@@ -8,8 +8,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
 import { beforeEach, describe, expect, test } from "@jest/globals";
-import JobDictionary from "../../../../FeatureSet/Workers/Utils/JobDictionary";
-import "../../../../FeatureSet/Workers/Jobs/PaymentProvider/UpdateTeamMembersIfNull";
+import JobDictionary from "App/FeatureSet/Workers/Utils/JobDictionary";
+import "../../../../Server/Billing/Jobs/UpdateTeamMembersIfNull";
 
 /*
  * QueryHelper.notNull() hands back a typeorm FindOperator, but typeorm is

@@ -55,6 +55,11 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "Marketplace:ReportUsage",
   "Marketplace:SyncPurchases",
   "Marketplace:VercelBilling",
+  "MeteredPlan:ReportTelemetryMeteredPlan",
+  "PaymentProvider:CheckSubscriptionStatus",
+  "PaymentProvider:PopulatePlanNameInProject",
+  "PaymentProvider:UpdateTeamMembersIfNull",
+  "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1082,7 +1087,7 @@ describe("EnterpriseLoader: the request and the edition default to the environme
 });
 
 describe("EnterpriseLoader worker jobs", () => {
-  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job and OneUptime Cloud's three marketplace jobs", async () => {
+  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job and OneUptime Cloud's billing jobs", async () => {
     const { loaderModule } = await loadFresh();
 
     expect([...loaderModule.ENTERPRISE_OWNED_JOB_NAMES]).toEqual(
@@ -1143,6 +1148,11 @@ describe("EnterpriseLoader worker jobs", () => {
       "Marketplace:ReportUsage",
       "Marketplace:SyncPurchases",
       "Marketplace:VercelBilling",
+      "MeteredPlan:ReportTelemetryMeteredPlan",
+      "PaymentProvider:CheckSubscriptionStatus",
+      "PaymentProvider:PopulatePlanNameInProject",
+      "PaymentProvider:UpdateTeamMembersIfNull",
+      "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 

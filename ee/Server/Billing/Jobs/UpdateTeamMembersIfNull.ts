@@ -1,4 +1,4 @@
-import RunCron from "../../Utils/Cron";
+import RunCron from "App/FeatureSet/Workers/Utils/Cron";
 import { EVERY_FIFTEEN_MINUTE, EVERY_MINUTE } from "Common/Utils/CronTime";
 import {
   IsBillingEnabled,

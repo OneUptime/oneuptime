@@ -7,9 +7,10 @@ import ts from "typescript";
  * OneUptime Cloud's billing is the enterprise module's: selling OneUptime
  * Cloud on AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace
  * and Vercel Marketplace lives in ee/Server/CloudMarketplace, and the Stripe
- * client in ee/Server/Billing. The Community image is built with ee/ removed
- * and must not carry them, and core must not serve their routes, run their
- * jobs or talk to Stripe. So this suite pins:
+ * client and the subscription and metered plan jobs in ee/Server/Billing. The
+ * Community image is built with ee/ removed and must not carry them, and core
+ * must not serve their routes, run their jobs or talk to Stripe. So this
+ * suite pins:
  *
  *   - the moved modules are gone from core, and no core file loads them;
  *   - no core router serves a marketplace route or sign-in from Vercel;
@@ -39,6 +40,11 @@ const MOVED_MODULES: ReadonlyArray<string> = [
   "packages/App/FeatureSet/Workers/Jobs/Marketplace/ReportMarketplaceUsage",
   "packages/App/FeatureSet/Workers/Jobs/Marketplace/SyncMarketplacePurchases",
   "packages/App/FeatureSet/Workers/Jobs/Marketplace/BillVercelMarketplace",
+  "packages/App/FeatureSet/Workers/Jobs/MeteredPlan/ReportTelemetryMeteredPlan",
+  "packages/App/FeatureSet/Workers/Jobs/PaymentProvider/CheckSubscriptionStatus",
+  "packages/App/FeatureSet/Workers/Jobs/PaymentProvider/PopulatePlanNameInProject",
+  "packages/App/FeatureSet/Workers/Jobs/PaymentProvider/UpdateTeamMembersIfNull",
+  "packages/App/FeatureSet/Workers/Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
   ...[
     "AWS/AwsMarketplaceAPI",
     "AWS/AwsMarketplaceAdapter",
@@ -115,7 +121,7 @@ const SOURCE_FILE: RegExp = /\.(?:tsx?|mts|cts|jsx?|mjs|cjs)$/;
 
 // Cheap prefilter: a file that names no moved module cannot load one.
 const MAY_REFERENCE_MOVED_MODULE: RegExp =
-  /Marketplace|Vercel|AwsMarketplace|AzureMarketplace|GoogleCloudMarketplace/;
+  /Marketplace|Vercel|PaymentProvider|ReportTelemetryMeteredPlan/;
 
 const toRepositoryPath: (filePath: string) => string = (
   filePath: string,
@@ -287,6 +293,24 @@ describe("the guard's own machinery", () => {
     ]);
   });
 
+  test("sees a moved billing job loaded from core's Workers", () => {
+    const file: string = "packages/App/FeatureSet/Workers/Index.ts";
+    const source: string = [
+      'import "./Jobs/PaymentProvider/CheckSubscriptionStatus";',
+      'import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";',
+      'import "App/FeatureSet/Workers/Jobs/PaymentProvider/UpdateTeamMembersIfNull";',
+      // Not moved.
+      'import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";',
+    ].join("\n");
+
+    expect(MAY_REFERENCE_MOVED_MODULE.test(source)).toBe(true);
+    expect(findReferencesToMovedModules(file, source)).toEqual([
+      `${file} -> ./Jobs/PaymentProvider/CheckSubscriptionStatus`,
+      `${file} -> ./Jobs/MeteredPlan/ReportTelemetryMeteredPlan`,
+      `${file} -> App/FeatureSet/Workers/Jobs/PaymentProvider/UpdateTeamMembersIfNull`,
+    ]);
+  });
+
   test("sees a route on a marketplace path, and not the frontends' API addresses", () => {
     for (const code of [
       'this.router.post("/marketplace/aws/register", handler);',
@@ -369,6 +393,42 @@ describe("OneUptime Cloud's marketplace billing is not in core", () => {
       "Marketplace:ReportUsage",
       "Marketplace:SyncPurchases",
       "Marketplace:VercelBilling",
+    ]) {
+      expect(loader).toContain(`"${jobName}",`);
+    }
+  });
+
+  test("the subscription and metered plan jobs are gone from core's Workers, and stay ee-owned names", () => {
+    for (const directory of ["PaymentProvider", "MeteredPlan"]) {
+      expect(
+        listSourceFiles(
+          path.join(APP_DIR, "FeatureSet", "Workers", "Jobs", directory),
+        ),
+      ).toEqual([]);
+    }
+
+    const workers: string = fs.readFileSync(
+      path.join(APP_DIR, "FeatureSet", "Workers", "Index.ts"),
+      "utf8",
+    );
+    const loader: string = fs.readFileSync(
+      path.join(APP_DIR, "Utils", "EnterpriseLoader.ts"),
+      "utf8",
+    );
+
+    expect(
+      findReferencesToMovedModules(
+        "packages/App/FeatureSet/Workers/Index.ts",
+        workers,
+      ),
+    ).toEqual([]);
+
+    for (const jobName of [
+      "MeteredPlan:ReportTelemetryMeteredPlan",
+      "PaymentProvider:CheckSubscriptionStatus",
+      "PaymentProvider:PopulatePlanNameInProject",
+      "PaymentProvider:UpdateTeamMembersIfNull",
+      "PaymentProvider:SendDailyEmailsToOwnersIfSubscriptionIsOverdue",
     ]) {
       expect(loader).toContain(`"${jobName}",`);
     }

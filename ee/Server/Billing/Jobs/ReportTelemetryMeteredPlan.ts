@@ -1,5 +1,5 @@
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
-import RunCron from "../../Utils/Cron";
+import RunCron from "App/FeatureSet/Workers/Utils/Cron";
 import Sleep from "Common/Types/Sleep";
 import { EVERY_DAY, EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import {
