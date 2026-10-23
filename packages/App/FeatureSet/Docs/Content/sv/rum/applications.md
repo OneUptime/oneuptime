@@ -3,12 +3,11 @@
 OneUptime skapar en RUM-applikation första gången telemetrin från din app kommer in. Den här sidan täcker det du hanterar därifrån: applikationens namn, etiketter och ägare, hur länge dess data lagras, arkivering, vem som kan se den och aviseringar.
 
 :::cards
-
 - [Så skapas en applikation](#så-skapas-en-applikation): Känns igen på sitt `service.name` och skapas med sin första batch.
 - [Etiketter](#etiketter): Gruppera applikationer och bestäm vem som kan nå dem.
 - [Lagring](#lagring): Hur länge telemetri och inspelningar lagras.
 - [Behörigheter](#behörigheter): Vem som kan se applikationer och vem som kan titta på inspelningar.
-  :::
+:::
 
 ## Så skapas en applikation
 
@@ -36,7 +35,6 @@ flowchart TB
 Skapa en applikation själv när du vill att dess etiketter, ägare eller uppspelningspolicy ska vara klara innan den första besökaren kommer.
 
 :::steps
-
 #### Öppna listan över applikationer
 
 Gå till **Produkter → Resurser → Övervakning av verkliga användare** och klicka på **Skapa RUM-applikation**.
@@ -64,11 +62,11 @@ En applikation visar **Ansluten** medan telemetri kommer in och **Frånkopplad**
 
 Etiketter grupperar applikationer i listor och filter. De avgör också vad en medlem som är begränsad till vissa etiketter kan nå: den medlemmen ser bara applikationer som har någon av de etiketterna. En applikation får etiketter på tre sätt:
 
-| Hur                  | Var                                                                                                                                                                                                                                                                  |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manuellt             | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. För flera på en gång markerar du dem i listan och väljer **Add Labels** under **Massåtgärder**. |
-| Från telemetri       | Ett resursattribut med namnet `oneuptime.label.<name>` lägger till etiketten `<name>:<value>`, som visas nedan.                                                                                                                                                      |
-| Från en etikettregel | En regel lägger till etiketter på varje ny applikation som matchar den. Se [Etikettregler och ägarregler](#etikettregler-och-ägarregler).                                                                                                                            |
+| Hur | Var |
+| --- | --- |
+| Manuellt | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. För flera på en gång markerar du dem i listan och väljer **Add Labels** under **Massåtgärder**. |
+| Från telemetri | Ett resursattribut med namnet `oneuptime.label.<name>` lägger till etiketten `<name>:<value>`, som visas nedan. |
+| Från en etikettregel | En regel lägger till etiketter på varje ny applikation som matchar den. Se [Etikettregler och ägarregler](#etikettregler-och-ägarregler). |
 
 Sätt attributen på samma resurs som `service.name`, till exempel i filen `src/telemetry.ts` från [Webbläsarkonfiguration](/docs/rum/browser-setup):
 
@@ -101,10 +99,10 @@ Regler körs när en applikation skapas, även när den har upptäckts. För att
 
 En applikations telemetri och dess inspelningar lagras olika länge:
 
-| Data                                  | Lagras                                                    | Ställs in på                                    |
-| ------------------------------------- | --------------------------------------------------------- | ----------------------------------------------- |
-| Loggar, mätvärden, spår och profiler  | Projektets lagring, om inte applikationen åsidosätter den | Applikationens sida **Inställningar**           |
-| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar      | **Replay Policy**, med **Edit Policy → Limits** |
+| Data | Lagras | Ställs in på |
+| --- | --- | --- |
+| Loggar, mätvärden, spår och profiler | Projektets lagring, om inte applikationen åsidosätter den | Applikationens sida **Inställningar** |
+| Inspelningar från sessionsuppspelning | 7 dagar som standard, eller 1, 14, 30 eller 90 dagar | **Replay Policy**, med **Edit Policy → Limits** |
 
 ### Lagring av telemetri
 
@@ -141,17 +139,17 @@ För att radera en persons data i stället för en hel applikation skickar du in
 
 Alla med projektets Viewer-roll kan se RUM-applikationer och deras telemetri. Sessionsuppspelning hålls utanför den rollen med avsikt: att lista inspelningar, titta på en och läsa vem som tittade på den är separata behörigheter. Projektägare och administratörer har alla. Behörighetsväljarna visar varje behörighet med dess titel, här visad i kursiv stil.
 
-| Behörighet                                                                                       | Låter en medlem                                                                                    |
-| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `ReadRumApplication` (_Read RUM Application_)                                                    | Se applikationer och deras telemetrisidor.                                                         |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                             | Lägga till, redigera och radera applikationer.                                                     |
-| `ReadRumSessionReplay` (_List Session Replays_)                                                  | Lista inspelade sessioner och deras detaljer utan att spela upp dem eller veta vem användaren var. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                          | Spela upp inspelningar och läsa den identifierade användarens referens och egenskaper.             |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                        | Läsa **Replay Access Log**: vem som tittade på vilken inspelning.                                  |
-| `DeleteRumSessionReplay` (_Delete Session Replays_)                                              | Radera inspelningar.                                                                               |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                                 | Skicka in raderingsbegäranden och följa upp dem.                                                   |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (och deras Create, Edit och Delete) | Hantera etikettregler och ägarregler.                                                              |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (och deras Create, Edit och Delete) | Lägga till och ta bort ägare via API:t.                                                            |
+| Behörighet | Låter en medlem |
+| --- | --- |
+| `ReadRumApplication` (_Read RUM Application_) | Se applikationer och deras telemetrisidor. |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Lägga till, redigera och radera applikationer. |
+| `ReadRumSessionReplay` (_List Session Replays_) | Lista inspelade sessioner och deras detaljer utan att spela upp dem eller veta vem användaren var. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Spela upp inspelningar och läsa den identifierade användarens referens och egenskaper. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Läsa **Replay Access Log**: vem som tittade på vilken inspelning. |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | Radera inspelningar. |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Skicka in raderingsbegäranden och följa upp dem. |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (och deras Create, Edit och Delete) | Hantera etikettregler och ägarregler. |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (och deras Create, Edit och Delete) | Lägga till och ta bort ägare via API:t. |
 
 En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRumSessionReplay`. Hen kan då se vilka sessioner som hade fel utan att se någons skärm eller veta vem användaren var. Ge `ReadRumSessionReplayPayload` bara till de personer som behöver det; medlemmar med `ReadRumSessionReplayAudit` ser då varje visning på applikationens sida **Replay Access Log**. [Vem kan titta på en inspelning](/docs/telemetry/session-replay#vem-kan-titta-på-en-inspelning) visar vad varje behörighet låser upp i sessionslistan och spelaren.
 
@@ -159,10 +157,10 @@ En användbar uppdelning: ge en supporttekniker `ReadRumApplication` och `ReadRu
 
 RUM-telemetri är vanliga loggar, mätvärden och spår, så det finns ingen separat RUM-övervakning: de vanliga övervakningarna fungerar med den. Det snabbaste sättet att komma igång är applikationens sida **Recommendations**, som erbjuder övervakningar som redan är avgränsade till applikationen:
 
-| Grupp               | Rekommendationer                                                                                                                                                                                                                                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core Web Vitals     | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint och Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals).                                                                                                                           |
-| Fel                 | Failed User Operations och Unhandled Browser Exceptions.                                                                                                                                                                                                                                                                    |
+| Grupp | Rekommendationer |
+| --- | --- |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint och Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
+| Fel | Failed User Operations och Unhandled Browser Exceptions. |
 | Sessionsuppspelning | De fyra [aviseringarna för lagringsbudgeten](/docs/telemetry/session-replay#aviseringar-för-lagringsbudgeten), som varnar innan projektets dagliga gräns eller applikationens månadsbudget är förbrukad. De erbjuds så snart applikationen har spelat in en uppspelning, och månadsparet när den också har en månadsbudget. |
 
 För att skapa en egen övervakning väljer du den som läser signalen:
@@ -177,9 +175,8 @@ Avgränsa övervakningen du skapar till applikationen, så att en backend-tjäns
 ## Nästa steg
 
 :::cards
-
 - [Sessionsuppspelning](/docs/telemetry/session-replay): Spela in vad användarna såg, med egen policy och lagring.
 - [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules): De två regelformulären, steg för steg.
 - [Köra regler på befintliga resurser](/docs/configuration/run-rules-now): Tillämpa en ny regel på de applikationer du redan har.
 - [RUM-felsökning](/docs/rum/troubleshooting): När en applikation saknas, är tom eller visar Frånkopplad.
-  :::
+:::

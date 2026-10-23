@@ -3,12 +3,11 @@
 OneUptime oppretter en RUM-applikasjon første gang telemetrien fra appen din kommer inn. Denne siden dekker det du administrerer derfra: applikasjonens navn, etikettene og eierne, hvor lenge dataene oppbevares, arkivering, hvem som kan se den, og varsler.
 
 :::cards
-
 - [Slik opprettes en applikasjon](#slik-opprettes-en-applikasjon): Gjenkjent på sitt `service.name` og opprettet med sin første batch.
 - [Etiketter](#etiketter): Grupper applikasjoner, og bestem hvem som kan nå dem.
 - [Oppbevaring](#oppbevaring): Hvor lenge telemetri og opptak oppbevares.
 - [Tillatelser](#tillatelser): Hvem som kan se applikasjoner, og hvem som kan se opptak.
-  :::
+:::
 
 ## Slik opprettes en applikasjon
 
@@ -36,7 +35,6 @@ flowchart TB
 Opprett en applikasjon selv når du vil ha etikettene, eierne eller avspillingsretningslinjen klar før den første besøkende kommer.
 
 :::steps
-
 #### Åpne listen over applikasjoner
 
 Gå til **Produkter → Ressurser → Overvåking av reelle brukere**, og klikk på **Opprett RUM-applikasjon**.
@@ -64,11 +62,11 @@ En applikasjon viser **Tilkoblet** mens telemetri kommer inn, og **Frakoblet** e
 
 Etiketter grupperer applikasjoner i lister og filtre. De bestemmer også hva et medlem som er begrenset til enkelte etiketter, kan nå: det medlemmet ser bare applikasjonene som har en av de etikettene. En applikasjon får etiketter på tre måter:
 
-| Hvordan             | Hvor                                                                                                                                                                                                                                                           |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manuelt             | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. For flere om gangen merker du dem i listen og velger **Add Labels** under **Massehandlinger**. |
-| Fra telemetri       | Et ressursattributt med navnet `oneuptime.label.<name>` legger til etiketten `<name>:<value>`, som vist nedenfor.                                                                                                                                              |
-| Fra en etikettregel | En regel legger til etiketter på hver nye applikasjon som treffer den. Se [Etikettregler og eierregler](#etikettregler-og-eierregler).                                                                                                                         |
+| Hvordan | Hvor |
+| --- | --- |
+| Manuelt | I opprettelsesskjemaet under **Flere felt**, eller senere med **Rediger detaljer** på kortet **Applikasjonsdetaljer** på applikasjonens side **Innstillinger**. For flere om gangen merker du dem i listen og velger **Add Labels** under **Massehandlinger**. |
+| Fra telemetri | Et ressursattributt med navnet `oneuptime.label.<name>` legger til etiketten `<name>:<value>`, som vist nedenfor. |
+| Fra en etikettregel | En regel legger til etiketter på hver nye applikasjon som treffer den. Se [Etikettregler og eierregler](#etikettregler-og-eierregler). |
 
 Sett attributtene på den samme ressursen som `service.name`, for eksempel i filen `src/telemetry.ts` fra [Nettleseroppsett](/docs/rum/browser-setup):
 
@@ -101,10 +99,10 @@ Eiere er personene og teamene som har ansvaret for en applikasjon. Eierregler le
 
 En applikasjons telemetri og opptakene dens oppbevares i ulik tid:
 
-| Data                               | Oppbevares                                                       | Stilles inn på                                  |
-| ---------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- |
-| Logger, målinger, spor og profiler | Prosjektets oppbevaring, med mindre applikasjonen overstyrer den | Applikasjonens side **Innstillinger**           |
-| Opptak fra øktavspilling           | 7 dager som standard, eller 1, 14, 30 eller 90 dager             | **Replay Policy**, med **Edit Policy → Limits** |
+| Data | Oppbevares | Stilles inn på |
+| --- | --- | --- |
+| Logger, målinger, spor og profiler | Prosjektets oppbevaring, med mindre applikasjonen overstyrer den | Applikasjonens side **Innstillinger** |
+| Opptak fra øktavspilling | 7 dager som standard, eller 1, 14, 30 eller 90 dager | **Replay Policy**, med **Edit Policy → Limits** |
 
 ### Oppbevaring av telemetri
 
@@ -141,17 +139,17 @@ For å slette én persons data i stedet for en hel applikasjon sender du inn en 
 
 Alle med prosjektets Viewer-rolle kan se RUM-applikasjoner og telemetrien deres. Øktavspilling er holdt utenfor den rollen med vilje: å liste opp opptak, se ett og lese hvem som så det, er separate tillatelser. Prosjekteiere og -administratorer har alle. Tillatelsesvelgerne viser hver tillatelse med tittelen sin, her vist i kursiv.
 
-| Tillatelse                                                                                     | Lar et medlem                                                                                   |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `ReadRumApplication` (_Read RUM Application_)                                                  | Se applikasjoner og telemetrisidene deres.                                                      |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                           | Legge til, redigere og slette applikasjoner.                                                    |
-| `ReadRumSessionReplay` (_List Session Replays_)                                                | Liste opp innspilte økter og detaljene deres uten å spille dem av eller vite hvem brukeren var. |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                        | Spille av opptak og lese den identifiserte brukerens referanse og egenskaper.                   |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                      | Lese **Replay Access Log**: hvem som så hvilket opptak.                                         |
-| `DeleteRumSessionReplay` (_Delete Session Replays_)                                            | Slette opptak.                                                                                  |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                               | Sende inn sletteforespørsler og følge dem opp.                                                  |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (og deres Create, Edit og Delete) | Administrere etikettregler og eierregler.                                                       |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (og deres Create, Edit og Delete) | Legge til og fjerne eiere via API-et.                                                           |
+| Tillatelse | Lar et medlem |
+| --- | --- |
+| `ReadRumApplication` (_Read RUM Application_) | Se applikasjoner og telemetrisidene deres. |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | Legge til, redigere og slette applikasjoner. |
+| `ReadRumSessionReplay` (_List Session Replays_) | Liste opp innspilte økter og detaljene deres uten å spille dem av eller vite hvem brukeren var. |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | Spille av opptak og lese den identifiserte brukerens referanse og egenskaper. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | Lese **Replay Access Log**: hvem som så hvilket opptak. |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | Slette opptak. |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | Sende inn sletteforespørsler og følge dem opp. |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (og deres Create, Edit og Delete) | Administrere etikettregler og eierregler. |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (og deres Create, Edit og Delete) | Legge til og fjerne eiere via API-et. |
 
 En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSessionReplay`. Vedkommende kan da se hvilke økter som hadde feil, uten å se noens skjerm eller vite hvem brukeren var. Gi `ReadRumSessionReplayPayload` bare til dem som trenger det; medlemmer med `ReadRumSessionReplayAudit` ser da hver visning på applikasjonens side **Replay Access Log**. [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) viser hva hver tillatelse låser opp i øktlisten og avspilleren.
 
@@ -159,11 +157,11 @@ En nyttig fordeling: gi en supportmedarbeider `ReadRumApplication` og `ReadRumSe
 
 RUM-telemetri er vanlige logger, målinger og spor, så det finnes ingen egen RUM-overvåking: de vanlige overvåkingene virker med den. Den raskeste starten er applikasjonens side **Recommendations**, som tilbyr overvåkinger som allerede er avgrenset til applikasjonen:
 
-| Gruppe          | Anbefalinger                                                                                                                                                                                                                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals).                                                                                                                                      |
-| Feil            | Failed User Operations og Unhandled Browser Exceptions.                                                                                                                                                                                                                                                                               |
-| Øktavspilling   | De fire [varslene for lagringsbudsjettet](/docs/telemetry/session-replay#varsler-for-lagringsbudsjettet), som advarer før prosjektets daglige grense eller applikasjonens månedlige budsjett er brukt opp. De tilbys så snart applikasjonen har tatt opp en avspilling, og det månedlige paret når den også har et månedlig budsjett. |
+| Gruppe | Anbefalinger |
+| --- | --- |
+| Core Web Vitals | Poor Largest Contentful Paint, Poor Interaction to Next Paint, Poor Cumulative Layout Shift, Slow First Contentful Paint og Slow Time to First Byte. Se [Core Web Vitals](/docs/rum/web-vitals). |
+| Feil | Failed User Operations og Unhandled Browser Exceptions. |
+| Øktavspilling | De fire [varslene for lagringsbudsjettet](/docs/telemetry/session-replay#varsler-for-lagringsbudsjettet), som advarer før prosjektets daglige grense eller applikasjonens månedlige budsjett er brukt opp. De tilbys så snart applikasjonen har tatt opp en avspilling, og det månedlige paret når den også har et månedlig budsjett. |
 
 For å lage din egen overvåking velger du den som leser signalet:
 
@@ -177,9 +175,8 @@ Avgrens overvåkingen du lager, til applikasjonen, slik at en backend-tjeneste m
 ## Neste steg
 
 :::cards
-
 - [Øktavspilling](/docs/telemetry/session-replay): Ta opp det brukerne så, med egen retningslinje og oppbevaring.
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): De to regelskjemaene, trinn for trinn.
 - [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now): Bruk en ny regel på applikasjonene du allerede har.
 - [RUM-feilsøking](/docs/rum/troubleshooting): Når en applikasjon mangler, er tom eller viser Frakoblet.
-  :::
+:::

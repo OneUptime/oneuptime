@@ -3,12 +3,11 @@
 OneUptime は、アプリのテレメトリが初めて届いたときに RUM アプリケーションを作成します。このページでは、その後に管理する内容を扱います。アプリケーションの名前、ラベルと所有者、データの保持期間、アーカイブ、閲覧できるユーザー、アラートです。
 
 :::cards
-
 - [アプリケーションが作成される仕組み](#アプリケーションが作成される仕組み): `service.name` で照合され、最初のバッチで作成されます。
 - [ラベル](#ラベル): アプリケーションをグループ化し、誰がアクセスできるかを決めます。
 - [保持期間](#保持期間): テレメトリと録画が保持される期間。
 - [権限](#権限): アプリケーションを閲覧できるユーザーと、録画を視聴できるユーザー。
-  :::
+:::
 
 ## アプリケーションが作成される仕組み
 
@@ -36,7 +35,6 @@ flowchart TB
 最初の訪問者が来る前にラベル、所有者、リプレイのポリシーを用意しておきたい場合は、アプリケーションを自分で作成します。
 
 :::steps
-
 #### アプリケーション一覧を開く
 
 **製品 → リソース → リアルユーザーモニタリング** に移動し、 **RUM アプリケーションを作成** をクリックします。
@@ -64,11 +62,11 @@ flowchart TB
 
 ラベルは一覧やフィルターでアプリケーションをグループ化します。また、一部のラベルに制限されたメンバーがアクセスできる範囲も決めます。そのようなメンバーには、それらのラベルのいずれかが付いたアプリケーションだけが表示されます。アプリケーションには 3 つの方法でラベルが付きます。
 
-| 方法             | 場所                                                                                                                                                                                                                                      |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 手動             | 作成フォームの **その他の項目** で、または後からアプリケーションの **設定** ページにある **アプリケーションの詳細** カードの **詳細を編集** で。 複数にまとめて付けるには、一覧で選択し、 **ラベルを追加** を **一括操作** から選びます。 |
-| テレメトリから   | `oneuptime.label.<name>` という名前のリソース属性が、下の例のようにラベル `<name>:<value>` を追加します。                                                                                                                                 |
-| ラベルルールから | ルールは、一致するすべての新しいアプリケーションにラベルを追加します。 [ラベルルールと所有者ルール](#ラベルルールと所有者ルール) を参照してください。                                                                                     |
+| 方法 | 場所 |
+| --- | --- |
+| 手動 | 作成フォームの **その他の項目** で、または後からアプリケーションの **設定** ページにある **アプリケーションの詳細** カードの **詳細を編集** で。 複数にまとめて付けるには、一覧で選択し、 **ラベルを追加** を **一括操作** から選びます。 |
+| テレメトリから | `oneuptime.label.<name>` という名前のリソース属性が、下の例のようにラベル `<name>:<value>` を追加します。 |
+| ラベルルールから | ルールは、一致するすべての新しいアプリケーションにラベルを追加します。 [ラベルルールと所有者ルール](#ラベルルールと所有者ルール) を参照してください。 |
 
 属性は `service.name` と同じリソースに設定します。たとえば [ブラウザーのセットアップ](/docs/rum/browser-setup) の `src/telemetry.ts` ファイルで次のようにします。
 
@@ -101,10 +99,10 @@ const resource = defaultResource().merge(
 
 アプリケーションのテレメトリと録画は、異なる期間保持されます。
 
-| データ                                   | 保持期間                                                   | 設定場所                                          |
-| ---------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- |
-| ログ、メトリクス、トレース、プロファイル | アプリケーションが上書きしない限り、プロジェクトの保持期間 | アプリケーションの **設定** ページ                |
-| セッションリプレイの録画                 | 既定で 7 日、または 1、14、30、90 日                       | **リプレイポリシー** の **ポリシーを編集 → 制限** |
+| データ | 保持期間 | 設定場所 |
+| --- | --- | --- |
+| ログ、メトリクス、トレース、プロファイル | アプリケーションが上書きしない限り、プロジェクトの保持期間 | アプリケーションの **設定** ページ |
+| セッションリプレイの録画 | 既定で 7 日、または 1、14、30、90 日 | **リプレイポリシー** の **ポリシーを編集 → 制限** |
 
 ### テレメトリの保持期間
 
@@ -141,17 +139,17 @@ const resource = defaultResource().merge(
 
 プロジェクトの Viewer ロールを持つユーザーは誰でも、RUM アプリケーションとそのテレメトリを閲覧できます。セッションリプレイは意図的にこのロールに含まれていません。録画の一覧表示、録画の視聴、誰が視聴したかの閲覧はそれぞれ別の権限です。プロジェクトのオーナーと管理者はすべての権限を持ちます。権限の選択画面では各権限がタイトルで表示されます。ここでは斜体で示しています。
 
-| 権限                                                                                         | メンバーができること                                                                                   |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `ReadRumApplication` (_Read RUM Application_)                                                | アプリケーションとそのテレメトリのページを閲覧する。                                                   |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                         | アプリケーションを追加、編集、削除する。                                                               |
-| `ReadRumSessionReplay` (_List Session Replays_)                                              | 録画されたセッションとその詳細を一覧表示する。再生したり、ユーザーが誰かを知ったりすることはできない。 |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                      | 録画を再生し、識別されたユーザーの参照と特性を読む。                                                   |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                    | **リプレイのアクセスログ** を読む。誰がどの録画を視聴したか。                                          |
-| `DeleteRumSessionReplay` (_Delete Session Replays_)                                          | 録画を削除する。                                                                                       |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                             | 消去リクエストを送信し、その状況を追う。                                                               |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (と、その Create、Edit、Delete) | ラベルルールと所有者ルールを管理する。                                                                 |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (と、その Create、Edit、Delete) | API で所有者を追加、削除する。                                                                         |
+| 権限 | メンバーができること |
+| --- | --- |
+| `ReadRumApplication` (_Read RUM Application_) | アプリケーションとそのテレメトリのページを閲覧する。 |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | アプリケーションを追加、編集、削除する。 |
+| `ReadRumSessionReplay` (_List Session Replays_) | 録画されたセッションとその詳細を一覧表示する。再生したり、ユーザーが誰かを知ったりすることはできない。 |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 録画を再生し、識別されたユーザーの参照と特性を読む。 |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | **リプレイのアクセスログ** を読む。誰がどの録画を視聴したか。 |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | 録画を削除する。 |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 消去リクエストを送信し、その状況を追う。 |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (と、その Create、Edit、Delete) | ラベルルールと所有者ルールを管理する。 |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (と、その Create、Edit、Delete) | API で所有者を追加、削除する。 |
 
 便利な分け方として、サポートエンジニアには `ReadRumApplication` と `ReadRumSessionReplay` を付与します。誰かの画面を視聴したり、ユーザーが誰かを知ったりせずに、どのセッションでエラーが起きたかを確認できます。 `ReadRumSessionReplayPayload` は必要な人にだけ付与します。そうすると、 `ReadRumSessionReplayAudit` を持つメンバーは、アプリケーションの **リプレイのアクセスログ** ページですべての視聴を確認できます。 [録画を視聴できるユーザー](/docs/telemetry/session-replay#録画を視聴できるユーザー) では、各権限でセッション一覧とプレーヤーの何が使えるようになるかを説明しています。
 
@@ -159,10 +157,10 @@ const resource = defaultResource().merge(
 
 RUM のテレメトリは通常のログ、メトリクス、トレースなので、RUM 専用のモニターはありません。通常のモニターがそのまま使えます。最も手早く始めるには、アプリケーションの **推奨事項** ページを使います。アプリケーションにスコープ済みのモニターが提案されます。
 
-| グループ           | 推奨事項                                                                                                                                                                                                                                                                      |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core Web Vitals    | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint、Slow Time to First Byte。 [Core Web Vitals](/docs/rum/web-vitals) を参照してください。                                                              |
-| エラー             | Failed User Operations と Unhandled Browser Exceptions。                                                                                                                                                                                                                      |
+| グループ | 推奨事項 |
+| --- | --- |
+| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint、Slow Time to First Byte。 [Core Web Vitals](/docs/rum/web-vitals) を参照してください。 |
+| エラー | Failed User Operations と Unhandled Browser Exceptions。 |
 | セッションリプレイ | 四つの [ストレージ予算のアラート](/docs/telemetry/session-replay#ストレージ予算のアラート) で、プロジェクトの日次の上限やアプリケーションの月間予算を使い切る前に警告します。アプリケーションがリプレイを録画すると提案され、月間のペアは月間予算も設定されると提案されます。 |
 
 独自のモニターを作るには、そのシグナルを読むモニターを選びます。
@@ -177,9 +175,8 @@ RUM のテレメトリは通常のログ、メトリクス、トレースなの�
 ## 次のステップ
 
 :::cards
-
 - [セッションリプレイ](/docs/telemetry/session-replay): ユーザーが見たものを、独自のポリシーと保持期間で録画します。
 - [ラベルルールと所有者ルール](/docs/configuration/label-and-owner-rules): 両方のルールのフォームを順を追って説明します。
 - [既存のリソースに対してルールを実行する](/docs/configuration/run-rules-now): 新しいルールを既存のアプリケーションに適用します。
 - [RUM のトラブルシューティング](/docs/rum/troubleshooting): アプリケーションが見つからない、空、または切断済みのとき。
-  :::
+:::

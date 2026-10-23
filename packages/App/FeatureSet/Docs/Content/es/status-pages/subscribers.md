@@ -7,12 +7,11 @@ Los anuncios son la otra mitad del mismo trabajo. Un monitor puede decir a tus v
 Esta página cubre ambas cosas: los cinco canales de suscripción y cómo se registran los visitantes, de qué pueden elegir recibir aviso los suscriptores, los flujos de doble confirmación y de baja, el informe por correo electrónico que los suscriptores pueden recibir cada mes, y cómo se escriben, se programan y se convierten en plantillas los anuncios.
 
 :::cards
-
 - [Canales de suscripción](#canales-de-suscripción): Los canales por los que pueden registrarse los visitantes, y la página en la que se registran.
 - [Lo que se dice a los suscriptores](#de-qué-se-avisa-a-los-suscriptores): Anuncios, mantenimiento, incidentes y episodios, y sus ediciones.
 - [Comprobar lo que se envió](#comprobar-lo-que-se-envió): El estado de cada notificación, y Reintentar y Reenviar.
 - [Anuncios](#anuncios): Publicar un aviso en una o varias páginas de estado.
-  :::
+:::
 
 ## Cómo funciona
 
@@ -46,7 +45,7 @@ En OneUptime Cloud, un interruptor que tu plan no incluye muestra a su lado el n
 
 Cada canal tiene además su propia lista en el menú lateral de la página de estado, en **Suscriptores**: **Suscriptores por correo electrónico**, **Suscriptores por SMS**, **Suscriptores de Slack**, **Suscriptores de Microsoft Teams** y **Suscriptores de webhook**. Ahí es donde miras quién está registrado, añades a alguien a mano con **Añadir suscriptor** o te dejas una **Nota interna** (`internalNote`) sobre un suscriptor concreto, que solo ve tu equipo. Mientras un canal está desactivado, la parte superior de su lista lo indica, con el interruptor del canal ahí mismo, para que puedas activarlo sin salir de la lista.
 
-**Un interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado _y_ al menos un canal está activado. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** desactivado, los visitantes no tienen forma de llegar al formulario.
+**Un interruptor no basta.** El elemento **Suscribirse** de la barra de navegación de la página de estado solo aparece cuando **Mostrar página de suscriptores** está activado *y* al menos un canal está activado. Si activas **Correo electrónico** pero dejas **Mostrar página de suscriptores** desactivado, los visitantes no tienen forma de llegar al formulario.
 
 **Un calendario en su lugar.** Los visitantes que solo quieren tu mantenimiento planificado en su propio calendario no necesitan suscribirse: **Suscribirse al calendario** en la página **Eventos programados** lo añade a Google Calendar, al Calendario de Apple o a Outlook, y el calendario se mantiene al día solo. No envía nada ni depende de los canales de arriba, y una página privada no lo ofrece. Consulta [Calendario de mantenimiento](/docs/scheduled-maintenance/calendar#el-calendario-de-una-página-de-estado).
 
@@ -69,27 +68,27 @@ Ninguno de los dos ajustes elimina a un suscriptor, y al desactivarlos se vuelve
 
 La página **Suscribirse** tiene un submenú con una pestaña por cada canal activado; con un solo canal activado no hay submenú, solo el formulario de ese canal. Cada pestaña pide lo mínimo que necesita:
 
-| Pestaña                | Dirección                    | Encabezado                             | Qué pide                                                                                                                                                               |
-| ---------------------- | ---------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Correo electrónico** | `/subscribe/email`           | **Suscribirse por correo electrónico** | **Su correo electrónico**, con el ejemplo `subscriber@company.com`.                                                                                                    |
-| **SMS**                | `/subscribe/sms`             | **Suscribirse por SMS**                | **Su número de teléfono**, con el ejemplo `+11234567890`.                                                                                                              |
-| **Slack**              | `/subscribe/slack`           | **Suscribirse vía Slack**              | **Nombre del espacio de trabajo de Slack** (se usa para la validación) y **URL del webhook entrante de Slack**, con el ejemplo `https://hooks.slack.com/services/...`. |
-| **MS Teams**           | `/subscribe/microsoft-teams` | **Suscribirse vía Microsoft Teams**    | **Nombre del espacio de trabajo de Microsoft Teams** y **URL del webhook entrante de Microsoft Teams**, con el ejemplo `https://outlook.office.com/webhook/...`.       |
-| **Webhooks**           | `/subscribe/webhooks`        | **Suscribirse por webhook**            | **URL del webhook**, con el ejemplo `https://example.com/webhook`. Se le envía una solicitud JSON `POST` en cada evento de la página de estado.                        |
+| Pestaña | Dirección | Encabezado | Qué pide |
+| --- | --- | --- | --- |
+| **Correo electrónico** | `/subscribe/email` | **Suscribirse por correo electrónico** | **Su correo electrónico**, con el ejemplo `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **Suscribirse por SMS** | **Su número de teléfono**, con el ejemplo `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **Suscribirse vía Slack** | **Nombre del espacio de trabajo de Slack** (se usa para la validación) y **URL del webhook entrante de Slack**, con el ejemplo `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Suscribirse vía Microsoft Teams** | **Nombre del espacio de trabajo de Microsoft Teams** y **URL del webhook entrante de Microsoft Teams**, con el ejemplo `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **Suscribirse por webhook** | **URL del webhook**, con el ejemplo `https://example.com/webhook`. Se le envía una solicitud JSON `POST` en cada evento de la página de estado. |
 
-El botón de envío dice **Suscribirse**. Un registro por Slack, Microsoft Teams o webhook muestra _Se ha suscrito correctamente._ Un registro por SMS muestra _Hemos enviado un SMS a este número de teléfono. Abra el enlace que contiene para confirmar su suscripción._ Un registro por correo electrónico indica que se ha enviado un enlace de confirmación y que se revise la carpeta de spam si no llega (consulta [Doble confirmación por correo electrónico](#doble-confirmación-por-correo-electrónico)). Las pestañas **Correo electrónico**, **SMS**, **Slack** y **MS Teams** también tienen la división **Nueva suscripción** / **Gestionar suscripción existente**, para que alguien que ya se suscribió pueda volver a sus preferencias sin buscar un mensaje antiguo.
+El botón de envío dice **Suscribirse**. Un registro por Slack, Microsoft Teams o webhook muestra *Se ha suscrito correctamente.* Un registro por SMS muestra *Hemos enviado un SMS a este número de teléfono. Abra el enlace que contiene para confirmar su suscripción.* Un registro por correo electrónico indica que se ha enviado un enlace de confirmación y que se revise la carpeta de spam si no llega (consulta [Doble confirmación por correo electrónico](#doble-confirmación-por-correo-electrónico)). Las pestañas **Correo electrónico**, **SMS**, **Slack** y **MS Teams** también tienen la división **Nueva suscripción** / **Gestionar suscripción existente**, para que alguien que ya se suscribió pueda volver a sus preferencias sin buscar un mensaje antiguo.
 
 ## Límites de registros y enlaces
 
 Cada registro envía a su contacto un mensaje en el acto, un correo de confirmación, un SMS, un mensaje de Slack o de Microsoft Teams o una llamada de webhook, y **Enviar enlace de gestión** también. Para que nadie pueda usar una página de estado para enviar mensajes a personas que no los pidieron, ni para disparar los costos de SMS de tu proyecto, ambos están limitados para la red de cada visitante y para cada contacto. Los límites están muy por encima de lo que hacen las personas: toda una oficina puede registrarse a la vez durante un incidente.
 
-| Qué se limita                                                                                                                                                                                                                | Límite           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Registros desde una red                                                                                                                                                                                                      | 60 en 15 minutos |
-| Registros y enlaces de gestión por SMS desde una red, en conjunto                                                                                                                                                            | 10 en 15 minutos |
-| Enlaces de gestión pedidos desde una red                                                                                                                                                                                     | 30 en 15 minutos |
-| Registros de una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams, o un webhook, en todas las páginas de estado en conjunto                                                    | 10 en una hora   |
-| Enlaces de gestión para una dirección de correo electrónico o un número de teléfono en todas las páginas de estado en conjunto, o para un nombre de espacio de trabajo de Slack o de Microsoft Teams en una página de estado | 5 en una hora    |
+| Qué se limita | Límite |
+| --- | --- |
+| Registros desde una red | 60 en 15 minutos |
+| Registros y enlaces de gestión por SMS desde una red, en conjunto | 10 en 15 minutos |
+| Enlaces de gestión pedidos desde una red | 30 en 15 minutos |
+| Registros de una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams, o un webhook, en todas las páginas de estado en conjunto | 10 en una hora |
+| Enlaces de gestión para una dirección de correo electrónico o un número de teléfono en todas las páginas de estado en conjunto, o para un nombre de espacio de trabajo de Slack o de Microsoft Teams en una página de estado | 5 en una hora |
 
 Al superar un límite, la API responde `429` con un encabezado `Retry-After`, en segundos, y al visitante se le dice que hubo demasiados registros o enlaces desde su red, o para ese contacto, y que vuelva a intentarlo más tarde. No se crea ni se envía nada, y tu proyecto no nota nada: no se añade ningún suscriptor y no se envía ni se paga ningún mensaje. Los límites de enlaces de gestión cuentan cada solicitud, coincida o no una suscripción, así que no sirven para averiguar quién está suscrito. Una dirección de correo electrónico se cuenta como sea que esté escrita, en mayúsculas, con un `+tag` o, en Gmail, con puntos, y un número de teléfono como sea que se haya tecleado. Un registro indica un solo contacto, una dirección de correo electrónico, un número de teléfono, un canal de Slack o de Microsoft Teams o un webhook: una lista de direcciones, o un segundo contacto, se rechaza.
 
@@ -103,18 +102,18 @@ Un usuario privado que pide un enlace para restablecer la contraseña en la pág
 
 En una instalación autoalojada, estas variables de entorno de la app de OneUptime cambian los límites:
 
-| Variable                                                            | Valor predeterminado | Lo que fija                                                                                     |
-| ------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`                | La ventana de los límites por red, en segundos.                                                 |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`               | La ventana de los límites por contacto, en segundos.                                            |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`                 | Registros desde una dirección por ventana.                                                      |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`                 | Registros y enlaces de gestión por SMS desde una dirección por ventana, en conjunto.            |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`                 | Enlaces de gestión pedidos desde una dirección por ventana.                                     |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`                 | Registros de un contacto por ventana.                                                           |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`                  | Enlaces de gestión para un contacto por ventana.                                                |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`                 | Restablecimientos de contraseña de usuarios privados pedidos desde una dirección por ventana.   |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`                  | Correos de restablecimiento de contraseña de usuarios privados a una dirección por ventana.     |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`                 | Invitaciones a una dirección por ventana, a páginas de estado privadas y proyectos en conjunto. |
+| Variable | Valor predeterminado | Lo que fija |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La ventana de los límites por red, en segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La ventana de los límites por contacto, en segundos. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Registros desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Registros y enlaces de gestión por SMS desde una dirección por ventana, en conjunto. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Enlaces de gestión pedidos desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Registros de un contacto por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Enlaces de gestión para un contacto por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Restablecimientos de contraseña de usuarios privados pedidos desde una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Correos de restablecimiento de contraseña de usuarios privados a una dirección por ventana. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitaciones a una dirección por ventana, a páginas de estado privadas y proyectos en conjunto. |
 
 Ni `config.env` ni los valores del chart de Helm los transmiten: añádelos tú mismo al entorno del contenedor `app`, con `app.extraEnv`, o el `extraEnv` de todo el chart, en el chart de Helm, o en un `docker-compose.override.yml` para Docker Compose. `TRUSTED_PROXY_HOPS` decide qué dirección cuentan los límites por red.
 
@@ -143,13 +142,13 @@ Las elecciones quedan en el registro del suscriptor como **Suscrito a todos los 
 
 ## Doble confirmación por correo electrónico
 
-Los suscriptores por correo electrónico siempre confirman. Cuando se crea un suscriptor con una dirección de correo electrónico y no se creó ya confirmado, **Suscripción confirmada** (`isSubscriptionConfirmed`) se fuerza a `false` y se genera un **Token de confirmación de la suscripción** aleatorio de 32 caracteres. OneUptime envía entonces un enlace de confirmación con la forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. El visitante llega a una página **Confirmar suscripción** y, cuando se completa, ve _Suscripción confirmada con éxito_.
+Los suscriptores por correo electrónico siempre confirman. Cuando se crea un suscriptor con una dirección de correo electrónico y no se creó ya confirmado, **Suscripción confirmada** (`isSubscriptionConfirmed`) se fuerza a `false` y se genera un **Token de confirmación de la suscripción** aleatorio de 32 caracteres. OneUptime envía entonces un enlace de confirmación con la forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. El visitante llega a una página **Confirmar suscripción** y, cuando se completa, ve *Suscripción confirmada con éxito*.
 
 Los suscriptores por Slack, Microsoft Teams y webhook se saltan esto, igual que los suscriptores por SMS que añade tu equipo: se crean con `isSubscriptionConfirmed` ya en `true`. Cuando tu equipo añade un suscriptor por correo electrónico en **Suscriptores por correo electrónico**, decide **Al añadirlos**: **Suscribirlos ahora** (la opción predeterminada: confirmado y sin enviarle nada), **Suscribirlos ahora y avisarles** (confirmado, y se le envía el correo que dice que está suscrito) o **Pedirles que confirmen primero** (se le envía el enlace de confirmación, como en un registro). **Añadir en masa** pregunta lo mismo.
 
 **Los registros por SMS también se confirman.** A un visitante que se registra por SMS se le envía un solo mensaje: el enlace de confirmación. No se envía nada más al número hasta que se abre el enlace, y abrirlo envía por SMS el mensaje que dice que está suscrito, con el enlace que cancela la suscripción. Hasta entonces el suscriptor aparece como **Esperando confirmación**, y el registro de SMS muestra el enlace con su código sustituido por `[redacted]`. Los suscriptores por SMS de antes ya están confirmados.
 
-**Un enlace de confirmación funciona durante 24 horas.** El correo y el SMS lo dicen. Abierto más tarde, no confirma nada: la página **Confirmar suscripción** dice _Este enlace para confirmar su suscripción ha caducado o no es válido. Un enlace funciona durante 24 horas después de enviarse. Para obtener uno nuevo, vuelva a suscribirse._ y ofrece **Volver a suscribirse**, y la API responde `400`. El suscriptor sigue sin confirmar, no recibe nada y aparece como **Enlace caducado** en su lista, en lugar de **Esperando confirmación**.
+**Un enlace de confirmación funciona durante 24 horas.** El correo y el SMS lo dicen. Abierto más tarde, no confirma nada: la página **Confirmar suscripción** dice *Este enlace para confirmar su suscripción ha caducado o no es válido. Un enlace funciona durante 24 horas después de enviarse. Para obtener uno nuevo, vuelva a suscribirse.* y ofrece **Volver a suscribirse**, y la API responde `400`. El suscriptor sigue sin confirmar, no recibe nada y aparece como **Enlace caducado** en su lista, en lugar de **Esperando confirmación**.
 
 **Volver a registrarse.** Mientras el enlace funciona, volver a registrar la misma dirección de correo electrónico o el mismo número de teléfono en esa página de estado no envía nada más: al visitante se le dice que ya se envió un enlace, y la API responde `429` con un encabezado `Retry-After`. Así, un contacto recibe como mucho un enlace de confirmación al día de una página de estado, por muchas veces que se registre. Cuando el enlace ha caducado, la suscripción ya no retiene su contacto: un registro nuevo, o que tu equipo añada el contacto, la reemplaza, y un registro recibe un enlace nuevo. Quien registra un contacto primero no puede impedir que su dueño se suscriba: el enlace va al dueño, y un día después el dueño puede obtener uno propio. Los enlaces enviados antes de este cambio también funcionan 24 horas después de su registro.
 
@@ -165,13 +164,13 @@ Un SMS lleva el mismo enlace, venga de una página de estado pública o de una p
 
 El registro de SMS (la pestaña **SMS** de **Registros de notificación**, en la página de estado y en los ajustes del proyecto) guarda el texto de cada SMS, y pueden leerlo más miembros del proyecto de los que pueden gestionar suscriptores. Por eso el registro muestra un enlace de baja o de gestión con su token sustituido por `[redacted]`, por ejemplo `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Solo el teléfono del propio suscriptor recibe el enlace que funciona. La API tampoco devuelve nunca el token de un suscriptor nuevo, ni siquiera en la respuesta a la solicitud que lo creó.
 
-**Abrir el enlace no cambia nada.** La página muestra el nombre y el logotipo de la página de estado y la suscripción a la que pertenece el enlace: una dirección de correo electrónico completa, un número de teléfono enmascarado salvo sus cuatro últimos dígitos, el nombre de un espacio de trabajo de Slack o Microsoft Teams, o el host de un webhook. Pregunta _¿Quiere dejar de recibir notificaciones de esta página de estado?_ y solo pulsar **Cancelar suscripción** cancela la suscripción, así que los escáneres de correo y los generadores de vistas previas de enlaces que abren todos los enlaces de un mensaje no pueden dar de baja a nadie. No se muestra nada más de la página, y no se ejecuta nada de su JavaScript personalizado. Confirmar dos veces, o abrir el enlace de una suscripción ya cancelada, solo dice que está cancelada. En una página de estado pública, la página de baja también enlaza con la página **Actualizar suscripción** del suscriptor, para elegir en su lugar qué notificaciones recibe.
+**Abrir el enlace no cambia nada.** La página muestra el nombre y el logotipo de la página de estado y la suscripción a la que pertenece el enlace: una dirección de correo electrónico completa, un número de teléfono enmascarado salvo sus cuatro últimos dígitos, el nombre de un espacio de trabajo de Slack o Microsoft Teams, o el host de un webhook. Pregunta *¿Quiere dejar de recibir notificaciones de esta página de estado?* y solo pulsar **Cancelar suscripción** cancela la suscripción, así que los escáneres de correo y los generadores de vistas previas de enlaces que abren todos los enlaces de un mensaje no pueden dar de baja a nadie. No se muestra nada más de la página, y no se ejecuta nada de su JavaScript personalizado. Confirmar dos veces, o abrir el enlace de una suscripción ya cancelada, solo dice que está cancelada. En una página de estado pública, la página de baja también enlaza con la página **Actualizar suscripción** del suscriptor, para elegir en su lugar qué notificaciones recibe.
 
 La página **Actualizar suscripción**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, también se abre solo con el token de la suscripción: el ID del suscriptor por sí solo no abre nada. Se titula **Actualizar suscripción** e indica al visitante que allí puede actualizar sus preferencias o cancelar la suscripción. Contiene:
 
 - Los selectores de recursos y de tipos de eventos que permita la página.
 - Un interruptor **Cancelar suscripción**, descrito como cancelar la suscripción a todos los recursos. Escribe **Está dado de baja** (`isUnsubscribed`, falso por defecto).
-- Un botón de envío que dice **Actualizar suscripción**; al guardar se muestra _Sus cambios se han guardado._
+- Un botón de envío que dice **Actualizar suscripción**; al guardar se muestra *Sus cambios se han guardado.*
 
 En una página de estado privada necesita un visitante con la sesión iniciada, como el resto de la página. Como la página de baja, no ejecuta nada del JavaScript personalizado de la página, y muestra la cabecera y el pie de página estándar en lugar de cualquier HTML personalizado de cabecera o de pie de página. Quien perdió el enlace usa **Gestionar suscripción existente** en la página **Suscribirse** y pulsa **Enviar enlace de gestión**. El enlace va a la propia suscripción (su dirección de correo electrónico, su número de teléfono o su canal de Slack o Microsoft Teams), nunca a una dirección de la solicitud, y la página responde lo mismo tanto si coincidió una suscripción como si no, así que no se puede usar para averiguar quién está suscrito. Ese mensaje enlaza con la página **Actualizar suscripción**, y da a una plantilla personalizada ambos enlaces: `manageSubscriptionUrl` y `unsubscribeUrl`.
 
@@ -332,13 +331,13 @@ como cuerpo de `PUT /api/status-page-announcement/<announcement-id>` (o de `inci
 
 Cada notificación a suscriptores tiene un estado propio, junto a aquello de lo que trata. Para un incidente, es su notificación de «creado» en la **Vista general** del incidente, cada fila de su **Cronología de estados**, cada nota pública y su **Post mortem**. Los eventos de mantenimiento programado y los anuncios muestran los suyos de la misma manera, y los episodios de incidentes en sus notas públicas. Haz clic en el estado para leer su mensaje, que dice lo que pasó. Las notas públicas muestran el estado como una insignia con un texto propio:
 
-| Estado                               | En una nota pública                           | Qué significa                                                                                                             |
-| ------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Se enviará pronto**                | **Se notificará a los suscriptores en breve** | En cola. El trabajo que lo envía se ejecuta cada minuto.                                                                  |
-| **Notificaciones en curso de envío** | **Notificando a los suscriptores**            | El trabajo está recorriendo los suscriptores.                                                                             |
-| **Notificaciones enviadas**          | **Suscriptores notificados**                  | Salió. Consulta abajo lo que eso significa.                                                                               |
-| **Fallido**                          | **La notificación falló**                     | No se envió a todos los suscriptores, o el envío se detuvo. El mensaje dice lo que se envió y lo que hace **Reintentar**. |
-| **Notificaciones omitidas.**         | **Suscriptores no notificados**               | No había nada que enviar, por ejemplo porque el incidente está oculto en las páginas de estado. El mensaje dice por qué.  |
+| Estado | En una nota pública | Qué significa |
+| --- | --- | --- |
+| **Se enviará pronto** | **Se notificará a los suscriptores en breve** | En cola. El trabajo que lo envía se ejecuta cada minuto. |
+| **Notificaciones en curso de envío** | **Notificando a los suscriptores** | El trabajo está recorriendo los suscriptores. |
+| **Notificaciones enviadas** | **Suscriptores notificados** | Salió. Consulta abajo lo que eso significa. |
+| **Fallido** | **La notificación falló** | No se envió a todos los suscriptores, o el envío se detuvo. El mensaje dice lo que se envió y lo que hace **Reintentar**. |
+| **Notificaciones omitidas.** | **Suscriptores no notificados** | No había nada que enviar, por ejemplo porque el incidente está oculto en las páginas de estado. El mensaje dice por qué. |
 
 ### Cómo se cuenta un envío
 
@@ -392,11 +391,11 @@ Las plantillas de todo el proyecto están un nivel más arriba, en **Páginas de
 
 En OneUptime Cloud, las plantillas de notificación a suscriptores son una función del plan **Scale**; las instalaciones autoalojadas no tienen límites de plan. Una plantilla solo se usa una vez vinculada a una página de estado en la pestaña **Plantillas de notificación** de esa página, y dos canales necesitan además que la página envíe a través de tu propio proveedor:
 
-| Canal                           | Una plantilla vinculada se usa cuando la página tiene                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Correo electrónico**          | una **Configuración de SMTP personalizado** (consulta [más abajo](#pie-de-correo-smtp-personalizado-y-twilio)) |
-| **SMS**                         | una **Configuración de Twilio**                                                                                |
-| **Slack** y **Microsoft Teams** | nada más                                                                                                       |
+| Canal | Una plantilla vinculada se usa cuando la página tiene |
+| --- | --- |
+| **Correo electrónico** | una **Configuración de SMTP personalizado** (consulta [más abajo](#pie-de-correo-smtp-personalizado-y-twilio)) |
+| **SMS** | una **Configuración de Twilio** |
+| **Slack** y **Microsoft Teams** | nada más |
 
 Sin ellas, la página envía su correo o su SMS predeterminado. Cuando una plantilla de correo o de SMS vinculada no se puede usar por ese motivo, la pestaña **Plantillas de notificación** lo indica con **Las plantillas personalizadas requieren configuración**. Las configuraciones de SMTP personalizado y de Twilio necesitan el plan **Growth** o superior. Los suscriptores por webhook siempre reciben la carga útil JSON estándar.
 
@@ -406,10 +405,10 @@ Nada de esto hace falta para poner campos personalizados de incidentes en los me
 
 Las plantillas de los cinco tipos de evento de incidentes (**Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** y **Subscriber Incident Postmortem Published**) pueden usar estas, además de sus propias variables:
 
-| Variable                          | Se rellena con                                                                                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `{{incidentLabels}}`              | Las etiquetas del incidente, separadas por comas.                                                                                                                              |
-| `{{affectedStatusPages}}`         | Los nombres de todas las páginas de estado en las que se muestra el incidente, separados por comas.                                                                            |
+| Variable | Se rellena con |
+| --- | --- |
+| `{{incidentLabels}}` | Las etiquetas del incidente, separadas por comas. |
+| `{{affectedStatusPages}}` | Los nombres de todas las páginas de estado en las que se muestra el incidente, separados por comas. |
 | `{{incident.customFields.<key>}}` | El valor de un campo personalizado del incidente, por la **Variable de plantilla** del campo, esté o no marcado el campo con **Incluir en las notificaciones a suscriptores**. |
 
 La clave es la **Variable de plantilla** del campo, que no cambia cuando se renombra el campo; el formulario de plantillas lista los campos personalizados de incidentes del proyecto, cada uno con su variable, debajo del cuerpo de la plantilla (consulta [Insertar variables](#insertar-variables)). Las plantillas guardadas con el antiguo `{{customFields.<key>}}` se rellenan de la misma manera. Un campo para el que el incidente no tiene valor se deja vacío. En el cuerpo de un correo, un campo simple se escapa como cualquier otro valor, mientras que un campo de texto enriquecido, de texto largo o de fecha y hora entra como HTML: Markdown con formato, sus líneas, o una línea por zona horaria de suscriptor. Las imágenes insertadas de un campo de texto enriquecido se hacen visibles para las personas a las que se envía.
@@ -460,7 +459,7 @@ La revisión muestra la misma línea. **Crear desde plantilla** rellena el formu
 
 La propia página del anuncio lo edita en los mismos dos pasos. **Notificar a los suscriptores sobre esta actualización** está debajo de la descripción (consulta [Avisar a los suscriptores de una edición](#avisar-a-los-suscriptores-de-una-edición)), y **Programación** contiene el inicio y el fin. Fijar un fin que ya pasó es la forma de retirar un anuncio.
 
-Los visitantes leen los anuncios en `/announcements`, divididos en **Anuncios activos** y **Anuncios pasados**, cada uno con la marca **Anunciado el**. Los anuncios publicados en este momento también se fijan en la parte superior de la página de resumen. Cuando no hay nada que mostrar, la página dice _Sin anuncios_ con la nota de que todavía no se ha publicado ninguno.
+Los visitantes leen los anuncios en `/announcements`, divididos en **Anuncios activos** y **Anuncios pasados**, cada uno con la marca **Anunciado el**. Los anuncios publicados en este momento también se fijan en la parte superior de la página de resumen. Cuando no hay nada que mostrar, la página dice *Sin anuncios* con la nota de que todavía no se ha publicado ninguno.
 
 Los adjuntos se sirven desde `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, tras la misma comprobación de lectura que la propia página de estado, así que un adjunto de una página privada sigue siendo privado.
 
@@ -499,9 +498,8 @@ Si una suscripción por webhook se rechaza al registrarse, lo primero que hay qu
 ## Próximos pasos
 
 :::cards
-
 - [Visión general de las páginas de estado](/docs/status-pages/index): Qué es una página de estado y cómo se compone.
 - [Recursos y grupos de la página de estado](/docs/status-pages/resources-and-groups): Los monitores y los grupos entre los que eligen los suscriptores.
 - [Una página de estado por audiencia](/docs/status-pages/one-status-page-per-audience): Limitar un incidente a las páginas cuyos suscriptores deben recibir aviso.
 - [Marca y dominios de la página de estado](/docs/status-pages/branding-and-domains): El aspecto de la página a la que enlazan tus mensajes.
-  :::
+:::

@@ -3,12 +3,11 @@
 Wat je moet weten voordat je een workflow op echt verkeer loslaat: hoe je hem veilig inschakelt, wie wat mag doen, hoe geheimen en URL's privé blijven, wat de stappen van een workflow mogen wijzigen en binnen welke limieten elke uitvoering werkt.
 
 :::cards
-
 - [Live gaan](#een-workflow-aan-of-uitzetten): Test met Workflow uitvoeren terwijl hij uit staat, en zet hem daarna aan.
 - [Machtigingen](#machtigingen): De workflowrollen, en de losse machtigingen erachter.
 - [Wat stappen mogen](#wat-workflowstappen-mogen): Stappen handelen als Project Admin van het project van de workflow.
 - [Limieten](#planlimieten): Uitvoeringen per abonnement, de duur van een uitvoering en aanroepen tussen workflows.
-  :::
+:::
 
 ## Een workflow aan- of uitzetten
 
@@ -17,12 +16,11 @@ Elke workflow heeft een schakelaar **Ingeschakeld** bovenaan de **Bouwer** en op
 Gebruik deze schakelaar als je «klaar voor gebruik»-sein:
 
 :::steps
-
 1. Bouw de workflow.
 2. Klik op **Workflow uitvoeren** in de **Bouwer** met realistische waarden, terwijl de workflow nog uit staat. De uitvoering is een **Testrun**: elk blok draait echt, dus richt het eerst op een testkanaal of een testrecord.
 3. Open de uitvoering en controleer of elk blok ging waar je verwachtte. Zie [Uitvoeringen](/docs/workflows/runs-and-logs).
 4. Zet **Ingeschakeld** aan als hij klaar is: vanaf dan gaat zijn trigger af bij echte gebeurtenissen.
-   :::
+:::
 
 Een workflow uitzetten voorkomt dat zijn trigger nieuwe uitvoeringen start. Een uitvoering die al loopt, maakt haar werk af, maar een uitvoering die zijn trigger startte en die op een **Sleep**-blok wacht, wordt bij het ontwaken geannuleerd. Testruns gaan door. Om er meerdere tegelijk aan of uit te zetten, selecteer je ze in de lijst **Workflows** en kies je **Inschakelen** of **Uitschakelen** onder **Bulkacties**.
 
@@ -45,12 +43,12 @@ Een geëxporteerde workflow neemt zijn gearchiveerde toestand nooit mee, dus een
 
 ## Eigenaren en labels
 
-| Wat                 | Waar                                           | Wat het doet                                                                                                                                               |
-| ------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Eigenaren**       | De pagina **Eigenaren** van de workflow        | De gebruikers en teams die verantwoordelijk zijn voor de workflow. Een rol die beperkt is tot wat het eigen team bezit, bereikt de workflows van dat team. |
-| **Labels**          | De pagina **Overzicht** van de workflow        | Labels om workflows te groeperen, per team, integratie of omgeving. Filter de lijst **Workflows** op label, en beperk een rol tot bepaalde labels.         |
-| **Labelregels**     | **Workflows → Instellingen → Labelregels**     | Label nieuwe workflows automatisch, op basis van patronen in hun naam of beschrijving.                                                                     |
-| **Eigenaarsregels** | **Workflows → Instellingen → Eigenaarsregels** | Wijs automatisch eigenaren toe aan nieuwe workflows.                                                                                                       |
+| Wat                         | Waar                                                       | Wat het doet                                                                                                                                         |
+| --------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Eigenaren**               | De pagina **Eigenaren** van de workflow                    | De gebruikers en teams die verantwoordelijk zijn voor de workflow. Een rol die beperkt is tot wat het eigen team bezit, bereikt de workflows van dat team. |
+| **Labels**                  | De pagina **Overzicht** van de workflow                    | Labels om workflows te groeperen, per team, integratie of omgeving. Filter de lijst **Workflows** op label, en beperk een rol tot bepaalde labels.   |
+| **Labelregels**             | **Workflows → Instellingen → Labelregels**                 | Label nieuwe workflows automatisch, op basis van patronen in hun naam of beschrijving.                                                              |
+| **Eigenaarsregels**         | **Workflows → Instellingen → Eigenaarsregels**             | Wijs automatisch eigenaren toe aan nieuwe workflows.                                                                                                 |
 
 Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) voor hoe de regels matchen.
 
@@ -120,11 +118,11 @@ API-blokken en andere HTTP-blokken doen hun verzoeken vanuit OneUptime, en het I
 
 Welke adressen een blok mag bereiken, hangt af van het blok:
 
-| Blokken                                                                        | Loopback, link-local, cloudmetadata                                           | Privénetwerkadressen                                                                                                                                     |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Blokken                                                    | Loopback, link-local, cloudmetadata                                           | Privénetwerkadressen                                                                                                                      |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | **API**- en **Mattermost**-blokken, en verzoeken van **Run Custom JavaScript** | Geweigerd, tenzij de exacte host in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` staat | Geweigerd, tenzij een beheerder van een zelf gehoste installatie ze toestaat met `ALLOW_PRIVATE_NETWORK_WEBHOOKS` of `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** en OAuth 2.0-token-URL's                               | Geweigerd                                                                     | Geweigerd in OneUptime Cloud. Toegestaan op een zelf gehoste installatie, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is                         |
-| Slack, Microsoft Teams, Discord en Telegram                                    | Geweigerd                                                                     | Geweigerd: elk stuurt alleen naar de adressen van de eigen dienst                                                                                        |
+| **Send Email**, **IRC** en OAuth 2.0-token-URL's           | Geweigerd                                                                     | Geweigerd in OneUptime Cloud. Toegestaan op een zelf gehoste installatie, tenzij `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` `true` is         |
+| Slack, Microsoft Teams, Discord en Telegram                | Geweigerd                                                                     | Geweigerd: elk stuurt alleen naar de adressen van de eigen dienst                                                                         |
 
 Zie [Toegang tot privénetwerken](/docs/self-hosted/private-network-access) voor hoe een beheerder van een zelf gehoste installatie ze openzet.
 
@@ -151,13 +149,13 @@ Wat het blok nodig heeft, en wat het kost:
 - Aanroepen via een betaalde globale provider gebruiken de AI-tegoeden van het project.
 - Elke aanroep telt mee voor de [eigen dagelijkse AI-limieten van het project](/docs/ai/ai-sre#de-eigen-daglimieten-van-het-project), als een projecteigenaar die instelt. Is een limiet bereikt, dan neemt het blok **Error** zonder het model te benaderen, tot middernacht UTC.
 
-| Limiet                                                   | Waarde                                                                                  |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** en **Context** samen | 50.000 tekens                                                                           |
-| **Temperature**                                          | Van `0` tot `1`                                                                         |
-| **Maximum Output Tokens**                                | Van `1` tot `4096`, standaard `1024`                                                    |
-| Eén verzoek                                              | Eén poging, hooguit 60 seconden                                                         |
-| Gelijktijdige aanroepen                                  | 3 per project. Meer nemen **Error**, en een latere uitvoering kan het opnieuw proberen. |
+| Limiet                                                       | Waarde                                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** en **Context** samen     | 50.000 tekens                                                             |
+| **Temperature**                                              | Van `0` tot `1`                                                           |
+| **Maximum Output Tokens**                                    | Van `1` tot `4096`, standaard `1024`                                      |
+| Eén verzoek                                                  | Eén poging, hooguit 60 seconden                                           |
+| Gelijktijdige aanroepen                                      | 3 per project. Meer nemen **Error**, en een latere uitvoering kan het opnieuw proberen. |
 
 Fouten in validatie, configuratie, toegang, limieten, tegoed, gelijktijdigheid, provider en time-out nemen allemaal het pad **Error**, met de reden in **Error**. Sluit dat pad aan voordat de workflow live gaat.
 
@@ -202,7 +200,7 @@ De stappen die OneUptime-records lezen en wijzigen — de componenten Find, Crea
   - wijzigen bij welk record een record hoort nadat het is aangemaakt, zoals de monitor waarvoor een eigenaarsrij geldt of het incident waarbij een notitie staat.
 - **Als niemand.** Een record dat een workflow aanmaakt, noemt geen maker, en het auditlogboek noemt de workflow, met zijn naam van dat moment, als degene die de wijziging deed.
 
-Weigert een controle een stap, dan neemt de stap zijn uitgang **Error** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
+Weigert een controle een stap, dan neemt de stap zijn uitgang **Error** zonder de geweigerde wijziging te doen, en het logboek van de uitvoering noemt de stap en de reden in gewone woorden, bijvoorbeeld *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lees het onder de [Uitvoeringen](/docs/workflows/runs-and-logs) van de workflow. Een Create Many-stap maakt zijn records één voor één aan en stopt bij het eerste dat wordt geweigerd: de records die daarvoor zijn aangemaakt, blijven bestaan.
 
 Stappen die met andere systemen praten — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code en Generate Text with AI — lezen of wijzigen geen OneUptime-records, dus hier verandert voor hen niets.
 
@@ -220,11 +218,11 @@ Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of 
 
 ## Hoe lang een run mag duren
 
-| Limiet                                                                | Standaard        | Instelling bij zelf hosten      |
-| --------------------------------------------------------------------- | ---------------- | ------------------------------- |
-| Een uitvoering, vanaf de start of vanaf het ontwaken na een **Sleep** | 2 minuten        | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Een **Run Custom JavaScript**-blok                                    | 5 seconden       | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Een **Sleep**-blok                                                    | Hooguit 30 dagen | —                               |
+| Limiet                                                       | Standaard          | Instelling bij zelf hosten      |
+| ------------------------------------------------------------ | ------------------ | ------------------------------- |
+| Een uitvoering, vanaf de start of vanaf het ontwaken na een **Sleep** | 2 minuten  | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Een **Run Custom JavaScript**-blok                           | 5 seconden         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Een **Sleep**-blok                                           | Hooguit 30 dagen   | —                               |
 
 De uitvoerder controleert de deadline vóór en na elk blok en markeert een uitvoering die te laat is als **Timeout** zodra hij weer aan zet is. Hij kan een blok niet halverwege onderbreken, dus blokken die op het netwerk wachten, hebben eigen tijdslimieten: een verzoek van Generate Text with AI geeft het na hooguit 60 seconden op, en een OAuth 2.0-tokenverzoek na 20. Wachten op een **Sleep**-blok telt niet mee voor de tijd van een uitvoering: de uitvoering wordt opzijgezet en krijgt bij het ontwaken weer 2 verse minuten.
 
@@ -245,8 +243,7 @@ Een paar gevallen waarin je beter iets anders kunt gebruiken:
 ## Volgende stappen
 
 :::cards
-
 - [Workflows – Overzicht](/docs/workflows/index): Het grote geheel, en een eerste workflow van begin tot eind.
 - [Componenten](/docs/workflows/components): Wat elk blok nodig heeft, teruggeeft en mag bereiken.
 - [Runbooks](/docs/runbooks/index): Als mensen onderweg de beslissingen moeten nemen.
-  :::
+:::

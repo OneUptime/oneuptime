@@ -7,12 +7,11 @@ Meddelanden är den andra halvan av samma jobb. En monitor kan tala om för dina
 Den här sidan tar upp båda: de fem prenumerationskanalerna och hur besökare registrerar sig, vad prenumeranter kan välja att aviseras om, flödena för dubbel opt-in och avregistrering, e-postrapporten som prenumeranter kan få varje månad, och hur meddelanden skrivs, schemaläggs och görs om till mallar.
 
 :::cards
-
 - [Prenumerationskanaler](#prenumerationskanaler): Kanalerna besökare kan registrera sig via, och sidan de registrerar sig på.
 - [Vad prenumeranter får veta](#vad-prenumeranter-aviseras-om): Meddelanden, underhåll, incidenter och episoder, och redigeringar av dem.
 - [Kontrollera vad som skickades](#kontrollera-vad-som-skickades): Varje aviserings status, och Försök igen och Skicka igen.
 - [Meddelanden](#meddelanden): Publicera ett meddelande på en eller flera statussidor.
-  :::
+:::
 
 ## Så fungerar det
 
@@ -46,7 +45,7 @@ På OneUptime Cloud står abonnemangets namn vid ett reglage som ditt abonnemang
 
 Varje kanal har också en egen lista i statussidans sidomeny under **Prenumeranter**: **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter** och **Webhook-prenumeranter**. Det är där du ser vem som är registrerad, lägger till någon manuellt med **Lägg till prenumerant** eller lämnar en **Intern anteckning** (`internalNote`) till dig själv om en viss prenumerant, som bara ditt team ser. Så länge en kanal är av säger listans överkant det, med kanalens reglage just där, så att du kan slå på den utan att lämna listan.
 
-**Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på _och_ minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
+**Ett reglage räcker inte.** Objektet **Prenumerera** i statussidans navigeringsfält visas bara när **Visa prenumerantsida** är på *och* minst en kanal är på. Om du slår på **E-post** men låter **Visa prenumerantsida** vara av har besökarna inget sätt att nå formuläret.
 
 **En kalender i stället.** Besökare som bara vill ha ditt planerade underhåll i sin egen kalender behöver inte prenumerera: **Prenumerera på kalender** på sidans sida **Planerade händelser** lägger till det i Google Kalender, Apple Kalender eller Outlook, och kalendern håller sig själv uppdaterad. Den skickar ingenting och beror inte på kanalerna ovan, och en privat sida erbjuder den inte. Se [Underhållskalender](/docs/scheduled-maintenance/calendar#en-statussidas-kalender).
 
@@ -69,27 +68,27 @@ Ingen av inställningarna tar bort en prenumerant, och när de stängs av skicka
 
 Sidan **Prenumerera** har en undermeny med en flik per påslagen kanal; med bara en kanal påslagen finns ingen undermeny, bara den kanalens formulär. Varje flik frågar efter det minsta den behöver:
 
-| Flik         | Adress                       | Rubrik                              | Vad den frågar efter                                                                                                                                 |
-| ------------ | ---------------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **E-post**   | `/subscribe/email`           | **Prenumerera via e-post**          | **Din e-post**, med exemplet `subscriber@company.com`.                                                                                               |
-| **SMS**      | `/subscribe/sms`             | **Prenumerera via SMS**             | **Ditt telefonnummer**, med exemplet `+11234567890`.                                                                                                 |
-| **Slack**    | `/subscribe/slack`           | **Prenumerera via Slack**           | **Slack-arbetsytans namn** (används för validering) och **URL för inkommande webhook i Slack**, med exemplet `https://hooks.slack.com/services/...`. |
-| **MS Teams** | `/subscribe/microsoft-teams` | **Prenumerera via Microsoft Teams** | **Microsoft Teams-arbetsytans namn** och **URL för inkommande webhook i Microsoft Teams**, med exemplet `https://outlook.office.com/webhook/...`.    |
-| **Webhooks** | `/subscribe/webhooks`        | **Prenumerera via webhook**         | **Webhook-URL**, med exemplet `https://example.com/webhook`. En JSON-`POST`-begäran skickas till den vid varje händelse på statussidan.              |
+| Flik | Adress | Rubrik | Vad den frågar efter |
+| --- | --- | --- | --- |
+| **E-post** | `/subscribe/email` | **Prenumerera via e-post** | **Din e-post**, med exemplet `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **Prenumerera via SMS** | **Ditt telefonnummer**, med exemplet `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **Prenumerera via Slack** | **Slack-arbetsytans namn** (används för validering) och **URL för inkommande webhook i Slack**, med exemplet `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Prenumerera via Microsoft Teams** | **Microsoft Teams-arbetsytans namn** och **URL för inkommande webhook i Microsoft Teams**, med exemplet `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **Prenumerera via webhook** | **Webhook-URL**, med exemplet `https://example.com/webhook`. En JSON-`POST`-begäran skickas till den vid varje händelse på statussidan. |
 
-Knappen för att skicka heter **Prenumerera**. En registrering via Slack, Microsoft Teams eller webhook visar _Du har prenumererat._ En registrering via SMS visar _Vi har skickat ett sms till det här telefonnumret. Öppna länken i det för att bekräfta din prenumeration._ En registrering via e-post säger att en bekräftelselänk har skickats och att man ska kontrollera skräppostmappen om den inte kommer fram (se [Dubbel opt-in för e-post](#dubbel-opt-in-för-e-post)). Flikarna **E-post**, **SMS**, **Slack** och **MS Teams** har också uppdelningen **Ny prenumeration** / **Hantera befintlig prenumeration**, så att någon som redan prenumererar kan komma tillbaka till sina inställningar utan att leta efter ett gammalt meddelande.
+Knappen för att skicka heter **Prenumerera**. En registrering via Slack, Microsoft Teams eller webhook visar *Du har prenumererat.* En registrering via SMS visar *Vi har skickat ett sms till det här telefonnumret. Öppna länken i det för att bekräfta din prenumeration.* En registrering via e-post säger att en bekräftelselänk har skickats och att man ska kontrollera skräppostmappen om den inte kommer fram (se [Dubbel opt-in för e-post](#dubbel-opt-in-för-e-post)). Flikarna **E-post**, **SMS**, **Slack** och **MS Teams** har också uppdelningen **Ny prenumeration** / **Hantera befintlig prenumeration**, så att någon som redan prenumererar kan komma tillbaka till sina inställningar utan att leta efter ett gammalt meddelande.
 
 ## Gränser för registreringar och länkar
 
 Varje registrering skickar genast ett meddelande till sin kontakt, ett bekräftelsemejl, ett SMS, ett Slack- eller Microsoft Teams-meddelande eller ett webhook-anrop, och det gör **Skicka hanteringslänk** också. För att ingen ska kunna använda en statussida för att skicka meddelanden till folk som inte har bett om dem, eller för att driva upp ditt projekts SMS-kostnader, är båda begränsade för varje besökares nätverk och för varje kontakt. Gränserna ligger långt över vad folk gör: ett helt kontor kan registrera sig tillsammans under en incident.
 
-| Vad som begränsas                                                                                                                                                       | Gräns            |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Registreringar från ett nätverk                                                                                                                                         | 60 på 15 minuter |
-| Registreringar och hanteringslänkar via SMS från ett nätverk, tillsammans                                                                                               | 10 på 15 minuter |
-| Hanteringslänkar som begärs från ett nätverk                                                                                                                            | 30 på 15 minuter |
-| Registreringar av en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook, på alla statussidor tillsammans                           | 10 på en timme   |
-| Hanteringslänkar för en e-postadress eller ett telefonnummer på alla statussidor tillsammans, eller för ett Slack- eller Microsoft Teams-arbetsytenamn på en statussida | 5 på en timme    |
+| Vad som begränsas | Gräns |
+| --- | --- |
+| Registreringar från ett nätverk | 60 på 15 minuter |
+| Registreringar och hanteringslänkar via SMS från ett nätverk, tillsammans | 10 på 15 minuter |
+| Hanteringslänkar som begärs från ett nätverk | 30 på 15 minuter |
+| Registreringar av en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook, på alla statussidor tillsammans | 10 på en timme |
+| Hanteringslänkar för en e-postadress eller ett telefonnummer på alla statussidor tillsammans, eller för ett Slack- eller Microsoft Teams-arbetsytenamn på en statussida | 5 på en timme |
 
 Över en gräns svarar API:t `429` med en `Retry-After`-header, i sekunder, och besökaren får veta att det var för många registreringar eller länkar från deras nätverk, eller för den kontakten, och att de ska försöka igen senare. Inget skapas eller skickas, och ditt projekt märker inget av det: ingen prenumerant läggs till, och inget meddelande skickas eller betalas. Gränserna för hanteringslänkar räknar varje begäran, oavsett om en prenumeration matchar eller inte, så de kan inte användas för att ta reda på vem som prenumererar. En e-postadress räknas hur den än är skriven, med versaler, med en `+tag` eller, för Gmail, med punkter, och ett telefonnummer hur det än är inskrivet. En registrering anger en kontakt, en e-postadress, ett telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook: en lista med adresser, eller en andra kontakt, avvisas.
 
@@ -103,18 +102,18 @@ En privat användare som ber om en länk för att återställa lösenordet på s
 
 På en egenvärdad installation ändrar de här miljövariablerna i OneUptime-appen gränserna:
 
-| Variabel                                                            | Standard | Vad den anger                                                                              |
-| ------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`    | Tidsfönstret för gränserna per nätverk, i sekunder.                                        |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`   | Tidsfönstret för gränserna per kontakt, i sekunder.                                        |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`     | Registreringar från en adress per tidsfönster.                                             |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`     | Registreringar och hanteringslänkar via SMS från en adress per tidsfönster, tillsammans.   |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`     | Hanteringslänkar som begärs från en adress per tidsfönster.                                |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`     | Registreringar av en kontakt per tidsfönster.                                              |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`      | Hanteringslänkar för en kontakt per tidsfönster.                                           |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`     | Lösenordsåterställningar för privata användare som begärs från en adress per tidsfönster.  |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`      | Återställningsmejl för privata användare till en adress per tidsfönster.                   |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`     | Inbjudningar till en adress per fönster, till privata statussidor och projekt tillsammans. |
+| Variabel | Standard | Vad den anger |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Tidsfönstret för gränserna per nätverk, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Tidsfönstret för gränserna per kontakt, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Registreringar från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Registreringar och hanteringslänkar via SMS från en adress per tidsfönster, tillsammans. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Hanteringslänkar som begärs från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Registreringar av en kontakt per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Hanteringslänkar för en kontakt per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Lösenordsåterställningar för privata användare som begärs från en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Återställningsmejl för privata användare till en adress per tidsfönster. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inbjudningar till en adress per fönster, till privata statussidor och projekt tillsammans. |
 
 Varken `config.env` eller Helm-diagrammets värden skickar dem vidare: lägg själv till dem i miljön för containern `app`, med `app.extraEnv`, eller hela diagrammets `extraEnv`, i Helm-diagrammet, eller i en `docker-compose.override.yml` för Docker Compose. `TRUSTED_PROXY_HOPS` avgör vilken adress gränserna per nätverk räknar.
 
@@ -143,13 +142,13 @@ Bra för: en sida som täcker flera produkter. En kund som bara använder ditt A
 
 ## Dubbel opt-in för e-post
 
-E-postprenumeranter bekräftar alltid. När en prenumerant skapas med en e-postadress och inte skapades som redan bekräftad tvingas **Is Subscription Confirmed** (`isSubscriptionConfirmed`) till `false`, och en slumpmässig **Subscription Confirmation Token** på 32 tecken genereras. OneUptime skickar sedan en bekräftelselänk på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Besökaren hamnar på en sida **Bekräfta prenumeration** och ser, när det har gått igenom, _Prenumeration bekräftad_.
+E-postprenumeranter bekräftar alltid. När en prenumerant skapas med en e-postadress och inte skapades som redan bekräftad tvingas **Is Subscription Confirmed** (`isSubscriptionConfirmed`) till `false`, och en slumpmässig **Subscription Confirmation Token** på 32 tecken genereras. OneUptime skickar sedan en bekräftelselänk på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Besökaren hamnar på en sida **Bekräfta prenumeration** och ser, när det har gått igenom, *Prenumeration bekräftad*.
 
 Prenumeranter via Slack, Microsoft Teams och webhook hoppar över det här, och det gör även SMS-prenumeranter som ditt team lägger till — de skapas med `isSubscriptionConfirmed` redan satt till `true`. När ditt team lägger till en e-postprenumerant under **E-postprenumeranter** avgör **När du lägger till dem**: **Lägg till dem som prenumeranter nu** (standard: bekräftad, och inget skickas), **Lägg till dem nu och meddela dem** (bekräftad, och e-postmeddelandet om att de prenumererar skickas) eller **Be dem bekräfta först** (de får bekräftelselänken, som vid en registrering). **Lägg till i bulk** frågar samma sak.
 
 **Registreringar via SMS bekräftas också.** En besökare som registrerar sig via SMS får ett enda meddelande: bekräftelselänken. Inget annat skickas till numret förrän länken öppnas, och när den öppnas skickas meddelandet om att de prenumererar, med länken som avslutar prenumerationen. Fram till dess visas prenumeranten som **Väntar på bekräftelse**, och SMS-loggen visar länken med koden ersatt av `[redacted]`. SMS-prenumeranter från tidigare är redan bekräftade.
 
-**En bekräftelselänk fungerar i 24 timmar.** E-postmeddelandet och sms:et säger det. Öppnad senare bekräftar den ingenting: Sidan **Bekräfta prenumeration** säger _Den här länken för att bekräfta din prenumeration har gått ut eller är ogiltig. En länk fungerar i 24 timmar efter att den skickats. Prenumerera igen för att få en ny._ och erbjuder **Prenumerera igen**, och API:et svarar `400`. Prenumeranten förblir obekräftad, får ingenting och visas som **Länken har gått ut** i sin lista i stället för **Väntar på bekräftelse**.
+**En bekräftelselänk fungerar i 24 timmar.** E-postmeddelandet och sms:et säger det. Öppnad senare bekräftar den ingenting: Sidan **Bekräfta prenumeration** säger *Den här länken för att bekräfta din prenumeration har gått ut eller är ogiltig. En länk fungerar i 24 timmar efter att den skickats. Prenumerera igen för att få en ny.* och erbjuder **Prenumerera igen**, och API:et svarar `400`. Prenumeranten förblir obekräftad, får ingenting och visas som **Länken har gått ut** i sin lista i stället för **Väntar på bekräftelse**.
 
 **Registrera igen.** Medan länken fungerar skickar det inget mer att registrera samma e-postadress eller telefonnummer igen på den statussidan: Besökaren får veta att en länk redan har skickats, och API:et svarar `429` med en `Retry-After`-header. En kontakt får alltså högst en bekräftelselänk om dagen från en statussida, hur ofta den än registreras. När länken har gått ut håller prenumerationen inte längre fast vid sin kontakt: En ny registrering, eller att ditt team lägger till kontakten, ersätter den, och en registrering får en ny länk. Den som registrerar en kontakt först kan inte hindra ägaren från att prenumerera: Länken går till ägaren, och en dag senare kan ägaren få en egen. Länkar som skickades före den här ändringen fungerar också i 24 timmar efter sin registrering.
 
@@ -165,13 +164,13 @@ Ett SMS innehåller samma länk, från en offentlig statussida som från en priv
 
 SMS-loggen (fliken **SMS** under **Aviseringsloggar**, på statussidan och i projektinställningarna) sparar texten i varje SMS, och fler projektmedlemmar kan läsa den än som kan hantera prenumeranter. Därför visar loggen en avregistrerings- eller hanteringslänk där token har ersatts med `[redacted]`, till exempel `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Bara prenumerantens egen telefon får den fungerande länken. API:et returnerar heller aldrig en ny prenumerants token, inte ens i svaret på begäran som skapade den.
 
-**Att öppna länken ändrar ingenting.** Sidan visar statussidans namn och logotyp och prenumerationen som länken hör till: en e-postadress i sin helhet, ett telefonnummer maskerat utom de fyra sista siffrorna, namnet på en Slack- eller Microsoft Teams-arbetsyta eller en webhooks värd. Den frågar _Vill du sluta ta emot aviseringar från den här statussidan?_ och bara ett tryck på **Avsluta prenumeration** avslutar prenumerationen, så e-postskannrar och länkförhandsvisningar som öppnar varje länk i ett meddelande inte kan avregistrera någon. Inget annat från sidan visas, och inget av dess anpassade JavaScript körs. Att bekräfta två gånger, eller att öppna länken till en prenumeration som redan är avslutad, säger bara att den är avslutad. På en offentlig statussida länkar avregistreringssidan också till prenumerantens sida **Uppdatera prenumeration**, för att i stället välja vilka aviseringar man får.
+**Att öppna länken ändrar ingenting.** Sidan visar statussidans namn och logotyp och prenumerationen som länken hör till: en e-postadress i sin helhet, ett telefonnummer maskerat utom de fyra sista siffrorna, namnet på en Slack- eller Microsoft Teams-arbetsyta eller en webhooks värd. Den frågar *Vill du sluta ta emot aviseringar från den här statussidan?* och bara ett tryck på **Avsluta prenumeration** avslutar prenumerationen, så e-postskannrar och länkförhandsvisningar som öppnar varje länk i ett meddelande inte kan avregistrera någon. Inget annat från sidan visas, och inget av dess anpassade JavaScript körs. Att bekräfta två gånger, eller att öppna länken till en prenumeration som redan är avslutad, säger bara att den är avslutad. På en offentlig statussida länkar avregistreringssidan också till prenumerantens sida **Uppdatera prenumeration**, för att i stället välja vilka aviseringar man får.
 
 Sidan **Uppdatera prenumeration**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, öppnas också bara med prenumerationens token: prenumerantens id ensamt öppnar ingenting. Den har rubriken **Uppdatera prenumeration** och talar om för besökaren att hen kan uppdatera sina inställningar eller avregistrera sig där. Den innehåller:
 
 - De väljare för resurser och händelsetyper som sidan tillåter.
 - Ett reglage **Avsluta prenumeration**, beskrivet som avregistrering från alla resurser. Det skriver **Är avprenumererad** (`isUnsubscribed`, standard false).
-- En knapp för att skicka med texten **Uppdatera prenumeration**; när du sparar visas _Dina ändringar har sparats._
+- En knapp för att skicka med texten **Uppdatera prenumeration**; när du sparar visas *Dina ändringar har sparats.*
 
 På en privat statussida kräver den en inloggad besökare, som resten av sidan. Precis som avregistreringssidan kör den inget av sidans anpassade JavaScript, och den visar det vanliga sidhuvudet och den vanliga sidfoten i stället för anpassad sidhuvuds- eller sidfots-HTML. Den som har tappat bort länken använder **Hantera befintlig prenumeration** på sidan **Prenumerera** och trycker på **Skicka hanteringslänk**. Länken går till själva prenumerationen — dess e-postadress, dess telefonnummer eller dess Slack- eller Microsoft Teams-kanal —, aldrig till en adress i begäran, och sidan svarar likadant oavsett om en prenumeration matchade eller inte, så den kan inte användas för att ta reda på vem som prenumererar. Det meddelandet länkar till sidan **Uppdatera prenumeration** och ger en anpassad mall båda länkarna: `manageSubscriptionUrl` och `unsubscribeUrl`.
 
@@ -332,13 +331,13 @@ som innehåll i `PUT /api/status-page-announcement/<announcement-id>` (eller `in
 
 Varje prenumerantavisering har en egen status, bredvid det den handlar om. För en incident är det aviseringen om "skapad" på incidentens **Översikt**, varje rad i dess **Tillståndstidslinje**, varje offentlig anteckning och dess **Efteranalys**. Schemalagda underhållshändelser och meddelanden visar sina på samma sätt, och incidentepisoder på sina offentliga anteckningar. Klicka på statusen för att läsa dess meddelande, som säger vad som hände. Offentliga anteckningar visar statusen som ett märke med egen formulering:
 
-| Status                       | På en offentlig anteckning     | Vad det betyder                                                                                                                  |
-| ---------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| **Sending Soon**             | **Notifying subscribers soon** | I kö. Jobbet som skickar den körs varje minut.                                                                                   |
-| **Notifications Being Sent** | **Notifying subscribers**      | Jobbet arbetar sig igenom prenumeranterna.                                                                                       |
-| **Aviseringar skickade**     | **Subscribers notified**       | Den har skickats. Se nedan vad det betyder.                                                                                      |
-| **Misslyckades**             | **Notification failed**        | Inte alla prenumeranter fick den, eller så stoppades utskicket. Meddelandet säger vad som skickades och vad **Försök igen** gör. |
-| **Notifications skipped.**   | **Subscribers not notified**   | Inget skulle skickas, till exempel för att incidenten är dold på statussidor. Meddelandet säger varför.                          |
+| Status | På en offentlig anteckning | Vad det betyder |
+| --- | --- | --- |
+| **Sending Soon** | **Notifying subscribers soon** | I kö. Jobbet som skickar den körs varje minut. |
+| **Notifications Being Sent** | **Notifying subscribers** | Jobbet arbetar sig igenom prenumeranterna. |
+| **Aviseringar skickade** | **Subscribers notified** | Den har skickats. Se nedan vad det betyder. |
+| **Misslyckades** | **Notification failed** | Inte alla prenumeranter fick den, eller så stoppades utskicket. Meddelandet säger vad som skickades och vad **Försök igen** gör. |
+| **Notifications skipped.** | **Subscribers not notified** | Inget skulle skickas, till exempel för att incidenten är dold på statussidor. Meddelandet säger varför. |
 
 ### Så räknas ett utskick
 
@@ -392,11 +391,11 @@ Mallar för hela projektet finns en nivå upp, under **Statussidor → Inställn
 
 På OneUptime Cloud är aviseringsmallar för prenumeranter en funktion i abonnemanget **Scale**; egendriftade installationer har inga abonnemangsgränser. En mall används först när den är kopplad till en statussida på den sidans flik **Aviseringsmallar**, och två kanaler kräver dessutom att sidan skickar via din egen leverantör:
 
-| Kanal                             | En kopplad mall används när sidan har                                                   |
-| --------------------------------- | --------------------------------------------------------------------------------------- |
-| **E-post**                        | en **Anpassad SMTP-konfiguration** (se [nedan](#e-postsidfot-anpassad-smtp-och-twilio)) |
-| **SMS**                           | en **Twilio-konfiguration**                                                             |
-| **Slack** och **Microsoft Teams** | inget mer                                                                               |
+| Kanal | En kopplad mall används när sidan har |
+| --- | --- |
+| **E-post** | en **Anpassad SMTP-konfiguration** (se [nedan](#e-postsidfot-anpassad-smtp-och-twilio)) |
+| **SMS** | en **Twilio-konfiguration** |
+| **Slack** och **Microsoft Teams** | inget mer |
 
 Utan dem skickar sidan sitt standardmeddelande via e-post eller SMS. När en kopplad mall för e-post eller SMS inte kan användas av den anledningen säger fliken **Aviseringsmallar** det med **Anpassade mallar kräver konfiguration**. Anpassade SMTP- och Twilio-konfigurationer kräver abonnemanget **Growth** eller högre. Webhook-prenumeranter får alltid standard-JSON-payloaden.
 
@@ -406,10 +405,10 @@ Inget av detta behövs för att få med anpassade incidentfält i meddelanden. F
 
 Mallar för de fem händelsetyperna för incidenter — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** och **Subscriber Incident Postmortem Published** — kan använda de här utöver sina egna variabler:
 
-| Variabel                          | Fylls med                                                                                                                                           |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{{incidentLabels}}`              | Incidentens etiketter, avgränsade med kommatecken.                                                                                                  |
-| `{{affectedStatusPages}}`         | Namnen på alla statussidor som incidenten visas på, avgränsade med kommatecken.                                                                     |
+| Variabel | Fylls med |
+| --- | --- |
+| `{{incidentLabels}}` | Incidentens etiketter, avgränsade med kommatecken. |
+| `{{affectedStatusPages}}` | Namnen på alla statussidor som incidenten visas på, avgränsade med kommatecken. |
 | `{{incident.customFields.<key>}}` | Värdet i ett anpassat incidentfält, enligt fältets **Mallvariabel**, oavsett om fältet är markerat med **Ta med i aviseringar till prenumeranter**. |
 
 Nyckeln är fältets **Mallvariabel**, som inte ändras när fältet byter namn; mallformuläret listar projektets anpassade incidentfält, vart och ett med sin variabel, under mallens innehåll (se [Infoga variabler](#infoga-variabler)). Mallar som sparats med den äldre `{{customFields.<key>}}` fylls i på samma sätt. Ett fält som incidenten inte har något värde för lämnas tomt. I ett e-postmeddelandes innehåll escapas ett vanligt fält som alla andra värden, medan ett fält med rich text, lång text eller datum och tid infogas som HTML: formaterad Markdown, dess rader eller en rad per prenumeranttidszon. Inbäddade bilder i ett fält med rich text görs synliga för de personer det skickas till.
@@ -460,7 +459,7 @@ Granskningssteget visar samma rad. **Skapa från mall** fyller i formuläret fr�
 
 Meddelandets egen sida redigerar det i samma två steg. **Meddela prenumeranter om denna uppdatering** finns under beskrivningen (se [Avisera prenumeranter om en redigering](#avisera-prenumeranter-om-en-redigering)), och **Schema** innehåller starten och slutet. Att ange ett slut som har passerat är sättet att ta ned ett meddelande.
 
-Besökare läser meddelanden på `/announcements`, uppdelade i **Aktiva meddelanden** och **Tidigare meddelanden**, vart och ett märkt med **Meddelat den**. Meddelanden som är live just nu fästs också högst upp på översiktssidan. När det inte finns något att visa står det _Inga meddelanden_ på sidan, med anmärkningen att inga har publicerats hittills.
+Besökare läser meddelanden på `/announcements`, uppdelade i **Aktiva meddelanden** och **Tidigare meddelanden**, vart och ett märkt med **Meddelat den**. Meddelanden som är live just nu fästs också högst upp på översiktssidan. När det inte finns något att visa står det *Inga meddelanden* på sidan, med anmärkningen att inga har publicerats hittills.
 
 Bilagor levereras från `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, bakom samma läskontroll som själva statussidan — så en bilaga på en privat sida förblir privat.
 
@@ -499,9 +498,8 @@ Om en webhook-prenumeration avvisas vid registreringen är en intern eller felfo
 ## Nästa steg
 
 :::cards
-
 - [Statussidor – Översikt](/docs/status-pages/index): Vad en statussida är, och hur den är uppbyggd.
 - [Statussidans resurser och grupper](/docs/status-pages/resources-and-groups): Monitorerna och grupperna som prenumeranter väljer mellan.
 - [En statussida per målgrupp](/docs/status-pages/one-status-page-per-audience): Begränsa en incident till de sidor vars prenumeranter bör få veta om den.
 - [Statussidans varumärke och domäner](/docs/status-pages/branding-and-domains): Utseendet på sidan som dina meddelanden länkar till.
-  :::
+:::

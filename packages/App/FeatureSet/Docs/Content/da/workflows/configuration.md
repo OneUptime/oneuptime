@@ -3,12 +3,11 @@
 Det skal du vide, før du retter et workflow mod rigtig trafik: hvordan du slår det sikkert til, hvem der må hvad, hvordan hemmeligheder og URL'er forbliver private, hvad et workflows trin må ændre, og de grænser, hver kørsel arbejder inden for.
 
 :::cards
-
 - [Gå live](#sådan-tænder-og-slukker-du-et-workflow): Test med Kør arbejdsgang, mens det er slået fra, og slå det så til.
 - [Tilladelser](#tilladelser): Workflow-rollerne og de enkelte tilladelser bag dem.
 - [Hvad trin må](#hvad-workflow-trin-må-gøre): Trin handler som Project Admin i workflowets projekt.
 - [Grænser](#plangrænser): Kørsler pr. plan, kørselstid og kald mellem workflows.
-  :::
+:::
 
 ## Sådan tænder og slukker du et workflow
 
@@ -17,12 +16,11 @@ Hvert workflow har en kontakt, **Aktiveret**, øverst i sin **Bygger** og på si
 Brug kontakten som din «klar til brug»-port:
 
 :::steps
-
 1. Byg workflowet.
 2. Klik på **Kør arbejdsgang** i **Bygger** med realistiske værdier, mens workflowet stadig er slået fra. Kørslen er en **Testkørsel**: hver blok kører for alvor, så peg den først mod en testkanal eller en testpost.
 3. Åbn kørslen, og tjek, at hver blok gik derhen, du forventede. Se [Kørsler](/docs/workflows/runs-and-logs).
 4. Slå **Aktiveret** til, når det er klar: fra da af udløses dets trigger ved rigtige begivenheder.
-   :::
+:::
 
 At slå et workflow fra forhindrer dets trigger i at starte nye kørsler. En kørsel, der allerede er i gang, gør sig færdig, men en kørsel, som dets trigger startede, og som venter ved en **Sleep**-blok, annulleres, når den vågner. Testkørsler fortsætter. For at slå flere til eller fra på én gang markerer du dem i listen **Arbejdsgange** og vælger **Aktivér** eller **Deaktivér** under **Massehandlinger**.
 
@@ -45,12 +43,12 @@ Et eksporteret workflow medbringer aldrig sin arkiverede tilstand, så en import
 
 ## Ejere og etiketter
 
-| Hvad             | Hvor                                            | Hvad det gør                                                                                                                                                   |
-| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Ejere**        | Workflowets side **Ejere**                      | De brugere og teams, der er ansvarlige for workflowet. En rolle, der er begrænset til det, dens team ejer, når de workflows, det team ejer.                    |
+| Hvad             | Hvor                                            | Hvad det gør                                                                                                                                              |
+| ---------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ejere**        | Workflowets side **Ejere**                      | De brugere og teams, der er ansvarlige for workflowet. En rolle, der er begrænset til det, dens team ejer, når de workflows, det team ejer.                |
 | **Etiketter**    | Workflowets side **Oversigt**                   | Mærkater til at gruppere workflows efter team, integration eller miljø. Filtrer listen **Arbejdsgange** på etiket, og begræns en rolle til bestemte etiketter. |
-| **Etiketregler** | **Arbejdsgange → Indstillinger → Etiketregler** | Sæt automatisk etiketter på nye workflows ud fra mønstre i deres navn eller beskrivelse.                                                                       |
-| **Ejerregler**   | **Arbejdsgange → Indstillinger → Ejerregler**   | Tildel automatisk ejere til nye workflows.                                                                                                                     |
+| **Etiketregler** | **Arbejdsgange → Indstillinger → Etiketregler** | Sæt automatisk etiketter på nye workflows ud fra mønstre i deres navn eller beskrivelse.                                                                  |
+| **Ejerregler**   | **Arbejdsgange → Indstillinger → Ejerregler**   | Tildel automatisk ejere til nye workflows.                                                                                                                |
 
 Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules) for, hvordan reglerne matcher.
 
@@ -120,11 +118,11 @@ API-blokke og andre HTTP-blokke sender deres forespørgsler fra OneUptime, og IR
 
 Hvilke adresser en blok må nå, afhænger af blokken:
 
-| Blokke                                                                             | Loopback, link-local, cloud-metadata                                           | Private netværksadresser                                                                                                                                      |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Blokke                                                        | Loopback, link-local, cloud-metadata                                         | Private netværksadresser                                                                                                                          |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **API**- og **Mattermost**-blokke samt forespørgsler fra **Run Custom JavaScript** | Afvises, medmindre den præcise vært står i `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Afvises, medmindre en administrator af en selvhostet installation tillader dem med `ALLOW_PRIVATE_NETWORK_WEBHOOKS` eller `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** og OAuth 2.0-token-URL'er                                  | Afvises                                                                        | Afvises i OneUptime Cloud. Tilladt på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                                   |
-| Slack, Microsoft Teams, Discord og Telegram                                        | Afvises                                                                        | Afvises: hver sender kun til sin egen tjenestes adresser                                                                                                      |
+| **Send Email**, **IRC** og OAuth 2.0-token-URL'er             | Afvises                                                                      | Afvises i OneUptime Cloud. Tilladt på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`                       |
+| Slack, Microsoft Teams, Discord og Telegram                   | Afvises                                                                      | Afvises: hver sender kun til sin egen tjenestes adresser                                                                                          |
 
 Se [Adgang til private netværk](/docs/self-hosted/private-network-access) for, hvordan en administrator af en selvhostet installation åbner for dem.
 
@@ -151,13 +149,13 @@ Hvad blokken kræver, og hvad den koster:
 - Kald gennem en global udbyder med omkostninger bruger projektets AI-kreditter.
 - Hvert kald tæller med i [projektets egne daglige AI-grænser](/docs/ai/ai-sre#projektets-egne-daglige-grænser), når en projektejer sætter dem. Når en grænse er nået, tager blokken **Error** uden at kontakte modellen, indtil midnat UTC.
 
-| Grænse                                                       | Værdi                                                                     |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** og **Context** tilsammen | 50.000 tegn                                                               |
-| **Temperature**                                              | Fra `0` til `1`                                                           |
-| **Maximum Output Tokens**                                    | Fra `1` til `4096`, `1024` som standard                                   |
-| Én forespørgsel                                              | Forsøges én gang, i højst 60 sekunder                                     |
-| Kald på samme tid                                            | 3 pr. projekt. Flere tager **Error**, og en senere kørsel kan prøve igen. |
+| Grænse                                                        | Værdi                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **System Instructions**, **Prompt** og **Context** tilsammen  | 50.000 tegn                                                              |
+| **Temperature**                                               | Fra `0` til `1`                                                          |
+| **Maximum Output Tokens**                                     | Fra `1` til `4096`, `1024` som standard                                  |
+| Én forespørgsel                                               | Forsøges én gang, i højst 60 sekunder                                    |
+| Kald på samme tid                                             | 3 pr. projekt. Flere tager **Error**, og en senere kørsel kan prøve igen. |
 
 Fejl i validering, konfiguration, adgang, grænser, kredit, samtidighed, udbyder og timeout tager alle stien **Error**, med årsagen i **Error**. Forbind den sti, før workflowet går live.
 
@@ -202,7 +200,7 @@ De trin, der læser og ændrer OneUptime-poster — komponenterne Find, Create, 
   - at ændre, hvilken post en post hører til, efter at den er oprettet, som den monitor, en ejerrække gælder for, eller den hændelse, en note står på.
 - **Som ingen person.** En post, et workflow opretter, har ingen opretter, og revisionsloggen angiver workflowet, med dets navn på det tidspunkt, som den, der foretog ændringen.
 
-Når en kontrol afviser et trin, tager trinnet sit **Error**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Læs den under workflowets [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
+Når en kontrol afviser et trin, tager trinnet sit **Error**-output uden at foretage den afviste ændring, og kørslens log nævner trinnet og årsagen i klare ord, for eksempel *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Læs den under workflowets [Kørsler](/docs/workflows/runs-and-logs). Et Create Many-trin opretter sine poster én ad gangen og stopper ved den første, der afvises: de poster, det oprettede før den, bevares.
 
 Trin, der taler med andre systemer — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code og Generate Text with AI — læser eller ændrer ikke OneUptime-poster, så intet af dette ændrer noget for dem.
 
@@ -220,11 +218,11 @@ Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigge
 
 ## Hvor længe en kørsel må tage
 
-| Grænse                                                            | Standard      | Indstilling ved selvhosting     |
-| ----------------------------------------------------------------- | ------------- | ------------------------------- |
+| Grænse                                                           | Standard      | Indstilling ved selvhosting     |
+| ---------------------------------------------------------------- | ------------- | ------------------------------- |
 | En kørsel, fra dens start eller fra den vågner efter en **Sleep** | 2 minutter    | `WORKFLOW_TIMEOUT_IN_MS`        |
-| En **Run Custom JavaScript**-blok                                 | 5 sekunder    | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| En **Sleep**-blok                                                 | Højst 30 dage | —                               |
+| En **Run Custom JavaScript**-blok                                | 5 sekunder    | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| En **Sleep**-blok                                                | Højst 30 dage | —                               |
 
 Afvikleren tjekker deadlinen før og efter hver blok og markerer en kørsel, der er over tiden, som **Timeout**, så snart kontrollen vender tilbage. Den kan ikke afbryde en blok midtvejs, så blokke, der venter på netværket, har deres egne tidsgrænser: en forespørgsel fra Generate Text with AI giver op efter højst 60 sekunder og en OAuth 2.0-tokenforespørgsel efter 20. Ventetid ved en **Sleep**-blok tæller ikke med i en kørsels tid: kørslen lægges til side og får friske 2 minutter, når den vågner.
 
@@ -245,8 +243,7 @@ Et par tilfælde, hvor du bør gribe efter noget andet:
 ## Næste trin
 
 :::cards
-
 - [Workflows – Oversigt](/docs/workflows/index): Det store billede og et første workflow fra start til slut.
 - [Komponenter](/docs/workflows/components): Hvad hver blok kræver, returnerer og må nå.
 - [Runbooks](/docs/runbooks/index): Når folk skal træffe beslutningerne undervejs.
-  :::
+:::

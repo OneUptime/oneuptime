@@ -7,12 +7,11 @@ Kunngjøringer er den andre halvdelen av den samme jobben. En monitor kan fortel
 Denne siden dekker begge deler: de fem abonnementskanalene og hvordan besøkende melder seg på, hva abonnenter kan velge å bli varslet om, flytene for dobbel bekreftelse og avmelding, e-postrapporten abonnenter kan få hver måned, og hvordan kunngjøringer skrives, planlegges og gjøres om til maler.
 
 :::cards
-
 - [Abonnementskanaler](#abonnementskanaler): Kanalene besøkende kan melde seg på, og siden de melder seg på.
 - [Hva abonnenter får vite](#hva-abonnentene-blir-varslet-om): Kunngjøringer, vedlikehold, hendelser og episoder, og redigeringer av dem.
 - [Sjekk hva som ble sendt](#sjekk-hva-som-ble-sendt): Hvert varsels status, og Prøv på nytt og Send på nytt.
 - [Kunngjøringer](#kunngjøringer): Publiser en melding på én eller flere statussider.
-  :::
+:::
 
 ## Slik fungerer det
 
@@ -46,7 +45,7 @@ På OneUptime Cloud står abonnementets navn ved en bryter som abonnementet ditt
 
 Hver kanal har også sin egen liste i statussidens sidemeny under **Abonnenter**: **E-postabonnenter**, **SMS-abonnenter**, **Slack-abonnenter**, **Microsoft Teams-abonnenter** og **Webhook-abonnenter**. Det er der du ser hvem som er påmeldt, legger til noen manuelt med **Legg til abonnent** eller legger igjen et **Internt notat** (`internalNote`) til deg selv om en bestemt abonnent, som bare teamet ditt ser. Så lenge en kanal er av, sier toppen av listen det, med kanalens bryter rett der, slik at du kan slå den på uten å forlate listen.
 
-**Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på _og_ minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
+**Én bryter er ikke nok.** Elementet **Abonner** i statussidens navigasjonslinje vises bare når **Vis abonnentside** er på *og* minst én kanal er på. Hvis du slår på **E-post**, men lar **Vis abonnentside** være av, har besøkende ingen måte å komme til skjemaet på.
 
 **En kalender i stedet.** Besøkende som bare vil ha det planlagte vedlikeholdet ditt i sin egen kalender, trenger ikke å abonnere: **Abonner på kalender** på sidens side **Planlagte hendelser** legger det til i Google Kalender, Apple Kalender eller Outlook, og kalenderen holder seg oppdatert av seg selv. Den sender ingenting og avhenger ikke av kanalene ovenfor, og en privat side tilbyr den ikke. Se [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#kalenderen-til-en-statusside).
 
@@ -69,27 +68,27 @@ Ingen av innstillingene sletter en abonnent, og å slå dem av sender til alle i
 
 Siden **Abonner** har en undermeny med én fane per påslått kanal; med bare én kanal på er det ingen undermeny, bare skjemaet for den kanalen. Hver fane ber om det minste den trenger:
 
-| Fane         | Adresse                      | Overskrift                      | Hva den ber om                                                                                                                                               |
-| ------------ | ---------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **E-post**   | `/subscribe/email`           | **Abonner via e-post**          | **Din e-post**, med eksempelet `subscriber@company.com`.                                                                                                     |
-| **SMS**      | `/subscribe/sms`             | **Abonner via SMS**             | **Ditt telefonnummer**, med eksempelet `+11234567890`.                                                                                                       |
-| **Slack**    | `/subscribe/slack`           | **Abonner via Slack**           | **Navn på Slack-arbeidsområde** (brukes til validering) og **URL for innkommende webhook for Slack**, med eksempelet `https://hooks.slack.com/services/...`. |
-| **MS Teams** | `/subscribe/microsoft-teams` | **Abonner via Microsoft Teams** | **Navn på Microsoft Teams-arbeidsområde** og **URL for innkommende webhook for Microsoft Teams**, med eksempelet `https://outlook.office.com/webhook/...`.   |
-| **Webhooks** | `/subscribe/webhooks`        | **Abonner via webhook**         | **Webhook-URL**, med eksempelet `https://example.com/webhook`. En JSON-`POST`-forespørsel sendes til den ved hver hendelse på statussiden.                   |
+| Fane | Adresse | Overskrift | Hva den ber om |
+| --- | --- | --- | --- |
+| **E-post** | `/subscribe/email` | **Abonner via e-post** | **Din e-post**, med eksempelet `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **Abonner via SMS** | **Ditt telefonnummer**, med eksempelet `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **Abonner via Slack** | **Navn på Slack-arbeidsområde** (brukes til validering) og **URL for innkommende webhook for Slack**, med eksempelet `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Abonner via Microsoft Teams** | **Navn på Microsoft Teams-arbeidsområde** og **URL for innkommende webhook for Microsoft Teams**, med eksempelet `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **Abonner via webhook** | **Webhook-URL**, med eksempelet `https://example.com/webhook`. En JSON-`POST`-forespørsel sendes til den ved hver hendelse på statussiden. |
 
-Innsendingsknappen heter **Abonner**. En påmelding via Slack, Microsoft Teams eller webhook viser _Du er abonnert._ En påmelding via SMS viser _Vi har sendt en SMS til dette telefonnummeret. Åpne lenken i den for å bekrefte abonnementet ditt._ En påmelding via e-post sier at en bekreftelseslenke er sendt, og at man skal sjekke søppelpostmappen hvis den ikke kommer (se [Dobbel bekreftelse på e-post](#dobbel-bekreftelse-på-e-post)). Fanene **E-post**, **SMS**, **Slack** og **MS Teams** har også delingen **Nytt abonnement** / **Administrer eksisterende abonnement**, slik at noen som allerede abonnerer, kan komme tilbake til preferansene sine uten å lete etter en gammel melding.
+Innsendingsknappen heter **Abonner**. En påmelding via Slack, Microsoft Teams eller webhook viser *Du er abonnert.* En påmelding via SMS viser *Vi har sendt en SMS til dette telefonnummeret. Åpne lenken i den for å bekrefte abonnementet ditt.* En påmelding via e-post sier at en bekreftelseslenke er sendt, og at man skal sjekke søppelpostmappen hvis den ikke kommer (se [Dobbel bekreftelse på e-post](#dobbel-bekreftelse-på-e-post)). Fanene **E-post**, **SMS**, **Slack** og **MS Teams** har også delingen **Nytt abonnement** / **Administrer eksisterende abonnement**, slik at noen som allerede abonnerer, kan komme tilbake til preferansene sine uten å lete etter en gammel melding.
 
 ## Grenser for påmeldinger og lenker
 
 Hver påmelding sender kontakten sin en melding med en gang, en bekreftelses-e-post, en SMS, en Slack- eller Microsoft Teams-melding eller et webhook-kall, og det gjør **Send administrasjonslenke** også. For at ingen skal kunne bruke en statusside til å sende meldinger til folk som ikke har bedt om dem, eller til å drive opp prosjektets SMS-kostnader, er begge begrenset for hver besøkendes nettverk og for hver kontakt. Grensene ligger langt over det folk gjør: et helt kontor kan melde seg på sammen under en hendelse.
 
-| Hva som er begrenset                                                                                                                                                             | Grense            |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| Påmeldinger fra ett nettverk                                                                                                                                                     | 60 på 15 minutter |
-| Påmeldinger og administrasjonslenker via SMS fra ett nettverk, til sammen                                                                                                        | 10 på 15 minutter |
-| Administrasjonslenker som bes om fra ett nettverk                                                                                                                                | 30 på 15 minutter |
-| Påmeldinger av én e-postadresse, ett telefonnummer, én Slack- eller Microsoft Teams-kanal eller én webhook, på alle statussider til sammen                                       | 10 på en time     |
-| Administrasjonslenker for én e-postadresse eller ett telefonnummer på alle statussider til sammen, eller for ett Slack- eller Microsoft Teams-arbeidsområdenavn på én statusside | 5 på en time      |
+| Hva som er begrenset | Grense |
+| --- | --- |
+| Påmeldinger fra ett nettverk | 60 på 15 minutter |
+| Påmeldinger og administrasjonslenker via SMS fra ett nettverk, til sammen | 10 på 15 minutter |
+| Administrasjonslenker som bes om fra ett nettverk | 30 på 15 minutter |
+| Påmeldinger av én e-postadresse, ett telefonnummer, én Slack- eller Microsoft Teams-kanal eller én webhook, på alle statussider til sammen | 10 på en time |
+| Administrasjonslenker for én e-postadresse eller ett telefonnummer på alle statussider til sammen, eller for ett Slack- eller Microsoft Teams-arbeidsområdenavn på én statusside | 5 på en time |
 
 Over en grense svarer API-et `429` med en `Retry-After`-header, i sekunder, og den besøkende får beskjed om at det var for mange påmeldinger eller lenker fra nettverket deres, eller for den kontakten, og at de skal prøve igjen senere. Ingenting opprettes eller sendes, og prosjektet ditt merker ingenting: ingen abonnent legges til, og ingen melding sendes eller betales. Grensene for administrasjonslenker teller hver forespørsel, enten et abonnement passer eller ikke, så de kan ikke brukes til å finne ut hvem som abonnerer. En e-postadresse telles uansett hvordan den er skrevet, med store bokstaver, med en `+tag` eller, for Gmail, med punktum, og et telefonnummer uansett hvordan det er tastet. En påmelding oppgir én kontakt, en e-postadresse, et telefonnummer, en Slack- eller Microsoft Teams-kanal eller en webhook: en liste med adresser, eller en kontakt til, avvises.
 
@@ -103,18 +102,18 @@ En privat bruker som ber om en lenke for å tilbakestille passordet på statussi
 
 På en selvdriftet installasjon endrer disse miljøvariablene i OneUptime-appen grensene:
 
-| Variabel                                                            | Standard | Hva den angir                                                                             |
-| ------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`    | Tidsvinduet for grensene per nettverk, i sekunder.                                        |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`   | Tidsvinduet for grensene per kontakt, i sekunder.                                         |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`     | Påmeldinger fra én adresse per tidsvindu.                                                 |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`     | Påmeldinger og administrasjonslenker via SMS fra én adresse per tidsvindu, til sammen.    |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`     | Administrasjonslenker som bes om fra én adresse per tidsvindu.                            |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`     | Påmeldinger av én kontakt per tidsvindu.                                                  |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`      | Administrasjonslenker for én kontakt per tidsvindu.                                       |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`     | Tilbakestillinger av passord for private brukere som bes om fra én adresse per tidsvindu. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`      | Tilbakestillings-e-poster for private brukere til én adresse per tidsvindu.               |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`     | Invitasjoner til én adresse per vindu, til private statussider og prosjekter til sammen.  |
+| Variabel | Standard | Hva den angir |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | Tidsvinduet for grensene per nettverk, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | Tidsvinduet for grensene per kontakt, i sekunder. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Påmeldinger fra én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Påmeldinger og administrasjonslenker via SMS fra én adresse per tidsvindu, til sammen. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Administrasjonslenker som bes om fra én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Påmeldinger av én kontakt per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Administrasjonslenker for én kontakt per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Tilbakestillinger av passord for private brukere som bes om fra én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Tilbakestillings-e-poster for private brukere til én adresse per tidsvindu. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitasjoner til én adresse per vindu, til private statussider og prosjekter til sammen. |
 
 Verken `config.env` eller Helm-chartets verdier sender dem videre: legg dem selv til i miljøet til containeren `app`, med `app.extraEnv`, eller den felles `extraEnv` for hele chartet, i Helm-chartet, eller i en `docker-compose.override.yml` for Docker Compose. `TRUSTED_PROXY_HOPS` bestemmer hvilken adresse grensene per nettverk teller.
 
@@ -143,13 +142,13 @@ Nyttig for: en side som dekker flere produkter. En kunde som bare bruker API-et 
 
 ## Dobbel bekreftelse på e-post
 
-E-postabonnenter bekrefter alltid. Når en abonnent opprettes med en e-postadresse og ikke ble opprettet som allerede bekreftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og et tilfeldig **Subscription Confirmation Token** på 32 tegn genereres. OneUptime sender deretter en bekreftelseslenke på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøkende havner på en side **Bekreft abonnement** og ser, når det har gått gjennom, _Abonnement bekreftet_.
+E-postabonnenter bekrefter alltid. Når en abonnent opprettes med en e-postadresse og ikke ble opprettet som allerede bekreftet, tvinges **Is Subscription Confirmed** (`isSubscriptionConfirmed`) til `false`, og et tilfeldig **Subscription Confirmation Token** på 32 tegn genereres. OneUptime sender deretter en bekreftelseslenke på formen `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Den besøkende havner på en side **Bekreft abonnement** og ser, når det har gått gjennom, *Abonnement bekreftet*.
 
 Abonnenter via Slack, Microsoft Teams og webhook hopper over dette, og det gjør også SMS-abonnenter som teamet ditt legger til — de opprettes med `isSubscriptionConfirmed` allerede satt til `true`. Når teamet ditt legger til en e-postabonnent under **E-postabonnenter**, avgjør **Når du legger dem til** det: **Abonner dem nå** (standard: bekreftet, og ingenting sendes), **Abonner dem nå, og gi beskjed** (bekreftet, og e-posten om at de abonnerer, sendes) eller **Be dem bekrefte først** (de får bekreftelseslenken, som ved en påmelding). **Legg til i bulk** spør om det samme.
 
 **Påmeldinger via SMS bekreftes også.** En besøkende som melder seg på via SMS, får én melding: bekreftelseslenken. Ingenting annet sendes til nummeret før lenken åpnes, og når den åpnes, sendes meldingen om at de abonnerer, med lenken som avslutter abonnementet. Inntil da vises abonnenten som **Venter på bekreftelse**, og SMS-loggen viser lenken med koden byttet ut med `[redacted]`. SMS-abonnenter fra før er allerede bekreftet.
 
-**En bekreftelseslenke virker i 24 timer.** E-posten og SMS-en sier det. Åpnet senere bekrefter den ingenting: Siden **Bekreft abonnement** sier _Denne lenken for å bekrefte abonnementet ditt er utløpt eller ugyldig. En lenke virker i 24 timer etter at den er sendt. Abonner på nytt for å få en ny._ og tilbyr **Abonner på nytt**, og API-et svarer `400`. Abonnenten forblir ubekreftet, får ingenting og vises som **Lenken er utløpt** i listen sin i stedet for **Venter på bekreftelse**.
+**En bekreftelseslenke virker i 24 timer.** E-posten og SMS-en sier det. Åpnet senere bekrefter den ingenting: Siden **Bekreft abonnement** sier *Denne lenken for å bekrefte abonnementet ditt er utløpt eller ugyldig. En lenke virker i 24 timer etter at den er sendt. Abonner på nytt for å få en ny.* og tilbyr **Abonner på nytt**, og API-et svarer `400`. Abonnenten forblir ubekreftet, får ingenting og vises som **Lenken er utløpt** i listen sin i stedet for **Venter på bekreftelse**.
 
 **Melde på igjen.** Mens lenken virker, sender det ingenting mer å melde på den samme e-postadressen eller det samme telefonnummeret igjen på den statussiden: Den besøkende får vite at en lenke allerede er sendt, og API-et svarer `429` med en `Retry-After`-header. En kontakt får altså høyst én bekreftelseslenke om dagen fra en statusside, uansett hvor ofte den meldes på. Når lenken er utløpt, holder ikke abonnementet lenger på kontakten sin: En ny påmelding, eller at teamet ditt legger til kontakten, erstatter det, og en påmelding får en ny lenke. Den som melder på en kontakt først, kan ikke hindre eieren i å abonnere: Lenken går til eieren, og en dag senere kan eieren få sin egen. Lenker som ble sendt før denne endringen, virker også i 24 timer etter påmeldingen.
 
@@ -165,13 +164,13 @@ En SMS har den samme lenken, fra en offentlig statusside som fra en privat, og d
 
 SMS-loggen (fanen **SMS** under **Varsellogger**, på statussiden og i prosjektinnstillingene) lagrer teksten i hver SMS, og flere prosjektmedlemmer kan lese den enn det er som kan administrere abonnenter. Derfor viser loggen en avmeldings- eller administrasjonslenke der tokenet er erstattet med `[redacted]`, for eksempel `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Bare abonnentens egen telefon får den fungerende lenken. API-et returnerer heller aldri tokenet til en ny abonnent, ikke engang i svaret på forespørselen som opprettet den.
 
-**Å åpne lenken endrer ingenting.** Siden viser statussidens navn og logo og abonnementet lenken hører til: en e-postadresse i sin helhet, et telefonnummer maskert unntatt de fire siste sifrene, navnet på et Slack- eller Microsoft Teams-arbeidsområde eller en webhooks vert. Den spør _Vil du slutte å motta varsler fra denne statussiden?_, og bare et trykk på **Avslutt abonnement** avslutter abonnementet, så e-postskannere og lenkeforhåndsvisninger som åpner hver lenke i en melding, ikke kan melde noen av. Ingenting annet fra siden vises, og ingen av sidens egendefinerte JavaScript kjøres. Å bekrefte to ganger, eller å åpne lenken til et abonnement som allerede er avsluttet, sier bare at det er avsluttet. På en offentlig statusside lenker avmeldingssiden også til abonnentens side **Oppdater abonnement**, for å velge hvilke varsler man får i stedet.
+**Å åpne lenken endrer ingenting.** Siden viser statussidens navn og logo og abonnementet lenken hører til: en e-postadresse i sin helhet, et telefonnummer maskert unntatt de fire siste sifrene, navnet på et Slack- eller Microsoft Teams-arbeidsområde eller en webhooks vert. Den spør *Vil du slutte å motta varsler fra denne statussiden?*, og bare et trykk på **Avslutt abonnement** avslutter abonnementet, så e-postskannere og lenkeforhåndsvisninger som åpner hver lenke i en melding, ikke kan melde noen av. Ingenting annet fra siden vises, og ingen av sidens egendefinerte JavaScript kjøres. Å bekrefte to ganger, eller å åpne lenken til et abonnement som allerede er avsluttet, sier bare at det er avsluttet. På en offentlig statusside lenker avmeldingssiden også til abonnentens side **Oppdater abonnement**, for å velge hvilke varsler man får i stedet.
 
 Siden **Oppdater abonnement**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, åpnes også bare med abonnementets token: abonnentens ID alene åpner ingenting. Den har tittelen **Oppdater abonnement** og forteller den besøkende at de kan oppdatere preferansene sine eller melde seg av der. Den inneholder:
 
 - De velgerne for ressurser og hendelsestyper som siden tillater.
 - En bryter **Avslutt abonnement**, beskrevet som avmelding fra alle ressurser. Den skriver **Er avmeldt** (`isUnsubscribed`, standard false).
-- En innsendingsknapp med teksten **Oppdater abonnement**; lagring viser _Endringene dine er lagret._
+- En innsendingsknapp med teksten **Oppdater abonnement**; lagring viser *Endringene dine er lagret.*
 
 På en privat statusside krever den en innlogget besøkende, som resten av siden. Som avmeldingssiden kjører den ingen av sidens egendefinerte JavaScript, og den viser standard topptekst og bunntekst i stedet for egendefinert topptekst- eller bunntekst-HTML. Den som har mistet lenken, bruker **Administrer eksisterende abonnement** på siden **Abonner** og trykker på **Send administrasjonslenke**. Lenken går til selve abonnementet — e-postadressen, telefonnummeret eller Slack- eller Microsoft Teams-kanalen —, aldri til en adresse i forespørselen, og siden svarer det samme uansett om et abonnement samsvarte eller ikke, så den kan ikke brukes til å finne ut hvem som abonnerer. Den meldingen lenker til siden **Oppdater abonnement** og gir en egendefinert mal begge lenkene: `manageSubscriptionUrl` og `unsubscribeUrl`.
 
@@ -332,13 +331,13 @@ som innhold i `PUT /api/status-page-announcement/<announcement-id>` (eller `inci
 
 Hvert abonnentvarsel har sin egen status ved siden av det det handler om. For en hendelse er det varselet om "opprettet" på hendelsens **Oversikt**, hver rad i **Tilstandstidslinje**, hvert offentlig notat og **Etteranalyse**. Planlagte vedlikeholdshendelser og kunngjøringer viser sine på samme måte, og hendelsesepisoder på de offentlige notatene sine. Klikk på statusen for å lese meldingen, som sier hva som skjedde. Offentlige notater viser statusen som et merke med sin egen ordlyd:
 
-| Status                       | På et offentlig notat          | Hva det betyr                                                                                                             |
-| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| **Sending Soon**             | **Notifying subscribers soon** | I kø. Jobben som sender det, kjører hvert minutt.                                                                         |
-| **Notifications Being Sent** | **Notifying subscribers**      | Jobben arbeider seg gjennom abonnentene.                                                                                  |
-| **Varsler sendt**            | **Subscribers notified**       | Det er sendt. Se nedenfor hva det betyr.                                                                                  |
-| **Mislyktes**                | **Notification failed**        | Ikke alle abonnenter fikk det, eller utsendingen stoppet. Meldingen sier hva som ble sendt, og hva **Prøv på nytt** gjør. |
-| **Notifications skipped.**   | **Subscribers not notified**   | Det skulle ikke sendes noe, for eksempel fordi hendelsen er skjult på statussider. Meldingen sier hvorfor.                |
+| Status | På et offentlig notat | Hva det betyr |
+| --- | --- | --- |
+| **Sending Soon** | **Notifying subscribers soon** | I kø. Jobben som sender det, kjører hvert minutt. |
+| **Notifications Being Sent** | **Notifying subscribers** | Jobben arbeider seg gjennom abonnentene. |
+| **Varsler sendt** | **Subscribers notified** | Det er sendt. Se nedenfor hva det betyr. |
+| **Mislyktes** | **Notification failed** | Ikke alle abonnenter fikk det, eller utsendingen stoppet. Meldingen sier hva som ble sendt, og hva **Prøv på nytt** gjør. |
+| **Notifications skipped.** | **Subscribers not notified** | Det skulle ikke sendes noe, for eksempel fordi hendelsen er skjult på statussider. Meldingen sier hvorfor. |
 
 ### Slik telles en utsending
 
@@ -392,11 +391,11 @@ Maler for hele prosjektet ligger ett nivå opp, under **Statussider → Innstill
 
 På OneUptime Cloud er varselmaler for abonnenter en funksjon i abonnementet **Scale**; selvdriftede installasjoner har ingen abonnementsgrenser. En mal brukes først når den er knyttet til en statusside på den sidens fane **Varselmaler**, og to kanaler krever i tillegg at siden sender via din egen leverandør:
 
-| Kanal                            | En tilknyttet mal brukes når siden har                                                               |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **E-post**                       | en **Egendefinert SMTP-konfigurasjon** (se [nedenfor](#e-postbunntekst-egendefinert-smtp-og-twilio)) |
-| **SMS**                          | en **Twilio-konfigurasjon**                                                                          |
-| **Slack** og **Microsoft Teams** | ingenting mer                                                                                        |
+| Kanal | En tilknyttet mal brukes når siden har |
+| --- | --- |
+| **E-post** | en **Egendefinert SMTP-konfigurasjon** (se [nedenfor](#e-postbunntekst-egendefinert-smtp-og-twilio)) |
+| **SMS** | en **Twilio-konfigurasjon** |
+| **Slack** og **Microsoft Teams** | ingenting mer |
 
 Uten dem sender siden sin standard-e-post eller -SMS. Når en tilknyttet e-post- eller SMS-mal ikke kan brukes av den grunnen, sier fanen **Varselmaler** det med **Egendefinerte maler krever konfigurasjon**. Egendefinerte SMTP- og Twilio-konfigurasjoner krever abonnementet **Growth** eller høyere. Webhook-abonnenter får alltid standard-JSON-payloaden.
 
@@ -406,10 +405,10 @@ Ingenting av dette trengs for å få egendefinerte hendelsesfelt med i meldinger
 
 Maler for de fem hendelsestypene for hendelser — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** og **Subscriber Incident Postmortem Published** — kan bruke disse i tillegg til sine egne variabler:
 
-| Variabel                          | Fylles med                                                                                                                              |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `{{incidentLabels}}`              | Hendelsens etiketter, atskilt med komma.                                                                                                |
-| `{{affectedStatusPages}}`         | Navnene på alle statussidene hendelsen vises på, atskilt med komma.                                                                     |
+| Variabel | Fylles med |
+| --- | --- |
+| `{{incidentLabels}}` | Hendelsens etiketter, atskilt med komma. |
+| `{{affectedStatusPages}}` | Navnene på alle statussidene hendelsen vises på, atskilt med komma. |
 | `{{incident.customFields.<key>}}` | Verdien til et egendefinert hendelsesfelt, etter feltets **Malvariabel**, uansett om feltet er merket med **Ta med i abonnentvarsler**. |
 
 Nøkkelen er feltets **Malvariabel**, som ikke endres når feltet får nytt navn; malskjemaet viser prosjektets egendefinerte hendelsesfelt, hvert med sin variabel, under malens innhold (se [Sett inn variabler](#sett-inn-variabler)). Maler som er lagret med den eldre `{{customFields.<key>}}`, fylles ut på samme måte. Et felt hendelsen ikke har en verdi for, blir stående tomt. I en e-posts innhold escapes et vanlig felt som enhver annen verdi, mens et felt med rik tekst, lang tekst eller dato og klokkeslett settes inn som HTML: formatert Markdown, linjene eller én linje per abonnenttidssone. Innebygde bilder i et felt med rik tekst gjøres synlige for personene det sendes til.
@@ -460,7 +459,7 @@ Gjennomgangstrinnet viser den samme linjen. **Opprett fra mal** fyller ut skjema
 
 Kunngjøringens egen side redigerer den på de samme to trinnene. **Varsle abonnenter om denne oppdateringen** står under beskrivelsen (se [Varsle abonnenter om en redigering](#varsle-abonnenter-om-en-redigering)), og **Tidsplan** inneholder starten og slutten. Å angi en slutt som er passert, er måten å ta ned en kunngjøring på.
 
-Besøkende leser kunngjøringer på `/announcements`, delt inn i **Aktive kunngjøringer** og **Tidligere kunngjøringer**, hver merket med **Kunngjort den**. Kunngjøringer som er live akkurat nå, er også festet øverst på oversiktssiden. Når det ikke er noe å vise, står det _Ingen kunngjøringer_ på siden, med merknaden om at ingen er publisert ennå.
+Besøkende leser kunngjøringer på `/announcements`, delt inn i **Aktive kunngjøringer** og **Tidligere kunngjøringer**, hver merket med **Kunngjort den**. Kunngjøringer som er live akkurat nå, er også festet øverst på oversiktssiden. Når det ikke er noe å vise, står det *Ingen kunngjøringer* på siden, med merknaden om at ingen er publisert ennå.
 
 Vedlegg leveres fra `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, bak den samme lesesjekken som selve statussiden — så et vedlegg på en privat side forblir privat.
 
@@ -499,9 +498,8 @@ Hvis et webhook-abonnement avvises ved påmelding, er en intern eller feilformat
 ## Neste steg
 
 :::cards
-
 - [Statussider – Oversikt](/docs/status-pages/index): Hva en statusside er, og hvordan den er satt sammen.
 - [Statusside – ressurser og grupper](/docs/status-pages/resources-and-groups): Monitorene og gruppene abonnenter velger mellom.
 - [Én statusside per målgruppe](/docs/status-pages/one-status-page-per-audience): Begrens en hendelse til sidene der abonnentene bør høre om den.
 - [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains): Utseendet til siden meldingene dine lenker til.
-  :::
+:::

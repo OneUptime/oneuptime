@@ -3,12 +3,11 @@
 Ein Service Level Objective (SLO) ist ein Zuverlässigkeitsziel für das, was Sie überwachen, etwa „99,9 % der Zeit verfügbar über rollierende 30 Tage“. OneUptime misst jedes SLO alle 5 Minuten an seinem Ziel. Statt „Läuft es gerade?“ beantworten Sie damit „Waren wir zuverlässig genug, über ein Zeitfenster, das unseren Nutzern wichtig ist, und wie viel Spielraum für Ausfälle bleibt?“
 
 :::cards
-
 - [Ein SLO erstellen](#ein-slo-erstellen): Ein Name und ein Ziel. Alles andere startet mit einem Standardwert.
 - [Monitore und Monitor-Regeln](/docs/slo/monitor-rules): Wählen Sie die Monitore, die ein SLO misst.
 - [Fehlerbudgets](/docs/slo/error-budget): Wie viel Ausfallzeit ein Ziel erlaubt und wie sie zurückkommt.
 - [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts): Alarmieren Sie Ihr Team, wenn das Budget zu schnell verbrennt.
-  :::
+:::
 
 ## So funktioniert es
 
@@ -27,12 +26,12 @@ flowchart TB
 
 ## Grundbegriffe
 
-| Begriff                           | Bedeutung                                                                                                                                                               |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SLI** (Service Level Indicator) | Die Messung: der Prozentsatz des Compliance-Zeitfensters, in dem die Monitore des SLO verfügbar waren.                                                                  |
-| **SLO** (Service Level Objective) | Ein Ziel für den SLI, zum Beispiel „mindestens 99,9 % in den letzten 30 Tagen“.                                                                                         |
-| **Fehlerbudget**                  | Die Ausfallzeit, die das Ziel erlaubt: `(100% − target) × window`. Bei 99,9 % über 30 Tage sind das 43 Minuten und 12 Sekunden.                                         |
-| **Burn-Rate**                     | Wie schnell das Budget verbraucht wird, verglichen mit einem gleichmäßigen Tempo. Bei einer Burn-Rate von 1 ist das Budget genau am Ende des Zeitfensters aufgebraucht. |
+| Begriff | Bedeutung |
+| --- | --- |
+| **SLI** (Service Level Indicator) | Die Messung: der Prozentsatz des Compliance-Zeitfensters, in dem die Monitore des SLO verfügbar waren. |
+| **SLO** (Service Level Objective) | Ein Ziel für den SLI, zum Beispiel „mindestens 99,9 % in den letzten 30 Tagen“. |
+| **Fehlerbudget** | Die Ausfallzeit, die das Ziel erlaubt: `(100% − target) × window`. Bei 99,9 % über 30 Tage sind das 43 Minuten und 12 Sekunden. |
+| **Burn-Rate** | Wie schnell das Budget verbraucht wird, verglichen mit einem gleichmäßigen Tempo. Bei einer Burn-Rate von 1 ist das Budget genau am Ende des Zeitfensters aufgebraucht. |
 
 Ein Fehlerbudget macht Zuverlässigkeit zu etwas, das Sie ausgeben können. Ist viel übrig, liefern Sie schneller aus und gehen Risiken ein; ist wenig übrig, treten Sie kürzer und investieren in Stabilität. Das SLO gibt diesem Gespräch eine Zahl, die alle sehen.
 
@@ -41,7 +40,6 @@ Ein Fehlerbudget macht Zuverlässigkeit zu etwas, das Sie ausgeben können. Ist 
 Sie brauchen eine Rolle, die SLOs erstellen darf: Project Owner, Project Admin oder eine eigene Rolle mit der Berechtigung Create Service Level Objective.
 
 :::steps
-
 ### SLOs öffnen
 
 Öffnen Sie **SLOs** über das Menü **Produkte** in der oberen Leiste. Es steht in der ersten Gruppe, neben Monitoren und Vorfällen. Klicken Sie auf **Service Level Objective erstellen**.
@@ -69,35 +67,35 @@ OneUptime wertet aktivierte SLOs alle 5 Minuten aus. SLI, Fehlerbudget und das B
 
 Die Felder unter **Weitere Felder**:
 
-| Feld                        | Was Sie festlegen                                                                                                                                                   | Standard       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| **Beschreibung**            | Wofür das SLO da ist.                                                                                                                                               | Leer           |
-| **Risikoschwellenwert (%)** | Der Anteil des verbleibenden Fehlerbudgets, bei dem das SLO **Gefährdet** wird. Eine ganze Zahl von 0 bis 100.                                                      | 20             |
-| **Typ des Zeitfensters**    | **Rollierend**: die letzten N Tage, die sich erholen, während alte Ausfallzeit aus dem Fenster fällt. **Calendar Month**: jeder Monat für sich, zurückgesetzt am 1. | **Rollierend** |
-| **Zeitfenster (Tage)**      | Nur rollierende Zeitfenster: wie viele Tage zurückgeschaut wird, von 1 bis 366. Üblich sind 28 oder 30.                                                             | 30             |
-| **Zeitzone**                | Nur Kalendermonate: die Zeitzone, in der jeder Monat beginnt und endet.                                                                                             | UTC            |
-| **Beschriftungen**          | Beschriftungen, um SLOs zu ordnen und zu filtern.                                                                                                                   | Keine          |
+| Feld | Was Sie festlegen | Standard |
+| --- | --- | --- |
+| **Beschreibung** | Wofür das SLO da ist. | Leer |
+| **Risikoschwellenwert (%)** | Der Anteil des verbleibenden Fehlerbudgets, bei dem das SLO **Gefährdet** wird. Eine ganze Zahl von 0 bis 100. | 20 |
+| **Typ des Zeitfensters** | **Rollierend**: die letzten N Tage, die sich erholen, während alte Ausfallzeit aus dem Fenster fällt. **Calendar Month**: jeder Monat für sich, zurückgesetzt am 1. | **Rollierend** |
+| **Zeitfenster (Tage)** | Nur rollierende Zeitfenster: wie viele Tage zurückgeschaut wird, von 1 bis 366. Üblich sind 28 oder 30. | 30 |
+| **Zeitzone** | Nur Kalendermonate: die Zeitzone, in der jeder Monat beginnt und endet. | UTC |
+| **Beschriftungen** | Beschriftungen, um SLOs zu ordnen und zu filtern. | Keine |
 
 Alles, was bestimmt, wie das SLO misst, startet mit einem Standardwert, den Sie später ändern:
 
-| Einstellung         | Ein neues SLO startet mit                                                             | Ändern unter                                       |
-| ------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Monitore            | Keinen                                                                                | **Monitore** oder **Monitor-Regeln**               |
-| Ausfall-Status      | Jedem nicht betriebsbereiten Status des Projekts                                      | **Einstellungen** → **Berechnung der Ausfallzeit** |
-| Multi-Monitor-Modus | **Any Monitor Down**                                                                  | **Einstellungen** → **Berechnung der Ausfallzeit** |
-| Auswertung          | Ein                                                                                   | **Einstellungen** → **Auswertung**                 |
-| Burn-Rate-Regeln    | Einer Regel **Fast burn** und einer Regel **Slow burn**, an das Zeitfenster angepasst | **Burn-Rate-Regeln**                               |
+| Einstellung | Ein neues SLO startet mit | Ändern unter |
+| --- | --- | --- |
+| Monitore | Keinen | **Monitore** oder **Monitor-Regeln** |
+| Ausfall-Status | Jedem nicht betriebsbereiten Status des Projekts | **Einstellungen** → **Berechnung der Ausfallzeit** |
+| Multi-Monitor-Modus | **Any Monitor Down** | **Einstellungen** → **Berechnung der Ausfallzeit** |
+| Auswertung | Ein | **Einstellungen** → **Auswertung** |
+| Burn-Rate-Regeln | Einer Regel **Fast burn** und einer Regel **Slow burn**, an das Zeitfenster angepasst | **Burn-Rate-Regeln** |
 
 ## Woraus ein SLO besteht
 
-| Teil                   | Was er festlegt                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Monitore               | Woher der SLI kommt. Ordnen Sie sie von Hand oder mit Monitor-Regeln zu: siehe [Monitore und Monitor-Regeln](/docs/slo/monitor-rules). |
-| Ziel                   | Der Anteil guter Zeit, den das SLO verspricht, größer als 0 und höchstens 99,999.                                                      |
-| Compliance-Zeitfenster | Der Zeitraum, über den SLI und Budget gemessen werden: ein rollierendes Fenster von 1 bis 366 Tagen oder ein Kalendermonat.            |
-| Risikoschwelle         | Der Anteil des verbleibenden Budgets, bei dem das SLO **Gefährdet** wird.                                                              |
-| Ausfall-Status         | Welche Monitorstatus als Ausfallzeit zählen.                                                                                           |
-| Multi-Monitor-Modus    | Wie sich Ausfallzeit mehrerer Monitore zusammensetzt.                                                                                  |
+| Teil | Was er festlegt |
+| --- | --- |
+| Monitore | Woher der SLI kommt. Ordnen Sie sie von Hand oder mit Monitor-Regeln zu: siehe [Monitore und Monitor-Regeln](/docs/slo/monitor-rules). |
+| Ziel | Der Anteil guter Zeit, den das SLO verspricht, größer als 0 und höchstens 99,999. |
+| Compliance-Zeitfenster | Der Zeitraum, über den SLI und Budget gemessen werden: ein rollierendes Fenster von 1 bis 366 Tagen oder ein Kalendermonat. |
+| Risikoschwelle | Der Anteil des verbleibenden Budgets, bei dem das SLO **Gefährdet** wird. |
+| Ausfall-Status | Welche Monitorstatus als Ausfallzeit zählen. |
+| Multi-Monitor-Modus | Wie sich Ausfallzeit mehrerer Monitore zusammensetzt. |
 
 ### Welche Status als Ausfallzeit zählen
 
@@ -108,18 +106,18 @@ Jedes SLO hat seine eigene Liste von Monitorstatus, die als Ausfallzeit zählen.
 
 ### Compliance-Zeitfenster
 
-| Fenstertyp         | Wie es sich verhält                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Rollierend**     | Schaut eine feste Zahl von Tagen ab jetzt zurück. Alte Ausfallzeit fällt aus dem Fenster, also kommt das Budget nach und nach zurück. |
-| **Calendar Month** | Misst ab dem Ersten des Monats, in der Zeitzone des SLO (standardmäßig UTC). Das ganze Budget kommt zu Beginn jedes Monats zurück.    |
+| Fenstertyp | Wie es sich verhält |
+| --- | --- |
+| **Rollierend** | Schaut eine feste Zahl von Tagen ab jetzt zurück. Alte Ausfallzeit fällt aus dem Fenster, also kommt das Budget nach und nach zurück. |
+| **Calendar Month** | Misst ab dem Ersten des Monats, in der Zeitzone des SLO (standardmäßig UTC). Das ganze Budget kommt zu Beginn jedes Monats zurück. |
 
 ### Mehrere Monitore in einem SLO
 
 Misst ein SLO mehr als einen Monitor, entscheidet sein **Multi-Monitor-Modus**, wie sich deren Ausfallzeit zusammensetzt. Ein neues SLO verwendet **Any Monitor Down**.
 
-| Modus                       | Wie Ausfallzeit zählt                                                                                                                                                       | Geeignet, wenn                                                                                              |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Any Monitor Down**        | Jeder Moment, in dem mindestens ein Monitor ausgefallen ist, zählt als Ausfallzeit für das ganze SLO. Überlappende Ausfälle zählen einmal.                                  | Die Monitore zusammen sind ein Dienst: Fällt einer aus, merken es die Nutzer.                               |
+| Modus | Wie Ausfallzeit zählt | Geeignet, wenn |
+| --- | --- | --- |
+| **Any Monitor Down** | Jeder Moment, in dem mindestens ein Monitor ausgefallen ist, zählt als Ausfallzeit für das ganze SLO. Überlappende Ausfälle zählen einmal. | Die Monitore zusammen sind ein Dienst: Fällt einer aus, merken es die Nutzer. |
 | **Monitor Seconds Average** | Die Ausfallzeit jedes Monitors zählt für sich, gemittelt über die gesamte überwachte Zeit: SLI = 1 − (Ausfallsekunden aller Monitore ÷ überwachte Sekunden aller Monitore). | Die Monitore sind eine Flotte gleichartiger Ressourcen, und teilweise Auswirkungen sollen teilweise zählen. |
 
 Zum Beispiel ist Monitor A von 10:00 bis 11:00 ausgefallen, während Monitor B verfügbar bleibt. **Any Monitor Down** erfasst 60 Minuten Ausfallzeit; **Monitor Seconds Average** erfasst das Äquivalent von 30 Minuten, weil einer von zwei Monitoren eine Stunde lang ausgefallen war. In diesem Modus wird auch das Budget in Monitorsekunden gezählt: siehe [Fehlerbudgets](/docs/slo/error-budget).
@@ -128,13 +126,13 @@ Zum Beispiel ist Monitor A von 10:00 bis 11:00 ausgefallen, während Monitor B v
 
 OneUptime gibt jedem ausgewerteten SLO einen Status:
 
-| Status                  | Bedeutung                                                                                                                                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fehlerfrei**          | Es ist mehr als die Risikoschwelle des Budgets übrig.                                                                                                                                                                                |
-| **Gefährdet**           | Das verbleibende Budget ist auf die Risikoschwelle oder darunter gefallen: standardmäßig 20 %.                                                                                                                                       |
-| **Budget ausgeschöpft** | Das Budget ist vollständig oder mehr als vollständig verbraucht.                                                                                                                                                                     |
-| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr oder haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs.                 |
-| **Pausiert**            | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet, von Hand, durch einen manuellen Vorfall oder durch geplante Wartung. Es läuft von selbst weiter, sobald einer davon wieder überwacht wird. |
+| Status | Bedeutung |
+| --- | --- |
+| **Fehlerfrei** | Es ist mehr als die Risikoschwelle des Budgets übrig. |
+| **Gefährdet** | Das verbleibende Budget ist auf die Risikoschwelle oder darunter gefallen: standardmäßig 20 %. |
+| **Budget ausgeschöpft** | Das Budget ist vollständig oder mehr als vollständig verbraucht. |
+| **Falsch konfiguriert** | Das SLO kann nicht gemessen werden: Es hat keine Monitore, seine Monitore existieren nicht mehr oder haben in seinem Zeitfenster noch keinen Status erfasst, oder sein Ziel liegt außerhalb des zulässigen Bereichs. |
+| **Pausiert** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet, von Hand, durch einen manuellen Vorfall oder durch geplante Wartung. Es läuft von selbst weiter, sobald einer davon wieder überwacht wird. |
 
 Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status bleibt also, wo er war; die SLO-Liste zeigt stattdessen eine Kennzeichnung **Deaktiviert** oder **Archiviert**. Die Eigentümer eines SLO werden benachrichtigt, wenn sich der Status zu **Gefährdet** oder **Budget ausgeschöpft** ändert: siehe [Fehlerbudgets](/docs/slo/error-budget).
 
@@ -151,20 +149,20 @@ Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibe
 
 Öffnen Sie ein SLO, um seine Seiten im Seitenmenü zu sehen:
 
-| Seite                | Was sie zeigt                                                                                                                                                                                         |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Übersicht**        | Den Status, die wichtigsten Kennzahlen, das Fehlerbudget-Burn-down, die neueste Aktivität, offene Warnungen und Vorfälle sowie die Burn-Rate-Regeln.                                                  |
-| **Metriken**         | Die `oneuptime.slo.*`-Metriken des SLO, seinen langfristigen Fehlerbudget-Verlauf und Metriken der Vorfälle und Warnungen, die es betreffen. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics). |
-| **Vorfälle**         | Die Vorfälle, die seine Burn-Rate-Regeln gemeldet haben. Das Badge zählt die offenen.                                                                                                                 |
-| **Warnungen**        | Die Warnungen, die seine Burn-Rate-Regeln ausgelöst haben. Das Badge zählt die offenen.                                                                                                               |
-| **Feed**             | Was mit dem SLO passiert ist, als Zeitleiste. Siehe [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs).                                                                                   |
-| **Monitore**         | Die Monitore, die es misst, und ob eine Person oder eine Regel jeden davon zugeordnet hat.                                                                                                            |
-| **Monitor-Regeln**   | Die Regeln, die passende Monitore zuordnen.                                                                                                                                                           |
-| **Burn-Rate-Regeln** | Die Regeln, die Warnungen auslösen und Vorfälle melden, wenn das Budget zu schnell verbrennt.                                                                                                         |
-| **Eigentümer**       | Die Benutzer und Teams, die von seinen Statusänderungen erfahren.                                                                                                                                     |
-| **Einstellungen**    | Das Ziel, den Compliance-Zeitraum, die Berechnung der Ausfallzeit, den Schalter für die Auswertung und die Archivkarte.                                                                               |
-| **Audit-Protokolle** | Wer das SLO, seine Regeln und seine Eigentümer geändert hat, und wann.                                                                                                                                |
-| **SLO löschen**      | Löscht das SLO endgültig und löst die Burn-Rate-Warnungen und -Vorfälle auf, die es offen hatte.                                                                                                      |
+| Seite | Was sie zeigt |
+| --- | --- |
+| **Übersicht** | Den Status, die wichtigsten Kennzahlen, das Fehlerbudget-Burn-down, die neueste Aktivität, offene Warnungen und Vorfälle sowie die Burn-Rate-Regeln. |
+| **Metriken** | Die `oneuptime.slo.*`-Metriken des SLO, seinen langfristigen Fehlerbudget-Verlauf und Metriken der Vorfälle und Warnungen, die es betreffen. Siehe [SLO-Metriken und -Dashboards](/docs/slo/metrics). |
+| **Vorfälle** | Die Vorfälle, die seine Burn-Rate-Regeln gemeldet haben. Das Badge zählt die offenen. |
+| **Warnungen** | Die Warnungen, die seine Burn-Rate-Regeln ausgelöst haben. Das Badge zählt die offenen. |
+| **Feed** | Was mit dem SLO passiert ist, als Zeitleiste. Siehe [SLO-Feed und Audit-Protokolle](/docs/slo/feed-and-audit-logs). |
+| **Monitore** | Die Monitore, die es misst, und ob eine Person oder eine Regel jeden davon zugeordnet hat. |
+| **Monitor-Regeln** | Die Regeln, die passende Monitore zuordnen. |
+| **Burn-Rate-Regeln** | Die Regeln, die Warnungen auslösen und Vorfälle melden, wenn das Budget zu schnell verbrennt. |
+| **Eigentümer** | Die Benutzer und Teams, die von seinen Statusänderungen erfahren. |
+| **Einstellungen** | Das Ziel, den Compliance-Zeitraum, die Berechnung der Ausfallzeit, den Schalter für die Auswertung und die Archivkarte. |
+| **Audit-Protokolle** | Wer das SLO, seine Regeln und seine Eigentümer geändert hat, und wann. |
+| **SLO löschen** | Löscht das SLO endgültig und löst die Burn-Rate-Warnungen und -Vorfälle auf, die es offen hatte. |
 
 **Monitore** stehen im Bereich **Konfiguration**, **Monitor-Regeln** und **Burn-Rate-Regeln** im Bereich **Regeln**, **Eigentümer**, **Einstellungen**, **Audit-Protokolle** und **SLO löschen** im Bereich **Verwaltung**. Alle drei sind anfangs eingeklappt, ebenso ein Bereich **Entwickler**, um das SLO per Code zu verwalten: Klicken Sie auf den Titel eines Bereichs, um ihn zu öffnen.
 
@@ -190,13 +188,13 @@ Die **Übersicht** beantwortet „Sind wir im Budget?“, von oben nach unten:
 
 Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 
-| Karte                          | Was Sie ändern                                                                                            | Gut zu wissen                                                                                                   |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Ziel**                       | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**.                                    | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“.        |
-| **Compliance-Zeitraum**        | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**.           | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach.    |
-| **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte.                              |
-| **Auswertung**                 | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen.                        | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
-| **Archive SLO**                | **Archivieren** oder **Aus Archiv entfernen**.                                                            | Siehe [Ein SLO archivieren](#ein-slo-archivieren).                                                              |
+| Karte | Was Sie ändern | Gut zu wissen |
+| --- | --- | --- |
+| **Ziel** | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**. | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“. |
+| **Compliance-Zeitraum** | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**. | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach. |
+| **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte. |
+| **Auswertung** | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen. | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
+| **Archive SLO** | **Archivieren** oder **Aus Archiv entfernen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
 
 Nach einer Änderung an Ziel, Zeitraum oder Berechnung der Ausfallzeit wertet OneUptime das SLO beim nächsten Lauf neu aus.
 
@@ -215,11 +213,11 @@ Archivierte SLOs stehen auf der Seite **Archiviert**, unter **Erweitert** im Sei
 
 Archivieren und das Ausschalten der Auswertung sind getrennte Schalter. Ein SLO, das vor dem Archivieren ausgeschaltet war, bleibt nach dem Zurückholen ausgeschaltet: Schalten Sie es mit **Auswertung einschalten** in seinem Banner wieder ein oder mit **Dieses SLO auswerten** unter **Einstellungen** → **Auswertung**.
 
-| Sie möchten                                            | Tun Sie dies           |
-| ------------------------------------------------------ | ---------------------- |
-| Eine Weile nicht messen und es in der Liste behalten   | Auswertung ausschalten |
-| Es stilllegen, aber Verlauf und Einstellungen behalten | Archivieren            |
-| Es endgültig entfernen                                 | Löschen                |
+| Sie möchten | Tun Sie dies |
+| --- | --- |
+| Eine Weile nicht messen und es in der Liste behalten | Auswertung ausschalten |
+| Es stilllegen, aber Verlauf und Einstellungen behalten | Archivieren |
+| Es endgültig entfernen | Löschen |
 
 ## SLOs bei Warnungen, Vorfällen und Monitoren
 
@@ -243,22 +241,21 @@ Solange das so ist, sagt die **Übersicht** es: Die Zusammenfassung zeigt einen 
 
 Ein Banner oben auf den Seiten des SLO sagt, was es am Messen hindert:
 
-| Banner                         | Bedeutung                                                                                 | Was zu tun ist                                                                                                |
-| ------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **No monitors attached**       | Das SLO hat keine Monitore, es gibt also nichts zu messen.                                | Monitore zuordnen oder eine Monitor-Regel erstellen.                                                          |
-| **Waiting for SLO evaluation** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen.   | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten.         |
-| **Measurement is paused**      | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
-| **The target is out of range** | Das Ziel ist nicht größer als 0 und kleiner als 100.                                      | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest.                                          |
-| **This SLO is disabled**       | Die Auswertung ist aus.                                                                   | Klicken Sie auf **Auswertung einschalten**.                                                                   |
-| **This SLO is archived**       | Das SLO ist archiviert.                                                                   | Holen Sie es unter **Einstellungen** aus dem Archiv.                                                          |
-| **Noch nicht ausgewertet**     | Das SLO wurde gerade erstellt.                                                            | Warten Sie auf die erste Auswertung, höchstens ein paar Minuten.                                              |
+| Banner | Bedeutung | Was zu tun ist |
+| --- | --- | --- |
+| **No monitors attached** | Das SLO hat keine Monitore, es gibt also nichts zu messen. | Monitore zuordnen oder eine Monitor-Regel erstellen. |
+| **Waiting for SLO evaluation** | Monitore sind zugeordnet, aber die letzte Auswertung hatte keine Statusdaten von ihnen. | Prüfen Sie, ob die Monitore geprüft werden. Zahlen erscheinen nach der nächsten Auswertung mit Daten. |
+| **Measurement is paused** | Jeder Monitor, den es misst, ist archiviert oder hat die aktive Überwachung abgeschaltet. | Schalten Sie die Überwachung für mindestens einen Monitor wieder ein, oder warten Sie, bis die Wartung endet. |
+| **The target is out of range** | Das Ziel ist nicht größer als 0 und kleiner als 100. | Legen Sie ein Ziel wie 99,9 unter **Einstellungen** → **Ziel** fest. |
+| **This SLO is disabled** | Die Auswertung ist aus. | Klicken Sie auf **Auswertung einschalten**. |
+| **This SLO is archived** | Das SLO ist archiviert. | Holen Sie es unter **Einstellungen** aus dem Archiv. |
+| **Noch nicht ausgewertet** | Das SLO wurde gerade erstellt. | Warten Sie auf die erste Auswertung, höchstens ein paar Minuten. |
 
 ## Nächste Schritte
 
 :::cards
-
 - [Monitore und Monitor-Regeln](/docs/slo/monitor-rules): Monitore von Hand oder mit Regeln zuordnen.
 - [Fehlerbudgets](/docs/slo/error-budget): Die Budgetrechnung, die Reichweite und wie das Budget zurückkommt.
 - [Burn-Rate-Warnungen und -Vorfälle](/docs/slo/burn-rate-alerts): Ihr Bereitschaftsteam alarmieren, wenn das Budget zu schnell verbrennt.
 - [SLO-Metriken und -Dashboards](/docs/slo/metrics): SLOs als Diagramm darstellen und ein SLO-Dashboard bauen.
-  :::
+:::

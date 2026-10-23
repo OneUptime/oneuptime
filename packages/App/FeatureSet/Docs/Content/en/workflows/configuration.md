@@ -3,12 +3,11 @@
 What to know before you point a workflow at real traffic: how to turn it on safely, who can do what, how secrets and URLs stay private, what a workflow's steps may change, and the limits every run works within.
 
 :::cards
-
 - [Going live](#turning-a-workflow-on-or-off): Test with Run Workflow while it's off, then turn it on.
 - [Permissions](#permissions): The workflow roles, and the single permissions behind them.
 - [What steps can do](#what-workflow-steps-can-do): Steps act as a Project Admin of the workflow's project.
 - [Limits](#plan-limits): Runs per plan, run time, and calls between workflows.
-  :::
+:::
 
 ## Turning a workflow on or off
 
@@ -17,12 +16,11 @@ Every workflow has an **Enabled** switch at the top of its **Builder**, and on i
 Use this switch as your "ready to go" gate:
 
 :::steps
-
 1. Build the workflow.
 2. Click **Run Workflow** on the **Builder** with realistic values, while the workflow is still off. The run is a **Test run**: every block runs for real, so point it at a test channel or a test record first.
 3. Open the run and check that every block went where you expected. See [Runs](/docs/workflows/runs-and-logs).
 4. Switch **Enabled** on when it's ready: from then on, its trigger fires on real events.
-   :::
+:::
 
 Turning a workflow off stops its trigger from starting new runs. A run already in progress finishes, but a run its trigger started that is waiting on a **Sleep** block is cancelled when it wakes. Test runs carry on. To turn several on or off at once, select them in the **Workflows** list and choose **Enable** or **Disable** under **Bulk Actions**.
 
@@ -45,12 +43,12 @@ An exported workflow never carries its archived state, so an imported copy is ne
 
 ## Owners and labels
 
-| What            | Where                                  | What it does                                                                                                                               |
-| --------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Owners**      | The workflow's **Owners** page         | The users and teams responsible for the workflow. A role limited to what its team owns reaches the workflows that team owns.               |
-| **Labels**      | The workflow's **Overview** page       | Tags for grouping workflows, by team, integration or environment. Filter the **Workflows** list by label, and limit a role to some labels. |
-| **Label Rules** | **Workflows → Settings → Label Rules** | Label new workflows automatically, by patterns in their name or description.                                                               |
-| **Owner Rules** | **Workflows → Settings → Owner Rules** | Assign owners to new workflows automatically.                                                                                              |
+| What            | Where                                   | What it does                                                                                                                                         |
+| --------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owners**      | The workflow's **Owners** page          | The users and teams responsible for the workflow. A role limited to what its team owns reaches the workflows that team owns.                         |
+| **Labels**      | The workflow's **Overview** page        | Tags for grouping workflows, by team, integration or environment. Filter the **Workflows** list by label, and limit a role to some labels.           |
+| **Label Rules** | **Workflows → Settings → Label Rules**  | Label new workflows automatically, by patterns in their name or description.                                                                         |
+| **Owner Rules** | **Workflows → Settings → Owner Rules**  | Assign owners to new workflows automatically.                                                                                                        |
 
 See [Label & owner rules](/docs/configuration/label-and-owner-rules) for how the rules match.
 
@@ -120,11 +118,11 @@ API and other HTTP blocks make their requests from OneUptime, and the IRC block 
 
 Which addresses a block may reach depends on the block:
 
-| Blocks                                                                    | Loopback, link-local, cloud metadata                                           | Private network addresses                                                                                                            |
-| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Blocks                                                  | Loopback, link-local, cloud metadata                                     | Private network addresses                                                                                                           |
+| ------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **API** and **Mattermost** blocks, and **Run Custom JavaScript** requests | Refused, unless the exact host is named in `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refused, unless a self-hosted administrator allows them with `ALLOW_PRIVATE_NETWORK_WEBHOOKS` or `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** and OAuth 2.0 token URLs                          | Refused                                                                        | Refused on OneUptime Cloud. Allowed on a self-hosted install, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`                 |
-| Slack, Microsoft Teams, Discord and Telegram                              | Refused                                                                        | Refused: each sends only to its own service's addresses                                                                              |
+| **Send Email**, **IRC** and OAuth 2.0 token URLs        | Refused                                                                  | Refused on OneUptime Cloud. Allowed on a self-hosted install, unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` is `true`                 |
+| Slack, Microsoft Teams, Discord and Telegram            | Refused                                                                  | Refused: each sends only to its own service's addresses                                                                             |
 
 See [Private Network Access](/docs/self-hosted/private-network-access) for how a self-hosted administrator opens these up.
 
@@ -151,12 +149,12 @@ What it needs, and what it costs:
 - Calls through a costed global provider use the project's AI credits.
 - Every call counts toward the [project's own daily AI limits](/docs/ai/ai-sre#the-projects-own-daily-limits), when a project owner sets them. Once a limit is reached, the block takes **Error** without contacting the model, until midnight UTC.
 
-| Limit                                                        | Value                                                                  |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| **System Instructions**, **Prompt** and **Context** together | 50,000 characters                                                      |
-| **Temperature**                                              | From `0` to `1`                                                        |
-| **Maximum Output Tokens**                                    | From `1` to `4096`, `1024` by default                                  |
-| One request                                                  | Tried once, for 60 seconds at most                                     |
+| Limit                                                        | Value                                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** and **Context** together | 50,000 characters                                                     |
+| **Temperature**                                              | From `0` to `1`                                                       |
+| **Maximum Output Tokens**                                    | From `1` to `4096`, `1024` by default                                 |
+| One request                                                  | Tried once, for 60 seconds at most                                    |
 | Calls at the same time                                       | 3 per project. Any more take **Error**, and a later run can try again. |
 
 Validation, configuration, access, limit, credit, concurrency, provider and timeout failures all take the **Error** path, with the reason in **Error**. Connect that path before the workflow goes live.
@@ -202,7 +200,7 @@ The steps that read and change OneUptime records — the Find, Create, Update an
   - changing which record a record belongs to after it is created, such as the monitor an owner row is for or the incident a note is on.
 - **As no person.** A record a workflow creates names no creator, and the audit log names the workflow, by its name at the time, as who made the change.
 
-When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
+When a check refuses a step, the step takes its **Error** output without making the refused change, and the run log names the step and the reason in plain words, for example *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Read it under the workflow's [Runs](/docs/workflows/runs-and-logs). A Create Many step creates its records one at a time and stops at the first one refused: the records it created before that one are kept.
 
 Steps that talk to other systems — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code and Generate Text with AI — don't read or change OneUptime records, so none of this changes them.
 
@@ -220,11 +218,11 @@ The window rolls: every run the project records, by hand or from a trigger, coun
 
 ## How long a run can take
 
-| Limit                                                  | Default         | Self-hosted setting             |
-| ------------------------------------------------------ | --------------- | ------------------------------- |
-| A run, from its start or from waking after a **Sleep** | 2 minutes       | `WORKFLOW_TIMEOUT_IN_MS`        |
-| A **Run Custom JavaScript** block                      | 5 seconds       | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| A **Sleep** block                                      | 30 days at most | —                               |
+| Limit                           | Default            | Self-hosted setting             |
+| ------------------------------- | ------------------ | ------------------------------- |
+| A run, from its start or from waking after a **Sleep** | 2 minutes | `WORKFLOW_TIMEOUT_IN_MS`        |
+| A **Run Custom JavaScript** block | 5 seconds        | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| A **Sleep** block               | 30 days at most    | —                               |
 
 The runner checks the deadline before and after every block, and marks an overdue run **Timeout** as soon as control returns. It can't interrupt a block mid-way, so blocks that wait on the network have time limits of their own: a Generate Text with AI request gives up after at most 60 seconds, and an OAuth 2.0 token request after 20. A wait on a **Sleep** block doesn't count toward a run's time: the run is put aside and gets a fresh 2 minutes when it wakes.
 
@@ -245,8 +243,7 @@ A few cases where you should reach for something else:
 ## Next steps
 
 :::cards
-
 - [Workflows Overview](/docs/workflows/index): The big picture, and a first workflow end to end.
 - [Components](/docs/workflows/components): What every block needs, returns and may reach.
 - [Runbooks](/docs/runbooks/index): When people need to make the decisions along the way.
-  :::
+:::

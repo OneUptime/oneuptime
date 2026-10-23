@@ -3,12 +3,11 @@
 Ett service level objective (SLO) är ett tillförlitlighetsmål för det du övervakar, som ”tillgängligt 99,9 % av tiden under rullande 30 dagar”. OneUptime mäter varje SLO mot sitt mål var 5:e minut, så i stället för ”fungerar det just nu?” kan du svara på ”har vi varit tillräckligt tillförlitliga, under ett fönster som betyder något för våra användare, och hur mycket utrymme för fel har vi kvar?”.
 
 :::cards
-
 - [Skapa ett SLO](#skapa-ett-slo): Ett namn och ett mål. Allt annat börjar med ett standardvärde.
 - [Monitorer och monitorregler](/docs/slo/monitor-rules): Välj de monitorer som ett SLO mäter.
 - [Felbudgetar](/docs/slo/error-budget): Hur mycket driftstopp ett mål tillåter och hur budgeten återhämtar sig.
 - [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts): Larma ditt team när budgeten förbrukas för snabbt.
-  :::
+:::
 
 ## Så fungerar det
 
@@ -27,12 +26,12 @@ flowchart TB
 
 ## Nyckelbegrepp
 
-| Begrepp                           | Betydelse                                                                                                                      |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **SLI** (service level indicator) | Mätningen: den procentandel av efterlevnadsfönstret då SLO:ets monitorer var tillgängliga.                                     |
-| **SLO** (service level objective) | Ett mål för SLI:n, till exempel ”minst 99,9 % de senaste 30 dagarna”.                                                          |
-| **Felbudget**                     | Det driftstopp som målet tillåter: `(100% − target) × window`. Vid 99,9 % under 30 dagar är det 43 minuter och 12 sekunder.    |
-| **Förbrukningstakt**              | Hur snabbt budgeten används jämfört med en jämn takt. Med förbrukningstakten 1 tar budgeten slut precis när fönstret tar slut. |
+| Begrepp | Betydelse |
+| --- | --- |
+| **SLI** (service level indicator) | Mätningen: den procentandel av efterlevnadsfönstret då SLO:ets monitorer var tillgängliga. |
+| **SLO** (service level objective) | Ett mål för SLI:n, till exempel ”minst 99,9 % de senaste 30 dagarna”. |
+| **Felbudget** | Det driftstopp som målet tillåter: `(100% − target) × window`. Vid 99,9 % under 30 dagar är det 43 minuter och 12 sekunder. |
+| **Förbrukningstakt** | Hur snabbt budgeten används jämfört med en jämn takt. Med förbrukningstakten 1 tar budgeten slut precis när fönstret tar slut. |
 
 En felbudget gör tillförlitlighet till något du kan spendera. Finns det mycket kvar kan du släppa snabbare och ta risker; finns det lite kvar bör du sakta ner och investera i stabilitet. SLO:et ger det samtalet en siffra som alla ser.
 
@@ -41,7 +40,6 @@ En felbudget gör tillförlitlighet till något du kan spendera. Finns det mycke
 Du behöver en roll som får skapa SLO:er: Project Owner, Project Admin eller en anpassad roll med behörigheten Create Service Level Objective.
 
 :::steps
-
 ### Öppna SLO:er
 
 Öppna **SLOs** från menyn **Produkter** i det övre fältet. Det ligger i den första gruppen, bredvid monitorer och incidenter. Klicka på **Skapa Service Level Objective**.
@@ -69,35 +67,35 @@ OneUptime utvärderar aktiverade SLO:er var 5:e minut. SLI:n, felbudgeten och f�
 
 Fälten under **Fler fält**:
 
-| Fält                        | Det du anger                                                                                                                                                  | Standard    |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **Beskrivning**             | Vad SLO:et är till för.                                                                                                                                       | Tom         |
-| **Tröskel för riskzon (%)** | Den andel av den återstående felbudgeten där SLO:et går över till **I riskzonen**. Ett heltal från 0 till 100.                                                | 20          |
-| **Window Type**             | **Rolling**: de senaste N dagarna, som återhämtar sig när gammalt driftstopp faller ur fönstret. **Calendar Month**: varje månad för sig, nollställd den 1:a. | **Rolling** |
-| **Window (Days)**           | Bara rullande fönster: hur många dagar bakåt som räknas, från 1 till 366. Vanligt är 28 eller 30.                                                             | 30          |
-| **Tidszon**                 | Bara kalendermånader: tidszonen där varje månad börjar och slutar.                                                                                            | UTC         |
-| **Etiketter**               | Etiketter för att organisera och filtrera SLO:er.                                                                                                             | Inga        |
+| Fält | Det du anger | Standard |
+| --- | --- | --- |
+| **Beskrivning** | Vad SLO:et är till för. | Tom |
+| **Tröskel för riskzon (%)** | Den andel av den återstående felbudgeten där SLO:et går över till **I riskzonen**. Ett heltal från 0 till 100. | 20 |
+| **Window Type** | **Rolling**: de senaste N dagarna, som återhämtar sig när gammalt driftstopp faller ur fönstret. **Calendar Month**: varje månad för sig, nollställd den 1:a. | **Rolling** |
+| **Window (Days)** | Bara rullande fönster: hur många dagar bakåt som räknas, från 1 till 366. Vanligt är 28 eller 30. | 30 |
+| **Tidszon** | Bara kalendermånader: tidszonen där varje månad börjar och slutar. | UTC |
+| **Etiketter** | Etiketter för att organisera och filtrera SLO:er. | Inga |
 
 Allt som avgör hur SLO:et mäter börjar med ett standardvärde som du ändrar senare:
 
-| Inställning                 | Ett nytt SLO börjar med                                                    | Ändras under                                 |
-| --------------------------- | -------------------------------------------------------------------------- | -------------------------------------------- |
-| Monitorer                   | Inga                                                                       | **Monitorer** eller **Monitor Rules**        |
-| Driftstoppsstatusar         | Alla projektets icke-operativa statusar                                    | **Inställningar** → **Downtime Calculation** |
-| Läge för flera monitorer    | **Any Monitor Down**                                                       | **Inställningar** → **Downtime Calculation** |
-| Utvärdering                 | På                                                                         | **Inställningar** → **Utvärdering**          |
-| Regler för förbrukningstakt | En regel **Fast burn** och en regel **Slow burn**, anpassade till fönstret | **Burn Rate Rules**                          |
+| Inställning | Ett nytt SLO börjar med | Ändras under |
+| --- | --- | --- |
+| Monitorer | Inga | **Monitorer** eller **Monitor Rules** |
+| Driftstoppsstatusar | Alla projektets icke-operativa statusar | **Inställningar** → **Downtime Calculation** |
+| Läge för flera monitorer | **Any Monitor Down** | **Inställningar** → **Downtime Calculation** |
+| Utvärdering | På | **Inställningar** → **Utvärdering** |
+| Regler för förbrukningstakt | En regel **Fast burn** och en regel **Slow burn**, anpassade till fönstret | **Burn Rate Rules** |
 
 ## Vad ett SLO består av
 
-| Del                      | Vad den avgör                                                                                                                   |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Monitorer                | Var SLI:n kommer ifrån. Koppla dem för hand eller med monitorregler: se [Monitorer och monitorregler](/docs/slo/monitor-rules). |
-| Mål                      | Den andel bra tid som SLO:et lovar, större än 0 och högst 99,999.                                                               |
-| Efterlevnadsfönster      | Perioden som SLI:n och budgeten mäts över: ett rullande fönster på 1 till 366 dagar, eller en kalendermånad.                    |
-| Tröskel för riskzon      | Den andel av den återstående budgeten där SLO:et går över till **I riskzonen**.                                                 |
-| Driftstoppsstatusar      | Vilka monitorstatusar som räknas som driftstopp.                                                                                |
-| Läge för flera monitorer | Hur driftstopp från flera monitorer kombineras.                                                                                 |
+| Del | Vad den avgör |
+| --- | --- |
+| Monitorer | Var SLI:n kommer ifrån. Koppla dem för hand eller med monitorregler: se [Monitorer och monitorregler](/docs/slo/monitor-rules). |
+| Mål | Den andel bra tid som SLO:et lovar, större än 0 och högst 99,999. |
+| Efterlevnadsfönster | Perioden som SLI:n och budgeten mäts över: ett rullande fönster på 1 till 366 dagar, eller en kalendermånad. |
+| Tröskel för riskzon | Den andel av den återstående budgeten där SLO:et går över till **I riskzonen**. |
+| Driftstoppsstatusar | Vilka monitorstatusar som räknas som driftstopp. |
+| Läge för flera monitorer | Hur driftstopp från flera monitorer kombineras. |
 
 ### Vilka statusar som räknas som driftstopp
 
@@ -108,18 +106,18 @@ Varje SLO har en egen lista över monitorstatusar som räknas som driftstopp. Et
 
 ### Efterlevnadsfönster
 
-| Fönstertyp         | Hur den beter sig                                                                                                             |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Rolling**        | Tittar ett fast antal dagar bakåt från nu. Gammalt driftstopp faller ur fönstret, så budgeten kommer tillbaka gradvis.        |
+| Fönstertyp | Hur den beter sig |
+| --- | --- |
+| **Rolling** | Tittar ett fast antal dagar bakåt från nu. Gammalt driftstopp faller ur fönstret, så budgeten kommer tillbaka gradvis. |
 | **Calendar Month** | Mäter från den första i månaden, i SLO:ets tidszon (UTC som standard). Hela budgeten kommer tillbaka i början av varje månad. |
 
 ### Flera monitorer i ett SLO
 
 När ett SLO mäter mer än en monitor avgör dess **Multi Monitor Mode** hur deras driftstopp kombineras. Ett nytt SLO använder **Any Monitor Down**.
 
-| Läge                        | Hur driftstopp räknas                                                                                                                                                 | Använd det när                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Any Monitor Down**        | Varje ögonblick då minst en monitor är nere räknas som driftstopp för hela SLO:et. Överlappande avbrott räknas en gång.                                               | Monitorerna tillsammans är en enda tjänst: går någon av dem ner märker användarna det.  |
+| Läge | Hur driftstopp räknas | Använd det när |
+| --- | --- | --- |
+| **Any Monitor Down** | Varje ögonblick då minst en monitor är nere räknas som driftstopp för hela SLO:et. Överlappande avbrott räknas en gång. | Monitorerna tillsammans är en enda tjänst: går någon av dem ner märker användarna det. |
 | **Monitor Seconds Average** | Varje monitors driftstopp räknas för sig, i genomsnitt över all övervakad tid: SLI = 1 − (sekunder nere för alla monitorer ÷ övervakade sekunder för alla monitorer). | Monitorerna är en flotta av likadana resurser och en delvis påverkan ska räknas delvis. |
 
 Säg att monitor A är nere från 10:00 till 11:00 medan monitor B är tillgänglig. **Any Monitor Down** registrerar 60 minuters driftstopp; **Monitor Seconds Average** registrerar motsvarande 30 minuter, eftersom en av två monitorer var nere i en timme. I det läget räknas även budgeten i monitorsekunder: se [Felbudgetar](/docs/slo/error-budget).
@@ -128,13 +126,13 @@ Säg att monitor A är nere från 10:00 till 11:00 medan monitor B är tillgäng
 
 OneUptime ger varje utvärderat SLO en status:
 
-| Status               | Vad den betyder                                                                                                                                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Felfri**           | Mer budget finns kvar än tröskeln för riskzon.                                                                                                                                                                    |
-| **I riskzonen**      | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard.                                                                                                                    |
-| **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden.                                                                                                                                                                    |
-| **Misconfigured**    | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet.                               |
-| **Pausad**           | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av planerat underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
+| Status | Vad den betyder |
+| --- | --- |
+| **Felfri** | Mer budget finns kvar än tröskeln för riskzon. |
+| **I riskzonen** | Den återstående budgeten har sjunkit till tröskeln för riskzon eller lägre: 20 % som standard. |
+| **Budget förbrukad** | Budgeten är helt förbrukad, eller överskriden. |
+| **Misconfigured** | SLO:et kan inte mätas: det har inga monitorer, dess monitorer finns inte längre eller har ännu inte registrerat någon status i fönstret, eller dess mål ligger utanför intervallet. |
+| **Pausad** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd, för hand, av en manuell incident eller av planerat underhåll. Det fortsätter av sig självt så snart någon av dem övervakas igen. |
 
 Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar som den var; SLO-listan visar i stället en etikett **Inaktiverad** eller **Arkiverad**. Ett SLO:s ägare får en avisering när statusen ändras till **I riskzonen** eller **Budget förbrukad**: se [Felbudgetar](/docs/slo/error-budget).
 
@@ -151,20 +149,20 @@ Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återst�
 
 Öppna ett SLO för att se dess sidor i sidomenyn:
 
-| Sida                  | Vad den visar                                                                                                                                                                                   |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Översikt**          | Statusen, nyckeltalen, felbudgetens förbrukning, senaste aktiviteten, öppna larm och incidenter och reglerna för förbrukningstakt.                                                              |
-| **Mätvärden**         | SLO:ets `oneuptime.slo.*`-metriker, dess långsiktiga felbudgethistorik och metrikerna för de incidenter och larm som påverkar det. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics). |
-| **Incidenter**        | De incidenter som dess regler för förbrukningstakt har deklarerat. Märket räknar de öppna.                                                                                                      |
-| **Varningar**         | De larm som dess regler för förbrukningstakt har utlöst. Märket räknar de öppna.                                                                                                                |
-| **Feed**              | Vad som har hänt med SLO:et, som en tidslinje. Se [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs).                                                                             |
-| **Monitorer**         | De monitorer som det mäter, och om var och en kopplades av en person eller en regel.                                                                                                            |
-| **Monitor Rules**     | Reglerna som kopplar monitorer som matchar.                                                                                                                                                     |
-| **Burn Rate Rules**   | Reglerna som utlöser larm och deklarerar incidenter när budgeten förbrukas för snabbt.                                                                                                          |
-| **Ägare**             | De användare och team som får höra om dess statusändringar.                                                                                                                                     |
-| **Inställningar**     | Målet, efterlevnadsperioden, beräkningen av driftstopp, utvärderingsreglaget och arkivkortet.                                                                                                   |
-| **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när.                                                                                                                                    |
-| **Delete SLO**        | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna.                                                                                              |
+| Sida | Vad den visar |
+| --- | --- |
+| **Översikt** | Statusen, nyckeltalen, felbudgetens förbrukning, senaste aktiviteten, öppna larm och incidenter och reglerna för förbrukningstakt. |
+| **Mätvärden** | SLO:ets `oneuptime.slo.*`-metriker, dess långsiktiga felbudgethistorik och metrikerna för de incidenter och larm som påverkar det. Se [SLO-metriker och -instrumentpaneler](/docs/slo/metrics). |
+| **Incidenter** | De incidenter som dess regler för förbrukningstakt har deklarerat. Märket räknar de öppna. |
+| **Varningar** | De larm som dess regler för förbrukningstakt har utlöst. Märket räknar de öppna. |
+| **Feed** | Vad som har hänt med SLO:et, som en tidslinje. Se [SLO-flöde och granskningsloggar](/docs/slo/feed-and-audit-logs). |
+| **Monitorer** | De monitorer som det mäter, och om var och en kopplades av en person eller en regel. |
+| **Monitor Rules** | Reglerna som kopplar monitorer som matchar. |
+| **Burn Rate Rules** | Reglerna som utlöser larm och deklarerar incidenter när budgeten förbrukas för snabbt. |
+| **Ägare** | De användare och team som får höra om dess statusändringar. |
+| **Inställningar** | Målet, efterlevnadsperioden, beräkningen av driftstopp, utvärderingsreglaget och arkivkortet. |
+| **Granskningsloggar** | Vem som ändrade SLO:et, dess regler och dess ägare, och när. |
+| **Delete SLO** | Raderar SLO:et permanent och löser de larm och incidenter för förbrukningstakt som det hade öppna. |
 
 **Monitorer** ligger i ett avsnitt **Konfiguration**, **Monitor Rules** och **Burn Rate Rules** i ett avsnitt **Regler**, och **Ägare**, **Inställningar**, **Granskningsloggar** och **Delete SLO** i ett avsnitt **Management**. Alla tre börjar hopfällda, precis som ett avsnitt **Utvecklare** för att hantera SLO:et från kod: klicka på ett avsnitts rubrik för att öppna det.
 
@@ -190,13 +188,13 @@ När något hindrar ett SLO från att mäta talar en banner högst upp på var o
 
 Sidan **Inställningar** samlar hur ett SLO mäter, med ett kort för varje sak:
 
-| Kort                     | Det du ändrar                                                                                         | Bra att veta                                                                                                           |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Objective**            | **Target (%)** och **Tröskel för riskzon (%)**, med **Edit Objective**.                               | Visar det driftstopp som målet tillåter, till exempel ”43m 12s driftstopp per fönster på 30 dagar”.                    |
-| **Compliance Period**    | **Window Type**, **Window (Days)** och **Tidszon**, med **Edit Period**.                              | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt.                      |
-| **Downtime Calculation** | **Multi Monitor Mode** och **Statusar för driftstoppsövervakare**, med **Edit Downtime Calculation**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare.                                      |
-| **Utvärdering**          | Reglaget **Utvärdera det här SLO:et**, som sparar så snart du slår om det.                            | Att stänga av det kräver bekräftelse, eftersom det också löser SLO:ets öppna larm och incidenter för förbrukningstakt. |
-| **Archive SLO**          | **Arkivera** eller **Avarkivera**.                                                                    | Se [Arkivera ett SLO](#arkivera-ett-slo).                                                                              |
+| Kort | Det du ändrar | Bra att veta |
+| --- | --- | --- |
+| **Objective** | **Target (%)** och **Tröskel för riskzon (%)**, med **Edit Objective**. | Visar det driftstopp som målet tillåter, till exempel ”43m 12s driftstopp per fönster på 30 dagar”. |
+| **Compliance Period** | **Window Type**, **Window (Days)** och **Tidszon**, med **Edit Period**. | Regler för förbrukningstakt behåller sina trösklar när fönstret ändras, så gå igenom dem efteråt. |
+| **Downtime Calculation** | **Multi Monitor Mode** och **Statusar för driftstoppsövervakare**, med **Edit Downtime Calculation**. | Utan statusar räknas alla icke-operativa statusar, även de som läggs till senare. |
+| **Utvärdering** | Reglaget **Utvärdera det här SLO:et**, som sparar så snart du slår om det. | Att stänga av det kräver bekräftelse, eftersom det också löser SLO:ets öppna larm och incidenter för förbrukningstakt. |
+| **Archive SLO** | **Arkivera** eller **Avarkivera**. | Se [Arkivera ett SLO](#arkivera-ett-slo). |
 
 Efter en ändring av målet, perioden eller beräkningen av driftstopp utvärderar OneUptime SLO:et igen vid nästa körning.
 
@@ -215,11 +213,11 @@ Arkiverade SLO:er finns på sidan **Arkiverad**, under **Avancerad** i SLO-lista
 
 Arkivering och utvärdering är två separata reglage. Ett SLO som var inaktiverat innan det arkiverades förblir inaktiverat när du avarkiverar det: slå på det igen med **Slå på utvärdering** i dess banner, eller med **Utvärdera det här SLO:et** under **Inställningar** → **Utvärdering**.
 
-| Du vill                                                   | Gör så här             |
-| --------------------------------------------------------- | ---------------------- |
-| Sluta mäta ett tag och behålla det i listan               | Stäng av utvärderingen |
-| Avveckla det, men behålla dess historik och inställningar | Arkivera det           |
-| Ta bort det för gott                                      | Radera det             |
+| Du vill | Gör så här |
+| --- | --- |
+| Sluta mäta ett tag och behålla det i listan | Stäng av utvärderingen |
+| Avveckla det, men behålla dess historik och inställningar | Arkivera det |
+| Ta bort det för gott | Radera det |
 
 ## SLO:er i larm, incidenter och monitorer
 
@@ -243,22 +241,21 @@ Så länge det är så säger **Översikt** det: sammanfattningen visar en indik
 
 En banner högst upp på SLO:ets sidor talar om vad som hindrar det från att mäta:
 
-| Banner                         | Vad den betyder                                                                     | Vad du gör                                                                                  |
-| ------------------------------ | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **No monitors attached**       | SLO:et har inga monitorer, så det finns inget att mäta.                             | Koppla monitorer eller skapa en monitorregel.                                               |
+| Banner | Vad den betyder | Vad du gör |
+| --- | --- | --- |
+| **No monitors attached** | SLO:et har inga monitorer, så det finns inget att mäta. | Koppla monitorer eller skapa en monitorregel. |
 | **Waiting for SLO evaluation** | Monitorer är kopplade, men den senaste utvärderingen hade inga statusdata från dem. | Kontrollera att monitorerna kontrolleras. Siffrorna visas efter nästa utvärdering med data. |
-| **Measurement is paused**      | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd.    | Slå på övervakningen igen för minst en monitor, eller vänta tills underhållet är klart.     |
-| **The target is out of range** | Målet är inte större än 0 och mindre än 100.                                        | Ange ett mål som 99,9 under **Inställningar** → **Objective**.                              |
-| **This SLO is disabled**       | Utvärderingen är avstängd.                                                          | Klicka på **Slå på utvärdering**.                                                           |
-| **This SLO is archived**       | SLO:et är arkiverat.                                                                | Avarkivera det under **Inställningar**.                                                     |
-| **Not evaluated yet**          | SLO:et har precis skapats.                                                          | Vänta på den första utvärderingen, högst några minuter.                                     |
+| **Measurement is paused** | Alla monitorer som det mäter är arkiverade eller har aktiv övervakning avstängd. | Slå på övervakningen igen för minst en monitor, eller vänta tills underhållet är klart. |
+| **The target is out of range** | Målet är inte större än 0 och mindre än 100. | Ange ett mål som 99,9 under **Inställningar** → **Objective**. |
+| **This SLO is disabled** | Utvärderingen är avstängd. | Klicka på **Slå på utvärdering**. |
+| **This SLO is archived** | SLO:et är arkiverat. | Avarkivera det under **Inställningar**. |
+| **Not evaluated yet** | SLO:et har precis skapats. | Vänta på den första utvärderingen, högst några minuter. |
 
 ## Nästa steg
 
 :::cards
-
 - [Monitorer och monitorregler](/docs/slo/monitor-rules): Koppla monitorer för hand eller med regler.
 - [Felbudgetar](/docs/slo/error-budget): Budgetberäkningen, räckvidden och hur budgeten kommer tillbaka.
 - [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts): Larma ditt jourteam när budgeten förbrukas för snabbt.
 - [SLO-metriker och -instrumentpaneler](/docs/slo/metrics): Visa SLO:er i diagram och bygg en SLO-instrumentpanel.
-  :::
+:::

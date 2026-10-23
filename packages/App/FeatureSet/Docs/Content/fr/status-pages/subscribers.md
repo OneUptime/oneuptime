@@ -7,12 +7,11 @@ Les annonces sont l'autre moitié du même travail. Un moniteur peut dire à vos
 Cette page couvre les deux : les cinq canaux d'abonnement et la manière dont les visiteurs s'inscrivent, ce que les abonnés peuvent choisir de recevoir, les parcours de double confirmation et de désabonnement, le rapport par e-mail que les abonnés peuvent recevoir chaque mois, et la façon de rédiger, planifier et modéliser les annonces.
 
 :::cards
-
 - [Canaux d'abonnement](#canaux-dabonnement): Les canaux sur lesquels les visiteurs s'inscrivent, et la page où ils le font.
 - [Ce qu'on dit aux abonnés](#ce-dont-les-abonnés-sont-notifiés): Annonces, maintenance, incidents et épisodes, et leurs modifications.
 - [Vérifier ce qui a été envoyé](#vérifier-ce-qui-a-été-envoyé): Le statut de chaque notification, Réessayer et Renvoyer.
 - [Annonces](#annonces): Publier un avis sur une ou plusieurs pages de statut.
-  :::
+:::
 
 ## Comment ça marche
 
@@ -46,7 +45,7 @@ Sur OneUptime Cloud, un interrupteur que votre formule n'inclut pas porte le nom
 
 Chaque canal a aussi sa propre liste dans le menu latéral de la page de statut, sous **Abonnés** : **Abonnés e-mail**, **Abonnés SMS**, **Abonnés Slack**, **Abonnés Microsoft Teams** et **Abonnés au webhook**. C'est là que vous voyez qui est inscrit, ajoutez quelqu'un à la main avec **Ajouter un abonné** ou vous laissez une **Note interne** (`internalNote`) sur un abonné donné, que seule votre équipe voit. Tant qu'un canal est désactivé, le haut de sa liste l'indique, avec l'interrupteur du canal juste à côté, pour que vous puissiez l'activer sans quitter la liste.
 
-**Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé _et_ qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
+**Un seul interrupteur ne suffit pas.** L'élément **S'abonner** de la barre de navigation de la page de statut n'apparaît que lorsque **Afficher la page des abonnés** est activé *et* qu'au moins un canal est activé. Si vous activez **E-mail** mais laissez **Afficher la page des abonnés** désactivé, les visiteurs n'ont aucun moyen d'atteindre le formulaire.
 
 **Un calendrier à la place.** Les visiteurs qui veulent seulement votre maintenance planifiée dans leur propre calendrier n'ont pas besoin de s'abonner : **S'abonner au calendrier** sur la page **Événements planifiés** l'ajoute à Google Agenda, Apple Calendrier ou Outlook, et le calendrier se tient à jour tout seul. Il n'envoie rien et ne dépend pas des canaux ci-dessus, et une page privée ne le propose pas. Voir [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#le-calendrier-dune-page-de-statut).
 
@@ -69,27 +68,27 @@ Aucun des deux réglages ne supprime d'abonné, et les désactiver envoie de nou
 
 La page **S'abonner** a un sous-menu avec un onglet par canal activé ; avec un seul canal activé, il n'y a pas de sous-menu, seulement le formulaire de ce canal. Chaque onglet demande le strict nécessaire :
 
-| Onglet       | Adresse                      | Titre                             | Ce qu'il demande                                                                                                                                        |
-| ------------ | ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **E-mail**   | `/subscribe/email`           | **S'abonner par e-mail**          | **Votre e-mail**, avec l'exemple `subscriber@company.com`.                                                                                              |
-| **SMS**      | `/subscribe/sms`             | **S'abonner par SMS**             | **Votre numéro de téléphone**, avec l'exemple `+11234567890`.                                                                                           |
-| **Slack**    | `/subscribe/slack`           | **S'abonner via Slack**           | **Nom de l'espace de travail Slack** (sert à la validation) et **URL du webhook entrant Slack**, avec l'exemple `https://hooks.slack.com/services/...`. |
-| **MS Teams** | `/subscribe/microsoft-teams` | **S'abonner via Microsoft Teams** | **Nom de l'espace de travail Microsoft Teams** et **URL du webhook entrant Microsoft Teams**, avec l'exemple `https://outlook.office.com/webhook/...`.  |
-| **Webhooks** | `/subscribe/webhooks`        | **S'abonner par webhook**         | **URL du webhook**, avec l'exemple `https://example.com/webhook`. Une requête JSON `POST` y est envoyée à chaque événement de la page de statut.        |
+| Onglet | Adresse | Titre | Ce qu'il demande |
+| --- | --- | --- | --- |
+| **E-mail** | `/subscribe/email` | **S'abonner par e-mail** | **Votre e-mail**, avec l'exemple `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **S'abonner par SMS** | **Votre numéro de téléphone**, avec l'exemple `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **S'abonner via Slack** | **Nom de l'espace de travail Slack** (sert à la validation) et **URL du webhook entrant Slack**, avec l'exemple `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **S'abonner via Microsoft Teams** | **Nom de l'espace de travail Microsoft Teams** et **URL du webhook entrant Microsoft Teams**, avec l'exemple `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **S'abonner par webhook** | **URL du webhook**, avec l'exemple `https://example.com/webhook`. Une requête JSON `POST` y est envoyée à chaque événement de la page de statut. |
 
-Le bouton d'envoi s'intitule **S'abonner**. Une inscription par Slack, Microsoft Teams ou webhook affiche _Vous avez été abonné avec succès._ Une inscription par SMS affiche _Nous avons envoyé un SMS à ce numéro de téléphone. Ouvrez le lien qu'il contient pour confirmer votre abonnement._ Une inscription par e-mail indique qu'un lien de confirmation a été envoyé et qu'il faut vérifier le dossier des indésirables s'il n'arrive pas (voir [Double confirmation par e-mail](#double-confirmation-par-e-mail)). Les onglets **E-mail**, **SMS**, **Slack** et **MS Teams** portent aussi la séparation **Nouvel abonnement** / **Gérer l'abonnement existant**, pour qu'une personne déjà abonnée retrouve ses préférences sans chercher un vieux message.
+Le bouton d'envoi s'intitule **S'abonner**. Une inscription par Slack, Microsoft Teams ou webhook affiche *Vous avez été abonné avec succès.* Une inscription par SMS affiche *Nous avons envoyé un SMS à ce numéro de téléphone. Ouvrez le lien qu'il contient pour confirmer votre abonnement.* Une inscription par e-mail indique qu'un lien de confirmation a été envoyé et qu'il faut vérifier le dossier des indésirables s'il n'arrive pas (voir [Double confirmation par e-mail](#double-confirmation-par-e-mail)). Les onglets **E-mail**, **SMS**, **Slack** et **MS Teams** portent aussi la séparation **Nouvel abonnement** / **Gérer l'abonnement existant**, pour qu'une personne déjà abonnée retrouve ses préférences sans chercher un vieux message.
 
 ## Limites des inscriptions et des liens
 
 Chaque inscription envoie aussitôt un message à son contact, un e-mail de confirmation, un SMS, un message Slack ou Microsoft Teams ou un appel de webhook, et **Envoyer le lien de gestion** aussi. Pour que personne ne puisse se servir d'une page de statut pour envoyer des messages à des gens qui ne les ont pas demandés, ni pour faire grimper les coûts SMS de votre projet, les deux sont limités pour le réseau de chaque visiteur et pour chaque contact. Les limites sont bien au-dessus de ce que font les gens : tout un bureau peut s'inscrire ensemble pendant un incident.
 
-| Ce qui est limité                                                                                                                                                                              | Limite           |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Inscriptions depuis un réseau                                                                                                                                                                  | 60 en 15 minutes |
-| Inscriptions et liens de gestion par SMS depuis un réseau, ensemble                                                                                                                            | 10 en 15 minutes |
-| Liens de gestion demandés depuis un réseau                                                                                                                                                     | 30 en 15 minutes |
-| Inscriptions d'une adresse e-mail, d'un numéro de téléphone, d'un canal Slack ou Microsoft Teams, ou d'un webhook, sur toutes les pages de statut ensemble                                     | 10 en une heure  |
-| Liens de gestion pour une adresse e-mail ou un numéro de téléphone sur toutes les pages de statut ensemble, ou pour un nom d'espace de travail Slack ou Microsoft Teams sur une page de statut | 5 en une heure   |
+| Ce qui est limité | Limite |
+| --- | --- |
+| Inscriptions depuis un réseau | 60 en 15 minutes |
+| Inscriptions et liens de gestion par SMS depuis un réseau, ensemble | 10 en 15 minutes |
+| Liens de gestion demandés depuis un réseau | 30 en 15 minutes |
+| Inscriptions d'une adresse e-mail, d'un numéro de téléphone, d'un canal Slack ou Microsoft Teams, ou d'un webhook, sur toutes les pages de statut ensemble | 10 en une heure |
+| Liens de gestion pour une adresse e-mail ou un numéro de téléphone sur toutes les pages de statut ensemble, ou pour un nom d'espace de travail Slack ou Microsoft Teams sur une page de statut | 5 en une heure |
 
 Au-delà d'une limite, l'API répond `429` avec un en-tête `Retry-After`, en secondes, et le visiteur apprend qu'il y a eu trop d'inscriptions ou de liens depuis son réseau, ou pour ce contact, et qu'il doit réessayer plus tard. Rien n'est créé ni envoyé, et votre projet n'en voit rien : aucun abonné n'est ajouté, et aucun message n'est envoyé ni payé. Les limites des liens de gestion comptent chaque demande, qu'un abonnement corresponde ou non, si bien qu'elles ne permettent pas de savoir qui est abonné. Une adresse e-mail est comptée quelle que soit sa graphie, en majuscules, avec un `+tag` ou, pour Gmail, avec des points, et un numéro de téléphone quelle que soit sa saisie. Une inscription nomme un seul contact, une adresse e-mail, un numéro de téléphone, un canal Slack ou Microsoft Teams ou un webhook : une liste d'adresses, ou un second contact, est refusée.
 
@@ -103,18 +102,18 @@ Un utilisateur privé qui demande un lien de réinitialisation du mot de passe s
 
 Sur une installation auto-hébergée, ces variables d'environnement de l'application OneUptime changent les limites :
 
-| Variable                                                            | Par défaut | Ce qu'elle définit                                                                                |
-| ------------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`      | La fenêtre des limites par réseau, en secondes.                                                   |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`     | La fenêtre des limites par contact, en secondes.                                                  |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`       | Inscriptions depuis une adresse par fenêtre.                                                      |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`       | Inscriptions et liens de gestion par SMS depuis une adresse par fenêtre, ensemble.                |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`       | Liens de gestion demandés depuis une adresse par fenêtre.                                         |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`       | Inscriptions d'un contact par fenêtre.                                                            |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`        | Liens de gestion pour un contact par fenêtre.                                                     |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`       | Réinitialisations de mot de passe d'utilisateurs privés demandées depuis une adresse par fenêtre. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`        | E-mails de réinitialisation de mot de passe d'utilisateurs privés vers une adresse par fenêtre.   |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`       | Invitations vers une adresse par fenêtre, aux pages de statut privées et aux projets ensemble.    |
+| Variable | Par défaut | Ce qu'elle définit |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La fenêtre des limites par réseau, en secondes. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La fenêtre des limites par contact, en secondes. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Inscriptions depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Inscriptions et liens de gestion par SMS depuis une adresse par fenêtre, ensemble. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Liens de gestion demandés depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Inscriptions d'un contact par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Liens de gestion pour un contact par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Réinitialisations de mot de passe d'utilisateurs privés demandées depuis une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | E-mails de réinitialisation de mot de passe d'utilisateurs privés vers une adresse par fenêtre. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Invitations vers une adresse par fenêtre, aux pages de statut privées et aux projets ensemble. |
 
 Ni `config.env` ni les valeurs du chart Helm ne les transmettent : ajoutez-les vous-même à l'environnement du conteneur `app`, avec `app.extraEnv`, ou le `extraEnv` global du chart, dans le chart Helm, ou dans un `docker-compose.override.yml` pour Docker Compose. `TRUSTED_PROXY_HOPS` décide quelle adresse comptent les limites par réseau.
 
@@ -143,13 +142,13 @@ Utile pour : une page qui couvre plusieurs produits. Un client qui n'utilise que
 
 ## Double confirmation par e-mail
 
-Les abonnés par e-mail confirment toujours. Lorsqu'un abonné est créé avec une adresse e-mail et n'a pas été créé déjà confirmé, **Abonnement confirmé** (`isSubscriptionConfirmed`) est forcé à `false` et un **Subscription Confirmation Token** aléatoire de 32 caractères est généré. OneUptime envoie alors un lien de confirmation de la forme `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Le visiteur arrive sur une page **Confirmer l'abonnement** et, une fois la confirmation passée, voit _Abonnement confirmé avec succès_.
+Les abonnés par e-mail confirment toujours. Lorsqu'un abonné est créé avec une adresse e-mail et n'a pas été créé déjà confirmé, **Abonnement confirmé** (`isSubscriptionConfirmed`) est forcé à `false` et un **Subscription Confirmation Token** aléatoire de 32 caractères est généré. OneUptime envoie alors un lien de confirmation de la forme `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Le visiteur arrive sur une page **Confirmer l'abonnement** et, une fois la confirmation passée, voit *Abonnement confirmé avec succès*.
 
 Les abonnés Slack, Microsoft Teams et webhook sautent cette étape, tout comme les abonnés SMS ajoutés par votre équipe — ils sont créés avec `isSubscriptionConfirmed` déjà à `true`. Quand votre équipe ajoute un abonné e-mail sur **Abonnés e-mail**, **Quand vous les ajoutez** décide : **Les abonner maintenant** (par défaut : confirmé, et rien n'est envoyé), **Les abonner maintenant et les prévenir** (confirmé, et l'e-mail qui dit qu'il est abonné est envoyé) ou **Leur demander de confirmer d'abord** (le lien de confirmation est envoyé, comme lors d'une inscription). **Ajouter en masse** pose la même question.
 
 **Les inscriptions par SMS se confirment aussi.** Un visiteur qui s'inscrit par SMS reçoit un seul SMS : le lien de confirmation. Rien d'autre n'est envoyé au numéro tant que le lien n'est pas ouvert, et son ouverture envoie par SMS le message qui dit qu'il est abonné, avec le lien qui annule l'abonnement. D'ici là, l'abonné apparaît comme **En attente de confirmation**, et le journal des SMS montre le lien avec son code remplacé par `[redacted]`. Les abonnés SMS d'avant sont déjà confirmés.
 
-**Un lien de confirmation fonctionne 24 heures.** L'e-mail et le SMS le disent. Ouvert plus tard, il ne confirme rien : la page **Confirmer l'abonnement** affiche _Ce lien de confirmation de votre abonnement a expiré ou n'est pas valide. Un lien fonctionne pendant 24 heures après son envoi. Pour en obtenir un nouveau, abonnez-vous à nouveau._ et propose **S'abonner à nouveau**, et l'API répond `400`. L'abonné reste non confirmé, ne reçoit rien et apparaît comme **Lien expiré** dans sa liste, au lieu de **En attente de confirmation**.
+**Un lien de confirmation fonctionne 24 heures.** L'e-mail et le SMS le disent. Ouvert plus tard, il ne confirme rien : la page **Confirmer l'abonnement** affiche *Ce lien de confirmation de votre abonnement a expiré ou n'est pas valide. Un lien fonctionne pendant 24 heures après son envoi. Pour en obtenir un nouveau, abonnez-vous à nouveau.* et propose **S'abonner à nouveau**, et l'API répond `400`. L'abonné reste non confirmé, ne reçoit rien et apparaît comme **Lien expiré** dans sa liste, au lieu de **En attente de confirmation**.
 
 **S'inscrire de nouveau.** Tant que le lien fonctionne, inscrire de nouveau la même adresse e-mail ou le même numéro de téléphone sur cette page de statut n'envoie plus rien : le visiteur apprend qu'un lien a déjà été envoyé, et l'API répond `429` avec un en-tête `Retry-After`. Un contact reçoit donc au plus un lien de confirmation par jour d'une page de statut, quel que soit le nombre de fois où il est inscrit. Une fois le lien expiré, l'abonnement ne retient plus son contact : une nouvelle inscription, ou votre équipe qui ajoute le contact, le remplace, et une inscription reçoit un nouveau lien. Celui qui inscrit un contact le premier ne peut pas empêcher son propriétaire de s'abonner : le lien va au propriétaire, et un jour plus tard celui-ci peut en obtenir un à lui. Les liens envoyés avant ce changement fonctionnent aussi 24 heures après leur inscription.
 
@@ -165,13 +164,13 @@ Un SMS porte le même lien, qu'il vienne d'une page de statut publique ou privé
 
 Le journal des SMS (l'onglet **SMS** de **Journaux de notification**, sur la page de statut et dans les paramètres du projet) conserve le texte de chaque SMS, et davantage de membres du projet peuvent le lire qu'il n'y en a qui peuvent gérer les abonnés. Le journal affiche donc un lien de désabonnement ou de gestion dont le jeton est remplacé par `[redacted]`, par exemple `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Seul le téléphone de l'abonné reçoit le lien qui fonctionne. L'API ne renvoie jamais non plus le jeton d'un nouvel abonné, pas même dans la réponse à la requête qui l'a créé.
 
-**Ouvrir le lien ne change rien.** La page affiche le nom et le logo de la page de statut et l'abonnement auquel le lien appartient : une adresse e-mail en entier, un numéro de téléphone masqué jusqu'à ses quatre derniers chiffres, un nom d'espace de travail Slack ou Microsoft Teams, ou l'hôte d'un webhook. Elle demande _Voulez-vous ne plus recevoir de notifications de cette page de statut ?_ et seul un clic sur **Se désabonner** annule l'abonnement, si bien que les scanners de courrier et les aperçus de liens qui ouvrent chaque lien d'un message ne peuvent désabonner personne. Rien d'autre de la page n'est affiché, et aucun de ses JavaScript personnalisés ne s'exécute. Confirmer deux fois, ou ouvrir le lien d'un abonnement déjà annulé, indique simplement qu'il est annulé. Sur une page de statut publique, la page de désabonnement renvoie aussi vers la page **Mettre à jour l'abonnement** de l'abonné, pour choisir à la place les notifications qu'il reçoit.
+**Ouvrir le lien ne change rien.** La page affiche le nom et le logo de la page de statut et l'abonnement auquel le lien appartient : une adresse e-mail en entier, un numéro de téléphone masqué jusqu'à ses quatre derniers chiffres, un nom d'espace de travail Slack ou Microsoft Teams, ou l'hôte d'un webhook. Elle demande *Voulez-vous ne plus recevoir de notifications de cette page de statut ?* et seul un clic sur **Se désabonner** annule l'abonnement, si bien que les scanners de courrier et les aperçus de liens qui ouvrent chaque lien d'un message ne peuvent désabonner personne. Rien d'autre de la page n'est affiché, et aucun de ses JavaScript personnalisés ne s'exécute. Confirmer deux fois, ou ouvrir le lien d'un abonnement déjà annulé, indique simplement qu'il est annulé. Sur une page de statut publique, la page de désabonnement renvoie aussi vers la page **Mettre à jour l'abonnement** de l'abonné, pour choisir à la place les notifications qu'il reçoit.
 
 La page **Mettre à jour l'abonnement**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, ne s'ouvre elle aussi qu'avec le jeton de l'abonnement : l'identifiant de l'abonné seul n'ouvre rien. Elle s'intitule **Mettre à jour l'abonnement** et indique au visiteur qu'il peut y modifier ses préférences ou se désabonner. Elle contient :
 
 - Les sélecteurs de ressources et de types d'événements que la page autorise.
 - Un interrupteur **Se désabonner**, décrit comme un désabonnement de toutes les ressources. Il écrit **Est désabonné** (`isUnsubscribed`, false par défaut).
-- Un bouton d'envoi **Mettre à jour l'abonnement** ; l'enregistrement affiche _Vos modifications ont été enregistrées._
+- Un bouton d'envoi **Mettre à jour l'abonnement** ; l'enregistrement affiche *Vos modifications ont été enregistrées.*
 
 Sur une page de statut privée, elle nécessite un visiteur connecté, comme le reste de la page. Comme la page de désabonnement, elle n'exécute aucun des JavaScript personnalisés de la page, et elle affiche l'en-tête et le pied de page standard à la place de tout HTML d'en-tête ou de pied de page personnalisé. Une personne qui a perdu le lien utilise **Gérer l'abonnement existant** sur la page **S'abonner** et appuie sur **Envoyer le lien de gestion**. Le lien part vers l'abonnement lui-même — son adresse e-mail, son numéro de téléphone, ou son canal Slack ou Microsoft Teams —, jamais vers une adresse de la requête, et la page répond de la même façon qu'un abonnement corresponde ou non, si bien qu'elle ne permet pas de savoir qui est abonné. Ce message renvoie vers la page **Mettre à jour l'abonnement**, et transmet les deux liens à un modèle personnalisé : `manageSubscriptionUrl` et `unsubscribeUrl`.
 
@@ -332,13 +331,13 @@ comme corps de `PUT /api/status-page-announcement/<announcement-id>` (ou `incide
 
 Chaque notification aux abonnés a son propre statut, à côté de ce qu'elle concerne. Pour un incident, il s'agit de sa notification « créé » sur la **Vue d'ensemble** de l'incident, de chaque ligne de sa **Chronologie d'état**, de chaque note publique et de son **Post-mortem**. Les événements de maintenance planifiée et les annonces affichent les leurs de la même façon, et les épisodes d'incident sur leurs notes publiques. Cliquez sur le statut pour lire son message, qui dit ce qui s'est passé. Les notes publiques affichent le statut sous forme de badge avec leur propre formulation :
 
-| Statut                             | Sur une note publique                  | Ce que cela signifie                                                                                                           |
-| ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Sending Soon**                   | **Notification prochaine des abonnés** | En file d'attente. La tâche qui l'envoie tourne chaque minute.                                                                 |
-| **Notifications en cours d'envoi** | **Notification des abonnés**           | La tâche traite les abonnés.                                                                                                   |
-| **Notifications envoyées**         | **Subscribers notified**               | Elle est partie. Voir plus bas ce que cela signifie.                                                                           |
-| **Échec**                          | **Échec de la notification**           | Tous les abonnés ne l'ont pas reçue, ou l'envoi s'est arrêté. Le message dit ce qui a été envoyé et ce que fait **Réessayer**. |
-| **Notifications ignorées.**        | **Subscribers not notified**           | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi.          |
+| Statut | Sur une note publique | Ce que cela signifie |
+| --- | --- | --- |
+| **Sending Soon** | **Notification prochaine des abonnés** | En file d'attente. La tâche qui l'envoie tourne chaque minute. |
+| **Notifications en cours d'envoi** | **Notification des abonnés** | La tâche traite les abonnés. |
+| **Notifications envoyées** | **Subscribers notified** | Elle est partie. Voir plus bas ce que cela signifie. |
+| **Échec** | **Échec de la notification** | Tous les abonnés ne l'ont pas reçue, ou l'envoi s'est arrêté. Le message dit ce qui a été envoyé et ce que fait **Réessayer**. |
+| **Notifications ignorées.** | **Subscribers not notified** | Rien ne devait être envoyé, par exemple parce que l'incident est masqué des pages de statut. Le message dit pourquoi. |
 
 ### Comment un envoi est compté
 
@@ -392,11 +391,11 @@ Les modèles à l'échelle du projet se trouvent un niveau au-dessus, dans **Pag
 
 Sur OneUptime Cloud, les modèles de notification aux abonnés sont une fonctionnalité de la formule **Scale** ; les installations auto-hébergées n'ont pas de limites de formule. Un modèle n'est utilisé qu'une fois lié à une page de statut dans l'onglet **Modèles de notification** de cette page, et deux canaux exigent aussi que la page envoie par votre propre fournisseur :
 
-| Canal                            | Un modèle lié est utilisé quand la page a                                                                        |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **E-mail**                       | une **Configuration SMTP personnalisée** (voir [plus bas](#pied-de-page-de-le-mail-smtp-personnalisé-et-twilio)) |
-| **SMS**                          | une **Configuration Twilio**                                                                                     |
-| **Slack** et **Microsoft Teams** | rien de plus                                                                                                     |
+| Canal | Un modèle lié est utilisé quand la page a |
+| --- | --- |
+| **E-mail** | une **Configuration SMTP personnalisée** (voir [plus bas](#pied-de-page-de-le-mail-smtp-personnalisé-et-twilio)) |
+| **SMS** | une **Configuration Twilio** |
+| **Slack** et **Microsoft Teams** | rien de plus |
 
 Sans eux, la page envoie son e-mail ou son SMS par défaut. Quand un modèle E-mail ou SMS lié ne peut pas être utilisé pour cette raison, l'onglet **Modèles de notification** le signale avec **Les modèles personnalisés nécessitent une configuration**. Les configurations SMTP et Twilio personnalisées nécessitent la formule **Growth** ou supérieure. Les abonnés webhook reçoivent toujours la charge utile JSON standard.
 
@@ -406,10 +405,10 @@ Rien de tout cela n'est nécessaire pour mettre des champs personnalisés d'inci
 
 Les modèles des cinq types d'événements d'incident — **Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** et **Subscriber Incident Postmortem Published** — peuvent utiliser celles-ci en plus de leurs propres variables :
 
-| Variable                          | Remplie avec                                                                                                                                                          |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `{{incidentLabels}}`              | Les étiquettes de l'incident, séparées par des virgules.                                                                                                              |
-| `{{affectedStatusPages}}`         | Les noms de toutes les pages de statut où l'incident s'affiche, séparés par des virgules.                                                                             |
+| Variable | Remplie avec |
+| --- | --- |
+| `{{incidentLabels}}` | Les étiquettes de l'incident, séparées par des virgules. |
+| `{{affectedStatusPages}}` | Les noms de toutes les pages de statut où l'incident s'affiche, séparés par des virgules. |
 | `{{incident.customFields.<key>}}` | La valeur d'un champ personnalisé d'incident, par la **Variable de modèle** du champ, que le champ soit marqué **Inclure dans les notifications aux abonnés** ou non. |
 
 La clé est la **Variable de modèle** du champ, qui ne change pas quand le champ est renommé ; le formulaire du modèle liste les champs personnalisés d'incident du projet, chacun avec sa variable, sous le corps du modèle (voir [Insérer des variables](#insérer-des-variables)). Les modèles enregistrés avec l'ancien `{{customFields.<key>}}` sont remplis de la même façon. Un champ sans valeur pour l'incident reste vide. Dans le corps d'un e-mail, un champ simple est échappé comme toute autre valeur, tandis qu'un champ texte enrichi, texte long ou date et heure est inséré en HTML : du Markdown mis en forme, ses lignes, ou une ligne par fuseau horaire des abonnés. Les images intégrées d'un champ texte enrichi sont rendues visibles pour les personnes à qui il est envoyé.
@@ -460,7 +459,7 @@ L'étape de vérification affiche la même ligne. **Créer à partir d'un modèl
 
 La page propre de l'annonce la modifie en suivant les mêmes deux étapes. **Notifier les abonnés de cette mise à jour** se trouve sous la description (voir [Informer les abonnés d'une modification](#informer-les-abonnés-dune-modification)), et **Planification** contient le début et la fin. Fixer une fin déjà passée est la façon de retirer une annonce.
 
-Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et **Annonces passées**, chacune marquée **Annoncé le**. Les annonces en cours sont aussi épinglées en haut de la page de vue d'ensemble. Quand il n'y a rien à afficher, la page indique _Aucune annonce_ avec la mention qu'aucune n'a encore été publiée.
+Les visiteurs lisent les annonces sur `/announcements`, réparties entre **Annonces actives** et **Annonces passées**, chacune marquée **Annoncé le**. Les annonces en cours sont aussi épinglées en haut de la page de vue d'ensemble. Quand il n'y a rien à afficher, la page indique *Aucune annonce* avec la mention qu'aucune n'a encore été publiée.
 
 Les pièces jointes sont servies depuis `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, derrière le même contrôle de lecture que la page de statut elle-même — une pièce jointe sur une page privée reste donc privée.
 
@@ -499,9 +498,8 @@ Si un abonnement webhook est refusé à l'inscription, une URL interne ou mal fo
 ## Étapes suivantes
 
 :::cards
-
 - [Vue d'ensemble des pages de statut](/docs/status-pages/index): Ce qu'est une page de statut, et comment elle est construite.
 - [Ressources et groupes de la page de statut](/docs/status-pages/resources-and-groups): Les moniteurs et les groupes entre lesquels les abonnés choisissent.
 - [Une page de statut par public](/docs/status-pages/one-status-page-per-audience): Limiter un incident aux pages dont les abonnés doivent en être informés.
 - [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains): L'apparence de la page vers laquelle renvoient vos messages.
-  :::
+:::

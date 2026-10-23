@@ -3,12 +3,11 @@
 當你的應用程式的遙測資料第一次抵達時，OneUptime 會建立一個 RUM 應用程式。本頁說明之後由你管理的內容：應用程式的名稱、標籤與擁有者、資料保留多久、封存、誰能看到它，以及警示。
 
 :::cards
-
 - [應用程式如何建立](#應用程式如何建立): 依 `service.name` 比對，隨第一批資料建立。
 - [標籤](#標籤): 將應用程式分組，並決定誰能存取它們。
 - [保留](#保留): 遙測資料與錄製保留多久。
 - [權限](#權限): 誰能檢視應用程式，誰能觀看錄製。
-  :::
+:::
 
 ## 應用程式如何建立
 
@@ -36,7 +35,6 @@ flowchart TB
 如果你希望在第一位訪客到來之前，就先備妥應用程式的標籤、擁有者或重播策略，可以自行建立應用程式。
 
 :::steps
-
 #### 開啟應用程式清單
 
 前往 **產品 → 資源 → 真實使用者監測** ，按一下 **建立RUM 應用程式** 。
@@ -64,11 +62,11 @@ flowchart TB
 
 標籤會在清單與篩選器中將應用程式分組。它們也決定僅限部分標籤的成員可以存取什麼：這樣的成員只會看到帶有其中某個標籤的應用程式。應用程式透過三種方式取得標籤：
 
-| 方式         | 位置                                                                                                                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 手動         | 在建立表單的 **更多欄位** 下，或之後在應用程式 **設定** 頁面的 **應用程式詳細資料** 卡片上透過 **編輯詳細資料** 。 要一次為多個應用程式新增標籤，請在清單中選取它們，選擇 **Add Labels** ，它位於 **批次動作** 中。 |
-| 來自遙測     | 名為 `oneuptime.label.<name>` 的資源屬性會新增標籤 `<name>:<value>` ，如下所示。                                                                                                                                    |
-| 來自標籤規則 | 規則會為它比對到的每個新應用程式新增標籤。請參閱 [標籤規則與擁有者規則](#標籤規則與擁有者規則) 。                                                                                                                   |
+| 方式 | 位置 |
+| --- | --- |
+| 手動 | 在建立表單的 **更多欄位** 下，或之後在應用程式 **設定** 頁面的 **應用程式詳細資料** 卡片上透過 **編輯詳細資料** 。 要一次為多個應用程式新增標籤，請在清單中選取它們，選擇 **Add Labels** ，它位於 **批次動作** 中。 |
+| 來自遙測 | 名為 `oneuptime.label.<name>` 的資源屬性會新增標籤 `<name>:<value>` ，如下所示。 |
+| 來自標籤規則 | 規則會為它比對到的每個新應用程式新增標籤。請參閱 [標籤規則與擁有者規則](#標籤規則與擁有者規則) 。 |
 
 在與 `service.name` 相同的資源上設定這些屬性，例如在 [瀏覽器端設定](/docs/rum/browser-setup) 的 `src/telemetry.ts` 檔案中：
 
@@ -101,10 +99,10 @@ const resource = defaultResource().merge(
 
 應用程式的遙測資料與錄製保留的時間不同：
 
-| 資料                       | 保留時間                           | 設定位置                                          |
-| -------------------------- | ---------------------------------- | ------------------------------------------------- |
-| 日誌、指標、追蹤與效能分析 | 專案的保留時間，除非應用程式覆寫它 | 應用程式的 **設定** 頁面                          |
-| 工作階段重播錄製           | 預設 7 天，或 1、14、30、90 天     | **Replay Policy** ，透過 **Edit Policy → Limits** |
+| 資料 | 保留時間 | 設定位置 |
+| --- | --- | --- |
+| 日誌、指標、追蹤與效能分析 | 專案的保留時間，除非應用程式覆寫它 | 應用程式的 **設定** 頁面 |
+| 工作階段重播錄製 | 預設 7 天，或 1、14、30、90 天 | **Replay Policy** ，透過 **Edit Policy → Limits** |
 
 ### 遙測資料保留
 
@@ -141,17 +139,17 @@ const resource = defaultResource().merge(
 
 擁有專案 Viewer 角色的任何人都可以檢視 RUM 應用程式及其遙測資料。工作階段重播刻意排除在該角色之外：列出錄製、觀看錄製，以及查看誰觀看過，都是個別的權限。專案擁有者與管理員擁有全部權限。權限選擇器會依標題列出每項權限，此處以斜體顯示。
 
-| 權限                                                                                         | 允許成員                                                             |
-| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `ReadRumApplication` (_Read RUM Application_)                                                | 檢視應用程式及其遙測頁面。                                           |
-| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication`                         | 新增、編輯與刪除應用程式。                                           |
-| `ReadRumSessionReplay` (_List Session Replays_)                                              | 列出已錄製的工作階段及其詳細資料，但不能播放，也無法得知使用者是誰。 |
-| `ReadRumSessionReplayPayload` (_Watch Session Replays_)                                      | 播放錄製，並讀取已識別使用者的參照與特徵。                           |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_)                                    | 讀取 **Replay Access Log** ：誰觀看了哪個錄製。                      |
-| `DeleteRumSessionReplay` (_Delete Session Replays_)                                          | 刪除錄製。                                                           |
-| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest`                             | 提交抹除請求並追蹤其進度。                                           |
-| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` （及其 Create、Edit 與 Delete） | 管理標籤規則與擁有者規則。                                           |
-| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` （及其 Create、Edit 與 Delete） | 透過 API 新增與移除擁有者。                                          |
+| 權限 | 允許成員 |
+| --- | --- |
+| `ReadRumApplication` (_Read RUM Application_) | 檢視應用程式及其遙測頁面。 |
+| `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | 新增、編輯與刪除應用程式。 |
+| `ReadRumSessionReplay` (_List Session Replays_) | 列出已錄製的工作階段及其詳細資料，但不能播放，也無法得知使用者是誰。 |
+| `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 播放錄製，並讀取已識別使用者的參照與特徵。 |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | 讀取 **Replay Access Log** ：誰觀看了哪個錄製。 |
+| `DeleteRumSessionReplay` (_Delete Session Replays_) | 刪除錄製。 |
+| `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 提交抹除請求並追蹤其進度。 |
+| `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` （及其 Create、Edit 與 Delete） | 管理標籤規則與擁有者規則。 |
+| `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` （及其 Create、Edit 與 Delete） | 透過 API 新增與移除擁有者。 |
 
 一種實用的分工方式：給支援工程師 `ReadRumApplication` 與 `ReadRumSessionReplay` 。他們可以看到哪些工作階段發生了錯誤，而不必觀看任何人的螢幕，也不會得知使用者是誰。只把 `ReadRumSessionReplayPayload` 授予需要的人；這樣，擁有 `ReadRumSessionReplayAudit` 的成員就能在應用程式的 **Replay Access Log** 頁面上看到每一次觀看。 [誰可以觀看錄製](/docs/telemetry/session-replay#誰可以觀看錄製) 說明了每項權限在工作階段清單與播放器中解鎖了什麼。
 
@@ -159,11 +157,11 @@ const resource = defaultResource().merge(
 
 RUM 遙測就是一般的日誌、指標與追蹤，因此沒有獨立的 RUM 監控器：一般的監控器都適用於它。最快的入門方式是應用程式的 **Recommendations** 頁面，它會提供已限定到該應用程式的監控器：
 
-| 群組            | 建議                                                                                                                                                                                                        |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 與 Slow Time to First Byte。請參閱 [Core Web Vitals](/docs/rum/web-vitals) 。      |
-| 錯誤            | Failed User Operations 與 Unhandled Browser Exceptions。                                                                                                                                                    |
-| 工作階段重播    | 四個 [儲存預算警示](/docs/telemetry/session-replay#儲存預算警示) ，會在專案的每日上限或應用程式的每月預算用盡之前發出警告。應用程式錄製過重播後就會提供它們，每月那一組則在應用程式也設定了每月預算後提供。 |
+| 群組 | 建議 |
+| --- | --- |
+| Core Web Vitals | Poor Largest Contentful Paint、Poor Interaction to Next Paint、Poor Cumulative Layout Shift、Slow First Contentful Paint 與 Slow Time to First Byte。請參閱 [Core Web Vitals](/docs/rum/web-vitals) 。 |
+| 錯誤 | Failed User Operations 與 Unhandled Browser Exceptions。 |
+| 工作階段重播 | 四個 [儲存預算警示](/docs/telemetry/session-replay#儲存預算警示) ，會在專案的每日上限或應用程式的每月預算用盡之前發出警告。應用程式錄製過重播後就會提供它們，每月那一組則在應用程式也設定了每月預算後提供。 |
 
 若要自行建立監控器，請選擇讀取相應訊號的那一種：
 
@@ -177,9 +175,8 @@ RUM 遙測就是一般的日誌、指標與追蹤，因此沒有獨立的 RUM �
 ## 後續步驟
 
 :::cards
-
 - [工作階段重播](/docs/telemetry/session-replay): 錄製使用者看到的內容，並擁有自己的策略與保留時間。
 - [標籤與擁有者規則](/docs/configuration/label-and-owner-rules): 兩種規則表單，逐步說明。
 - [對現有資源執行規則](/docs/configuration/run-rules-now): 將新規則套用到已有的應用程式。
 - [RUM 疑難排解](/docs/rum/troubleshooting): 當應用程式不見、為空或顯示已中斷時。
-  :::
+:::

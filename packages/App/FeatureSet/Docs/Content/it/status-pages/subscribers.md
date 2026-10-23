@@ -7,12 +7,11 @@ Gli annunci sono l'altra metà dello stesso lavoro. Un monitor può dire ai vost
 Questa pagina copre entrambi: i cinque canali di iscrizione e come si iscrivono i visitatori, di che cosa gli iscritti possono scegliere di essere avvisati, i flussi di doppia conferma e di annullamento dell'iscrizione, il report via email che gli iscritti possono ricevere ogni mese, e come si scrivono, si pianificano e si trasformano in modelli gli annunci.
 
 :::cards
-
 - [Canali di iscrizione](#canali-di-iscrizione): I canali su cui i visitatori possono iscriversi, e la pagina su cui si iscrivono.
 - [Che cosa viene detto agli iscritti](#di-che-cosa-vengono-avvisati-gli-iscritti): Annunci, manutenzione, incidenti ed episodi, e le loro modifiche.
 - [Verificare che cosa è stato inviato](#verificare-che-cosa-è-stato-inviato): Lo stato di ogni notifica, e Riprova e Invia di nuovo.
 - [Annunci](#annunci): Pubblicare un avviso su una o più pagine di stato.
-  :::
+:::
 
 ## Come funziona
 
@@ -46,7 +45,7 @@ Su OneUptime Cloud, un interruttore che il vostro piano non include mostra accan
 
 Ogni canale ha anche il proprio elenco nel menu laterale della pagina di stato, sotto **Iscritti**: **Iscritti email**, **Iscritti SMS**, **Iscritti Slack**, **Iscritti a Microsoft Teams** e **Iscritti webhook**. È lì che guardate chi è iscritto, aggiungete qualcuno a mano con **Aggiungi iscritto** o vi lasciate una **Nota interna** (`internalNote`) su un determinato iscritto, che vede solo il vostro team. Finché un canale è disattivato, la parte alta del suo elenco lo dice, con l'interruttore del canale proprio lì, così potete attivarlo senza lasciare l'elenco.
 
-**Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo _e_ almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
+**Un interruttore non basta.** La voce **Iscriviti** nella barra di navigazione della pagina di stato compare solo quando **Mostra pagina iscritti** è attivo *e* almeno un canale è attivo. Se attivate **E-mail** ma lasciate disattivato **Mostra pagina iscritti**, i visitatori non hanno modo di raggiungere il modulo.
 
 **Un calendario, invece.** I visitatori che vogliono solo la vostra manutenzione pianificata nel proprio calendario non hanno bisogno di iscriversi: **Iscriviti al calendario** nella pagina **Eventi pianificati** la aggiunge a Google Calendar, Calendario Apple o Outlook, e il calendario si aggiorna da solo. Non invia nulla e non dipende dai canali qui sopra, e una pagina privata non lo offre. Vedete [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#il-calendario-di-una-pagina-di-stato).
 
@@ -69,27 +68,27 @@ Nessuna delle due impostazioni elimina un iscritto, e disattivandole si torna a 
 
 La pagina **Iscriviti** ha un sottomenu con una scheda per ogni canale attivo; con un solo canale attivo non c'è il sottomenu, solo il modulo di quel canale. Ogni scheda chiede il minimo indispensabile:
 
-| Scheda       | Indirizzo                    | Titolo                            | Che cosa chiede                                                                                                                                           |
-| ------------ | ---------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **E-mail**   | `/subscribe/email`           | **Iscriviti via e-mail**          | **La tua e-mail**, con l'esempio `subscriber@company.com`.                                                                                                |
-| **SMS**      | `/subscribe/sms`             | **Iscriviti via SMS**             | **Il tuo numero di telefono**, con l'esempio `+11234567890`.                                                                                              |
-| **Slack**    | `/subscribe/slack`           | **Iscriviti via Slack**           | **Nome dell'area di lavoro Slack** (usato per la convalida) e **URL del webhook in entrata Slack**, con l'esempio `https://hooks.slack.com/services/...`. |
-| **MS Teams** | `/subscribe/microsoft-teams` | **Iscriviti via Microsoft Teams** | **Nome dell'area di lavoro Microsoft Teams** e **URL del webhook in entrata Microsoft Teams**, con l'esempio `https://outlook.office.com/webhook/...`.    |
-| **Webhooks** | `/subscribe/webhooks`        | **Iscriviti tramite webhook**     | **URL del webhook**, con l'esempio `https://example.com/webhook`. A ogni evento della pagina di stato vi viene inviata una richiesta JSON `POST`.         |
+| Scheda | Indirizzo | Titolo | Che cosa chiede |
+| --- | --- | --- | --- |
+| **E-mail** | `/subscribe/email` | **Iscriviti via e-mail** | **La tua e-mail**, con l'esempio `subscriber@company.com`. |
+| **SMS** | `/subscribe/sms` | **Iscriviti via SMS** | **Il tuo numero di telefono**, con l'esempio `+11234567890`. |
+| **Slack** | `/subscribe/slack` | **Iscriviti via Slack** | **Nome dell'area di lavoro Slack** (usato per la convalida) e **URL del webhook in entrata Slack**, con l'esempio `https://hooks.slack.com/services/...`. |
+| **MS Teams** | `/subscribe/microsoft-teams` | **Iscriviti via Microsoft Teams** | **Nome dell'area di lavoro Microsoft Teams** e **URL del webhook in entrata Microsoft Teams**, con l'esempio `https://outlook.office.com/webhook/...`. |
+| **Webhooks** | `/subscribe/webhooks` | **Iscriviti tramite webhook** | **URL del webhook**, con l'esempio `https://example.com/webhook`. A ogni evento della pagina di stato vi viene inviata una richiesta JSON `POST`. |
 
-Il pulsante di invio dice **Iscriviti**. Un'iscrizione via Slack, Microsoft Teams o webhook mostra _Iscrizione effettuata con successo._ Un'iscrizione via SMS mostra _Abbiamo inviato un SMS a questo numero di telefono. Apri il link che contiene per confermare l'iscrizione._ Un'iscrizione via email dice che è stato inviato un link di conferma e di controllare la cartella spam se non arriva (vedete [Doppia conferma per le email](#doppia-conferma-per-le-email)). Le schede **E-mail**, **SMS**, **Slack** e **MS Teams** hanno anche la divisione **Nuova iscrizione** / **Gestisci iscrizione esistente**, così chi è già iscritto può tornare alle proprie preferenze senza cercare un vecchio messaggio.
+Il pulsante di invio dice **Iscriviti**. Un'iscrizione via Slack, Microsoft Teams o webhook mostra *Iscrizione effettuata con successo.* Un'iscrizione via SMS mostra *Abbiamo inviato un SMS a questo numero di telefono. Apri il link che contiene per confermare l'iscrizione.* Un'iscrizione via email dice che è stato inviato un link di conferma e di controllare la cartella spam se non arriva (vedete [Doppia conferma per le email](#doppia-conferma-per-le-email)). Le schede **E-mail**, **SMS**, **Slack** e **MS Teams** hanno anche la divisione **Nuova iscrizione** / **Gestisci iscrizione esistente**, così chi è già iscritto può tornare alle proprie preferenze senza cercare un vecchio messaggio.
 
 ## Limiti per iscrizioni e link
 
 Ogni iscrizione invia subito un messaggio al suo contatto, un'email di conferma, un SMS, un messaggio Slack o Microsoft Teams o una chiamata webhook, e lo stesso fa **Invia link di gestione**. Perché nessuno possa usare una pagina di stato per inviare messaggi a persone che non li hanno chiesti, o per far salire i costi SMS del vostro progetto, entrambi sono limitati per la rete di ogni visitatore e per ogni contatto. I limiti sono molto al di sopra di ciò che fanno le persone: un intero ufficio può iscriversi insieme durante un incidente.
 
-| Cosa è limitato                                                                                                                                                                | Limite          |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- |
-| Iscrizioni da una rete                                                                                                                                                         | 60 in 15 minuti |
-| Iscrizioni e link di gestione via SMS da una rete, insieme                                                                                                                     | 10 in 15 minuti |
-| Link di gestione chiesti da una rete                                                                                                                                           | 30 in 15 minuti |
-| Iscrizioni di un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams, o un webhook, su tutte le pagine di stato insieme                                  | 10 in un'ora    |
-| Link di gestione per un indirizzo email o un numero di telefono su tutte le pagine di stato insieme, o per un nome di workspace Slack o Microsoft Teams su una pagina di stato | 5 in un'ora     |
+| Cosa è limitato | Limite |
+| --- | --- |
+| Iscrizioni da una rete | 60 in 15 minuti |
+| Iscrizioni e link di gestione via SMS da una rete, insieme | 10 in 15 minuti |
+| Link di gestione chiesti da una rete | 30 in 15 minuti |
+| Iscrizioni di un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams, o un webhook, su tutte le pagine di stato insieme | 10 in un'ora |
+| Link di gestione per un indirizzo email o un numero di telefono su tutte le pagine di stato insieme, o per un nome di workspace Slack o Microsoft Teams su una pagina di stato | 5 in un'ora |
 
 Oltre un limite, l'API risponde `429` con un'intestazione `Retry-After`, in secondi, e al visitatore viene detto che ci sono state troppe iscrizioni o troppi link dalla sua rete, o per quel contatto, e di riprovare più tardi. Non viene creato né inviato nulla, e il vostro progetto non ne vede nulla: nessun iscritto viene aggiunto, e nessun messaggio viene inviato o pagato. I limiti dei link di gestione contano ogni richiesta, che un'iscrizione corrisponda o no, quindi non servono a scoprire chi è iscritto. Un indirizzo email viene contato comunque sia scritto, in maiuscolo, con un `+tag` o, per Gmail, con i punti, e un numero di telefono comunque sia digitato. Un'iscrizione indica un solo contatto, un indirizzo email, un numero di telefono, un canale Slack o Microsoft Teams o un webhook: un elenco di indirizzi, o un secondo contatto, viene rifiutato.
 
@@ -103,18 +102,18 @@ Un utente privato che chiede un link per reimpostare la password nella pagina di
 
 In un'installazione self-hosted, queste variabili d'ambiente dell'app OneUptime cambiano i limiti:
 
-| Variabile                                                           | Predefinito | Cosa imposta                                                                          |
-| ------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------- |
-| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS`                          | `900`       | La finestra dei limiti per rete, in secondi.                                          |
-| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS`              | `3600`      | La finestra dei limiti per contatto, in secondi.                                      |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP`             | `60`        | Iscrizioni da un indirizzo per finestra.                                              |
-| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP`                    | `10`        | Iscrizioni e link di gestione via SMS da un indirizzo per finestra, insieme.          |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP`         | `30`        | Link di gestione chiesti da un indirizzo per finestra.                                |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT`        | `10`        | Iscrizioni di un contatto per finestra.                                               |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT`    | `5`         | Link di gestione per un contatto per finestra.                                        |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP`      | `30`        | Reimpostazioni della password di utenti privati chieste da un indirizzo per finestra. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5`         | Email di reimpostazione della password di utenti privati a un indirizzo per finestra. |
-| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT`                 | `10`        | Inviti a un indirizzo per finestra, a pagine di stato private e progetti insieme.     |
+| Variabile | Predefinito | Cosa imposta |
+| --- | --- | --- |
+| `PUBLIC_MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | `900` | La finestra dei limiti per rete, in secondi. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_PER_CONTACT_WINDOW_SECONDS` | `3600` | La finestra dei limiti per contatto, in secondi. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_IP` | `60` | Iscrizioni da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_TEXT_MESSAGES_PER_IP` | `10` | Iscrizioni e link di gestione via SMS da un indirizzo per finestra, insieme. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_IP` | `30` | Link di gestione chiesti da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_SIGN_UPS_PER_CONTACT` | `10` | Iscrizioni di un contatto per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_MANAGE_LINKS_PER_CONTACT` | `5` | Link di gestione per un contatto per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_IP` | `30` | Reimpostazioni della password di utenti privati chieste da un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_STATUS_PAGE_PASSWORD_RESETS_PER_CONTACT` | `5` | Email di reimpostazione della password di utenti privati a un indirizzo per finestra. |
+| `PUBLIC_MESSAGE_RATE_LIMIT_INVITATIONS_PER_CONTACT` | `10` | Inviti a un indirizzo per finestra, a pagine di stato private e progetti insieme. |
 
 Né `config.env` né i valori del chart Helm le trasmettono: aggiungetele voi all'ambiente del container `app`, con `app.extraEnv`, o con l'`extraEnv` dell'intero chart, nel chart Helm, oppure in un `docker-compose.override.yml` per Docker Compose. `TRUSTED_PROXY_HOPS` decide quale indirizzo contano i limiti per rete.
 
@@ -143,13 +142,13 @@ Utile per: una pagina che copre diversi prodotti. Un cliente che usa solo la vos
 
 ## Doppia conferma per le email
 
-Gli iscritti via email confermano sempre. Quando un iscritto viene creato con un indirizzo email e non è stato creato già confermato, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) viene forzato a `false` e viene generato un **Subscription Confirmation Token** casuale di 32 caratteri. OneUptime invia poi un link di conferma della forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Il visitatore arriva su una pagina **Conferma iscrizione** e, una volta completata, vede _Iscrizione confermata con successo_.
+Gli iscritti via email confermano sempre. Quando un iscritto viene creato con un indirizzo email e non è stato creato già confermato, **Is Subscription Confirmed** (`isSubscriptionConfirmed`) viene forzato a `false` e viene generato un **Subscription Confirmation Token** casuale di 32 caratteri. OneUptime invia poi un link di conferma della forma `{statusPageUrl}/confirm-subscription/{statusPageSubscriberId}?verification-token={token}`. Il visitatore arriva su una pagina **Conferma iscrizione** e, una volta completata, vede *Iscrizione confermata con successo*.
 
 Gli iscritti via Slack, Microsoft Teams e webhook saltano questo passaggio, come gli iscritti via SMS che aggiunge il vostro team: vengono creati con `isSubscriptionConfirmed` già impostato a `true`. Quando il vostro team aggiunge un iscritto email in **Iscritti email**, decide **Quando li aggiungi**: **Iscrivili ora** (l'opzione predefinita: confermato, e non gli viene inviato nulla), **Iscrivili ora e avvisali** (confermato, e riceve l'email che dice che è iscritto) o **Chiedi prima la loro conferma** (riceve il link di conferma, come in un'iscrizione). **Aggiungi in blocco** chiede la stessa cosa.
 
 **Anche le iscrizioni via SMS si confermano.** Un visitatore che si iscrive via SMS riceve un solo messaggio: il link di conferma. Al numero non viene inviato nient'altro finché il link non viene aperto, e aprirlo invia via SMS il messaggio che dice che è iscritto, con il link che annulla l'iscrizione. Fino ad allora l'iscritto compare come **In attesa di conferma**, e il registro degli SMS mostra il link con il suo codice sostituito da `[redacted]`. Gli iscritti via SMS di prima sono già confermati.
 
-**Un link di conferma funziona per 24 ore.** L'email e l'SMS lo dicono. Aperto più tardi, non conferma nulla: la pagina **Conferma iscrizione** dice _Questo link per confermare la tua iscrizione è scaduto o non è valido. Un link funziona per 24 ore dall'invio. Per riceverne uno nuovo, iscriviti di nuovo._ e offre **Iscriviti di nuovo**, e l'API risponde `400`. L'iscritto resta non confermato, non riceve nulla e compare come **Link scaduto** nel suo elenco, invece di **In attesa di conferma**.
+**Un link di conferma funziona per 24 ore.** L'email e l'SMS lo dicono. Aperto più tardi, non conferma nulla: la pagina **Conferma iscrizione** dice *Questo link per confermare la tua iscrizione è scaduto o non è valido. Un link funziona per 24 ore dall'invio. Per riceverne uno nuovo, iscriviti di nuovo.* e offre **Iscriviti di nuovo**, e l'API risponde `400`. L'iscritto resta non confermato, non riceve nulla e compare come **Link scaduto** nel suo elenco, invece di **In attesa di conferma**.
 
 **Iscriversi di nuovo.** Finché il link funziona, iscrivere di nuovo lo stesso indirizzo email o lo stesso numero di telefono su quella pagina di stato non invia più nulla: il visitatore si sente dire che un link è già stato inviato, e l'API risponde `429` con un'intestazione `Retry-After`. Così un contatto riceve al massimo un link di conferma al giorno da una pagina di stato, per quante volte venga iscritto. Una volta scaduto il link, l'iscrizione non trattiene più il suo contatto: una nuova iscrizione, o il vostro team che aggiunge il contatto, la sostituisce, e un'iscrizione riceve un nuovo link. Chi iscrive per primo un contatto non può impedire al suo titolare di iscriversi: il link va al titolare, e un giorno dopo il titolare può riceverne uno suo. Anche i link inviati prima di questa modifica funzionano per 24 ore dalla loro iscrizione.
 
@@ -165,13 +164,13 @@ Un SMS porta lo stesso link, che arrivi da una pagina di stato pubblica o da una
 
 Il registro degli SMS (la scheda **SMS** di **Registri di notifica**, sulla pagina di stato e nelle impostazioni del progetto) conserva il testo di ogni SMS, e più membri del progetto possono leggerlo di quanti possono gestire gli iscritti. Per questo il registro mostra un link di disiscrizione o di gestione con il token sostituito da `[redacted]`, per esempio `{statusPageUrl}/unsubscribe/{statusPageSubscriberId}-[redacted]`. Solo il telefono dell'iscritto riceve il link funzionante. Nemmeno l'API restituisce mai il token di un nuovo iscritto, neppure nella risposta alla richiesta che lo ha creato.
 
-**Aprire il link non cambia nulla.** La pagina mostra il nome e il logo della pagina di stato e l'iscrizione a cui appartiene il link: un indirizzo email per intero, un numero di telefono mascherato tranne le ultime quattro cifre, il nome di un'area di lavoro Slack o Microsoft Teams, o l'host di un webhook. Chiede _Vuoi smettere di ricevere notifiche da questa pagina di stato?_ e solo premere **Annulla iscrizione** annulla l'iscrizione, quindi gli scanner di posta e le anteprime dei link che aprono ogni link di un messaggio non possono disiscrivere nessuno. Nient'altro della pagina viene mostrato, e nessuno dei suoi JavaScript personalizzati viene eseguito. Confermare due volte, o aprire il link di un'iscrizione già annullata, dice solo che è annullata. Su una pagina di stato pubblica, la pagina di disiscrizione rimanda anche alla pagina **Aggiorna iscrizione** dell'iscritto, per scegliere invece quali notifiche ricevere.
+**Aprire il link non cambia nulla.** La pagina mostra il nome e il logo della pagina di stato e l'iscrizione a cui appartiene il link: un indirizzo email per intero, un numero di telefono mascherato tranne le ultime quattro cifre, il nome di un'area di lavoro Slack o Microsoft Teams, o l'host di un webhook. Chiede *Vuoi smettere di ricevere notifiche da questa pagina di stato?* e solo premere **Annulla iscrizione** annulla l'iscrizione, quindi gli scanner di posta e le anteprime dei link che aprono ogni link di un messaggio non possono disiscrivere nessuno. Nient'altro della pagina viene mostrato, e nessuno dei suoi JavaScript personalizzati viene eseguito. Confermare due volte, o aprire il link di un'iscrizione già annullata, dice solo che è annullata. Su una pagina di stato pubblica, la pagina di disiscrizione rimanda anche alla pagina **Aggiorna iscrizione** dell'iscritto, per scegliere invece quali notifiche ricevere.
 
 Anche la pagina **Aggiorna iscrizione**, `{statusPageUrl}/update-subscription/{statusPageSubscriberId}-{token}`, si apre solo con il token dell'iscrizione: l'ID dell'iscritto da solo non apre nulla. Si intitola **Aggiorna iscrizione** e dice al visitatore che lì può aggiornare le proprie preferenze o annullare l'iscrizione. Contiene:
 
 - I selettori di risorse e di tipi di evento che la pagina consente.
 - Un interruttore **Annulla iscrizione**, descritto come annullamento dell'iscrizione a tutte le risorse. Scrive **È disiscritto** (`isUnsubscribed`, falso per impostazione predefinita).
-- Un pulsante di invio che dice **Aggiorna iscrizione**; il salvataggio mostra _Le tue modifiche sono state salvate._
+- Un pulsante di invio che dice **Aggiorna iscrizione**; il salvataggio mostra *Le tue modifiche sono state salvate.*
 
 Su una pagina di stato privata richiede un visitatore che ha effettuato l'accesso, come il resto della pagina. Come la pagina di disiscrizione, non esegue nessuno dei JavaScript personalizzati della pagina, e mostra l'intestazione e il footer standard al posto di qualsiasi HTML personalizzato di intestazione o di footer. Chi ha perso il link usa **Gestisci iscrizione esistente** nella pagina **Iscriviti** e preme **Invia link di gestione**. Il link va all'iscrizione stessa (il suo indirizzo email, il suo numero di telefono o il suo canale Slack o Microsoft Teams), mai a un indirizzo della richiesta, e la pagina risponde allo stesso modo che un'iscrizione corrisponda o no, quindi non si può usare per scoprire chi è iscritto. Quel messaggio rimanda alla pagina **Aggiorna iscrizione**, e passa a un modello personalizzato entrambi i link: `manageSubscriptionUrl` e `unsubscribeUrl`.
 
@@ -332,13 +331,13 @@ come corpo di `PUT /api/status-page-announcement/<announcement-id>` (o di `incid
 
 Ogni notifica agli iscritti ha un proprio stato, accanto a ciò di cui parla. Per un incidente, è la sua notifica di «creato» nella **Panoramica** dell'incidente, ogni riga della sua **Cronologia stato**, ogni nota pubblica e il suo **Post-mortem**. Gli eventi di manutenzione programmata e gli annunci mostrano i loro allo stesso modo, e gli episodi di incidente sulle loro note pubbliche. Fate clic sullo stato per leggerne il messaggio, che dice che cosa è successo. Le note pubbliche mostrano lo stato come un badge con una formulazione propria:
 
-| Stato                        | Su una nota pubblica           | Che cosa significa                                                                                                                      |
-| ---------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sending Soon**             | **Notifying subscribers soon** | In coda. Il job che lo invia gira ogni minuto.                                                                                          |
-| **Notifications Being Sent** | **Notifying subscribers**      | Il job sta scorrendo gli iscritti.                                                                                                      |
-| **Notifiche inviate**        | **Subscribers notified**       | È partita. Vedete sotto che cosa significa.                                                                                             |
-| **Non riuscito**             | **Notification failed**        | Non è stata inviata a tutti gli iscritti, o l'invio si è fermato. Il messaggio dice che cosa è stato inviato e che cosa fa **Riprova**. |
-| **Notifications skipped.**   | **Subscribers not notified**   | Non c'era nulla da inviare, per esempio perché l'incidente è nascosto dalle pagine di stato. Il messaggio dice perché.                  |
+| Stato | Su una nota pubblica | Che cosa significa |
+| --- | --- | --- |
+| **Sending Soon** | **Notifying subscribers soon** | In coda. Il job che lo invia gira ogni minuto. |
+| **Notifications Being Sent** | **Notifying subscribers** | Il job sta scorrendo gli iscritti. |
+| **Notifiche inviate** | **Subscribers notified** | È partita. Vedete sotto che cosa significa. |
+| **Non riuscito** | **Notification failed** | Non è stata inviata a tutti gli iscritti, o l'invio si è fermato. Il messaggio dice che cosa è stato inviato e che cosa fa **Riprova**. |
+| **Notifications skipped.** | **Subscribers not notified** | Non c'era nulla da inviare, per esempio perché l'incidente è nascosto dalle pagine di stato. Il messaggio dice perché. |
 
 ### Come si conta un invio
 
@@ -392,11 +391,11 @@ I modelli di tutto il progetto si trovano un livello più su, in **Pagine di sta
 
 Su OneUptime Cloud, i modelli di notifica per gli iscritti sono una funzione del piano **Scale**; le installazioni self-hosted non hanno limiti di piano. Un modello viene usato solo una volta collegato a una pagina di stato nella scheda **Modelli di notifica** di quella pagina, e due canali richiedono inoltre che la pagina invii tramite un vostro provider:
 
-| Canale                          | Un modello collegato viene usato quando la pagina ha                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| **E-mail**                      | una **Configurazione SMTP personalizzata** (vedete [più sotto](#piè-di-pagina-delle-email-smtp-personalizzato-e-twilio)) |
-| **SMS**                         | una **Configurazione Twilio**                                                                                            |
-| **Slack** e **Microsoft Teams** | nient'altro                                                                                                              |
+| Canale | Un modello collegato viene usato quando la pagina ha |
+| --- | --- |
+| **E-mail** | una **Configurazione SMTP personalizzata** (vedete [più sotto](#piè-di-pagina-delle-email-smtp-personalizzato-e-twilio)) |
+| **SMS** | una **Configurazione Twilio** |
+| **Slack** e **Microsoft Teams** | nient'altro |
 
 Senza di esse la pagina invia la sua email o il suo SMS predefinito. Quando un modello Email o SMS collegato non può essere usato per questo motivo, la scheda **Modelli di notifica** lo dice con **I modelli personalizzati richiedono configurazione**. Le configurazioni SMTP personalizzate e Twilio richiedono il piano **Growth** o superiore. Gli iscritti webhook ricevono sempre il payload JSON standard.
 
@@ -406,10 +405,10 @@ Nulla di tutto questo serve per mettere i campi personalizzati degli incidenti n
 
 I modelli dei cinque tipi di evento degli incidenti (**Subscriber Incident Created**, **Subscriber Incident State Changed**, **Subscriber Incident Note Created**, **Subscriber Incident Note Updated** e **Subscriber Incident Postmortem Published**) possono usare queste, oltre alle proprie variabili:
 
-| Variabile                         | Compilata con                                                                                                                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `{{incidentLabels}}`              | Le etichette dell'incidente, separate da virgole.                                                                                                                                          |
-| `{{affectedStatusPages}}`         | I nomi di tutte le pagine di stato su cui è mostrato l'incidente, separati da virgole.                                                                                                     |
+| Variabile | Compilata con |
+| --- | --- |
+| `{{incidentLabels}}` | Le etichette dell'incidente, separate da virgole. |
+| `{{affectedStatusPages}}` | I nomi di tutte le pagine di stato su cui è mostrato l'incidente, separati da virgole. |
 | `{{incident.customFields.<key>}}` | Il valore di un campo personalizzato dell'incidente, in base alla **Variabile del modello** del campo, che il campo sia o no contrassegnato con **Includi nelle notifiche agli iscritti**. |
 
 La chiave è la **Variabile del modello** del campo, che non cambia quando il campo viene rinominato; il modulo dei modelli elenca i campi personalizzati degli incidenti del progetto, ciascuno con la sua variabile, sotto il corpo del modello (vedete [Inserire le variabili](#inserire-le-variabili)). I modelli salvati con il vecchio `{{customFields.<key>}}` vengono compilati allo stesso modo. Un campo per cui l'incidente non ha valore resta vuoto. Nel corpo di un'email un campo semplice viene sottoposto a escape come qualsiasi altro valore, mentre un campo rich text, di testo lungo o di data e ora entra come HTML: Markdown formattato, le sue righe, o una riga per fuso orario degli iscritti. Le immagini incorporate di un campo rich text vengono rese visibili alle persone a cui viene inviato.
@@ -460,7 +459,7 @@ Il passo di revisione mostra la stessa riga. **Crea da modello** compila il modu
 
 La pagina dell'annuncio lo modifica negli stessi due passi. **Notifica gli iscritti di questo aggiornamento** si trova sotto la descrizione (vedete [Avvisare gli iscritti di una modifica](#avvisare-gli-iscritti-di-una-modifica)), e **Pianificazione** contiene l'inizio e la fine. Impostare una fine già passata è il modo per ritirare un annuncio.
 
-I visitatori leggono gli annunci su `/announcements`, divisi in **Annunci attivi** e **Annunci passati**, ciascuno con l'indicazione **Annunciato il**. Gli annunci attualmente attivi sono anche fissati in cima alla pagina di panoramica. Quando non c'è nulla da mostrare, la pagina dice _Nessun annuncio_ con la nota che finora non ne è stato pubblicato nessuno.
+I visitatori leggono gli annunci su `/announcements`, divisi in **Annunci attivi** e **Annunci passati**, ciascuno con l'indicazione **Annunciato il**. Gli annunci attualmente attivi sono anche fissati in cima alla pagina di panoramica. Quando non c'è nulla da mostrare, la pagina dice *Nessun annuncio* con la nota che finora non ne è stato pubblicato nessuno.
 
 Gli allegati sono serviti da `GET {statusPageCrudPath}/status-page-announcement/attachment/:statusPageId/:announcementId/:fileId`, dietro lo stesso controllo di lettura della pagina di stato stessa, quindi un allegato su una pagina privata resta privato.
 
@@ -499,9 +498,8 @@ Se un'iscrizione webhook viene rifiutata al momento dell'iscrizione, un URL inte
 ## Prossimi passi
 
 :::cards
-
 - [Panoramica delle pagine di stato](/docs/status-pages/index): Che cos'è una pagina di stato, e come è fatta.
 - [Risorse e gruppi della pagina di stato](/docs/status-pages/resources-and-groups): I monitor e i gruppi tra cui scelgono gli iscritti.
 - [Una pagina di stato per pubblico](/docs/status-pages/one-status-page-per-audience): Limitare un incidente alle pagine i cui iscritti devono esserne avvisati.
 - [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains): L'aspetto della pagina a cui rimandano i vostri messaggi.
-  :::
+:::

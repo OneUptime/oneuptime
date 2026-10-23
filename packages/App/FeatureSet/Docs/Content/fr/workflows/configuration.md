@@ -3,12 +3,11 @@
 Ce qu'il faut savoir avant de confier un vrai trafic à un workflow : comment l'activer en toute sécurité, qui peut faire quoi, comment les secrets et les URL restent privés, ce que les étapes d'un workflow peuvent modifier, et les limites dans lesquelles s'inscrit chaque exécution.
 
 :::cards
-
 - [Mise en production](#activer-ou-désactiver-un-workflow): Testez avec Exécuter le flux de travail tant qu'il est désactivé, puis activez-le.
 - [Autorisations](#autorisations): Les rôles de workflow, et les autorisations individuelles qui les composent.
 - [Ce que les étapes peuvent faire](#ce-que-les-étapes-dun-workflow-peuvent-faire): Les étapes agissent en tant que Project Admin du projet du workflow.
 - [Limites](#limites-du-forfait): Exécutions par forfait, durée d'une exécution et appels entre workflows.
-  :::
+:::
 
 ## Activer ou désactiver un workflow
 
@@ -17,12 +16,11 @@ Chaque workflow a un interrupteur **Activé** en haut de son **Constructeur**, e
 Servez-vous de cet interrupteur comme du feu vert « prêt à partir » :
 
 :::steps
-
 1. Construisez le workflow.
 2. Cliquez sur **Exécuter le flux de travail** dans le **Constructeur** avec des valeurs réalistes, pendant que le workflow est encore désactivé. L'exécution est une **Exécution de test** : chaque bloc s'exécute pour de vrai, alors dirigez-le d'abord vers un canal de test ou un enregistrement de test.
 3. Ouvrez l'exécution et vérifiez que chaque bloc est allé là où vous l'attendiez. Voir [Exécutions](/docs/workflows/runs-and-logs).
 4. Basculez **Activé** quand il est prêt : à partir de là, son déclencheur se produit sur de vrais événements.
-   :::
+:::
 
 Désactiver un workflow empêche son déclencheur de lancer de nouvelles exécutions. Une exécution déjà en cours se termine, mais une exécution lancée par son déclencheur qui attend sur un bloc **Sleep** est annulée à son réveil. Les exécutions de test continuent. Pour en activer ou en désactiver plusieurs à la fois, sélectionnez-les dans la liste **Flux de travail** et choisissez **Activer** ou **Désactiver** sous **Actions groupées**.
 
@@ -45,12 +43,12 @@ Un workflow exporté n'emporte jamais son état archivé : une copie importée n
 
 ## Propriétaires et étiquettes
 
-| Quoi                       | Où                                                        | Ce que cela fait                                                                                                                                                                      |
-| -------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Propriétaires**          | La page **Propriétaires** du workflow                     | Les utilisateurs et les équipes responsables du workflow. Un rôle limité à ce que possède son équipe atteint les workflows que cette équipe possède.                                  |
-| **Étiquettes**             | La page **Vue d'ensemble** du workflow                    | Des étiquettes pour regrouper les workflows, par équipe, intégration ou environnement. Filtrez la liste **Flux de travail** par étiquette, et limitez un rôle à certaines étiquettes. |
-| **Règles d'étiquettes**    | **Flux de travail → Paramètres → Règles d'étiquettes**    | Étiqueter automatiquement les nouveaux workflows, selon des motifs dans leur nom ou leur description.                                                                                 |
-| **Règles de propriétaire** | **Flux de travail → Paramètres → Règles de propriétaire** | Attribuer automatiquement des propriétaires aux nouveaux workflows.                                                                                                                   |
+| Quoi                         | Où                                                         | Ce que cela fait                                                                                                                                       |
+| ---------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Propriétaires**            | La page **Propriétaires** du workflow                      | Les utilisateurs et les équipes responsables du workflow. Un rôle limité à ce que possède son équipe atteint les workflows que cette équipe possède.     |
+| **Étiquettes**               | La page **Vue d'ensemble** du workflow                     | Des étiquettes pour regrouper les workflows, par équipe, intégration ou environnement. Filtrez la liste **Flux de travail** par étiquette, et limitez un rôle à certaines étiquettes. |
+| **Règles d'étiquettes**      | **Flux de travail → Paramètres → Règles d'étiquettes**      | Étiqueter automatiquement les nouveaux workflows, selon des motifs dans leur nom ou leur description.                                                  |
+| **Règles de propriétaire**   | **Flux de travail → Paramètres → Règles de propriétaire**   | Attribuer automatiquement des propriétaires aux nouveaux workflows.                                                                                    |
 
 Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) pour savoir comment les règles s'appliquent.
 
@@ -120,11 +118,11 @@ Les blocs API et les autres blocs HTTP font leurs requêtes depuis OneUptime, et
 
 Les adresses qu'un bloc peut atteindre dépendent du bloc :
 
-| Blocs                                                                             | Bouclage, lien local, métadonnées cloud                                           | Adresses de réseau privé                                                                                                                   |
-| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Blocs                                                      | Bouclage, lien local, métadonnées cloud                                      | Adresses de réseau privé                                                                                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Les blocs **API** et **Mattermost**, et les requêtes de **Run Custom JavaScript** | Refusées, sauf si l'hôte exact est nommé dans `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` | Refusées, sauf si un administrateur auto-hébergé les autorise avec `ALLOW_PRIVATE_NETWORK_WEBHOOKS` ou `PRIVATE_NETWORK_WEBHOOK_ALLOWLIST` |
-| **Send Email**, **IRC** et les URL de jeton OAuth 2.0                             | Refusées                                                                          | Refusées sur OneUptime Cloud. Autorisées sur une installation auto-hébergée, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`     |
-| Slack, Microsoft Teams, Discord et Telegram                                       | Refusées                                                                          | Refusées : chacun n'envoie qu'aux adresses de son propre service                                                                           |
+| **Send Email**, **IRC** et les URL de jeton OAuth 2.0      | Refusées                                                                     | Refusées sur OneUptime Cloud. Autorisées sur une installation auto-hébergée, sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` vaut `true`     |
+| Slack, Microsoft Teams, Discord et Telegram                | Refusées                                                                     | Refusées : chacun n'envoie qu'aux adresses de son propre service                                                                          |
 
 Voir [Accès au réseau privé](/docs/self-hosted/private-network-access) pour savoir comment un administrateur auto-hébergé les ouvre.
 
@@ -151,13 +149,13 @@ Ce dont le bloc a besoin, et ce qu'il coûte :
 - Les appels via un fournisseur global payant utilisent les crédits IA du projet.
 - Chaque appel compte dans les [limites quotidiennes d'IA propres au projet](/docs/ai/ai-sre#les-limites-quotidiennes-propres-au-projet), quand un propriétaire du projet les fixe. Une fois une limite atteinte, le bloc prend **Error** sans contacter le modèle, jusqu'à minuit UTC.
 
-| Limite                                                      | Valeur                                                                                     |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **System Instructions**, **Prompt** et **Context** ensemble | 50 000 caractères                                                                          |
-| **Temperature**                                             | De `0` à `1`                                                                               |
-| **Maximum Output Tokens**                                   | De `1` à `4096`, `1024` par défaut                                                         |
-| Une requête                                                 | Une seule tentative, 60 secondes au plus                                                   |
-| Appels simultanés                                           | 3 par projet. Les suivants prennent **Error**, et une exécution ultérieure peut réessayer. |
+| Limite                                                       | Valeur                                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| **System Instructions**, **Prompt** et **Context** ensemble  | 50 000 caractères                                                         |
+| **Temperature**                                              | De `0` à `1`                                                              |
+| **Maximum Output Tokens**                                    | De `1` à `4096`, `1024` par défaut                                        |
+| Une requête                                                  | Une seule tentative, 60 secondes au plus                                  |
+| Appels simultanés                                            | 3 par projet. Les suivants prennent **Error**, et une exécution ultérieure peut réessayer. |
 
 Les échecs de validation, de configuration, d'accès, de limite, de crédits, de simultanéité, de fournisseur et de délai prennent tous le chemin **Error**, avec la raison dans **Error**. Reliez ce chemin avant la mise en production du workflow.
 
@@ -202,7 +200,7 @@ Les étapes qui lisent et modifient des enregistrements OneUptime — les compos
   - changer l'enregistrement auquel appartient un enregistrement après sa création, comme le moniteur auquel se rapporte une ligne de propriétaire ou l'incident sur lequel figure une note.
 - **Au nom de personne.** Un enregistrement créé par un workflow n'a pas de créateur, et le journal d'audit nomme le workflow, sous son nom du moment, comme auteur de la modification.
 
-Quand une vérification refuse une étape, l'étape prend sa sortie **Error** sans faire la modification refusée, et le journal de l'exécution nomme l'étape et la raison en termes simples, par exemple _"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …_. Lisez-le dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow. Une étape Create Many crée ses enregistrements un par un et s'arrête au premier refusé : les enregistrements créés avant celui-là sont conservés.
+Quand une vérification refuse une étape, l'étape prend sa sortie **Error** sans faire la modification refusée, et le journal de l'exécution nomme l'étape et la raison en termes simples, par exemple *"Find One Probe" was refused. Workflow steps can do only what a Project Admin of this project can do: …*. Lisez-le dans les [Exécutions](/docs/workflows/runs-and-logs) du workflow. Une étape Create Many crée ses enregistrements un par un et s'arrête au premier refusé : les enregistrements créés avant celui-là sont conservés.
 
 Les étapes qui dialoguent avec d'autres systèmes — API, Email, Slack, Microsoft Teams, Discord, Telegram, IRC, Mattermost, Custom Code et Generate Text with AI — ne lisent ni ne modifient d'enregistrements OneUptime : rien de tout cela ne les concerne.
 
@@ -220,11 +218,11 @@ La fenêtre est glissante : chaque exécution enregistrée par le projet, à la 
 
 ## Combien de temps peut durer une exécution
 
-| Limite                                                               | Par défaut       | Paramètre auto-hébergé          |
-| -------------------------------------------------------------------- | ---------------- | ------------------------------- |
-| Une exécution, depuis son démarrage ou son réveil après un **Sleep** | 2 minutes        | `WORKFLOW_TIMEOUT_IN_MS`        |
-| Un bloc **Run Custom JavaScript**                                    | 5 secondes       | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
-| Un bloc **Sleep**                                                    | 30 jours au plus | —                               |
+| Limite                                                       | Par défaut         | Paramètre auto-hébergé          |
+| ------------------------------------------------------------ | ------------------ | ------------------------------- |
+| Une exécution, depuis son démarrage ou son réveil après un **Sleep** | 2 minutes | `WORKFLOW_TIMEOUT_IN_MS`        |
+| Un bloc **Run Custom JavaScript**                            | 5 secondes         | `WORKFLOW_SCRIPT_TIMEOUT_IN_MS` |
+| Un bloc **Sleep**                                            | 30 jours au plus   | —                               |
 
 Le moteur d'exécution vérifie l'échéance avant et après chaque bloc, et marque une exécution en retard **Timeout** dès que la main lui revient. Il ne peut pas interrompre un bloc en cours de route : les blocs qui attendent le réseau ont donc leurs propres délais : une requête Generate Text with AI abandonne au bout de 60 secondes au plus, et une demande de jeton OAuth 2.0 au bout de 20. Une attente sur un bloc **Sleep** ne compte pas dans la durée d'une exécution : l'exécution est mise de côté et reçoit 2 nouvelles minutes à son réveil.
 
@@ -245,8 +243,7 @@ Quelques cas où il vaut mieux choisir autre chose :
 ## Étapes suivantes
 
 :::cards
-
 - [Présentation des workflows](/docs/workflows/index): La vue d'ensemble, et un premier workflow de bout en bout.
 - [Composants](/docs/workflows/components): Ce dont chaque bloc a besoin, ce qu'il renvoie et ce qu'il peut atteindre.
 - [Runbooks](/docs/runbooks/index): Quand des personnes doivent prendre les décisions en cours de route.
-  :::
+:::
