@@ -820,6 +820,7 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "TeamRoles",
         "TeamRoleView",
         "TeamCustomRoles",
+        "ApiKeyCustomRoles",
         "IpAllowlistCard",
         "StatusPagePoweredBy",
         "StatusPageSessionLength",

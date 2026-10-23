@@ -3,7 +3,8 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * MeteredPlan:ReportTelemetryMeteredPlan reports every metered plan of every
+ * MeteredPlan:ReportTelemetryMeteredPlan (ee/Server/Billing/Jobs: OneUptime
+ * Cloud's billing lives in ee/) reports every metered plan of every
  * project once a day. The plans used to share one try/catch per project, so
  * the first plan to fail - a Stripe error, a usage scan over its time cap -
  * skipped every plan after it for that project. These tests pin that each
@@ -12,7 +13,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
 
 let mockCronFunction: PromiseVoidFunction | null = null;
 
-jest.mock("../../../../FeatureSet/Workers/Utils/Cron", () => {
+jest.mock("App/FeatureSet/Workers/Utils/Cron", () => {
   return {
     __esModule: true,
     default: (
@@ -122,7 +123,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 });
 
 // The job import comes last: registering the cron is its side effect.
-import "../../../../FeatureSet/Workers/Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
+import "../../../../Server/Billing/Jobs/ReportTelemetryMeteredPlan";
 
 const PROJECT_A: ObjectID = new ObjectID(
   "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
