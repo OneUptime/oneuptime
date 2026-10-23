@@ -1,11 +1,14 @@
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { getMetadataArgsStorage } from "typeorm";
-import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import EnterpriseLicense from "Common/Models/DatabaseModels/EnterpriseLicense";
 import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
 import { DELETE_CONSEQUENCES } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
+// Not typeorm itself: ee's type-check cannot resolve Common's dependencies.
+import {
+  ModelRelation,
+  modelRelations,
+} from "Common/Tests/Helpers/ModelRelations";
 
 /*
  * What deleting a license does to the customer's installations, as every
@@ -54,18 +57,13 @@ describe("what deleting a license is said to do", () => {
 
 describe("what the code does when a license is deleted", () => {
   it("its instances go with it: their relation to the license is ON DELETE CASCADE", () => {
-    const cascades: boolean = getMetadataArgsStorage().relations.some(
-      (relation: RelationMetadataArgs): boolean => {
-        const target: unknown =
-          typeof relation.type === "function"
-            ? (relation.type as () => unknown)()
-            : relation.type;
-
+    const cascades: boolean = modelRelations().some(
+      (relation: ModelRelation): boolean => {
         return (
-          relation.target === EnterpriseLicenseInstance &&
+          relation.model === EnterpriseLicenseInstance &&
           relation.relationType === "many-to-one" &&
-          target === EnterpriseLicense &&
-          relation.options.onDelete === "CASCADE"
+          relation.relatedModel === EnterpriseLicense &&
+          relation.onDelete === "CASCADE"
         );
       },
     );
