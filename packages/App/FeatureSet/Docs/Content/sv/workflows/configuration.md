@@ -22,7 +22,7 @@ Använd den här brytaren som din ”redo att köra”-spärr:
 4. Slå på **Aktiverad** när det är klart: därefter aktiveras dess utlösare av riktiga händelser.
 :::
 
-Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar. Testkörningar fortsätter.
+Att slå av ett arbetsflöde hindrar dess utlösare från att starta nya körningar. En körning som redan pågår gör klart, men en körning som dess utlösare startade och som väntar vid ett **Sleep**-block avbryts när den vaknar. Testkörningar fortsätter. För att slå på eller av flera på en gång markerar du dem i listan **Arbetsflöden** och väljer **Aktivera** eller **Inaktivera** under **Massåtgärder**.
 
 ## Arkivera ett arbetsflöde
 

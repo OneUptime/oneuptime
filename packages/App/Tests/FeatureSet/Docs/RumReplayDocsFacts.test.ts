@@ -619,7 +619,7 @@ describe("Managing Applications: label rules and owner rules", () => {
     expect(englishPage(RUM_APPLICATIONS)).not.toContain("rediscovered");
   });
 
-  it("adds owners only through rules or the API: no Dashboard page edits them", () => {
+  it("adds owners through rules, the list's Bulk Actions or the API: no page edits one application's", () => {
     const dashboardFiles: Array<string> = [];
     const walk: (dir: string) => void = (dir: string): void => {
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -651,9 +651,11 @@ describe("Managing Applications: label rules and owner rules", () => {
 
     /*
      * The two lists read them - the Owner chip filters by them and the
-     * Owners column shows them, through useResourceOwners - and no page
-     * writes them: no Owners card, no bulk owner actions, and no mention of
-     * the owner tables but their imports and the hook's two arguments.
+     * Owners column shows them, through useResourceOwners - and the live
+     * list writes them for the applications selected, through the shared
+     * bulk owner actions (Add Owner, Remove Owner). No page has an Owners
+     * card, and the owner tables are mentioned only as the imports and the
+     * two hooks' arguments.
      */
     expect(ownerPages).toEqual([
       "Pages/Rum/Archived.tsx",
@@ -675,7 +677,8 @@ describe("Managing Applications: label rules and owner rules", () => {
         page,
         readsThem: true,
         ownersCard: false,
-        bulkOwnerActions: false,
+        // The live list's Bulk Actions; the Archived page only unarchives.
+        bulkOwnerActions: page === "Pages/Rum/RumApplications.tsx",
       });
 
       const ownerTable: RegExp = /RumApplicationOwner(User|Team)/;
@@ -719,6 +722,17 @@ describe("Managing Applications: label rules and owner rules", () => {
         `\`${route as string}\``,
       );
     }
+
+    // The page says where the bulk actions are, in the Dashboard's words.
+    const owners: string = section(RUM_APPLICATIONS, "### Owners");
+
+    expect(owners).toContain(
+      "**Add Owner** or **Remove Owner** under **Bulk Actions**",
+    );
+    expect(owners).not.toContain("no page to add them by hand");
+    expect(englishPage(RUM_APPLICATIONS)).toContain(
+      "choose **Add Labels** under **Bulk Actions**",
+    );
   });
 });
 

@@ -492,6 +492,8 @@ describe("the Detection Rules page", () => {
 
     expect(capturedTableProps?.selectMoreFields).toEqual({
       sigmaRuleYaml: true,
+      // Whether each rule is on, for Enable and Disable in bulk to count.
+      isEnabled: true,
     });
 
     const column: CapturedColumn | undefined =

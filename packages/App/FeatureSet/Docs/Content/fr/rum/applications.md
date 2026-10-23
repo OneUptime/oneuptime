@@ -64,7 +64,7 @@ Les étiquettes regroupent les applications dans les listes et les filtres. Elle
 
 | Comment | Où |
 | --- | --- |
-| À la main | Dans le formulaire de création, sous **Plus de champs**, ou plus tard avec **Modifier les détails** dans la carte **Détails de l'application** de la page **Paramètres** de l'application. |
+| À la main | Dans le formulaire de création, sous **Plus de champs**, ou plus tard avec **Modifier les détails** dans la carte **Détails de l'application** de la page **Paramètres** de l'application. Pour plusieurs à la fois, sélectionnez-les dans la liste et choisissez **Ajouter des étiquettes** sous **Actions groupées**. |
 | Depuis la télémétrie | Un attribut de ressource nommé `oneuptime.label.<name>` ajoute l'étiquette `<name>:<value>`, comme ci-dessous. |
 | Depuis une règle d'étiquettes | Une règle ajoute des étiquettes à chaque nouvelle application qu'elle sélectionne. Voir [Règles d'étiquettes et règles de propriétaires](#règles-détiquettes-et-règles-de-propriétaires). |
 
@@ -93,7 +93,7 @@ Les règles s'exécutent à la création d'une application, applications découv
 
 ### Propriétaires
 
-Les propriétaires sont les personnes et les équipes responsables d'une application. Les propriétaires d'une application RUM viennent des règles de propriétaires : le tableau de bord n'a pas de page pour les ajouter à la main, et l'API les ajoute via `/rum-application-owner-user` et `/rum-application-owner-team`. Avec **Notifier les propriétaires** activé, ce qui est le défaut, chaque propriétaire qu'une règle ajoute en est averti. Désactivez-le avant d'exécuter une règle sur de nombreuses applications si personne ne doit être notifié.
+Les propriétaires sont les personnes et les équipes responsables d'une application. Les règles de propriétaires les ajoutent aux nouvelles applications. Pour les ajouter ou les retirer à la main, sélectionnez des applications dans la liste et choisissez **Ajouter un propriétaire** ou **Remove Owner** sous **Actions groupées** ; l'API les ajoute via `/rum-application-owner-user` et `/rum-application-owner-team`. Avec **Notifier les propriétaires** activé, ce qui est le défaut, chaque propriétaire qu'une règle ajoute en est averti. Désactivez-le avant d'exécuter une règle sur de nombreuses applications si personne ne doit être notifié.
 
 ## Rétention
 

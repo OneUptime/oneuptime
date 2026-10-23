@@ -64,7 +64,7 @@ Le etichette raggruppano le applicazioni in elenchi e filtri. Decidono anche a c
 
 | Come | Dove |
 | --- | --- |
-| A mano | Nel modulo di creazione, sotto **Altri campi**, o in seguito con **Modifica dettagli** nella scheda **Dettagli dell'applicazione** della pagina **Impostazioni** dell'applicazione. |
+| A mano | Nel modulo di creazione, sotto **Altri campi**, o in seguito con **Modifica dettagli** nella scheda **Dettagli dell'applicazione** della pagina **Impostazioni** dell'applicazione. Per più applicazioni insieme, selezionale nell'elenco e scegli **Add Labels** in **Azioni di massa**. |
 | Dalla telemetria | Un attributo di risorsa chiamato `oneuptime.label.<name>` aggiunge l'etichetta `<name>:<value>`, come mostrato sotto. |
 | Da una regola per le etichette | Una regola aggiunge etichette a ogni nuova applicazione che corrisponde. Vedi [Regole per le etichette e regole per i proprietari](#regole-per-le-etichette-e-regole-per-i-proprietari). |
 
@@ -93,7 +93,7 @@ Le regole vengono eseguite quando viene creata un'applicazione, comprese quelle 
 
 ### Proprietari
 
-I proprietari sono le persone e i team responsabili di un'applicazione. I proprietari di un'applicazione RUM provengono dalle regole per i proprietari: la dashboard non ha una pagina per aggiungerli a mano, e l'API li aggiunge tramite `/rum-application-owner-user` e `/rum-application-owner-team`. Con **Notifica ai proprietari** attivo, che è il valore predefinito, ogni proprietario aggiunto da una regola viene avvisato. Disattivalo prima di eseguire una regola su molte applicazioni se nessuno deve essere avvisato.
+I proprietari sono le persone e i team responsabili di un'applicazione. Le regole per i proprietari li aggiungono alle nuove applicazioni. Per aggiungerli o rimuoverli a mano, seleziona le applicazioni nell'elenco e scegli **Add Owner** o **Remove Owner** in **Azioni di massa**; l'API li aggiunge tramite `/rum-application-owner-user` e `/rum-application-owner-team`. Con **Notifica ai proprietari** attivo, che è il valore predefinito, ogni proprietario aggiunto da una regola viene avvisato. Disattivalo prima di eseguire una regola su molte applicazioni se nessuno deve essere avvisato.
 
 ## Conservazione
 

@@ -22,7 +22,7 @@ Verwenden Sie diesen Schalter als Ihr "startklar"-Tor:
 4. Schalten Sie **Aktiviert** ein, wenn er bereit ist: Von da an löst sein Trigger bei echten Ereignissen aus.
 :::
 
-Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter.
+Einen Workflow auszuschalten hält seinen Trigger davon ab, neue Ausführungen zu starten. Eine laufende Ausführung wird zu Ende geführt, aber eine Ausführung, die sein Trigger gestartet hat und die an einem **Sleep**-Baustein wartet, wird beim Aufwachen abgebrochen. Testläufe laufen weiter. Um mehrere auf einmal ein- oder auszuschalten, wählen Sie sie in der Liste **Arbeitsabläufe** aus und wählen **Aktivieren** oder **Deaktivieren** unter **Massenaktionen**.
 
 ## Einen Workflow archivieren
 

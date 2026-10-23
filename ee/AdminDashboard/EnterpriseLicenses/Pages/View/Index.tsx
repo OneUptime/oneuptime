@@ -14,6 +14,7 @@ import {
   isEnterpriseLicenseUsageRequestCurrent,
 } from "../../Components/LicenseActivityUtil";
 import OfflineLicenseTokenCard from "../../Components/OfflineLicenseTokenCard";
+import { getLicenseItemName } from "../../Components/LicenseBulkCopy";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -148,6 +149,8 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
               companyName: true,
               expiresAt: true,
               userLimit: true,
+              // The Delete card names the license by its masked key too.
+              licenseKey: true,
             },
           });
 
@@ -764,6 +767,18 @@ const EnterpriseLicenseView: FunctionComponent = (): ReactElement => {
           modelType={EnterpriseLicense}
           modelId={modelId}
           modelAPI={AdminModelAPI}
+          /*
+           * The name the list's Delete gives it, company and masked key
+           * (LicenseBulkCopy): the same license reads the same in both.
+           */
+          itemName={
+            license
+              ? getLicenseItemName({
+                  companyName: license.companyName,
+                  licenseKey: license.licenseKey,
+                }) || undefined
+              : undefined
+          }
           onDeleteSuccess={() => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(

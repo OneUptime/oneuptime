@@ -13,6 +13,8 @@ import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import getLabelsFormField from "../../Utils/Form/LabelsFormField";
@@ -52,6 +54,21 @@ const ServerlessFunctions: FunctionComponent<
   const { archiveBulkActions } = useBulkArchiveActions<ServerlessFunction>({
     modelType: ServerlessFunction,
   });
+
+  /*
+   * Labels and owners in Bulk Actions, as on every other resource list:
+   * the list shows and filters a function by them, and they were set
+   * one at a time.
+   */
+  const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
+    useBulkLabelActions<ServerlessFunction>({ modelType: ServerlessFunction });
+
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<ServerlessFunction>({
+      ownerUserModelType: ServerlessFunctionOwnerUser,
+      ownerTeamModelType: ServerlessFunctionOwnerTeam,
+      resourceIdField: "serverlessFunctionId",
+    });
 
   /*
    * The Owner and Labels chips above the table: a function can be found by the
@@ -134,7 +151,11 @@ const ServerlessFunctions: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...archiveBulkActions],
+          buttons: [
+            ...labelBulkActions,
+            ...ownerBulkActions,
+            ...archiveBulkActions,
+          ],
         }}
         showRefreshButton={true}
         showViewIdButton={true}
@@ -351,6 +372,8 @@ const ServerlessFunctions: FunctionComponent<
           description={FIRST_RUN_GUIDE_DESCRIPTION}
         />
       )}
+      {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };
