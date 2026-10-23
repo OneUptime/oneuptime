@@ -44,6 +44,8 @@ import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
+import { CodeOtherHosts } from "./CodeHostChoices";
 
 /*
  * CONNECTING GITHUB, FROM CODE.
@@ -472,9 +474,9 @@ export const useGitHubConnect: (
 };
 
 // The GitHub mark, drawn in place (no network font for one icon).
-export const GitHubMark: FunctionComponent<{ className?: string }> = (props: {
-  className?: string;
-}): ReactElement => {
+export const GitHubMark: FunctionComponent<{
+  className?: string | undefined;
+}> = (props: { className?: string | undefined }): ReactElement => {
   return (
     <svg
       className={props.className || "h-5 w-5"}
@@ -493,12 +495,21 @@ export const GitHubMark: FunctionComponent<{ className?: string }> = (props: {
 
 /*
  * Code's first page with no repository yet: what Code is for, in one
- * sentence, and the one thing to do - connect GitHub. The button is a real
- * button, locked with one sentence for someone who may not connect.
+ * sentence, and the one thing to do - connect GitHub, the place Code does
+ * the most in, with the GitHub App. The button is a real button, locked
+ * with one sentence for someone who may not connect. Under it, the other
+ * places a repository can be: GitLab, Forgejo or Gitea, and any Git server
+ * (CodeOtherHosts), each opening Code's connect dialog at its step - and on
+ * a server with no GitHub App, the way to connect at all.
  */
 export const ConnectGitHubEmptyState: FunctionComponent<{
   connection: UseGitHubConnect;
-}> = (props: { connection: UseGitHubConnect }): ReactElement => {
+  // Connect a repository that is not on GitHub, from the host picked.
+  onConnectOtherHost?: ((provider: CodeRepositoryType) => void) | undefined;
+}> = (props: {
+  connection: UseGitHubConnect;
+  onConnectOtherHost?: ((provider: CodeRepositoryType) => void) | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const connectLock: GitHubConnectLock = props.connection.connectLock;
 
@@ -515,7 +526,9 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
       </h2>
       <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-500">
         {translator.translateText(
-          "Connect GitHub and ask OneUptime AI to work in your repositories: fix a bug, write tests, explain the code. It opens a pull request for you to review.",
+          props.onConnectOtherHost
+            ? "Connect your repositories and ask OneUptime AI to work in them: fix a bug, write tests, explain the code. It opens a pull request for you to review."
+            : "Connect GitHub and ask OneUptime AI to work in your repositories: fix a bug, write tests, explain the code. It opens a pull request for you to review.",
         )}
       </p>
 
@@ -590,7 +603,11 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
           </h3>
           <p className="mt-1 text-sm text-gray-500">
             <TranslatedSentence
-              template="Connecting a repository requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+              template={
+                props.onConnectOtherHost
+                  ? "Connecting GitHub requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+                  : "Connecting a repository requires the GitHub App environment variables (like {{appName}} and {{appId}}) to be configured on your OneUptime server. See the {{documentation}} for setup instructions."
+              }
               slots={{
                 appName: <code>GITHUB_APP_NAME</code>,
                 appId: <code>GITHUB_APP_ID</code>,
@@ -611,6 +628,15 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
             />
           </p>
         </div>
+      )}
+
+      {props.onConnectOtherHost ? (
+        <CodeOtherHosts
+          isAfterGitHub={props.connection.isGitHubAppConfigured}
+          onChoose={props.onConnectOtherHost}
+        />
+      ) : (
+        <></>
       )}
     </div>
   );

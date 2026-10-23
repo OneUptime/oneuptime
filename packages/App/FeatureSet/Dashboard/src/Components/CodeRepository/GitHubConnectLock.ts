@@ -45,6 +45,21 @@ export const GITHUB_CONNECT_PERMISSION_REASON: string = translationKey(
   "Connecting GitHub needs permission to create code repositories.",
 );
 
+/*
+ * The same two sentences for connecting repositories wherever they are
+ * hosted - Code's connect dialog and its first page offer GitLab, Forgejo
+ * or Gitea and any Git server beside GitHub, and connecting any of them
+ * asks what connecting GitHub asks (the server's CodeRepositoryConnectionAPI
+ * asks GitHubConnectAccess).
+ */
+export const CODE_CONNECT_PLAN_REASON: string = translationKey(
+  "Connecting repositories needs the {{planName}} plan.",
+);
+
+export const CODE_CONNECT_PERMISSION_REASON: string = translationKey(
+  "Connecting repositories needs permission to create code repositories.",
+);
+
 const NOT_LOCKED: GitHubConnectLock = { isLocked: false };
 
 /*
@@ -73,6 +88,39 @@ export const getGitHubConnectLock: (
 ) => GitHubConnectLock = (
   options?: PermissionGateOptions | undefined,
 ): GitHubConnectLock => {
+  return getConnectLock({
+    planReason: GITHUB_CONNECT_PLAN_REASON,
+    permissionReason: GITHUB_CONNECT_PERMISSION_REASON,
+    options,
+  });
+};
+
+/*
+ * Whether repositories may be connected from Code's connect dialog, wherever
+ * they are hosted: the same rule as GitHub's, in words that name no host.
+ */
+export const getCodeConnectLock: (
+  options?: PermissionGateOptions | undefined,
+) => GitHubConnectLock = (
+  options?: PermissionGateOptions | undefined,
+): GitHubConnectLock => {
+  return getConnectLock({
+    planReason: CODE_CONNECT_PLAN_REASON,
+    permissionReason: CODE_CONNECT_PERMISSION_REASON,
+    options,
+  });
+};
+
+const getConnectLock: (data: {
+  planReason: string;
+  permissionReason: string;
+  options?: PermissionGateOptions | undefined;
+}) => GitHubConnectLock = (data: {
+  planReason: string;
+  permissionReason: string;
+  options?: PermissionGateOptions | undefined;
+}): GitHubConnectLock => {
+  const options: PermissionGateOptions | undefined = data.options;
   const repository: CodeRepository = new CodeRepository();
   const requiredPlan: PlanType | null =
     repository.getCreateBillingPlan() || null;
@@ -80,7 +128,9 @@ export const getGitHubConnectLock: (
   if (requiredPlan && isKnownToBeBelowPlan(requiredPlan)) {
     return {
       isLocked: true,
-      reason: getGitHubConnectPlanReason(),
+      reason: getGlobalTranslator().translateTemplate(data.planReason, {
+        planName: requiredPlan,
+      }),
     };
   }
 
@@ -102,7 +152,7 @@ export const getGitHubConnectLock: (
   return {
     isLocked: true,
     reason:
-      getGlobalTranslator().translateText(GITHUB_CONNECT_PERMISSION_REASON) ||
-      GITHUB_CONNECT_PERMISSION_REASON,
+      getGlobalTranslator().translateText(data.permissionReason) ||
+      data.permissionReason,
   };
 };

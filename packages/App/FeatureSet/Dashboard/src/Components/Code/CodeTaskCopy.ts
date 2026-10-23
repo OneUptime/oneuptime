@@ -341,6 +341,12 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
   [CodeTaskBlockerType.RepositoryNotConnected]: translationKey(
     "AI can only work in a GitHub repository connected through the GitHub App, and this one is not connected.",
   ),
+  [CodeTaskBlockerType.RepositoryTokenRefused]: translationKey(
+    "This repository's Git server refused its access token, so AI cannot work in it. It may have expired: replace it in the repository's settings.",
+  ),
+  [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
+    "This repository's Git server is on a network OneUptime does not reach, so a global Runner cannot work in it. Pick one of your own Runners on that network.",
+  ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "AI needs an LLM provider for this project.",
   ),
@@ -357,6 +363,20 @@ export const CODE_TASK_BLOCKER_SENTENCES: Partial<
     "This project does not use global Runners, so this repository needs one of your Runners.",
   ),
 };
+
+/*
+ * RepositoryNotConnected for a repository that is not on GitHub (GitLab,
+ * Forgejo, Gitea, a Git server): its connection is gone, and the GitHub
+ * App has nothing to do with it.
+ */
+export const CODE_TASK_REPOSITORY_CONNECTION_GONE: string = translationKey(
+  "This repository is no longer connected to its Git server, so AI cannot work in it. Connect it again from Code's Repositories.",
+);
+
+// The fix that goes with it: Repositories, where any host connects.
+export const CODE_TASK_CONNECT_REPOSITORIES: string = translationKey(
+  "Connect repositories",
+);
 
 /*
  * RunnerNotOnline when the server names the Runner (CodeTaskBlocker
@@ -415,6 +435,19 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
     pageMap: PageMap.CODE_REPOSITORIES,
     title: translationKey("Connect GitHub"),
   },
+  /*
+   * The repository's settings, whose Repository Details - on top, never
+   * folded - say how it connects, with Replace access token.
+   */
+  [CodeTaskBlockerType.RepositoryTokenRefused]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Replace access token"),
+  },
+  [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: {
+    pageMap: PageMap.CODE_REPOSITORY_VIEW_SETTINGS,
+    title: translationKey("Pick a Runner"),
+    setting: CodeRepositorySetting.Runner,
+  },
   [CodeTaskBlockerType.NoLlmProvider]: {
     pageMap: PageMap.SETTINGS_AI_LLM_PROVIDERS,
     title: translationKey("Add an LLM provider"),
@@ -438,6 +471,8 @@ export const CODE_TASK_BLOCKER_FIXES: Partial<
 
 // The fixes that open the repository's own settings, which need its id.
 export const CODE_TASK_REPOSITORY_SETTINGS_FIXES: Array<CodeTaskBlockerType> = [
+  CodeTaskBlockerType.RepositoryTokenRefused,
+  CodeTaskBlockerType.RepositoryNeedsOwnRunner,
   CodeTaskBlockerType.NoAgent,
   CodeTaskBlockerType.RunnerNotOnline,
   CodeTaskBlockerType.GlobalRunnersOff,
@@ -456,6 +491,12 @@ export const CODE_TASK_BLOCKER_WHO_CAN_FIX: Partial<
   ),
   [CodeTaskBlockerType.NoLlmProvider]: translationKey(
     "A project admin can add an LLM provider in Project Settings → AI → LLM Providers.",
+  ),
+  [CodeTaskBlockerType.RepositoryTokenRefused]: translationKey(
+    "A project admin can replace the access token in this repository's settings.",
+  ),
+  [CodeTaskBlockerType.RepositoryNeedsOwnRunner]: translationKey(
+    "A project admin can pick this repository's Runner in its settings.",
   ),
   [CodeTaskBlockerType.NoAgent]: translationKey(
     "A project admin can pick this repository's Runner in its settings.",
@@ -507,6 +548,8 @@ export const CODE_PICKER_COPY: {
   branchUnknownDefault: string;
   branchDefaultBadge: string;
   branchesUnreadable: string;
+  branchesUnreadableAnyHost: string;
+  branchesNotRead: string;
   branchesSearchToFindMore: string;
 } = {
   repositoryLabel: translationKey("Repository"),
@@ -522,6 +565,17 @@ export const CODE_PICKER_COPY: {
   branchDefaultBadge: translationKey("Default"),
   branchesUnreadable: translationKey(
     "OneUptime could not read this repository's branches from GitHub.",
+  ),
+  // The same, for a repository on GitLab, Forgejo, Gitea or a Git server.
+  branchesUnreadableAnyHost: translationKey(
+    "OneUptime could not read this repository's branches from its Git server.",
+  ),
+  /*
+   * A Git server only the project's own Runner reaches: OneUptime never
+   * reads its branches, so a task starts from its main branch.
+   */
+  branchesNotRead: translationKey(
+    "OneUptime does not read this repository's branches: only your Runner reaches its Git server. A task starts from its main branch.",
   ),
   branchesSearchToFindMore: translationKey(
     "Type a branch's name to find one that is not listed.",
@@ -547,6 +601,14 @@ export const CODE_TASK_DIFF_STAT_LABEL: string = translationKey(
  */
 export const CODE_TASK_START_FOOTER: string = translationKey(
   "AI works on a new branch and opens a pull request for you to review when it changes code. Nothing is merged on its own.",
+);
+
+/*
+ * The same, for a Git repository: OneUptime opens no pull request there,
+ * so the branch is pushed for the person to open one from.
+ */
+export const CODE_TASK_START_FOOTER_BRANCH_ONLY: string = translationKey(
+  "AI works on a new branch and pushes it when it changes code, for you to open a pull request from. Nothing is merged on its own.",
 );
 
 /*

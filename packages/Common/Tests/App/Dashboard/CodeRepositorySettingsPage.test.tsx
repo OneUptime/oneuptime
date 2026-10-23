@@ -646,7 +646,14 @@ describe("on top, the repository itself; every other setting under More settings
 
     expect(keys).toEqual([...FOLDED_CARDS, "commands"]);
     expect(keys).toEqual([...CODE_REPOSITORY_SETTINGS_IN_ORDER]);
-    expect(Object.values(CodeRepositorySetting)).toEqual(keys);
+    /*
+     * Every place but Branches, a Git repository's Pull Requests: a GitHub
+     * repository - this one - never has it.
+     */
+    expect(Object.values(CodeRepositorySetting)).toEqual([
+      ...keys,
+      CodeRepositorySetting.Branches,
+    ]);
 
     // Every one is a card with that id, in the fold: a link can land on it.
     for (const key of keys) {

@@ -4,14 +4,21 @@ import CodeApi, {
   CodeRepositoryListItem,
 } from "../../Components/Code/CodeApi";
 import {
+  areAllOnGitHub,
   CODE_REPOSITORIES_COPY,
   CodeRepositoryGroups,
   groupRepositories,
   isFoundOnlyUnderNotConnected,
   isGitHubDisconnected,
+  isGitHubRepository,
   REPOSITORY_SEARCH_THRESHOLD,
 } from "../../Components/Code/CodeRepositoriesList";
 import CodeRepositoriesTable from "../../Components/Code/CodeRepositoriesTable";
+import {
+  useCodeConnectDialog,
+  UseCodeConnectDialog,
+} from "../../Components/Code/CodeConnectDialog";
+import { getCodeConnectLock } from "../../Components/CodeRepository/GitHubConnectLock";
 import { CODE_GITHUB_NOT_CONNECTED } from "../../Components/Code/CodeTaskCopy";
 import {
   ConnectGitHubEmptyState,
@@ -75,22 +82,27 @@ export const CODE_REPOSITORIES_NOT_CONNECTED_TEST_ID: string =
   "code-repositories-not-connected";
 
 /*
- * Code's Repositories: the GitHub repositories of the project, drawn as
- * every list in OneUptime is - a card with the shared table, its header's
- * search, its main button (Connect repositories) and ⋯.
+ * Code's Repositories: the repositories of the project - on GitHub, GitLab,
+ * Forgejo or Gitea, or any Git server, each with its host's mark - drawn as
+ * every list in OneUptime is: a card with the shared table, its header's
+ * search, its main button (Connect repositories, which asks where the code
+ * is) and ⋯.
  *
  * The repositories AI can work in are the list, most recently active
- * first. Those the project's GitHub App does not reach any more - imported
- * by an installation the project has since left, or one the app was taken
- * off - are listed apart, below it, folded: how many there are, why AI
- * cannot work in them, and Connect GitHub, which puts every one the
- * installation reaches back on it. They used to sit among the others, each
- * with a "Not connected" pill, so a project with one connected repository
- * and fourteen others saw its one at the end of the list.
+ * first. Those OneUptime does not reach any more - the project's GitHub
+ * App no longer reaching them, their server refusing their access token,
+ * or their connection gone - are listed apart, below it, folded: how many
+ * there are, why AI cannot work in them, and Connect GitHub for those on
+ * GitHub, which puts every one the installation reaches back on it (one
+ * on another host has Replace access token in its settings). They used to
+ * sit among the others, each with a "Not connected" pill, so a project
+ * with one connected repository and fourteen others saw its one at the
+ * end of the list.
  *
  * With none connected at all, the list says GitHub is not connected and
- * offers Connect GitHub; with no repository yet, what Code is for and
- * Connect GitHub.
+ * offers Connect GitHub (or, when some are on another host, that
+ * OneUptime cannot reach them); with no repository yet, what Code is for
+ * and where to connect from.
  */
 const CodeRepositoriesPage: FunctionComponent<
   PageComponentProps
@@ -125,6 +137,15 @@ const CodeRepositoriesPage: FunctionComponent<
   };
 
   const connection: UseGitHubConnect = useGitHubConnect({
+    onConnected: reload,
+  });
+
+  /*
+   * Connect repositories opens the connect dialog: where the code is first -
+   * GitHub, GitLab, Forgejo or Gitea, any Git server - then what that needs.
+   */
+  const connectDialog: UseCodeConnectDialog = useCodeConnectDialog({
+    gitHub: connection,
     onConnected: reload,
   });
 
@@ -182,16 +203,24 @@ const CodeRepositoriesPage: FunctionComponent<
   const getHeaderToolbar: (isDisconnected: boolean) => ReactElement = (
     isDisconnected: boolean,
   ): ReactElement => {
+    const connectLock: { isLocked: boolean; reason?: string | undefined } =
+      getCodeConnectLock();
+
+    /*
+     * With none connected, the list itself offers Connect GitHub: one way
+     * to connect, not two - unless some of them are not on GitHub, which
+     * the dialog connects (and Connect GitHub would not).
+     */
     const connectButton: CardButtonSchema | null =
-      connection.isGitHubAppConfigured && !isDisconnected
+      !isDisconnected || !areAllOnGitHub(repositories)
         ? {
             title: "Connect repositories",
             icon: IconProp.Add,
             buttonStyle: ButtonStyleType.NORMAL,
-            disabled: connection.connectLock.isLocked,
-            tooltip: connection.connectLock.reason,
+            disabled: connectLock.isLocked,
+            tooltip: connectLock.reason,
             onClick: (): void => {
-              connection.connect();
+              connectDialog.open();
             },
           }
         : null;
@@ -330,7 +359,8 @@ const CodeRepositoriesPage: FunctionComponent<
 
       if (
         connection.isGitHubAppConfigured &&
-        !connection.connectLock.isLocked
+        !connection.connectLock.isLocked &&
+        repositories.some(isGitHubRepository)
       ) {
         actions.push({
           title: "Connect GitHub",
@@ -348,7 +378,11 @@ const CodeRepositoriesPage: FunctionComponent<
         title: translator.translateTemplate(
           CODE_REPOSITORIES_COPY.noneConnectedTitle,
         ),
-        description: translator.translateTemplate(CODE_GITHUB_NOT_CONNECTED),
+        description: translator.translateTemplate(
+          areAllOnGitHub(repositories)
+            ? CODE_GITHUB_NOT_CONNECTED
+            : CODE_REPOSITORIES_COPY.notConnectedSummaryAnyHost,
+        ),
         actions: actions,
         ...(connection.isGitHubAppConfigured && connection.connectLock.isLocked
           ? {
@@ -408,7 +442,12 @@ const CodeRepositoriesPage: FunctionComponent<
     }
 
     if (repositories.length === 0) {
-      return <ConnectGitHubEmptyState connection={connection} />;
+      return (
+        <ConnectGitHubEmptyState
+          connection={connection}
+          onConnectOtherHost={connectDialog.open}
+        />
+      );
     }
 
     const isDisconnected: boolean = isGitHubDisconnected(repositories);
@@ -448,7 +487,11 @@ const CodeRepositoriesPage: FunctionComponent<
                 isSet: false,
               },
             ]}
-            summary={CODE_REPOSITORIES_COPY.notConnectedSummary}
+            summary={
+              areAllOnGitHub(allGroups.notConnected)
+                ? CODE_REPOSITORIES_COPY.notConnectedSummary
+                : CODE_REPOSITORIES_COPY.notConnectedSummaryAnyHost
+            }
             isCollapsed={!isNotConnectedOpen}
             onToggle={(isCollapsed: boolean): void => {
               setIsNotConnectedOpen(!isCollapsed);
@@ -465,14 +508,20 @@ const CodeRepositoriesPage: FunctionComponent<
                   className="min-w-0 flex-1 basis-64 text-sm leading-6 text-gray-600"
                 >
                   {translator.translateText(
-                    CODE_REPOSITORIES_COPY.notConnectedExplanation,
+                    areAllOnGitHub(allGroups.notConnected)
+                      ? CODE_REPOSITORIES_COPY.notConnectedExplanation
+                      : CODE_REPOSITORIES_COPY.notConnectedExplanationAnyHost,
                   )}
                 </p>
                 {/*
                  * With none connected, the list above already offers Connect
-                 * GitHub: one way to connect, not two.
+                 * GitHub: one way to connect, not two. Only for repositories
+                 * on GitHub: one on another host connects again in its own
+                 * settings (Replace access token).
                  */}
-                {connection.isGitHubAppConfigured && !isDisconnected ? (
+                {connection.isGitHubAppConfigured &&
+                !isDisconnected &&
+                allGroups.notConnected.some(isGitHubRepository) ? (
                   connection.connectLock.isLocked ? (
                     <p
                       data-testid="code-not-connected-lock"
@@ -527,6 +576,7 @@ const CodeRepositoriesPage: FunctionComponent<
   return (
     <div>
       {connection.notices}
+      {connectDialog.elements}
       {renderBody()}
     </div>
   );

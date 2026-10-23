@@ -6,7 +6,8 @@ import {
   REPOSITORIES_PAGE_SIZE,
 } from "./CodeRepositoriesList";
 import CodeTimeAgo from "./CodeTimeAgo";
-import { GitHubMark } from "./GitHubConnect";
+import CodeHostMark from "./CodeHostMark";
+import { getRepositoryHostNote } from "./CodeHostCopy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Link from "Common/UI/Components/Link/Link";
 import Table from "Common/UI/Components/Table/Table";
@@ -32,8 +33,10 @@ import React, {
  * OneUptime is drawn: the shared Table, inside a card - its header row, its
  * rows, a phone's cards, its footer and pages. Each row is one repository:
  *
- *   Repository     the GitHub mark, its name and GitHub's organization/name,
- *                  its description under them;
+ *   Repository     its host's mark (GitHub, GitLab, Forgejo, Gitea, Git), its
+ *                  name and its organization/name - with its server, when
+ *                  that is not the host's public one - its description
+ *                  under them, and a refused access token said;
  *   Tasks          how many, and its open pull requests - with what needs
  *                  someone (AI at work, a question waiting) under them;
  *   Last Activity  when anything last happened in it.
@@ -49,7 +52,7 @@ export interface ComponentProps {
   repositories: Array<CodeRepositoryListItem>;
   // What the table shows with none to list.
   emptyState?: TableEmptyStateProps | undefined;
-  // A repository GitHub does not reach is drawn quieter: its mark grey.
+  // A repository OneUptime does not reach is drawn quieter: its mark grey.
   isNotConnected?: boolean | undefined;
   // The list is on its way: the table's own rows in the making.
   isLoading?: boolean | undefined;
@@ -186,6 +189,12 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
       contentClassName: CODE_REPOSITORY_COLUMN_CLASS_NAME,
       getElement: (repository: CodeRepositoryListItem): ReactElement => {
         const fullName: string = getRepositoryFullName(repository);
+        const hostNote: string = getRepositoryHostNote(repository);
+        const shownFullName: string = [fullName, hostNote]
+          .filter((part: string): boolean => {
+            return Boolean(part);
+          })
+          .join(" · ");
 
         return (
           <div className="flex min-w-0 items-start gap-3">
@@ -197,7 +206,11 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                   : "bg-gray-900 text-white"
               }`}
             >
-              <GitHubMark className="h-4 w-4" />
+              <CodeHostMark
+                provider={repository.provider}
+                hostProduct={repository.connection?.hostProduct}
+                className="h-4 w-4"
+              />
             </span>
             <span
               data-testid="code-repository-text"
@@ -217,12 +230,22 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
                  * organization/name and the description under it are the
                  * quieter facts, in the regular weight.
                  */}
-                {fullName && fullName !== repository.name ? (
+                {shownFullName && shownFullName !== repository.name ? (
                   <span
                     data-testid="code-repository-full-name"
                     className={`truncate text-xs ${CODE_REPOSITORY_ROW_FACT_CLASS_NAME}`}
                   >
-                    {fullName}
+                    {shownFullName}
+                  </span>
+                ) : (
+                  <></>
+                )}
+                {repository.connection?.isTokenRefused ? (
+                  <span
+                    data-testid="code-repository-token-refused"
+                    className="inline-flex items-center whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20"
+                  >
+                    {translator.translateText("Token refused")}
                   </span>
                 ) : (
                   <></>

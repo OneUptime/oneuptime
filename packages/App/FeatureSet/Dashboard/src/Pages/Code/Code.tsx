@@ -10,7 +10,13 @@ import CodeAskBox, {
   CODE_COLUMN_CLASS_NAME,
 } from "../../Components/Code/CodeAskBox";
 import { CodeConnectGitHubFix } from "../../Components/Code/CodeBlockerNotice";
-import CodeTaskList from "../../Components/Code/CodeTaskList";
+import CodeTaskList, {
+  CodeTaskRepositoryHost,
+} from "../../Components/Code/CodeTaskList";
+import {
+  useCodeConnectDialog,
+  UseCodeConnectDialog,
+} from "../../Components/Code/CodeConnectDialog";
 import {
   ConnectGitHubEmptyState,
   useGitHubConnect,
@@ -28,6 +34,32 @@ import React, {
   useMemo,
   useState,
 } from "react";
+
+/*
+ * Where each repository is hosted, by id, for the mark beside its name on
+ * task rows across repositories.
+ */
+export const getRepositoryHosts: (
+  repositories: Array<CodeRepositoryListItem>,
+) => Map<string, CodeTaskRepositoryHost> = (
+  repositories: Array<CodeRepositoryListItem>,
+): Map<string, CodeTaskRepositoryHost> => {
+  return new Map<string, CodeTaskRepositoryHost>(
+    repositories.map(
+      (
+        repository: CodeRepositoryListItem,
+      ): [string, CodeTaskRepositoryHost] => {
+        return [
+          repository.id,
+          {
+            provider: repository.provider,
+            hostProduct: repository.connection?.hostProduct,
+          },
+        ];
+      },
+    ),
+  );
+};
 
 // The repositories' names by id, for task rows across repositories.
 export const getRepositoryNames: (
@@ -73,7 +105,9 @@ export const getConnectGitHubFix: (
  * (Repositories), and something to pick here, not what the page is about.
  *
  * With no repository yet, the page is one thing: what Code is for, and
- * Connect GitHub. GitHub sends the browser back here once it is connected.
+ * Connect GitHub - with GitLab, Forgejo or Gitea and any Git server under
+ * it, each opening the connect dialog. GitHub sends the browser back here
+ * once it is connected; the others connect in the dialog.
  */
 const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -105,6 +139,15 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     },
   });
 
+  const connectDialog: UseCodeConnectDialog = useCodeConnectDialog({
+    gitHub: connection,
+    onConnected: () => {
+      load().catch(() => {
+        // handled inside load
+      });
+    },
+  });
+
   useEffect(() => {
     if (!isPlanAccessible) {
       setIsLoading(false);
@@ -122,6 +165,10 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const repositoryNames: Map<string, string> = useMemo(() => {
     return getRepositoryNames(repositories);
+  }, [repositories]);
+
+  const repositoryHosts: Map<string, CodeTaskRepositoryHost> = useMemo(() => {
+    return getRepositoryHosts(repositories);
   }, [repositories]);
 
   /*
@@ -156,6 +203,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <CodeTaskList
             scope={{ allRepositories: true }}
             repositoryNames={repositoryNames}
+            repositoryHosts={repositoryHosts}
             onCount={(count: number) => {
               setTaskCount(count);
             }}
@@ -220,7 +268,10 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     if (!data || data.repositories.length === 0) {
       return (
         <div className={`${CODE_COLUMN_CLASS_NAME} pt-2 sm:pt-6`}>
-          <ConnectGitHubEmptyState connection={connection} />
+          <ConnectGitHubEmptyState
+            connection={connection}
+            onConnectOtherHost={connectDialog.open}
+          />
           {/* Tasks that never found a repository stay readable. */}
           {data && data.tasksWithoutRepositoryCount > 0 ? renderTasks() : <></>}
         </div>
@@ -255,6 +306,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <div className="space-y-5">
       <AIPlanGate />
       {connection.notices}
+      {connectDialog.elements}
       {renderBody()}
     </div>
   );
