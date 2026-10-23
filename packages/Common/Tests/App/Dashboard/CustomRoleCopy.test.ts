@@ -1,15 +1,23 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  API_KEY_COUNT_TEMPLATE,
+  APPLIED_PERMISSION_COUNT_TEMPLATE,
+  getApiKeyRolePermissionCountText,
   getCustomRoleCardDescription,
   getPermissionCountText,
   getRoleDeleteReachSentence,
   getRoleReachSentence,
+  getRoleRemoveFromApiKeySentence,
   getRoleRemoveFromTeamSentence,
+  isRoleGivenToAnyone,
+  NO_PERMISSION_APPLIES_TO_KEY,
   NO_PERMISSIONS_YET,
   PEOPLE_COUNT_TEMPLATE,
   PERMISSION_COUNT_TEMPLATE,
   ROLE_DELETE_REACHES_NO_ONE,
+  ROLE_DELETE_REACHES_NOTHING,
   ROLE_GIVEN_TO_NO_TEAM,
+  ROLE_GIVEN_TO_NOTHING,
   TEAM_COUNT_TEMPLATE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleCopy";
 import {
@@ -50,6 +58,17 @@ const GERMAN_WORDS: Record<string, string> = {
     "{{team}} verliert die Berechtigungen von {{role}}. Ihre anderen Rollen und Berechtigungen bleiben.",
   "No team has this role right now, so no one loses access.":
     "Kein Team hat diese Rolle gerade, also verliert niemand Zugriff.",
+  "{{count}} API keys": "{{count}} API-Schlüssel",
+  "{{count}} API keys_one": "{{count}} API-Schlüssel",
+  "{{teams}} and {{apiKeys}}": "{{teams}} und {{apiKeys}}",
+  "No team or API key has this role right now, so nothing loses access.":
+    "Gerade hat kein Team und kein API-Schlüssel diese Rolle, also verliert niemand Zugriff.",
+  "{{applied}} of its {{count}} permissions apply to this key":
+    "{{applied}} ihrer {{count}} Berechtigungen gelten für diesen Schlüssel",
+  "None of its permissions apply to this key":
+    "Keine ihrer Berechtigungen gilt für diesen Schlüssel",
+  "{{apiKey}} loses the permissions of {{role}}. Its other roles and permissions stay.":
+    "{{apiKey}} verliert die Berechtigungen von {{role}}. Seine anderen Rollen und Berechtigungen bleiben.",
 };
 
 const GERMAN: Translator = createTranslator(
@@ -224,6 +243,245 @@ describe("who deleting a role takes access from", () => {
     expect(
       getRoleDeleteReachSentence(GERMAN, { teamCount: 1, memberCount: 3 }),
     ).toBe("Sie ist gerade an 1 Team (3 Personen) vergeben.");
+  });
+});
+
+describe("who a role reaches, API keys counted", () => {
+  test("names the teams, the people on them and the API keys", () => {
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 2,
+        memberCount: 5,
+        apiKeyCount: 3,
+      }),
+    ).toBe(
+      "Given to 2 teams (5 people) and 3 API keys. A change here changes what they can do at once.",
+    );
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 1,
+        memberCount: 1,
+        apiKeyCount: 1,
+      }),
+    ).toBe("It is given to 1 team (1 person) and 1 API key right now.");
+  });
+
+  test("names the keys alone when no team has the role", () => {
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 2,
+      }),
+    ).toBe(
+      "Given to 2 API keys. A change here changes what they can do at once.",
+    );
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 1,
+      }),
+    ).toBe("It is given to 1 API key right now.");
+  });
+
+  test("names the teams only when no key has it, or the reader may not read the keys", () => {
+    for (const apiKeyCount of [0, null, undefined]) {
+      expect(
+        getRoleReachSentence(ENGLISH, {
+          teamCount: 2,
+          memberCount: 5,
+          apiKeyCount: apiKeyCount,
+        }),
+      ).toBe(
+        "Given to 2 teams (5 people). A change here changes what they can do at once.",
+      );
+    }
+  });
+
+  test("a role nothing has says so - naming keys only for a reader who may read them", () => {
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+      }),
+    ).toBe(ROLE_GIVEN_TO_NOTHING);
+    expect(ROLE_GIVEN_TO_NOTHING).toBe(
+      "No team or API key has this role yet. Give it to one below.",
+    );
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+      }),
+    ).toBe(ROLE_DELETE_REACHES_NOTHING);
+
+    // The keys are not the reader's to know about: the team sentences, as before.
+    expect(
+      getRoleReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: null,
+      }),
+    ).toBe(ROLE_GIVEN_TO_NO_TEAM);
+    expect(
+      getRoleDeleteReachSentence(ENGLISH, {
+        teamCount: 0,
+        memberCount: 0,
+      }),
+    ).toBe(ROLE_DELETE_REACHES_NO_ONE);
+  });
+
+  test("whether anything has the role: a team or a key", () => {
+    expect(
+      isRoleGivenToAnyone({ teamCount: 0, memberCount: 0, apiKeyCount: 1 }),
+    ).toBe(true);
+    expect(
+      isRoleGivenToAnyone({ teamCount: 1, memberCount: 0, apiKeyCount: null }),
+    ).toBe(true);
+    expect(
+      isRoleGivenToAnyone({ teamCount: 0, memberCount: 0, apiKeyCount: 0 }),
+    ).toBe(false);
+    expect(isRoleGivenToAnyone({ teamCount: 0, memberCount: null })).toBe(
+      false,
+    );
+  });
+
+  test("is one sentence in the reader's language, the key count in it too", () => {
+    expect(API_KEY_COUNT_TEMPLATE).toEqual({
+      one: "{{count}} API key",
+      other: "{{count}} API keys",
+    });
+    expect(
+      getRoleReachSentence(GERMAN, {
+        teamCount: 2,
+        memberCount: 5,
+        apiKeyCount: 3,
+      }),
+    ).toBe(
+      "Vergeben an 2 Teams (5 Personen) und 3 API-Schlüssel. Eine Änderung hier ändert sofort, was sie tun können.",
+    );
+    expect(
+      getRoleDeleteReachSentence(GERMAN, {
+        teamCount: 0,
+        memberCount: 0,
+        apiKeyCount: 0,
+      }),
+    ).toBe(
+      "Gerade hat kein Team und kein API-Schlüssel diese Rolle, also verliert niemand Zugriff.",
+    );
+  });
+});
+
+describe("how much of a role an API key holds", () => {
+  test("every permission: the role's count, as everywhere else", () => {
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 6,
+        ownedCount: 0,
+      }),
+    ).toBe("6 permissions");
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 0,
+        ownedCount: 0,
+      }),
+    ).toBe(NO_PERMISSIONS_YET);
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: undefined,
+        ownedCount: 0,
+      }),
+    ).toBe(NO_PERMISSIONS_YET);
+  });
+
+  test("some limited to what someone owns: how many of them apply to the key", () => {
+    expect(APPLIED_PERMISSION_COUNT_TEMPLATE.other).toBe(
+      "{{applied}} of its {{count}} permissions apply to this key",
+    );
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 6,
+        ownedCount: 2,
+      }),
+    ).toBe("4 of its 6 permissions apply to this key");
+    expect(
+      getApiKeyRolePermissionCountText(GERMAN, {
+        permissionCount: 6,
+        ownedCount: 2,
+      }),
+    ).toBe("4 ihrer 6 Berechtigungen gelten für diesen Schlüssel");
+  });
+
+  test("all of them limited to what someone owns: none applies", () => {
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 2,
+        ownedCount: 2,
+      }),
+    ).toBe(NO_PERMISSION_APPLIES_TO_KEY);
+    expect(
+      getApiKeyRolePermissionCountText(GERMAN, {
+        permissionCount: 2,
+        ownedCount: 2,
+      }),
+    ).toBe("Keine ihrer Berechtigungen gilt für diesen Schlüssel");
+  });
+
+  test("a count of owned permissions out of range is held to the role's own", () => {
+    // More owned than held (a count read a moment apart): none applies.
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 2,
+        ownedCount: 5,
+      }),
+    ).toBe(NO_PERMISSION_APPLIES_TO_KEY);
+    // A negative count is none.
+    expect(
+      getApiKeyRolePermissionCountText(ENGLISH, {
+        permissionCount: 3,
+        ownedCount: -1,
+      }),
+    ).toBe("3 permissions");
+  });
+
+  test("a role's card on a key's picker takes the key's words for its permissions", () => {
+    expect(
+      getCustomRoleCardDescription(ENGLISH, {
+        description: "Works incidents.",
+        permissionCount: 6,
+        permissionsText: "4 of its 6 permissions apply to this key",
+      }),
+    ).toBe("4 of its 6 permissions apply to this key · Works incidents.");
+    expect(
+      getCustomRoleCardDescription(ENGLISH, {
+        permissionCount: 6,
+        permissionsText: "",
+      }),
+    ).toBe("6 permissions");
+  });
+});
+
+describe("taking a role from an API key", () => {
+  test("says the key loses the role's permissions and keeps the rest", () => {
+    expect(
+      getRoleRemoveFromApiKeySentence(ENGLISH, {
+        roleName: "Incident Responder",
+        apiKeyName: "Deploy bot",
+      }),
+    ).toBe(
+      "Deploy bot loses the permissions of Incident Responder. Its other roles and permissions stay.",
+    );
+    expect(
+      getRoleRemoveFromApiKeySentence(GERMAN, {
+        roleName: "Incident Responder",
+        apiKeyName: "Deploy bot",
+      }),
+    ).toBe(
+      "Deploy bot verliert die Berechtigungen von Incident Responder. Seine anderen Rollen und Berechtigungen bleiben.",
+    );
   });
 });
 
