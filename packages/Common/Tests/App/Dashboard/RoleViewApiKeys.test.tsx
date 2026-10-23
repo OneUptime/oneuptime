@@ -365,8 +365,8 @@ describe("a custom role's API keys", () => {
     const link: HTMLElement = await within(card).findByRole("link", {
       name: "Deploy bot",
     });
-    expect(link.getAttribute("href")).toContain(
-      `/settings/api-keys/${DEPLOY_KEY_ID}`,
+    expect(link.getAttribute("href")).toBe(
+      `/dashboard/${PROJECT_ID}/settings/api-keys/${DEPLOY_KEY_ID}`,
     );
 
     // Read by the role and the project.

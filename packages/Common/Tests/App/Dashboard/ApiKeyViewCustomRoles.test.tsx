@@ -410,7 +410,9 @@ describe("an API key's custom roles", () => {
     const link: HTMLElement = await within(card).findByRole("link", {
       name: "Incident Responder",
     });
-    expect(link.getAttribute("href")).toContain(`/teams/roles/${RESPONDER_ID}`);
+    expect(link.getAttribute("href")).toBe(
+      `/dashboard/${PROJECT_ID}/teams/roles/${RESPONDER_ID}`,
+    );
     expect(
       await within(card).findByText("4 of its 6 permissions apply to this key"),
     ).toBeInTheDocument();
@@ -418,7 +420,7 @@ describe("an API key's custom roles", () => {
     // The description says where roles are made, as a link.
     expect(
       within(card).getByRole("link", { name: "Roles" }).getAttribute("href"),
-    ).toContain("/teams/roles");
+    ).toBe(`/dashboard/${PROJECT_ID}/teams/roles`);
     expect(
       within(card).getByText(/Changing a role changes this key too\./),
     ).toBeInTheDocument();
