@@ -45,7 +45,8 @@
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
     "ts-jest": "^29.4.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "web-vitals": "6.2.3"
   },
   "overrides": {
     "@istanbuljs/load-nyc-config": {

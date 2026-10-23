@@ -47,6 +47,11 @@ The player's own layout is measured, not just present:
   the track stays, and the height goes to the recording.
 - **The end of a recording.** `?neighbour=newer` gives the person a later
   recording, so the ended card offers "Next session by this user" and opens it.
+- **Web vitals (#5181).** `?vitals=prerender` puts the vitals of a page Chrome
+  prerendered into chunk 0, as the recorder reports them: FCP, LCP and TTFB
+  measured from when the visitor opened the page, and a CLS reported again
+  when it grew. The Perf tab's detail names the prerendered view, and the two
+  CLS rows link to each other - the link opens the other row.
 
 The Replay Policy page is covered too: the policy card must settle after its
 mount reads and stay loaded (a page that hands it a new model id per render

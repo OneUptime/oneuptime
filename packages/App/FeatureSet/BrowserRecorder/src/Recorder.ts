@@ -1027,7 +1027,7 @@ export default class Recorder {
         return;
       }
 
-      this.onBfcacheRestore();
+      this.onBfcacheRestore(event.timeStamp);
     };
 
     this.focusInListener = (event: Event): void => {
@@ -3055,8 +3055,14 @@ export default class Recorder {
    *   4. Only then is the seal lifted, the snapshot taken, and the restore
    *      disclosed - snapshot FIRST, so chunk 0 is a seek anchor rather
    *      than a marker followed by a snapshot mid-chunk.
+   *   5. The restored page's own web vitals start after the marker, in the
+   *      new tab: to the visitor a restore is a new page view, and the
+   *      web-vitals library reports one set of vitals for each.
+   *
+   * pageShowTimeStamp is the pageshow event's timeStamp: when the restore
+   * began, on the performance clock the vitals are measured on.
    */
-  private onBfcacheRestore(): void {
+  private onBfcacheRestore(pageShowTimeStamp: number): void {
     if (this.stopped || !this.started) {
       return;
     }
@@ -3105,6 +3111,9 @@ export default class Recorder {
     this.emitCustomEvent(BFCACHE_CUSTOM_EVENT_TAG, {
       restoredAtUnixMs: now,
     });
+
+    /* 5. Before the route check, so a URL change splits the restored view. */
+    this.performanceRecorder.noteBfcacheRestore(pageShowTimeStamp);
 
     this.routeRecorder.handle("popstate", this.windowRef);
   }

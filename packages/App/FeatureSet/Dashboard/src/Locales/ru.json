@@ -33357,6 +33357,7 @@
   "Nobody was asked on {{date}}: every member has connected, or was asked in the last {{hours}} hours.": "Nobody was asked on {{date}}: every member has connected, or was asked in the last {{hours}} hours.",
   "OneUptime finds them by their email address, in the teams its app is installed in.": "OneUptime finds them by their email address, in the teams its app is installed in.",
   "OneUptime finds them in Slack by their email address.": "OneUptime finds them in Slack by their email address.",
+  "Prerendered page load (measured from when it was opened)": "Загрузка заранее отрисованной страницы (измеряется с момента открытия)",
   "Send messages": "Send messages",
   "The messages are going out. This takes a few minutes for a large team.": "The messages are going out. This takes a few minutes for a large team.",
   "{{connected}} of {{count}} members connected": "{{connected}} of {{count}} members connected",
