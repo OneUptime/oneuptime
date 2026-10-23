@@ -6,11 +6,17 @@ import ColumnRefusalMessage from "./ColumnRefusalMessage";
 import OwnedScopePermission from "./OwnedScopePermission";
 import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import RelationListPermission from "./RelationListPermission";
+import TablePermission from "./TablePermission";
+import OwnedByFilter, { OwnerTable, OwnerTablesOfKind } from "../OwnedByFilter";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
+import OwnedBy, {
+  OWNED_BY_QUERY_KEY,
+  OwnedByMatch,
+} from "../../../../Types/BaseDatabase/OwnedBy";
 import Columns from "../../../../Types/Database/Columns";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -279,6 +285,21 @@ export default class QueryPermission {
         continue;
       }
 
+      /*
+       * WHO OWNS THE RECORDS (OwnedBy, under "owners") is no column of
+       * theirs: it reads their owner tables. See checkOwnedByPermission.
+       */
+      if (query[key] instanceof OwnedBy) {
+        QueryPermission.checkOwnedByPermission({
+          modelType: modelType,
+          key: key,
+          ownedBy: query[key] as unknown as OwnedBy,
+          props: props,
+        });
+
+        continue;
+      }
+
       if (!canReadOnTheseColumns.columns.includes(key)) {
         if (!tableColumns.includes(key)) {
           throw new BadDataException(
@@ -302,6 +323,92 @@ export default class QueryPermission {
         held: held,
         props: props,
       });
+    }
+  }
+
+  /*
+   * A FILTER BY OWNERS IS A READ OF THE OWNER TABLES.
+   *
+   * `{ owners: OwnedBy }` matches the records some people or teams own, which
+   * is what <Kind>OwnerUser and <Kind>OwnerTeam hold - the people a filter
+   * names are read in the one, the teams in the other, and both when it asks
+   * whether a record has owners at all. So it is held to what listing those
+   * tables by the same owners would be held to: the table's read permission,
+   * no block on it, and the read of the two columns it compares (the record's
+   * key and userId or teamId). Owner rows are read through their record, so
+   * the records this query reaches are already the ones whose owners the
+   * caller may read. Only a kind with owners of its own is filtered by them
+   * (OwnedByFilter), and only under "owners".
+   */
+  private static checkOwnedByPermission(data: {
+    modelType: DatabaseBaseModelType;
+    key: string;
+    ownedBy: OwnedBy;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (data.key !== OWNED_BY_QUERY_KEY) {
+      throw new BadDataException(
+        `A filter by owners goes under "${OWNED_BY_QUERY_KEY}", not "${data.key}".`,
+      );
+    }
+
+    const tables: OwnerTablesOfKind | null = OwnedByFilter.getOwnerTables(
+      data.modelType,
+    );
+
+    if (!tables) {
+      throw OwnedByFilter.getNoOwnersException(data.modelType);
+    }
+
+    const readsEveryOwner: boolean =
+      data.ownedBy.match === OwnedByMatch.AnyOwner ||
+      data.ownedBy.match === OwnedByMatch.NoOwner;
+
+    const tablesRead: Array<OwnerTable> = [];
+
+    if (readsEveryOwner || data.ownedBy.userIds.length > 0) {
+      tablesRead.push(tables.userTable);
+    }
+
+    if (readsEveryOwner || data.ownedBy.teamIds.length > 0) {
+      tablesRead.push(tables.teamTable);
+    }
+
+    for (const table of tablesRead) {
+      TablePermission.checkTableLevelPermissions(
+        table.modelType,
+        data.props,
+        DatabaseRequestType.Read,
+      );
+
+      TablePermission.checkTableLevelBlockPermissions(
+        table.modelType,
+        data.props,
+        DatabaseRequestType.Read,
+      );
+
+      const readableColumns: Columns =
+        ColumnPermissions.getModelColumnsByPermissions(
+          table.modelType,
+          ColumnPermissions.getColumnCheckRows(data.props),
+          DatabaseRequestType.Read,
+        );
+
+      const ownerTable: BaseModel = new table.modelType();
+
+      for (const column of [table.resourceColumnName, table.ownerColumnName]) {
+        if (!readableColumns.columns.includes(column)) {
+          throw new NotAuthorizedException(
+            ColumnRefusalMessage.getRelationQueryRefusal({
+              column: column,
+              relatedModelName: ownerTable.singularName || table.tableName,
+              relationColumn: OWNED_BY_QUERY_KEY,
+              permissions:
+                ownerTable.getColumnAccessControlFor(column)?.read || [],
+            }),
+          );
+        }
+      }
     }
   }
 

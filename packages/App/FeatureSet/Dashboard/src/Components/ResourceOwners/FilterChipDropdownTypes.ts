@@ -52,8 +52,23 @@ export interface FilterChipDropdownOption {
    * gets the color as its background.
    */
   color?: string | undefined;
+  /*
+   * The person or the team the option is (the Owner chip): drawn with the
+   * avatar every owners list gives them (PeopleAvatar), in place of the
+   * initials, colour and icon above, so a person has one colour on the
+   * whole page and a team never reads as somebody. The option's label is
+   * their name.
+   */
+  person?: FilterChipPersonAvatar | undefined;
   /** Optional group key for sectioning options under a heading. */
   group?: string | undefined;
+}
+
+export interface FilterChipPersonAvatar {
+  kind: "user" | "team";
+  // A person's user id, for their profile picture.
+  userId?: string | undefined;
+  hasProfilePicture?: boolean | undefined;
 }
 
 /**

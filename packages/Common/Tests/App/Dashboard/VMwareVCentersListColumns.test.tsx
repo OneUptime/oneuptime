@@ -831,7 +831,9 @@ describe("switched on, the columns say what they always said", () => {
 describe("the rest of VMware's lists", () => {
   /*
    * Archived vCenters never had either column, and does not gain one: an
-   * archived vCenter is found by name and when it was archived.
+   * archived vCenter is found by its name, its owners (the Owner chip, and
+   * the Owners column that shows what it filters on) and when it was
+   * archived.
    */
   test("Archived vCenters shows neither column", async () => {
     const props: CapturedTableProps = await renderList(
@@ -850,6 +852,7 @@ describe("the rest of VMware's lists", () => {
       "Name",
       "Last Seen",
       "Labels",
+      "Owners",
       "Archived At",
       "Archived By",
     ]);

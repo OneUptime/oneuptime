@@ -7,8 +7,11 @@ import {
 } from "../../Components/Archive/ArchivedColumns";
 import { WORKFLOW_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
-import Label from "Common/Models/DatabaseModels/Label";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
+import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
+import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green500 } from "Common/Types/BrandColors";
@@ -18,7 +21,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -48,14 +50,44 @@ const WorkflowsArchived: FunctionComponent<
     unarchiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Workflow>({
+    persistKey: WORKFLOWS_ARCHIVED_TABLE_ID,
+    ownerUserModelType: WorkflowOwnerUser,
+    ownerTeamModelType: WorkflowOwnerTeam,
+    resourceIdField: "workflowId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<Workflow>
         modelType={Workflow}
         id={WORKFLOWS_ARCHIVED_TABLE_ID}
         userPreferencesKey={WORKFLOWS_ARCHIVED_TABLE_ID}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<Workflow>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -82,24 +114,6 @@ const WorkflowsArchived: FunctionComponent<
             type: FieldType.Text,
             field: {
               name: true,
-            },
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
             },
           },
           getArchivedAtFilter<Workflow>(),
@@ -158,6 +172,22 @@ const WorkflowsArchived: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: Workflow): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Workflow): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           ...getArchivedColumns<Workflow>(),

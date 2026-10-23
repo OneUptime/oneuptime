@@ -8,6 +8,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import MessageQueue from "Common/Models/DatabaseModels/MessageQueue";
+import MessageQueueOwnerTeam from "Common/Models/DatabaseModels/MessageQueueOwnerTeam";
+import MessageQueueOwnerUser from "Common/Models/DatabaseModels/MessageQueueOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -36,14 +40,44 @@ const MessageQueueArchivedPage: FunctionComponent<
     modelType: MessageQueue,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<MessageQueue>({
+    persistKey: "message-queues-archived-table",
+    ownerUserModelType: MessageQueueOwnerUser,
+    ownerTeamModelType: MessageQueueOwnerTeam,
+    resourceIdField: "messageQueueId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<MessageQueue>
         modelType={MessageQueue}
         id="message-queues-archived-table"
         userPreferencesKey="message-queues-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<MessageQueue>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -174,6 +208,22 @@ const MessageQueueArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: MessageQueue): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: MessageQueue): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

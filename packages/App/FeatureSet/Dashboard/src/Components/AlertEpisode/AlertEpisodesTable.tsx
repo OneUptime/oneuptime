@@ -15,12 +15,15 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "Common/Models/DatabaseModels/AlertEpisodeOwnerUser";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertNoteTemplate from "Common/Models/DatabaseModels/AlertNoteTemplate";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertGroupingRule from "Common/Models/DatabaseModels/AlertGroupingRule";
-import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -90,6 +93,37 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<AlertEpisode>({ modelType: AlertEpisode });
+
+  /*
+   * The page's saved views and the chips' selections in the address travel
+   * under the same key, as on the alerts list; the pages that embed this
+   * table without saved views share one.
+   */
+  const tableUrlStateKey: string =
+    props.saveFilterProps?.tableId || "alert-episodes-table";
+
+  /*
+   * The Owner and Labels chips above the table, as on the alerts list: an
+   * episode can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<AlertEpisode>({
+    persistKey: tableUrlStateKey,
+    ownerUserModelType: AlertEpisodeOwnerUser,
+    ownerTeamModelType: AlertEpisodeOwnerTeam,
+    resourceIdField: "alertEpisodeId",
+    showLabelsFacet: true,
+  });
 
   // Fetch alert states on mount
   useEffect(() => {
@@ -270,8 +304,15 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={AlertEpisode}
         id="alert-episodes-table"
+        urlStateKey={tableUrlStateKey}
         isDeleteable={true}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query || {})}
+        onFetchSuccess={(data: Array<AlertEpisode>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -312,7 +353,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           }) as Array<CardButtonSchema>,
         }}
         noItemsMessage={props.noItemsMessage}
-        emptyState={props.emptyState}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         documentationLink={Route.fromString(ALERT_EPISODES_DOCS_PATH)}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
@@ -401,23 +442,6 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Created",
             type: FieldType.Date,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         selectMoreFields={{
@@ -549,6 +573,22 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: AlertEpisode): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: AlertEpisode): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

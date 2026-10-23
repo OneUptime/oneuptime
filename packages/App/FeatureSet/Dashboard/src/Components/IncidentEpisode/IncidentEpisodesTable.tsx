@@ -15,11 +15,14 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import IncidentEpisodeOwnerTeam from "Common/Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "Common/Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import OwnersCell from "../ResourceOwners/OwnersCell";
+import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import IncidentEpisodeInternalNote from "Common/Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Label from "Common/Models/DatabaseModels/Label";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -87,6 +90,37 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<IncidentEpisode>({ modelType: IncidentEpisode });
+
+  /*
+   * The page's saved views and the chips' selections in the address travel
+   * under the same key, as on the incidents list; the pages that embed this
+   * table without saved views share one.
+   */
+  const tableUrlStateKey: string =
+    props.saveFilterProps?.tableId || "incident-episodes-table";
+
+  /*
+   * The Owner and Labels chips above the table, as on the incidents list: an
+   * episode can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<IncidentEpisode>({
+    persistKey: tableUrlStateKey,
+    ownerUserModelType: IncidentEpisodeOwnerUser,
+    ownerTeamModelType: IncidentEpisodeOwnerTeam,
+    resourceIdField: "incidentEpisodeId",
+    showLabelsFacet: true,
+  });
 
   // Fetch incident states on mount
   useEffect(() => {
@@ -299,8 +333,15 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
         }}
         modelType={IncidentEpisode}
         id="incident-episodes-table"
+        urlStateKey={tableUrlStateKey}
         isDeleteable={true}
-        query={props.query || {}}
+        topContent={filterBar}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(props.query || {})}
+        onFetchSuccess={(data: Array<IncidentEpisode>) => {
+          onResourcesFetched(data);
+        }}
         isEditable={false}
         isCreateable={false}
         isViewable={true}
@@ -312,7 +353,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             "Episodes group related incidents so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
         }}
         noItemsMessage={props.noItemsMessage}
-        emptyState={props.emptyState}
+        emptyState={{ ...props.emptyState, ...facetEmptyState }}
         documentationLink={Route.fromString(INCIDENT_EPISODES_DOCS_PATH)}
         showRefreshButton={true}
         searchableFields={["title", "description"]}
@@ -384,23 +425,6 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             },
             title: "Created",
             type: FieldType.Date,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         selectMoreFields={{
@@ -517,6 +541,22 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             hideOnMobile: true,
             getElement: (item: IncidentEpisode): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: IncidentEpisode): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

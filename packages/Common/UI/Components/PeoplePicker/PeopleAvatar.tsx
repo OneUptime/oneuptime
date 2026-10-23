@@ -18,8 +18,12 @@ import React, { FunctionComponent, ReactElement } from "react";
  * a small people badge, so it never reads as a person.
  */
 
-// "chip" sits inside a picked chip, beside the name.
-export type PeopleAvatarSize = "chip" | "xs" | "sm" | "md" | "lg";
+/*
+ * "chip" sits inside a picked chip, beside the name. "mini" sits in a
+ * filter chip's one line of small text (the Owner chip, "Owner · SRE"): no
+ * ring and no team badge at 16px, where both would be all you saw.
+ */
+export type PeopleAvatarSize = "mini" | "chip" | "xs" | "sm" | "md" | "lg";
 
 export interface PeopleAvatarItem {
   kind: PeoplePickerKind;
@@ -116,6 +120,7 @@ const SIZE_CLASSES: Record<PeopleAvatarSize, string> = {
   sm: "h-8 w-8 text-xs",
   xs: "h-7 w-7 text-[10px]",
   chip: "h-6 w-6 text-[10px]",
+  mini: "h-4 w-4 text-[9px]",
 };
 
 const BADGE_SIZE_CLASSES: Record<PeopleAvatarSize, string> = {
@@ -124,6 +129,7 @@ const BADGE_SIZE_CLASSES: Record<PeopleAvatarSize, string> = {
   sm: "h-3.5 w-3.5 -bottom-0.5 -right-0.5",
   xs: "h-3 w-3 -bottom-0 -right-0",
   chip: "h-3 w-3 -bottom-0.5 -right-0.5",
+  mini: "",
 };
 
 const BADGE_ICON_CLASSES: Record<PeopleAvatarSize, string> = {
@@ -132,6 +138,7 @@ const BADGE_ICON_CLASSES: Record<PeopleAvatarSize, string> = {
   sm: "h-2.5 w-2.5",
   xs: "h-1.5 w-1.5",
   chip: "h-2 w-2",
+  mini: "",
 };
 
 export interface ComponentProps {
@@ -151,11 +158,13 @@ const PeopleAvatar: FunctionComponent<ComponentProps> = (
   ).avatar;
   const sizeClasses: string = SIZE_CLASSES[size];
   const userId: string = item.userId ? item.userId.toString() : "";
+  // The white ring that parts stacked avatars, left off a "mini" one.
+  const isMini: boolean = size === "mini";
 
   if (style.type === "person" && item.hasProfilePicture && userId) {
     return (
       <Image
-        className={`${sizeClasses} flex-shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm bg-gray-100`}
+        className={`${sizeClasses} flex-shrink-0 rounded-full object-cover ${isMini ? "" : "ring-2 ring-white shadow-sm"} bg-gray-100`}
         imageUrl={UserUtil.getProfilePictureRoute(
           new ObjectID(userId),
         ).toString()}
@@ -167,7 +176,7 @@ const PeopleAvatar: FunctionComponent<ComponentProps> = (
   if (style.type === "icon") {
     return (
       <div
-        className={`${sizeClasses} flex flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 ring-2 ring-white`}
+        className={`${sizeClasses} flex flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600 ${isMini ? "" : "ring-2 ring-white"}`}
         aria-hidden="true"
       >
         <Icon icon={style.icon} className="h-1/2 w-1/2" />
@@ -182,14 +191,14 @@ const PeopleAvatar: FunctionComponent<ComponentProps> = (
 
   const avatar: ReactElement = (
     <div
-      className={`${sizeClasses} ${palette.bg} flex flex-shrink-0 select-none items-center justify-center rounded-full font-semibold text-white shadow-sm ring-2 ${palette.ring}`}
+      className={`${sizeClasses} ${palette.bg} flex flex-shrink-0 select-none items-center justify-center rounded-full font-semibold text-white ${isMini ? "" : `shadow-sm ring-2 ${palette.ring}`}`}
       aria-hidden="true"
     >
       {getPeopleInitials(item.name)}
     </div>
   );
 
-  if (style.type !== "group" || props.showGroupBadge === false) {
+  if (style.type !== "group" || props.showGroupBadge === false || isMini) {
     return avatar;
   }
 

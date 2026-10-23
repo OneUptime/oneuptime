@@ -635,18 +635,70 @@ describe("Managing Applications: label rules and owner rules", () => {
 
     walk(path.join(REPO_DIR, DASHBOARD));
 
-    const ownerPages: Array<string> = dashboardFiles.filter(
-      (file: string): boolean => {
+    const ownerPages: Array<string> = dashboardFiles
+      .filter((file: string): boolean => {
         const text: string = fs.readFileSync(file, "utf8");
 
         return (
           text.includes("RumApplicationOwnerUser") ||
           text.includes("RumApplicationOwnerTeam")
         );
-      },
-    );
+      })
+      .map((file: string): string => {
+        return path.relative(path.join(REPO_DIR, DASHBOARD), file);
+      })
+      .sort();
 
-    expect(ownerPages).toEqual([]);
+    /*
+     * The two lists read them - the Owner chip filters by them and the
+     * Owners column shows them, through useResourceOwners - and no page
+     * writes them: no Owners card, no bulk owner actions, and no mention of
+     * the owner tables but their imports and the hook's two arguments.
+     */
+    expect(ownerPages).toEqual([
+      "Pages/Rum/Archived.tsx",
+      "Pages/Rum/RumApplications.tsx",
+    ]);
+
+    for (const page of ownerPages) {
+      const text: string = fs.readFileSync(
+        path.join(REPO_DIR, DASHBOARD, page),
+        "utf8",
+      );
+
+      expect({
+        page,
+        readsThem: text.includes("useResourceOwners<RumApplication>({"),
+        ownersCard: text.includes("OwnersCard"),
+        bulkOwnerActions: text.includes("useBulkOwnerActions"),
+      }).toEqual({
+        page,
+        readsThem: true,
+        ownersCard: false,
+        bulkOwnerActions: false,
+      });
+
+      const ownerTable: RegExp = /RumApplicationOwner(User|Team)/;
+      const ownerTableImport: RegExp =
+        /^import RumApplicationOwner(User|Team) from "Common\/Models\/DatabaseModels\/RumApplicationOwner(User|Team)";$/;
+      const hookArgument: RegExp =
+        /^owner(User|Team)ModelType: RumApplicationOwner(User|Team),$/;
+
+      const otherMentions: Array<string> = text
+        .split("\n")
+        .map((line: string): string => {
+          return line.trim();
+        })
+        .filter((line: string): boolean => {
+          return (
+            ownerTable.test(line) &&
+            !ownerTableImport.test(line) &&
+            !hookArgument.test(line)
+          );
+        });
+
+      expect({ page, otherMentions }).toEqual({ page, otherMentions: [] });
+    }
 
     for (const model of [
       "RumApplicationOwnerUser",

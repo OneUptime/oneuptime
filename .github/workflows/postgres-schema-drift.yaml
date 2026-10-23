@@ -2007,6 +2007,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/IncidentPostmortemStatusPostgres.test.ts --forceExit
 
+      # The Owner chip of every list, on migrated Postgres: each kind with
+      # owners of its own (on-call schedules, monitors, incidents, episodes,
+      # templates, probes, runners and the rest) is listed through its own
+      # route by a member, filtered by a person, a team, both, none of them,
+      # anyone and nobody - a team's members never stand for the team, a
+      # removed owner row is no owner, counts and pages agree - with the owner
+      # tables read through their indexes, and a reader who may not read the
+      # owners refused.
+      - name: Test every list filtered by its owners on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_OWNER_FILTER_TESTS: "true"
+          OWNER_FILTER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          OWNER_FILTER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          OWNER_FILTER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/API/OwnerFilterListsPostgres.test.ts --forceExit
+
       # The LLM provider an AI rule picks, on migrated Postgres: the two
       # migrations on copies of the rule tables that already hold rules (the
       # columns added without a backfill, each rule's index and key built

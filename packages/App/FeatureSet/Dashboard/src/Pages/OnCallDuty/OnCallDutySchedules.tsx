@@ -10,11 +10,15 @@ import ObjectID from "Common/Types/ObjectID";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import OnCallDutyPolicyScheduleOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerTeam";
+import OnCallDutyPolicyScheduleOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import OnCallDutyPolicyScheduleLayer from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayer";
 import OnCallDutyPolicyScheduleLayerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
 import {
@@ -62,6 +66,37 @@ const OnCallDutyPage: FunctionComponent<
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<OnCallDutySchedule>({ modelType: OnCallDutySchedule });
 
+  // Add and remove owners on many schedules at once, as on the policies list.
+  const { bulkActions: ownerBulkActions, modals: ownerBulkActionModals } =
+    useBulkOwnerActions<OnCallDutySchedule>({
+      ownerUserModelType: OnCallDutyPolicyScheduleOwnerUser,
+      ownerTeamModelType: OnCallDutyPolicyScheduleOwnerTeam,
+      resourceIdField: "onCallDutyPolicyScheduleId",
+    });
+
+  /*
+   * The Owner and Labels chips above the table, as on the policies list: a
+   * schedule can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<OnCallDutySchedule>({
+    persistKey: "on-call-schedules-table",
+    ownerUserModelType: OnCallDutyPolicyScheduleOwnerUser,
+    ownerTeamModelType: OnCallDutyPolicyScheduleOwnerTeam,
+    resourceIdField: "onCallDutyPolicyScheduleId",
+    showLabelsFacet: true,
+  });
+
   /*
    * Like Create On-Call Policy, which asks who gets paged first, the form
    * asks for the name and who takes turns, and folds how long each turn
@@ -93,6 +128,14 @@ const OnCallDutyPage: FunctionComponent<
          */
         singularName="On-Call Schedule"
         pluralName="On-Call Schedules"
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery(undefined)}
+        onFetchSuccess={(data: Array<OnCallDutySchedule>) => {
+          onResourcesFetched(data);
+        }}
         saveFilterProps={{
           tableId: "on-call-schedules-table",
         }}
@@ -103,7 +146,7 @@ const OnCallDutyPage: FunctionComponent<
         isCreateable={true}
         isViewable={true}
         bulkActions={{
-          buttons: [...labelBulkActions],
+          buttons: [...labelBulkActions, ...ownerBulkActions],
         }}
         cardProps={{
           title: "On-Call Duty Schedules",
@@ -174,24 +217,6 @@ const OnCallDutyPage: FunctionComponent<
             },
             type: FieldType.Text,
             title: "Description",
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            type: FieldType.EntityArray,
-            title: "Labels",
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         /*
@@ -284,9 +309,26 @@ const OnCallDutyPage: FunctionComponent<
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: OnCallDutySchedule): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
       />
       {labelBulkActionModals}
+      {ownerBulkActionModals}
     </Fragment>
   );
 };

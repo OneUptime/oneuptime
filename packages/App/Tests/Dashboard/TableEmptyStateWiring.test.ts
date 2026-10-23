@@ -118,9 +118,15 @@ describe("tables under a facet bar tell their empty state about the chips", () =
     );
 
     expect(hook).toContain("emptyState: EmptyStateOptions;");
+    /*
+     * And asks the table to leave the chips out while the list has nothing
+     * in it at all (BaseModelTable, hideTopContentWhileEmpty): there is
+     * nothing to filter, and the empty state's way forward is the one thing
+     * to see.
+     */
     expect(hook).toContain(
       squash(
-        "return { isFiltered: hasActiveFilters, onClearFilters: clearAllFacets, };",
+        "return { isFiltered: hasActiveFilters, onClearFilters: clearAllFacets, hideTopContentWhileEmpty: true, };",
       ),
     );
     expect(hook).toContain("[hasActiveFilters, clearAllFacets]");
@@ -196,11 +202,18 @@ describe("tables under a facet bar tell their empty state about the chips", () =
     },
   );
 
+  /*
+   * The episode lists joined them when they got their Owner and Labels
+   * chips: an active-episodes page's "all clear" stays, and a chip that
+   * matches nothing still says so.
+   */
   test.each([
     "Components/Incident/IncidentsTable.tsx",
     "Components/Alert/AlertsTable.tsx",
     "Components/Monitor/MonitorTable.tsx",
     "Components/ScheduledMaintenance/ScheduledMaintenanceTable.tsx",
+    "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
+    "Components/AlertEpisode/AlertEpisodesTable.tsx",
   ])(
     "%s merges its page's own emptyState with the chips' (the chips' last)",
     (file: string) => {
@@ -212,16 +225,6 @@ describe("tables under a facet bar tell their empty state about the chips", () =
       );
     },
   );
-
-  test.each([
-    "Components/IncidentEpisode/IncidentEpisodesTable.tsx",
-    "Components/AlertEpisode/AlertEpisodesTable.tsx",
-  ])("%s passes its page's emptyState on", (file: string) => {
-    const code: string = readDashboardCode(file);
-
-    expect(code).toContain("emptyState?: EmptyStateOptions | undefined;");
-    expect(code).toContain("emptyState={props.emptyState}");
-  });
 });
 
 interface AllClearPage {

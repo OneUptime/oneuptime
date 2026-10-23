@@ -216,7 +216,10 @@ describe("the live SLO list leaves archived SLOs out", () => {
 
 describe("the Archived SLOs page", () => {
   test("lists only archived SLOs, cannot create or edit one in place, and deletes from each row's menu", () => {
-    expect(ARCHIVED_CODE).toContain(squash("query={{ isArchived: true, }}"));
+    // The archived SLOs, with what the Owner and Labels chips pick.
+    expect(ARCHIVED_CODE).toContain(
+      squash("query={mergeFiltersIntoQuery({ isArchived: true, })}"),
+    );
     expect(ARCHIVED_CODE).toContain("isCreateable={false}");
     expect(ARCHIVED_CODE).toContain("isEditable={false}");
     // Delete in each row's ⋯ menu and in Bulk Actions.
