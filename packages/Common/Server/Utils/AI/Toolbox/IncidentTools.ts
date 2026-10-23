@@ -3,6 +3,7 @@ import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTe
 import IncidentOwnerUser from "../../../../Models/DatabaseModels/IncidentOwnerUser";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
+import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -228,14 +229,12 @@ export const QueryIncidentsTool: ObservabilityTool = {
         })
         .join(", ");
 
-      const incidentLabels: string = (incident?.labels || [])
-        .map((label: { name?: string }) => {
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      const incidentLabels: string = sortLabelNames(
+        (incident?.labels || []).map((label: { name?: string }) => {
           return label.name || "";
-        })
-        .filter((value: string) => {
-          return value.length > 0;
-        })
-        .join(", ");
+        }),
+      ).join(", ");
 
       const rows: Array<JSONObject> = incident
         ? [

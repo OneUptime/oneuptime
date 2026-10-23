@@ -1,17 +1,25 @@
 import LabelElement from "./Label";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
 import { useIsTableCell } from "../Table/TableCellContext";
-import TableEmptyValue from "../Table/TableEmptyValue";
 import TableColumnListComponent from "../TableColumnList/TableColumnListComponent";
 import LabelModel from "../../../Models/DatabaseModels/Label";
+import { sortLabels } from "../../../Utils/LabelOrder";
 import useTranslateValue from "../../Utils/Translation";
-import { Translator } from "../../Utils/TranslateTemplate";
-import useTranslator from "../../Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 export interface ComponentProps {
   labels: Array<LabelModel>;
 }
+
+/*
+ * A record's labels, wherever they are drawn - a table's row, a detail
+ * card's field, a rule's details - in natural order by name
+ * (Utils/LabelOrder): numbered labels first, by their numbers ("1.
+ * Category", "2. SubCategory", ... "10. Owner"), then the others
+ * alphabetically, case and accents aside. They used to come in the order
+ * the database joined them, a different one on every row (OneUptime issue
+ * #5183).
+ */
 
 /*
  * A detail card's labels: every one, side by side, wrapping onto the next
@@ -31,62 +39,61 @@ export const DETAIL_LABELS_CLASS_NAME: string =
 export const DETAIL_LABELS_TEST_ID: string = "detail-labels";
 
 /*
- * A table row's labels: the first two side by side on the row's 24px line,
- * and a "+N" for the rest that shows them all when it is pressed - the way
- * GitHub and Linear show a row's labels. They used to stack one per line
- * (the first three and "N more labels"), which made every labelled row of a
- * list three lines tall; and a row with none said "No labels attached." -
- * now a quiet dash (TableEmptyValue), the words kept for a screen reader.
+ * A table row's labels: one under another, as the row's Affected Resources
+ * are listed - the first three, and "N more labels" for the rest (never for
+ * one: a fourth label is shown, TableColumnListComponent), "Show less" to
+ * fold them again.
+ *
+ * "Can you please show labels in a vertical view instead of a horizontal
+ * view, just like we do for affected resources on an incident table?" - the
+ * maintainer, on OneUptime issue #5187: side by side on the row's one line,
+ * "2.SubCategory=Website", "3.Item=Connectivity" and
+ * "4.Business System=Customer Mobile App" ran into each other and past the
+ * column's edge, the second one cut off mid-word and the rest out of sight.
+ * One to a line, each label has the column's whole width: as wide as the
+ * longest label up to the 20rem a value may take, and only a label longer
+ * than that ends in "...", its whole name under the pointer.
  */
-export const TABLE_LABELS_VISIBLE_COUNT: number = 2;
+export const TABLE_LABELS_CLASS_NAME: string = "flex flex-col items-start gap-1";
 
 /*
- * On one line: a cell is as narrow as its widest piece when the table is
- * wider than the card, and two pills that wrapped there made the row two
- * lines tall. "Show all" lets them wrap (TABLE_LABELS_EXPANDED_CLASS_NAME).
+ * Each label on a 24px line of its own, the pill centred on it: the first
+ * sits level with the values in the cells beside it, and the four pixels
+ * between two lines keep two pills from touching.
  */
-export const TABLE_LABELS_CLASS_NAME: string =
-  "flex min-h-6 flex-nowrap items-center gap-1.5";
-
-export const TABLE_LABELS_EXPANDED_CLASS_NAME: string =
-  "flex min-h-6 flex-wrap items-center gap-1.5";
+export const TABLE_LABEL_LINE_CLASS_NAME: string = "flex min-h-6 items-center";
 
 export const TABLE_LABELS_TEST_ID: string = "table-labels";
 
-/*
- * The "+N" and "Show less" chips: as tall as a label's pill, quiet until
- * pointed at, and a real button the keyboard reaches.
- */
-export const TABLE_LABELS_MORE_CLASS_NAME: string =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium leading-4 text-gray-600 ring-1 ring-inset ring-gray-200 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+// What "N more" says after its count: "2 more labels".
+export const TABLE_LABELS_MORE_TEXT: string = "more labels";
 
 const LabelsElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  const translator: Translator = useTranslator();
   const isDetailValue: boolean = useIsDetailValue();
   const isTableCell: boolean = useIsTableCell();
+
   /*
    * Every hook runs before the returns below: a table reuses a row's cell
    * for whatever row lands in its place, so the same element goes from some
    * labels to none and back.
    */
-  const [isShowingAll, setIsShowingAll] = useState<boolean>(false);
-  const moreText: string =
-    props.labels.length > 4
-      ? translateString("more labels") || "more labels"
-      : translateString("more label") || "more label";
+  const labels: Array<LabelModel> = useMemo((): Array<LabelModel> => {
+    return sortLabels<LabelModel>(props.labels);
+  }, [props.labels]);
+
   const noItemsMessage: string =
     translateString("No labels attached.") || "No labels attached.";
 
-  if (isDetailValue && props.labels.length > 0) {
+  if (isDetailValue && labels.length > 0) {
     return (
       <div
         className={DETAIL_LABELS_CLASS_NAME}
         data-testid={DETAIL_LABELS_TEST_ID}
       >
-        {props.labels.map((label: LabelModel, index: number) => {
+        {labels.map((label: LabelModel, index: number) => {
           return (
             <LabelElement
               key={label.id?.toString() || String(index)}
@@ -99,88 +106,33 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   }
 
   if (isTableCell && !isDetailValue) {
-    if (props.labels.length === 0) {
-      return <TableEmptyValue screenReaderText={noItemsMessage} />;
-    }
-
-    const visibleLabels: Array<LabelModel> = isShowingAll
-      ? props.labels
-      : props.labels.slice(0, TABLE_LABELS_VISIBLE_COUNT);
-
-    const hiddenLabels: Array<LabelModel> = props.labels.slice(
-      visibleLabels.length,
-    );
-
+    // Nothing to list is a quiet dash (TableColumnListComponent).
     return (
-      <div
-        className={
-          isShowingAll
-            ? TABLE_LABELS_EXPANDED_CLASS_NAME
-            : TABLE_LABELS_CLASS_NAME
-        }
-        data-testid={TABLE_LABELS_TEST_ID}
-      >
-        {visibleLabels.map((label: LabelModel, index: number) => {
+      <TableColumnListComponent<LabelModel>
+        items={labels}
+        moreText={TABLE_LABELS_MORE_TEXT}
+        noItemsMessage={noItemsMessage}
+        className={TABLE_LABELS_CLASS_NAME}
+        dataTestId={TABLE_LABELS_TEST_ID}
+        getEachElement={(label: LabelModel): ReactElement => {
           return (
-            <LabelElement
-              key={label.id?.toString() || String(index)}
-              label={label}
-            />
+            <div className={TABLE_LABEL_LINE_CLASS_NAME}>
+              <LabelElement label={label} />
+            </div>
           );
-        })}
-        {hiddenLabels.length > 0 ? (
-          <button
-            type="button"
-            data-testid="table-labels-more"
-            className={TABLE_LABELS_MORE_CLASS_NAME}
-            title={hiddenLabels
-              .map((label: LabelModel) => {
-                return label.name || label.slug || "";
-              })
-              .filter(Boolean)
-              .join(", ")}
-            aria-label={translator.translatePlural(
-              {
-                one: "Show {{count}} more label",
-                other: "Show {{count}} more labels",
-              },
-              hiddenLabels.length,
-            )}
-            onClick={() => {
-              setIsShowingAll(true);
-            }}
-          >
-            +{translator.formatNumber(hiddenLabels.length)}
-          </button>
-        ) : (
-          <></>
-        )}
-        {isShowingAll && props.labels.length > TABLE_LABELS_VISIBLE_COUNT ? (
-          <button
-            type="button"
-            data-testid="table-labels-less"
-            className={TABLE_LABELS_MORE_CLASS_NAME}
-            onClick={() => {
-              setIsShowingAll(false);
-            }}
-          >
-            {translateString("Show less") || "Show less"}
-          </button>
-        ) : (
-          <></>
-        )}
-      </div>
+        }}
+      />
     );
   }
 
   return (
-    <TableColumnListComponent
-      items={props.labels}
-      moreText={moreText}
-      className={props.labels.length > 0 ? "-mb-1 -mt-1" : ""}
+    <TableColumnListComponent<LabelModel>
+      items={labels}
+      moreText={TABLE_LABELS_MORE_TEXT}
+      className={labels.length > 0 ? "-mb-1 -mt-1" : ""}
       getEachElement={(label: LabelModel) => {
         return (
-          <div className={props.labels.length > 0 ? "my-2" : ""}>
+          <div className={labels.length > 0 ? "my-2" : ""}>
             <LabelElement
               label={label}
               style={{

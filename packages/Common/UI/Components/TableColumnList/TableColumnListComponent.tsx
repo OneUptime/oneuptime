@@ -12,11 +12,38 @@ import GenericObject from "../../../Types/GenericObject";
 import React, { ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
 
+/*
+ * How many items a list shows before the rest fold behind "N more": three,
+ * one under another. A list of four shows all four: the "1 more" button
+ * takes a line of its own - a taller one than an item's - so folding a
+ * single item saved no room and only hid it (a monitor's fourth label, its
+ * Business System, behind "1 more label" on every row of the list in
+ * OneUptime issue #5187). So "N more" always says two or more.
+ */
+export const TABLE_COLUMN_LIST_VISIBLE_COUNT: number = 3;
+
+/*
+ * How many of `count` items a list shows before "N more": all of them when
+ * at most one would be left over.
+ */
+export const getTableColumnListVisibleCount: (count: number) => number = (
+  count: number,
+): number => {
+  return count > TABLE_COLUMN_LIST_VISIBLE_COUNT + 1
+    ? TABLE_COLUMN_LIST_VISIBLE_COUNT
+    : count;
+};
+
 export interface ComponentProps<TGenericObject extends GenericObject | string> {
   items: Array<TGenericObject>;
   getEachElement: (element: TGenericObject) => ReactElement;
   noItemsMessage: string | undefined;
   className?: string | undefined;
+  /*
+   * On the list's own element, for a page's tests to find it by; its "N
+   * more" and "Show less" buttons take it with "-more" and "-less" after it.
+   */
+  dataTestId?: string | undefined;
   moreText?: string | undefined;
   /*
    * The more button's whole text for a count, when the page words it as a
@@ -67,22 +94,22 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
     return <p>{translateString(props.noItemsMessage)}</p>;
   }
 
-  const firstThreeItems: Array<TGenericObject> = [];
+  const visibleCount: number = getTableColumnListVisibleCount(
+    props.items.length,
+  );
 
-  for (let i: number = 0; i < 3; i++) {
-    if (props.items[i]) {
-      firstThreeItems.push(props.items[i]!);
-    }
-  }
+  const firstItems: Array<TGenericObject> = props.items
+    .slice(0, visibleCount)
+    .filter((item: TGenericObject): boolean => {
+      return Boolean(item);
+    });
 
-  // remaining items
-  const remainingItems: Array<TGenericObject> = [];
-
-  for (let i: number = 3; i < props.items.length; i++) {
-    if (props.items[i]) {
-      remainingItems.push(props.items[i]!);
-    }
-  }
+  // The items "N more" folds away.
+  const remainingItems: Array<TGenericObject> = props.items
+    .slice(visibleCount)
+    .filter((item: TGenericObject): boolean => {
+      return Boolean(item);
+    });
 
   /*
    * In a table's cell, each item keeps to its line and ends in "..." when
@@ -119,8 +146,8 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
   };
 
   return (
-    <div className={props.className}>
-      {firstThreeItems.map((item: TGenericObject, i: number) => {
+    <div className={props.className} data-testid={props.dataTestId}>
+      {firstItems.map((item: TGenericObject, i: number) => {
         return getItem(item, i);
       })}
       {showMoreItems ? (
@@ -134,6 +161,7 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
       {remainingItems.length > 0 && !showMoreItems ? (
         <Button
           className="-ml-3"
+          dataTestId={props.dataTestId ? `${props.dataTestId}-more` : undefined}
           onClick={() => {
             return setShowMoreItems(true);
           }}
@@ -161,6 +189,7 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
       {showMoreItems ? (
         <Button
           className="-ml-3"
+          dataTestId={props.dataTestId ? `${props.dataTestId}-less` : undefined}
           onClick={() => {
             return setShowMoreItems(false);
           }}

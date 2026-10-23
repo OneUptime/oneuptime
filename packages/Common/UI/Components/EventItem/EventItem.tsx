@@ -10,6 +10,7 @@ import { VeryLightGray } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
+import { sortByNaturalName } from "../../../Utils/NaturalOrder";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -141,7 +142,16 @@ const EventItem: FunctionComponent<ComponentProps> = (
 
         {props.labels && props.labels.length > 0 ? (
           <div className="flex space-x-1 mt-3 active-event-box-body-labels">
-            {props.labels.map((label: EventItemLabel, i: number) => {
+            {/*
+             * In natural order, as labels are listed everywhere
+             * (Utils/LabelOrder).
+             */}
+            {sortByNaturalName<EventItemLabel>(
+              props.labels,
+              (label: EventItemLabel): string => {
+                return label.name;
+              },
+            ).map((label: EventItemLabel, i: number) => {
               return (
                 <div key={i}>
                   <Pill text={label.name} color={label.color} />

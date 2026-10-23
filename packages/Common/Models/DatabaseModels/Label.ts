@@ -229,6 +229,53 @@ export default class Label extends AccessControlModel {
   })
   public slug?: string = undefined;
 
+  /*
+   * The name as labels are put in order (Utils/NaturalOrder): numbered
+   * labels first, by their numbers, then the others alphabetically, case and
+   * accents aside. OneUptime writes it from the name on every create and
+   * every rename (LabelService), and reads labels in its order whenever it is
+   * asked for them by name or in no order (Utils/LabelOrder), so a list the
+   * server pages through - Project Settings > Labels, a picker's search -
+   * agrees with the order the Dashboard sorts a record's labels in.
+   *
+   * Compared under the "C" collation, code point by code point, as
+   * compareCodePoints compares keys in the browser: a database whose own
+   * collation reads text by its language would put some keys another way.
+   * Empty only for a label made before it, until the data migration
+   * BackfillLabelNameSortKeys writes it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ProjectUser,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProjectLabel,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    computed: true,
+    hideColumnInDocumentation: true,
+    title: "Name Sort Key",
+    description:
+      "The name as OneUptime puts labels in order: numbers by their value, then letters, case and accents aside. Written by OneUptime from the name.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    collation: "C",
+  })
+  public nameSortKey?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

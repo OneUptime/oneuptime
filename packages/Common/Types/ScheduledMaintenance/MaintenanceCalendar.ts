@@ -9,6 +9,7 @@ import ScheduledMaintenanceStartUtil, {
   ScheduledMaintenancePhaseOfState,
   ScheduledMaintenanceTimelineRow,
 } from "../../Utils/ScheduledMaintenanceStart";
+import { sortLabelNames } from "../../Utils/LabelOrder";
 
 /*
  * Scheduled maintenance events in a calendar app: the one place that decides
@@ -348,7 +349,10 @@ export default class MaintenanceCalendar {
       calendarEvent.url = url;
     }
 
-    const labels: Array<string> = MaintenanceCalendar.cleanNames(event.labels);
+    // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+    const labels: Array<string> = sortLabelNames(
+      MaintenanceCalendar.cleanNames(event.labels),
+    );
 
     if (labels.length > 0) {
       calendarEvent.categories = labels;
