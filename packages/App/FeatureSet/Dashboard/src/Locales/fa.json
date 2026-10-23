@@ -33654,7 +33654,6 @@
   "A router's ARP table": "جدول ARP یک روتر",
   "ARP table of {{name}}": "جدول ARP دستگاه {{name}}",
   "DNS lookup by its probe": "جست‌وجوی DNS پراب آن",
-  "DNS lookup by probe {{name}}": "جست‌وجوی DNS پراب {{name}}",
   "Discovered Details": "جزئیات کشف‌شده",
   "Discovery scan {{name}} (NetBIOS)": "اسکن کشف {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "اسکن کشف {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "از گزارش‌های خودش تعیین شده",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه و نه هیچ اسکن کشفی آن‌ها را پیدا نکرده است.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} مورد ناشناخته است: نه پرس‌وجوی SNMP این دستگاه و نه هیچ اسکن کشفی آن را پیدا نکرده است.",
-  "{{source}} says {{value}}": "طبق {{source}}: {{value}}"
+  "{{source}} says {{value}}": "طبق {{source}}: {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "خوانده‌شده توسط پراب آن از طریق SNMP، {{time}}.",
+  "DNS lookup by its probe ({{name}})": "جست‌وجوی DNS پراب آن ({{name}})"
 }

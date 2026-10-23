@@ -33654,7 +33654,6 @@
   "A router's ARP table": "किसी राउटर की ARP टेबल",
   "ARP table of {{name}}": "{{name}} की ARP टेबल",
   "DNS lookup by its probe": "इसके प्रोब का DNS लुकअप",
-  "DNS lookup by probe {{name}}": "प्रोब {{name}} का DNS लुकअप",
   "Discovered Details": "खोजे गए विवरण",
   "Discovery scan {{name}} (NetBIOS)": "डिस्कवरी स्कैन {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "डिस्कवरी स्कैन {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "इसकी भेजी जानकारी से तय किया गया",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} विवरण अज्ञात हैं: न इस डिवाइस के SNMP पोल ने और न किसी डिस्कवरी स्कैन ने इन्हें पाया है।",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} विवरण अज्ञात है: न इस डिवाइस के SNMP पोल ने और न किसी डिस्कवरी स्कैन ने इसे पाया है।",
-  "{{source}} says {{value}}": "{{source}} के अनुसार {{value}}"
+  "{{source}} says {{value}}": "{{source}} के अनुसार {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "इसके प्रोब ने इसे {{time}} SNMP पर पढ़ा।",
+  "DNS lookup by its probe ({{name}})": "इसके प्रोब ({{name}}) का DNS लुकअप"
 }

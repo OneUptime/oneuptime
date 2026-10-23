@@ -33654,7 +33654,6 @@
   "A router's ARP table": "라우터의 ARP 테이블",
   "ARP table of {{name}}": "{{name}}의 ARP 테이블",
   "DNS lookup by its probe": "프로브의 DNS 조회",
-  "DNS lookup by probe {{name}}": "프로브 {{name}}의 DNS 조회",
   "Discovered Details": "검색된 세부 정보",
   "Discovery scan {{name}} (NetBIOS)": "검색 스캔 {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "검색 스캔 {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "보고된 내용으로 판단",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}}개 항목을 알 수 없음: 이 장치의 SNMP 폴링과 검색 스캔 모두 찾지 못했습니다.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}}개 항목을 알 수 없음: 이 장치의 SNMP 폴링과 검색 스캔 모두 찾지 못했습니다.",
-  "{{source}} says {{value}}": "{{source}}에 따르면 {{value}}"
+  "{{source}} says {{value}}": "{{source}}에 따르면 {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "프로브가 SNMP로 읽었습니다({{time}}).",
+  "DNS lookup by its probe ({{name}})": "프로브({{name}})의 DNS 조회"
 }

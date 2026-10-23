@@ -33654,7 +33654,6 @@
   "A router's ARP table": "ARP-таблица маршрутизатора",
   "ARP table of {{name}}": "ARP-таблица {{name}}",
   "DNS lookup by its probe": "DNS-запрос его зонда",
-  "DNS lookup by probe {{name}}": "DNS-запрос зонда {{name}}",
   "Discovered Details": "Обнаруженные сведения",
   "Discovery scan {{name}} (NetBIOS)": "Сканирование обнаружения {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "Сканирование обнаружения {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "Определено по сообщаемым данным",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "Неизвестных параметров: {{count}}. Их не нашли ни опрос SNMP этого устройства, ни сканирование обнаружения.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} параметр неизвестен: его не нашли ни опрос SNMP этого устройства, ни сканирование обнаружения.",
-  "{{source}} says {{value}}": "{{source}} сообщает: {{value}}"
+  "{{source}} says {{value}}": "{{source}} сообщает: {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "Прочитано его зондом по SNMP, {{time}}.",
+  "DNS lookup by its probe ({{name}})": "DNS-запрос его зонда ({{name}})"
 }

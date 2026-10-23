@@ -33654,7 +33654,6 @@
   "A router's ARP table": "路由器的 ARP 表",
   "ARP table of {{name}}": "{{name}} 的 ARP 表",
   "DNS lookup by its probe": "其探测器的 DNS 查询",
-  "DNS lookup by probe {{name}}": "探测器 {{name}} 的 DNS 查询",
   "Discovered Details": "发现的详细信息",
   "Discovery scan {{name}} (NetBIOS)": "发现扫描 {{name}}（NetBIOS）",
   "Discovery scan {{name}} (SNMP)": "发现扫描 {{name}}（SNMP）",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "根据其报告的信息推断",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} 项信息未知：此设备的 SNMP 轮询和发现扫描都未找到。",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} 项信息未知：此设备的 SNMP 轮询和发现扫描都未找到。",
-  "{{source}} says {{value}}": "{{source}}显示为 {{value}}"
+  "{{source}} says {{value}}": "{{source}}显示为 {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "由其探测器通过 SNMP 读取：{{time}}。",
+  "DNS lookup by its probe ({{name}})": "其探测器（{{name}}）的 DNS 查询"
 }

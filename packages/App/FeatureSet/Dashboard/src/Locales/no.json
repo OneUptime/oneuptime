@@ -33654,7 +33654,6 @@
   "A router's ARP table": "En ruters ARP-tabell",
   "ARP table of {{name}}": "ARP-tabell på {{name}}",
   "DNS lookup by its probe": "DNS-oppslag fra sonden",
-  "DNS lookup by probe {{name}}": "DNS-oppslag fra sonden {{name}}",
   "Discovered Details": "Oppdagede opplysninger",
   "Discovery scan {{name}} (NetBIOS)": "Oppdagelsesskanning {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "Oppdagelsesskanning {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "Utledet av det den rapporterer",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} opplysninger er ukjente: verken denne enhetens SNMP-polling eller en oppdagelsesskanning har funnet dem.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} opplysning er ukjent: verken denne enhetens SNMP-polling eller en oppdagelsesskanning har funnet den.",
-  "{{source}} says {{value}}": "{{source}} oppgir {{value}}"
+  "{{source}} says {{value}}": "{{source}} oppgir {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "Lest via SNMP av sonden, {{time}}.",
+  "DNS lookup by its probe ({{name}})": "DNS-oppslag fra sonden ({{name}})"
 }

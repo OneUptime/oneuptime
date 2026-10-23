@@ -6,19 +6,18 @@ import {
   InventoryAssetDetail,
   InventoryAssetDetails,
   InventoryAssetField,
-  InventoryAssetKind,
   InventoryAssetSource,
   getInventoryAssetDetails,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
-import { AssetFactSourceKind } from "Common/Utils/Inventory/AssetFactSource";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import AssetFactValue from "./AssetFactValue";
 import {
-  getCollectorLine,
   getFoundByLine,
+  getNativeSourceLine,
   getOtherMachineLine,
+  isNativeAssetFactSource,
 } from "./AssetFactSourceText";
 import {
   INVENTORY_ASSET_FIELD_LABELS,
@@ -44,12 +43,14 @@ import useNetworkDeviceAssetDetails, {
  * rather than something they have to notice is absent. One line under the
  * facts says why they are unknown and where to read how each one is filled.
  *
- * Under each value, where it came from: for a network device - read from the
- * device itself, current to the moment - its own SNMP poll, a discovery scan,
- * a router's ARP table, its probe, or a value saved on it; and, where a value
- * someone saved disagrees with what discovery read, what discovery read. A
- * host's details all come from its collector, so that is said once, below
- * the facts, and only a detail the card worked out itself says so under it.
+ * And where each came from. A machine's details come from one place unless
+ * they say otherwise - a host's from its collector, a network device's (read
+ * from the device itself, current to the moment) from its own SNMP poll -
+ * and that is said ONCE, below the details, with when. Every detail from
+ * anywhere else says so under its value: a discovery scan, a router's ARP
+ * table, the device's probe, a value saved on it, a role someone assigned;
+ * and, where a value someone saved disagrees with what discovery read, what
+ * discovery read, in amber.
  *
  * The raw attributes stay on the Attributes card below, for everything this
  * card does not name.
@@ -83,16 +84,14 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   const help: (typeof INVENTORY_ASSET_HELP)[keyof typeof INVENTORY_ASSET_HELP] =
     INVENTORY_ASSET_HELP[details.kind];
   const unknownCount: number = details.unknownFields.length;
-  const isHost: boolean = details.kind === InventoryAssetKind.Host;
 
-  const collectorLine: string | undefined = isHost
-    ? getCollectorLine(
-        details.details.find((detail: InventoryAssetDetail): boolean => {
-          return detail.source?.kind === AssetFactSourceKind.Collector;
-        })?.source?.readAt,
-        translator,
-      )
-    : undefined;
+  // The source said once, below the details: see isNativeAssetFactSource.
+  const nativeSourceLine: string | undefined = getNativeSourceLine(
+    details.details.find((detail: InventoryAssetDetail): boolean => {
+      return isNativeAssetFactSource(detail.source);
+    })?.source,
+    translator,
+  );
 
   return (
     <Card
@@ -130,14 +129,8 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
                       value={detail.value}
                       copyLabel={label}
                       source={detail.source}
-                      /*
-                       * A host's collector is named once, below the facts:
-                       * under each of eleven values it would say the same.
-                       */
-                      hideSource={
-                        isHost &&
-                        detail.source?.kind === AssetFactSourceKind.Collector
-                      }
+                      // Said once, below the details.
+                      hideSource={isNativeAssetFactSource(detail.source)}
                       discoveredDifferent={detail.discoveredDifferent}
                       testId={`inventory-asset-${detail.field}-value`}
                     />
@@ -153,7 +146,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
         </dl>
 
         {unknownCount > 0 ||
-        collectorLine ||
+        nativeSourceLine ||
         details.foundBy ||
         details.otherMachine ? (
           <div className="mt-5 space-y-2 border-t border-gray-100 pt-4 text-sm text-gray-500">
@@ -171,9 +164,9 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
               </p>
             ) : null}
 
-            {collectorLine ? (
-              <p data-testid="inventory-asset-details-collector">
-                {collectorLine}
+            {nativeSourceLine ? (
+              <p data-testid="inventory-asset-details-native-source">
+                {nativeSourceLine}
               </p>
             ) : null}
 
@@ -184,7 +177,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
             ) : null}
 
             {details.otherMachine ? (
-              <p
+              <div
                 className="flex items-start gap-x-1.5 text-amber-700"
                 data-testid="inventory-asset-details-other-machine"
               >
@@ -196,7 +189,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
                 <span className="min-w-0 break-words">
                   {getOtherMachineLine(details.otherMachine, translator)}
                 </span>
-              </p>
+              </div>
             ) : null}
           </div>
         ) : null}

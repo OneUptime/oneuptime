@@ -77,16 +77,16 @@ const AssetFactValue: FunctionComponent<ComponentProps> = (
         ) : null}
       </div>
       {props.source && !props.hideSource ? (
-        <p
+        <div
           className="mt-0.5 break-words text-xs text-gray-500"
           title={exactTime(props.source.readAt)}
           data-testid={props.testId ? `${props.testId}-source` : undefined}
         >
           {getAssetFactSourceLine(props.source, translator)}
-        </p>
+        </div>
       ) : null}
       {props.discoveredDifferent ? (
-        <p
+        <div
           className="mt-1 flex min-w-0 items-start gap-x-1 text-xs text-amber-700"
           title={exactTime(props.discoveredDifferent.source.readAt)}
           data-testid={props.testId ? `${props.testId}-different` : undefined}
@@ -102,7 +102,7 @@ const AssetFactValue: FunctionComponent<ComponentProps> = (
               translator,
             )}
           </span>
-        </p>
+        </div>
       ) : null}
     </div>
   );

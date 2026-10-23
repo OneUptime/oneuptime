@@ -51,8 +51,12 @@ const NAMED_DISCOVERED_SOURCE: Readonly<
   [NetworkDeviceDiscoveryMethod.ArpTable]: translationKey(
     "ARP table of {{name}}",
   ),
+  /*
+   * The probe's name in brackets: probes are usually named "... probe", and
+   * "DNS lookup by probe Frankfurt probe" says it twice.
+   */
   [NetworkDeviceDiscoveryMethod.Dns]: translationKey(
-    "DNS lookup by probe {{name}}",
+    "DNS lookup by its probe ({{name}})",
   ),
 };
 
@@ -122,6 +126,28 @@ export const OTHER_MACHINE_UNNAMED_TEMPLATE: string = translationKey(
 export const COLLECTOR_TEMPLATE: string = translationKey(
   "Reported by its collector, {{time}}.",
 );
+
+// A network device's details from its own SNMP poll, said once.
+export const SNMP_POLL_TEMPLATE: string = translationKey(
+  "Read over SNMP by its probe, {{time}}.",
+);
+
+/**
+ * The source a card says ONCE, below the details, rather than under every
+ * value: the one every detail of the machine comes from unless it says
+ * otherwise - a host's collector, a network device's own SNMP poll. Under
+ * each of a walked switch's eleven details, "Its SNMP poll · 3 minutes ago"
+ * would say the same thing eleven times and bury the one detail that came
+ * from somewhere else.
+ */
+export function isNativeAssetFactSource(
+  source: AssetFactSource | undefined,
+): boolean {
+  return (
+    source?.kind === AssetFactSourceKind.Collector ||
+    source?.kind === AssetFactSourceKind.SnmpPoll
+  );
+}
 
 function readerName(
   reader: NetworkDeviceDiscoveryReader | undefined,
@@ -307,6 +333,48 @@ export function getOtherMachineLine(
         time: time,
         machine: machine,
       });
+}
+
+/**
+ * "Read over SNMP by its probe, 3 minutes ago." - said once for a network
+ * device, for the details its own SNMP poll read.
+ */
+export function getSnmpPollLine(
+  readAt: string | undefined,
+  translator: Translator,
+  now?: Date | undefined,
+): string | undefined {
+  const time: string | undefined = getAssetFactSourceTime(
+    readAt,
+    translator,
+    now,
+  );
+
+  if (!time) {
+    return undefined;
+  }
+
+  return translator.translateTemplate(SNMP_POLL_TEMPLATE, { time: time });
+}
+
+/**
+ * The line a card says once, below the details, for the source of `source`
+ * when it is a native one (see isNativeAssetFactSource).
+ */
+export function getNativeSourceLine(
+  source: AssetFactSource | undefined,
+  translator: Translator,
+  now?: Date | undefined,
+): string | undefined {
+  if (source?.kind === AssetFactSourceKind.Collector) {
+    return getCollectorLine(source.readAt, translator, now);
+  }
+
+  if (source?.kind === AssetFactSourceKind.SnmpPoll) {
+    return getSnmpPollLine(source.readAt, translator, now);
+  }
+
+  return undefined;
 }
 
 /**

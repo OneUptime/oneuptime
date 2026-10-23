@@ -33654,7 +33654,6 @@
   "A router's ARP table": "ルーターの ARP テーブル",
   "ARP table of {{name}}": "{{name}} の ARP テーブル",
   "DNS lookup by its probe": "プローブによる DNS 解決",
-  "DNS lookup by probe {{name}}": "プローブ {{name}} による DNS 解決",
   "Discovered Details": "検出された詳細",
   "Discovery scan {{name}} (NetBIOS)": "検出スキャン {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "検出スキャン {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "報告内容から判定",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも検出スキャンでも見つかっていません。",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} 件の項目が不明です: このデバイスの SNMP ポーリングでも検出スキャンでも見つかっていません。",
-  "{{source}} says {{value}}": "{{source}}では {{value}}"
+  "{{source}} says {{value}}": "{{source}}では {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "プローブが SNMP で読み取りました ({{time}})。",
+  "DNS lookup by its probe ({{name}})": "プローブ ({{name}}) による DNS 解決"
 }

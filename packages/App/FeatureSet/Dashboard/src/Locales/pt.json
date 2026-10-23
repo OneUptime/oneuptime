@@ -33654,7 +33654,6 @@
   "A router's ARP table": "A tabela ARP de um roteador",
   "ARP table of {{name}}": "Tabela ARP de {{name}}",
   "DNS lookup by its probe": "Consulta DNS da sua sonda",
-  "DNS lookup by probe {{name}}": "Consulta DNS da sonda {{name}}",
   "Discovered Details": "Dados descobertos",
   "Discovery scan {{name}} (NetBIOS)": "Varredura de descoberta {{name}} (NetBIOS)",
   "Discovery scan {{name}} (SNMP)": "Varredura de descoberta {{name}} (SNMP)",
@@ -33674,5 +33673,7 @@
   "Worked out from what it reports": "Deduzido do que ele informa",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them.": "{{count}} dados são desconhecidos: nem a sondagem SNMP deste dispositivo nem uma varredura de descoberta os encontraram.",
   "{{count}} details are unknown: neither this device's SNMP poll nor a discovery scan has found them._one": "{{count}} dado é desconhecido: nem a sondagem SNMP deste dispositivo nem uma varredura de descoberta o encontraram.",
-  "{{source}} says {{value}}": "{{source}} indica {{value}}"
+  "{{source}} says {{value}}": "{{source}} indica {{value}}",
+  "Read over SNMP by its probe, {{time}}.": "Lido via SNMP pela sua sonda, {{time}}.",
+  "DNS lookup by its probe ({{name}})": "Consulta DNS da sua sonda ({{name}})"
 }

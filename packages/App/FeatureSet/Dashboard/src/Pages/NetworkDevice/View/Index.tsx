@@ -17,6 +17,7 @@ import {
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import { isDifferentText } from "../../../Components/NetworkDevice/DeviceDetailText";
 import AssetFactValue from "../../../Components/Inventory/AssetFactValue";
+import { isNativeAssetFactSource } from "../../../Components/Inventory/AssetFactSourceText";
 import {
   NetworkDeviceEffectiveInput,
   NetworkDeviceEffectiveInputs,
@@ -90,6 +91,8 @@ function effectiveDetailElement(
     <AssetFactValue
       value={detail.value}
       source={detail.source}
+      // The device's own SNMP poll is what this page shows by default.
+      hideSource={isNativeAssetFactSource(detail.source)}
       discoveredDifferent={detail.discoveredDifferent}
       testId={`network-device-details-${key}`}
     />

@@ -3,6 +3,7 @@ import AssetFactValue from "../Inventory/AssetFactValue";
 import {
   getFoundByLine,
   getOtherMachineLine,
+  isNativeAssetFactSource,
 } from "../Inventory/AssetFactSourceText";
 import { NETWORK_DEVICE_ASSET_FACT_COLUMNS } from "../Inventory/NetworkDeviceAssetSelect";
 import ObjectID from "Common/Types/ObjectID";
@@ -129,6 +130,12 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
       <AssetFactValue
         value={detail.value}
         source={detail.source}
+        /*
+         * What this device's own SNMP poll read is what the card is for (its
+         * description says so); only a value from anywhere else says where
+         * it came from.
+         */
+        hideSource={isNativeAssetFactSource(detail.source)}
         discoveredDifferent={detail.discoveredDifferent}
         testId={testId}
       />
