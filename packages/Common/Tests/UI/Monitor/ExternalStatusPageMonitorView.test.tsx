@@ -534,4 +534,41 @@ describe("in German", () => {
       DE["All components"]!,
     );
   });
+
+  /*
+   * Two cards to a row on a phone leave a long German title, in capitals
+   * spaced wide, no room on one line: GELTUNGSBEREICH ran past its card.
+   * The facts say which language they are in, so the browser hyphenates
+   * the title by that language's rules (GELTUNGS-BEREICH); where it cannot,
+   * the title still breaks inside the word rather than run out.
+   */
+  test("the facts name their language, so a long title hyphenates instead of running out of its card", () => {
+    renderView();
+
+    for (const testId of [
+      "external-status-page-check-facts",
+      "external-status-page-page-facts",
+    ]) {
+      const grid: HTMLElement = screen.getByTestId(testId);
+
+      expect(grid).toHaveAttribute("lang", "de");
+
+      for (const card of Array.from(grid.children)) {
+        expect(card).toHaveClass(
+          "[&_label]:hyphens-auto",
+          "[&_label]:[overflow-wrap:anywhere]",
+        );
+      }
+    }
+  });
+});
+
+describe("in English", () => {
+  test("the facts say they are in English", () => {
+    renderView();
+
+    expect(
+      screen.getByTestId("external-status-page-page-facts"),
+    ).toHaveAttribute("lang", "en");
+  });
 });

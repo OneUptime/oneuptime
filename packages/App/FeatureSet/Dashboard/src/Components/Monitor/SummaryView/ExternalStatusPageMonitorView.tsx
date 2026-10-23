@@ -19,7 +19,14 @@ export interface ComponentProps {
   probeName?: string | undefined;
 }
 
-const CARD_CLASS_NAME: string = "w-full shadow-none border-2 border-gray-100";
+/*
+ * A fact's card. Its title, in capitals spaced wide, may break inside a
+ * word - hyphenated in the reader's language, which the facts' grid names
+ * (lang) - rather than run past the card: two cards to a row on a phone
+ * leave "GELTUNGSBEREICH" (Scope, in German) no room on one line.
+ */
+const CARD_CLASS_NAME: string =
+  "w-full shadow-none border-2 border-gray-100 [&_label]:hyphens-auto [&_label]:[overflow-wrap:anywhere]";
 
 /*
  * Two facts to a row, four once the view itself is 64rem wide. The view is
@@ -153,6 +160,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
     >
       <div
         className={FACTS_CLASS_NAME}
+        lang={translator.language}
         data-testid="external-status-page-check-facts"
       >
         <InfoCard
@@ -200,6 +208,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
 
       <div
         className={FACTS_CLASS_NAME}
+        lang={translator.language}
         data-testid="external-status-page-page-facts"
       >
         <InfoCard
