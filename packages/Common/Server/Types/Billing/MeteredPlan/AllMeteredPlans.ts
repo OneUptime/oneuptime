@@ -6,6 +6,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ProductType from "../../../../Types/MeteredPlan/ProductType";
 import {
   SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   TELEMETRY_PRICE_IN_USD_PER_GB,
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
 } from "../../../../Types/Billing/PayAsYouGoPricing";
@@ -25,24 +26,32 @@ export const LogDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Logs,
     unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+    minimumBillableRetentionInDays:
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   });
 
 export const MetricsDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Metrics,
     unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+    minimumBillableRetentionInDays:
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   });
 
 export const TracesDataIngestMetredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Traces,
     unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+    minimumBillableRetentionInDays:
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   });
 
 export const ProfilesDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.Profiles,
     unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+    minimumBillableRetentionInDays:
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   });
 
 /*
@@ -52,6 +61,9 @@ export const ProfilesDataIngestMeteredPlan: TelemetryMeteredPlanType =
  * bills well under a dollar, which does not cover the cost and mis-signals the
  * value of the feature. This rate is still far below comparable products while
  * scaling with the actual driver, which is bytes of recording retained.
+ *
+ * It has no minimum billable retention, unlike the other pillars: at twenty
+ * times their rate, an application may keep its recordings for one day.
  */
 export const SessionReplayDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
@@ -69,6 +81,8 @@ export const SecurityEventsDataIngestMeteredPlan: TelemetryMeteredPlanType =
   new TelemetryMeteredPlanType({
     productType: ProductType.SecurityEvents,
     unitCostInUSD: TELEMETRY_UNIT_COST_IN_USD, // 0.10 per 15 days per GB
+    minimumBillableRetentionInDays:
+      TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   });
 
 const AllMeteredPlans: Array<ServerMeteredPlan> = [

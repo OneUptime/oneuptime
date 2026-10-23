@@ -200,6 +200,7 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         githubStars: "7.4k",
         githubContributors: "120",
         githubCommits: "25k",
+        airGapped: getAirGappedContent(),
       };
     },
   },

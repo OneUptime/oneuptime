@@ -3,6 +3,7 @@ import {
   ACTIVE_MONITOR_PRICE_IN_USD_PER_MONTH,
   PRICING_PAGE_URL,
   SESSION_REPLAY_PRICE_IN_USD_PER_GB,
+  TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS,
   TELEMETRY_PRICE_IN_USD_PER_GB,
   TELEMETRY_PRICE_RETENTION_IN_DAYS,
   formatPriceInUSD,
@@ -20,6 +21,18 @@ describe("PayAsYouGoPricing", () => {
     it("charges $0.10 per GB of telemetry, quoted for 15 day retention", () => {
       expect(TELEMETRY_PRICE_IN_USD_PER_GB).toBe(0.1);
       expect(TELEMETRY_PRICE_RETENTION_IN_DAYS).toBe(15);
+    });
+
+    it("bills telemetry for at least 7 days of retention, a whole number of days under the quoted 15", () => {
+      expect(TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS).toBe(7);
+      expect(
+        Number.isInteger(TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS),
+      ).toBe(true);
+      expect(TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS).toBeGreaterThan(0);
+      // The advertised price, quoted for 15 days, is not raised by it.
+      expect(TELEMETRY_MINIMUM_BILLABLE_RETENTION_IN_DAYS).toBeLessThan(
+        TELEMETRY_PRICE_RETENTION_IN_DAYS,
+      );
     });
 
     it("charges $2 per GB for session replay, on the same 15 day window", () => {

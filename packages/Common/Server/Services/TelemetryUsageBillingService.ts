@@ -45,6 +45,9 @@ import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
+import RumApplicationService from "./RumApplicationService";
+import RumApplication from "../../Models/DatabaseModels/RumApplication";
+import { getApplicationSessionReplayRetentionInDays } from "../Utils/SessionReplay/SessionReplayRetention";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../Utils/SessionReplay/SessionReplayBudgetMetricType";
 import {
@@ -120,6 +123,15 @@ export const isTelemetryBillingExcludedEntityType: IsTelemetryBillingExcludedEnt
 export const TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES: ReadonlyArray<string> =
   SessionReplayBudgetMetricTypeUtil.getAll();
 
+/*
+ * How many complete UTC days back each billing run looks for usage it never
+ * staged. Staging used to target only "yesterday", so a day the run did not
+ * reach - a deploy or crash mid-run, a run still going past midnight UTC, a
+ * usage scan over its time cap - was never billed. Each run now stages every
+ * day in this window that has telemetry and no staged usage yet.
+ */
+export const TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS: number = 7;
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -175,6 +187,237 @@ export class Service extends DatabaseService<Model> {
         props: { isRoot: true, ignoreHooks: true },
       });
     } while (updated === LIMIT_MAX);
+  }
+
+  /*
+   * Stage every complete UTC day of the last
+   * TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS that has telemetry for this
+   * product and no staged usage yet, oldest first.
+   *
+   * A day counts as staged once it has any usage row; staging a day again
+   * would only skip the resources already staged for it. Only days that hold
+   * telemetry are scanned (getDaysWithRows reads just projectId and the
+   * timestamp), so a project with nothing to bill costs one cheap query per
+   * product rather than a usage scan per day.
+   *
+   * A day that fails stays unstaged for the next run to retry, and the other
+   * days still stage. The first failure is thrown once the loop is done, so
+   * the caller can bill what did stage and then report it.
+   */
+  @CaptureSpan()
+  public async stageUnstagedTelemetryUsageForProject(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    liveAuthorization?: LiveUsageAuthorization | undefined;
+    /*
+     * The project's telemetry billing cutoff, when the caller has already
+     * read it. Days before it are never billed, so they are dropped here
+     * instead of each asking the payment provider for the cutoff again;
+     * stageTelemetryUsageForProject still enforces it either way.
+     */
+    billingStartsAt?: Date | undefined;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      return;
+    }
+
+    const usageDays: Array<Date> = this.getStagingWindowDays().filter(
+      (usageDay: Date): boolean => {
+        return (
+          !data.billingStartsAt ||
+          usageDay.getTime() >= data.billingStartsAt.getTime()
+        );
+      },
+    );
+
+    if (usageDays.length === 0) {
+      return;
+    }
+
+    const stagedRows: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        productType: data.productType,
+        day: QueryHelper.any(
+          usageDays.map((usageDay: Date): string => {
+            return this.getUsageDayString(usageDay);
+          }),
+        ),
+      },
+      select: {
+        day: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const stagedDays: Set<string> = new Set(
+      stagedRows
+        .map((row: Model) => {
+          return row.day;
+        })
+        .filter((day: string | undefined): day is string => {
+          return Boolean(day);
+        }),
+    );
+
+    const unstagedDays: Array<Date> = usageDays.filter(
+      (usageDay: Date): boolean => {
+        return !stagedDays.has(this.getUsageDayString(usageDay));
+      },
+    );
+
+    if (unstagedDays.length === 0) {
+      return;
+    }
+
+    const daysWithTelemetry: Set<string> = await this.getDaysWithTelemetry({
+      projectId: data.projectId,
+      productType: data.productType,
+      startDate: OneUptimeDate.getStartOfDay(unstagedDays[0]!, "UTC"),
+      endDate: OneUptimeDate.getEndOfDay(
+        unstagedDays[unstagedDays.length - 1]!,
+        "UTC",
+      ),
+    });
+
+    let firstFailure: unknown = null;
+
+    for (const usageDay of unstagedDays) {
+      if (!daysWithTelemetry.has(this.getUtcDateKey(usageDay))) {
+        continue;
+      }
+
+      try {
+        await this.stageTelemetryUsageForProject({
+          projectId: data.projectId,
+          productType: data.productType,
+          usageDate: usageDay,
+          liveAuthorization: data.liveAuthorization,
+        });
+      } catch (error) {
+        logger.error(
+          `Failed to stage ${data.productType} usage of ${this.getUsageDayString(usageDay)} for project ${data.projectId.toString()}; the next billing run retries it.`,
+        );
+        logger.error(error as Error);
+        firstFailure = firstFailure || error;
+      }
+    }
+
+    if (firstFailure) {
+      throw firstFailure;
+    }
+  }
+
+  /*
+   * The complete UTC days of the catch-up window as their UTC midnights,
+   * oldest first, ending yesterday. Today is still being written, so it is
+   * never staged.
+   */
+  private getStagingWindowDays(): Array<Date> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+    const usageDays: Array<Date> = [];
+
+    for (
+      let daysBack: number = TELEMETRY_USAGE_STAGING_LOOKBACK_IN_DAYS;
+      daysBack >= 1;
+      daysBack--
+    ) {
+      usageDays.push(
+        new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() - daysBack,
+          ),
+        ),
+      );
+    }
+
+    return usageDays;
+  }
+
+  // A UTC day as getDaysWithRows names it: YYYY-MM-DD.
+  private getUtcDateKey(usageDay: Date): string {
+    return usageDay.toISOString().slice(0, 10);
+  }
+
+  /*
+   * The UTC days (YYYY-MM-DD) in a window on which a project has rows this
+   * product bills, read from the same tables stageTelemetryUsageForProject
+   * scans.
+   */
+  private async getDaysWithTelemetry(data: {
+    projectId: ObjectID;
+    productType: ProductType;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Set<string>> {
+    const window: { projectId: ObjectID; startDate: Date; endDate: Date } = {
+      projectId: data.projectId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    };
+
+    let dayLists: Array<Array<string>> = [];
+
+    if (data.productType === ProductType.Traces) {
+      dayLists = [
+        await SpanService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "startTime",
+        }),
+        await ExceptionInstanceService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+        }),
+      ];
+    } else if (data.productType === ProductType.Logs) {
+      dayLists = [
+        await LogService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+        }),
+      ];
+    } else if (data.productType === ProductType.Metrics) {
+      dayLists = [
+        await MetricService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+          excludeNames: [...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES],
+        }),
+      ];
+    } else if (data.productType === ProductType.SecurityEvents) {
+      dayLists = [
+        await SecurityEventService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+        }),
+      ];
+    } else if (data.productType === ProductType.SessionReplay) {
+      dayLists = [
+        await RumSessionService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "startTime",
+        }),
+      ];
+    } else if (data.productType === ProductType.Profiles) {
+      dayLists = [
+        await ProfileService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "startTime",
+        }),
+        await ProfileSampleService.getDaysWithRows({
+          ...window,
+          timestampColumnName: "time",
+        }),
+      ];
+    }
+
+    return new Set(dayLists.flat());
   }
 
   @CaptureSpan()
@@ -419,9 +662,9 @@ export class Service extends DatabaseService<Model> {
       logger.error(error as Error);
       /*
        * Rethrow so the failure is loud: nothing has been staged for this
-       * day yet (staging below is skipped entirely), so a later retry of
-       * the cron can re-stage the full day. Swallowing here would
-       * silently bill the day as zero.
+       * day yet (staging below is skipped entirely), so the next run's
+       * catch-up (stageUnstagedTelemetryUsageForProject) re-stages the full
+       * day. Swallowing here would silently bill the day as zero.
        */
       throw error;
     }
@@ -435,11 +678,20 @@ export class Service extends DatabaseService<Model> {
      * KubernetesCluster overrides), defaulting to the project default for
      * everything else — including the unattributed bucket. Retention
      * scales the billed cost, so we honor per-resource overrides.
+     *
+     * Session replay is the exception: ingest keeps recordings for the RUM
+     * application's replay retention and never for the telemetry retention
+     * above, so replay is billed at that (7 days unless changed) rather than
+     * at the project's telemetry default.
      */
-    const retentionByServiceId: Map<string, number> =
-      await this.buildTelemetryRetentionMap(data.projectId);
-    const projectDefaultRetentionInDays: number =
-      await this.getProjectDefaultRetentionInDays(data.projectId);
+    const isSessionReplay: boolean =
+      data.productType === ProductType.SessionReplay;
+    const retentionByServiceId: Map<string, number> = isSessionReplay
+      ? await this.buildSessionReplayRetentionMap(data.projectId)
+      : await this.buildTelemetryRetentionMap(data.projectId);
+    const defaultRetentionInDays: number = isSessionReplay
+      ? getApplicationSessionReplayRetentionInDays(undefined)
+      : await this.getProjectDefaultRetentionInDays(data.projectId);
 
     /*
      * Skip serviceIds already staged for this day so re-runs of the cron
@@ -491,7 +743,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       const retentionInDays: number =
-        retentionByServiceId.get(serviceIdStr) ?? projectDefaultRetentionInDays;
+        retentionByServiceId.get(serviceIdStr) ?? defaultRetentionInDays;
 
       /*
        * Legacy rows (pre-discriminator) and any null primaryEntityType are
@@ -720,6 +972,42 @@ export class Service extends DatabaseService<Model> {
     }
 
     return retentionByServiceId;
+  }
+
+  /*
+   * Map of RUM application id -> the days its session replays are kept, by
+   * the same rule the session replay gate stamps them with
+   * (getApplicationSessionReplayRetentionInDays). An application missing
+   * from the map - deleted since it recorded - is billed at the replay
+   * default.
+   */
+  @CaptureSpan()
+  private async buildSessionReplayRetentionMap(
+    projectId: ObjectID,
+  ): Promise<Map<string, number>> {
+    const retentionByApplicationId: Map<string, number> = new Map();
+
+    const applications: Array<RumApplication> =
+      await RumApplicationService.findBy({
+        query: { projectId: projectId },
+        select: { _id: true, sessionReplayRetentionInDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+
+    for (const application of applications) {
+      if (application.id) {
+        retentionByApplicationId.set(
+          application.id.toString(),
+          getApplicationSessionReplayRetentionInDays(
+            application.sessionReplayRetentionInDays,
+          ),
+        );
+      }
+    }
+
+    return retentionByApplicationId;
   }
 
   @CaptureSpan()
