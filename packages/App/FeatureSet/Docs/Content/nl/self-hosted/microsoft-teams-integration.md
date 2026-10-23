@@ -58,7 +58,7 @@ Open in de [Azure-portal](https://portal.azure.com) **App registrations** en kie
 Kies **Register** en voeg daarna een tweede Web-omleidings-URI toe, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Noteer de **Application (client) ID** en de **Directory (tenant) ID**: je hebt ze allebei later nodig.
 
 > [!NOTE]
-> **Waarom één tenant:** een zelfgehoste OneUptime bedient één organisatie en meldt iedereen aan bij de tenant daarvan: beheerders die toestemming geven, en iedereen die **Connect my account with Microsoft Teams** kiest. Dat is de tenant waarmee een project verbonden is, of vóór een project verbonden is de tenant uit `MICROSOFT_TEAMS_APP_TENANT_ID` (stap 6). Gasten in je organisatie melden zich aan met hun gastaccount, het account dat Teams voor hen gebruikt. Een multitenant-app werkt op dezelfde manier, maar één tenant houdt de app binnen je organisatie.
+> **Waarom één tenant:** een zelfgehoste OneUptime bedient één organisatie en meldt iedereen aan bij de tenant daarvan: beheerders die toestemming geven, en iedereen die **Connect my account with Microsoft Teams** kiest. Gasten in je organisatie melden zich aan met hun gastaccount, het account dat Teams voor hen gebruikt. Een multitenant-app werkt op dezelfde manier, maar één tenant houdt de app binnen je organisatie.
 
 ### Stap 2: Stel de app-machtigingen in
 

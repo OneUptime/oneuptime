@@ -2376,7 +2376,7 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     expect(readSource("teamsDocumentation")).toContain(`- ${accountType}`);
     expect(readSource("teamsDocumentation")).not.toContain("Multitenant)");
 
-    // The project's tenant, else MICROSOFT_TEAMS_APP_TENANT_ID: what the note says.
+    // The project's tenant, else MICROSOFT_TEAMS_APP_TENANT_ID: where the note and the table say people sign in.
     expect(signIn).toContain(
       "projectTenantId: projectAuth?.workspaceProjectId,",
     );
@@ -2388,8 +2388,18 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     expect(readSource("teamsSignInAuthority")).toContain(
       'export const MICROSOFT_ANY_ORGANIZATION: string = "organizations";',
     );
-    expect(page).toContain(
-      "and each person who selects **Connect my account with Microsoft Teams**. That is the tenant a project is connected to, or the one in `MICROSOFT_TEAMS_APP_TENANT_ID` (Step 6) before a project is connected.",
+    /*
+     * The note says why single tenant, in three sentences: everyone signs
+     * in to the organization's tenant, guests as guests, and multitenant
+     * works too. Which tenant before a project is connected is the
+     * AADSTS50194 section's.
+     */
+    expect(
+      page.split("\n").find((line: string): boolean => {
+        return line.startsWith("> **Why single tenant:**");
+      }),
+    ).toBe(
+      "> **Why single tenant:** a self-hosted OneUptime serves one organization, and signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. Guests in your organization sign in with their guest account, the one Teams uses for them. A multitenant app works the same way, but single tenant keeps the app to your organization.",
     );
     expect(page).toContain(
       "The bot authenticates as a single-tenant app in this tenant, and people sign in to it to connect their Microsoft Teams account.",

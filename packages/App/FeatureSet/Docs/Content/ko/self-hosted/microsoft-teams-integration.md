@@ -58,7 +58,7 @@ Incoming Webhook이나 Teams 워크플로 URL은 이 봇의 메시징 엔드포�
 **Register**를 선택한 다음 두 번째 Web 리디렉션 URI로 `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`을 추가합니다. **Application (client) ID**와 **Directory (tenant) ID**를 적어 두세요. 둘 다 나중에 필요합니다.
 
 > [!NOTE]
-> **단일 테넌트인 이유:** 자체 호스팅 OneUptime은 하나의 조직을 위해 동작하며, 모든 사람을 그 조직의 테넌트에 로그인시킵니다. 동의를 부여하는 관리자도, **Connect my account with Microsoft Teams**를 선택하는 각 사용자도 마찬가지입니다. 그 테넌트는 프로젝트가 연결된 테넌트이고, 프로젝트가 연결되기 전에는 `MICROSOFT_TEAMS_APP_TENANT_ID`(6단계)의 테넌트입니다. 조직의 게스트는 Teams가 그들에게 사용하는 게스트 계정으로 로그인합니다. 다중 테넌트 앱도 같은 방식으로 동작하지만, 단일 테넌트는 앱을 여러분의 조직으로 한정합니다.
+> **단일 테넌트인 이유:** 자체 호스팅 OneUptime은 하나의 조직을 위해 동작하며, 모든 사람을 그 조직의 테넌트에 로그인시킵니다. 동의를 부여하는 관리자도, **Connect my account with Microsoft Teams**를 선택하는 각 사용자도 마찬가지입니다. 조직의 게스트는 Teams가 그들에게 사용하는 게스트 계정으로 로그인합니다. 다중 테넌트 앱도 같은 방식으로 동작하지만, 단일 테넌트는 앱을 여러분의 조직으로 한정합니다.
 
 ### 2단계: 앱 권한 구성
 

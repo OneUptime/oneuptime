@@ -58,7 +58,7 @@ Dans le [portail Azure](https://portal.azure.com), ouvrez **App registrations** 
 Sélectionnez **Register**, puis ajoutez une deuxième URI de redirection Web, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Notez l'**Application (client) ID** et le **Directory (tenant) ID** : vous aurez besoin des deux plus tard.
 
 > [!NOTE]
-> **Pourquoi un seul locataire :** un OneUptime auto-hébergé sert une seule organisation, et connecte tout le monde à son locataire : les administrateurs qui donnent leur consentement, et chaque personne qui sélectionne **Connect my account with Microsoft Teams**. C'est le locataire auquel un projet est connecté, ou celui de `MICROSOFT_TEAMS_APP_TENANT_ID` (étape 6) avant qu'un projet soit connecté. Les invités de votre organisation se connectent avec leur compte invité, celui que Teams utilise pour eux. Une application multilocataire fonctionne de la même façon, mais un seul locataire réserve l'application à votre organisation.
+> **Pourquoi un seul locataire :** un OneUptime auto-hébergé sert une seule organisation, et connecte tout le monde à son locataire : les administrateurs qui donnent leur consentement, et chaque personne qui sélectionne **Connect my account with Microsoft Teams**. Les invités de votre organisation se connectent avec leur compte invité, celui que Teams utilise pour eux. Une application multilocataire fonctionne de la même façon, mais un seul locataire réserve l'application à votre organisation.
 
 ### Étape 2 : configurer les autorisations de l'application
 

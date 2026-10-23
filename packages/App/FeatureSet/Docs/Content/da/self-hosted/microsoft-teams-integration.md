@@ -58,7 +58,7 @@ Videoopkald (et Teams-møde for en hændelse) bruger ikke denne bot: de kræver 
 Vælg **Register**, og tilføj derefter en anden Web-omdirigerings-URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Notér **Application (client) ID** og **Directory (tenant) ID**: du skal bruge begge senere.
 
 > [!NOTE]
-> **Hvorfor én tenant:** en selvhostet OneUptime betjener én organisation og logger alle ind i dens tenant: administratorer, der giver samtykke, og hver person, der vælger **Connect my account with Microsoft Teams**. Det er den tenant, et projekt er forbundet til, eller den i `MICROSOFT_TEAMS_APP_TENANT_ID` (trin 6), før et projekt er forbundet. Gæster i din organisation logger ind med deres gæstekonto, den Teams bruger for dem. En multitenant-app virker på samme måde, men én tenant holder appen inden for din organisation.
+> **Hvorfor én tenant:** en selvhostet OneUptime betjener én organisation og logger alle ind i dens tenant: administratorer, der giver samtykke, og hver person, der vælger **Connect my account with Microsoft Teams**. Gæster i din organisation logger ind med deres gæstekonto, den Teams bruger for dem. En multitenant-app virker på samme måde, men én tenant holder appen inden for din organisation.
 
 ### Trin 2: Konfigurer appens tilladelser
 

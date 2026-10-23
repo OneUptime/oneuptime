@@ -58,7 +58,7 @@ Videoanrufe (ein Teams-Meeting für einen Vorfall) nutzen diesen Bot nicht: Sie 
 Wählen Sie **Register** und fügen Sie dann eine zweite Web-Redirect-URI hinzu, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Notieren Sie die **Application (client) ID** und die **Directory (tenant) ID**: Sie brauchen später beide.
 
 > [!NOTE]
-> **Warum Single Tenant:** Eine selbst gehostete OneUptime-Instanz dient einer Organisation und meldet alle in deren Tenant an: Administratoren, die die Einwilligung erteilen, und jede Person, die **Connect my account with Microsoft Teams** wählt. Das ist der Tenant, mit dem ein Projekt verbunden ist, oder vor dem Verbinden eines Projekts der Tenant aus `MICROSOFT_TEAMS_APP_TENANT_ID` (Schritt 6). Gäste in Ihrer Organisation melden sich mit ihrem Gastkonto an, dem Konto, das Teams für sie verwendet. Eine Multitenant-App funktioniert genauso, aber Single Tenant beschränkt die App auf Ihre Organisation.
+> **Warum Single Tenant:** Eine selbst gehostete OneUptime-Instanz dient einer Organisation und meldet alle in deren Tenant an: Administratoren, die die Einwilligung erteilen, und jede Person, die **Connect my account with Microsoft Teams** wählt. Gäste in Ihrer Organisation melden sich mit ihrem Gastkonto an, dem Konto, das Teams für sie verwendet. Eine Multitenant-App funktioniert genauso, aber Single Tenant beschränkt die App auf Ihre Organisation.
 
 ### Schritt 2: App-Berechtigungen konfigurieren
 

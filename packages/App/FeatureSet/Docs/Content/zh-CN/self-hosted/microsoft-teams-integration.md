@@ -58,7 +58,7 @@ Incoming Webhook 或 Teams 工作流 URL 都不能替代此机器人的消息传
 选择 **Register**，然后添加第二个 Web 重定向 URI：`https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`。记下 **Application (client) ID** 和 **Directory (tenant) ID**：后面两者都会用到。
 
 > [!NOTE]
-> **为什么是单租户：** 自托管的 OneUptime 服务于一个组织，并让所有人登录到该组织的租户：授予同意的管理员，以及选择 **Connect my account with Microsoft Teams** 的每个人。这个租户就是项目所连接的租户；在项目连接之前，则是 `MICROSOFT_TEAMS_APP_TENANT_ID`（第 6 步）中的租户。你组织中的来宾使用他们的来宾账号登录，也就是 Teams 为他们使用的账号。多租户应用也以同样的方式工作，但单租户会把应用限制在你的组织内。
+> **为什么是单租户：** 自托管的 OneUptime 服务于一个组织，并让所有人登录到该组织的租户：授予同意的管理员，以及选择 **Connect my account with Microsoft Teams** 的每个人。你组织中的来宾使用他们的来宾账号登录，也就是 Teams 为他们使用的账号。多租户应用也以同样的方式工作，但单租户会把应用限制在你的组织内。
 
 ### 第 2 步：配置应用权限
 

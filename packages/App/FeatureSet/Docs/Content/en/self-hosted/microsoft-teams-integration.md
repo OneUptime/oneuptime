@@ -58,7 +58,7 @@ In the [Azure Portal](https://portal.azure.com), open **App registrations** and 
 Select **Register**, then add a second Web redirect URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Note the **Application (client) ID** and the **Directory (tenant) ID**: you need both later.
 
 > [!NOTE]
-> **Why single tenant:** a self-hosted OneUptime serves one organization, and signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. That is the tenant a project is connected to, or the one in `MICROSOFT_TEAMS_APP_TENANT_ID` (Step 6) before a project is connected. Guests in your organization sign in with their guest account, the one Teams uses for them. A multitenant app works the same way, but single tenant keeps the app to your organization.
+> **Why single tenant:** a self-hosted OneUptime serves one organization, and signs everyone in to its tenant: admins granting consent, and each person who selects **Connect my account with Microsoft Teams**. Guests in your organization sign in with their guest account, the one Teams uses for them. A multitenant app works the same way, but single tenant keeps the app to your organization.
 
 ### Step 2: Configure App Permissions
 

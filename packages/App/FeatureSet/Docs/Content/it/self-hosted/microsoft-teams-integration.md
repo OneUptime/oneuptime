@@ -58,7 +58,7 @@ Nel [portale di Azure](https://portal.azure.com), apri **App registrations** e s
 Seleziona **Register**, poi aggiungi un secondo URI di reindirizzamento Web, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Annota l'**Application (client) ID** e il **Directory (tenant) ID**: ti serviranno entrambi più avanti.
 
 > [!NOTE]
-> **Perché un solo tenant:** un OneUptime self-hosted serve una sola organizzazione e fa accedere tutti al suo tenant: gli amministratori che concedono il consenso e ogni persona che seleziona **Connect my account with Microsoft Teams**. È il tenant a cui è collegato un progetto oppure, prima che un progetto sia collegato, quello in `MICROSOFT_TEAMS_APP_TENANT_ID` (passaggio 6). Gli ospiti della tua organizzazione accedono con il proprio account guest, quello che Teams usa per loro. Un'app multi-tenant funziona allo stesso modo, ma un solo tenant limita l'app alla tua organizzazione.
+> **Perché un solo tenant:** un OneUptime self-hosted serve una sola organizzazione e fa accedere tutti al suo tenant: gli amministratori che concedono il consenso e ogni persona che seleziona **Connect my account with Microsoft Teams**. Gli ospiti della tua organizzazione accedono con il proprio account guest, quello che Teams usa per loro. Un'app multi-tenant funziona allo stesso modo, ma un solo tenant limita l'app alla tua organizzazione.
 
 ### Passaggio 2: configura le autorizzazioni dell'app
 

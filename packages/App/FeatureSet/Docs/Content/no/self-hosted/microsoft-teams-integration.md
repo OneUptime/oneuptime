@@ -58,7 +58,7 @@ Videosamtaler (et Teams-møte for en hendelse) bruker ikke denne boten: de treng
 Velg **Register**, og legg deretter til en ny Web-omdirigerings-URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Noter **Application (client) ID** og **Directory (tenant) ID**: du trenger begge senere.
 
 > [!NOTE]
-> **Hvorfor én leietaker:** en selvhostet OneUptime betjener én organisasjon og logger alle inn i leietakeren dens: administratorer som gir samtykke, og hver person som velger **Connect my account with Microsoft Teams**. Det er leietakeren et prosjekt er koblet til, eller den i `MICROSOFT_TEAMS_APP_TENANT_ID` (trinn 6) før et prosjekt er koblet til. Gjester i organisasjonen din logger inn med gjestekontoen sin, den Teams bruker for dem. En flerleietaker-app fungerer på samme måte, men én leietaker holder appen innenfor organisasjonen din.
+> **Hvorfor én leietaker:** en selvhostet OneUptime betjener én organisasjon og logger alle inn i leietakeren dens: administratorer som gir samtykke, og hver person som velger **Connect my account with Microsoft Teams**. Gjester i organisasjonen din logger inn med gjestekontoen sin, den Teams bruker for dem. En flerleietaker-app fungerer på samme måte, men én leietaker holder appen innenfor organisasjonen din.
 
 ### Trinn 2: Konfigurer apptillatelsene
 

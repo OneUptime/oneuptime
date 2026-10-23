@@ -1485,7 +1485,7 @@ export default class MicrosoftTeamsAPI {
            * sign-in at Microsoft's endpoint for every organization is what
            * a single-tenant app refuses (AADSTS50194, issue #5202).
            */
-          accountSignIn: `Connect my account with Microsoft Teams signs people in to the Microsoft 365 organization their project is connected to, or, for a project not connected yet, to tenant ${appTenantId}. Never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
+          accountSignIn: `Connecting a Microsoft Teams account signs people in to the Microsoft 365 organization their project is connected to, or to tenant ${appTenantId} while the project is not connected yet — never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
           verified: [
             "MICROSOFT_TEAMS_APP_CLIENT_ID is set",
             "MICROSOFT_TEAMS_APP_CLIENT_SECRET is set",

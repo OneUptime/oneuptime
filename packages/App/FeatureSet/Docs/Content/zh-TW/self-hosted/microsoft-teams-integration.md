@@ -58,7 +58,7 @@ Incoming Webhook 或 Teams 工作流程 URL 都無法取代此機器人的訊息
 選擇 **Register**，然後新增第二個 Web 重新導向 URI：`https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`。記下 **Application (client) ID** 和 **Directory (tenant) ID**：之後兩者都會用到。
 
 > [!NOTE]
-> **為什麼是單一租用戶：** 自行託管的 OneUptime 服務一個組織，並讓所有人登入該組織的租用戶：授予同意的系統管理員，以及選擇 **Connect my account with Microsoft Teams** 的每個人。這個租用戶就是專案所連接的租用戶；在專案連接之前，則是 `MICROSOFT_TEAMS_APP_TENANT_ID`（第 6 步）中的租用戶。你組織中的來賓使用他們的來賓帳號登入，也就是 Teams 為他們使用的帳號。多租用戶應用程式也以同樣的方式運作，但單一租用戶會把應用程式限制在你的組織內。
+> **為什麼是單一租用戶：** 自行託管的 OneUptime 服務一個組織，並讓所有人登入該組織的租用戶：授予同意的系統管理員，以及選擇 **Connect my account with Microsoft Teams** 的每個人。你組織中的來賓使用他們的來賓帳號登入，也就是 Teams 為他們使用的帳號。多租用戶應用程式也以同樣的方式運作，但單一租用戶會把應用程式限制在你的組織內。
 
 ### 第 2 步：設定應用程式權限
 

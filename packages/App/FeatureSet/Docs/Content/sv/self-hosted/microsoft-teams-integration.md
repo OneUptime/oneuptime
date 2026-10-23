@@ -58,7 +58,7 @@ Videosamtal (ett Teams-möte för en incident) använder inte den här boten: de
 Välj **Register** och lägg sedan till en andra Web-omdirigerings-URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Anteckna **Application (client) ID** och **Directory (tenant) ID**: du behöver båda senare.
 
 > [!NOTE]
-> **Varför en enda klientorganisation:** en självhostad OneUptime betjänar en organisation och loggar in alla i dess klientorganisation: administratörer som ger medgivande och varje person som väljer **Connect my account with Microsoft Teams**. Det är den klientorganisation ett projekt är anslutet till, eller den i `MICROSOFT_TEAMS_APP_TENANT_ID` (steg 6) innan ett projekt är anslutet. Gäster i din organisation loggar in med sitt gästkonto, det som Teams använder för dem. En app för flera klientorganisationer fungerar på samma sätt, men en enda klientorganisation håller appen inom din organisation.
+> **Varför en enda klientorganisation:** en självhostad OneUptime betjänar en organisation och loggar in alla i dess klientorganisation: administratörer som ger medgivande och varje person som väljer **Connect my account with Microsoft Teams**. Gäster i din organisation loggar in med sitt gästkonto, det som Teams använder för dem. En app för flera klientorganisationer fungerar på samma sätt, men en enda klientorganisation håller appen inom din organisation.
 
 ### Steg 2: Konfigurera appens behörigheter
 

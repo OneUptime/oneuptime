@@ -267,7 +267,7 @@ describe("GET /microsoft-bot/test", () => {
       const response: InvokedResponse = await callBotTest();
 
       expect(response.body["accountSignIn"]).toBe(
-        `Connect my account with Microsoft Teams signs people in to the Microsoft 365 organization their project is connected to, or, for a project not connected yet, to tenant ${MOCK_TEAMS_TENANT_ID}. Never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
+        `Connecting a Microsoft Teams account signs people in to the Microsoft 365 organization their project is connected to, or to tenant ${MOCK_TEAMS_TENANT_ID} while the project is not connected yet — never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
       );
     });
 
@@ -278,7 +278,7 @@ describe("GET /microsoft-bot/test", () => {
 
       expect(response.body["tenantId"]).toBe("contoso.onmicrosoft.com");
       expect(response.body["accountSignIn"]).toContain(
-        "to tenant contoso.onmicrosoft.com.",
+        "or to tenant contoso.onmicrosoft.com while the project is not connected yet",
       );
     });
 
