@@ -113,6 +113,10 @@ import {
   buildNetworkEventMonitorPrefill,
 } from "../../Utils/NetworkEventMonitorPrefill";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
+import {
+  SnmpWalkAlertPrefill,
+  parseSnmpWalkAlertQuery,
+} from "../../Components/NetworkDevice/SnmpWalkViewModel";
 import { NetworkDeviceMonitoringMethodUtil } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import {
   MonitorCriteriaSeedIds,
@@ -719,6 +723,11 @@ const MonitorCreate: FunctionComponent<
    *
    * The device is read once, up front, because the branch needs its
    * monitoring method and the Ping branch needs its address and probe.
+   *
+   * "Alert on it" on the device's SNMP Walk page (issue #5184) comes here
+   * too, naming one OID the device collects (snmpOid, with its type and the
+   * value the walk read): the monitor then opens with one criteria on that
+   * OID instead of the pack.
    */
   /*
    * The probe's name names the monitor. A probe that cannot be read (gone,
@@ -808,6 +817,12 @@ const MonitorCreate: FunctionComponent<
 
     const deviceName: string = device?.name || "";
 
+    const walkedOid: SnmpWalkAlertPrefill | null = parseSnmpWalkAlertQuery({
+      snmpOid: Navigation.getQueryStringByName("snmpOid"),
+      snmpOidType: Navigation.getQueryStringByName("snmpOidType"),
+      snmpOidValue: Navigation.getQueryStringByName("snmpOidValue"),
+    });
+
     try {
       const monitorStatusList: ListResult<MonitorStatus> =
         await ModelAPI.getList({
@@ -839,14 +854,22 @@ const MonitorCreate: FunctionComponent<
           return status.isOfflineState;
         });
 
-      const recommendedCriteria: Array<MonitorCriteriaInstance> =
-        NetworkDeviceAlertPackUtil.buildCriteriaInstances({
-          downMonitorStatusId: offlineStatus?.id || undefined,
-          tables: SnmpTableListUtil.resolveEffectiveTables({
-            templateTables: device?.oidTemplate?.tables,
-            deviceTables: device?.snmpTables,
-          }).tables,
-        });
+      const recommendedCriteria: Array<MonitorCriteriaInstance> = walkedOid
+        ? [
+            NetworkDeviceAlertPackUtil.buildOidValueCriteriaInstance({
+              oid: walkedOid.oid,
+              name: walkedOid.oidName,
+              filterType: walkedOid.filterType,
+              value: walkedOid.value,
+            }),
+          ]
+        : NetworkDeviceAlertPackUtil.buildCriteriaInstances({
+            downMonitorStatusId: offlineStatus?.id || undefined,
+            tables: SnmpTableListUtil.resolveEffectiveTables({
+              templateTables: device?.oidTemplate?.tables,
+              deviceTables: device?.snmpTables,
+            }).tables,
+          });
 
       if (recommendedCriteria.length > 0) {
         const monitorCriteria: MonitorCriteria = new MonitorCriteria();
@@ -857,6 +880,29 @@ const MonitorCreate: FunctionComponent<
       }
     } catch {
       // Recoverable: the user can still pick statuses / criteria manually.
+    }
+
+    if (walkedOid) {
+      setInitialValues({
+        name: deviceName
+          ? translator.translateTemplate("{{deviceName}}: {{oidName}}", {
+              deviceName: deviceName,
+              oidName: walkedOid.oidName,
+            })
+          : walkedOid.oidName,
+        description: deviceName
+          ? translator.translateTemplate(
+              "Alerts on {{oidName}} of the {{deviceName}} network device.",
+              { oidName: walkedOid.oidName, deviceName: deviceName },
+            )
+          : translator.translateTemplate(
+              "Alerts on {{oidName}} of a registered network device.",
+              { oidName: walkedOid.oidName },
+            ),
+        monitorType: MonitorType.NetworkDevice,
+        monitorSteps: monitorSteps.toJSON(),
+      });
+      return;
     }
 
     setInitialValues({

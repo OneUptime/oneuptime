@@ -783,6 +783,18 @@ const NetworkDeviceSettings: FunctionComponent<
             stepId: "health-oids",
             description:
               "Extra OIDs only this device collects, on top of its template's. Recorded as device metrics.",
+            /*
+             * Where to find an OID worth adding (issue #5184): the device's
+             * own SNMP walk, which adds one in a click.
+             */
+            sideLink: {
+              text: "Find OIDs with an SNMP walk",
+              url: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.NETWORK_DEVICE_VIEW_SNMP_WALK] as Route,
+                { modelId: modelId },
+              ),
+              openLinkInNewTab: true,
+            },
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
