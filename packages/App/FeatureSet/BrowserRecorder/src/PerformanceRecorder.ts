@@ -21,8 +21,9 @@ import {
  *      custom event AND handed to onIssue, which the Recorder turns into
  *      the Performance upload trigger.
  *
- *   2. WEB VITALS. LCP, FCP, CLS and TTFB once per page view, and INP
- *      once per VIEW, emitted as kind "web-vital" custom events with the
+ *   2. WEB VITALS. LCP, FCP, CLS and TTFB once per page view (CLS
+ *      again at a later hide if it grew), and INP once per VIEW,
+ *      emitted as kind "web-vital" custom events with the
  *      standard Google ratings. Informational only: a vital NEVER calls
  *      onIssue, so it can never cause an upload, and it is on by default
  *      because "was this page slow for that user" is the first question a
@@ -44,14 +45,17 @@ import {
  *        - A page hidden before it painted (opened in a background tab)
  *          reports no FCP or LCP: the browser paints a hidden page only
  *          once it is shown, so the number would time the tab sitting
- *          unseen. Nor CLS, which the library (and CrUX) report only for a
- *          page whose FCP was reported.
+ *          unseen. Nor CLS, which the library (and CrUX) measure only
+ *          from the first FCP reported.
  *        - A page restored from the back/forward cache is a new page view
  *          with vitals of its own: TTFB 0, FCP and LCP from the restore to
  *          the frame after it, and CLS and INP from the restore on.
  *
- *      Every vital names the kind of page view it describes
- *      (navigationType), and the LCP budget reads the same LCP.
+ *      CLS covers a page view's whole life: reported at the first hide,
+ *      and again at a later one if the page shifted more after the
+ *      visitor came back, as the library reports it. Every vital names
+ *      the kind of page view it describes (navigationType), and the LCP
+ *      budget reads the same LCP.
  *
  *      INP is per view because of single-page apps. The browser's INP
  *      covers the whole document, so an app that routes with pushState
@@ -84,7 +88,8 @@ export const PERFORMANCE_CUSTOM_EVENT_TAG: string =
  * Cap on emitted BUDGET events per page load. A page that jank-loops
  * produces an unbounded longtask stream, and 500 identical "the main
  * thread stalled" rows make a worse recording than 50 do. Vitals are not
- * counted: they are bounded by construction (one per metric per page).
+ * counted: they are bounded by construction (one per metric per page
+ * view, CLS and INP again only at a later hide where they grew).
  */
 export const MAX_PERFORMANCE_EVENTS: number = 50;
 
@@ -345,11 +350,18 @@ export default class PerformanceRecorder {
   private hasMeasuredTtfb: boolean = false;
 
   /*
-   * The document load's FCP was reported. CLS is reported only then - for
-   * the load and for every restore after it - which is when the web-vitals
-   * library starts measuring CLS at all.
+   * An FCP was reported: the load's, or a restore's. CLS is measured and
+   * reported only from then on - for that page view and every one after
+   * it - which is when the web-vitals library starts measuring CLS at all.
    */
-  private hasReportedLoadFcp: boolean = false;
+  private hasReportedFcp: boolean = false;
+
+  /*
+   * The CLS last reported for this page view. CLS covers the view's whole
+   * life, so a later hide reports it again if it grew since, as the
+   * library does; null until it is first reported.
+   */
+  private reportedClsValue: number | null = null;
 
   /* Bumped by each restore, so a frame wait that outlived it stands down. */
   private restoreCount: number = 0;
@@ -677,6 +689,7 @@ export default class PerformanceRecorder {
 
     this.navigationType = "back-forward-cache";
     this.reportedVitals = {};
+    this.reportedClsValue = null;
     this.lcpCandidate = null;
     this.clsValue = 0;
     this.clsOccurredAtMs = 0;
@@ -713,6 +726,7 @@ export default class PerformanceRecorder {
       const occurredAtUnixMs: number = this.toUnixMs(restoredAtMs + value);
 
       if (this.supportedEntryTypes.indexOf(PAINT_ENTRY) >= 0) {
+        this.hasReportedFcp = true;
         this.reportVital("FCP", value, occurredAtUnixMs);
       }
 
@@ -736,9 +750,9 @@ export default class PerformanceRecorder {
   /*
    * The recorder is about to pause because nobody is at the page. Reported
    * exactly as a hidden tab reports them, while the stream can still take
-   * them: LCP, FCP, TTFB and CLS once, and the current view's INP, which
-   * stays open and is reported again only if it changes after the user
-   * comes back. Without this, a page whose first hide came while paused -
+   * them: LCP, FCP and TTFB once, and CLS and the current view's INP,
+   * which stay open and are reported again only if they change after
+   * the user comes back. Without this, a page whose first hide came while paused -
    * the tab closed by someone who walked away first - lost its vitals.
    */
   public finaliseVitalsNow(): void {
@@ -1027,7 +1041,7 @@ export default class PerformanceRecorder {
         if (entry.startTime < this.firstHiddenMs) {
           const value: number = this.sinceActivation(entry.startTime);
 
-          this.hasReportedLoadFcp = true;
+          this.hasReportedFcp = true;
           this.reportVital(
             "FCP",
             value,
@@ -1494,19 +1508,28 @@ export default class PerformanceRecorder {
     value: number,
     occurredAtUnixMs: number,
   ): void {
-    if (
-      !this.captureWebVitals ||
-      this.reportedVitals[metric] ||
-      !Number.isFinite(value)
-    ) {
+    /* CLS keeps its precision; the millisecond metrics are whole numbers. */
+    const rounded: number =
+      metric === "CLS" ? Math.round(value * 10000) / 10000 : Math.round(value);
+
+    /*
+     * Once per page view - but CLS, which covers the view's whole life, is
+     * reported again whenever it has grown since it was last reported.
+     */
+    const isRepeat: boolean =
+      metric === "CLS"
+        ? rounded === this.reportedClsValue
+        : this.reportedVitals[metric] === true;
+
+    if (!this.captureWebVitals || isRepeat || !Number.isFinite(value)) {
       return;
     }
 
     this.reportedVitals[metric] = true;
 
-    /* CLS keeps its precision; the millisecond metrics are whole numbers. */
-    const rounded: number =
-      metric === "CLS" ? Math.round(value * 10000) / 10000 : Math.round(value);
+    if (metric === "CLS") {
+      this.reportedClsValue = rounded;
+    }
 
     this.emitWebVital({
       kind: "web-vital",
@@ -1540,27 +1563,38 @@ export default class PerformanceRecorder {
   }
 
   /*
-   * The page-lifetime vitals (LCP, CLS) and the open views' INP are final
-   * only when the page stops: the tab hides, the page unloads, or the
-   * recorder stops. Each event still carries the moment it HAPPENED, so
-   * the player can draw the largest shift where it shifted rather than at
-   * the end.
+   * The page-lifetime vitals (LCP, CLS) and the open views' INP are as
+   * final as they get when the page stops: the tab hides, the page
+   * unloads, or the recorder stops. LCP is settled for good; CLS and INP
+   * are reported again at a later stop if they grew, the visitor having
+   * come back. Each event still carries the moment it HAPPENED, so the
+   * player can draw the largest shift where it shifted rather than at the
+   * end.
    */
   private finaliseVitals(): void {
-    /* An FCP the observer has not delivered yet happened all the same. */
+    /*
+     * An FCP or a shift the observer has not delivered yet happened all
+     * the same.
+     */
     this.drainRecords(
       this.paintObserver,
       (entries: Array<PerformanceEntry>): void => {
         this.onPaintEntries(entries);
       },
     );
+    this.drainRecords(
+      this.layoutShiftObserver,
+      (entries: Array<PerformanceEntry>): void => {
+        this.onLayoutShiftEntries(entries);
+      },
+    );
     this.finaliseLcp();
 
     /*
-     * Only for a page whose FCP was reported, as web-vitals and CrUX
-     * report CLS: a page that loaded hidden has neither.
+     * Only once an FCP was reported, as web-vitals and CrUX report CLS: a
+     * page that loaded hidden has none until a restore paints it again.
      */
-    if (this.clsObserved && this.hasReportedLoadFcp) {
+    if (this.clsObserved && this.hasReportedFcp) {
       this.reportVital(
         "CLS",
         this.clsValue,

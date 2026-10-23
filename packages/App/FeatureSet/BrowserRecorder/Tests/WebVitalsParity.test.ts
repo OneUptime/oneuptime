@@ -526,6 +526,171 @@ describe("web vitals: the recorder against the web-vitals library", (): void => 
   });
 
   /*
+   * CLS covers the page's whole life, not the stretch before its first
+   * hide: the visitor switches away, comes back, and the page jumps. The
+   * library reports CLS again at the next hide because it grew (and not at
+   * a hide where it did not); so must the recorder, or the replay would
+   * keep calling a page "good" that it shows shifting.
+   */
+  it("a page the visitor leaves and comes back to: CLS that grows is reported again", async (): Promise<void> => {
+    page = new WebVitalsPage({ responseStart: 120 });
+    page.now = 300;
+    page.contentfulPaint(250);
+    page.largestPaint(250, 5000);
+
+    page.loadLibrary();
+    page.startRecorder();
+    await page.settle();
+
+    page.now = 1000;
+    page.layoutShift(0.02, 900);
+    await page.settle();
+
+    page.now = 5000;
+    page.hide();
+    await page.settle();
+
+    expect(answer(expectSameAnswers(page), "CLS")?.value).toBe(0.02);
+
+    page.now = 20000;
+    page.show();
+    page.layoutShift(0.2, 20100);
+    page.layoutShift(0.15, 20400);
+    await page.settle();
+
+    page.now = 30000;
+    page.hide();
+    await page.settle();
+
+    expect(answer(expectSameAnswers(page), "CLS")).toEqual({
+      metric: "CLS",
+      value: 0.35,
+      rating: "poor",
+      navigationType: "hard",
+    });
+
+    /* Back once more, nothing moves: neither side says it again. */
+    page.now = 40000;
+    page.show();
+    page.now = 45000;
+    page.hide();
+    await page.settle();
+
+    const reported: (metric: string) => Array<number> = (
+      metric: string,
+    ): Array<number> => {
+      return page!.libraryReports
+        .filter((report: { name: string }): boolean => {
+          return report.name === metric;
+        })
+        .map((report: { value: number }): number => {
+          return WebVitalsPage.roundAsRecorderDoes("CLS", report.value);
+        });
+    };
+
+    expect(reported("CLS")).toEqual([0.02, 0.35]);
+    expect(
+      page.recorderEvents
+        .filter((event: unknown): boolean => {
+          return (event as Answer).metric === "CLS";
+        })
+        .map((event: unknown): number => {
+          return (event as Answer).value;
+        }),
+    ).toEqual(reported("CLS"));
+  });
+
+  /*
+   * The browser hands a PerformanceObserver its entries in a task of their
+   * own, so a shift in the same moment as the hide can still be queued
+   * when the page hides. The library takes the queued records before it
+   * reports; so does the recorder.
+   */
+  it("a layout shift still queued when the page hides", async (): Promise<void> => {
+    page = new WebVitalsPage({ responseStart: 100 });
+    page.now = 300;
+    page.contentfulPaint(250);
+
+    page.loadLibrary();
+    page.startRecorder();
+    await page.settle();
+
+    page.now = 2000;
+    page.layoutShift(0.3, 1990);
+    page.hide();
+    await page.settle();
+
+    expect(answer(expectSameAnswers(page), "CLS")).toEqual({
+      metric: "CLS",
+      value: 0.3,
+      rating: "poor",
+      navigationType: "hard",
+    });
+  });
+
+  /*
+   * A page that loaded in a background tab has no FCP, so no CLS - until
+   * the visitor leaves it and comes back through the back/forward cache:
+   * the restored visit is painted in front of them and has an FCP, and
+   * from there both sides measure its CLS. (The library's observer also
+   * replays the shifts of the visit before the cache, so a bigger one there
+   * would count in its number; the recorder counts the restored visit
+   * alone, as it does for every restore.)
+   */
+  it("a page that loaded in a background tab, then came back from the back/forward cache", async (): Promise<void> => {
+    page = new WebVitalsPage({ responseStart: 100 });
+    defineVisibilityState("hidden");
+    page.visibilityEntries.push({
+      entryType: "visibility-state",
+      name: "hidden",
+      startTime: 0,
+    });
+    page.now = 200;
+
+    page.loadLibrary();
+    page.startRecorder();
+    await page.settle();
+
+    page.now = 3000;
+    page.show();
+    page.contentfulPaint(3016);
+    page.largestPaint(3016, 9000);
+    page.layoutShift(0.01, 3100);
+    await page.settle();
+
+    page.now = 5000;
+    page.enterBackForwardCache();
+    await page.settle();
+
+    expect(answer(expectSameAnswers(page), "CLS")).toBeUndefined();
+
+    page.now = 60000;
+    page.restoreFromBackForwardCache();
+    page.frame(60010);
+    page.frame(60020);
+    page.layoutShift(0.2, 60100);
+    await page.settle();
+
+    page.now = 61000;
+    page.hide();
+    await page.settle();
+
+    const answers: Array<Answer> = expectSameAnswers(page);
+
+    expect(
+      answers.map((vital: Answer): string => {
+        return `${vital.metric}:${vital.value}:${vital.navigationType}`;
+      }),
+    ).toEqual([
+      "CLS:0.2:back-forward-cache",
+      "FCP:20:back-forward-cache",
+      "LCP:20:back-forward-cache",
+      "TTFB:0:back-forward-cache",
+      "TTFB:100:hard",
+    ]);
+  });
+
+  /*
    * A navigation entry with no usable responseStart: the browser withheld
    * it, or reported one from the future. Neither side reports a TTFB.
    */

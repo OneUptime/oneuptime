@@ -1276,7 +1276,7 @@ describe("Session Replay docs page", (): void => {
       "A page opened in a background tab reports no FCP, LCP or CLS.",
     );
     expect(performance).toContain("renderTimeMs >= this.firstHiddenMs");
-    expect(performance).toContain("this.hasReportedLoadFcp");
+    expect(performance).toContain("this.hasReportedFcp");
 
     /* Restored: a set of its own. */
     expect(vitals).toContain(

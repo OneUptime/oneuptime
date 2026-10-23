@@ -747,13 +747,68 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
     });
 
     /*
-     * The web-vitals library starts measuring CLS when the load's FCP is
-     * reported, and never for a page that loaded hidden - restored or not.
+     * The web-vitals library starts measuring CLS at the first FCP it
+     * reports. A page that loaded hidden reports none for its load, so no
+     * CLS either - but a restore paints it in front of the visitor, and
+     * from that FCP on its CLS counts: the restored visit's alone.
      */
-    it("reports no CLS for any visit of a page that loaded hidden", async (): Promise<void> => {
+    it("measures CLS for a page that loaded hidden only from a restore's FCP on", async (): Promise<void> => {
       page = new WebVitalsPage({ responseStart: 100 });
       defineVisibilityState("hidden");
       page.now = 200;
+
+      page.startRecorder();
+
+      page.now = 3000;
+      page.show();
+      page.contentfulPaint(3016);
+      page.layoutShift(0.4, 3100);
+      await page.settle();
+
+      page.now = 5000;
+      page.enterBackForwardCache();
+
+      /* The load had no FCP, so its 0.4 is no CLS of anybody's. */
+      expect(vitalsOf(page, "CLS")).toEqual([]);
+
+      page.now = 60000;
+      page.restoreFromBackForwardCache();
+      page.layoutShift(0.05, 60005);
+      await page.settle();
+
+      /* Hidden again before the restore's first frame: no FCP, no CLS. */
+      page.now = 60008;
+      page.hide();
+      expect(vitalsOf(page, "CLS")).toEqual([]);
+
+      page.now = 60009;
+      page.show();
+      page.frame(60010);
+      page.frame(60020);
+      page.layoutShift(0.2, 60100);
+      await page.settle();
+
+      page.now = 61000;
+      page.hide();
+
+      expect(only(page, "FCP")?.navigationType).toBe("back-forward-cache");
+      expect(vitalsOf(page, "CLS")).toEqual([
+        {
+          kind: "web-vital",
+          metric: "CLS",
+          value: 0.25,
+          rating: "needs-improvement",
+          occurredAtUnixMs: at(60100),
+          navigationType: "back-forward-cache",
+        },
+      ]);
+    });
+
+    it("reports no CLS for a restore of a page that loaded hidden when no frame paints it", async (): Promise<void> => {
+      page = new WebVitalsPage({ responseStart: 100 });
+      defineVisibilityState("hidden");
+      page.now = 200;
+      page.withoutAnimationFrames();
 
       page.startRecorder();
 
@@ -766,16 +821,16 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
       page.enterBackForwardCache();
       page.now = 60000;
       page.restoreFromBackForwardCache();
-      page.frame(60010);
-      page.frame(60020);
       page.layoutShift(0.2, 60100);
       await page.settle();
 
       page.now = 61000;
       page.hide();
 
-      expect(vitalsOf(page, "CLS")).toEqual([]);
-      expect(only(page, "FCP")?.navigationType).toBe("back-forward-cache");
+      expect(summary(page)).toEqual([
+        "TTFB:100:hard",
+        "TTFB:0:back-forward-cache",
+      ]);
     });
 
     it("counts a restore stamped from the future, or on the wall clock, from now", async (): Promise<void> => {
@@ -844,6 +899,156 @@ describe("PerformanceRecorder - prerendered, hidden and restored page views", ()
       expect(eventsSoFar).toBe(1);
       expect(vitals(page)).toHaveLength(1);
       expect(only(page, "TTFB")?.navigationType).toBe("hard");
+    });
+  });
+
+  /*
+   * CLS is the largest burst of shifts over the page view's whole life,
+   * and the visitor can come back to a tab. The library reports it at
+   * every hide where it grew; so does the recorder.
+   */
+  describe("CLS over the page view's whole life", (): void => {
+    function paintedPage(): WebVitalsPage {
+      const painted: WebVitalsPage = new WebVitalsPage({ responseStart: 120 });
+
+      painted.now = 300;
+      painted.contentfulPaint(250);
+
+      return painted;
+    }
+
+    function clsReports(target: WebVitalsPage): Array<string> {
+      return vitalsOf(target, "CLS").map((event: WebVitalEvent): string => {
+        return `${event.value}:${event.rating}:${event.occurredAtUnixMs - at(0)}:${event.navigationType}`;
+      });
+    }
+
+    it("reports CLS again at a later hide where it grew, and only there", async (): Promise<void> => {
+      page = paintedPage();
+      page.startRecorder();
+      await page.settle();
+
+      page.now = 1000;
+      page.layoutShift(0.02, 900);
+      await page.settle();
+
+      page.now = 5000;
+      page.hide();
+
+      expect(clsReports(page)).toEqual(["0.02:good:900:hard"]);
+
+      /* Back, and the page jumps: the burst at 20.1 s is the new CLS. */
+      page.now = 20000;
+      page.show();
+      page.layoutShift(0.2, 20100);
+      page.layoutShift(0.15, 20400);
+      await page.settle();
+
+      page.now = 30000;
+      page.hide();
+
+      expect(clsReports(page)).toEqual([
+        "0.02:good:900:hard",
+        "0.35:poor:20400:hard",
+      ]);
+
+      /* Back again; a small shift that makes no new largest burst. */
+      page.now = 40000;
+      page.show();
+      page.layoutShift(0.01, 40100);
+      await page.settle();
+
+      page.now = 45000;
+      page.hide();
+      window.dispatchEvent(
+        new PageTransitionEvent("pagehide", { persisted: false }),
+      );
+
+      expect(clsReports(page)).toHaveLength(2);
+    });
+
+    it("counts a shift still queued for the observer when the tab hides", async (): Promise<void> => {
+      page = paintedPage();
+      page.startRecorder();
+      await page.settle();
+
+      page.now = 2000;
+      page.layoutShift(0.3, 1990);
+      page.hide();
+
+      expect(clsReports(page)).toEqual(["0.3:poor:1990:hard"]);
+
+      /* Taken, so not delivered a second time. */
+      await page.settle();
+      page.show();
+      page.now = 3000;
+      page.hide();
+
+      expect(clsReports(page)).toEqual(["0.3:poor:1990:hard"]);
+    });
+
+    it("keeps CLS open through the idle pause and reports it again on stop if it grew", async (): Promise<void> => {
+      page = paintedPage();
+
+      const recorder: PerformanceRecorder = page.startRecorder();
+
+      page.now = 1000;
+      page.layoutShift(0.05, 900);
+      await page.settle();
+
+      recorder.finaliseVitalsNow();
+      recorder.finaliseVitalsNow();
+
+      page.now = 400000;
+      page.layoutShift(0.12, 399000);
+      await page.settle();
+
+      recorder.stop();
+
+      expect(clsReports(page)).toEqual([
+        "0.05:good:900:hard",
+        "0.12:needs-improvement:399000:hard",
+      ]);
+    });
+
+    /*
+     * A restore is a new page view: its CLS is reported at its first hide
+     * even when it is the very number the visit before ended on.
+     */
+    it("reports a restored visit's CLS even when it equals the visit before's", async (): Promise<void> => {
+      page = paintedPage();
+      page.startRecorder();
+      await page.settle();
+
+      page.now = 5000;
+      page.enterBackForwardCache();
+
+      page.now = 60000;
+      page.restoreFromBackForwardCache();
+      page.frame(60010);
+      page.frame(60020);
+
+      page.now = 61000;
+      page.hide();
+
+      expect(vitalsOf(page, "CLS")).toEqual([
+        {
+          kind: "web-vital",
+          metric: "CLS",
+          value: 0,
+          rating: "good",
+          occurredAtUnixMs: vitalsOf(page, "CLS")[0]?.occurredAtUnixMs,
+          navigationType: "hard",
+        },
+        {
+          kind: "web-vital",
+          metric: "CLS",
+          value: 0,
+          rating: "good",
+          occurredAtUnixMs: vitalsOf(page, "CLS")[1]?.occurredAtUnixMs,
+          navigationType: "back-forward-cache",
+        },
+      ]);
     });
   });
 
