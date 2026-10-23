@@ -281,7 +281,7 @@ Als Microsoft je zonder koppeling terugstuurt, zegt de pagina waarop je begon **
 :::
 
 :::details De bot zegt dat mijn account niet gekoppeld is
-Druk in het antwoord van de bot op **Connect Microsoft Teams account** om het in één stap te koppelen, of koppel het onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**, aangemeld bij de organisatie waaraan het project is gekoppeld. Een gastaccount van een andere organisatie is niet hetzelfde account.
+Druk in het antwoord van de bot op **Connect Microsoft Teams account** om het in één stap te koppelen, of koppel het onder **Gebruikersinstellingen** > **Werkruimte** > **Microsoft Teams** met **Connect my account with Microsoft Teams**. In beide gevallen meld je je aan bij de organisatie waaraan het project is gekoppeld, als gast als je daar gast bent. Ben je gast en heb je eerder het account van je eigen organisatie gekoppeld, koppel het dan opnieuw.
 :::
 
 :::details Elke melding mislukt op een zelf gehoste server

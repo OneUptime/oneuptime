@@ -281,7 +281,7 @@ När Microsoft skickar tillbaka dig utan en anslutning säger sidan du började 
 :::
 
 :::details Boten säger att mitt konto inte är anslutet
-Tryck på **Connect Microsoft Teams account** i botens svar för att ansluta det i ett steg, eller länka det under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**, inloggad i den organisation som projektet är anslutet till. Ett gästkonto från en annan organisation är inte samma konto.
+Tryck på **Connect Microsoft Teams account** i botens svar för att ansluta det i ett steg, eller länka det under **Användarinställningar** > **Arbetsyta** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. I båda fallen loggar du in i den organisation som projektet är anslutet till, som gäst om du är gäst där. Är du gäst och har tidigare anslutit din egen organisations konto, anslut det igen.
 :::
 
 :::details Alla aviseringar misslyckas på en egenvärdad server

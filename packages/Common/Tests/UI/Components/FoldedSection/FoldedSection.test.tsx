@@ -828,6 +828,54 @@ describe("every other fold is a card", () => {
     expect(body(NAMED_SECTION_TITLE)).not.toHaveClass("invisible");
     expect(body(NAMED_SECTION_TITLE)).toHaveClass("rounded-b-xl");
   });
+
+  /*
+   * A card fold can hold a whole guide: the Microsoft Teams setup guide
+   * folded on a self-hosted server's Microsoft Teams page is taller than
+   * 5,000 pixels on a desktop and twice that on a phone. Under a
+   * max-h-[5000px] (with overflow-hidden, for the rounded corners) its last
+   * sections - the AADSTS50194 troubleshooting among them - were cut off,
+   * with nothing to scroll to. Open, nothing caps the body's height.
+   */
+  test.each([
+    [
+      "an elevated card with a flush body",
+      { isElevated: true, isBodyFlush: true },
+    ],
+    ["a card", {}],
+  ])(
+    "open, %s is as tall as what it holds: no height cap cuts a long guide off",
+    async (
+      _look: string,
+      props: Partial<React.ComponentProps<typeof FoldedSection>>,
+    ) => {
+      const user: UserEvent = renderCard(props);
+
+      expect(body(NAMED_SECTION_TITLE)).toHaveClass("max-h-0");
+
+      await user.click(header(NAMED_SECTION_TITLE));
+
+      const heightCaps: Array<string> = (
+        body(NAMED_SECTION_TITLE).getAttribute("class") || ""
+      )
+        .split(" ")
+        .filter((name: string): boolean => {
+          return name.startsWith("max-h-");
+        });
+
+      expect(heightCaps).toEqual([]);
+      expect(body(NAMED_SECTION_TITLE)).toHaveClass("opacity-100");
+
+      // Folded again, it is out of sight and reach as before.
+      await user.click(header(NAMED_SECTION_TITLE));
+
+      expect(body(NAMED_SECTION_TITLE)).toHaveClass(
+        "max-h-0",
+        "opacity-0",
+        "invisible",
+      );
+    },
+  );
 });
 
 /*
