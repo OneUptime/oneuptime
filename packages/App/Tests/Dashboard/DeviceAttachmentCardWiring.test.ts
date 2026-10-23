@@ -85,8 +85,8 @@ describe("the device Overview wires the Connected to card", () => {
      * Typed, or learned from a router's ARP table, as it stands (issue
      * #5185): shown when there is one either way.
      */
-    expect(OVERVIEW_CODE).toMatch(
-      /showIf:[^}]*effectiveDetail\(item, "macAddress"\)\.value/,
+    expect(OVERVIEW_CODE.split(/\s+/).join(" ")).toContain(
+      'showIf: (item: NetworkDevice): boolean => { return Boolean(effectiveDetail(item, "macAddress").value); }',
     );
   });
 });

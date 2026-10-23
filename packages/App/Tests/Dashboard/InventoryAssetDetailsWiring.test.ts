@@ -378,11 +378,15 @@ describe("the Dashboard reads every column the asset facts read (issue #5185)", 
     expect(start).toBeGreaterThan(-1);
     const body: string = facts.substring(start, facts.indexOf("\n}", start));
 
-    return Array.from(body.matchAll(/^\s+(\w+)\?:/gm)).map(
-      (match: RegExpMatchArray): string => {
-        return match[1]!;
-      },
-    );
+    // One optional member per line: `name?: unknown;`.
+    const columns: Array<string> = [];
+    for (const line of body.split("\n")) {
+      const member: RegExpMatchArray | null = line.trim().match(/^(\w+)\?:/);
+      if (member) {
+        columns.push(member[1]!);
+      }
+    }
+    return columns;
   }
 
   test("the select names every column of NetworkDeviceAssetSource", () => {
