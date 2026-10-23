@@ -1732,11 +1732,11 @@ html.dark [data-ou-logo-plate] {
 }
 
 [data-page-anchor-landed] {
-  --ou-page-anchor-landed-tint: rgba(99, 102, 241, 0.12);
+  --ou-page-anchor-landed-tint: rgb(99 102 241 / 12%);
 }
 
 html.dark [data-page-anchor-landed] {
-  --ou-page-anchor-landed-tint: rgba(129, 140, 248, 0.18);
+  --ou-page-anchor-landed-tint: rgb(129 140 248 / 18%);
 }
 
 @media (prefers-reduced-motion: no-preference) {

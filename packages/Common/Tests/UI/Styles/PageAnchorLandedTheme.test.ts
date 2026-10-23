@@ -83,11 +83,11 @@ describe("the place a link landed on, in Theme.css", () => {
 
   test("a tint of the product's indigo in each theme - light on white, lighter on the dark card", () => {
     expect(declaredValue(LANDED, "--ou-page-anchor-landed-tint")).toBe(
-      "rgba(99, 102, 241, 0.12)",
+      "rgb(99 102 241 / 12%)",
     );
     expect(
       declaredValue(`html.dark ${LANDED}`, "--ou-page-anchor-landed-tint"),
-    ).toBe("rgba(129, 140, 248, 0.18)");
+    ).toBe("rgb(129 140 248 / 18%)");
   });
 
   test("the tint fades from the theme's tint to clear", () => {
