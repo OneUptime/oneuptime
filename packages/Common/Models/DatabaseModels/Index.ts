@@ -107,6 +107,7 @@ import RumSessionErasureRequest from "./RumSessionErasureRequest";
 import RumSessionPin from "./RumSessionPin";
 // API Keys
 import ApiKey from "./ApiKey";
+import ApiKeyCustomRole from "./ApiKeyCustomRole";
 import ApiKeyPermission from "./ApiKeyPermission";
 import BillingInvoice from "./BillingInvoice";
 import BillingPaymentMethods from "./BillingPaymentMethod";
@@ -609,6 +610,7 @@ const AllModelTypes: Array<{
   TraceRecordingRule,
   LogRecordingRule,
   ApiKeyPermission,
+  ApiKeyCustomRole,
   ProjectSmtpConfig,
   StatusPage,
 
