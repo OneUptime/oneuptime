@@ -578,8 +578,8 @@ describe("the project's forms", () => {
 
   /*
    * An incident's and an alert's owner rule also list teams for the
-   * creator's team: a second picker, of teams only, folded under Creator's
-   * Team on the same step (Dashboard Utils/Form/ResourceRuleForm).
+   * creator's team: a second picker, of teams only, last in the Inherit
+   * Owners fold on the same step (Dashboard Utils/Form/ResourceRuleForm).
    */
   test("every owner rule form asks for its owners with one picker, on its Owners step", () => {
     const ownerRulesLabel: RegExp = / Owner Rules$/;
@@ -609,7 +609,7 @@ describe("the project's forms", () => {
       }).toEqual({
         form: `${form.file} ${form.label}`,
         pickers: creatorTeamRulesLabel.test(form.label)
-          ? ["Owners on owners", "Teams on owners"]
+          ? ["Owners on owners", "Creator's Team on owners"]
           : ["Owners on owners"],
       });
     }

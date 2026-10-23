@@ -33380,8 +33380,6 @@
   "Creator's Teams": "Opretterens teams",
   "Nobody else picked.": "Ingen andre valgt.",
   "Nobody picked.": "Ingen valgt.",
-  "Optionally make the team of the person who creates the alert an owner.": "Gør eventuelt teamet for den person, der opretter advarslen, til ejer.",
-  "Optionally make the team of the person who declares the incident an owner.": "Gør eventuelt teamet for den person, der erklærer hændelsen, til ejer.",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "Når den person, der opretter en matchende advarsel, er med i et af disse teams, bliver det team også ejer.",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "Når den person, der erklærer en matchende hændelse, er med i et af disse teams, bliver det team også ejer.",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "Når reglen matcher, bliver disse personer og teams ejere. Lad stå tom, hvis reglen kun tilføjer opretterens team eller arver ejere.",

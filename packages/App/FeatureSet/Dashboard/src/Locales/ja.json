@@ -33380,8 +33380,6 @@
   "Creator's Teams": "作成者のチーム",
   "Nobody else picked.": "ほかには誰も選択されていません。",
   "Nobody picked.": "誰も選択されていません。",
-  "Optionally make the team of the person who creates the alert an owner.": "必要に応じて、アラートを作成した人のチームを所有者にします。",
-  "Optionally make the team of the person who declares the incident an owner.": "必要に応じて、インシデントを宣言した人のチームを所有者にします。",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "一致するアラートを作成した人がこれらのチームのいずれかに所属している場合、そのチームも所有者になります。",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "一致するインシデントを宣言した人がこれらのチームのいずれかに所属している場合、そのチームも所有者になります。",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "このルールに一致すると、これらの人やチームが所有者になります。ルールが作成者のチームを追加するか所有者を継承するだけなら空欄にします。",

@@ -8,6 +8,7 @@ import HostOwnerRule from "../../../../Models/DatabaseModels/HostOwnerRule";
 import IncidentEpisodeLabelRule from "../../../../Models/DatabaseModels/IncidentEpisodeLabelRule";
 import IncidentLabelRule from "../../../../Models/DatabaseModels/IncidentLabelRule";
 import IncidentOnCallRule from "../../../../Models/DatabaseModels/IncidentOnCallRule";
+import IncidentOwnerRule from "../../../../Models/DatabaseModels/IncidentOwnerRule";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenanceOwnerRule from "../../../../Models/DatabaseModels/ScheduledMaintenanceOwnerRule";
@@ -25,6 +26,14 @@ import {
   RULE_ADDS_NOTHING_TOOLTIP,
   RuleActionColumns,
 } from "../../../../UI/Components/RuleRun/RuleAction";
+import {
+  CREATOR_TEAM_LIST_COLUMNS,
+  CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+  doesNewRuleAddSomething,
+  getRuleAddsNothingMessage,
+  INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+  OWNER_RULE_ADDS_NOTHING_MESSAGE,
+} from "../../../../Utils/Rules/RuleAction";
 
 /*
  * What a label or owner rule adds, read off its model and its saved row:
@@ -87,13 +96,34 @@ describe("what a rule model adds, by column", () => {
       switchColumns: [...INHERITED_LABEL_COLUMNS],
     });
     expect(getRuleActionColumns(new AlertOwnerRule())).toEqual({
-      listColumns: ["ownerUsers", "ownerTeams"],
+      listColumns: ["ownerUsers", "ownerTeams", "creatorTeams"],
       switchColumns: [...INHERITED_OWNER_COLUMNS],
     });
     expect(getRuleActionColumns(new ScheduledMaintenanceOwnerRule())).toEqual({
       listColumns: ["ownerUsers", "ownerTeams"],
       switchColumns: [...INHERITED_OWNER_COLUMNS],
     });
+  });
+
+  /*
+   * An incident's or alert's owner rule also lists teams for the creator's
+   * team: a list it adds from, as its people and teams are.
+   */
+  test("an incident or alert owner rule also adds the creator's team", () => {
+    for (const model of [new IncidentOwnerRule(), new AlertOwnerRule()]) {
+      expect(getRuleActionColumns(model)!.listColumns).toEqual([
+        "ownerUsers",
+        "ownerTeams",
+        ...CREATOR_TEAM_LIST_COLUMNS,
+      ]);
+    }
+
+    expect(
+      getRuleActionColumns(new ScheduledMaintenanceOwnerRule())!.listColumns,
+    ).not.toContain("creatorTeams");
+    expect(
+      getRuleActionColumns(new HostOwnerRule())!.listColumns,
+    ).not.toContain("creatorTeams");
   });
 
   test("an episode's rule inherits nothing", () => {
@@ -129,7 +159,12 @@ describe("what a rule model adds, by column", () => {
         file,
         lists: isLabelRule
           ? [...LABEL_RULE_LIST_COLUMNS]
-          : [...OWNER_RULE_LIST_COLUMNS],
+          : [
+              ...OWNER_RULE_LIST_COLUMNS,
+              ...CREATOR_TEAM_LIST_COLUMNS.filter((column: string): boolean => {
+                return model.hasColumn(column);
+              }),
+            ],
       });
       expect({ file, switches: action!.switchColumns }).toEqual({
         file,
@@ -161,6 +196,14 @@ describe("what a rule table selects", () => {
     ).toEqual({
       ownerUsers: { _id: true },
       ownerTeams: { _id: true },
+    });
+    expect(
+      getRuleActionSelect(getRuleActionColumns(new IncidentOwnerRule())!),
+    ).toMatchObject({
+      ownerUsers: { _id: true },
+      ownerTeams: { _id: true },
+      creatorTeams: { _id: true },
+      inheritOwnersFromServices: true,
     });
   });
 });
@@ -287,10 +330,96 @@ describe("a rule that adds nothing", () => {
     expect(doesRuleAddNothing(oneSwitchUnread, incidentLabelRule)).toBe(false);
   });
 
+  test("is an incident or alert owner rule that also lists no team for the creator's team", () => {
+    const incidentOwnerRule: RuleActionColumns = getRuleActionColumns(
+      new IncidentOwnerRule(),
+    )!;
+    const ownerSwitchesOff: Record<string, boolean> = Object.fromEntries(
+      INHERITED_OWNER_COLUMNS.map((column: string): [string, boolean] => {
+        return [column, false];
+      }),
+    );
+    const nothing: Record<string, unknown> = {
+      ownerUsers: [],
+      ownerTeams: [],
+      creatorTeams: [],
+      ...ownerSwitchesOff,
+    };
+
+    expect(doesRuleAddNothing(nothing, incidentOwnerRule)).toBe(true);
+    expect(
+      doesRuleAddNothing(
+        {
+          ...nothing,
+          creatorTeams: [Object.assign(new Team(), { _id: "t" })],
+        },
+        incidentOwnerRule,
+      ),
+    ).toBe(false);
+
+    // Its teams not read: not known to be empty.
+    const creatorTeamsUnread: Record<string, unknown> = { ...nothing };
+    delete creatorTeamsUnread["creatorTeams"];
+
+    expect(doesRuleAddNothing(creatorTeamsUnread, incidentOwnerRule)).toBe(
+      false,
+    );
+  });
+
   test("says so in a few words, and what to do about it", () => {
     expect(RULE_ADDS_NOTHING_TEXT).toBe("Adds nothing");
     expect(RULE_ADDS_NOTHING_TOOLTIP).toBe(
       "This rule adds nothing when it matches. Edit it to choose what it adds, or delete it.",
+    );
+  });
+});
+
+/*
+ * A NEW rule made through the API, Terraform, a workflow or an import must
+ * add something: a team listed for the creator's team is something, and the
+ * answer to an incident or alert owner rule that adds nothing names it.
+ */
+describe("a new rule", () => {
+  const incidentOwnerRule: RuleActionColumns = getRuleActionColumns(
+    new IncidentOwnerRule(),
+  )!;
+
+  test("adds something when it lists a team for the creator's team", () => {
+    expect(doesNewRuleAddSomething({}, incidentOwnerRule)).toBe(false);
+    expect(
+      doesNewRuleAddSomething({ creatorTeams: [] }, incidentOwnerRule),
+    ).toBe(false);
+    expect(
+      doesNewRuleAddSomething(
+        { creatorTeams: ["a0a0a0a0-0000-4000-8000-000000000003"] },
+        incidentOwnerRule,
+      ),
+    ).toBe(true);
+    expect(
+      doesNewRuleAddSomething(
+        { creatorTeams: [{ _id: "a0a0a0a0-0000-4000-8000-000000000003" }] },
+        incidentOwnerRule,
+      ),
+    ).toBe(true);
+  });
+
+  test("that adds nothing is told what it may add, in its own fields", () => {
+    expect(getRuleAddsNothingMessage(incidentOwnerRule)).toBe(
+      CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
+    );
+    expect(
+      getRuleAddsNothingMessage(getRuleActionColumns(new AlertOwnerRule())!),
+    ).toBe(CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE);
+    expect(
+      getRuleAddsNothingMessage(
+        getRuleActionColumns(new ScheduledMaintenanceOwnerRule())!,
+      ),
+    ).toBe(INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE);
+    expect(
+      getRuleAddsNothingMessage(getRuleActionColumns(new HostOwnerRule())!),
+    ).toBe(OWNER_RULE_ADDS_NOTHING_MESSAGE);
+    expect(CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE).toContain(
+      "Creator's Teams",
     );
   });
 });

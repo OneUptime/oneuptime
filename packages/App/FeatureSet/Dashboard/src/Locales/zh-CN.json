@@ -33380,8 +33380,6 @@
   "Creator's Teams": "创建者的团队",
   "Nobody else picked.": "未选择其他人。",
   "Nobody picked.": "未选择任何人。",
-  "Optionally make the team of the person who creates the alert an owner.": "可选：将创建警报的人所在的团队设为所有者。",
-  "Optionally make the team of the person who declares the incident an owner.": "可选：将声明事件的人所在的团队设为所有者。",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "如果创建匹配警报的人属于其中某个团队，该团队也会成为所有者。",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "如果声明匹配事件的人属于其中某个团队，该团队也会成为所有者。",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "此规则匹配时，这些人员和团队会成为所有者。如果规则只添加创建者的团队或继承所有者，请留空。",

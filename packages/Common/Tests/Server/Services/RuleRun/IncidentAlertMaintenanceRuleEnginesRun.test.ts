@@ -83,6 +83,7 @@ import RuleCriteria, {
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { OwnerRulePlanEntry } from "../../../../Server/Utils/Rules/OwnerRulePlan";
 import { stubProjectDirectory } from "../../TestingUtils/ProjectDirectory";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -1345,6 +1346,357 @@ describe.each(OWNER_CASES)("$name - run now", (c: EngineCase) => {
     ]);
   });
 });
+
+/*
+ * THE CREATOR'S TEAM. An incident or alert owner rule can list teams under
+ * Creator's Team (creatorTeams): of them, the ones the person who created
+ * the event is in become owners too (Server/Utils/Rules/CreatorTeams). The
+ * creator is the resource's createdByUserId - on create the fresh row, in a
+ * run a row read with resourceSelectForRuleRun - and an event a monitor, a
+ * workflow or an API key creates has none.
+ */
+const CREATOR_ID: ObjectID = new ObjectID(
+  "c4c4c4c4-c4c4-4c4c-8c4c-c4c4c4c4c4c4",
+);
+// Teams a rule lists for the creator's team.
+const PLATFORM_TEAM_ID: ObjectID = new ObjectID(
+  "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1",
+);
+const SRE_TEAM_ID: ObjectID = new ObjectID(
+  "b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2",
+);
+// The project's Members team: the creator is in it, no rule lists it.
+const MEMBERS_TEAM_ID: ObjectID = new ObjectID(
+  "d3d3d3d3-d3d3-4d3d-8d3d-d3d3d3d3d3d3",
+);
+
+const CREATOR_TEAM_CASES: Array<EngineCase> = OWNER_CASES.filter(
+  (c: EngineCase): boolean => {
+    return c.modelType === Incident || c.modelType === Alert;
+  },
+);
+
+// What the owner rule engines of incidents and alerts preview.
+interface PreviewingEngine {
+  previewRules: (
+    resource: DatabaseBaseModel,
+  ) => Promise<Array<OwnerRulePlanEntry<DatabaseBaseModel>>>;
+}
+
+describe.each(CREATOR_TEAM_CASES)(
+  "$name - the creator's team",
+  (c: EngineCase) => {
+    const owner: OwnerConfig = c.owner!;
+
+    function teams(mocks: Mocks): Array<CreatedOwner> {
+      return createdOwners(
+        mocks.ownerTeamRows,
+        "teamId",
+        owner.resourceIdColumn,
+      );
+    }
+
+    function teamIdsOf(mocks: Mocks): Array<string> {
+      return teams(mocks).map((row: CreatedOwner): string => {
+        return row.ownerId;
+      });
+    }
+
+    function createdBy(creatorId: ObjectID | undefined): DatabaseBaseModel {
+      const resource: DatabaseBaseModel = c.makeResource({});
+
+      if (creatorId) {
+        (resource as unknown as { createdByUserId: ObjectID }).createdByUserId =
+          creatorId;
+      }
+
+      return resource;
+    }
+
+    // The teams the creator is an accepted member of, in the project.
+    function creatorIsIn(...teamIds: Array<ObjectID>): jest.SpyInstance {
+      return jest
+        .spyOn(TeamMemberService, "getTeamIdsForUser")
+        .mockResolvedValue(teamIds as never);
+    }
+
+    const listsPlatformAndSre: () => DatabaseBaseModel =
+      (): DatabaseBaseModel => {
+        return rule({
+          notifyOwners: true,
+          creatorTeams: [ref(PLATFORM_TEAM_ID), ref(SRE_TEAM_ID)],
+        });
+      };
+
+    it("reads the rule's teams and the resource's creator", () => {
+      expect(c.engine.ruleSelect).toMatchObject({
+        creatorTeams: { _id: true },
+      });
+      expect(c.engine.resourceSelectForRuleRun).toMatchObject({
+        createdByUserId: true,
+      });
+    });
+
+    it("adds the listed team the creator is in - never another team of theirs", async () => {
+      const mocks: Mocks = installMocks(c);
+      const membership: jest.SpyInstance = creatorIsIn(
+        MEMBERS_TEAM_ID,
+        SRE_TEAM_ID,
+      );
+
+      const result: RuleApplicationResult = await run(c, {
+        resource: createdBy(CREATOR_ID),
+        rules: [listsPlatformAndSre()],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(teamIdsOf(mocks)).toEqual([SRE_TEAM_ID.toString()]);
+      expect(membership).toHaveBeenCalledTimes(1);
+      expect(String(membership.mock.calls[0]![0])).toBe(CREATOR_ID.toString());
+      expect(String(membership.mock.calls[0]![1])).toBe(PROJECT_ID.toString());
+
+      // The feed item says why a team it names was added.
+      expect(mocks.feed.mock.calls[0]![0].feedInfoInMarkdown).toContain(
+        "is a member",
+      );
+    });
+
+    it("adds every listed team the creator is in", async () => {
+      const mocks: Mocks = installMocks(c);
+      creatorIsIn(SRE_TEAM_ID, PLATFORM_TEAM_ID, MEMBERS_TEAM_ID);
+
+      const result: RuleApplicationResult = await run(c, {
+        resource: createdBy(CREATOR_ID),
+        rules: [listsPlatformAndSre()],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.updated(2));
+      expect(teamIdsOf(mocks).sort()).toEqual(
+        [PLATFORM_TEAM_ID.toString(), SRE_TEAM_ID.toString()].sort(),
+      );
+    });
+
+    it("adds none for a creator in none of them, and says so as alreadyApplied", async () => {
+      const mocks: Mocks = installMocks(c);
+      creatorIsIn(MEMBERS_TEAM_ID);
+
+      const result: RuleApplicationResult = await run(c, {
+        resource: createdBy(CREATOR_ID),
+        rules: [listsPlatformAndSre()],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.alreadyApplied());
+      expect(teams(mocks)).toEqual([]);
+      expect(mocks.feed).not.toHaveBeenCalled();
+    });
+
+    it("adds none, and asks nothing, for one no person created - a monitor, a workflow, an API key", async () => {
+      const mocks: Mocks = installMocks(c);
+      const membership: jest.SpyInstance = creatorIsIn(SRE_TEAM_ID);
+
+      const result: RuleApplicationResult = await run(c, {
+        resource: createdBy(undefined),
+        rules: [
+          rule({
+            ownerUsers: [ref(USER_A_ID)],
+            creatorTeams: [ref(SRE_TEAM_ID)],
+          }),
+        ],
+      });
+
+      // The people it names are still added.
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(teams(mocks)).toEqual([]);
+      expect(membership).not.toHaveBeenCalled();
+      expect(mocks.feed.mock.calls[0]![0].feedInfoInMarkdown).not.toContain(
+        "is a member",
+      );
+    });
+
+    it.each<[boolean, boolean, boolean]>([
+      [true, true, false],
+      [false, true, true],
+      [true, false, true],
+    ])(
+      "tells the creator's team as the rule tells its owners (notifyOwners: %s, run allows: %s, marked told: %s)",
+      async (
+        notifyOwners: boolean,
+        allowOwnerNotification: boolean,
+        isOwnerNotified: boolean,
+      ) => {
+        const mocks: Mocks = installMocks(c);
+        creatorIsIn(SRE_TEAM_ID);
+
+        await run(c, {
+          resource: createdBy(CREATOR_ID),
+          rules: [
+            rule({
+              notifyOwners: notifyOwners,
+              creatorTeams: [ref(SRE_TEAM_ID)],
+            }),
+          ],
+          allowOwnerNotification: allowOwnerNotification,
+        });
+
+        expect(teams(mocks)).toEqual([
+          {
+            ownerId: SRE_TEAM_ID.toString(),
+            resourceId: RESOURCE_ID.toString(),
+            isOwnerNotified: isOwnerNotified,
+          },
+        ]);
+      },
+    );
+
+    it("does not add a team the resource already has", async () => {
+      const mocks: Mocks = installMocks(c, {
+        existingOwnerTeamIds: [SRE_TEAM_ID],
+      });
+      creatorIsIn(SRE_TEAM_ID);
+
+      const result: RuleApplicationResult = await run(c, {
+        resource: createdBy(CREATOR_ID),
+        rules: [listsPlatformAndSre()],
+      });
+
+      expect(result).toEqual(RuleApplicationResultUtil.alreadyApplied());
+      expect(teams(mocks)).toEqual([]);
+    });
+
+    it("reads the creator's teams once for every rule that lists some", async () => {
+      installMocks(c);
+      const membership: jest.SpyInstance = creatorIsIn(SRE_TEAM_ID);
+
+      await run(c, {
+        resource: createdBy(CREATOR_ID),
+        rules: [
+          listsPlatformAndSre(),
+          rule({ creatorTeams: [ref(SRE_TEAM_ID)] }),
+          rule({ ownerUsers: [ref(USER_A_ID)] }),
+        ],
+      });
+
+      expect(membership).toHaveBeenCalledTimes(1);
+    });
+
+    it("is added by the create hook, with the rules it reads", async () => {
+      const mocks: Mocks = installMocks(c);
+      creatorIsIn(SRE_TEAM_ID);
+      mockMethod(c.ruleService, "findBy", async () => {
+        return [rule({ creatorTeams: [ref(SRE_TEAM_ID)] })];
+      });
+
+      await c.createHook(createdBy(CREATOR_ID));
+
+      expect(teams(mocks)).toEqual([
+        {
+          ownerId: SRE_TEAM_ID.toString(),
+          resourceId: RESOURCE_ID.toString(),
+          isOwnerNotified: false,
+        },
+      ]);
+    });
+
+    /*
+     * The create form's review: the same plan of the event the form holds,
+     * with nothing written - no owner, no lookup of who is already one, no
+     * feed item.
+     */
+    describe("previewRules", () => {
+      const engine: PreviewingEngine = c.engine as unknown as PreviewingEngine;
+
+      it("lists each rule that adds someone with whom it adds, and writes nothing", async () => {
+        const mocks: Mocks = installMocks(c);
+        creatorIsIn(SRE_TEAM_ID);
+        mockMethod(c.ruleService, "findBy", async () => {
+          return [
+            rule({
+              notifyOwners: false,
+              ownerUsers: [ref(USER_A_ID)],
+              creatorTeams: [ref(SRE_TEAM_ID)],
+              inheritOwnersFromMonitors: true,
+              inheritOwnersFromHosts: true,
+            }),
+            // Matches, but its creator's team is not the creator's: no entry.
+            {
+              ...rule({ creatorTeams: [ref(PLATFORM_TEAM_ID)] }),
+              id: new ObjectID("e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5"),
+            } as unknown as DatabaseBaseModel,
+            // Does not match.
+            rule({
+              [c.titlePatternField]: "^billing",
+              ownerUsers: [ref(USER_A_ID)],
+            }),
+          ];
+        });
+
+        const entries: Array<OwnerRulePlanEntry<DatabaseBaseModel>> =
+          await engine.previewRules(createdBy(CREATOR_ID));
+
+        const withOwners: Array<OwnerRulePlanEntry<DatabaseBaseModel>> =
+          entries.filter(
+            (entry: OwnerRulePlanEntry<DatabaseBaseModel>): boolean => {
+              return entry.userIds.length + entry.teamIds.length > 0;
+            },
+          );
+
+        expect(withOwners).toHaveLength(1);
+        expect(withOwners[0]!.notify).toBe(false);
+        expect(withOwners[0]!.userIds.sort()).toEqual(
+          [USER_A_ID.toString(), MONITOR_OWNER_USER_ID.toString()].sort(),
+        );
+        expect(withOwners[0]!.teamIds.sort()).toEqual(
+          [SRE_TEAM_ID.toString(), HOST_OWNER_TEAM_ID.toString()].sort(),
+        );
+        expect(withOwners[0]!.creatorTeamIds).toEqual([SRE_TEAM_ID.toString()]);
+
+        expect(mocks.ownerUserRows).toEqual([]);
+        expect(mocks.ownerTeamRows).toEqual([]);
+        expect(mocks.ownerAssignmentLookup).not.toHaveBeenCalled();
+        expect(mocks.feed).not.toHaveBeenCalled();
+      });
+
+      it("reads the project's enabled rules, as the create does", async () => {
+        installMocks(c);
+        const findBy: jest.SpyInstance = mockMethod(
+          c.ruleService,
+          "findBy",
+          async () => {
+            return [];
+          },
+        );
+
+        expect(await engine.previewRules(createdBy(CREATOR_ID))).toEqual([]);
+        expect(findBy.mock.calls[0]![0].select).toBe(c.engine.ruleSelect);
+        expect(findBy.mock.calls[0]![0].query).toMatchObject({
+          isEnabled: true,
+        });
+        expect(String(findBy.mock.calls[0]![0].query.projectId)).toBe(
+          PROJECT_ID.toString(),
+        );
+        expect(findBy.mock.calls[0]![0].limit).toBe(
+          MAX_RULES_EVALUATED_PER_PROJECT,
+        );
+      });
+
+      it("reads nothing for an event of no project", async () => {
+        installMocks(c);
+        const findBy: jest.SpyInstance = mockMethod(
+          c.ruleService,
+          "findBy",
+          async () => {
+            return [];
+          },
+        );
+        const resource: DatabaseBaseModel = createdBy(CREATOR_ID);
+        (resource as unknown as { projectId: undefined }).projectId = undefined;
+
+        expect(await engine.previewRules(resource)).toEqual([]);
+        expect(findBy).not.toHaveBeenCalled();
+      });
+    });
+  },
+);
 
 describe.each([...LABEL_CASES, ...OWNER_CASES])(
   "$name - resourceSelectForRuleRun",

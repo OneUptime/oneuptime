@@ -33380,8 +33380,6 @@
   "Creator's Teams": "Creator's Teams",
   "Nobody else picked.": "Nobody else picked.",
   "Nobody picked.": "Nobody picked.",
-  "Optionally make the team of the person who creates the alert an owner.": "Optionally make the team of the person who creates the alert an owner.",
-  "Optionally make the team of the person who declares the incident an owner.": "Optionally make the team of the person who declares the incident an owner.",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.",

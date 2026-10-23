@@ -64,6 +64,12 @@ import { OwnerRulePlanEntry } from "./OwnerRulePlan";
  *     them with the caller's own permissions, as every owners list does.
  */
 
+// The answer to a severity that is not the project's, or is none.
+const INCIDENT_SEVERITY_NOT_FOUND: string =
+  "This incident severity was not found in this project.";
+const ALERT_SEVERITY_NOT_FOUND: string =
+  "This alert severity was not found in this project.";
+
 // What each event's preview reads, and how it is told apart.
 interface EventDefinition {
   // The rules it shows: who may read them may ask.
@@ -72,9 +78,9 @@ interface EventDefinition {
   hasResources: boolean;
   // Whether it has one monitor at most (an alert).
   hasOneMonitor: boolean;
-  // The severity service of the event.
+  // The severity service of the event, and the answer to one not found.
   severityService: DatabaseService<BaseModel>;
-  severityName: string;
+  severityNotFound: string;
 }
 
 const getEventDefinition: (event: OwnerRulePreviewEvent) => EventDefinition = (
@@ -88,7 +94,7 @@ const getEventDefinition: (event: OwnerRulePreviewEvent) => EventDefinition = (
         hasOneMonitor: false,
         severityService:
           IncidentSeverityService as unknown as DatabaseService<BaseModel>,
-        severityName: "incident severity",
+        severityNotFound: INCIDENT_SEVERITY_NOT_FOUND,
       };
     case OwnerRulePreviewEvent.Alert:
       return {
@@ -97,7 +103,7 @@ const getEventDefinition: (event: OwnerRulePreviewEvent) => EventDefinition = (
         hasOneMonitor: true,
         severityService:
           AlertSeverityService as unknown as DatabaseService<BaseModel>,
-        severityName: "alert severity",
+        severityNotFound: ALERT_SEVERITY_NOT_FOUND,
       };
     case OwnerRulePreviewEvent.IncidentEpisode:
       return {
@@ -106,7 +112,7 @@ const getEventDefinition: (event: OwnerRulePreviewEvent) => EventDefinition = (
         hasOneMonitor: false,
         severityService:
           IncidentSeverityService as unknown as DatabaseService<BaseModel>,
-        severityName: "incident severity",
+        severityNotFound: INCIDENT_SEVERITY_NOT_FOUND,
       };
     case OwnerRulePreviewEvent.AlertEpisode:
       return {
@@ -115,7 +121,7 @@ const getEventDefinition: (event: OwnerRulePreviewEvent) => EventDefinition = (
         hasOneMonitor: false,
         severityService:
           AlertSeverityService as unknown as DatabaseService<BaseModel>,
-        severityName: "alert severity",
+        severityNotFound: ALERT_SEVERITY_NOT_FOUND,
       };
   }
 };
@@ -453,7 +459,7 @@ export default class OwnerRulePreviewBuilder {
           ids: data.draft[list.key],
           projectId: data.projectId,
           service: list.service,
-          name: list.name,
+          notFound: `One or more of these ${list.name} were not found in this project.`,
         });
       });
 
@@ -463,7 +469,7 @@ export default class OwnerRulePreviewBuilder {
           ids: [data.draft.severityId],
           projectId: data.projectId,
           service: definition.severityService,
-          name: definition.severityName,
+          notFound: definition.severityNotFound,
         }),
       );
     }
@@ -475,7 +481,8 @@ export default class OwnerRulePreviewBuilder {
     ids: Array<string>;
     projectId: ObjectID;
     service: DatabaseService<BaseModel>;
-    name: string;
+    // The answer when one is not the project's, or is none.
+    notFound: string;
   }): Promise<void> {
     const found: Array<BaseModel> = await data.service.findBy({
       query: {
@@ -507,9 +514,7 @@ export default class OwnerRulePreviewBuilder {
     });
 
     if (!isEveryOneFound) {
-      throw new BadDataException(
-        `One or more of these ${data.name} were not found in this project.`,
-      );
+      throw new BadDataException(data.notFound);
     }
   }
 

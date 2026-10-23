@@ -33380,8 +33380,6 @@
   "Creator's Teams": "Команды создателя",
   "Nobody else picked.": "Больше никто не выбран.",
   "Nobody picked.": "Никто не выбран.",
-  "Optionally make the team of the person who creates the alert an owner.": "При желании сделайте владельцем команду человека, создающего оповещение.",
-  "Optionally make the team of the person who declares the incident an owner.": "При желании сделайте владельцем команду человека, объявляющего инцидент.",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "Если человек, создающий подходящее оповещение, состоит в одной из этих команд, эта команда тоже становится владельцем.",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "Если человек, объявляющий подходящий инцидент, состоит в одной из этих команд, эта команда тоже становится владельцем.",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "Когда правило срабатывает, эти люди и команды становятся владельцами. Оставьте пустым, если правило только добавляет команду создателя или наследует владельцев.",

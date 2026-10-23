@@ -33380,8 +33380,6 @@
   "Creator's Teams": "تیم‌های سازنده",
   "Nobody else picked.": "کس دیگری انتخاب نشده است.",
   "Nobody picked.": "کسی انتخاب نشده است.",
-  "Optionally make the team of the person who creates the alert an owner.": "در صورت نیاز، تیم کسی را که هشدار را می‌سازد مالک کنید.",
-  "Optionally make the team of the person who declares the incident an owner.": "در صورت نیاز، تیم کسی را که حادثه را اعلام می‌کند مالک کنید.",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "اگر کسی که هشدار منطبقی می‌سازد عضو یکی از این تیم‌ها باشد، آن تیم هم مالک می‌شود.",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "اگر کسی که حادثه منطبقی را اعلام می‌کند عضو یکی از این تیم‌ها باشد، آن تیم هم مالک می‌شود.",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "وقتی این قاعده منطبق شود، این افراد و تیم‌ها مالک می‌شوند. اگر قاعده فقط تیم سازنده را می‌افزاید یا مالکان را به ارث می‌برد، خالی بگذارید.",

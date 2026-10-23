@@ -476,8 +476,8 @@ describe("every label and owner rule form", () => {
   /*
    * What a new rule's last step shows: what it adds and its name, open; the
    * inherit switches of an event's rule folded together under Inherit
-   * Labels / Inherit Owners; an incident or alert owner rule's Creator's
-   * Team in a fold of its own; its description - and an owner rule's Notify
+   * Labels / Inherit Owners - an incident or alert owner rule's Creator's
+   * Team last in that fold; its description - and an owner rule's Notify
    * Owners - folded under More fields. Enabled is on the Edit form only: a
    * new rule starts on.
    */
@@ -518,8 +518,8 @@ describe("every label and owner rule form", () => {
       });
 
       /*
-       * Three folds at most: the inherit switches, the creator's team, and
-       * More fields - each its own.
+       * Two folds at most: the inherit switches - with the creator's team -
+       * and More fields.
        */
       const sectionOf: (key: string) => string | undefined = (
         key: string,
@@ -546,16 +546,15 @@ describe("every label and owner rule form", () => {
         expect([...inheritSections][0]).not.toBe([...moreSections][0]);
       }
 
+      // The creator's team is in the inherit switches' fold, not a third.
       if (creatorTeamSections.size > 0) {
-        expect(creatorTeamSections.size).toBe(1);
-
-        const creatorTeamSection: string | undefined = [
-          ...creatorTeamSections,
-        ][0];
-
-        expect(creatorTeamSection).toBeDefined();
-        expect(creatorTeamSection).not.toBe([...moreSections][0]);
-        expect(creatorTeamSection).not.toBe([...inheritSections][0]);
+        expect({
+          form: describeForm(form),
+          sections: [...creatorTeamSections],
+        }).toEqual({
+          form: describeForm(form),
+          sections: [...inheritSections],
+        });
       }
 
       const enabled: FormFieldFacts | undefined = form.fields.find(

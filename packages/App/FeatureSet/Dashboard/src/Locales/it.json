@@ -33380,8 +33380,6 @@
   "Creator's Teams": "Team del creatore",
   "Nobody else picked.": "Nessun altro scelto.",
   "Nobody picked.": "Nessuno scelto.",
-  "Optionally make the team of the person who creates the alert an owner.": "Facoltativamente, rendi proprietario il team della persona che crea l'avviso.",
-  "Optionally make the team of the person who declares the incident an owner.": "Facoltativamente, rendi proprietario il team della persona che dichiara l'incidente.",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "Se la persona che crea un avviso corrispondente fa parte di uno di questi team, anche quel team diventa proprietario.",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "Se la persona che dichiara un incidente corrispondente fa parte di uno di questi team, anche quel team diventa proprietario.",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "Quando questa regola corrisponde, queste persone e questi team diventano proprietari. Lascia vuoto se la regola aggiunge solo il team del creatore o eredita i proprietari.",

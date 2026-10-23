@@ -33380,8 +33380,6 @@
   "Creator's Teams": "निर्माता की टीमें",
   "Nobody else picked.": "किसी और को नहीं चुना गया।",
   "Nobody picked.": "कोई नहीं चुना गया।",
-  "Optionally make the team of the person who creates the alert an owner.": "वैकल्पिक रूप से, अलर्ट बनाने वाले व्यक्ति की टीम को मालिक बनाएं।",
-  "Optionally make the team of the person who declares the incident an owner.": "वैकल्पिक रूप से, घटना घोषित करने वाले व्यक्ति की टीम को मालिक बनाएं।",
   "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.": "मेल खाने वाला अलर्ट बनाने वाला व्यक्ति अगर इनमें से किसी टीम में है, तो वह टीम भी मालिक बन जाती है।",
   "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.": "मेल खाने वाली घटना घोषित करने वाला व्यक्ति अगर इनमें से किसी टीम में है, तो वह टीम भी मालिक बन जाती है।",
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.": "जब यह नियम मेल खाता है, तो ये लोग और टीमें मालिक बन जाते हैं। अगर नियम केवल निर्माता की टीम जोड़ता है या मालिक विरासत में लेता है, तो खाली छोड़ें।",

@@ -5,7 +5,6 @@ import path from "path";
 import {
   CREATOR_TEAM_RULE_NAME,
   CREATOR_TEAMS_COLUMN,
-  CREATOR_TEAMS_SECTION_ID,
   CREATOR_TEAMS_WORDING,
   CreatorTeamRuleRecord,
   FILLED_IN_RULE_NAME_KEY,
@@ -905,8 +904,9 @@ describe.each(RECORDS)(
 /*
  * The Creator's Team of an incident or alert owner rule: of the teams it
  * lists, the ones the person who created the event is in become owners
- * (Server/Utils/Rules/CreatorTeams). A list of the project's teams, folded
- * after Inherit Owners; a rule that adds only that is named for it.
+ * (Server/Utils/Rules/CreatorTeams). A list of the project's teams, last in
+ * the Inherit Owners fold - the creator is one more entity the event's
+ * owners can come from; a rule that adds only that is named for it.
  */
 const CREATOR_TEAM_RECORDS: Array<CreatorTeamRuleRecord> = [
   "incident",
@@ -924,7 +924,7 @@ describe.each(CREATOR_TEAM_RECORDS)(
 
     test("is a picker of the project's teams, kept in creatorTeams, never required", () => {
       expect(picker.fieldType).toBe(FormFieldSchemaType.PeoplePicker);
-      expect(picker.title).toBe("Teams");
+      expect(picker.title).toBe("Creator's Team");
       expect(picker.description).toBe(CREATOR_TEAMS_WORDING[record].teams);
       expect(picker.peoplePicker?.kinds).toEqual([
         { kind: PeoplePickerKind.Team, valueKey: CREATOR_TEAMS_COLUMN },
@@ -934,7 +934,7 @@ describe.each(CREATOR_TEAM_RECORDS)(
       expect(picker.stepId).toBe("owners");
     });
 
-    test("is folded on its own, after Inherit Owners and before More fields", () => {
+    test("is the last thing in the Inherit Owners fold, before More fields", () => {
       const section: FormFieldCollapsibleSection<Entity> | undefined =
         picker.collapsibleSection;
       const inheritSection: FormFieldCollapsibleSection<Entity> | undefined =
@@ -942,30 +942,28 @@ describe.each(CREATOR_TEAM_RECORDS)(
       const moreFields: FormFieldCollapsibleSection<Entity> | undefined =
         fieldByKey(fields, "notifyOwners").collapsibleSection;
 
-      expect(section?.id).toBe(CREATOR_TEAMS_SECTION_ID);
-      expect(section?.title).toBe("Creator's Team");
-      expect(section?.description).toBe(
-        CREATOR_TEAMS_WORDING[record].sectionDescription,
-      );
-      expect(section).not.toBe(inheritSection);
+      // The fold the six switches are in: one header, not another.
+      expect(section).toBe(inheritSection);
+      expect(section?.id).toBe(INHERIT_OWNERS_SECTION_ID);
+      expect(section?.title).toBe("Inherit Owners");
       expect(section).not.toBe(moreFields);
       expect(fields.indexOf(picker)).toBe(
         fields.indexOf(fieldByKey(fields, "inheritOwnersFromServices")) + 1,
       );
     });
 
-    test("says what the fold is for while no team is listed, and nothing once one is", () => {
+    test("opens the fold's header: it says what the fold is for until a team is listed", () => {
       const section: FormFieldCollapsibleSection<Entity> =
         picker.collapsibleSection!;
+      const sectionDescription: string =
+        OWNER_INHERITANCE_WORDING[record].sectionDescription;
 
-      expect(section.getSummary!(NEW_RULE)).toEqual([
-        CREATOR_TEAMS_WORDING[record].sectionDescription,
-      ]);
+      expect(section.getSummary!(NEW_RULE)).toEqual([sectionDescription]);
       expect(
         section.getSummary!({
           [CREATOR_TEAMS_COLUMN]: [],
         } as FormValues<Entity>),
-      ).toEqual([CREATOR_TEAMS_WORDING[record].sectionDescription]);
+      ).toEqual([sectionDescription]);
       expect(
         section.getSummary!({
           [CREATOR_TEAMS_COLUMN]: ["team-platform"],
@@ -1115,12 +1113,20 @@ describe("whether a rule lists teams for the creator's team", () => {
   });
 
   test("an incident is declared and an alert created, in each one's words", () => {
-    expect(CREATOR_TEAMS_WORDING.incident.teams).toContain("declares");
-    expect(CREATOR_TEAMS_WORDING.alert.teams).toContain("creates");
-    expect(CREATOR_TEAMS_WORDING.incident.sectionDescription).toContain(
-      "incident",
+    expect(CREATOR_TEAMS_WORDING.incident.teams).toContain(
+      "declares a matching incident",
     );
-    expect(CREATOR_TEAMS_WORDING.alert.sectionDescription).toContain("alert");
+    expect(CREATOR_TEAMS_WORDING.alert.teams).toContain(
+      "creates a matching alert",
+    );
+  });
+
+  test("a scheduled maintenance rule's Inherit Owners fold has no creator's team", () => {
+    expect(
+      getInheritingOwnerRuleActionFields<Entity>("scheduledMaintenance").map(
+        keyOf,
+      ),
+    ).not.toContain("creatorTeamsPicker");
   });
 });
 
@@ -2035,9 +2041,8 @@ describe("in every language the Dashboard ships", () => {
       for (const key of [
         CREATOR_TEAM_RULE_NAME,
         OWNER_RULE_CREATOR_OWNERS_DESCRIPTION,
-        CREATOR_TEAMS_WORDING.incident.sectionDescription,
+        "Creator's Team",
         CREATOR_TEAMS_WORDING.incident.teams,
-        CREATOR_TEAMS_WORDING.alert.sectionDescription,
         CREATOR_TEAMS_WORDING.alert.teams,
       ]) {
         const wording: string | undefined = locale[key];
