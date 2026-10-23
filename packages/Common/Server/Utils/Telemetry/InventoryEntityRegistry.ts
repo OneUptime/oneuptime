@@ -44,6 +44,7 @@ import {
   NetworkDeviceAssetFacts,
   NetworkDeviceAssetFactsOptions,
   getNetworkDeviceAssetFacts,
+  getNetworkDeviceSystemDescription,
   toOtelMacAddress,
 } from "../../../Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import { TopologyDeviceRoleInput } from "../../../Utils/Monitor/NetworkDeviceRoleCatalog";
@@ -204,7 +205,10 @@ export function compactAttributes(
  *   DNS name        net.device.dns_name
  *
  * Where each fact comes from, and what wins when two places know it, is
- * NetworkDeviceAssetFacts' business: this only places the facts.
+ * NetworkDeviceAssetFacts' business: this only places the facts. That
+ * includes what discovery read about a device its own poll has not (issue
+ * #5185): a ping-only switch a discovery scan read over SNMP has its make,
+ * model, OS and location here too.
  *
  * `net.device.hostname` - the address OneUptime polls, usually an IP address -
  * stays for the syncs that read it before #4569. It is not the hostname, and
@@ -252,7 +256,9 @@ export function describeNetworkDevice(
     [key(InventoryAssetField.FirmwareVersion)]: bounded(facts.firmwareVersion),
     [key(InventoryAssetField.OperatingSystem)]: bounded(facts.operatingSystem),
     [key(InventoryAssetField.OsVersion)]: bounded(facts.osVersion),
-    [key(InventoryAssetField.SystemDescription)]: bounded(row.sysDescr),
+    [key(InventoryAssetField.SystemDescription)]: bounded(
+      getNetworkDeviceSystemDescription(row),
+    ),
     [key(InventoryAssetField.DeviceType)]: bounded(facts.deviceType),
     [key(InventoryAssetField.Location)]: bounded(facts.location),
     [INVENTORY_SITE_ATTRIBUTE_KEY]: bounded(facts.site),
@@ -609,6 +615,13 @@ export const INVENTORY_SOURCES: ReadonlyArray<ErasedInventorySource> = [
       sysLocation: true,
       site: { name: true },
       networkDeviceRole: { key: true, name: true },
+      /*
+       * What discovery read about the device (issue #5185), and when its own
+       * poll last read it: of two automatic readings the newer wins.
+       */
+      discoveredDetails: true,
+      lastSnmpSeenAt: true,
+      isMacAddressLearned: true,
     },
     query: { isArchived: false },
     loadPageContext: loadDeviceRolesForDevices,

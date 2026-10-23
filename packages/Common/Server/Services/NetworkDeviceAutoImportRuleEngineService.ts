@@ -51,6 +51,13 @@ import {
   planDiscoveredNameUpgrades,
 } from "../../Utils/NetworkDiscovery/DiscoveredNameUpgrade";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
+import {
+  DiscoveredAddressFindings,
+  DiscoveredDetailsDeviceRow,
+  DiscoveredDetailsPatch,
+  getDiscoveredAddressFindings,
+  planDiscoveredDetails,
+} from "../../Utils/NetworkDiscovery/DiscoveredDetailsPlan";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import { isDiscoveryImportPollingInterval } from "../../Types/NetworkDevice/DiscoveryImport";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
@@ -147,6 +154,16 @@ export const AUTO_IMPORT_SCAN_BUILDER_SELECT: {
 } = {
   ...AUTO_IMPORT_SCAN_CREDENTIAL_SELECT,
   useShortDeviceNames: true,
+  /*
+   * Which scan read the host, under what name, and when: what an imported
+   * device's discovered details say they came from (issue #5185). Not one of
+   * them changes what is created, only what its details credit.
+   */
+  _id: true,
+  name: true,
+  cidr: true,
+  completedAt: true,
+  startedAt: true,
 };
 
 /*
@@ -450,6 +467,21 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
     if (!isTooOldToAutoImport) {
       await this.improveDiscoveredDeviceNames({ scan: scan });
     }
+
+    /*
+     * Record what this result read about the devices already at its
+     * addresses (OneUptime issue #5185) - see recordDiscoveredDetails. After
+     * the renames, so a device named better a moment ago is matched under
+     * its new name's identity, and ahead of both early exits, because the
+     * devices it fills in are as often in a project with no rules at all.
+     *
+     * Not gated on the result's age, unlike the renames: it changes nothing
+     * about the estate, only what its details credit, and a result never
+     * replaces anything recorded from a newer reading than its own. A
+     * device this pass imports below carries the same values from its
+     * builder. Never throws.
+     */
+    await this.recordDiscoveredDetails({ scan: scan });
 
     const rules: Array<NetworkDeviceAutoImportRule> =
       await this.loadEnabledRules(projectId);
@@ -1317,6 +1349,167 @@ class NetworkDeviceAutoImportRuleEngineServiceClass {
       );
       return 0;
     }
+  }
+
+  /*
+   * Record what a Completed result read about the devices already registered
+   * at its addresses (OneUptime issue #5185): the SNMP system group, the
+   * reverse-DNS name and the NetBIOS name the scan found at each device's
+   * address, and that the scan found it there - or, when what it found there
+   * contradicts what the device says it is, only that another machine
+   * answers at the address. Planned by planDiscoveredDetails, whose header
+   * says how a result is matched to a device and why nothing newer is ever
+   * replaced; written in batches by NetworkDeviceService.mergeDiscoveredDetails
+   * into the device's discovered details, never into its own columns.
+   *
+   * Only for a scan whose status is exactly Completed: a running scan's
+   * partial results carry no names yet, and its final result is a minute
+   * away. Archived devices are left as they are, as the ARP learner leaves
+   * them.
+   *
+   * Never throws. A failure is logged and the scan's import and processed
+   * stamp go ahead: a detail left unrecorded is filled by the next run.
+   *
+   * Returns how many devices it recorded something for.
+   */
+  private async recordDiscoveredDetails(data: {
+    scan: NetworkDeviceDiscoveryScan;
+  }): Promise<number> {
+    const scan: NetworkDeviceDiscoveryScan = data.scan;
+
+    if (
+      scan.status !== DiscoveryScanStatus.Completed ||
+      !scan.projectId ||
+      !scan.id
+    ) {
+      return 0;
+    }
+
+    const projectId: ObjectID = scan.projectId;
+    const logAttributes: LogAttributes = {
+      projectId: projectId.toString(),
+    } as LogAttributes;
+
+    try {
+      const findings: Map<string, DiscoveredAddressFindings> =
+        getDiscoveredAddressFindings(scan.discoveredDevices);
+
+      if (findings.size === 0) {
+        return 0;
+      }
+
+      const devices: Array<DiscoveredDetailsDeviceRow> =
+        await this.readDevicesForDiscoveredDetails({
+          projectId: projectId,
+          addresses: Array.from(findings.keys()),
+        });
+
+      if (devices.length === 0) {
+        return 0;
+      }
+
+      const patches: Array<DiscoveredDetailsPatch> = planDiscoveredDetails({
+        projectId: projectId.toString(),
+        scan: {
+          id: scan.id.toString(),
+          name: scan.name,
+          cidr: scan.cidr,
+          completedAt: scan.completedAt,
+        },
+        hosts: undefined,
+        findings: findings,
+        devices: devices,
+      });
+
+      if (patches.length === 0) {
+        return 0;
+      }
+
+      await NetworkDeviceService.mergeDiscoveredDetails({
+        projectId: projectId,
+        patches: patches,
+      });
+
+      logger.debug(
+        `Discovery: scan ${scan.id.toString()} recorded what it read about ${patches.length} device(s) already at its addresses.`,
+        logAttributes,
+      );
+
+      return patches.length;
+    } catch (error) {
+      logger.error(
+        `Discovery: could not record what scan ${scan.id.toString()} read about the devices at its addresses; continuing with the import: ${error}`,
+        logAttributes,
+      );
+      return 0;
+    }
+  }
+
+  /*
+   * The project's live devices at these addresses, with what the discovered
+   * details plan reads: what each says it is, and what discovery recorded
+   * for it already. In chunks of RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
+   * addresses, each an index lookup on the hostname.
+   */
+  private async readDevicesForDiscoveredDetails(data: {
+    projectId: ObjectID;
+    addresses: Array<string>;
+  }): Promise<Array<DiscoveredDetailsDeviceRow>> {
+    const rows: Array<DiscoveredDetailsDeviceRow> = [];
+
+    for (
+      let offset: number = 0;
+      offset < data.addresses.length;
+      offset += RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = data.addresses.slice(
+        offset,
+        offset + RUN_IMPORTED_DEVICE_LOOKUP_CHUNK_SIZE,
+      );
+
+      const devices: Array<NetworkDevice> = await NetworkDeviceService.findBy({
+        query: {
+          projectId: data.projectId,
+          hostname: QueryHelper.any(chunk),
+          isArchived: false,
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          hostname: true,
+          sysName: true,
+          sysObjectId: true,
+          dnsName: true,
+          discoveredName: true,
+          discoveredNameSource: true,
+          discoveredDetails: true,
+        },
+        sort: {},
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      for (const device of devices) {
+        if (!device.id) {
+          continue;
+        }
+
+        rows.push({
+          deviceId: device.id.toString(),
+          projectId: device.projectId?.toString(),
+          hostname: device.hostname,
+          sysName: device.sysName,
+          sysObjectId: device.sysObjectId,
+          dnsName: device.dnsName,
+          discoveredName: device.discoveredName,
+          discoveredNameSource: device.discoveredNameSource,
+          discoveredDetails: device.discoveredDetails,
+        });
+      }
+    }
+
+    return rows;
   }
 
   /*

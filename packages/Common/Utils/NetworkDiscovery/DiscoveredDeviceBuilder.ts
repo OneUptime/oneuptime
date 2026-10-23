@@ -16,6 +16,11 @@ import {
   monitoringMethodForDiscoveredHost,
 } from "./DiscoveryImportEligibility";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
+import {
+  buildDiscoveredDetailsForImport,
+  getScanReadTime,
+} from "./DiscoveredDetailsPlan";
+import { JSONObject } from "../../Types/JSON";
 
 /*
  * One discovered host -> one NetworkDevice, the same way everywhere.
@@ -293,6 +298,15 @@ export function buildFallbackDeviceName(
  * would import full names from a scan that asked for short ones.
  */
 export interface DiscoveredDeviceScanSource extends DiscoveredHostNaming {
+  /*
+   * Which scan, under what name, and when it read its hosts: what an
+   * imported device's discovered details say they came from (issue #5185).
+   */
+  _id?: string | undefined;
+  name?: string | undefined;
+  cidr?: string | undefined;
+  completedAt?: Date | undefined;
+  startedAt?: Date | undefined;
   probeId?: ObjectID | undefined;
   snmpConfigs?: Array<DiscoveryScanSnmpConfig> | null | undefined;
   snmpVersion?: string | undefined;
@@ -441,6 +455,31 @@ export function buildNetworkDeviceFromDiscoveredHost(data: {
 
   if (host.sysDescr) {
     device.description = truncate(host.sysDescr, MAX_DEVICE_DESCRIPTION_LENGTH);
+  }
+
+  /*
+   * What the scan read about the host, each value with where and when it was
+   * read (issue #5185): its SNMP system group, its reverse-DNS and NetBIOS
+   * names, and that the scan found it. The device's details read from these
+   * until its own SNMP poll reads them itself - for a host that answered ping
+   * only, until it ever does - instead of reading "Unknown" for what the scan
+   * already knew. Never in the device's own columns: those are its poll's
+   * and its people's. The server keeps only what it would have written
+   * itself (NetworkDeviceService onBeforeCreate).
+   */
+  const discoveredDetails: Record<string, unknown> | null =
+    buildDiscoveredDetailsForImport({
+      host: host,
+      scan: {
+        id: data.scan._id ? String(data.scan._id) : "",
+        name: data.scan.name,
+        cidr: data.scan.cidr,
+        completedAt: getScanReadTime(data.scan),
+      },
+    });
+
+  if (discoveredDetails) {
+    device.discoveredDetails = discoveredDetails as JSONObject;
   }
 
   const monitoringMethod: NetworkDeviceMonitoringMethod =

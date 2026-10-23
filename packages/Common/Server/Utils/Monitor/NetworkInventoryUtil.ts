@@ -24,8 +24,37 @@ import SnmpVendorTemplateUtil, {
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
 import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import {
+  NetworkDeviceDiscoveredField,
+  NetworkDeviceDiscoveredValue,
+  NetworkDeviceDiscoveryReaderType,
+  buildDiscoveredValue,
+  getDiscoveredTime,
+  normalizeDiscoveredValue,
+  readNetworkDeviceDiscoveredDetails,
+} from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import Probe from "../../../Models/DatabaseModels/Probe";
+import ProbeService from "../../Services/ProbeService";
+import IP from "../../../Types/IP/IP";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import logger from "../Logger";
+
+/*
+ * How often an unchanged resolution of a device's DNS name is recorded again
+ * (issue #5185). The probe resolves the name on every poll; recording the
+ * same answer once an hour keeps "read 20 minutes ago" true to the hour, at
+ * one small write per device per hour rather than one per poll.
+ */
+export const RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * What the device's probe resolved the DNS name it polls the device at to,
+ * as its ping reported it: the name, and the address.
+ */
+export interface NetworkDeviceDnsResolution {
+  hostname?: string | undefined;
+  address?: string | undefined;
+}
 
 /*
  * Keeps the NetworkDevice / NetworkInterface inventory in sync with each
@@ -68,6 +97,13 @@ export default class NetworkInventoryUtil {
      * stored snapshot alone.
      */
     transceiverSnapshot?: Array<NetworkDeviceTransceiver> | undefined;
+    /*
+     * The probe that polled, and - for a device polled at a DNS name - the
+     * address its ping resolved the name to (issue #5185). Undefined from a
+     * probe that predates reporting it.
+     */
+    probeId?: ObjectID | undefined;
+    dnsResolution?: NetworkDeviceDnsResolution | undefined;
   }): Promise<void> {
     const deviceId: ObjectID = data.deviceId;
 
@@ -93,6 +129,14 @@ export default class NetworkInventoryUtil {
           oidTemplateId: true,
           // For the monitor-backed guard on the poll columns below.
           monitoringMethod: true,
+          /*
+           * The ARP readings this device's table gives its neighbours are
+           * credited to it by name, and the address its probe resolved is
+           * recorded only for the name it is still polled at (issue #5185).
+           */
+          name: true,
+          hostname: true,
+          discoveredDetails: true,
         },
         props: {
           isRoot: true,
@@ -532,6 +576,7 @@ export default class NetworkInventoryUtil {
             await NetworkDeviceMacLearningUtil.learnFromArpBindings({
               projectId: data.projectId,
               observingDeviceId: deviceId,
+              observingDeviceName: ownedDevice.name,
               observingSiteId: ownedDevice.siteId,
               ipBindings: endpointResult.ipBindings,
             });
@@ -550,5 +595,130 @@ export default class NetworkInventoryUtil {
       );
       logger.error(err);
     }
+
+    try {
+      await NetworkInventoryUtil.recordResolvedAddress({
+        projectId: data.projectId,
+        device: ownedDevice,
+        probeId: data.probeId,
+        dnsResolution: data.dnsResolution,
+        now: now,
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to record the address network device ${deviceId.toString()} resolved to:`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * The address a device polled at a DNS name resolved to, recorded as its
+   * discovered IP address (OneUptime issue #5185). A device registered by its
+   * name has no IP address of its own anywhere else, and its probe resolves
+   * the name on every poll - the address it pings is as reliable an answer as
+   * there is.
+   *
+   * Recorded only for the name the device is STILL polled at (a poll that was
+   * in flight while someone changed the address answers for the old name),
+   * only when it is an address, and only when it differs from what is
+   * recorded or what is recorded is over RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS
+   * old - so the hottest write path in the product gains at most one small
+   * write per DNS-named device per hour. A device polled at an address is
+   * left alone: its address is its IP address already.
+   *
+   * Returns whether it wrote.
+   */
+  public static async recordResolvedAddress(data: {
+    projectId: ObjectID;
+    device: NetworkDevice;
+    probeId?: ObjectID | undefined;
+    dnsResolution?: NetworkDeviceDnsResolution | undefined;
+    now: Date;
+  }): Promise<boolean> {
+    const polledAt: string = (data.device.hostname || "").trim();
+    const resolvedHost: string = (data.dnsResolution?.hostname || "").trim();
+
+    if (
+      !data.device.id ||
+      !data.probeId ||
+      !polledAt ||
+      IP.isIP(polledAt) ||
+      resolvedHost.toLowerCase() !== polledAt.toLowerCase()
+    ) {
+      return false;
+    }
+
+    const address: string | undefined = normalizeDiscoveredValue(
+      NetworkDeviceDiscoveredField.IpAddress,
+      data.dnsResolution?.address,
+    );
+
+    if (!address) {
+      return false;
+    }
+
+    const recorded: NetworkDeviceDiscoveredValue | undefined =
+      readNetworkDeviceDiscoveredDetails(data.device.discoveredDetails).values[
+        NetworkDeviceDiscoveredField.IpAddress
+      ];
+    const recordedAt: number | undefined = getDiscoveredTime(recorded);
+
+    if (
+      recorded &&
+      recorded.value === address &&
+      recordedAt !== undefined &&
+      data.now.getTime() - recordedAt < RESOLVED_ADDRESS_REFRESH_INTERVAL_IN_MS
+    ) {
+      return false;
+    }
+
+    /*
+     * The probe's name, credited with the reading. Read only now, when there
+     * is something to write - at most once an hour per device.
+     */
+    let probeName: string | undefined = undefined;
+
+    try {
+      const probe: Probe | null = await ProbeService.findOneById({
+        id: data.probeId,
+        select: { name: true },
+        props: { isRoot: true },
+      });
+
+      probeName = probe?.name || undefined;
+    } catch (err) {
+      logger.debug(
+        `Could not read the name of probe ${data.probeId.toString()}; recording the address it resolved without it: ${err}`,
+      );
+    }
+
+    const entry: NetworkDeviceDiscoveredValue | undefined =
+      buildDiscoveredValue({
+        field: NetworkDeviceDiscoveredField.IpAddress,
+        value: address,
+        readBy: {
+          type: NetworkDeviceDiscoveryReaderType.Probe,
+          id: data.probeId.toString(),
+          name: probeName,
+        },
+        readAt: data.now,
+      });
+
+    if (!entry) {
+      return false;
+    }
+
+    await NetworkDeviceService.mergeDiscoveredDetails({
+      projectId: data.projectId,
+      patches: [
+        {
+          deviceId: data.device.id,
+          set: { [NetworkDeviceDiscoveredField.IpAddress]: entry },
+        },
+      ],
+    });
+
+    return true;
   }
 }
