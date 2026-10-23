@@ -8,18 +8,9 @@
 export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
   Record<string, ReadonlyArray<string>>
 > = {
-  AIInvestigationRule: [
-    "monitors",
-    "incidentSeverities",
-    "alertSeverities",
-    "labels",
-    "monitorLabels",
-    "titlePattern",
-    "descriptionPattern",
-  ],
   /*
-   * Which resolved incidents OneUptime AI drafts a postmortem for: an
-   * investigation rule's incident share, read by the same matcher.
+   * Which resolved incidents OneUptime AI drafts a postmortem for: an AI
+   * rule's incident share, read by the same matcher.
    */
   AIPostmortemRule: [
     "monitors",
@@ -104,6 +95,7 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "monitorDescriptionPattern",
   ],
   AlertReminderRule: ["alertSeverities", "labels"],
+  // The AI rules of incidents and alerts (investigation rules merged in).
   AutoRemediationRule: [
     "monitors",
     "incidentSeverities",

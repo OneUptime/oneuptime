@@ -95,6 +95,7 @@ import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLim
 import logIfRuleReadWasTruncated from "../Utils/Rules/RuleEngineRuleRead";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { RuleEvaluation } from "../Utils/PatternWorkScope";
+import { getFixingAiRules } from "../../Types/AI/AiRule";
 
 /*
  * Guardrails (minimal G1 for auto-remediation Phase 1):
@@ -1559,12 +1560,13 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     /*
-     * The rules decide which signals are fixed, and how. With none, every
-     * signal is: OneUptime AI fixes it on the infrastructure it is linked
-     * to, and may pick one of the project's runbooks. With some, only the
-     * signals that match at least one are, each the way its matching rules
-     * say - OneUptime AI (with the runbooks and the Runner a rule names), or
-     * a rule's runbooks every time.
+     * The AI rules decide which signals are fixed, and how (Types/AI/AiRule).
+     * With none, every signal is: OneUptime AI fixes it on the
+     * infrastructure it is linked to, and may pick one of the project's
+     * runbooks. With some, only the signals that match at least one rule
+     * that fixes are, each the way its matching rules say - OneUptime AI
+     * (with the runbooks and the Runner a rule names), or a rule's runbooks
+     * every time. A rule that only investigates fixes nothing it matches.
      */
     const rules: Array<AutoRemediationRule> =
       await AutoRemediationRuleService.findBy({
@@ -1596,6 +1598,8 @@ class AutoRemediationRuleEngineServiceClass {
           externalMcpServers: { _id: true },
           // The LLM provider the rule picks: none when empty.
           llmProviderId: true,
+          // Whether the rule fixes what it matches, or only investigates it.
+          fixes: true,
         },
         limit: MAX_RULES_EVALUATED_PER_PROJECT,
         skip: 0,
@@ -1607,7 +1611,8 @@ class AutoRemediationRuleEngineServiceClass {
       rulesRead: rules.length,
     });
 
-    const matchedRules: Array<AutoRemediationRule> = [];
+    // Every enabled rule the signal matches, whether it fixes or not.
+    const matchingRules: Array<AutoRemediationRule> = [];
 
     for (const rule of rules) {
       const isMatch: boolean = data.incident
@@ -1617,11 +1622,31 @@ class AutoRemediationRuleEngineServiceClass {
           : false;
 
       if (isMatch) {
-        matchedRules.push(rule);
+        matchingRules.push(rule);
       }
     }
 
+    // The matching rules that fix: the ones that act on the signal below.
+    const matchedRules: Array<AutoRemediationRule> =
+      getFixingAiRules(matchingRules);
+
     if (rules.length > 0 && matchedRules.length === 0) {
+      /*
+       * With rules, a signal is fixed only when a rule that fixes matches
+       * it: one that matches only rules that investigate is not, and its
+       * Remediation card names the rule that matched.
+       */
+      if (matchingRules.length > 0) {
+        recorder.add({
+          lane: AutoRemediationDecisionLane.Rule,
+          reason: AutoRemediationDecisionReason.MatchedRulesDoNotFix,
+          ruleId: matchingRules[0]!.id?.toString(),
+          ruleName: matchingRules[0]!.name || "",
+          rulesChecked: matchingRules.length,
+        });
+        return;
+      }
+
       recorder.add({
         lane: AutoRemediationDecisionLane.Rule,
         reason: AutoRemediationDecisionReason.NotMatchedByAnyRule,

@@ -34,6 +34,7 @@ import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AlertService from "../../../Services/AlertService";
 import AutoRemediationRuleService from "../../../Services/AutoRemediationRuleService";
+import { doesAiRuleFix } from "../../../../Types/AI/AiRule";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
 import IncidentFeedService from "../../../Services/IncidentFeedService";
 import IncidentService from "../../../Services/IncidentService";
@@ -611,6 +612,7 @@ export default class RemediationPlanRunner {
         select: {
           _id: true,
           isEnabled: true,
+          fixes: true,
           executionMode: true,
           remediationAction: true,
           aiComposesCommands: true,
@@ -620,9 +622,11 @@ export default class RemediationPlanRunner {
         props: { isRoot: true },
       });
 
+    // A rule turned off, or set to only investigate, starts nothing now.
     if (
       !rule ||
       rule.isEnabled === false ||
+      !doesAiRuleFix(rule) ||
       !isOneUptimeAiFixRule(rule) ||
       rule.executionMode !== AutoRemediationExecutionMode.FullAuto ||
       !getRuleRunbookIds(rule).includes(runbook.id.toString().toLowerCase())

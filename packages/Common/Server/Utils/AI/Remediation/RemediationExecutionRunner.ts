@@ -25,6 +25,7 @@ import {
   getAutoRemediationFixKind,
   getRuleCommandRunnerIds,
 } from "../../../../Types/AutoRemediation/AutoRemediationFix";
+import { doesAiRuleFix } from "../../../../Types/AI/AiRule";
 import {
   AiRemediationCommand,
   AiRemediationCommandExecutionStatus,
@@ -1181,6 +1182,7 @@ export default class RemediationExecutionRunner {
                 select: {
                   _id: true,
                   isEnabled: true,
+                  fixes: true,
                   executionMode: true,
                   remediationAction: true,
                   aiComposesCommands: true,
@@ -1202,12 +1204,13 @@ export default class RemediationExecutionRunner {
         if (
           !rule ||
           rule.isEnabled === false ||
+          !doesAiRuleFix(rule) ||
           !doesRuleRunCommandsOnRunners(rule)
         ) {
           await this.settleNoneApplicable({
             suggestion,
             rationaleMarkdown:
-              "The auto-remediation rule behind this suggestion was deleted, disabled, or no longer runs commands on a Runner — nothing was run or proposed.",
+              "The AI rule behind this suggestion was deleted, disabled, set to only investigate, or no longer runs commands on a Runner — nothing was run or proposed.",
           });
           await this.completeRunQuietly(aiRunId);
           return;
