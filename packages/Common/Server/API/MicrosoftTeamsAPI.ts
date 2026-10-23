@@ -15,6 +15,7 @@ import {
   Host,
   MicrosoftTeamsAppClientId,
   MicrosoftTeamsAppClientSecret,
+  MicrosoftTeamsAppTenantId,
 } from "../EnvironmentConfig";
 import URL from "../../Types/API/URL";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -69,6 +70,11 @@ import WorkspaceConnectCompletion, {
 } from "../Utils/Workspace/WorkspaceConnectCompletion";
 import MicrosoftTeamsActionAnswer from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActionAnswer";
 import MicrosoftTeamsCommands from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsSignInAuthorityUtil, {
+  MICROSOFT_ANY_ORGANIZATION,
+  MICROSOFT_LOGIN_ORIGIN,
+  MicrosoftTeamsSignInAuthority,
+} from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
 
 // Delegated scopes for "sign in with Microsoft Teams" — authorize and token requests must agree.
 const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
@@ -76,10 +82,6 @@ const MICROSOFT_TEAMS_USER_SIGN_IN_SCOPES: string =
 
 // The admin-consent sign-in only needs an ID token, to learn the tenant.
 const ADMIN_CONSENT_SIGN_IN_SCOPES: string = "openid profile";
-
-// Microsoft Entra tenant ids are GUIDs.
-const ENTRA_TENANT_ID_PATTERN: RegExp =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default class MicrosoftTeamsAPI {
   /*
@@ -445,10 +447,7 @@ export default class MicrosoftTeamsAPI {
 
     const tenantClaim: unknown = claims["tid"];
 
-    if (
-      typeof tenantClaim !== "string" ||
-      !ENTRA_TENANT_ID_PATTERN.test(tenantClaim)
-    ) {
+    if (!MicrosoftTeamsSignInAuthorityUtil.isTenantId(tenantClaim)) {
       throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in did not identify a Microsoft 365 tenant.",
       );
@@ -469,7 +468,7 @@ export default class MicrosoftTeamsAPI {
     if (
       typeof claims["iss"] !== "string" ||
       claims["iss"].toLowerCase() !==
-        `https://login.microsoftonline.com/${tenantId}/v2.0`
+        MicrosoftTeamsSignInAuthorityUtil.getIssuer(tenantId)
     ) {
       throw MicrosoftTeamsAPI.idTokenRefused(
         "The admin consent sign-in was issued by an unexpected authority.",
@@ -527,7 +526,7 @@ export default class MicrosoftTeamsAPI {
       .trim()
       .toLowerCase();
 
-    if (!ENTRA_TENANT_ID_PATTERN.test(tenantId)) {
+    if (!MicrosoftTeamsSignInAuthorityUtil.isTenantId(tenantId)) {
       throw new ConnectCallbackRefusal(
         ConnectCallbackError.CouldNotFinish,
         "The admin consent callback named no Microsoft 365 tenant.",
@@ -559,7 +558,9 @@ export default class MicrosoftTeamsAPI {
       includeOidcNonce: true,
     });
 
-    const signInUrl: string = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
+    const signInUrl: string = `${MicrosoftTeamsSignInAuthorityUtil.getAuthorizeUrl(
+      tenantId,
+    )}?client_id=${encodeURIComponent(
       MicrosoftTeamsAppClientId || "",
     )}&response_type=code&redirect_uri=${encodeURIComponent(
       MicrosoftTeamsAPI.getAdminConsentRedirectUri(),
@@ -600,7 +601,7 @@ export default class MicrosoftTeamsAPI {
     const signInTokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(
-          `https://login.microsoftonline.com/${record.tenantId}/oauth2/v2.0/token`,
+          MicrosoftTeamsSignInAuthorityUtil.getTokenUrl(record.tenantId),
         ),
         data: {
           grant_type: "authorization_code",
@@ -637,7 +638,7 @@ export default class MicrosoftTeamsAPI {
     const tokenResp: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
         url: URL.fromString(
-          `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+          MicrosoftTeamsSignInAuthorityUtil.getTokenUrl(tenantId),
         ),
         data: {
           client_id: credentials.clientId,
@@ -868,6 +869,11 @@ export default class MicrosoftTeamsAPI {
      * `state` in it is an opaque single-use nonce (see WorkspaceOAuthState):
      * the callback below learns the project and user from the server-side
      * record behind it, never from the redirect.
+     *
+     * Microsoft signs the person in to the organization the project is
+     * connected to, never at `common` (MicrosoftTeamsSignInAuthority): a
+     * single-tenant app is refused there (AADSTS50194), and a guest would
+     * sign in to their home organization, as an account the bot never sees.
      */
     router.get(
       "/microsoft-teams/sign-in-url",
@@ -897,6 +903,30 @@ export default class MicrosoftTeamsAPI {
               projectId: projectId,
             });
 
+          /*
+           * The project's organization, or - for a project not connected
+           * yet - the one the app is registered in. Pinned to the state, so
+           * the callback exchanges the code where Microsoft issued it.
+           */
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: projectId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
+
+          const authority: MicrosoftTeamsSignInAuthority =
+            MicrosoftTeamsSignInAuthorityUtil.choose({
+              projectTenantId: projectAuth?.workspaceProjectId,
+              appTenantId: MicrosoftTeamsAppTenantId,
+            });
+
+          logger.debug(
+            `Microsoft Teams sign-in for project ${projectId.toString()} goes to ${MicrosoftTeamsSignInAuthorityUtil.getAuthority(
+              authority.tenantId,
+            )} (${authority.source}).`,
+            getLogAttributesFromRequest(req as any),
+          );
+
           const { state } = await WorkspaceOAuthState.create({
             req,
             res,
@@ -906,10 +936,13 @@ export default class MicrosoftTeamsAPI {
             startPage: ConnectCallbackUtil.readStartPage(
               req.query[CONNECT_START_PAGE_QUERY_PARAM],
             ),
+            tenantId: authority.tenantId,
             payload: payload,
           });
 
-          const authorizationUrl: string = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(
+          const authorizationUrl: string = `${MicrosoftTeamsSignInAuthorityUtil.getAuthorizeUrl(
+            authority.tenantId,
+          )}?client_id=${encodeURIComponent(
             MicrosoftTeamsAppClientId,
           )}&response_type=code&redirect_uri=${encodeURIComponent(
             MicrosoftTeamsAPI.getUserSignInRedirectUri(),
@@ -974,6 +1007,31 @@ export default class MicrosoftTeamsAPI {
           }
 
           /*
+           * The project's Microsoft Teams connection as it is now. A sign-in
+           * pinned to another tenant than the one the project is connected
+           * to - disconnected and connected to another organization while
+           * the person signed in - links nothing: its account is not the one
+           * the bot sees in the project's Microsoft Teams.
+           */
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: record.projectId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+            });
+
+          if (
+            MicrosoftTeamsSignInAuthorityUtil.isOtherTenant({
+              signedInTo: record.tenantId,
+              projectTenantId: projectAuth?.workspaceProjectId,
+            })
+          ) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.TeamsOtherTenant,
+              `The sign-in went to tenant ${record.tenantId}, but project ${record.projectId.toString()} is now connected to tenant ${projectAuth?.workspaceProjectId}.`,
+            );
+          }
+
+          /*
            * The token request body holds the app client secret and the
            * authorization code, and the response holds the user access and
            * refresh tokens -- neither is logged.
@@ -983,10 +1041,11 @@ export default class MicrosoftTeamsAPI {
             getLogAttributesFromRequest(req as any),
           );
 
+          // Exchanged where Microsoft issued it: the authority the start pinned.
           const tokenResponse: HTTPErrorResponse | HTTPResponse<JSONObject> =
             await API.post<JSONObject>({
               url: URL.fromString(
-                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                MicrosoftTeamsSignInAuthorityUtil.getTokenUrl(record.tenantId),
               ),
               data: {
                 grant_type: "authorization_code",
@@ -1094,15 +1153,9 @@ export default class MicrosoftTeamsAPI {
             : {};
 
           // Check if admin consent is already granted
-          const existingProjectAuth: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: record.projectId,
-              workspaceType: WorkspaceType.MicrosoftTeams,
-            });
-
           if (
-            existingProjectAuth &&
-            (existingProjectAuth.miscData as any)?.adminConsentGranted
+            projectAuth &&
+            (projectAuth.miscData as any)?.adminConsentGranted
           ) {
             // Admin consent already granted, refresh teams
             await MicrosoftTeamsUtil.refreshTeams({
@@ -1180,8 +1233,8 @@ export default class MicrosoftTeamsAPI {
             tenantId: existingTenantId,
           });
 
-          const authorizationUrl: string = `https://login.microsoftonline.com/${encodeURIComponent(
-            existingTenantId || "organizations",
+          const authorizationUrl: string = `${MICROSOFT_LOGIN_ORIGIN}/${encodeURIComponent(
+            existingTenantId || MICROSOFT_ANY_ORGANIZATION,
           )}/v2.0/adminconsent?client_id=${encodeURIComponent(
             MicrosoftTeamsAppClientId,
           )}&scope=${encodeURIComponent(
@@ -1396,15 +1449,47 @@ export default class MicrosoftTeamsAPI {
           });
         }
 
+        /*
+         * The bot authenticates in this tenant, and a project not connected
+         * yet signs its members in to it: without it neither works. Nor
+         * with `common` or `organizations` in it, which name no tenant.
+         */
+        if (!MicrosoftTeamsAppTenantId) {
+          return Response.sendJsonObjectResponse(req, res, {
+            error: "Microsoft Teams App Tenant ID not configured",
+          });
+        }
+
+        const appTenantId: string | null =
+          MicrosoftTeamsSignInAuthorityUtil.readTenant(
+            MicrosoftTeamsAppTenantId,
+          );
+
+        if (!appTenantId) {
+          return Response.sendJsonObjectResponse(req, res, {
+            error:
+              "Microsoft Teams App Tenant ID is not a tenant ID. Set MICROSOFT_TEAMS_APP_TENANT_ID to the app registration's Directory (tenant) ID.",
+          });
+        }
+
         return Response.sendJsonObjectResponse(req, res, {
           status:
             "Local configuration is present. This does NOT confirm the integration works.",
           clientId: MicrosoftTeamsAppClientId,
           botId: MicrosoftTeamsAppClientId,
+          // To compare with the app registration's Directory (tenant) ID.
+          tenantId: appTenantId,
           messagingEndpoint: `${AppApiClientUrl.toString()}/microsoft-bot/messages`,
+          /*
+           * Where connecting an account signs people in, said because a
+           * sign-in at Microsoft's endpoint for every organization is what
+           * a single-tenant app refuses (AADSTS50194, issue #5202).
+           */
+          accountSignIn: `Connecting a Microsoft Teams account signs people in to the Microsoft 365 organization their project is connected to, or to tenant ${appTenantId} while the project is not connected yet — never at Microsoft's common endpoint, which an app registered as single tenant refuses (AADSTS50194).`,
           verified: [
             "MICROSOFT_TEAMS_APP_CLIENT_ID is set",
             "MICROSOFT_TEAMS_APP_CLIENT_SECRET is set",
+            "MICROSOFT_TEAMS_APP_TENANT_ID is set",
           ],
           notVerified: [
             "That an Azure Bot resource exists for this client id",
@@ -1420,6 +1505,7 @@ export default class MicrosoftTeamsAPI {
             "That Azure Bot Service can actually reach this deployment over the public internet — outbound notifications work without it, so a working alert does not test this",
             "That the Azure Bot has the Microsoft Teams channel enabled",
             "That the client secret is valid and has not expired",
+            "That the tenant id is the Directory (tenant) ID of the app registration",
             "That the Teams app package installed in your teams was built from this deployment",
           ],
           nextStep: `Open the installed OneUptime app in Microsoft Teams and confirm its bot id is ${MicrosoftTeamsAppClientId}. If it is not, that package cannot receive messages from this deployment — download the manifest from Project Settings > Workspace > Microsoft Teams and upload that instead.`,

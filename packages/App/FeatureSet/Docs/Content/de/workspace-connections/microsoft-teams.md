@@ -281,7 +281,7 @@ Schickt Microsoft Sie ohne Verbindung zurück, sagt die Seite, auf der Sie begon
 :::
 
 :::details Der Bot sagt, mein Konto sei nicht verbunden
-Drücken Sie in der Antwort des Bots **Connect Microsoft Teams account**, um es in einem Schritt zu verbinden, oder verknüpfen Sie es unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** mit **Connect my account with Microsoft Teams**, angemeldet in der Organisation, mit der das Projekt verbunden ist. Ein Gastkonto aus einer anderen Organisation ist nicht dasselbe Konto.
+Drücken Sie in der Antwort des Bots **Connect Microsoft Teams account**, um es in einem Schritt zu verbinden, oder verknüpfen Sie es unter **Benutzereinstellungen** > **Arbeitsbereich** > **Microsoft Teams** mit **Connect my account with Microsoft Teams**. In beiden Fällen melden Sie sich bei der Organisation an, mit der das Projekt verbunden ist, als Gast, wenn Sie dort Gast sind. Haben Sie als Gast früher das Konto Ihrer eigenen Organisation verbunden, verbinden Sie es erneut.
 :::
 
 :::details Auf einem selbst gehosteten Server scheitert jede Benachrichtigung

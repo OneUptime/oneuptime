@@ -37,8 +37,9 @@ const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
 const TOKEN: string = `${"aZ09_-".repeat(7)}q`;
 const SLACK_AUTHORIZE: string =
   "https://slack.com/openid/connect/authorize?state=s";
+// Where the server sends a sign-in: the project's tenant (MicrosoftTeamsSignInAuthority).
 const TEAMS_AUTHORIZE: string =
-  "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?state=s";
+  "https://login.microsoftonline.com/0d3b1c0e-58f1-4bd1-8bb0-2b0f6f3f6c11/oauth2/v2.0/authorize?state=s";
 
 const query: Record<string, string | null> = {};
 const setQueryStringMock: MockFunction = getJestMockFunction();

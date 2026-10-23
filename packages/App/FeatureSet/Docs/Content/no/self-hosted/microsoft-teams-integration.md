@@ -58,7 +58,7 @@ Videosamtaler (et Teams-møte for en hendelse) bruker ikke denne boten: de treng
 Velg **Register**, og legg deretter til en ny Web-omdirigerings-URI, `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`. Noter **Application (client) ID** og **Directory (tenant) ID**: du trenger begge senere.
 
 > [!NOTE]
-> **Hvorfor én leietaker:** en selvhostet OneUptime-installasjon betjener én organisasjon, og boten er registrert for den ene leietakeren du angir i `MICROSOFT_TEAMS_APP_TENANT_ID` (trinn 6). Å registrere appen som flerleietaker utvider ikke dette og innfører en feilmåte: gjeste- / B2B-brukere med en annen Microsoft-hjemmeleietaker enn din når boten med sin egen leietaker-ID, som OneUptime ikke kan knytte til prosjektet ditt. Har du allerede registrert en flerleietaker-app, fortsetter den å virke; bare sørg for at `MICROSOFT_TEAMS_APP_TENANT_ID` er din egen leietaker, og regn med at gjestekontoer trenger en konto i leietakeren din for å bruke boten.
+> **Hvorfor én leietaker:** en selvhostet OneUptime betjener én organisasjon og logger alle inn i leietakeren dens: administratorer som gir samtykke, og hver person som velger **Connect my account with Microsoft Teams**. Gjester i organisasjonen din logger inn med gjestekontoen sin, den Teams bruker for dem. En flerleietaker-app fungerer på samme måte, men én leietaker holder appen innenfor organisasjonen din.
 
 ### Trinn 2: Konfigurer apptillatelsene
 
@@ -193,7 +193,7 @@ Merknader:
 | --- | --- | --- |
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. Det er også bot-ID-en i Teams-app-pakken, så den må være en GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | Klienthemmelighetens **Value**, ikke ID-en. |
-| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserer seg som en enkeltleietaker-app i denne leietakeren. |
+| `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. Boten autentiserer seg som en enkeltleietaker-app i denne leietakeren, og folk logger inn i den for å koble til Microsoft Teams-kontoen sin. |
 | `HOST` | `host` | Det offentlige vertsnavnet ditt. Omdirigerings-URI-ene, meldingsendepunktet og Teams-app-pakken bygges ut fra det. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service kaller bare HTTPS-endepunkter. |
 
@@ -320,7 +320,7 @@ En gruppechat som ikke har navn i Teams, vises med medlemmenes navn, og det er m
 curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test | jq
 ```
 
-Dette rapporterer hva OneUptime kan se lokalt: om `MICROSOFT_TEAMS_APP_CLIENT_ID` og `MICROSOFT_TEAMS_APP_CLIENT_SECRET` er satt, meldingsendepunktet denne installasjonen forventer og, mest nyttig, **bot-ID-en** som Teams-app-pakken din må inneholde.
+Dette rapporterer hva OneUptime kan se lokalt: om `MICROSOFT_TEAMS_APP_CLIENT_ID`, `MICROSOFT_TEAMS_APP_CLIENT_SECRET` og `MICROSOFT_TEAMS_APP_TENANT_ID` er satt, leietakeren folk logger inn i når de kobler til kontoen sin, meldingsendepunktet denne installasjonen forventer og, mest nyttig, **bot-ID-en** som Teams-app-pakken din må inneholde.
 
 Det leser miljøvariabler og ingenting annet. Det kaller ikke Azure, så det kan ikke fortelle deg om Azure Bot-ressursen finnes, om meldingsendepunktet peker hit, om Teams-kanalen er slått på, om hemmeligheten fortsatt er gyldig, eller om Azure kan nå deg. Svaret sier dette selv ved å liste hva det kontrollerte og hva det ikke kontrollerte, slik at det aldri tas for grønt lys.
 
@@ -389,7 +389,15 @@ Når Microsoft sender deg tilbake og tilkoblingen ikke ble opprettet (da du ga a
 | **"Du logget på Microsoft som en annen enn personen som trykket på tilkoblingsknappen i Microsoft Teams, så ingenting ble koblet til."** | En knapp **Connect Microsoft Teams account** virker bare for Microsoft-kontoen som trykket på den. Logg på Microsoft som deg selv, eller be personen som trykket på den, om å trykke på den. |
 | **"Tilkoblingen ble avbrutt, så ingenting ble endret."** | Det ble ikke gitt samtykke hos Microsoft. Start på nytt, og godta det. |
 | **"Microsoft Teams er ikke satt opp på denne OneUptime-serveren."** | Angi klient-ID og hemmelighet for Microsoft Teams-appen (se [trinn 6](#trinn-6-konfigurer-miljøvariablene-til-oneuptime)), og start OneUptime på nytt. |
-| **"OneUptime kunne ikke fullføre tilkoblingen. Prøv igjen."** | Microsoft svarte med en feil, eller en forespørsel eller en skriving mislyktes under fullføringen. Serverloggen til OneUptime sier hvilken. Prøv igjen; hvis det fortsetter, kontrollerer du loggen og innstillingene i app-registreringen. |
+| **"OneUptime kunne ikke fullføre tilkoblingen. Prøv igjen."** | Microsoft svarte med en feil, eller en forespørsel eller en skriving mislyktes under fullføringen. Serverloggen til OneUptime sier hvilken. Prøv igjen; hvis det fortsetter, kontrollerer du loggen og innstillingene i app-registreringen. Hvis Microsoft svarte `AADSTS50194`, se [Pålogging mislykkes med AADSTS50194](#pålogging-mislykkes-med-aadsts50194). |
+
+### Pålogging mislykkes med AADSTS50194
+
+Microsoft avviser påloggingen med `AADSTS50194` når appen er registrert for én organisasjon og påloggingen går til Microsofts endepunkt for alle organisasjoner, `/common`. Microsoft Teams-siden sier da at OneUptime ikke kunne fullføre tilkoblingen, og serverloggen til OneUptime har svaret fra Microsoft.
+
+- **Oppgrader OneUptime.** Eldre versjoner sendte **Connect my account with Microsoft Teams** til `/common`, så med en enkeltleietaker-app, som i trinn 1, kunne ingen koble til kontoen sin. Nåværende versjoner logger folk inn i leietakeren din.
+- **Til du kan oppgradere,** gjør du app-registreringen til flerleietaker: under **Authentication** setter du **Supported account types** til kontoer i en hvilken som helst organisasjonskatalog. For å holde appen til dine egne folk åpner du den under **Enterprise applications**, setter **Assignment required?** til Yes under **Properties** og legger til dem som bruker OneUptime, under **Users and groups**. Gjør den til enkeltleietaker igjen når du har oppgradert.
+- **På en nåværende versjon** kontrollerer du at `MICROSOFT_TEAMS_APP_TENANT_ID` er satt til appens **Directory (tenant) ID**: et prosjekt som ikke er koblet til ennå, logger folk inn i den leietakeren.
 
 Vi vil gjerne forbedre denne integrasjonen, så tilbakemeldinger er velkomne på [hello@oneuptime.com](mailto:hello@oneuptime.com).
 

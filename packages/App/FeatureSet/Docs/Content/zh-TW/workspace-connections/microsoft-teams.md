@@ -281,7 +281,7 @@ Microsoft 拒絕了發布，因為機器人不在該團隊中。將應用程式�
 :::
 
 :::details 機器人提示我的帳戶未連接
-在機器人的回覆中按 **Connect Microsoft Teams account** 即可一步連接，或在登入專案所連接的組織的情況下，在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結它。來自其他組織的來賓帳戶不是同一個帳戶。
+在機器人的回覆中按 **Connect Microsoft Teams account** 即可一步連接，或在 **使用者設定** > **工作區** > **Microsoft Teams** 中透過 **Connect my account with Microsoft Teams** 連結它。無論哪種方式，您都會登入專案所連接的組織；如果您是該組織的來賓，則以來賓身分登入。如果您是來賓，而且之前連結的是您自己組織的帳戶，請重新連接。
 :::
 
 :::details 在自行託管的伺服器上所有通知都失敗
