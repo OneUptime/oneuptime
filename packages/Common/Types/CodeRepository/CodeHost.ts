@@ -148,6 +148,14 @@ export interface CodeHostRunnerInfo {
   projectId: string | null;
   // Whether the Runner opens a pull (or merge) request with its change.
   hasPullRequests: boolean;
+  /*
+   * Whether the Runner may reach the Git server on a private network (and
+   * over plain http there): a project's own Runner always may; a global
+   * Runner only where OneUptime's server may too - a self-hosted OneUptime,
+   * whose global Runner runs on its operator's own network - never on
+   * OneUptime Cloud. Left out by a server older than it: not allowed.
+   */
+  isPrivateNetworkAllowed?: boolean | undefined;
 }
 
 /*
@@ -210,7 +218,8 @@ export class CodeHost {
     type: CodeRepositoryType | string | null | undefined,
   ): boolean {
     return (
-      CodeHost.getFacts(type).connectMethod === CodeHostConnectMethod.AccessToken
+      CodeHost.getFacts(type).connectMethod ===
+      CodeHostConnectMethod.AccessToken
     );
   }
 
@@ -402,14 +411,13 @@ export enum CodeHostWebFlavor {
  * Public Git services whose pages are known, by host: a Git repository
  * hosted there gets links to its branch and to opening a pull request.
  */
-const KNOWN_GIT_SERVICES: Array<{ host: string; flavor: CodeHostWebFlavor }> =
-  [
-    { host: "github.com", flavor: CodeHostWebFlavor.GitHub },
-    { host: "gitlab.com", flavor: CodeHostWebFlavor.GitLab },
-    { host: "codeberg.org", flavor: CodeHostWebFlavor.Forgejo },
-    { host: "bitbucket.org", flavor: CodeHostWebFlavor.Bitbucket },
-    { host: "dev.azure.com", flavor: CodeHostWebFlavor.AzureDevOps },
-  ];
+const KNOWN_GIT_SERVICES: Array<{ host: string; flavor: CodeHostWebFlavor }> = [
+  { host: "github.com", flavor: CodeHostWebFlavor.GitHub },
+  { host: "gitlab.com", flavor: CodeHostWebFlavor.GitLab },
+  { host: "codeberg.org", flavor: CodeHostWebFlavor.Forgejo },
+  { host: "bitbucket.org", flavor: CodeHostWebFlavor.Bitbucket },
+  { host: "dev.azure.com", flavor: CodeHostWebFlavor.AzureDevOps },
+];
 
 // A plain Git repository's address, read (CodeHostUrl.readGitRemoteUrl).
 export interface GitRemoteAddress {

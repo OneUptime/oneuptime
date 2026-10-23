@@ -153,6 +153,18 @@ export interface CodeHostReader {
   canListBranches: boolean;
   canReadCode: boolean;
   canTrackPullRequests: boolean;
+  /*
+   * Whether OneUptime reads here which commits contain which (a fix's
+   * deploy): GitLab, Forgejo and Gitea. A GitHub repository's compare is
+   * read by FixProductionVerifier with a read-only installation token of
+   * its own; a Git server has no API for it.
+   */
+  canCompareCommits: boolean;
+  // Whether `containing` holds `commit`: it is the commit, or descends from it.
+  containsCommit(data: {
+    commit: string;
+    containing: string;
+  }): Promise<boolean>;
   listBranchNames(data: {
     search?: string | undefined;
     limit: number;
@@ -466,7 +478,8 @@ export default class CodeHostAccess {
       });
 
     for (const repository of repositories) {
-      const id: string = repository.codeRepositoryConnectionId?.toString() || "";
+      const id: string =
+        repository.codeRepositoryConnectionId?.toString() || "";
 
       if (id) {
         counts.set(id, (counts.get(id) || 0) + 1);
@@ -534,6 +547,13 @@ export default class CodeHostAccess {
       canListBranches: true,
       canReadCode: true,
       canTrackPullRequests: true,
+      // FixProductionVerifier reads GitHub's compare with a token of its own.
+      canCompareCommits: false,
+      containsCommit: async (): Promise<boolean> => {
+        throw new CodeHostUnavailableError(
+          "A GitHub repository's commits are compared by the fix verifier itself.",
+        );
+      },
       listBranchNames: async (data: {
         search?: string | undefined;
         limit: number;
@@ -546,9 +566,7 @@ export default class CodeHostAccess {
           limit: data.limit,
         });
       },
-      getBranch: async (
-        branchName: string,
-      ): Promise<CodeHostBranch | null> => {
+      getBranch: async (branchName: string): Promise<CodeHostBranch | null> => {
         const branch: GitHubBranchInfo | null = await GitHubUtil.getBranch({
           installationId,
           organizationName,
@@ -577,15 +595,13 @@ export default class CodeHostAccess {
         filePath: string;
         branchName: string;
       }): Promise<CodeHostFileContent | null> => {
-        const file: GitHubFileContent | null = await GitHubUtil.getFileContent(
-          {
-            installationId,
-            organizationName,
-            repositoryName,
-            branchName: data.branchName,
-            filePath: data.filePath,
-          },
-        );
+        const file: GitHubFileContent | null = await GitHubUtil.getFileContent({
+          installationId,
+          organizationName,
+          repositoryName,
+          branchName: data.branchName,
+          filePath: data.filePath,
+        });
 
         return file;
       },
@@ -695,10 +711,7 @@ export default class CodeHostAccess {
         await CodeRepositoryConnectionService.markAccepted(connection);
         return result;
       } catch (error) {
-        if (
-          error instanceof CodeHostHttpError &&
-          error.isCredentialRefusal()
-        ) {
+        if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
           await CodeRepositoryConnectionService.markRefused(connection);
         }
 
@@ -736,6 +749,34 @@ export default class CodeHostAccess {
         isReachableFromServer &&
         CodeHost.can(type, CodeHostCapability.PullRequestTracking) &&
         Boolean(forgejo || gitLab),
+      canCompareCommits: isReachableFromServer && Boolean(forgejo || gitLab),
+      containsCommit: async (args: {
+        commit: string;
+        containing: string;
+      }): Promise<boolean> => {
+        if (forgejo) {
+          return await call(() => {
+            return forgejo.containsCommit({
+              owner,
+              name,
+              commit: args.commit,
+              containing: args.containing,
+            });
+          });
+        }
+
+        if (gitLab) {
+          return await call(() => {
+            return gitLab.containsCommit({
+              project: gitLabProject,
+              commit: args.commit,
+              containing: args.containing,
+            });
+          });
+        }
+
+        return await unsupported("compare commits");
+      },
       listBranchNames: async (args: {
         search?: string | undefined;
         limit: number;
@@ -774,9 +815,7 @@ export default class CodeHostAccess {
 
         return await unsupported("list branches");
       },
-      getBranch: async (
-        branchName: string,
-      ): Promise<CodeHostBranch | null> => {
+      getBranch: async (branchName: string): Promise<CodeHostBranch | null> => {
         if (forgejo) {
           return await call(() => {
             return forgejo.getBranch(owner, name, branchName);
@@ -893,7 +932,9 @@ export default class CodeHostAccess {
       getPullRequestState: async (args: {
         number: number;
         headRefName?: string | undefined;
-      }): Promise<CodeHostPullRequestState & { ci: CodeHostCiSummary | null }> => {
+      }): Promise<
+        CodeHostPullRequestState & { ci: CodeHostCiSummary | null }
+      > => {
         if (forgejo) {
           return await call(async () => {
             const state: CodeHostPullRequestState =

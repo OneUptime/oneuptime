@@ -112,7 +112,7 @@ export default class PullRequestOpener {
           ? { "PRIVATE-TOKEN": options.token.token }
           : { Authorization: `token ${options.token.token}` },
       secrets: [options.token.token],
-      transport: this.transport || GitHostGuard.getTransport(),
+      transport: this.transport || GitHostGuard.getTransport(codeHost),
       scopeHint:
         codeHost.type === CodeRepositoryType.GitLab
           ? GITLAB_TOKEN_SCOPE_HINT
@@ -223,7 +223,10 @@ export default class PullRequestOpener {
       url:
         typeof value["url"] === "string" ? (value["url"] as string) : htmlUrl,
       htmlUrl,
-      state: typeof value["state"] === "string" ? (value["state"] as string) : "open",
+      state:
+        typeof value["state"] === "string"
+          ? (value["state"] as string)
+          : "open",
       title:
         typeof value["title"] === "string"
           ? (value["title"] as string)

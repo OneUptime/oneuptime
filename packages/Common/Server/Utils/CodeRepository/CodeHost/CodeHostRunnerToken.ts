@@ -17,6 +17,7 @@ import {
   CodeWorkerKind,
 } from "../../../../Types/Runner/CodeRepositoryRunner";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import DataSourceEgressGuard from "../../DataSource/EgressGuard";
 import logger from "../../Logger";
 import CodeHostAccess, {
   CodeHostConnectionState,
@@ -48,10 +49,11 @@ import {
  *     clones anything - and the repository shows as not connected).
  */
 
-export const RUNNER_TOO_OLD_FOR_CODE_HOST_MESSAGE: (hostName: string) => string =
-  (hostName: string): string => {
-    return `This Runner is older than ${hostName} repositories in Code. Update it to the latest version to work in this repository.`;
-  };
+export const RUNNER_TOO_OLD_FOR_CODE_HOST_MESSAGE: (
+  hostName: string,
+) => string = (hostName: string): string => {
+  return `This Runner is older than ${hostName} repositories in Code. Update it to the latest version to work in this repository.`;
+};
 
 export interface CodeHostRunnerGrant {
   token: string;
@@ -187,10 +189,7 @@ export default class CodeHostRunnerToken {
 
         await CodeRepositoryConnectionService.markAccepted(connection);
       } catch (error) {
-        if (
-          error instanceof CodeHostHttpError &&
-          error.isCredentialRefusal()
-        ) {
+        if (error instanceof CodeHostHttpError && error.isCredentialRefusal()) {
           await CodeRepositoryConnectionService.markRefused(connection);
 
           return {
@@ -222,16 +221,22 @@ export default class CodeHostRunnerToken {
           webUrl:
             type === CodeRepositoryType.Git
               ? CodeHostAccess.getGitWebUrl(repositoryUrl)
-              : repositoryUrl || `${hostUrl}/${organizationName}/${repositoryName}`,
+              : repositoryUrl ||
+                `${hostUrl}/${organizationName}/${repositoryName}`,
           username: credentials.username || connection.accountLogin || "oauth2",
           projectId:
             type === CodeRepositoryType.GitLab
               ? repository.gitLabProjectId || null
               : null,
-          hasPullRequests: CodeHost.can(
-            type,
-            CodeHostCapability.PullRequests,
-          ),
+          hasPullRequests: CodeHost.can(type, CodeHostCapability.PullRequests),
+          /*
+           * A global Runner reaches a private network only where the
+           * server does: on a self-hosted OneUptime, never on OneUptime
+           * Cloud.
+           */
+          isPrivateNetworkAllowed:
+            data.worker.kind !== CodeWorkerKind.GlobalRunner ||
+            !DataSourceEgressGuard.shouldBlockPrivateAddresses(),
         },
       },
     };

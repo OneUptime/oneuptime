@@ -671,6 +671,8 @@ export default class BackendAPI {
       username: readText("username") || "oauth2",
       projectId: readText("projectId"),
       hasPullRequests: value["hasPullRequests"] === true,
+      // Only a server that says so lets a global Runner reach a private network.
+      isPrivateNetworkAllowed: value["isPrivateNetworkAllowed"] === true,
     };
   }
 

@@ -138,8 +138,7 @@ export default class GitLabApi {
     const repositories: Array<CodeHostRepository> = [];
 
     for (const entry of entries) {
-      const repository: CodeHostRepository | null =
-        this.readRepository(entry);
+      const repository: CodeHostRepository | null = this.readRepository(entry);
 
       if (repository) {
         repositories.push(repository);
@@ -420,6 +419,34 @@ export default class GitLabApi {
   }
 
   /*
+   * Whether `containing` already holds `commit` - the deploy a fix shipped
+   * in: GitLab's compare from `containing` to `commit` lists the commits
+   * `commit` has since their merge base, and none means `containing`
+   * descends from it (or is it). A commit the project does not have is a
+   * NotFound error.
+   */
+  public async containsCommit(data: {
+    project: string;
+    commit: string;
+    containing: string;
+  }): Promise<boolean> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${GitLabApi.projectPath(data.project)}/repository/compare?from=${encodeURIComponent(data.containing)}&to=${encodeURIComponent(data.commit)}`,
+    );
+
+    const compare: JSONObject = GitLabApi.asObject(
+      answer.json,
+      "how the two commits compare",
+    );
+
+    if (!Array.isArray(compare["commits"])) {
+      throw GitLabApi.badAnswer("how the two commits compare");
+    }
+
+    return (compare["commits"] as JSONArray).length === 0;
+  }
+
+  /*
    * A merge request's head pipeline, rolled up the way GitHub's check runs
    * are: none (or one that was skipped) -> NoCiConfigured, still going ->
    * Pending, failed or canceled -> Red, passed -> Green.
@@ -488,8 +515,7 @@ export default class GitLabApi {
       webUrl,
       cloneUrl:
         CodeHostText.readString(project["http_url_to_repo"]) || `${webUrl}.git`,
-      isPrivate:
-        CodeHostText.readString(project["visibility"]) !== "public",
+      isPrivate: CodeHostText.readString(project["visibility"]) !== "public",
       /*
        * A Developer or more pushes to an unprotected branch. The project's
        * own permissions say which role the token has; a project they say

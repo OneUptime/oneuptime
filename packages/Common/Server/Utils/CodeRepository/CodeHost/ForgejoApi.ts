@@ -158,8 +158,7 @@ export default class ForgejoApi {
     const repositories: Array<CodeHostRepository> = [];
 
     for (const entry of entries) {
-      const repository: CodeHostRepository | null =
-        this.readRepository(entry);
+      const repository: CodeHostRepository | null = this.readRepository(entry);
 
       if (repository) {
         repositories.push(repository);
@@ -350,7 +349,11 @@ export default class ForgejoApi {
       for (const entry of tree) {
         const item: JSONObject | null = entry as JSONObject | null;
 
-        if (item && item["type"] === "blob" && typeof item["path"] === "string") {
+        if (
+          item &&
+          item["type"] === "blob" &&
+          typeof item["path"] === "string"
+        ) {
           paths.push(item["path"] as string);
         }
       }
@@ -467,6 +470,38 @@ export default class ForgejoApi {
           ? PullRequestState.Open
           : PullRequestState.Closed,
     };
+  }
+
+  /*
+   * Whether `containing` already holds `commit` - the deploy a fix shipped
+   * in: the compare of the two lists the commits `commit` has since their
+   * merge base, and none means `containing` descends from it (or is it).
+   * A commit the repository does not have is a NotFound error.
+   */
+  public async containsCommit(data: {
+    owner: string;
+    name: string;
+    commit: string;
+    containing: string;
+  }): Promise<boolean> {
+    const answer: CodeHostApiAnswer = await this.client.getJson(
+      `${ForgejoApi.repositoryPath(data.owner, data.name)}/compare/${CodeHostUrl.encodePath(data.containing)}...${CodeHostUrl.encodePath(data.commit)}`,
+    );
+
+    const compare: JSONObject = ForgejoApi.asObject(
+      answer.json,
+      "how the two commits compare",
+    );
+
+    if (typeof compare["total_commits"] === "number") {
+      return compare["total_commits"] === 0;
+    }
+
+    if (Array.isArray(compare["commits"])) {
+      return (compare["commits"] as JSONArray).length === 0;
+    }
+
+    throw ForgejoApi.badAnswer("how the two commits compare");
   }
 
   /*

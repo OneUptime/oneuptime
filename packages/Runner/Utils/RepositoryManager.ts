@@ -229,7 +229,7 @@ export default class RepositoryManager {
       return [];
     }
 
-    return await GitHostGuard.getGitOptions(remoteUrl);
+    return await GitHostGuard.getGitOptions(remoteUrl, config.codeHost);
   }
 
   /*
@@ -520,8 +520,10 @@ export default class RepositoryManager {
 
     try {
       const remoteUrl: string = RepositoryManager.getRemoteUrl(config);
-      const hostOptions: Array<string> =
-        await RepositoryManager.getHostOptions(config, remoteUrl);
+      const hostOptions: Array<string> = await RepositoryManager.getHostOptions(
+        config,
+        remoteUrl,
+      );
 
       await this.runGitCommand(
         repoPath,
