@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "Dès maintenant, la clé peut faire tout ce que ce rôle permet.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "Aucune autorisation de ce rôle ne s'applique à ces clés API : chacune a la portée « {{scope}} ».",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "Les autorisations dont la portée est « {{scope}} » ne s'appliquent pas à une clé API : une clé ne possède rien.",
-  "Permissions that apply": "Autorisations qui s'appliquent",
+  "the permissions that apply to this key": "ses autorisations qui s'appliquent à cette clé",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "Les rôles personnalisés donnés à une clé API. La clé reçoit chaque autorisation du rôle, sauf celles de portée Owned : une clé ne possède rien.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "La clé obtient tout ce que le rôle permet, sauf les autorisations dont la portée est « {{scope}} » : une clé ne possède rien. Créez ou modifiez les rôles sur la page Rôles.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "La clé obtient tout ce que le rôle permet. Créez ou modifiez les rôles sur la page Rôles.",

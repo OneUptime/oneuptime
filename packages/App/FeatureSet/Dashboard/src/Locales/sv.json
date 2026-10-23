@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "Från och med nu kan nyckeln göra allt som den här rollen tillåter.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "Ingen av rollens behörigheter gäller för de här API-nycklarna: alla har omfattningen ”{{scope}}”.",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "Behörigheter med omfattningen ”{{scope}}” gäller inte för en API-nyckel: en nyckel äger ingenting.",
-  "Permissions that apply": "Behörigheter som gäller",
+  "the permissions that apply to this key": "behörigheterna som gäller för den här nyckeln",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "De anpassade roller som en API-nyckel har fått. Nyckeln får alla rollens behörigheter utom dem med omfattningen Owned: en nyckel äger ingenting.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "Nyckeln får allt som rollen tillåter, utom behörigheter med omfattningen ”{{scope}}”: en nyckel äger ingenting. Skapa eller ändra roller på sidan Roller.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "Nyckeln får allt som rollen tillåter. Skapa eller ändra roller på sidan Roller.",

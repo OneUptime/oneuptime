@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "从现在起，该密钥可以做此角色允许的一切。",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "此角色的权限均不适用于这些 API 密钥：每项权限的范围都是“{{scope}}”。",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "范围为“{{scope}}”的权限不适用于 API 密钥：密钥不拥有任何资源。",
-  "Permissions that apply": "适用的权限",
+  "the permissions that apply to this key": "适用于此密钥的权限",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "授予 API 密钥的自定义角色。该密钥拥有角色的每项权限，但范围为 Owned 的权限除外：密钥不拥有任何资源。",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "该密钥可以做角色允许的一切，但范围为“{{scope}}”的权限除外：密钥不拥有任何资源。请在“角色”页面创建或更改角色。",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "该密钥可以做角色允许的一切。请在“角色”页面创建或更改角色。",

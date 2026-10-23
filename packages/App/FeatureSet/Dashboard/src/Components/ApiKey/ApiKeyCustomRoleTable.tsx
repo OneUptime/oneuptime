@@ -332,7 +332,7 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
                       {getOwnedCount(roleId) > 0 &&
                       (item.customRole?.permissionCount || 0) > 0 ? (
                         <InfoTooltip
-                          label="Permissions that apply"
+                          label="the permissions that apply to this key"
                           text={getApiKeyOwnedScopeReason(translator)}
                           dataTestId={API_KEY_ROLE_OWNED_REASON_TEST_ID}
                         />

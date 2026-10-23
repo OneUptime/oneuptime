@@ -531,7 +531,7 @@ describe("an API key's custom roles", () => {
     expect(reason.tagName).toBe("BUTTON");
     expect(reason).toHaveAttribute(
       "aria-label",
-      "About Permissions that apply",
+      "About the permissions that apply to this key",
     );
     expect(
       within(card)

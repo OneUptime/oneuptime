@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "Fra nå av kan nøkkelen gjøre alt denne rollen tillater.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "Ingen av rollens tillatelser gjelder for disse API-nøklene: Alle har omfanget «{{scope}}».",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "Tillatelser med omfanget «{{scope}}» gjelder ikke for en API-nøkkel: En nøkkel eier ingenting.",
-  "Permissions that apply": "Tillatelser som gjelder",
+  "the permissions that apply to this key": "tillatelsene som gjelder for denne nøkkelen",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "De egendefinerte rollene en API-nøkkel har fått. Nøkkelen får alle rollens tillatelser unntatt dem med omfanget Owned: En nøkkel eier ingenting.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "Nøkkelen får alt rollen tillater, unntatt tillatelser med omfanget «{{scope}}»: En nøkkel eier ingenting. Opprett eller endre roller på siden Roller.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "Nøkkelen får alt rollen tillater. Opprett eller endre roller på siden Roller.",

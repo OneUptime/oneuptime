@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "از این پس کلید هر کاری را که این نقش اجازه می‌دهد انجام می‌دهد.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "هیچ‌یک از دسترسی‌های این نقش برای این کلیدهای API اعمال نمی‌شود: دامنه همه آن‌ها «{{scope}}» است.",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "دسترسی‌هایی که دامنه‌شان «{{scope}}» است برای کلید API اعمال نمی‌شوند: کلید مالک هیچ چیزی نیست.",
-  "Permissions that apply": "دسترسی‌های اعمال‌شده",
+  "the permissions that apply to this key": "دسترسی‌هایی که برای این کلید اعمال می‌شوند",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "نقش‌های سفارشی‌ای که به یک کلید API داده شده است. کلید همه دسترسی‌های نقش را می‌گیرد، جز آن‌هایی که دامنه‌شان Owned است: کلید مالک هیچ چیزی نیست.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "کلید هر کاری را که نقش اجازه می‌دهد انجام می‌دهد، جز دسترسی‌هایی که دامنه‌شان «{{scope}}» است: کلید مالک هیچ چیزی نیست. نقش‌ها را در صفحه نقش‌ها بسازید یا تغییر دهید.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "کلید هر کاری را که نقش اجازه می‌دهد انجام می‌دهد. نقش‌ها را در صفحه نقش‌ها بسازید یا تغییر دهید.",

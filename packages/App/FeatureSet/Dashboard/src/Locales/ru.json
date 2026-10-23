@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "С этого момента ключ может делать всё, что разрешает эта роль.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "Ни одно разрешение этой роли не относится к этим API-ключам: у каждого область «{{scope}}».",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "Разрешения с областью «{{scope}}» не относятся к API-ключу: ключ ничем не владеет.",
-  "Permissions that apply": "Действующие разрешения",
+  "the permissions that apply to this key": "разрешения, которые относятся к этому ключу",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "Пользовательские роли, выданные API-ключу. Ключ получает каждое разрешение роли, кроме разрешений с областью Owned: ключ ничем не владеет.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "Ключ получает всё, что разрешает роль, кроме разрешений с областью «{{scope}}»: ключ ничем не владеет. Создавайте и меняйте роли на странице «Роли».",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "Ключ получает всё, что разрешает роль. Создавайте и меняйте роли на странице «Роли».",

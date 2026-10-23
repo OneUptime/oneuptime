@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "Vanaf nu kan de sleutel alles wat deze rol toestaat.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "Geen enkele machtiging van deze rol geldt voor deze API-sleutels: elke heeft het bereik ‘{{scope}}’.",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "Machtigingen met het bereik ‘{{scope}}’ gelden niet voor een API-sleutel: een sleutel bezit niets.",
-  "Permissions that apply": "Machtigingen die gelden",
+  "the permissions that apply to this key": "de machtigingen die voor deze sleutel gelden",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "De aangepaste rollen die een API-sleutel heeft. De sleutel krijgt elke machtiging van de rol behalve die met het bereik Owned: een sleutel bezit niets.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "De sleutel krijgt alles wat de rol toestaat, behalve machtigingen met het bereik ‘{{scope}}’: een sleutel bezit niets. Maak of wijzig rollen op de pagina Rollen.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "De sleutel krijgt alles wat de rol toestaat. Maak of wijzig rollen op de pagina Rollen.",

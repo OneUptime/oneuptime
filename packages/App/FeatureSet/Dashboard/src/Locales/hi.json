@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "अब से यह कुंजी वह सब कर सकती है जिसकी यह भूमिका अनुमति देती है।",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "इस भूमिका की कोई भी अनुमति इन API कुंजियों पर लागू नहीं होती: हर अनुमति का दायरा “{{scope}}” है।",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "जिन अनुमतियों का दायरा “{{scope}}” है, वे API कुंजी पर लागू नहीं होतीं: कुंजी किसी चीज़ की स्वामी नहीं होती।",
-  "Permissions that apply": "लागू होने वाली अनुमतियाँ",
+  "the permissions that apply to this key": "इस कुंजी पर लागू होने वाली अनुमतियाँ",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "किसी API कुंजी को दी गई कस्टम भूमिकाएं। कुंजी को भूमिका की हर अनुमति मिलती है, सिवाय उनके जिनका दायरा Owned है: कुंजी किसी चीज़ की स्वामी नहीं होती।",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "कुंजी को वह सब मिलता है जिसकी भूमिका अनुमति देती है, सिवाय उन अनुमतियों के जिनका दायरा “{{scope}}” है: कुंजी किसी चीज़ की स्वामी नहीं होती। भूमिकाएं पेज पर भूमिकाएं बनाएं या बदलें।",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "कुंजी को वह सब मिलता है जिसकी भूमिका अनुमति देती है। भूमिकाएं पेज पर भूमिकाएं बनाएं या बदलें।",

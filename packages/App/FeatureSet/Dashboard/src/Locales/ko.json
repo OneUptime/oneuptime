@@ -33490,7 +33490,7 @@
   "From now on the key can do everything this role allows.": "이제부터 이 키는 이 역할이 허용하는 모든 것을 할 수 있습니다.",
   "None of this role's permissions apply to these API keys: each is scoped to “{{scope}}”.": "이 역할의 권한 중 이 API 키들에 적용되는 것은 없습니다. 모두 범위가 ‘{{scope}}’입니다.",
   "Permissions scoped to “{{scope}}” don't apply to an API key: a key owns nothing.": "범위가 ‘{{scope}}’인 권한은 API 키에 적용되지 않습니다. 키는 아무것도 소유하지 않기 때문입니다.",
-  "Permissions that apply": "적용되는 권한",
+  "the permissions that apply to this key": "이 키에 적용되는 권한",
   "The custom roles an API key is given. The key holds every permission of the role except those with the Owned scope: a key owns nothing.": "API 키에 부여된 사용자 정의 역할입니다. 키는 역할의 모든 권한을 갖습니다. 단, 범위가 Owned인 권한은 제외됩니다. 키는 아무것도 소유하지 않기 때문입니다.",
   "The key gets everything the role allows, except permissions scoped to “{{scope}}”: a key owns nothing. Make or change roles on the Roles page.": "키는 역할이 허용하는 모든 것을 할 수 있습니다. 단, 범위가 ‘{{scope}}’인 권한은 제외됩니다. 키는 아무것도 소유하지 않기 때문입니다. 역할은 역할 페이지에서 만들거나 바꿉니다.",
   "The key gets everything the role allows. Make or change roles on the Roles page.": "키는 역할이 허용하는 모든 것을 할 수 있습니다. 역할은 역할 페이지에서 만들거나 바꿉니다.",
