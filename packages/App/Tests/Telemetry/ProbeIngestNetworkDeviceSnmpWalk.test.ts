@@ -212,7 +212,15 @@ function pingRow(): NetworkDeviceDiagnostic {
   return row;
 }
 
-function device(overrides: Partial<NetworkDevice> = {}): NetworkDevice {
+/*
+ * Columns to set on a test device; undefined clears one (an SNMPv3 device
+ * has no community string).
+ */
+type DeviceOverrides = {
+  [Column in keyof NetworkDevice]?: NetworkDevice[Column] | undefined;
+};
+
+function device(overrides: DeviceOverrides = {}): NetworkDevice {
   const item: NetworkDevice = new NetworkDevice(DEVICE_ID);
   item.projectId = PROJECT_ID;
   item.hostname = "10.0.0.5";
