@@ -2197,3 +2197,69 @@ test("the tab switcher fits a narrow viewport", async ({
   await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
   await screenshot(page, "session-replay-player-tabs-mobile");
 });
+
+/*
+ * Issue #5181, in the real player: a prerendered page's vitals say they were
+ * measured from when the visitor opened it, and a CLS reported again when it
+ * grew links both ways to its other report - the link opens that row, its
+ * detail and all, wherever the list was.
+ */
+test("a prerendered page's vitals name their view, and a CLS reported again links to its update", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page, "?vitals=prerender");
+  await page.getByTestId("replay-play-pause").click();
+  await expect(page.getByTestId("replay-phase")).toHaveText("paused");
+  await page.getByTestId("rail-tab-performance").click();
+
+  const rail: Locator = page.getByTestId("replay-rail");
+  /* By the row's own title: an open detail names the other report too. */
+  const vitalRow: (title: string) => Locator = (title: string): Locator => {
+    return rail.getByTestId("rail-row").filter({
+      has: page.locator("[data-rail-row-body]", { hasText: title }),
+    });
+  };
+
+  await expect(rail.getByTestId("rail-row")).toHaveCount(5);
+  await vitalRow("FCP 68ms good").locator("[data-rail-row-body]").click();
+  await expect(vitalRow("FCP 68ms good")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
+
+  const fcpDetail: Locator = vitalRow("FCP 68ms good").getByTestId(
+    "rail-row-detail",
+  );
+
+  await expect(fcpDetail).toContainText("View");
+  await expect(fcpDetail).toContainText(
+    "Prerendered page load (measured from when it was opened)",
+  );
+
+  /* The first CLS was not the page's last word: it says so, and where. */
+  await vitalRow("CLS 0.02 good").locator("[data-rail-row-body]").click();
+
+  const updated: Locator = rail.getByTestId("rail-vital-updated");
+
+  await expect(updated).toHaveText("CLS 0.35 poor at 0:24.2");
+  await expect(rail.getByTestId("rail-vital-earlier")).toHaveCount(0);
+  await updated.click();
+
+  /* The link opened the later report, which names the one it replaced. */
+  await expect(vitalRow("CLS 0.35 poor")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
+  await expect(vitalRow("CLS 0.02 good")).toHaveAttribute(
+    "data-selected",
+    "false",
+  );
+  await expect(rail.getByTestId("rail-vital-earlier")).toHaveText(
+    "CLS 0.02 good at 0:04.1",
+  );
+  await expect(rail.getByTestId("rail-vital-updated")).toHaveCount(0);
+  await noHorizontalOverflow(page);
+  await screenshot(page, "session-replay-vitals-prerender");
+});

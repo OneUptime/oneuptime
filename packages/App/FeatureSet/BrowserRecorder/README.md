@@ -813,8 +813,12 @@ count from the navigation's start.
   were all under the 40 ms threshold still has an INP.
 
 Every vital names the kind of page view it describes (`navigationType`:
-`hard`, `prerender`, `back-forward-cache`, and `soft` for an SPA view's INP),
-and the player's rail shows it. `Tests/WebVitalsParity.test.ts` runs the
+`hard`, `prerender`, `back-forward-cache`, and `soft` for an SPA view's INP).
+The player's rail shows it wherever it explains the number - on every INP,
+and on any vital of a prerendered or restored page; an ordinary load's FCP,
+LCP, TTFB and CLS need no label - and links a CLS or INP reported again to
+its other reports (`ReplaySignals.showsVitalView` and `findVitalReports`
+in the Dashboard). `Tests/WebVitalsParity.test.ts` runs the
 recorder and the exact `web-vitals` version `package.json` pins on the same
 simulated pages and holds every answer of one to the other; the ratings
 round the way the recorder rounds (a whole millisecond, CLS to four places).
