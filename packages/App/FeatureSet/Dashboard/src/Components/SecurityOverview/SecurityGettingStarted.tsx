@@ -5,7 +5,9 @@ import {
   SecuritySetupStatus,
   SecuritySetupStep,
   SecuritySetupStepKey,
+  TurnOnRecommendedProblem,
   TurnOnRecommendedResult,
+  didTurnOnAnything,
   getSecuritySetupSteps,
 } from "./SecuritySetupModel";
 import {
@@ -14,6 +16,7 @@ import {
   SecuritySetupTestState,
   useSecuritySetupTest,
 } from "./SecuritySetupTest";
+import SecurityTurnOnProblems from "./SecurityTurnOnProblems";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
@@ -23,7 +26,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
@@ -32,11 +34,32 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export const SECURITY_GETTING_STARTED_ID: string = "security-getting-started";
+
+/*
+ * What the card says when Turn on recommended could not do everything: the
+ * click that came back with some of it undone, the click that failed
+ * whole, and the test attack that failed (SecurityTurnOnProblems).
+ */
+export const TURN_ON_PARTLY_TITLE: string = translationKey(
+  "Not everything could be turned on",
+);
+export const TURN_ON_FAILED_TITLE: string = translationKey(
+  "Turn on recommended did not finish",
+);
+export const TURN_ON_PARTLY_NOTE: string = translationKey(
+  "Everything else is on. Try again turns on only what is still missing.",
+);
+export const TURN_ON_RETRY_NOTE: string = translationKey(
+  "Try again turns on only what is still missing.",
+);
+export const SETUP_TEST_FAILED_TITLE: string = translationKey(
+  "The test attack could not be sent",
+);
 
 export interface ComponentProps {
   status: SecuritySetupStatus;
@@ -120,6 +143,21 @@ export function needsTurnOnRecommended(
 }
 
 /*
+ * Whether the last click left something undone - parts it named, or the
+ * call failing whole - so the card says what, and its main button becomes
+ * Try again: the same call, which does only what is still missing.
+ */
+export function needsTurnOnRetry(data: {
+  turnedOn: TurnOnRecommendedResult | null;
+  error: string;
+}): boolean {
+  return (
+    Boolean(data.error) ||
+    Boolean(data.turnedOn && data.turnedOn.problems.length > 0)
+  );
+}
+
+/*
  * "Get started", for a project that has not set Security up yet: what
  * Security does in two sentences, one click that turns on what most teams
  * need - your logs as a source, the recommended rules, a playbook that
@@ -132,6 +170,10 @@ export function needsTurnOnRecommended(
  * button. The steps below say what is done and where to do each by hand.
  * The page keeps the card for the visit once it showed it, so the reader
  * sees each step tick and the test's case appear.
+ *
+ * A click that could not do everything says, under the buttons, what is
+ * missing and why - never a server's raw sentence alone - and its button
+ * becomes Try again, which does only what is still missing.
  */
 const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -149,13 +191,16 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
     return step.isDone;
   }).length;
   const isAllDone: boolean = doneCount === steps.length;
-  const showTurnOn: boolean = needsTurnOnRecommended(steps);
+  const problems: Array<TurnOnRecommendedProblem> = turnedOn
+    ? turnedOn.problems
+    : [];
+  const showTryAgain: boolean = needsTurnOnRetry({ turnedOn, error });
+  const showTurnOn: boolean = !showTryAgain && needsTurnOnRecommended(steps);
 
   const turnOnGate: PermissionGateResult = getTurnOnRecommendedGate();
   // The main button is the next step; when it is locked, say who can do it.
-  const isNextStepLocked: boolean = showTurnOn
-    ? !turnOnGate.isAllowed
-    : !test.gate.isAllowed;
+  const isNextStepLocked: boolean =
+    showTurnOn || showTryAgain ? !turnOnGate.isAllowed : !test.gate.isAllowed;
 
   const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
     setIsTurningOn(true);
@@ -276,10 +321,30 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
                 ) : (
                   <></>
                 )}
+                {showTryAgain ? (
+                  <Button
+                    title="Try again"
+                    icon={IconProp.Refresh}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    isLoading={isTurningOn}
+                    disabled={!turnOnGate.isAllowed || isTurningOn}
+                    tooltip={
+                      turnOnGate.isAllowed
+                        ? undefined
+                        : turnOnGate.disabledReason
+                    }
+                    dataTestId="security-turn-on-try-again"
+                    onClick={() => {
+                      void turnOnRecommended();
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
                 <SecuritySetupTestButton
                   test={test}
                   buttonStyle={
-                    showTurnOn
+                    showTurnOn || showTryAgain
                       ? ButtonStyleType.NORMAL
                       : ButtonStyleType.PRIMARY
                   }
@@ -302,15 +367,37 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {error || test.error ? (
+      {showTryAgain ? (
         <div className="mt-4">
-          <ErrorMessage message={error || test.error} />
+          <SecurityTurnOnProblems
+            problems={problems}
+            error={error}
+            title={error ? TURN_ON_FAILED_TITLE : TURN_ON_PARTLY_TITLE}
+            note={
+              !error && turnedOn && didTurnOnAnything(turnedOn)
+                ? TURN_ON_PARTLY_NOTE
+                : TURN_ON_RETRY_NOTE
+            }
+          />
         </div>
       ) : (
         <></>
       )}
 
-      {turnedOn ? (
+      {test.error ? (
+        <div className="mt-4">
+          <SecurityTurnOnProblems
+            problems={[]}
+            error={test.error}
+            title={SETUP_TEST_FAILED_TITLE}
+            dataTestId="security-setup-test-error"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
+
+      {turnedOn && !showTryAgain ? (
         <p
           data-testid="security-turned-on"
           role="status"

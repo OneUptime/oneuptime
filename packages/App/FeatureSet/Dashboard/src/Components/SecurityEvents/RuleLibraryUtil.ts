@@ -1,9 +1,11 @@
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
   isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import { isRuleFromLibraryEntry } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import {
   DetectionRuleShape,
   readDetectionRuleShape,
@@ -11,12 +13,20 @@ import {
 
 /*
  * The rule library as the page lists it: filtered by category and search,
- * and each entry marked when the project already has a rule of its name -
- * the name is what an added rule keeps, and what a person sees if they
- * renamed it to something else they meant to.
+ * and each entry marked when the project already has its rule - one whose
+ * Sigma YAML carries the entry's id, however the team renamed it, or one
+ * of its name. The server's Turn on recommended knows a project's rule the
+ * same way (SecurityTemplateRecords), so the page never offers to add a
+ * rule the server would count as there, and adding twice adds nothing.
  *
  * React-free so the filtering is pinned in a plain test.
  */
+
+/*
+ * A rule the project has, as the library reads it: the rule (its name and
+ * Sigma YAML), or just its name.
+ */
+export type ExistingRule = string | Pick<DetectionRule, "name" | "sigmaRuleYaml">;
 
 export interface LibraryRuleView {
   entry: DetectionRuleLibraryEntry;
@@ -39,18 +49,15 @@ export type LibraryRuleFilter =
   | RecommendedFilter
   | "";
 
-function normalizeName(name: string): string {
-  return (name || "").trim().toLowerCase();
-}
-
 export function isLibraryRuleAdded(
   entry: DetectionRuleLibraryEntry,
-  existingRuleNames: Array<string>,
+  existingRules: ReadonlyArray<ExistingRule>,
 ): boolean {
-  const title: string = normalizeName(entry.title);
-
-  return existingRuleNames.some((name: string): boolean => {
-    return normalizeName(name) === title;
+  return existingRules.some((rule: ExistingRule): boolean => {
+    return isRuleFromLibraryEntry(
+      typeof rule === "string" ? { name: rule } : rule,
+      entry,
+    );
   });
 }
 
@@ -111,7 +118,7 @@ function matchesLibraryFilter(
 export function getLibraryRuleViews(data: {
   category: LibraryRuleFilter;
   search: string;
-  existingRuleNames: Array<string>;
+  existingRules: ReadonlyArray<ExistingRule>;
 }): Array<LibraryRuleView> {
   return DETECTION_RULE_LIBRARY.filter(
     (entry: DetectionRuleLibraryEntry): boolean => {
@@ -123,7 +130,7 @@ export function getLibraryRuleViews(data: {
   ).map((entry: DetectionRuleLibraryEntry): LibraryRuleView => {
     return {
       entry,
-      isAdded: isLibraryRuleAdded(entry, data.existingRuleNames),
+      isAdded: isLibraryRuleAdded(entry, data.existingRules),
       isRecommended: isRecommendedDetectionRule(entry),
     };
   });
@@ -131,13 +138,13 @@ export function getLibraryRuleViews(data: {
 
 // The recommended rules the project has no rule of yet.
 export function getRecommendedRulesNotAdded(
-  existingRuleNames: Array<string>,
+  existingRules: ReadonlyArray<ExistingRule>,
 ): Array<DetectionRuleLibraryEntry> {
   return DETECTION_RULE_LIBRARY.filter(
     (entry: DetectionRuleLibraryEntry): boolean => {
       return (
         isRecommendedDetectionRule(entry) &&
-        !isLibraryRuleAdded(entry, existingRuleNames)
+        !isLibraryRuleAdded(entry, existingRules)
       );
     },
   );

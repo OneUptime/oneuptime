@@ -146,6 +146,16 @@ export default class DetectionRule extends BaseModel {
   })
   public projectId?: ObjectID = undefined;
 
+  /*
+   * A rule is named after its Sigma title - by the Rule Library, by the
+   * form and by the server when a create names none - so the name holds
+   * what a title is: 100 characters, as every other name in OneUptime and
+   * Microsoft Sentinel's rule names. It was 50, and the library's own
+   * "Failed sign-ins, then a success from the same address" (53) failed
+   * Turn on recommended; a quarter of SigmaHQ's titles are longer than 50.
+   * A title longer still is cut to fit wherever OneUptime names a rule
+   * after it (fitDetectionRuleName).
+   */
   @ColumnAccessControl({
     create: createPermissions,
     read: readPermissions,
@@ -153,15 +163,15 @@ export default class DetectionRule extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.Name,
+    type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
     description: "Friendly name for this detection rule.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.Name,
-    length: ColumnLength.Name,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
   public name?: string = undefined;
 

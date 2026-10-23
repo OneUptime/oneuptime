@@ -10,7 +10,6 @@ import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Gray500 } from "Common/Types/BrandColors";
-import { JSONArray } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityDetectionSource from "Common/Types/SecurityCase/SecurityDetectionSource";
@@ -31,6 +30,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { buildSecurityPlaybookFromTemplate } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   SECURITY_PLAYBOOK_TRIGGER_FIELD_DESCRIPTION,
@@ -72,22 +72,20 @@ const SecurityPlaybooksPage: FunctionComponent<
     setError("");
 
     try {
-      const playbook: SecurityPlaybook = new SecurityPlaybook();
-      playbook.projectId = ProjectUtil.getCurrentProjectId()!;
-      playbook.name = translator.translateText(template.name) || template.name;
-      playbook.description =
-        translator.translateText(template.description) || template.description;
-      playbook.isEnabled = true;
-      playbook.trigger = template.trigger;
-      playbook.steps = template.getSteps() as unknown as JSONArray;
-
-      if (template.minimumPriority) {
-        playbook.minimumPriority = template.minimumPriority;
-      }
-
-      if (template.detectionSource) {
-        playbook.detectionSource = template.detectionSource;
-      }
+      /*
+       * The record Turn on recommended makes from a template too
+       * (SecurityTemplateRecords), named as the reader's language words
+       * it - which SecurityTemplatesCreatable holds to the name's width in
+       * every language.
+       */
+      const playbook: SecurityPlaybook = buildSecurityPlaybookFromTemplate({
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        template: template.definition,
+        name: translator.translateText(template.name) || template.name,
+        description:
+          translator.translateText(template.description) ||
+          template.description,
+      });
 
       const response: { data: unknown } =
         await ModelAPI.create<SecurityPlaybook>({

@@ -5,6 +5,7 @@ import {
   readRuleAttackTags,
 } from "../../Components/SecurityEvents/AttackCoverage";
 import {
+  ExistingRule,
   LibraryRuleFilter,
   LibraryRuleView,
   RECOMMENDED_FILTER,
@@ -13,6 +14,12 @@ import {
   isLibraryRuleAdded,
 } from "../../Components/SecurityEvents/RuleLibraryUtil";
 import SecurityCaseApi from "../../Components/SecurityCase/SecurityCaseApi";
+import {
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedResult,
+  describeAddFailure,
+} from "../../Components/SecurityOverview/SecuritySetupModel";
+import SecurityTurnOnProblems from "../../Components/SecurityOverview/SecurityTurnOnProblems";
 import DetectionRuleSummary, {
   DetectionRuleTypeLabel,
 } from "../../Components/SecurityEvents/DetectionRuleSummary";
@@ -29,6 +36,11 @@ import {
   DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
+import { buildDetectionRuleFromLibrary } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -46,7 +58,7 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -78,33 +90,31 @@ const CATEGORY_ICONS: Record<DetectionRuleLibraryCategory, IconProp> = {
   [DetectionRuleLibraryCategory.Kubernetes]: IconProp.Cube,
 };
 
-// A library entry as a detection rule of the project: on, and opening cases rather than alerts.
+/*
+ * A library entry as a detection rule of the project: on, and opening cases
+ * rather than alerts - the very record the server's Turn on recommended
+ * adds (SecurityTemplateRecords), which SecurityTemplatesCreatable holds to
+ * everything a create checks.
+ */
 export function buildRuleFromLibrary(
   entry: DetectionRuleLibraryEntry,
 ): DetectionRule {
-  const rule: DetectionRule = new DetectionRule();
-  rule.projectId = ProjectUtil.getCurrentProjectId()!;
-  rule.name = entry.title;
-  rule.description = entry.description;
-  rule.sigmaRuleYaml = entry.sigmaRuleYaml;
-  rule.isEnabled = true;
-  rule.evaluationIntervalInMinutes = entry.evaluationIntervalInMinutes;
-  rule.matchCountThreshold = entry.matchCountThreshold;
-  rule.shouldCreateCase = true;
-  rule.shouldCreateAlert = false;
-  rule.shouldCreateIncident = false;
-  rule.shouldWriteDetectionFinding = true;
-
-  if (entry.groupByField) {
-    rule.groupByField = entry.groupByField;
-  }
-
-  if (entry.distinctCountField) {
-    rule.distinctCountField = entry.distinctCountField;
-  }
-
-  return rule;
+  return buildDetectionRuleFromLibrary({
+    projectId: ProjectUtil.getCurrentProjectId()!,
+    entry,
+  });
 }
+
+// What the page says when an Add could not add every rule (SecurityTurnOnProblems).
+export const RULES_PARTLY_ADDED_TITLE: string = translationKey(
+  "Not every rule could be added",
+);
+export const RULES_NOT_ADDED_TITLE: string = translationKey(
+  "The rules could not be added",
+);
+export const RULES_ADD_AGAIN_NOTE: string = translationKey(
+  "Adding them again adds only what is still missing.",
+);
 
 // What a library rule runs: its schedule, threshold and grouping, and its Sigma YAML.
 const LibraryRuleDetails: FunctionComponent<{
@@ -211,10 +221,15 @@ const RuleLibraryPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const [existing, setExisting] = useState<Array<string>>([]);
+  const [existing, setExisting] = useState<Array<ExistingRule>>([]);
   const [category, setCategory] = useState<LibraryRuleFilter>("");
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
+  // What the last Add could not add, and why; or why it failed whole.
+  const [problems, setProblems] = useState<Array<TurnOnRecommendedProblem>>(
+    [],
+  );
+  const [addError, setAddError] = useState<string>("");
   const [addingIds, setAddingIds] = useState<Array<string>>([]);
   const [viewing, setViewing] = useState<DetectionRuleLibraryEntry | null>(
     null,
@@ -232,19 +247,26 @@ const RuleLibraryPage: FunctionComponent<
   useEffect(() => {
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
+        /*
+         * The Sigma YAML too: a rule the team renamed is still the library
+         * rule its YAML's id says it is.
+         */
         const result: ListResult<DetectionRule> =
           await ModelAPI.getList<DetectionRule>({
             modelType: DetectionRule,
             query: {},
-            select: { _id: true, name: true },
+            select: { _id: true, name: true, sigmaRuleYaml: true },
             sort: {},
             skip: 0,
             limit: LIMIT_PER_PROJECT,
           });
 
         setExisting(
-          result.data.map((rule: DetectionRule): string => {
-            return rule.name || "";
+          result.data.map((rule: DetectionRule): ExistingRule => {
+            return {
+              name: rule.name || "",
+              sigmaRuleYaml: rule.sigmaRuleYaml || "",
+            };
           }),
         );
       } catch (err) {
@@ -259,7 +281,7 @@ const RuleLibraryPage: FunctionComponent<
     return getLibraryRuleViews({
       category,
       search,
-      existingRuleNames: existing,
+      existingRules: existing,
     });
   }, [category, search, existing]);
 
@@ -284,41 +306,53 @@ const RuleLibraryPage: FunctionComponent<
     return map;
   }, [views]);
 
+  /*
+   * Each rule on its own: one that cannot be added is said, with why, under
+   * the filters, and the rest are still added - as Turn on recommended
+   * does - so adding again adds only what is still missing.
+   */
   const addRules: (
     entries: Array<DetectionRuleLibraryEntry>,
   ) => Promise<void> = async (
     entries: Array<DetectionRuleLibraryEntry>,
   ): Promise<void> => {
-    setError("");
+    setAddError("");
+    setProblems([]);
     setAddingIds(
       entries.map((entry: DetectionRuleLibraryEntry): string => {
         return entry.id;
       }),
     );
 
-    const added: Array<string> = [];
+    const added: Array<ExistingRule> = [];
+    const failed: Array<TurnOnRecommendedProblem> = [];
 
     for (const entry of entries) {
+      const rule: DetectionRule = buildRuleFromLibrary(entry);
+
       try {
         await ModelAPI.create<DetectionRule>({
-          model: buildRuleFromLibrary(entry),
+          model: rule,
           modelType: DetectionRule,
         });
-        added.push(entry.title);
+        added.push({
+          name: rule.name || "",
+          sigmaRuleYaml: rule.sigmaRuleYaml || "",
+        });
       } catch (err) {
-        setError(
-          translator.translateTemplate("Could not add {{rule}}: {{reason}}", {
-            rule: entry.title,
-            reason: API.getFriendlyMessage(err),
-          }),
-        );
-        break;
+        failed.push({
+          part: TurnOnRecommendedPart.Rule,
+          action: TurnOnRecommendedAction.Add,
+          name: entry.title,
+          ...describeAddFailure(err),
+        });
       }
     }
 
-    setExisting((current: Array<string>) => {
+    setExisting((current: Array<ExistingRule>) => {
       return [...current, ...added];
     });
+    setProblems(failed);
     setAddingIds([]);
   };
 
@@ -328,20 +362,23 @@ const RuleLibraryPage: FunctionComponent<
    * turns back on any that were turned off.
    */
   const turnOnRecommended: () => Promise<void> = async (): Promise<void> => {
-    setError("");
+    setAddError("");
+    setProblems([]);
     setIsTurningOnRecommended(true);
 
     try {
-      await SecurityCaseApi.turnOnRecommended({
-        logs: false,
-        detections: true,
-        playbook: false,
-      });
+      const result: TurnOnRecommendedResult =
+        await SecurityCaseApi.turnOnRecommended({
+          logs: false,
+          detections: true,
+          playbook: false,
+        });
+      setProblems(result.problems);
       setReadCount((count: number): number => {
         return count + 1;
       });
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setAddError(API.getFriendlyMessage(err));
     }
 
     setIsTurningOnRecommended(false);
@@ -463,6 +500,20 @@ const RuleLibraryPage: FunctionComponent<
           </div>
 
           {error ? <ErrorMessage message={error} /> : <></>}
+
+          {addError || problems.length > 0 ? (
+            <SecurityTurnOnProblems
+              problems={problems}
+              error={addError}
+              title={
+                addError ? RULES_NOT_ADDED_TITLE : RULES_PARTLY_ADDED_TITLE
+              }
+              note={RULES_ADD_AGAIN_NOTE}
+              dataTestId="rule-library-problems"
+            />
+          ) : (
+            <></>
+          )}
 
           {views.length === 0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
