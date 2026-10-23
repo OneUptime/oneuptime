@@ -44,7 +44,7 @@ Slik legger du til en prosjektkonfigurasjon:
 :::steps
 1. Gå til **Prosjektinnstillinger > Varsler > Varselinnstillinger**.
 2. Velg **Opprett Twilio-konfigurasjon** i **Twilio-konfigurasjon**.
-3. Skriv inn et navn, **Twilio Account SID**, **Twilio Auth Token** og **Twilio primært telefonnummer**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
+3. Skriv inn et navn, og velg under **Bruk denne kontoen til** hva kontoen sender: **Anrop og SMS**, **Bare SMS** eller **Bare anrop**. Skriv deretter inn **Twilio Account SID**, **Twilio Auth Token** og nummeret valget ber om: **Twilio primært telefonnummer** for anrop, eller **Twilio SMS-telefonnumre** for **Bare SMS**. Under **Flere felt** kan du også skrive inn kommaseparerte **Twilio sekundære telefonnumre** for andre land, og **Twilio SMS-telefonnumre** hvis numrene dine ikke kan sende SMS.
 4. **Angi som prosjektstandard** er slått på for prosjektets første konfigurasjon, så SMS og anrop til prosjektets medlemmer, også vaktvarsler, går gjennom den med en gang du lagrer. Slå den av hvis kontoen bare er for statussider eller innkommende anrop. En senere konfigurasjon starter med bryteren av: Slå den på, eller velg **Angi som prosjektstandard** i konfigurasjonens radmeny for å flytte disse meldingene dit. En API-forespørsel som utelater `isProjectDefault`, behandles på samme måte.
 5. Lagre. Bare én konfigurasjon kan være prosjektstandarden. Statussider bruker konfigurasjonen som er uttrykkelig tildelt hver statusside.
 
@@ -52,7 +52,7 @@ Slik legger du til en prosjektkonfigurasjon:
 > **SMS** og **Telefonanrop** er av fra start i hvert prosjekt, og så lenge de er av, kan ingen i prosjektet legge til et telefonnummer for dem. En prosjekteier, en **Billing Admin** eller noen med **Manage Billing** slår dem på i kortet **Varslingskanaler** på samme side.
 :::
 
-For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
+For en standard for hele installasjonen kan en administrator i stedet åpne **Admin Dashboard > Innstillinger > Anrop og SMS**, velge hva kontoen sender, redigere Twilio-påloggingsinformasjonen og telefonnumrene og lagre. Medlemmenes varsler bruker denne globale konfigurasjonen når prosjektet deres ikke har en standard. Hold Auth Token hemmelig.
 
 ### Egne numre for anrop og SMS
 
@@ -70,6 +70,20 @@ En konfigurasjon uten SMS-numre sender SMS fra de samme numrene som anrop, som f
 
 > [!NOTE]
 > Hvilke numre som kan sende SMS, og om en avsender må registreres først, varierer fra land til land: der registrering kreves, kan en SMS fra et uregistrert nummer bli blokkert eller merket som spam. Før du stoler på et nummer, sjekk [Twilios SMS-retningslinjer](https://www.twilio.com/en-us/guidelines/sms) for hvert land du sender til.
+
+### En konto bare for SMS, eller bare for anrop
+
+En konto du bare bruker til SMS, eller bare til anrop, trenger ikke noe nummer for det andre. Velg det under **Bruk denne kontoen til**, så ber skjemaet bare om numrene som det valget trenger:
+
+| Valg | Numre det trenger | Hva den aldri sender |
+| --- | --- | --- |
+| **Anrop og SMS** | **Twilio primært telefonnummer** | Ingenting |
+| **Bare SMS** | **Twilio SMS-telefonnumre** | Anrop |
+| **Bare anrop** | **Twilio primært telefonnummer** | SMS |
+
+Det en konfigurasjon ikke sender, går ut slik det ville gjort uten konfigurasjonen: når prosjektets standard er satt til **Bare SMS**, går anrop til prosjektets medlemmer gjennom konfigurasjonen for hele installasjonen. Kan ingen konfigurasjon sende en melding, står det i meldingens logg at prosjektets konfigurasjon ikke brukes til den, og hvem som kan endre det.
+
+Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og **Send testanrop** vises bare for det en konfigurasjon sender. Alle eksisterende konfigurasjoner er som før satt til **Anrop og SMS**. Gjennom API-et og Terraform er valget feltet `usedFor`, og en konfigurasjon uten numrene valget trenger, blir avvist.
 
 ## 3. Konfigurer nettverkstilgang
 
@@ -145,6 +159,7 @@ For utvikling beskriver Twilios [veiledning for testing av webhooker](https://ww
 | --- | --- |
 | Ingenting blir sendt | Påloggingsinformasjon, nummerets funksjoner, kontoens begrensninger og den utgående tilkoblingen. |
 | Twilio avviser SMS med feil 21606 | Nummeret kan ikke sende SMS. Legg til et som kan, under **Twilio SMS-telefonnumre**: se [Egne numre for anrop og SMS](#egne-numre-for-anrop-og-sms). |
+| Anrop eller SMS går gjennom en annen konto enn prosjektets | Prosjektets standard er satt til **Bare SMS** eller **Bare anrop**: se [En konto bare for SMS, eller bare for anrop](#en-konto-bare-for-sms-eller-bare-for-anrop). |
 | SMS-en eller anropet kommer fram, men statusen eller bekreftelsen oppdateres ikke | URL-en for tilbakekall og loggene fra den offentlige ingressen. Twilios [veiledning om feil ved HTTP-henting](https://www.twilio.com/docs/api/errors/11200) hjelper med tilbakekall som ikke kan nås, TLS-problemer og HTTP-feil. |
 
 Et vellykket testanrop alene beviser ikke at tilbakekall kan nås.

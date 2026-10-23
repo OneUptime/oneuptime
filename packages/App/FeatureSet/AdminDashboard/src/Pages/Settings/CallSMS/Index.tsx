@@ -13,6 +13,9 @@ import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -33,6 +36,31 @@ import { useTranslation } from "react-i18next";
  */
 const advancedSection: FormFieldCollapsibleSection<GlobalConfig> =
   getAdvancedFormSection<GlobalConfig>();
+
+/*
+ * What the server's account is used for, asked first, as a project's
+ * Twilio config asks it (Dashboard TwilioConfigUseCopy,
+ * Common/Types/CallAndSMS/TwilioConfigUse): calls and SMS, SMS only or calls
+ * only. Then only the numbers that answer takes, each required where it is
+ * needed: the primary number for calls - with the SMS numbers folded beside
+ * the secondary ones when it sends SMS too - or the SMS numbers alone, open
+ * and required. A field whose help, fold or need follows the answer is
+ * written once for each answer that shows it, with a showIf for that
+ * answer alone: the form never shows two at once.
+ *
+ * An account used for one of the two sends nothing of the other: those go
+ * only through the Twilio configs projects add themselves, which each
+ * answer says.
+ */
+const usedFor: (
+  ...uses: Array<TwilioConfigUse>
+) => (values: FormValues<GlobalConfig>) => boolean = (
+  ...uses: Array<TwilioConfigUse>
+): ((values: FormValues<GlobalConfig>) => boolean) => {
+  return (values: FormValues<GlobalConfig>): boolean => {
+    return uses.includes(TwilioConfigUses.getUse(values.twilioUsedFor));
+  };
+};
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -78,6 +106,40 @@ const Settings: FunctionComponent = (): ReactElement => {
         formFields={[
           {
             field: {
+              twilioUsedFor: true,
+            },
+            title: "Use This Account For",
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: true,
+            /*
+             * Calls and SMS where nothing is stored, as every installation's
+             * account was before the choice.
+             */
+            defaultValue: TwilioConfigUse.CallsAndSms,
+            // Each answer says in one line what it means.
+            hideColumnDescription: true,
+            radioButtonOptions: [
+              {
+                title: "Calls and SMS",
+                description: "Calls and SMS go out from this account.",
+                value: TwilioConfigUse.CallsAndSms,
+              },
+              {
+                title: "SMS only",
+                description:
+                  "This account makes no calls. Projects can make them through a Twilio config of their own.",
+                value: TwilioConfigUse.SmsOnly,
+              },
+              {
+                title: "Calls only",
+                description:
+                  "This account sends no SMS. Projects can send them through a Twilio config of their own.",
+                value: TwilioConfigUse.CallsOnly,
+              },
+            ],
+          },
+          {
+            field: {
               twilioAccountSID: true,
             },
             title: "Twilio Account SID",
@@ -115,6 +177,42 @@ const Settings: FunctionComponent = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            showIf: usedFor(TwilioConfigUse.CallsAndSms),
+          },
+          {
+            field: {
+              twilioPrimaryPhoneNumber: true,
+            },
+            title: "Twilio Primary Phone Number",
+            fieldType: FormFieldSchemaType.Phone,
+            required: true,
+            description: "Calls go out from this number.",
+            placeholder: "+14155550100",
+            validation: {
+              minLength: 2,
+            },
+            showIf: usedFor(TwilioConfigUse.CallsOnly),
+          },
+          {
+            field: {
+              twilioSmsPhoneNumbers: true,
+            },
+            title: "Twilio SMS Phone Numbers",
+            // One line: most lists hold one number or two.
+            fieldType: FormFieldSchemaType.Text,
+            // Used for SMS only, every SMS goes out from these: required, and open.
+            required: true,
+            description:
+              "Every SMS goes out from one of these: the one in the recipient's country, or else the first.",
+            // The list the error under the field gives: no one country's.
+            placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            customValidation: (
+              values: FormValues<GlobalConfig>,
+            ): string | null => {
+              // Refused under the field, by the server's rule.
+              return getPhoneNumberListError(values.twilioSmsPhoneNumbers);
+            },
+            showIf: usedFor(TwilioConfigUse.SmsOnly),
           },
           {
             field: {
@@ -136,6 +234,7 @@ const Settings: FunctionComponent = (): ReactElement => {
               // Refused under the field, by the server's rule.
               return getPhoneNumberListError(values.twilioSmsPhoneNumbers);
             },
+            showIf: usedFor(TwilioConfigUse.CallsAndSms),
           },
           {
             field: {
@@ -160,12 +259,34 @@ const Settings: FunctionComponent = (): ReactElement => {
                 values.twilioSecondaryPhoneNumbers,
               );
             },
+            showIf: usedFor(
+              TwilioConfigUse.CallsAndSms,
+              TwilioConfigUse.CallsOnly,
+            ),
           },
         ]}
         modelDetailProps={{
           modelType: GlobalConfig,
           id: "model-detail-global-config",
           fields: [
+            {
+              // What the account is used for, as the form's first answer names it.
+              field: {
+                twilioUsedFor: true,
+              },
+              title: "Used For",
+              fieldType: FieldType.Element,
+              getElement: (item: GlobalConfig): ReactElement => {
+                switch (TwilioConfigUses.getUse(item.twilioUsedFor)) {
+                  case TwilioConfigUse.SmsOnly:
+                    return <span>{t("SMS only")}</span>;
+                  case TwilioConfigUse.CallsOnly:
+                    return <span>{t("Calls only")}</span>;
+                  default:
+                    return <span>{t("Calls and SMS")}</span>;
+                }
+              },
+            },
             {
               field: {
                 twilioAccountSID: true,
@@ -180,6 +301,10 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Twilio Primary Phone Number",
               fieldType: FieldType.Phone,
               placeholder: t("common.none"),
+              // An account used for SMS only makes no calls, from any number.
+              showIf: (item: GlobalConfig): boolean => {
+                return TwilioConfigUses.makesCalls(item.twilioUsedFor);
+              },
             },
             {
               field: {
@@ -189,6 +314,10 @@ const Settings: FunctionComponent = (): ReactElement => {
               fieldType: FieldType.LongText,
               // Without them, SMS go out from the numbers calls do.
               placeholder: t("pages.settings.callSms.smsSameAsCalls"),
+              // An account used for calls only sends no SMS, from any number.
+              showIf: (item: GlobalConfig): boolean => {
+                return TwilioConfigUses.sendsSms(item.twilioUsedFor);
+              },
             },
             {
               field: {
@@ -197,6 +326,9 @@ const Settings: FunctionComponent = (): ReactElement => {
               title: "Twilio Secondary Phone Numbers",
               fieldType: FieldType.LongText,
               placeholder: t("common.none"),
+              showIf: (item: GlobalConfig): boolean => {
+                return TwilioConfigUses.makesCalls(item.twilioUsedFor);
+              },
             },
           ],
           modelId: ObjectID.getZeroObjectID(),

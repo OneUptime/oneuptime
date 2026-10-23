@@ -44,7 +44,7 @@ Pour ajouter une configuration de projet :
 :::steps
 1. Allez dans **Paramètres du projet > Notifications > Paramètres de notification**.
 2. Dans **Configuration Twilio**, sélectionnez **Créer une configuration Twilio**.
-3. Saisissez un nom, **SID de compte Twilio**, **Jeton d'authentification Twilio** et **Numéro de téléphone principal Twilio**. Sous **Plus de champs**, saisissez éventuellement des **Numéros de téléphone secondaires Twilio** séparés par des virgules pour d'autres pays, et des **Numéros de téléphone SMS Twilio** si vos numéros ne peuvent pas envoyer de SMS.
+3. Saisissez un nom, puis choisissez dans **Utiliser ce compte pour** ce que le compte envoie : **Appels et SMS**, **SMS uniquement** ou **Appels uniquement**. Saisissez ensuite **SID de compte Twilio**, **Jeton d'authentification Twilio** et le numéro que ce choix demande : **Numéro de téléphone principal Twilio** pour les appels, ou **Numéros de téléphone SMS Twilio** pour **SMS uniquement**. Sous **Plus de champs**, saisissez éventuellement des **Numéros de téléphone secondaires Twilio** séparés par des virgules pour d'autres pays, et des **Numéros de téléphone SMS Twilio** si vos numéros ne peuvent pas envoyer de SMS.
 4. **Définir par défaut pour le projet** est activé pour la première configuration du projet : les SMS et les appels vers les membres du projet, notifications d'astreinte comprises, passent par elle dès que vous enregistrez. Désactivez-le si ce compte ne sert qu'aux pages de statut ou aux appels entrants. Une configuration ajoutée ensuite commence avec l'interrupteur désactivé : activez-le, ou choisissez **Définir par défaut pour le projet** dans le menu de la ligne de la configuration, pour y faire passer ces messages. Une requête API qui omet `isProjectDefault` est traitée de la même manière.
 5. Enregistrez. Une seule configuration peut être la configuration par défaut du projet. Les pages de statut utilisent la configuration explicitement attribuée à chacune d'elles.
 
@@ -52,7 +52,7 @@ Pour ajouter une configuration de projet :
 > **SMS** et **Appels téléphoniques** sont désactivés au départ dans chaque projet, et tant qu'ils ne sont pas activés, personne dans le projet ne peut y ajouter de numéro de téléphone. Un propriétaire du projet, un **Billing Admin** ou une personne disposant de **Manage Billing** les active dans la carte **Canaux de notification** de la même page.
 :::
 
-Pour une configuration par défaut à l'échelle de l'installation, un administrateur peut plutôt ouvrir **Admin Dashboard > Paramètres > Appel et SMS**, modifier les identifiants et les numéros de téléphone Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale quand leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
+Pour une configuration par défaut à l'échelle de l'installation, un administrateur peut plutôt ouvrir **Admin Dashboard > Paramètres > Appel et SMS**, choisir ce que le compte envoie, modifier les identifiants et les numéros de téléphone Twilio, puis enregistrer. Les notifications des membres utilisent cette configuration globale quand leur projet n'a pas de configuration par défaut. Gardez l'Auth Token confidentiel.
 
 ### Des numéros distincts pour les appels et les SMS
 
@@ -70,6 +70,20 @@ Une configuration sans numéros SMS envoie les SMS depuis les mêmes numéros qu
 
 > [!NOTE]
 > Les numéros qui peuvent envoyer des SMS, et l'obligation d'enregistrer d'abord un expéditeur, varient d'un pays à l'autre : là où l'enregistrement est obligatoire, un SMS envoyé depuis un numéro non enregistré peut être bloqué ou signalé comme spam. Avant de compter sur un numéro, consultez [les directives SMS de Twilio](https://www.twilio.com/en-us/guidelines/sms) pour chaque pays vers lequel vous envoyez.
+
+### Un compte pour les SMS uniquement, ou pour les appels uniquement
+
+Un compte que vous gardez pour les SMS uniquement, ou pour les appels uniquement, n'a besoin d'aucun numéro pour l'autre usage. Choisissez-le dans **Utiliser ce compte pour**, et le formulaire ne demande que les numéros dont ce choix a besoin :
+
+| Choix | Numéros nécessaires | Ce qu'il n'envoie jamais |
+| --- | --- | --- |
+| **Appels et SMS** | **Numéro de téléphone principal Twilio** | Rien |
+| **SMS uniquement** | **Numéros de téléphone SMS Twilio** | Les appels |
+| **Appels uniquement** | **Numéro de téléphone principal Twilio** | Les SMS |
+
+Ce qu'une configuration n'envoie pas part comme il partirait sans elle : quand la configuration par défaut du projet est réglée sur **SMS uniquement**, les appels aux membres du projet passent par la configuration de toute l'installation. Si aucune configuration ne peut envoyer un message, le journal du message indique que la configuration du projet ne sert pas à cela, et qui peut le changer.
+
+Les pages de statut ne proposent que les configurations qui envoient des SMS, et **Envoyer un SMS de test** et **Envoyer un appel de test** n'apparaissent que pour ce qu'une configuration envoie. Toute configuration existante est réglée sur **Appels et SMS**, comme avant. Dans l'API et Terraform, le choix est le champ `usedFor`, et une configuration sans les numéros que son choix demande est refusée.
 
 ## 3. Configurer l'accès réseau
 
@@ -145,6 +159,7 @@ Pour le développement, le [guide de test des webhooks](https://www.twilio.com/d
 | --- | --- |
 | Rien n'est envoyé | Les identifiants, les capacités du numéro, les restrictions du compte et la connectivité sortante. |
 | Twilio refuse les SMS avec l'erreur 21606 | Le numéro ne peut pas envoyer de SMS. Ajoutez-en un qui le peut dans **Numéros de téléphone SMS Twilio** : voir [Des numéros distincts pour les appels et les SMS](#des-numéros-distincts-pour-les-appels-et-les-sms). |
+| Les appels ou les SMS passent par un autre compte que celui du projet | La configuration par défaut du projet est réglée sur **SMS uniquement** ou **Appels uniquement** : voir [Un compte pour les SMS uniquement, ou pour les appels uniquement](#un-compte-pour-les-sms-uniquement-ou-pour-les-appels-uniquement). |
 | Le SMS ou l'appel arrive, mais son statut ou l'acquittement ne se met pas à jour | L'URL de callback et les journaux de l'ingress public. Le [guide de Twilio sur les échecs de récupération HTTP](https://www.twilio.com/docs/api/errors/11200) aide à diagnostiquer les callbacks injoignables, les problèmes TLS et les erreurs HTTP. |
 
 Un appel de test réussi ne prouve pas à lui seul que les callbacks sont joignables.

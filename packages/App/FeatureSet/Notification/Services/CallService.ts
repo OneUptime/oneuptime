@@ -211,9 +211,24 @@ export default class CallService {
     try {
       logger.debug("Call Request received.");
 
+      /*
+       * The config the caller handed over - the project's default - when it
+       * makes calls. One used for SMS only makes none
+       * (TwilioPhoneNumbers.canSend, Types/CallAndSMS/TwilioConfigUse): this
+       * call then goes as it would without it, through the server's own
+       * account, and is paid for as such.
+       */
+      const customTwilioConfig: TwilioConfig | undefined =
+        TwilioPhoneNumbers.canSend(
+          options.customTwilioConfig,
+          TwilioMessageKind.Call,
+        )
+          ? options.customTwilioConfig
+          : undefined;
+
       // is no custom twilio config is provided, use default twilio config and charge for call.
       const shouldChargeForCall: boolean =
-        IsBillingEnabled && !options.customTwilioConfig;
+        IsBillingEnabled && !customTwilioConfig;
 
       // What a minute costs, in whole cents.
       const callCostInUSDCents: number = shouldChargeForCall
@@ -227,18 +242,22 @@ export default class CallService {
       logger.debug("Call Cost (cents): " + callCostInUSDCents);
 
       const twilioConfig: TwilioConfig | null =
-        options.customTwilioConfig || (await getTwilioConfig());
+        customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.Call));
 
       if (!twilioConfig) {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
-         * caller passed a project-level config that is empty). Failing to place
-         * the call is the correct behaviour, not a defect. The log, and anyone
-         * waiting on this call, are told what is missing and who can add it
+         * caller passed a project-level config that is empty, or one used
+         * for SMS only). Failing to place the call is the correct behaviour,
+         * not a defect. The log, and anyone waiting on this call, are told
+         * what is missing and who can add it - and, when the project's own
+         * config is used for SMS only, that it is
          * (Utils/Project/TwilioAccount) - not "Twilio Config not found".
          */
         throw new BadDataException(
-          getNoTwilioAccountMessage(TwilioMessageKind.Call),
+          getNoTwilioAccountMessage(TwilioMessageKind.Call, {
+            projectConfigUse: options.customTwilioConfig?.use,
+          }),
         ).asUserError();
       }
 

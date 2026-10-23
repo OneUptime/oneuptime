@@ -1,4 +1,5 @@
 import TwilioConfig from "./TwilioConfig";
+import TwilioConfigUses, { TwilioConfigUse } from "./TwilioConfigUse";
 import BadDataException from "../Exception/BadDataException";
 import Phone from "../Phone";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
@@ -26,6 +27,13 @@ import { refusedValue } from "../../Utils/RefusedValue";
  *   - once it lists SMS numbers, every SMS goes out from one of them: the
  *     one in the recipient's country, or else the first. Never from a
  *     number kept for calls, so a voice-only number sends no SMS at all.
+ *
+ * And a config is used for calls and SMS, or for only one of the two
+ * (TwilioConfigUse): one used for SMS only sends every SMS from its SMS
+ * numbers and makes no call at all - it needs no number to make calls
+ * from - and one used for calls only sends no SMS. A config with nothing
+ * to send a message from sends none (getSenderNumbers answers null, and
+ * canSend no): the message then goes as it would without the config.
  *
  * One list rather than an SMS twin of each call field: one rule to read
  * ("SMS go out from these"), and no SMS falling back to a call number the
@@ -161,16 +169,29 @@ export default class TwilioPhoneNumbers {
     return (config.smsPhoneNumbers || []).length > 0;
   }
 
+  // Whether a config used for this sends this kind of message (TwilioConfigUse).
+  public static isUsedFor(use: unknown, kind: TwilioMessageKind): boolean {
+    return kind === TwilioMessageKind.SMS
+      ? TwilioConfigUses.sendsSms(use)
+      : TwilioConfigUses.makesCalls(use);
+  }
+
   /*
-   * The numbers a config sends this kind of message from. Calls: the
-   * primary and secondary numbers. SMS: the same while the config lists no
-   * SMS numbers, and its SMS numbers alone once it does - the first in the
-   * primary number's place.
+   * The numbers a config sends this kind of message from, or null when it
+   * sends none: it is not used for this kind (TwilioConfigUse), or has no
+   * number to send it from. Calls: the primary and secondary numbers. SMS:
+   * the same while the config lists no SMS numbers, and its SMS numbers
+   * alone once it does - the first in the primary number's place. A config
+   * used for SMS only sends from its SMS numbers and from no other.
    */
   public static getSenderNumbers(
     config: TwilioConfig,
     kind: TwilioMessageKind,
-  ): TwilioSenderNumbers {
+  ): TwilioSenderNumbers | null {
+    if (!TwilioPhoneNumbers.isUsedFor(config.use, kind)) {
+      return null;
+    }
+
     const smsPhoneNumbers: Array<Phone> = config.smsPhoneNumbers || [];
     const firstSmsPhoneNumber: Phone | undefined = smsPhoneNumbers[0];
 
@@ -181,6 +202,17 @@ export default class TwilioPhoneNumbers {
       };
     }
 
+    if (
+      kind === TwilioMessageKind.SMS &&
+      TwilioConfigUses.getUse(config.use) === TwilioConfigUse.SmsOnly
+    ) {
+      return null;
+    }
+
+    if (!config.primaryPhoneNumber) {
+      return null;
+    }
+
     return {
       primaryPhoneNumber: config.primaryPhoneNumber,
       secondaryPhoneNumbers: config.secondaryPhoneNumbers || [],
@@ -188,18 +220,67 @@ export default class TwilioPhoneNumbers {
   }
 
   /*
+   * Whether a config sends this kind of message: one it is used for, with
+   * a number to send it from. A message a config does not send goes as it
+   * would without the config.
+   */
+  public static canSend(
+    config: TwilioConfig | null | undefined,
+    kind: TwilioMessageKind,
+  ): config is TwilioConfig {
+    return Boolean(
+      config && TwilioPhoneNumbers.getSenderNumbers(config, kind) !== null,
+    );
+  }
+
+  /*
+   * Why a config sends no message of this kind - "This Twilio config is
+   * used for SMS only, so it makes no calls." - or null when it sends
+   * them.
+   */
+  public static getCannotSendReason(
+    config: TwilioConfig,
+    kind: TwilioMessageKind,
+  ): string | null {
+    if (TwilioPhoneNumbers.getSenderNumbers(config, kind) !== null) {
+      return null;
+    }
+
+    const isSms: boolean = kind === TwilioMessageKind.SMS;
+
+    if (!TwilioPhoneNumbers.isUsedFor(config.use, kind)) {
+      const use: string = TwilioConfigUses.getUseInSentence(config.use);
+
+      return isSms
+        ? `This Twilio config is used for ${use}, so it sends no SMS.`
+        : `This Twilio config is used for ${use}, so it makes no calls.`;
+    }
+
+    return isSms
+      ? "This Twilio config has no number to send SMS from."
+      : "This Twilio config has no number to make calls from.";
+  }
+
+  /*
    * The number this message goes out from: the one of its kind's numbers
-   * in the recipient's country, or else its kind's first number.
+   * in the recipient's country, or else its kind's first number. Refused,
+   * saying why, for a config that sends no message of this kind: a sender
+   * asks canSend first, and sends such a message as it would without the
+   * config.
    */
   public static pickSenderNumber(data: {
     config: TwilioConfig;
     kind: TwilioMessageKind;
     to: Phone | string;
   }): Phone {
-    const numbers: TwilioSenderNumbers = TwilioPhoneNumbers.getSenderNumbers(
-      data.config,
-      data.kind,
-    );
+    const numbers: TwilioSenderNumbers | null =
+      TwilioPhoneNumbers.getSenderNumbers(data.config, data.kind);
+
+    if (!numbers) {
+      throw new BadDataException(
+        TwilioPhoneNumbers.getCannotSendReason(data.config, data.kind) || "",
+      );
+    }
 
     return Phone.pickPhoneNumberToSendSMSOrCallFrom({
       to: data.to,

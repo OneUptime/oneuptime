@@ -144,21 +144,27 @@ describe("Project Settings > Call and SMS", () => {
     expect(table).toContain('title: "Twilio Secondary Phone Numbers"');
   });
 
+  /*
+   * The description's example holds for every answer to Use This Account
+   * For: "Twilio account for SMS and calls" read as a contradiction under
+   * SMS only.
+   */
   test("its examples are a Twilio account, not a CallSMS server hosted on AWS", () => {
     expect(table).toContain('placeholder: "Company Twilio Account"');
-    expect(table).toContain('placeholder: "Twilio account for SMS and calls"');
+    expect(table).toContain('placeholder: "Twilio account for on-call alerts"');
+    expect(table).not.toContain("Twilio account for SMS and calls");
     expect(table).not.toContain("CallSMS Server");
     expect(table).not.toContain("hosted on AWS");
   });
 
   /*
-   * The numbers a config sends from: its primary number, and its SMS number
-   * beside it when SMS have their own (TwilioConfigPhoneNumbers). The
-   * account comes last: a SID is the widest value in the row, so when a
-   * long name makes the table scroll sideways, the column cut short under
-   * the row's actions is the account, not the numbers or the default.
+   * What a config is used for (Calls and SMS, SMS only or Calls only), the
+   * numbers it sends from: its primary number, and its SMS number beside
+   * it when SMS have their own (TwilioConfigPhoneNumbers). The account
+   * comes last and starts hidden: a SID is the widest value in the row, and
+   * beside the side menu it was cut short under the row's actions.
    */
-  test("tells configs apart by name, numbers, default and account", () => {
+  test("tells configs apart by name, use, numbers and default, with the account last and hidden", () => {
     const columns: string = table.slice(table.indexOf("columns={["));
 
     expect(
@@ -169,10 +175,16 @@ describe("Project Settings > Call and SMS", () => {
       ),
     ).toEqual([
       "Name",
+      "Used For",
       "Phone Numbers",
       "Project Default",
       "Twilio Account SID",
     ]);
+
+    expect(
+      columns.slice(columns.indexOf('title: "Twilio Account SID"')),
+    ).toContain("isHiddenByDefault: true");
+    expect(countOf(columns, "isHiddenByDefault: true")).toBe(1);
   });
 });
 

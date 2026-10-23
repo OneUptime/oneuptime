@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} — не номер телефона. Укажите каждый номер с кодом страны и разделите номера запятыми, например {{example}}.",
   "Twilio Primary Phone Number": "Основной номер телефона Twilio",
   "Twilio Secondary Phone Numbers": "Дополнительные номера телефонов Twilio",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "Номера, которые используются вместо основного, если совпадает код страны получателя."
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Номера, которые используются вместо основного, если совпадает код страны получателя.",
+  "Use This Account For": "Назначение аккаунта",
+  "Calls and SMS": "Звонки и SMS",
+  "Calls and SMS go out from this account.": "Звонки и SMS идут с этого аккаунта.",
+  "SMS only": "Только SMS",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "Этот аккаунт не совершает звонков. Проекты могут звонить через собственную конфигурацию Twilio.",
+  "Calls only": "Только звонки",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "Этот аккаунт не отправляет SMS. Проекты могут отправлять их через собственную конфигурацию Twilio.",
+  "Calls go out from this number.": "Звонки идут с этого номера.",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "Каждое SMS уходит с одного из этих номеров: с номера страны получателя, а если такого нет — с первого.",
+  "Used For": "Назначение"
 }

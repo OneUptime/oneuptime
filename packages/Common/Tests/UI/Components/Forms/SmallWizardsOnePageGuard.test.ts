@@ -193,24 +193,45 @@ describe("Admin Dashboard > Settings > Call & SMS", () => {
     "CardModelDetail: Call and SMS Settings",
   );
 
-  test("is one page: the account, its token and the number, with the extra numbers folded", () => {
+  /*
+   * What the account is used for first - calls and SMS, SMS only or calls
+   * only - then the account, its token and the number that answer takes:
+   * the primary number for calls (written once for calls and SMS and once
+   * for calls only, each with its own help), or the SMS numbers, open and
+   * required, for SMS only. Each is shown for one answer alone, so the page
+   * shows four open rows at most, as before the choice: the answer, the
+   * account, its token and one number.
+   */
+  test("is one page: what the account is for, the account, its token and the number that takes, with the extra numbers folded", () => {
     expectOnePage(form);
     expect(keysOf(openFields(form))).toEqual([
+      "twilioUsedFor",
       "twilioAccountSID",
       "twilioAuthToken",
       "twilioPrimaryPhoneNumber",
+      "twilioPrimaryPhoneNumber",
+      "twilioSmsPhoneNumbers",
     ]);
+    // Every number field follows the answer.
+    expect(
+      openFields(form)
+        .slice(3)
+        .every((field: FormFieldFacts): boolean => {
+          return field.isConditional;
+        }),
+    ).toBe(true);
     /*
      * Folded with the extra numbers: the numbers SMS go out from instead,
      * for numbers that can only make calls (Singapore's national numbers
-     * are voice-only).
+     * are voice-only) - on an account used for calls and SMS.
      */
     expect(keysOf(foldedFields(form))).toEqual([
       "twilioSmsPhoneNumbers",
       "twilioSecondaryPhoneNumbers",
     ]);
     expectOneAdvancedSection(form);
-    expect(countFormRows(form)).toBe(4);
+    // As the scan reads them: every conditional field a row.
+    expect(countFormRows(form)).toBe(7);
   });
 });
 
