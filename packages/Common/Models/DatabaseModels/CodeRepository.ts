@@ -1,3 +1,4 @@
+import CodeRepositoryConnection from "./CodeRepositoryConnection";
 import Label from "./Label";
 import Project from "./Project";
 import Runner from "./Runner";
@@ -92,7 +93,7 @@ import {
   pluralName: "Code Repositories",
   icon: IconProp.Code,
   tableDescription:
-    "Connect and manage code repositories from GitHub, GitLab, and other providers",
+    "Connect and manage code repositories from GitHub, GitLab, Forgejo, Gitea and any other Git server",
 })
 @Entity({
   name: "CodeRepository",
@@ -318,7 +319,8 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Repository Hosted At",
-    description: "Where is this repository hosted (GitHub, GitLab, etc.)",
+    description:
+      "Where this repository is hosted, and so how OneUptime reaches it: GitHub (the GitHub App), GitLab, Forgejo (Forgejo, Gitea and Codeberg) or Git (any Git server over HTTPS).",
     example: "GitHub",
   })
   @Column({
@@ -354,7 +356,8 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Organization Name",
-    description: "GitHub organization or username that owns this repository",
+    description:
+      "The organization, group or user that owns this repository, as its host names it (a GitLab group's full path, such as my-group/backend).",
     example: "my-organization",
   })
   @Column({
@@ -944,7 +947,8 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongURL,
     canReadOnRelationQuery: true,
     title: "Repository URL",
-    description: "The HTTPS URL to the repository",
+    description:
+      "The repository's address: its page on GitHub, GitLab or Forgejo, or the HTTPS address a Git repository is cloned with.",
     example: "https://github.com/my-organization/my-backend-api",
   })
   @Column({
@@ -992,13 +996,70 @@ export default class CodeRepository extends BaseModel {
   })
   public gitHubAppInstallationId?: string = undefined;
 
-  // GitLab specific fields
+  /*
+   * How OneUptime reaches a repository that is not on GitHub: the
+   * connection (CodeRepositoryConnection) holding its server's address and
+   * the access token. Server-written only, as gitHubAppInstallationId is:
+   * Code's connect routes set it after checking the token with the server,
+   * so no API caller points a repository at a connection. Unset for GitHub,
+   * and for a repository whose connection was removed - it is then not
+   * connected, and its tasks stay readable.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateCodeRepository,
-    ],
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "codeRepositoryConnectionId",
+    type: TableColumnType.Entity,
+    modelType: CodeRepositoryConnection,
+    title: "Connection",
+    description:
+      "How OneUptime reaches a repository that is not on GitHub: its server's address and access token.",
+  })
+  @ManyToOne(
+    () => {
+      return CodeRepositoryConnection;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "codeRepositoryConnectionId" })
+  public codeRepositoryConnection?: CodeRepositoryConnection = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: false,
+    title: "Connection ID",
+    description:
+      "ID of the connection OneUptime reaches a repository that is not on GitHub with.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public codeRepositoryConnectionId?: ObjectID = undefined;
+
+  /*
+   * A GitLab repository's project ID, which OneUptime reads it by: it
+   * stays the same when the project is renamed or moved to another group.
+   * Server-written, by Code's connect routes.
+   */
+  @ColumnAccessControl({
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -1011,7 +1072,8 @@ export default class CodeRepository extends BaseModel {
     type: TableColumnType.LongText,
     canReadOnRelationQuery: false,
     title: "GitLab Project ID",
-    description: "The GitLab project ID for this repository",
+    description:
+      "The GitLab project ID OneUptime reads this repository by. Set when the repository is connected.",
     example: "12345678",
   })
   @Column({

@@ -472,6 +472,7 @@ import ProjectSCIMUserService from "./ProjectSCIMUserService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
 import DeletedProjectService from "./DeletedProjectService";
 import CodeRepositoryService from "./CodeRepositoryService";
+import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import WebhookLogService from "./WebhookLogService";
 import HostLabelRuleService from "./HostLabelRuleService";
 import HostOwnerRuleService from "./HostOwnerRuleService";
@@ -983,6 +984,7 @@ const services: Array<BaseService> = [
   CloudResourceOwnerTeamService,
   CloudResourceOwnerUserService,
   CodeRepositoryService,
+  CodeRepositoryConnectionService,
   HostLabelRuleService,
   HostOwnerRuleService,
   HostOwnerTeamService,
