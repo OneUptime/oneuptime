@@ -15,6 +15,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
+import { sortLabels } from "../../../Utils/LabelOrder";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../Utils/Project";
@@ -112,6 +113,7 @@ function useBulkLabelActions<T extends BaseModel>(
             name: SortOrder.Ascending,
           },
         });
+        // By name: in natural order, as the server reads labels so (Utils/LabelOrder).
         setLabels(result.data);
       } catch {
         // labels will remain empty; modal will show no options
@@ -342,23 +344,20 @@ function useBulkLabelActions<T extends BaseModel>(
         }
       }
 
-      const options: Array<DropdownOption> = Array.from(labelById.values()).map(
-        (label: Label) => {
-          const option: DropdownOption = {
-            label: label.name || "",
-            value: label._id?.toString() || "",
-          };
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      const options: Array<DropdownOption> = sortLabels<Label>(
+        Array.from(labelById.values()),
+      ).map((label: Label) => {
+        const option: DropdownOption = {
+          label: label.name || "",
+          value: label._id?.toString() || "",
+        };
 
-          if (label.color) {
-            option.color = label.color;
-          }
+        if (label.color) {
+          option.color = label.color;
+        }
 
-          return option;
-        },
-      );
-
-      options.sort((a: DropdownOption, b: DropdownOption) => {
-        return a.label.localeCompare(b.label);
+        return option;
       });
 
       if (isCurrentRequest()) {

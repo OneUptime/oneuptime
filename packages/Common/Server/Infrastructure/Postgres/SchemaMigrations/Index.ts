@@ -173,6 +173,7 @@ import { AddTelegramPollForUpdates1806020000000 } from "./1806020000000-AddTeleg
 import { AddRuleLlmProviders1806030000000 } from "./1806030000000-AddRuleLlmProviders";
 import { AddRuleLlmProviderIndexesAndKeys1806040000000 } from "./1806040000000-AddRuleLlmProviderIndexesAndKeys";
 import { AddTwilioConfigUsedFor1806100000000 } from "./1806100000000-AddTwilioConfigUsedFor";
+import { AddLabelNameSortKey1806200000000 } from "./1806200000000-AddLabelNameSortKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1548,4 +1549,5 @@ export default [
   AddRuleLlmProviders1806030000000,
   AddRuleLlmProviderIndexesAndKeys1806040000000,
   AddTwilioConfigUsedFor1806100000000,
+  AddLabelNameSortKey1806200000000,
 ];

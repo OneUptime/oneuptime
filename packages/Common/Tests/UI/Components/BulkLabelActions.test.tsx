@@ -1148,10 +1148,47 @@ describe("useBulkLabelActions", () => {
     expect(options).toHaveLength(3);
 
     /*
-     * localeCompare, not codepoint order - a lowercase name would otherwise
+     * Case aside, not codepoint order - a lowercase name would otherwise
      * sort below every capitalised one and look like a broken list.
      */
     expect(optionTexts(options)).toEqual(["apple", "Mike", "Zulu"]);
+  });
+
+  /*
+   * In natural order, as labels are listed everywhere (Utils/LabelOrder,
+   * OneUptime issue #5183): numbered labels first, by their numbers - 10
+   * after 2, where comparing text put it after 1 - then the others.
+   */
+  test("offers numbered labels to remove in the order of their numbers, then the rest", async () => {
+    getListMock.mockImplementation(async (data: any): Promise<any> => {
+      if (data.modelType === Label) {
+        return { data: [], count: 0 };
+      }
+
+      return {
+        data: [
+          makeItemWithLabels(ITEM_ONE_ID, [
+            makeLabel(LABEL_ALPHA_ID, "Claude"),
+            makeLabel(LABEL_BETA_ID, "10.Owner=Platform"),
+          ]),
+          makeItemWithLabels(ITEM_TWO_ID, [
+            makeLabel(LABEL_GAMMA_ID, "2.SubCategory=Website"),
+          ]),
+        ],
+        count: 2,
+      };
+    });
+
+    render(<Harness items={[makeItem(ITEM_ONE_ID), makeItem(ITEM_TWO_ID)]} />);
+
+    clickTrigger("Remove Labels");
+    await waitForModalTitle("Remove Labels");
+
+    expect(optionTexts(await openMenu())).toEqual([
+      "2.SubCategory=Website",
+      "10.Owner=Platform",
+      "Claude",
+    ]);
   });
 
   test("scopes the option fetch to the selected ids", async () => {

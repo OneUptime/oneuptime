@@ -418,14 +418,20 @@ describe("the postmortem rules table", () => {
     expect(screen.getByRole("button", { name: "Show less" })).toBeVisible();
   });
 
-  test("one template more is said in the singular", () => {
+  /*
+   * A cell's list never folds a single item behind "1 more": its button
+   * takes a line of its own, a taller one than the item it would hide
+   * (TableColumnListComponent, OneUptime issue #5187). So a fourth template
+   * is shown, and the count is said through the plural sentences, which
+   * keep their "one" form for the languages whose "one" is more than 1.
+   */
+  test("a fourth template is shown rather than folded behind '1 more template'", () => {
     const templatesColumn: CapturedColumn = columnsOf(table())[1]!;
 
     render(templatesColumn.getElement!(ruleNaming("A", "B", "C", "D")));
 
-    expect(
-      screen.getByRole("button", { name: "1 more template" }),
-    ).toBeInTheDocument();
+    expect(drawnTemplateNames()).toEqual(["A", "B", "C", "D"]);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
     expect(POSTMORTEM_RULE_MORE_TEMPLATES).toEqual({
       one: "{{count}} more template",
       other: "{{count}} more templates",

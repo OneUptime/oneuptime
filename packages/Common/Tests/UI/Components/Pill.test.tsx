@@ -1,4 +1,11 @@
-import Pill, { PillSize } from "../../../UI/Components/Pill/Pill";
+import Pill, {
+  PILL_TEXT_CLASS_NAME,
+  PillSize,
+  WRAPPING_PILL_CLASS_NAME,
+  WRAPPING_PILL_DOT_CLASS_NAME,
+  WRAPPING_PILL_ICON_CLASS_NAME,
+  WRAPPING_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
 import {
   getPillColors,
   PillColors,
@@ -503,6 +510,97 @@ describe("<Pill />", () => {
 
       expect(getPill()).toHaveTextContent(/^Private$/);
       expect(getPill()).toHaveAttribute("data-ou-pill");
+    });
+  });
+
+  /*
+   * Where nothing points - a record's labels in a phone's card (Labels) - a
+   * pill's words run onto a next line rather than end in "...": a label's
+   * whole name, never cut off (OneUptime issue #5187).
+   */
+  describe("wrapping", () => {
+    const LONG: string =
+      "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations";
+
+    function getWords(): HTMLElement {
+      return screen.getByTestId("pill-text");
+    }
+
+    test("a pill stays on one line unless it is asked to wrap", () => {
+      render(<Pill text={LONG} color={Green} />);
+
+      expect(getPill()).toHaveClass("rounded-full", "items-center");
+      expect(getWords().className).toBe(PILL_TEXT_CLASS_NAME);
+      expect(getWords()).toHaveClass("truncate");
+      expect(getDot().className).not.toContain(WRAPPING_PILL_DOT_CLASS_NAME);
+    });
+
+    test("a wrapping pill lets its words run onto a next line, and nothing else changes", () => {
+      render(<Pill text={LONG} color={Green} isWrapping={true} />);
+
+      expect(getPill().className.trim()).toBe(WRAPPING_PILL_CLASS_NAME);
+      expect(getWords().className).toBe(WRAPPING_PILL_TEXT_CLASS_NAME);
+      expect(getWords()).not.toHaveClass("truncate");
+      expect(getWords()).toHaveClass("whitespace-normal");
+      // As wide as the room it has, at most.
+      expect(getPill()).toHaveClass("max-w-full");
+      // Same colours, same text, same size.
+      expect(getPill()).toHaveAttribute("data-ou-pill");
+      expect(getPill().textContent).toBe(LONG);
+      expect(getPill().style.fontSize).toBe(PillSize.Normal);
+    });
+
+    test("its corners are as round as a one-line pill's, so one line looks the same", () => {
+      /*
+       * A one-line pill is 1.75em tall (a 1.35 line and 0.2em above and
+       * below): rounded-full rounds it by 0.875em, which a wrapping pill
+       * keeps for two lines instead of becoming a stadium.
+       */
+      expect(WRAPPING_PILL_CLASS_NAME).toContain("rounded-[0.875em]");
+      expect(WRAPPING_PILL_CLASS_NAME).not.toContain("rounded-full");
+      expect(WRAPPING_PILL_CLASS_NAME).toContain("leading-[1.35]");
+      expect(WRAPPING_PILL_CLASS_NAME).toContain("py-[0.2em]");
+    });
+
+    test("its dot sits on the first line, centred on it", () => {
+      render(<Pill text={LONG} color={Green} isWrapping={true} />);
+
+      expect(getPill()).toHaveClass("items-start");
+      expect(getDot().className).toContain(WRAPPING_PILL_DOT_CLASS_NAME);
+      // (1.35em - 0.5em) / 2.
+      expect(WRAPPING_PILL_DOT_CLASS_NAME).toBe("mt-[0.425em]");
+    });
+
+    test("so does a pulsing dot, and an icon in the dot's place", () => {
+      render(
+        <Pill text={LONG} color={Green} isWrapping={true} isPulsing={true} />,
+      );
+
+      expect(getDot().className).toContain(WRAPPING_PILL_DOT_CLASS_NAME);
+
+      // (1.35em - 1em) / 2.
+      expect(WRAPPING_PILL_ICON_CLASS_NAME).toBe("mt-[0.175em]");
+    });
+
+    test("an icon's pill keeps the icon on the first line too", () => {
+      const { container } = render(
+        <Pill
+          text={LONG}
+          color={Green}
+          isWrapping={true}
+          icon={IconProp.Lock}
+        />,
+      );
+
+      expect(
+        Array.from(container.querySelectorAll("*")).some(
+          (element: Element): boolean => {
+            return (element.getAttribute("class") || "").includes(
+              WRAPPING_PILL_ICON_CLASS_NAME,
+            );
+          },
+        ),
+      ).toBe(true);
     });
   });
 });

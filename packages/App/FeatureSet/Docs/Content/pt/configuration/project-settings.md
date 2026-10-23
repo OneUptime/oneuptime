@@ -71,6 +71,8 @@ Clique em **Criar: Rótulo**. Dê a ele um **Nome** e, se quiser, uma **Descriç
 
 No OneUptime Cloud, criar e mudar rótulos exige o plano Growth. Veja [Rótulos](/docs/permissions/index#rótulos) para entender como os rótulos limitam permissões, e [Regras de rótulos e proprietários](/docs/configuration/label-and-owner-rules) para rotular recursos quando são criados.
 
+Em uma lista, os rótulos de um registro aparecem um abaixo do outro; quando há mais de quatro, aparecem os três primeiros com um link para os demais. Onde quer que rótulos sejam listados (nas listas, na página de um registro e em todo seletor de rótulos), eles ficam em ordem natural: primeiro os rótulos cujo nome começa com um número, na ordem desse número (`2. Team` antes de `10. Owner`), depois os demais em ordem alfabética, sem diferenciar maiúsculas e minúsculas. Para escolher a ordem dos seus rótulos, comece o nome deles com um número, como `1. Category` e `2. Subcategory`.
+
 ### Arquivar um rótulo
 
 Para aposentar um rótulo, arquive-o pelo menu **⋯** da sua linha em vez de excluí-lo. Tudo o que tem o rótulo o mantém e você ainda pode filtrar por ele, mas ninguém pode adicioná-lo a mais nada: todo seletor de rótulos o deixa de fora, e a API, o Terraform e o MCP o recusam. A caixa de diálogo lista as regras e permissões configuradas para usar o rótulo, que continuam usando-o até que você as altere. Os rótulos arquivados são listados à parte, na seção recolhida **Rótulos arquivados**, onde **Desarquivar** devolve um. **Excluir** lista primeiro tudo de onde o rótulo seria removido e oferece **Arquivar em vez disso**.

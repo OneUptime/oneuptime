@@ -9,6 +9,8 @@ export interface ComponentProps {
   size?: PillSize | undefined;
   style?: CSSProperties;
   isMinimal?: boolean | undefined;
+  // Its name runs onto a next line rather than end in "..." (Pill).
+  isWrapping?: boolean | undefined;
 }
 
 const LabelElement: FunctionComponent<ComponentProps> = (
@@ -36,6 +38,7 @@ const LabelElement: FunctionComponent<ComponentProps> = (
     size: props.size,
     isMinimal: props.isMinimal,
     tooltip: label.description || undefined,
+    isWrapping: props.isWrapping,
   };
 
   if (props.style) {

@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Kubernetes 代理发送事件后，事件会显示在这里。",
   "Try another namespace, kind or reason, or a longer time range.": "请尝试其他 Namespace、种类或原因，或选择更长的时间范围。",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes 报告的此集群节点、工作负载、自动伸缩器和卷的相关事件。",
+  "{{count}} more labels": "另外 {{count}} 个标签",
+  "{{count}} more labels_one": "另外 {{count}} 个标签",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "检测到的提供商（Atlassian Statuspage、incident.io、OneUptime Status Page、RSS、Atom）。",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "OneUptime 读取此状态页的方式。'Auto' 会自动识别格式。",
   "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "只关注一个组件组，例如 'APIs'。RSS 和 Atom 订阅源没有分组。"

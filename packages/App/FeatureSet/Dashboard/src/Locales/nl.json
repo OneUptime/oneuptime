@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Gebeurtenissen verschijnen hier zodra de Kubernetes-agent ze verstuurt.",
   "Try another namespace, kind or reason, or a longer time range.": "Probeer een andere namespace, soort of reden, of een langer tijdsbereik.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Wat Kubernetes meldde over de knooppunten, workloads, autoscalers en volumes van dit cluster.",
+  "{{count}} more labels": "Nog {{count}} labels",
+  "{{count}} more labels_one": "Nog {{count}} label",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Gedetecteerde provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "Hoe OneUptime deze statuspagina leest. 'Auto' herkent het formaat voor u.",
   "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "Houd slechts één componentgroep in de gaten, bijv. 'APIs'. RSS- en Atom-feeds hebben geen groepen."

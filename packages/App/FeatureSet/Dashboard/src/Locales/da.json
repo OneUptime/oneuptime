@@ -927,7 +927,7 @@
   "Create from Template": "Opret fra skabelon",
   "View Documentation": "Vis dokumentation",
   "Watch Demo": "Se demo",
-  "No labels attached.": "Ingen mærkater tilknyttet.",
+  "No labels attached.": "Ingen etiketter tilknyttet.",
   "more label": "mere mærkat",
   "more labels": "flere mærkater",
   "more Runners": "flere runbook-agenter",
@@ -33392,6 +33392,8 @@
   "Events appear here as the Kubernetes agent sends them.": "Hændelser vises her, efterhånden som Kubernetes-agenten sender dem.",
   "Try another namespace, kind or reason, or a longer time range.": "Prøv et andet namespace, en anden type eller årsag, eller et længere tidsrum.",
   "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hvad Kubernetes har rapporteret om denne klynges noder, arbejdsbelastninger, autoscalere og diskenheder.",
+  "{{count}} more labels": "{{count}} etiketter mere",
+  "{{count}} more labels_one": "{{count}} etiket mere",
   "Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).": "Registreret udbyder (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom).",
   "How OneUptime reads this status page. 'Auto' detects the format for you.": "Hvordan OneUptime læser denne statusside. 'Auto' finder formatet for dig.",
   "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.": "Overvåg kun én komponentgruppe, fx 'APIs'. RSS- og Atom-feeds har ingen grupper."
