@@ -776,7 +776,7 @@ export default class IncidentOwnerRule extends RuleBaseModel {
     modelType: Team,
     title: "Creator's Teams",
     description:
-      "Teams added as owners when the person who declares a matching incident is a member of them. A team the creator is not in is not added. An incident a monitor, a workflow or an API key declares has no creator.",
+      "Teams added as owners when the person who declares a matching incident is a member of them. Incidents with no creator get none.",
   })
   @ManyToMany(
     () => {

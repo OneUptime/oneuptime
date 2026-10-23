@@ -769,7 +769,7 @@ export default class AlertOwnerRule extends RuleBaseModel {
     modelType: Team,
     title: "Creator's Teams",
     description:
-      "Teams added as owners when the person who creates a matching alert is a member of them. A team the creator is not in is not added. An alert a monitor, a workflow or an API key creates has no creator.",
+      "Teams added as owners when the person who creates a matching alert is a member of them. Alerts with no creator get none.",
   })
   @ManyToMany(
     () => {

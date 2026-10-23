@@ -19,6 +19,10 @@ import {
   LABEL_RULE_LIST_COLUMNS,
   OWNER_RULE_LIST_COLUMNS,
 } from "Common/UI/Components/RuleRun/RuleAction";
+import {
+  PeoplePickerKind,
+  toPeoplePickerIds,
+} from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import {
   DEFAULT_LANGUAGE,
@@ -74,6 +78,13 @@ import {
  * after what it inherits from ("Inherit labels from monitors, hosts"), the
  * way a rule is named after its picks; once something is picked, the picks
  * name it.
+ *
+ * An incident or alert owner rule can also add the team of the person who
+ * created the event: under "Creator's Team", folded after Inherit Owners,
+ * the teams that count (creatorTeams) - of them, the ones the creator is in
+ * become owners (Common/Server/Utils/Rules/CreatorTeams). A list, not "every
+ * team of the creator": people are in the project's Members team by default.
+ * A rule that adds only that is named "Add the creator's team as an owner".
  *
  * Only a NEW rule must add something - here, and on the server for a rule
  * made any other way (the API, Terraform, a workflow, a label rule import:
@@ -151,6 +162,11 @@ export const LABEL_RULE_INHERITING_LABELS_DESCRIPTION: string = translationKey(
 
 export const OWNER_RULE_INHERITING_OWNERS_DESCRIPTION: string = translationKey(
   "When this rule matches, these people and teams become owners. Leave it empty if the rule only inherits owners.",
+);
+
+// The same, on a rule that can also add the creator's team.
+export const OWNER_RULE_CREATOR_OWNERS_DESCRIPTION: string = translationKey(
+  "When this rule matches, these people and teams become owners. Leave it empty if the rule only adds the creator's team or inherits owners.",
 );
 
 export const LABEL_RULE_NAME_DESCRIPTION: string = translationKey(
@@ -387,6 +403,73 @@ export const INHERITED_FROM_TERMS: Record<
     translationKey("Monitors"),
     ...INHERITED_FROM_AFTER_MONITORS,
   ],
+};
+
+/*
+ * THE CREATOR'S TEAM, on an incident or alert owner rule: the events whose
+ * creator is a person, and the teams that count (creatorTeams). Its words
+ * are the event's own - an incident is declared, an alert created.
+ */
+export type CreatorTeamRuleRecord = "incident" | "alert";
+
+export const CREATOR_TEAMS_SECTION_ID: string = "creator-teams";
+
+// The column the teams are kept in, as the picker writes them.
+export const CREATOR_TEAMS_COLUMN: string = "creatorTeams";
+
+export interface CreatorTeamsWording {
+  // Under the fold's title, and on its header while no team is listed.
+  sectionDescription: string;
+  // Under the teams picker.
+  teams: string;
+}
+
+export const CREATOR_TEAMS_WORDING: Record<
+  CreatorTeamRuleRecord,
+  CreatorTeamsWording
+> = {
+  incident: {
+    sectionDescription: translationKey(
+      "Optionally make the team of the person who declares the incident an owner.",
+    ),
+    teams: translationKey(
+      "When the person who declares a matching incident is in one of these teams, that team becomes an owner too.",
+    ),
+  },
+  alert: {
+    sectionDescription: translationKey(
+      "Optionally make the team of the person who creates the alert an owner.",
+    ),
+    teams: translationKey(
+      "When the person who creates a matching alert is in one of these teams, that team becomes an owner too.",
+    ),
+  },
+};
+
+// The name of a rule that adds only the creator's team.
+export const CREATOR_TEAM_RULE_NAME: string = translationKey(
+  "Add the creator's team as an owner",
+);
+
+// Whether the record's owner rules can add the creator's team.
+export const hasCreatorTeams: (
+  record: InheritingRuleRecord,
+) => record is CreatorTeamRuleRecord = (
+  record: InheritingRuleRecord,
+): record is CreatorTeamRuleRecord => {
+  return record === "incident" || record === "alert";
+};
+
+// Whether the form's rule lists teams for the creator's team.
+export const isAnyCreatorTeamPicked: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  const formValues: Record<string, unknown> =
+    values && typeof values === "object"
+      ? (values as Record<string, unknown>)
+      : {};
+
+  return toPeoplePickerIds(formValues[CREATOR_TEAMS_COLUMN]).length > 0;
 };
 
 /*
@@ -692,6 +775,38 @@ export const getInheritingRuleName: (data: {
   return getRuleNameFromPicks(wording, sources);
 };
 
+/*
+ * The name of an owner rule that names no owner: after what it inherits
+ * from, or - adding only the creator's team - "Add the creator's team as an
+ * owner", in the reader's language. "" while it adds neither.
+ */
+export const getOwnerRuleNameWithoutPicks: (data: {
+  record: InheritingRuleRecord;
+  values: unknown;
+}) => string = (data: {
+  record: InheritingRuleRecord;
+  values: unknown;
+}): string => {
+  const inheritingName: string = getInheritingRuleName({
+    kind: "owners",
+    record: data.record,
+    values: data.values,
+  });
+
+  if (inheritingName) {
+    return inheritingName;
+  }
+
+  if (hasCreatorTeams(data.record) && isAnyCreatorTeamPicked(data.values)) {
+    return (
+      getGlobalTranslator().translateText(CREATOR_TEAM_RULE_NAME) ||
+      CREATOR_TEAM_RULE_NAME
+    );
+  }
+
+  return "";
+};
+
 type PickedNamesFunction = (
   options: Array<DropdownOption> | undefined,
 ) => Array<string>;
@@ -806,19 +921,26 @@ export const followSwitchWithRuleName: <TEntity>(data: {
       return;
     }
 
+    const nameOf: (ruleValues: Record<string, unknown>) => string = (
+      ruleValues: Record<string, unknown>,
+    ): string => {
+      return data.kind === "owners"
+        ? getOwnerRuleNameWithoutPicks({
+            record: data.record,
+            values: ruleValues,
+          })
+        : getInheritingRuleName({
+            kind: data.kind,
+            record: data.record,
+            values: ruleValues,
+          });
+    };
+
     const name: string | null = getFollowedRuleName({
       name: values["name"],
       filledInName: values[FILLED_IN_RULE_NAME_KEY],
-      previousName: getInheritingRuleName({
-        kind: data.kind,
-        record: data.record,
-        values: values,
-      }),
-      nextName: getInheritingRuleName({
-        kind: data.kind,
-        record: data.record,
-        values: { ...values, [data.column]: value === true },
-      }),
+      previousName: nameOf(values),
+      nextName: nameOf({ ...values, [data.column]: value === true }),
     });
 
     if (name === null) {
@@ -844,11 +966,129 @@ export const isLabelPickRequired: (values: unknown) => boolean = (
   return !isAnyColumnSwitchedOn(values, INHERITED_LABEL_COLUMNS);
 };
 
-// The same for owners, and the Inherit Owners switches.
+/*
+ * The same for owners: a new rule adds nobody else until an Inherit Owners
+ * switch is on or - on an incident or alert rule - a team is listed for the
+ * creator's team.
+ */
 export const isOwnerPickRequired: (values: unknown) => boolean = (
   values: unknown,
 ): boolean => {
-  return !isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS);
+  return (
+    !isAnyColumnSwitchedOn(values, INHERITED_OWNER_COLUMNS) &&
+    !isAnyCreatorTeamPicked(values)
+  );
+};
+
+/*
+ * The onChange of the Creator's Team picker: a rule that names nobody and
+ * inherits nothing is named after it ("Add the creator's team as an
+ * owner"), and taking the last team away takes that name away again - while
+ * the name is still the form's own. The picker hands over what it writes:
+ * its teams, by column.
+ */
+export const followCreatorTeamsWithRuleName: <TEntity>(
+  record: CreatorTeamRuleRecord,
+) => RuleSwitchFollowFunction<TEntity> = <TEntity>(
+  record: CreatorTeamRuleRecord,
+): RuleSwitchFollowFunction<TEntity> => {
+  return (
+    value: unknown,
+    currentValues: FormValues<TEntity>,
+    setNewFormValues: (values: FormValues<TEntity>) => void,
+  ): void => {
+    const values: Record<string, unknown> = (currentValues || {}) as Record<
+      string,
+      unknown
+    >;
+
+    if (isAnythingPicked("owners", values)) {
+      return;
+    }
+
+    const written: Record<string, unknown> =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : { [CREATOR_TEAMS_COLUMN]: value };
+
+    const name: string | null = getFollowedRuleName({
+      name: values["name"],
+      filledInName: values[FILLED_IN_RULE_NAME_KEY],
+      previousName: getOwnerRuleNameWithoutPicks({
+        record: record,
+        values: values,
+      }),
+      nextName: getOwnerRuleNameWithoutPicks({
+        record: record,
+        values: {
+          ...values,
+          [CREATOR_TEAMS_COLUMN]: written[CREATOR_TEAMS_COLUMN],
+        },
+      }),
+    });
+
+    if (name === null) {
+      return;
+    }
+
+    setNewFormValues({
+      ...values,
+      ...written,
+      name: name,
+      [FILLED_IN_RULE_NAME_KEY]: name,
+    } as unknown as FormValues<TEntity>);
+  };
+};
+
+/*
+ * The Creator's Team fold of an incident or alert owner rule: the teams
+ * that count, picked from the project's teams. Folded until a team is
+ * listed; an Edit form whose rule lists one opens it.
+ */
+const getCreatorTeamsFields: <TEntity>(
+  record: CreatorTeamRuleRecord,
+) => Array<Field<TEntity>> = <TEntity>(
+  record: CreatorTeamRuleRecord,
+): Array<Field<TEntity>> => {
+  const wording: CreatorTeamsWording = CREATOR_TEAMS_WORDING[record];
+
+  const creatorTeamsSection: FormFieldCollapsibleSection<TEntity> = {
+    id: CREATOR_TEAMS_SECTION_ID,
+    title: "Creator's Team",
+    description: wording.sectionDescription,
+    getSummary: (values: FormValues<TEntity>): Array<string> | undefined => {
+      return isAnyCreatorTeamPicked(values)
+        ? undefined
+        : [wording.sectionDescription];
+    },
+  };
+
+  return [
+    {
+      field: {
+        creatorTeamsPicker: true,
+      } as unknown as SelectFormFields<TEntity>,
+      title: "Teams",
+      description: wording.teams,
+      stepId: "owners",
+      fieldType: FormFieldSchemaType.PeoplePicker,
+      peoplePicker: {
+        kinds: [
+          {
+            kind: PeoplePickerKind.Team,
+            valueKey: CREATOR_TEAMS_COLUMN,
+          },
+        ],
+        addButtonText: "Add team",
+        searchPlaceholder: "Search teams...",
+        emptyText: "No teams available.",
+      },
+      formOnly: true,
+      required: false,
+      collapsibleSection: creatorTeamsSection,
+      onChange: followCreatorTeamsWithRuleName<TEntity>(record),
+    },
+  ];
 };
 
 /*
@@ -1228,12 +1468,13 @@ export const getInheritingOwnerRuleActionFields: <TEntity>(
       stepId: "owners",
       required: isOwnerPickRequired,
       doNotRequireWhenEditing: true,
-      description: OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
+      description: hasCreatorTeams(record)
+        ? OWNER_RULE_CREATOR_OWNERS_DESCRIPTION
+        : OWNER_RULE_INHERITING_OWNERS_DESCRIPTION,
       onChange: followPicksWithRuleName<TEntity>(
         getOwnerRuleName,
         (values: Record<string, unknown>): string => {
-          return getInheritingRuleName({
-            kind: "owners",
+          return getOwnerRuleNameWithoutPicks({
             record: record,
             values: values,
           });
@@ -1312,6 +1553,7 @@ export const getInheritingOwnerRuleActionFields: <TEntity>(
       collapsibleSection: inheritSection,
       onChange: followSwitch("inheritOwnersFromServices"),
     },
+    ...(hasCreatorTeams(record) ? getCreatorTeamsFields<TEntity>(record) : []),
     ...getOwnerRuleNameAndMoreFields<TEntity>(
       OWNER_RULE_INHERITING_NAME_DESCRIPTION,
     ),

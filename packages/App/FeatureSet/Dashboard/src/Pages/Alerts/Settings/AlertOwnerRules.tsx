@@ -46,8 +46,9 @@ When a rule matches:
 - If \`Inherit Owners From Docker Hosts\` is on, every owner of the alert's affected Docker hosts is also added.
 - If \`Inherit Owners From Podman Hosts\` is on, every owner of the alert's affected Podman hosts is also added.
 - If \`Inherit Owners From Services\` is on, every owner of the alert's affected services is also added.
+- Under \`Creator's Team\`, of the teams listed, each one the person who creates the alert is a member of is also added. An alert a monitor, a workflow or an API key creates has no creator.
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
+Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. The person who creates an alert is made an owner whatever the rules say, and the Create Alert form lists the rules that will run before the alert is created.
 `;
 
 const alertEpisodeOwnerDocumentation: string = `
