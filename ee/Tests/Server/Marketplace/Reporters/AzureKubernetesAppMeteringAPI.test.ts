@@ -3,7 +3,7 @@ import AzureKubernetesAppMeteringAPI, {
   AzureUsageEvent,
   AzureUsageEventResult,
 } from "../../../../Server/Marketplace/Reporters/AzureKubernetesAppMeteringAPI";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import MarketplaceApiError from "../../../../Server/CloudMarketplace/MarketplaceApiError";
 import { MarketplaceHttpRequest } from "Common/Server/Utils/Marketplace/MarketplaceHttp";
 import {
   FakeAnswer,

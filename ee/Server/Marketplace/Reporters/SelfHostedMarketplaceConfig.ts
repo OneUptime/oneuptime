@@ -1,7 +1,7 @@
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import GoogleCloudMarketplaceAPI, {
   GoogleServiceAccountKey,
-} from "Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
+} from "../../CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
 import AwsContainerMeteringAPI from "./AwsContainerMeteringAPI";
 import AwsWorkloadCredentialsProvider from "./AwsWorkloadCredentials";
 import AzureKubernetesAppMeteringAPI from "./AzureKubernetesAppMeteringAPI";

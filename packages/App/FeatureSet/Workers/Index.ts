@@ -71,10 +71,11 @@ import "./Jobs/IncomingRequestMonitor/CheckHeartbeat";
 import "./Jobs/IncomingEmailMonitor/CheckOnlineStatus";
 import "./Jobs/MeteredPlan/ReportTelemetryMeteredPlan";
 
-// Cloud marketplaces (AWS, Microsoft, Google Cloud): hourly usage, daily status sync.
-import "./Jobs/Marketplace/ReportMarketplaceUsage";
-import "./Jobs/Marketplace/SyncMarketplacePurchases";
-import "./Jobs/Marketplace/BillVercelMarketplace";
+/*
+ * OneUptime Cloud's cloud marketplace and Vercel Marketplace jobs (hourly
+ * usage, daily status sync, Vercel invoices) belong to the enterprise module
+ * and are registered by EnterpriseLoader.registerWorkerJobs() in init() below.
+ */
 
 // Monitor Owners
 import "./Jobs/MonitorOwners/SendCreatedResourceNotification";

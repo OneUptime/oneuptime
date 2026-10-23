@@ -155,7 +155,8 @@ export default interface EnterpriseServerModule {
   licensing: EnterpriseLicensingProvider;
 
   /*
-   * The enterprise identity routers (today: SCIM provisioning). Mounted at
+   * The enterprise identity routers (SCIM provisioning, and on OneUptime
+   * Cloud sign-in from Vercel Marketplace). Mounted at
    * ["/api/identity", "/"] right after core's identity routers
    * (authentication, reseller and single sign-on, which core serves in every
    * edition) and before the status page authentication router.

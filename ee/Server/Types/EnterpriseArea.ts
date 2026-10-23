@@ -18,8 +18,9 @@ export default interface EnterpriseArea {
 
   /*
    * Mounted at ["/api/identity", "/"] right after core's identity routers
-   * (authentication, reseller and single sign-on). Only the Identity area
-   * has any: the SCIM routers.
+   * (authentication, reseller and single sign-on): the Identity area's SCIM
+   * routers, and, with billing on, the CloudMarketplace area's sign-in from
+   * Vercel.
    */
   getIdentityRouters?: (() => Array<ExpressRouter>) | undefined;
 

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import MarketplaceApiError from "../../CloudMarketplace/MarketplaceApiError";
 import {
   MarketplaceHttp,
   MarketplaceHttpClient,

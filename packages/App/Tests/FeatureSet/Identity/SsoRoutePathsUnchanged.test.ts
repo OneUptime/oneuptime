@@ -18,6 +18,7 @@ import Express, {
 import FakeEnterpriseModule, {
   createEditionStateCases,
   EditionStateCase,
+  installFakeEnterpriseModule,
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
@@ -65,9 +66,6 @@ jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
 });
 jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
   return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
-});
-jest.mock("../../../FeatureSet/Identity/API/VercelSignIn", () => {
-  return { __esModule: true, default: { coreRouter: "vercel-sign-in" } };
 });
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
@@ -667,7 +665,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication, reseller, Sign in with Microsoft and sign-in from Vercel, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, reseller and Sign in with Microsoft, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -684,10 +682,6 @@ describe("the Identity feature set mounts the SSO routers", () => {
           paths: IDENTITY_PREFIXES,
           router: { coreRouter: "microsoft-sign-in" },
         },
-        {
-          paths: IDENTITY_PREFIXES,
-          router: { coreRouter: "vercel-sign-in" },
-        },
         ...SSO_MOUNTS(),
         ...(state.isLoaded
           ? [{ paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER }]
@@ -700,7 +694,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[4 + index]!.router).toBe(entry.router);
+        expect(mounted[3 + index]!.router).toBe(entry.router);
       });
     },
   );
@@ -716,11 +710,47 @@ describe("the Identity feature set mounts the SSO routers", () => {
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
-      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
       { coreRouter: "status-page" },
+    ]);
+  });
+
+  /*
+   * Sign-in from Vercel Marketplace is OneUptime Cloud's, so the enterprise
+   * module hands it over with its other identity routers (with billing on).
+   * It lands after the SSO routers, which keep their places.
+   */
+  test("OneUptime Cloud's sign-in from Vercel comes from ee/, after the SSO routers", async () => {
+    const EE_VERCEL_SIGN_IN_ROUTER: { eeRouter: string } = {
+      eeRouter: "vercel-sign-in",
+    };
+
+    setTestBillingEnabled(true);
+    installFakeEnterpriseModule({
+      identityRouters: [
+        EE_SCIM_ROUTER as unknown as ExpressRouter,
+        EE_VERCEL_SIGN_IN_ROUTER as unknown as ExpressRouter,
+      ],
+    });
+
+    await IdentityFeatureSet.init();
+
+    expect(mounted).toEqual([
+      { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
+      { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
+      {
+        paths: IDENTITY_PREFIXES,
+        router: { coreRouter: "microsoft-sign-in" },
+      },
+      ...SSO_MOUNTS(),
+      { paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER },
+      { paths: IDENTITY_PREFIXES, router: EE_VERCEL_SIGN_IN_ROUTER },
+      {
+        paths: ["/api/identity/status-page", "/status-page"],
+        router: { coreRouter: "status-page" },
+      },
     ]);
   });
 });

@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
@@ -69,9 +71,6 @@ jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
 jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
   return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
 });
-jest.mock("../../../FeatureSet/Identity/API/VercelSignIn", () => {
-  return { __esModule: true, default: { coreRouter: "vercel-sign-in" } };
-});
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
 });
@@ -80,8 +79,16 @@ type MountRecord = { paths: unknown; router: unknown };
 
 const mounted: Array<MountRecord> = [];
 
-// What the Enterprise Edition hands core for identity: its SCIM routers.
+/*
+ * What the Enterprise Edition hands core for identity: its SCIM routers, and
+ * on OneUptime Cloud sign-in from Vercel Marketplace.
+ */
 const EE_SCIM_ROUTER: { eeRouter: string } = { eeRouter: "scim" };
+const EE_VERCEL_SIGN_IN_ROUTER: { eeRouter: string } = {
+  eeRouter: "vercel-sign-in",
+};
+
+const APP_DIRECTORY: string = path.resolve(__dirname, "..", "..", "..");
 
 /*
  * The SAML/OIDC login routes customer identity providers and sign-in pages use: the
@@ -358,7 +365,6 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
-      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
@@ -369,7 +375,10 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
   it("the Enterprise Edition adds only its own routers, after the SSO routers", async () => {
     installFakeEnterpriseModule({
       snapshot: createLicenseSnapshotWithStatus("expired"),
-      identityRouters: [EE_SCIM_ROUTER as unknown as ExpressRouter],
+      identityRouters: [
+        EE_SCIM_ROUTER as unknown as ExpressRouter,
+        EE_VERCEL_SIGN_IN_ROUTER as unknown as ExpressRouter,
+      ],
     });
 
     await IdentityFeatureSet.init();
@@ -382,13 +391,33 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       { coreRouter: "authentication" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
-      { coreRouter: "vercel-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
       EE_SCIM_ROUTER,
+      EE_VERCEL_SIGN_IN_ROUTER,
       { coreRouter: "status-page" },
     ]);
+  });
+
+  it("sign-in from Vercel is not core's: no core identity router serves it", () => {
+    expect(
+      fs.existsSync(
+        path.join(
+          APP_DIRECTORY,
+          "FeatureSet",
+          "Identity",
+          "API",
+          "VercelSignIn.ts",
+        ),
+      ),
+    ).toBe(false);
+    expect(
+      fs.readFileSync(
+        path.join(APP_DIRECTORY, "FeatureSet", "Identity", "Index.ts"),
+        "utf8",
+      ),
+    ).not.toMatch(/import\s+\w+\s+from\s+"\.\/API\/VercelSignIn"/);
   });
 
   describe("enforcement is the requirement itself, the same in every state", () => {

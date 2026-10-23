@@ -15,7 +15,7 @@ import { Column, Entity, Index } from "typeorm";
 
 /*
  * OneUptime installed on a Vercel team, from Vercel Marketplace (see
- * Server/Utils/Marketplace/Vercel).
+ * ee/Server/CloudMarketplace/Vercel).
  *
  * Vercel tells OneUptime about an installation when a team adds the
  * integration (Upsert Installation), and gives it an access token that never

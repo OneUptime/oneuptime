@@ -1,9 +1,9 @@
 import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
-import MarketplaceApiError from "Common/Server/Utils/Marketplace/MarketplaceApiError";
+import MarketplaceApiError from "../../CloudMarketplace/MarketplaceApiError";
 import GoogleCloudMarketplaceAPI, {
   GoogleCloudServiceControlError,
   GoogleCloudUsageOperation,
-} from "Common/Server/Utils/Marketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
+} from "../../CloudMarketplace/GoogleCloud/GoogleCloudMarketplaceAPI";
 import AwsContainerMeteringAPI from "./AwsContainerMeteringAPI";
 import AzureKubernetesAppMeteringAPI, {
   AzureUsageEventResult,
