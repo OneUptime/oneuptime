@@ -66,7 +66,7 @@ flowchart TB
 | | Tools die alleen lezen | Tools die iets kunnen wijzigen |
 | --- | --- | --- |
 | **Onderzoeken** | Gebruikt, naast de eigen gegevens van OneUptime | Nooit gebruikt: OneUptime weigert de aanroep |
-| **Herstellingen** | Gebruikt om het herstel uit te werken | Voorgesteld ter goedkeuring, of meteen gebruikt, zoals de **Goedkeuring** van de regel voor automatisch herstel zegt |
+| **Herstellingen** | Gebruikt om het herstel uit te werken | Voorgesteld ter goedkeuring, of meteen gebruikt, zoals het **Herstel** van de AI-regel zegt |
 
 **In een onderzoek** somt OneUptime AI de tools op van de servers die het mag gebruiken en roept het de tools aan die lezen, om te bekijken wat OneUptime zelf niet ziet: je cloudaccount, een deployment, een issuetracker. Wat ze antwoorden, gebruikt het in zijn analyse van de hoofdoorzaak. Zie [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ Om OneUptime AI een server niet meer te laten gebruiken, zet je **OneUptime AI d
 
 ## De servers kiezen die een regel mag gebruiken
 
-Onderzoeksregels en regels voor automatisch herstel kunnen elk de MCP-servers noemen die OneUptime AI mag gebruiken voor wat ze matchen. Het veld is **MCP-servers**, onder **Meer velden**. Totdat je er een paar kiest, mag OneUptime AI ze allemaal gebruiken, en de ingeklapte sectie zegt dat.
+Elke AI-regel kan de MCP-servers noemen die OneUptime AI mag gebruiken voor wat hij matcht. Het veld is **MCP-servers**, onder **Meer velden**. Totdat je er een paar kiest, mag OneUptime AI ze allemaal gebruiken, en de ingeklapte sectie zegt dat.
 
 - **Geen gekozen** – alle ingeschakelde servers van het project.
-- **Een paar gekozen** – alleen die. Bij een regel voor automatisch herstel die herstelt zonder te vragen, is het noemen van zijn servers ook wat OneUptime AI hun wijzigingen laat maken zonder te vragen.
+- **Een paar gekozen** – alleen die. Bij een AI-regel die herstelt zonder te vragen, is het noemen van zijn servers ook wat OneUptime AI hun wijzigingen laat maken zonder te vragen.
 
-Als meerdere onderzoeksregels matchen, mag OneUptime AI elke server gebruiken die een van hen toestaat; als de regels niet kunnen worden gelezen, gebruikt het onderzoek helemaal geen MCP-server. Elke overeenkomende regel voor automatisch herstel werkt zijn eigen herstel uit via zijn servers, en de regels die er geen noemen, delen één herstel via alle servers.
+Als meerdere regels die onderzoeken matchen, mag OneUptime AI elke server gebruiken die een van hen toestaat; als de regels niet kunnen worden gelezen, gebruikt het onderzoek helemaal geen MCP-server. Elke overeenkomende regel die herstelt, werkt zijn eigen herstel uit via zijn servers, en de regels die er geen noemen, delen één herstel via alle servers.
 
 ## Veiligheid
 

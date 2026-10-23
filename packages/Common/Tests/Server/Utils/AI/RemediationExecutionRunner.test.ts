@@ -719,7 +719,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
           set: expect.objectContaining({
             status: AutoRemediationSuggestionStatus.NoneApplicable,
             rationaleMarkdown: expect.stringContaining(
-              "deleted, disabled, or no longer runs commands on a Runner",
+              "deleted, disabled, set to only investigate, or no longer runs commands on a Runner",
             ),
           }),
         }),
@@ -742,6 +742,28 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       mockRule({ isEnabled: false });
 
       await expectNoneApplicableWithoutEngine();
+    });
+
+    // An AI rule set to "Don't fix" only investigates: it runs nothing.
+    it("settles NoneApplicable when the rule was set to only investigate", async () => {
+      mockSuggestion();
+      mockProject();
+      mockRule({ fixes: false });
+
+      await expectNoneApplicableWithoutEngine();
+    });
+
+    it("a rule that still fixes passes the gate", async () => {
+      mockHappyPathLoads();
+      mockRule({ fixes: true });
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(toolNames(request.get())).toContain(
+        "propose_remediation_commands",
+      );
+      expect(suggestionCas).not.toHaveBeenCalled();
     });
 
     it("settles NoneApplicable when the rule no longer runs commands on a Runner", async () => {
@@ -1033,7 +1055,7 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       );
       expect(request.get().contextSummary).toContain("API error rate is high");
       expect(request.get().contextSummary).toContain(
-        "Matched auto-remediation rule: Restart the API service",
+        "Matched AI rule: Restart the API service",
       );
     });
 
@@ -2952,13 +2974,11 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       expect(set.rationaleMarkdown).toContain(
         'The Kubernetes cluster "prod-us" was deleted before OneUptime AI could remediate it',
       );
-      expect(set.rationaleMarkdown).not.toContain("auto-remediation rule");
+      expect(set.rationaleMarkdown).not.toContain("AI rule");
       expect(lastFeed().feedInfoInMarkdown).toContain(
         'AI remediation for cluster "prod-us"',
       );
-      expect(lastFeed().feedInfoInMarkdown).not.toContain(
-        "Auto Remediation Rule",
-      );
+      expect(lastFeed().feedInfoInMarkdown).not.toContain("AI rule");
     });
 
     it("negative control: a rule-driven suggestion whose rule was deleted still says the rule was deleted", async () => {
@@ -2977,10 +2997,10 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       const set: ReturnType<typeof settleSet> = settleSet();
       expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
       expect(set.rationaleMarkdown).toContain(
-        "The auto-remediation rule behind this suggestion was deleted",
+        "The AI rule behind this suggestion was deleted",
       );
       expect(lastFeed().feedInfoInMarkdown).toContain(
-        'Auto Remediation Rule "Restart the API service"',
+        'AI rule "Restart the API service"',
       );
     });
   });

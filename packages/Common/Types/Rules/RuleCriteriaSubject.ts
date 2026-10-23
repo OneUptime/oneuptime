@@ -49,14 +49,14 @@ export enum RuleCriteriaSubject {
 
 /*
  * One table holds the rules for several kinds of record, so its records
- * are named by the page that lists them, not by the model: an AI
- * investigation or auto remediation rule is about incidents or alerts, a
- * runbook rule about incidents, alerts or scheduled maintenance events -
- * whichever the table's triggerEntityType says (the page passes
- * ruleCriteriaSubject to its ModelTable).
+ * are named by the page that lists them, not by the model: an AI rule
+ * (AutoRemediationRule) is about incidents or alerts, a runbook rule about
+ * incidents, alerts or scheduled maintenance events - whichever the
+ * table's triggerEntityType says (the page passes ruleCriteriaSubject to
+ * its ModelTable).
  */
 export const RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE: ReadonlyArray<RegisteredRuleCriteriaModelName> =
-  ["AIInvestigationRule", "AutoRemediationRule", "RunbookRule"];
+  ["AutoRemediationRule", "RunbookRule"];
 
 /*
  * The kind of record each rule model's conditions are about. Null for the
@@ -67,7 +67,6 @@ export const RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE: ReadonlyArray<Registered
 export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   Record<RegisteredRuleCriteriaModelName, RuleCriteriaSubject | null>
 > = {
-  AIInvestigationRule: null,
   AIPostmortemRule: RuleCriteriaSubject.Incidents,
   AlertEpisodeLabelRule: RuleCriteriaSubject.AlertEpisodes,
   AlertEpisodeOnCallRule: RuleCriteriaSubject.AlertEpisodes,

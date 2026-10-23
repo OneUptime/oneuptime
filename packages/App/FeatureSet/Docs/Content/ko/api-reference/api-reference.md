@@ -210,7 +210,7 @@ You do not have permissions to create Incident Internal Note. It is read through
 
 #### 자격 증명을 담은 설정
 
-자격 증명을 담은 설정(SMTP 서버, 통화와 SMS 공급자, SNMP 자격 증명, 화상 통화 연결, API 키, 외부 MCP 서버)은 그 종류의 설정을 읽을 수 있는 호출자만 지정할 수 있습니다. 대상은 상태 페이지의 `smtpConfig`와 `callSmsConfig`, 수신 통화 정책의 `projectCallSMSConfig`, 네트워크 장치나 사이트의 `snmpCredentialProfile`, 인시던트나 알림의 화상 통화 `videoCallConnection`, API 키 권한의 `apiKey`, 그리고 조사 규칙이나 자동 해결 규칙의 `externalMcpServers`입니다. 그 종류의 설정을 읽는 권한 없이, 또는 레이블 없는 차단이 빼는 권한으로 이런 설정을 지정하면, 어느 이름으로든 같은 `400`으로 거부됩니다. 레코드가 이미 지정한 설정을 유지하는 변경은 확인하지 않습니다. 수신 통화 정책의 번호 검색과 보유 번호 목록에도 지정하는 통화와 SMS 구성을 같은 방식으로 읽을 수 있어야 합니다.
+자격 증명을 담은 설정(SMTP 서버, 통화와 SMS 공급자, SNMP 자격 증명, 화상 통화 연결, API 키, 외부 MCP 서버)은 그 종류의 설정을 읽을 수 있는 호출자만 지정할 수 있습니다. 대상은 상태 페이지의 `smtpConfig`와 `callSmsConfig`, 수신 통화 정책의 `projectCallSMSConfig`, 네트워크 장치나 사이트의 `snmpCredentialProfile`, 인시던트나 알림의 화상 통화 `videoCallConnection`, API 키 권한의 `apiKey`, 그리고 AI 규칙의 `externalMcpServers`입니다. 그 종류의 설정을 읽는 권한 없이, 또는 레이블 없는 차단이 빼는 권한으로 이런 설정을 지정하면, 어느 이름으로든 같은 `400`으로 거부됩니다. 레코드가 이미 지정한 설정을 유지하는 변경은 확인하지 않습니다. 수신 통화 정책의 번호 검색과 보유 번호 목록에도 지정하는 통화와 SMS 구성을 같은 방식으로 읽을 수 있어야 합니다.
 
 #### 만들 때의 레이블과 소유자
 

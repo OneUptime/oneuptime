@@ -1,4 +1,3 @@
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import ExternalMcpServer from "../../../Models/DatabaseModels/ExternalMcpServer";
@@ -231,7 +230,7 @@ describe("ExternalMcpServer: what a connection found", () => {
 });
 
 describe("the rules' MCP servers and a fix's tool calls", () => {
-  test("an auto remediation rule names its servers with the rule's own permissions", () => {
+  test("an AI rule names its servers - to investigate and to fix - with the rule's own permissions", () => {
     const rule: AutoRemediationRule = new AutoRemediationRule();
     const control: ColumnAccessControl | undefined =
       rule.getColumnAccessControlForAllColumns()["externalMcpServers"];
@@ -245,15 +244,11 @@ describe("the rules' MCP servers and a fix's tool calls", () => {
     );
   });
 
-  test("an investigation rule names its servers with the rule's own permissions", () => {
-    const rule: AIInvestigationRule = new AIInvestigationRule();
-    const control: ColumnAccessControl | undefined =
-      rule.getColumnAccessControlForAllColumns()["externalMcpServers"];
-
-    expect(control?.create).toEqual(rule.getCreatePermissions());
-    expect(control?.update).toEqual(rule.getUpdatePermissions());
-    expect(control?.read).toEqual(rule.getReadPermissions());
-    expect(rule.isEntityColumn("externalMcpServers")).toBe(true);
+  test("an AI rule's servers say they serve its investigation too", () => {
+    expect(
+      getTableColumns(new AutoRemediationRule())["externalMcpServers"]
+        ?.description,
+    ).toContain("investigates and fixes");
   });
 
   test("a fix's tool calls are written by OneUptime alone, and read by the project's members", () => {

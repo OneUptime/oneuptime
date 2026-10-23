@@ -3,13 +3,13 @@ import { AI_SRE } from "./AiDocsPages";
 import { readPage } from "./DocsContentSupport";
 import { toLatinDigits } from "./DocsTranslationChecks";
 import {
-  INVESTIGATION_RULE_TIMING_COLUMN_TITLE,
   INVESTIGATION_RULE_TIMING_COPY,
   INVESTIGATION_RULE_TIMING_FIELD_TITLE,
   INVESTIGATION_RULE_WAIT_FIELD_TITLE,
   InvestigationRuleTiming,
 } from "../../../FeatureSet/Dashboard/src/Components/AISettings/InvestigationRuleTiming";
 import { AiLane } from "../../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
+import { AI_RULE_COLUMN_TITLE } from "../../../FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import {
   INVESTIGATE_NOW,
   INVESTIGATION_WAITING_STATUS,
@@ -64,7 +64,7 @@ const RESOLVED_TITLE: string = InvestigationEligibility.reason(
   { waitMinutes: 10 },
 ).title;
 
-describe("the AI SRE page says how an investigation rule waits", () => {
+describe("the AI SRE page says how an AI rule waits", () => {
   test("in a section of its own, closing the rules section, before auto-remediation", () => {
     const rules: number = ENGLISH_LINES.indexOf(RULES_HEADING);
 
@@ -110,7 +110,7 @@ describe("the AI SRE page says how an investigation rule waits", () => {
 
   test("names what the card, the table and the decision say as the Dashboard draws them", () => {
     expect(SECTION).toContain(`**${INVESTIGATION_WAITING_STATUS}**`);
-    expect(SECTION).toContain(`**${INVESTIGATION_RULE_TIMING_COLUMN_TITLE}**`);
+    expect(SECTION).toContain(`**${AI_RULE_COLUMN_TITLE}**`);
     expect(SECTION).toContain(`**${INVESTIGATE_NOW}**`);
     expect(SECTION).toContain("**Decision recorded when the wait ended**");
 
@@ -163,9 +163,7 @@ describe("the AI SRE page says how an investigation rule waits", () => {
 
     // The rules bullet, the follow-up check and auto-remediation.
     expect(pointers).toBe(3);
-    expect(ENGLISH).toContain(
-      "or it was resolved during an investigation rule's wait",
-    );
+    expect(ENGLISH).toContain("or it was resolved during an AI rule's wait");
   });
 });
 

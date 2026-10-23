@@ -765,7 +765,7 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
 
   /*
    * A resource round (a Docker host's, a database server's, ...) is named
-   * by its resource on the feed, never as "Auto Remediation Rule ...";
+   * by its resource on the feed, never as "AI rule ...";
    * rule and cluster rounds read exactly as before.
    */
   describe("how the feed note names the stranded round", () => {
@@ -860,7 +860,7 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       mockRun({ status: AIRunStatus.Error });
 
       expect(await settleAndReadFeed()).toBe(
-        '⚡ **Auto Remediation Rule "Restart API pods": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+        '⚡ **AI rule "Restart API pods": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
       );
     });
 
@@ -873,7 +873,7 @@ describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
       mockRun({ status: AIRunStatus.Error });
 
       expect(await settleAndReadFeed()).toBe(
-        '⚡ **Auto Remediation Rule "AI remediation for cluster "prod-us"": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
+        '⚡ **AI rule "AI remediation for cluster "prod-us"": AI planning did not complete** (the planning run failed) — no runbook was proposed.',
       );
     });
   });
@@ -1169,7 +1169,7 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
       await run();
 
       expect(recorded.feed).toEqual([
-        '⚡ **Auto Remediation Rule "Restart API pods": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.',
+        '⚡ **AI rule "Restart API pods": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.',
       ]);
     });
   });
@@ -1214,7 +1214,7 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
         }),
       );
       expect(recorded.feed).toEqual([
-        '⚡ **Auto Remediation Rule "Restart API pods": AI started runbook "Restart pods".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.',
+        '⚡ **AI rule "Restart API pods": AI started runbook "Restart pods".** The rule fixes without asking and allows this runbook. Follow its progress on the runbook execution page.',
       ]);
     });
 
@@ -1224,6 +1224,8 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
         { executionMode: AutoRemediationExecutionMode.Suggest },
       ],
       ["the rule is off", { isEnabled: false }],
+      // An AI rule set to "Don't fix" only investigates: it starts nothing.
+      ["the rule now only investigates", { fixes: false }],
       [
         "the rule no longer names the runbook",
         { runbooks: [{ id: RUNBOOK_B_ID, _id: RUNBOOK_B_ID.toString() }] },
@@ -1292,7 +1294,7 @@ describe("RemediationPlanRunner: OneUptime AI's runbook pick", () => {
       );
       expect(recorded.links).not.toHaveBeenCalled();
       expect(recorded.feed).toEqual([
-        `⚡ **Auto Remediation Rule "Restart API pods": AI proposed runbook "Restart pods".** ${NOT_STARTED_NOTE} Approve it with one click to start remediation.`,
+        `⚡ **AI rule "Restart API pods": AI proposed runbook "Restart pods".** ${NOT_STARTED_NOTE} Approve it with one click to start remediation.`,
       ]);
     });
 

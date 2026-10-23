@@ -619,7 +619,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 このクラスターでインシデントやアラートが発生すると、OneUptime AI がそれを調査します。チャートの **Kubernetes AI エージェント** は AI に端末を与えます。オンコールのエンジニアと同じように読み取り専用の `kubectl` を実行し (失敗している Pod を describe し、そのイベントを読み、クラッシュしているコンテナのログを追い、ノードの容量を確認します)、実行したすべてのコマンドをインシデントのページに示します。
 
-エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.5) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、自動修復ルールのコマンド用 Runner として受け付けられることもありません。
+エージェントは **デフォルトで有効** で、**読み取り専用** です。小さな Deployment が 1 つ (`kubernetes-agent-ai-agent`、Pod のラベルは `component=ai-agent`、イメージは `oneuptime/kubernetes-ai-agent`) で、その ServiceAccount は読み取りしかできません。Collector と同じ `oneuptime.apiKey` と `clusterName` で自身を登録するため、ダッシュボードで設定することはありません。クラスターの **AI エージェント** ページ (Kubernetes → クラスター → AI → エージェント) に 1 分以内に接続済みと表示され、その状態の横にある **⋯** メニューの **接続をテスト** で、エージェント経由で `kubectl version` と `kubectl auth can-i --list` を実行できます。AI がエージェントで行ったことはすべてクラスターの **AI ログ** ページ (AI → ログ) にあり、クラスターについて知っておくべきこと (繰り返し発生する問題とその理由、その大半の背後にあるノードやワークロード、AI が修正したもの) は **AI インサイト** ページ (AI → インサイト) にあります。エージェントには固定版の kubectl (v1.36.5) が同梱されています。これは Runner ではなく、Runbooks → Runners の下に表示されることもありません。OneUptime がエージェントに認証情報を渡すことも、Runbook を実行させることもなく、AI ルールのコマンド用 Runner として受け付けられることもありません。
 
 AI エージェントが登場する前にインストールしたエージェントでは、まずチャートのインデックスを更新してからアップグレードしてください (セルフホストの OneUptime では、先に OneUptime をアップグレードします。[エージェントのアップグレード](#エージェントのアップグレード) を参照):
 
@@ -711,7 +711,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 - **自然に解消される拒否** — 以前のエージェントの Pod がまだ報告している (正常にシャットダウンせずに置き換えられた Pod)、またはアップグレード中に古いクラスター内 Runner がまだ終了処理中である場合です。エージェントはサーバーが示す待ち時間のあとに再試行します。
 - **対応が必要な拒否** — `clusterName` が空または長すぎる、あるいはプロジェクトが AI エージェントの上限に達している場合です。ログに変更すべき内容が示されます。エージェントがまったく接続せず、そのログに `Another Kubernetes AI agent for cluster "<name>" is online` とある場合は、2 つのインストールが同じ `clusterName` を共有しています (AI エージェントのページでも警告されます)。すでに接続しているほうが実行中はそれを保持するため、各クラスターに固有の `clusterName` を付けるか、余分なリリースを削除してください。**固定されたサービス名** が付いた取り込みキーではエージェントを登録できません。チャートにはそれが付いていないキーを渡してください。
 
-AI エージェントのページでエージェントの状態の横にある **⋯** メニューの **エージェントをリセット** は、確認後にサーバーにエージェントのキーを忘れさせます (Project Owner、Project Admin、または **Edit Auto Remediation Rule** の権限で、編集できるクラスターに対して実行できます)。Pod は数分以内に自動で再接続します。エージェントの readiness は OneUptime に依存しないため、設定を誤った AI エージェントが `helm upgrade --wait` を失敗させることはありません。失敗させるのは、イメージをプルできない Pod だけです。
+AI エージェントのページでエージェントの状態の横にある **⋯** メニューの **エージェントをリセット** は、確認後にサーバーにエージェントのキーを忘れさせます (Project Owner、Project Admin、または **Edit AI Rule** の権限で、編集できるクラスターに対して実行できます)。Pod は数分以内に自動で再接続します。エージェントの readiness は OneUptime に依存しないため、設定を誤った AI エージェントが `helm upgrade --wait` を失敗させることはありません。失敗させるのは、イメージをプルできない Pod だけです。
 
 ## エージェントのアップグレード
 
@@ -753,7 +753,7 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 - `aiAccess.image` と `aiAccess.resources` は引き継がれません。AI エージェントは別のイメージで、独自の `aiAgent.image` と `aiAgent.resources` を持ちます。
 - OneUptime では各クラスターが AI の設定を維持しますが、サーバーのアップグレード時に 2 つの変更が行われます。誰かが Runner (クラスター内 Runner またはほかの Runner) のバインドを解除または削除していたクラスターは、**kubectl で調査** と修正がオフの状態で始まります (AI エージェントのページで再びオンにしてください)。また、プロジェクトで **Enable AI Command Execution** を一度もオンにしていないクラスターでは、**自動** または **承認をバイパス** が **承認を求める** になります。このスイッチは以前それらの修正を抑えていましたが、AI エージェント経由の修正にはもう必要ありません。
 
-元に戻すには、`helm upgrade --version <older version>` ではなく `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent` を使ってください (`helm history` でリビジョンを一覧できます)。古いチャートのスキーマは、リリースに保存された `aiAgent` の値を拒否するためです。アップグレードから 1 週間以内であれば、ロールバックでクラスター内 Runner が戻り、AI エージェントが停止すると自動で再接続します。それを過ぎると、OneUptime が古い Runner を削除している可能性があります (いつ削除されたかはクラスターの **フィード** に表示されます)。その場合、ロールバックした Runner は接続しますが、API や Terraform で再びクラスターにバインドするか (クラスターの **AI アクセスの Runner**。Project Owner、Project Admin、または **Edit Auto Remediation Rule** の権限で実行できます)、チャートを再びアップグレードするまで使われません。
+元に戻すには、`helm upgrade --version <older version>` ではなく `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent` を使ってください (`helm history` でリビジョンを一覧できます)。古いチャートのスキーマは、リリースに保存された `aiAgent` の値を拒否するためです。アップグレードから 1 週間以内であれば、ロールバックでクラスター内 Runner が戻り、AI エージェントが停止すると自動で再接続します。それを過ぎると、OneUptime が古い Runner を削除している可能性があります (いつ削除されたかはクラスターの **フィード** に表示されます)。その場合、ロールバックした Runner は接続しますが、API や Terraform で再びクラスターにバインドするか (クラスターの **AI アクセスの Runner**。Project Owner、Project Admin、または **Edit AI Rule** の権限で実行できます)、チャートを再びアップグレードするまで使われません。
 
 Kubernetes AI エージェントは、OneUptime 12 で廃止された AI Agent とは関係ありません。
 

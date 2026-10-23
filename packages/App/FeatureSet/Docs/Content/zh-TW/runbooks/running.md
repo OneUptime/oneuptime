@@ -39,7 +39,7 @@ stateDiagram-v2
 
 Runbook 執行有五種建立方式：
 
-1. **透過規則自動啟動**：當相符的事件、警示或排定維護事件被建立時，[Runbook 規則](/docs/runbooks/rules) 會啟動執行。自動修復規則也可以啟動執行；請參閱 [AI SRE](/docs/ai/ai-sre)。
+1. **透過規則自動啟動**：當相符的事件、警示或排定維護事件被建立時，[Runbook 規則](/docs/runbooks/rules) 會啟動執行。AI 規則也可以啟動執行；請參閱 [AI SRE](/docs/ai/ai-sre)。
 2. **從事件手動啟動**：在事件、警示或排定維護事件上點選 **執行操作手冊** 。執行會關聯到該事件。
 3. **從 Runbook 頁面手動啟動**：在 Runbook 的 **概覽** 頁面上點選 **Run Now** 。這次執行不會關聯到任何事件、警示或排定維護事件。
 4. **依排程**：Runbook 的排程會在設定的時間啟動它。請參閱[依排程執行](/docs/runbooks/triggers#依排程執行)。

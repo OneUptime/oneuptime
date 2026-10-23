@@ -2,16 +2,16 @@ import { defineConfig, devices } from "@playwright/test";
 import path from "path";
 
 /*
- * Auto remediation rules - which new incidents (or alerts) OneUptime AI
- * fixes, and whether it asks first - on Incidents -> AI -> Settings and
- * Alerts -> AI -> Settings, in real Chromium, with no backend:
+ * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
+ * whether and how it fixes them - on Incidents -> AI -> Settings and Alerts
+ * -> AI -> Settings, in real Chromium, with no backend:
  * AutoRemediationRules/Fixture/server.js bundles the production pages with
  * the app's esbuild config, Tailwind, theme and font, over in-memory records
  * whose creates, updates and deletes it records. What jsdom cannot show is
- * checked here: the create dialog's Fix step with no "Fix With" choice, its
- * More fields fold opened by mouse, the runbooks OneUptime AI may run, the
- * Runner picker's choices, a rule saved before this change edited, a phone,
- * dark mode and German.
+ * checked here: the create dialog's three steps, its Fix step with no "Fix
+ * With" choice, its More fields fold opened by mouse, the Runner picker's
+ * choices, a rule that was an auto remediation rule edited, the table
+ * fitting its card, a phone, dark mode and German.
  */
 const port: string =
   process.env["AUTO_REMEDIATION_RULES_FIXTURE_PORT"] || "4395";
@@ -19,8 +19,8 @@ const port: string =
 export default defineConfig({
   testDir: "./AutoRemediationRules",
   /*
-   * The investigation rules beside them on the same page (issue #5074): when
-   * a rule investigates - right away, or only if still open after a wait.
+   * A rule's Investigate step (issue #5074): when it investigates - right
+   * away, or only if still open after a wait.
    */
   testMatch: ["AutoRemediationRules.spec.ts", "InvestigationRules.spec.ts"],
   fullyParallel: false,

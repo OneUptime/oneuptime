@@ -66,7 +66,7 @@ flowchart TB
 | | Herramientas que solo leen | Herramientas que pueden cambiar algo |
 | --- | --- | --- |
 | **Investigaciones** | Se usan, junto con los datos propios de OneUptime | Nunca se usan: OneUptime rechaza la llamada |
-| **Correcciones** | Se usan para preparar la corrección | Se proponen para aprobación o se usan de inmediato, según la **Aprobación** de la regla de autorremediación |
+| **Correcciones** | Se usan para preparar la corrección | Se proponen para aprobación o se usan de inmediato, según la **Corrección** de la regla de IA |
 
 **En una investigación**, OneUptime AI lista las herramientas de los servidores que puede usar y llama a las que leen, para mirar lo que OneUptime no ve por sí mismo: tu cuenta en la nube, un despliegue, un gestor de incidencias. Usa lo que responden en su análisis de causa raíz. Consulta [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ Para que OneUptime AI deje de usar un servidor, desactiva **Permitir que OneUpti
 
 ## Elegir los servidores que puede usar una regla
 
-Las reglas de investigación y las reglas de autorremediación pueden nombrar cada una los servidores MCP que OneUptime AI puede usar para lo que coincide con ellas. El campo es **Servidores MCP**, en **Más campos**. Hasta que eliges algunos, OneUptime AI puede usarlos todos, y la sección plegada lo dice.
+Cada regla de IA puede nombrar los servidores MCP que OneUptime AI puede usar para lo que coincide con ella. El campo es **Servidores MCP**, en **Más campos**. Hasta que eliges algunos, OneUptime AI puede usarlos todos, y la sección plegada lo dice.
 
 - **Ninguno elegido**: todos los servidores activados del proyecto.
-- **Algunos elegidos**: solo esos. En una regla de autorremediación que corrige sin preguntar, nombrar sus servidores es también lo que permite a OneUptime AI hacer sus cambios sin preguntar.
+- **Algunos elegidos**: solo esos. En una regla de IA que corrige sin preguntar, nombrar sus servidores es también lo que permite a OneUptime AI hacer sus cambios sin preguntar.
 
-Cuando coinciden varias reglas de investigación, OneUptime AI puede usar cada servidor que permita cualquiera de ellas; si las reglas no se pueden leer, la investigación no usa ningún servidor MCP. Cada regla de autorremediación que coincide prepara su propia corrección mediante sus servidores, y las reglas que no nombran ninguno comparten una corrección mediante todos.
+Cuando coinciden varias reglas que investigan, OneUptime AI puede usar cada servidor que permita cualquiera de ellas; si las reglas no se pueden leer, la investigación no usa ningún servidor MCP. Cada regla que corrige y coincide prepara su propia corrección mediante sus servidores, y las reglas que no nombran ninguno comparten una corrección mediante todos.
 
 ## Seguridad
 

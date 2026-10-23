@@ -86,7 +86,7 @@ Com **Redigir um post-mortem quando um incidente é resolvido** ligado, o OneUpt
 
 Sem regras, cada incidente resolvido recebe um rascunho, na estrutura padrão do OneUptime AI. As **Regras de post-mortem**, em **Mais configurações** na mesma página, mudam isso:
 
-- Uma regra corresponde a **Todos os incidentes**, ou a **Somente os incidentes que atendem às condições** sobre monitores, severidades, labels, labels de monitor, título e descrição, como faz uma regra de investigação.
+- Uma regra corresponde a **Todos os incidentes**, ou a **Somente os incidentes que atendem às condições** sobre monitores, severidades, labels, labels de monitor, título e descrição, como faz uma regra de IA.
 - Os **Modelos** dela são os modelos de post-mortem que o rascunho pode seguir. Sem nenhum, o rascunho segue a estrutura padrão; com um, esse modelo; com vários, o que o OneUptime AI considera mais adequado ao incidente. A publicação do rascunho no feed cita o modelo que ele seguiu.
 - O **Provedor LLM** dela, em **Mais campos**, é o provedor com que o OneUptime AI escreve o rascunho e escolhe o modelo dele. Sem nenhum escolhido, é o provedor padrão do projeto, senão o global. A publicação do rascunho no feed cita o provedor que uma regra escolheu, ou o que foi usado no lugar dele e por quê. Veja [Qual provedor LLM uma regra usa](/docs/ai/ai-sre#qual-provedor-llm-uma-regra-usa).
 - Decide a primeira regra habilitada que corresponde ao incidente, a partir do topo da lista: arraste uma regra para mudar a posição dela. Um incidente ao qual nenhuma regra corresponde não recebe rascunho, e nenhum incidente recebe enquanto as regras não puderem ser lidas.

@@ -295,7 +295,7 @@ flowchart TB
 - **No seu estado confirmado ou além** — **Confirmado**, ou qualquer estado colocado abaixo dele em **Incidentes → Configurações → Estado do incidente** — nenhuma política de plantão é executada, então ninguém é acionado. O incidente ainda lista suas políticas, as que você escolheu e as que as regras de plantão adicionam, e seu feed diz por quê em uma linha: _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Seu SLA, se uma regra lhe der um, já começa como respondido. Todo o resto abaixo é executado como em qualquer incidente novo.
 - **No seu estado resolvido ou além** — **Resolvido**, ou qualquer estado colocado abaixo dele — o incidente acabou, então, além disso, nada que responde a um incidente em andamento é executado:
   - ele não é agrupado em um episódio, o que poderia acionar de novo;
-  - nenhuma regra de runbook e nenhuma regra de remediação automática age sobre ele;
+  - nenhuma regra de runbook e nenhuma regra de IA age sobre ele;
   - o OneUptime AI não o investiga — o cartão **AI Investigation** dele diz que ele foi criado já resolvido, e **Ask OneUptime AI** abaixo dele continua respondendo perguntas sobre ele;
   - nenhum canal do Slack ou do Microsoft Teams é criado para ele;
   - seus monitores mantêm o status e continuam sendo monitorados, diga o que disser **Alterar status do monitor para**;

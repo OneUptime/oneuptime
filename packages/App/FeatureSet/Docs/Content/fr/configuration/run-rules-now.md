@@ -19,7 +19,7 @@ flowchart TB
 - **Règles de moniteurs** sur une page de statut. Elles resynchronisent déjà la page chaque fois qu'une règle est enregistrée ; en exécuter une la resynchronise immédiatement.
 - **Règles de moniteurs** sur un SLO. Elles resynchronisent déjà le SLO chaque fois qu'une règle est enregistrée ; en exécuter une resynchronise immédiatement les moniteurs du SLO. Voir [Moniteurs et règles de moniteurs](/docs/slo/monitor-rules).
 
-Les règles qui déclenchent une action au lieu de décrire une ressource (**Règles d'astreinte**, **Règles de runbook**, **Règles de remédiation automatique** et **Règles de regroupement**) ne peuvent pas être exécutées sur des enregistrements existants. Les exécuter appellerait des personnes, lancerait des runbooks, démarrerait des corrections ou réorganiserait des épisodes pour des incidents déjà terminés.
+Les règles qui déclenchent une action au lieu de décrire une ressource (**Règles d'astreinte**, **Règles de runbook**, **Règles IA** et **Règles de regroupement**) ne peuvent pas être exécutées sur des enregistrements existants. Les exécuter appellerait des personnes, lancerait des runbooks, démarrerait des corrections ou réorganiserait des épisodes pour des incidents déjà terminés.
 
 ## Avant de commencer
 

@@ -1223,9 +1223,7 @@ import AutoRemediationSuggestionService, {
 import AutoRemediationDecisionService, {
   Service as AutoRemediationDecisionServiceType,
 } from "Common/Server/Services/AutoRemediationDecisionService";
-import AIInvestigationRuleService, {
-  Service as AIInvestigationRuleServiceType,
-} from "Common/Server/Services/AIInvestigationRuleService";
+import RetiredApiRoute from "Common/Server/API/RetiredApiRoute";
 import AIPostmortemRuleService, {
   Service as AIPostmortemRuleServiceType,
 } from "Common/Server/Services/AIPostmortemRuleService";
@@ -1586,7 +1584,6 @@ import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationDecision from "Common/Models/DatabaseModels/AutoRemediationDecision";
-import AIInvestigationRule from "Common/Models/DatabaseModels/AIInvestigationRule";
 import AIPostmortemRule from "Common/Models/DatabaseModels/AIPostmortemRule";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
@@ -4227,13 +4224,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AIInvestigationRule, AIInvestigationRuleServiceType>(
-        AIInvestigationRule,
-        AIInvestigationRuleService,
-      ).getRouter(),
-    );
+    /*
+     * Investigation rules are AI rules now (the AI Rule resource above, at
+     * /auto-remediation-rule): their old route answers 410 Gone with what
+     * to use instead (RetiredApiRoute).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, RetiredApiRoute.getRouter());
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

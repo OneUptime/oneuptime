@@ -58,7 +58,14 @@ interface MenuLabels {
   settings: string;
   rules: string;
   runbookRules: string;
-  autoRemediationRules: string;
+  // The AI settings' rules table, which holds the AI rules.
+  aiRules: string;
+  /*
+   * The page the auto remediation rules had in the AI section, as each
+   * Dashboard drew it before they became AI rules: no locale has it now,
+   * and no page may send people there.
+   */
+  formerAutoRemediationRules: string;
 }
 
 /*
@@ -73,7 +80,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Settings",
     rules: "Rules",
     runbookRules: "Runbook Rules",
-    autoRemediationRules: "Auto Remediation Rules",
+    aiRules: "AI rules",
+    formerAutoRemediationRules: "Auto Remediation Rules",
   },
   da: {
     ai: "AI",
@@ -82,7 +90,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Indstillinger",
     rules: "Regler",
     runbookRules: "Runbook-regler",
-    autoRemediationRules: "Regler for automatisk afhjælpning",
+    aiRules: "AI-regler",
+    formerAutoRemediationRules: "Regler for automatisk afhjælpning",
   },
   de: {
     ai: "KI",
@@ -91,7 +100,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Einstellungen",
     rules: "Regeln",
     runbookRules: "Runbook-Regeln",
-    autoRemediationRules: "Auto-Behebungsregeln",
+    aiRules: "KI-Regeln",
+    formerAutoRemediationRules: "Auto-Behebungsregeln",
   },
   es: {
     ai: "IA",
@@ -100,7 +110,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Ajustes",
     rules: "Reglas",
     runbookRules: "Reglas de runbook",
-    autoRemediationRules: "Reglas de autorremediación",
+    aiRules: "Reglas de IA",
+    formerAutoRemediationRules: "Reglas de autorremediación",
   },
   fa: {
     ai: "AI",
@@ -109,7 +120,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Settings",
     rules: "Rules",
     runbookRules: "Runbook Rules",
-    autoRemediationRules: "Auto Remediation Rules",
+    aiRules: "AI rules",
+    formerAutoRemediationRules: "Auto Remediation Rules",
   },
   fr: {
     ai: "IA",
@@ -118,7 +130,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Paramètres",
     rules: "Règles",
     runbookRules: "Règles de runbook",
-    autoRemediationRules: "Règles de remédiation automatique",
+    aiRules: "Règles IA",
+    formerAutoRemediationRules: "Règles de remédiation automatique",
   },
   hi: {
     ai: "एआई",
@@ -127,7 +140,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "सेटिंग्स",
     rules: "नियम",
     runbookRules: "Runbook नियम",
-    autoRemediationRules: "स्वचालित सुधार नियम",
+    aiRules: "AI नियम",
+    formerAutoRemediationRules: "स्वचालित सुधार नियम",
   },
   it: {
     ai: "IA",
@@ -136,7 +150,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Impostazioni",
     rules: "Regole",
     runbookRules: "Regole di runbook",
-    autoRemediationRules: "Regole di rimedio automatico",
+    aiRules: "Regole IA",
+    formerAutoRemediationRules: "Regole di rimedio automatico",
   },
   ja: {
     ai: "AI",
@@ -145,7 +160,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "設定",
     rules: "ルール",
     runbookRules: "Runbook ルール",
-    autoRemediationRules: "自動修復ルール",
+    aiRules: "AI ルール",
+    formerAutoRemediationRules: "自動修復ルール",
   },
   ko: {
     ai: "AI",
@@ -154,7 +170,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "설정",
     rules: "규칙",
     runbookRules: "Runbook 규칙",
-    autoRemediationRules: "자동 해결 규칙",
+    aiRules: "AI 규칙",
+    formerAutoRemediationRules: "자동 해결 규칙",
   },
   nl: {
     ai: "AI",
@@ -163,7 +180,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Instellingen",
     rules: "Regels",
     runbookRules: "Runbook-regels",
-    autoRemediationRules: "Regels voor automatisch herstel",
+    aiRules: "AI-regels",
+    formerAutoRemediationRules: "Regels voor automatisch herstel",
   },
   no: {
     ai: "KI",
@@ -172,7 +190,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Innstillinger",
     rules: "Regler",
     runbookRules: "Runbook-regler",
-    autoRemediationRules: "Regler for automatisk utbedring",
+    aiRules: "AI-regler",
+    formerAutoRemediationRules: "Regler for automatisk utbedring",
   },
   pt: {
     ai: "IA",
@@ -181,7 +200,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Configurações",
     rules: "Regras",
     runbookRules: "Regras de runbook",
-    autoRemediationRules: "Regras de remediação automática",
+    aiRules: "Regras de IA",
+    formerAutoRemediationRules: "Regras de remediação automática",
   },
   ru: {
     ai: "ИИ",
@@ -190,7 +210,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Настройки",
     rules: "Правила",
     runbookRules: "Правила runbook-ов",
-    autoRemediationRules: "Правила автоисправления",
+    aiRules: "Правила ИИ",
+    formerAutoRemediationRules: "Правила автоисправления",
   },
   sv: {
     ai: "AI",
@@ -199,7 +220,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "Inställningar",
     rules: "Regler",
     runbookRules: "Runbook-regler",
-    autoRemediationRules: "Regler för automatisk åtgärd",
+    aiRules: "AI-regler",
+    formerAutoRemediationRules: "Regler för automatisk åtgärd",
   },
   "zh-CN": {
     ai: "人工智能",
@@ -208,7 +230,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "设置",
     rules: "规则",
     runbookRules: "Runbook 规则",
-    autoRemediationRules: "自动补救规则",
+    aiRules: "AI 规则",
+    formerAutoRemediationRules: "自动补救规则",
   },
   "zh-TW": {
     ai: "人工智慧",
@@ -217,7 +240,8 @@ const MENU_LABELS: Record<string, MenuLabels> = {
     settings: "設定",
     rules: "規則",
     runbookRules: "Runbook 規則",
-    autoRemediationRules: "自動補救規則",
+    aiRules: "AI 規則",
+    formerAutoRemediationRules: "自動補救規則",
   },
 };
 
@@ -271,7 +295,7 @@ const AI_SRE_PAGES: Record<string, AiSrePage> = {
     costControlsHeading: "## Cost controls",
     where: "on **Incidents → AI → Settings** and **Alerts → AI → Settings**",
     remediation:
-      "the auto remediation rules under **More settings** on **Incidents → AI → Settings** and **Alerts → AI → Settings**",
+      "the AI rules under **More settings** on **Incidents → AI → Settings** and **Alerts → AI → Settings**",
     oldDefaults: [
       "top two severity tiers",
       "Default **30 minutes**",
@@ -702,8 +726,20 @@ describe("AI has no limits by default", () => {
         settings: locale[english.settings],
         rules: locale[english.rules],
         runbookRules: locale[english.runbookRules],
-        autoRemediationRules: locale[english.autoRemediationRules],
-      }).toEqual({ language: language, ...labels });
+        aiRules: locale[english.aiRules],
+        // Gone from every locale with the page it named.
+        formerAutoRemediationRules: locale[english.formerAutoRemediationRules],
+      }).toEqual({
+        language: language,
+        ai: labels.ai,
+        insights: labels.insights,
+        logs: labels.logs,
+        settings: labels.settings,
+        rules: labels.rules,
+        runbookRules: labels.runbookRules,
+        aiRules: labels.aiRules,
+        formerAutoRemediationRules: undefined,
+      });
     }
   });
 
@@ -755,9 +791,9 @@ describe("AI has no limits by default", () => {
           sideMenu: sideMenu,
           afterEpisodes: titles[titles.indexOf("Episodes") + 1],
           ai: pagesOf("AI"),
-          rulesHoldAutoRemediation: pagesOf("Rules").includes(
-            english.autoRemediationRules,
-          ),
+          rulesHoldAutoRemediation:
+            pagesOf("Rules").includes(english.formerAutoRemediationRules) ||
+            pagesOf("Rules").includes(english.aiRules),
           settingsHoldAi: pagesOf("Settings").includes(english.ai),
           afterRunbookRules:
             pagesOf("Rules")[pagesOf("Rules").indexOf("Runbook Rules") + 1],
@@ -1003,7 +1039,7 @@ describe("AI has no limits by default", () => {
          */
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const localRulesPage: RegExp = new RegExp(
-          `${escapeRegExp(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escapeRegExp(labels.autoRemediationRules)}`,
+          `${escapeRegExp(labels.ai)}\\**\\s*(?:>|→)\\s*\\**${escapeRegExp(labels.formerAutoRemediationRules)}`,
         );
 
         for (const page of pages) {
@@ -1050,7 +1086,7 @@ describe("AI has no limits by default", () => {
               rows.indexOf(rowStartingWith(rows, `**${labels.rules}**`)),
           linksToAiSre: aiRow.includes("](/docs/ai/ai-sre)"),
           settingsListAi: settings.includes(labels.ai),
-          rulesListAutoRemediation: rules.includes(labels.autoRemediationRules),
+          rulesListAiRules: rules.includes(labels.aiRules),
           afterRunbookRules:
             rules[rules.indexOf(labels.runbookRules) + 1] || "",
         }).toEqual({
@@ -1059,10 +1095,8 @@ describe("AI has no limits by default", () => {
           aiBeforeRules: true,
           linksToAiSre: true,
           settingsListAi: false,
-          rulesListAutoRemediation: false,
-          afterRunbookRules: expect.not.stringMatching(
-            `^${labels.autoRemediationRules}$`,
-          ),
+          rulesListAiRules: false,
+          afterRunbookRules: expect.not.stringMatching(`^${labels.aiRules}$`),
         });
       }
     });
@@ -1135,7 +1169,7 @@ describe("AI has no limits by default", () => {
       }
     });
 
-    it("counts eight Rules pages, and files Auto Remediation Rules under AI", () => {
+    it("counts eight Rules pages, and files the AI rules under AI", () => {
       for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
         const labels: MenuLabels = MENU_LABELS[language] as MenuLabels;
         const lines: Array<string> = readPage(
@@ -1163,24 +1197,24 @@ describe("AI has no limits by default", () => {
             return boldNames(line)[0] || "";
           });
 
-        // The rule engine bullet for Auto Remediation Rules.
-        const autoRemediationBullet: string =
+        // The rule engine bullet for the AI rules.
+        const aiRulesBullet: string =
           lines.find((line: string): boolean => {
-            return line.startsWith(`- **${labels.autoRemediationRules}**`);
+            return line.startsWith(`- **${labels.aiRules}**`);
           }) || "";
 
         expect({
           language: language,
           pages: listed.length,
-          listsAutoRemediation: listed.includes(labels.autoRemediationRules),
+          listsAiRules: listed.includes(labels.aiRules),
           bulletAfterRunbookRules:
             bullets[bullets.indexOf(labels.runbookRules) + 1],
-          bulletUnderAi: boldNames(autoRemediationBullet).includes(labels.ai),
+          bulletUnderAi: boldNames(aiRulesBullet).includes(labels.ai),
         }).toEqual({
           language: language,
           pages: 8,
-          listsAutoRemediation: false,
-          bulletAfterRunbookRules: labels.autoRemediationRules,
+          listsAiRules: false,
+          bulletAfterRunbookRules: labels.aiRules,
           bulletUnderAi: true,
         });
       }

@@ -1,5 +1,5 @@
-import AIInvestigationRule from "../../../Models/DatabaseModels/AIInvestigationRule";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
+import AutoRemediationRule from "../../../Models/DatabaseModels/AutoRemediationRule";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -9,12 +9,14 @@ import Permission from "../../../Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 
 /*
- * THE COLUMNS BEHIND AN INVESTIGATION RULE'S WAIT (issue #5074), and who may
- * touch each:
+ * THE COLUMNS BEHIND AN AI RULE'S WAIT (issue #5074), and who may touch
+ * each:
  *
- *   - AIInvestigationRule.onlyIfOpenAfterMinutes - the rule's wait: written
- *     by who may change the project's AI settings (a Project Owner or
- *     Admin, like every other column of the rule), read by every member;
+ *   - AutoRemediationRule.onlyIfOpenAfterMinutes - the AI rule's wait
+ *     (investigation rules were merged into the AI rules, and their wait
+ *     with them): written by who may change the rule (a Project Owner or
+ *     Admin, or the AI rule permissions, like every other column of the
+ *     rule), read by every member;
  *   - Incident / Alert.aiInvestigationWaitUntil - when a waiting record's
  *     wait ends: internal, OneUptime's own bookkeeping. No API caller sets
  *     it (that would start or stop an investigation behind the rules' back)
@@ -35,6 +37,12 @@ const EVERY_MEMBER: Array<Permission> = [
   Permission.Viewer,
 ];
 
+// Every member, and a custom role that may read AI rules.
+const EVERY_RULE_READER: Array<Permission> = [
+  ...EVERY_MEMBER,
+  Permission.ReadAutoRemediationRule,
+];
+
 function accessOf(model: BaseModel, column: string): ColumnAccessControl {
   const access: ColumnAccessControl | null =
     model.getColumnAccessControlFor(column);
@@ -43,11 +51,11 @@ function accessOf(model: BaseModel, column: string): ColumnAccessControl {
   return access!;
 }
 
-describe("AIInvestigationRule.onlyIfOpenAfterMinutes", () => {
-  const rule: AIInvestigationRule = new AIInvestigationRule();
+describe("AutoRemediationRule.onlyIfOpenAfterMinutes", () => {
+  const rule: AutoRemediationRule = new AutoRemediationRule();
 
   it("is an optional number of minutes, named as the API and Terraform show it", () => {
-    const metadata: ReturnType<AIInvestigationRule["getTableColumnMetadata"]> =
+    const metadata: ReturnType<AutoRemediationRule["getTableColumnMetadata"]> =
       rule.getTableColumnMetadata("onlyIfOpenAfterMinutes");
 
     expect(metadata.type).toBe(TableColumnType.Number);
@@ -62,15 +70,21 @@ describe("AIInvestigationRule.onlyIfOpenAfterMinutes", () => {
     expect(metadata.description).toContain("At most 1440 minutes (a day).");
   });
 
-  it("is written by a Project Owner or Admin, and read by every member", () => {
+  it("is written by a Project Owner or Admin or the AI rule permissions, and read by every member", () => {
     const access: ColumnAccessControl = accessOf(
       rule,
       "onlyIfOpenAfterMinutes",
     );
 
-    expect(access.create).toEqual(OWNER_OR_ADMIN);
-    expect(access.update).toEqual(OWNER_OR_ADMIN);
-    expect(access.read).toEqual(EVERY_MEMBER);
+    expect(access.create).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.CreateAutoRemediationRule,
+    ]);
+    expect(access.update).toEqual([
+      ...OWNER_OR_ADMIN,
+      Permission.EditAutoRemediationRule,
+    ]);
+    expect(access.read).toEqual(EVERY_RULE_READER);
   });
 
   it("is held to what the rule's other conditions are held to", () => {

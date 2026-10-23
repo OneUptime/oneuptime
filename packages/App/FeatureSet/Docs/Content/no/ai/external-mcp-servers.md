@@ -66,7 +66,7 @@ flowchart TB
 | | Verktøy som bare leser | Verktøy som kan endre noe |
 | --- | --- | --- |
 | **Undersøkelser** | Brukes, sammen med OneUptimes egne data | Brukes aldri: OneUptime avviser kallet |
-| **Rettinger** | Brukes til å utarbeide rettingen | Foreslås for godkjenning eller brukes med en gang, slik **Godkjenning** i regelen for automatisk utbedring sier |
+| **Rettinger** | Brukes til å utarbeide rettingen | Foreslås for godkjenning eller brukes med en gang, slik **Rettelse** i AI-regelen sier |
 
 **I en undersøkelse** lister OneUptime AI verktøyene på serverne den kan bruke, og kaller dem som leser, for å se på det OneUptime ikke ser selv: skykontoen din, en utrulling, en saksbehandler. Svarene bruker den i rotårsaksanalysen sin. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ For at OneUptime AI skal slutte å bruke en server, slår du av **La OneUptime A
 
 ## Velg serverne en regel kan bruke
 
-Undersøkelsesregler og regler for automatisk utbedring kan hver for seg nevne MCP-serverne OneUptime AI kan bruke for det de samsvarer med. Feltet er **MCP-servere** under **Flere felt**. Til du velger noen, kan OneUptime AI bruke alle sammen, og den sammenfoldede delen sier det.
+Hver AI-regel kan nevne MCP-serverne OneUptime AI kan bruke for det den samsvarer med. Feltet er **MCP-servere** under **Flere felt**. Til du velger noen, kan OneUptime AI bruke alle sammen, og den sammenfoldede delen sier det.
 
 - **Ingen valgt** – alle prosjektets servere som er slått på.
-- **Noen valgt** – bare de. På en regel for automatisk utbedring som retter uten å spørre, er det å nevne serverne også det som lar OneUptime AI gjøre endringene deres uten å spørre.
+- **Noen valgt** – bare de. På en AI-regel som retter uten å spørre, er det å nevne serverne også det som lar OneUptime AI gjøre endringene deres uten å spørre.
 
-Når flere undersøkelsesregler samsvarer, kan OneUptime AI bruke hver server som en av dem tillater; kan reglene ikke leses, bruker undersøkelsen ingen MCP-server i det hele tatt. Hver samsvarende regel for automatisk utbedring utarbeider sin egen retting via sine servere, og reglene som ikke nevner noen, deler én retting via alle.
+Når flere regler som undersøker, samsvarer, kan OneUptime AI bruke hver server som en av dem tillater; kan reglene ikke leses, bruker undersøkelsen ingen MCP-server i det hele tatt. Hver samsvarende regel som retter, utarbeider sin egen retting via sine servere, og reglene som ikke nevner noen, deler én retting via alle.
 
 ## Sikkerhet
 

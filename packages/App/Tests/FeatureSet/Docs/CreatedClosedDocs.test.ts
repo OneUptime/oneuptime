@@ -99,7 +99,7 @@ describe("the declare page says what a create in a later state sets off", () => 
 
     for (const sentence of [
       "it is not grouped into an episode",
-      "no runbook rule and no auto-remediation rule acts on it",
+      "no runbook rule and no AI rule acts on it",
       "OneUptime AI does not investigate it",
       "**AI Investigation** card says it was created already resolved",
       "no Slack or Microsoft Teams channel is created for it",

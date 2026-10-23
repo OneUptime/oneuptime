@@ -1,26 +1,28 @@
 /*
- * What an AI investigation rule can match on, and why one cannot be saved
- * (AIInvestigationRuleCriteria).
+ * What an AI rule can match on, and why one cannot be saved
+ * (AiRuleCriteria). Investigation rules and auto remediation rules were
+ * merged into AI rules, so these hold for every incident and alert AI rule:
+ * an incident rule's severities are incident severities, an alert rule's
+ * alert severities.
  */
 
 import {
-  AI_INVESTIGATION_RULE_CRITERIA_FIELDS,
-  AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER,
-  getAIInvestigationRuleCriteriaProblem,
-  isAIInvestigationRuleTriggerEntity,
-} from "../../../Types/AI/AIInvestigationRuleCriteria";
-import AIInvestigationRuleTriggerEntity from "../../../Types/AI/AIInvestigationRuleTriggerEntity";
+  AI_RULE_CRITERIA_FIELDS,
+  AI_RULE_CRITERIA_FIELDS_BY_TRIGGER,
+  getAiRuleCriteriaProblem,
+  isAiRuleTriggerEntity,
+} from "../../../Types/AI/AiRuleCriteria";
+import AutoRemediationTriggerEntity from "../../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { describe, expect, test } from "@jest/globals";
 
-const Incident: AIInvestigationRuleTriggerEntity =
-  AIInvestigationRuleTriggerEntity.Incident;
-const Alert: AIInvestigationRuleTriggerEntity =
-  AIInvestigationRuleTriggerEntity.Alert;
+const Incident: AutoRemediationTriggerEntity =
+  AutoRemediationTriggerEntity.Incident;
+const Alert: AutoRemediationTriggerEntity = AutoRemediationTriggerEntity.Alert;
 
 describe("the criteria fields", () => {
   test("an incident rule matches on incident severities, never alert ones", () => {
     const fields: ReadonlyArray<string> =
-      AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER[Incident];
+      AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Incident];
 
     expect(fields).toContain("incidentSeverities");
     expect(fields).not.toContain("alertSeverities");
@@ -28,7 +30,7 @@ describe("the criteria fields", () => {
 
   test("an alert rule matches on alert severities, never incident ones", () => {
     const fields: ReadonlyArray<string> =
-      AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER[Alert];
+      AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Alert];
 
     expect(fields).toContain("alertSeverities");
     expect(fields).not.toContain("incidentSeverities");
@@ -42,17 +44,13 @@ describe("the criteria fields", () => {
       "titlePattern",
       "descriptionPattern",
     ]) {
-      expect(
-        AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER[Incident],
-      ).toContain(shared);
-      expect(AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER[Alert]).toContain(
-        shared,
-      );
+      expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Incident]).toContain(shared);
+      expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[Alert]).toContain(shared);
     }
   });
 
   test("every field is listed once, in the order first seen", () => {
-    expect(AI_INVESTIGATION_RULE_CRITERIA_FIELDS).toEqual([
+    expect(AI_RULE_CRITERIA_FIELDS).toEqual([
       "monitors",
       "incidentSeverities",
       "labels",
@@ -61,72 +59,70 @@ describe("the criteria fields", () => {
       "descriptionPattern",
       "alertSeverities",
     ]);
-    expect(new Set(AI_INVESTIGATION_RULE_CRITERIA_FIELDS).size).toBe(
-      AI_INVESTIGATION_RULE_CRITERIA_FIELDS.length,
+    expect(new Set(AI_RULE_CRITERIA_FIELDS).size).toBe(
+      AI_RULE_CRITERIA_FIELDS.length,
     );
   });
 
   test("every trigger entity type has a field list", () => {
-    for (const type of Object.values(AIInvestigationRuleTriggerEntity)) {
-      expect(
-        AI_INVESTIGATION_RULE_CRITERIA_FIELDS_BY_TRIGGER[type].length,
-      ).toBeGreaterThan(0);
+    for (const type of Object.values(AutoRemediationTriggerEntity)) {
+      expect(AI_RULE_CRITERIA_FIELDS_BY_TRIGGER[type].length).toBeGreaterThan(
+        0,
+      );
     }
   });
 });
 
-describe("isAIInvestigationRuleTriggerEntity", () => {
+describe("isAiRuleTriggerEntity", () => {
   test("accepts the exact enum values", () => {
-    expect(isAIInvestigationRuleTriggerEntity("Incident")).toBe(true);
-    expect(isAIInvestigationRuleTriggerEntity("Alert")).toBe(true);
+    expect(isAiRuleTriggerEntity("Incident")).toBe(true);
+    expect(isAiRuleTriggerEntity("Alert")).toBe(true);
   });
 
   test("is case sensitive and does not trim", () => {
-    expect(isAIInvestigationRuleTriggerEntity("alert")).toBe(false);
-    expect(isAIInvestigationRuleTriggerEntity("INCIDENT")).toBe(false);
-    expect(isAIInvestigationRuleTriggerEntity(" Incident")).toBe(false);
+    expect(isAiRuleTriggerEntity("alert")).toBe(false);
+    expect(isAiRuleTriggerEntity("INCIDENT")).toBe(false);
+    expect(isAiRuleTriggerEntity(" Incident")).toBe(false);
   });
 
   test("refuses anything that is not a string", () => {
     for (const value of [null, undefined, 0, 1, true, {}, [], ["Incident"]]) {
-      expect(isAIInvestigationRuleTriggerEntity(value)).toBe(false);
+      expect(isAiRuleTriggerEntity(value)).toBe(false);
     }
   });
 
   test("refuses other strings", () => {
-    expect(isAIInvestigationRuleTriggerEntity("")).toBe(false);
-    expect(isAIInvestigationRuleTriggerEntity("Monitor")).toBe(false);
+    expect(isAiRuleTriggerEntity("")).toBe(false);
+    expect(isAiRuleTriggerEntity("Monitor")).toBe(false);
   });
 });
 
-describe("getAIInvestigationRuleCriteriaProblem", () => {
+describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
       "Trigger Entity Type must be one of Incident, Alert.";
 
-    expect(
-      getAIInvestigationRuleCriteriaProblem({ triggerEntityType: "Monitor" }),
-    ).toBe(expected);
-    expect(
-      getAIInvestigationRuleCriteriaProblem({ triggerEntityType: undefined }),
-    ).toBe(expected);
-    expect(
-      getAIInvestigationRuleCriteriaProblem({ triggerEntityType: "incident" }),
-    ).toBe(expected);
+    expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
+      expected,
+    );
+    expect(getAiRuleCriteriaProblem({ triggerEntityType: undefined })).toBe(
+      expected,
+    );
+    expect(getAiRuleCriteriaProblem({ triggerEntityType: "incident" })).toBe(
+      expected,
+    );
   });
 
   test("a rule with no criteria and no values is fine", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({ triggerEntityType: Incident }),
+      getAiRuleCriteriaProblem({ triggerEntityType: Incident }),
     ).toBeNull();
-    expect(
-      getAIInvestigationRuleCriteriaProblem({ triggerEntityType: Alert }),
-    ).toBeNull();
+    expect(getAiRuleCriteriaProblem({ triggerEntityType: Alert })).toBeNull();
   });
 
   test("conditions on the rule's own fields are fine", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         criteria: {
           filters: [
@@ -138,7 +134,7 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
       }),
     ).toBeNull();
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         criteria: {
           filters: [{ field: "alertSeverities" }, { field: "labels" }],
@@ -149,56 +145,52 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
 
   test("an incident rule may not filter on alert severities", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         criteria: { filters: [{ field: "alertSeverities" }] },
       }),
-    ).toBe("Alert Severities can only be used by alert investigation rules.");
+    ).toBe("Alert Severities can only be used by alert AI rules.");
   });
 
   test("an alert rule may not filter on incident severities", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         criteria: { filters: [{ field: "incidentSeverities" }] },
       }),
-    ).toBe(
-      "Incident Severities can only be used by incident investigation rules.",
-    );
+    ).toBe("Incident Severities can only be used by incident AI rules.");
   });
 
   test("the severity column itself is refused for the wrong kind of rule", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { alertSeverities: ["some-severity-id"] },
       }),
-    ).toBe("Alert Severities can only be used by alert investigation rules.");
+    ).toBe("Alert Severities can only be used by alert AI rules.");
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         values: { incidentSeverities: [{ _id: "x" }] },
       }),
-    ).toBe(
-      "Incident Severities can only be used by incident investigation rules.",
-    );
+    ).toBe("Incident Severities can only be used by incident AI rules.");
   });
 
   test("an empty or non-list column value does not count as used", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { alertSeverities: [] },
       }),
     ).toBeNull();
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { alertSeverities: "id" },
       }),
     ).toBeNull();
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { alertSeverities: null },
       }),
@@ -207,7 +199,7 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
 
   test("the rule's own column values are fine", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: {
           incidentSeverities: ["a"],
@@ -220,7 +212,7 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
 
   test("values outside the criteria fields are ignored", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         values: { somethingElse: ["x"], name: ["y"] },
       }),
@@ -229,19 +221,19 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
 
   test("conditions are checked before columns, in the order written", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Incident,
         criteria: {
           filters: [{ field: "monitors" }, { field: "alertSeverities" }],
         },
         values: { alertSeverities: ["a"] },
       }),
-    ).toBe("Alert Severities can only be used by alert investigation rules.");
+    ).toBe("Alert Severities can only be used by alert AI rules.");
   });
 
   test("unknown fields are left to the shared validation", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         criteria: { filters: [{ field: "notAField" }] },
       }),
@@ -262,7 +254,7 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
       { filters: [null, 1, "alertSeverities", { field: 7 }, {}] },
     ]) {
       expect(
-        getAIInvestigationRuleCriteriaProblem({
+        getAiRuleCriteriaProblem({
           triggerEntityType: Incident,
           criteria,
         }),
@@ -272,14 +264,12 @@ describe("getAIInvestigationRuleCriteriaProblem", () => {
 
   test("a bad filter among good ones does not hide a wrong-kind field", () => {
     expect(
-      getAIInvestigationRuleCriteriaProblem({
+      getAiRuleCriteriaProblem({
         triggerEntityType: Alert,
         criteria: {
           filters: [null, { field: 3 }, { field: "incidentSeverities" }],
         },
       }),
-    ).toBe(
-      "Incident Severities can only be used by incident investigation rules.",
-    );
+    ).toBe("Incident Severities can only be used by incident AI rules.");
   });
 });

@@ -86,7 +86,7 @@ Med **Skriv utkast til etteranalyse når en hendelse er løst** slått på skriv
 
 Uten regler får hver løste hendelse et utkast i standardoppsettet til OneUptime AI. **Postmortem-regler**, under **Flere innstillinger** på samme side, endrer det:
 
-- En regel samsvarer med **Alle hendelser**, eller med **Bare hendelser som oppfyller betingelsene** på monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, slik en undersøkelsesregel gjør.
+- En regel samsvarer med **Alle hendelser**, eller med **Bare hendelser som oppfyller betingelsene** på monitorer, alvorlighetsgrader, labels, monitorlabels, tittel og beskrivelse, slik en AI-regel gjør.
 - Dens **Maler** er malene for etteranalyse som utkastet kan følge. Uten noen følger utkastet standardoppsettet; med én, den malen; med flere, den OneUptime AI mener passer best til hendelsen. Utkastets innlegg i feeden nevner malen det fulgte.
 - Dens **LLM-leverandør**, under **Flere felt**, er leverandøren OneUptime AI skriver utkastet og velger malen med. Med ingen valgt er det prosjektets standardleverandør, ellers den globale. Utkastets innlegg i feeden nevner leverandøren en regel valgte, eller den som ble brukt i stedet, og hvorfor. Se [Hvilken LLM-leverandør en regel bruker](/docs/ai/ai-sre#hvilken-llm-leverandør-en-regel-bruker).
 - Den første aktiverte regelen som samsvarer med hendelsen, avgjør, regnet fra toppen av listen: dra en regel for å flytte den. En hendelse som ingen regel samsvarer med, får ikke noe utkast, og det får ingen hendelse så lenge reglene ikke kan leses.

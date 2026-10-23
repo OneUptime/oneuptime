@@ -571,16 +571,16 @@ describe("why incidents were not investigated", () => {
     );
   });
 
-  test("an incident or alert resolved during an investigation rule's wait says so (issue #5074)", () => {
+  test("an incident or alert resolved during an AI rule's wait says so (issue #5074)", () => {
     expect(
       describeNotInvestigatedReason(
         "incident",
         "resolved_before_investigation",
       ),
-    ).toBe("They were resolved during an investigation rule's wait.");
+    ).toBe("They were resolved during an AI rule's wait.");
     expect(
       describeNotInvestigatedReason("alert", "resolved_before_investigation"),
-    ).toBe("They were resolved during an investigation rule's wait.");
+    ).toBe("They were resolved during an AI rule's wait.");
   });
 
   test("a project that reached its own daily AI limit says so", () => {

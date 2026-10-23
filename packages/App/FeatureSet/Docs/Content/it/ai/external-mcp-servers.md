@@ -66,7 +66,7 @@ flowchart TB
 | | Strumenti che leggono soltanto | Strumenti che possono modificare qualcosa |
 | --- | --- | --- |
 | **Indagini** | Usati, insieme ai dati di OneUptime | Mai usati: OneUptime rifiuta la chiamata |
-| **Correzioni** | Usati per elaborare la correzione | Proposti per l'approvazione, o usati subito, come dice l'**Approvazione** della regola di rimedio automatico |
+| **Correzioni** | Usati per elaborare la correzione | Proposti per l'approvazione, o usati subito, come dice la **Correzione** della regola IA |
 
 **In un'indagine**, OneUptime AI elenca gli strumenti dei server che può usare e chiama quelli che leggono, per guardare ciò che OneUptime non vede da sé: il tuo account cloud, un deployment, un issue tracker. Usa ciò che rispondono nella sua analisi della causa principale. Vedi [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ Per far smettere OneUptime AI di usare un server, disattiva **Consenti a OneUpti
 
 ## Scegliere i server che una regola può usare
 
-Le regole di indagine e le regole di rimedio automatico possono ciascuna indicare i server MCP che OneUptime AI può usare per ciò che corrisponde alla regola. Il campo è **Server MCP**, in **Altri campi**. Finché non ne scegli alcuni, OneUptime AI può usarli tutti, e la sezione chiusa lo dice.
+Ogni regola IA può indicare i server MCP che OneUptime AI può usare per ciò che corrisponde alla regola. Il campo è **Server MCP**, in **Altri campi**. Finché non ne scegli alcuni, OneUptime AI può usarli tutti, e la sezione chiusa lo dice.
 
 - **Nessuno scelto** — tutti i server attivi del progetto.
-- **Alcuni scelti** — solo quelli. Su una regola di rimedio automatico che corregge senza chiedere, indicare i suoi server è anche ciò che consente a OneUptime AI di farne le modifiche senza chiedere.
+- **Alcuni scelti** — solo quelli. Su una regola IA che corregge senza chiedere, indicare i suoi server è anche ciò che consente a OneUptime AI di farne le modifiche senza chiedere.
 
-Quando corrispondono più regole di indagine, OneUptime AI può usare ogni server che una di esse consente; se le regole non si possono leggere, l'indagine non usa alcun server MCP. Ogni regola di rimedio automatico corrispondente elabora la propria correzione tramite i suoi server, e le regole che non ne indicano nessuno condividono una correzione tramite tutti.
+Quando corrispondono più regole che indagano, OneUptime AI può usare ogni server che una di esse consente; se le regole non si possono leggere, l'indagine non usa alcun server MCP. Ogni regola corrispondente che corregge elabora la propria correzione tramite i suoi server, e le regole che non ne indicano nessuno condividono una correzione tramite tutti.
 
 ## Sicurezza
 

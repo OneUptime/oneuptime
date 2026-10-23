@@ -355,10 +355,10 @@ blocked permission prompt, and a newer worker still reloading the page. See
 `PushRegistration/README.md`. Screenshots and failure traces are written to
 `output/playwright/push-registration-ui/` at the repository root.
 
-## Auto remediation rules UI regression tests
+## AI rules UI regression tests
 
-Run the auto remediation rules on Incidents → AI → Settings and Alerts → AI →
-Settings in Chromium without starting the app or database:
+Run the AI rules on Incidents → AI → Settings and Alerts → AI → Settings in
+Chromium without starting the app or database:
 
 ```bash
 cd packages/E2E
@@ -366,14 +366,16 @@ CI=1 npm run test-auto-remediation-rules-ui
 ```
 
 The fixture (`AutoRemediationRules/Fixture`, port 4395) renders the real AI
-settings pages, the rules table, its create and edit dialogs and the Runner
-picker, and records what the page sends. It covers the Fix step asking only
-whether a fix waits for approval, More fields folded with the runbooks
-OneUptime AI may run (none picked: any) and the Runner it runs the rule's
-commands on (none: the AI agent on the affected cluster or host, never a
-global Runner or the Kubernetes agent's in-cluster Runner), "Run them every
-time", rules saved before the change edited without changing what they do,
-alerts, a viewer, a phone, dark mode and German. See
+settings pages, the AI rules table, its create and edit dialogs and the
+Runner picker, and records what the page sends. It covers a rule's three
+steps - Match, Investigate (right away, or only if still open after a wait)
+and Fix (don't fix, ask before fixing, fix without asking) - More fields
+folded with the code repositories, MCP servers and LLM provider every rule
+uses and the runbooks, Runner and pull requests of a rule that fixes, "Run
+them every time", the rules that were auto remediation rules - one that only
+fixes, "Investigate too" - edited without changing what they do, the table's
+one column fitting its card at 1280px beside the side menu in English and
+German, alerts, a viewer, a phone, dark mode and German. See
 `AutoRemediationRules/README.md`. Screenshots and failure traces are written
 to `output/playwright/auto-remediation-rules-ui/` at the repository root.
 

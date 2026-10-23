@@ -13,7 +13,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * WHAT AN INCIDENT'S (OR ALERT'S) AI CARD SAYS WHEN ITS RULE'S WAIT ENDED
  * (issue #5074).
  *
- * - resolved_before_investigation: an investigation rule made OneUptime AI
+ * - resolved_before_investigation: an AI rule made OneUptime AI
  *   wait, and the record was resolved before the investigation started -
  *   the card says so, with the wait and where it is set.
  * - Any other decision taken when a wait ended (the rules changed, AI was
@@ -47,9 +47,9 @@ describe("resolved_before_investigation", () => {
       code: "resolved_before_investigation",
       title: "Resolved before the investigation started",
       description:
-        "An investigation rule made OneUptime AI wait 10 minutes to see whether this incident would still be open. It was resolved first, so it was not investigated.",
+        "An AI rule made OneUptime AI wait 10 minutes to see whether this incident would still be open. It was resolved first, so it was not investigated.",
       nextStep:
-        "To look into it anyway, ask OneUptime AI below. The wait is set on the investigation rules under Incidents → AI → Settings → More settings.",
+        "To look into it anyway, ask OneUptime AI below. The wait is set on the AI rules under Incidents → AI → Settings → More settings.",
       source: "recorded",
       decidedAfterWaitMinutes: 10,
     });
@@ -65,7 +65,7 @@ describe("resolved_before_investigation", () => {
       );
 
     expect(reason.description).toBe(
-      "An investigation rule made OneUptime AI wait 30 minutes to see whether this alert would still be open. It was resolved first, so it was not investigated.",
+      "An AI rule made OneUptime AI wait 30 minutes to see whether this alert would still be open. It was resolved first, so it was not investigated.",
     );
     expect(reason.nextStep).toContain("Alerts → AI → Settings → More settings");
   });
@@ -89,7 +89,7 @@ describe("resolved_before_investigation", () => {
       );
 
     expect(reason.description).toBe(
-      "An investigation rule made OneUptime AI wait to see whether this incident would still be open. It was resolved first, so it was not investigated.",
+      "An AI rule made OneUptime AI wait to see whether this incident would still be open. It was resolved first, so it was not investigated.",
     );
     expect(reason.decidedAfterWaitMinutes).toBeUndefined();
   });
@@ -212,10 +212,10 @@ describe("a decision taken when a wait ended says so", () => {
       );
 
     expect(reason.title).toBe(
-      "This incident was outside the investigation rules when the wait ended",
+      "This incident was outside the AI rules that investigate when the wait ended",
     );
     expect(reason.description).toBe(
-      "An investigation rule made OneUptime AI wait 10 minutes before investigating this incident, and when the wait ended it matched none of the 3 investigation rules any more: the incident or the rules had changed. Only the incidents that match one are investigated automatically.",
+      "An AI rule made OneUptime AI wait 10 minutes before investigating this incident, and when the wait ended it matched none of the 3 AI rules that investigate any more: the incident or the rules had changed. Only the incidents that match one are investigated automatically.",
     );
   });
 
@@ -241,7 +241,7 @@ describe("a decision taken when a wait ended says so", () => {
         undefined,
         { rulesChecked: 1, waitMinutes: 10 },
       ).description,
-    ).toContain("none of the 1 investigation rule any more");
+    ).toContain("none of the 1 AI rule that investigates any more");
   });
 
   test("the daily token limit names the check after the wait", () => {
@@ -293,7 +293,7 @@ describe("decisions taken at creation read exactly as before", () => {
     ["provider_missing", "No AI provider was available at creation"],
     [
       "no_investigation_rule_matched",
-      "This incident was outside the investigation rules at creation",
+      "This incident was outside the AI rules that investigate at creation",
     ],
     [
       "severity_below_threshold",

@@ -295,7 +295,7 @@ flowchart TB
 - **À votre état pris en compte ou au-delà** — **Pris en compte**, ou tout état placé en dessous dans **Incidents → Paramètres → État de l'incident** — aucune politique d'astreinte ne s'exécute, personne n'est donc alerté. L'incident liste toujours ses politiques, celles que vous avez choisies et celles qu'ajoutent les règles d'astreinte, et son fil d'activité dit pourquoi en une ligne : _No one was paged. This incident was created already acknowledged, so its on-call policy **Primary** was not run._ Son SLA, si une règle lui en donne un, démarre en étant déjà marqué comme répondu. Tout le reste ci-dessous s'exécute comme pour n'importe quel nouvel incident.
 - **À votre état résolu ou au-delà** — **Résolu**, ou tout état placé en dessous — l'incident est terminé ; en plus, rien de ce qui répond à un incident en cours ne s'exécute :
   - il n'est pas regroupé dans un épisode, ce qui pourrait alerter de nouveau ;
-  - aucune règle de runbook ni aucune règle de remédiation automatique n'agit sur lui ;
+  - aucune règle de runbook ni aucune règle IA n'agit sur lui ;
   - OneUptime AI ne l'examine pas — sa carte **Investigation IA** indique qu'il a été créé déjà résolu, et **Ask OneUptime AI** en dessous répond toujours aux questions à son sujet ;
   - aucun canal Slack ou Microsoft Teams n'est créé pour lui ;
   - ses moniteurs gardent leur statut et continuent d'être surveillés, quoi que dise **Changer le statut du moniteur en** ;

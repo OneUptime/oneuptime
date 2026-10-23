@@ -97,7 +97,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | **执行运行手册** | **更多字段** 下 | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
 | **标签** | **更多字段** 下 | 可选。 |
 
-Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。自动补救规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。
+Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。AI 规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。
 
 ### 2. 复制安装命令
 
@@ -171,7 +171,7 @@ Bash 通过 `bash -c` 运行。JavaScript 在 Runner 上的 `isolated-vm` 沙箱
 
 默认 Runner 必须是项目自己的、运行运行手册步骤的 Runner：不能是全局 Runner，不能是 Kubernetes 代理安装的集群内 Runner，也不能是关闭了 **执行运行手册** 的 Runner。只要某个 Runner 是默认 Runner，它的 **执行运行手册** 就保持开启。默认 Runner 未连接时，步骤的下拉列表会提示这一点，在它上面的步骤会像对待任何 Runner 一样等待它，直到 claim timeout 结束。
 
-只有运行手册步骤使用默认 Runner。代码存储库在代码的设置中选择自己的 Runner，自动补救规则也选择自己的 Runner。
+只有运行手册步骤使用默认 Runner。代码存储库在代码的设置中选择自己的 Runner，AI 规则也选择自己的 Runner。
 
 ## 运维说明
 

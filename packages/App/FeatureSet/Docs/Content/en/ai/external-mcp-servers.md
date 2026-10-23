@@ -66,7 +66,7 @@ flowchart TB
 | | Tools that only read | Tools that may change something |
 | --- | --- | --- |
 | **Investigations** | Used, alongside OneUptime's own data | Never used: OneUptime refuses the call |
-| **Fixes** | Used to work out the fix | Proposed for approval, or used right away, as the auto remediation rule's **Approval** says |
+| **Fixes** | Used to work out the fix | Proposed for approval, or used right away, as the AI rule's **Fix** says |
 
 **In an investigation**, OneUptime AI lists the tools of the servers it may use and calls the ones that read, to look at what OneUptime cannot see itself: your cloud account, a deployment, an issue tracker. It uses what they answer in its root cause analysis. See [AI SRE](/docs/ai/ai-sre).
 
@@ -81,12 +81,12 @@ To stop OneUptime AI using a server, turn off **Let OneUptime AI use this server
 
 ## Choose the servers a rule may use
 
-Investigation rules and auto remediation rules can each name the MCP servers OneUptime AI may use for what they match. The field is **MCP Servers**, under **More fields**. Until you pick some, OneUptime AI may use all of them, and the folded section says so.
+Each AI rule can name the MCP servers OneUptime AI may use for what it matches. The field is **MCP Servers**, under **More fields**. Until you pick some, OneUptime AI may use all of them, and the folded section says so.
 
 - **None picked** — all of the project's servers that are on.
-- **Some picked** — only those. On an auto remediation rule that fixes without asking, naming its servers is also what lets OneUptime AI make their changes without asking.
+- **Some picked** — only those. On an AI rule that fixes without asking, naming its servers is also what lets OneUptime AI make their changes without asking.
 
-When several investigation rules match, OneUptime AI may use every server any of them allows; if the rules cannot be read, the investigation uses no MCP server at all. Each matching auto remediation rule works out its own fix through its servers, and the rules that name none share one fix through all of them.
+When several rules that investigate match, OneUptime AI may use every server any of them allows; if the rules cannot be read, the investigation uses no MCP server at all. Each matching rule that fixes works out its own fix through its servers, and the rules that name none share one fix through all of them.
 
 ## Safety
 

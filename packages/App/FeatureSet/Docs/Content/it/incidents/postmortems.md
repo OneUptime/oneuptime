@@ -86,7 +86,7 @@ Con **Scrivi una bozza di post-mortem quando un incidente viene risolto** attivo
 
 Senza regole, ogni incidente risolto riceve una bozza, secondo lo schema standard di OneUptime AI. Le **Regole post-mortem**, in **Altre impostazioni** nella stessa pagina, cambiano questo comportamento:
 
-- Una regola corrisponde a **Tutti gli incidenti**, oppure a **Solo gli incidenti che soddisfano le condizioni** su monitor, gravità, label, label dei monitor, titolo e descrizione, come fa una regola di indagine.
+- Una regola corrisponde a **Tutti gli incidenti**, oppure a **Solo gli incidenti che soddisfano le condizioni** su monitor, gravità, label, label dei monitor, titolo e descrizione, come fa una regola IA.
 - I suoi **Modelli** sono i modelli di post-mortem che la bozza può seguire. Senza alcun modello, la bozza segue lo schema standard; con uno, quel modello; con più di uno, quello che secondo OneUptime AI si adatta meglio all'incidente. Il post della bozza nel feed nomina il modello che ha seguito.
 - Il suo **Provider LLM**, in **Altri campi**, è il provider con cui OneUptime AI scrive la bozza e ne sceglie il modello. Se non se ne sceglie nessuno, è il provider predefinito del progetto, altrimenti quello globale. Il post della bozza nel feed nomina il provider scelto da una regola, o quello usato al suo posto e perché. Vedere [Quale provider LLM usa una regola](/docs/ai/ai-sre#quale-provider-llm-usa-una-regola).
 - Decide la prima regola abilitata che corrisponde all'incidente, partendo dall'alto dell'elenco: trascinare una regola per cambiarne la posizione. Un incidente a cui non corrisponde nessuna regola non riceve una bozza, e nessun incidente la riceve finché le regole non si possono leggere.

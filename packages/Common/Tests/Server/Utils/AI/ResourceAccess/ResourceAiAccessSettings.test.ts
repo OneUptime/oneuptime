@@ -227,7 +227,7 @@ describe("ResourceAiAccessPermissions", () => {
 
   it("names the permissions and what stays open, with the resource named in the sentence", () => {
     expect(getResourceAiAccessAdminRefusal(AiResourceType.DockerHost)).toBe(
-      "You need one of these permissions to let OneUptime AI do more on a Docker host (turn AI fixes on or give them more autonomy, or add command allowlist patterns): Project Owner, Project Admin, Edit Auto Remediation Rule. Anyone who may edit the Docker host can still turn AI fixes off or down to Ask for approval, and remove allowlist patterns.",
+      "You need one of these permissions to let OneUptime AI do more on a Docker host (turn AI fixes on or give them more autonomy, or add command allowlist patterns): Project Owner, Project Admin, Edit AI Rule. Anyone who may edit the Docker host can still turn AI fixes off or down to Ask for approval, and remove allowlist patterns.",
     );
     expect(
       getResourceAiAccessAdminRefusal(AiResourceType.DatabaseServer),
@@ -236,7 +236,7 @@ describe("ResourceAiAccessPermissions", () => {
       "Anyone who may edit the host can",
     );
     expect(getResourceAiAgentResetRefusal(AiResourceType.CephCluster)).toBe(
-      "You need one of these permissions to reset this Ceph cluster's Ceph AI agent: Project Owner, Project Admin, Edit Auto Remediation Rule.",
+      "You need one of these permissions to reset this Ceph cluster's Ceph AI agent: Project Owner, Project Admin, Edit AI Rule.",
     );
   });
 
