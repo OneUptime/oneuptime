@@ -29,12 +29,20 @@ describe("standard MIB objects", () => {
     ["1.3.6.1.2.1.31.1.1.1.18.2", "ifAlias.2", "IF-MIB"],
     ["1.3.6.1.2.1.4.20.1.1.10.0.0.1", "ipAdEntAddr.10.0.0.1", "IP-MIB"],
     ["1.3.6.1.2.1.6.9.0", "tcpCurrEstab.0", "TCP-MIB"],
-    ["1.3.6.1.2.1.25.3.3.1.2.196608", "hrProcessorLoad.196608", "HOST-RESOURCES-MIB"],
+    [
+      "1.3.6.1.2.1.25.3.3.1.2.196608",
+      "hrProcessorLoad.196608",
+      "HOST-RESOURCES-MIB",
+    ],
     ["1.3.6.1.2.1.25.2.3.1.6.1", "hrStorageUsed.1", "HOST-RESOURCES-MIB"],
     ["1.3.6.1.2.1.47.1.1.1.1.11.1", "entPhysicalSerialNum.1", "ENTITY-MIB"],
     ["1.3.6.1.2.1.99.1.1.1.4.7", "entPhySensorValue.7", "ENTITY-SENSOR-MIB"],
     ["1.0.8802.1.1.2.1.4.1.1.9.0.3.1", "lldpRemSysName.0.3.1", "LLDP-MIB"],
-    ["1.3.6.1.2.1.17.7.1.2.2.1.2.1.0.26.43.60.77.94", "dot1qTpFdbPort.1.0.26.43.60.77.94", "Q-BRIDGE-MIB"],
+    [
+      "1.3.6.1.2.1.17.7.1.2.2.1.2.1.0.26.43.60.77.94",
+      "dot1qTpFdbPort.1.0.26.43.60.77.94",
+      "Q-BRIDGE-MIB",
+    ],
     ["1.3.6.1.4.1.2021.4.6.0", "memAvailReal.0", "UCD-SNMP-MIB"],
     ["1.3.6.1.4.1.2021.10.1.3.1", "laLoad.1", "UCD-SNMP-MIB"],
     ["1.3.6.1.6.3.10.2.1.3.0", "snmpEngineTime.0", "SNMP-FRAMEWORK-MIB"],
@@ -62,7 +70,9 @@ describe("standard MIB objects", () => {
   });
 
   test("a leading dot is the same OID", () => {
-    expect(SnmpOidNameUtil.describe(".1.3.6.1.2.1.1.5.0").name).toBe("sysName.0");
+    expect(SnmpOidNameUtil.describe(".1.3.6.1.2.1.1.5.0").name).toBe(
+      "sysName.0",
+    );
   });
 
   /*
@@ -89,7 +99,9 @@ describe("OIDs no known object covers", () => {
   });
 
   test("under enterprises, name the vendor the enterprise number belongs to", () => {
-    expect(SnmpOidNameUtil.describe("1.3.6.1.4.1.9.9.48.1.1.1.5.1")).toMatchObject({
+    expect(
+      SnmpOidNameUtil.describe("1.3.6.1.4.1.9.9.48.1.1.1.5.1"),
+    ).toMatchObject({
       name: "enterprises.9.9.48.1.1.1.5.1",
       isGroupName: true,
       vendorName: "Cisco",
@@ -160,9 +172,7 @@ describe("the vendor templates OneUptime ships", () => {
       SnmpVendorTemplateUtil.getById("sophos-sfos");
     const column: string = sophos!.tables![0]!.columns[0]!.oid;
 
-    expect(
-      SnmpOidNameUtil.describe(column).templateColumnName,
-    ).toBeUndefined();
+    expect(SnmpOidNameUtil.describe(column).templateColumnName).toBeUndefined();
   });
 
   test("every health OID of every template has a name the walk can show", () => {
@@ -188,12 +198,12 @@ describe("the name a walked OID gets as a health OID", () => {
   });
 
   test("is its MIB name with its instance otherwise", () => {
-    expect(SnmpOidNameUtil.toHealthOid("1.3.6.1.2.1.25.3.3.1.2.196608")).toEqual(
-      {
-        oid: "1.3.6.1.2.1.25.3.3.1.2.196608",
-        name: "hrProcessorLoad.196608",
-      },
-    );
+    expect(
+      SnmpOidNameUtil.toHealthOid("1.3.6.1.2.1.25.3.3.1.2.196608"),
+    ).toEqual({
+      oid: "1.3.6.1.2.1.25.3.3.1.2.196608",
+      name: "hrProcessorLoad.196608",
+    });
   });
 
   test("is no name for an OID only a group covers: the OID says as much", () => {
@@ -203,7 +213,8 @@ describe("the name a walked OID gets as a health OID", () => {
   });
 
   test("keeps the OID as a health OID stores it, leading dot dropped", () => {
-    const healthOid: SnmpOid = SnmpOidNameUtil.toHealthOid(".1.3.6.1.2.1.1.5.0");
+    const healthOid: SnmpOid =
+      SnmpOidNameUtil.toHealthOid(".1.3.6.1.2.1.1.5.0");
 
     expect(healthOid).toEqual({ oid: "1.3.6.1.2.1.1.5.0", name: "sysName.0" });
     expect(SnmpOidListUtil.isValidOid(healthOid.oid)).toBe(true);

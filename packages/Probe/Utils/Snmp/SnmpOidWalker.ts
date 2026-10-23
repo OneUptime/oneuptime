@@ -158,6 +158,11 @@ export default class SnmpOidWalker {
       return result;
     };
 
+    // The GET a leaf root ends with counts as a request too.
+    const countRequest: () => void = (): void => {
+      requestCount++;
+    };
+
     for (;;) {
       if (varbinds.length >= maxOids) {
         return outcome(SnmpWalkStopReason.OidLimit);
@@ -200,9 +205,7 @@ export default class SnmpOidWalker {
             deadlineAt: deadlineAt,
             now: now,
             outcome: outcome,
-            onRequest: (): void => {
-              requestCount++;
-            },
+            onRequest: countRequest,
           });
         }
 
@@ -265,9 +268,7 @@ export default class SnmpOidWalker {
       deadlineAt: deadlineAt,
       now: now,
       outcome: outcome,
-      onRequest: (): void => {
-        requestCount++;
-      },
+      onRequest: countRequest,
     });
   }
 

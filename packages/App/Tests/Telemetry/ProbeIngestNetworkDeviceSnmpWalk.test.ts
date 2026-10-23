@@ -370,7 +370,9 @@ describe("handing out a walk", () => {
     ]);
     // A ping is handed out exactly as before: no credentials ride along.
     expect(jobs[0]).not.toHaveProperty("snmpMonitor");
-    expect(jobs[0]!.timeoutInMs).toBe(NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS);
+    expect(jobs[0]!.timeoutInMs).toBe(
+      NETWORK_DEVICE_DIAGNOSTIC_PING_TIMEOUT_IN_MS,
+    );
   });
 
   test("a batch with no walk never reads a device", async () => {
@@ -570,11 +572,13 @@ describe("receiving a walk's result", () => {
       ),
     );
 
-    const recorded: { probeId: ObjectID; report: NetworkDeviceDiagnosticReport } =
-      diagnosticService.recordReport.mock.calls[0]![0] as {
-        probeId: ObjectID;
-        report: NetworkDeviceDiagnosticReport;
-      };
+    const recorded: {
+      probeId: ObjectID;
+      report: NetworkDeviceDiagnosticReport;
+    } = diagnosticService.recordReport.mock.calls[0]![0] as {
+      probeId: ObjectID;
+      report: NetworkDeviceDiagnosticReport;
+    };
 
     expect(recorded.probeId.toString()).toBe(PROBE_ID.toString());
     expect(recorded.report.snmpWalkResult).toEqual({

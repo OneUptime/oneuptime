@@ -31,9 +31,19 @@ describe("numbers", () => {
   test.each([
     ["an Integer", snmp.ObjectType.Integer, 42, SnmpDataType.Integer],
     ["a negative Integer", snmp.ObjectType.Integer, -95, SnmpDataType.Integer],
-    ["a Counter32", snmp.ObjectType.Counter32, 4294967295, SnmpDataType.Counter32],
+    [
+      "a Counter32",
+      snmp.ObjectType.Counter32,
+      4294967295,
+      SnmpDataType.Counter32,
+    ],
     ["a Gauge32", snmp.ObjectType.Gauge32, 37, SnmpDataType.Gauge32],
-    ["a TimeTicks", snmp.ObjectType.TimeTicks, 104524500, SnmpDataType.TimeTicks],
+    [
+      "a TimeTicks",
+      snmp.ObjectType.TimeTicks,
+      104524500,
+      SnmpDataType.TimeTicks,
+    ],
   ])(
     "%s is a number",
     (_label: string, type: number, value: number, dataType: SnmpDataType) => {
@@ -56,9 +66,9 @@ describe("numbers", () => {
   });
 
   test("a Counter64 in a minimal-length buffer, as net-snmp hands small ones over", () => {
-    expect(row(snmp.ObjectType.Counter64, Buffer.from([0x04, 0x00])).value).toBe(
-      "1024",
-    );
+    expect(
+      row(snmp.ObjectType.Counter64, Buffer.from([0x04, 0x00])).value,
+    ).toBe("1024");
     expect(
       row(snmp.ObjectType.Counter64, Buffer.from("00ffffffffffffffff", "hex"))
         .value,
@@ -82,16 +92,18 @@ describe("octet strings", () => {
 
   test("UTF-8 text in any script is text, not hex", () => {
     for (const text of ["Büro 2. Stock", "東京データセンター", "Склад 3"]) {
-      expect(row(snmp.ObjectType.OctetString, Buffer.from(text, "utf8"))).toEqual(
-        { oid: OID, type: SnmpDataType.OctetString, value: text },
-      );
+      expect(
+        row(snmp.ObjectType.OctetString, Buffer.from(text, "utf8")),
+      ).toEqual({ oid: OID, type: SnmpDataType.OctetString, value: text });
     }
   });
 
   test("line breaks and tabs are text", () => {
     expect(
-      row(snmp.ObjectType.OctetString, Buffer.from("Cisco IOS\r\nVersion\t15.2"))
-        .value,
+      row(
+        snmp.ObjectType.OctetString,
+        Buffer.from("Cisco IOS\r\nVersion\t15.2"),
+      ).value,
     ).toBe("Cisco IOS\r\nVersion\t15.2");
   });
 
@@ -147,7 +159,10 @@ describe("octet strings", () => {
 
   test("text longer than the limit is cut, and says so", () => {
     const long: string = "x".repeat(SNMP_WALK_MAX_VALUE_LENGTH + 50);
-    const cut: SnmpWalkRow = row(snmp.ObjectType.OctetString, Buffer.from(long));
+    const cut: SnmpWalkRow = row(
+      snmp.ObjectType.OctetString,
+      Buffer.from(long),
+    );
 
     expect(cut.value).toBe("x".repeat(SNMP_WALK_MAX_VALUE_LENGTH));
     expect(cut.isCut).toBe(true);

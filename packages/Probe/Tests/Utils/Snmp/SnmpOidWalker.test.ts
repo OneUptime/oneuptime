@@ -166,8 +166,16 @@ function walkedOids(outcome: SnmpOidWalkOutcome): Array<string> {
 describe("walking to the end of a subtree", () => {
   test("starts at the root, then after the last OID each answer returned", async () => {
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(3).map((oid: string) => value(oid)) },
-      { varbinds: oids(2, 4).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(3).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(2, 4).map((oid: string) => {
+          return value(oid);
+        }),
+      },
       { varbinds: [endOfMibView(`${ROOT}.2.1.2.5`)] },
     ]);
 
@@ -349,8 +357,16 @@ describe("a walk that finds nothing under its root", () => {
 describe("the OID limit", () => {
   test("stops at the limit and says where to continue", async () => {
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(4).map((oid: string) => value(oid)) },
-      { varbinds: oids(4, 5).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(4).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(4, 5).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     const outcome: SnmpOidWalkOutcome = await SnmpOidWalker.walk(
@@ -365,8 +381,16 @@ describe("the OID limit", () => {
 
   test("asks for no more OIDs than the limit leaves room for", async () => {
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(4).map((oid: string) => value(oid)) },
-      { varbinds: oids(2, 5).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(4).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(2, 5).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     await SnmpOidWalker.walk(agent, options({ maxOids: 6, maxRepetitions: 4 }));
@@ -379,7 +403,11 @@ describe("the OID limit", () => {
 
   test("a continued walk starts after the OID it was given", async () => {
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(2, 7).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(2, 7).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     const outcome: SnmpOidWalkOutcome = await SnmpOidWalker.walk(
@@ -400,9 +428,21 @@ describe("the time budget", () => {
   test("stops when the budget runs out, keeping what it read and where to continue", async () => {
     let clock: number = 1000;
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(2).map((oid: string) => value(oid)) },
-      { varbinds: oids(2, 3).map((oid: string) => value(oid)) },
-      { varbinds: oids(2, 5).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(2).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(2, 3).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(2, 5).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     // Every request takes ten seconds on this agent.
@@ -454,8 +494,16 @@ describe("the pause between requests", () => {
   test("is taken between requests, never before the first", async () => {
     const pauses: Array<number> = [];
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(2).map((oid: string) => value(oid)) },
-      { varbinds: oids(2, 3).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(2).map((oid: string) => {
+          return value(oid);
+        }),
+      },
+      {
+        varbinds: oids(2, 3).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     const outcome: SnmpOidWalkOutcome = await SnmpOidWalker.walk(
@@ -476,7 +524,11 @@ describe("the pause between requests", () => {
   test("is not taken when there is none", async () => {
     const pauses: Array<number> = [];
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(2).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(2).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     await SnmpOidWalker.walk(
@@ -498,7 +550,11 @@ describe("an agent that answers tooBig", () => {
     const agent: ScriptedAgent = new ScriptedAgent([
       { error: requestFailed(snmp.ErrorStatus.TooBig) },
       { error: requestFailed(snmp.ErrorStatus.TooBig) },
-      { varbinds: oids(6).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(6).map((oid: string) => {
+          return value(oid);
+        }),
+      },
     ]);
 
     const outcome: SnmpOidWalkOutcome = await SnmpOidWalker.walk(
@@ -547,10 +603,7 @@ describe("an agent that misbehaves", () => {
       options(),
     );
 
-    expect(walkedOids(outcome)).toEqual([
-      `${ROOT}.2.1.2.5`,
-      `${ROOT}.2.1.2.6`,
-    ]);
+    expect(walkedOids(outcome)).toEqual([`${ROOT}.2.1.2.5`, `${ROOT}.2.1.2.6`]);
     expect(outcome.stopReason).toBe(SnmpWalkStopReason.Failed);
     expect(outcome.error).toBeInstanceOf(SnmpWalkOutOfOrderError);
     expect(outcome.nextOid).toBe(`${ROOT}.2.1.2.6`);
@@ -593,7 +646,11 @@ describe("an agent that misbehaves", () => {
 describe("a device that stops answering", () => {
   test("keeps what was read before the failure, and where to continue", async () => {
     const agent: ScriptedAgent = new ScriptedAgent([
-      { varbinds: oids(3).map((oid: string) => value(oid)) },
+      {
+        varbinds: oids(3).map((oid: string) => {
+          return value(oid);
+        }),
+      },
       { error: timedOut() },
     ]);
 

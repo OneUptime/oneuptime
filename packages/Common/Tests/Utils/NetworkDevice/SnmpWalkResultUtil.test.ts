@@ -25,10 +25,16 @@ import SnmpWalkResultUtil, {
 describe("OID order", () => {
   test("compares arc by arc, as numbers, not as text", () => {
     expect(
-      SnmpWalkResultUtil.compareOids("1.3.6.1.2.1.2.2.1.9", "1.3.6.1.2.1.2.2.1.10"),
+      SnmpWalkResultUtil.compareOids(
+        "1.3.6.1.2.1.2.2.1.9",
+        "1.3.6.1.2.1.2.2.1.10",
+      ),
     ).toBeLessThan(0);
     expect(
-      SnmpWalkResultUtil.compareOids("1.3.6.1.2.1.2.2.1.10", "1.3.6.1.2.1.2.2.1.9"),
+      SnmpWalkResultUtil.compareOids(
+        "1.3.6.1.2.1.2.2.1.10",
+        "1.3.6.1.2.1.2.2.1.9",
+      ),
     ).toBeGreaterThan(0);
     expect(SnmpWalkResultUtil.compareOids("1.3.6.1", "1.3.6.1")).toBe(0);
   });
@@ -65,11 +71,14 @@ describe("OID order", () => {
   });
 
   test("an OID is within its own subtree and everything under it", () => {
-    expect(SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1.2")).toBe(
-      true,
-    );
     expect(
-      SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1.2.2.1.2.1"),
+      SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1.2"),
+    ).toBe(true);
+    expect(
+      SnmpWalkResultUtil.isWithinSubtree(
+        "1.3.6.1.2.1.2",
+        "1.3.6.1.2.1.2.2.1.2.1",
+      ),
     ).toBe(true);
     expect(
       SnmpWalkResultUtil.isWithinSubtree(".1.3.6.1.2.1.2", "1.3.6.1.2.1.2.1.0"),
@@ -78,11 +87,14 @@ describe("OID order", () => {
 
   test("an OID that only shares the root's digits is not within it", () => {
     expect(
-      SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1.25.1.1.0"),
+      SnmpWalkResultUtil.isWithinSubtree(
+        "1.3.6.1.2.1.2",
+        "1.3.6.1.2.1.25.1.1.0",
+      ),
     ).toBe(false);
-    expect(SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1")).toBe(
-      false,
-    );
+    expect(
+      SnmpWalkResultUtil.isWithinSubtree("1.3.6.1.2.1.2", "1.3.6.1.2.1"),
+    ).toBe(false);
   });
 });
 
@@ -111,12 +123,18 @@ describe("where a walk starts", () => {
     ["a trailing dot", "1.3.6.1."],
     ["a single arc", "1"],
     ["letters among digits", "1.3.6.x.1"],
-    ["an OID longer than any agent sends", `1.3${".1".repeat(SNMP_WALK_MAX_OID_LENGTH)}`],
-  ])("%s is refused, in the person's words", (_label: string, rootOid: string) => {
-    expect(() => {
-      return SnmpWalkResultUtil.resolveStart({ rootOid: rootOid });
-    }).toThrow(SNMP_WALK_INVALID_ROOT_MESSAGE);
-  });
+    [
+      "an OID longer than any agent sends",
+      `1.3${".1".repeat(SNMP_WALK_MAX_OID_LENGTH)}`,
+    ],
+  ])(
+    "%s is refused, in the person's words",
+    (_label: string, rootOid: string) => {
+      expect(() => {
+        return SnmpWalkResultUtil.resolveStart({ rootOid: rootOid });
+      }).toThrow(SNMP_WALK_INVALID_ROOT_MESSAGE);
+    },
+  );
 
   test("a walk that continues another keeps the OID it continues after", () => {
     expect(
@@ -143,14 +161,17 @@ describe("where a walk starts", () => {
     ["outside the subtree", "1.3.6.1.2.1.25.1.1.0"],
     ["above the root", "1.3.6.1.2"],
     ["not an OID", "ifDescr.3"],
-  ])("an OID to continue after %s is refused", (_label: string, afterOid: string) => {
-    expect(() => {
-      return SnmpWalkResultUtil.resolveStart({
-        rootOid: "1.3.6.1.2.1.2",
-        afterOid: afterOid,
-      });
-    }).toThrow(SNMP_WALK_INVALID_AFTER_MESSAGE);
-  });
+  ])(
+    "an OID to continue after %s is refused",
+    (_label: string, afterOid: string) => {
+      expect(() => {
+        return SnmpWalkResultUtil.resolveStart({
+          rootOid: "1.3.6.1.2.1.2",
+          afterOid: afterOid,
+        });
+      }).toThrow(SNMP_WALK_INVALID_AFTER_MESSAGE);
+    },
+  );
 
   test("an OID to continue after is checked against the default root too", () => {
     expect(
@@ -207,7 +228,11 @@ describe("a probe's walk report, as the server stores it", () => {
     const rows: Array<Record<string, unknown>> = Array.from(
       { length: SNMP_WALK_MAX_OIDS + 25 },
       (_: unknown, index: number) => {
-        return { oid: `1.3.6.1.2.1.2.2.1.2.${index + 1}`, type: "Integer", value: index };
+        return {
+          oid: `1.3.6.1.2.1.2.2.1.2.${index + 1}`,
+          type: "Integer",
+          value: index,
+        };
       },
     );
 
@@ -290,17 +315,18 @@ describe("a probe's walk report, as the server stores it", () => {
   });
 
   test("text past the limit is cut and says so", () => {
-    const row: Record<string, unknown> | undefined = SnmpWalkResultUtil.sanitize(
-      report({
-        rows: [
-          {
-            oid: "1.3.6.1.2.1.1.1.0",
-            type: "OctetString",
-            value: "y".repeat(SNMP_WALK_MAX_VALUE_LENGTH * 3),
-          },
-        ],
-      }),
-    )?.rows[0] as unknown as Record<string, unknown>;
+    const row: Record<string, unknown> | undefined =
+      SnmpWalkResultUtil.sanitize(
+        report({
+          rows: [
+            {
+              oid: "1.3.6.1.2.1.1.1.0",
+              type: "OctetString",
+              value: "y".repeat(SNMP_WALK_MAX_VALUE_LENGTH * 3),
+            },
+          ],
+        }),
+      )?.rows[0] as unknown as Record<string, unknown>;
 
     expect((row["value"] as string).length).toBe(SNMP_WALK_MAX_VALUE_LENGTH);
     expect(row["isCut"]).toBe(true);
@@ -373,7 +399,8 @@ describe("a probe's walk report, as the server stores it", () => {
 
   test("a report that says nothing of why it stopped stopped for its failure, or was complete", () => {
     expect(
-      SnmpWalkResultUtil.sanitize(report({ stopReason: undefined }))?.stopReason,
+      SnmpWalkResultUtil.sanitize(report({ stopReason: undefined }))
+        ?.stopReason,
     ).toBe(SnmpWalkStopReason.Complete);
     expect(
       SnmpWalkResultUtil.sanitize(
@@ -401,9 +428,9 @@ describe("a probe's walk report, as the server stores it", () => {
   });
 
   test("only the probe's own spellings of an SNMP version are kept", () => {
-    expect(SnmpWalkResultUtil.sanitize(report({ snmpVersion: "3" }))?.snmpVersion).toBe(
-      "3",
-    );
+    expect(
+      SnmpWalkResultUtil.sanitize(report({ snmpVersion: "3" }))?.snmpVersion,
+    ).toBe("3");
     expect(
       SnmpWalkResultUtil.sanitize(report({ snmpVersion: "<b>v9</b>" })),
     ).not.toHaveProperty("snmpVersion");
@@ -422,9 +449,9 @@ describe("a probe's walk report, as the server stores it", () => {
 
 describe("hex", () => {
   test("is two upper-case digits a byte, a space between bytes", () => {
-    expect(
-      SnmpWalkResultUtil.toHex(new Uint8Array([0, 10, 171, 255])),
-    ).toBe("00 0A AB FF");
+    expect(SnmpWalkResultUtil.toHex(new Uint8Array([0, 10, 171, 255]))).toBe(
+      "00 0A AB FF",
+    );
     expect(SnmpWalkResultUtil.toHex(new Uint8Array([]))).toBe("");
   });
 });

@@ -480,9 +480,9 @@ describe("an SNMP v2c walk of the whole tree", () => {
   });
 
   test("is what the server stores, unchanged", () => {
-    expect(SnmpWalkResultUtil.sanitize(JSON.parse(JSON.stringify(result)))).toEqual(
-      JSON.parse(JSON.stringify(result)),
-    );
+    expect(
+      SnmpWalkResultUtil.sanitize(JSON.parse(JSON.stringify(result))),
+    ).toEqual(JSON.parse(JSON.stringify(result)));
   });
 });
 

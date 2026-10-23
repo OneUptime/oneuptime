@@ -125,7 +125,9 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
-export function getSnmpWalkDataType(type: snmp.ObjectType | undefined): SnmpDataType {
+export function getSnmpWalkDataType(
+  type: snmp.ObjectType | undefined,
+): SnmpDataType {
   switch (type) {
     case snmp.ObjectType.Integer:
       return SnmpDataType.Integer;

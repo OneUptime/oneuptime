@@ -122,9 +122,7 @@ describe("the agent answering with an error", () => {
   ])(
     "%s is the agent's access control refusing: an authentication failure, access denied",
     (_label: string, status: number) => {
-      expect(
-        classify(new snmp.RequestFailedError("Refused", status)),
-      ).toEqual({
+      expect(classify(new snmp.RequestFailedError("Refused", status))).toEqual({
         kind: SnmpWalkFailureKind.Authentication,
         authenticationReason: SnmpWalkAuthenticationReason.AccessDenied,
         message: "Refused",

@@ -175,7 +175,9 @@ describe("where a walk starts", () => {
     const findSpy: FindOneByIdSpy = stubDevice(deviceRow());
 
     await expect(
-      internals.onBeforeCreate(walkCreate({ snmpWalkRootOid: "IF-MIB::ifTable" })),
+      internals.onBeforeCreate(
+        walkCreate({ snmpWalkRootOid: "IF-MIB::ifTable" }),
+      ),
     ).rejects.toThrow(SNMP_WALK_INVALID_ROOT_MESSAGE);
 
     expect(findSpy.mock.calls).toHaveLength(0);

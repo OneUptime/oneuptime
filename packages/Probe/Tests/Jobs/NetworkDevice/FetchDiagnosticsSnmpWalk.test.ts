@@ -163,9 +163,8 @@ describe("an SNMP Walk diagnostic", () => {
   });
 
   test("is a Completed report carrying what the walk read", async () => {
-    const report: NetworkDeviceDiagnosticReport = await runDiagnostic(
-      makeWalkJob(),
-    );
+    const report: NetworkDeviceDiagnosticReport =
+      await runDiagnostic(makeWalkJob());
 
     expect(report).toEqual({
       networkDeviceDiagnosticId: "diag-walk-1",
@@ -189,9 +188,8 @@ describe("an SNMP Walk diagnostic", () => {
     });
     walkSpy.mockResolvedValue(refused);
 
-    const report: NetworkDeviceDiagnosticReport = await runDiagnostic(
-      makeWalkJob(),
-    );
+    const report: NetworkDeviceDiagnosticReport =
+      await runDiagnostic(makeWalkJob());
 
     expect(report.status).toBe(NetworkDeviceDiagnosticStatus.Completed);
     expect(report.snmpWalkResult).toEqual(refused);
@@ -217,9 +215,8 @@ describe("an SNMP Walk diagnostic", () => {
   test("a walk that throws anyway becomes a Failed report with the error", async () => {
     walkSpy.mockRejectedValue(new Error("net-snmp blew up"));
 
-    const report: NetworkDeviceDiagnosticReport = await runDiagnostic(
-      makeWalkJob(),
-    );
+    const report: NetworkDeviceDiagnosticReport =
+      await runDiagnostic(makeWalkJob());
 
     expect(report.status).toBe(NetworkDeviceDiagnosticStatus.Failed);
     expect(report.statusMessage).toBe("net-snmp blew up");
