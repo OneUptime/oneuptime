@@ -401,12 +401,14 @@ describe("editing", () => {
 
     const [, fields] = (
       PermissionGate.checkFormUpdate as unknown as {
-        mock: { calls: Array<[unknown, Array<{ field: object }>]> };
+        mock: {
+          calls: Array<[unknown, Array<{ field: Record<string, unknown> }>]>;
+        };
       }
     ).mock.calls[0]!;
 
     expect(
-      fields.map((field: { field: object }) => {
+      fields.map((field: { field: Record<string, unknown> }) => {
         return Object.keys(field.field)[0];
       }),
     ).toEqual(["description", "rootCause"]);

@@ -288,7 +288,7 @@ Feeds respekterer hændelsers privatliv: for private hændelser filtreres feedet
 
 Ejere er de personer og teams, der har ansvaret for en hændelse. De er modtagerne af notifikationerne om alt, hvad der sker med den — og de er grunden til, at en hændelse ikke går upåagtet hen, mens alle går ud fra, at en anden tager sig af den.
 
-Åbn **Team → Ejere** i hændelsens sidemenu. Kortet **Ejere** viser et mærke med et antal og beskriver ejere som de personer og teams, der har ansvaret for denne hændelse, og som får besked om ændringer, med en løbende optælling som "2 people · 1 team". Ejere vises som overlappende avatarer; holder du musen over en, vises personens e-mail, eller posten markeres som et **Team**.
+Åbn **Team → Ejere** i hændelsens sidemenu. Kortet **Ejere** viser et mærke med et antal og beskriver ejere som de personer og teams, der har ansvaret for denne hændelse, og som får besked om ændringer, med en løbende optælling som "2 people · 1 team". Ejere vises som overlappende avatarer; holder du musen over en, vises personens e-mail, eller posten markeres som et **Team**. Hændelsens **Oversigt** nævner også dens ejere i hovedet, teams først: op til tre og derefter et link til resten på denne side, eller **Ingen**, med **Tilføj**, så længe hændelsen er åben.
 
 - Klik på **Tilføj ejer** for at åbne en vælger med et søgefelt til personer eller teams.
 - Klik på fjernelseselementet på en avatar for at åbne bekræftelsen **Fjern ejer**, og derefter på **Fjern**.

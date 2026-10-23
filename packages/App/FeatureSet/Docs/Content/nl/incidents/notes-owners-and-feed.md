@@ -288,7 +288,7 @@ Feeds respecteren de privacy van incidenten: bij privé-incidenten worden feeds 
 
 Eigenaren zijn de mensen en teams die verantwoordelijk zijn voor een incident. Zij zijn het doel van de meldingen over alles wat ermee gebeurt — en zij zijn de reden dat een incident niet onopgemerkt blijft terwijl iedereen aanneemt dat iemand anders ermee bezig is.
 
-Open **Team → Eigenaren** in het zijmenu van het incident. De kaart **Eigenaren** toont een badge met een teller en beschrijft eigenaren als de mensen en teams die verantwoordelijk zijn voor dit incident en die bericht krijgen over wijzigingen, met een lopende telling zoals "2 people · 1 team". Eigenaren verschijnen als overlappende avatars; als je er een aanwijst, zie je het e-mailadres van de persoon of wordt het item als **Team** gemarkeerd.
+Open **Team → Eigenaren** in het zijmenu van het incident. De kaart **Eigenaren** toont een badge met een teller en beschrijft eigenaren als de mensen en teams die verantwoordelijk zijn voor dit incident en die bericht krijgen over wijzigingen, met een lopende telling zoals "2 people · 1 team". Eigenaren verschijnen als overlappende avatars; als je er een aanwijst, zie je het e-mailadres van de persoon of wordt het item als **Team** gemarkeerd. Het **Overzicht** van het incident noemt de eigenaren ook in de kop, teams eerst: tot drie, dan een link naar de rest op deze pagina, of **Geen**, met **Toevoegen** zolang het incident open is.
 
 - Klik op **Eigenaar toevoegen** om een kiezer te openen met een zoekvak voor mensen of teams.
 - Klik op het verwijderelement op een avatar om de bevestiging **Eigenaar verwijderen** te openen, en dan op **Verwijderen**.
