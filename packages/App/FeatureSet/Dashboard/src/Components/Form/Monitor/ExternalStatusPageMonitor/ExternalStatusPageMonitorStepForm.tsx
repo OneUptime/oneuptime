@@ -90,10 +90,15 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
       >
         <div className="space-y-4">
           <div>
+            {/*
+             * The two filters' titles say "(Optional)" themselves, so the
+             * label does not add it again.
+             */}
             <FieldLabelElement
               title="Component Group Filter (Optional)"
               description="Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups."
               required={false}
+              hideOptionalLabel={true}
             />
             <Input
               initialValue={
@@ -115,6 +120,7 @@ const ExternalStatusPageMonitorStepForm: FunctionComponent<ComponentProps> = (
               title="Component Name Filter (Optional)"
               description="Filter to a specific component by name (applied within the component group when one is set). Leave blank to monitor all components in scope."
               required={false}
+              hideOptionalLabel={true}
             />
             <Input
               initialValue={

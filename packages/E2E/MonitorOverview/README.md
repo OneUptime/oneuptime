@@ -208,6 +208,16 @@ first, above the pricing card, on a desktop and on a phone. At the limit a Manua
 can still be made from the same form. The notice fits a phone and sits on a dark surface in
 dark mode.
 
+`ExternalStatusPageMonitor.spec.ts` covers the External Status Page monitor's providers on
+Create Monitor (issue #5176): the Provider dropdown offers OneUptime Status Page between
+incident.io and the feeds, with Auto picked; the Provider's line says what Auto does; More
+fields holds the group filter, whose line says which providers have groups, and the two
+filters' titles say "(Optional)" once. At 390px the list and More fields stay inside the
+screen. Start to finish, the docs' steps for showing upstream maintenance: a OneUptime
+Status Page with a group, Add Criteria, External Status Page Component Status, Equal To,
+Under Maintenance, and Create Monitor sending the provider, the group and
+`under_maintenance`.
+
 `afterEach` fails a test on an uncaught page error, on any request the fixture does not
 model, and on any request the network fence had to abort.
 
