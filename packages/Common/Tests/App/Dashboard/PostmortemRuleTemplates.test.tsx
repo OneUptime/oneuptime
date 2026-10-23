@@ -25,7 +25,8 @@ import FieldType from "../../../UI/Components/Types/FieldType";
  * → Settings → More settings → Postmortem rules, in the Dashboard's real
  * German words: one template a line, as every list of records in a table
  * is drawn - the first three by name, then a button that says how many
- * more there are ("2 weitere Vorlagen") and shows them - each cut short in
+ * more there are ("2 weitere Vorlagen") and shows them, or all four when
+ * there are four - each cut short in
  * a table's row with its whole name under the pointer, and run onto the
  * next line in a phone's card. No template: the standard outline, in grey.
  *
@@ -168,12 +169,17 @@ describe("a rule's templates in a row of the table", () => {
     ).toBeInTheDocument();
   });
 
-  test("one more is said in German's singular", () => {
+  /*
+   * A cell's list never folds a single item behind "1 more": its button
+   * takes a line of its own, a taller one than the item it would hide
+   * (TableColumnListFold, OneUptime issue #5187). So a fourth template is
+   * listed by name, and the button, when there is one, says two or more.
+   */
+  test("a fourth template is listed rather than folded behind '1 weitere Vorlage'", () => {
     const body: HTMLElement = renderCell(rule("A", "B", "C", "D"), false);
 
-    expect(
-      within(body).getByRole("button", { name: "1 weitere Vorlage" }),
-    ).toBeInTheDocument();
+    expect(names(body)).toEqual(["A", "B", "C", "D"]);
+    expect(within(body).queryByRole("button")).not.toBeInTheDocument();
   });
 
   test("no template is the standard outline, in German and in grey", () => {
