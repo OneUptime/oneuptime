@@ -111,6 +111,12 @@ const ALLOWED_BUTTON_GROUPS: Array<AllowedButtonGroup> = [
     reason:
       "A segmented choice of time range, not a row of actions: each chip is PRIMARY only while it is the selected range (`isX ? PRIMARY : NORMAL`), so exactly one is filled at a time.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityGettingStarted.tsx",
+    labels: "Turn on recommended | Try again",
+    reason:
+      "One main button in two states: Try again takes Turn on recommended's place once a click left something undone (showTurnOn is `!showTryAgain && ...`), so the card never draws both.",
+  },
 ];
 
 /*

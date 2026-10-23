@@ -26,7 +26,8 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { KubernetesWorkloadKind } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -109,6 +110,28 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The daemonset's Events and those of what it runs, read as the page
+   * opens: the Events tab says how many warnings there are before it
+   * is opened. Read once the daemonset is known, for its namespace.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "workload",
+          workloadKind: KubernetesWorkloadKind.DaemonSet,
+          name: daemonSetName,
+          namespace: objectData?.metadata.namespace,
+        },
+    title: "DaemonSet Events",
+    description:
+      "Kubernetes events for this daemonset and its pods in the last 24 hours.",
+    resourceKind: "DaemonSet",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -283,22 +306,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="DaemonSet Events"
-          description="Kubernetes events for this daemonset in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="DaemonSet"
-            resourceName={daemonSetName}
-            namespace={objectData?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Metrics",
       children: (

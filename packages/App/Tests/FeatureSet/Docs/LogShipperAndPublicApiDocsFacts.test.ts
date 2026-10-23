@@ -55,6 +55,9 @@ import { JSONObject } from "Common/Types/JSON";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import { STATUS_PAGE_NOT_FOUND_MESSAGE } from "Common/Types/StatusPage/StatusPageArchive";
+import StatusPageSummaryUtil, {
+  StatusPageSummary,
+} from "Common/Types/StatusPage/StatusPageSummary";
 import TelemetryIngestionKeyPolicy from "Common/Types/Telemetry/TelemetryIngestionKeyPolicy";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
 import TelemetryIngestSurface, {
@@ -2338,7 +2341,7 @@ describe("the Public API page", () => {
   it("lists every endpoint the API serves for a page, with its methods", () => {
     const rows: Array<Array<string>> = tableAfter(PUBLIC_API, ENDPOINTS_HEADER);
 
-    expect(rows.length).toBe(10);
+    expect(rows.length).toBe(11);
 
     for (const [endpoint, methods] of rows as Array<[string, string]>) {
       const route: string = documentedRoute(codeSpans(endpoint)[0] as string);
@@ -2636,6 +2639,83 @@ describe("the Public API page", () => {
   it("serves the overview from a cache at most 15 seconds old", () => {
     expect(StatusPageOverviewCache.TTL_MS).toBe(15 * 1000);
     expect(englishPage(PUBLIC_API)).toContain("it is at most 15 seconds old");
+  });
+
+  it("answers the summary on GET and POST, from the overview's cache after the same read check", () => {
+    expect(
+      STATUS_PAGE_ROUTES["/status-page/summary/:statusPageIdOrDomain"],
+    ).toEqual(["GET", "POST"]);
+
+    const handlerStart: number = STATUS_PAGE_API_SOURCE.indexOf(
+      "const summaryHandler:",
+    );
+    const summary: string = oneLine(
+      STATUS_PAGE_API_SOURCE.slice(
+        handlerStart,
+        STATUS_PAGE_API_SOURCE.indexOf("const summaryApiPath:", handlerStart),
+      ),
+    );
+
+    expect(handlerStart).toBeGreaterThan(0);
+    const readCheck: number = summary.indexOf("await this.checkHasReadAccess(");
+    const cacheRead: number = summary.indexOf(
+      "await this.getCachedOverviewResponse(statusPageId);",
+    );
+
+    expect(readCheck).toBeGreaterThan(0);
+    expect(cacheRead).toBeGreaterThan(readCheck);
+    expect(summary).toContain(
+      "StatusPageSummaryUtil.toJSON( StatusPageSummaryBuilder.fromOverview(overview), )",
+    );
+    expect(oneLine(STATUS_PAGE_API_SOURCE)).toContain(
+      "const response: JSONObject = await this.getCachedOverviewResponse(statusPageId);",
+    );
+    expect(englishPage(PUBLIC_API)).toContain(
+      "It comes from the same cache as the overview, after the same access rules.",
+    );
+  });
+
+  it("shows the summary as it is sent, and names each of its keys", () => {
+    const example: DocsFence | undefined = codeBlocks(PUBLIC_API).find(
+      (fence: DocsFence): boolean => {
+        return (
+          fence.lang === "json" && fence.code.includes('"isUnderMaintenance"')
+        );
+      },
+    );
+    const shown: JSONObject = JSON.parse(
+      (example as DocsFence).code,
+    ) as JSONObject;
+    const read: StatusPageSummary | null =
+      StatusPageSummaryUtil.fromJSON(shown);
+
+    // The example is a summary, exactly as the server writes one.
+    expect(read).not.toBeNull();
+    expect(StatusPageSummaryUtil.toJSON(read as StatusPageSummary)).toEqual(
+      shown,
+    );
+
+    const listed: Array<string> = keysListed(
+      PUBLIC_API,
+      "| Key | In the summary |",
+    );
+
+    expect([...listed].sort()).toEqual(Object.keys(shown).sort());
+
+    // And the keys of a resource, an incident and an event, in the table's words.
+    const page: string = englishPage(PUBLIC_API);
+    const resource: JSONObject = (shown["resources"] as Array<JSONObject>)[0]!;
+
+    for (const key of Object.keys(resource).filter((key: string): boolean => {
+      return key !== "id";
+    })) {
+      expect({ key, named: page.includes(`\`${key}\``) }).toEqual({
+        key,
+        named: true,
+      });
+    }
+
+    expect(page).toContain("`affectedResourceIds`");
   });
 
   it("lists every key of the overview response, and only those", () => {

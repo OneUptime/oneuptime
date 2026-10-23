@@ -196,7 +196,11 @@ export type SessionReplayPerformanceBudgetKind =
 /* A configured budget was exceeded. This is what fires the perf trigger. */
 export interface SessionReplayPerformanceBudgetPayload {
   kind: SessionReplayPerformanceBudgetKind;
-  /* For lcp this is the render time from navigation start. */
+  /*
+   * For lcp this is the render time from navigation start - or, for a page
+   * the browser prerendered, from when the visitor opened it, the same
+   * LCP the web vital reports.
+   */
   durationMs: number;
   /* The budget that was exceeded, so playback can show both numbers. */
   budgetMs: number;
@@ -224,20 +228,46 @@ export type SessionReplayWebVitalMetric =
 export type SessionReplayWebVitalRating = "good" | "needs-improvement" | "poor";
 
 /*
- * How the view an INP describes began: the document load ("hard") or a
- * single-page-app route change ("soft").
+ * How the page view a vital describes began, as the web-vitals library's
+ * navigationType names it:
+ *
+ *   - "hard": an ordinary document load.
+ *   - "soft": a single-page-app route change (INP only).
+ *   - "prerender": a document load the browser PRERENDERED before the
+ *     visitor opened it. Its FCP, LCP and TTFB count from activation (the
+ *     moment the visitor opened it), not from the prerender's start.
+ *   - "back-forward-cache": the page came back from the back/forward cache,
+ *     a page view of its own with its own vitals.
+ *
+ * INP has always carried it; newer recorders put it on every vital, and
+ * only they send "prerender" or "back-forward-cache". Additive like the
+ * tags: a reader that meets a value it does not know drops the field.
  */
-export type SessionReplayNavigationType = "hard" | "soft";
+export type SessionReplayNavigationType =
+  | "hard"
+  | "soft"
+  | "prerender"
+  | "back-forward-cache";
+
+export const SESSION_REPLAY_NAVIGATION_TYPES: ReadonlyArray<SessionReplayNavigationType> =
+  ["hard", "soft", "prerender", "back-forward-cache"];
 
 /* The input that produced an INP, as the browser classes it. */
 export type SessionReplayInteractionType = "pointer" | "keyboard";
 
 /*
- * A web vital. LCP, FCP, CLS and TTFB are observed once per page load;
- * INP once per VIEW (newer recorders), so a single-page app reports one
- * INP for each route the user interacted on instead of one for the whole
- * visit. Informational only: vitals never trigger an upload, and CLS's
- * value is unitless while the others are milliseconds.
+ * A web vital. LCP, FCP, CLS and TTFB are observed once per page view
+ * (the document load, and again for a page restored from the back/forward
+ * cache); INP once per VIEW (newer recorders), so a single-page app
+ * reports one INP for each route the user interacted on instead of one for
+ * the whole visit. Informational only: vitals never trigger an upload, and
+ * CLS's value is unitless while the others are milliseconds.
+ *
+ * Newer recorders measure them as the web-vitals library does, so the
+ * numbers match a customer's own web-vitals telemetry: a prerendered
+ * page's FCP, LCP and TTFB count from activation, and a page hidden
+ * before it painted (opened in a background tab) reports no FCP, LCP or
+ * CLS. navigationType says which kind of page view each one describes.
  */
 export interface SessionReplayWebVitalPayload {
   kind: "web-vital";
@@ -254,6 +284,9 @@ export interface SessionReplayWebVitalPayload {
    */
   occurredAtUnixMs?: number;
 
+  /* Every vital from newer recorders; INP only from older ones. */
+  navigationType?: SessionReplayNavigationType;
+
   /*
    * INP attribution, all optional (older recorders and engines without
    * the timing fields omit them). The three phases add up to roughly the
@@ -261,7 +294,6 @@ export interface SessionReplayWebVitalPayload {
    * rendering the next frame. The target is a structural selector built
    * exactly as a click's is - never an attribute value or text.
    */
-  navigationType?: SessionReplayNavigationType;
   interactionType?: SessionReplayInteractionType;
   interactionTarget?: string;
   inputDelayMs?: number;
@@ -510,6 +542,12 @@ export function isSessionReplayPerformanceBudgetPayload(
     isFiniteNumber(value["durationMs"]) &&
     isFiniteNumber(value["budgetMs"])
   );
+}
+
+export function isSessionReplayNavigationType(
+  value: unknown,
+): value is SessionReplayNavigationType {
+  return isOneOf(value, SESSION_REPLAY_NAVIGATION_TYPES);
 }
 
 export function isSessionReplayWebVitalPayload(

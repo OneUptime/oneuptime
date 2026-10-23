@@ -623,6 +623,26 @@ describe("EventFieldChange.getFeedMarkdown", () => {
     expect(read.props).toEqual({ isRoot: true });
   });
 
+  /*
+   * In natural order, as labels are listed everywhere (Utils/LabelOrder,
+   * OneUptime issue #5183): numbered labels first, by their numbers - 10
+   * after 2, not after 1 - then the others, case aside.
+   */
+  test("numbered labels are named in the order of their numbers, then the rest", async () => {
+    labelNames[CHECKOUT] = "10.Owner=Platform";
+    labelNames[PAYMENTS] = "2.SubCategory=Website";
+    labelNames[EU_WEST] = "Claude";
+
+    expect(
+      await markdownOf(
+        { labels: [CHECKOUT, EU_WEST, PAYMENTS] },
+        { labels: true },
+      ),
+    ).toBe(
+      "\n\n**🏷️ Labels**:\n\n- 2.SubCategory=Website\n- 10.Owner=Platform\n- Claude\n",
+    );
+  });
+
   test("label names are quoted inertly", async () => {
     labelNames[EU_WEST] = "[eu](https://evil.example) <img>";
 

@@ -75,7 +75,7 @@ Go to **Alerts → All Alerts** and click **Create Alert**. The **Create New Ale
 
 ### Describe the alert
 
-Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**.
+Fill in the **Title** and pick an **Alert Severity**; both are required. Add a **Description** if it helps. Under **More fields**, folded, you can pick an **Initial State**, add **Labels**, or make it a **Private Alert**. **Owners** waits there too: you become an owner of the alert you create anyway, and each team you are a member of is one click away under the picker.
 
 ### Pick what it affects and who is paged
 
@@ -83,7 +83,7 @@ Click **Next** to reach **Resources & On-Call**. Pick the **Monitor** it is abou
 
 ### Create it
 
-Click **Next** to check the summary, then **Create Alert**. The alert's own page opens, and the rules start running.
+Click **Next** to check the summary, then **Create Alert**. The alert's own page opens, and the rules start running. On the summary, the **Owners** row lists each owner rule that will add someone, and whom: see [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 :::
 
 Leave **Initial State** empty and the alert starts where every new alert does: your created state, **Identified** in a new project. Picking a later state records an alert that someone is already handling, or that is already over; see [Created already acknowledged or resolved](#created-already-acknowledged-or-resolved).
@@ -139,7 +139,7 @@ While you work it, write down what you learn as **Private Notes**, fill in its *
 
 **Overview**, **Investigation**, **Team** and **Notes** are open; the other sections start folded until you click them.
 
-- **Overview** — three tiles with how long the alert took to be acknowledged and resolved, and its **Duration**. The **AI Investigation** card leads the page, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. Beside them sit the **Alert Details** card, the alert's measurements and its **Affected Resources**.
+- **Overview** — the header names the alert's **Owners**, teams first, beside its monitor and episode. Three tiles show when it was **Created** and by what, and how long it took to be acknowledged and resolved; how long it has lasted is beside its state. **What happened** leads the page — the alert's description and **Root cause** — then the **AI Investigation** card, with **Ask OneUptime AI** at its foot, and the **Alert Feed** records everything that happened to the alert. Beside them sit the **Affected Resources** card, the **Alert Details** card and the alert's measurements.
 - **State Timeline** — every state the alert has been in, when, and for how long. See [The state timeline](/docs/alerts/states-and-severities#the-state-timeline).
 - **Linked Incidents** — the incidents this alert is part of, with **Link Incident** and **Declare Incident**.
 - **Settings** — **Who can see this alert**, with the **Private Alert** switch, and **Reminders**, with **Send reminders**. Each switch saves the moment you flip it.

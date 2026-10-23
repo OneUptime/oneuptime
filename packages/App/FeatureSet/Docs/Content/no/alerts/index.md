@@ -75,7 +75,7 @@ Gå til **Varsler → Alle varsler**, og klikk på **Opprett varsel**. Skjemaet 
 
 ### Beskriv varselet
 
-Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**.
+Fyll ut **Tittel**, og velg en **Varselsalvor**; begge er påkrevd. Legg til en **Beskrivelse** hvis det hjelper. Under **Flere felt**, sammenfoldet, kan du velge en **Innledende tilstand**, legge til **Etiketter** eller slå på **Privat varsel**. Der venter også **Eiere**: du blir uansett eier av varselet du oppretter, og hvert team du er medlem av, er bare ett klikk unna under velgeren.
 
 ### Velg hva det berører, og hvem som tilkalles
 
@@ -83,7 +83,7 @@ Klikk på **Neste** for å komme til **Ressurser og vakt**. Velg **Overvåking**
 
 ### Opprett det
 
-Klikk på **Neste** for å se gjennom sammendraget og deretter på **Opprett varsel**. Varselets egen side åpnes, og reglene begynner å kjøre.
+Klikk på **Neste** for å se gjennom sammendraget og deretter på **Opprett varsel**. Varselets egen side åpnes, og reglene begynner å kjøre. I sammendraget nevner raden **Eiere** hver eierregel som vil legge til noen, og hvem: se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 :::
 
 Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler gjør: i opprettelsestilstanden din, **Identified** i et nytt prosjekt. Velger du en senere tilstand, registrerer du et varsel som noen allerede håndterer, eller som allerede er over; se [Opprettet allerede bekreftet eller løst](#opprettet-allerede-bekreftet-eller-løst).
@@ -139,7 +139,7 @@ Mens du jobber med det, skriver du ned det du lærer som **Private notater**, fy
 
 **Oversikt**, **Undersøkelse**, **Team** og **Notater** er åpne; de andre seksjonene er sammenfoldet til du klikker på dem.
 
-- **Oversikt** — tre ruter med hvor lang tid det tok å bekrefte og løse varselet, og **Varighet**. Kortet **AI Investigation** står øverst på siden med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Varseldetaljer**, varselets målinger og **Berørte ressurser**.
+- **Oversikt** — toppen nevner varselets **Eiere**, team først, ved siden av monitoren og episoden. Ruten **Opprettet** viser når og av hva varselet ble opprettet, to andre hvor lang tid det tok å bekrefte og løse det; hvor lenge det har vart, står ved tilstanden. Kortet **Hva som skjedde** står øverst på siden — varselets beskrivelse og **Rotårsak** — deretter kortet **AI Investigation** med **Ask OneUptime AI** nederst, og **Varsel Feed** registrerer alt som skjedde med varselet. Ved siden av står kortet **Berørte ressurser**, kortet **Varseldetaljer** og varselets målinger.
 - **Tilstandstidslinje** — hver tilstand varselet har vært i, når og hvor lenge. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hendelser** — hendelsene varselet er en del av, med **Knytt til hendelsen** og **Erklær hendelse**.
 - **Innstillinger** — **Hvem kan se dette varselet** med bryteren **Privat varsel**, og **Påminnelser** med **Send påminnelser**. Hver bryter lagrer i det øyeblikket du slår den om.

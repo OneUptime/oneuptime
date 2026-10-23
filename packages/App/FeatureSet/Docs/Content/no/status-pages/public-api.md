@@ -1,10 +1,11 @@
 # Offentlig API
 
-Hver statusside svarer på et lite sett med JSON-endepunkter som bare leser: oversikten, oppetiden, hendelsene, episodene, planlagte vedlikeholdshendelser og kunngjøringene. Det er endepunktene statussiden selv laster, så de returnerer nøyaktig det en besøkende ser, og en offentlig side trenger ingen API-nøkkel. Bruk dem til å vise statusen din i din egen app, en chatbot eller på en veggskjerm.
+Hver statusside svarer på et lite sett med JSON-endepunkter som bare leser: oversikten, et sammendrag, oppetiden, hendelsene, episodene, planlagte vedlikeholdshendelser og kunngjøringene. Det er endepunktene statussiden selv laster, så de returnerer nøyaktig det en besøkende ser, og en offentlig side trenger ingen API-nøkkel. Bruk dem til å vise statusen din i din egen app, en chatbot eller på en veggskjerm.
 
 :::cards
 - [Endepunkter](#endepunkter): Ett endepunkt for hver ting siden viser.
 - [Les oversikten](#les-oversikten): Hele siden i én request, med curl, Node.js og Python.
+- [Les sammendraget](#les-sammendraget): Statusen til hver ressurs, og hva som er under vedlikehold.
 - [Oppetid for et datointervall](#oppetid-for-et-datointervall): Oppetid per ressurs og gruppe, for opptil 90 dager.
 - [Feil](#feil): Hva hver statuskode betyr.
 :::
@@ -50,6 +51,7 @@ Der en sti nedenfor sier `{statusPageIdOrDomain}`, kan du sende ID-en til siden 
 | Endepunkt | Metoder | Returnerer |
 | -------- | ------- | ------- |
 | `/overview/{statusPageIdOrDomain}` | `GET`, `POST` | Alt oversikten viser: den samlede statusen, ressurser og grupper, aktive hendelser og episoder, planlagt vedlikehold, aktuelle kunngjøringer og dataene bak oppetidsstolpene. |
+| `/summary/{statusPageIdOrDomain}` | `GET`, `POST` | Siden i korte trekk: den samlede statusen, statusen til hver ressurs og om pågående vedlikehold berører den, de aktive hendelsene, og det pågående og kommende vedlikeholdet. |
 | `/uptime/{statusPageId}` | `POST` | Oppetidsprosenter per ressurs og per gruppe, for et datointervall. |
 | `/incidents/{statusPageIdOrDomain}` | `GET`, `POST` | Hendelsene siden viser, med offentlige notater og tilstandsendringer. |
 | `/incidents/{statusPageIdOrDomain}/{incidentId}` | `POST` | Én hendelse. |
@@ -137,6 +139,60 @@ Den samlede statusen er den verste nåværende statusen blant monitorene og moni
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Det samme for hendelsesepisoder. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De planlagte vedlikeholdshendelsene som kommer eller pågår, deres offentlige notater og tilstandsendringer. |
 | `activeAnnouncements` | Kunngjøringene som vises nå: startet og ikke avsluttet. |
+
+## Les sammendraget
+
+Sammendraget er oversikten skåret ned til det et overvåkingsverktøy spør en side om: statusen til hver ressurs, og om en pågående planlagt vedlikeholdshendelse berører den. Det forblir lite uansett hvor mye historikk siden viser, og det er det [monitoren for eksterne statussider](/docs/monitor/external-status-page-monitor#oneuptime-statussider) til en annen OneUptime leser. Det kommer fra den samme hurtigbufferen som oversikten, etter de samme tilgangsreglene.
+
+```bash
+curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
+```
+
+Svaret:
+
+```json
+{
+  "overallStatus": {
+    "name": "Operational",
+    "color": "#2ab57d",
+    "isOperational": true
+  },
+  "resources": [
+    {
+      "id": "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+      "name": "Checkout API",
+      "groupName": "Core / APIs",
+      "currentStatus": {
+        "name": "Operational",
+        "color": "#2ab57d",
+        "isOperational": true
+      },
+      "isUnderMaintenance": true
+    }
+  ],
+  "activeIncidents": [],
+  "ongoingScheduledMaintenance": [
+    {
+      "id": "6a1e2a3b-0f4c-4d5e-8f60-718293a4b5c6",
+      "title": "Database upgrade",
+      "startsAt": "2026-10-25T02:00:00.000Z",
+      "endsAt": "2026-10-25T04:00:00.000Z",
+      "state": "Ongoing",
+      "affectedResourceIds": ["cfffa3c3-fdf3-4cd7-9585-d6d408a14663"]
+    }
+  ],
+  "upcomingScheduledMaintenance": []
+}
+```
+
+| Nøkkel | I sammendraget |
+| --- | -------------- |
+| `overallStatus` | Den samlede statusen til siden, slik banneret viser den: `name`, `color` og `isOperational`. |
+| `resources` | Hver ressurs siden viser, i rekkefølgen sin: `name` på siden, `groupName` med gruppene over, `currentStatus` og `isUnderMaintenance`. |
+| `activeIncidents` | De uløste hendelsene siden viser, hver med `affectedResourceIds` for ressursene den berører. |
+| `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | De planlagte vedlikeholdshendelsene som pågår eller kommer, hver med sine `affectedResourceIds`. |
+
+`currentStatus` til en ressurs er `null` når siden ikke viser den. `isUnderMaintenance` er `true` mens en pågående hendelse nevner en av monitorene til ressursen, eller en monitor i monitorgruppen dens, uansett hvilken status de monitorene har.
 
 ## Oppetid for et datointervall
 
@@ -341,7 +397,7 @@ En feil svarer med en statuskode og JSON-innhold som forteller hvorfor:
 
 ## Andre måter å lese en statusside på
 
-- **RSS.** Hver statusside leverer `/rss`, en strøm av hendelsene, kunngjøringene og de planlagte vedlikeholdshendelsene. Se [Det innebygde merket og RSS-strømmen](/docs/status-pages/index#det-innebygde-merket-og-rss-strømmen).
+- **RSS.** Hver statusside leverer `/rss`, en strøm av hendelsene, kunngjøringene og de planlagte vedlikeholdshendelsene, hver datert slik siden daterer den. Se [Det innebygde merket og RSS-strømmen](/docs/status-pages/index#det-innebygde-merket-og-rss-strømmen).
 - **llms.txt.** Ved siden av `/rss` leverer hver statusside `/llms.txt`, som viser KI-agenter vei til RSS-strømmen og JSON-en for oversikten.
 - **MCP.** KI-agenter kan lese siden gjennom MCP-serveren til OneUptime på `https://oneuptime.com/mcp`, uten API-nøkkel, ved å oppgi ID-en eller domenet til siden som `statusPageIdOrDomain`. Den er slått på som standard; slå den av med **Aktiver MCP-server** under **KI → MCP** i sidemenyen til siden. Se [MCP-server](/docs/ai/mcp-server).
 - **REST-API-et.** For å opprette eller endre statussider, ressurser, abonnenter og kunngjøringer bruker du [OneUptime API-et](/docs/api-reference/api-reference) med en API-nøkkel.

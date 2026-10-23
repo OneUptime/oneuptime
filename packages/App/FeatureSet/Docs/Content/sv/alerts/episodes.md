@@ -139,6 +139,8 @@ I **Episoddetaljer** fyller du i **Titel** och, om du vill, en **Varningsallvar*
 
 I **Jour och ägare** väljer du en **Jourpolicy** som ska köras när episoden skapas, och dess **Ägare**. Klicka sedan på **Skapa episod**.
 
+Varje team du är medlem i är ett klick bort under **Ägare**, och sammanfattningen nämner ägarreglerna som lägger till fler.
+
 ### Lägg till larmen
 
 Öppna episodens sida **Medlemsvarningar**, klicka på **Lägg till varningar** och markera larmen som hör till den, så många du behöver på en gång. Vill du hellre börja från larmen markerar du dem i listan **Varningar** och väljer **Lägg till i ny episod** under **Massåtgärder** (se [Episoder](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 | **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
-**Utvecklare** och **Avancerad** börjar hopfällda. **Översikt** inleds med **Alerts in this episode**, sedan **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
+**Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Alerts in this episode** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Move episode to** i menyn **⋯**.
 
 **Varningar → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 

@@ -2,10 +2,13 @@
 
 외부 상태 페이지 모니터는 여러분이 의존하는 서비스(AWS, GCP, Azure, GitHub, OpenAI, Anthropic 등 다수)의 공개 상태 페이지를 지켜보다가, 그 공급자가 장애나 성능 저하를 보고하면 알림을 보냅니다. 업스트림 문제를 공급자가 보고하는 즉시 알고, 여러분 자신의 문제와 구분하는 데 사용하세요.
 
+OneUptime으로 만든 상태 페이지도 리소스별로 읽고, 계획된 유지 보수와 장애를 구분합니다. 다른 팀의 프로젝트나, 상태 페이지를 OneUptime에서 운영하는 공급업체를 지켜보세요.
+
 :::cards
 - [모니터 만들기](#외부-상태-페이지-모니터-만들기): 상태 페이지 URL을 붙여 넣고 지켜볼 대상을 고릅니다.
 - [범위 좁히기](#구성-옵션): 구성 요소 그룹 하나나 구성 요소 하나를 지켜봅니다.
 - [기준](#모니터링-기준): 기본적으로 무엇을 다운으로 보는지 설명합니다.
+- [OneUptime 상태 페이지](#oneuptime-상태-페이지): 다른 프로젝트의 리소스와 그 유지 보수를 지켜봅니다.
 - [자주 쓰는 상태 페이지](#자주-쓰는-상태-페이지-url): 대부분의 팀이 의존하는 서비스의 URL입니다.
 :::
 
@@ -39,6 +42,7 @@ flowchart TB
 | **Auto**(기본값) | 상태 페이지 형식을 자동으로 감지합니다 |
 | **Atlassian Statuspage** | Atlassian Statuspage 기반 상태 페이지(JSON API) |
 | **incident.io** | incident.io 기반 상태 페이지(예: `https://status.openai.com`) |
+| **OneUptime Status Page** | OneUptime으로 만든 상태 페이지: 각 리소스의 상태와 유지 보수 중인 항목 |
 | **RSS** | RSS 피드를 제공하는 상태 페이지 |
 | **Atom** | Atom 피드를 제공하는 상태 페이지 |
 
@@ -48,8 +52,9 @@ flowchart TB
 
 1. 먼저 incident.io 상태 페이지 API(`/proxy/<host>`)를 시도합니다.
 2. 다음으로 Atlassian Statuspage JSON API(`/api/v2/status.json`, `/api/v2/components.json`, `/api/v2/incidents/unresolved.json`)를 시도합니다.
-3. 둘 다 실패하면 페이지를 RSS나 Atom 피드로 파싱해 봅니다.
-4. 마지막 대안으로 기본적인 HTTP 도달 가능성 검사를 수행합니다.
+3. 그다음 OneUptime 상태 페이지의 요약(`/status-page-api/summary/<page>`)을 요청합니다.
+4. 둘 다 실패하면 페이지를 RSS나 Atom 피드로 파싱해 봅니다.
+5. 마지막 대안으로 기본적인 HTTP 도달 가능성 검사를 수행합니다.
 
 > [!NOTE]
 > incident.io를 먼저 검사하는 이유는, 일부 incident.io 상태 페이지(예: `https://status.openai.com`)가 구성 요소 그룹과 활성 인시던트를 빼먹은 제한적인 Atlassian 호환 엔드포인트도 함께 제공하기 때문입니다. incident.io를 먼저 검사하면 그룹 정보가 담긴 더 풍부한 데이터가 사용됩니다.
@@ -69,7 +74,7 @@ flowchart TB
 
 ### 필요하면 범위 좁히기
 
-**추가 필드** 를 열어 `APIs` 같은 **Component Group Filter (Optional)** 를 입력하고, 구성 요소 하나만 지켜보려면 **구성 요소 이름 필터 (선택 사항)** 를 입력합니다(그룹을 설정했다면 그 그룹 안에서).
+**추가 필드** 를 열어 `APIs` 같은 **Component Group Filter** 를 입력하고, 구성 요소 하나만 지켜보려면 **구성 요소 이름 필터** 를 입력합니다(그룹을 설정했다면 그 그룹 안에서).
 
 ### 테스트
 
@@ -89,9 +94,9 @@ flowchart TB
 | 옵션 | 입력할 내용 | 기본값 |
 | --- | --- | --- |
 | **상태 페이지 URL** | 상태 페이지의 URL. Atlassian Statuspage나 incident.io 기반 사이트는 보통 루트 URL입니다(예: `https://status.example.com`). RSS/Atom 피드는 피드 URL을 직접 입력합니다. | — |
-| **공급자** | 형식을 감지하려면 **Auto**, 알고 있다면 **Atlassian Statuspage**, **incident.io**, **RSS**, **Atom** 중 하나. | **Auto** |
-| **Component Group Filter (Optional)** | 모니터의 범위를 좁힐 그룹. **추가 필드** 아래에 있습니다. | 모든 그룹 |
-| **구성 요소 이름 필터 (선택 사항)** | 지켜볼 구성 요소. **추가 필드** 아래에 있습니다. | 범위 안의 모든 구성 요소 |
+| **공급자** | 형식을 감지하려면 **Auto**, 알고 있다면 **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS**, **Atom** 중 하나. | **Auto** |
+| **Component Group Filter** | 모니터의 범위를 좁힐 그룹. **추가 필드** 아래에 있습니다. | 모든 그룹 |
+| **구성 요소 이름 필터** | 지켜볼 구성 요소. **추가 필드** 아래에 있습니다. | 범위 안의 모든 구성 요소 |
 | **타임아웃 (ms)** | 상태 페이지를 기다리는 최대 시간. **추가 필드** 아래에 있습니다. | `10000`(10초) |
 | **재시도** | 첫 시도가 실패한 뒤 1초 간격으로 다시 시도하는 횟수. `0` 은 한 번만 시도한다는 뜻입니다. **추가 필드** 아래에 있습니다. | `3`(최대 4번 시도) |
 
@@ -101,7 +106,7 @@ flowchart TB
 
 구성 요소 그룹을 설정하면 **활성 인시던트 수** 와 **전체 상태** 를 그 그룹의 구성 요소만으로 계산합니다. 무관한 그룹(예: ChatGPT)에 영향을 주는 인시던트는 "APIs" 그룹으로 범위를 좁힌 모니터를 발생시키지 않습니다.
 
-구성 요소 그룹 필터링은 **Atlassian Statuspage** 와 **incident.io** 공급자에서 지원됩니다. RSS와 Atom 피드는 구성 요소 그룹을 제공하지 않습니다.
+구성 요소 그룹 필터링은 **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page** 공급자에서 지원됩니다. RSS와 Atom 피드는 구성 요소 그룹을 제공하지 않습니다.
 
 ### 구성 요소 이름 필터
 
@@ -124,9 +129,9 @@ flowchart TB
 | **External Status Page Active Incidents** | 상태 페이지에 보고된 현재 활성 인시던트 수(필터를 설정하면 구성 요소 그룹 / 구성 요소로 범위가 좁혀집니다) | 같음, 같지 않음 및 숫자 비교 |
 | **External Status Page Response Time (in ms)** | 상태 페이지 데이터를 가져오는 데 걸리는 시간 | 보다 큼, 보다 작음, 이상, 이하 |
 
-전체 상태는 페이지에 쓰인 그대로이므로 값은 공급자마다 다릅니다. Atlassian Statuspage는 `All Systems Operational` 같은 자체 설명을, 피드는 `operational` 이나 `degraded_performance` 를, 도달 가능성 검사는 `reachable` 이나 `unreachable` 을 보고합니다. 이 비교는 대소문자를 구분합니다. 장애에 대한 알림에는 보통 **External Status Page Active Incidents** 와 **External Status Page Component Status** 가 더 믿을 만합니다.
+전체 상태는 페이지에 쓰인 그대로이므로 값은 공급자마다 다릅니다. Atlassian Statuspage는 `All Systems Operational` 같은 자체 설명을, OneUptime 상태 페이지는 `under_maintenance` 같은 범위 내 구성 요소 중 가장 나쁜 상태를, 피드는 `operational` 이나 `degraded_performance` 를, 도달 가능성 검사는 `reachable` 이나 `unreachable` 을 보고합니다. 이 비교는 대소문자를 구분합니다. 장애에 대한 알림에는 보통 **External Status Page Active Incidents** 와 **External Status Page Component Status** 가 더 믿을 만합니다.
 
-RSS나 Atom 피드에서는 최근 24시간의 항목을 활성 인시던트로 셉니다. RSS 항목은 게시 날짜로, Atom 항목은 업데이트 날짜로 판단합니다.
+RSS나 Atom 피드에서는 최근 24시간의 항목을 활성 인시던트로 셉니다. RSS 항목은 게시 날짜로, Atom 항목은 업데이트 날짜로 판단합니다. 날짜가 미래인 항목은 그 날짜가 될 때까지 세지 않습니다.
 
 ### 기본 기준
 
@@ -138,6 +143,49 @@ OneUptime은 기본적으로 상태 페이지에서 정말 중요한 것, 즉 �
 | Online | 다음 **전체**: 페이지가 온라인임; 범위 안에 활성 인시던트가 없음 | 모니터를 온라인으로 표시합니다 |
 
 활성 인시던트 수와 구성 요소 상태가 구성 요소 그룹 / 구성 요소 이름 필터를 반영하므로, 이 기본 기준은 자동으로 여러분이 관심 있는 구성 요소만 겨냥합니다.
+
+## OneUptime 상태 페이지
+
+OneUptime으로 만든 상태 페이지(다른 팀의 프로젝트, 또는 OneUptime Cloud나 셀프 호스팅 OneUptime에 있는 공급업체의 페이지)를 지켜보려면 공급자로 **OneUptime Status Page** 를 선택하거나 **Auto** 로 두세요. **상태 페이지 URL** 에는 페이지 자체의 주소를 입력합니다. 도메인이 있으면 `https://status.example.com` 같은 도메인을, 없으면 `https://oneuptime.com/status-page/<status-page-id>` 를 입력하세요.
+
+모니터는 페이지의 요약 `/status-page-api/summary/<page>` 를 읽습니다([요약 읽기](/docs/status-pages/public-api#요약-읽기) 참고). 페이지가 방문자에게 보여 주는 것만 읽고, 다른 프로젝트의 그 밖의 내용은 읽지 않습니다. 페이지의 각 리소스(모니터 또는 모니터 그룹)는 페이지가 붙인 이름으로, 페이지의 그룹 안에 있는 구성 요소가 됩니다. 다른 그룹 안의 그룹은 `Core / Databases` 처럼 표시됩니다. 리소스 하나를 지켜보려면 **구성 요소 이름 필터** 를, 그룹 하나를 지켜보려면 **Component Group Filter** 를 사용하세요.
+
+구성 요소의 상태는 페이지에 표시된 상태가 뜻하는 값이므로, 구성 요소 상태 기준은 다른 상태 페이지에서와 똑같이 작동합니다.
+
+| 페이지에서 | 구성 요소 상태 |
+| --- | --- |
+| 프로젝트의 운영 상태 | `operational` |
+| 이름이 `Degraded` 인 상태 | `degraded_performance` |
+| 이름이 `Offline`, `Down`, `Major Outage` 인 상태 | `major_outage` |
+| 이름이 `Partial Outage` 인 상태 | `partial_outage` |
+| 이름이 `Full Outage` 인 상태 | `full_outage` |
+| 이름이 `Maintenance` 인 상태 | `under_maintenance` |
+| 그 밖의 상태 | `degraded_performance` |
+| **Show current status** 가 꺼져 있어 페이지가 숨기는 상태 | `unknown` |
+
+진행 중인 예정된 유지 보수 이벤트가 리소스에 영향을 주는 동안(이벤트가 그 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안) 구성 요소는 모니터의 상태와 관계없이 `under_maintenance` 입니다. 이벤트가 모니터를 붙잡고 있는 동안에는 그 모니터를 검사하지 않기 때문입니다. 아직 시작하지 않았거나 이미 끝난 이벤트는 아무것도 바꾸지 않습니다. 페이지의 활성 인시던트는 영향을 받는 리소스에 대해 셉니다.
+
+[기본 기준](#기본-기준)은 유지 보수를 장애로 착각하지 않습니다. 다른 프로젝트의 계획된 작업 동안에도 모니터는 온라인 상태를 유지합니다.
+
+### 다른 프로젝트의 유지 보수를 내 모니터에 표시하기
+
+:::steps
+### 기준 추가하기
+
+모니터의 기준에서 **기준 추가** 를 클릭하세요. 필터로 **External Status Page Component Status**, **같음**, **Under Maintenance** 를 지정하고, **모니터 상태를 다음으로 변경** 에서 유지 보수용 상태를 고르세요.
+
+### 맨 위로 옮기기
+
+새 기준을 다른 기준들 위로 끌어다 놓으세요. 처음 일치하는 기준이 이깁니다.
+
+### 모니터 테스트로 확인하기
+
+다른 프로젝트에서 유지 보수가 진행 중일 때 **모니터 테스트** 를 클릭하세요. 영향을 받는 구성 요소는 **Under Maintenance** 로 표시됩니다.
+:::
+
+### OneUptime 상태 페이지가 모니터에 읽게 하는 것
+
+누구나 열 수 있는 페이지는 방문자가 보는 그대로 읽힙니다. 로그인, SSO, 비밀번호 중 하나를 요구하는 비공개 페이지는 읽을 수 없습니다. **OneUptime Status Page** 를 선택했다면 검사는 실패하고 그 이유를 알려 줍니다. IP 허용 목록이 있는 페이지는 프로브의 주소를 허용해야 합니다. 그 네트워크 안의 프로브에서 지켜보세요.
 
 ## 템플릿 변수
 
@@ -151,7 +199,7 @@ OneUptime은 기본적으로 상태 페이지에서 정말 중요한 것, 즉 �
 | `{{overallStatus}}`       | 전체 상태 표시 값 |
 | `{{activeIncidentCount}}` | 활성 인시던트 수(필터가 있으면 그 범위로 좁혀짐) |
 | `{{componentStatuses}}`   | 구성 요소 상태의 JSON 배열(`name`, `status`, `description`, `groupName`) |
-| `{{provider}}`            | 감지된 공급자(Atlassian Statuspage, incident.io, RSS, Atom). 도달 가능성 검사 후에는 비어 있습니다 |
+| `{{provider}}`            | 감지된 공급자(Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom). 도달 가능성 검사 후에는 비어 있습니다 |
 | `{{componentGroup}}`      | 모니터의 범위를 좁힌 구성 요소 그룹(있는 경우) |
 | `{{componentName}}`       | 모니터의 범위를 좁힌 구성 요소(있는 경우) |
 
@@ -203,6 +251,10 @@ OneUptime은 기본적으로 상태 페이지에서 정말 중요한 것, 즉 �
 
 :::details Auto가 잘못된 형식을 고르거나 구성 요소를 찾지 못합니다
 **공급자** 를 그 페이지가 쓰는 것으로 알고 있는 공급자로 설정하세요. RSS나 Atom 피드라면 상태 페이지의 URL이 아니라 피드 자체의 URL을 입력하세요.
+:::
+
+:::details OneUptime 상태 페이지에 구성 요소가 보이지 않습니다
+**공급자** 로 **OneUptime Status Page** 를 선택하고 **모니터 테스트** 를 클릭하세요. 페이지가 비공개인지, IP 허용 목록이 프로브를 막고 있는지 결과가 알려 줍니다. 한동안 업데이트하지 않은 셀프 호스팅 OneUptime은 아직 요약을 제공하지 않습니다. 업데이트될 때까지 그 페이지는 도달 가능성 검사를 받거나 피드로 읽힙니다.
 :::
 
 :::details 내부 상태 페이지에 도달할 수 없습니다

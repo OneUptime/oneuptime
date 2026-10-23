@@ -48,12 +48,15 @@ import { JSONObject } from "../../../../Types/JSON";
 import Name from "../../../../Types/Name";
 import ObjectID from "../../../../Types/ObjectID";
 import BasicForm from "../../../../UI/Components/Forms/BasicForm";
-import Field from "../../../../UI/Components/Forms/Types/Field";
+import Field, {
+  FieldFooterProps,
+} from "../../../../UI/Components/Forms/Types/Field";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "../../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
 import getOwnersFormField from "../../../../UI/Components/PeoplePicker/OwnersFormField";
+import { PeoplePickerKind } from "../../../../UI/Components/PeoplePicker/PeoplePickerTypes";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const ADA: string = "0000000e-0000-4000-8000-000000000001";
@@ -341,5 +344,78 @@ describe("a people picker in a form", () => {
     await waitFor(() => {
       expect(screen.getByTestId("people-list")).toHaveTextContent("None");
     });
+  });
+
+  /*
+   * A footer under the picker - an Owners field's "Your teams" - hands the
+   * picker's whole value to setValue, as the picker itself does: each kind
+   * is written to its own form value, the picks already made kept, and the
+   * field's onChange hears it as it hears a pick.
+   */
+  test("a footer adds picks through setValue, each kind to its own value", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    const onSubmit: MockFunction = renderForm({
+      fields: [
+        NAME_FIELD,
+        getOwnersFormField<JSONObject>({
+          onChange: onChange as never,
+          getFooterElement: (
+            _values: FormValues<JSONObject>,
+            _error?: string,
+            footer?: FieldFooterProps,
+          ): React.ReactElement => {
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  footer!.setValue({
+                    [PeoplePickerKind.User]: [ADA],
+                    [PeoplePickerKind.Team]: [PLATFORM],
+                  });
+                }}
+              >
+                Add Platform
+              </button>
+            );
+          },
+        }),
+      ],
+      initialValues: { name: "Database is down", ownerUsers: [ADA] },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add Platform" }),
+    );
+
+    // Drawn by the picker as a pick of its own.
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("people-chip").map((chip: HTMLElement) => {
+          return chip.textContent;
+        }),
+      ).toEqual([
+        expect.stringContaining("Ada Lovelace"),
+        expect.stringContaining("Platform"),
+      ]);
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange.mock.calls[0]![0]).toEqual({
+      ownerUsers: [ADA],
+      ownerTeams: [PLATFORM],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    const values: JSONObject = submittedValues(onSubmit);
+
+    expect(values["ownerUsers"]).toEqual([ADA]);
+    expect(values["ownerTeams"]).toEqual([PLATFORM]);
+    expect(values).not.toHaveProperty("owners");
   });
 });

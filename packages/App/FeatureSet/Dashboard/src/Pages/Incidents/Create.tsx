@@ -172,6 +172,9 @@ import {
 import useRecordToCreateFrom, {
   RecordToCreateFromState,
 } from "../../Components/CreateFromRecord/useRecordToCreateFrom";
+import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormField";
+import { getOwnersOnCreateFieldOptions } from "../../Components/OwnersOnCreate/OwnersOnCreateField";
+import { OwnerRulePreviewEvent } from "Common/Types/Rules/OwnerRulePreview";
 
 /*
  * The fetched models, reduced to the plain shapes the prefill rules work on.
@@ -362,16 +365,18 @@ const getPrivateScopeWarning: GetPrivateScopeWarningFunction = (
  * title and a severity - and the description its status page shows. The
  * options most declarations never touch are folded under one "More fields"
  * header at the end of their step: when it was declared, the state it starts
- * in, its labels and whether it is private on Incident Details; the status
+ * in, its labels, whether it is private and its owners - the declarer's own
+ * teams one click away - on Incident Details; the status
  * pages it is limited to and whether their subscribers are notified on
  * Resources Affected (the maintainer: "Limit to these status pages and
  * notify subscribers should be in advanced"). Folded, the header lists them
- * by name and shows each one that holds something (a template's labels or
- * status pages, a private alert's privacy, notifying switched off) with its
- * value, and it opens by itself when one fails validation. The review step
- * lists a folded option only when it is set - except whether subscribers
- * are notified, which it always lists, with who that reaches and a preview
- * of what they will be sent.
+ * by name and shows each one that holds something (a template's labels,
+ * owners or status pages, a private alert's privacy, notifying switched off)
+ * with its value, and it opens by itself when one fails validation. The
+ * review step lists a folded option only when it is set - except whether
+ * subscribers are notified, which it always lists, with who that reaches and
+ * a preview of what they will be sent, and the owners, which it always
+ * lists with the owner rules that will add more (OwnersOnCreate).
  */
 const advancedSection: FormFieldCollapsibleSection<Incident> =
   getAdvancedFormSection<Incident>();
@@ -464,15 +469,6 @@ const getIncidentReference: GetIncidentReferenceFunction = (
   return translateTerm("Incident");
 };
 
-/*
- * The owners of the template an incident is declared from, as the ids the
- * server takes them by (see onBeforeCreate).
- */
-interface TemplateOwners {
-  userIds: Array<string>;
-  teamIds: Array<string>;
-}
-
 const IncidentCreate: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -520,16 +516,6 @@ const IncidentCreate: FunctionComponent<
    */
   const [templateCustomFieldSettings, setTemplateCustomFieldSettings] =
     useState<CustomFieldCreateSettings>({});
-
-  /*
-   * The template's owner users and teams. The form has no input for owners -
-   * an incident's owners are added on its own page - so they travel beside
-   * it, and onBeforeCreate hands them to the server.
-   */
-  const [templateOwners, setTemplateOwners] = useState<TemplateOwners>({
-    userIds: [],
-    teamIds: [],
-  });
 
   /*
    * The alerts this incident is being declared from (`?alertIds=`), in the
@@ -1021,31 +1007,6 @@ const IncidentCreate: FunctionComponent<
       });
 
     if (incidentTemplate) {
-      /*
-       * The template's owners become the incident's owners. They used to be
-       * put into the form's initial values, but the form only sends the
-       * columns and the misc data of its own inputs, and it has had no owner
-       * inputs since the Owners step was removed - so they were read here
-       * and then silently dropped. They are kept beside the form instead,
-       * and onBeforeCreate sends them.
-       */
-      setTemplateOwners({
-        userIds: usersListResult.data
-          .map((user: IncidentTemplateOwnerUser): string => {
-            return user.userId?.toString() || "";
-          })
-          .filter((userId: string): boolean => {
-            return Boolean(userId);
-          }),
-        teamIds: teamsListResult.data
-          .map((team: IncidentTemplateOwnerTeam): string => {
-            return team.teamId?.toString() || "";
-          })
-          .filter((teamId: string): boolean => {
-            return Boolean(teamId);
-          }),
-      });
-
       const initialValue: JSONObject = {
         ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
         incidentSeverity: ArchivedValuePicker.isArchived(
@@ -1125,6 +1086,26 @@ const IncidentCreate: FunctionComponent<
             return onCallPolicy.id!.toString();
           },
         ),
+        /*
+         * The template's owners start the Owners field under More fields -
+         * shown, and changeable, like the template's labels - and are sent
+         * with the incident's other owners (ownerUsers / ownerTeams misc
+         * data, which the server adds once the incident exists).
+         */
+        ownerUsers: usersListResult.data
+          .map((user: IncidentTemplateOwnerUser): string => {
+            return user.userId?.toString() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+        ownerTeams: teamsListResult.data
+          .map((team: IncidentTemplateOwnerTeam): string => {
+            return team.teamId?.toString() || "";
+          })
+          .filter((teamId: string): boolean => {
+            return Boolean(teamId);
+          }),
       };
 
       /*
@@ -1482,19 +1463,13 @@ const IncidentCreate: FunctionComponent<
                 });
 
                 /*
-                 * The template's owners, as misc data the server reads once
-                 * the incident exists (IncidentService.onCreateSuccess adds
-                 * them as owners, marked as already notified). Only when
-                 * there are any: an incident declared without a template
-                 * sends exactly what it always did.
+                 * The owners - picked under More fields, a template's to
+                 * start with - travel as the misc data ModelForm builds from
+                 * the Owners field (ownerUsers / ownerTeams): the server
+                 * asks whether the declarer may add them before the incident
+                 * is saved, and adds them once it exists, marked as already
+                 * notified.
                  */
-                if (templateOwners.userIds.length > 0) {
-                  miscDataProps["ownerUsers"] = templateOwners.userIds;
-                }
-
-                if (templateOwners.teamIds.length > 0) {
-                  miscDataProps["ownerTeams"] = templateOwners.teamIds;
-                }
 
                 /*
                  * ModelForm sends this same object as the request's
@@ -1705,6 +1680,19 @@ const IncidentCreate: FunctionComponent<
                     return getPrivateScopeWarning(values);
                   },
                 },
+                /*
+                 * Who owns the incident besides the declarer, who becomes an
+                 * owner anyway: their teams one click away under the picker.
+                 * Always on the review step, with the owner rules that will
+                 * add more.
+                 */
+                getOwnersFormField<Incident>({
+                  stepId: "incident-details",
+                  collapsibleSection: advancedSection,
+                  ...getOwnersOnCreateFieldOptions<Incident>(
+                    OwnerRulePreviewEvent.Incident,
+                  ),
+                }),
                 /*
                  * The incident's monitors, on their own: status pages show
                  * the incident, and tell their subscribers, through them,

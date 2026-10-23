@@ -94,8 +94,8 @@ Een regel roept op zodra een waarschuwing erop past. Om de regel in plaats daarv
 
 **Eigenaarsregels** voegen eigenaar-gebruikers en -teams toe aan nieuwe waarschuwingen die overeenkomen, en **Labelregels** voegen labels toe. Een regel aanmaken gaat in twee stappen: **Overeenkomst**, de voorwaarden, en daarna **Eigenaren** of **Labels**, wat de regel toevoegt. De **Naam** van de regel volgt wat je kiest tot je zelf een naam typt.
 
-- **Een regel kan overnemen.** Ingeklapt onder **Eigenaren overnemen** of **Labels overnemen** geven zes schakelaars de eigenaren of labels door van de monitor, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services van de waarschuwing. Episoderegels hebben zulke schakelaars niet.
-- **Een nieuwe regel moet iets toevoegen**: kies minstens één eigenaar of label, of zet een schakelaar aan.
+- **Een regel kan overnemen.** Ingeklapt onder **Eigenaren overnemen** of **Labels overnemen** geven zes schakelaars de eigenaren of labels door van de monitor, hosts, Kubernetes-clusters, Docker-hosts, Podman-hosts en services van de waarschuwing. Episoderegels hebben zulke schakelaars niet. **Eigenaren overnemen** van een eigenaarsregel eindigt met **Team van de maker**: van de teams die daar staan, wordt elk team waarin de persoon zit die de waarschuwing aanmaakt, ook eigenaar.
+- **Een nieuwe regel moet iets toevoegen**: kies minstens één eigenaar of label, of zet een schakelaar aan. Bij een eigenaarsregel voor incidenten of waarschuwingen is een team onder **Team van de maker** ook genoeg.
 - **Eigenaren op de hoogte stellen**, onder **Meer velden** van een eigenaarsregel, bepaalt of de toegevoegde mensen worden ingelicht.
 
 [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules) behandelt het formulier stap voor stap, voor elk soort resource.

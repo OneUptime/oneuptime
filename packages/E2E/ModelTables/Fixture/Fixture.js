@@ -48,6 +48,12 @@
  *                     owners, a private incident, several resources
  *   - data=long       long titles, names and resources with nowhere to break
  *   - data=empty      every list is empty
+ *   - data=labels     the Monitors list of OneUptime issues #5187 and #5183:
+ *                     monitors labelled the way that customer numbers their
+ *                     labels ("1.Category=Application", "2.SubCategory=
+ *                     Website", ... "10.Owner=..."), each monitor's handed
+ *                     over in a scrambled order, one label longer than a
+ *                     column may grow, five labels on one monitor
  *   - rows=<n>        n more rows on every list (pagination, a long page)
  *   - role=viewer     a member who may read but not create, edit or delete
  *   - delay=<ms>      each list read takes this long (40 ms otherwise), to
@@ -124,6 +130,7 @@ import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import Search from "Common/Types/BaseDatabase/Search";
 import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { sortLabels } from "Common/Utils/LabelOrder";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -142,6 +149,7 @@ const dataKind = params.get("data") || "normal";
 const isRich = dataKind === "rich" || dataKind === "long";
 const isLong = dataKind === "long";
 const isEmpty = dataKind === "empty";
+const isNumberedLabels = dataKind === "labels";
 const extraRows = Math.max(0, Number(params.get("rows") || 0));
 const role = params.get("role") || "owner";
 const delay = Number(params.get("delay") || 40);
@@ -195,12 +203,32 @@ function label(index, name, color) {
   return record;
 }
 
+/*
+ * The labels of OneUptime issues #5187 and #5183 (data=labels): numbered
+ * the way that customer numbers theirs, a key and a value in each. In the
+ * order a label's ids put them, which is no order a person reads.
+ */
+const NUMBERED_LABELS = {
+  businessSystem: label(11, "4.Business System=Customer Mobile App", "#ef4444"),
+  subCategory: label(12, "2.SubCategory=Website", "#64748b"),
+  owner: label(13, "10.Owner=Loyalty Platform Team", "#0ea5e9"),
+  item: label(14, "3.Item=Connectivity", "#64748b"),
+  category: label(15, "1.Category=Application", "#6366f1"),
+  claude: label(16, "Claude", "#0ea5e9"),
+  escalation: label(
+    17,
+    "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+    "#f59e0b",
+  ),
+};
+
 const LABELS = [
   label(1, "Production", "#ef4444"),
   label(2, "Payments", "#6366f1"),
   label(3, "EU West", "#10b981"),
   label(4, "Customer facing", "#f59e0b"),
   label(5, "Database", "#0ea5e9"),
+  ...(isNumberedLabels ? Object.values(NUMBERED_LABELS) : []),
 ];
 
 // ---------------------------------------------------------------- people
@@ -321,37 +349,120 @@ const SATURATION_MONITOR = monitor(
   DEGRADED,
 );
 
+/*
+ * data=labels: each monitor's labels handed over in a scrambled order, as
+ * the database joins them, for the list to put in order.
+ */
+const NUMBERED_LABEL_MONITORS = [
+  monitor(
+    1,
+    "Claude usage ingest",
+    "Token usage from the assistant",
+    MonitorType.API,
+    OPERATIONAL,
+    { labels: [NUMBERED_LABELS.claude] },
+  ),
+  monitor(
+    2,
+    "Loyalty web service dependency",
+    "The loyalty service's own dependencies",
+    MonitorType.API,
+    OPERATIONAL,
+    {
+      labels: [
+        NUMBERED_LABELS.item,
+        NUMBERED_LABELS.subCategory,
+        NUMBERED_LABELS.businessSystem,
+        NUMBERED_LABELS.category,
+      ],
+    },
+  ),
+  monitor(
+    3,
+    "Loyalty web service",
+    "The service itself",
+    MonitorType.Website,
+    OPERATIONAL,
+    {
+      /*
+       * The label longer than a column may grow, on a row the gallery
+       * copies too (its third), so a phone's card shows it.
+       */
+      labels: [
+        NUMBERED_LABELS.escalation,
+        NUMBERED_LABELS.businessSystem,
+        NUMBERED_LABELS.item,
+      ],
+    },
+  ),
+  monitor(
+    4,
+    "Assign loyalty card",
+    "Card assignment calls",
+    MonitorType.API,
+    DEGRADED,
+    {
+      labels: [
+        NUMBERED_LABELS.owner,
+        NUMBERED_LABELS.businessSystem,
+        NUMBERED_LABELS.item,
+        NUMBERED_LABELS.subCategory,
+        NUMBERED_LABELS.category,
+      ],
+    },
+  ),
+  monitor(
+    5,
+    "Coupons lookup",
+    "Coupon calls from the mobile app",
+    MonitorType.API,
+    OPERATIONAL,
+    {
+      labels: [NUMBERED_LABELS.escalation, NUMBERED_LABELS.subCategory],
+    },
+  ),
+  monitor(
+    6,
+    "App insights errors",
+    "Errors the app reports",
+    MonitorType.API,
+    OFFLINE,
+  ),
+];
+
 const MONITORS = isEmpty
   ? []
-  : [
-      SATURATION_MONITOR,
-      monitor(
-        2,
-        "Checkout API",
-        "The payment path customers use",
-        MonitorType.API,
-        OPERATIONAL,
-        { labels: isRich ? [LABELS[0], LABELS[1]] : [] },
-      ),
-      monitor(
-        3,
-        "Marketing Website",
-        "www, from three regions",
-        MonitorType.Website,
-        OPERATIONAL,
-        { labels: isRich ? [LABELS[3]] : [] },
-      ),
-      monitor(
-        4,
-        "Primary Database Ping",
-        "The writer's address",
-        MonitorType.Ping,
-        isRich ? OFFLINE : OPERATIONAL,
-        {
-          labels: isRich ? [LABELS[0], LABELS[2], LABELS[3], LABELS[4]] : [],
-        },
-      ),
-    ];
+  : isNumberedLabels
+    ? NUMBERED_LABEL_MONITORS
+    : [
+        SATURATION_MONITOR,
+        monitor(
+          2,
+          "Checkout API",
+          "The payment path customers use",
+          MonitorType.API,
+          OPERATIONAL,
+          { labels: isRich ? [LABELS[0], LABELS[1]] : [] },
+        ),
+        monitor(
+          3,
+          "Marketing Website",
+          "www, from three regions",
+          MonitorType.Website,
+          OPERATIONAL,
+          { labels: isRich ? [LABELS[3]] : [] },
+        ),
+        monitor(
+          4,
+          "Primary Database Ping",
+          "The writer's address",
+          MonitorType.Ping,
+          isRich ? OFFLINE : OPERATIONAL,
+          {
+            labels: isRich ? [LABELS[0], LABELS[2], LABELS[3], LABELS[4]] : [],
+          },
+        ),
+      ];
 
 function kubernetesCluster(index, name) {
   const record = withProject(new KubernetesCluster());
@@ -1028,12 +1139,22 @@ ModelAPI.getList = async (options) => {
     return { data: [], count: 0, skip, limit };
   }
 
-  const items = sortRows(
-    RECORDS[tableName].filter((record) => {
-      return matchesQuery(record, options.query);
-    }),
-    options.sort,
-  );
+  const matched = RECORDS[tableName].filter((record) => {
+    return matchesQuery(record, options.query);
+  });
+
+  /*
+   * Labels the way the server reads them (LabelService.getReadSort): in
+   * natural order by name when asked for in no order or by name, the
+   * other way round for a name sorted the other way.
+   */
+  const labelSort = Object.entries(options.sort || {})[0];
+  const items =
+    tableName === "Label" && (!labelSort || labelSort[0] === "name")
+      ? labelSort && labelSort[1] === SortOrder.Descending
+        ? sortLabels(matched).reverse()
+        : sortLabels(matched)
+      : sortRows(matched, options.sort);
 
   return {
     data: items.slice(skip, skip + limit),
@@ -1118,10 +1239,16 @@ const KIND_ROWS = isEmpty
         source.currentMonitorStatus,
         { labels: source.labels },
       );
-      // Every other row leaves its optional values unset.
+      /*
+       * Every other row leaves its optional values unset - but its labels
+       * under data=labels, so a phone's card shows four labels and the
+       * fold of five ("2 more labels") too.
+       */
       if (index % 2 === 1) {
         record.description = "";
-        record.labels = [];
+        if (!isNumberedLabels) {
+          record.labels = [];
+        }
       }
       record.disableActiveMonitoring = index === 2;
       return record;

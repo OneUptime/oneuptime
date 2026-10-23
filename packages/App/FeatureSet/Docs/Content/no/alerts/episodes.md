@@ -139,6 +139,8 @@ På **Episodedetaljer** fyller du ut **Tittel** og, hvis du vil, en **Varselsalv
 
 På **Vakt og eiere** velger du en **Vaktpolicy** som skal kjøre når episoden opprettes, og **Eiere**. Klikk deretter på **Opprett episode**.
 
+Hvert team du er medlem av, er bare ett klikk unna under **Eiere**, og sammendraget nevner eierreglene som legger til flere.
+
 ### Legg til varslene
 
 Åpne episodens side **Medlemsvarsler**, klikk **Legg til varsler**, og huk av varslene som hører til den, så mange du trenger på én gang. Vil du heller starte fra varslene, velger du dem i listen **Varsler** og velger **Legg til i ny episode** under **Massehandlinger** (se [Episoder](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ En episode du oppretter, har ingen grupperingsregel, så listen viser **Grupperi
 | **Utvikler** | **Terraform**, **API**, **AI-assistenter** |
 | **Avansert** | **Revisjonslogger**, **Slett episode** |
 
-**Utvikler** og **Avansert** starter sammenfoldet. **Oversikt** begynner med **Alerts in this episode**, deretter **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
+**Utvikler** og **Avansert** starter sammenfoldet. På **Oversikt** nevner toppen episodens **Eiere**, team først, og den første ruten, **Opprettet**, sier når episoden ble opprettet — **Automatisk**, når en grupperingsregel åpnet den. Kortet **Hva som skjedde** står øverst på siden — episodens beskrivelse og **Rotårsak** — deretter **Alerts in this episode** og **Episodefeed**, ved siden av kortet **Episodedetaljer**: nummer, tilstand, alvorlighetsgrad, antall varsler, grupperingsregel og vaktpolicyer. Toppen har **Bekreft** og **Løs**, og **Move episode to** i menyen **⋯**.
 
 **Varsler → Aktive episoder** viser episodene som ikke er løst ennå, og merket ved siden av teller dem.
 

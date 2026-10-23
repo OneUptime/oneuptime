@@ -23,6 +23,7 @@ import {
   TransceiverReadingKind,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
+import { ExternalStatusPageComponentStatusValue } from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import {
@@ -1919,17 +1920,37 @@ export default class CriteriaFilterUtil {
     if (checkOn === CheckOn.ExternalStatusPageComponentStatus) {
       /*
        * Canonical component status values reported by external status page
-       * providers (Atlassian Statuspage, incident.io, etc.). The stored value
-       * remains the provider's snake_case string so criteria evaluation is
-       * unaffected; only the user-facing label is friendly.
+       * providers: Atlassian Statuspage and incident.io report them as they
+       * are, and a OneUptime status page's statuses are read as the value
+       * they stand for (ExternalStatusPageComponentStatusUtil). The stored
+       * value remains the provider's snake_case string so criteria
+       * evaluation is unaffected; only the user-facing label is friendly.
        */
       return [
-        { label: "Operational", value: "operational" },
-        { label: "Under Maintenance", value: "under_maintenance" },
-        { label: "Degraded Performance", value: "degraded_performance" },
-        { label: "Partial Outage", value: "partial_outage" },
-        { label: "Major Outage", value: "major_outage" },
-        { label: "Full Outage", value: "full_outage" },
+        {
+          label: "Operational",
+          value: ExternalStatusPageComponentStatusValue.Operational,
+        },
+        {
+          label: "Under Maintenance",
+          value: ExternalStatusPageComponentStatusValue.UnderMaintenance,
+        },
+        {
+          label: "Degraded Performance",
+          value: ExternalStatusPageComponentStatusValue.DegradedPerformance,
+        },
+        {
+          label: "Partial Outage",
+          value: ExternalStatusPageComponentStatusValue.PartialOutage,
+        },
+        {
+          label: "Major Outage",
+          value: ExternalStatusPageComponentStatusValue.MajorOutage,
+        },
+        {
+          label: "Full Outage",
+          value: ExternalStatusPageComponentStatusValue.FullOutage,
+        },
       ];
     }
 

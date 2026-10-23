@@ -21,6 +21,7 @@ import {
   isSessionReplayIdentifyPayload,
   isSessionReplayIdlePausedPayload,
   isSessionReplayIdleResumedPayload,
+  isSessionReplayNavigationType,
   isSessionReplayPerformanceBudgetPayload,
   isSessionReplayTagsPayload,
   isSessionReplayVisibilityPayload,
@@ -2006,6 +2007,7 @@ export default class ChunkLoader {
           }
 
           /*
+           * The kind of page view (every vital, from newer recorders) and
            * INP attribution. Each field is read on its own and a bad one
            * is dropped alone: the payload crossed a version boundary.
            */
@@ -2016,7 +2018,7 @@ export default class ChunkLoader {
           const interactionTarget: string | undefined =
             readString("interactionTarget");
 
-          if (navigationType === "hard" || navigationType === "soft") {
+          if (isSessionReplayNavigationType(navigationType)) {
             row.navigationType = navigationType;
           }
 

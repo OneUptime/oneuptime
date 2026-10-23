@@ -645,6 +645,14 @@ describe("Create Collector Config", () => {
         .template,
     ).toBe("Hosts on any system");
 
+    // Its labels in natural order, as labels are listed everywhere.
+    expect(
+      describeHostCollectorConfigTarget({
+        osType: "linux",
+        labelNames: ["team:web", "10. Edge", "2. Core", "env:production"],
+      }).labels,
+    ).toBe("2. Core, 10. Edge, env:production, team:web");
+
     for (const key of [
       "Linux hosts",
       "Linux hosts with {{labels}}",

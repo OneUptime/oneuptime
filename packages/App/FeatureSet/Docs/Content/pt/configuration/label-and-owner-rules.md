@@ -57,7 +57,7 @@ O **Nome** é preenchido a partir do que você escolhe (_Adicionar Production_, 
 Na última etapa, clique de novo no botão com o nome da regra, por exemplo **Criar: Monitor Label Rule**. A regra começa habilitada, e a lista a mostra com uma etiqueta verde **Habilitado**.
 :::
 
-Uma regra nova precisa adicionar algo: pelo menos um rótulo (ou proprietário) ou, numa regra de incidente, alerta ou manutenção programada, algo que ela herde (veja abaixo). Para pausar uma regra sem excluí-la, desligue **Habilitado** no formulário de edição; a lista passa a mostrar uma etiqueta vermelha **Desabilitado**.
+Uma regra nova precisa adicionar algo: pelo menos um rótulo (ou proprietário) ou, numa regra de incidente, alerta ou manutenção programada, algo que ela herde (veja abaixo). Para pausar uma regra sem excluí-la, desligue **Habilitado** no formulário de edição; a lista passa a mostrar uma etiqueta vermelha **Desabilitado**. Numa regra de proprietários de incidente ou alerta, uma equipe em **Equipe do criador** também basta.
 
 ### Seja qual for a forma de criar a regra
 
@@ -68,9 +68,10 @@ O mesmo vale para uma regra criada pela API, pelo Terraform, por um workflow ou 
 | Regra de rótulos | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Regra de rótulos de incidente, alerta ou manutenção programada | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Regra de proprietários | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Regra de proprietários de incidente, alerta ou manutenção programada | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Regra de proprietários de incidente ou alerta | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Regra de proprietários de manutenção programada | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: defina `labelsToAdd` (ou `ownerUsers` / `ownerTeams`) com pelo menos um registro do projeto, ou um dos interruptores `inheritLabelsFrom…` (`inheritOwnersFrom…`) da regra como `true`, um booleano JSON.
+- **API**: defina `labelsToAdd` (ou `ownerUsers` / `ownerTeams`) com pelo menos um registro do projeto, ou um dos interruptores `inheritLabelsFrom…` (`inheritOwnersFrom…`) da regra como `true`, um booleano JSON. Numa regra de proprietários de incidente ou alerta, uma equipe em `creatorTeams` também basta.
 - **Terraform**: um recurso de regra de rótulos ou de proprietários que não adiciona nada falha no `terraform apply` com a mensagem acima. Dê a ele `labels_to_add` (ou `owner_users` / `owner_teams`) ou ligue um dos seus interruptores de herança.
 
 As regras que você já tem não são alteradas: veja [Editar uma regra](#editar-uma-regra).
@@ -93,6 +94,12 @@ Uma regra que herda pode deixar **Rótulos a Adicionar** (ou **Proprietários**)
 | **Herdar Rótulos do Monitor**, numa regra de alertas | _Herdar rótulos de: monitor_ |
 
 O nome acompanha os interruptores até você escolher um rótulo (aí a regra passa a ter o nome dos seus rótulos) ou digitar um nome próprio.
+
+### A equipe do criador
+
+Uma regra de proprietários de incidente ou alerta tem mais uma entrada, a última da sua seção **Herdar Proprietários**: **Equipe do criador**, uma lista de equipes. Quando a pessoa que declara um incidente correspondente, ou cria um alerta correspondente, é membro de uma equipe da lista, essa equipe também vira proprietária. É uma lista, e não todas as equipes da pessoa, porque as pessoas entram por padrão na equipe **Membros** do projeto, e tornar todos proprietários não ajuda ninguém. Um incidente ou alerta que um monitor, um fluxo de trabalho, um formulário ou uma chave de API cria não tem criador, então não recebe nenhuma dessas equipes. Elas são notificadas conforme diz **Notificar proprietários** da regra, e uma regra que adiciona só elas se chama _Adicionar a equipe do criador como proprietária_. Pela API, a lista é `creatorTeams`.
+
+A pessoa que declara um incidente ou cria um alerta passa a ser um dos proprietários dele, digam as regras o que disserem, e os formulários de criação listam no resumo cada regra de proprietário que será executada, e quem ela vai adicionar: veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 
 ## Editar uma regra
 

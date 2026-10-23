@@ -7,7 +7,9 @@ import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBas
  * the people and teams it lists (ownerUsers, ownerTeams). An incident,
  * alert or scheduled maintenance rule can also inherit: six switches add the
  * labels - or the owners - of the monitors, hosts, Kubernetes clusters,
- * Docker and Podman hosts and services the event touches.
+ * Docker and Podman hosts and services the event touches. An incident or
+ * alert owner rule can also list teams for the creator's team
+ * (creatorTeams): the ones the person who created the event is in.
  *
  * A rule that adds nothing matches and does nothing, so a NEW rule must add
  * something wherever it is made: the Dashboard's form asks for it
@@ -30,6 +32,15 @@ export const LABEL_RULE_LIST_COLUMNS: ReadonlyArray<string> = ["labelsToAdd"];
 export const OWNER_RULE_LIST_COLUMNS: ReadonlyArray<string> = [
   "ownerUsers",
   "ownerTeams",
+];
+
+/*
+ * An incident or alert owner rule's Creator's Team: teams added when the
+ * event's creator is a member of them. A rule that lists one adds something,
+ * as one that names an owner does.
+ */
+export const CREATOR_TEAM_LIST_COLUMNS: ReadonlyArray<string> = [
+  "creatorTeams",
 ];
 
 // An incident, alert or scheduled maintenance label rule's Inherit Labels.
@@ -109,7 +120,10 @@ export const getRuleActionColumns: (
     hasEveryColumn(model, OWNER_RULE_LIST_COLUMNS)
   ) {
     return {
-      listColumns: [...OWNER_RULE_LIST_COLUMNS],
+      listColumns: [
+        ...OWNER_RULE_LIST_COLUMNS,
+        ...columnsOf(model, CREATOR_TEAM_LIST_COLUMNS),
+      ],
       switchColumns: columnsOf(model, INHERITED_OWNER_COLUMNS),
     };
   }
@@ -231,7 +245,9 @@ export const doesNewRuleAddSomething: (
  * The answer to a new rule that adds nothing - from the API, Terraform, a
  * workflow or a label rule import - in the words of the fields it names
  * (their titles, as the API documents them). An event's rule may inherit
- * instead, and is told so.
+ * instead, and is told so; an incident's or alert's owner rule may list a
+ * team for the creator's team too. The docs quote each one word for word
+ * (Docs configuration/label-and-owner-rules).
  */
 export const LABEL_RULE_ADDS_NOTHING_MESSAGE: string =
   "This label rule adds nothing. Choose at least one label in Labels to Add.";
@@ -245,6 +261,10 @@ export const OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
 export const INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
   "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch.";
 
+// An incident or alert owner rule, which can also add the creator's team.
+export const CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE: string =
+  "This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch.";
+
 export const getRuleAddsNothingMessage: (
   action: RuleActionColumns,
 ) => string = (action: RuleActionColumns): string => {
@@ -254,6 +274,16 @@ export const getRuleAddsNothingMessage: (
     return inherits
       ? INHERITING_LABEL_RULE_ADDS_NOTHING_MESSAGE
       : LABEL_RULE_ADDS_NOTHING_MESSAGE;
+  }
+
+  const listsCreatorTeams: boolean = CREATOR_TEAM_LIST_COLUMNS.every(
+    (column: string): boolean => {
+      return action.listColumns.includes(column);
+    },
+  );
+
+  if (listsCreatorTeams) {
+    return CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE;
   }
 
   return inherits

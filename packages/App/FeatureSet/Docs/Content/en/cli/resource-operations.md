@@ -65,6 +65,8 @@ oneuptime incident list -o json
 
 A list asks OneUptime for every field of each record that the key may read. A table shows six of them; JSON shows them all (see [Output Formats](/docs/cli/output-formats)). To page through every record, raise `--skip` by `--limit` until a page comes back empty; `count` says how many there are.
 
+Labels are listed by name rather than newest first: labels whose names start with a number come first, in the order of that number (`2. Team` before `10. Owner`), then the others alphabetically. To list them in another order, give `--sort`.
+
 ### Filter a list
 
 `--query` takes the same filter as the API: a field with a value matches that value, and an object with a `_type` compares.

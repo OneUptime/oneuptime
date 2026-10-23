@@ -21,8 +21,9 @@ import {
  *      custom event AND handed to onIssue, which the Recorder turns into
  *      the Performance upload trigger.
  *
- *   2. WEB VITALS. LCP, FCP, CLS and TTFB once per page load, and INP
- *      once per VIEW, emitted as kind "web-vital" custom events with the
+ *   2. WEB VITALS. LCP, FCP, CLS and TTFB once per page view (CLS
+ *      again at a later hide if it grew), and INP once per VIEW,
+ *      emitted as kind "web-vital" custom events with the
  *      standard Google ratings. Informational only: a vital NEVER calls
  *      onIssue, so it can never cause an upload, and it is on by default
  *      because "was this page slow for that user" is the first question a
@@ -31,6 +32,30 @@ import {
  *      final candidate, FCP entry, CLS session windows, INP from event
  *      timing, TTFB from navigation timing) is what the library would
  *      compute for the overwhelming majority of pages.
+ *
+ *      Timed the way the library times them, because the library's number
+ *      is the one a customer holds ours against (issue #5181):
+ *
+ *        - A page the browser PRERENDERED (speculation rules, or Chrome
+ *          loading the page it expects to be opened from the address bar)
+ *          is measured from when the visitor opened it: FCP, LCP and TTFB
+ *          count from the navigation entry's activationStart, clamped at
+ *          0, and nothing is observed until the page is activated. Timed
+ *          from the prerender's start, a 68 ms FCP read as 2.1 s.
+ *        - A page hidden before it painted (opened in a background tab)
+ *          reports no FCP or LCP: the browser paints a hidden page only
+ *          once it is shown, so the number would time the tab sitting
+ *          unseen. Nor CLS, which the library (and CrUX) measure only
+ *          from the first FCP reported.
+ *        - A page restored from the back/forward cache is a new page view
+ *          with vitals of its own: TTFB 0, FCP and LCP from the restore to
+ *          the frame after it, and CLS and INP from the restore on.
+ *
+ *      CLS covers a page view's whole life: reported at the first hide,
+ *      and again at a later one if the page shifted more after the
+ *      visitor came back, as the library reports it. Every vital names
+ *      the kind of page view it describes (navigationType), and the LCP
+ *      budget reads the same LCP.
  *
  *      INP is per view because of single-page apps. The browser's INP
  *      covers the whole document, so an app that routes with pushState
@@ -63,7 +88,8 @@ export const PERFORMANCE_CUSTOM_EVENT_TAG: string =
  * Cap on emitted BUDGET events per page load. A page that jank-loops
  * produces an unbounded longtask stream, and 500 identical "the main
  * thread stalled" rows make a worse recording than 50 do. Vitals are not
- * counted: they are bounded by construction (one per metric per page).
+ * counted: they are bounded by construction (one per metric per page
+ * view, CLS and INP again only at a later hide where they grew).
  */
 export const MAX_PERFORMANCE_EVENTS: number = 50;
 
@@ -251,16 +277,29 @@ const PAINT_ENTRY: string = "paint";
 const LAYOUT_SHIFT_ENTRY: string = "layout-shift";
 const EVENT_ENTRY: string = "event";
 const FIRST_INPUT_ENTRY: string = "first-input";
+const NAVIGATION_ENTRY: string = "navigation";
+const VISIBILITY_STATE_ENTRY: string = "visibility-state";
+
+/* Fired at the document when a prerendered page is opened. */
+const PRERENDERING_CHANGE_EVENT: string = "prerenderingchange";
 
 /*
  * The user inputs after which the browser stops issuing LCP candidates,
- * which makes them the moment the page's LCP is final.
+ * which makes them the moment the page's LCP is final. Only the visitor's
+ * own (trusted) input counts: the browser goes on issuing candidates after
+ * a script's synthetic click, and the web-vitals library ignores one too.
  */
 const LCP_FINALISING_INPUTS: Array<string> = [
   "keydown",
   "pointerdown",
   "click",
 ];
+
+/* An LCP candidate: its value, and when the visitor saw that paint. */
+interface LcpCandidate {
+  valueMs: number;
+  occurredAtUnixMs: number;
+}
 
 export default class PerformanceRecorder {
   private readonly options: PerformanceRecorderOptions;
@@ -278,16 +317,63 @@ export default class PerformanceRecorder {
   private paintObserver: ObserverLike | null = null;
   private layoutShiftObserver: ObserverLike | null = null;
   private interactionObserver: ObserverLike | null = null;
+  private firstInputObserver: ObserverLike | null = null;
 
   /* Remembered from start() so resetForNewSession can re-arm observers. */
   private windowRef: Window | null = null;
   private timeOriginMs: number = 0;
 
-  /* Per-metric latch: a vital is emitted at most once per page load. */
+  /*
+   * The page is being prerendered: nobody has opened it yet, so nothing is
+   * observed until prerenderingchange says somebody has.
+   */
+  private awaitingActivation: boolean = false;
+
+  /*
+   * performance.now() when the visitor opened a prerendered page (the
+   * navigation entry's activationStart); 0 for every other page. FCP, LCP
+   * and TTFB count from here.
+   */
+  private activationStartMs: number = 0;
+
+  /*
+   * performance.now() when the page was first hidden, Infinity while it
+   * never has been. A paint at or after it is not reported: a hidden page
+   * paints only once it is shown again.
+   */
+  private firstHiddenMs: number = Infinity;
+
+  /* The kind of page view the page-level vitals describe. */
+  private navigationType: SessionReplayNavigationType = "hard";
+
+  /* The load had navigation timing, so a restore reports its TTFB of 0. */
+  private hasMeasuredTtfb: boolean = false;
+
+  /*
+   * An FCP was reported: the load's, or a restore's. CLS is measured and
+   * reported only from then on - for that page view and every one after
+   * it - which is when the web-vitals library starts measuring CLS at all.
+   */
+  private hasReportedFcp: boolean = false;
+
+  /*
+   * The CLS last reported for this page view. CLS covers the view's whole
+   * life, so a later hide reports it again if it grew since, as the
+   * library does; null until it is first reported.
+   */
+  private reportedClsValue: number | null = null;
+
+  /* Bumped by each restore, so a frame wait that outlived it stands down. */
+  private restoreCount: number = 0;
+
+  /* What the engine can observe, read once the page is the visitor's. */
+  private supportedEntryTypes: Array<string> = [];
+
+  /* Per-metric latch: a vital is emitted at most once per page view. */
   private reportedVitals: Record<string, boolean> = {};
 
-  /* Latest LCP candidate (startTime is the render time). */
-  private lcpCandidateMs: number | null = null;
+  /* Latest LCP candidate. */
+  private lcpCandidate: LcpCandidate | null = null;
 
   /* CLS: the running session window and the largest one seen. */
   private clsObserved: boolean = false;
@@ -311,8 +397,9 @@ export default class PerformanceRecorder {
   private recentTargetIndex: number = 0;
 
   private readonly lifecycleListener: (event: Event) => void;
-  private readonly inputListener: () => void;
+  private readonly inputListener: (event: Event) => void;
   private readonly targetListener: (event: Event) => void;
+  private readonly activationListener: () => void;
 
   public constructor(options: PerformanceRecorderOptions) {
     this.options = options;
@@ -322,8 +409,14 @@ export default class PerformanceRecorder {
       this.onLifecycle(event);
     };
 
-    this.inputListener = (): void => {
-      this.finaliseLcp();
+    this.inputListener = (event: Event): void => {
+      if (event.isTrusted) {
+        this.finaliseLcp();
+      }
+    };
+
+    this.activationListener = (): void => {
+      this.onActivation();
     };
 
     this.targetListener = (event: Event): void => {
@@ -346,8 +439,49 @@ export default class PerformanceRecorder {
     this.timeOriginMs = PerformanceRecorder.readTimeOrigin(windowRef);
 
     if (this.captureWebVitals) {
-      this.reportTtfb(windowRef);
       this.addLifecycleListeners(windowRef);
+    }
+
+    /*
+     * A prerendered page runs its scripts - this one included - before
+     * anybody opens it, and may never be opened at all. Anything measured
+     * now would time the prerender, not the visitor's page, so it all
+     * waits for the activation, as the web-vitals library waits.
+     */
+    if (PerformanceRecorder.isPrerendering(windowRef)) {
+      this.awaitingActivation = true;
+
+      try {
+        windowRef.document.addEventListener(
+          PRERENDERING_CHANGE_EVENT,
+          this.activationListener,
+          true,
+        );
+      } catch {
+        /* A document that refuses listeners is never measured. */
+      }
+
+      return;
+    }
+
+    this.observePage(windowRef, false);
+  }
+
+  /*
+   * The page is the visitor's now: read where its timings start and what
+   * it has been through so far, then observe it.
+   */
+  private observePage(windowRef: Window, wasPrerendered: boolean): void {
+    this.activationStartMs = PerformanceRecorder.readActivationStart(windowRef);
+    this.navigationType =
+      wasPrerendered || this.activationStartMs > 0 ? "prerender" : "hard";
+    this.firstHiddenMs = PerformanceRecorder.readFirstHiddenTime(
+      windowRef,
+      this.activationStartMs,
+    );
+
+    if (this.captureWebVitals) {
+      this.reportTtfb(windowRef);
     }
 
     const Observer: ObserverConstructor | null =
@@ -359,6 +493,8 @@ export default class PerformanceRecorder {
 
     const supported: Array<string> =
       PerformanceRecorder.getSupportedEntryTypes(Observer);
+
+    this.supportedEntryTypes = supported;
 
     /*
      * One LCP observer serves both the budget and the vital: the entries
@@ -427,12 +563,17 @@ export default class PerformanceRecorder {
      * booted land in it. Opened before the observer, which may deliver
      * those entries as soon as it is observing.
      */
-    this.inpViews = [this.createInpView(null, "hard", 0, 0)];
+    this.inpViews = [this.createInpView(null, this.navigationType, 0, 0)];
 
     /*
-     * Event timing carries every interaction; first-input is the older,
-     * narrower API (Safari) and is only used when event timing is absent,
-     * so one interaction is never read twice.
+     * Event timing carries every interaction over the duration threshold.
+     * first-input is observed beside it, as the web-vitals library does:
+     * the browser delivers the first interaction whatever its duration, so
+     * a page whose every interaction was quick still has an INP (it had
+     * none). It carries the interactionId of its event entries, so it
+     * merges into that interaction rather than counting twice. Where event
+     * timing is absent first-input is all there is (older Safari), one
+     * interaction per entry.
      */
     if (supported.indexOf(EVENT_ENTRY) >= 0) {
       this.interactionObserver = PerformanceRecorder.tryObserve(
@@ -443,6 +584,19 @@ export default class PerformanceRecorder {
         },
         { durationThreshold: INP_DURATION_THRESHOLD_MS },
       );
+
+      if (
+        this.interactionObserver &&
+        supported.indexOf(FIRST_INPUT_ENTRY) >= 0
+      ) {
+        this.firstInputObserver = PerformanceRecorder.tryObserve(
+          Observer,
+          FIRST_INPUT_ENTRY,
+          (entries: Array<PerformanceEntry>): void => {
+            this.onInteractionEntries(entries);
+          },
+        );
+      }
     } else if (supported.indexOf(FIRST_INPUT_ENTRY) >= 0) {
       this.inpInteractionsRequireId = false;
       this.interactionObserver = PerformanceRecorder.tryObserve(
@@ -476,9 +630,11 @@ export default class PerformanceRecorder {
     }
 
     this.started = false;
+    this.awaitingActivation = false;
 
     if (this.windowRef) {
       this.removeLifecycleListeners(this.windowRef);
+      this.removeActivationListener(this.windowRef);
     }
 
     this.lcpObserver = PerformanceRecorder.disconnect(this.lcpObserver);
@@ -492,17 +648,113 @@ export default class PerformanceRecorder {
     this.interactionObserver = PerformanceRecorder.disconnect(
       this.interactionObserver,
     );
+    this.firstInputObserver = PerformanceRecorder.disconnect(
+      this.firstInputObserver,
+    );
     this.cancelInpSettle();
     this.inpViews = [];
   }
 
   /*
+   * The page came back from the back/forward cache. The Recorder calls this
+   * from its pageshow handler, once the restored page records as a new tab,
+   * with that event's timeStamp - the moment of the restore on the
+   * performance clock.
+   *
+   * To the visitor that is a new page view, and the web-vitals library
+   * reports a new set of vitals for it; so does this, each marked
+   * "back-forward-cache":
+   *
+   *   - TTFB 0: nothing was fetched.
+   *   - FCP and LCP: from the restore to the frame after it, when the
+   *     cached page is back on the screen.
+   *   - CLS and INP: from the restore on, in a view of its own. The visit
+   *     before the cache was reported at its pagehide.
+   */
+  public noteBfcacheRestore(pageShowTimeStamp: number): void {
+    if (!this.started || !this.captureWebVitals || this.awaitingActivation) {
+      return;
+    }
+
+    const now: number = this.nowMs();
+    const restoredAtMs: number =
+      Number.isFinite(pageShowTimeStamp) &&
+      pageShowTimeStamp >= 0 &&
+      pageShowTimeStamp <= now
+        ? pageShowTimeStamp
+        : now;
+
+    /* Whatever the visit before the cache had left is final now. */
+    this.finaliseVitals();
+
+    this.navigationType = "back-forward-cache";
+    this.reportedVitals = {};
+    this.reportedClsValue = null;
+    this.lcpCandidate = null;
+    this.clsValue = 0;
+    this.clsOccurredAtMs = 0;
+    this.clsSessionValue = 0;
+    this.clsSessionFirstMs = 0;
+    this.clsSessionLastMs = 0;
+
+    /* The load's paint entries describe the visit before the cache. */
+    this.paintObserver = PerformanceRecorder.disconnect(this.paintObserver);
+
+    if (this.interactionObserver) {
+      this.inpViews = [
+        this.createInpView(
+          null,
+          "back-forward-cache",
+          restoredAtMs,
+          this.readInteractionCount(),
+        ),
+      ];
+    }
+
+    if (this.hasMeasuredTtfb) {
+      this.reportVital("TTFB", 0, this.toUnixMs(restoredAtMs));
+    }
+
+    const restore: number = ++this.restoreCount;
+
+    this.afterNextFrame((): void => {
+      if (!this.started || restore !== this.restoreCount) {
+        return;
+      }
+
+      const value: number = Math.max(this.nowMs() - restoredAtMs, 0);
+      const occurredAtUnixMs: number = this.toUnixMs(restoredAtMs + value);
+
+      if (this.supportedEntryTypes.indexOf(PAINT_ENTRY) >= 0) {
+        this.hasReportedFcp = true;
+        this.reportVital("FCP", value, occurredAtUnixMs);
+      }
+
+      if (this.supportedEntryTypes.indexOf(LCP_ENTRY) >= 0) {
+        this.reportVital("LCP", value, occurredAtUnixMs);
+      }
+    });
+  }
+
+  /* The prerendered page was opened: it is the visitor's from here. */
+  private onActivation(): void {
+    if (!this.started || !this.awaitingActivation || !this.windowRef) {
+      return;
+    }
+
+    this.awaitingActivation = false;
+    this.removeActivationListener(this.windowRef);
+    this.observePage(this.windowRef, true);
+  }
+
+  /*
    * The recorder is about to pause because nobody is at the page. Reported
    * exactly as a hidden tab reports them, while the stream can still take
-   * them: LCP, FCP, TTFB and CLS once, and the current view's INP, which
-   * stays open and is reported again only if it changes after the user
-   * comes back. Without this, a page whose first hide came while paused -
-   * the tab closed by someone who walked away first - lost its vitals.
+   * them: LCP, FCP and TTFB once, and CLS and the current view's INP,
+   * which stay open and are reported again only if they change after
+   * the user comes back. Without this, a page whose first hide came while
+   * paused - the tab closed by someone who walked away first - lost its
+   * vitals.
    */
   public finaliseVitalsNow(): void {
     if (!this.started || !this.captureWebVitals) {
@@ -554,8 +806,10 @@ export default class PerformanceRecorder {
   public resetForNewSession(): void {
     this.emittedCount = 0;
 
+    /* A prerendered page arms its observers once it is opened. */
     if (
       !this.started ||
+      this.awaitingActivation ||
       this.longTaskObserver !== null ||
       this.options.longTaskBudgetMs <= 0 ||
       !this.windowRef
@@ -615,11 +869,17 @@ export default class PerformanceRecorder {
 
   /*
    * LCP entries stream as larger candidates render; each entry's startTime
-   * is the current LCP value. The budget reports once per page load, on
-   * the first candidate over budget - later, larger candidates would only
-   * restate it. The vital keeps the LATEST candidate and reports it when
-   * the browser stops issuing candidates (first input, or the tab hides).
-   * The observer disconnects once neither job has anything left to hear.
+   * is the render time of the current LCP. The budget reports once per
+   * page load, on the first candidate over budget - later, larger
+   * candidates would only restate it. The vital keeps the LATEST candidate
+   * and reports it when the browser stops issuing candidates (first input,
+   * or the tab hides). The observer disconnects once neither job has
+   * anything left to hear.
+   *
+   * Both read the same LCP, the web-vitals library's: counted from
+   * activation for a prerendered page, and only for a paint made before
+   * the page was first hidden - a page opened in a background tab paints
+   * once it is shown, so its LCP would time the tab sitting unseen.
    */
   private onLcpEntries(entries: Array<PerformanceEntry>): void {
     if (!this.started) {
@@ -627,14 +887,30 @@ export default class PerformanceRecorder {
     }
 
     for (const entry of entries) {
-      const value: number = entry.startTime;
+      const renderTimeMs: number = entry.startTime;
 
-      if (!Number.isFinite(value)) {
+      if (
+        !Number.isFinite(renderTimeMs) ||
+        renderTimeMs >= this.firstHiddenMs
+      ) {
         continue;
       }
 
-      if (this.captureWebVitals && !this.reportedVitals["LCP"]) {
-        this.lcpCandidateMs = value;
+      const value: number = this.sinceActivation(renderTimeMs);
+      const occurredAtUnixMs: number = this.toUnixMs(
+        this.activationStartMs + value,
+      );
+
+      /* A restored page's LCP is its first frame back, not the load's. */
+      if (
+        this.captureWebVitals &&
+        !this.reportedVitals["LCP"] &&
+        this.restoreCount === 0
+      ) {
+        this.lcpCandidate = {
+          valueMs: value,
+          occurredAtUnixMs: occurredAtUnixMs,
+        };
       }
 
       if (
@@ -644,11 +920,11 @@ export default class PerformanceRecorder {
       ) {
         this.hasReportedLcp = true;
 
-        this.report(this.toUnixMs(value), {
+        this.report(occurredAtUnixMs, {
           kind: "lcp",
           durationMs: Math.round(value),
           budgetMs: this.options.lcpBudgetMs,
-          occurredAtUnixMs: this.toUnixMs(value),
+          occurredAtUnixMs: occurredAtUnixMs,
         });
       }
     }
@@ -664,9 +940,14 @@ export default class PerformanceRecorder {
     for (const entry of entries) {
       const duration: number = entry.duration;
 
+      /*
+       * A task that was over before the visitor opened a prerendered page
+       * kept nobody waiting.
+       */
       if (
         Number.isFinite(duration) &&
-        duration >= this.options.longTaskBudgetMs
+        duration >= this.options.longTaskBudgetMs &&
+        !(entry.startTime + duration <= this.activationStartMs)
       ) {
         /*
          * A long task's startTime is when the main thread stalled; that,
@@ -717,9 +998,12 @@ export default class PerformanceRecorder {
 
   /*
    * TTFB comes from navigation timing, which is complete before any
-   * script runs, so it is reported at start. A responseStart of 0 is
-   * "not measured" (a bfcache restore, a synthetic document), not a 0 ms
-   * response, and is skipped rather than reported as impossibly fast.
+   * script runs, so it is reported as soon as the page is the visitor's.
+   * A responseStart of 0 is "not measured" (a synthetic document, a value
+   * the browser withheld), not a 0 ms response, and is skipped rather than
+   * reported as impossibly fast. A prerendered page counts from its
+   * activation: a response that had arrived by the time the visitor opened
+   * the page kept them waiting 0 ms, which is what web-vitals reports.
    */
   private reportTtfb(windowRef: Window): void {
     const responseStartMs: number | null =
@@ -729,11 +1013,22 @@ export default class PerformanceRecorder {
       return;
     }
 
-    this.reportVital("TTFB", responseStartMs, this.toUnixMs(responseStartMs));
+    const value: number = this.sinceActivation(responseStartMs);
+
+    this.hasMeasuredTtfb = true;
+    this.reportVital(
+      "TTFB",
+      value,
+      this.toUnixMs(this.activationStartMs + value),
+    );
   }
 
+  /*
+   * FCP, timed as onLcpEntries times LCP: from activation, and not at all
+   * when the page was hidden before it painted.
+   */
   private onPaintEntries(entries: Array<PerformanceEntry>): void {
-    if (!this.started) {
+    if (!this.started || this.restoreCount > 0) {
       return;
     }
 
@@ -742,12 +1037,19 @@ export default class PerformanceRecorder {
         entry.name === "first-contentful-paint" &&
         Number.isFinite(entry.startTime)
       ) {
-        this.reportVital(
-          "FCP",
-          entry.startTime,
-          this.toUnixMs(entry.startTime),
-        );
         this.paintObserver = PerformanceRecorder.disconnect(this.paintObserver);
+
+        if (entry.startTime < this.firstHiddenMs) {
+          const value: number = this.sinceActivation(entry.startTime);
+
+          this.hasReportedFcp = true;
+          this.reportVital(
+            "FCP",
+            value,
+            this.toUnixMs(this.activationStartMs + value),
+          );
+        }
+
         return;
       }
     }
@@ -1121,14 +1423,27 @@ export default class PerformanceRecorder {
   }
 
   private drainInteractionRecords(): void {
-    const observer: ObserverLike | null = this.interactionObserver;
+    for (const observer of [
+      this.interactionObserver,
+      this.firstInputObserver,
+    ]) {
+      this.drainRecords(observer, (entries: Array<PerformanceEntry>): void => {
+        this.onInteractionEntries(entries);
+      });
+    }
+  }
 
+  /* Entries the engine has queued for an observer but not yet delivered. */
+  private drainRecords(
+    observer: ObserverLike | null,
+    onEntries: (entries: Array<PerformanceEntry>) => void,
+  ): void {
     if (!observer || typeof observer.takeRecords !== "function") {
       return;
     }
 
     try {
-      this.onInteractionEntries(observer.takeRecords());
+      onEntries(observer.takeRecords());
     } catch {
       /* Nothing queued we can read. */
     }
@@ -1194,19 +1509,28 @@ export default class PerformanceRecorder {
     value: number,
     occurredAtUnixMs: number,
   ): void {
-    if (
-      !this.captureWebVitals ||
-      this.reportedVitals[metric] ||
-      !Number.isFinite(value)
-    ) {
+    /* CLS keeps its precision; the millisecond metrics are whole numbers. */
+    const rounded: number =
+      metric === "CLS" ? Math.round(value * 10000) / 10000 : Math.round(value);
+
+    /*
+     * Once per page view - but CLS, which covers the view's whole life, is
+     * reported again whenever it has grown since it was last reported.
+     */
+    const isRepeat: boolean =
+      metric === "CLS"
+        ? rounded === this.reportedClsValue
+        : this.reportedVitals[metric] === true;
+
+    if (!this.captureWebVitals || isRepeat || !Number.isFinite(value)) {
       return;
     }
 
     this.reportedVitals[metric] = true;
 
-    /* CLS keeps its precision; the millisecond metrics are whole numbers. */
-    const rounded: number =
-      metric === "CLS" ? Math.round(value * 10000) / 10000 : Math.round(value);
+    if (metric === "CLS") {
+      this.reportedClsValue = rounded;
+    }
 
     this.emitWebVital({
       kind: "web-vital",
@@ -1214,6 +1538,7 @@ export default class PerformanceRecorder {
       value: rounded,
       rating: rateWebVital(metric, rounded),
       occurredAtUnixMs: occurredAtUnixMs,
+      navigationType: this.navigationType,
     });
   }
 
@@ -1225,12 +1550,10 @@ export default class PerformanceRecorder {
   }
 
   private finaliseLcp(): void {
-    if (this.lcpCandidateMs !== null && !this.reportedVitals["LCP"]) {
-      this.reportVital(
-        "LCP",
-        this.lcpCandidateMs,
-        this.toUnixMs(this.lcpCandidateMs),
-      );
+    const candidate: LcpCandidate | null = this.lcpCandidate;
+
+    if (candidate !== null && !this.reportedVitals["LCP"]) {
+      this.reportVital("LCP", candidate.valueMs, candidate.occurredAtUnixMs);
     }
 
     this.releaseLcpObserverIfDone();
@@ -1241,16 +1564,38 @@ export default class PerformanceRecorder {
   }
 
   /*
-   * The page-lifetime vitals (LCP, CLS) and the open views' INP are final
-   * only when the page stops: the tab hides, the page unloads, or the
-   * recorder stops. Each event still carries the moment it HAPPENED, so
-   * the player can draw the largest shift where it shifted rather than at
-   * the end.
+   * The page-lifetime vitals (LCP, CLS) and the open views' INP are as
+   * final as they get when the page stops: the tab hides, the page
+   * unloads, or the recorder stops. LCP is settled for good; CLS and INP
+   * are reported again at a later stop if they grew, the visitor having
+   * come back. Each event still carries the moment it HAPPENED, so the
+   * player can draw the largest shift where it shifted rather than at the
+   * end.
    */
   private finaliseVitals(): void {
+    /*
+     * An FCP or a shift the observer has not delivered yet happened all
+     * the same.
+     */
+    this.drainRecords(
+      this.paintObserver,
+      (entries: Array<PerformanceEntry>): void => {
+        this.onPaintEntries(entries);
+      },
+    );
+    this.drainRecords(
+      this.layoutShiftObserver,
+      (entries: Array<PerformanceEntry>): void => {
+        this.onLayoutShiftEntries(entries);
+      },
+    );
     this.finaliseLcp();
 
-    if (this.clsObserved) {
+    /*
+     * Only once an FCP was reported, as web-vitals and CrUX report CLS: a
+     * page that loaded hidden has none until a restore paints it again.
+     */
+    if (this.clsObserved && this.hasReportedFcp) {
       this.reportVital(
         "CLS",
         this.clsValue,
@@ -1262,12 +1607,73 @@ export default class PerformanceRecorder {
   }
 
   private onLifecycle(event: Event): void {
-    if (
-      event.type === "pagehide" ||
-      (event.type === "visibilitychange" &&
-        this.windowRef?.document.visibilityState === "hidden")
-    ) {
+    const isHidden: boolean = PerformanceRecorder.isHidden(this.windowRef);
+
+    if (event.type === "visibilitychange" && isHidden) {
+      /* The first hide is where the page's paints stop counting. */
+      if (!Number.isFinite(this.firstHiddenMs)) {
+        this.firstHiddenMs = this.eventTimeMs(event);
+      }
+
       this.finaliseVitals();
+    } else if (event.type === "pagehide") {
+      this.finaliseVitals();
+    }
+  }
+
+  /*
+   * When an event happened on the performance clock: its timeStamp, which
+   * is exactly that in every engine this records - unless it is plainly
+   * not (an engine that stamps the wall clock), when now is the best
+   * answer, the listener running as the event is dispatched.
+   */
+  private eventTimeMs(event: Event): number {
+    const now: number = this.nowMs();
+    const stamp: number = event.timeStamp;
+
+    return Number.isFinite(stamp) && stamp >= 0 && stamp <= now ? stamp : now;
+  }
+
+  /* A paint or response time, counted from when the visitor opened the page. */
+  private sinceActivation(performanceTimeMs: number): number {
+    return Math.max(performanceTimeMs - this.activationStartMs, 0);
+  }
+
+  /*
+   * Runs the callback two frames from now, as web-vitals waits after a
+   * restore: the first frame is the one the restored page is painted in.
+   * Nothing is measured where the engine draws no frames to wait for.
+   */
+  private afterNextFrame(callback: () => void): void {
+    const windowRef: Window | null = this.windowRef;
+    const requestFrame: unknown = windowRef
+      ? (windowRef as unknown as Record<string, unknown>)[
+          "requestAnimationFrame"
+        ]
+      : null;
+
+    if (typeof requestFrame !== "function") {
+      return;
+    }
+
+    const next: (frameCallback: () => void) => void = (
+      frameCallback: () => void,
+    ): void => {
+      (requestFrame as (cb: () => void) => number).call(windowRef, (): void => {
+        try {
+          frameCallback();
+        } catch {
+          /* Never throw into the host page's frame. */
+        }
+      });
+    };
+
+    try {
+      next((): void => {
+        next(callback);
+      });
+    } catch {
+      /* No frame, no restore timings. */
     }
   }
 
@@ -1342,6 +1748,18 @@ export default class PerformanceRecorder {
       for (const type of LCP_FINALISING_INPUTS) {
         windowRef.document.removeEventListener(type, this.inputListener, true);
       }
+    } catch {
+      /* Already gone. */
+    }
+  }
+
+  private removeActivationListener(windowRef: Window): void {
+    try {
+      windowRef.document.removeEventListener(
+        PRERENDERING_CHANGE_EVENT,
+        this.activationListener,
+        true,
+      );
     } catch {
       /* Already gone. */
     }
@@ -1443,6 +1861,145 @@ export default class PerformanceRecorder {
   }
 
   /*
+   * performance.getEntriesByType(type), or null where the engine has no
+   * performance timeline at all.
+   */
+  private static readEntries(
+    windowRef: Window | null,
+    type: string,
+  ): Array<Record<string, unknown>> | null {
+    const perf: Record<string, unknown> | null = windowRef
+      ? PerformanceRecorder.readPerformance(windowRef)
+      : null;
+
+    try {
+      const getEntriesByType: unknown = perf ? perf["getEntriesByType"] : null;
+
+      if (typeof getEntriesByType !== "function") {
+        return null;
+      }
+
+      const entries: unknown = (
+        getEntriesByType as (entryType: string) => unknown
+      ).call(perf, type);
+
+      return Array.isArray(entries)
+        ? entries.filter((entry: unknown): boolean => {
+            return Boolean(entry) && typeof entry === "object";
+          })
+        : null;
+    } catch {
+      /* A timeline that throws is no timeline. */
+      return null;
+    }
+  }
+
+  /*
+   * The page's navigation entry, when it can be trusted - web-vitals'
+   * getNavigationEntry rule: a responseStart of 0 is a value the browser
+   * withheld, and one past now() is a browser bug, and either way nothing
+   * in the entry is relied on. undefined where the engine has no
+   * navigation timing at all; null where it has, but not usable.
+   */
+  private static readNavigationEntry(
+    windowRef: Window | null,
+  ): Record<string, unknown> | null | undefined {
+    const entries: Array<Record<string, unknown>> | null =
+      PerformanceRecorder.readEntries(windowRef, NAVIGATION_ENTRY);
+
+    if (!entries || entries.length === 0) {
+      return undefined;
+    }
+
+    const entry: Record<string, unknown> = entries[0] as Record<
+      string,
+      unknown
+    >;
+    const responseStart: unknown = entry["responseStart"];
+    let now: number = Infinity;
+
+    try {
+      now = windowRef ? windowRef.performance.now() : Infinity;
+    } catch {
+      /* No clock to hold it to. */
+    }
+
+    return typeof responseStart === "number" &&
+      Number.isFinite(responseStart) &&
+      responseStart > 0 &&
+      !(responseStart >= now)
+      ? entry
+      : null;
+  }
+
+  /*
+   * When the visitor opened a prerendered page, on the performance clock;
+   * 0 for a page that was not prerendered, and wherever the engine does
+   * not say (the same answer web-vitals' getActivationStart gives).
+   */
+  private static readActivationStart(windowRef: Window): number {
+    const entry: Record<string, unknown> | null | undefined =
+      PerformanceRecorder.readNavigationEntry(windowRef);
+    const activationStart: unknown = entry ? entry["activationStart"] : 0;
+
+    return typeof activationStart === "number" &&
+      Number.isFinite(activationStart) &&
+      activationStart > 0
+      ? activationStart
+      : 0;
+  }
+
+  /*
+   * When the page was first hidden since it was opened, on the
+   * performance clock; Infinity if it has not been. The engine's own
+   * visibility history first (Chromium's visibility-state entries, which
+   * know about a hide before this script ran), then the page as it is
+   * now: one hidden at this point is taken to have been hidden all along,
+   * a page opened in a background tab. web-vitals reads it the same way.
+   */
+  private static readFirstHiddenTime(
+    windowRef: Window,
+    activationStartMs: number,
+  ): number {
+    const entries: Array<Record<string, unknown>> =
+      PerformanceRecorder.readEntries(windowRef, VISIBILITY_STATE_ENTRY) || [];
+
+    for (const entry of entries) {
+      const startTime: unknown = entry["startTime"];
+
+      if (
+        entry["name"] === "hidden" &&
+        typeof startTime === "number" &&
+        startTime >= activationStartMs
+      ) {
+        return startTime;
+      }
+    }
+
+    return PerformanceRecorder.isHidden(windowRef) ? 0 : Infinity;
+  }
+
+  private static isPrerendering(windowRef: Window): boolean {
+    try {
+      return (
+        (windowRef.document as unknown as Record<string, unknown>)[
+          "prerendering"
+        ] === true
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private static isHidden(windowRef: Window | null): boolean {
+    try {
+      return windowRef?.document.visibilityState === "hidden";
+    } catch {
+      return false;
+    }
+  }
+
+  /*
    * responseStart relative to navigation start, or null when the browser
    * did not measure one. Level 2 navigation timing first, legacy
    * performance.timing second.
@@ -1456,28 +2013,11 @@ export default class PerformanceRecorder {
     }
 
     try {
-      const getEntriesByType: unknown = perf["getEntriesByType"];
+      const entry: Record<string, unknown> | null | undefined =
+        PerformanceRecorder.readNavigationEntry(windowRef);
 
-      if (typeof getEntriesByType === "function") {
-        const entries: unknown = (
-          getEntriesByType as (type: string) => unknown
-        ).call(perf, "navigation");
-
-        if (Array.isArray(entries) && entries.length > 0) {
-          const responseStart: unknown = (
-            entries[0] as Record<string, unknown>
-          )["responseStart"];
-
-          if (
-            typeof responseStart === "number" &&
-            Number.isFinite(responseStart) &&
-            responseStart > 0
-          ) {
-            return responseStart;
-          }
-
-          return null;
-        }
+      if (entry !== undefined) {
+        return entry ? (entry["responseStart"] as number) : null;
       }
 
       const timing: unknown = perf["timing"];

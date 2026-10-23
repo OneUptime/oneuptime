@@ -863,7 +863,13 @@ Under standardutløseren _Always_ lastes hver samplet økt opp, så disse budsje
 
 Hvert budsjett er slått av ved `0` (standard). Økter som fanges på denne måten, vises med utløserårsaken `performance` (_Slow_ i listen). Mislykkede og avbrutte forespørsler telles ikke her — en 5xx eller en nettverksfeil utløser allerede via feilveien.
 
-Uavhengig av budsjettene rapporterer opptakeren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med vurderingen good / needs-improvement / poor — som **Perf**-rader. Vitals utløser aldri en opplasting av seg selv.
+Uavhengig av budsjettene rapporterer opptakeren hver sides Core Web Vitals — LCP, CLS, INP, FCP og TTFB med vurderingen good / needs-improvement / poor — som **Perf**-rader. Vitals utløser aldri en opplasting av seg selv. CLS og INP dekker hele sidens levetid: vokser en av dem etter at den besøkende har kommet tilbake til fanen, rapporteres den på nytt som en ny rad, og detaljene til de to radene lenker til hverandre.
+
+Opptakeren måler hver vital slik Googles bibliotek `web-vitals` gjør, så et opptak gir de samme tallene som din egen web-vitals-telemetri for det samme besøket. Tre slags sideinnlasting måles annerledes enn en vanlig:
+
+- En side som nettleseren forhåndsgjengav før den besøkende åpnet den, slik Chrome gjør med en side den forventer blir åpnet fra adresselinjen, måles fra øyeblikket den ble åpnet: FCP, LCP og TTFB utelater tiden den ventet usett, og det gjør LCP-budsjettet også. Hver av sidens vitals sier det i detaljene sine.
+- En side som ble åpnet i en fane i bakgrunnen, rapporterer ingen FCP, LCP eller CLS. Nettleseren tegner en skjult side først når den vises, så de tallene ville målt fanen, ikke siden.
+- En side som ble gjenopprettet fra back/forward-bufferen, rapporterer et eget sett: TTFB 0, FCP og LCP fram til det første bildet tilbake på skjermen, deretter CLS og INP for det besøket. Hver av dem sier det i detaljene sine.
 
 INP rapporteres per visning, ikke per sideinnlasting. I en enkeltsideapp lukker hver ruteendring (`pushState`, `replaceState`, tilbake/fram eller en hash-rute `#/`) den gjeldende visningen og starter en ny, så et besøk gjennom fem ruter får opptil fem INP-rader, hver merket med sin rute. En interaksjon tilhører visningen den startet i: klikket som navigerte fra `/products` til `/cart`, teller for `/products`, som er siden som var treg til å svare. Hver INP-rad sier også hva den trege interaksjonen var — peker eller tastatur, elementet (en strukturell velger som `div#checkout > button.pay`, bygget som et klikks og uten noen gang å inneholde tekst eller attributtverdier), og hvordan tiden fordelte seg på inputforsinkelse, behandling og presentasjon. En visning rapporteres omtrent et sekund etter at brukeren forlater den, eller når fanen skjules.
 

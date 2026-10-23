@@ -139,6 +139,8 @@ En **Detalles del episodio**, rellena el **Título** y, si quieres, una **Graved
 
 En **Guardia y propietarios**, elige una **Política de guardia** que se ejecute cuando se cree el episodio, y sus **Propietarios**. Después haz clic en **Crear episodio**.
 
+Cada equipo del que eres miembro está a un clic bajo **Propietarios**, y el resumen lista las reglas de propietario que añadirán más.
+
 ### Añadir las alertas
 
 Abre la página **Alertas miembro** del episodio, haz clic en **Añadir alertas** y marca las alertas que le pertenecen, tantas como necesites a la vez. Para empezar por las alertas, selecciónalas en la lista **Alertas** y elige **Añadir a un episodio nuevo** en **Acciones masivas** (consulta [Episodios](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ Un episodio que creas tú no tiene regla de agrupación, así que la lista muest
 | **Desarrolladores** | **Terraform**, **API**, **Asistentes de IA** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar episodio** |
 
-**Desarrolladores** y **Avanzado** empiezan plegadas. La **Vista general** empieza con **Alertas de este episodio**, después el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
+**Desarrolladores** y **Avanzado** empiezan plegadas. En la **Vista general**, la cabecera nombra a los **Propietarios** del episodio, primero los equipos, y el primer recuadro, **Creado**, dice cuándo se creó el episodio —**Automáticamente**, cuando lo abrió una regla de agrupación—. La tarjeta **Qué pasó** encabeza la página —la descripción del episodio y su **Causa raíz**—, después **Alertas de este episodio** y el **Feed del episodio**, junto a la tarjeta **Detalles del episodio**: su número, estado, gravedad, número de alertas, regla de agrupación y políticas de guardia. Su cabecera tiene **Reconocer** y **Resolver**, y **Move episode to** en el menú **⋯**.
 
 **Alertas → Episodios activos** muestra los episodios que aún no se han resuelto, y la insignia a su lado los cuenta.
 

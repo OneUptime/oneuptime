@@ -27,9 +27,15 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
 ## What is modelled
 
 - **Incident #1042** "Checkout API p95 latency above 2s": Created → Acknowledged (18:04) →
-  Resolved (18:12), SEV-2, two labels, two monitors and services, an on-call policy, declared by
-  the eu-west-1 probe, two role members, a feed including the AI root-cause item, and membership
-  of episode #12.
+  Resolved (18:12), SEV-2, two labels, two monitors and services that it sets to Degraded, an
+  on-call policy, declared at 18:01 by the eu-west-1 probe three minutes after the impact began
+  (17:58), a description and - once resolved - a root cause (`?what=`), Maya Chen as Incident
+  Commander among its role members, owned by the Checkout SRE team and Sam Rivera
+  (`?owners=`), a feed including the AI root-cause item, and membership of episode #12.
+- **Owners and the Incident Commander**: alert #311 and alert episode #7 are owned by the
+  Payments team, incident episode #12 by Checkout SRE and Sam Rivera, and Maya Chen holds
+  Incident Commander on #1042 and #12 (`?commander=`). The eight owner tables answer the way
+  the Owners pages read them.
 - **Prior incidents #1017, #1029, #1036**: resolved, same project, openable on the same
   incident route; the AI report links to them.
 - **AI investigation** for #1042 and **Alert #311**: a completed run with 10 tool calls
@@ -85,7 +91,7 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   maintenance measures start delay, overrun and maintenance duration.
 
 Navigation targets that are not modelled (AI task, monitor, host, Kubernetes cluster, SLO,
-on-call policy, status page, user, team, roles and member lists, list pages (the metrics,
+on-call policy, status page, user, team, roles, owners and member lists, list pages (the metrics,
 logs, monitors and on-call policies lists are where an answer's sources lead), side-menu
 sub-pages, and Create Incident -
 `INCIDENT_CREATE` `/dashboard/:projectId/incidents/create`, where an alert's Declare Incident
@@ -119,10 +125,14 @@ Query parameters, parsed once per page load:
 | `?linked=`          | what the investigations read about the infrastructure they are linked to: none (default), `alerts` (#1042's read 2 open or recent alerts on its five resources, #311's none on its host), `more` (more alerts than the 10 listed) or `followup` (alert #318 opened on #1042's host after its first analysis: the card shows the follow-up check, its report led by "Checked again", and the feed both reports)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `?calls=`           | Incident #1042's video calls and their transcripts (issue #4875): none (default), `zoom` (a Zoom meeting a workspace rule started, no transcript yet), `teams` (a Microsoft Teams meeting not on a calendar: only Add transcript, as Microsoft lets no app read it), `reading` (OneUptime AI reading the Zoom meeting's transcript), `stuck` (Pending for 40 minutes), `transcript` (read, with a suggested root cause nobody has decided on), `not-enough` (read: the call did not settle the cause), `accepted` or `dismissed` (Jordan Patel used or dismissed the suggestion), `failed` (the daily AI token limit), `skipped` (AI is off) or `two` (the Zoom meeting with its suggestion, and an earlier Teams one). With Record and transcribe incident calls: `waiting` (OneUptime waits to get the Zoom meeting's transcript by itself), `fetch-stopped` (it stopped: Zoom kept no transcript), `summary` (it got the transcript, and what OneUptime AI read in it is in the feed, in the words the server writes, `CallSummaryFeedMarkdown`), `teams-recorded` (a Microsoft Teams meeting OneUptime put on its organizer's calendar, waiting for its transcript) or `teams-not-recorded` (a Teams meeting it could not put on a calendar, stopped from the start: the connection is not allowed yet). A reading started from the page is Pending for one read of the calls and Ready on the next |
 | `?transcriptFetch=` | what Get from Zoom answers: `found` (default: the fixture's twelve-remark transcript), `not-ready`, `permission` (a scope the connection's Zoom app lacks) or `not-transcribed`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `?owners=`          | who owns the records: by default as **Owners** above; `none` (nobody owns any of them) or `many` (incident #1042 has three people and three teams, added people first, so the header shows three teams and "+3 more")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `?commander=`       | `none`: nobody holds Incident Commander on incident #1042 or incident episode #12                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `?what=`            | what incident #1042's What happened card shows: the default description and root cause, `empty` (neither) or `long` (a description and a root cause of several paragraphs and lists, each folded behind Show more)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `?lang=`            | the reader's language, one of the Dashboard's 17 (`de`, `ja`, ...): the fixture loads that locale's own strings from `App/FeatureSet/Dashboard/src/Locales`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (364 tests):
+`EventOverview.spec.ts` (441 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -185,10 +195,33 @@ Query parameters, parsed once per page load:
   fix task and verdict messages as lines. On a phone: no sideways scroll, a message's text at
   full width, the composer's rows, and the pill beside or under the title. The dark theme's
   colours, and the previous incident's thread never following a navigation.
-- **Incident and alert**: hero (identifier, title, state, severity, duration, facts and their
-  links), stat bar cells, the AI card leading the left column, the right column's stacked card
-  headers, Edit buttons and details field order, Resolve / Acknowledge from the hero through
-  the state modal with an in-place refresh that never shows the skeleton, and `?fail=resend`.
+- **Incident and alert**: hero (identifier, title, state, severity, duration, the Incident
+  Commander and the owners, monitors and episode and their links), stat bar cells (Declared or
+  Created first, no Duration), What happened and then the AI card leading the left column,
+  Affected Resources leading the right column, its stacked card headers, Edit buttons and
+  details field order, Resolve / Acknowledge from the hero through the state modal with an
+  in-place refresh that never shows the skeleton, and `?fail=resend`.
+- **At a glance**: who is on it - the Incident Commander from the roles card's own read (no
+  second read of who holds the roles) and the owners, teams first, each with an avatar, read
+  once per list for the record, each name level with its label and no taller than a line
+  of words; `?commander=none&state=ongoing` showing the empty place (a dashed circle where
+  the avatar would be) and Assign, which opens Incident Commander's picker in the roles card
+  with the cursor in it - by mouse and by keyboard, again after Cancel - and, once somebody
+  is chosen and saved, the header naming them; the same on incident episode #12; a resolved
+  incident saying Not assigned; `?owners=none&state=ongoing` showing the empty place and
+  Add, which opens the Owners page, and a resolved one saying None; `?owners=many` showing
+  three and "+3 more" to the Owners page; an alert with owners and no commander; both
+  episodes. What happened - the description and root cause from the page's one read of the
+  record, before the AI card; `?what=empty`; `?what=long` folded at six lines and opened
+  with Show more / Show less; Edit saving both in one dialog that says the description is
+  public where it is (an incident, an incident episode) and nothing about status pages
+  where it is not (an alert, an alert episode), and the card showing what was saved. When
+  and what it touched - the Declared tile with how long after the impact began and by whom,
+  said nowhere else; its date, time and zone never broken inside at 1024, 640 and 390px,
+  and an episode's, four tiles to a row at 1280px, breaking after the date rather than
+  leaving the zone on a line of its own; Affected Resources first, with the monitor status
+  the incident sets. The header, stat bar and What happened at 1280, 1024 and 390px, light
+  and dark (a team's avatar lifted off the dark card), and in German.
 - **Declare an incident from the alert hero**: in every alert state Declare Incident follows the
   state actions as a neutral outline button (the state action stays the only primary one, no
   More actions menu, nothing fetched to offer it) and opens the create-incident stub with
@@ -206,7 +239,9 @@ Query parameters, parsed once per page load:
 - **Scheduled maintenance**: every phase's state, duration prefix, actions, overdue notice and
   Starts / Ends / Duration cells with the timezone note; details, feed and resources; Mark as
   Ongoing refreshing in place; `?fail=resend`.
-- **Episodes**: hero and four-cell stat bar, the members card (number chip, title link, state
+- **Episodes**: hero (the incident episode's Incident Commander, the owners) and four-cell stat
+  bar (Declared or Created first, Automatically when a grouping rule opened it), the members
+  card (number chip, title link, state
   and severity pills, View all), details field order, roles, Resolve / Acknowledge from the hero.
   The card and the telemetry snapshot's first member are read by membership: the membership
   rows, then the members by id, never by the members' own episode link - so the founding member
@@ -230,7 +265,8 @@ Query parameters, parsed once per page load:
   more once the AI report arrives); a hero Resolve turning running clocks into numbers in place;
   every maintenance phase; `?measurements=none` drawing nothing; the dark theme and a phone.
 - **Responsive**: no horizontal scroll at 390px on all five pages (and with evidence rows
-  expanded); right-column card titles wider than 120px at 1280px.
+  expanded); right-column card titles wider than 120px at 1280px; What happened and the right
+  column's first card starting the row together, their titles lined up, at 1280px.
 - **The feed, as a timeline**: the day as a level-3 heading with its date ("Monday, September
   14, 2026"), Today beside it and the zone the times are in (UTC); every entry's time, newest
   first, with "N min. ago" for the last hour, a time said once per minute, and a `<time>` with

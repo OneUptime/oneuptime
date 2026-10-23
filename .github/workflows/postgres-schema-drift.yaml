@@ -2044,6 +2044,43 @@ jobs:
           Tests/Server/Infrastructure/Postgres/AddRuleLlmProvidersPostgres.test.ts
           --forceExit
 
+      # Labels in natural order (#5183), on migrated Postgres: the
+      # AddLabelNameSortKey migration on a copy of the Label table that
+      # already holds labels (the key added empty, under the "C" collation),
+      # and the labels ordered by their keys in exactly the order the browser
+      # sorts them in (Utils/LabelOrder) - numbered labels first, by their
+      # numbers - where ordering by the name puts "10." before "2.".
+      - name: Test labels' natural order on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_LABEL_ORDER_TESTS: "true"
+          LABEL_ORDER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          LABEL_ORDER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          LABEL_ORDER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Infrastructure/Postgres/AddLabelNameSortKeyPostgres.test.ts
+          --forceExit
+
+      # Security's Turn on recommended through its route, on copies of the
+      # migrated DetectionRule, SecurityPlaybook and SecurityLogSource tables:
+      # from nothing, twice (nothing written twice), with one write the
+      # database refuses part way (the rest written, the answer naming it),
+      # with rules added by hand, on a name column still 50 wide (and
+      # WidenDetectionRuleName widening it in place), and every Rule Library
+      # entry and playbook template created as it is.
+      - name: Test Turn on recommended on migrated Postgres
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TURN_ON_RECOMMENDED_TESTS: "true"
+          TURN_ON_RECOMMENDED_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TURN_ON_RECOMMENDED_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          TURN_ON_RECOMMENDED_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service

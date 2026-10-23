@@ -2126,6 +2126,69 @@ describe("ChunkLoader signal extraction", () => {
     expect(malformed?.processingDurationMs).toBeUndefined();
   });
 
+  /*
+   * Issue #5181: newer recorders name the kind of page view on every
+   * vital - a prerendered page's FCP counts from when the visitor opened
+   * it, a restored page reports vitals of its own - and the rail says so.
+   * Every vital carries it, and a value the player does not know (the
+   * web-vitals library's own "navigate", a future kind) is dropped alone.
+   */
+  it("carries every vital's kind of page view, and drops one it does not know", () => {
+    const vitals: Array<[string, unknown]> = [
+      ["FCP", "prerender"],
+      ["LCP", "prerender"],
+      ["TTFB", "back-forward-cache"],
+      ["CLS", "hard"],
+      ["INP", "soft"],
+      ["FCP", "navigate"],
+      ["LCP", 3],
+    ];
+    const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
+      makeEntry(0),
+      [
+        { type: 2, timestamp: CUSTOM_BASE_TS, data: {} },
+        ...vitals.map(
+          (
+            [metric, navigationType]: [string, unknown],
+            index: number,
+          ): SessionReplayRecordedEvent => {
+            return custom(
+              "oneuptime.performance",
+              {
+                kind: "web-vital",
+                metric: metric,
+                value: 68,
+                rating: "good",
+                navigationType: navigationType,
+              },
+              CUSTOM_BASE_TS + 100 * (index + 1),
+            );
+          },
+        ),
+      ],
+    );
+
+    const performanceRows: Array<ReplayTimelineEvent> = rows.filter(
+      (row: ReplayTimelineEvent): boolean => {
+        return row.performanceKind === "web-vital";
+      },
+    );
+
+    expect(
+      performanceRows.map((row: ReplayTimelineEvent): string => {
+        return `${row.metric}:${row.value}:${row.navigationType ?? "-"}`;
+      }),
+    ).toEqual([
+      "FCP:68:prerender",
+      "LCP:68:prerender",
+      "TTFB:68:back-forward-cache",
+      "CLS:68:hard",
+      "INP:68:soft",
+      "FCP:68:-",
+      "LCP:68:-",
+    ]);
+  });
+
   it("turns rrweb Meta events into navigation rows carrying the viewport", () => {
     const rows: Array<ReplayTimelineEvent> = ChunkLoader.extractTimelineEvents(
       makeEntry(0),

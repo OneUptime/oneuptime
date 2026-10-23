@@ -23,6 +23,12 @@ import MonitorRetry from "../MonitorRetry";
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { XMLParser } from "fast-xml-parser";
 import { withoutTrailingSlashes } from "Common/Utils/TrailingRuns";
+import StatusPageSummaryUtil, {
+  StatusPageSummary,
+  StatusPageSummaryIncident,
+  StatusPageSummaryResource,
+} from "Common/Types/StatusPage/StatusPageSummary";
+import ExternalStatusPageComponentStatusUtil from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -40,6 +46,29 @@ export const EXTERNAL_STATUS_PAGE_XML_MAX_RESPONSE_BYTES: number = 512 * 1024;
 export const EXTERNAL_STATUS_PAGE_XML_MAX_ELEMENT_COUNT: number = 5000;
 export const EXTERNAL_STATUS_PAGE_XML_MAX_DEPTH: number = 64;
 const HTML_DOCTYPE_PATTERN: RegExp = /^<!doctype\s+html(?:\s|>)/i;
+
+/*
+ * Why a OneUptime status page could not be read, when that provider was
+ * chosen (tryOneUptimeStatusPage): the page answered, and would not let this
+ * probe in.
+ */
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE: string =
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.";
+
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE: string =
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.";
+
+/*
+ * A feed's items of the last 24 hours count as active incidents
+ * (isRecentFeedItem); an item dated up to 5 minutes ahead counts too.
+ */
+export const EXTERNAL_STATUS_PAGE_FEED_ACTIVE_WINDOW_IN_MS: number =
+  24 * 60 * 60 * 1000;
+export const EXTERNAL_STATUS_PAGE_FEED_CLOCK_SKEW_IN_MS: number = 5 * 60 * 1000;
+
+// A component's description when the page does not show its status.
+export const EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN: string =
+  "The status page does not show this resource's status.";
 
 export interface ExternalStatusPageQueryOptions {
   timeout?: number | undefined;
@@ -62,12 +91,22 @@ interface RawExternalComponent {
   status: string;
   description?: string | undefined;
   groupName?: string | undefined;
+  /*
+   * What identifies the component when its name may not (a OneUptime status
+   * page can show two resources of one name in two groups).
+   */
+  key?: string | undefined;
 }
 
 // Normalized active incident, before scoping is applied.
 interface RawExternalIncident {
   name: string;
   affectedComponentNames: Array<string>;
+  /*
+   * The keys of the components it affects. When set, the incident is in
+   * scope by these, not by the names.
+   */
+  affectedComponentKeys?: Array<string> | undefined;
 }
 
 interface AtlassianStatusResponse {
@@ -413,6 +452,21 @@ export default class ExternalStatusPageMonitorUtil {
           );
         }
 
+        /*
+         * A OneUptime status page, after the two providers most pages use,
+         * so a check of one of theirs asks nothing more. Before the feed: a
+         * OneUptime page serves /rss too, but its summary says what each
+         * resource's status is and what is under maintenance, which the
+         * feed cannot.
+         */
+        if (!response) {
+          response = await ExternalStatusPageMonitorUtil.tryOneUptimeStatusPage(
+            config,
+            queryOptions,
+            { isChosen: false },
+          );
+        }
+
         if (!response) {
           response = await ExternalStatusPageMonitorUtil.tryRssAtomFeed(
             config,
@@ -430,6 +484,12 @@ export default class ExternalStatusPageMonitorUtil {
         response = await ExternalStatusPageMonitorUtil.tryIncidentIo(
           config,
           queryOptions,
+        );
+      } else if (provider === ExternalStatusPageProviderType.OneUptime) {
+        response = await ExternalStatusPageMonitorUtil.tryOneUptimeStatusPage(
+          config,
+          queryOptions,
+          { isChosen: true },
         );
       } else if (
         provider === ExternalStatusPageProviderType.RSS ||
@@ -726,12 +786,26 @@ export default class ExternalStatusPageMonitorUtil {
       }),
     );
 
+    const targetedKeys: Set<string> = new Set();
+
+    for (const component of targetedComponents) {
+      if (component.key) {
+        targetedKeys.add(component.key);
+      }
+    }
+
     let activeIncidentCount: number;
     if (!isScoped) {
       activeIncidentCount = input.incidents.length;
     } else {
       activeIncidentCount = input.incidents.filter(
         (incident: RawExternalIncident) => {
+          if (incident.affectedComponentKeys) {
+            return incident.affectedComponentKeys.some((key: string) => {
+              return targetedKeys.has(key);
+            });
+          }
+
           return incident.affectedComponentNames.some((name: string) => {
             return targetedNames.has(name.toLowerCase());
           });
@@ -1086,6 +1160,175 @@ export default class ExternalStatusPageMonitorUtil {
     }
   }
 
+  /*
+   * A status page made with OneUptime, read through its summary
+   * (Types/StatusPage/StatusPageSummary): each resource the page shows is a
+   * component, by the name the page gives it, in the page's group; its
+   * status is the value the page's status stands for
+   * (ExternalStatusPageComponentStatusUtil) - under maintenance while a
+   * scheduled maintenance event in progress affects it, whatever its
+   * monitors' status. The summary holds only what the page shows anyone it
+   * lets in, and nothing is asked of the page's project.
+   *
+   * A page that does not let this probe in - a private page (sign-in or
+   * password), or one whose IP allowlist leaves the probe out - says so.
+   * When the provider was chosen, that is the answer: the check fails with
+   * why. Under Auto it is not taken as a sign of a OneUptime page, and the
+   * next format is tried.
+   */
+  private static async tryOneUptimeStatusPage(
+    config: MonitorStepExternalStatusPageMonitor,
+    options: ExternalStatusPageQueryOptionsWithExecutionContext,
+    data: { isChosen: boolean },
+  ): Promise<ExternalStatusPageMonitorResponse | null> {
+    try {
+      const summaryUrl: string | null = StatusPageSummaryUtil.getSummaryUrl(
+        config.statusPageUrl,
+      );
+
+      if (!summaryUrl) {
+        return null;
+      }
+
+      const response: AxiosResponse = await this.guardedGet(summaryUrl, {
+        executionContext: options.executionContext,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "OneUptime-Probe/1.0",
+        },
+        validateStatus: (status: number) => {
+          return status < 500;
+        },
+      });
+
+      if (response.status === 401 && data.isChosen) {
+        throw new BadDataException(
+          EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+        );
+      }
+
+      if (response.status === 403 && data.isChosen) {
+        throw new BadDataException(
+          EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE,
+        );
+      }
+
+      if (response.status !== 200) {
+        return null;
+      }
+
+      const summary: StatusPageSummary | null = StatusPageSummaryUtil.fromJSON(
+        response.data,
+      );
+
+      if (!summary) {
+        return null;
+      }
+
+      return ExternalStatusPageMonitorUtil.buildScopedResponse({
+        config: config,
+        provider: ExternalStatusPageProviderType.OneUptime,
+        components:
+          ExternalStatusPageMonitorUtil.getOneUptimeComponents(summary),
+        incidents: ExternalStatusPageMonitorUtil.getOneUptimeIncidents(summary),
+        /*
+         * The page's banner names the worst status of its monitors, a
+         * monitor under maintenance among them. Derived from the components
+         * instead, as for incident.io, so maintenance reads as maintenance.
+         */
+        pageOverallStatus: undefined,
+        rawBody: JSON.stringify(StatusPageSummaryUtil.toJSON(summary)).slice(
+          0,
+          100000,
+        ),
+      });
+    } catch (err) {
+      if (ExternalStatusPageMonitorUtil.isFailClosedError(err)) {
+        throw err;
+      }
+      logger.debug(
+        `OneUptime status page summary failed for ${config.statusPageUrl}: ${err}`,
+      );
+      return null;
+    }
+  }
+
+  // The resources of a OneUptime status page's summary, as components.
+  private static getOneUptimeComponents(
+    summary: StatusPageSummary,
+  ): Array<RawExternalComponent> {
+    const maintenanceTitles: Map<string, Array<string>> = new Map();
+
+    for (const event of summary.ongoingScheduledMaintenance) {
+      for (const resourceId of event.affectedResourceIds) {
+        const titles: Array<string> = maintenanceTitles.get(resourceId) || [];
+
+        if (event.title && !titles.includes(event.title)) {
+          titles.push(event.title);
+        }
+
+        maintenanceTitles.set(resourceId, titles);
+      }
+    }
+
+    return summary.resources.map(
+      (resource: StatusPageSummaryResource): RawExternalComponent => {
+        const titles: Array<string> = maintenanceTitles.get(resource.id) || [];
+
+        let description: string;
+
+        if (resource.isUnderMaintenance) {
+          description =
+            titles.length > 0
+              ? `Under maintenance: ${titles.join(", ")}`
+              : "Under maintenance";
+        } else if (!resource.currentStatus) {
+          description = EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN;
+        } else {
+          description = resource.currentStatus.name;
+        }
+
+        return {
+          key: resource.id,
+          name: resource.name,
+          groupName: resource.groupName || undefined,
+          status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: resource.currentStatus,
+            isUnderMaintenance: resource.isUnderMaintenance,
+          }),
+          description: description,
+        };
+      },
+    );
+  }
+
+  // The active incidents of a OneUptime status page's summary.
+  private static getOneUptimeIncidents(
+    summary: StatusPageSummary,
+  ): Array<RawExternalIncident> {
+    const namesById: Map<string, string> = new Map();
+
+    for (const resource of summary.resources) {
+      namesById.set(resource.id, resource.name);
+    }
+
+    return summary.activeIncidents.map(
+      (incident: StatusPageSummaryIncident): RawExternalIncident => {
+        return {
+          name: incident.title || "Unknown incident",
+          affectedComponentNames: incident.affectedResourceIds
+            .map((resourceId: string): string => {
+              return namesById.get(resourceId) || "";
+            })
+            .filter((name: string): boolean => {
+              return Boolean(name);
+            }),
+          affectedComponentKeys: [...incident.affectedResourceIds],
+        };
+      },
+    );
+  }
+
   private static async tryRssAtomFeed(
     config: MonitorStepExternalStatusPageMonitor,
     options: ExternalStatusPageQueryOptionsWithExecutionContext,
@@ -1276,6 +1519,26 @@ export default class ExternalStatusPageMonitorUtil {
     }
   }
 
+  /*
+   * Whether a feed's item counts as an active incident: published - an
+   * Atom entry, updated - in the last 24 hours. An item dated ahead has not
+   * happened yet: a scheduled maintenance event a feed dates by its start
+   * counts once it starts, not when it is announced. A few minutes ahead
+   * still count, for a server clock that runs a little fast.
+   */
+  private static isRecentFeedItem(itemDate: Date, now: Date): boolean {
+    const ageInMs: number = now.getTime() - itemDate.getTime();
+
+    if (Number.isNaN(ageInMs)) {
+      return false;
+    }
+
+    return (
+      ageInMs >= -EXTERNAL_STATUS_PAGE_FEED_CLOCK_SKEW_IN_MS &&
+      ageInMs <= EXTERNAL_STATUS_PAGE_FEED_ACTIVE_WINDOW_IN_MS
+    );
+  }
+
   private static parseRssFeed(
     rss: Record<string, unknown>,
     rawBody: string,
@@ -1297,9 +1560,7 @@ export default class ExternalStatusPageMonitorUtil {
       const pubDate: string = (item["pubDate"] as string) || "";
       if (pubDate) {
         const itemDate: Date = new Date(pubDate);
-        const hoursDiff: number =
-          (now.getTime() - itemDate.getTime()) / (1000 * 60 * 60);
-        if (hoursDiff <= 24) {
+        if (ExternalStatusPageMonitorUtil.isRecentFeedItem(itemDate, now)) {
           const title: string = (item["title"] as string) || "Unknown";
           // Feeds carry no component-group data; honor the component-name filter only.
           if (
@@ -1354,9 +1615,7 @@ export default class ExternalStatusPageMonitorUtil {
         (entry["updated"] as string) || (entry["published"] as string) || "";
       if (updated) {
         const entryDate: Date = new Date(updated);
-        const hoursDiff: number =
-          (now.getTime() - entryDate.getTime()) / (1000 * 60 * 60);
-        if (hoursDiff <= 24) {
+        if (ExternalStatusPageMonitorUtil.isRecentFeedItem(entryDate, now)) {
           const title: string | Record<string, unknown> =
             (entry["title"] as string | Record<string, unknown>) || "Unknown";
           const titleText: string =

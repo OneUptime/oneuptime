@@ -7,6 +7,8 @@ import NotificationRuleViewConditions, {
   RULE_CONDITIONS_SENTENCES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewConditions";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
+import Label from "../../../Models/DatabaseModels/Label";
+import Color from "../../../Types/Color";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import NotificationRuleCondition, {
   ConditionType,
@@ -202,5 +204,66 @@ describe("the sentence over a rule's conditions", () => {
     expect(within(line).queryByText(ACKNOWLEDGED_ID)).not.toBeInTheDocument();
     // No framed box or timeline dots around a single condition any more.
     expect(document.querySelector(".rounded-xl")).toBeNull();
+  });
+
+  /*
+   * In natural order, as labels are listed everywhere (Utils/LabelOrder,
+   * OneUptime issue #5183): numbered labels first, by their numbers, then
+   * the others - not the order the rule stored their ids in.
+   */
+  test("a label condition names its labels in natural order", () => {
+    const names: Array<string> = [
+      "Claude",
+      "10.Owner=Platform",
+      "2.SubCategory=Website",
+      "1.Category=Application",
+    ];
+    const labels: Array<Label> = names.map(
+      (name: string, index: number): Label => {
+        const label: Label = new Label();
+        label._id = `6a8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d2${index}`;
+        label.name = name;
+        label.color = new Color("#6366f1");
+        return label;
+      },
+    );
+
+    render(
+      <NotificationRuleViewConditions
+        criteriaFilters={[
+          {
+            checkOn: NotificationRuleConditionCheckOn.IncidentLabels,
+            conditionType: ConditionType.ContainsAny,
+            value: labels.map((label: Label): string => {
+              return label._id as string;
+            }),
+          },
+        ]}
+        filterCondition={FilterCondition.All}
+        monitors={[]}
+        labels={labels}
+        alertStates={[]}
+        alertSeverities={[]}
+        incidentSeverities={[]}
+        incidentStates={[]}
+        scheduledMaintenanceStates={[]}
+        monitorStatus={[]}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByRole("listitem");
+
+    expect(
+      within(line)
+        .getAllByTestId("pill")
+        .map((pill: HTMLElement): string => {
+          return (pill.textContent || "").trim();
+        }),
+    ).toEqual([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "10.Owner=Platform",
+      "Claude",
+    ]);
   });
 });

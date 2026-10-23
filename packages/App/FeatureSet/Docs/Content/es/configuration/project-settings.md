@@ -71,6 +71,8 @@ Haga clic en **Crear Etiqueta**. Dele un **Nombre** y, si quiere, una **Descripc
 
 En OneUptime Cloud, crear y cambiar etiquetas requiere el plan Growth. Consulte [Etiquetas](/docs/permissions/index#etiquetas) para ver cómo las etiquetas limitan los permisos, y [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules) para etiquetar los recursos al crearlos.
 
+En una lista, las etiquetas de un registro se muestran una debajo de otra; cuando hay más de cuatro, se muestran las tres primeras con un enlace al resto. Dondequiera que se listen etiquetas (en las listas, en la página de un registro y en cada selector de etiquetas), aparecen en orden natural: primero las etiquetas cuyo nombre empieza por un número, en el orden de ese número (`2. Team` antes que `10. Owner`), y después las demás por orden alfabético, sin distinguir mayúsculas y minúsculas. Para elegir el orden de sus etiquetas, empiece su nombre con un número, como `1. Category` y `2. Subcategory`.
+
 ### Archivar una etiqueta
 
 Para retirar una etiqueta, archívela desde el menú **⋯** de su fila en lugar de eliminarla. Todo lo que tiene la etiqueta la conserva y puede seguir filtrando por ella, pero nadie puede volver a añadirla a nada: cada selector de etiquetas la omite, y la API, Terraform y MCP la rechazan. El diálogo enumera las reglas y los permisos configurados para usar la etiqueta, que la siguen usando hasta que los cambie. Las etiquetas archivadas se listan aparte, en la sección plegada **Etiquetas archivadas**, donde **Desarchivar** devuelve una. **Eliminar** enumera primero todo aquello de lo que se quitaría la etiqueta y ofrece **Archivar en su lugar**.

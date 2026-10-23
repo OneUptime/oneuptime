@@ -21,6 +21,8 @@ import {
   scanFormFiles,
 } from "../../../Helpers/FormStepsScan";
 import {
+  CreatorTeamRuleRecord,
+  getCreatorTeamOwnerRuleActionFields,
   getInheritingLabelRuleActionFields,
   getInheritingOwnerRuleActionFields,
   getLabelRuleActionFields,
@@ -84,6 +86,12 @@ const INHERITING_RECORDS: Array<InheritingRuleRecord> = [
   "incident",
   "alert",
   "scheduledMaintenance",
+];
+
+// The events whose owner rules can add the creator's team.
+const CREATOR_TEAM_RECORDS: Array<CreatorTeamRuleRecord> = [
+  "incident",
+  "alert",
 ];
 
 const files: Array<string> = listScanRoots(REPOSITORY_ROOT).flatMap(
@@ -158,6 +166,22 @@ const inherits: InheritsFunction = (form: FormFacts): boolean => {
   return inheritColumnsOf(form).length > 0;
 };
 
+/*
+ * An incident's or alert's owner rule can also add the creator's team: the
+ * teams listed in creatorTeams (Server/Utils/Rules/CreatorTeams), folded
+ * under Creator's Team after the inherit switches.
+ */
+const CREATOR_TEAMS_COLUMN: string = "creatorTeams";
+
+const creatorTeamColumnsOf: InheritColumnsFunction = (
+  form: FormFacts,
+): Array<string> => {
+  return isOwnerRuleForm(form) &&
+    loadModel(form).hasColumn(CREATOR_TEAMS_COLUMN)
+    ? [CREATOR_TEAMS_COLUMN]
+    : [];
+};
+
 type DescribeFormFunction = (form: FormFacts) => string;
 
 const describeForm: DescribeFormFunction = (form: FormFacts): string => {
@@ -166,14 +190,23 @@ const describeForm: DescribeFormFunction = (form: FormFacts): string => {
 
 /*
  * A field's key as the scan reads it, with the owners people picker named
- * "owners": the scan reads that helper's computed key as written.
+ * "owners": the scan reads that helper's computed key as written. The
+ * Creator's Team picker is named after the column it keeps its teams in.
  */
 type FieldKeyFunction = (field: FormFieldFacts) => string;
 
 const PEOPLE_PICKER_FIELD_TYPE: string = "FormFieldSchemaType.PeoplePicker";
 
+const CREATOR_TEAMS_PICKER_KEY: string = "creatorTeamsPicker";
+
 const fieldKey: FieldKeyFunction = (field: FormFieldFacts): string => {
-  return field.fieldType === PEOPLE_PICKER_FIELD_TYPE ? "owners" : field.key;
+  if (field.fieldType !== PEOPLE_PICKER_FIELD_TYPE) {
+    return field.key;
+  }
+
+  return field.key === CREATOR_TEAMS_PICKER_KEY
+    ? CREATOR_TEAMS_COLUMN
+    : "owners";
 };
 
 type KindFunction = (form: FormFacts) => "labels" | "owners";
@@ -220,7 +253,10 @@ const OWNER_ACTION_KEYS: Array<string> = [
   "description",
 ];
 
-// The keys on a form's last step: the picker, its inherit switches, the rest.
+/*
+ * The keys on a form's last step: the picker, its inherit switches, the
+ * creator's team of an incident or alert owner rule, the rest.
+ */
 type ActionKeysFunction = (form: FormFacts) => Array<string>;
 
 const actionKeysOf: ActionKeysFunction = (form: FormFacts): Array<string> => {
@@ -228,7 +264,12 @@ const actionKeysOf: ActionKeysFunction = (form: FormFacts): Array<string> => {
     ? LABEL_ACTION_KEYS
     : OWNER_ACTION_KEYS;
 
-  return [picker!, ...inheritColumnsOf(form), ...rest];
+  return [
+    picker!,
+    ...inheritColumnsOf(form),
+    ...creatorTeamColumnsOf(form),
+    ...rest,
+  ];
 };
 
 /*
@@ -242,6 +283,13 @@ const actionFieldsCallOf: ActionFieldsCallFunction = (
 ): RegExp => {
   const model: string = form.modelType!.name;
   const kind: string = isLabelRuleForm(form) ? "Label" : "Owner";
+
+  // An incident's or alert's owner rule, with its Creator's Team.
+  if (creatorTeamColumnsOf(form).length > 0) {
+    return new RegExp(
+      `\\.\\.\\.getCreatorTeamOwnerRuleActionFields<${model}>\\( ?"(${CREATOR_TEAM_RECORDS.join("|")})",? ?\\), \\]\\}`,
+    );
+  }
 
   if (inherits(form)) {
     return new RegExp(
@@ -267,6 +315,17 @@ describe("every label and owner rule form", () => {
     expect(ruleForms.filter(isLabelRuleForm).length).toBeGreaterThanOrEqual(30);
     expect(ruleForms.filter(isOwnerRuleForm).length).toBeGreaterThanOrEqual(30);
     expect(ruleForms.filter(inherits).length).toBe(6);
+    // An incident's and an alert's owner rules add the creator's team.
+    expect(
+      ruleForms
+        .filter((form: FormFacts): boolean => {
+          return creatorTeamColumnsOf(form).length > 0;
+        })
+        .map((form: FormFacts): string => {
+          return form.modelType!.name;
+        })
+        .sort(),
+    ).toEqual(["AlertOwnerRule", "IncidentOwnerRule"]);
 
     for (const form of ruleForms) {
       expect({
@@ -417,7 +476,8 @@ describe("every label and owner rule form", () => {
   /*
    * What a new rule's last step shows: what it adds and its name, open; the
    * inherit switches of an event's rule folded together under Inherit
-   * Labels / Inherit Owners; its description - and an owner rule's Notify
+   * Labels / Inherit Owners - an incident or alert owner rule's Creator's
+   * Team last in that fold; its description - and an owner rule's Notify
    * Owners - folded under More fields. Enabled is on the Edit form only: a
    * new rule starts on.
    */
@@ -450,10 +510,17 @@ describe("every label and owner rule form", () => {
         open: isLabelRuleForm(form)
           ? ["labelsToAdd", "name"]
           : ["owners", "name"],
-        folded: [...inheritColumnsOf(form), ...moreFields],
+        folded: [
+          ...inheritColumnsOf(form),
+          ...creatorTeamColumnsOf(form),
+          ...moreFields,
+        ],
       });
 
-      // Two folds at most: the inherit switches, and More fields.
+      /*
+       * Two folds at most: the inherit switches - with the creator's team -
+       * and More fields.
+       */
       const sectionOf: (key: string) => string | undefined = (
         key: string,
       ): string | undefined => {
@@ -468,12 +535,26 @@ describe("every label and owner rule form", () => {
       const moreSections: Set<string | undefined> = new Set(
         moreFields.map(sectionOf),
       );
+      const creatorTeamSections: Set<string | undefined> = new Set(
+        creatorTeamColumnsOf(form).map(sectionOf),
+      );
 
       expect(moreSections.size).toBe(1);
 
       if (inherits(form)) {
         expect(inheritSections.size).toBe(1);
         expect([...inheritSections][0]).not.toBe([...moreSections][0]);
+      }
+
+      // The creator's team is in the inherit switches' fold, not a third.
+      if (creatorTeamSections.size > 0) {
+        expect({
+          form: describeForm(form),
+          sections: [...creatorTeamSections],
+        }).toEqual({
+          form: describeForm(form),
+          sections: [...inheritSections],
+        });
       }
 
       const enabled: FormFieldFacts | undefined = form.fields.find(
@@ -507,12 +588,40 @@ describe("every label and owner rule form", () => {
 
       expect({
         form: describeForm(form),
-        missing: [...columns, ...inheritColumnsOf(form)].filter(
-          (column: string): boolean => {
-            return !model.hasColumn(column);
-          },
-        ),
+        missing: [
+          ...columns,
+          ...inheritColumnsOf(form),
+          ...creatorTeamColumnsOf(form),
+        ].filter((column: string): boolean => {
+          return !model.hasColumn(column);
+        }),
       }).toEqual({ form: describeForm(form), missing: [] });
+    }
+  });
+
+  /*
+   * A rule model with a Creator's Team list is offered it on its form, and
+   * a form offers it only to a model that keeps it: the picker writes the
+   * column by name.
+   */
+  test("offers the creator's team exactly where the model keeps one", () => {
+    for (const form of ruleForms) {
+      expect({
+        form: describeForm(form),
+        picker: form.fields
+          .filter((field: FormFieldFacts): boolean => {
+            return field.key === CREATOR_TEAMS_PICKER_KEY;
+          })
+          .map((field: FormFieldFacts): string => {
+            return `${field.fieldType} on ${String(field.stepId)}`;
+          }),
+      }).toEqual({
+        form: describeForm(form),
+        picker:
+          creatorTeamColumnsOf(form).length > 0
+            ? [`${PEOPLE_PICKER_FIELD_TYPE} on owners`]
+            : [],
+      });
     }
   });
 });
@@ -599,6 +708,11 @@ describe("the shared label and owner rule form", () => {
           ];
         },
       ),
+      ...CREATOR_TEAM_RECORDS.map(
+        (record: CreatorTeamRuleRecord): Array<Field<AnyEntity>> => {
+          return getCreatorTeamOwnerRuleActionFields<AnyEntity>(record);
+        },
+      ),
     ]) {
       const picker: Field<AnyEntity> = fields[0]!;
       const name: Field<AnyEntity> = fields.find(
@@ -654,6 +768,7 @@ describe("the shared label and owner rule form", () => {
       getOwnerRuleActionFields<AnyEntity>(),
       getInheritingLabelRuleActionFields<AnyEntity>("incident"),
       getInheritingOwnerRuleActionFields<AnyEntity>("alert"),
+      getCreatorTeamOwnerRuleActionFields<AnyEntity>("incident"),
     ]) {
       const openOnCreate: Array<Field<AnyEntity>> = fields.filter(
         (field: Field<AnyEntity>): boolean => {

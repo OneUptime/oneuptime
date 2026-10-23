@@ -57,7 +57,7 @@ flowchart TB
 마지막 단계에서 규칙 이름이 붙은 버튼 (예: **Monitor Label Rule 만들기**) 을 다시 클릭합니다. 규칙은 활성화된 상태로 만들어지며, 목록에는 초록색 **활성화됨** 표시와 함께 나타납니다.
 :::
 
-새 규칙은 무언가를 추가해야 합니다. 레이블 (또는 소유자) 이 하나 이상 있거나, 인시던트, 알림, 예정된 유지 관리 규칙이라면 상속하는 것이 있어야 합니다 (아래 참조). 규칙을 삭제하지 않고 잠시 멈추려면 편집 양식에서 **활성화됨** 을 끕니다. 그러면 목록에 빨간색 **비활성화** 표시가 나타납니다.
+새 규칙은 무언가를 추가해야 합니다. 레이블 (또는 소유자) 이 하나 이상 있거나, 인시던트, 알림, 예정된 유지 관리 규칙이라면 상속하는 것이 있어야 합니다 (아래 참조). 규칙을 삭제하지 않고 잠시 멈추려면 편집 양식에서 **활성화됨** 을 끕니다. 그러면 목록에 빨간색 **비활성화** 표시가 나타납니다. 인시던트 또는 알림 소유자 규칙에서는 **생성자의 팀**의 팀 하나만으로도 충분합니다.
 
 ### 규칙을 어떤 방법으로 만들든
 
@@ -68,9 +68,10 @@ API, Terraform, 워크플로 또는 [레이블 규칙 가져오기](/docs/config
 | 레이블 규칙 | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | 인시던트, 알림, 예정된 유지 관리 레이블 규칙 | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | 소유자 규칙 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| 인시던트, 알림, 예정된 유지 관리 소유자 규칙 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| 인시던트 또는 알림 소유자 규칙 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| 예정된 유지 관리 소유자 규칙 | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: `labelsToAdd` (또는 `ownerUsers` / `ownerTeams`) 를 프로젝트의 레코드 하나 이상으로 설정하거나, 규칙의 `inheritLabelsFrom…` (`inheritOwnersFrom…`) 스위치 중 하나를 `true` (JSON 불리언) 로 설정합니다.
+- **API**: `labelsToAdd` (또는 `ownerUsers` / `ownerTeams`) 를 프로젝트의 레코드 하나 이상으로 설정하거나, 규칙의 `inheritLabelsFrom…` (`inheritOwnersFrom…`) 스위치 중 하나를 `true` (JSON 불리언) 로 설정합니다. 인시던트 또는 알림 소유자 규칙에서는 `creatorTeams`의 팀 하나만으로도 충분합니다.
 - **Terraform**: 추가할 것이 없는 레이블 또는 소유자 규칙 리소스는 위 메시지와 함께 `terraform apply` 에서 실패합니다. `labels_to_add` (또는 `owner_users` / `owner_teams`) 를 지정하거나 상속 스위치 중 하나를 켜세요.
 
 이미 있는 규칙은 변경되지 않습니다. [규칙 편집하기](#규칙-편집하기) 를 참조하세요.
@@ -93,6 +94,12 @@ API, Terraform, 워크플로 또는 [레이블 규칙 가져오기](/docs/config
 | 알림 규칙의 **모니터에서 레이블 상속** | *모니터에서 레이블 상속* |
 
 이름은 레이블을 고를 때까지 (그 뒤로는 레이블의 이름을 따릅니다), 또는 직접 이름을 입력할 때까지 스위치를 따라 바뀝니다.
+
+### 생성자의 팀
+
+인시던트 또는 알림 소유자 규칙에는 **소유자 상속** 섹션의 마지막에 항목이 하나 더 있습니다. 팀 목록인 **생성자의 팀**입니다. 일치하는 인시던트를 선언하거나 일치하는 알림을 만든 사람이 목록에 있는 팀의 구성원이면, 그 팀도 소유자가 됩니다. 그 사람의 모든 팀이 아니라 목록인 이유는, 사람들이 기본적으로 프로젝트의 **구성원** 팀에 들어가므로 모두를 소유자로 만드는 것은 아무에게도 도움이 되지 않기 때문입니다. 모니터, 워크플로, 양식 또는 API 키가 만든 인시던트나 알림에는 생성자가 없으므로 이 팀들이 추가되지 않습니다. 이 팀들에 대한 알림은 규칙의 **소유자에게 알림**를 따르며, 이 팀들만 추가하는 규칙의 이름은 *생성자의 팀을 소유자로 추가*입니다. API에서는 이 목록이 `creatorTeams`입니다.
+
+인시던트를 선언하거나 알림을 만든 사람은 규칙과 상관없이 그 소유자 중 한 명이 되며, 생성 양식은 요약에 실행될 각 소유자 규칙과 그 규칙이 추가할 사람을 보여 줍니다. [누가 소유자가 되는지](/docs/incidents/declaring-incidents#누가-소유자가-되는지)를 참고하세요.
 
 ## 규칙 편집하기
 

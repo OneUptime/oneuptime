@@ -2,13 +2,15 @@ import AppLink from "../AppLink/AppLink";
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
-import { SecuritySetupTestResult } from "./SecuritySetupModel";
+import {
+  SecuritySetupTestResult,
+  describeSetupCallFailure,
+} from "./SecuritySetupModel";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import API from "Common/UI/Utils/API/API";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -53,7 +55,8 @@ export function useSecuritySetupTest(
       setResult(await SecurityCaseApi.runSetupTest());
       onChanged();
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      // The server's sentence for a role or a plan; the product's own for anything else.
+      setError(describeSetupCallFailure(err));
     }
 
     setIsTesting(false);

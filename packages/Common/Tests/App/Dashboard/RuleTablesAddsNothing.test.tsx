@@ -233,7 +233,7 @@ describe("Monitors > Settings > Label Rules", () => {
 });
 
 describe("Incidents > Settings > Owner Rules", () => {
-  test("never says it of a rule that inherits its owners, nor of one that names some", async () => {
+  test("never says it of a rule that inherits its owners, nor of one that names some, nor of one that adds the creator's team", async () => {
     const switchesOff: Record<string, boolean> = {
       inheritOwnersFromMonitors: false,
       inheritOwnersFromHosts: false,
@@ -254,6 +254,7 @@ describe("Incidents > Settings > Owner Rules", () => {
             _id: "0000000b-0000-4000-8000-000000000001",
           }),
         ],
+        creatorTeams: [],
         ...switchesOff,
       }),
       Object.assign(new IncidentOwnerRule(), {
@@ -262,8 +263,22 @@ describe("Incidents > Settings > Owner Rules", () => {
         isEnabled: true,
         ownerUsers: [],
         ownerTeams: [],
+        creatorTeams: [],
         ...switchesOff,
         inheritOwnersFromHosts: true,
+      }),
+      Object.assign(new IncidentOwnerRule(), {
+        _id: "33333333-3333-4333-8333-000000000004",
+        name: "The declarer's team owns it",
+        isEnabled: true,
+        ownerUsers: [],
+        ownerTeams: [],
+        creatorTeams: [
+          Object.assign(new Team(), {
+            _id: "0000000b-0000-4000-8000-000000000002",
+          }),
+        ],
+        ...switchesOff,
       }),
       Object.assign(new IncidentOwnerRule(), {
         _id: "33333333-3333-4333-8333-000000000003",
@@ -271,6 +286,7 @@ describe("Incidents > Settings > Owner Rules", () => {
         isEnabled: false,
         ownerUsers: [],
         ownerTeams: [],
+        creatorTeams: [],
         ...switchesOff,
       }),
     ]);
@@ -293,12 +309,19 @@ describe("Incidents > Settings > Owner Rules", () => {
         "rule-adds-nothing",
       ),
     ).toBeNull();
+    expect(
+      within(await rowOf("The declarer's team owns it")).queryByTestId(
+        "rule-adds-nothing",
+      ),
+    ).toBeNull();
 
     const select: Record<string, unknown> =
       ruleListRequest("IncidentOwnerRule").select || {};
 
     expect(select["ownerUsers"]).toEqual({ _id: true });
     expect(select["ownerTeams"]).toEqual({ _id: true });
+    // Read with the rest, so a rule listing only these is not "Adds nothing".
+    expect(select["creatorTeams"]).toEqual({ _id: true });
     expect(select["inheritOwnersFromHosts"]).toBe(true);
   });
 });

@@ -464,7 +464,12 @@ const FormSummary: <T extends GenericObject>(
             return step.showIf(props.formValues);
           })
           .map((formStep: FormStep<T>) => {
-            return getDetailForFormStep(formStep);
+            // Keyed: React warns about a list of unkeyed steps.
+            return (
+              <React.Fragment key={formStep.id}>
+                {getDetailForFormStep(formStep)}
+              </React.Fragment>
+            );
           })}
       </div>
     );

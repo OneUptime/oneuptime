@@ -5,20 +5,93 @@ import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import React, { FunctionComponent, ReactElement } from "react";
+import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ExternalStatusPageComponentStatusDisplayUtil, {
+  ExternalStatusPageComponentStatusDisplay,
+} from "../../../Utils/ExternalStatusPageComponentStatusDisplay";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
 }
 
+/*
+ * A fact's card. Its title, in capitals spaced wide, may break inside a
+ * word - hyphenated in the reader's language, which the facts' grid names
+ * (lang) - rather than run past the card: two cards to a row on a phone
+ * leave "GELTUNGSBEREICH" (Scope, in German) no room on one line.
+ */
+const CARD_CLASS_NAME: string =
+  "w-full shadow-none border-2 border-gray-100 [&_label]:hyphens-auto [&_label]:[overflow-wrap:anywhere]";
+
+/*
+ * Two facts to a row, four once the view itself is 64rem wide. The view is
+ * drawn in places of very different widths at one screen width - the
+ * overview's Summary card (two thirds of the page), Test Monitor's result
+ * and Monitoring Logs' View Summary (wide dialogs) - so its own width
+ * decides, not the screen's: four to a row in the Summary card left a
+ * value such as degraded_performance no room.
+ */
+const FACTS_CLASS_NAME: string =
+  "grid grid-cols-2 gap-3 [@container(min-width:64rem)]:grid-cols-4";
+
+/*
+ * A fact's value: a size smaller while the view is narrower than 32rem (a
+ * phone), where two cards to a row leave each about 100px for its value,
+ * and a long word, such as a URL, breaks rather than overflows.
+ */
+const FACT_VALUE_CLASS_NAME: string =
+  "text-sm text-gray-900 break-words [@container(min-width:32rem)]:text-base";
+
+// Runs of underscores in a status value ("degraded_performance").
+const UNDERSCORES: RegExp = /(_+)/;
+
+/*
+ * A status value as the criteria compare it - under_maintenance - with a
+ * line break allowed after each underscore, so a narrow card wraps it as
+ * "under_" / "maintenance" instead of cutting it. <wbr> adds no character:
+ * the value copies as it is.
+ */
+const withBreaksAfterUnderscores: (value: string) => ReactElement = (
+  value: string,
+): ReactElement => {
+  return (
+    <>
+      {value
+        .split(UNDERSCORES)
+        .map((part: string, index: number): ReactElement => {
+          return (
+            <React.Fragment key={index}>
+              {part}
+              {part.startsWith("_") ? <wbr /> : <></>}
+            </React.Fragment>
+          );
+        })}
+    </>
+  );
+};
+
+/*
+ * What one check of an external status page found: on the monitor's
+ * Summary, in Test Monitor's result and in Monitoring Logs. First the
+ * check - which probe, whether the page answered, how fast, when - and why
+ * it failed, when it did; then what the page said - the provider, its
+ * overall status, its active incidents and the scope; then each component
+ * in scope as a row: its name, its group and what the page says of it, and
+ * its status in the words and colour the Component Status criteria use
+ * (ExternalStatusPageComponentStatusDisplay). The status sits at the end of
+ * the row from sm up and under the name below it, by breakpoint rather than
+ * by wrapping, so a long name never moves its own status alone.
+ */
 const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const componentsHeadingId: string = useId();
   const externalStatusPageResponse:
     | ExternalStatusPageMonitorResponse
     | undefined = props.probeMonitorResponse?.externalStatusPageResponse;
@@ -41,48 +114,78 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   const componentName: string | undefined =
     externalStatusPageResponse?.componentName;
 
-  let scopeText: string = "All components";
+  let scopeText: string = translator.translateTemplate("All components");
   if (componentGroupName && componentName) {
     scopeText = `${componentGroupName} › ${componentName}`;
   } else if (componentGroupName) {
-    scopeText = `Group: ${componentGroupName}`;
+    scopeText = translator.translateTemplate("Group: {{group}}", {
+      group: componentGroupName,
+    });
   } else if (componentName) {
-    scopeText = `Component: ${componentName}`;
+    scopeText = translator.translateTemplate("Component: {{component}}", {
+      component: componentName,
+    });
   }
 
-  const hasComponentGroups: boolean = Boolean(
-    externalStatusPageResponse?.componentStatuses?.some(
-      (component: ExternalStatusPageComponentStatus) => {
-        return Boolean(component.groupName);
-      },
-    ),
-  );
+  const components: Array<ExternalStatusPageComponentStatus> =
+    externalStatusPageResponse?.componentStatuses || [];
+
+  // The line under a component's name: its group, and what the page says.
+  const getComponentDetail: (
+    component: ExternalStatusPageComponentStatus,
+  ) => string = (component: ExternalStatusPageComponentStatus): string => {
+    const parts: Array<string> = [];
+
+    if (component.groupName?.trim()) {
+      parts.push(component.groupName.trim());
+    }
+
+    if (
+      component.description?.trim() &&
+      !ExternalStatusPageComponentStatusDisplayUtil.isDescriptionTheStatus({
+        description: component.description,
+        status: component.status,
+      })
+    ) {
+      parts.push(component.description.trim());
+    }
+
+    return parts.join(" · ");
+  };
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
+    <div
+      className="space-y-5 [container-type:inline-size]"
+      data-testid="external-status-page-summary"
+    >
+      <div
+        className={FACTS_CLASS_NAME}
+        lang={translator.language}
+        data-testid="external-status-page-check-facts"
+      >
         <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Probe"
           value={props.probeName || "-"}
         />
         <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Status"
-          value={props.probeMonitorResponse.isOnline ? "Online" : "Offline"}
+          value={translator.translateTemplate(
+            props.probeMonitorResponse.isOnline ? "Online" : "Offline",
+          )}
         />
         <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
-          title="Overall Status"
-          value={externalStatusPageResponse?.overallStatus || "-"}
-        />
-        <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Response Time"
           value={responseTimeInMs ? responseTimeInMs + " ms" : "-"}
         />
         <InfoCard
-          className="w-1/5 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Monitored At"
           value={
             props.probeMonitorResponse?.monitoredAt
@@ -94,94 +197,120 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div className="flex space-x-3">
+      {props.probeMonitorResponse.failureCause && (
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
+          title="Error"
+          value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+        />
+      )}
+
+      <div
+        className={FACTS_CLASS_NAME}
+        lang={translator.language}
+        data-testid="external-status-page-page-facts"
+      >
+        <InfoCard
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
+          title="Provider"
+          value={externalStatusPageResponse?.provider || "-"}
+        />
+        <InfoCard
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
+          title="Overall Status"
+          value={
+            externalStatusPageResponse?.overallStatus
+              ? withBreaksAfterUnderscores(
+                  externalStatusPageResponse.overallStatus,
+                )
+              : "-"
+          }
+        />
+        <InfoCard
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Active Incidents"
           value={
             externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
           }
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
-          title="Provider"
-          value={externalStatusPageResponse?.provider || "-"}
-        />
-        <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className={CARD_CLASS_NAME}
+          textClassName={FACT_VALUE_CLASS_NAME}
           title="Scope"
           value={scopeText}
         />
       </div>
 
-      {props.probeMonitorResponse.failureCause && (
-        <div className="flex space-x-3">
-          <InfoCard
-            className="w-full shadow-none border-2 border-gray-100"
-            title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
-          />
+      {components.length > 0 && (
+        <div className="space-y-3">
+          <h3
+            id={componentsHeadingId}
+            className="text-sm font-medium text-gray-700"
+          >
+            {translator.translateText("Component Statuses")}
+          </h3>
+          <ul
+            className="divide-y divide-gray-200 rounded-lg border border-gray-200"
+            aria-labelledby={componentsHeadingId}
+            data-testid="external-status-page-components"
+          >
+            {components.map(
+              (
+                component: ExternalStatusPageComponentStatus,
+                index: number,
+              ): ReactElement => {
+                const display: ExternalStatusPageComponentStatusDisplay =
+                  ExternalStatusPageComponentStatusDisplayUtil.getDisplay(
+                    component.status,
+                  );
+                const detail: string = getComponentDetail(component);
+
+                return (
+                  <li
+                    key={index}
+                    data-testid="external-status-page-component"
+                    className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <div className="min-w-0 sm:flex-1">
+                      <div
+                        className="break-words text-sm font-medium text-gray-900"
+                        data-testid="external-status-page-component-name"
+                      >
+                        {component.name}
+                      </div>
+                      {detail ? (
+                        <div
+                          className="mt-0.5 break-words text-xs text-gray-500"
+                          data-testid="external-status-page-component-detail"
+                        >
+                          {detail}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                    <div
+                      className="sm:flex-none"
+                      data-testid="external-status-page-component-status"
+                      data-status={component.status}
+                    >
+                      <Statusbubble
+                        text={display.label}
+                        color={display.color}
+                        shouldAnimate={false}
+                      />
+                    </div>
+                  </li>
+                );
+              },
+            )}
+          </ul>
         </div>
       )}
-
-      {/* Component Statuses Section */}
-      {externalStatusPageResponse?.componentStatuses &&
-        externalStatusPageResponse.componentStatuses.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">
-              {translator.translateText("Component Statuses")}
-            </h3>
-            <div className="border rounded-md overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Component")}
-                    </th>
-                    {hasComponentGroups && (
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {translator.translateText("Group")}
-                      </th>
-                    )}
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Status")}
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {translator.translateText("Description")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {externalStatusPageResponse.componentStatuses.map(
-                    (
-                      component: ExternalStatusPageComponentStatus,
-                      index: number,
-                    ) => {
-                      return (
-                        <tr key={index}>
-                          <td className="px-4 py-2 text-sm text-gray-900">
-                            {component.name}
-                          </td>
-                          {hasComponentGroups && (
-                            <td className="px-4 py-2 text-sm text-gray-500">
-                              {component.groupName || "-"}
-                            </td>
-                          )}
-                          <td className="px-4 py-2 text-sm text-gray-500 font-mono">
-                            {component.status}
-                          </td>
-                          <td className="px-4 py-2 text-sm text-gray-500">
-                            {component.description || "-"}
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
       {hadRetries && (
         <ProbeAttemptsView

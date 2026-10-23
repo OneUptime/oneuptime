@@ -2,7 +2,7 @@ import RuleSettingsPageProps from "../../RuleSettingsPageProps";
 import PageMap from "../../../Utils/PageMap";
 import RuleViewPageUtil from "../../../Utils/RuleViewPage";
 import {
-  getInheritingOwnerRuleActionFields,
+  getCreatorTeamOwnerRuleActionFields,
   getOwnerRuleActionFields,
   getOwnerRuleFormSteps,
 } from "../../../Utils/Form/ResourceRuleForm";
@@ -46,8 +46,9 @@ When a rule matches:
 - If \`Inherit Owners From Docker Hosts\` is on, every owner of the alert's affected Docker hosts is also added.
 - If \`Inherit Owners From Podman Hosts\` is on, every owner of the alert's affected Podman hosts is also added.
 - If \`Inherit Owners From Services\` is on, every owner of the alert's affected services is also added.
+- Under \`Creator's Team\`, each listed team that the person who creates the alert is a member of is also added. An alert created by a monitor, a workflow or an API key has no creator, so it gets none of these teams.
 
-Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified.
+Already-assigned owners are not duplicated. If \`Notify Owners\` is enabled (default), added owners are notified. Whoever creates an alert becomes one of its owners whatever the rules say, and the summary step of Create Alert lists each rule that will run, and whom it will add.
 `;
 
 const alertEpisodeOwnerDocumentation: string = `
@@ -223,7 +224,7 @@ const AlertRulesTable: FunctionComponent<RulesTableProps> = (
           required: false,
           placeholder: "production|critical",
         },
-        ...getInheritingOwnerRuleActionFields<AlertOwnerRule>("alert"),
+        ...getCreatorTeamOwnerRuleActionFields<AlertOwnerRule>("alert"),
       ]}
       showRefreshButton={true}
     />

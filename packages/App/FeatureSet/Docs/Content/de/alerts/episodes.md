@@ -139,6 +139,8 @@ Füllen Sie unter **Episodendetails** den **Titel** aus und, wenn Sie möchten, 
 
 Wählen Sie unter **Bereitschaft & Eigentümer** eine **Bereitschaftsrichtlinie**, die beim Erstellen der Episode läuft, und ihre **Eigentümer**. Klicken Sie dann auf **Episode erstellen**.
 
+Jedes Team, in dem Sie Mitglied sind, ist unter **Eigentümer** nur einen Klick entfernt, und die Zusammenfassung nennt die Eigentümerregeln, die weitere hinzufügen.
+
 ### Die Warnungen hinzufügen
 
 Öffnen Sie die Seite **Mitglieder-Warnungen** der Episode, klicken Sie auf **Warnungen hinzufügen** und haken Sie die Warnungen an, die dazugehören, so viele Sie auf einmal brauchen. Um stattdessen bei den Warnungen zu beginnen, wählen Sie sie in der Liste **Warnungen** aus und wählen unter **Massenaktionen** den Eintrag **Zu neuer Episode hinzufügen** (siehe [Episoden](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ Eine Episode, die Sie erstellen, hat keine Gruppierungsregel, deshalb zeigt die 
 | **Entwickler** | **Terraform**, **API**, **KI-Assistenten** |
 | **Erweitert** | **Audit-Protokolle**, **Episode löschen** |
 
-**Entwickler** und **Erweitert** sind zunächst eingeklappt. Die **Übersicht** beginnt mit **Warnungen in dieser Episode**, dann folgt der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
+**Entwickler** und **Erweitert** sind zunächst eingeklappt. In der **Übersicht** nennt die Kopfzeile die **Eigentümer** der Episode, Teams zuerst, und die erste Kachel, **Erstellt**, sagt, wann die Episode entstand – **Automatisch**, wenn eine Gruppierungsregel sie eröffnet hat. Die Karte **Hergang** führt die Seite an – die Beschreibung der Episode und ihre **Grundursache** –, dann folgen **Warnungen in dieser Episode** und der **Episoden-Feed**, neben der Karte **Episodendetails**: Nummer, Status, Schweregrad, Anzahl der Warnungen, Gruppierungsregel und Bereitschaftsrichtlinien. Ihr Kopfbereich hat **Bestätigen** und **Beheben**, und **Move episode to** im Menü **⋯**.
 
 **Warnungen → Aktive Episoden** listet die Episoden, die noch nicht behoben sind, und das Abzeichen daneben zählt sie.
 

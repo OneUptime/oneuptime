@@ -75,7 +75,7 @@ Vá para **Alertas → Todos os alertas** e clique em **Criar alerta**. O formul
 
 ### Descrever o alerta
 
-Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**.
+Preencha o **Título** e escolha uma **Severidade do alerta**; ambos são obrigatórios. Adicione uma **Descrição** se ajudar. Em **Mais campos**, recolhido, você pode escolher um **Estado Inicial**, adicionar **Rótulos** ou ativar **Alerta privado**. **Proprietários** também está lá: você se torna proprietário do alerta que cria de qualquer forma, e cada equipe da qual você é membro está a um clique abaixo do seletor.
 
 ### Escolher o que ele afeta e quem é acionado
 
@@ -83,7 +83,7 @@ Clique em **Próximo** para chegar a **Recursos e plantão**. Escolha o **Monito
 
 ### Criá-lo
 
-Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas.
+Clique em **Próximo** para revisar o resumo e depois em **Criar alerta**. A página do alerta abre e as regras começam a ser executadas. No resumo, a linha **Proprietários** lista cada regra de proprietário que vai adicionar alguém, e quem: veja [Quem será o proprietário](/docs/incidents/declaring-incidents#quem-será-o-proprietário).
 :::
 
 Se você deixar **Estado Inicial** vazio, o alerta começa onde todo alerta novo começa: no seu estado de criação, **Identified** em um projeto novo. Escolher um estado posterior registra um alerta do qual alguém já está cuidando, ou que já terminou; veja [Criado já confirmado ou resolvido](#criado-já-confirmado-ou-resolvido).
@@ -139,7 +139,7 @@ Enquanto trabalha nele, registre o que descobrir como **Notas privadas**, preenc
 
 **Visão geral**, **Investigação**, **Equipe** e **Notas** ficam abertas; as outras seções ficam recolhidas até você clicar nelas.
 
-- **Visão geral** — três blocos com quanto tempo o alerta levou para ser confirmado e resolvido, e sua **Duração**. O cartão **AI Investigation** abre a página, com **Ask OneUptime AI** no rodapé, e o **Alerta Feed** registra tudo o que aconteceu com o alerta. Ao lado ficam o cartão **Detalhes do alerta**, as medições do alerta e seus **Recursos afetados**.
+- **Visão geral** — o cabeçalho mostra os **Proprietários** do alerta, equipes primeiro, ao lado do seu monitor e do seu episódio. O bloco **Criado** mostra quando e pelo que foi criado, e outros dois quanto tempo o alerta levou para ser confirmado e resolvido; a duração fica ao lado do seu estado. O cartão **O que aconteceu** abre a página — a descrição do alerta e a sua **Causa raiz** — depois o cartão **AI Investigation**, com **Ask OneUptime AI** no rodapé, e o **Alerta Feed** registra tudo o que aconteceu com o alerta. Ao lado ficam o cartão **Recursos afetados**, o cartão **Detalhes do alerta** e as medições do alerta.
 - **Linha do tempo de estado** — cada estado em que o alerta esteve, quando e por quanto tempo. Veja [A linha do tempo de estados](/docs/alerts/states-and-severities#a-linha-do-tempo-de-estados).
 - **Incidentes vinculados** — os incidentes de que este alerta faz parte, com **Vincular incidente** e **Declarar incidente**.
 - **Configurações** — **Quem pode ver este alerta**, com o interruptor **Alerta privado**, e **Lembretes**, com **Enviar lembretes**. Cada interruptor salva no momento em que você o alterna.
