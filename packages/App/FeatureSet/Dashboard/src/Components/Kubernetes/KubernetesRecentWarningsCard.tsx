@@ -6,7 +6,6 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import {
   FeedClock,
   formatFeedFullTime,
@@ -30,7 +29,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * warnings" opens the cluster's Events page, which opens on its warnings.
  *
  * Shown only when there are warnings: a cluster with none has nothing to
- * say here.
+ * say here. Nor is anything shown while they are read - the card sits near
+ * the top of the Overview, and a loader that then vanished would move every
+ * card under it on a healthy cluster.
  */
 
 export interface ComponentProps {
@@ -163,18 +164,7 @@ const KubernetesRecentWarningsCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  if (props.isLoading) {
-    return (
-      <Card
-        title="Recent Warnings"
-        description="Latest warning events from the cluster."
-      >
-        <ComponentLoader />
-      </Card>
-    );
-  }
-
-  if (props.warnings.length === 0) {
+  if (props.isLoading || props.warnings.length === 0) {
     return <></>;
   }
 

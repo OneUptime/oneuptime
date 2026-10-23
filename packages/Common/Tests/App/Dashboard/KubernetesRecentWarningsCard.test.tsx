@@ -244,8 +244,18 @@ describe("the Recent Warnings card", () => {
     ).toContain(`/kubernetes/${CLUSTER_ID}/events`);
   });
 
-  test("while reading: the card and a loader; with no warnings: nothing", () => {
-    const { rerender } = render(
+  /*
+   * The card sits near the top of the Overview: a loader that vanished on
+   * a healthy cluster would move every card under it.
+   */
+  test("nothing while reading, nothing with no warnings, the card once there are", async () => {
+    const warnings: Array<KubernetesWarningSummary> =
+      await fetchClusterWarningEvents({
+        clusterIdentifier: CLUSTER,
+        limit: 10,
+      });
+
+    const { container, rerender } = render(
       <KubernetesRecentWarningsCard
         warnings={[]}
         isLoading={true}
@@ -253,7 +263,7 @@ describe("the Recent Warnings card", () => {
       />,
     );
 
-    expect(screen.getByText("Recent Warnings")).toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
 
     rerender(
       <KubernetesRecentWarningsCard
@@ -263,6 +273,31 @@ describe("the Recent Warnings card", () => {
       />,
     );
 
-    expect(screen.queryByText("Recent Warnings")).toBeNull();
+    expect(container).toBeEmptyDOMElement();
+
+    /*
+     * Whatever it holds, nothing while it is told it is reading. (The
+     * Overview says so only for its first read: a refresh keeps the card.)
+     */
+    rerender(
+      <KubernetesRecentWarningsCard
+        warnings={warnings}
+        isLoading={true}
+        clusterId={new ObjectID(CLUSTER_ID)}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+
+    rerender(
+      <KubernetesRecentWarningsCard
+        warnings={warnings}
+        isLoading={false}
+        clusterId={new ObjectID(CLUSTER_ID)}
+      />,
+    );
+
+    expect(screen.getByText("Recent Warnings")).toBeInTheDocument();
+    expect(lines()).toHaveLength(6);
   });
 });

@@ -2555,6 +2555,19 @@ const KubernetesClusterOverview: FunctionComponent<
         )}
       />
 
+      {/*
+       * The cluster's newest warnings, read on the server from its warning
+       * Events alone (issue #5179): OOM kills, crash loops, failed mounts,
+       * autoscalers that cannot read their metrics. Right after what is
+       * open on the cluster, so what needs a look is together near the top;
+       * a cluster with no warnings shows nothing here.
+       */}
+      <KubernetesRecentWarningsCard
+        warnings={recentWarnings}
+        isLoading={isWarningsLoading}
+        clusterId={modelId}
+      />
+
       {/* Quick Navigation - Workloads */}
       <Card
         title="Workloads"
@@ -2856,17 +2869,6 @@ const KubernetesClusterOverview: FunctionComponent<
           </div>
         )}
       </Card>
-
-      {/*
-       * The cluster's newest warnings, read on the server from its warning
-       * Events alone (issue #5179): OOM kills, crash loops, failed mounts,
-       * autoscalers that cannot read their metrics.
-       */}
-      <KubernetesRecentWarningsCard
-        warnings={recentWarnings}
-        isLoading={isWarningsLoading}
-        clusterId={modelId}
-      />
 
       {/*
        * Cluster Details: read here, edited in one place - the same card at
