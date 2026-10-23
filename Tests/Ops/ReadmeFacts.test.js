@@ -15,6 +15,8 @@
  *  - every link is a full https URL, a mailto: address or a path from the
  *    repository root, so it lands in the same place from Docs/translations/,
  *    and every path names a file or directory that is there;
+ *  - each README says what OneUptime is in the docs' own Getting Started
+ *    paragraph, in its language, and the chart's README in the same words;
  *  - the sentences beside the Docker Compose commands say what the commands
  *    do: the line npm start ends with, the address it serves, the first
  *    account, HOST, and the memory the Docker Compose guide asks for;
@@ -51,6 +53,9 @@ const ALLOWED_LINK = /^(?:https:\/\/|mailto:|\/)/;
 const SLACK_INVITE =
   /https:\/\/join\.slack\.com\/t\/[\w-]+\/shared_invite\/[\w-]+/g;
 const EMOJI = /\p{Extended_Pictographic}/u;
+const WHITESPACE = /\s+/;
+const RIGHT_TO_LEFT_MARK = "\u{200F}";
+const GETTING_STARTED = "introduction/getting-started.md";
 const FENCE = "```";
 
 const REPO_ADD = "helm repo add oneuptime https://helm-chart.oneuptime.com/";
@@ -426,6 +431,70 @@ describe("the README's links", () => {
       expect(missing).toEqual([]);
     },
   );
+});
+
+describe("what the README says OneUptime is", () => {
+  const introIndex = ENGLISH.text.split("\n").findIndex((line) => {
+    return line.startsWith(
+      "OneUptime is an open-source observability platform.",
+    );
+  });
+
+  // A line without the right-to-left mark a Persian line can open with.
+  function withoutMark(line) {
+    return line.startsWith(RIGHT_TO_LEFT_MARK)
+      ? line.slice(RIGHT_TO_LEFT_MARK.length)
+      : line;
+  }
+
+  function introOf(readme) {
+    return withoutMark(readme.text.split("\n")[introIndex]);
+  }
+
+  // The first paragraph of the docs' Getting Started page, after its title.
+  function docsIntroOf(language) {
+    const lines = read(`${DOCS_CONTENT}/${language}/${GETTING_STARTED}`).split(
+      "\n",
+    );
+
+    return withoutMark(
+      lines.find((line, index) => {
+        return index > 0 && line.trim() !== "";
+      }),
+    );
+  }
+
+  test("the English intro is where the translations' intros are", () => {
+    expect(introIndex).toBeGreaterThan(20);
+  });
+
+  test.each(byLanguage)(
+    "%s opens with the docs' own Getting Started paragraph in its language",
+    (language, readme) => {
+      const intro = introOf(readme);
+      const docsIntro = docsIntroOf(language);
+
+      expect(intro.length).toBeGreaterThan(100);
+      // The docs' paragraph ends by offering OneUptime Cloud or your own
+      // servers; the README says that on a line of its own, linking Cloud.
+      expect({ language, prefix: docsIntro.startsWith(intro) }).toEqual({
+        language,
+        prefix: true,
+      });
+      expect(docsIntro.length - intro.length).toBeLessThan(120);
+    },
+  );
+
+  test("the chart's README describes OneUptime in the README's words", () => {
+    const description = `${introOf(ENGLISH).split(". ").slice(0, 2).join(". ")}.`;
+
+    expect(description).toBe(
+      "OneUptime is an open-source observability platform. It checks that your websites, APIs and servers work, collects the logs, metrics and traces your apps send, pages whoever is on call when something breaks, and tells your customers on a status page.",
+    );
+    expect(read(CHART_README).split(WHITESPACE).join(" ")).toContain(
+      description,
+    );
+  });
 });
 
 describe("installing with Docker Compose", () => {
