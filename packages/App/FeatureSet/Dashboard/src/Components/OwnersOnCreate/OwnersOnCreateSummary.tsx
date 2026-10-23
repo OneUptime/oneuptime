@@ -16,7 +16,7 @@ import {
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import UserUtil from "Common/UI/Utils/User";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 import {
   getNobodyPickedText,
   getOwnerRulePreviewDraft,
@@ -67,6 +67,8 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
   props: OwnersOnCreateSummaryProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // The rules' list is read out under its heading.
+  const rulesHeadingId: string = `owner-rule-preview-heading-${useId()}`;
   const isMasterAdmin: boolean = Boolean(UserUtil.isMasterAdmin());
 
   const picked: PeoplePickerValue = readPeoplePickerFormValue(
@@ -144,10 +146,10 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
 
       {rules.length > 0 ? (
         <div data-testid="owner-rule-preview">
-          <p className="text-sm font-medium text-gray-700">
+          <p id={rulesHeadingId} className="text-sm font-medium text-gray-700">
             {translator.translateText(OWNER_RULES_ADD_HEADING)}
           </p>
-          <ul className="mt-1.5 space-y-2">
+          <ul className="mt-1.5 space-y-2" aria-labelledby={rulesHeadingId}>
             {rules.map((rule: OwnerRulePreviewRule): ReactElement => {
               const newOwners: OwnerRuleNewOwners = getOwnersNewFromRule({
                 rule: rule,

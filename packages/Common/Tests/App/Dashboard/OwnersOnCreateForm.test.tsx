@@ -548,6 +548,10 @@ describe("the review step's Owners row", () => {
       await screen.findByTestId("owner-rule-preview");
 
     expect(preview).toHaveTextContent("Added by owner rules");
+    // A screen reader hears the rules as a list under that heading.
+    expect(
+      within(preview).getByRole("list", { name: "Added by owner rules" }),
+    ).toBeInTheDocument();
 
     const rows: Array<HTMLElement> = within(preview).getAllByTestId(
       "owner-rule-preview-rule",

@@ -540,7 +540,7 @@ class IncidentOwnerRuleEngineServiceClass
           : FeedMarkdown.empty();
 
       const creatorTeamNote: MarkdownText = addedCreatorTeams
-        ? mdText`\n\n_Some teams were added because the person who declared the incident is a member._`
+        ? mdText`\n\n_Some teams were added because the person who declared the incident is a member of them._`
         : FeedMarkdown.empty();
 
       const feedInfoInMarkdown: MarkdownText = mdText`${RuleFeedMarkdown.executedLine(

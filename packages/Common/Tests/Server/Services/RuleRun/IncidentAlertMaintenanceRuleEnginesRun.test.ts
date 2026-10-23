@@ -1457,7 +1457,9 @@ describe.each(CREATOR_TEAM_CASES)(
 
       // The feed item says why a team it names was added.
       expect(mocks.feed.mock.calls[0]![0].feedInfoInMarkdown).toContain(
-        "is a member",
+        c.modelType === Incident
+          ? "_Some teams were added because the person who declared the incident is a member of them._"
+          : "_Some teams were added because the person who created the alert is a member of them._",
       );
     });
 
