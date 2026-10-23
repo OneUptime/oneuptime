@@ -141,7 +141,7 @@ Ett inaktiverat eller arkiverat SLO utvärderas inte, så dess status står kvar
 Sidan **SLOs** visar varje SLO som inte är arkiverat, med status, SLI, återstående budget, förbrukningstakt, mål, fönster, monitorer, etiketter och ägare.
 
 - Rutorna ovanför listan räknar SLO:er per status: **Felfri**, **I riskzonen**, **Budget förbrukad**, **Misconfigured**, **Pausad** och **Inaktiverad**. De visas så snart det finns ett SLO som inte är arkiverat. Klicka på en ruta för att bara se de SLO:erna, och igen för att se alla.
-- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, arkivera dem eller radera dem, alla på en gång.
+- Markera SLO:er för att lägga till eller ta bort etiketter och ägare, aktivera eller inaktivera dem, arkivera dem eller radera dem, alla på en gång.
 - Sidomenyns avsnitt **Inställningar** innehåller **Etikettregler** och **Ägarregler**, som sätter etiketter på nya SLO:er och ger dem ägare: se [Etikett- och ägarregler](/docs/slo/label-and-owner-rules).
 - Sidomenyns avsnitt **Avancerad** innehåller **Arkiverad**, listan över arkiverade SLO:er.
 
