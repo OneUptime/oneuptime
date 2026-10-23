@@ -1354,6 +1354,8 @@ test.describe("a repository's settings", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
     await page.goto(`${SETTINGS}?role=viewer`);
     await expect(foldedNames(page)).toHaveText([
       "GitHub Commands",
@@ -1394,6 +1396,8 @@ test.describe("a repository's settings", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
     await page.goto(`${SETTINGS}?theme=dark&ghcommands=off&runner=prod`);
     // Folded: its chips, the set ones too.
     await expect(foldedNames(page).first()).toHaveText("GitHub Commands: Off");
@@ -2313,11 +2317,19 @@ test.describe("a repository's Runner", () => {
     ).toHaveText("Runner: prod-eu-west-1");
   });
 
+  /*
+   * Every case is held in jsdom (CodeRepositorySettingsPage.test.tsx); here,
+   * one of the project's own Runners and none at all, as the page reads
+   * them. A global Runner - the default, its name alone - is the folded
+   * header of every other settings test.
+   */
   test("folded, More settings says what a repository works on when it is not a global Runner", async ({
     page,
   }: {
     page: Page;
-  }) => {
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
     const runnerChip: (search: string) => Promise<Locator> = async (
       search: string,
     ): Promise<Locator> => {
@@ -2329,16 +2341,9 @@ test.describe("a repository's Runner", () => {
       return chip;
     };
 
-    // A global Runner, the default: its name alone.
-    const globalChip: Locator = await runnerChip("");
-    await expect(globalChip).toHaveText("Runner");
-    await expect(globalChip).toHaveAttribute("data-item-set", "false");
-    await expect(await runnerChip("runner=prod")).toHaveText(
-      "Runner: prod-eu-west-1",
-    );
-    await expect(await runnerChip("runner=gone")).toHaveText(
-      "Runner: A Runner you do not have access to",
-    );
+    const ownRunner: Locator = await runnerChip("runner=prod");
+    await expect(ownRunner).toHaveText("Runner: prod-eu-west-1");
+    await expect(ownRunner).toHaveAttribute("data-item-set", "true");
     await expect(await runnerChip("uses=0")).toHaveText("Runner: None");
   });
 
