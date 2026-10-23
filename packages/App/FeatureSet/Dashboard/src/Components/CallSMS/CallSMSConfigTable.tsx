@@ -35,6 +35,15 @@ import TwilioConfigDefaultCopy, {
 import TwilioConfigNumbersCopy, {
   getTwilioConfigNumbersForExport,
 } from "./TwilioConfigNumbersCopy";
+import TwilioConfigUseCopy, {
+  getTwilioConfigUseOptions,
+  getTwilioConfigUseTitle,
+  isFormUsedFor,
+  TwilioConfigUseOption,
+} from "./TwilioConfigUseCopy";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
@@ -80,10 +89,39 @@ const moreNumbersSection: FormFieldCollapsibleSection<ProjectCallSMSConfig> =
   getAdvancedFormSection<ProjectCallSMSConfig>();
 
 /*
- * How wide a config's Twilio Account SID may be drawn in its row: cut short
- * with an ellipsis, whole under the pointer (the table's FullValueTitle) and
- * in the config's Edit dialog. A SID is 34 characters, the widest value in
- * the row, and drawn whole it made the table wider than its card: beside the
+ * WHAT THE ACCOUNT IS USED FOR, ASKED FIRST (TwilioConfigUseCopy): calls and
+ * SMS, SMS only or calls only. The Twilio step then asks only for the
+ * numbers that answer takes, each required where it is needed and nowhere
+ * else, and says what each number sends:
+ *
+ *   - Calls and SMS: the primary number - SMS go out from it too, unless SMS
+ *     numbers are added under More fields, with the secondary numbers;
+ *   - SMS only: the SMS numbers, open and required, and nothing folded;
+ *   - Calls only: the primary number, and the secondary numbers folded.
+ *
+ * A field whose help, fold or need follows the answer is written once for
+ * each answer that shows it, with a showIf for that answer alone
+ * (isFormUsedFor): ModelForm keeps two fields for one column when both are
+ * shown only on a condition, and the form never shows two at once. The
+ * default switch is too, so its help names what goes through the default.
+ */
+const isUsedForCallsAndSms: (
+  values: FormValues<ProjectCallSMSConfig>,
+) => boolean = isFormUsedFor(TwilioConfigUse.CallsAndSms);
+const isUsedForSmsOnly: (values: FormValues<ProjectCallSMSConfig>) => boolean =
+  isFormUsedFor(TwilioConfigUse.SmsOnly);
+const isUsedForCallsOnly: (
+  values: FormValues<ProjectCallSMSConfig>,
+) => boolean = isFormUsedFor(TwilioConfigUse.CallsOnly);
+const isUsedForCalls: (values: FormValues<ProjectCallSMSConfig>) => boolean =
+  isFormUsedFor(TwilioConfigUse.CallsAndSms, TwilioConfigUse.CallsOnly);
+
+/*
+ * How wide a config's Twilio Account SID may be drawn in its row, once
+ * someone switches its column on (it starts hidden): cut short with an
+ * ellipsis, whole under the pointer (the table's FullValueTitle) and in the
+ * config's Edit dialog. A SID is 34 characters, the widest value in the
+ * row, and drawn whole it made the table wider than its card: beside the
  * page's side menu the table has 938px at a 1280px window, and the other
  * columns of a config with SMS numbers take some 700px of it. Whole from
  * 1536px on, where the table has 1194px.
@@ -266,6 +304,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             icon: IconProp.SMS,
             disabled: testSendLock.isLocked,
             tooltip: testSendLock.tooltip,
+            // A config used for calls only sends no SMS: nothing to test.
+            isVisible: (item: ProjectCallSMSConfig): boolean => {
+              return TwilioConfigUses.sendsSms(item.usedFor);
+            },
             onClick: async (
               item: ProjectCallSMSConfig,
               onCompleteAction: VoidFunction,
@@ -288,6 +330,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             icon: IconProp.Call,
             disabled: testSendLock.isLocked,
             tooltip: testSendLock.tooltip,
+            // A config used for SMS only makes no calls: nothing to test.
+            isVisible: (item: ProjectCallSMSConfig): boolean => {
+              return TwilioConfigUses.makesCalls(item.usedFor);
+            },
             onClick: async (
               item: ProjectCallSMSConfig,
               onCompleteAction: VoidFunction,
@@ -356,8 +402,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           /*
            * The numbers the Phone Numbers column shows and counts beside
            * the primary one: the first SMS number, and how many more of
-           * each kind there are.
+           * each kind there are - and what the config is used for, which
+           * says which of them it sends from and which tests it offers.
            */
+          usedFor: true,
           twilioSmsPhoneNumbers: true,
           twilioSecondaryPhoneNumbers: true,
         }}
@@ -378,6 +426,35 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
           },
           {
+            /*
+             * Asked first, before any number: what the account is for
+             * decides which numbers the next step asks for.
+             */
+            field: {
+              usedFor: true,
+            },
+            title: TwilioConfigUseCopy.fieldTitle,
+            fieldType: FormFieldSchemaType.RadioButton,
+            required: true,
+            stepId: "basic-info",
+            /*
+             * Calls and SMS - what most accounts are, and every config made
+             * before the choice - unless the config says otherwise.
+             */
+            defaultValue: TwilioConfigUse.CallsAndSms,
+            // Each answer says in one line what it means.
+            hideColumnDescription: true,
+            radioButtonOptions: getTwilioConfigUseOptions().map(
+              (option: TwilioConfigUseOption) => {
+                return {
+                  title: option.title,
+                  description: option.description,
+                  value: option.value,
+                };
+              },
+            ),
+          },
+          {
             field: {
               description: true,
             },
@@ -386,7 +463,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: false,
             stepId: "basic-info",
             hideColumnDescription: true,
-            placeholder: "Twilio account for SMS and calls",
+            /*
+             * An example that holds for every answer above it: "for SMS
+             * and calls" read as a contradiction under SMS only.
+             */
+            placeholder: "Twilio account for on-call alerts",
           },
           {
             field: {
@@ -416,6 +497,10 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               minLength: 2,
             },
           },
+          /*
+           * Calls and SMS: the number calls go out from, and SMS too unless
+           * SMS numbers are added under More fields.
+           */
           {
             field: {
               twilioPrimaryPhoneNumber: true,
@@ -429,6 +514,68 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             validation: {
               minLength: 2,
             },
+            showIf: isUsedForCallsAndSms,
+          },
+          // Calls only: the number calls go out from, and nothing for SMS.
+          {
+            field: {
+              twilioPrimaryPhoneNumber: true,
+            },
+            title: "Twilio Primary Phone Number",
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Phone,
+            required: true,
+            description:
+              TwilioConfigUseCopy.callsOnlyPrimaryPhoneNumberDescription,
+            placeholder: "+14155550100",
+            validation: {
+              minLength: 2,
+            },
+            showIf: isUsedForCallsOnly,
+          },
+          /*
+           * SMS only: the numbers every SMS goes out from, open and
+           * required - no number to make calls from is asked for.
+           */
+          {
+            field: {
+              twilioSmsPhoneNumbers: true,
+            },
+            title: "Twilio SMS Phone Numbers",
+            stepId: "twilio-info",
+            // One line: most lists hold one number or two.
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+            description: TwilioConfigUseCopy.smsOnlyPhoneNumbersDescription,
+            // The list the error under the field gives: no one country's.
+            placeholder: PHONE_NUMBER_LIST_EXAMPLE,
+            customValidation: (
+              values: FormValues<ProjectCallSMSConfig>,
+            ): string | null => {
+              // Refused under the field, by the server's rule.
+              return getPhoneNumberListError(values.twilioSmsPhoneNumbers);
+            },
+            showIf: isUsedForSmsOnly,
+          },
+          /*
+           * On for the project's first config (createInitialValues), with
+           * help that says why; off, where its column starts, for any other.
+           * Its help names what goes through the default: the SMS and calls
+           * of the project's people, or only the ones the config sends.
+           */
+          {
+            field: {
+              isProjectDefault: true,
+            },
+            title: TwilioConfigDefaultCopy.setDefaultTitle,
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: getDefaultSwitchDescription(
+              defaultState,
+              TwilioConfigUse.CallsAndSms,
+            ),
+            showIf: isUsedForCallsAndSms,
           },
           {
             field: {
@@ -438,16 +585,31 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             stepId: "twilio-info",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
-            /*
-             * On for the project's first config (createInitialValues), with
-             * help that says why; off, where its column starts, for any other.
-             */
-            description: getDefaultSwitchDescription(defaultState),
+            description: getDefaultSwitchDescription(
+              defaultState,
+              TwilioConfigUse.SmsOnly,
+            ),
+            showIf: isUsedForSmsOnly,
+          },
+          {
+            field: {
+              isProjectDefault: true,
+            },
+            title: TwilioConfigDefaultCopy.setDefaultTitle,
+            stepId: "twilio-info",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            description: getDefaultSwitchDescription(
+              defaultState,
+              TwilioConfigUse.CallsOnly,
+            ),
+            showIf: isUsedForCallsOnly,
           },
           /*
            * Under More fields: the numbers SMS go out from instead, once
-           * listed (Common/Types/CallAndSMS/TwilioPhoneNumbers), and numbers
-           * for other countries.
+           * listed (Common/Types/CallAndSMS/TwilioPhoneNumbers) - for a
+           * config used for calls and SMS - and numbers for other
+           * countries, for any config that makes calls.
            */
           {
             field: {
@@ -468,6 +630,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
               // Refused under the field, by the server's rule.
               return getPhoneNumberListError(values.twilioSmsPhoneNumbers);
             },
+            showIf: isUsedForCallsAndSms,
           },
           {
             field: {
@@ -488,6 +651,7 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
                 values.twilioSecondaryPhoneNumbers,
               );
             },
+            showIf: isUsedForCalls,
           },
         ]}
         showRefreshButton={true}
@@ -506,6 +670,21 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             field: {
               description: true,
             },
+          },
+          {
+            title: "Used For",
+            type: FieldType.Dropdown,
+            field: {
+              usedFor: true,
+            },
+            filterDropdownOptions: getTwilioConfigUseOptions().map(
+              (option: TwilioConfigUseOption) => {
+                return {
+                  value: option.value,
+                  label: option.title,
+                };
+              },
+            ),
           },
           {
             title: "Twilio Account SID",
@@ -544,16 +723,19 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           },
         ]}
         /*
-         * What tells the configs apart at a glance: the name, the numbers
-         * it sends from - its primary number, and its first SMS number
-         * beside it when SMS have their own - whether it is the project's
-         * default, and the Twilio account. Description and the other
-         * numbers are in the config's Edit dialog (and in the filters).
+         * What tells the configs apart at a glance: the name, what it is
+         * used for - Calls and SMS, SMS only or Calls only, as the form's
+         * first question words it - the numbers it sends from - its
+         * primary number, and its first SMS number beside it when SMS have
+         * their own - and whether it is the project's default. Description
+         * and the other numbers are in the config's Edit dialog (and in the
+         * filters).
          *
-         * The account comes last: a SID is 34 characters, the widest value
-         * in the row, and when a long name makes the table wider than its
-         * card it scrolls sideways under the row's actions - the column cut
-         * short is then the account, not the numbers or the default.
+         * The Twilio account starts hidden, in the table's Customize
+         * Columns: a SID is 34 characters, the widest value in the row, and
+         * beside the side menu at 1280px it was cut to half under the row's
+         * actions, while what a config is used for - the one answer that
+         * decides what it sends - had no column at all.
          */
         columns={[
           {
@@ -562,6 +744,27 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             },
             title: "Name",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              usedFor: true,
+            },
+            title: "Used For",
+            type: FieldType.Text,
+            // The answer's own words, in the reader's language.
+            getElement: (item: ProjectCallSMSConfig): ReactElement => {
+              const useTitle: string = getTwilioConfigUseTitle(item.usedFor);
+
+              return (
+                <span data-testid="twilio-config-used-for">
+                  {translator.translateText(useTitle) || useTitle}
+                </span>
+              );
+            },
+            // As the API and the Used For filter name it.
+            getExportValue: (item: ProjectCallSMSConfig): string => {
+              return TwilioConfigUses.getUse(item.usedFor);
+            },
           },
           {
             field: {
@@ -598,6 +801,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             title: "Twilio Account SID",
             type: FieldType.Text,
             contentClassName: TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+            // One switch away in Customize Columns, last when switched on.
+            isHiddenByDefault: true,
           },
         ]}
       />

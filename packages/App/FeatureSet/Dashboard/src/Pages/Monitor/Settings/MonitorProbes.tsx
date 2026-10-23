@@ -21,9 +21,12 @@ import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
-import Label from "Common/Models/DatabaseModels/Label";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Probe from "Common/Models/DatabaseModels/Probe";
+import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
+import ProbeOwnerUser from "Common/Models/DatabaseModels/ProbeOwnerUser";
+import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../Components/ResourceOwners/useResourceOwners";
 import React, {
   Fragment,
   FunctionComponent,
@@ -54,6 +57,29 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Probe>({ modelType: Probe });
+
+  /*
+   * The Owner and Labels chips above the custom probes: a probe can be found
+   * by the person or the team that owns it - the server answers the Owner
+   * chip in the list's own query - and the Owners column shows who that is.
+   * The global probes above are OneUptime's, owned by nobody in a project.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Probe>({
+    persistKey: "settings-project-probes-table",
+    ownerUserModelType: ProbeOwnerUser,
+    ownerTeamModelType: ProbeOwnerTeam,
+    resourceIdField: "probeId",
+    showLabelsFacet: true,
+  });
 
   /*
    * Create Probe asks for a name and a description, and folds the rest
@@ -207,8 +233,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
            */
           key={canReadProbeKey ? "probes-with-keys" : "probes"}
           modelType={Probe}
-          query={{
+          topContent={filterBar}
+          emptyState={facetEmptyState}
+          currentFacetState={facetSaveState}
+          onFacetStateRestored={restoreFacetState}
+          query={mergeFiltersIntoQuery({
             projectId: ProjectUtil.getCurrentProjectId()!,
+          })}
+          onFetchSuccess={(data: Array<Probe>) => {
+            onResourcesFetched(data);
           }}
           id="probes-table"
           userPreferencesKey={"probes-table"}
@@ -327,24 +360,6 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Text,
             },
             {
-              title: "Labels",
-              type: FieldType.EntityArray,
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              filterEntityType: Label,
-              filterQuery: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              filterDropdownField: {
-                label: "name",
-                value: "_id",
-              },
-            },
-            {
               field: {
                 shouldAutoEnableProbeOnNewMonitors: true,
               },
@@ -401,6 +416,22 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               getElement: (item: Probe): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
+              },
+            },
+            {
+              field: {
+                _id: true,
+              },
+              title: "Owners",
+              type: FieldType.Element,
+              hideOnMobile: true,
+              getElement: (item: Probe): ReactElement => {
+                return (
+                  <OwnersCell
+                    owners={getOwnersForResource(item)}
+                    isLoading={isLoadingOwners}
+                  />
+                );
               },
             },
           ]}

@@ -903,7 +903,10 @@ describe("the pages follow the house idioms", () => {
       stripComments(readSource("Pages", "MessageQueue", "Archived.tsx")),
     );
 
-    expect(source).toContain("query={{isArchived:true,}}");
+    // The archived queues, with what the Owner and Labels chips pick.
+    expect(source).toContain(
+      "query={mergeFiltersIntoQuery({isArchived:true,})}",
+    );
     expect(source).toContain(
       "onViewPage={(item:MessageQueue):Promise<Route>=>{returnPromise.resolve(RouteUtil.populateRouteParams(RouteMap[PageMap.MESSAGE_QUEUE_VIEW]asRoute,",
     );

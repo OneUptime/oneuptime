@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}}은(는) 전화번호가 아닙니다. 각 번호를 국가 코드와 함께 입력하고 {{example}}처럼 쉼표로 구분하세요.",
   "Twilio Primary Phone Number": "Twilio 기본 전화번호",
   "Twilio Secondary Phone Numbers": "Twilio 보조 전화번호",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "수신자의 국가 코드와 일치할 때 기본 번호 대신 사용할 번호입니다."
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "수신자의 국가 코드와 일치할 때 기본 번호 대신 사용할 번호입니다.",
+  "Use This Account For": "이 계정의 용도",
+  "Calls and SMS": "통화 및 SMS",
+  "Calls and SMS go out from this account.": "통화와 SMS를 이 계정으로 보냅니다.",
+  "SMS only": "SMS만",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "이 계정은 통화를 걸지 않습니다. 프로젝트는 자체 Twilio 구성으로 통화를 걸 수 있습니다.",
+  "Calls only": "통화만",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "이 계정은 SMS를 보내지 않습니다. 프로젝트는 자체 Twilio 구성으로 SMS를 보낼 수 있습니다.",
+  "Calls go out from this number.": "통화는 이 번호로 걸립니다.",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "각 SMS는 이 번호 중 하나로 보냅니다. 수신자 국가의 번호로, 없으면 첫 번째 번호로 보냅니다.",
+  "Used For": "용도"
 }

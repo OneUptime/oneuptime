@@ -474,7 +474,7 @@ describe("the Notification service sending through the OneUptime server's own ac
     expect((findOneBy.mock.calls[0]![0] as { select: unknown }).select).toEqual(
       GLOBAL_TWILIO_CONFIG_SELECT,
     );
-    expect(twilioConfig!.primaryPhoneNumber.toString()).toBe(US_NUMBER);
+    expect(twilioConfig!.primaryPhoneNumber?.toString()).toBe(US_NUMBER);
     expect(twilioConfig!.secondaryPhoneNumbers.map(String)).toEqual([
       UK_NUMBER,
     ]);

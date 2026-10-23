@@ -7,6 +7,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
+import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -21,14 +25,44 @@ const StorageArraysArchivedPage: FunctionComponent<
     modelType: StorageArray,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<StorageArray>({
+    persistKey: "storage-arrays-archived-table",
+    ownerUserModelType: StorageArrayOwnerUser,
+    ownerTeamModelType: StorageArrayOwnerTeam,
+    resourceIdField: "storageArrayId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<StorageArray>
         modelType={StorageArray}
         id="storage-arrays-archived-table"
         userPreferencesKey="storage-arrays-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<StorageArray>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -124,6 +158,22 @@ const StorageArraysArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: StorageArray): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: StorageArray): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

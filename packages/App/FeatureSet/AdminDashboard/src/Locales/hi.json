@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} फ़ोन नंबर नहीं है। हर नंबर को उसके देश कोड के साथ लिखें और नंबरों को कॉमा से अलग करें, जैसे {{example}}।",
   "Twilio Primary Phone Number": "Twilio प्राथमिक फ़ोन नंबर",
   "Twilio Secondary Phone Numbers": "Twilio द्वितीयक फ़ोन नंबर",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "प्राप्तकर्ता के देश कोड से मेल खाने पर मुख्य नंबर की जगह इस्तेमाल होने वाले नंबर।"
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "प्राप्तकर्ता के देश कोड से मेल खाने पर मुख्य नंबर की जगह इस्तेमाल होने वाले नंबर।",
+  "Use This Account For": "इस खाते का उपयोग",
+  "Calls and SMS": "कॉल और SMS",
+  "Calls and SMS go out from this account.": "कॉल और SMS इसी खाते से जाते हैं।",
+  "SMS only": "केवल SMS",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "यह खाता कॉल नहीं करता। प्रोजेक्ट अपने Twilio कॉन्फ़िगरेशन से कॉल कर सकते हैं।",
+  "Calls only": "केवल कॉल",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "यह खाता SMS नहीं भेजता। प्रोजेक्ट अपने Twilio कॉन्फ़िगरेशन से SMS भेज सकते हैं।",
+  "Calls go out from this number.": "कॉल इसी नंबर से जाती हैं।",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "हर SMS इनमें से किसी एक नंबर से जाता है: प्राप्तकर्ता के देश वाले नंबर से, नहीं तो पहले नंबर से।",
+  "Used For": "उपयोग"
 }

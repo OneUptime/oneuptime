@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} ist keine Telefonnummer. Geben Sie jede Nummer mit Landesvorwahl ein und trennen Sie die Nummern durch Kommas, etwa {{example}}.",
   "Twilio Primary Phone Number": "Twilio-Primärrufnummer",
   "Twilio Secondary Phone Numbers": "Twilio-Sekundärrufnummern",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummern, die statt der Hauptnummer verwendet werden, wenn sie zur Landesvorwahl des Empfängers passen."
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummern, die statt der Hauptnummer verwendet werden, wenn sie zur Landesvorwahl des Empfängers passen.",
+  "Use This Account For": "Dieses Konto verwenden für",
+  "Calls and SMS": "Anrufe und SMS",
+  "Calls and SMS go out from this account.": "Anrufe und SMS gehen von diesem Konto aus.",
+  "SMS only": "Nur SMS",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "Dieses Konto tätigt keine Anrufe. Projekte können sie über eine eigene Twilio-Konfiguration tätigen.",
+  "Calls only": "Nur Anrufe",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "Dieses Konto sendet keine SMS. Projekte können sie über eine eigene Twilio-Konfiguration senden.",
+  "Calls go out from this number.": "Anrufe gehen von dieser Nummer aus.",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "Jede SMS geht von einer dieser Nummern aus: der im Land des Empfängers, sonst der ersten.",
+  "Used For": "Verwendet für"
 }

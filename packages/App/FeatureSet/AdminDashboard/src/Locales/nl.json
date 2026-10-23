@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} is geen telefoonnummer. Schrijf elk nummer met de landcode en scheid de nummers met komma's, zoals {{example}}.",
   "Twilio Primary Phone Number": "Twilio primair telefoonnummer",
   "Twilio Secondary Phone Numbers": "Twilio secundaire telefoonnummers",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummers die in plaats van het hoofdnummer worden gebruikt als ze overeenkomen met de landcode van de ontvanger."
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "Nummers die in plaats van het hoofdnummer worden gebruikt als ze overeenkomen met de landcode van de ontvanger.",
+  "Use This Account For": "Dit account gebruiken voor",
+  "Calls and SMS": "Oproepen en sms",
+  "Calls and SMS go out from this account.": "Oproepen en sms-berichten gaan uit van dit account.",
+  "SMS only": "Alleen sms",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "Dit account doet geen oproepen. Projecten kunnen ze doen via een eigen Twilio-configuratie.",
+  "Calls only": "Alleen oproepen",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "Dit account verstuurt geen sms-berichten. Projecten kunnen ze versturen via een eigen Twilio-configuratie.",
+  "Calls go out from this number.": "Oproepen gaan uit van dit nummer.",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "Elke sms gaat uit van een van deze nummers: het nummer in het land van de ontvanger, anders het eerste.",
+  "Used For": "Gebruikt voor"
 }

@@ -174,10 +174,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
+import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationTemplate from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import StatusPageSubscriberNotificationTemplateStatusPage from "../../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplateStatusPage";
 import Route from "../../../Types/API/Route";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import { TwilioConfigUse } from "../../../Types/CallAndSMS/TwilioConfigUse";
 import ObjectID from "../../../Types/ObjectID";
 import StatusPageSubscriberNotificationMethod from "../../../Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import Field from "../../../UI/Components/Forms/Types/Field";
@@ -363,6 +366,154 @@ describe("Subscriber Settings", () => {
       "Custom SMTP",
       "Twilio Config",
     ]);
+  });
+
+  /*
+   * A page sends its subscribers SMS, and a Twilio config used for calls
+   * only sends none (Common/Types/CallAndSMS/TwilioConfigUse): the picker
+   * lists only the configs that send SMS, and says so.
+   */
+  test("its Twilio Config picker lists only the configs that send SMS, and says why one is missing", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    const twilio: Record<string, unknown> | undefined =
+      recordedDetailCards.find((card: Record<string, unknown>): boolean => {
+        return (
+          (card["cardProps"] as Record<string, unknown>)["title"] ===
+          "Twilio Config"
+        );
+      });
+    const picker: Field<unknown> | undefined = (
+      (twilio?.["formFields"] as Array<Field<unknown>>) || []
+    ).find((field: Field<unknown>): boolean => {
+      return fieldKey(field) === "callSmsConfig";
+    });
+    const usedFor: unknown = picker?.dropdownModal?.query?.["usedFor"];
+
+    expect(usedFor).toBeInstanceOf(Includes);
+    expect((usedFor as Includes).values).toEqual([
+      TwilioConfigUse.CallsAndSms,
+      TwilioConfigUse.SmsOnly,
+    ]);
+    expect((usedFor as Includes).values).not.toContain(
+      TwilioConfigUse.CallsOnly,
+    );
+    expect(picker?.description).toBe(
+      "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.",
+    );
+  });
+
+  /*
+   * The picker no longer offers a config used for calls only, but a page
+   * keeps the one it named when that config is switched to calls only
+   * afterwards. Its subscribers' SMS then go as without a config, and the
+   * card says so under the config's name, in the words of the placeholder
+   * for no config at all. A config that sends SMS shows its name alone.
+   */
+  describe("its Twilio Config card", () => {
+    type DetailField = {
+      field?: unknown;
+      getElement?: (item: StatusPage) => ReactElement;
+    };
+
+    async function twilioDetailField(): Promise<DetailField> {
+      await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+      const twilio: Record<string, unknown> | undefined =
+        recordedDetailCards.find((card: Record<string, unknown>): boolean => {
+          return (
+            (card["cardProps"] as Record<string, unknown>)["title"] ===
+            "Twilio Config"
+          );
+        });
+
+      expect(twilio).toBeDefined();
+
+      const field: DetailField | undefined = (
+        (twilio!["modelDetailProps"] as Record<string, unknown>)[
+          "fields"
+        ] as Array<DetailField>
+      ).find((each: DetailField): boolean => {
+        return fieldKey(each) === "callSmsConfig";
+      });
+
+      expect(field?.getElement).toBeDefined();
+
+      return field!;
+    }
+
+    function pageNaming(usedFor: TwilioConfigUse | undefined): StatusPage {
+      const config: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+      config.name = "Voice line";
+
+      if (usedFor) {
+        config.usedFor = usedFor;
+      }
+
+      const page: StatusPage = new StatusPage();
+      page.callSmsConfig = config;
+      return page;
+    }
+
+    test("reads what the page's config is used for, with its name", async () => {
+      const field: DetailField = await twilioDetailField();
+
+      expect(field.field).toEqual({
+        callSmsConfig: { name: true, usedFor: true },
+      });
+    });
+
+    test("under a config used for calls only, says OneUptime sends the subscriber SMS", async () => {
+      const field: DetailField = await twilioDetailField();
+
+      const { container } = render(
+        field.getElement!(pageNaming(TwilioConfigUse.CallsOnly)),
+      );
+
+      const note: HTMLElement | null = container.querySelector(
+        '[data-testid="status-page-twilio-config-calls-only"]',
+      );
+
+      expect(note).not.toBeNull();
+      expect(note!.textContent).toBe(
+        "Voice lineUsed for calls only: OneUptime sends subscriber text messages.",
+      );
+      // The quiet grey of a detail card's placeholder, which wraps.
+      expect(
+        note!.querySelector('[data-testid="placeholder-text"]')?.textContent,
+      ).toBe("Used for calls only: OneUptime sends subscriber text messages.");
+      expect(note!.innerHTML).toContain("whitespace-normal");
+    });
+
+    test.each([
+      ["used for Calls and SMS", TwilioConfigUse.CallsAndSms],
+      ["used for SMS only", TwilioConfigUse.SmsOnly],
+      ["saved before the choice", undefined],
+    ])(
+      "under a config %s, shows its name alone",
+      async (_label: string, usedFor: TwilioConfigUse | undefined) => {
+        const field: DetailField = await twilioDetailField();
+
+        const { container } = render(field.getElement!(pageNaming(usedFor)));
+
+        expect(container.textContent).toBe("Voice line");
+        expect(
+          container.querySelector(
+            '[data-testid="status-page-twilio-config-calls-only"]',
+          ),
+        ).toBeNull();
+      },
+    );
+
+    test("with no config, keeps the placeholder that OneUptime sends the subscriber SMS", async () => {
+      const field: DetailField = await twilioDetailField();
+
+      const { container } = render(field.getElement!(new StatusPage()));
+
+      expect(container.textContent).toBe(
+        "None: OneUptime sends subscriber text messages.",
+      );
+    });
   });
 
   test("with no subscriber timezones, says what subscribers see in the placeholder chip, which wraps", async () => {

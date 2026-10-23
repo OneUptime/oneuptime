@@ -1,8 +1,10 @@
 import TwilioConfig from "./TwilioConfig";
+import TwilioConfigUses, { TwilioConfigUse } from "./TwilioConfigUse";
 import TwilioPhoneNumbers from "./TwilioPhoneNumbers";
 import BadDataException from "../Exception/BadDataException";
 import { JSONObject } from "../JSON";
 import Phone from "../Phone";
+import { refusedValue } from "../../Utils/RefusedValue";
 
 /*
  * A Twilio config as it travels from the server's senders (Common's
@@ -15,17 +17,36 @@ import Phone from "../Phone";
  * fail with "secondaryPhoneNumbersToPickFrom.map is not a function". Now
  * they travel as arrays of numbers, and a comma-separated string - what an
  * older sender sends - is read as a list too.
+ *
+ * What a config is used for (TwilioConfigUse) travels with it when it is
+ * not calls and SMS: a config used for SMS only has no number to make calls
+ * from, and the Notification service sends nothing through a config that is
+ * not used for the message - that message goes as it would without one. A
+ * config used for calls and SMS - every config made before the choice -
+ * travels exactly as it always did.
  */
 export default class TwilioConfigJSON {
   public static toJSON(config: TwilioConfig): JSONObject {
     const json: JSONObject = {
       accountSid: config.accountSid,
       authToken: config.authToken,
-      primaryPhoneNumber: config.primaryPhoneNumber.toString(),
-      secondaryPhoneNumbers: TwilioConfigJSON.listToJSON(
-        config.secondaryPhoneNumbers,
-      ),
     };
+
+    // Left out when it is calls and SMS, as an older receiver expects.
+    const use: TwilioConfigUse = TwilioConfigUses.getUse(config.use);
+
+    if (use !== TwilioConfigUse.CallsAndSms) {
+      json["use"] = use;
+    }
+
+    // A config used for SMS only has none.
+    if (config.primaryPhoneNumber) {
+      json["primaryPhoneNumber"] = config.primaryPhoneNumber.toString();
+    }
+
+    json["secondaryPhoneNumbers"] = TwilioConfigJSON.listToJSON(
+      config.secondaryPhoneNumbers,
+    );
 
     const smsPhoneNumbers: Array<string> = TwilioConfigJSON.listToJSON(
       config.smsPhoneNumbers,
@@ -57,13 +78,21 @@ export default class TwilioConfigJSON {
 
     const json: JSONObject = value as JSONObject;
 
+    // Unset: calls and SMS, as every config was. Anything else is refused.
+    const use: TwilioConfigUse = TwilioConfigJSON.useOf(json["use"]);
+
     const accountSid: string = TwilioConfigJSON.textOf(json["accountSid"]);
     const authToken: string = TwilioConfigJSON.textOf(json["authToken"]);
     const primaryPhoneNumber: string = TwilioConfigJSON.textOf(
       json["primaryPhoneNumber"],
     );
 
-    if (!accountSid || !authToken || !primaryPhoneNumber) {
+    // A config used for SMS only needs no number to make calls from.
+    if (
+      !accountSid ||
+      !authToken ||
+      (!primaryPhoneNumber && use !== TwilioConfigUse.SmsOnly)
+    ) {
       throw new BadDataException(
         "The Twilio config sent has no account SID, auth token or primary phone number.",
       );
@@ -72,11 +101,18 @@ export default class TwilioConfigJSON {
     const config: TwilioConfig = {
       accountSid: accountSid,
       authToken: authToken,
-      primaryPhoneNumber: new Phone(primaryPhoneNumber),
       secondaryPhoneNumbers: TwilioConfigJSON.listFromJSON(
         json["secondaryPhoneNumbers"],
       ),
     };
+
+    if (use !== TwilioConfigUse.CallsAndSms) {
+      config.use = use;
+    }
+
+    if (primaryPhoneNumber) {
+      config.primaryPhoneNumber = new Phone(primaryPhoneNumber);
+    }
 
     const smsPhoneNumbers: Array<Phone> = TwilioConfigJSON.listFromJSON(
       json["smsPhoneNumbers"],
@@ -86,7 +122,33 @@ export default class TwilioConfigJSON {
       config.smsPhoneNumbers = smsPhoneNumbers;
     }
 
+    // Used for SMS only, it sends every SMS from these: it must have one.
+    if (use === TwilioConfigUse.SmsOnly && smsPhoneNumbers.length === 0) {
+      throw new BadDataException(
+        "The Twilio config sent is used for SMS only and has no SMS phone numbers.",
+      );
+    }
+
     return config;
+  }
+
+  // What a config sent says it is used for.
+  private static useOf(value: unknown): TwilioConfigUse {
+    if (value === undefined || value === null || value === "") {
+      return TwilioConfigUse.CallsAndSms;
+    }
+
+    if (TwilioConfigUses.isUse(value)) {
+      return value;
+    }
+
+    /*
+     * Read as calls and SMS, a config meant for one of the two would send
+     * the other through an account the project did not choose for it.
+     */
+    throw new BadDataException(
+      `The Twilio config sent says it is used for "${refusedValue(value)}", which is not one of "${TwilioConfigUse.CallsAndSms}", "${TwilioConfigUse.SmsOnly}" or "${TwilioConfigUse.CallsOnly}".`,
+    );
   }
 
   private static listToJSON(

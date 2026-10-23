@@ -172,6 +172,94 @@ describe("PeopleAvatar", () => {
       PEOPLE_PICKER_KIND_DEFINITIONS[PeoplePickerKind.Team].avatar = original;
     }
   });
+
+  /*
+   * "mini": the 16px avatar in a filter chip's one line of small text
+   * ("Owner · SRE"). The same colour as the person's or team's avatar
+   * everywhere else, without the white ring and the team badge, which at
+   * that size were all you saw.
+   */
+  describe("the mini size, in a filter chip", () => {
+    const tileOf: (container: HTMLElement) => HTMLElement = (
+      container: HTMLElement,
+    ): HTMLElement => {
+      return container.querySelector("div") as HTMLElement;
+    };
+
+    test("a person: 16px, their colour, no ring", () => {
+      const { container } = render(
+        <PeopleAvatar
+          item={{ kind: PeoplePickerKind.User, name: "Ada Lovelace" }}
+          size="mini"
+        />,
+      );
+      const tile: HTMLElement = tileOf(container);
+
+      expect(container).toHaveTextContent("AL");
+      expect(tile).toHaveClass("h-4", "w-4");
+      for (const className of getPeopleAvatarPalette(
+        PeoplePickerKind.User,
+        "Ada Lovelace",
+      ).bg.split(" ")) {
+        expect(tile).toHaveClass(className);
+      }
+      expect(tile.className).not.toContain("ring-2");
+    });
+
+    test("a team: the team's dark tile, with no badge", () => {
+      const { container } = render(
+        <PeopleAvatar
+          item={{ kind: PeoplePickerKind.Team, name: "SRE" }}
+          size="mini"
+        />,
+      );
+
+      expect(container).toHaveTextContent("S");
+      expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(
+        1,
+      );
+      expect(container.querySelector("svg")).toBeNull();
+      for (const className of getPeopleAvatarPalette(
+        PeoplePickerKind.Team,
+        "SRE",
+      ).bg.split(" ")) {
+        expect(tileOf(container)).toHaveClass(className);
+      }
+    });
+
+    test("a person's profile picture, 16px and without a ring", () => {
+      render(
+        <PeopleAvatar
+          item={{
+            kind: PeoplePickerKind.User,
+            name: "Ada Lovelace",
+            userId: ADA,
+            hasProfilePicture: true,
+          }}
+          size="mini"
+        />,
+      );
+
+      const image: HTMLElement = screen.getByAltText("Ada Lovelace");
+
+      expect(image).toHaveClass("h-4", "w-4");
+      expect(image.className).not.toContain("ring-2");
+    });
+
+    test("every other size keeps its ring and a team its badge", () => {
+      const { container } = render(
+        <PeopleAvatar
+          item={{ kind: PeoplePickerKind.Team, name: "SRE" }}
+          size="chip"
+        />,
+      );
+
+      expect(container.querySelector(".ring-2")).not.toBeNull();
+      expect(
+        container.querySelectorAll('[aria-hidden="true"]').length,
+      ).toBeGreaterThanOrEqual(2);
+    });
+  });
 });
 
 describe("PeopleList", () => {

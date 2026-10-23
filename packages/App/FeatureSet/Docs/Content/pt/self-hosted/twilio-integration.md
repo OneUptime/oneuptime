@@ -44,7 +44,7 @@ Para adicionar uma configuração de projeto:
 :::steps
 1. Vá para **Configurações do projeto > Notificações > Configurações de notificação**.
 2. Em **Configuração do Twilio**, selecione **Criar: Configuração do Twilio**.
-3. Informe um nome, **SID da Conta Twilio**, **Token de Autenticação Twilio** e **Número de Telefone Principal do Twilio**. Em **Mais campos**, se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países, e **Números de Telefone SMS do Twilio** se os seus números não puderem enviar SMS.
+3. Informe um nome e escolha em **Usar esta conta para** o que a conta envia: **Chamadas e SMS**, **Somente SMS** ou **Somente chamadas**. Depois informe **SID da Conta Twilio**, **Token de Autenticação Twilio** e o número que a escolha pede: **Número de Telefone Principal do Twilio** para chamadas, ou **Números de Telefone SMS do Twilio** para **Somente SMS**. Em **Mais campos**, se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países, e **Números de Telefone SMS do Twilio** se os seus números não puderem enviar SMS.
 4. **Definir como padrão do projeto** começa ligado na primeira configuração do projeto, então os SMS e as chamadas aos membros do projeto, inclusive as notificações de plantão, passam por ela assim que você salva. Desligue se essa conta for só para páginas de status ou chamadas recebidas. Uma configuração posterior começa com a chave desligada: ligue-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para levar essas mensagens para ela. Uma requisição à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Só uma configuração pode ser a padrão do projeto. As páginas de status usam a configuração atribuída explicitamente a cada uma.
 
@@ -52,7 +52,7 @@ Para adicionar uma configuração de projeto:
 > **SMS** e **Chamadas telefônicas** começam desligados em todos os projetos, e enquanto não estiverem ligados ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto, um **Billing Admin** ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
 :::
 
-Para um padrão que valha para a instalação inteira, um administrador pode abrir **Admin Dashboard > Configurações > Chamadas e SMS**, editar as credenciais e os números de telefone do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto deles não tem um padrão. Mantenha o Auth Token em sigilo.
+Para um padrão que valha para a instalação inteira, um administrador pode abrir **Admin Dashboard > Configurações > Chamadas e SMS**, escolher o que a conta envia, editar as credenciais e os números de telefone do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto deles não tem um padrão. Mantenha o Auth Token em sigilo.
 
 ### Números separados para chamadas e SMS
 
@@ -70,6 +70,20 @@ Uma configuração sem números de SMS envia os SMS dos mesmos números que as c
 
 > [!NOTE]
 > Quais números podem enviar SMS, e se um remetente precisa ser registrado antes, varia de país para país: onde o registro é obrigatório, um SMS de um número não registrado pode ser bloqueado ou marcado como spam. Antes de contar com um número, consulte [as diretrizes de SMS do Twilio](https://www.twilio.com/en-us/guidelines/sms) de cada país para o qual você envia.
+
+### Uma conta só para SMS, ou só para chamadas
+
+Uma conta que você usa só para SMS, ou só para chamadas, não precisa de número para a outra coisa. Escolha isso em **Usar esta conta para**, e o formulário pede só os números de que essa escolha precisa:
+
+| Escolha | Números de que precisa | O que nunca envia |
+| --- | --- | --- |
+| **Chamadas e SMS** | **Número de Telefone Principal do Twilio** | Nada |
+| **Somente SMS** | **Números de Telefone SMS do Twilio** | Chamadas |
+| **Somente chamadas** | **Número de Telefone Principal do Twilio** | SMS |
+
+O que uma configuração não envia sai como sairia sem ela: quando o padrão do projeto está em **Somente SMS**, as chamadas para os membros do projeto passam pela configuração da instalação inteira. Se nenhuma configuração puder enviar uma mensagem, o log da mensagem diz que a configuração do projeto não é usada para isso e quem pode mudar essa escolha.
+
+As páginas de status oferecem só as configurações que enviam SMS, e **Enviar SMS de teste** e **Enviar chamada de teste** aparecem só para o que uma configuração envia. Toda configuração existente fica em **Chamadas e SMS**, como antes. Pela API e pelo Terraform, a escolha é o campo `usedFor`, e uma configuração sem os números de que sua escolha precisa é recusada.
 
 ## 3. Configure o acesso à rede
 
@@ -145,6 +159,7 @@ Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs
 | --- | --- |
 | Nada é enviado | As credenciais, os recursos do número, as restrições da conta e a conectividade de saída. |
 | O Twilio recusa SMS com o erro 21606 | O número não pode enviar SMS. Adicione um que possa em **Números de Telefone SMS do Twilio**: veja [Números separados para chamadas e SMS](#números-separados-para-chamadas-e-sms). |
+| Chamadas ou SMS saem por outra conta que não a do projeto | O padrão do projeto está em **Somente SMS** ou **Somente chamadas**: veja [Uma conta só para SMS, ou só para chamadas](#uma-conta-só-para-sms-ou-só-para-chamadas). |
 | O SMS ou a chamada chega, mas o status ou a confirmação não é atualizado | A URL do callback e os logs do ingress público. O [guia do Twilio sobre falhas de obtenção HTTP](https://www.twilio.com/docs/api/errors/11200) ajuda a diagnosticar callbacks inacessíveis, problemas de TLS e erros HTTP. |
 
 Uma chamada de teste bem-sucedida, sozinha, não prova que os callbacks são acessíveis.

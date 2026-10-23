@@ -7,6 +7,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import DockerSwarmClusterOwnerTeam from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerTeam";
+import DockerSwarmClusterOwnerUser from "Common/Models/DatabaseModels/DockerSwarmClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -20,14 +24,44 @@ const DockerSwarmArchivedPage: FunctionComponent<
     modelType: DockerSwarmCluster,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DockerSwarmCluster>({
+    persistKey: "docker-swarm-archived-table",
+    ownerUserModelType: DockerSwarmClusterOwnerUser,
+    ownerTeamModelType: DockerSwarmClusterOwnerTeam,
+    resourceIdField: "dockerSwarmClusterId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<DockerSwarmCluster>
         modelType={DockerSwarmCluster}
         id="docker-swarm-archived-table"
         userPreferencesKey="docker-swarm-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<DockerSwarmCluster>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -105,6 +139,22 @@ const DockerSwarmArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: DockerSwarmCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: DockerSwarmCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

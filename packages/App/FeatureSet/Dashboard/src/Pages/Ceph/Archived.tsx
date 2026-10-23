@@ -7,6 +7,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
+import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -20,14 +24,44 @@ const CephArchivedPage: FunctionComponent<
     modelType: CephCluster,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<CephCluster>({
+    persistKey: "ceph-archived-table",
+    ownerUserModelType: CephClusterOwnerUser,
+    ownerTeamModelType: CephClusterOwnerTeam,
+    resourceIdField: "cephClusterId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<CephCluster>
         modelType={CephCluster}
         id="ceph-archived-table"
         userPreferencesKey="ceph-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<CephCluster>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -105,6 +139,22 @@ const CephArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: CephCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: CephCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

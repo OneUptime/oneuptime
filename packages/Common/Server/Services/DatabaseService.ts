@@ -7421,7 +7421,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `query` without its filters on relations - a record named through a
    * relation, or the records a row is linked to - for a statement that
    * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
-   * own columns stay.
+   * own columns stay. A key that is no column at all - a filter by owners
+   * (OwnedBy), a multi-field search - is left to the lookup too: the DELETE
+   * would name a column the table does not have.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
     const filters: Dictionary<unknown> = {};
@@ -7431,6 +7433,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this.getModel().getTableColumnMetadata(key)?.type;
 
       if (
+        !type ||
         type === TableColumnType.Entity ||
         type === TableColumnType.EntityArray
       ) {

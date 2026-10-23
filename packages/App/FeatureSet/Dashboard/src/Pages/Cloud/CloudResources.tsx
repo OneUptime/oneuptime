@@ -4,6 +4,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import CloudResourceOwnerTeam from "Common/Models/DatabaseModels/CloudResourceOwnerTeam";
+import CloudResourceOwnerUser from "Common/Models/DatabaseModels/CloudResourceOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
@@ -31,6 +35,7 @@ import useFirstRecordWatch, {
 import {
   FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
+  getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
@@ -87,6 +92,28 @@ const CloudResources: FunctionComponent<
     modelType: CloudResource,
   });
 
+  /*
+   * The Owner and Labels chips above the table: an environment can be found by the
+   * person or the team that owns it - the server answers the Owner chip in
+   * the list's own query - and the Owners column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<CloudResource>({
+    persistKey: "cloud-resources-table",
+    ownerUserModelType: CloudResourceOwnerUser,
+    ownerTeamModelType: CloudResourceOwnerTeam,
+    resourceIdField: "cloudResourceId",
+    showLabelsFacet: true,
+  });
+
   if (firstRecordWatch.error) {
     return (
       <ErrorMessage
@@ -116,21 +143,30 @@ const CloudResources: FunctionComponent<
       <ModelTable<CloudResource>
         modelType={CloudResource}
         refreshToggle={firstRecordWatch.refreshToken}
-        emptyState={getFirstRunEmptyState({
-          emptyState: undefined,
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
           count: firstRecordWatch.count,
         })}
+        emptyState={getFirstRunEmptyState({
+          emptyState: facetEmptyState,
+          count: firstRecordWatch.count,
+        })}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
         id="cloud-resources-table"
         userPreferencesKey="cloud-resources-table"
         // The list is of environments: not the model's "No cloud resources yet".
         noItemsMessage="No cloud environments yet."
-        query={{
+        query={mergeFiltersIntoQuery({
           isArchived: false,
           /*
            * The resources discovered from cloud monitoring share the table
            * and have a list of their own (MonitoredResources).
            */
           cloudResourceKind: CloudResourceKind.Environment,
+        })}
+        onFetchSuccess={(data: Array<CloudResource>) => {
+          onResourcesFetched(data);
         }}
         onBeforeCreate={(
           item: CloudResource,
@@ -441,6 +477,22 @@ const CloudResources: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: CloudResource): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

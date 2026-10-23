@@ -102,7 +102,7 @@ interface ConfigNumbers {
 
 function asText(config: TwilioConfig | undefined): ConfigNumbers {
   return {
-    primary: config?.primaryPhoneNumber.toString(),
+    primary: config?.primaryPhoneNumber?.toString(),
     secondary: config?.secondaryPhoneNumbers.map(String),
     sms: config?.smsPhoneNumbers?.map(String),
   };
@@ -260,6 +260,7 @@ describe("the project's default Twilio config", () => {
     expect(Object.keys(PROJECT_TWILIO_CONFIG_SELECT).sort()).toEqual(
       [
         "_id",
+        "usedFor",
         "twilioAccountSID",
         "twilioAuthToken",
         "twilioPrimaryPhoneNumber",
@@ -269,6 +270,7 @@ describe("the project's default Twilio config", () => {
     );
     expect(Object.keys(GLOBAL_TWILIO_CONFIG_SELECT).sort()).toEqual(
       [
+        "twilioUsedFor",
         "twilioAccountSID",
         "twilioAuthToken",
         "twilioPrimaryPhoneNumber",
@@ -390,6 +392,16 @@ describe("a list of SMS numbers that holds something that is not a phone number"
   });
 
   test("an update that leaves the list out, or empties it, goes through untouched", async () => {
+    /*
+     * An update that writes the list is checked against what the config
+     * is used for (TwilioConfigWrite): this one is used for calls and SMS,
+     * with a number to make calls from, so an emptied list leaves SMS going
+     * out from it, as before.
+     */
+    jest
+      .spyOn(ProjectCallSMSConfigService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([buildConfig({ sms: SG_MOBILE })] as never);
+
     const onBeforeUpdate: (
       updateBy: UpdateBy<ProjectCallSMSConfig>,
     ) => Promise<OnUpdate<ProjectCallSMSConfig>> = (
@@ -473,6 +485,16 @@ describe("the server's own Twilio account", () => {
   });
 
   test("takes a good list, and an emptied one", async () => {
+    // The server's account, used for calls and SMS, with its number.
+    jest
+      .spyOn(GlobalConfigService, "findRowsAndHoldUpdateToThem")
+      .mockResolvedValue([
+        Object.assign(new GlobalConfig(), {
+          twilioAccountSID: "AC00000000000000000000000000000001",
+          twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        }),
+      ] as never);
+
     await expect(
       runBeforeUpdate({
         twilioSmsPhoneNumbers: `${SG_MOBILE}, ${UK}`,

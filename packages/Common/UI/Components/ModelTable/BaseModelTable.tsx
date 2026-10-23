@@ -106,6 +106,7 @@ import {
   ModelTableEmptyState,
   buildModelTableEmptyState,
   buildNoAccessState,
+  isListEmptyWithNothingApplied,
 } from "./ModelTableEmptyState";
 import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
@@ -1280,6 +1281,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    */
   const [hasMore, setHasMore] = useState<boolean | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  /*
+   * The last load found the list empty with nothing narrowing it - no
+   * record, no search, filter or chip (isListEmptyWithNothingApplied). A
+   * table whose emptyState asks for it (hideTopContentWhileEmpty: the
+   * facet chips) then leaves its topContent out. False until a load says
+   * so, so a list that has records never draws without its chips first.
+   */
+  const [isEmptyWithNothingApplied, setIsEmptyWithNothingApplied] =
+    useState<boolean>(false);
 
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
@@ -2593,6 +2604,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       setTotalItemsCount(listResult.count);
       setHasMore(listResult.hasMore);
       setData(listResult.data);
+      setIsEmptyWithNothingApplied(
+        isListEmptyWithNothingApplied({
+          rowCount: listResult.data.length,
+          totalCount: listResult.count || 0,
+          hasMore: listResult.hasMore,
+          pageNumber: currentPageNumber,
+          isSearchActive: isSearchActive(),
+          isFilterActive: hasFilterApplied(filterData),
+          isPageFiltered: Boolean(props.emptyState?.isFiltered),
+        }),
+      );
       /*
        * Fire onFetchSuccess so consumers (e.g. the resource-owners hook)
        * can react to the loaded page. Previously the prop was declared
@@ -3930,6 +3952,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   };
 
   const emptyState: ModelTableEmptyState = getEmptyState();
+
+  /*
+   * What sits over the table - a page's filter chips - unless the list has
+   * nothing at all and its emptyState says to leave them out then
+   * (EmptyStateOptions.hideTopContentWhileEmpty): "Filter: Owner, Labels"
+   * over "No archived hosts" offered to narrow a list with nothing in it.
+   * A search, a filter or a chip in force keeps them, so they can be
+   * cleared; so does a failed load, which says nothing about the list.
+   */
+  const topContent: ReactElement | undefined =
+    props.emptyState?.hideTopContentWhileEmpty &&
+    isEmptyWithNothingApplied &&
+    !error
+      ? undefined
+      : props.topContent;
 
   /*
    * Drag-and-drop reordering, for both the table and the list layout.
@@ -5421,7 +5458,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               ) : (
                 <></>
               )}
-              {props.topContent || <></>}
+              {topContent || <></>}
               {tableColumns.length > 0 && showAs === ShowAs.Table ? (
                 getTable()
               ) : (
@@ -5448,7 +5485,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           ) : (
             <></>
           )}
-          {!props.cardProps && props.topContent}
+          {!props.cardProps && topContent}
           {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
           {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
         </div>

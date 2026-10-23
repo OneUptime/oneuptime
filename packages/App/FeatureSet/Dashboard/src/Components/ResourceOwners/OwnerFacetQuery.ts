@@ -1,0 +1,267 @@
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "./FilterChipDropdownTypes";
+import OwnedBy, {
+  MAX_OWNED_BY_IDS,
+  OwnedByMatch,
+  OWNED_BY_QUERY_KEY,
+} from "Common/Types/BaseDatabase/OwnedBy";
+import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * WHAT THE OWNER CHIP PUTS IN A LIST'S QUERY.
+ *
+ * The chip offers people and teams in one list, each picked as a key that
+ * says which it is ("user:<id>", "team:<id>"), under four operators. Its
+ * query is one filter the server answers in the list's own query
+ * (`owners: OwnedBy` - Common/Types/BaseDatabase/OwnedBy):
+ *
+ *   - is            the records one of the picked people or teams owns;
+ *   - is not        the records none of them owns, unowned ones included;
+ *   - is empty      the records nobody owns;
+ *   - is not empty  the records someone owns.
+ *
+ * A person stands for themselves and a team for itself: picking a team does
+ * not bring in what its members own, nor picking a person what their teams
+ * own. The chip used to ask the owner tables for the ids of the records the
+ * picks own and send those ids back - up to ten thousand of them, in no
+ * order, so a team that owned more lost the rest - and its "is empty" and
+ * "is not empty" filtered nothing at all (the one listed nothing, the other
+ * everything). React-free, so the App's tests read it.
+ */
+
+// What a picked key names: a person or a team.
+export type OwnerSelectionKind = "user" | "team";
+
+export const OWNER_KEY_PREFIX: { user: "user:"; team: "team:" } = {
+  user: "user:",
+  team: "team:",
+};
+
+export interface OwnerKey {
+  kind: OwnerSelectionKind;
+  id: string;
+}
+
+// The person or team a picked key names, or null for a key of neither.
+export const parseOwnerKey: (key: string) => OwnerKey | null = (
+  key: string,
+): OwnerKey | null => {
+  if (typeof key !== "string") {
+    return null;
+  }
+
+  if (key.startsWith(OWNER_KEY_PREFIX.user)) {
+    return { kind: "user", id: key.slice(OWNER_KEY_PREFIX.user.length) };
+  }
+
+  if (key.startsWith(OWNER_KEY_PREFIX.team)) {
+    return { kind: "team", id: key.slice(OWNER_KEY_PREFIX.team.length) };
+  }
+
+  return null;
+};
+
+// The key the chip picks a person by, and a team by.
+export const getOwnerKey: (owner: OwnerKey) => string = (
+  owner: OwnerKey,
+): string => {
+  return `${OWNER_KEY_PREFIX[owner.kind]}${owner.id}`;
+};
+
+// A person or a team the chip can offer, as the people picker found them.
+export interface OwnerChipCandidate extends OwnerKey {
+  name: string;
+  hasProfilePicture?: boolean | undefined;
+}
+
+// The headings the chip lists people and teams under, as the picker does.
+export const OWNER_CHIP_GROUPS: Record<OwnerSelectionKind, string> = {
+  user: translationKey("People"),
+  team: translationKey("Teams"),
+};
+
+/*
+ * A person or a team as the Owner chip lists it: picked by its key, under
+ * People or Teams, and drawn with the avatar the Owners column beside the
+ * chip gives them (FilterChipDropdownOption.person) - the same colour for
+ * the same person, a team as a team.
+ */
+export const getOwnerChipOption: (
+  candidate: OwnerChipCandidate,
+) => FilterChipDropdownOption = (
+  candidate: OwnerChipCandidate,
+): FilterChipDropdownOption => {
+  return {
+    value: getOwnerKey({ kind: candidate.kind, id: candidate.id }),
+    label: candidate.name,
+    group: OWNER_CHIP_GROUPS[candidate.kind],
+    person: {
+      kind: candidate.kind,
+      userId: candidate.kind === "user" ? candidate.id : undefined,
+      hasProfilePicture:
+        candidate.kind === "user" && Boolean(candidate.hasProfilePicture),
+    },
+  };
+};
+
+/*
+ * The people and the teams the picked keys name. A key that names neither,
+ * or an id that is no id - a link edited by hand, a view saved before a
+ * person was removed - names nobody, and is left out rather than refused,
+ * as are picks past the most one filter names (a link, again).
+ */
+export const getPickedOwners: (ownerKeys: Array<string>) => {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+} = (
+  ownerKeys: Array<string>,
+): { userIds: Array<string>; teamIds: Array<string> } => {
+  const userIds: Array<string> = [];
+  const teamIds: Array<string> = [];
+
+  for (const key of ownerKeys || []) {
+    if (userIds.length + teamIds.length >= MAX_OWNED_BY_IDS) {
+      break;
+    }
+
+    const owner: OwnerKey | null = parseOwnerKey(key);
+
+    if (!owner || !ObjectID.isValidUUID(owner.id)) {
+      continue;
+    }
+
+    const ids: Array<string> = owner.kind === "user" ? userIds : teamIds;
+
+    if (!ids.includes(owner.id)) {
+      ids.push(owner.id);
+    }
+  }
+
+  return { userIds, teamIds };
+};
+
+/*
+ * The chip's options for the picks a link or a saved view brought back:
+ * the people and teams found, then one for each pick that is no longer in
+ * the project - a person removed, a team deleted - named as the owners
+ * picker names it ("Unknown user", "Deleted team"), never by its key: the
+ * chip read "Owner · user:3a7fce51-9d62-...".
+ */
+export const getResolvedOwnerChipOptions: (data: {
+  picked: { userIds: Array<string>; teamIds: Array<string> };
+  found: Array<OwnerChipCandidate>;
+  unknownNames: Record<OwnerSelectionKind, string>;
+}) => Array<FilterChipDropdownOption> = (data: {
+  picked: { userIds: Array<string>; teamIds: Array<string> };
+  found: Array<OwnerChipCandidate>;
+  unknownNames: Record<OwnerSelectionKind, string>;
+}): Array<FilterChipDropdownOption> => {
+  const options: Array<FilterChipDropdownOption> = [];
+  const foundKeys: Set<string> = new Set<string>();
+
+  for (const candidate of data.found) {
+    const key: string = getOwnerKey({
+      kind: candidate.kind,
+      id: candidate.id.toLowerCase(),
+    });
+
+    if (foundKeys.has(key)) {
+      continue;
+    }
+
+    foundKeys.add(key);
+    options.push(getOwnerChipOption(candidate));
+  }
+
+  const picks: Array<OwnerKey> = [
+    ...data.picked.userIds.map((id: string): OwnerKey => {
+      return { kind: "user", id };
+    }),
+    ...data.picked.teamIds.map((id: string): OwnerKey => {
+      return { kind: "team", id };
+    }),
+  ];
+
+  for (const pick of picks) {
+    if (
+      foundKeys.has(getOwnerKey({ kind: pick.kind, id: pick.id.toLowerCase() }))
+    ) {
+      continue;
+    }
+
+    options.push(
+      getOwnerChipOption({
+        kind: pick.kind,
+        id: pick.id,
+        name: data.unknownNames[pick.kind],
+      }),
+    );
+  }
+
+  return options;
+};
+
+/*
+ * The chip's filter, or null when it filters nothing (no one picked under
+ * "is" or "is not").
+ */
+export const buildOwnerFacetQuery: (data: {
+  operator: FilterOperator;
+  ownerKeys: Array<string>;
+}) => OwnedBy | null = (data: {
+  operator: FilterOperator;
+  ownerKeys: Array<string>;
+}): OwnedBy | null => {
+  if (data.operator === "is_empty") {
+    return new OwnedBy({ match: OwnedByMatch.NoOwner });
+  }
+
+  if (data.operator === "is_not_empty") {
+    return new OwnedBy({ match: OwnedByMatch.AnyOwner });
+  }
+
+  const picked: { userIds: Array<string>; teamIds: Array<string> } =
+    getPickedOwners(data.ownerKeys);
+
+  if (picked.userIds.length === 0 && picked.teamIds.length === 0) {
+    return null;
+  }
+
+  return new OwnedBy({
+    match:
+      data.operator === "is_not" ? OwnedByMatch.NoneOf : OwnedByMatch.AnyOf,
+    userIds: picked.userIds,
+    teamIds: picked.teamIds,
+  });
+};
+
+/*
+ * `query` with the chip's filter under "owners", or the query as it was
+ * when the chip filters nothing. The query is not changed in place.
+ */
+export const mergeOwnerFacetIntoQuery: <TQuery>(data: {
+  query: TQuery;
+  operator: FilterOperator;
+  ownerKeys: Array<string>;
+}) => TQuery = <TQuery>(data: {
+  query: TQuery;
+  operator: FilterOperator;
+  ownerKeys: Array<string>;
+}): TQuery => {
+  const ownedBy: OwnedBy | null = buildOwnerFacetQuery({
+    operator: data.operator,
+    ownerKeys: data.ownerKeys,
+  });
+
+  if (!ownedBy) {
+    return data.query;
+  }
+
+  return {
+    ...(data.query as unknown as Record<string, unknown>),
+    [OWNED_BY_QUERY_KEY]: ownedBy,
+  } as unknown as TQuery;
+};

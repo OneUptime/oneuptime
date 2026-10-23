@@ -167,7 +167,7 @@ En webhook behöver ingen verifiering, så när du lägger till den läggs dess 
 
 ## Slå på en kanal för ditt projekt
 
-**SMS**, **Telefonsamtal**, **WhatsApp** och **Telegram** är avstängda i varje nytt projekt, eftersom varje meddelande kostar pengar: i OneUptime Cloud betalas det från projektets saldo, och SMS och samtal går i stället via projektets eget Twilio-konto när det har ett standardkonto. E-post, push, Slack, Microsoft Teams och webhooks är alltid påslagna.
+**SMS**, **Telefonsamtal**, **WhatsApp** och **Telegram** är avstängda i varje nytt projekt, eftersom varje meddelande kostar pengar: i OneUptime Cloud betalas det från projektets saldo, och SMS och samtal går i stället via projektets eget Twilio-konto när standardkontot skickar dem. E-post, push, Slack, Microsoft Teams och webhooks är alltid påslagna.
 
 Så länge en kanal är avstängd kan ingen i projektet lägga till en metod på den: dess kort saknar knapp för att lägga till och berättar vem som kan slå på den. En projektägare, en **Billing Admin** eller någon med **Manage Billing** slår på den, i kortet **Aviseringskanaler** under **Projektinställningar → Aviseringar → Aviseringsinställningar**. En projektadministratör kan inte göra det. I en självhostad OneUptime behöver SMS och samtal dessutom ett Twilio-konto, och Telegram en bot som serverns administratör ansluter; se [Twilio-integration](/docs/self-hosted/twilio-integration).
 

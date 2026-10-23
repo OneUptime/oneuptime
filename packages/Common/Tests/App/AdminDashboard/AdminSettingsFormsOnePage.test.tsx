@@ -931,6 +931,271 @@ describe("Settings > Call & SMS", () => {
       }
     });
   });
+
+  /*
+   * What the server's account is used for, asked first, as a project's
+   * Twilio config asks it: calls and SMS, SMS only or calls only - then
+   * only the numbers that answer takes. An account used for one of the two
+   * sends nothing of the other: only the Twilio configs projects add
+   * themselves can, which each answer says.
+   */
+  describe("what the account is used for", () => {
+    const USE: string = "Use This Account For";
+    const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
+    const SECONDARY: string = "Twilio Secondary Phone Numbers";
+    const PRIMARY_HELP: string =
+      "Calls go out from this number, and SMS too unless you add SMS phone numbers under More fields.";
+    const ANSWERS: Array<[string, string]> = [
+      ["Calls and SMS", "Calls and SMS go out from this account."],
+      [
+        "SMS only",
+        "This account makes no calls. Projects can make them through a Twilio config of their own.",
+      ],
+      [
+        "Calls only",
+        "This account sends no SMS. Projects can send them through a Twilio config of their own.",
+      ],
+    ];
+
+    async function openDialog(): Promise<HTMLElement> {
+      const dialog: HTMLElement = await openEditDialog(editButton);
+
+      await waitFor(
+        () => {
+          expect(label(dialog, "Twilio Account SID")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      await settle();
+
+      return dialog;
+    }
+
+    function answer(dialog: HTMLElement, title: string): HTMLInputElement {
+      return within(dialog).getByRole("radio", {
+        name: title,
+      }) as HTMLInputElement;
+    }
+
+    async function pick(dialog: HTMLElement, title: string): Promise<void> {
+      await act(async () => {
+        fireEvent.click(answer(dialog, title));
+      });
+      await settle();
+    }
+
+    function shows(dialog: HTMLElement, title: string): boolean {
+      return within(dialog)
+        .queryAllByText(title)
+        .some((element: HTMLElement): boolean => {
+          return !element.closest("[data-testid='folded-section-header']");
+        });
+    }
+
+    test("is asked first, with three answers, Calls and SMS for an account saved before the choice", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      expect(label(dialog, USE)).toBeVisible();
+
+      for (const [title, description] of ANSWERS) {
+        const input: HTMLInputElement = answer(dialog, title);
+
+        expect(input).toBeVisible();
+        expect(
+          document.getElementById(input.getAttribute("aria-describedby") || ""),
+        ).toHaveTextContent(description);
+      }
+
+      // Nothing stored for it: calls and SMS, as every installation's account was.
+      expect(answer(dialog, "Calls and SMS").checked).toBe(true);
+
+      // Asked before the account itself.
+      const page: string = dialog.textContent || "";
+
+      expect(page.indexOf(USE)).toBeLessThan(
+        page.indexOf("Twilio Account SID"),
+      );
+    });
+
+    test("SMS only asks for SMS numbers, open and required, and no number to make calls from", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      await pick(dialog, "SMS only");
+
+      expect(label(dialog, SMS_NUMBERS)).toBeVisible();
+      expect(label(dialog, SMS_NUMBERS)).not.toHaveTextContent("(Optional)");
+      expect(
+        within(dialog).getByText(
+          "Every SMS goes out from one of these: the one in the recipient's country, or else the first.",
+        ),
+      ).toBeVisible();
+      expect(shows(dialog, "Twilio Primary Phone Number")).toBe(false);
+      expect(
+        within(dialog).queryByRole("button", { name: "More fields" }),
+      ).toBe(null);
+    });
+
+    test("an account used for SMS only is saved with its SMS numbers", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      await pick(dialog, "SMS only");
+      await act(async () => {
+        fireEvent.change(
+          within(dialog).getByLabelText(SMS_NUMBERS, { exact: false }),
+          { target: { value: "+6581234567" } },
+        );
+      });
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(mockCreateOrUpdate).toHaveBeenCalledTimes(1);
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      const saved: Record<string, unknown> = savedValues(mockCreateOrUpdate);
+
+      expect(saved["twilioUsedFor"]).toBe("SMS only");
+      expect(String(saved["twilioSmsPhoneNumbers"])).toBe("+6581234567");
+    });
+
+    test("an account used for SMS only without SMS numbers is refused, and nothing is saved", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      await pick(dialog, "SMS only");
+
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      await waitFor(
+        () => {
+          expect(
+            within(dialog).getByText(`${SMS_NUMBERS} is required.`),
+          ).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(mockCreateOrUpdate).not.toHaveBeenCalled();
+    });
+
+    test("Calls only asks for the number calls go out from, and folds only the extra numbers", async () => {
+      await renderWithLocale(<CallSmsSettings />);
+
+      const dialog: HTMLElement = await openDialog();
+
+      await pick(dialog, "Calls only");
+
+      expect(label(dialog, "Twilio Primary Phone Number")).toBeVisible();
+      expect(
+        within(dialog).getByText("Calls go out from this number."),
+      ).toBeVisible();
+      expect(within(dialog).queryByText(PRIMARY_HELP)).toBeNull();
+      expect(listedNames(advancedHeader(dialog, "More fields"))).toEqual([
+        SECONDARY,
+      ]);
+      expect(shows(dialog, SMS_NUMBERS)).toBe(false);
+    });
+
+    test("the details say what the account is used for, and show only the numbers it sends from", async () => {
+      stored[new GlobalConfig().tableName || ""] = {
+        twilioUsedFor: "SMS only",
+        twilioAccountSID: "AC0123456789",
+        twilioAuthToken: "auth-token-value",
+        twilioSmsPhoneNumbers: "+6581234567",
+      };
+
+      await renderWithLocale(<CallSmsSettings />);
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("+6581234567")).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+
+      expect(screen.getByText("Used For")).toBeVisible();
+      expect(screen.getByText("SMS only")).toBeVisible();
+      expect(screen.queryByText("Twilio Primary Phone Number")).toBeNull();
+      expect(screen.queryByText(SECONDARY)).toBeNull();
+    });
+
+    test("in the reader's language", async () => {
+      stored[new GlobalConfig().tableName || ""] = {
+        twilioUsedFor: "Calls only",
+        twilioAccountSID: "AC0123456789",
+        twilioAuthToken: "auth-token-value",
+        twilioPrimaryPhoneNumber: "+15550000001",
+      };
+
+      await renderWithLocale(<CallSmsSettings />, "de");
+
+      await waitFor(
+        () => {
+          expect(screen.getByText(text(GERMAN, "Calls only"))).toBeVisible();
+        },
+        { timeout: WAIT_FOR_TIMEOUT },
+      );
+      expect(text(GERMAN, "Calls only")).toBe("Nur Anrufe");
+      expect(screen.getByText(text(GERMAN, "Used For"))).toBeVisible();
+      // An account used for calls only sends no SMS: no SMS numbers shown.
+      expect(screen.queryByText(text(GERMAN, SMS_NUMBERS))).toBeNull();
+    });
+
+    test("every word it adds is in the Admin Dashboard's locales, translated", () => {
+      const keys: Array<string> = [
+        USE,
+        "Used For",
+        "Calls go out from this number.",
+        "Every SMS goes out from one of these: the one in the recipient's country, or else the first.",
+        ...ANSWERS.flat(),
+      ];
+
+      for (const key of keys) {
+        expect({ key, english: text(ENGLISH, key) }).toEqual({
+          key,
+          english: key,
+        });
+      }
+
+      for (const language of [
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "da",
+        "no",
+        "sv",
+        "ru",
+        "ja",
+        "ko",
+        "zh-CN",
+        "zh-TW",
+        "hi",
+        "fa",
+      ]) {
+        const words: Locale = readLocale(language);
+
+        for (const key of keys) {
+          expect({
+            language,
+            key,
+            translated: text(words, key) !== key,
+          }).toEqual({ language, key, translated: true });
+        }
+      }
+    });
+  });
 });
 
 describe("Settings > WhatsApp", () => {

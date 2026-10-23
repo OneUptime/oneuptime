@@ -141,6 +141,12 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
     config.name = name;
     config.twilioAccountSID = SID;
     config.twilioAuthToken = TOKEN;
+    /*
+     * The number a config used for calls and SMS - every config that says
+     * nothing else - must have: the server refuses one without it
+     * (Types/CallAndSMS/TwilioConfigWrite).
+     */
+    config.twilioPrimaryPhoneNumber = new Phone("+15551234567");
     const created: ProjectCallSMSConfig =
       await ProjectCallSMSConfigService.create({
         data: config,
@@ -508,7 +514,7 @@ describePostgres("Twilio auth token encryption on Postgres", () => {
           statusPages[0]!.callSmsConfig,
         );
 
-      expect(twilioConfig?.primaryPhoneNumber.toString()).toBe("+6561234567");
+      expect(twilioConfig?.primaryPhoneNumber?.toString()).toBe("+6561234567");
       expect(
         (twilioConfig?.smsPhoneNumbers || []).map((phone: Phone): string => {
           return phone.toString();
