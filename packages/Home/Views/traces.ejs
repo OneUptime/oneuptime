@@ -58,7 +58,10 @@
           <!-- The product, on a stage -->
           <div class="mt-16 sm:mt-20">
             <div class="relative mx-auto max-w-5xl rounded-[1.75rem] bg-gradient-to-b from-slate-100 via-slate-50 to-emerald-50/70 p-2 ring-1 ring-inset ring-gray-200/70 sm:p-6 lg:p-10">
-              <%- include('./Partials/home-mocks/mock-diagnose') -%>
+              <%# Drawn at its desktop width, and scaled down on smaller screens the way a screenshot would be. -%>
+              <div class="mx-auto w-[45rem] [zoom:0.4] sm:[zoom:0.75] md:[zoom:0.9] lg:w-auto lg:[zoom:1]">
+                <%- include('./Partials/home-mocks/mock-diagnose') -%>
+              </div>
             </div>
           </div>
         </div>

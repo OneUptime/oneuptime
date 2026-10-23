@@ -20,9 +20,9 @@
 <div class="bg-white py-12 sm:py-16">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
     <p class="text-center text-sm font-medium text-gray-500">Trusted by engineering teams at</p>
-    <ul class="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-8 sm:mt-10 sm:gap-x-10 sm:gap-y-10" aria-label="Customers">
+    <ul class="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-6 sm:mt-10 sm:gap-x-10 sm:gap-y-10" aria-label="Customers">
       <% customerLogos.forEach(function (logo) { -%>
-      <li class="flex h-12 w-20 items-center justify-center sm:w-28">
+      <li class="flex h-10 w-16 items-center justify-center sm:h-12 sm:w-28">
         <img src="<%= logo.src %>" alt="<%= logo.alt %>" width="120" height="<%= logo.height %>" class="h-auto w-auto max-w-full object-contain opacity-50 brightness-0" style="max-height: <%= logo.height %>px;" loading="lazy" decoding="async">
       </li>
       <% }); -%>
