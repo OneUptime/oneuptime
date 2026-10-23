@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Eventos Kubernetes para este StatefulSet e seus Pods nas últimas 24 horas.",
   "Kubernetes events in this namespace in the last 24 hours.": "Eventos Kubernetes neste Namespace nas últimas 24 horas.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "O Kubernetes não reportou avisos sobre os nós, cargas de trabalho, autoscalers ou volumes deste cluster.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "O Kubernetes não reportou nada sobre isto nesse período. Os eventos aparecem aqui à medida que o agente Kubernetes os envia.",
   "Mention who is on call": "Mencionar quem está de plantão",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Menciona quem está de plantão em {{schedules}} quando o canal é criado.",
   "No normal events in the last 24 hours": "Nenhum evento normal nas últimas 24 horas",
@@ -33327,7 +33326,6 @@
   "No reason given": "Nenhum motivo indicado",
   "No warnings in the last 24 hours": "Nenhum aviso nas últimas 24 horas",
   "No warnings in this time range": "Nenhum aviso neste intervalo de tempo",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "Nada neste intervalo de tempo corresponde ao namespace, ao tipo ou ao motivo escolhidos acima.",
   "Reported by {{source}}": "Reportado por {{source}}",
   "Search on-call schedules...": "Pesquisar agendamentos de plantão...",
   "Search people, teams or schedules...": "Pesquisar pessoas, equipes ou agendamentos...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Estes são os eventos mais recentes deste intervalo de tempo. Escolha um intervalo mais curto ou um filtro para ver os mais antigos.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Essas pessoas e equipes entram em cada canal que a regra cria, assim como quem está de plantão nesses agendamentos quando o canal é criado. Ninguém é acionado.",
   "View all warnings": "Ver todos os avisos",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "O que o Kubernetes reportou sobre os nós, cargas de trabalho, autoscalers e volumes deste cluster, primeiro o mais recente. Abre nos avisos quando existem.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Quem está de plantão nesses agendamentos quando o canal é criado é @mencionado nele, para que o Microsoft Teams avise essas pessoas. Ninguém é acionado.",
   "About the same as in the first half of the time range": "Praticamente igual à primeira metade do período",
   "Click to configure metric": "Clique para configurar uma métrica",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Pago com o saldo do projeto, a menos que a configuração padrão do Twilio do projeto faça chamadas.",
   "Twilio Used For": "Uso do Twilio",
   "Twilio account for on-call alerts": "Conta Twilio para alertas de plantão",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Usada apenas para chamadas: o OneUptime envia os SMS aos assinantes."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Usada apenas para chamadas: o OneUptime envia os SMS aos assinantes.",
+  "Events appear here as the Kubernetes agent sends them.": "Os eventos aparecem aqui à medida que o agente Kubernetes os envia.",
+  "Try another namespace, kind or reason, or a longer time range.": "Experimente outro namespace, tipo ou motivo, ou um intervalo de tempo maior.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "O que o Kubernetes reportou sobre os nós, cargas de trabalho, autoscalers e volumes deste cluster."
 }

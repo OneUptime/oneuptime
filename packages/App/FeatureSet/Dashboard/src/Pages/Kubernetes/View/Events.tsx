@@ -77,8 +77,14 @@ import React, {
  * searched, charted and alerted on from Logs. The view lives in the URL.
  */
 
-const PICKER_CLASS_NAME: string =
-  "sm:w-48 xl:w-auto xl:min-w-[10rem] xl:max-w-[14rem] xl:flex-1";
+/*
+ * Each picker as wide as "All namespaces" needs in one line: from sm up
+ * they share a row, as many as fit, and the next one wraps under them
+ * rather than squeezing its words onto two lines (beside the side menu at
+ * 768px, three side by side did). From xl up they sit at the end of the
+ * type buttons' line.
+ */
+const PICKER_CLASS_NAME: string = "sm:min-w-[11rem] sm:flex-1 xl:max-w-[14rem]";
 
 // What the type buttons say, looked up where they are drawn.
 const TYPE_LABELS: Record<KubernetesEventsTypeFilter, string> = {
@@ -368,7 +374,7 @@ const KubernetesClusterEvents: FunctionComponent<
           {...getFilteredEmptyStateProps({
             title: "No events match these filters",
             description:
-              "Nothing in this time range is in the namespace, of the kind or for the reason picked above.",
+              "Try another namespace, kind or reason, or a longer time range.",
             onClear: () => {
               applyView({ range: view.range, type: view.type });
             },
@@ -418,7 +424,7 @@ const KubernetesClusterEvents: FunctionComponent<
     <div data-testid="kubernetes-events-view">
       <Card
         title="Events"
-        description="What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any."
+        description="What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes."
         rightElement={rangeElement}
         buttons={getTableHeaderButtons(cardButtons)}
         headerLayout="toolbar"
@@ -491,7 +497,7 @@ const KubernetesClusterEvents: FunctionComponent<
                 }}
                 className="flex-wrap xl:flex-shrink-0 xl:flex-nowrap"
               />
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row xl:flex-1 xl:justify-end">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap xl:flex-1 xl:flex-nowrap xl:justify-end">
                 {renderPicker({
                   field: "namespace",
                   picked: view.namespace,
@@ -534,6 +540,7 @@ const KubernetesClusterEvents: FunctionComponent<
                 clusterId={modelId}
                 showObject={true}
                 showNamespace={true}
+                showType={shownType === KubernetesEventsTypeFilter.All}
                 pageResetKey={JSON.stringify({ ...view, type: shownType })}
               />
             )}

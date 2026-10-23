@@ -61,6 +61,15 @@ export default interface Column<T extends GenericObject> {
   key?: keyof T | null; //can be null because actions column does not have a key.
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
+   * A phone's card draws this column's value without its name above it.
+   * For the one field a card is about, which says what it is by itself -
+   * a Kubernetes event's reason and message, its other columns folded
+   * into it - where the same name over every card is noise. Screen
+   * readers still hear the name: the card keeps its <dt>, visually hidden,
+   * with no (i) in it to land on.
+   */
+  hideTitleOnMobile?: boolean | undefined;
+  /*
    * List view only (ModelTable's ShowAs.List, where each item is a card of
    * its columns): draw this column's row only when this says so. A table
    * keeps every column for every row and does not read it.

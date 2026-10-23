@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Kubernetes-gebeurtenissen voor deze StatefulSet en zijn pods in de afgelopen 24 uur.",
   "Kubernetes events in this namespace in the last 24 hours.": "Kubernetes-gebeurtenissen in deze Namespace in de afgelopen 24 uur.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes meldde geen waarschuwingen over de knooppunten, workloads, autoscalers of volumes van dit cluster.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes meldde er in die tijd niets over. Gebeurtenissen verschijnen hier zodra de Kubernetes-agent ze verstuurt.",
   "Mention who is on call": "Vermelden wie er dienst heeft",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Vermeldt wie er dienst heeft in {{schedules}} wanneer het kanaal wordt aangemaakt.",
   "No normal events in the last 24 hours": "Geen normale gebeurtenissen in de afgelopen 24 uur",
@@ -33327,7 +33326,6 @@
   "No reason given": "Geen reden opgegeven",
   "No warnings in the last 24 hours": "Geen waarschuwingen in de afgelopen 24 uur",
   "No warnings in this time range": "Geen waarschuwingen in dit tijdsbereik",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "Niets in dit tijdsbereik valt in de namespace, de soort of de reden die hierboven zijn gekozen.",
   "Reported by {{source}}": "Gemeld door {{source}}",
   "Search on-call schedules...": "Bereikbaarheidsschema's zoeken...",
   "Search people, teams or schedules...": "Personen, teams of schema's zoeken...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Dit zijn de nieuwste gebeurtenissen van dit tijdsbereik. Kies een korter bereik of een filter om oudere te zien.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Deze mensen en teams worden lid van elk kanaal dat de regel aanmaakt, net als wie er bij het aanmaken van het kanaal dienst heeft in deze schema's. Niemand wordt opgeroepen.",
   "View all warnings": "Alle waarschuwingen bekijken",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Wat Kubernetes meldde over de knooppunten, workloads, autoscalers en volumes van dit cluster, nieuwste eerst. Opent op de waarschuwingen als die er zijn.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Wie er bij het aanmaken van het kanaal dienst heeft in deze schema's, wordt erin @vermeld, zodat Microsoft Teams hun een melding geeft. Niemand wordt opgeroepen.",
   "About the same as in the first half of the time range": "Ongeveer gelijk aan de eerste helft van de periode",
   "Click to configure metric": "Klik om een metriek te configureren",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betaald uit het saldo van het project, tenzij de standaard-Twilio-configuratie van het project oproepen doet.",
   "Twilio Used For": "Twilio-gebruik",
   "Twilio account for on-call alerts": "Twilio-account voor bereikbaarheidsmeldingen",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Alleen gebruikt voor oproepen: OneUptime verstuurt de sms'jes aan abonnees."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Alleen gebruikt voor oproepen: OneUptime verstuurt de sms'jes aan abonnees.",
+  "Events appear here as the Kubernetes agent sends them.": "Gebeurtenissen verschijnen hier zodra de Kubernetes-agent ze verstuurt.",
+  "Try another namespace, kind or reason, or a longer time range.": "Probeer een andere namespace, soort of reden, of een langer tijdsbereik.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Wat Kubernetes meldde over de knooppunten, workloads, autoscalers en volumes van dit cluster."
 }

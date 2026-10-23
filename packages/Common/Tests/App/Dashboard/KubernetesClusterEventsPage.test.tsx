@@ -427,6 +427,49 @@ describe("switching what the page shows", () => {
     );
   });
 
+  test("Warning or Normal is drawn on a row only under All, where the two mix", async () => {
+    aBusyClusterDay();
+    await renderPage();
+
+    // The Warnings: the picked button says it, so no row repeats it...
+    const warnings: Array<HTMLElement> = screen.getAllByTestId(
+      "kubernetes-event-type",
+    );
+    expect(warnings).toHaveLength(ISSUE_EVENTS.length);
+    for (const type of warnings) {
+      // ...but a screen reader still hears it.
+      expect(type).toHaveClass("sr-only");
+      expect(type).toHaveTextContent("Warning");
+    }
+
+    fireEvent.click(typeButton("All"));
+    await flush();
+
+    const all: Array<HTMLElement> = screen.getAllByTestId(
+      "kubernetes-event-type",
+    );
+    expect(all.length).toBeGreaterThan(ISSUE_EVENTS.length);
+    for (const type of all) {
+      expect(type).not.toHaveClass("sr-only");
+    }
+    expect(
+      within(
+        rowOf("OOMKilling", "aks-userpool-11935137-vmss00000o"),
+      ).getByTestId("kubernetes-event-type"),
+    ).toHaveTextContent("Warning");
+  });
+
+  test("the card says what the page is in one line, without narrating how it opens", async () => {
+    aBusyClusterDay();
+    await renderPage();
+
+    const description: HTMLElement = screen.getByTestId("card-description");
+    expect(description).toHaveTextContent(
+      "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.",
+    );
+    expect(description).not.toHaveTextContent("It opens on the warnings");
+  });
+
   test("Normal shows only the Normal events", async () => {
     aBusyClusterDay();
     await renderPage();
@@ -512,6 +555,10 @@ describe("when there is nothing to show, or the read fails", () => {
       "kubernetes-events-empty-filtered",
     );
     expect(empty).toHaveTextContent("No events match these filters");
+    // What to do about it, in one line.
+    expect(empty).toHaveTextContent(
+      "Try another namespace, kind or reason, or a longer time range.",
+    );
 
     fireEvent.click(
       within(empty).getByRole("button", { name: "Clear Filters" }),

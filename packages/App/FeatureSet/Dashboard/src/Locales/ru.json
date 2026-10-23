@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "События Kubernetes для этого StatefulSet и его подов за последние 24 часа.",
   "Kubernetes events in this namespace in the last 24 hours.": "События Kubernetes в этом пространстве имён за последние 24 часа.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes не сообщал о предупреждениях по узлам, рабочим нагрузкам, автомасштабировщикам и томам этого кластера.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "За это время Kubernetes ничего об этом не сообщал. События появляются здесь по мере того, как их отправляет агент Kubernetes.",
   "Mention who is on call": "Упомянуть дежурных",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Упоминает дежурных по {{schedules}} при создании канала.",
   "No normal events in the last 24 hours": "Нет обычных событий за последние 24 часа",
@@ -33327,7 +33326,6 @@
   "No reason given": "Причина не указана",
   "No warnings in the last 24 hours": "Нет предупреждений за последние 24 часа",
   "No warnings in this time range": "За этот период предупреждений нет",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "За этот период нет событий в выбранном выше пространстве имён, нужного вида или с нужной причиной.",
   "Reported by {{source}}": "Источник: {{source}}",
   "Search on-call schedules...": "Поиск расписаний дежурств...",
   "Search people, teams or schedules...": "Поиск людей, команд или расписаний...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Это самые новые события за этот период. Выберите более короткий период или фильтр, чтобы увидеть более старые.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Эти люди и команды присоединяются к каждому каналу, который создаёт правило, как и те, кто дежурит по этим расписаниям на момент создания канала. Никого не вызывают.",
   "View all warnings": "Все предупреждения",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Что Kubernetes сообщал об узлах, рабочих нагрузках, автомасштабировщиках и томах этого кластера, сначала самое новое. Если есть предупреждения, страница открывается на них.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Тех, кто дежурит по этим расписаниям на момент создания канала, @упоминают в нём, чтобы Microsoft Teams их уведомил. Никого не вызывают.",
   "About the same as in the first half of the time range": "Примерно как в первой половине периода",
   "Click to configure metric": "Нажмите, чтобы настроить метрику",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Оплачивается из баланса проекта, если конфигурация Twilio проекта по умолчанию не совершает звонки.",
   "Twilio Used For": "Назначение Twilio",
   "Twilio account for on-call alerts": "Аккаунт Twilio для оповещений дежурных",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Используется только для звонков: SMS подписчикам отправляет OneUptime."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Используется только для звонков: SMS подписчикам отправляет OneUptime.",
+  "Events appear here as the Kubernetes agent sends them.": "События появляются здесь по мере того, как их отправляет агент Kubernetes.",
+  "Try another namespace, kind or reason, or a longer time range.": "Выберите другое пространство имён, вид или причину или более длинный период.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Что Kubernetes сообщал об узлах, рабочих нагрузках, автомасштабировщиках и томах этого кластера."
 }

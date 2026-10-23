@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "पिछले 24 घंटों में इस StatefulSet और इसके Pod के लिए Kubernetes इवेंट।",
   "Kubernetes events in this namespace in the last 24 hours.": "पिछले 24 घंटों में इस Namespace में Kubernetes इवेंट।",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर या वॉल्यूम के बारे में कोई चेतावनी नहीं दी।",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "उस समय में Kubernetes ने इसके बारे में कुछ नहीं बताया। Kubernetes एजेंट जैसे ही इवेंट भेजता है, वे यहाँ दिखते हैं।",
   "Mention who is on call": "ऑन-कॉल लोगों को मेंशन करें",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "चैनल बनाते समय {{schedules}} में जो भी ऑन-कॉल हो, उसे मेंशन करता है।",
   "No normal events in the last 24 hours": "पिछले 24 घंटों में कोई सामान्य इवेंट नहीं",
@@ -33327,7 +33326,6 @@
   "No reason given": "कोई कारण नहीं दिया गया",
   "No warnings in the last 24 hours": "पिछले 24 घंटों में कोई चेतावनी नहीं",
   "No warnings in this time range": "इस समय सीमा में कोई चेतावनी नहीं",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "इस समय सीमा में ऊपर चुने गए Namespace, प्रकार या कारण से कुछ भी मेल नहीं खाता।",
   "Reported by {{source}}": "रिपोर्ट करने वाला: {{source}}",
   "Search on-call schedules...": "ऑन-कॉल अनुसूचियाँ खोजें...",
   "Search people, teams or schedules...": "लोग, टीमें या अनुसूचियाँ खोजें...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "ये इस समय सीमा के सबसे नए इवेंट हैं। पुराने देखने के लिए छोटी सीमा या कोई फ़िल्टर चुनें।",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "ये लोग और टीमें नियम द्वारा बनाए गए हर चैनल में शामिल होते हैं, और चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, वह भी शामिल होता है। किसी को पेज नहीं किया जाता।",
   "View all warnings": "सभी चेतावनियां देखें",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया, सबसे नया पहले। चेतावनियां होने पर यह उन्हीं पर खुलता है।",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "चैनल बनने पर इन अनुसूचियों में जो भी ऑन-कॉल हो, उसे चैनल में @मेंशन किया जाता है, ताकि Microsoft Teams उसे सूचित करे। किसी को पेज नहीं किया जाता।",
   "About the same as in the first half of the time range": "समय सीमा के पहले आधे जैसा ही",
   "Click to configure metric": "मीट्रिक कॉन्फ़िगर करने के लिए क्लिक करें",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "प्रोजेक्ट के बैलेंस से भुगतान होता है, जब तक कि प्रोजेक्ट का डिफ़ॉल्ट Twilio कॉन्फ़िगरेशन कॉल न करता हो।",
   "Twilio Used For": "Twilio का उपयोग",
   "Twilio account for on-call alerts": "ऑन-कॉल अलर्ट के लिए Twilio खाता",
-  "Used for calls only: OneUptime sends subscriber text messages.": "केवल कॉल के लिए इस्तेमाल होता है: सब्सक्राइबर टेक्स्ट मैसेज OneUptime भेजता है।"
+  "Used for calls only: OneUptime sends subscriber text messages.": "केवल कॉल के लिए इस्तेमाल होता है: सब्सक्राइबर टेक्स्ट मैसेज OneUptime भेजता है।",
+  "Events appear here as the Kubernetes agent sends them.": "Kubernetes एजेंट जैसे ही इवेंट भेजता है, वे यहाँ दिखते हैं।",
+  "Try another namespace, kind or reason, or a longer time range.": "कोई दूसरा Namespace, प्रकार या कारण आज़माएँ, या लंबी समय सीमा चुनें।",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Kubernetes ने इस क्लस्टर के नोड, वर्कलोड, ऑटोस्केलर और वॉल्यूम के बारे में जो बताया।"
 }

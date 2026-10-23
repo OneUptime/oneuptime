@@ -1099,7 +1099,6 @@ test.describe("at a laptop's and a phone's width, light and dark", () => {
         ).toBeVisible();
         await expectNoSidewaysScroll(page);
 
-        const pill: Locator = page.getByTestId("kubernetes-event-type").first();
         const message: Locator = page
           .getByTestId("kubernetes-event-message")
           .first();
@@ -1113,21 +1112,34 @@ test.describe("at a laptop's and a phone's width, light and dark", () => {
 
         if (theme === "dark") {
           await expect(page.locator("html")).toHaveClass(/dark/);
-          // A slate card, light words on it, and an amber pill that is not a pale one.
+          // A slate card and light words on it.
           expect(await lightness(card, "background-color")).toBeLessThan(0.25);
           expect(await lightness(message, "color")).toBeGreaterThan(0.6);
-          expect(await lightness(pill, "background-color")).toBeLessThan(0.45);
         } else {
           expect(await lightness(card, "background-color")).toBeGreaterThan(
             0.95,
           );
           expect(await lightness(message, "color")).toBeLessThan(0.5);
+        }
+
+        await screenshot(page, `events-${width}-${theme}`);
+
+        // The Warning pill, drawn where All mixes the two types.
+        await typeButton(page, "All").click();
+        await expect(page.getByTestId("kubernetes-event")).toHaveCount(22);
+        const pill: Locator = page.getByTestId("kubernetes-event-type").first();
+        await expect(pill).toHaveText("Warning");
+        await expect(pill).not.toHaveClass(/sr-only/);
+
+        if (theme === "dark") {
+          // An amber pill that is not a pale one.
+          expect(await lightness(pill, "background-color")).toBeLessThan(0.45);
+        } else {
           expect(await lightness(pill, "background-color")).toBeGreaterThan(
             0.85,
           );
         }
-
-        await screenshot(page, `events-${width}-${theme}`);
+        await expectNoSidewaysScroll(page);
 
         await openEventsTab(
           page,
@@ -1153,6 +1165,233 @@ test.describe("at a laptop's and a phone's width, light and dark", () => {
       });
     }
   }
+});
+
+/*
+ * The table itself, measured (the UI review): the message is what a reader
+ * came for, so the Event column takes the room - the namespace sits beside
+ * the object's name rather than in a column of its own, which left the
+ * message a narrow strip at 1280px and pushed the table past its card at
+ * 1024px - and a view of one type does not say it on every row. On a phone
+ * each event is one card that reads like the Overview's Recent Warnings.
+ */
+test.describe("the Events table at every width", () => {
+  /*
+   * How many lines each element's words take: the text's own boxes, by
+   * their distinct tops. A block (a picker's placeholder) has one box
+   * however many lines it wraps to, so its text is measured, not it.
+   */
+  async function lineCounts(locator: Locator): Promise<Array<number>> {
+    return await locator.evaluateAll((elements: Array<Element>) => {
+      return elements.map((element: Element): number => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        const tops: Array<number> = Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return rect.top;
+          })
+          .sort((a: number, b: number): number => {
+            return a - b;
+          });
+        // Two boxes of one line can sit a pixel or two apart; lines, a line's height.
+        let lines: number = tops.length > 0 ? 1 : 0;
+        for (let index: number = 1; index < tops.length; index++) {
+          if (tops[index]! - tops[index - 1]! > 6) {
+            lines++;
+          }
+        }
+        return lines;
+      });
+    });
+  }
+
+  async function headerWidths(page: Page): Promise<Record<string, number>> {
+    return await page
+      .locator("#kubernetes-events-table-header th")
+      .evaluateAll((cells: Array<Element>) => {
+        const widths: Record<string, number> = {};
+        for (const cell of cells) {
+          widths[(cell.textContent || "").trim()] =
+            cell.getBoundingClientRect().width;
+        }
+        return widths;
+      });
+  }
+
+  for (const width of [1280, 1024]) {
+    test(`at ${width}px the four columns fit the card, the Event column the widest, every reason on one line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openEventsPage(page);
+      await expect(page.getByTestId("kubernetes-event")).toHaveCount(11);
+
+      // Event, Object, Count, Last seen: no Namespace column.
+      const widths: Record<string, number> = await headerWidths(page);
+      expect(Object.keys(widths)).toEqual([
+        "Event",
+        "Object",
+        "Count",
+        "Last seen",
+      ]);
+      expect(widths["Event"]!).toBeGreaterThan(widths["Object"]!);
+      if (width === 1280) {
+        // A message reads in lines of 400px and more beside the side menu.
+        expect(widths["Event"]!).toBeGreaterThan(400);
+      }
+
+      // Nothing scrolls sideways inside the card.
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      await expectNoSidewaysScroll(page);
+
+      // FailedComputeMetricsReplicas is never broken mid-word.
+      expect(
+        await lineCounts(page.getByTestId("kubernetes-event-reason")),
+      ).toEqual(Array(11).fill(1));
+
+      await screenshot(page, `events-table-${width}`);
+    });
+  }
+
+  test("the namespace sits beside the object's name, in the Object column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page);
+
+    const istiod: Locator = rowsOf(page, "FailedGetResourceMetric", "istiod");
+    const object: Locator = istiod.getByTestId("kubernetes-event-object");
+    await expect(object.getByTestId("kubernetes-event-namespace")).toHaveText(
+      "aks-istio-system",
+    );
+    // On the name's line: the chip's middle is within the link's line.
+    const link: { y: number; height: number } = (await object
+      .getByRole("link", { name: "istiod" })
+      .boundingBox())!;
+    const chip: { y: number; height: number } = (await object
+      .getByTestId("kubernetes-event-namespace")
+      .boundingBox())!;
+    const chipMiddle: number = chip.y + chip.height / 2;
+    expect(chipMiddle).toBeGreaterThan(link.y);
+    expect(chipMiddle).toBeLessThan(link.y + link.height);
+  });
+
+  test("the Warnings do not say Warning on every row; All says Warning or Normal on each", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEventsPage(page);
+
+    // Kept for screen readers, drawn for no one.
+    const types: Locator = page.getByTestId("kubernetes-event-type");
+    await expect(types).toHaveCount(11);
+    for (const type of await types.all()) {
+      await expect(type).toHaveClass(/sr-only/);
+    }
+
+    await typeButton(page, "All").click();
+    await expect(types).toHaveCount(22);
+    for (const type of await types.all()) {
+      await expect(type).not.toHaveClass(/sr-only/);
+    }
+    await expect(
+      rowsOf(page, "RegisteredNode", USER_POOL_NODE).getByTestId(
+        "kubernetes-event-type",
+      ),
+    ).toHaveText("Normal");
+  });
+
+  test("at 768px, beside the side menu, the pickers wrap rather than squeeze their words onto two lines", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 768, height: 900 });
+    await openEventsPage(page);
+
+    const placeholders: Locator = page
+      .getByTestId("kubernetes-events-filters")
+      .locator(".ou-select__placeholder");
+    await expect(placeholders).toHaveCount(3);
+    expect(await lineCounts(placeholders)).toEqual([1, 1, 1]);
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("on a phone each event is one card: the reason and when, the message, the object, its namespace, how many times, who reported it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openEventsPage(page);
+    await expect(page.getByTestId("kubernetes-event")).toHaveCount(11);
+
+    const backOff: Locator = page
+      .getByTestId("kubernetes-event")
+      .filter({
+        has: page
+          .getByTestId("kubernetes-event-reason")
+          .getByText("BackOff", { exact: true }),
+      })
+      .filter({ hasText: CHECKOUT_POD });
+    await expect(backOff).toHaveCount(1);
+
+    await expect(
+      backOff.getByTestId("kubernetes-event-last-seen"),
+    ).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}T/);
+    await expect(backOff.getByTestId("kubernetes-event-message")).toContainText(
+      "Back-off restarting failed container checkout",
+    );
+    await expect(
+      backOff.getByTestId("kubernetes-event-object").getByRole("link", {
+        name: CHECKOUT_POD,
+      }),
+    ).toHaveAttribute("href", `${CLUSTER_PATH}/pods/${CHECKOUT_POD}`);
+    await expect(backOff.getByTestId("kubernetes-event-namespace")).toHaveText(
+      "shop",
+    );
+    await expect(backOff.getByTestId("kubernetes-event-count")).toHaveText(
+      "14 times",
+    );
+    await expect(backOff.getByTestId("kubernetes-event-source")).toContainText(
+      "Reported by kubelet",
+    );
+
+    // The reason and when on one line, at the card's two ends.
+    const reason: { x: number; y: number; height: number } = (await backOff
+      .getByTestId("kubernetes-event-reason")
+      .boundingBox())!;
+    const when: { x: number; y: number; height: number } = (await backOff
+      .getByTestId("kubernetes-event-last-seen")
+      .boundingBox())!;
+    expect(when.x).toBeGreaterThan(reason.x + 100);
+    expect(
+      Math.abs(when.y + when.height / 2 - (reason.y + reason.height / 2)),
+    ).toBeLessThan(6);
+
+    // No "Event" over every card: its name is for screen readers alone.
+    const cards: Locator = page.getByTestId("table-content");
+    const terms: Locator = cards.getByRole("term");
+    await expect(terms).toHaveCount(11);
+    for (const term of await terms.all()) {
+      await expect(term).toHaveClass(/sr-only/);
+    }
+    await expect(terms.filter({ hasText: "Object" })).toHaveCount(0);
+    await expect(terms.filter({ hasText: "Count" })).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+
+    await screenshot(page, "events-cards-390");
+  });
 });
 
 test.describe("in German", () => {

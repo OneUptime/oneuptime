@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Kubernetes-Ereignisse für dieses StatefulSet und seine Pods in den letzten 24 Stunden.",
   "Kubernetes events in this namespace in the last 24 hours.": "Kubernetes-Ereignisse in diesem Namespace in den letzten 24 Stunden.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes hat keine Warnungen zu den Knoten, Workloads, Autoscalern oder Volumes dieses Clusters gemeldet.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes hat in diesem Zeitraum nichts dazu gemeldet. Ereignisse erscheinen hier, sobald der Kubernetes-Agent sie sendet.",
   "Mention who is on call": "Personen in Bereitschaft erwähnen",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Erwähnt beim Erstellen des Kanals die Personen, die in {{schedules}} Bereitschaft haben.",
   "No normal events in the last 24 hours": "Keine normalen Ereignisse in den letzten 24 Stunden",
@@ -33327,7 +33326,6 @@
   "No reason given": "Kein Grund angegeben",
   "No warnings in the last 24 hours": "Keine Warnungen in den letzten 24 Stunden",
   "No warnings in this time range": "Keine Warnungen in diesem Zeitraum",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "In diesem Zeitraum gibt es nichts im Namespace, von der Art oder mit dem Grund, die oben gewählt sind.",
   "Reported by {{source}}": "Gemeldet von {{source}}",
   "Search on-call schedules...": "Bereitschaftspläne suchen...",
   "Search people, teams or schedules...": "Personen, Teams oder Bereitschaftspläne suchen...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Dies sind die neuesten Ereignisse dieses Zeitraums. Wählen Sie einen kürzeren Zeitraum oder einen Filter, um ältere zu sehen.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Diese Personen und Teams treten jedem Kanal bei, den die Regel erstellt, ebenso wie die Personen, die beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft haben. Niemand wird alarmiert.",
   "View all warnings": "Alle Warnungen anzeigen",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Was Kubernetes zu den Knoten, Workloads, Autoscalern und Volumes dieses Clusters gemeldet hat, die neuesten zuerst. Die Seite öffnet mit den Warnungen, wenn es welche gibt.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Wer beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft hat, wird darin mit @ erwähnt und so von Microsoft Teams benachrichtigt. Niemand wird alarmiert.",
   "About the same as in the first half of the time range": "Etwa gleich wie in der ersten Hälfte des Zeitraums",
   "Click to configure metric": "Klicken, um eine Metrik zu konfigurieren",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Wird vom Guthaben des Projekts bezahlt, es sei denn, die Standard-Twilio-Konfiguration des Projekts tätigt Anrufe.",
   "Twilio Used For": "Twilio-Verwendung",
   "Twilio account for on-call alerts": "Twilio-Konto für Bereitschaftsalarme",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Nur für Anrufe verwendet: OneUptime versendet die SMS an Abonnenten."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Nur für Anrufe verwendet: OneUptime versendet die SMS an Abonnenten.",
+  "Events appear here as the Kubernetes agent sends them.": "Ereignisse erscheinen hier, sobald der Kubernetes-Agent sie sendet.",
+  "Try another namespace, kind or reason, or a longer time range.": "Versuchen Sie einen anderen Namespace, eine andere Art oder einen anderen Grund oder einen längeren Zeitraum.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Was Kubernetes zu den Knoten, Workloads, Autoscalern und Volumes dieses Clusters gemeldet hat."
 }

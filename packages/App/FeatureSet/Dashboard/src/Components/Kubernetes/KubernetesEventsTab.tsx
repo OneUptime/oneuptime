@@ -192,7 +192,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
           "No events found for this {{kind}} in the last 24 hours.",
           { kind: translatableTerm(props.resourceKind, { inSentence: true }) },
         )}
-        description="Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them."
+        description="Events appear here as the Kubernetes agent sends them."
         dataTestId="kubernetes-events-tab-empty"
       />
     );
@@ -264,6 +264,7 @@ const KubernetesEventsTab: FunctionComponent<ComponentProps> = (
           clusterId={props.clusterId}
           showObject={props.scope.kind !== "object"}
           showNamespace={false}
+          showType={shownType === KubernetesEventsTypeFilter.All}
           pageResetKey={shownType}
         />
       )}

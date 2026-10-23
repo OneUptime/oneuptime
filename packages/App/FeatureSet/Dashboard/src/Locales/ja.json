@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "過去 24 時間のこの StatefulSet とその Pod の Kubernetes イベント。",
   "Kubernetes events in this namespace in the last 24 hours.": "過去 24 時間のこの Namespace 内の Kubernetes イベント。",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes は、このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて警告を報告していません。",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "この期間、Kubernetes はこれについて何も報告していません。イベントは Kubernetes エージェントが送信するとここに表示されます。",
   "Mention who is on call": "オンコール担当者をメンションする",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "チャネルの作成時に {{schedules}} のオンコール担当者をメンションします。",
   "No normal events in the last 24 hours": "過去 24 時間に正常のイベントはありません",
@@ -33327,7 +33326,6 @@
   "No reason given": "理由なし",
   "No warnings in the last 24 hours": "過去 24 時間に警告はありません",
   "No warnings in this time range": "この時間範囲に警告はありません",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "この時間範囲に、上で選んだ Namespace、種類、理由に当てはまるものはありません。",
   "Reported by {{source}}": "報告元: {{source}}",
   "Search on-call schedules...": "オンコールスケジュールを検索...",
   "Search people, teams or schedules...": "ユーザー、チーム、またはスケジュールを検索...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "これらは、この時間範囲で最新のイベントです。古いものを見るには、より短い範囲かフィルターを選んでください。",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "これらのユーザーとチームは、ルールが作成するすべてのチャネルに参加します。チャネルの作成時点でこれらのスケジュールのオンコール担当者も参加します。誰も呼び出されません。",
   "View all warnings": "すべての警告を表示",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容を新しい順に表示します。警告がある場合は警告から表示します。",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "チャネルの作成時点でこれらのスケジュールのオンコール担当者がチャネル内で @メンションされ、Microsoft Teams がその人に通知します。誰も呼び出されません。",
   "About the same as in the first half of the time range": "時間範囲の前半とほぼ同じ",
   "Click to configure metric": "クリックしてメトリクスを設定",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "プロジェクトのデフォルトの Twilio 設定が通話を発信しない限り、プロジェクトの残高から支払われます。",
   "Twilio Used For": "Twilio の用途",
   "Twilio account for on-call alerts": "オンコールアラート用の Twilio アカウント",
-  "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。"
+  "Used for calls only: OneUptime sends subscriber text messages.": "通話のみに使用: 購読者への SMS は OneUptime が送信します。",
+  "Events appear here as the Kubernetes agent sends them.": "イベントは Kubernetes エージェントが送信するとここに表示されます。",
+  "Try another namespace, kind or reason, or a longer time range.": "別の Namespace、種類、理由を選ぶか、より長い時間範囲を選んでください。",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "このクラスターのノード、ワークロード、オートスケーラー、ボリュームについて Kubernetes が報告した内容です。"
 }

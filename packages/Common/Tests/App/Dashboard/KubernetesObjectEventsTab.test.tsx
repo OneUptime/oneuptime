@@ -253,6 +253,37 @@ describe("a node's page", () => {
   });
 });
 
+describe("Warning and Normal on a tab's rows", () => {
+  test("its Warnings do not repeat the word on every row; All, which mixes them, does", async () => {
+    await renderPage(
+      {
+        kind: "object",
+        objectKind: "Node",
+        objectName: "aks-userpool-11935137-vmss00000o",
+      },
+      "Node",
+    );
+    await openEvents();
+
+    expect(typeButton("Warnings")).toHaveAttribute("aria-checked", "true");
+    for (const type of screen.getAllByTestId("kubernetes-event-type")) {
+      expect(type).toHaveClass("sr-only");
+      expect(type).toHaveTextContent("Warning");
+    }
+
+    fireEvent.click(typeButton("All"));
+    await flush();
+
+    const types: Array<HTMLElement> = screen.getAllByTestId(
+      "kubernetes-event-type",
+    );
+    expect(types.length).toBeGreaterThan(0);
+    for (const type of types) {
+      expect(type).not.toHaveClass("sr-only");
+    }
+  });
+});
+
 describe("an HPA's page", () => {
   test("shows the autoscaler's metric warnings in its namespace", async () => {
     await renderPage(
@@ -385,9 +416,17 @@ describe("a page with nothing to warn about", () => {
     );
     await openEvents();
 
-    expect(screen.getByTestId("kubernetes-events-tab-empty")).toHaveTextContent(
+    const empty: HTMLElement = screen.getByTestId(
+      "kubernetes-events-tab-empty",
+    );
+    expect(empty).toHaveTextContent(
       "No events found for this PersistentVolume in the last 24 hours",
     );
+    // Where they come from - not the title's "in the last 24 hours" again.
+    expect(empty).toHaveTextContent(
+      "Events appear here as the Kubernetes agent sends them.",
+    );
+    expect(empty).not.toHaveTextContent("in that time");
   });
 
   test("a read that fails says why, and tries again", async () => {

@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Kubernetes-händelser för denna StatefulSet och dess poddar de senaste 24 timmarna.",
   "Kubernetes events in this namespace in the last 24 hours.": "Kubernetes-händelser i denna Namespace de senaste 24 timmarna.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes rapporterade inga varningar om klustrets noder, arbetsbelastningar, autoskalare eller volymer.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes rapporterade inget om det under den tiden. Händelser visas här när Kubernetes-agenten skickar dem.",
   "Mention who is on call": "Nämn dem som har jour",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nämner dem som har jour i {{schedules}} när kanalen skapas.",
   "No normal events in the last 24 hours": "Inga normala händelser de senaste 24 timmarna",
@@ -33327,7 +33326,6 @@
   "No reason given": "Ingen orsak angiven",
   "No warnings in the last 24 hours": "Inga varningar de senaste 24 timmarna",
   "No warnings in this time range": "Inga varningar i det här tidsintervallet",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "Inget i det här tidsintervallet är i det namespace, av den typ eller med den orsak som valts ovan.",
   "Reported by {{source}}": "Rapporterad av {{source}}",
   "Search on-call schedules...": "Sök jourscheman...",
   "Search people, teams or schedules...": "Sök personer, team eller scheman...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Detta är de senaste händelserna i det här tidsintervallet. Välj ett kortare intervall eller ett filter för att se äldre.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Dessa personer och team går med i varje kanal som regeln skapar, och det gör även de som har jour i dessa scheman när kanalen skapas. Ingen larmas.",
   "View all warnings": "Visa alla varningar",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Vad Kubernetes har rapporterat om klustrets noder, arbetsbelastningar, autoskalare och volymer, senaste först. Sidan öppnas på varningarna när det finns några.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har jour i dessa scheman när kanalen skapas @nämns i den, så att Microsoft Teams aviserar dem. Ingen larmas.",
   "About the same as in the first half of the time range": "Ungefär som i första halvan av tidsintervallet",
   "Click to configure metric": "Klicka för att konfigurera ett mätvärde",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betalas från projektets saldo, om inte projektets standard-Twilio-konfiguration ringer samtal.",
   "Twilio Used For": "Twilio-användning",
   "Twilio account for on-call alerts": "Twilio-konto för jourlarm",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Används bara för samtal: OneUptime skickar sms till prenumeranter."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Används bara för samtal: OneUptime skickar sms till prenumeranter.",
+  "Events appear here as the Kubernetes agent sends them.": "Händelser visas här när Kubernetes-agenten skickar dem.",
+  "Try another namespace, kind or reason, or a longer time range.": "Prova ett annat namespace, en annan typ eller orsak, eller ett längre tidsintervall.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Vad Kubernetes har rapporterat om klustrets noder, arbetsbelastningar, autoskalare och volymer."
 }

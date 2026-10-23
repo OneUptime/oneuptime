@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Kubernetes-hendelser for denne StatefulSet og podene dens de siste 24 timene.",
   "Kubernetes events in this namespace in the last 24 hours.": "Kubernetes-hendelser i denne Namespace de siste 24 timene.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes rapporterte ingen advarsler om denne klyngens noder, arbeidsbelastninger, autoskalerere eller volumer.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes rapporterte ingenting om det i det tidsrommet. Hendelser vises her etter hvert som Kubernetes-agenten sender dem.",
   "Mention who is on call": "Nevn dem som har vakt",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nevner dem som har vakt i {{schedules}} når kanalen opprettes.",
   "No normal events in the last 24 hours": "Ingen normale hendelser de siste 24 timene",
@@ -33327,7 +33326,6 @@
   "No reason given": "Ingen årsak oppgitt",
   "No warnings in the last 24 hours": "Ingen advarsler de siste 24 timene",
   "No warnings in this time range": "Ingen advarsler i dette tidsrommet",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "Ingenting i dette tidsrommet er i namespacet, av typen eller med årsaken som er valgt ovenfor.",
   "Reported by {{source}}": "Rapportert av {{source}}",
   "Search on-call schedules...": "Søk etter vaktplaner ...",
   "Search people, teams or schedules...": "Søk etter personer, team eller vaktplaner ...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Dette er de nyeste hendelsene i dette tidsrommet. Velg et kortere tidsrom eller et filter for å se eldre.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Disse personene og teamene blir med i hver kanal regelen oppretter, og det samme gjør de som har vakt i disse vaktplanene når kanalen opprettes. Ingen blir varslet.",
   "View all warnings": "Se alle advarsler",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Hva Kubernetes har rapportert om denne klyngens noder, arbeidsbelastninger, autoskalerere og volumer, nyeste først. Siden åpner på advarslene når det finnes noen.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt.",
   "About the same as in the first half of the time range": "Omtrent det samme som i første halvdel av tidsrommet",
   "Click to configure metric": "Klikk for å konfigurere en metrikk",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betales fra prosjektets saldo, med mindre prosjektets standard Twilio-konfigurasjon ringer.",
   "Twilio Used For": "Twilio-bruk",
   "Twilio account for on-call alerts": "Twilio-konto for vaktvarsler",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Brukes bare til anrop: OneUptime sender SMS til abonnenter."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Brukes bare til anrop: OneUptime sender SMS til abonnenter.",
+  "Events appear here as the Kubernetes agent sends them.": "Hendelser vises her etter hvert som Kubernetes-agenten sender dem.",
+  "Try another namespace, kind or reason, or a longer time range.": "Prøv et annet namespace, en annen type eller årsak, eller et lengre tidsrom.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hva Kubernetes har rapportert om denne klyngens noder, arbeidsbelastninger, autoskalerere og volumer."
 }

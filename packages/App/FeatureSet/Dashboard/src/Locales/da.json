@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "Kubernetes-hændelser for denne StatefulSet og dens pods i de sidste 24 timer.",
   "Kubernetes events in this namespace in the last 24 hours.": "Kubernetes-hændelser i denne Namespace i de sidste 24 timer.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes rapporterede ingen advarsler om denne klynges noder, arbejdsbelastninger, autoscalere eller diskenheder.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes rapporterede intet om det i det tidsrum. Hændelser vises her, efterhånden som Kubernetes-agenten sender dem.",
   "Mention who is on call": "Nævn dem, der har vagt",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "Nævner dem, der har vagt i {{schedules}}, når kanalen oprettes.",
   "No normal events in the last 24 hours": "Ingen normale hændelser i de sidste 24 timer",
@@ -33327,7 +33326,6 @@
   "No reason given": "Ingen årsag angivet",
   "No warnings in the last 24 hours": "Ingen advarsler i de sidste 24 timer",
   "No warnings in this time range": "Ingen advarsler i dette tidsrum",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "Intet i dette tidsrum er i den namespace, af den type eller med den årsag, der er valgt ovenfor.",
   "Reported by {{source}}": "Rapporteret af {{source}}",
   "Search on-call schedules...": "Søg efter vagtplaner...",
   "Search people, teams or schedules...": "Søg efter personer, teams eller vagtplaner...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "Dette er de nyeste hændelser i dette tidsrum. Vælg et kortere tidsrum eller et filter for at se ældre.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "Disse personer og teams kommer med i hver kanal, reglen opretter, ligesom dem, der har vagt i disse vagtplaner, når kanalen oprettes. Ingen tilkaldes.",
   "View all warnings": "Se alle advarsler",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "Hvad Kubernetes har rapporteret om denne klynges noder, arbejdsbelastninger, autoscalere og diskenheder, nyeste først. Siden åbner på advarslerne, når der er nogen.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De, der har vagt i disse vagtplaner, når kanalen oprettes, bliver @nævnt i den, så Microsoft Teams underretter dem. Ingen tilkaldes.",
   "About the same as in the first half of the time range": "Omtrent det samme som i første halvdel af tidsrummet",
   "Click to configure metric": "Klik for at konfigurere en metrik",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betales af projektets saldo, medmindre projektets standard-Twilio-konfiguration foretager opkald.",
   "Twilio Used For": "Twilio-brug",
   "Twilio account for on-call alerts": "Twilio-konto til vagtalarmer",
-  "Used for calls only: OneUptime sends subscriber text messages.": "Bruges kun til opkald: OneUptime sender sms'er til abonnenter."
+  "Used for calls only: OneUptime sends subscriber text messages.": "Bruges kun til opkald: OneUptime sender sms'er til abonnenter.",
+  "Events appear here as the Kubernetes agent sends them.": "Hændelser vises her, efterhånden som Kubernetes-agenten sender dem.",
+  "Try another namespace, kind or reason, or a longer time range.": "Prøv et andet namespace, en anden type eller årsag, eller et længere tidsrum.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "Hvad Kubernetes har rapporteret om denne klynges noder, arbejdsbelastninger, autoscalere og diskenheder."
 }

@@ -33318,7 +33318,6 @@
   "Kubernetes events for this statefulset and its pods in the last 24 hours.": "رویدادهای Kubernetes این StatefulSet و پادهایش در ۲۴ ساعت گذشته.",
   "Kubernetes events in this namespace in the last 24 hours.": "رویدادهای Kubernetes در این Namespace در ۲۴ ساعت گذشته.",
   "Kubernetes reported no warnings about this cluster's nodes, workloads, autoscalers or volumes.": "Kubernetes هیچ هشداری دربارهٔ گره‌ها، بارهای کاری، مقیاس‌دهنده‌های خودکار یا حجم‌های این خوشه گزارش نکرده است.",
-  "Kubernetes reported nothing about it in that time. Events appear here as the Kubernetes agent sends them.": "Kubernetes در این مدت چیزی دربارهٔ آن گزارش نکرده است. رویدادها با فرستادن عامل Kubernetes در اینجا نمایش داده می‌شوند.",
   "Mention who is on call": "منشن کردن آنکال‌ها",
   "Mentions whoever is on call in {{schedules}} when the channel is created.": "هنگام ساخت کانال، هر کسی را که در {{schedules}} آنکال باشد منشن می‌کند.",
   "No normal events in the last 24 hours": "در ۲۴ ساعت گذشته رویداد عادی‌ای نیست",
@@ -33327,7 +33326,6 @@
   "No reason given": "دلیلی ذکر نشده است",
   "No warnings in the last 24 hours": "در ۲۴ ساعت گذشته هشداری نیست",
   "No warnings in this time range": "در این بازهٔ زمانی هشداری نیست",
-  "Nothing in this time range is in the namespace, of the kind or for the reason picked above.": "در این بازهٔ زمانی چیزی با Namespace، نوع یا دلیلی که در بالا انتخاب شده مطابق نیست.",
   "Reported by {{source}}": "گزارش‌دهنده: {{source}}",
   "Search on-call schedules...": "جستجوی زمان‌بندی‌های آنکال...",
   "Search people, teams or schedules...": "جستجوی افراد، تیم‌ها یا زمان‌بندی‌ها...",
@@ -33335,7 +33333,6 @@
   "These are the newest events of this time range. Pick a shorter range or a filter to see older ones.": "این‌ها تازه‌ترین رویدادهای این بازهٔ زمانی‌اند. برای دیدن قدیمی‌ترها بازهٔ کوتاه‌تر یا فیلتری انتخاب کنید.",
   "These people and teams join every channel the rule creates, with whoever is on call in these schedules when the channel is created. Nobody is paged.": "این افراد و تیم‌ها به هر کانالی که قاعده ایجاد می‌کند می‌پیوندند، و هر کسی هم که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد به آن می‌پیوندد. هیچ‌کس فراخوانده نمی‌شود.",
   "View all warnings": "دیدن همهٔ هشدارها",
-  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes, newest first. It opens on the warnings when there are any.": "آنچه Kubernetes دربارهٔ گره‌ها، بارهای کاری، مقیاس‌دهنده‌های خودکار و حجم‌های این خوشه گزارش کرده، تازه‌ترین‌ها نخست. اگر هشداری باشد، صفحه با هشدارها باز می‌شود.",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "هر کسی که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد، در آن @منشن می‌شود تا Microsoft Teams او را باخبر کند. هیچ‌کس فراخوانده نمی‌شود.",
   "About the same as in the first half of the time range": "تقریباً همانند نیمهٔ اول بازه زمانی",
   "Click to configure metric": "برای پیکربندی متریک کلیک کنید",
@@ -33390,5 +33387,8 @@
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "از موجودی پروژه پرداخت می‌شود، مگر اینکه پیکربندی پیش‌فرض Twilio پروژه تماس برقرار کند.",
   "Twilio Used For": "کاربرد Twilio",
   "Twilio account for on-call alerts": "حساب Twilio برای هشدارهای آنکال",
-  "Used for calls only: OneUptime sends subscriber text messages.": "فقط برای تماس استفاده می‌شود: پیامک مشترکان را OneUptime می‌فرستد."
+  "Used for calls only: OneUptime sends subscriber text messages.": "فقط برای تماس استفاده می‌شود: پیامک مشترکان را OneUptime می‌فرستد.",
+  "Events appear here as the Kubernetes agent sends them.": "رویدادها با فرستادن عامل Kubernetes در اینجا نمایش داده می‌شوند.",
+  "Try another namespace, kind or reason, or a longer time range.": "Namespace، نوع یا دلیل دیگری را امتحان کنید، یا بازهٔ زمانی بلندتری انتخاب کنید.",
+  "What Kubernetes reported about this cluster's nodes, workloads, autoscalers and volumes.": "آنچه Kubernetes دربارهٔ گره‌ها، بارهای کاری، مقیاس‌دهنده‌های خودکار و حجم‌های این خوشه گزارش کرده است."
 }

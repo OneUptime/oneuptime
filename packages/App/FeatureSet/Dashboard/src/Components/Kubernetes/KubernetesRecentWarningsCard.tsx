@@ -1,5 +1,9 @@
 import { KubernetesWarningSummary } from "./KubernetesEventsModel";
-import { getKubernetesObjectRoute } from "./KubernetesEventsTable";
+import {
+  KubernetesNamespaceChip,
+  KubernetesObjectChip,
+  getKubernetesEventSource,
+} from "./KubernetesEventsTable";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -52,16 +56,7 @@ const WarningLine: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const warning: KubernetesWarningSummary = props.warning;
-  const objectRoute: Route | null = getKubernetesObjectRoute({
-    clusterId: props.clusterId,
-    kind: warning.objectKind,
-    name: warning.objectName,
-  });
-  const source: string = [warning.source, warning.sourceHost]
-    .filter((part: string): boolean => {
-      return Boolean(part);
-    })
-    .join(" · ");
+  const source: string = getKubernetesEventSource(warning);
 
   return (
     <li
@@ -116,29 +111,17 @@ const WarningLine: FunctionComponent<{
           <></>
         )}
         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
-          <span
-            className="inline-flex max-w-full items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-600"
-            data-testid="kubernetes-recent-warning-object"
-          >
-            <span className="text-gray-500">{warning.objectKind}</span>
-            {objectRoute ? (
-              <Link
-                to={objectRoute}
-                className="truncate text-indigo-600 hover:text-indigo-800 hover:underline"
-              >
-                {warning.objectName}
-              </Link>
-            ) : (
-              <span className="truncate">{warning.objectName}</span>
-            )}
-          </span>
+          <KubernetesObjectChip
+            kind={warning.objectKind}
+            name={warning.objectName}
+            clusterId={props.clusterId}
+            dataTestId="kubernetes-recent-warning-object"
+          />
           {warning.namespace ? (
-            <span
-              className="inline-flex rounded bg-indigo-50 px-1.5 py-0.5 font-medium text-indigo-600"
-              data-testid="kubernetes-recent-warning-namespace"
-            >
-              {warning.namespace}
-            </span>
+            <KubernetesNamespaceChip
+              namespace={warning.namespace}
+              dataTestId="kubernetes-recent-warning-namespace"
+            />
           ) : (
             <></>
           )}
