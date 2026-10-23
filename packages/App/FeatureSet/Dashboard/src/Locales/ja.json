@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "おすすめのルールを追加できませんでした",
   "{{count}} rules could not be added": "{{count}} 件のルールを追加できませんでした",
   "{{count}} rules could not be added_one": "{{count}} 件のルールを追加できませんでした",
-  "The others were added.": "ほかのルールは追加されました。"
+  "The others were added.": "ほかのルールは追加されました。",
+  "The playbook could not be added": "プレイブックを追加できませんでした"
 }

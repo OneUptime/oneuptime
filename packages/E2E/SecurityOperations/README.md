@@ -79,7 +79,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?role=`   | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
 | `?lists=`  | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
 | `?ai=`     | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
-| `?setup=`  | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, and the Rule Library's first Add of Password spraying fails; the next click or Add does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                                                                                                 |
+| `?setup=`  | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?triage=` | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 
 ## What the fixture records
@@ -112,7 +112,8 @@ that list is not empty.
   entities, ATT&CK and notes; approving the held step posts the decision with its comment and the
   run finishes; a Security Viewer cannot decide it; dark theme and a phone.
 - **Playbooks**: the list (steps, status, trigger and minimum priority) fits its card; a template
-  becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases; a playbook's
+  becomes a working playbook in one click, built as Turn on recommended builds Enrich New Cases, and one
+  that cannot be added says why in the amber box; a playbook's
   settings read in full; its steps and latest runs; Waiting for Approval, at the runs page's old
   address, lists the run held for a decision, and Playbook Runs every run; an empty runs page says
   what it is for in its empty state only.
@@ -182,7 +183,8 @@ Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-s
 because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,
 `side-menu-desktop`, `side-menu-dark`, `side-menu-mobile`, `overview-turn-on-partly`,
 `overview-turn-on-partly-dark`, `overview-turn-on-partly-phone`, `overview-turn-on-partly-phone-dark`,
-`overview-turn-on-failed`, `rule-library-add-failed`, `rule-library-add-all-failed`, `cases-desktop`, `cases-tablet`,
+`overview-turn-on-failed`, `rule-library-add-failed`, `rule-library-add-all-failed`,
+`playbook-template-failed`, `cases-desktop`, `cases-tablet`,
 `cases-mobile`, each case page at 1280 in both themes and at 390 (`cases-open-1280-light`,
 `cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, `case-dark`,
 `case-mobile`, `playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,

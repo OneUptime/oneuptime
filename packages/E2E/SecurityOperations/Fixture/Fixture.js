@@ -213,7 +213,9 @@ const triageBlocker = TRIAGE_BLOCKERS[triageScenario] || null;
  *   partly  the first click leaves Password spraying and Enrich New Cases
  *           undone (something went wrong on OneUptime's side) and does the
  *           rest; the Rule Library's first Add of Password spraying fails
- *           the same way. The next click, or Add, does what is left.
+ *           the same way, and the Playbooks page's first template is
+ *           refused by the role. The next click, Add or pick does what is
+ *           left.
  *   fail    the first click fails whole: the server could not be reached.
  *           The next one turns everything on.
  */
@@ -225,6 +227,7 @@ const setupScenario = SETUP_SCENARIOS.includes(params.get("setup"))
 const PARTLY_UNDONE_RULE = "Password spraying";
 let turnOnCalls = 0;
 let failedLibraryAdds = 0;
+let failedTemplateAdds = 0;
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
 
@@ -2177,6 +2180,19 @@ ModelAPI.create = async (options) => {
   ) {
     failedLibraryAdds++;
     throw new HTTPErrorResponse(500, { message: "Server Error" }, {});
+  }
+  // The partly scenario: the first playbook made from a template is refused by the role.
+  if (
+    setupScenario === "partly" &&
+    failedTemplateAdds === 0 &&
+    tableName(options.modelType) === tableName(SecurityPlaybook)
+  ) {
+    failedTemplateAdds++;
+    throw new HTTPErrorResponse(
+      403,
+      { message: "You do not have permission to create SecurityPlaybook." },
+      {},
+    );
   }
   return ModelAPI.createOrUpdate(options);
 };

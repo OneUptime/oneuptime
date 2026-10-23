@@ -14,6 +14,30 @@ export const SECURITY_TURN_ON_PROBLEMS_ID: string = "security-turn-on-problems";
 // The rows a reader takes in at once; Show N more opens the rest.
 export const MAX_PROBLEMS_SHOWN: number = 5;
 
+/*
+ * Brings a box that just appeared into view, where the reader may not be
+ * looking - below a long list, or after a dialog moved the page - gliding
+ * there unless the reader asked for less motion. `nearest` moves the page
+ * only as far as it must, and not at all when the box is in view.
+ */
+export function bringProblemsIntoView(
+  element: HTMLElement | null,
+  block: ScrollLogicalPosition,
+): void {
+  if (!element || typeof element.scrollIntoView !== "function") {
+    return;
+  }
+
+  const isMotionReduced: boolean =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  element.scrollIntoView({
+    block,
+    behavior: isMotionReduced ? "auto" : "smooth",
+  });
+}
+
 // What a problem is about, in the reader's language: a name as the lists show it, or the switch's.
 export function getProblemSubjectText(
   translator: Translator,

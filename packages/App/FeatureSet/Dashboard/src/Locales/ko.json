@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "추천 규칙을 추가하지 못했습니다",
   "{{count}} rules could not be added": "규칙 {{count}}개를 추가하지 못했습니다",
   "{{count}} rules could not be added_one": "규칙 {{count}}개를 추가하지 못했습니다",
-  "The others were added.": "나머지 규칙은 추가되었습니다."
+  "The others were added.": "나머지 규칙은 추가되었습니다.",
+  "The playbook could not be added": "플레이북을 추가하지 못했습니다"
 }

@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "قاعده‌های پیشنهادی اضافه نشدند",
   "{{count}} rules could not be added": "{{count}} قاعده اضافه نشد",
   "{{count}} rules could not be added_one": "{{count}} قاعده اضافه نشد",
-  "The others were added.": "بقیه قاعده‌ها اضافه شدند."
+  "The others were added.": "بقیه قاعده‌ها اضافه شدند.",
+  "The playbook could not be added": "پلی‌بوک اضافه نشد"
 }

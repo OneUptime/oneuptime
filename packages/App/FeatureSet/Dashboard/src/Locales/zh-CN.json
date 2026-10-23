@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "无法添加推荐规则",
   "{{count}} rules could not be added": "有 {{count}} 条规则未能添加",
   "{{count}} rules could not be added_one": "有 {{count}} 条规则未能添加",
-  "The others were added.": "其余规则已添加。"
+  "The others were added.": "其余规则已添加。",
+  "The playbook could not be added": "无法添加剧本"
 }

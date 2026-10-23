@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "सुझाए गए नियम नहीं जोड़े जा सके",
   "{{count}} rules could not be added": "{{count}} नियम नहीं जोड़े जा सके",
   "{{count}} rules could not be added_one": "{{count}} नियम नहीं जोड़ा जा सका",
-  "The others were added.": "बाकी नियम जोड़ दिए गए।"
+  "The others were added.": "बाकी नियम जोड़ दिए गए।",
+  "The playbook could not be added": "प्लेबुक नहीं जोड़ी जा सकी"
 }

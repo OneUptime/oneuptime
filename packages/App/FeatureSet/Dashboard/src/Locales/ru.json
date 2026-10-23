@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "Не удалось добавить рекомендуемые правила",
   "{{count}} rules could not be added": "Не удалось добавить правила: {{count}}",
   "{{count}} rules could not be added_one": "Не удалось добавить {{count}} правило",
-  "The others were added.": "Остальные добавлены."
+  "The others were added.": "Остальные добавлены.",
+  "The playbook could not be added": "Не удалось добавить плейбук"
 }

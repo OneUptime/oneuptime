@@ -1476,6 +1476,37 @@ test.describe("playbooks", () => {
     expect((created[0]!.data["steps"] as Array<unknown>).length).toBe(3);
   });
 
+  test("a template that cannot be added says why in the amber box, and picking it again adds it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PLAYBOOKS_PATH, { setup: "partly" });
+    await page.getByTestId("security-playbook-template-known-bad").click();
+
+    // Why, in the product's words - never the server's sentence centred in grey.
+    const problems: Locator = page.getByTestId(
+      "security-playbook-template-problems",
+    );
+    await expect(problems).toHaveAttribute("role", "alert");
+    await expect(
+      problems.getByTestId("security-turn-on-problems-title"),
+    ).toHaveText("The playbook could not be added");
+    await expect(problemRows(problems)).toHaveText([
+      "Escalate Known-Bad Indicators - Your role cannot add it.",
+    ]);
+    await expect(problems).not.toContainText("You do not have permission");
+    await expect(problems).toBeInViewport();
+    // Nothing was added, so the page stays where it is.
+    expect(new URL(page.url()).pathname).toBe(PLAYBOOKS_PATH);
+    await screenshot(page, "playbook-template-failed");
+
+    await page.getByTestId("security-playbook-template-known-bad").click();
+    await expect(page).toHaveURL(
+      new RegExp(`${escapeRegExp(PLAYBOOKS_PATH)}/[0-9a-f-]{36}$`),
+    );
+  });
+
   test("a playbook's page: when it runs, its steps and its latest runs", async ({
     page,
   }: {

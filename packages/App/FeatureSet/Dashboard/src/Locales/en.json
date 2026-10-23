@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "The recommended rules could not be added",
   "{{count}} rules could not be added": "{{count}} rules could not be added",
   "{{count}} rules could not be added_one": "{{count}} rule could not be added",
-  "The others were added.": "The others were added."
+  "The others were added.": "The others were added.",
+  "The playbook could not be added": "The playbook could not be added"
 }

@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "Die empfohlenen Regeln konnten nicht hinzugefügt werden",
   "{{count}} rules could not be added": "{{count}} Regeln konnten nicht hinzugefügt werden",
   "{{count}} rules could not be added_one": "{{count}} Regel konnte nicht hinzugefügt werden",
-  "The others were added.": "Die anderen wurden hinzugefügt."
+  "The others were added.": "Die anderen wurden hinzugefügt.",
+  "The playbook could not be added": "Das Playbook konnte nicht hinzugefügt werden"
 }

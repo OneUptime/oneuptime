@@ -22,6 +22,7 @@ import {
   describeSetupCallFailure,
 } from "../../Components/SecurityOverview/SecuritySetupModel";
 import SecurityTurnOnProblems, {
+  bringProblemsIntoView,
   getProblemReasonText,
 } from "../../Components/SecurityOverview/SecurityTurnOnProblems";
 import DetectionRuleSummary, {
@@ -448,24 +449,9 @@ const RuleLibraryPage: FunctionComponent<
   );
 
   useEffect(() => {
-    const summary: HTMLDivElement | null = summaryRef.current;
-
-    if (
-      !showsSummary ||
-      !summary ||
-      typeof summary.scrollIntoView !== "function"
-    ) {
-      return;
+    if (showsSummary) {
+      bringProblemsIntoView(summaryRef.current, "center");
     }
-
-    const isMotionReduced: boolean =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    summary.scrollIntoView({
-      block: "center",
-      behavior: isMotionReduced ? "auto" : "smooth",
-    });
   }, [showsSummary, attempt]);
 
   const recommendedNotAdded: Array<DetectionRuleLibraryEntry> =

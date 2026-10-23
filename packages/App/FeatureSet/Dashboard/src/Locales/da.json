@@ -33423,5 +33423,6 @@
   "The recommended rules could not be added": "De anbefalede regler kunne ikke tilføjes",
   "{{count}} rules could not be added": "{{count}} regler kunne ikke tilføjes",
   "{{count}} rules could not be added_one": "{{count}} regel kunne ikke tilføjes",
-  "The others were added.": "De andre blev tilføjet."
+  "The others were added.": "De andre blev tilføjet.",
+  "The playbook could not be added": "Playbooken kunne ikke tilføjes"
 }
