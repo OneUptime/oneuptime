@@ -3,10 +3,12 @@ import type {
   EnterpriseLicenseSnapshot,
   SeatUsage,
 } from "./EnterpriseLicenseSnapshot";
+import type BillingProvider from "../Types/Billing/BillingProvider";
 import type BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import type DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import type { ProductBranding } from "../../Types/Branding/ProductBranding";
 import type { JSONObject } from "../../Types/JSON";
+import type CloudMarketplace from "../../Types/Marketplace/CloudMarketplace";
 import type ObjectID from "../../Types/ObjectID";
 
 /*
@@ -67,6 +69,47 @@ export interface AuditLogRecorder {
   }): Promise<void>;
 
   invalidateProjectSettings(projectId: ObjectID): void;
+}
+
+// A project as OneUptime Cloud's billing sees it when the project changes.
+export interface ProjectBillingState {
+  projectId: ObjectID;
+  // The cloud marketplace that bills the project, or null for a card.
+  billingMarketplace: CloudMarketplace | null;
+}
+
+/*
+ * What OneUptime Cloud's billing does when a project is deleted or changes
+ * plan: the cloud marketplaces (AWS, Microsoft, Google Cloud) and Vercel
+ * Marketplace bill projects from the enterprise module, so ProjectService
+ * tells it. ProjectService calls these only with billing on, and none of
+ * them may fail the change it reports: each catches and logs what goes
+ * wrong.
+ */
+export interface ProjectBillingHooks {
+  /*
+   * The projects are about to be deleted. A project a marketplace bills is
+   * billed now for its usage since its last hourly report, while it is still
+   * there to be priced.
+   */
+  beforeProjectsDelete(projects: Array<ProjectBillingState>): Promise<void>;
+
+  /*
+   * The projects were deleted. A Vercel resource is deleted on Vercel with
+   * its project, and a marketplace purchase stops being billed against a
+   * project that is gone.
+   */
+  afterProjectsDelete(projects: Array<ProjectBillingState>): Promise<void>;
+
+  /*
+   * A project a marketplace bills moved to another plan. A Vercel
+   * resource's billing plan follows it.
+   */
+  afterMarketplacePlanChange(data: {
+    projectId: ObjectID;
+    billingMarketplace: CloudMarketplace;
+    paymentProviderPlanId: string;
+  }): Promise<void>;
 }
 
 export interface EnterpriseLicensingProvider {
@@ -141,6 +184,22 @@ export default interface EnterpriseServerModule {
    * the module answers from its own cache. Must not throw.
    */
   getProductBranding?(): ProductBranding | null;
+
+  /*
+   * The payment provider OneUptime Cloud bills cards through (Stripe), or
+   * null when this process has none: billing off, or no say in it. Core's
+   * BillingService hands every payment-provider call to it, and answers as a
+   * server without billing does when there is none. Synchronous, because it
+   * is asked on every such call. Must not throw.
+   */
+  getBillingProvider?(): BillingProvider | null;
+
+  /*
+   * What OneUptime Cloud's marketplace billing does when a project is deleted
+   * or changes plan, or null when this process has none (billing off).
+   * Must not throw.
+   */
+  getProjectBillingHooks?(): ProjectBillingHooks | null;
 }
 
 const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
@@ -153,7 +212,11 @@ const REQUIRED_MODULE_FUNCTIONS: ReadonlyArray<string> = [
 ];
 
 // Hooks a module may leave out; core falls back to the Community Edition's answer.
-const OPTIONAL_MODULE_FUNCTIONS: ReadonlyArray<string> = ["getProductBranding"];
+const OPTIONAL_MODULE_FUNCTIONS: ReadonlyArray<string> = [
+  "getProductBranding",
+  "getBillingProvider",
+  "getProjectBillingHooks",
+];
 
 const REQUIRED_LICENSING_FUNCTIONS: ReadonlyArray<string> = [
   "getSnapshot",

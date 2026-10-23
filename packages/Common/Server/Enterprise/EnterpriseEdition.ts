@@ -7,7 +7,9 @@ import {
 } from "./EnterpriseLicenseSnapshot";
 import EnterpriseServerModule, {
   AuditLogRecorder,
+  ProjectBillingHooks,
 } from "./EnterpriseServerModule";
+import type BillingProvider from "../Types/Billing/BillingProvider";
 /*
  * EnvironmentConfig never imports anything under Server/Enterprise, so this
  * import cannot form a cycle. IsBillingEnabled is only ever read inside a
@@ -563,6 +565,57 @@ export default class EnterpriseEdition {
     } catch (err) {
       logger.error(
         "EnterpriseEdition: the enterprise module failed to provide its audit log recorder.",
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * The payment provider OneUptime Cloud bills cards through, or null: on the
+   * Community Edition, when the module has no say in it, when it answers null
+   * (billing off) and when it fails. Never throws - BillingService asks on
+   * every payment-provider call, and without a provider it answers as a
+   * server without billing does.
+   */
+  public static getBillingProvider(): BillingProvider | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getBillingProvider) {
+      return null;
+    }
+
+    try {
+      return enterpriseModule.getBillingProvider() || null;
+    } catch (err) {
+      logger.error(
+        "EnterpriseEdition: the enterprise module failed to provide its billing provider.",
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  /*
+   * What OneUptime Cloud's marketplace billing does when a project is deleted
+   * or changes plan, or null: on the Community Edition, when the module has
+   * no say in it, when it answers null (billing off) and when it fails.
+   * Never throws.
+   */
+  public static getProjectBillingHooks(): ProjectBillingHooks | null {
+    const enterpriseModule: EnterpriseServerModule | null =
+      EnterpriseEdition.module;
+
+    if (!enterpriseModule || !enterpriseModule.getProjectBillingHooks) {
+      return null;
+    }
+
+    try {
+      return enterpriseModule.getProjectBillingHooks() || null;
+    } catch (err) {
+      logger.error(
+        "EnterpriseEdition: the enterprise module failed to provide its project billing hooks.",
       );
       logger.error(err);
       return null;
