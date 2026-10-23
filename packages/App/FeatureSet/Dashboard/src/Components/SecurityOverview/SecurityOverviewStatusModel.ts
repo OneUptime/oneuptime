@@ -260,8 +260,7 @@ export function getSecurityHeadline(data: {
      * Red only while a critical or high case is open, as Home keeps red
      * for incidents; amber for everything else that waits for a person.
      */
-    const isUrgent: boolean =
-      queue.criticalOpenCases + queue.highOpenCases > 0;
+    const isUrgent: boolean = queue.criticalOpenCases + queue.highOpenCases > 0;
 
     return {
       kind: SecurityHeadlineKind.NeedsAttention,
@@ -683,18 +682,33 @@ export function getSecurityStageViews(data: {
         };
       }
 
-      switch (stage.key) {
-        case SecurityPipelineStageKey.Sources:
-          return { ...base, ...getSourcesFigures(data.status, data.now) };
-        case SecurityPipelineStageKey.Detections:
-          return { ...base, ...getDetectionsFigures(data.status) };
-        case SecurityPipelineStageKey.Cases:
-          return { ...base, ...getCasesFigures(data.status, data.queue) };
-        case SecurityPipelineStageKey.Playbooks:
-          return { ...base, ...getPlaybooksFigures(data.status, data.queue) };
-      }
+      return { ...base, ...getStageFigures(stage.key, data) };
     },
   );
+}
+
+// The figures of a part that is set up.
+function getStageFigures(
+  key: SecurityPipelineStageKey,
+  data: {
+    status: SecuritySetupStatus;
+    queue: SecurityOverviewQueue;
+    now: Date;
+  },
+): StageFigures {
+  if (key === SecurityPipelineStageKey.Sources) {
+    return getSourcesFigures(data.status, data.now);
+  }
+
+  if (key === SecurityPipelineStageKey.Detections) {
+    return getDetectionsFigures(data.status);
+  }
+
+  if (key === SecurityPipelineStageKey.Cases) {
+    return getCasesFigures(data.status, data.queue);
+  }
+
+  return getPlaybooksFigures(data.status, data.queue);
 }
 
 /*

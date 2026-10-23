@@ -251,9 +251,9 @@ describe("the band", () => {
     }
 
     // A source and a rule are enough to watch; a playbook only responds.
-    expect(
-      headline({}, status({ connections: 1, enabledRules: 1 })).kind,
-    ).toBe(SecurityHeadlineKind.Quiet);
+    expect(headline({}, status({ connections: 1, enabledRules: 1 })).kind).toBe(
+      SecurityHeadlineKind.Quiet,
+    );
   });
 
   test("something waits for a person: Needs attention, each count a link to the page that lists it, in the docs' order, and only what has a count", () => {
@@ -323,9 +323,9 @@ describe("the band", () => {
     expect(
       headline({ openCases: 1, unassignedOpenCases: 1 }, status(SET_UP)).tone,
     ).toBe(SecurityStatusTone.Warning);
-    expect(
-      headline({ runsWaitingForApproval: 2 }, status(SET_UP)).tone,
-    ).toBe(SecurityStatusTone.Warning);
+    expect(headline({ runsWaitingForApproval: 2 }, status(SET_UP)).tone).toBe(
+      SecurityStatusTone.Warning,
+    );
     expect(
       headline({ openCases: 1, myOpenCases: 1 }, status(SET_UP)).tone,
     ).toBe(SecurityStatusTone.Warning);
@@ -362,9 +362,9 @@ describe("the band", () => {
   });
 
   test("what waits for a person outranks a project nothing watches, and cases in hand do too", () => {
-    expect(headline({ openCases: 1, unassignedOpenCases: 1 }, status()).kind).toBe(
-      SecurityHeadlineKind.NeedsAttention,
-    );
+    expect(
+      headline({ openCases: 1, unassignedOpenCases: 1 }, status()).kind,
+    ).toBe(SecurityHeadlineKind.NeedsAttention);
     expect(headline({ openCases: 1 }, status()).kind).toBe(
       SecurityHeadlineKind.InHand,
     );
@@ -384,9 +384,7 @@ describe("the band", () => {
 describe("watching, and gone quiet", () => {
   test("watching takes a source and a rule that is on", () => {
     expect(isSecurityWatching(status())).toBe(false);
-    expect(isSecurityWatching(status({ logsSourceEnabled: true }))).toBe(
-      false,
-    );
+    expect(isSecurityWatching(status({ logsSourceEnabled: true }))).toBe(false);
     expect(isSecurityWatching(status({ enabledRules: 3 }))).toBe(false);
     expect(
       isSecurityWatching(status({ connections: 1, enabledRules: 3 })),
@@ -398,7 +396,11 @@ describe("watching, and gone quiet", () => {
       milliseconds: number,
     ): boolean => {
       return isSecuritySourceSilent(
-        status({ ...SET_UP, eventsLast24Hours: 0, lastEventAt: ago(milliseconds) }),
+        status({
+          ...SET_UP,
+          eventsLast24Hours: 0,
+          lastEventAt: ago(milliseconds),
+        }),
         NOW,
       );
     };
@@ -521,9 +523,17 @@ describe("the pipeline's cells", () => {
         PageMap.SECURITY_PLAYBOOKS,
       ],
     ]);
-    expect([NOT_SET_UP_FIGURE, SET_UP_SOURCES, SET_UP_DETECTIONS, SET_UP_PLAYBOOKS]).toEqual(
-      ["Not set up", "Connect a source", "Turn on rules", "Add a playbook"],
-    );
+    expect([
+      NOT_SET_UP_FIGURE,
+      SET_UP_SOURCES,
+      SET_UP_DETECTIONS,
+      SET_UP_PLAYBOOKS,
+    ]).toEqual([
+      "Not set up",
+      "Connect a source",
+      "Turn on rules",
+      "Add a playbook",
+    ]);
   });
 
   test("sources: events today read as fine; a day without one as gone quiet, in amber, with when; never anything as no events yet", () => {
@@ -539,7 +549,11 @@ describe("the pipeline's cells", () => {
     ]);
 
     const silent: SecurityStageView = view(
-      status({ ...SET_UP, eventsLast24Hours: 0, lastEventAt: ago(3 * DAY_IN_MS) }),
+      status({
+        ...SET_UP,
+        eventsLast24Hours: 0,
+        lastEventAt: ago(3 * DAY_IN_MS),
+      }),
       "sources",
     );
 
@@ -565,7 +579,11 @@ describe("the pipeline's cells", () => {
 
   test("a last event within the day but no count (a read that failed) is said without alarm, and one from a clock ahead reads as now", () => {
     const recent: SecurityStageView = view(
-      status({ ...SET_UP, eventsLast24Hours: 0, lastEventAt: ago(5 * MINUTE_IN_MS) }),
+      status({
+        ...SET_UP,
+        eventsLast24Hours: 0,
+        lastEventAt: ago(5 * MINUTE_IN_MS),
+      }),
       "sources",
     );
 
@@ -591,7 +609,10 @@ describe("the pipeline's cells", () => {
     ).toBe("4 sources");
     expect(
       read(
-        view(status({ ...SET_UP, connections: 2, logsSourceEnabled: false }), "sources"),
+        view(
+          status({ ...SET_UP, connections: 2, logsSourceEnabled: false }),
+          "sources",
+        ),
       )[0],
     ).toBe("2 sources");
   });
@@ -614,14 +635,22 @@ describe("the pipeline's cells", () => {
     expect(some.statusTone).toBe(SecurityStatusTone.Neutral);
 
     const one: SecurityStageView = view(
-      status({ ...SET_UP, enabledRules: 1, recommendedRules: 0, recommendedRulesOn: 0 }),
+      status({
+        ...SET_UP,
+        enabledRules: 1,
+        recommendedRules: 0,
+        recommendedRulesOn: 0,
+      }),
       "detections",
     );
 
     expect(read(one)).toEqual(["1 rule on", null]);
     // More on than the library recommends never reads as "21 of 20".
     expect(
-      say(view(status({ ...SET_UP, recommendedRulesOn: 21 }), "detections").status),
+      say(
+        view(status({ ...SET_UP, recommendedRulesOn: 21 }), "detections")
+          .status,
+      ),
     ).toBe("20 of 20 recommended");
   });
 
@@ -719,7 +748,10 @@ describe("words", () => {
       }),
     ).toBe("1.234 Quellen");
     expect(
-      translateSecurityOverviewText(german, { plural: SOURCES_FIGURE, count: 1 }),
+      translateSecurityOverviewText(german, {
+        plural: SOURCES_FIGURE,
+        count: 1,
+      }),
     ).toBe("1 Quelle");
     // A sentence the language has no words for reads whole in English.
     expect(translateSecurityOverviewText(german, { text: ALL_CLEAR })).toBe(
@@ -766,7 +798,11 @@ function everyKey(): Array<string> {
     status(),
     status(SET_UP),
     status({ ...SET_UP, enabledPlaybooks: 0, recommendedRulesOn: 3 }),
-    status({ ...SET_UP, eventsLast24Hours: 0, lastEventAt: ago(3 * DAY_IN_MS) }),
+    status({
+      ...SET_UP,
+      eventsLast24Hours: 0,
+      lastEventAt: ago(3 * DAY_IN_MS),
+    }),
     status({ ...SET_UP, eventsLast24Hours: 0, lastEventAt: null }),
     status({ ...SET_UP, openCases: 3 }),
   ];

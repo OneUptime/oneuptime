@@ -96,9 +96,9 @@ function route(page: PageMap): Route {
  * Waiting for Approval. The words agree with the number ("1 open case").
  * A short list, one line each, read like a to-do list under its heading.
  */
-const AttentionLink: FunctionComponent<{ item: SecurityAttentionItem }> = (
-  props: { item: SecurityAttentionItem },
-): ReactElement => {
+const AttentionLink: FunctionComponent<{
+  item: SecurityAttentionItem;
+}> = (props: { item: SecurityAttentionItem }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (

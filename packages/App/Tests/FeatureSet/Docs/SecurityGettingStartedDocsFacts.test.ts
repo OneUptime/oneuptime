@@ -7,6 +7,7 @@ import {
   QUIET_SUMMARY_SOURCES_SILENT,
   QUIET_TITLE,
   SET_UP_SECURITY,
+  SecurityHeadline,
   SecurityHeadlineAction,
   SecurityHeadlineKind,
   SecurityOverviewQueue,
@@ -205,7 +206,7 @@ describe("Get Started with Security", () => {
       unassignedOpenCases: 0,
       runsWaitingForApproval: 0,
     };
-    const silent = getSecurityHeadline({
+    const silent: SecurityHeadline = getSecurityHeadline({
       queue,
       status,
       now: new Date("2026-10-23T12:00:00.000Z"),

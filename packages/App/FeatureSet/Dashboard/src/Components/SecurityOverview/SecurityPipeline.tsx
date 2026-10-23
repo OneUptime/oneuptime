@@ -81,74 +81,67 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
       aria-label={translator.translateText("How Security works here")}
     >
       <ol className="grid grid-cols-2 gap-px border-t border-gray-200 bg-gray-200 lg:grid-cols-4">
-        {views.map(
-          (view: SecurityStageView, index: number): ReactElement => {
-            return (
-              <li
-                key={view.key}
-                className={`relative ${CELL_ROWS} bg-white`}
-                data-testid={`security-pipeline-${view.key}`}
-                data-ready={view.isReady ? "true" : "false"}
-                data-tone={view.statusTone}
+        {views.map((view: SecurityStageView, index: number): ReactElement => {
+          return (
+            <li
+              key={view.key}
+              className={`relative ${CELL_ROWS} bg-white`}
+              data-testid={`security-pipeline-${view.key}`}
+              data-ready={view.isReady ? "true" : "false"}
+              data-tone={view.statusTone}
+            >
+              <AppLink
+                to={RouteUtil.populateRouteParams(RouteMap[view.page] as Route)}
+                className={`${CELL_ROWS} px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
               >
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[view.page] as Route,
-                  )}
-                  className={`${CELL_ROWS} px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500`}
-                >
-                  <>
-                    <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium uppercase leading-4 tracking-wide text-gray-500">
+                <>
+                  <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium uppercase leading-4 tracking-wide text-gray-500">
+                    <Icon
+                      icon={view.icon}
+                      className="h-3.5 w-3.5 flex-none text-gray-400"
+                    />
+                    <span className="min-w-0 break-words">
+                      {translator.translateText(view.title)}
+                    </span>
+                  </div>
+                  <div
+                    data-testid={`security-pipeline-${view.key}-figure`}
+                    className={`mt-1.5 break-words text-lg font-semibold leading-7 ${FIGURE_CLASS_NAMES[view.figureTone]}`}
+                  >
+                    {translateSecurityOverviewText(translator, view.figure)}
+                  </div>
+                  {view.status ? (
+                    <div
+                      data-testid={`security-pipeline-${view.key}-status`}
+                      className={`mt-1 flex items-start gap-1.5 text-sm ${STATUS_CLASS_NAMES[view.statusTone]}`}
+                    >
                       <Icon
-                        icon={view.icon}
-                        className="h-3.5 w-3.5 flex-none text-gray-400"
+                        icon={view.statusIcon}
+                        className="mt-0.5 h-4 w-4 flex-none"
                       />
                       <span className="min-w-0 break-words">
-                        {translator.translateText(view.title)}
+                        {translateSecurityOverviewText(translator, view.status)}
                       </span>
                     </div>
-                    <div
-                      data-testid={`security-pipeline-${view.key}-figure`}
-                      className={`mt-1.5 break-words text-lg font-semibold leading-7 ${FIGURE_CLASS_NAMES[view.figureTone]}`}
-                    >
-                      {translateSecurityOverviewText(translator, view.figure)}
-                    </div>
-                    {view.status ? (
-                      <div
-                        data-testid={`security-pipeline-${view.key}-status`}
-                        className={`mt-1 flex items-start gap-1.5 text-sm ${STATUS_CLASS_NAMES[view.statusTone]}`}
-                      >
-                        <Icon
-                          icon={view.statusIcon}
-                          className="mt-0.5 h-4 w-4 flex-none"
-                        />
-                        <span className="min-w-0 break-words">
-                          {translateSecurityOverviewText(
-                            translator,
-                            view.status,
-                          )}
-                        </span>
-                      </div>
-                    ) : (
-                      <div />
-                    )}
-                  </>
-                </AppLink>
-                {index < views.length - 1 ? (
-                  <span
-                    className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 max-lg:hidden"
-                    aria-hidden="true"
-                    data-testid="security-pipeline-arrow"
-                  >
-                    <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </li>
-            );
-          },
-        )}
+                  ) : (
+                    <div />
+                  )}
+                </>
+              </AppLink>
+              {index < views.length - 1 ? (
+                <span
+                  className="pointer-events-none absolute right-0 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm ring-1 ring-gray-200 max-lg:hidden"
+                  aria-hidden="true"
+                  data-testid="security-pipeline-arrow"
+                >
+                  <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
+                </span>
+              ) : (
+                <></>
+              )}
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );

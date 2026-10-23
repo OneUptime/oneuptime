@@ -1072,7 +1072,9 @@ test.describe("the overview's top card", () => {
       if (layout.width === 1280) {
         // One row: the cells share their top, and their figures one line.
         for (const index of [1, 2, 3]) {
-          expect(Math.abs(cells[index]!.y - cells[0]!.y)).toBeLessThanOrEqual(1);
+          expect(Math.abs(cells[index]!.y - cells[0]!.y)).toBeLessThanOrEqual(
+            1,
+          );
           expect(
             Math.abs(figures[index]!.y - figures[0]!.y),
           ).toBeLessThanOrEqual(1);
@@ -1081,9 +1083,9 @@ test.describe("the overview's top card", () => {
         for (const index of [0, 1, 2]) {
           const arrow: Box = await boxOf(arrows.nth(index));
           const line: number = cells[index]!.x + cells[index]!.width;
-          expect(Math.abs(arrow.x + arrow.width / 2 - line)).toBeLessThanOrEqual(
-            1.5,
-          );
+          expect(
+            Math.abs(arrow.x + arrow.width / 2 - line),
+          ).toBeLessThanOrEqual(1.5);
           expect(arrow.y).toBeGreaterThan(cells[index]!.y);
           expect(arrow.y + arrow.height).toBeLessThan(
             cells[index]!.y + cells[index]!.height,
@@ -1208,7 +1210,9 @@ test.describe("the overview's top card", () => {
       });
 
       await expect(band(page)).toHaveAttribute("data-kind", "quiet");
-      await expect(band(page).getByTestId("security-status-summary")).toHaveText(
+      await expect(
+        band(page).getByTestId("security-status-summary"),
+      ).toHaveText(
         "No open case and nothing waiting for an approval, but the last security event arrived 3 days ago.",
       );
       await expect(stage(page, "sources")).toContainText(
@@ -1229,7 +1233,9 @@ test.describe("the overview's top card", () => {
       );
       await screenshot(
         page,
-        theme === "dark" ? "overview-sources-silent-dark" : "overview-sources-silent",
+        theme === "dark"
+          ? "overview-sources-silent-dark"
+          : "overview-sources-silent",
       );
     }
   });
@@ -1242,7 +1248,9 @@ test.describe("the overview's top card", () => {
     await open(page, OVERVIEW_PATH, { fail: "status", width: 1280 });
 
     const failed: Locator = page.getByTestId("security-pipeline-error");
-    await expect(failed).toHaveText(/We could not load how Security is set up\./);
+    await expect(failed).toHaveText(
+      /We could not load how Security is set up\./,
+    );
     await expect(failed).not.toContainText("Server Error");
     await expect(page.getByTestId("security-pipeline")).toHaveCount(0);
     // The band still says what needs someone: the overview answered.
@@ -1271,7 +1279,9 @@ test.describe("the overview's top card", () => {
     await open(page, OVERVIEW_PATH, { fail: "overview", width: 1280 });
 
     const failed: Locator = page.getByTestId("security-overview-error");
-    await expect(failed).toContainText("We could not load the Security overview");
+    await expect(failed).toContainText(
+      "We could not load the Security overview",
+    );
     await expect(
       page.getByTestId("security-overview-error-message"),
     ).toHaveText("Something went wrong. Try again in a moment.");
@@ -1293,11 +1303,13 @@ test.describe("the overview's top card", () => {
     await band(page).getByTestId("security-run-setup-test").click();
 
     await expect(band(page)).toHaveAttribute("data-kind", "needs-attention");
-    await expect(band(page).getByTestId("security-setup-test-result")).toContainText(
-      "The test opened case CASE-150",
-    );
     await expect(
-      band(page).getByRole("link", { name: "1 open case nobody has picked up" }),
+      band(page).getByTestId("security-setup-test-result"),
+    ).toContainText("The test opened case CASE-150");
+    await expect(
+      band(page).getByRole("link", {
+        name: "1 open case nobody has picked up",
+      }),
     ).toBeVisible();
     await expect(stage(page, "cases")).toContainText("1 open case");
     await screenshot(page, "overview-test-attack-from-band");

@@ -450,8 +450,7 @@ describe("a project that has not set Security up", () => {
         .getByTestId(SECURITY_GETTING_STARTED_ID)
         .compareDocumentPosition(
           screen.getByTestId(SECURITY_OVERVIEW_STATUS_ID),
-        ) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
 
     await act(async () => {
@@ -1218,7 +1217,9 @@ describe("the pipeline", () => {
 
     // Between the four cells, never after the last.
     expect(arrows).toHaveLength(3);
-    expect(within(stage("playbooks")).queryByTestId("security-pipeline-arrow")).toBeNull();
+    expect(
+      within(stage("playbooks")).queryByTestId("security-pipeline-arrow"),
+    ).toBeNull();
     for (const arrow of arrows) {
       expect(arrow).toHaveAttribute("aria-hidden", "true");
       expect(arrow).toHaveClass("max-lg:hidden", "pointer-events-none");
@@ -1280,9 +1281,9 @@ describe("the pipeline", () => {
 
     expect(stage("sources")).toHaveTextContent("Last event 3 days ago");
     expect(stage("sources")).toHaveAttribute("data-tone", "warning");
-    expect(
-      screen.getByTestId("security-pipeline-sources-status"),
-    ).toHaveClass("text-amber-700");
+    expect(screen.getByTestId("security-pipeline-sources-status")).toHaveClass(
+      "text-amber-700",
+    );
     expect(stage("playbooks")).toHaveTextContent("1 step to approve");
     expect(stage("playbooks")).toHaveAttribute("data-tone", "warning");
   });
@@ -1362,7 +1363,9 @@ describe("a project with Security set up", () => {
       "1 playbook step waiting for approval",
     ]);
     // Nothing to send a test attack for: something is already here.
-    expect(within(attention).queryByTestId("security-run-setup-test")).toBeNull();
+    expect(
+      within(attention).queryByTestId("security-run-setup-test"),
+    ).toBeNull();
     expect(figures()).toBeInTheDocument();
     expect(screen.getByText("Cases Opened")).toBeInTheDocument();
     expect(stage("cases")).toHaveTextContent("3 open cases");
@@ -1579,9 +1582,7 @@ describe("the top card", () => {
       );
     });
 
-    expect(
-      screen.getByTestId(SECURITY_GETTING_STARTED_ID),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).toBeInTheDocument();
     expect(screen.queryByTestId(SECURITY_OVERVIEW_STATUS_ID)).toBeNull();
     // Remembered no more: the next visit opens on Get started too.
     expect(window.localStorage.getItem(DISMISS_KEY)).toBeNull();
@@ -1777,11 +1778,7 @@ describe("the top card", () => {
 
     const disc: Element = band().querySelector('[aria-hidden="true"]')!;
 
-    expect(disc).toHaveClass(
-      "max-sm:hidden",
-      "rounded-full",
-      "bg-emerald-500",
-    );
+    expect(disc).toHaveClass("max-sm:hidden", "rounded-full", "bg-emerald-500");
   });
 });
 
@@ -1837,9 +1834,7 @@ describe("before the first reads land, and when they cannot", () => {
     const failed: HTMLElement = screen.getByTestId("security-overview-error");
 
     expect(failed).toHaveAttribute("role", "alert");
-    expect(failed).toHaveTextContent(
-      "We could not load the Security overview",
-    );
+    expect(failed).toHaveTextContent("We could not load the Security overview");
     expect(
       screen.getByTestId("security-overview-error-message"),
     ).toHaveTextContent("Something went wrong. Try again in a moment.");
