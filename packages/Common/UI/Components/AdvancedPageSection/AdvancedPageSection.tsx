@@ -10,6 +10,7 @@ import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
   bringPageAnchorIntoView,
   getPageAnchor,
+  markPageAnchorLanded,
 } from "../../Utils/PageAnchor";
 import React, {
   FunctionComponent,
@@ -45,9 +46,12 @@ import React, {
  * whose address names an item's key after its "#" (Utils/PageAnchor) -
  * "Pick a Runner" opening a repository's ".../settings#runner". It opens
  * at once, never drawn folded first, and the card whose id is that key
- * (Card's `id`) is brought into view under the sticky header - or, for a
- * card with no id, the section itself. Each time the address names one of
- * its items again it does the same; folded by hand, it stays folded.
+ * (Card's `id`) is brought into view, its divider right under the sticky
+ * header - or, for a card with no id, the section itself. The card is
+ * tinted for a moment and holds the keyboard's focus
+ * (markPageAnchorLanded), so the setting the link was for is the one the
+ * eye and Tab find. Each time the address names one of its items again it
+ * does the same; folded by hand, it stays folded.
  *
  * It was called "Advanced". It is "More settings" now, for the reason
  * FoldedSectionTitles gives: it says what is inside rather than who it is
@@ -165,7 +169,23 @@ const AdvancedPageSection: FunctionComponent<ComponentProps> = (
       `[id="${anchoredKey}"]`,
     );
 
-    return bringPageAnchorIntoView(card || section);
+    const stopBringingIntoView: () => void = bringPageAnchorIntoView(
+      card || section,
+    );
+
+    /*
+     * The card the link was for, marked among the ones around it. A card
+     * with no place of its own lands on the whole section: nothing in it
+     * is the one, so nothing is marked.
+     */
+    const unmark: (() => void) | null = card
+      ? markPageAnchorLanded(card)
+      : null;
+
+    return (): void => {
+      stopBringingIntoView();
+      unmark?.();
+    };
   }, [anchoredKey]);
 
   return (

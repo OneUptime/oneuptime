@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Обход этого устройства уже выполняется. Дождитесь его завершения, затем запустите обход снова.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Зонд этого устройства работает на версии, которая не умеет выполнять SNMP-обход. Обновите зонд до последней версии, затем повторите обход.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Обход этого устройства ещё не выполнялся. Для обхода нужно разрешение «Создание диагностики сетевого устройства».",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "Команды GitHub и проверки по продакшену, Runner, на котором работает ИИ, и куда открываются пул-реквесты ИИ."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "Команды GitHub, проверки по продакшену, где работает ИИ и куда открываются его пул-реквесты."
 }

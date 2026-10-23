@@ -23,7 +23,12 @@ import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
-import { PAGE_ANCHOR_SCROLL_MARGIN_TOP } from "../../../UI/Utils/PageAnchor";
+import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+  PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+} from "../../../UI/Utils/PageAnchor";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   MORE_FIELDS_SECTION_TITLE,
@@ -562,8 +567,10 @@ describe("AdvancedPageSection", () => {
  * settings as well" - the maintainer). The section opens by itself when the
  * page's address names one of its items after the "#" (UI/Utils/
  * PageAnchor), at once - never drawn folded first - and brings the card
- * whose id is that key into view under the sticky header; a card with no id
- * of its own, the section itself. Folded by hand, it stays folded.
+ * whose id is that key into view, its divider right under the sticky
+ * header; a card with no id of its own, the section itself. The card the
+ * link was for is tinted for a moment and holds the keyboard's focus, so
+ * the eye and Tab find it first. Folded by hand, it stays folded.
  */
 describe("opens by itself at a card the page's address names", () => {
   // What scrollIntoView was asked of, in order (jsdom has none of its own).
@@ -619,6 +626,15 @@ describe("opens by itself at a card the page's address names", () => {
         <Card
           title="Daily limits"
           id={props.withIds === false ? undefined : "daily-limits"}
+          buttons={[
+            {
+              title: "Change limits",
+              buttonStyle: ButtonStyleType.NORMAL,
+              onClick: (): void => {
+                // Nothing to change here.
+              },
+            },
+          ]}
         >
           <div>daily</div>
         </Card>
@@ -647,10 +663,97 @@ describe("opens by itself at a card the page's address names", () => {
     await waitFor(() => {
       expect(scrolled).toEqual([document.getElementById("daily-limits")]);
     });
-    // The card keeps clear of the sticky header as it is brought into view.
+    /*
+     * The card - a section of this one card - lands with its divider right
+     * under the sticky header: its own padding is the room above its title.
+     */
     expect(document.getElementById("daily-limits")!.style.scrollMarginTop).toBe(
-      PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+      PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
     );
+  });
+
+  test("the card a link lands on is marked among the others, and holds the keyboard's focus so Tab goes on from it", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section />);
+
+    const landed: HTMLElement = document.getElementById("daily-limits")!;
+    const other: HTMLElement = document.getElementById("investigation-rules")!;
+
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(other).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+
+    // A card is no control: it takes the focus for as long as it holds it.
+    expect(document.activeElement).toBe(landed);
+    expect(landed).toHaveAttribute("tabindex", "-1");
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+
+    // Tab goes on to the card's own controls; the card is out of the order.
+    const user: UserEvent = userEvent.setup({ delay: null });
+    const button: HTMLElement = within(landed).getByRole("button", {
+      name: "Change limits",
+    });
+    await user.tab();
+    expect(document.activeElement).toBe(button);
+    expect(landed).not.toHaveAttribute("tabindex");
+    expect(landed).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+  });
+
+  test("a field already holding the focus keeps it; the card is still marked", async () => {
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section />);
+
+    const landed: HTMLElement = document.getElementById("daily-limits")!;
+
+    expect(landed).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(document.activeElement).toBe(field);
+    expect(landed).not.toHaveAttribute("tabindex");
+    expect(landed).not.toHaveAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+
+    field.remove();
+  });
+
+  test("landing on a card with no place of its own marks nothing and takes no focus: nothing in the section is the one", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    render(<Section withIds={false} />);
+
+    const section: HTMLElement = screen.getByTestId(
+      ADVANCED_PAGE_SECTION_TEST_ID,
+    );
+
+    await waitFor(() => {
+      expect(scrolled).toEqual([section]);
+    });
+    expect(
+      document.querySelectorAll(`[${PAGE_ANCHOR_LANDED_ATTRIBUTE}]`),
+    ).toHaveLength(0);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("a link that lands on another card moves the mark to it; a page that goes away takes it along", async () => {
+    window.history.replaceState(null, "", "#daily-limits");
+
+    const view: ReturnType<typeof render> = render(<Section />);
+
+    const daily: HTMLElement = document.getElementById("daily-limits")!;
+    const rules: HTMLElement = document.getElementById("investigation-rules")!;
+    expect(daily).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+
+    window.history.replaceState(null, "", "#investigation-rules");
+    view.rerender(<Section />);
+
+    await waitFor(() => {
+      expect(rules).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    });
+    expect(daily).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+
+    view.unmount();
+    expect(rules).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
   });
 
   test("a card with no place of its own: the section itself is brought into view, clear of the header", async () => {

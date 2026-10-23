@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Der kører allerede en walk af denne enhed. Vent, til den er færdig, og start så en ny walk.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "Denne enheds sonde kører en version, der ikke kan lave SNMP-walks. Opdater sonden til den nyeste version, og lav så walk igen.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Der er endnu ikke kørt en walk af denne enhed. For at køre en walk skal du have tilladelsen Opret netværksenhedsdiagnostik.",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub-kommandoer og produktionsgennemgange, den Runner, AI arbejder på, og hvor AI's pull requests åbnes."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub-kommandoer, produktionsgennemgange, hvor AI arbejder, og hvor AI's pull requests åbnes."
 }

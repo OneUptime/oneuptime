@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "このデバイスはすでにウォーク中です。そのウォークが終わるのを待ってから、もう一度ウォークしてください。",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "このデバイスのプローブは SNMP ウォークに対応していないバージョンで動作しています。プローブを最新バージョンに更新してから、もう一度ウォークしてください。",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "このデバイスはまだウォークされていません。ウォークを実行するには「ネットワークデバイスの診断の作成」権限が必要です。",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub コマンドと本番レビュー、AI が作業する Runner、AI のプルリクエストの作成先です。"
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub コマンド、本番レビュー、AI が作業する場所、AI のプルリクエストの作成先です。"
 }

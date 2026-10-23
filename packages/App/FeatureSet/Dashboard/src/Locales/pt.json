@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "Já há um walk em andamento neste dispositivo. Aguarde esse walk terminar e faça o walk de novo.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "A sonda deste dispositivo executa uma versão que não consegue fazer walks SNMP. Atualize a sonda para a versão mais recente e faça o walk de novo.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "Ainda não foi feito um walk deste dispositivo. Para fazer um walk, é preciso a permissão Criar diagnóstico de dispositivo de rede.",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "Comandos do GitHub e revisões de produção, o Runner em que a IA trabalha e onde os pull requests da IA são abertos."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "Comandos do GitHub, revisões de produção, onde a IA trabalha e onde os pull requests da IA são abertos."
 }

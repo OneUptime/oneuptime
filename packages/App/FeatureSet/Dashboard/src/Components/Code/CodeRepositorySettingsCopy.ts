@@ -159,10 +159,12 @@ export const CODE_REPOSITORY_SETTINGS_COPY: {
   runnerCardDescription: translationKey("Where AI works in this repository."),
   /*
    * Under More settings' title once it is open: what it holds, in the order
-   * it holds it.
+   * it holds it, in the words its cards use ("Where AI works in this
+   * repository.", "Where AI's pull requests open") - never "the Runner AI
+   * works on", which read as one name, "Runner AI".
    */
   moreSettingsDescription: translationKey(
-    "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.",
+    "GitHub commands, production reviews, where AI works, and where its pull requests open.",
   ),
   /*
    * More settings' chip for a repository that picks no Runner where there

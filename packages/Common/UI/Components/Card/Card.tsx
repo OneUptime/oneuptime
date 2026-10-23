@@ -2,7 +2,10 @@ import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import { useIsCardSection } from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
-import { PAGE_ANCHOR_SCROLL_MARGIN_TOP } from "../../Utils/PageAnchor";
+import {
+  PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
+} from "../../Utils/PageAnchor";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -120,14 +123,26 @@ export interface ComponentProps {
 
 /*
  * What a card with a place of its own on the page (`id`) carries, so a link
- * to it lands with the card's top under the sticky header, not behind it.
+ * to it lands with the card's top under the sticky header, not behind it:
+ * a card of its own with the page's gap above its frame, a section of a
+ * card (one of More settings') with its divider right under the header.
  */
 const getCardAnchorStyle: (
   id: string | undefined,
+  isSection: boolean,
 ) => React.CSSProperties | undefined = (
   id: string | undefined,
+  isSection: boolean,
 ): React.CSSProperties | undefined => {
-  return id ? { scrollMarginTop: PAGE_ANCHOR_SCROLL_MARGIN_TOP } : undefined;
+  if (!id) {
+    return undefined;
+  }
+
+  return {
+    scrollMarginTop: isSection
+      ? PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP
+      : PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  };
 };
 
 /*
@@ -718,7 +733,7 @@ const Card: FunctionComponent<ComponentProps> = (
     return (
       <div
         id={props.id}
-        style={getCardAnchorStyle(props.id)}
+        style={getCardAnchorStyle(props.id, true)}
         data-testid="card"
         data-card-surface="section"
         className={`${CARD_SECTION_CLASS_NAME} ${props.className || ""}`}
@@ -741,7 +756,7 @@ const Card: FunctionComponent<ComponentProps> = (
     <React.Fragment>
       <div
         id={props.id}
-        style={getCardAnchorStyle(props.id)}
+        style={getCardAnchorStyle(props.id, false)}
         data-testid="card"
         data-fill-height={fillsHeight ? "true" : undefined}
         className={frameBoxClassName}

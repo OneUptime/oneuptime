@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "此裝置正在被遍歷。請等待該遍歷完成後再重新遍歷。",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "此裝置的探測器執行的版本不支援 SNMP 遍歷。請將探測器更新到最新版本，然後重新遍歷。",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "此裝置尚未遍歷。要執行遍歷，需要「建立網路裝置診斷」權限。",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub 指令和正式環境審查、AI 工作所在的 Runner，以及 AI 的 Pull Request 在哪裡開啟。"
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub 指令、正式環境審查、AI 工作的位置，以及 AI 的 Pull Request 在哪裡開啟。"
 }

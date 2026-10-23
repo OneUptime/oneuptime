@@ -1713,6 +1713,54 @@ html.dark [data-ou-logo-plate] {
 }
 
 /*
+ * The place a link landed on (UI/Utils/PageAnchor, markPageAnchorLanded):
+ * "Pick a Runner" lands on a repository's Runner, inside More settings. It
+ * is tinted and the tint fades over PAGE_ANCHOR_LANDED_IN_MS, so the eye
+ * finds the setting the link was for among the ones around it; a reader
+ * who asks for less motion gets the tint held still until the mark goes.
+ * It fades to clear: the places marked, a card's sections, have no
+ * background of their own - the card's shows through.
+ */
+@keyframes ou-page-anchor-landed {
+  from {
+    background-color: var(--ou-page-anchor-landed-tint);
+  }
+
+  to {
+    background-color: transparent;
+  }
+}
+
+[data-page-anchor-landed] {
+  --ou-page-anchor-landed-tint: rgba(99, 102, 241, 0.12);
+}
+
+html.dark [data-page-anchor-landed] {
+  --ou-page-anchor-landed-tint: rgba(129, 140, 248, 0.18);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-page-anchor-landed] {
+    animation: ou-page-anchor-landed 2.4s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-page-anchor-landed] {
+    background-color: var(--ou-page-anchor-landed-tint);
+  }
+}
+
+/*
+ * The focus a landing gives the place is not a control's: no ring of its
+ * own (the tint says where it is). Tab goes on from it to its controls,
+ * whose rings are their own.
+ */
+[data-page-anchor-focused]:focus {
+  outline: none;
+}
+
+/*
  * A spinner's arc, and any top border drawn in a colour of its own
  * (border-t-*), over a border colour the rules above re-colour: their
  * border-color paints all four sides, so the arc took the track's colour,

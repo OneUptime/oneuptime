@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "This device is already being walked. Wait for that walk to finish, then walk it again.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub commands, production reviews, where AI works, and where its pull requests open."
 }

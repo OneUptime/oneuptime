@@ -16,7 +16,10 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement } from "react";
+import { PAGE_ANCHOR_LANDED_ATTRIBUTE } from "../../../UI/Utils/PageAnchor";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
@@ -39,7 +42,9 @@ import { getJestSpyOn } from "../../Spy";
  *     Off", "Production Review: Off", "Runner: prod-eu-west-1", a limit, a
  *     label of its own, commands.
  *   - A link that names a setting after the page's "#" lands on it with More
- *     settings open: "Pick a Runner" opens ".../settings#runner".
+ *     settings open: "Pick a Runner" opens ".../settings#runner". The
+ *     setting landed on is the one marked among the others, and holds the
+ *     keyboard's focus, so Tab goes on to its own controls.
  *   - Cards, not a stepped dialog: the Edit Settings dialog walked four
  *     steps - Pull Requests, GitHub Commands, Runner, Build & Test - and
  *     Build & Test is gone: the code agent reads how to build and test from
@@ -604,7 +609,7 @@ describe("on top, the repository itself; every other setting under More settings
     expect(body).not.toHaveClass("invisible");
     // Open, it says what it holds, in the order it holds it.
     expect(folded()).toHaveTextContent(
-      "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.",
+      "GitHub commands, production reviews, where AI works, and where its pull requests open.",
     );
   });
 
@@ -680,6 +685,46 @@ describe("a link to a setting opens More settings there", () => {
         name: "Review Pull Requests Against Production",
       }),
     );
+  });
+
+  test("the setting a link lands on is the one marked among them, and holds the focus: Tab goes on to its switch", async () => {
+    stored = { isGitHubCommandsEnabled: true };
+    drawAt(CodeRepositorySetting.GitHubCommands);
+
+    const toggle: HTMLElement = await screen.findByRole("switch", {
+      name: "Respond to GitHub Commands",
+    });
+    const commands: HTMLElement = document.getElementById(
+      CodeRepositorySetting.GitHubCommands,
+    )!;
+
+    expect(commands).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(
+      Array.from(
+        document.querySelectorAll(`[${PAGE_ANCHOR_LANDED_ATTRIBUTE}]`),
+      ).map((element: Element): string => {
+        return element.id;
+      }),
+    ).toEqual([CodeRepositorySetting.GitHubCommands]);
+    expect(document.activeElement).toBe(commands);
+
+    const user: UserEvent = userEvent.setup({ delay: null });
+    await user.tab();
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  test("opened at #runner, as Pick a Runner opens it: the Runner card is the one marked, and holds the focus", async () => {
+    drawAt(CodeRepositorySetting.Runner);
+
+    const runner: HTMLElement = document.getElementById(
+      CodeRepositorySetting.Runner,
+    )!;
+
+    expect(runner).toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+    expect(document.activeElement).toBe(runner);
+    expect(
+      document.getElementById(CodeRepositorySetting.GitHubCommands),
+    ).not.toHaveAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
   });
 
   test("opened at #github-commands: the switch is in sight and flips as it does anywhere", async () => {
@@ -1645,11 +1690,21 @@ describe("the settings' words and rules, as plain functions", () => {
 
   test("More settings' description says what it holds, in the order it holds it, in two short lines at most", () => {
     expect(CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription).toBe(
-      "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.",
+      "GitHub commands, production reviews, where AI works, and where its pull requests open.",
     );
     expect(
       CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription.length,
     ).toBeLessThanOrEqual(150);
+    /*
+     * In the words its cards use - "Where AI works in this repository." -
+     * never "the Runner AI works on", which read as one name.
+     */
+    expect(CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription).toContain(
+      "where AI works",
+    );
+    expect(CODE_REPOSITORY_SETTINGS_COPY.moreSettingsDescription).not.toContain(
+      "Runner AI",
+    );
   });
 });
 

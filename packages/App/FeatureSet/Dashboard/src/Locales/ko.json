@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "이 디바이스는 이미 워크 중입니다. 그 워크가 끝날 때까지 기다린 다음 다시 워크하세요.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "이 디바이스의 프로브는 SNMP 워크를 지원하지 않는 버전으로 실행 중입니다. 프로브를 최신 버전으로 업데이트한 다음 다시 워크하세요.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "이 디바이스는 아직 워크하지 않았습니다. 워크를 실행하려면 '네트워크 디바이스 진단 생성' 권한이 필요합니다.",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "GitHub 명령과 프로덕션 리뷰, AI가 작업하는 Runner, AI의 풀 리퀘스트가 열리는 곳입니다."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "GitHub 명령, 프로덕션 리뷰, AI가 작업하는 곳, AI의 풀 리퀘스트가 열리는 곳입니다."
 }

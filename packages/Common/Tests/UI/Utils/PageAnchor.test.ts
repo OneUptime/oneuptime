@@ -8,13 +8,18 @@ import {
 } from "@jest/globals";
 import Route from "../../../Types/API/Route";
 import {
+  PAGE_ANCHOR_FOCUSED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_ATTRIBUTE,
+  PAGE_ANCHOR_LANDED_IN_MS,
   PAGE_ANCHOR_RELEASING_EVENTS,
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP,
   PAGE_ANCHOR_SETTLE_IN_MS,
   bringPageAnchorIntoView,
   getPageAnchor,
   getRouteToPageAnchor,
   isPageAnchorName,
+  markPageAnchorLanded,
 } from "../../../UI/Utils/PageAnchor";
 
 /*
@@ -35,7 +40,12 @@ import {
  *     the person scrolls, touches, clicks or types, or whoever asked stops
  *     it; a place gone from the page is never scrolled to;
  *   - it lands under the page's sticky header, whose height MasterPage
- *     publishes.
+ *     publishes - a card with the page's gap above it, a section of a card
+ *     with its divider right under the header;
+ *   - the place a link landed on is marked for a moment (Theme.css tints
+ *     it, the tint fading) and takes the keyboard's focus when nothing else
+ *     holds it, giving it back - and the tabindex it took - when the focus
+ *     moves on.
  */
 
 // ---- frames, drawn when a test says so -----------------------------------
@@ -470,5 +480,129 @@ describe("bringing a place into view", () => {
     expect(PAGE_ANCHOR_SCROLL_MARGIN_TOP).toBe(
       "calc(var(--app-header-height, 0px) + 1.5rem)",
     );
+  });
+
+  test("a section of a card lands with its divider right under the sticky header, nothing of the section above it in sight", () => {
+    expect(PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP).toBe(
+      "var(--app-header-height, 0px)",
+    );
+  });
+});
+
+/*
+ * "Pick a Runner" lands on a repository's Runner among six settings: on a
+ * tall screen the page cannot scroll it to the top, and the one the link
+ * was for must still be the one the eye finds - and the one Tab goes on
+ * from, not the top of the page.
+ */
+describe("marking the place a link landed on", () => {
+  test("marked at once, for the tint's time, then not", () => {
+    const runner: HTMLElement = place();
+
+    markPageAnchorLanded(runner);
+    expect(runner.getAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe("true");
+
+    jest.advanceTimersByTime(PAGE_ANCHOR_LANDED_IN_MS - 1);
+    expect(runner.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(true);
+
+    jest.advanceTimersByTime(1);
+    expect(runner.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(false);
+  });
+
+  test("the tint's time is 2.4 s unless told otherwise - the fade Theme.css draws", () => {
+    expect(PAGE_ANCHOR_LANDED_IN_MS).toBe(2400);
+
+    const runner: HTMLElement = place();
+    markPageAnchorLanded(runner, { landedInMs: 100 });
+
+    jest.advanceTimersByTime(100);
+    expect(runner.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(false);
+  });
+
+  test("unmarked at once by whoever asked: a page that goes away, a link that lands elsewhere - no timer left", () => {
+    const runner: HTMLElement = place();
+
+    const unmark: () => void = markPageAnchorLanded(runner);
+    expect(jest.getTimerCount()).toBe(1);
+
+    unmark();
+    expect(runner.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(false);
+    expect(jest.getTimerCount()).toBe(0);
+
+    // Twice is once.
+    expect(() => {
+      unmark();
+    }).not.toThrow();
+  });
+
+  test("with nothing focused - a page just opened - it takes the keyboard's focus, without scrolling, and gives it back when the focus moves on", () => {
+    const runner: HTMLElement = place();
+    const edit: HTMLButtonElement = document.createElement("button");
+    runner.appendChild(edit);
+
+    const focusCalls: Array<unknown> = [];
+    const focus: (options?: FocusOptions) => void = runner.focus.bind(runner);
+    runner.focus = (options?: FocusOptions): void => {
+      focusCalls.push(options);
+      focus(options);
+    };
+
+    expect(document.activeElement).toBe(document.body);
+
+    markPageAnchorLanded(runner);
+
+    expect(document.activeElement).toBe(runner);
+    // bringPageAnchorIntoView brings it into view, under the header.
+    expect(focusCalls).toEqual([{ preventScroll: true }]);
+    // No control: in the focus order only while it holds the focus.
+    expect(runner.getAttribute("tabindex")).toBe("-1");
+    expect(runner.getAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe("true");
+
+    // Tab goes on to its own controls; it leaves the order again.
+    edit.focus();
+    expect(runner.hasAttribute("tabindex")).toBe(false);
+    expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+    // The tint is the mark's: it stays its time.
+    expect(runner.hasAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe(true);
+  });
+
+  test("a place that can take the focus of its own keeps its tabindex", () => {
+    const runner: HTMLElement = place();
+    runner.setAttribute("tabindex", "0");
+
+    markPageAnchorLanded(runner);
+    expect(document.activeElement).toBe(runner);
+
+    runner.blur();
+    expect(runner.getAttribute("tabindex")).toBe("0");
+    expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+  });
+
+  test("focus somewhere already - a field the person is typing in - is never taken", () => {
+    const runner: HTMLElement = place();
+    const field: HTMLInputElement = document.createElement("input");
+    document.body.appendChild(field);
+    field.focus();
+
+    markPageAnchorLanded(runner);
+
+    expect(document.activeElement).toBe(field);
+    expect(runner.hasAttribute("tabindex")).toBe(false);
+    expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
+    // It is still the place the link was for.
+    expect(runner.getAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE)).toBe("true");
+  });
+
+  test("a place that cannot take the focus - out of sight - keeps none of what it was given to take it", () => {
+    const runner: HTMLElement = place();
+    runner.focus = (): void => {
+      // A hidden element: the browser does not move the focus.
+    };
+
+    markPageAnchorLanded(runner);
+
+    expect(document.activeElement).toBe(document.body);
+    expect(runner.hasAttribute("tabindex")).toBe(false);
+    expect(runner.hasAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE)).toBe(false);
   });
 });

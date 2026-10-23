@@ -15,7 +15,11 @@ import Route from "../../Types/API/Route";
  *   - the place is brought into view under the page's sticky header, and
  *     kept there while the page around it settles - the cards above it load
  *     and grow, a fold opens - until the person scrolls, clicks, touches or
- *     types, when where the page is becomes theirs to say.
+ *     types, when where the page is becomes theirs to say;
+ *   - the place a link landed on is tinted for a moment, the tint fading,
+ *     and holds the keyboard's focus (markPageAnchorLanded): the eye finds
+ *     the setting the link was for among the ones around it, and Tab goes
+ *     on from it, not from the top of the page.
  *
  * React-free, so App's tests and any page read the same rules.
  */
@@ -81,6 +85,16 @@ export function getRouteToPageAnchor(route: Route, anchor: string): Route {
  */
 export const PAGE_ANCHOR_SCROLL_MARGIN_TOP: string =
   "calc(var(--app-header-height, 0px) + 1.5rem)";
+
+/*
+ * Where a place drawn as a section of a card lands - a card in More
+ * settings, whose sections a divider parts: with its divider right under
+ * the sticky header, its own padding the room above its title. With the
+ * page's gap above it as well, a strip of the setting above it showed
+ * between the header and the divider, cut off mid-line.
+ */
+export const PAGE_ANCHOR_SECTION_SCROLL_MARGIN_TOP: string =
+  "var(--app-header-height, 0px)";
 
 /*
  * How long a place is kept in view while the page around it settles: long
@@ -210,4 +224,102 @@ export function bringPageAnchorIntoView(
   scheduleScroll();
 
   return stop;
+}
+
+/*
+ * What the place a link landed on carries while it is marked:
+ * Styles/Theme.css tints it and fades the tint out - or, for a reader who
+ * asks for less motion, holds it still until the mark goes.
+ */
+export const PAGE_ANCHOR_LANDED_ATTRIBUTE: string = "data-page-anchor-landed";
+
+/*
+ * What a place carries while it holds the focus a landing gave it: no
+ * focus ring of its own (Theme.css) - it is not a control, and the tint
+ * says where it is. It goes, with the tabindex that let the place take the
+ * focus, when the focus moves on.
+ */
+export const PAGE_ANCHOR_FOCUSED_ATTRIBUTE: string = "data-page-anchor-focused";
+
+// How long a place a link landed on stays marked: the tint's fade (Theme.css).
+export const PAGE_ANCHOR_LANDED_IN_MS: number = 2400;
+
+export interface PageAnchorLandedOptions {
+  // How long it stays marked; PAGE_ANCHOR_LANDED_IN_MS when left out.
+  landedInMs?: number | undefined;
+}
+
+/*
+ * Marks the place a link landed on - "Pick a Runner" landing on a
+ * repository's Runner - for a moment (PAGE_ANCHOR_LANDED_ATTRIBUTE), so the
+ * eye finds it among the settings around it: on a tall screen the page
+ * cannot scroll a setting near its end to the top, and the one the link was
+ * for is not the first one in sight.
+ *
+ * And, when nothing else holds the keyboard's focus - a page just opened -
+ * gives it to the place, so Tab goes on from the setting the link was for
+ * (its Edit, its switch) rather than from the top of the page, and a screen
+ * reader reads where it landed. A place that cannot take focus takes it
+ * for as long as it holds it (tabindex -1). Focus somewhere already - a
+ * field the person is typing in - is never taken.
+ *
+ * Returns what unmarks it at once: a page that goes away, or a link that
+ * lands somewhere else.
+ */
+export function markPageAnchorLanded(
+  element: HTMLElement,
+  options?: PageAnchorLandedOptions | undefined,
+): () => void {
+  let timer: number | null = null;
+
+  const unmark: () => void = (): void => {
+    if (timer !== null) {
+      window.clearTimeout(timer);
+      timer = null;
+    }
+
+    element.removeAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE);
+  };
+
+  element.setAttribute(PAGE_ANCHOR_LANDED_ATTRIBUTE, "true");
+
+  const focused: Element | null = document.activeElement;
+  const isFocusFree: boolean =
+    !focused ||
+    focused === document.body ||
+    focused === document.documentElement;
+
+  if (isFocusFree && typeof element.focus === "function") {
+    const hadTabIndex: boolean = element.hasAttribute("tabindex");
+
+    const release: () => void = (): void => {
+      element.removeAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE);
+
+      if (!hadTabIndex) {
+        element.removeAttribute("tabindex");
+      }
+    };
+
+    if (!hadTabIndex) {
+      element.setAttribute("tabindex", "-1");
+    }
+
+    element.setAttribute(PAGE_ANCHOR_FOCUSED_ATTRIBUTE, "true");
+    // It is brought into view, under the header, by bringPageAnchorIntoView.
+    element.focus({ preventScroll: true });
+
+    if (document.activeElement === element) {
+      element.addEventListener("blur", release, { once: true });
+    } else {
+      // It could not take the focus (out of sight): it keeps none of this.
+      release();
+    }
+  }
+
+  timer = window.setTimeout(
+    unmark,
+    options?.landedInMs ?? PAGE_ANCHOR_LANDED_IN_MS,
+  );
+
+  return unmark;
 }

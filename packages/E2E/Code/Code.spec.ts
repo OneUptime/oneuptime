@@ -1266,7 +1266,7 @@ test.describe("a repository's settings", () => {
     await expect(
       moreSettings(page).getByTestId("folded-section-description"),
     ).toHaveText(
-      "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.",
+      "GitHub commands, production reviews, where AI works, and where its pull requests open.",
     );
     await expectNoSidewaysScroll(page);
     await screenshot(page, testInfo, "code-repository-more-settings-open");
@@ -2450,6 +2450,26 @@ test.describe("a repository's Runner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
+    /*
+     * Which settings were marked as landed on, kept as they are marked: the
+     * mark is held for the tint's 2.4 s only (PAGE_ANCHOR_LANDED_IN_MS).
+     */
+    await page.addInitScript(() => {
+      const landed: Array<string> = [];
+      (window as unknown as { __landed: Array<string> }).__landed = landed;
+      new MutationObserver((records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          const target: Element = record.target as Element;
+          if (target.hasAttribute("data-page-anchor-landed")) {
+            landed.push(target.id);
+          }
+        }
+      }).observe(document, {
+        attributes: true,
+        attributeFilter: ["data-page-anchor-landed"],
+        subtree: true,
+      });
+    });
     await openRepository(
       page,
       REPOSITORY.checkout,
@@ -2469,7 +2489,41 @@ test.describe("a repository's Runner", () => {
     await expect(
       settingsCard(page).getByRole("button", { name: "Edit" }),
     ).toBeInViewport();
+
+    /*
+     * As high in the window as the page lets it go: its divider where the
+     * sticky header ends (the fixture draws none), no strip of the setting
+     * above it in sight - unless the page ends first.
+     */
+    await expect
+      .poll(async (): Promise<number> => {
+        return await page.evaluate((): number => {
+          const card: Element = document.getElementById("runner")!;
+          const top: number = card.getBoundingClientRect().top;
+          const lowestScroll: number =
+            document.documentElement.scrollHeight - window.innerHeight;
+          const highestTop: number = Math.max(
+            0,
+            top + window.scrollY - lowestScroll,
+          );
+          return Math.round(Math.abs(top - highestTop));
+        });
+      })
+      .toBe(0);
+    // The one marked among the six, and the one holding the focus.
+    expect(
+      await page.evaluate((): Array<string> => {
+        return (window as unknown as { __landed: Array<string> }).__landed;
+      }),
+    ).toEqual(["runner"]);
+    await expect(settingsCard(page)).toBeFocused();
     await screenshot(page, testInfo, "code-repository-settings-at-runner");
+
+    // So Tab goes on to its Edit, not to the top of the page.
+    await page.keyboard.press("Tab");
+    await expect(
+      settingsCard(page).getByRole("button", { name: "Edit" }),
+    ).toBeFocused();
   });
 });
 
@@ -3480,7 +3534,7 @@ test.describe("a repository's pull requests, reviewed against production", () =>
         .getByTestId("code-repository-more-settings")
         .getByTestId("folded-section-description"),
     ).toHaveText(
-      "GitHub-Befehle und Produktionsprüfungen, der Runner, auf dem die KI arbeitet, und wo die Pull Requests der KI geöffnet werden.",
+      "GitHub-Befehle, Produktionsprüfungen, wo die KI arbeitet und wo ihre Pull Requests geöffnet werden.",
     );
   });
 });

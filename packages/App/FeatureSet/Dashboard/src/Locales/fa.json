@@ -33649,5 +33649,5 @@
   "This device is already being walked. Wait for that walk to finish, then walk it again.": "این دستگاه هم‌اکنون در حال پیمایش است. صبر کنید آن پیمایش تمام شود، سپس دوباره پیمایش کنید.",
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.": "پراب این دستگاه نسخه‌ای را اجرا می‌کند که نمی‌تواند SNMP را پیمایش کند. پراب را به آخرین نسخه به‌روزرسانی کنید، سپس دوباره پیمایش کنید.",
   "This device has not been walked yet. Walking it needs the Create Network Device Diagnostic permission.": "این دستگاه هنوز پیمایش نشده است. برای پیمایش آن، مجوز «ایجاد عیب‌یابی دستگاه شبکه» لازم است.",
-  "GitHub commands and production reviews, the Runner AI works on, and where AI's pull requests open.": "دستورات GitHub و بازبینی‌های عملیاتی، Runnerی که هوش مصنوعی روی آن کار می‌کند، و جایی که pull requestهای هوش مصنوعی باز می‌شوند."
+  "GitHub commands, production reviews, where AI works, and where its pull requests open.": "دستورات GitHub، بازبینی‌های عملیاتی، جایی که هوش مصنوعی کار می‌کند، و جایی که pull requestهای آن باز می‌شوند."
 }
