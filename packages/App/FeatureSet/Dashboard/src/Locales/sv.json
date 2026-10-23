@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Allt som har hänt med den här incidenten: statusändringar, anteckningar, ägare och varje avisering som skickats.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Allt som har hänt med den här underhållshändelsen: statusändringar, anteckningar, ägare och varje avisering som skickats.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Allt som har hänt med den här jourpolicyn: personer, team och scheman som lagts till eller tagits bort, ersättare och överlämningar.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "Hur mycket telemetri varje tjänst skickade varje dag, hur länge den sparas och vad den kostade. Priserna finns på prissidan.",
   "How the probes check this resource: what they connect to and the settings they use.": "Hur sonderna kontrollerar den här resursen: vad de ansluter till och vilka inställningar de använder.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidentepisoder som ingen har bekräftat än, från alla projekt du är med i. Öppna en för att bekräfta den.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidenter som ingen har bekräftat än, från alla projekt du är med i. Öppna en för att bekräfta den.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} regler kunde inte läggas till",
   "{{count}} rules could not be added_one": "{{count}} regel kunde inte läggas till",
   "The others were added.": "De andra lades till.",
-  "The playbook could not be added": "Playbooken kunde inte läggas till"
+  "The playbook could not be added": "Playbooken kunde inte läggas till",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "Hur mycket telemetri varje tjänst skickade varje dag, hur länge den sparas och vad den kostade. Utom för sessionsuppspelningar faktureras telemetri som sparas kortare än 7 dagar som 7 dagar. Priserna finns på prissidan."
 }

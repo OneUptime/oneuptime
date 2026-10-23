@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "이 인시던트에 일어난 모든 일: 상태 변경, 노트, 소유자, 보낸 모든 알림.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "이 유지보수 이벤트에 일어난 모든 일: 상태 변경, 노트, 소유자, 보낸 모든 알림.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "이 온콜 정책에 일어난 모든 일: 추가되거나 제거된 사람, 팀, 일정, 대체 근무, 인수인계.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "각 서비스가 날마다 보낸 텔레메트리 양, 보관 기간, 비용입니다. 요금은 가격 페이지에서 확인하세요.",
   "How the probes check this resource: what they connect to and the settings they use.": "프로브가 이 리소스를 확인하는 방식: 연결 대상과 사용하는 설정.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "속한 모든 프로젝트에서 아직 아무도 인지하지 않은 인시던트 에피소드입니다. 열어서 인지하세요.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "속한 모든 프로젝트에서 아직 아무도 인지하지 않은 인시던트입니다. 열어서 인지하세요.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "규칙 {{count}}개를 추가하지 못했습니다",
   "{{count}} rules could not be added_one": "규칙 {{count}}개를 추가하지 못했습니다",
   "The others were added.": "나머지 규칙은 추가되었습니다.",
-  "The playbook could not be added": "플레이북을 추가하지 못했습니다"
+  "The playbook could not be added": "플레이북을 추가하지 못했습니다",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "각 서비스가 날마다 보낸 텔레메트리 양, 보관 기간, 비용입니다. 세션 리플레이를 제외하고, 7일 미만으로 보관하는 텔레메트리는 7일로 청구됩니다. 요금은 가격 페이지에서 확인하세요."
 }

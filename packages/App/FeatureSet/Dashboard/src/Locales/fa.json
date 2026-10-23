@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "هر چه برای این حادثه رخ داده است: تغییرات وضعیت، یادداشت‌ها، مالکان و هر اعلان ارسال‌شده.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "هر چه برای این رویداد تعمیر و نگهداری رخ داده است: تغییرات وضعیت، یادداشت‌ها، مالکان و هر اعلان ارسال‌شده.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "هر چه برای این سیاست آنکال رخ داده است: افراد، تیم‌ها و زمان‌بندی‌های اضافه یا حذف‌شده، جایگزینی‌ها و تحویل شیفت‌ها.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "هر سرویس هر روز چه مقدار تله‌متری فرستاده، چه مدت نگه داشته می‌شود و چقدر هزینه داشته است. نرخ‌ها در صفحه قیمت‌گذاری آمده است.",
   "How the probes check this resource: what they connect to and the settings they use.": "پراب‌ها این منبع را چگونه بررسی می‌کنند: به کجا وصل می‌شوند و از چه تنظیماتی استفاده می‌کنند.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "اپیزودهای حادثه‌ای که هنوز کسی تأییدشان نکرده است، از همه پروژه‌هایی که عضوشان هستید. یکی را باز کنید تا تأییدش کنید.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "حوادثی که هنوز کسی تأییدشان نکرده است، از همه پروژه‌هایی که عضوشان هستید. یکی را باز کنید تا تأییدش کنید.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} قاعده اضافه نشد",
   "{{count}} rules could not be added_one": "{{count}} قاعده اضافه نشد",
   "The others were added.": "بقیه قاعده‌ها اضافه شدند.",
-  "The playbook could not be added": "پلی‌بوک اضافه نشد"
+  "The playbook could not be added": "پلی‌بوک اضافه نشد",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "هر سرویس هر روز چه مقدار تله‌متری فرستاده، چه مدت نگه داشته می‌شود و چقدر هزینه داشته است. به‌جز بازپخش‌های نشست، هزینهٔ تله‌متری‌ای که کمتر از ۷ روز نگه داشته شود به اندازهٔ ۷ روز محاسبه می‌شود. نرخ‌ها در صفحه قیمت‌گذاری آمده است."
 }

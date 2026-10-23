@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Everything that has happened to this incident: status changes, notes, owners and every notification sent.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.",
   "How the probes check this resource: what they connect to and the settings they use.": "How the probes check this resource: what they connect to and the settings they use.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} rules could not be added",
   "{{count}} rules could not be added_one": "{{count}} rule could not be added",
   "The others were added.": "The others were added.",
-  "The playbook could not be added": "The playbook could not be added"
+  "The playbook could not be added": "The playbook could not be added",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates."
 }

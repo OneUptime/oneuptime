@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Alles wat er met dit incident is gebeurd: statuswijzigingen, notities, eigenaren en elke verzonden melding.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Alles wat er met deze onderhoudsgebeurtenis is gebeurd: statuswijzigingen, notities, eigenaren en elke verzonden melding.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Alles wat er met dit bereikbaarheidsbeleid is gebeurd: toegevoegde of verwijderde personen, teams en schema's, vervangingen en overdrachten.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "Hoeveel telemetrie elke service per dag heeft verzonden, hoe lang die wordt bewaard en wat die heeft gekost. De tarieven staan op de prijspagina.",
   "How the probes check this resource: what they connect to and the settings they use.": "Hoe de sondes deze resource controleren: waarmee ze verbinden en welke instellingen ze gebruiken.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidentepisodes die nog niemand heeft bevestigd, uit elk project waar u lid van bent. Open er een om die te bevestigen.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidenten die nog niemand heeft bevestigd, uit elk project waar u lid van bent. Open er een om het te bevestigen.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} regels konden niet worden toegevoegd",
   "{{count}} rules could not be added_one": "{{count}} regel kon niet worden toegevoegd",
   "The others were added.": "De andere zijn toegevoegd.",
-  "The playbook could not be added": "Het playbook kon niet worden toegevoegd"
+  "The playbook could not be added": "Het playbook kon niet worden toegevoegd",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "Hoeveel telemetrie elke service per dag heeft verzonden, hoe lang die wordt bewaard en wat die heeft gekost. Behalve voor sessie-replays wordt telemetrie die korter dan 7 dagen wordt bewaard, gefactureerd als 7 dagen. De tarieven staan op de prijspagina."
 }

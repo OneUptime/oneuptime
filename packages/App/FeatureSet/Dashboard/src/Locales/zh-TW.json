@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "此事件發生過的一切：狀態變更、備註、擁有者以及傳送的每則通知。",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "此維護事件發生過的一切：狀態變更、備註、擁有者以及傳送的每則通知。",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "此待命策略發生過的一切：新增或移除的人員、團隊和排程，以及代班和交接。",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "每項服務每天傳送的遙測資料量、保留時間和費用。費率請參閱價格頁面。",
   "How the probes check this resource: what they connect to and the settings they use.": "探測器檢查此資源的方式：連線的目標以及使用的設定。",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "您所屬所有專案中尚無人確認的事件片段。開啟一個即可確認。",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "您所屬所有專案中尚無人確認的事件。開啟一個即可確認。",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "有 {{count}} 條規則無法新增",
   "{{count}} rules could not be added_one": "有 {{count}} 條規則無法新增",
   "The others were added.": "其餘規則已新增。",
-  "The playbook could not be added": "無法新增劇本"
+  "The playbook could not be added": "無法新增劇本",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "每項服務每天傳送的遙測資料量、保留時間和費用。除工作階段重播外，保留不足 7 天的遙測資料按 7 天計費。費率請參閱價格頁面。"
 }

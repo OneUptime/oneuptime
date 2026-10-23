@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Todo lo que le ha ocurrido a este incidente: cambios de estado, notas, propietarios y cada notificación enviada.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Todo lo que le ha ocurrido a este evento de mantenimiento: cambios de estado, notas, propietarios y cada notificación enviada.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Todo lo que le ha ocurrido a esta política de guardia: personas, equipos y programaciones añadidos o quitados, sustituciones y relevos.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "Cuánta telemetría envió cada servicio cada día, cuánto tiempo se conserva y cuánto costó. La página de precios tiene las tarifas.",
   "How the probes check this resource: what they connect to and the settings they use.": "Cómo comprueban las sondas este recurso: a qué se conectan y qué ajustes usan.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Episodios de incidente que nadie ha reconocido todavía, de todos los proyectos a los que perteneces. Abre uno para reconocerlo.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Incidentes que nadie ha reconocido todavía, de todos los proyectos a los que perteneces. Abre uno para reconocerlo.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "No se pudieron añadir {{count}} reglas",
   "{{count}} rules could not be added_one": "No se pudo añadir {{count}} regla",
   "The others were added.": "Las demás se añadieron.",
-  "The playbook could not be added": "No se pudo añadir el playbook"
+  "The playbook could not be added": "No se pudo añadir el playbook",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "Cuánta telemetría envió cada servicio cada día, cuánto tiempo se conserva y cuánto costó. Salvo las reproducciones de sesiones, la telemetría que se conserva menos de 7 días se factura como 7 días. La página de precios tiene las tarifas."
 }

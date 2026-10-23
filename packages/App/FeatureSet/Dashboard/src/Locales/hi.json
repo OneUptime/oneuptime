@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "इस घटना के साथ जो कुछ हुआ: स्थिति में बदलाव, नोट, मालिक और भेजी गई हर सूचना।",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "इस रखरखाव इवेंट के साथ जो कुछ हुआ: स्थिति में बदलाव, नोट, मालिक और भेजी गई हर सूचना।",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "इस ऑन-कॉल नीति के साथ जो कुछ हुआ: जोड़े या हटाए गए लोग, टीमें और शेड्यूल, ओवरराइड और हैंडऑफ़।",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "हर सेवा ने हर दिन कितनी टेलीमेट्री भेजी, उसे कितने समय तक रखा जाता है और उसकी लागत क्या रही। दरें मूल्य निर्धारण पृष्ठ पर हैं।",
   "How the probes check this resource: what they connect to and the settings they use.": "प्रोब इस संसाधन की जांच कैसे करते हैं: वे किससे जुड़ते हैं और कौन-सी सेटिंग्स इस्तेमाल करते हैं।",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "आपके सभी प्रोजेक्ट के वे घटना एपिसोड जिन्हें अभी तक किसी ने स्वीकार नहीं किया है। स्वीकार करने के लिए किसी एक को खोलें।",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "आपके सभी प्रोजेक्ट की वे घटनाएं जिन्हें अभी तक किसी ने स्वीकार नहीं किया है। स्वीकार करने के लिए किसी एक को खोलें।",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} नियम नहीं जोड़े जा सके",
   "{{count}} rules could not be added_one": "{{count}} नियम नहीं जोड़ा जा सका",
   "The others were added.": "बाकी नियम जोड़ दिए गए।",
-  "The playbook could not be added": "प्लेबुक नहीं जोड़ी जा सकी"
+  "The playbook could not be added": "प्लेबुक नहीं जोड़ी जा सकी",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "हर सेवा ने हर दिन कितनी टेलीमेट्री भेजी, उसे कितने समय तक रखा जाता है और उसकी लागत क्या रही। सेशन रीप्ले को छोड़कर, 7 दिन से कम रखी गई टेलीमेट्री का बिल 7 दिन के हिसाब से बनता है। दरें मूल्य निर्धारण पृष्ठ पर हैं।"
 }

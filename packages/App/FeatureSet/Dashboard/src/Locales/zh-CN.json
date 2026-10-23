@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "此事件发生过的一切：状态变化、备注、所有者以及发送的每条通知。",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "此维护事件发生过的一切：状态变化、备注、所有者以及发送的每条通知。",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "此值班策略发生过的一切：添加或移除的人员、团队和排班，以及替班和交接。",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "每个服务每天发送的遥测数据量、保留时长和费用。费率请参阅价格页面。",
   "How the probes check this resource: what they connect to and the settings they use.": "探测器检查此资源的方式：连接的目标以及使用的设置。",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "您所在的所有项目中尚无人确认的事件片段。打开一个即可确认。",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "您所在的所有项目中尚无人确认的事件。打开一个即可确认。",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "有 {{count}} 条规则未能添加",
   "{{count}} rules could not be added_one": "有 {{count}} 条规则未能添加",
   "The others were added.": "其余规则已添加。",
-  "The playbook could not be added": "无法添加剧本"
+  "The playbook could not be added": "无法添加剧本",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "每个服务每天发送的遥测数据量、保留时长和费用。除会话回放外，保留不足 7 天的遥测数据按 7 天计费。费率请参阅价格页面。"
 }

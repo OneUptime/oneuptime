@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Всё, что произошло с этим инцидентом: смены статуса, заметки, владельцы и каждое отправленное уведомление.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Всё, что произошло с этим событием обслуживания: смены статуса, заметки, владельцы и каждое отправленное уведомление.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Всё, что произошло с этой политикой дежурства: добавленные и удалённые люди, команды и расписания, замены и передачи смен.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "Сколько телеметрии каждый сервис отправлял за день, как долго она хранится и сколько стоила. Тарифы указаны на странице с ценами.",
   "How the probes check this resource: what they connect to and the settings they use.": "Как зонды проверяют этот ресурс: к чему они подключаются и какие настройки используют.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Эпизоды инцидентов, которые ещё никто не подтвердил, из всех проектов, в которых вы состоите. Откройте эпизод, чтобы подтвердить его.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Инциденты, которые ещё никто не подтвердил, из всех проектов, в которых вы состоите. Откройте инцидент, чтобы подтвердить его.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "Не удалось добавить правила: {{count}}",
   "{{count}} rules could not be added_one": "Не удалось добавить {{count}} правило",
   "The others were added.": "Остальные добавлены.",
-  "The playbook could not be added": "Не удалось добавить плейбук"
+  "The playbook could not be added": "Не удалось добавить плейбук",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "Сколько телеметрии каждый сервис отправлял за день, как долго она хранится и сколько стоила. Кроме записей сеансов, телеметрия, которая хранится меньше 7 дней, оплачивается как 7 дней. Тарифы указаны на странице с ценами."
 }

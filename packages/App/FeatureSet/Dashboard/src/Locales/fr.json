@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "Tout ce qui est arrivé à cet incident : changements de statut, notes, propriétaires et chaque notification envoyée.",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "Tout ce qui est arrivé à cet événement de maintenance : changements de statut, notes, propriétaires et chaque notification envoyée.",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "Tout ce qui est arrivé à cette politique d'astreinte : personnes, équipes et plannings ajoutés ou retirés, remplacements et passations.",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "La quantité de télémétrie envoyée par chaque service chaque jour, sa durée de conservation et son coût. Les tarifs figurent sur la page des prix.",
   "How the probes check this resource: what they connect to and the settings they use.": "Comment les sondes vérifient cette ressource : à quoi elles se connectent et les paramètres qu'elles utilisent.",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Les épisodes d'incident que personne n'a encore pris en compte, dans tous les projets dont vous êtes membre. Ouvrez-en un pour le prendre en compte.",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "Les incidents que personne n'a encore pris en compte, dans tous les projets dont vous êtes membre. Ouvrez-en un pour le prendre en compte.",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} règles n'ont pas pu être ajoutées",
   "{{count}} rules could not be added_one": "{{count}} règle n'a pas pu être ajoutée",
   "The others were added.": "Les autres ont été ajoutées.",
-  "The playbook could not be added": "Le playbook n'a pas pu être ajouté"
+  "The playbook could not be added": "Le playbook n'a pas pu être ajouté",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "La quantité de télémétrie envoyée par chaque service chaque jour, sa durée de conservation et son coût. Sauf pour les relectures de session, la télémétrie conservée moins de 7 jours est facturée comme 7 jours. Les tarifs figurent sur la page des prix."
 }

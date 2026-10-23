@@ -24395,7 +24395,6 @@
   "Everything that has happened to this incident: status changes, notes, owners and every notification sent.": "このインシデントに起きたすべてのこと：ステータスの変更、メモ、所有者、送信されたすべての通知。",
   "Everything that has happened to this maintenance event: status changes, notes, owners and every notification sent.": "このメンテナンスイベントに起きたすべてのこと：ステータスの変更、メモ、所有者、送信されたすべての通知。",
   "Everything that has happened to this on-call policy: people, teams and schedules added or removed, overrides and handoffs.": "このオンコールポリシーに起きたすべてのこと：追加・削除されたメンバー、チーム、スケジュール、オーバーライド、引き継ぎ。",
-  "How much telemetry each service sent each day, how long it is kept and what it cost. The pricing page has the rates.": "各サービスが日ごとに送信したテレメトリの量、保持期間、費用。料金は料金ページで確認できます。",
   "How the probes check this resource: what they connect to and the settings they use.": "プローブがこのリソースをチェックする方法：接続先と使用する設定。",
   "Incident episodes nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "まだ誰も確認していないインシデントエピソードです（参加しているすべてのプロジェクトから）。開いて確認してください。",
   "Incidents nobody has acknowledged yet, from every project you belong to. Open one to acknowledge it.": "まだ誰も確認していないインシデントです（参加しているすべてのプロジェクトから）。開いて確認してください。",
@@ -33452,5 +33451,6 @@
   "{{count}} rules could not be added": "{{count}} 件のルールを追加できませんでした",
   "{{count}} rules could not be added_one": "{{count}} 件のルールを追加できませんでした",
   "The others were added.": "ほかのルールは追加されました。",
-  "The playbook could not be added": "プレイブックを追加できませんでした"
+  "The playbook could not be added": "プレイブックを追加できませんでした",
+  "How much telemetry each service sent each day, how long it is kept and what it cost. Except for session replays, telemetry kept for fewer than 7 days is billed as 7 days. The pricing page has the rates.": "各サービスが日ごとに送信したテレメトリの量、保持期間、費用。セッションリプレイを除き、保持期間が 7 日未満のテレメトリは 7 日として課金されます。料金は料金ページで確認できます。"
 }
