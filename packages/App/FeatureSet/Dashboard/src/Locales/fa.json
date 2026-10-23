@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} برچسب دیگر",
   "{{duration}} after impact began": "{{duration}} پس از شروع اثر",
   "Shown on the status pages this episode appears on.": "در صفحات وضعیتی که این اپیزود در آن‌ها دیده می‌شود نمایش داده می‌شود.",
-  "Adding them again adds only what is still missing.": "افزودن دوباره آن‌ها فقط آنچه را هنوز نیست اضافه می‌کند.",
   "Everything else is on. Try again turns on only what is still missing.": "بقیه موارد روشن است. «تلاش دوباره» فقط آنچه را هنوز نیست روشن می‌کند.",
   "It is turned off, and your role cannot turn it back on.": "خاموش است و نقش شما نمی‌تواند آن را دوباره روشن کند.",
-  "Not every rule could be added": "همه قاعده‌ها اضافه نشدند",
   "Not everything could be turned on": "همه موارد روشن نشدند",
   "OneUptime could not save it.": "OneUptime نتوانست آن را ذخیره کند.",
   "OneUptime could not save it: {{detail}}": "OneUptime نتوانست آن را ذخیره کند: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "هنگام خواندن آنچه پروژه از قبل دارد مشکلی پیش آمد، بنابراین چیزی اضافه نشد.",
   "Something went wrong while turning it back on.": "هنگام روشن کردن دوباره مشکلی پیش آمد.",
   "The recommended detection rules": "قاعده‌های تشخیص پیشنهادی",
-  "The rules could not be added": "قاعده‌ها اضافه نشدند",
   "The test attack could not be sent": "حمله آزمایشی ارسال نشد",
   "Try again turns on only what is still missing.": "«تلاش دوباره» فقط آنچه را هنوز نیست روشن می‌کند.",
   "Turn on recommended did not finish": "«روشن کردن موارد پیشنهادی» کامل نشد",
   "Your plan does not include it.": "طرح شما این را شامل نمی‌شود.",
   "Your role cannot add it.": "نقش شما نمی‌تواند آن را اضافه کند.",
-  "Your role cannot read what the project already has, so nothing was added.": "نقش شما نمی‌تواند آنچه پروژه از قبل دارد را بخواند، بنابراین چیزی اضافه نشد."
+  "Your role cannot read what the project already has, so nothing was added.": "نقش شما نمی‌تواند آنچه پروژه از قبل دارد را بخواند، بنابراین چیزی اضافه نشد.",
+  "The recommended rules could not be added": "قاعده‌های پیشنهادی اضافه نشدند",
+  "{{count}} rules could not be added": "{{count}} قاعده اضافه نشد",
+  "{{count}} rules could not be added_one": "{{count}} قاعده اضافه نشد",
+  "The others were added.": "بقیه قاعده‌ها اضافه شدند."
 }

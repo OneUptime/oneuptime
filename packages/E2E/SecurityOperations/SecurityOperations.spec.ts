@@ -811,14 +811,14 @@ test.describe("the overview", () => {
       "security-turn-on-problems",
     );
     await expect(problems).toContainText("Turn on recommended did not finish");
+    // A server that could not be reached, in the product's words - never a gateway's.
     await expect(
       problems.getByTestId("security-turn-on-problems-error"),
-    ).toHaveText(
-      "Error connecting to server. Please try again in few minutes.",
-    );
-    await expect(problems).toContainText(
-      "Try again turns on only what is still missing.",
-    );
+    ).toHaveText("Something went wrong. Try again in a moment.");
+    await expect(problems).not.toContainText("Error connecting to server");
+    await expect(
+      problems.getByTestId("security-turn-on-problems-note"),
+    ).toHaveCount(0);
     await expect(gettingStarted(page)).toContainText("0 of 4 done");
     await expect(
       page.getByTestId("security-getting-started-actions").getByRole("button"),
@@ -1744,7 +1744,7 @@ test.describe("detections", () => {
     ).toHaveCount(0);
   });
 
-  test("an Add that cannot add a rule says which and why, adds the rest, and adding again adds only it", async ({
+  test("an Add Rule that cannot add its rule says why on that card, and adding again adds it", async ({
     page,
   }: {
     page: Page;
@@ -1757,14 +1757,14 @@ test.describe("detections", () => {
       .filter({ hasText: PARTLY_UNDONE_RULE });
     await spraying.getByRole("button", { name: "Add Rule" }).click();
 
-    const problems: Locator = page.getByTestId("rule-library-problems");
-    await expect(problems).toContainText("Not every rule could be added");
-    await expect(problemRows(problems)).toHaveText([
-      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
-    ]);
-    await expect(problems).toContainText(
-      "Adding them again adds only what is still missing.",
+    // Said where the reader clicked - the one alert - and not again above the rules.
+    const why: Locator = spraying.locator(
+      '[data-testid^="rule-library-problem-"]',
     );
+    await expect(why).toHaveText("Something went wrong while adding it.");
+    await expect(why).toHaveAttribute("role", "alert");
+    await expect(why).toBeInViewport();
+    await expect(page.getByTestId("rule-library-problems")).toHaveCount(0);
     // Not added: its card still offers Add Rule.
     await expect(
       spraying.getByRole("button", { name: "Add Rule" }),
@@ -1773,20 +1773,79 @@ test.describe("detections", () => {
 
     await spraying.getByRole("button", { name: "Add Rule" }).click();
     await expect(spraying.getByText("Added", { exact: true })).toBeVisible();
-    await expect(problems).toHaveCount(0);
+    await expect(why).toHaveCount(0);
+  });
 
-    // The recommended rules through the server: what it could not add is said the same way.
+  test("Add All that cannot add a rule names it above the rules, in view, says the others were added, and adding again adds only it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
+    await page.getByTestId("rule-library-category").selectOption("recommended");
+    await page
+      .getByRole("button", { name: `Add All ${RECOMMENDED_RULES} Rules` })
+      .click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Add Rules" })
+      .click();
+
+    const problems: Locator = page.getByTestId("rule-library-problems");
+    await expect(
+      problems.getByTestId("security-turn-on-problems-title"),
+    ).toHaveText("1 rule could not be added");
+    await expect(problemRows(problems)).toHaveText([
+      `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
+    ]);
+    await expect(
+      problems.getByTestId("security-turn-on-problems-note"),
+    ).toHaveText("The others were added.");
+    // Wherever the confirmation left the page, the box is brought into view.
+    await expect(problems).toBeInViewport();
+
+    const spraying: Locator = page
+      .locator('[data-testid^="rule-library-entry-"]')
+      .filter({ hasText: PARTLY_UNDONE_RULE });
+    await expect(
+      spraying.locator('[data-testid^="rule-library-problem-"]'),
+    ).toHaveText("Something went wrong while adding it.");
+    await expect(
+      page.getByRole("button", { name: "Add 1 Rule" }),
+    ).toBeVisible();
+    await screenshot(page, "rule-library-add-all-failed");
+
+    await page.getByRole("button", { name: "Add 1 Rule" }).click();
+    await page
+      .getByTestId("modal")
+      .getByRole("button", { name: "Add Rules" })
+      .click();
+    await expect(spraying.getByText("Added", { exact: true })).toBeVisible();
+    await expect(problems).toHaveCount(0);
+  });
+
+  test("Add Recommended Rules that cannot add one says so the same way, and the button offers the one left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await open(page, RULE_LIBRARY_PATH, { empty: true, setup: "partly" });
     await page
       .getByRole("button", {
         name: `Add ${RECOMMENDED_RULES} Recommended Rules`,
       })
       .click();
+
+    const problems: Locator = page.getByTestId("rule-library-problems");
     await expect(
-      problemRows(page.getByTestId("rule-library-problems")),
-    ).toHaveText([
+      problems.getByTestId("security-turn-on-problems-title"),
+    ).toHaveText("1 rule could not be added");
+    await expect(problemRows(problems)).toHaveText([
       `${PARTLY_UNDONE_RULE} - Something went wrong while adding it.`,
     ]);
+    await expect(
+      problems.getByTestId("security-turn-on-problems-note"),
+    ).toHaveText("The others were added.");
     // Every other recommended rule is added; the button offers the one left.
     await expect(
       page.getByRole("button", { name: "Add 1 Recommended Rule" }),
@@ -1795,7 +1854,7 @@ test.describe("detections", () => {
     await expect(
       page.getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
-    await expect(page.getByTestId("rule-library-problems")).toHaveCount(0);
+    await expect(problems).toHaveCount(0);
   });
 
   test("the rule library narrows by one select beside its search, which a phone puts under it", async ({

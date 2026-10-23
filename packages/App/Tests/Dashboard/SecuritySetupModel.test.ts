@@ -4,6 +4,7 @@ import {
   SecurityPipelineStage,
   SecuritySetupStatus,
   SecuritySetupStep,
+  SETUP_CALL_FAILED,
   TURN_ON_RECOMMENDED_LOGS_SUBJECT,
   TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT,
   TURN_ON_RECOMMENDED_RULES_SUBJECT,
@@ -11,6 +12,7 @@ import {
   TurnOnRecommendedProblemWords,
   countSecuritySources,
   describeAddFailure,
+  describeSetupCallFailure,
   didTurnOnAnything,
   getSecurityPipelineStages,
   getSecuritySetupSteps,
@@ -520,5 +522,75 @@ describe("why the Rule Library could not add a rule itself", () => {
       reason: TurnOnRecommendedReason.Failed,
       detail: "",
     });
+  });
+});
+
+describe("why a setup call failed as a whole", () => {
+  // As SecurityCaseApi throws it (SecurityApiError): the API's sentence and the status it came with.
+  function answered(statusCode: number, message: string): Error {
+    return Object.assign(new Error(message), { statusCode });
+  }
+
+  const RAW: string = 'relation "DetectionRule" does not exist';
+
+  test("the product's own words are a sentence the Dashboard translates", () => {
+    expect(SETUP_CALL_FAILED).toBe(
+      "Something went wrong. Try again in a moment.",
+    );
+  });
+
+  test.each([400, 401, 402, 403, 422])(
+    "an answer of %i - a role, a plan, a request refused - is said in the server's sentence",
+    (statusCode: number) => {
+      expect(
+        describeSetupCallFailure(
+          answered(
+            statusCode,
+            "Turning on detection rules takes a role that can create them.",
+          ),
+        ),
+      ).toBe("Turning on detection rules takes a role that can create them.");
+    },
+  );
+
+  test.each([404, 429, 500, 502, 503, 504])(
+    "an answer of %i is said in the product's words, its message unread",
+    (statusCode: number) => {
+      expect(describeSetupCallFailure(answered(statusCode, RAW))).toBe(
+        SETUP_CALL_FAILED,
+      );
+    },
+  );
+
+  test("an API's error answer reads the same way", () => {
+    expect(
+      describeSetupCallFailure(
+        new HTTPErrorResponse(402, { message: "Please upgrade your plan" }, {}),
+      ),
+    ).toBe("Please upgrade your plan");
+    expect(
+      describeSetupCallFailure(
+        new HTTPErrorResponse(500, { message: RAW }, {}),
+      ),
+    ).toBe(SETUP_CALL_FAILED);
+  });
+
+  test("a request that never got an answer, a blank sentence or anything else is said in the product's words", () => {
+    expect(
+      describeSetupCallFailure(
+        new Error(
+          "Request failed to https://oneuptime.example/api/security-case/setup/test. Network error",
+        ),
+      ),
+    ).toBe(SETUP_CALL_FAILED);
+    expect(describeSetupCallFailure(answered(403, "   "))).toBe(
+      SETUP_CALL_FAILED,
+    );
+    expect(
+      describeSetupCallFailure({ statusCode: "403", message: "Not a number" }),
+    ).toBe(SETUP_CALL_FAILED);
+    expect(describeSetupCallFailure("boom")).toBe(SETUP_CALL_FAILED);
+    expect(describeSetupCallFailure(null)).toBe(SETUP_CALL_FAILED);
+    expect(describeSetupCallFailure(undefined)).toBe(SETUP_CALL_FAILED);
   });
 });

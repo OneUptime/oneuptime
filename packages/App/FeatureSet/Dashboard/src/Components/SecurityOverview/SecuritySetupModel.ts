@@ -331,6 +331,57 @@ export function describeAddFailure(error: unknown): {
   return { reason: TurnOnRecommendedReason.Failed, detail: "" };
 }
 
+/*
+ * The product's own sentence for a call that failed on OneUptime's side, or
+ * never got an answer: the server's message there - a database's, a
+ * proxy's, a URL with "Network error" - is not the reader's to read, and is
+ * not in the reader's language either.
+ */
+export const SETUP_CALL_FAILED: string = translationKey(
+  "Something went wrong. Try again in a moment.",
+);
+
+// The answers whose sentence the server writes for people: the role, the plan, a request refused.
+const STATUSES_WORDED_FOR_PEOPLE: ReadonlyArray<number> = [
+  400, 401, 402, 403, 422,
+];
+
+function readStatusCode(error: unknown): number | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const statusCode: unknown = (error as { statusCode?: unknown }).statusCode;
+
+  return typeof statusCode === "number" ? statusCode : null;
+}
+
+/*
+ * Why a setup call failed as a whole - Turn on recommended, the test attack,
+ * the Rule Library's Add Recommended Rules - for the box that says so. A
+ * refusal the server words for people (the role, the plan, a request it
+ * would not take) is said as the server says it, as describeAddFailure
+ * reads a rule's. Anything else - a failure on OneUptime's side, a gateway,
+ * a request that never got an answer - is SETUP_CALL_FAILED.
+ */
+export function describeSetupCallFailure(error: unknown): string {
+  const status: number | null = readStatusCode(error);
+  const message: string =
+    error instanceof HTTPErrorResponse || error instanceof Error
+      ? error.message || ""
+      : "";
+
+  if (
+    status !== null &&
+    STATUSES_WORDED_FOR_PEOPLE.includes(status) &&
+    message.trim()
+  ) {
+    return message;
+  }
+
+  return SETUP_CALL_FAILED;
+}
+
 export function parseSetupTestResult(
   body: JSONObject,
 ): SecuritySetupTestResult {

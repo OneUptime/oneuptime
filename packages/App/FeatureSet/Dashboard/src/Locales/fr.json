@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} autre étiquette",
   "{{duration}} after impact began": "{{duration}} après le début de l'impact",
   "Shown on the status pages this episode appears on.": "Affichée sur les pages de statut où cet épisode apparaît.",
-  "Adding them again adds only what is still missing.": "Les ajouter à nouveau n'ajoute que ce qui manque encore.",
   "Everything else is on. Try again turns on only what is still missing.": "Tout le reste est activé. « Réessayer » n'active que ce qui manque encore.",
   "It is turned off, and your role cannot turn it back on.": "Il est désactivé, et votre rôle ne permet pas de le réactiver.",
-  "Not every rule could be added": "Toutes les règles n'ont pas pu être ajoutées",
   "Not everything could be turned on": "Tout n'a pas pu être activé",
   "OneUptime could not save it.": "OneUptime n'a pas pu l'enregistrer.",
   "OneUptime could not save it: {{detail}}": "OneUptime n'a pas pu l'enregistrer : {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Une erreur s'est produite lors de la lecture de ce que le projet contient déjà, donc rien n'a été ajouté.",
   "Something went wrong while turning it back on.": "Une erreur s'est produite lors de la réactivation.",
   "The recommended detection rules": "Les règles de détection recommandées",
-  "The rules could not be added": "Les règles n'ont pas pu être ajoutées",
   "The test attack could not be sent": "L'attaque de test n'a pas pu être envoyée",
   "Try again turns on only what is still missing.": "« Réessayer » n'active que ce qui manque encore.",
   "Turn on recommended did not finish": "« Activer les recommandations » ne s'est pas terminé",
   "Your plan does not include it.": "Votre forfait ne l'inclut pas.",
   "Your role cannot add it.": "Votre rôle ne permet pas de l'ajouter.",
-  "Your role cannot read what the project already has, so nothing was added.": "Votre rôle ne permet pas de lire ce que le projet contient déjà, donc rien n'a été ajouté."
+  "Your role cannot read what the project already has, so nothing was added.": "Votre rôle ne permet pas de lire ce que le projet contient déjà, donc rien n'a été ajouté.",
+  "The recommended rules could not be added": "Les règles recommandées n'ont pas pu être ajoutées",
+  "{{count}} rules could not be added": "{{count}} règles n'ont pas pu être ajoutées",
+  "{{count}} rules could not be added_one": "{{count}} règle n'a pas pu être ajoutée",
+  "The others were added.": "Les autres ont été ajoutées."
 }

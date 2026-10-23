@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} etikett til",
   "{{duration}} after impact began": "{{duration}} etter at påvirkningen startet",
   "Shown on the status pages this episode appears on.": "Vises på statussidene som viser denne episoden.",
-  "Adding them again adds only what is still missing.": "Legger du dem til igjen, legges bare det til som fortsatt mangler.",
   "Everything else is on. Try again turns on only what is still missing.": "Alt annet er slått på. «Prøv igjen» slår bare på det som fortsatt mangler.",
   "It is turned off, and your role cannot turn it back on.": "Det er slått av, og rollen din kan ikke slå det på igjen.",
-  "Not every rule could be added": "Ikke alle regler kunne legges til",
   "Not everything could be turned on": "Ikke alt kunne slås på",
   "OneUptime could not save it.": "OneUptime kunne ikke lagre det.",
   "OneUptime could not save it: {{detail}}": "OneUptime kunne ikke lagre det: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Noe gikk galt da det prosjektet allerede har, skulle leses, så ingenting ble lagt til.",
   "Something went wrong while turning it back on.": "Noe gikk galt da det skulle slås på igjen.",
   "The recommended detection rules": "De anbefalte deteksjonsreglene",
-  "The rules could not be added": "Reglene kunne ikke legges til",
   "The test attack could not be sent": "Testangrepet kunne ikke sendes",
   "Try again turns on only what is still missing.": "«Prøv igjen» slår bare på det som fortsatt mangler.",
   "Turn on recommended did not finish": "«Slå på anbefalt» ble ikke fullført",
   "Your plan does not include it.": "Planen din inkluderer ikke dette.",
   "Your role cannot add it.": "Rollen din kan ikke legge det til.",
-  "Your role cannot read what the project already has, so nothing was added.": "Rollen din kan ikke lese hva prosjektet allerede har, så ingenting ble lagt til."
+  "Your role cannot read what the project already has, so nothing was added.": "Rollen din kan ikke lese hva prosjektet allerede har, så ingenting ble lagt til.",
+  "The recommended rules could not be added": "De anbefalte reglene kunne ikke legges til",
+  "{{count}} rules could not be added": "{{count}} regler kunne ikke legges til",
+  "{{count}} rules could not be added_one": "{{count}} regel kunne ikke legges til",
+  "The others were added.": "De andre ble lagt til."
 }

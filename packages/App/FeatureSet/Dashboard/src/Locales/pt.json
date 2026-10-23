@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "Mais {{count}} rótulo",
   "{{duration}} after impact began": "{{duration}} após o início do impacto",
   "Shown on the status pages this episode appears on.": "Exibida nas páginas de status em que este episódio aparece.",
-  "Adding them again adds only what is still missing.": "Adicioná-las novamente adiciona apenas o que ainda falta.",
   "Everything else is on. Try again turns on only what is still missing.": "Todo o resto está ativo. “Tentar novamente” ativa apenas o que ainda falta.",
   "It is turned off, and your role cannot turn it back on.": "Está desativado, e a sua função não pode reativá-lo.",
-  "Not every rule could be added": "Nem todas as regras puderam ser adicionadas",
   "Not everything could be turned on": "Nem tudo pôde ser ativado",
   "OneUptime could not save it.": "O OneUptime não conseguiu salvá-lo.",
   "OneUptime could not save it: {{detail}}": "O OneUptime não conseguiu salvá-lo: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Algo deu errado ao ler o que o projeto já tem, então nada foi adicionado.",
   "Something went wrong while turning it back on.": "Algo deu errado ao reativá-lo.",
   "The recommended detection rules": "As regras de detecção recomendadas",
-  "The rules could not be added": "As regras não puderam ser adicionadas",
   "The test attack could not be sent": "O ataque de teste não pôde ser enviado",
   "Try again turns on only what is still missing.": "“Tentar novamente” ativa apenas o que ainda falta.",
   "Turn on recommended did not finish": "“Ativar o recomendado” não foi concluído",
   "Your plan does not include it.": "O seu plano não inclui isso.",
   "Your role cannot add it.": "A sua função não pode adicioná-lo.",
-  "Your role cannot read what the project already has, so nothing was added.": "A sua função não pode ler o que o projeto já tem, então nada foi adicionado."
+  "Your role cannot read what the project already has, so nothing was added.": "A sua função não pode ler o que o projeto já tem, então nada foi adicionado.",
+  "The recommended rules could not be added": "As regras recomendadas não puderam ser adicionadas",
+  "{{count}} rules could not be added": "{{count}} regras não puderam ser adicionadas",
+  "{{count}} rules could not be added_one": "{{count}} regra não pôde ser adicionada",
+  "The others were added.": "As demais foram adicionadas."
 }

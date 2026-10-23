@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} etiket mere",
   "{{duration}} after impact began": "{{duration}} efter at påvirkningen begyndte",
   "Shown on the status pages this episode appears on.": "Vises på de statussider, hvor denne episode optræder.",
-  "Adding them again adds only what is still missing.": "Tilføjer du dem igen, tilføjes kun det, der stadig mangler.",
   "Everything else is on. Try again turns on only what is still missing.": "Alt andet er slået til. »Prøv igen« slår kun det til, der stadig mangler.",
   "It is turned off, and your role cannot turn it back on.": "Det er slået fra, og din rolle kan ikke slå det til igen.",
-  "Not every rule could be added": "Ikke alle regler kunne tilføjes",
   "Not everything could be turned on": "Ikke alt kunne slås til",
   "OneUptime could not save it.": "OneUptime kunne ikke gemme det.",
   "OneUptime could not save it: {{detail}}": "OneUptime kunne ikke gemme det: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Noget gik galt under læsning af det, projektet allerede har, så intet blev tilføjet.",
   "Something went wrong while turning it back on.": "Noget gik galt, da det skulle slås til igen.",
   "The recommended detection rules": "De anbefalede detektionsregler",
-  "The rules could not be added": "Reglerne kunne ikke tilføjes",
   "The test attack could not be sent": "Testangrebet kunne ikke sendes",
   "Try again turns on only what is still missing.": "»Prøv igen« slår kun det til, der stadig mangler.",
   "Turn on recommended did not finish": "»Slå anbefalet til« blev ikke færdig",
   "Your plan does not include it.": "Din plan omfatter det ikke.",
   "Your role cannot add it.": "Din rolle kan ikke tilføje det.",
-  "Your role cannot read what the project already has, so nothing was added.": "Din rolle kan ikke læse, hvad projektet allerede har, så intet blev tilføjet."
+  "Your role cannot read what the project already has, so nothing was added.": "Din rolle kan ikke læse, hvad projektet allerede har, så intet blev tilføjet.",
+  "The recommended rules could not be added": "De anbefalede regler kunne ikke tilføjes",
+  "{{count}} rules could not be added": "{{count}} regler kunne ikke tilføjes",
+  "{{count}} rules could not be added_one": "{{count}} regel kunne ikke tilføjes",
+  "The others were added.": "De andre blev tilføjet."
 }

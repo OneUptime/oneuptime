@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "另外 {{count}} 個標籤",
   "{{duration}} after impact began": "影響開始後 {{duration}}",
   "Shown on the status pages this episode appears on.": "會顯示在展示此片段的狀態頁面上。",
-  "Adding them again adds only what is still missing.": "再次新增只會新增仍缺少的部分。",
   "Everything else is on. Try again turns on only what is still missing.": "其餘都已開啟。「再試一次」只會開啟仍缺少的部分。",
   "It is turned off, and your role cannot turn it back on.": "它已關閉，你的角色無法重新開啟它。",
-  "Not every rule could be added": "部分規則無法新增",
   "Not everything could be turned on": "部分項目無法開啟",
   "OneUptime could not save it.": "OneUptime 無法儲存它。",
   "OneUptime could not save it: {{detail}}": "OneUptime 無法儲存它：{{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "讀取專案中已有內容時發生錯誤，因此未新增任何項目。",
   "Something went wrong while turning it back on.": "重新開啟時發生錯誤。",
   "The recommended detection rules": "推薦的偵測規則",
-  "The rules could not be added": "無法新增規則",
   "The test attack could not be sent": "無法傳送測試攻擊",
   "Try again turns on only what is still missing.": "「再試一次」只會開啟仍缺少的部分。",
   "Turn on recommended did not finish": "「開啟推薦設定」未完成",
   "Your plan does not include it.": "你的方案不包含此項目。",
   "Your role cannot add it.": "你的角色無法新增它。",
-  "Your role cannot read what the project already has, so nothing was added.": "你的角色無法讀取專案中已有的內容，因此未新增任何項目。"
+  "Your role cannot read what the project already has, so nothing was added.": "你的角色無法讀取專案中已有的內容，因此未新增任何項目。",
+  "The recommended rules could not be added": "無法新增推薦規則",
+  "{{count}} rules could not be added": "有 {{count}} 條規則無法新增",
+  "{{count}} rules could not be added_one": "有 {{count}} 條規則無法新增",
+  "The others were added.": "其餘規則已新增。"
 }

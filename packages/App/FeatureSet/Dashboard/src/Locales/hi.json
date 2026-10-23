@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} और लेबल",
   "{{duration}} after impact began": "प्रभाव शुरू होने के {{duration}} बाद",
   "Shown on the status pages this episode appears on.": "उन स्थिति पृष्ठों पर दिखता है जिन पर यह एपिसोड दिखाई देता है।",
-  "Adding them again adds only what is still missing.": "इन्हें फिर से जोड़ने पर सिर्फ़ वही जुड़ता है जो अभी भी नहीं है।",
   "Everything else is on. Try again turns on only what is still missing.": "बाकी सब चालू है। “फिर से प्रयास करें” सिर्फ़ वही चालू करता है जो अभी भी नहीं है।",
   "It is turned off, and your role cannot turn it back on.": "यह बंद है, और आपकी भूमिका इसे फिर से चालू नहीं कर सकती।",
-  "Not every rule could be added": "हर नियम नहीं जोड़ा जा सका",
   "Not everything could be turned on": "सब कुछ चालू नहीं किया जा सका",
   "OneUptime could not save it.": "OneUptime इसे सहेज नहीं सका।",
   "OneUptime could not save it: {{detail}}": "OneUptime इसे सहेज नहीं सका: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "प्रोजेक्ट में पहले से मौजूद चीज़ें पढ़ते समय कुछ गलत हो गया, इसलिए कुछ नहीं जोड़ा गया।",
   "Something went wrong while turning it back on.": "इसे फिर से चालू करते समय कुछ गलत हो गया।",
   "The recommended detection rules": "सुझाए गए डिटेक्शन नियम",
-  "The rules could not be added": "नियम नहीं जोड़े जा सके",
   "The test attack could not be sent": "टेस्ट हमला नहीं भेजा जा सका",
   "Try again turns on only what is still missing.": "“फिर से प्रयास करें” सिर्फ़ वही चालू करता है जो अभी भी नहीं है।",
   "Turn on recommended did not finish": "“सुझाए गए चालू करें” पूरा नहीं हुआ",
   "Your plan does not include it.": "आपके प्लान में यह शामिल नहीं है।",
   "Your role cannot add it.": "आपकी भूमिका इसे नहीं जोड़ सकती।",
-  "Your role cannot read what the project already has, so nothing was added.": "आपकी भूमिका प्रोजेक्ट में पहले से मौजूद चीज़ें नहीं पढ़ सकती, इसलिए कुछ नहीं जोड़ा गया।"
+  "Your role cannot read what the project already has, so nothing was added.": "आपकी भूमिका प्रोजेक्ट में पहले से मौजूद चीज़ें नहीं पढ़ सकती, इसलिए कुछ नहीं जोड़ा गया।",
+  "The recommended rules could not be added": "सुझाए गए नियम नहीं जोड़े जा सके",
+  "{{count}} rules could not be added": "{{count}} नियम नहीं जोड़े जा सके",
+  "{{count}} rules could not be added_one": "{{count}} नियम नहीं जोड़ा जा सका",
+  "The others were added.": "बाकी नियम जोड़ दिए गए।"
 }

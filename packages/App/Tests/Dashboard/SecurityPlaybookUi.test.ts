@@ -49,10 +49,17 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/AttackCoverage";
 import {
   LibraryRuleView,
+  findLibraryEntryProblem,
   getLibraryRuleViews,
   isLibraryRuleAdded,
   matchesLibrarySearch,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedReason,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
 import {
   CONNECTION_FIELD_BY_PROVIDER,
   STEP_ACTION_KEY,
@@ -773,6 +780,46 @@ describe("the rule library page", () => {
     expect(
       getLibraryRuleViews({ category: "", search: "", existingRules: [] }),
     ).toHaveLength(DETECTION_RULE_LIBRARY.length);
+  });
+
+  test("finds what an Add could not do for a rule, by its title, so its card can say why", () => {
+    function problem(
+      overrides: Partial<TurnOnRecommendedProblem>,
+    ): TurnOnRecommendedProblem {
+      return {
+        part: TurnOnRecommendedPart.Rule,
+        action: TurnOnRecommendedAction.Add,
+        name: first.title,
+        reason: TurnOnRecommendedReason.Failed,
+        detail: "",
+        ...overrides,
+      };
+    }
+
+    const second: DetectionRuleLibraryEntry = DETECTION_RULE_LIBRARY[1]!;
+    const own: TurnOnRecommendedProblem = problem({});
+
+    expect(
+      findLibraryEntryProblem(first, [problem({ name: second.title }), own]),
+    ).toBe(own);
+    // Whatever its case or spacing, as the server names it.
+    expect(
+      findLibraryEntryProblem(first, [
+        problem({ name: `  ${first.title.toUpperCase()} ` }),
+      ]),
+    ).toBeDefined();
+    expect(
+      findLibraryEntryProblem(first, [problem({ name: second.title })]),
+    ).toBeUndefined();
+    // Not a rule's, or no name at all: no card to say it on.
+    expect(
+      findLibraryEntryProblem(first, [
+        problem({ part: TurnOnRecommendedPart.Playbook }),
+        problem({ part: TurnOnRecommendedPart.Logs }),
+        problem({ name: "" }),
+      ]),
+    ).toBeUndefined();
+    expect(findLibraryEntryProblem(first, [])).toBeUndefined();
   });
 
   test("searches every word, in any order and case", () => {

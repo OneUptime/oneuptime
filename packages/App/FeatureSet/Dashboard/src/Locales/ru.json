@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "Ещё {{count}} метка",
   "{{duration}} after impact began": "{{duration}} после начала воздействия",
   "Shown on the status pages this episode appears on.": "Отображается на страницах состояния, где показан этот эпизод.",
-  "Adding them again adds only what is still missing.": "При повторном добавлении добавится только то, чего ещё не хватает.",
   "Everything else is on. Try again turns on only what is still missing.": "Всё остальное включено. «Повторить попытку» включит только то, чего ещё не хватает.",
   "It is turned off, and your role cannot turn it back on.": "Это выключено, и ваша роль не позволяет включить это снова.",
-  "Not every rule could be added": "Не все правила удалось добавить",
   "Not everything could be turned on": "Не всё удалось включить",
   "OneUptime could not save it.": "OneUptime не удалось это сохранить.",
   "OneUptime could not save it: {{detail}}": "OneUptime не удалось это сохранить: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Что-то пошло не так при чтении того, что уже есть в проекте, поэтому ничего не добавлено.",
   "Something went wrong while turning it back on.": "Что-то пошло не так при повторном включении.",
   "The recommended detection rules": "Рекомендуемые правила обнаружения",
-  "The rules could not be added": "Не удалось добавить правила",
   "The test attack could not be sent": "Не удалось отправить тестовую атаку",
   "Try again turns on only what is still missing.": "«Повторить попытку» включит только то, чего ещё не хватает.",
   "Turn on recommended did not finish": "«Включить рекомендуемое» не завершилось",
   "Your plan does not include it.": "Ваш тариф этого не включает.",
   "Your role cannot add it.": "Ваша роль не позволяет это добавить.",
-  "Your role cannot read what the project already has, so nothing was added.": "Ваша роль не позволяет прочитать, что уже есть в проекте, поэтому ничего не добавлено."
+  "Your role cannot read what the project already has, so nothing was added.": "Ваша роль не позволяет прочитать, что уже есть в проекте, поэтому ничего не добавлено.",
+  "The recommended rules could not be added": "Не удалось добавить рекомендуемые правила",
+  "{{count}} rules could not be added": "Не удалось добавить правила: {{count}}",
+  "{{count}} rules could not be added_one": "Не удалось добавить {{count}} правило",
+  "The others were added.": "Остальные добавлены."
 }

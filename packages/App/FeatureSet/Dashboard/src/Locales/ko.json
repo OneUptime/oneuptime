@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "레이블 {{count}}개 더",
   "{{duration}} after impact began": "영향 시작 후 {{duration}}",
   "Shown on the status pages this episode appears on.": "이 에피소드가 표시되는 상태 페이지에 표시됩니다.",
-  "Adding them again adds only what is still missing.": "다시 추가하면 아직 없는 항목만 추가됩니다.",
   "Everything else is on. Try again turns on only what is still missing.": "나머지는 모두 켜져 있습니다. '다시 시도'는 아직 없는 항목만 켭니다.",
   "It is turned off, and your role cannot turn it back on.": "꺼져 있으며, 현재 역할로는 다시 켤 수 없습니다.",
-  "Not every rule could be added": "일부 규칙을 추가하지 못했습니다",
   "Not everything could be turned on": "일부 항목을 켜지 못했습니다",
   "OneUptime could not save it.": "OneUptime에서 저장하지 못했습니다.",
   "OneUptime could not save it: {{detail}}": "OneUptime에서 저장하지 못했습니다: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "프로젝트에 이미 있는 항목을 읽는 중에 문제가 발생하여 아무것도 추가되지 않았습니다.",
   "Something went wrong while turning it back on.": "다시 켜는 중에 문제가 발생했습니다.",
   "The recommended detection rules": "추천 탐지 규칙",
-  "The rules could not be added": "규칙을 추가하지 못했습니다",
   "The test attack could not be sent": "테스트 공격을 보내지 못했습니다",
   "Try again turns on only what is still missing.": "'다시 시도'는 아직 없는 항목만 켭니다.",
   "Turn on recommended did not finish": "'추천 항목 켜기'가 완료되지 않았습니다",
   "Your plan does not include it.": "현재 요금제에는 포함되어 있지 않습니다.",
   "Your role cannot add it.": "현재 역할로는 추가할 수 없습니다.",
-  "Your role cannot read what the project already has, so nothing was added.": "현재 역할로는 프로젝트에 이미 있는 항목을 읽을 수 없어 아무것도 추가되지 않았습니다."
+  "Your role cannot read what the project already has, so nothing was added.": "현재 역할로는 프로젝트에 이미 있는 항목을 읽을 수 없어 아무것도 추가되지 않았습니다.",
+  "The recommended rules could not be added": "추천 규칙을 추가하지 못했습니다",
+  "{{count}} rules could not be added": "규칙 {{count}}개를 추가하지 못했습니다",
+  "{{count}} rules could not be added_one": "규칙 {{count}}개를 추가하지 못했습니다",
+  "The others were added.": "나머지 규칙은 추가되었습니다."
 }

@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "{{count}} weitere Beschriftung",
   "{{duration}} after impact began": "{{duration}} nach Beginn der Auswirkung",
   "Shown on the status pages this episode appears on.": "Wird auf den Statusseiten angezeigt, auf denen diese Episode erscheint.",
-  "Adding them again adds only what is still missing.": "Erneutes Hinzufügen fügt nur hinzu, was noch fehlt.",
   "Everything else is on. Try again turns on only what is still missing.": "Alles andere ist aktiv. Mit „Erneut versuchen“ wird nur aktiviert, was noch fehlt.",
   "It is turned off, and your role cannot turn it back on.": "Es ist deaktiviert, und Ihre Rolle kann es nicht wieder aktivieren.",
-  "Not every rule could be added": "Nicht jede Regel konnte hinzugefügt werden",
   "Not everything could be turned on": "Nicht alles konnte aktiviert werden",
   "OneUptime could not save it.": "OneUptime konnte es nicht speichern.",
   "OneUptime could not save it: {{detail}}": "OneUptime konnte es nicht speichern: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Beim Lesen dessen, was das Projekt bereits hat, ist etwas schiefgelaufen, daher wurde nichts hinzugefügt.",
   "Something went wrong while turning it back on.": "Beim erneuten Aktivieren ist etwas schiefgelaufen.",
   "The recommended detection rules": "Die empfohlenen Erkennungsregeln",
-  "The rules could not be added": "Die Regeln konnten nicht hinzugefügt werden",
   "The test attack could not be sent": "Der Testangriff konnte nicht gesendet werden",
   "Try again turns on only what is still missing.": "Mit „Erneut versuchen“ wird nur aktiviert, was noch fehlt.",
   "Turn on recommended did not finish": "„Empfohlenes aktivieren“ wurde nicht abgeschlossen",
   "Your plan does not include it.": "Ihr Tarif enthält das nicht.",
   "Your role cannot add it.": "Ihre Rolle kann es nicht hinzufügen.",
-  "Your role cannot read what the project already has, so nothing was added.": "Ihre Rolle kann nicht lesen, was das Projekt bereits hat, daher wurde nichts hinzugefügt."
+  "Your role cannot read what the project already has, so nothing was added.": "Ihre Rolle kann nicht lesen, was das Projekt bereits hat, daher wurde nichts hinzugefügt.",
+  "The recommended rules could not be added": "Die empfohlenen Regeln konnten nicht hinzugefügt werden",
+  "{{count}} rules could not be added": "{{count}} Regeln konnten nicht hinzugefügt werden",
+  "{{count}} rules could not be added_one": "{{count}} Regel konnte nicht hinzugefügt werden",
+  "The others were added.": "Die anderen wurden hinzugefügt."
 }

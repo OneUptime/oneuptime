@@ -5,6 +5,10 @@ import {
   DetectionRuleLibraryEntry,
   isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  TurnOnRecommendedPart,
+  TurnOnRecommendedProblem,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
 import { isRuleFromLibraryEntry } from "Common/Utils/SecurityEvent/SecurityTemplateRecords";
 import {
   DetectionRuleShape,
@@ -150,4 +154,22 @@ export function getRecommendedRulesNotAdded(
       );
     },
   );
+}
+
+/*
+ * What an Add could not do for one library entry, if anything: the problem
+ * named by the entry's title (or, from the server, by the name of the
+ * project's rule of it), so its card can say why where the reader clicked.
+ */
+export function findLibraryEntryProblem(
+  entry: DetectionRuleLibraryEntry,
+  problems: ReadonlyArray<TurnOnRecommendedProblem>,
+): TurnOnRecommendedProblem | undefined {
+  return problems.find((problem: TurnOnRecommendedProblem): boolean => {
+    return (
+      problem.part === TurnOnRecommendedPart.Rule &&
+      Boolean(problem.name) &&
+      isRuleFromLibraryEntry({ name: problem.name }, entry)
+    );
+  });
 }

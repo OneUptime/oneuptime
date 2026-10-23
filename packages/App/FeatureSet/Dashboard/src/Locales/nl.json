@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "Nog {{count}} label",
   "{{duration}} after impact began": "{{duration}} na het begin van de impact",
   "Shown on the status pages this episode appears on.": "Getoond op de statuspagina's waarop deze episode verschijnt.",
-  "Adding them again adds only what is still missing.": "Opnieuw toevoegen voegt alleen toe wat nog ontbreekt.",
   "Everything else is on. Try again turns on only what is still missing.": "Al het andere staat aan. “Opnieuw proberen” schakelt alleen in wat nog ontbreekt.",
   "It is turned off, and your role cannot turn it back on.": "Het staat uit, en uw rol kan het niet weer inschakelen.",
-  "Not every rule could be added": "Niet elke regel kon worden toegevoegd",
   "Not everything could be turned on": "Niet alles kon worden ingeschakeld",
   "OneUptime could not save it.": "OneUptime kon het niet opslaan.",
   "OneUptime could not save it: {{detail}}": "OneUptime kon het niet opslaan: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "Er is iets misgegaan bij het lezen van wat het project al heeft, dus er is niets toegevoegd.",
   "Something went wrong while turning it back on.": "Er is iets misgegaan bij het weer inschakelen.",
   "The recommended detection rules": "De aanbevolen detectieregels",
-  "The rules could not be added": "De regels konden niet worden toegevoegd",
   "The test attack could not be sent": "De testaanval kon niet worden verzonden",
   "Try again turns on only what is still missing.": "“Opnieuw proberen” schakelt alleen in wat nog ontbreekt.",
   "Turn on recommended did not finish": "“Aanbevolen inschakelen” is niet voltooid",
   "Your plan does not include it.": "Uw abonnement bevat dit niet.",
   "Your role cannot add it.": "Uw rol kan het niet toevoegen.",
-  "Your role cannot read what the project already has, so nothing was added.": "Uw rol kan niet lezen wat het project al heeft, dus er is niets toegevoegd."
+  "Your role cannot read what the project already has, so nothing was added.": "Uw rol kan niet lezen wat het project al heeft, dus er is niets toegevoegd.",
+  "The recommended rules could not be added": "De aanbevolen regels konden niet worden toegevoegd",
+  "{{count}} rules could not be added": "{{count}} regels konden niet worden toegevoegd",
+  "{{count}} rules could not be added_one": "{{count}} regel kon niet worden toegevoegd",
+  "The others were added.": "De andere zijn toegevoegd."
 }

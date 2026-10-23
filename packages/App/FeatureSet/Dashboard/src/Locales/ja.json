@@ -33405,10 +33405,8 @@
   "{{count}} more labels_one": "ほか {{count}} 件のラベル",
   "{{duration}} after impact began": "影響の開始から {{duration}}",
   "Shown on the status pages this episode appears on.": "このエピソードが表示されるステータスページに表示されます。",
-  "Adding them again adds only what is still missing.": "もう一度追加すると、まだ足りないものだけが追加されます。",
   "Everything else is on. Try again turns on only what is still missing.": "ほかはすべてオンです。「再試行」では、まだ足りないものだけがオンになります。",
   "It is turned off, and your role cannot turn it back on.": "オフになっていて、あなたのロールではオンに戻せません。",
-  "Not every rule could be added": "一部のルールを追加できませんでした",
   "Not everything could be turned on": "一部をオンにできませんでした",
   "OneUptime could not save it.": "OneUptime で保存できませんでした。",
   "OneUptime could not save it: {{detail}}": "OneUptime で保存できませんでした: {{detail}}",
@@ -33416,11 +33414,14 @@
   "Something went wrong while reading what the project already has, so nothing was added.": "プロジェクトにすでにあるものを読み取る際に問題が発生したため、何も追加されませんでした。",
   "Something went wrong while turning it back on.": "オンに戻す際に問題が発生しました。",
   "The recommended detection rules": "おすすめの検出ルール",
-  "The rules could not be added": "ルールを追加できませんでした",
   "The test attack could not be sent": "テスト攻撃を送信できませんでした",
   "Try again turns on only what is still missing.": "「再試行」では、まだ足りないものだけがオンになります。",
   "Turn on recommended did not finish": "「おすすめをオンにする」が完了しませんでした",
   "Your plan does not include it.": "お使いのプランには含まれていません。",
   "Your role cannot add it.": "あなたのロールでは追加できません。",
-  "Your role cannot read what the project already has, so nothing was added.": "あなたのロールではプロジェクトにすでにあるものを読み取れないため、何も追加されませんでした。"
+  "Your role cannot read what the project already has, so nothing was added.": "あなたのロールではプロジェクトにすでにあるものを読み取れないため、何も追加されませんでした。",
+  "The recommended rules could not be added": "おすすめのルールを追加できませんでした",
+  "{{count}} rules could not be added": "{{count}} 件のルールを追加できませんでした",
+  "{{count}} rules could not be added_one": "{{count}} 件のルールを追加できませんでした",
+  "The others were added.": "ほかのルールは追加されました。"
 }

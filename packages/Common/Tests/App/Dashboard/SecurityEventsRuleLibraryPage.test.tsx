@@ -18,7 +18,9 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
-import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
+import SecurityCaseApi, {
+  SecurityApiError,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import { RECOMMENDED_FILTER } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleLibraryUtil";
 import RuleLibraryPage, {
   RULE_LIBRARY_CATEGORY_SELECT_TEST_ID,
@@ -403,6 +405,57 @@ describe("adding from the Rule Library", () => {
       });
   }
 
+  function problemsPart(testId: string): HTMLElement {
+    return within(screen.getByTestId("rule-library-problems")).getByTestId(
+      testId,
+    );
+  }
+
+  // Why an Add could not add this entry, on its own card.
+  function cardProblem(entry: DetectionRuleLibraryEntry): HTMLElement | null {
+    return within(entryCard(entry)).queryByTestId(
+      `rule-library-problem-${entry.id}`,
+    );
+  }
+
+  /*
+   * jsdom draws nothing, so it has no scrollIntoView: the page checks for
+   * it, and these record what it brought into view.
+   */
+  let scrolledIntoView: Array<Element> = [];
+  const originalScrollIntoView: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(
+      window.HTMLElement.prototype,
+      "scrollIntoView",
+    );
+
+  beforeEach(() => {
+    scrolledIntoView = [];
+    Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: function (this: Element): void {
+        scrolledIntoView.push(this);
+      },
+    });
+  });
+
+  afterEach(() => {
+    if (originalScrollIntoView) {
+      Object.defineProperty(
+        window.HTMLElement.prototype,
+        "scrollIntoView",
+        originalScrollIntoView,
+      );
+    } else {
+      delete (
+        window.HTMLElement.prototype as unknown as {
+          scrollIntoView?: unknown;
+        }
+      ).scrollIntoView;
+    }
+  });
+
   // Each created rule, as the page sent it.
   function recordCreates(
     fail: (rule: DetectionRule) => HTTPErrorResponse | null = (): null => {
@@ -537,21 +590,40 @@ describe("adding from the Rule Library", () => {
     // Every other rule was added: it did not stop at the first it could not.
     expect(created).toHaveLength(DETECTION_RULE_LIBRARY.length - 2);
     await waitFor(() => {
-      expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
-        "Not every rule could be added",
+      expect(problemsPart("security-turn-on-problems-title")).toHaveTextContent(
+        /^2 rules could not be added$/,
       );
     });
     expect(problemRows()).toEqual([
       `${RECOMMENDED[1]!.title} - Something went wrong while adding it.`,
       `${SEQUENCE.title} - OneUptime could not save it: name length cannot be more than 50 characters`,
     ]);
-    expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
-      "Adding them again adds only what is still missing.",
+    expect(problemsPart("security-turn-on-problems-note")).toHaveTextContent(
+      /^The others were added\.$/,
     );
     expect(screen.getByTestId("rule-library-problems")).toHaveAttribute(
       "role",
       "alert",
     );
+    /*
+     * The box is brought into view: the confirmation leaves the reader
+     * wherever its dialog was opened from.
+     */
+    expect(scrolledIntoView).toHaveLength(1);
+    expect(
+      scrolledIntoView[0]!.contains(
+        screen.getByTestId("rule-library-problems"),
+      ),
+    ).toBe(true);
+    // Each card it could not add says why too, without a second alert.
+    expect(cardProblem(SEQUENCE)).toHaveTextContent(
+      "OneUptime could not save it: name length cannot be more than 50 characters",
+    );
+    expect(cardProblem(SEQUENCE)).not.toHaveAttribute("role");
+    expect(cardProblem(RECOMMENDED[1]!)).toHaveTextContent(
+      "Something went wrong while adding it.",
+    );
+    expect(cardProblem(RECOMMENDED[0]!)).toBeNull();
     // The two left out still offer Add Rule; the rest read Added.
     expect(
       within(entryCard(SEQUENCE)).getByRole("button", { name: "Add Rule" }),
@@ -578,9 +650,45 @@ describe("adding from the Rule Library", () => {
       }),
     ).toEqual([RECOMMENDED[1]!.title, SEQUENCE.title]);
     expect(screen.queryByTestId("rule-library-problems")).toBeNull();
+    expect(cardProblem(SEQUENCE)).toBeNull();
+    expect(cardProblem(RECOMMENDED[1]!)).toBeNull();
   });
 
-  test("a rule the role cannot add says so, by its name", async () => {
+  test("Add All that adds none says so, without saying the others were added", async () => {
+    recordCreates((): HTTPErrorResponse => {
+      return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    });
+    await renderPage();
+    await pickCategory(RECOMMENDED_FILTER);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Add All ${RECOMMENDED.length} Rules`,
+        }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Rules" }));
+    });
+
+    await waitFor(() => {
+      expect(problemsPart("security-turn-on-problems-title").textContent).toBe(
+        `${RECOMMENDED.length} rules could not be added`,
+      );
+    });
+    expect(
+      within(screen.getByTestId("rule-library-problems")).queryByTestId(
+        "security-turn-on-problems-note",
+      ),
+    ).toBeNull();
+    // A server's own message is never the reader's to read.
+    expect(screen.getByTestId("rule-library-problems")).not.toHaveTextContent(
+      "Server Error",
+    );
+  });
+
+  test("one card's Add Rule that fails says why on that card, where the reader clicked, and nowhere else", async () => {
     recordCreates((): HTTPErrorResponse => {
       return new HTTPErrorResponse(
         422,
@@ -599,10 +707,20 @@ describe("adding from the Rule Library", () => {
     });
 
     await waitFor(() => {
-      expect(problemRows()).toEqual([
-        `${RECOMMENDED[0]!.title} - Your role cannot add it.`,
-      ]);
+      expect(cardProblem(RECOMMENDED[0]!)).toHaveTextContent(
+        /^Your role cannot add it\.$/,
+      );
     });
+    // The only thing said, so it is the alert.
+    expect(cardProblem(RECOMMENDED[0]!)).toHaveAttribute("role", "alert");
+    expect(screen.queryByTestId("rule-library-problems")).toBeNull();
+    expect(scrolledIntoView).toEqual([]);
+    // Not added: its card still offers Add Rule.
+    expect(
+      within(entryCard(RECOMMENDED[0]!)).getByRole("button", {
+        name: "Add Rule",
+      }),
+    ).toBeInTheDocument();
   });
 
   test("the recommended rules through the server: what it could not add is said the same way", async () => {
@@ -637,17 +755,25 @@ describe("adding from the Rule Library", () => {
         `${RECOMMENDED[1]!.title} - Something went wrong while adding it.`,
       ]);
     });
-    expect(screen.getByTestId("rule-library-problems")).toHaveTextContent(
-      "Not every rule could be added",
+    expect(problemsPart("security-turn-on-problems-title")).toHaveTextContent(
+      /^1 rule could not be added$/,
     );
+    expect(problemsPart("security-turn-on-problems-note")).toHaveTextContent(
+      /^The others were added\.$/,
+    );
+    expect(cardProblem(RECOMMENDED[1]!)).toHaveTextContent(
+      "Something went wrong while adding it.",
+    );
+    expect(scrolledIntoView).toHaveLength(1);
   });
 
-  test("a server that cannot be reached: the rules could not be added, in its sentence", async () => {
+  test("a server that cannot be reached: the recommended rules could not be added, in the product's words", async () => {
     jest
       .spyOn(SecurityCaseApi, "turnOnRecommended")
       .mockRejectedValue(
-        new Error(
+        new SecurityApiError(
           "Error connecting to server. Please try again in few minutes.",
+          502,
         ),
       );
     await renderPage();
@@ -662,10 +788,42 @@ describe("adding from the Rule Library", () => {
 
     const box: HTMLElement = await screen.findByTestId("rule-library-problems");
 
-    expect(box).toHaveTextContent("The rules could not be added");
-    expect(box).toHaveTextContent(
-      "Error connecting to server. Please try again in few minutes.",
+    expect(problemsPart("security-turn-on-problems-title")).toHaveTextContent(
+      /^The recommended rules could not be added$/,
     );
+    expect(problemsPart("security-turn-on-problems-error")).toHaveTextContent(
+      /^Something went wrong\. Try again in a moment\.$/,
+    );
+    expect(box).not.toHaveTextContent("Error connecting to server");
+    expect(
+      within(box).queryByTestId("security-turn-on-problems-note"),
+    ).toBeNull();
     expect(problemRows()).toEqual([]);
+    expect(scrolledIntoView).toHaveLength(1);
+  });
+
+  test("a plan that does not include them says so in the server's sentence", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockRejectedValue(
+        new SecurityApiError(
+          "Please upgrade your plan to Growth to access this feature",
+          402,
+        ),
+      );
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: `Add ${RECOMMENDED.length} Recommended Rules`,
+        }),
+      );
+    });
+
+    await screen.findByTestId("rule-library-problems");
+    expect(problemsPart("security-turn-on-problems-error")).toHaveTextContent(
+      /^Please upgrade your plan to Growth to access this feature$/,
+    );
   });
 });

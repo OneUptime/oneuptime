@@ -100,7 +100,7 @@ that list is not empty.
   test attack, whose case opens - in light, dark and on a phone; a click that cannot do everything
   (`?setup=partly`) names each thing it could not do with why, says the rest is on and makes Try
   again the main button, which does only what is left; a click that fails whole (`?setup=fail`) says
-  so in the card; both read inside the card in dark and on a phone; a project set up and quiet reads
+  so in the card, in the product's words; both read inside the card in dark and on a phone; a project set up and quiet reads
   All quiet and charts nothing.
 - **The case pages**: Open Cases, each case with what raised it and what it is about; each page
   from the side menu lists what its name says (Unassigned names the team a case was handed to,
@@ -120,7 +120,9 @@ that list is not empty.
   its card; the rule library marks the rules the project has (a renamed one by its Sigma id) and
   the recommended ones, filters to them and adds the missing ones in one click, its description
   running under its two buttons the card's whole width, and narrows by one select beside its search;
-  an Add that cannot add a rule names it with why, adds the rest, and adding again adds only it; Detections is a section of
+  an Add Rule that cannot add its rule says why on its card; an Add All or Add Recommended Rules that
+  cannot add one names it with why in a box it brings into view, adds the rest, and adding again
+  adds only it; Detections is a section of
   pages, each its own address and entry; the side menu is eight sections of pages, the ones set up
   once folded, its Workspace section listing only the connected Slack, and on a phone it names the
   section and the page; entities ranks what the findings name.
@@ -180,7 +182,7 @@ Screenshots (2x) land in `output/playwright/security-operations-ui/`, named `*-s
 because everything in them is fabricated: among them `overview-desktop`, `overview-dark`,
 `side-menu-desktop`, `side-menu-dark`, `side-menu-mobile`, `overview-turn-on-partly`,
 `overview-turn-on-partly-dark`, `overview-turn-on-partly-phone`, `overview-turn-on-partly-phone-dark`,
-`overview-turn-on-failed`, `rule-library-add-failed`, `cases-desktop`, `cases-tablet`,
+`overview-turn-on-failed`, `rule-library-add-failed`, `rule-library-add-all-failed`, `cases-desktop`, `cases-tablet`,
 `cases-mobile`, each case page at 1280 in both themes and at 390 (`cases-open-1280-light`,
 `cases-unassigned-1280-dark`, `cases-closed-390-light` and the rest), `case-desktop`, `case-dark`,
 `case-mobile`, `playbooks-desktop`, `playbook-desktop`, `playbook-runs-waiting-desktop`,

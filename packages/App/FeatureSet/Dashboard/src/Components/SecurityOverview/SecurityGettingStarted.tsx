@@ -7,6 +7,7 @@ import {
   SecuritySetupStepKey,
   TurnOnRecommendedProblem,
   TurnOnRecommendedResult,
+  describeSetupCallFailure,
   didTurnOnAnything,
   getSecuritySetupSteps,
 } from "./SecuritySetupModel";
@@ -27,7 +28,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import PermissionGate, {
   ModelAction,
@@ -184,6 +184,12 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
     null,
   );
   const [error, setError] = useState<string>("");
+  /*
+   * Each click's answer is drawn afresh, so a Try again that comes back with
+   * the same thing missing is announced again rather than looking as if
+   * nothing happened.
+   */
+  const [attempt, setAttempt] = useState<number>(0);
   const test: SecuritySetupTestState = useSecuritySetupTest(props.onChanged);
 
   const steps: Array<SecuritySetupStep> = getSecuritySetupSteps(props.status);
@@ -194,6 +200,11 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
   const problems: Array<TurnOnRecommendedProblem> = turnedOn?.problems || [];
   const showTryAgain: boolean = needsTurnOnRetry({ turnedOn, error });
   const showTurnOn: boolean = !showTryAgain && needsTurnOnRecommended(steps);
+
+  // A sentence of the card's own, in the reader's language.
+  const say: (key: string) => string = (key: string): string => {
+    return translator.translateText(key) || key;
+  };
 
   const turnOnGate: PermissionGateResult = getTurnOnRecommendedGate();
   // The main button is the next step; when it is locked, say who can do it.
@@ -208,9 +219,13 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
       setTurnedOn(await SecurityCaseApi.turnOnRecommended());
       props.onChanged();
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      // The server's sentence for a role or a plan; the product's own for anything else.
+      setError(describeSetupCallFailure(err));
     }
 
+    setAttempt((count: number): number => {
+      return count + 1;
+    });
     setIsTurningOn(false);
   };
 
@@ -396,13 +411,24 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
       {showTryAgain ? (
         <div className="mt-4">
           <SecurityTurnOnProblems
+            key={attempt}
             problems={problems}
             error={error}
-            title={error ? TURN_ON_FAILED_TITLE : TURN_ON_PARTLY_TITLE}
+            title={say(error ? TURN_ON_FAILED_TITLE : TURN_ON_PARTLY_TITLE)}
+            /*
+             * Under what it could not do: that the rest is on, and that Try
+             * again adds nothing twice. A click that failed whole says why
+             * instead - "try again in a moment", or the role or plan Try
+             * again would not change - and nothing more.
+             */
             note={
-              !error && turnedOn && didTurnOnAnything(turnedOn)
-                ? TURN_ON_PARTLY_NOTE
-                : TURN_ON_RETRY_NOTE
+              error
+                ? undefined
+                : say(
+                    turnedOn && didTurnOnAnything(turnedOn)
+                      ? TURN_ON_PARTLY_NOTE
+                      : TURN_ON_RETRY_NOTE,
+                  )
             }
           />
         </div>
@@ -415,7 +441,7 @@ const SecurityGettingStarted: FunctionComponent<ComponentProps> = (
           <SecurityTurnOnProblems
             problems={[]}
             error={test.error}
-            title={SETUP_TEST_FAILED_TITLE}
+            title={say(SETUP_TEST_FAILED_TITLE)}
             dataTestId="security-setup-test-error"
           />
         </div>
