@@ -7,6 +7,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentTemplate from "Common/Models/DatabaseModels/IncidentTemplate";
+import IncidentTemplateOwnerTeam from "Common/Models/DatabaseModels/IncidentTemplateOwnerTeam";
+import IncidentTemplateOwnerUser from "Common/Models/DatabaseModels/IncidentTemplateOwnerUser";
+import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../Components/ResourceOwners/useResourceOwners";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -185,6 +189,28 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
   const advancedSection: FormFieldCollapsibleSection<IncidentTemplate> =
     getAdvancedFormSection<IncidentTemplate>();
 
+  /*
+   * The Owner chip above the table: a template can be found by the person
+   * or the team that owns it - who may change it, and who owns the incidents made
+   * from it - the server answering the chip in the list's own query, and the
+   * Owners column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<IncidentTemplate>({
+    persistKey: "incident-templates-table",
+    ownerUserModelType: IncidentTemplateOwnerUser,
+    ownerTeamModelType: IncidentTemplateOwnerTeam,
+    resourceIdField: "incidentTemplateId",
+  });
+
   return (
     <Fragment>
       <ModelTable<IncidentTemplate>
@@ -207,8 +233,15 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             "Ready-made incidents for problems you expect, with the title, severity, monitors and on-call policy filled in. Use one with Create from Template on the Incidents page.",
         }}
         noItemsMessage={"No incident templates found."}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
+        })}
+        onFetchSuccess={(data: Array<IncidentTemplate>) => {
+          onResourcesFetched(data);
         }}
         showViewIdButton={true}
         onBeforeCreate={async (
@@ -638,6 +671,22 @@ const IncidentTemplates: FunctionComponent<PageComponentProps> = (
             },
             title: "Description",
             type: FieldType.LongText,
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: IncidentTemplate): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
           },
         ]}
       />

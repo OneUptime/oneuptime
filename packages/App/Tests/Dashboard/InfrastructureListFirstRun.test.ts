@@ -84,6 +84,9 @@ const LISTS_WITH_CHIPS: Array<string> = [
   "Pages/IoT/Fleets.tsx",
   "Pages/Database/Databases.tsx",
   "Pages/MessageQueue/MessageQueues.tsx",
+  "Pages/Serverless/ServerlessFunctions.tsx",
+  "Pages/Cloud/CloudResources.tsx",
+  "Pages/Cloud/MonitoredResources.tsx",
 ];
 
 describe("the first-run rules", () => {

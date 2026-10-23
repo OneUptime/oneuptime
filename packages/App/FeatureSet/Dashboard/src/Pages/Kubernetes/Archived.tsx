@@ -7,6 +7,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
+import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -20,14 +24,44 @@ const KubernetesArchivedPage: FunctionComponent<
     modelType: KubernetesCluster,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<KubernetesCluster>({
+    persistKey: "kubernetes-archived-table",
+    ownerUserModelType: KubernetesClusterOwnerUser,
+    ownerTeamModelType: KubernetesClusterOwnerTeam,
+    resourceIdField: "kubernetesClusterId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
         modelType={KubernetesCluster}
         id="kubernetes-archived-table"
         userPreferencesKey="kubernetes-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<KubernetesCluster>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -105,6 +139,22 @@ const KubernetesArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: KubernetesCluster): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: KubernetesCluster): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

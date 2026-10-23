@@ -17,8 +17,10 @@ import {
   NO_ACCESS_DESCRIPTION,
   NO_ACCESS_TITLE,
   VIEW_DOCUMENTATION,
+  ListLoadOutcome,
   buildModelTableEmptyState,
   buildNoAccessState,
+  isListEmptyWithNothingApplied,
 } from "../../../../UI/Components/ModelTable/ModelTableEmptyState";
 import {
   TableEmptyStateAction,
@@ -737,5 +739,38 @@ describe("buildNoAccessState", () => {
     expect(props.description).toBe(
       "Bitten Sie einen Projektadministrator um eine dieser Berechtigungen: Project Owner",
     );
+  });
+});
+
+/*
+ * Whether a list has nothing at all, so a table that asks for it leaves its
+ * filter chips out (EmptyStateOptions.hideTopContentWhileEmpty): only a
+ * load that found no record, on the first page, with nothing narrowing the
+ * list - no search, no filter of the table's own, no chip of the page's.
+ */
+describe("a list empty with nothing applied", () => {
+  const EMPTY: ListLoadOutcome = {
+    rowCount: 0,
+    totalCount: 0,
+    pageNumber: 1,
+    isSearchActive: false,
+    isFilterActive: false,
+    isPageFiltered: false,
+  };
+
+  test("no record and nothing applied is the empty list", () => {
+    expect(isListEmptyWithNothingApplied(EMPTY)).toBe(true);
+  });
+
+  test.each<[string, Partial<ListLoadOutcome>]>([
+    ["a record on the page", { rowCount: 1, totalCount: 1 }],
+    ["records counted beyond an empty page", { totalCount: 12 }],
+    ["more to come, as an analytics list says", { hasMore: true }],
+    ["a later page", { pageNumber: 2 }],
+    ["a search in the table's box", { isSearchActive: true }],
+    ["a filter of the table's own", { isFilterActive: true }],
+    ["a chip of the page's", { isPageFiltered: true }],
+  ])("%s is not", (_reason: string, change: Partial<ListLoadOutcome>) => {
+    expect(isListEmptyWithNothingApplied({ ...EMPTY, ...change })).toBe(false);
   });
 });

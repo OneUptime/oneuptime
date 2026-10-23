@@ -169,6 +169,9 @@ const store = {
   HostOwnerTeam: [],
   VMwareVCenterOwnerUser: [],
   VMwareVCenterOwnerTeam: [],
+  // The Owners column of Cloud > Resources, once a resource is there.
+  CloudResourceOwnerUser: [],
+  CloudResourceOwnerTeam: [],
   Label: [],
   TableView: [],
   TelemetryIngestionKey: [],

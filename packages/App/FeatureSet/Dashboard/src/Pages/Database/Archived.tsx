@@ -8,6 +8,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DatabaseServerOwnerTeam from "Common/Models/DatabaseModels/DatabaseServerOwnerTeam";
+import DatabaseServerOwnerUser from "Common/Models/DatabaseModels/DatabaseServerOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
@@ -33,14 +37,44 @@ const DatabaseArchivedPage: FunctionComponent<
     modelType: DatabaseServer,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<DatabaseServer>({
+    persistKey: "database-archived-table",
+    ownerUserModelType: DatabaseServerOwnerUser,
+    ownerTeamModelType: DatabaseServerOwnerTeam,
+    resourceIdField: "databaseServerId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
         id="database-archived-table"
         userPreferencesKey="database-archived-table"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<DatabaseServer>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -147,6 +181,22 @@ const DatabaseArchivedPage: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: DatabaseServer): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: DatabaseServer): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           {

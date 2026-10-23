@@ -6,6 +6,11 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
+import RumApplicationOwnerTeam from "Common/Models/DatabaseModels/RumApplicationOwnerTeam";
+import RumApplicationOwnerUser from "Common/Models/DatabaseModels/RumApplicationOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
+import { getFirstRunTopContent } from "../../Components/Infrastructure/FirstRecordWatch";
 import React, {
   Fragment,
   FunctionComponent,
@@ -44,6 +49,28 @@ const RumApplications: FunctionComponent<
     modelType: RumApplication,
   });
 
+  /*
+   * The Owner and Labels chips above the table: an application can be found by the
+   * person or the team that owns it - the server answers the Owner chip in
+   * the list's own query - and the Owners column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<RumApplication>({
+    persistKey: "rum-applications-table",
+    ownerUserModelType: RumApplicationOwnerUser,
+    ownerTeamModelType: RumApplicationOwnerTeam,
+    resourceIdField: "rumApplicationId",
+    showLabelsFacet: true,
+  });
+
   useEffect(() => {
     ModelAPI.count({
       modelType: RumApplication,
@@ -79,8 +106,18 @@ const RumApplications: FunctionComponent<
         modelType={RumApplication}
         id="rum-applications-table"
         userPreferencesKey="rum-applications-table"
-        query={{
+        topContent={getFirstRunTopContent({
+          topContent: filterBar,
+          count: count,
+        })}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: false,
+        })}
+        onFetchSuccess={(data: Array<RumApplication>) => {
+          onResourcesFetched(data);
         }}
         onCreateSuccess={(item: RumApplication): Promise<RumApplication> => {
           setCount((currentCount: number | null): number => {
@@ -264,6 +301,22 @@ const RumApplications: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: RumApplication): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: RumApplication): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

@@ -466,13 +466,18 @@ jobs:
               test-acknowledgement-timeout-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
-          # (2.9 to 3.5): about 18.5 with the setup. Chromium only.
+          # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
+          # Filters (about 30 seconds locally, a minute with its bundle,
+          # Chromium only: On-Call > Schedules filtered by its owners at 1280
+          # and 390 pixels, dark and German) joined them the same day: about
+          # 19.5.
           - group: 10
             browsers: chromium
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-navigation-search-ui
+              test-owner-filters-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -669,6 +674,8 @@ jobs:
             output/playwright/vmware-host-page-ui/test-results
             output/playwright/acknowledgement-timeout-ui/*.png
             output/playwright/acknowledgement-timeout-ui/test-results
+            output/playwright/owner-filters-ui/*.png
+            output/playwright/owner-filters-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
           retention-days: 7

@@ -47,8 +47,11 @@ import { useAsyncEffect } from "use-async-effect";
 import useTranslateValue, {
   UseTranslateValueResult,
 } from "Common/UI/Utils/Translation";
-import Label from "Common/Models/DatabaseModels/Label";
 import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
+import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
+import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../Components/ResourceOwners/useResourceOwners";
 import RunnerLiveStatus, {
   getRunnerLiveStatus,
   getRunnerLiveStatusLabel,
@@ -96,6 +99,30 @@ interface DefaultRunnerChange {
 }
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
+
+  /*
+   * The Owner and Labels chips above the project's Runners: a Runner can be
+   * found by the person or the team that owns it - the server answers the
+   * Owner chip in the list's own query - and the Owners column shows who
+   * that is. The global Runners above are OneUptime's, owned by nobody in a
+   * project.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<Runner>({
+    persistKey: "runbook-agents-table",
+    ownerUserModelType: RunnerOwnerUser,
+    ownerTeamModelType: RunnerOwnerTeam,
+    resourceIdField: "runnerId",
+    showLabelsFacet: true,
+  });
 
   // Null until read: the page draws once it knows whether there are any.
   const [globalRunners, setGlobalRunners] =
@@ -357,9 +384,13 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           tableId: "runbook-agents-table",
         }}
         name="Runners"
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
-        }}
+        })}
         isDeleteable={true}
         /*
          * No Edit on the rows: a Runner is edited in one place, the Runner
@@ -372,8 +403,9 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isViewable={true}
         showRefreshButton={true}
         refreshToggle={refreshToggle}
-        onFetchSuccess={(_items: Array<Runner>, totalCount: number): void => {
+        onFetchSuccess={(items: Array<Runner>, totalCount: number): void => {
           setHasProjectRunners(totalCount > 0);
+          onResourcesFetched(items);
         }}
         createEditModalWidth={ModalWidth.Large}
         cardProps={{
@@ -480,24 +512,6 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             field: { name: true },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            title: "Labels",
-            type: FieldType.EntityArray,
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
         ]}
         columns={[
@@ -650,6 +664,22 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.EntityArray,
             getElement: (item: Runner): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: Runner): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
         ]}

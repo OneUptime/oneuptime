@@ -1172,7 +1172,8 @@ describe("the Archived list", () => {
     await renderArchived();
 
     expect(tableProps!.modelType).toBe(MessageQueue);
-    expect(tableProps!.query).toEqual({ isArchived: true });
+    // The archived queues, with what the Owner and Labels chips pick.
+    expect(tableProps!.query).toEqual({ isArchived: true, merged: true });
     expect(tableProps!.isCreateable).toBe(false);
     expect(tableProps!.isEditable).toBe(false);
     expect(tableProps!.isDeleteable).toBe(true);
