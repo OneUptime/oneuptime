@@ -688,6 +688,43 @@ describe("adding from the Rule Library", () => {
     );
   });
 
+  test("the header's Add 1 Rule that fails says so in the box above the rules, as Add All does, wherever the card is", async () => {
+    recordCreates((): HTTPErrorResponse => {
+      return new HTTPErrorResponse(500, { message: "Server Error" }, {});
+    });
+    await renderPage();
+    await act(async () => {
+      fireEvent.change(screen.getByPlaceholderText("Search rules"), {
+        target: { value: SEQUENCE.title },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add 1 Rule" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Rules" }));
+    });
+
+    await waitFor(() => {
+      expect(problemsPart("security-turn-on-problems-title").textContent).toBe(
+        "1 rule could not be added",
+      );
+    });
+    expect(problemRows()).toEqual([
+      `${SEQUENCE.title} - Something went wrong while adding it.`,
+    ]);
+    // Nothing was added, so nothing to say about the others.
+    expect(
+      within(screen.getByTestId("rule-library-problems")).queryByTestId(
+        "security-turn-on-problems-note",
+      ),
+    ).toBeNull();
+    expect(scrolledIntoView).toHaveLength(1);
+    // The card says why too, without a second alert.
+    expect(cardProblem(SEQUENCE)).not.toHaveAttribute("role");
+  });
+
   test("one card's Add Rule that fails says why on that card, where the reader clicked, and nowhere else", async () => {
     recordCreates((): HTTPErrorResponse => {
       return new HTTPErrorResponse(

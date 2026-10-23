@@ -126,9 +126,10 @@ export const RULES_OTHERS_ADDED_NOTE: string = translationKey(
  */
 interface RuleLibraryAddOutcome {
   /*
-   * One card's Add Rule: said on that card, where the reader clicked. Add
-   * All or Add Recommended Rules: on each card it could not add, and in a
-   * box above the rules that names them all.
+   * A card's Add Rule (or its View Rule dialog's): said on that card, where
+   * the reader clicked. Add All or Add Recommended Rules - however many
+   * rules they add: on each card it could not add, and in a box above the
+   * rules that names them all, brought into view.
    */
   isSingle: boolean;
   problems: Array<TurnOnRecommendedProblem>;
@@ -336,8 +337,10 @@ const RuleLibraryPage: FunctionComponent<
    */
   const addRules: (
     entries: Array<DetectionRuleLibraryEntry>,
+    isFromCard: boolean,
   ) => Promise<void> = async (
     entries: Array<DetectionRuleLibraryEntry>,
+    isFromCard: boolean,
   ): Promise<void> => {
     setOutcome(null);
     setAddingIds(
@@ -377,7 +380,7 @@ const RuleLibraryPage: FunctionComponent<
     setOutcome(
       failed.length > 0
         ? {
-            isSingle: entries.length === 1,
+            isSingle: isFromCard,
             problems: failed,
             addedAny: added.length > 0,
             error: "",
@@ -728,7 +731,7 @@ const RuleLibraryPage: FunctionComponent<
                           }
                           dataTestId={`rule-library-add-${view.entry.id}`}
                           onClick={() => {
-                            void addRules([view.entry]);
+                            void addRules([view.entry], true);
                           }}
                         />
                       ) : (
@@ -768,7 +771,7 @@ const RuleLibraryPage: FunctionComponent<
             onSubmit={() => {
               const entry: DetectionRuleLibraryEntry = viewing;
               setViewing(null);
-              void addRules([entry]);
+              void addRules([entry], true);
             }}
           >
             <LibraryRuleDetails entry={viewing} />
@@ -795,7 +798,8 @@ const RuleLibraryPage: FunctionComponent<
           }}
           onSubmit={() => {
             setConfirmAddAll(false);
-            void addRules(notAdded);
+            // From the header: the box says what it could not add, wherever those cards are.
+            void addRules(notAdded, false);
           }}
         />
       ) : (
