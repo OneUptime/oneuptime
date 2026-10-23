@@ -511,7 +511,13 @@ describe("a Kubernetes cluster: what a visit starts with stays open", () => {
 
   test.each([
     [PageMap.KUBERNETES_CLUSTER_VIEW_HPAS, "Scaling", "HPAs"],
-    [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, "Observability", "Events"],
+    // A cluster's events sit open under Telemetry, beside Logs (issue #5179).
+    [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS, "Telemetry", "Events"],
+    [
+      PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE,
+      "Observability",
+      "Control Plane",
+    ],
     [PageMap.KUBERNETES_CLUSTER_VIEW_AI_INSIGHTS, "AI", "Insights"],
     // Only AI's Logs is marked, never Telemetry's Logs as well.
     [PageMap.KUBERNETES_CLUSTER_VIEW_AI_LOGS, "AI", "Logs"],
@@ -533,9 +539,27 @@ describe("a Kubernetes cluster: what a visit starts with stays open", () => {
       viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_VPAS),
     ]);
     expect(hrefsIn("Observability")).toEqual([
-      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS),
       viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE),
       viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_MESH),
+    ]);
+  });
+
+  /*
+   * A cluster's events - its OOM kills, crash loops, failed mounts and the
+   * autoscalers that cannot read their metrics - are where a dig into a
+   * cluster starts (issue #5179): open from the overview on, right after
+   * Logs, not folded into Observability.
+   */
+  test("Events is in sight under Telemetry, right after Logs", async () => {
+    await renderClusterMenuAt(PageMap.KUBERNETES_CLUSTER_VIEW);
+
+    expect(isExpanded("Telemetry")).toBe(true);
+    expect(hrefsIn("Telemetry")).toEqual([
+      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_METRICS),
+      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_TRACES),
+      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_LOGS),
+      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS),
+      viewRoute(PageMap.KUBERNETES_CLUSTER_VIEW_PROFILES),
     ]);
   });
 });

@@ -438,14 +438,21 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                       }
                     }}
                   >
-                    <dt className={TABLE_MOBILE_FIELD_NAME_CLASS_NAME}>
+                    <dt
+                      className={
+                        column.hideTitleOnMobile
+                          ? "sr-only"
+                          : TABLE_MOBILE_FIELD_NAME_CLASS_NAME
+                      }
+                    >
                       {/*
                        * A card has no header row, so the (i) a column's
                        * header carries on a wide screen sits beside the
                        * field's name here - or what the column's numbers
                        * mean could not be asked on a phone at all.
                        */}
-                      {column.headerTooltip?.trim() ? (
+                      {column.headerTooltip?.trim() &&
+                      !column.hideTitleOnMobile ? (
                         <span className="inline-flex items-center gap-1">
                           <span>
                             {translateString(column.title) ?? column.title}

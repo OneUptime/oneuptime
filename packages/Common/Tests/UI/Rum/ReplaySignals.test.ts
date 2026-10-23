@@ -32,11 +32,13 @@ import {
   ReplaySignalMatch,
   ReplaySpanSignalDetail,
   ReplayTraceWaterfallSpan,
+  ReplayVitalReports,
   buildErrorCounterpartIndex,
   findErrorAfterInteraction,
   findErrorLogsForTrace,
   findLastSignalIndexAtOrBefore,
   findSignalMatch,
+  findVitalReports,
   formatPerformanceMeasure,
   formatSignalBytes,
   formatSignalDuration,
@@ -53,8 +55,10 @@ import {
   isSteppableClientError,
   mergeSignals,
   pairClientAndServerErrors,
+  showsVitalView,
   splitSignalUrl,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignals";
+import { SessionReplayWebVitalMetric } from "../../../Types/Rum/SessionReplayCustomEvents";
 
 /*
  * The rail renders one row shape for everything; these adapters are where
@@ -701,6 +705,374 @@ describe("performance rows", () => {
     expect(detail.inputDelayMs).toBeNull();
     expect(detail.processingDurationMs).toBeNull();
     expect(detail.presentationDelayMs).toBeNull();
+  });
+
+  /*
+   * Issue #5181: the FCP of a page Chrome prerendered, measured from when
+   * the visitor opened it. The row reads the recorder's number and rating
+   * as they are - the player never re-times or re-rates a vital - and the
+   * detail keeps the kind of page view that explains the number.
+   */
+  it("shows a prerendered page's FCP as recorded, with its kind of page view", () => {
+    const signal: ReplaySignal = fromTimelineEvent(
+      makeEvent("performance", {
+        performanceKind: "web-vital",
+        metric: "FCP",
+        value: 68,
+        rating: "good",
+        navigationType: "prerender",
+      }),
+      { startTimeUnixMs: null },
+    );
+    const detail: ReplayPerformanceSignalDetail =
+      signal.detail as ReplayPerformanceSignalDetail;
+
+    expect(signal.title).toBe("FCP 68ms good");
+    expect(signal.severity).toBe("success");
+    expect(detail.isOverBudget).toBe(false);
+    expect(detail.value).toBe(68);
+    expect(detail.rating).toBe("good");
+    expect(detail.navigationType).toBe("prerender");
+  });
+
+  it("keeps a restored page's vitals apart by their kind of page view", () => {
+    for (const metric of ["TTFB", "FCP", "LCP", "CLS", "INP"] as const) {
+      const detail: ReplayPerformanceSignalDetail = fromTimelineEvent(
+        makeEvent("performance", {
+          performanceKind: "web-vital",
+          metric: metric,
+          value: 0,
+          rating: "good",
+          navigationType: "back-forward-cache",
+        }),
+        { startTimeUnixMs: null },
+      ).detail as ReplayPerformanceSignalDetail;
+
+      expect(detail.navigationType).toBe("back-forward-cache");
+    }
+  });
+});
+
+/*
+ * UI review of #5181. The detail's View row names a page view only where
+ * that explains something, and one view's CLS or INP reported again (it
+ * changed after the visitor came back to the tab) names its other reports,
+ * so two "CLS" rows for one page never leave a reader guessing which one
+ * is the page's.
+ */
+describe("a vital's page view, and its other reports", () => {
+  let ordinal: number = 0;
+
+  function vital(
+    offsetMs: number,
+    metric: SessionReplayWebVitalMetric,
+    value: number,
+    overrides?: Partial<ReplayTimelineEvent>,
+  ): ReplayTimelineEvent {
+    ordinal++;
+
+    return makeEvent("performance", {
+      id: makeRecordingSignalId(0, ordinal),
+      offsetMs: offsetMs,
+      performanceKind: "web-vital",
+      metric: metric,
+      value: value,
+      rating: "good",
+      navigationType: "hard",
+      ...overrides,
+    });
+  }
+
+  function route(offsetMs: number, to: string): ReplayTimelineEvent {
+    ordinal++;
+
+    return makeEvent("route", {
+      id: makeRecordingSignalId(0, ordinal),
+      offsetMs: offsetMs,
+      from: "/elsewhere",
+      to: to,
+      routeKind: "pushState",
+    });
+  }
+
+  function signalsOf(events: Array<ReplayTimelineEvent>): Array<ReplaySignal> {
+    return fromTimelineEvents(events, { startTimeUnixMs: START_UNIX_MS });
+  }
+
+  /* The other reports as their row titles, so a failure reads as the rail does. */
+  function reportsOf(
+    signals: Array<ReplaySignal>,
+    index: number,
+  ): { earlier: string | null; later: string | null } {
+    const reports: ReplayVitalReports = findVitalReports(
+      signals,
+      signals[index] as ReplaySignal,
+    );
+
+    return {
+      earlier: reports.earlier ? reports.earlier.title : null,
+      later: reports.later ? reports.later.title : null,
+    };
+  }
+
+  function detailOf(event: ReplayTimelineEvent): ReplayPerformanceSignalDetail {
+    return fromTimelineEvent(event, { startTimeUnixMs: START_UNIX_MS })
+      .detail as ReplayPerformanceSignalDetail;
+  }
+
+  it("names a page view only where that explains the number", () => {
+    const shown: Array<string> = [];
+
+    for (const metric of ["FCP", "LCP", "TTFB", "CLS", "INP"] as const) {
+      for (const navigationType of [
+        "hard",
+        "soft",
+        "prerender",
+        "back-forward-cache",
+      ] as const) {
+        if (
+          showsVitalView(
+            detailOf(vital(0, metric, 1, { navigationType: navigationType })),
+          )
+        ) {
+          shown.push(`${metric}:${navigationType}`);
+        }
+      }
+    }
+
+    /* An ordinary load's FCP, LCP, TTFB and CLS measure the load anyway. */
+    expect(shown).toEqual([
+      "FCP:soft",
+      "FCP:prerender",
+      "FCP:back-forward-cache",
+      "LCP:soft",
+      "LCP:prerender",
+      "LCP:back-forward-cache",
+      "TTFB:soft",
+      "TTFB:prerender",
+      "TTFB:back-forward-cache",
+      "CLS:soft",
+      "CLS:prerender",
+      "CLS:back-forward-cache",
+      "INP:hard",
+      "INP:soft",
+      "INP:prerender",
+      "INP:back-forward-cache",
+    ]);
+  });
+
+  it("names no view for a recording that predates navigationType, or for a budget row", () => {
+    const old: ReplayTimelineEvent = vital(0, "FCP", 900);
+    delete old.navigationType;
+
+    expect(showsVitalView(detailOf(old))).toBe(false);
+    expect(
+      showsVitalView(
+        detailOf(
+          makeEvent("performance", {
+            performanceKind: "lcp",
+            durationMs: 4200,
+            budgetMs: 4000,
+          }),
+        ),
+      ),
+    ).toBe(false);
+  });
+
+  it("links a CLS reported again to the report it replaced, both ways", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(100, "TTFB", 182),
+      vital(900, "FCP", 921),
+      vital(3100, "CLS", 0.02),
+      vital(64_200, "CLS", 0.35, { rating: "poor" }),
+    ]);
+
+    expect(reportsOf(signals, 2)).toEqual({
+      earlier: null,
+      later: "CLS 0.35 poor",
+    });
+    expect(reportsOf(signals, 3)).toEqual({
+      earlier: "CLS 0.02 good",
+      later: null,
+    });
+    /* A vital reported once has no other report. */
+    expect(reportsOf(signals, 1)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 0)).toEqual({ earlier: null, later: null });
+  });
+
+  it("chains three reports to their neighbours, whatever the list's order", () => {
+    const events: Array<ReplayTimelineEvent> = [
+      vital(3100, "CLS", 0.02),
+      vital(64_200, "CLS", 0.11, { rating: "needs-improvement" }),
+      vital(140_000, "CLS", 0.35, { rating: "poor" }),
+    ];
+    const shuffled: Array<ReplaySignal> = signalsOf([
+      events[2] as ReplayTimelineEvent,
+      events[0] as ReplayTimelineEvent,
+      events[1] as ReplayTimelineEvent,
+    ]);
+
+    /* shuffled[2] is the middle report, at 1:04.2. */
+    expect(reportsOf(shuffled, 2)).toEqual({
+      earlier: "CLS 0.02 good",
+      later: "CLS 0.35 poor",
+    });
+    expect(reportsOf(shuffled, 1)).toEqual({
+      earlier: null,
+      later: "CLS 0.11 needs improvement",
+    });
+    expect(reportsOf(shuffled, 0)).toEqual({
+      earlier: "CLS 0.11 needs improvement",
+      later: null,
+    });
+  });
+
+  it("never links two reports at the same moment out of the list's order", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(5000, "CLS", 0.02),
+      vital(5000, "CLS", 0.05),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({
+      earlier: null,
+      later: "CLS 0.05 good",
+    });
+    expect(reportsOf(signals, 1)).toEqual({
+      earlier: "CLS 0.02 good",
+      later: null,
+    });
+  });
+
+  it("keeps a restored page's CLS apart from the load's, and a prerendered page's together", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(3100, "CLS", 0.02, { navigationType: "prerender" }),
+      vital(64_200, "CLS", 0.35, {
+        rating: "poor",
+        navigationType: "prerender",
+      }),
+      vital(90_000, "CLS", 0.01, { navigationType: "back-forward-cache" }),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({
+      earlier: null,
+      later: "CLS 0.35 poor",
+    });
+    expect(reportsOf(signals, 2)).toEqual({ earlier: null, later: null });
+  });
+
+  it("never links vitals from a recorder that sent no navigationType", () => {
+    const first: ReplayTimelineEvent = vital(3100, "CLS", 0.02);
+    const second: ReplayTimelineEvent = vital(64_200, "CLS", 0.35);
+    delete first.navigationType;
+    delete second.navigationType;
+
+    const signals: Array<ReplaySignal> = signalsOf([first, second]);
+
+    expect(reportsOf(signals, 0)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 1)).toEqual({ earlier: null, later: null });
+  });
+
+  it("links an INP reported again only within its view: same route, no route change between", () => {
+    const inp: (
+      offsetMs: number,
+      value: number,
+      url: string,
+      navigationType: "hard" | "soft",
+    ) => ReplayTimelineEvent = (
+      offsetMs: number,
+      value: number,
+      url: string,
+      navigationType: "hard" | "soft",
+    ): ReplayTimelineEvent => {
+      return vital(offsetMs, "INP", value, {
+        url: url,
+        navigationType: navigationType,
+        rating: value > 200 ? "needs-improvement" : "good",
+      });
+    };
+
+    const signals: Array<ReplaySignal> = signalsOf([
+      /* /products, the page load's view: reported, then again after a return. */
+      inp(3000, 180, "https://shop.example.com/products", "hard"),
+      inp(70_000, 480, "https://shop.example.com/products", "hard"),
+      route(80_000, "/cart"),
+      /* /cart is a view of its own, whatever its numbers. */
+      inp(85_000, 240, "https://shop.example.com/cart", "soft"),
+      route(90_000, "/products"),
+      /* Back on /products: a NEW view with the same URL, past a route change. */
+      inp(95_000, 520, "https://shop.example.com/products", "soft"),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({
+      earlier: null,
+      later: "INP 480ms needs improvement",
+    });
+    expect(reportsOf(signals, 1)).toEqual({
+      earlier: "INP 180ms good",
+      later: null,
+    });
+    expect(reportsOf(signals, 3)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 5)).toEqual({ earlier: null, later: null });
+  });
+
+  it("does not take a mid-tab full-load row (a periodic re-snapshot) for a new INP view", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(3000, "INP", 180, {
+        url: "https://shop.example.com/products",
+      }),
+      makeEvent("navigation", {
+        id: makeRecordingSignalId(1, 0),
+        offsetMs: 60_000,
+        to: "https://shop.example.com/products",
+      }),
+      vital(70_000, "INP", 480, {
+        url: "https://shop.example.com/products",
+        rating: "needs-improvement",
+      }),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({
+      earlier: null,
+      later: "INP 480ms needs improvement",
+    });
+  });
+
+  it("splits two INPs when a route change lands on either report's moment", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(3000, "INP", 180, { url: "https://shop.example.com/a" }),
+      route(3000, "/a"),
+      vital(9000, "INP", 260, {
+        url: "https://shop.example.com/a",
+        rating: "needs-improvement",
+      }),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 2)).toEqual({ earlier: null, later: null });
+  });
+
+  it("answers nothing for a row that is not a CLS or an INP from the recording", () => {
+    const signals: Array<ReplaySignal> = signalsOf([
+      vital(900, "FCP", 921),
+      vital(1500, "LCP", 1430),
+      vital(3100, "CLS", 0.02),
+      route(5000, "/cart"),
+    ]);
+
+    expect(reportsOf(signals, 0)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 1)).toEqual({ earlier: null, later: null });
+    expect(reportsOf(signals, 3)).toEqual({ earlier: null, later: null });
+
+    /* A row that claims the kind but did not come from the recording. */
+    const foreign: ReplaySignal = {
+      ...(signals[2] as ReplaySignal),
+      id: "log:foreign",
+      source: "telemetry",
+    };
+
+    expect(
+      findVitalReports([...signals, foreign], signals[2] as ReplaySignal),
+    ).toEqual({ earlier: null, later: null });
   });
 });
 

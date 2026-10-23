@@ -863,7 +863,13 @@ Under the default _Always_ trigger every sampled session is uploaded, so these b
 
 Each budget is off at `0` (the default). Sessions captured this way appear with the trigger reason `performance` (_Slow_ in the list). Failed and cancelled requests are not counted here — a 5xx or a network failure already triggers via the error path.
 
-Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own.
+Independently of the budgets, the recorder reports the Core Web Vitals of every page — LCP, CLS, INP, FCP and TTFB with their good / needs-improvement / poor rating — as **Perf** rows. Vitals never trigger an upload on their own. CLS and INP cover the page's whole life: if either grows after the visitor comes back to the tab, it is reported again as a new row, and the two rows' details link to each other.
+
+The recorder times every vital the way Google's `web-vitals` library does, so a recording reports the same numbers as your own web-vitals telemetry for the same visit. Three kinds of page load are timed differently from an ordinary one:
+
+- A page the browser prerendered before the visitor opened it, as Chrome does with a page it expects to be opened from the address bar, is timed from the moment it was opened: its FCP, LCP and TTFB leave out the time it waited unseen, and so does the LCP budget. Each of its vitals says so in its details.
+- A page opened in a background tab reports no FCP, LCP or CLS. The browser paints a hidden page only once it is shown, so those numbers would time the tab, not the page.
+- A page restored from the back/forward cache reports a set of its own: TTFB 0, FCP and LCP up to its first frame back on screen, then CLS and INP for that visit. Each of them says so in its details.
 
 INP is reported per view, not per page load. In a single-page app every route change (`pushState`, `replaceState`, back/forward, or a `#/` hash route) closes the current view and starts a new one, so a visit through five routes gets up to five INP rows, each labelled with its route. An interaction belongs to the view it started in: the click that navigated from `/products` to `/cart` counts towards `/products`, which is the page that was slow to respond. Each INP row also says what the slow interaction was — pointer or keyboard, the element (a structural selector such as `div#checkout > button.pay`, built like a click's and never containing text or attribute values), and how its time split into input delay, processing and presentation. A view is reported about a second after the user leaves it, or when the tab is hidden.
 

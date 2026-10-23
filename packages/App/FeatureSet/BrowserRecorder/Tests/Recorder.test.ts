@@ -837,6 +837,15 @@ describe("Recorder", (): void => {
       (window as unknown as Record<string, unknown>)["PerformanceObserver"] =
         FakeObserver;
 
+      /*
+       * A page the visitor is looking at. Earlier cases hide the document
+       * and leave it so, and a page that was hidden before it painted has
+       * no LCP to hold to a budget (issue #5181).
+       */
+      delete (document as unknown as Record<string, unknown>)[
+        "visibilityState"
+      ];
+
       try {
         const instance: Recorder = startRecorder({ lcpBudgetMs: 2500 });
 
@@ -2543,6 +2552,104 @@ describe("Recorder", (): void => {
         await drainMicrotasks();
 
         expect(chunkCalls()).toHaveLength(sealedCalls);
+      });
+
+      /*
+       * Issue #5181: a restored page is a new page view, and the web-vitals
+       * library reports a set of vitals for it - so the recorder does too.
+       * They belong to the restored page's new tab, after the restore
+       * marker: TTFB 0 at once, FCP and LCP two frames on, each marked
+       * back-forward-cache. Nothing of them lands on the sealed tab.
+       */
+      it("measures the restored page's own vitals in the new tab, after the restore marker", async (): Promise<void> => {
+        jest.useFakeTimers({ doNotFake: ["performance"] });
+
+        /* Paint and LCP observable, and a navigation entry to read TTFB from. */
+        class QuietObserver {
+          public static supportedEntryTypes: Array<string> = [
+            "paint",
+            "largest-contentful-paint",
+          ];
+
+          public observe(): void {}
+          public disconnect(): void {}
+        }
+
+        (window as unknown as Record<string, unknown>)["PerformanceObserver"] =
+          QuietObserver;
+        Object.defineProperty(window.performance, "getEntriesByType", {
+          configurable: true,
+          value: (type: string): Array<unknown> => {
+            return type === "navigation" ? [{ responseStart: 1 }] : [];
+          },
+        });
+
+        const noteRestore: jest.SpyInstance = jest.spyOn(
+          PerformanceRecorder.prototype,
+          "noteBfcacheRestore",
+        );
+
+        try {
+          const instance: Recorder = startRecorder({
+            samplePercentage: 100,
+            maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+          });
+
+          /* The load's TTFB is held until the first snapshot's next tick. */
+          await drainMicrotasks();
+          jest.advanceTimersByTime(0);
+          await drainMicrotasks();
+
+          const oldTabId: string = instance.getTabId();
+
+          pageHide(true);
+          hideTab();
+          restoreFromBfcache();
+
+          expect(noteRestore).toHaveBeenCalledTimes(1);
+          expect(typeof noteRestore.mock.calls[0]?.[0]).toBe("number");
+
+          /* Two frames, then the ordinary flush. */
+          jest.advanceTimersByTime(100);
+          await drainMicrotasks();
+          jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+          await drainMicrotasks();
+
+          const newTabId: string = instance.getTabId();
+          const restoredPage: string = payloadsOf(framesForTab(newTabId));
+          const marker: number = restoredPage.indexOf(
+            "oneuptime.bfcache-restore",
+          );
+
+          expect(newTabId).not.toBe(oldTabId);
+          expect(marker).toBeGreaterThanOrEqual(0);
+
+          for (const vital of [
+            '"metric":"TTFB","value":0,',
+            '"metric":"FCP"',
+            '"metric":"LCP"',
+          ]) {
+            expect(restoredPage.indexOf(vital)).toBeGreaterThan(marker);
+          }
+
+          expect(
+            restoredPage.split('"navigationType":"back-forward-cache"'),
+          ).toHaveLength(4);
+          expect(restoredPage).not.toContain('"navigationType":"hard"');
+
+          /* The sealed tab carried the load's TTFB, and nothing of the restore. */
+          const sealedTab: string = payloadsOf(framesForTab(oldTabId));
+
+          expect(sealedTab).toContain('"metric":"TTFB","value":1,');
+          expect(sealedTab).not.toContain("back-forward-cache");
+        } finally {
+          delete (window as unknown as Record<string, unknown>)[
+            "PerformanceObserver"
+          ];
+          delete (window.performance as unknown as Record<string, unknown>)[
+            "getEntriesByType"
+          ];
+        }
       });
 
       /*

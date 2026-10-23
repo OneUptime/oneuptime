@@ -179,8 +179,13 @@ export type ReplayPerformanceSignalDetail = {
   rating: SessionReplayWebVitalRating | null;
   url: string | null;
   atUnixMs: number | null;
-  /* INP only, and only from recorders that attribute it. */
+  /*
+   * The kind of page view the vital describes: on every vital from
+   * recorders that time vitals as web-vitals does (issue #5181), on INP
+   * only from older ones that attribute it, and absent before that.
+   */
   navigationType: SessionReplayNavigationType | null;
+  /* INP attribution, only from recorders that attribute it. */
   interactionType: SessionReplayInteractionType | null;
   interactionTarget: string | null;
   inputDelayMs: number | null;
@@ -919,6 +924,27 @@ export function formatPerformanceMeasure(
   }
 
   return REPLAY_BUDGET_KIND_LABELS[detail.kind] || "Performance";
+}
+
+/*
+ * Whether a vital's detail names the kind of page view it describes (the
+ * View row). Any view but an ordinary page load always does: a page the
+ * browser prerendered is measured from when the visitor opened it, which
+ * is why its FCP can read 68 ms when its navigation began seconds earlier
+ * (issue #5181), and a page back from the back/forward cache has vitals of
+ * its own. An ordinary page load's FCP, LCP, TTFB and CLS do not: those
+ * measure the page load by definition, so "Page load" would be a row that
+ * says nothing - and recordings from before #5181 never carried it, so a
+ * new recording of an ordinary page reads exactly as an old one. INP
+ * names its view either way: a page has one INP per view, its load's and
+ * each route change's.
+ */
+export function showsVitalView(detail: ReplayPerformanceSignalDetail): boolean {
+  if (!detail.navigationType) {
+    return false;
+  }
+
+  return detail.navigationType !== "hard" || detail.metric === "INP";
 }
 
 function formatVitalValue(
@@ -2139,4 +2165,125 @@ export function findErrorAfterInteraction(
   }
 
   return best;
+}
+
+/*
+ * One page view's CLS or INP, reported more than once. Both cover the
+ * view's whole life, so the recorder reports them again when they changed
+ * after the visitor came back to the tab (issue #5181): a page can have a
+ * "CLS 0.02 good" row and, a minute later, a "CLS 0.35 poor" one. The
+ * detail links each report to the one before and after it, so whoever
+ * opens the first learns it was updated, and the second says what it
+ * replaced.
+ */
+export interface ReplayVitalReports {
+  /* The report of the same vital for the same view just before this one. */
+  earlier: ReplaySignal | null;
+  /* The one just after it, which replaced this one's value. */
+  later: ReplaySignal | null;
+}
+
+function webVitalDetailOf(
+  signal: ReplaySignal,
+): ReplayPerformanceSignalDetail | null {
+  if (signal.kind !== "performance" || signal.source !== "recording") {
+    return null;
+  }
+
+  const detail: ReplayPerformanceSignalDetail =
+    signal.detail as ReplayPerformanceSignalDetail;
+
+  return detail.kind === "web-vital" ? detail : null;
+}
+
+/* A route change: each one starts an INP view of its own. */
+function isRouteChangeSignal(signal: ReplaySignal): boolean {
+  return (
+    signal.kind === "navigation" &&
+    (signal.detail as ReplayNavigationSignalDetail).kind !== "full-load"
+  );
+}
+
+/*
+ * Reports of one view share the metric and the kind of page view; only
+ * recorders that send navigationType report a vital twice, so a vital
+ * without it is never linked. A recording tab is one document (the
+ * recorder mints a tab per page load, and a page back from the
+ * back/forward cache records as a new tab), so every CLS of the tab is the
+ * same view's. INP's views also end at each route change, so two INPs are
+ * one view's only with the same URL and no route change between them
+ * (a full-load row mid-tab is a periodic re-snapshot, not a new page).
+ */
+export function findVitalReports(
+  signals: Array<ReplaySignal>,
+  signal: ReplaySignal,
+): ReplayVitalReports {
+  const reports: ReplayVitalReports = { earlier: null, later: null };
+  const detail: ReplayPerformanceSignalDetail | null = webVitalDetailOf(signal);
+
+  if (
+    !detail ||
+    !detail.navigationType ||
+    (detail.metric !== "CLS" && detail.metric !== "INP")
+  ) {
+    return reports;
+  }
+
+  const isInp: boolean = detail.metric === "INP";
+  const ownIndex: number = signals.findIndex(
+    (candidate: ReplaySignal): boolean => {
+      return candidate.id === signal.id;
+    },
+  );
+  const routeOffsets: Array<number> = isInp
+    ? signals
+        .filter((candidate: ReplaySignal): boolean => {
+          return isRouteChangeSignal(candidate);
+        })
+        .map((route: ReplaySignal): number => {
+          return route.offsetMs;
+        })
+    : [];
+
+  signals.forEach((candidate: ReplaySignal, index: number): void => {
+    const other: ReplayPerformanceSignalDetail | null =
+      webVitalDetailOf(candidate);
+
+    if (
+      !other ||
+      candidate.id === signal.id ||
+      other.metric !== detail.metric ||
+      other.navigationType !== detail.navigationType ||
+      (isInp && other.url !== detail.url)
+    ) {
+      return;
+    }
+
+    const fromMs: number = Math.min(candidate.offsetMs, signal.offsetMs);
+    const toMs: number = Math.max(candidate.offsetMs, signal.offsetMs);
+
+    /* Inclusive: a route change at either report's moment splits them. */
+    if (
+      routeOffsets.some((routeMs: number): boolean => {
+        return routeMs >= fromMs && routeMs <= toMs;
+      })
+    ) {
+      return;
+    }
+
+    /* Two reports at the same moment keep the list's order. */
+    const isBefore: boolean =
+      candidate.offsetMs < signal.offsetMs ||
+      (candidate.offsetMs === signal.offsetMs && index < ownIndex);
+
+    if (isBefore) {
+      if (!reports.earlier || candidate.offsetMs >= reports.earlier.offsetMs) {
+        reports.earlier = candidate;
+      }
+    } else if (!reports.later || candidate.offsetMs < reports.later.offsetMs) {
+      reports.later = candidate;
+    }
+  });
+
+  return reports;
 }
