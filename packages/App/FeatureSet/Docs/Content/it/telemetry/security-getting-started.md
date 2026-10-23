@@ -29,7 +29,7 @@ Fai clic su **Invia un attacco di prova**. Una dozzina di accessi falliti da un 
 Fai clic su **Apri il caso**. Ecco come appare un vero risultato: gli eventi che lo motivano, l'indirizzo a cui si riferisce e ciò che **Enrich New Cases** ha trovato. Chiudilo come test quando hai finito.
 :::
 
-Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione, oppure **Tutto tranquillo** quando non ce ne sono.
+Da quel momento, **Panoramica** si apre su ciò che richiede qualcuno, sotto **Richiede attenzione**: i tuoi casi aperti, quelli che nessuno ha preso in carico e i passaggi dei playbook in attesa di approvazione. Quando non ce ne sono, mostra **Tutto tranquillo**.
 
 ## Come funziona
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Casi di sicurezza** | **Casi di sicurezza** | Ciò che è stato trovato, raggruppato per l'utente, l'host o l'indirizzo a cui si riferisce |
 | **Playbooks** | **Playbooks** | Passaggi che vengono eseguiti sui nuovi casi: arricchirli, avvisare, aprire un incidente o contenere |
 
-La striscia in cima a **Panoramica** mostra ogni parte con i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono.
+In cima a **Panoramica**, sotto ciò che richiede qualcuno, ogni parte mostra i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono. Una parte non configurata lo dice e apre la pagina in cui configurarla.
 
 ## Trovare eventi di sicurezza nei tuoi log
 
@@ -84,6 +84,14 @@ Di solito il caso si apre prima che il pulsante risponda; quando la regola è an
 
 :::details Dai miei log non arriva alcun evento di sicurezza
 Verifica che **Trova eventi di sicurezza nei tuoi log** sia attivo e che la scheda **I tuoi log** indichi quando è avvenuto l'ultimo controllo. Solo i tipi di righe della tabella qui sopra diventano eventi: un server che non invia log SSH, sudo, di audit, CloudTrail o di accesso non ha niente da trovare.
+:::
+
+:::details Panoramica dice che l'ultimo evento di sicurezza è arrivato giorni fa
+Da allora a Security non è arrivato niente. Apri **Connections** e verifica che **I tuoi log** e ogni connessione siano ancora attivi, e quando ognuno ha controllato l'ultima volta.
+:::
+
+:::details La scheda che attiva Security è sparita
+Qualcuno l'ha tolta con **Chiudi**. Finché ancora nulla viene sorvegliato in cerca di minacce, **Panoramica** offre **Configura Security**, che la riporta.
 :::
 
 ## Passaggi successivi

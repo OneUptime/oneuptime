@@ -29,7 +29,7 @@ Haga clic en **Enviar un ataque de prueba**. Una docena de inicios de sesión fa
 Haga clic en **Abrir el caso**. Así es un hallazgo real: los eventos que lo respaldan, la dirección a la que se refiere y lo que encontró **Enrich New Cases**. Ciérrelo como prueba cuando termine.
 :::
 
-A partir de entonces, **Vista general** se abre con lo que necesita a alguien: sus casos abiertos, los que nadie ha asumido y los pasos de playbook que esperan una aprobación, o **Todo tranquilo** cuando no hay ninguno.
+A partir de entonces, **Vista general** se abre con lo que necesita a alguien, bajo **Requiere atención**: sus casos abiertos, los que nadie ha asumido y los pasos de playbook que esperan una aprobación. Cuando no hay ninguno, indica **Todo tranquilo**.
 
 ## Cómo funciona
 
@@ -48,7 +48,7 @@ flowchart LR
 | **Casos de seguridad** | **Casos de seguridad** | Lo que se encontró, agrupado por el usuario, el host o la dirección a la que se refiere |
 | **Playbooks** | **Playbooks** | Pasos que se ejecutan en los casos nuevos: enriquecerlos, avisar, abrir un incidente o contener |
 
-La franja de la parte superior de **Vista general** muestra cada parte con sus cifras: los orígenes y sus eventos de las últimas 24 horas, las reglas activas, los casos abiertos y los playbooks que responden.
+En la parte superior de **Vista general**, bajo lo que necesita a alguien, cada parte muestra sus cifras: los orígenes y sus eventos de las últimas 24 horas, las reglas activas, los casos abiertos y los playbooks que responden. Una parte sin configurar lo indica y abre la página donde configurarla.
 
 ## Encontrar eventos de seguridad en sus registros
 
@@ -84,6 +84,14 @@ Normalmente el caso se abre antes de que el botón responda; si la regla aún se
 
 :::details Mis registros no generan ningún evento de seguridad
 Compruebe que **Encontrar eventos de seguridad en tus registros** está activado y que la tarjeta **Tus registros** indica cuándo fue la última comprobación. Solo los tipos de líneas de la tabla anterior se convierten en eventos: un servidor que no envía registros de SSH, sudo, auditoría, CloudTrail ni de acceso no tiene nada que encontrar.
+:::
+
+:::details Vista general dice que el último evento de seguridad llegó hace días
+Desde entonces no ha llegado nada a Security. Abra **Conexiones** y compruebe que **Tus registros** y cada conexión siguen activados, y cuándo comprobó cada uno por última vez.
+:::
+
+:::details La tarjeta que activa Security ha desaparecido
+Alguien la quitó con **Descartar**. Mientras todavía no se vigile nada en busca de amenazas, **Vista general** ofrece **Configurar Security**, que la trae de vuelta.
 :::
 
 ## Próximos pasos
