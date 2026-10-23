@@ -29,7 +29,8 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { KubernetesWorkloadKind } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -112,6 +113,28 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
     cluster?.clusterIdentifier || undefined,
   );
+
+  /*
+   * The statefulset's Events and those of what it runs, read as the page
+   * opens: the Events tab says how many warnings there are before it
+   * is opened. Read once the statefulset is known, for its namespace.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: isLoadingObject
+      ? null
+      : {
+          kind: "workload",
+          workloadKind: KubernetesWorkloadKind.StatefulSet,
+          name: statefulSetName,
+          namespace: objectData?.metadata.namespace,
+        },
+    title: "StatefulSet Events",
+    description:
+      "Kubernetes events for this statefulset and its pods in the last 24 hours.",
+    resourceKind: "StatefulSet",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -270,22 +293,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="StatefulSet Events"
-          description="Kubernetes events for this statefulset in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="StatefulSet"
-            resourceName={statefulSetName}
-            namespace={objectData?.metadata.namespace}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "Metrics",
       children: (

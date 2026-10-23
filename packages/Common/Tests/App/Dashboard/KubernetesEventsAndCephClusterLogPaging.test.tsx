@@ -84,6 +84,11 @@ jest.mock("../../../UI/Utils/Navigation", () => {
         return new ObjectIDType("0193c0de-2222-4aaa-8bbb-000000000002");
       },
       navigate: () => {},
+      // The Events page keeps its view in the URL; none is set here.
+      getQueryStringByName: (): string | null => {
+        return null;
+      },
+      setQueryString: () => {},
     },
   };
 });
@@ -172,6 +177,12 @@ interface LogPage {
   tableId: string;
   // The column that tells the rows apart: each row's message.
   messageColumn: number;
+  /*
+   * Where a row's message is part of a richer cell (a Kubernetes event's
+   * reason, type, message and source share its Event column), the
+   * message itself.
+   */
+  readMessages?: (() => Array<string>) | undefined;
   // The rows' noun, as the pagination summary prints it.
   noun: string;
   // The page's own record, looked up before any log is read.
@@ -185,8 +196,20 @@ const PAGES: Array<LogPage> = [
     title: "Kubernetes Events",
     Page: KubernetesClusterEvents,
     tableId: "kubernetes-events-table",
-    messageColumn: 5,
-    noun: "Kubernetes events",
+    messageColumn: 0,
+    readMessages: (): Array<string> => {
+      const body: HTMLElement | null = document.getElementById(
+        "kubernetes-events-table-body",
+      );
+
+      return Array.from(
+        body?.querySelectorAll("[data-testid='kubernetes-event-message']") ||
+          [],
+      ).map((element: Element): string => {
+        return (element.textContent || "").trim();
+      });
+    },
+    noun: "events",
     item: { _id: MODEL_ID, clusterIdentifier: "prod-cluster" },
     logs: (messages: Array<string>): Array<Record<string, unknown>> => {
       return messages.map(kubernetesEventLog);
@@ -235,7 +258,9 @@ describe.each(PAGES)("paging through the $title page", (page: LogPage) => {
   }
 
   function visibleMessages(): Array<string> {
-    return columnTexts(page.tableId, page.messageColumn);
+    return page.readMessages
+      ? page.readMessages()
+      : columnTexts(page.tableId, page.messageColumn);
   }
 
   test("shows 25 rows a page, and the last page's footer counts on from 25", async () => {

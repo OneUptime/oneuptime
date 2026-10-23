@@ -435,6 +435,17 @@ data:
       # severity_number=0 and render as "Unspecified" on the Logs page.
       # Default to INFO and upgrade Warning-type events to WARN so severity
       # filters work out of the box.
+      #
+      # A watched Event arrives WRAPPED: the body is the watch event,
+      # {type: ADDED|MODIFIED|DELETED, object: <the Event>}, so the Event's
+      # own type is body["object"]["type"]. Reading body["type"] - the
+      # watch's verb - never matched, and every OOMKilling,
+      # FailedGetResourceMetric and BackOff warning went out as INFO
+      # (issue #5179). Only Events are watched here; the resource specs are
+      # pulled, and a pulled object's body is the object itself, so the
+      # last two statements cover an Event pulled instead of watched.
+      # OneUptime's ingest applies the same rule from the body, for agents
+      # that still send INFO.
       transform/severity:
         error_mode: ignore
         log_statements:
@@ -442,10 +453,10 @@ data:
             statements:
               - set(severity_text, "INFO") where severity_text == ""
               - set(severity_number, SEVERITY_NUMBER_INFO) where severity_number == 0
-              - set(severity_text, "WARN") where IsMap(body) and body["type"] == "Warning"
-              - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and body["type"] == "Warning"
-              - set(severity_text, "WARN") where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
-              - set(severity_number, SEVERITY_NUMBER_WARN) where IsString(body) and IsMatch(body, "\"type\"\\s*:\\s*\"Warning\"")
+              - set(severity_text, "WARN") where IsMap(body) and IsMap(body["object"]) and body["object"]["type"] == "Warning"
+              - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and IsMap(body["object"]) and body["object"]["type"] == "Warning"
+              - set(severity_text, "WARN") where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
+              - set(severity_number, SEVERITY_NUMBER_WARN) where IsMap(body) and body["kind"] == "Event" and body["type"] == "Warning"
 
       {{- /* No "logs" signal here, deliberately. `filters.logs.minSeverity` is a
              POD LOG control, and no pod log flows through this collector — the

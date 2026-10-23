@@ -98,6 +98,24 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import {
+  ParsedKubernetesEvent,
+  getKubernetesEventLogAttributes,
+  getKubernetesEventLogTime,
+  getKubernetesEventSeverityNumber,
+  isKubernetesEventLogRecord,
+  parseKubernetesEventFromLogBody,
+} from "Common/Types/Kubernetes/KubernetesEvent";
+
+/*
+ * What stamping a Kubernetes event changed beside its attributes: the
+ * severity it is stored with, and - when the record came without a time -
+ * when the Event last happened (null keeps the time the record has).
+ */
+export interface KubernetesEventLogStamp {
+  severityNumber: number;
+  time: Date | null;
+}
 
 const INVENTORIED_TYPE_SET: Set<string> = new Set(
   INVENTORIED_RESOURCE_TYPES.map((t: string) => {
@@ -756,7 +774,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * of records per batch that sort cost was visible
                    * on flamegraphs.
                    */
-                  const attributeKeys: Array<string> =
+                  let attributeKeys: Array<string> =
                     Object.keys(attributesObject);
 
                   /*
@@ -767,6 +785,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    */
                   let timeUnixNanoNumeric: number;
                   let timeDate: Date;
+                  // Whether the record said when it happened (a time past 0).
+                  let hasRecordTime: boolean = false;
 
                   if (log["timeUnixNano"]) {
                     try {
@@ -786,6 +806,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                       timeUnixNanoNumeric = timeUnixNano;
                       timeDate = OneUptimeDate.fromUnixNano(timeUnixNano);
+                      hasRecordTime = timeUnixNano > 0;
                     } catch (timeError) {
                       logger.warn(
                         `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
@@ -800,11 +821,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     timeDate = OneUptimeDate.getCurrentDate();
                   }
 
-                  const logSeverityNumber: number =
-                    this.normalizeSeverityNumber(log["severityNumber"]);
-
-                  const severityText: LogSeverity =
-                    this.getSeverityText(logSeverityNumber);
+                  let logSeverityNumber: number = this.normalizeSeverityNumber(
+                    log["severityNumber"],
+                  );
 
                   let body: string = "";
                   try {
@@ -827,6 +846,42 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     );
                     body = String(log["body"] || "");
                   }
+
+                  /*
+                   * A Kubernetes event (the agent's k8sobjects watch):
+                   * stamp what the Event says onto the record - its type,
+                   * reason, message, object, namespace, source and count -
+                   * store a Warning as a Warning, and date the record when
+                   * the Event last happened. Before the drop filters and
+                   * the pipelines, so they see it as the pages do: a drop
+                   * filter on Information logs no longer takes the
+                   * cluster's warnings with it. Only k8sobjects Event
+                   * records are read; any other log costs one attribute
+                   * lookup.
+                   */
+                  if (isKubernetesEventLogRecord(attributesObject) && body) {
+                    const kubernetesEventStamp: KubernetesEventLogStamp | null =
+                      this.stampKubernetesEvent({
+                        attributes: attributesObject,
+                        body: body,
+                        severityNumber: logSeverityNumber,
+                        hasRecordTime: hasRecordTime,
+                      });
+
+                    if (kubernetesEventStamp) {
+                      attributeKeys = Object.keys(attributesObject);
+                      logSeverityNumber = kubernetesEventStamp.severityNumber;
+
+                      if (kubernetesEventStamp.time) {
+                        timeDate = kubernetesEventStamp.time;
+                        timeUnixNanoNumeric =
+                          OneUptimeDate.toUnixNano(timeDate);
+                      }
+                    }
+                  }
+
+                  const severityText: LogSeverity =
+                    this.getSeverityText(logSeverityNumber);
 
                   /*
                    * Kubernetes inventory hook: convert the k8sobjects log
@@ -1681,6 +1736,52 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     }
 
     return parsed;
+  }
+
+  /*
+   * Reads the Kubernetes Event out of a k8sobjects Event record's body and
+   * stamps what it says onto the record's attributes (KubernetesEvent.ts
+   * says which, and why). Returns the severity the record is stored with -
+   * a Warning raised to WARN, never lowered - and, for a record that came
+   * without a time of its own, when the Event last happened. Null, with the
+   * attributes untouched, for a body that is not an Event.
+   *
+   * The Event's own attributes are written over whatever the record carried
+   * under the same keys: they are read from the Event the record IS, so a
+   * stale value (a namespace the collector stamped from elsewhere) never
+   * wins over it.
+   */
+  public static stampKubernetesEvent(data: {
+    attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    body: string;
+    severityNumber: number;
+    hasRecordTime: boolean;
+    now?: Date | undefined;
+  }): KubernetesEventLogStamp | null {
+    const kubernetesEvent: ParsedKubernetesEvent | null =
+      parseKubernetesEventFromLogBody(data.body);
+
+    if (!kubernetesEvent) {
+      return null;
+    }
+
+    Object.assign(
+      data.attributes,
+      getKubernetesEventLogAttributes(kubernetesEvent),
+    );
+
+    return {
+      severityNumber: getKubernetesEventSeverityNumber({
+        eventType: kubernetesEvent.type,
+        severityNumber: data.severityNumber,
+      }),
+      time: data.hasRecordTime
+        ? null
+        : getKubernetesEventLogTime({
+            event: kubernetesEvent,
+            now: data.now || OneUptimeDate.getCurrentDate(),
+          }),
+    };
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {

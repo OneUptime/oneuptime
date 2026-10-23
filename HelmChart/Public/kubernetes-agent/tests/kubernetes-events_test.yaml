@@ -1,0 +1,123 @@
+# Every Kubernetes Event of the cluster reaches OneUptime, and a Warning
+# reaches it as a Warning (issue #5179).
+#
+# A customer saw OOMKilling warnings on AKS nodes and the HPA's
+# FailedGetResourceMetric / FailedComputeMetricsReplicas warnings in
+# aks-istio-system and app-routing-system in the cluster, and not in
+# OneUptime, and asked where they were lost. Not here: the cluster collector
+# watches the Event API across the whole cluster - every namespace, the
+# system ones included, every kind of object (a Node's and an HPA's Events
+# as much as a Pod's), Warning and Normal alike - and no filter on its logs
+# pipeline drops any of them. These assertions keep it that way, whatever
+# the namespace filters and the pod log severity threshold say. (OneUptime's
+# Dashboard read only the newest few hundred of them; that is fixed there.)
+#
+# What WAS wrong here: transform/severity read body["type"], and a watched
+# Event's body is the watch event - {type: ADDED|MODIFIED|DELETED, object:
+# <the Event>} - so every warning left the cluster as INFO. The statements
+# now read body["object"]["type"]. Tests/Ops/agent-event-severity-behaviour.sh
+# runs them in the real collector.
+suite: every Kubernetes Event reaches OneUptime, warnings as warnings
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: watches every Event of the cluster through the Event API, with no namespace, selector or watch type left out
+    template: templates/configmap-deployment.yaml
+    asserts:
+      # The whole entry, up to the next one: a key added under it (namespaces,
+      # field_selector, label_selector, exclude_watch_type, exclude_namespaces)
+      # would narrow what is watched.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  k8sobjects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n      # Pull full resource specs"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(field_selector|label_selector|exclude_watch_type|exclude_namespaces|include_initial_state):"
+
+  - it: keeps watching every namespace when namespace filters exclude system namespaces from every scope
+    template: templates/configmap-deployment.yaml
+    set:
+      namespaceFilters:
+        rules:
+          - action: exclude
+            namespaces: [kube-system, aks-istio-system, app-routing-system]
+            scopes: [podLogs, ebpfDiscovery, metrics, traces]
+          - action: include
+            namespaces: [shop]
+            scopes: [podLogs, ebpfDiscovery, metrics, traces]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n      # Pull full resource specs"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        namespaces:"
+      # The logs pipeline runs no filter, whatever the rules say.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    logs:\\n      receivers:\\n        - k8sobjects\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlphttp\\n"
+
+  - it: sends every Event whatever the pod log severity threshold is
+    template: templates/configmap-deployment.yaml
+    set:
+      filters.logs.minSeverity: ERROR
+      filters.metrics.exclude: ["k8s.pod.network.errors"]
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    logs:\\n      receivers:\\n        - k8sobjects\\n      processors:\\n        - memory_limiter\\n        - k8sattributes\\n        - resource\\n        - transform/severity\\n(?:        #[^\\n]*\\n)*        - batch\\n      exporters:\\n        - otlphttp\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  filter/telemetry:\\n(?:    [^\\n]*\\n)*?    logs:"
+
+  - it: still watches Events when the resource specs are not pulled
+    template: templates/configmap-deployment.yaml
+    set:
+      resourceSpecs.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  k8sobjects:\\n    objects:\\n      - name: events\\n        mode: watch\\n        group: events.k8s.io\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- name: pods\\n        mode: pull"
+
+  - it: marks a watched Warning Event WARN by the Event's own type, not the watch's
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  transform/severity:\\n    error_mode: ignore\\n    log_statements:\\n      - context: log\\n        statements:\\n          - set\\(severity_text, \"INFO\"\\) where severity_text == \"\"\\n          - set\\(severity_number, SEVERITY_NUMBER_INFO\\) where severity_number == 0\\n          - set\\(severity_text, \"WARN\"\\) where IsMap\\(body\\) and IsMap\\(body\\[\"object\"\\]\\) and body\\[\"object\"\\]\\[\"type\"\\] == \"Warning\"\\n          - set\\(severity_number, SEVERITY_NUMBER_WARN\\) where IsMap\\(body\\) and IsMap\\(body\\[\"object\"\\]\\) and body\\[\"object\"\\]\\[\"type\"\\] == \"Warning\"\\n          - set\\(severity_text, \"WARN\"\\) where IsMap\\(body\\) and body\\[\"kind\"\\] == \"Event\" and body\\[\"type\"\\] == \"Warning\"\\n          - set\\(severity_number, SEVERITY_NUMBER_WARN\\) where IsMap\\(body\\) and body\\[\"kind\"\\] == \"Event\" and body\\[\"type\"\\] == \"Warning\"\\n"
+      # The old rule: a watched Event's body["type"] is ADDED, MODIFIED or
+      # DELETED, never Warning.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "where IsMap\\(body\\) and body\\[\"type\"\\] == \"Warning\""
+
+  - it: may read Events in every namespace, from both Event APIs
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["events.k8s.io"]
+            resources:
+              - events
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules[0].resources
+          content: events
+      - equal:
+          path: rules[0].apiGroups
+          value: [""]
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "watch"]

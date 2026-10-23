@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
-import Card from "Common/UI/Components/Card/Card";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -20,7 +19,7 @@ import KubernetesOverviewTab, {
   SummaryField,
 } from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
-import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
+import { useKubernetesEventsTab } from "../../../Components/Kubernetes/KubernetesEventsTab";
 import { KubernetesPVObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab";
@@ -87,6 +86,23 @@ const KubernetesClusterPVDetail: FunctionComponent<
 
     fetchPvObject().catch(() => {});
   }, [cluster?.clusterIdentifier, pvName]);
+
+  /*
+   * The PV's Events, read as the page opens: the Events tab says how
+   * many warnings there are before it is opened.
+   */
+  const eventsTab: Tab = useKubernetesEventsTab({
+    clusterIdentifier: cluster?.clusterIdentifier || "",
+    clusterId: modelId,
+    scope: {
+      kind: "object",
+      objectKind: "PersistentVolume",
+      objectName: pvName,
+    },
+    title: "PV Events",
+    description: "Kubernetes events for this PV in the last 24 hours.",
+    resourceKind: "PersistentVolume",
+  });
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -176,21 +192,7 @@ const KubernetesClusterPVDetail: FunctionComponent<
         />
       ),
     },
-    {
-      name: "Events",
-      children: (
-        <Card
-          title="PV Events"
-          description="Kubernetes events for this PV in the last 24 hours."
-        >
-          <KubernetesEventsTab
-            clusterIdentifier={clusterIdentifier}
-            resourceKind="PersistentVolume"
-            resourceName={pvName}
-          />
-        </Card>
-      ),
-    },
+    eventsTab,
     {
       name: "YAML",
       children: (
