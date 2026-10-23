@@ -19,116 +19,44 @@
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="Логотип OneUptime" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+</p>
 
-  <h3>Агентная наблюдаемость — единая платформа с открытым исходным кодом для контроля доступности, инцидентов, дежурств, страниц статуса, логов, трассировок, метрик и APM.</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>Когда что-то ломается — узнавайте об этом первыми и устраняйте быстрее всех.</b></p>
+OneUptime — платформа наблюдаемости с открытым исходным кодом. Она проверяет, что ваши сайты, API и серверы работают, собирает логи, метрики и трассировки, которые отправляют ваши приложения, оповещает дежурного, когда что-то ломается, и сообщает клиентам о проблемах на странице статуса. Всё это происходит в одном продукте: инструмент, который замечает проблему, сам и оповещает вашу команду.
 
-  <p>OneUptime заменяет целую полку SaaS-инструментов одной платформой, которую можно развернуть у себя бесплатно. Она обнаруживает сбой, вызывает нужного человека, обновляет вашу страницу статуса, находит первопричину и даже открывает PR с исправлением.</p>
+Пользуйтесь [OneUptime Cloud](https://oneuptime.com) или запустите OneUptime на своих серверах.
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="OneUptime во время инцидента: его хронология, кто дежурит, страница статуса и расследование OneUptime AI" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>Сайт</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>Документация</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>Быстрый старт</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>Цены</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>Внести вклад</b></a>
-  </p>
+## Что умеет OneUptime
 
-  <a href="https://oneuptime.com"><b>🚀 Попробуйте OneUptime Cloud — навсегда бесплатный тариф, без банковской карты →</b></a>
-</div>
+- **[Мониторинг](https://oneuptime.com/docs/ru/monitor/create-monitor)**: Проверять сайты, API, порты, DNS и сертификаты с зондов по всему миру или изнутри вашей сети. OneUptime также следит за серверами, Kubernetes, Docker, VMware, базами данных и сетевыми устройствами.
+- **[Инциденты и дежурства](https://oneuptime.com/docs/ru/incidents/index)**: Вести каждый инцидент в одной хронологии. Оповещать дежурного звонком, SMS, по электронной почте, push-уведомлением, в Slack или Microsoft Teams и эскалировать, пока кто-то не ответит.
+- **[Страницы статуса](https://oneuptime.com/docs/ru/status-pages/index)**: Держать клиентов в курсе на публичных или закрытых страницах статуса и объявлять там плановое обслуживание.
+- **[Логи, метрики и трассировки](https://oneuptime.com/docs/ru/telemetry/open-telemetry)**: Отправлять их через OpenTelemetry, искать по ним и строить дашборды. Исключения, профили, Real User Monitoring и события безопасности находятся там же.
+- **[Рабочие процессы и сборники инструкций](https://oneuptime.com/docs/ru/workflows/index)**: Автоматизировать рутинную работу и подключать Jira, ServiceNow и другие инструменты, которыми уже пользуется ваша команда.
+- **[OneUptime AI](https://oneuptime.com/docs/ru/ai/ai-sre)**: Расследует новые инциденты и оповещения и публикует анализ первопричины со ссылками. Если включить исправление, он может открыть запрос на слияние с исправлением, которое проверит ваша команда.
+- **[API, CLI и Terraform](https://oneuptime.com/docs/ru/api-reference/api-reference)**: Автоматизировать OneUptime из ваших скриптов и CI и управлять мониторами, страницами статуса и дежурствами как кодом.
 
-<br/>
+Всё остальное есть в [документации](https://oneuptime.com/docs/ru/introduction/getting-started).
 
-<div align="center">
-  <img alt="Командный центр OneUptime во время реального инцидента" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## Начало работы
 
----
+### OneUptime Cloud
 
-## Замените весь ваш стек наблюдаемости
+[Зарегистрируйтесь](https://oneuptime.com/accounts/register) и создайте проект. Для бесплатного тарифа банковская карта не нужна.
 
-OneUptime объединяет мониторинг, оповещения, реагирование на инциденты и наблюдаемость в одном приложении с открытым исходным кодом — так что вы перестаёте платить за десяток отдельных инструментов (и сшивать их воедино).
+### Своё развёртывание с Docker Compose
 
-| Вместо… | Используйте OneUptime для… |
-|---|---|
-| Pingdom / UptimeRobot | **Мониторинг доступности** — проверки сайтов, API, ping, портов, SSL, DNS и синтетические проверки из разных точек мира |
-| StatusPage.io | **Страницы статуса** — брендированные публичные и частные страницы статуса с подписчиками |
-| PagerDuty / Opsgenie | **Дежурства и оповещения** — расписания, политики эскалации, SMS / звонки / push / Slack |
-| Incident.io | **Управление инцидентами** — объявление, сортировка, коммуникация и разбор постфактум |
-| Datadog / New Relic | **APM и метрики** — трассировки, дашборды и производительность сервисов |
-| Loggly | **Управление логами** — сбор, поиск и оповещения по логам |
-| Sentry | **Отслеживание ошибок** — исключения с полными стеками вызовов и контекстом |
-
-Всё это **открытый исходный код (Apache 2.0)** и бесплатно для самостоятельного развёртывания в редакции Community.
-
----
-
-<details>
-<summary><b>🌙 Один инцидент, обработанный от начала до конца</b></summary>
-
-<br/>
-
-Сейчас 2:47 ночи. Оформление заказа начинает отваливаться по таймауту. Вот что делает OneUptime ещё до того, как большинство инструментов вообще подадут первый сигнал — и что на самом деле показано на скриншотах ниже.
-
-### 1 · Обнаружение — *узнайте за секунды*
-
-Пробы в нескольких регионах ловят, как задержка оформления заказа перескакивает ваш порог в 5 секунд, и автоматически открывают инцидент — ещё до того, как ваши клиенты нажмут «обновить».
-
-![Обнаружение — глобальный мониторинг ловит деградацию API оформления заказа](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · Реагирование — *нужный человек вызван*
-
-Дежурному инженеру по политике Payments звонят, пишут SMS и отправляют push-уведомление, автоматически эскалируя на резерв, пока кто-нибудь не подтвердит.
-
-![Реагирование — инцидент направлен дежурному и подтверждён](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · Коммуникация — *клиенты в курсе*
-
-Ваша страница статуса обновляется сама, и каждый подписчик получает уведомление по электронной почте и SMS — никому не нужно вручную писать обновление.
-
-![Коммуникация — публичная страница статуса обновляется и уведомляет подписчиков](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · Диагностика — *первопричина найдена*
-
-Трассировки, логи и метрики сопоставляются вплоть до конкретного спана: медленный `SELECT … FOR UPDATE` по `orders`, застрявший на отсутствующем индексе.
-
-![Диагностика — водопад трассировки точно указывает на медленный спан базы данных](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · Автоисправление — *исправление подготовлено за вас*
-
-ИИ-агент открывает pull request с исправлением, связанный с инцидентом, с зелёными тестами — вам остаётся проверить и смержить. Как SRE, который никогда не спит.
-
-![Автоисправление — ИИ-агент открывает pull request с исправлением](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ Быстрый старт
-
-### ☁️ OneUptime Cloud — простой путь
-
-Никакой настройки, всегда актуальная версия, и это финансирует проект с открытым исходным кодом.
-
-**→ [Зарегистрируйтесь бесплатно на oneuptime.com](https://oneuptime.com)**
-
-### 🐳 Самостоятельное развёртывание с Docker Compose
-
-Всё необходимое на одном сервере (Debian / Ubuntu / RHEL, Docker + Docker Compose). Отлично подходит для домашних лабораторий и небольших команд — сгодится даже Raspberry Pi.
+Нужен Linux-сервер как минимум с 8 ГБ памяти, а также Docker, Docker Compose, Git и Node.js.
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +73,41 @@ done
 npm start
 ```
 
-OneUptime теперь работает по адресу **http://localhost** — откройте его и создайте свою первую учётную запись.
+Когда `npm start` выведет **OneUptime is up!**, откройте `http://localhost` и зарегистрируйтесь. Первая учётная запись становится администратором экземпляра. На сервере перед шагом 3 укажите в `HOST` файла `config.env` доменное имя или IP-адрес сервера и откройте этот адрес.
 
-📖 Полное руководство: [Установка через Docker Compose](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Размеры и требования](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+В [руководстве по Docker Compose](https://oneuptime.com/docs/ru/installation/docker-compose) описаны размеры сервера, HTTPS, резервные копии и обновления.
 
-### ☸️ Kubernetes с Helm — для продакшена
+### Kubernetes с Helm
+
+Для продакшена в большом масштабе или с высокой доступностью установите Helm-чарт:
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 Полные инструкции по установке и параметры на [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+Укажите в `host` доменное имя или IP-адрес, по которому к OneUptime будут обращаться. В [README чарта](/HelmChart/Public/oneuptime/README.md) описаны хранилище, HTTPS, базы данных и обновления.
 
-> **Обновляете существующую установку?** См. [руководство по обновлению](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+## Community и Enterprise
 
----
+- **Community Edition**: Бесплатная и с открытым исходным кодом, со всем перечисленным выше, включая единый вход через SAML и OIDC.
+- **Enterprise Edition**: Добавляет подготовку учётных записей через SCIM, журналы аудита, соответствие требованиям для команд и панели состояния экземпляра, а также приоритетную поддержку. Для использования в продакшене нужна лицензия: [свяжитесь с отделом продаж](mailto:sales@oneuptime.com).
 
-## ✨ Всё в комплекте
+В документации [сравниваются обе редакции](https://oneuptime.com/docs/ru/self-hosted/enterprise).
 
-| | Функция | Что она делает |
-|---|---|---|
-| 📊 | **Мониторинг доступности** | Мониторы сайтов, API, IP, портов, SSL, DNS и синтетические мониторы из нескольких глобальных регионов. |
-| 📋 | **Страницы статуса** | Красивые брендированные страницы статуса, история инцидентов, плановое обслуживание и уведомления подписчиков. |
-| 🚨 | **Управление инцидентами** | Сквозной процесс работы с инцидентами: объявление, назначение, коммуникация, устранение и разбор постфактум. |
-| 📞 | **Дежурства и оповещения** | Расписания дежурств и политики эскалации с оповещениями по SMS, телефонному звонку, push, электронной почте и Slack. |
-| 📝 | **Управление логами** | Приём, хранение, поиск и оповещения по логам через OpenTelemetry. |
-| 🔍 | **APM и трассировки** | Распределённые трассировки, спаны и дашборды производительности для поиска медленных участков и узких мест. |
-| 📈 | **Метрики и дашборды** | Настраиваемые дашборды по вашей телеметрии — стройте те представления, которые нужны вашей команде. |
-| 🐛 | **Отслеживание ошибок** | Захват исключений с полными стеками вызовов, контекстом и отслеживанием релизов. |
-| ⚡ | **Рабочие процессы** | Автоматизация и интеграция со Slack, Jira, GitHub, Microsoft Teams и более чем 5000 приложений. |
-| 🤖 | **ИИ-помощник** | Всегда активный агент, который находит аномалии в логах, трассировках и метриках, выявляет первопричины и открывает PR с исправлениями. |
+## Помощь
 
-<details>
-<summary><b>⚡ Автоматизируйте рутину</b></summary>
+- Задавайте вопросы в [сообществе OneUptime в Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA).
+- Сообщайте об ошибках и предлагайте функции в [issues на GitHub](https://github.com/OneUptime/oneuptime/issues).
+- Об уязвимостях сообщайте конфиденциально, как описано в [SECURITY.md](/.github/SECURITY.md).
+- По всем остальным вопросам пишите на [support@oneuptime.com](mailto:support@oneuptime.com).
 
-<br/>
+## Участие в проекте
 
-Настройте эскалации, тикеты и уведомления на визуальном no-code-полотне — или добавьте собственный код. Инцидент, описанный выше, вызвал дежурного, открыл тикет в Jira и отправил сообщение в Slack, и никому не пришлось и пальцем шевельнуть.
+Мы рады исправлениям ошибок, новым функциям, документации и тестам. В [руководстве по локальной разработке](https://oneuptime.com/docs/ru/installation/local-development) показано, как запустить OneUptime из исходного кода, а [правила участия](/.github/CONTRIBUTING.md) объясняют, как устроены запросы на слияние и лицензирование. С задач с меткой [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) удобно начать.
 
-![Рабочие процессы — no-code-полотно автоматизации для эскалации инцидентов](/packages/Home/Static/img/readme/workflows.png?raw=true)
+Если OneUptime вам полезен, поставьте этому репозиторию звезду или [поддержите проект](https://github.com/sponsors/OneUptime).
 
-</details>
-
-### 🖥️ Мониторинг инфраструктуры
-
-Разверните готовые к копированию агенты **на базе OpenTelemetry**, чтобы следить за всем, на чём работают ваши сервисы — с встроенными шаблонами оповещений:
-
-- **Серверы и VM** — CPU, память, диск, сеть, процессы и логи с Linux, macOS и Windows. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — один `helm install` доставляет метрики узлов/подов/контейнеров/кластера, события, логи, а также eBPF-трассировки и карты сервисов. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — единый агент автоматически обнаруживает каждый контейнер и доставляет метрики и логи. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — то же автообнаружение одним агентом через Docker-совместимый сокет Podman. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — узлы, VM, контейнеры, хранилище, состояние HA, покрытие резервным копированием и здоровье репликации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, хосты ESXi, виртуальные машины, хранилища данных, кластеры, пулы ресурсов и vSAN. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — здоровье кластера, прогнозы по ёмкости и видимость OSD/пулов/PG/мониторов. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **Системы хранения данных** — Pure Storage FlashArray и FlashBlade: ёмкость, задержки, тома, хосты, репликация, состояние оборудования, файловые системы и бакеты. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **Базы данных** — PostgreSQL, MySQL, Redis, MongoDB и другие, автоматически обнаруживаются по трассировкам приложений, Kubernetes и Docker, с метриками движка, примерами запросов и логами от агента-коллектора, состоящего только из конфигурации. [Документация →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 Community или Enterprise
-
-| | **Community** | **Enterprise** |
-|---|---|---|
-| **Лучше всего для** | Тех, кто разворачивает у себя, и небольших команд | Регулируемых команд, которым нужна премиум-поддержка |
-| **Стоимость** | Бесплатно и с открытым исходным кодом | [Связаться с отделом продаж](mailto:sales@oneuptime.com) |
-| **Лицензия** | Apache 2.0 | Apache 2.0, а для каталога `ee/` — [OneUptime Enterprise License](/ee/LICENSE) |
-| **Возможности** | Всё из раздела «Всё в комплекте» выше — мониторинг, страницы статуса, инциденты, дежурства, логи, трейсы, метрики, отслеживание ошибок, рабочие процессы и ИИ, — а также единый вход SAML и OIDC | Всё из Community + провижининг SCIM, журналы аудита, соответствие требованиям для команд и панели состояния экземпляра, а также приоритетная поддержка, индивидуальные функции и резидентность данных |
-
-Функции Enterprise находятся в каталоге [`ee/`](/ee) и поставляются только в образе Enterprise. Полное сравнение — в разделе [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md).
-
----
-
-## 💡 Почему OneUptime?
-
-Наша миссия проста: **сократить простои и помочь большему числу продуктов добиться успеха.** Вместо того чтобы скотчем скреплять семь вендоров, вы получаете одну платформу, которая помогает понять, *почему* всё ломается, быстро реагировать на инциденты и снижать операционную рутину — с открытым ядром (Apache 2.0), так что вы владеете своими данными и своим стеком.
-
----
-
-<a name="contributing"></a>
-
-## 🤝 Участие в проекте
-
-Мы приветствуем вклад любого размера. Начните отсюда:
-
-- 🐛 **[Открытые задачи](https://github.com/OneUptime/oneuptime/issues)** — возьмите одну в работу или [заведите новую](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ **[Помогите писать тесты](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** для кодовой базы
-- 🧑‍💻 **[Руководство по локальной разработке](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)**, чтобы настроить окружение
-- 📖 Прочитайте **[рекомендации по участию](/.github/CONTRIBUTING.md)**
-- 💬 Общайтесь с нами в **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** или **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
-
-## ❤️ Поддержите проект
-
-Если OneUptime полезен вам:
-
-- ⭐ **Поставьте звезду этому репозиторию** — это действительно помогает другим найти нас
-- 💵 **[Станьте спонсором](https://github.com/sponsors/OneUptime)** — каждый доллар приближает выход новых функций
-- 🛍️ **[Возьмите немного мерча](https://shop.oneuptime.com)** — вся выручка идёт на разработку с открытым исходным кодом
-
----
-
-## 📄 Лицензия
+## Лицензия
 
 OneUptime — открытое ПО под лицензией [Apache License 2.0](/LICENSE), за исключением каталога [`ee/`](/ee). В этом каталоге находится редакция Enterprise, и он распространяется по лицензии [OneUptime Enterprise License](/ee/LICENSE). Образ редакции Community не содержит кода из `ee/`. Это разделение закреплено в файле [`LICENSE`](/LICENSE) в корне репозитория.
-
-<div align="center">
-  <sub>Сделано с ❤️ командой <a href="https://oneuptime.com">OneUptime</a> и <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">участниками</a>.</sub>
-</div>

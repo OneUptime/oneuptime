@@ -19,116 +19,44 @@
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+</p>
 
-  <h3>Agentbasert observabilitet — én åpen kildekode-plattform for oppetid, hendelser, vaktordning, statussider, logger, spor, metrikker og APM.</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>Når noe går galt, vær den første som får vite det — og den raskeste til å fikse det.</b></p>
+OneUptime er en observerbarhetsplattform med åpen kildekode. Den sjekker at nettstedene, API-ene og serverne dine virker, samler inn loggene, metrikkene og sporene appene dine sender, varsler den som har vakt når noe går i stykker, og holder kundene dine oppdatert på en statusside. Alt skjer i ett produkt: verktøyet som oppdager et problem, er det samme som varsler teamet ditt.
 
-  <p>OneUptime erstatter en hel hylle med SaaS-verktøy med én plattform du kan drifte selv, helt gratis. Den fanger opp nedetiden, tilkaller riktig person, oppdaterer statussiden din, finner grunnårsaken og åpner til og med rettelses-PR-en.</p>
+Du kan bruke [OneUptime Cloud](https://oneuptime.com) eller kjøre OneUptime på dine egne servere.
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="OneUptime under en hendelse: tidslinjen, hvem som har vakt, statussiden og undersøkelsen fra OneUptime AI" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>Nettsted</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>Dokumentasjon</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>Kom raskt i gang</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>Priser</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>Bidra</b></a>
-  </p>
+## Hva den gjør
 
-  <a href="https://oneuptime.com"><b>🚀 Prøv OneUptime Cloud — gratis for alltid-plan, uten kredittkort →</b></a>
-</div>
+- **[Overvåking](https://oneuptime.com/docs/no/monitor/create-monitor)**: Sjekk nettsteder, API-er, porter, DNS og sertifikater fra sonder over hele verden eller fra innsiden av ditt eget nettverk. OneUptime følger også med på servere, Kubernetes, Docker, VMware, databaser og nettverksenheter.
+- **[Hendelser og vakt](https://oneuptime.com/docs/no/incidents/index)**: Jobb med hver hendelse på én tidslinje. Varsle den som har vakt via telefon, SMS, e-post, push, Slack eller Microsoft Teams, og eskaler til noen svarer.
+- **[Statussider](https://oneuptime.com/docs/no/status-pages/index)**: Hold kundene oppdatert på offentlige eller private statussider, og kunngjør planlagt vedlikehold der.
+- **[Logger, metrikker og spor](https://oneuptime.com/docs/no/telemetry/open-telemetry)**: Send dem med OpenTelemetry, søk i dem og bygg dashbord. Unntak, profiler, Real User Monitoring og sikkerhetshendelser ligger på samme sted.
+- **[Arbeidsflyter og runbooks](https://oneuptime.com/docs/no/workflows/index)**: Automatiser rutinearbeid, og koble til Jira, ServiceNow og de andre verktøyene teamet ditt allerede bruker.
+- **[OneUptime AI](https://oneuptime.com/docs/no/ai/ai-sre)**: Undersøker nye hendelser og varsler og legger ut en årsaksanalyse med kilder. Når du slår på retting, kan den åpne en pull-forespørsel med en rettelse som teamet ditt går gjennom.
+- **[API, CLI og Terraform](https://oneuptime.com/docs/no/api-reference/api-reference)**: Automatiser OneUptime fra skriptene dine og CI-en din, og administrer monitorer, statussider og vakt som kode.
 
-<br/>
+Alt annet står i [dokumentasjonen](https://oneuptime.com/docs/no/introduction/getting-started).
 
-<div align="center">
-  <img alt="OneUptime-kommandosentral under en pågående hendelse" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## Kom i gang
 
----
+### OneUptime Cloud
 
-## Erstatt hele observabilitetsstakken din
+[Registrer deg](https://oneuptime.com/accounts/register) og opprett et prosjekt. Gratisplanen krever ikke kredittkort.
 
-OneUptime samler overvåking, varsling, hendelseshåndtering og observabilitet i én åpen kildekode-app — slik at du slutter å betale for (og lappe sammen) et dusin separate verktøy.
+### Drift selv med Docker Compose
 
-| I stedet for … | Bruk OneUptime til … |
-|---|---|
-| Pingdom / UptimeRobot | **Oppetidsovervåking** — nettsted-, API-, ping-, port-, SSL-, DNS- og syntetiske sjekker fra hele verden |
-| StatusPage.io | **Statussider** — profilerte offentlige og private statussider med abonnenter |
-| PagerDuty / Opsgenie | **Vaktordning og varsler** — vaktplaner, eskaleringspolicyer, SMS / anrop / push / Slack |
-| Incident.io | **Hendelseshåndtering** — erklær, triager, kommuniser og gjennomfør evaluering |
-| Datadog / New Relic | **APM og metrikker** — spor, dashbord og tjenesteytelse |
-| Loggly | **Loggadministrasjon** — samle inn, søk i og varsle på logger |
-| Sentry | **Feilsporing** — unntak med fullstendige stakksporinger og kontekst |
-
-Alt sammen er **åpen kildekode (Apache 2.0)** og gratis å drifte selv med Community Edition.
-
----
-
-<details>
-<summary><b>🌙 Én hendelse, håndtert fra ende til ende</b></summary>
-
-<br/>
-
-Klokken er 02.47. Utsjekk begynner å få tidsavbrudd. Her er hva OneUptime gjør før de fleste verktøy i det hele tatt ville utløst det første varselet — og hva skjermbildene nedenfor faktisk viser.
-
-### 1 · Oppdag — *vit det på sekunder*
-
-Sonder i flere regioner fanger opp at utsjekk-latensen sprenger 5-sekundersterskelen din og åpner en hendelse automatisk — før kundene dine rekker å trykke oppdater.
-
-![Oppdag — global overvåking fanger opp at utsjekk-API-et forringes](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · Respons — *riktig person, tilkalt*
-
-Vakthavende ingeniør for Payments-policyen blir ringt, tekstet og push-varslet, og eskalerer automatisk til reserven til noen bekrefter.
-
-![Respons — hendelsen rutes til vakthavende og bekreftes](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · Kommuniser — *kundene holdes oppdatert*
-
-Statussiden din oppdaterer seg selv, og hver abonnent varsles via e-post og SMS — ingen trenger å skrive oppdateringen for hånd.
-
-![Kommuniser — den offentlige statussiden oppdateres og varsler abonnenter](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · Diagnostiser — *grunnårsaken, funnet*
-
-Spor, logger og metrikker korreleres ned til nøyaktig span: en treg `SELECT … FOR UPDATE` på `orders`, fast på en manglende indeks.
-
-![Diagnostiser — sporfossen peker ut det trege databasespannet](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · Auto-rett — *rettelsen, utformet for deg*
-
-AI-agenten åpner en pull request med rettelsen, koblet til hendelsen, med grønne tester — du gjennomgår og fletter inn. Som en SRE som aldri sover.
-
-![Auto-rett — AI-agenten åpner en pull request med rettelsen](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ Kom raskt i gang
-
-### ☁️ OneUptime Cloud — den enkle måten
-
-Null oppsett, alltid oppdatert, og det finansierer åpen kildekode-prosjektet.
-
-**→ [Registrer deg gratis på oneuptime.com](https://oneuptime.com)**
-
-### 🐳 Drift selv med Docker Compose
-
-Alt du trenger på én enkelt server (Debian / Ubuntu / RHEL, Docker + Docker Compose). Ypperlig for hjemmelaber og små team — en Raspberry Pi fungerer til og med.
+Du trenger en Linux-server med minst 8 GB minne, og Docker, Docker Compose, Git og Node.js.
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +73,41 @@ done
 npm start
 ```
 
-OneUptime kjører nå på **http://localhost** — åpne det og opprett din første konto.
+Når `npm start` skriver ut **OneUptime is up!**, åpner du `http://localhost` og registrerer deg. Den første kontoen blir administratoren for instansen. På en server setter du `HOST` i `config.env` til serverens domenenavn eller IP-adresse før trinn 3, og åpner den adressen i stedet.
 
-📖 Fullstendig veiledning: [Docker Compose-installasjon](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Dimensjonering og krav](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+[Veiledningen for Docker Compose](https://oneuptime.com/docs/no/installation/docker-compose) dekker serverstørrelser, HTTPS, sikkerhetskopier og oppdateringer.
 
-### ☸️ Kubernetes med Helm — for produksjon
+### Kubernetes med Helm
+
+For produksjon i stor skala, eller høy tilgjengelighet, installerer du Helm-chartet:
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 Fullstendige installasjonsinstruksjoner og verdier på [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+Sett `host` til domenenavnet eller IP-adressen folk skal nå OneUptime på. [Chartets README](/HelmChart/Public/oneuptime/README.md) dekker lagring, HTTPS, databaser og oppgraderinger.
 
-> **Oppgraderer du en eksisterende installasjon?** Se [oppgraderingsveiledningen](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+## Community og Enterprise
 
----
+- **Community Edition**: Gratis og åpen kildekode, med alt ovenfor, inkludert enkel pålogging med SAML og OIDC.
+- **Enterprise Edition**: Legger til SCIM-klargjøring, revisjonslogger, team-compliance og dashbord for instansens helse, med prioritert support. Bruk i produksjon krever en lisens: [kontakt salg](mailto:sales@oneuptime.com).
 
-## ✨ Alt i esken
+Dokumentasjonen [sammenligner de to utgavene](https://oneuptime.com/docs/no/self-hosted/enterprise).
 
-| | Funksjon | Hva den gjør |
-|---|---|---|
-| 📊 | **Oppetidsovervåking** | Nettsted-, API-, IP-, port-, SSL-, DNS- og syntetiske overvåkere fra flere globale regioner. |
-| 📋 | **Statussider** | Vakre, profilerte statussider, hendelseshistorikk, planlagt vedlikehold og abonnentvarsler. |
-| 🚨 | **Hendelseshåndtering** | Hendelsesarbeidsflyt fra ende til ende: erklær, tildel, kommuniser, løs og gjennomfør evalueringer. |
-| 📞 | **Vaktordning og varsler** | Vaktplaner og eskaleringspolicyer med varsler via SMS, telefonanrop, push, e-post og Slack. |
-| 📝 | **Loggadministrasjon** | Innhent, lagre, søk i og varsle på logger via OpenTelemetry. |
-| 🔍 | **APM og spor** | Distribuerte spor, span og ytelsesdashbord for å finne trege stier og flaskehalser. |
-| 📈 | **Metrikker og dashbord** | Egendefinerte dashbord over telemetrien din — bygg visningene teamet ditt trenger. |
-| 🐛 | **Feilsporing** | Fang opp unntak med fullstendige stakksporinger, kontekst og utgivelsessporing. |
-| ⚡ | **Arbeidsflyter** | Automatiser og integrer med Slack, Jira, GitHub, Microsoft Teams og 5 000+ apper. |
-| 🤖 | **AI-copilot** | En alltid-på-agent som finner avvik på tvers av logger, spor og metrikker, oppdager grunnårsaker og åpner PR-er med rettelser. |
+## Få hjelp
 
-<details>
-<summary><b>⚡ Automatiser rutinearbeidet</b></summary>
+- Still spørsmål i [OneUptime-fellesskapet på Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA).
+- Rapporter feil og be om funksjoner i [GitHub-issues](https://github.com/OneUptime/oneuptime/issues).
+- Rapporter en sikkerhetssårbarhet privat, slik [SECURITY.md](/.github/SECURITY.md) forklarer.
+- Skriv til [support@oneuptime.com](mailto:support@oneuptime.com) om alt annet.
 
-<br/>
+## Bidra
 
-Koble sammen eskaleringer, saksbehandling og varsler på et visuelt kodefritt lerret — eller slipp inn egendefinert kode. Hendelsen ovenfor tilkalte vakthavende, åpnet en Jira-sak og postet til Slack uten at noen løftet en finger.
+Feilrettinger, funksjoner, dokumentasjon og tester er alle velkomne. [Veiledningen for lokal utvikling](https://oneuptime.com/docs/no/installation/local-development) viser hvordan du kjører OneUptime fra kildekoden, og [retningslinjene for bidrag](/.github/CONTRIBUTING.md) forklarer hvordan pull-forespørsler og lisensiering fungerer. Issues med etiketten [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) er et godt sted å begynne.
 
-![Arbeidsflyter — et kodefritt automatiseringslerret for hendelseseskalering](/packages/Home/Static/img/readme/workflows.png?raw=true)
+Hvis OneUptime er nyttig for deg, gi dette repositoriet en stjerne eller [spons prosjektet](https://github.com/sponsors/OneUptime).
 
-</details>
-
-### 🖥️ Infrastrukturovervåking
-
-Slipp inn kopier-og-lim-inn-agenter basert på **OpenTelemetry** for å følge med på alt tjenestene dine kjører på — med ferdiglagde varselmaler inkludert:
-
-- **Servere og VM-er** — CPU, minne, disk, nettverk, prosesser og logger fra Linux, macOS og Windows. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — én `helm install` leverer node-/pod-/container-/klyngemetrikker, hendelser, logger og eBPF-spor og tjenestekart. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — én enkelt agent oppdager automatisk hver container og leverer metrikker og logger. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — samme automatiske oppdagelse med én agent via Podmans Docker-kompatible socket. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — noder, VM-er, containere, lagring, HA-tilstand, sikkerhetskopidekning og replikeringshelse. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-verter, virtuelle maskiner, datastores, klynger, ressurspooler og vSAN. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — klyngehelse, kapasitetsprognoser og innsyn i OSD/pool/PG/monitor. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **Lagringsmatriser** — Pure Storage FlashArray og FlashBlade: kapasitet, forsinkelse, volumer, verter, replikering, maskinvarehelse, filsystemer og buckets. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **Databaser** — PostgreSQL, MySQL, Redis, MongoDB med flere, oppdaget automatisk fra applikasjonsspor, Kubernetes og Docker, med motormetrikker, spørringsutvalg og logger fra en collector-agent som bare består av konfigurasjon. [Dokumentasjon →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 Community vs. Enterprise
-
-| | **Community** | **Enterprise** |
-|---|---|---|
-| **Best egnet for** | Selvdriftere og små team | Regulerte team som trenger premiumsupport |
-| **Kostnad** | Gratis og åpen kildekode | [Kontakt salg](mailto:sales@oneuptime.com) |
-| **Lisens** | Apache 2.0 | Apache 2.0, pluss [OneUptime Enterprise License](/ee/LICENSE) for mappen `ee/` |
-| **Funksjoner** | Alt i esken ovenfor — overvåking, statussider, hendelser, vaktordninger, logger, traces, metrikker, feilsporing, arbeidsflyter og KI — pluss SAML- og OIDC-single sign-on | Alt i Community + SCIM-provisjonering, revisjonslogger, team-compliance og dashbord for instansens helse, med prioritert support, egendefinerte funksjoner og datalokasjon |
-
-Enterprise-funksjonene ligger i mappen [`ee/`](/ee) og leveres bare i Enterprise-imaget. Se [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) for hele sammenligningen.
-
----
-
-## 💡 Hvorfor OneUptime?
-
-Oppdraget vårt er enkelt: **redusere nedetid og hjelpe flere produkter med å lykkes.** I stedet for å teipe sammen syv leverandører, får du én plattform som hjelper deg å forstå *hvorfor* ting går i stykker, respondere raskt på hendelser og redusere driftsslit — med en kjerne av åpen kildekode (Apache 2.0), så du eier dine egne data og din egen stakk.
-
----
-
-<a name="contributing"></a>
-
-## 🤝 Bidra
-
-Vi ønsker bidrag av alle størrelser velkommen. Start her:
-
-- 🐛 **[Åpne saker](https://github.com/OneUptime/oneuptime/issues)** — plukk opp en, eller [meld inn en ny](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ **[Hjelp til med å skrive tester](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** for kodebasen
-- 🧑‍💻 **[Veiledning for lokal utvikling](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** for å komme i gang
-- 📖 Les **[retningslinjene for bidrag](/.github/CONTRIBUTING.md)**
-- 💬 Prat med oss i **[utvikler-Slacken](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** eller **[community-Slacken](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
-
-## ❤️ Støtt prosjektet
-
-Hvis OneUptime er nyttig for deg:
-
-- ⭐ **Gi dette repoet en stjerne** — det hjelper virkelig andre med å finne oss
-- 💵 **[Sponsor oss](https://github.com/sponsors/OneUptime)** — hver krone leverer nye funksjoner
-- 🛍️ **[Skaff deg litt merch](https://shop.oneuptime.com)** — alt overskudd finansierer åpen kildekode-utvikling
-
----
-
-## 📄 Lisens
+## Lisens
 
 OneUptime er åpen kildekode under [Apache License 2.0](/LICENSE), med unntak av mappen [`ee/`](/ee). Den mappen inneholder Enterprise Edition og er lisensiert under [OneUptime Enterprise License](/ee/LICENSE). Community Edition-imaget inneholder ingen kode fra `ee/`. Filen [`LICENSE`](/LICENSE) i roten av repositoriet fastsetter denne inndelingen.
-
-<div align="center">
-  <sub>Laget med ❤️ av <a href="https://oneuptime.com">OneUptime</a>-teamet og <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">bidragsytere</a>.</sub>
-</div>

@@ -19,116 +19,44 @@
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="OneUptime 徽标" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+</p>
 
-  <h3>智能体式可观测性 —— 一个开源平台，涵盖可用性、事件、值班、状态页、日志、追踪、指标与 APM。</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>当出现问题时，第一个知道，也最快修复。</b></p>
+OneUptime 是一个开源的可观测性平台。它检查你的网站、API 和服务器是否正常工作，收集你的应用发送的日志、指标和追踪，在出现故障时呼叫值班人员，并通过状态页面告知你的客户。这一切都在同一个产品中完成，因此发现问题的工具也正是呼叫你团队的工具。
 
-  <p>OneUptime 用一个可免费自托管的平台，取代一整排 SaaS 工具。它能捕捉故障、呼叫合适的人、更新你的状态页、定位根因，甚至提交修复的 PR。</p>
+你可以使用 [OneUptime Cloud](https://oneuptime.com)，也可以在自己的服务器上运行它。
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="事件期间的 OneUptime：事件的时间线、值班人员、状态页面和 OneUptime AI 的调查" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>官网</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>文档</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>快速开始</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>定价</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>参与贡献</b></a>
-  </p>
+## 它能做什么
 
-  <a href="https://oneuptime.com"><b>🚀 试用 OneUptime Cloud —— 永久免费套餐，无需信用卡 →</b></a>
-</div>
+- **[监控](https://oneuptime.com/docs/zh-CN/monitor/create-monitor)**：从全球各地的探测器或你自己的网络内部检查网站、API、端口、DNS 和证书。OneUptime 还会监控服务器、Kubernetes、Docker、VMware、数据库和网络设备。
+- **[事件与值班](https://oneuptime.com/docs/zh-CN/incidents/index)**：在同一条时间线上处理每个事件。通过电话、短信、电子邮件、推送通知、Slack 或 Microsoft Teams 呼叫值班人员，并持续升级直到有人响应。
+- **[状态页面](https://oneuptime.com/docs/zh-CN/status-pages/index)**：通过公开或私有的状态页面让客户了解情况，并在上面公告计划维护。
+- **[日志、指标和追踪](https://oneuptime.com/docs/zh-CN/telemetry/open-telemetry)**：用 OpenTelemetry 发送、搜索它们，并构建仪表板。异常、性能剖析、真实用户监控和安全事件也都在同一个地方。
+- **[工作流和运行手册](https://oneuptime.com/docs/zh-CN/workflows/index)**：把例行工作自动化，并连接 Jira、ServiceNow 以及你的团队已经在用的其他工具。
+- **[OneUptime AI](https://oneuptime.com/docs/zh-CN/ai/ai-sre)**：调查新的事件和告警，并发布带出处的根本原因分析。开启修复后，它可以打开一个包含修复的拉取请求，交给你的团队审查。
+- **[API、CLI 和 Terraform](https://oneuptime.com/docs/zh-CN/api-reference/api-reference)**：从你的脚本和 CI 自动化 OneUptime，并以代码方式管理监视器、状态页面和值班。
 
-<br/>
+其余内容都在[文档](https://oneuptime.com/docs/zh-CN/introduction/getting-started)中。
 
-<div align="center">
-  <img alt="实时事件处理中的 OneUptime 指挥中心" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## 开始使用
 
----
+### OneUptime Cloud
 
-## 取代你的整套可观测性技术栈
+[注册](https://oneuptime.com/accounts/register)并创建一个项目。免费计划无需信用卡。
 
-OneUptime 将监控、告警、事件响应和可观测性整合到一个开源应用中 —— 从此你无需再为十多个各自独立的工具付费（并费力拼接它们）。
+### 用 Docker Compose 自托管
 
-| 不再需要… | 改用 OneUptime 实现… |
-|---|---|
-| Pingdom / UptimeRobot | **可用性监控** —— 面向全球的网站、API、ping、端口、SSL、DNS 及合成检测 |
-| StatusPage.io | **状态页** —— 带订阅者的品牌化公共与私有状态页 |
-| PagerDuty / Opsgenie | **值班与告警** —— 排班、升级策略，短信 / 电话 / 推送 / Slack |
-| Incident.io | **事件管理** —— 声明、分诊、沟通与复盘 |
-| Datadog / New Relic | **APM 与指标** —— 追踪、仪表盘与服务性能 |
-| Loggly | **日志管理** —— 采集、搜索并对日志告警 |
-| Sentry | **错误追踪** —— 带完整堆栈跟踪和上下文的异常 |
-
-以上一切均为 **开源（Apache 2.0）**，使用社区版即可免费自托管。
-
----
-
-<details>
-<summary><b>🌙 一次事件，端到端全程处理</b></summary>
-
-<br/>
-
-现在是凌晨 2:47。结账开始超时。看看在多数工具还没发出第一条告警之前，OneUptime 就已经做了什么 —— 也正是下面这些截图真实呈现的内容。
-
-### 1 · 检测 — *几秒内知晓*
-
-分布在多个区域的探针发现结账延迟突破了你设定的 5 秒阈值，并自动开启一个事件 —— 赶在你的客户点击刷新之前。
-
-![检测 —— 全球监控发现结账 API 性能下降](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · 响应 — *呼叫对的人*
-
-Payments 策略的值班工程师被电话、短信和推送通知触达，并在有人确认之前自动升级到后备人员。
-
-![响应 —— 事件被路由给值班人员并被确认](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · 沟通 — *让客户知情*
-
-你的状态页自动更新，每一位订阅者都会收到邮件和短信通知 —— 无需任何人手动撰写更新内容。
-
-![沟通 —— 公共状态页更新并通知订阅者](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · 诊断 — *找到根因*
-
-追踪、日志和指标被关联到精确的 span：`orders` 表上一条缓慢的 `SELECT … FOR UPDATE`，卡在了缺失的索引上。
-
-![诊断 —— 追踪瀑布图精准定位到缓慢的数据库 span](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · 自动修复 — *修复方案已为你起草*
-
-AI 智能体提交一个包含修复的拉取请求，关联到该事件，测试全部通过 —— 你只需审阅并合并。就像一位永不休息的 SRE。
-
-![自动修复 —— AI 智能体提交包含修复的拉取请求](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ 快速开始
-
-### ☁️ OneUptime Cloud —— 最省心的方式
-
-零配置、始终保持最新，还能为开源项目提供资金支持。
-
-**→ [在 oneuptime.com 免费注册](https://oneuptime.com)**
-
-### 🐳 使用 Docker Compose 自托管
-
-单台服务器即可满足所需（Debian / Ubuntu / RHEL，Docker + Docker Compose）。非常适合家庭实验室和小型团队 —— 甚至一台 Raspberry Pi 也能跑起来。
+你需要一台内存至少 8 GB 的 Linux 服务器，并装有 Docker、Docker Compose、Git 和 Node.js。
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +73,41 @@ done
 npm start
 ```
 
-OneUptime 现已运行在 **http://localhost** —— 打开它并创建你的第一个账户。
+当 `npm start` 输出 **OneUptime is up!** 后，打开 `http://localhost` 并注册。第一个账号会成为该实例的管理员。在服务器上，请在第 3 步之前把 `config.env` 中的 `HOST` 设为服务器的域名或 IP 地址，然后打开那个地址。
 
-📖 完整指南：[Docker Compose 安装](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [规格与需求](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+[Docker Compose 指南](https://oneuptime.com/docs/zh-CN/installation/docker-compose)介绍了服务器规格、HTTPS、备份和更新。
 
-### ☸️ 使用 Helm 部署到 Kubernetes —— 面向生产环境
+### 用 Helm 部署到 Kubernetes
+
+如需大规模生产环境或高可用，请安装 Helm chart：
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 完整安装说明与参数值见 [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+把 `host` 设为人们访问 OneUptime 时使用的域名或 IP 地址。[chart 的 README](/HelmChart/Public/oneuptime/README.md) 介绍了存储、HTTPS、数据库和升级。
 
-> **正在升级现有安装？** 请参阅[升级指南](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md)。
+## Community 与 Enterprise
 
----
+- **Community Edition**：免费且开源，包含以上全部功能，也包括 SAML 和 OIDC 单点登录。
+- **Enterprise Edition**：增加 SCIM 预配、审计日志、团队合规和实例健康仪表板，并提供优先支持。在生产环境中使用需要许可证：[联系销售](mailto:sales@oneuptime.com)。
 
-## ✨ 开箱即有的一切
+两个版本的对比见[文档](https://oneuptime.com/docs/zh-CN/self-hosted/enterprise)。
 
-| | 功能 | 作用 |
-|---|---|---|
-| 📊 | **可用性监控** | 面向多个全球区域的网站、API、IP、端口、SSL、DNS 及合成监控。 |
-| 📋 | **状态页** | 精美的品牌化状态页、事件历史、计划维护以及订阅者通知。 |
-| 🚨 | **事件管理** | 端到端的事件工作流：声明、指派、沟通、解决并进行复盘。 |
-| 📞 | **值班与告警** | 值班排班与升级策略，支持短信、电话、推送、邮件和 Slack 告警。 |
-| 📝 | **日志管理** | 通过 OpenTelemetry 采集、存储、搜索并对日志告警。 |
-| 🔍 | **APM 与追踪** | 分布式追踪、span 与性能仪表盘，帮你找出慢路径和瓶颈。 |
-| 📈 | **指标与仪表盘** | 基于你的遥测数据自定义仪表盘 —— 构建团队所需的视图。 |
-| 🐛 | **错误追踪** | 捕获异常，含完整堆栈跟踪、上下文与发布版本追踪。 |
-| ⚡ | **工作流** | 与 Slack、Jira、GitHub、Microsoft Teams 及 5,000 多个应用自动化集成。 |
-| 🤖 | **AI Copilot** | 一个始终在线的智能体，在日志、追踪与指标间发现异常、定位根因，并提交带修复的 PR。 |
+## 获取帮助
 
-<details>
-<summary><b>⚡ 让繁琐工作自动化</b></summary>
+- 在 [Slack 上的 OneUptime 社区](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)提问。
+- 在 [GitHub issues](https://github.com/OneUptime/oneuptime/issues) 中报告缺陷、提出功能需求。
+- 请按 [SECURITY.md](/.github/SECURITY.md) 的说明私下报告安全漏洞。
+- 其他问题请发邮件到 [support@oneuptime.com](mailto:support@oneuptime.com)。
 
-<br/>
+## 参与贡献
 
-在可视化的无代码画布上串联升级、工单和通知 —— 或直接嵌入自定义代码。上述事件在无人动手的情况下就呼叫了值班人员、开了一个 Jira 工单并发布到了 Slack。
+欢迎修复缺陷、开发功能、完善文档和编写测试。[本地开发指南](https://oneuptime.com/docs/zh-CN/installation/local-development)介绍了如何从源码运行 OneUptime，[贡献指南](/.github/CONTRIBUTING.md)说明了拉取请求和许可证的规则。带有 [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) 标签的 issue 适合作为起点。
 
-![工作流 —— 用于事件升级的无代码自动化画布](/packages/Home/Static/img/readme/workflows.png?raw=true)
+如果 OneUptime 对你有帮助，请为这个仓库点个星，或[赞助这个项目](https://github.com/sponsors/OneUptime)。
 
-</details>
-
-### 🖥️ 基础设施监控
-
-嵌入可复制粘贴的、**基于 OpenTelemetry** 的代理，即可监控你的服务所依赖的一切 —— 还内置了现成的告警模板：
-
-- **服务器与 VM** —— 来自 Linux、macOS 与 Windows 的 CPU、内存、磁盘、网络、进程和日志。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** —— 一条 `helm install` 即可交付节点/Pod/容器/集群指标、事件、日志，以及 eBPF 追踪与服务地图。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** —— 单个代理自动发现每一个容器并交付指标与日志。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** —— 通过 Podman 兼容 Docker 的套接字，同样实现单代理自动发现。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** —— 节点、VM、容器、存储、HA 状态、备份覆盖率与复制健康状况。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** —— vCenter、ESXi 主机、虚拟机、数据存储、集群、资源池与 vSAN。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** —— 集群健康、容量预测，以及 OSD/存储池/PG/监视器的可见性。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **存储阵列** —— Pure Storage FlashArray 和 FlashBlade：容量、延迟、卷、主机、复制、硬件健康状况、文件系统和存储桶。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **数据库** —— PostgreSQL、MySQL、Redis、MongoDB 等，可从应用追踪、Kubernetes 和 Docker 自动发现，并通过仅需配置的 Collector 代理获取引擎指标、查询样本和日志。[文档 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 社区版 vs. 企业版
-
-| | **社区版** | **企业版** |
-|---|---|---|
-| **适合谁** | 自托管用户与小型团队 | 需要高级支持的受监管团队 |
-| **费用** | 免费且开源 | [联系销售](mailto:sales@oneuptime.com) |
-| **许可证** | Apache 2.0 | Apache 2.0，另外 `ee/` 目录采用 [OneUptime Enterprise License](/ee/LICENSE) |
-| **功能** | 上方“开箱即有的一切”中的全部功能——监控、状态页、事件、值班、日志、链路追踪、指标、错误追踪、工作流与 AI——以及 SAML 与 OIDC 单点登录 | 社区版全部功能 + SCIM 用户配置、审计日志、团队合规与实例健康仪表盘，并提供优先支持、定制功能与数据驻留 |
-
-企业版功能位于 [`ee/`](/ee) 目录，仅包含在企业版镜像中。完整对比请参阅 [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md)。
-
----
-
-## 💡 为什么选择 OneUptime？
-
-我们的使命很简单：**减少停机时间，助力更多产品取得成功。** 你不必再用胶带把七家供应商勉强拼在一起，而是获得一个平台，帮你理解事情*为何*出错、快速响应事件并削减运维琐务 —— 核心开源（Apache 2.0），让你真正拥有自己的数据和技术栈。
-
----
-
-<a name="contributing"></a>
-
-## 🤝 参与贡献
-
-我们欢迎各种规模的贡献。从这里开始：
-
-- 🐛 **[待处理的 issue](https://github.com/OneUptime/oneuptime/issues)** —— 认领一个，或[提交一个新的](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ 为代码库 **[帮忙编写测试](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)**
-- 🧑‍💻 **[本地开发指南](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)**，帮你完成环境搭建
-- 📖 阅读 **[贡献指南](/.github/CONTRIBUTING.md)**
-- 💬 在 **[开发者 Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** 或 **[社区 Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)** 与我们交流
-
-## ❤️ 支持这个项目
-
-如果 OneUptime 对你有帮助：
-
-- ⭐ **给这个仓库点个 Star** —— 这真的能帮助更多人找到我们
-- 💵 **[赞助我们](https://github.com/sponsors/OneUptime)** —— 每一分钱都会转化为新功能
-- 🛍️ **[买点周边](https://shop.oneuptime.com)** —— 全部收益用于资助开源开发
-
----
-
-## 📄 许可证
+## 许可证
 
 OneUptime 基于 [Apache License 2.0](/LICENSE) 开源，[`ee/`](/ee) 目录除外。该目录包含企业版，采用 [OneUptime Enterprise License](/ee/LICENSE) 授权。社区版镜像不包含任何来自 `ee/` 的代码。仓库根目录下的 [`LICENSE`](/LICENSE) 文件规定了这一划分。
-
-<div align="center">
-  <sub>由 <a href="https://oneuptime.com">OneUptime</a> 团队与<a href="https://github.com/OneUptime/oneuptime/graphs/contributors">贡献者们</a>用 ❤️ 打造。</sub>
-</div>

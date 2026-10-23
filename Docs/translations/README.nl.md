@@ -19,116 +19,44 @@
   <a href="/Docs/translations/README.no.md">Norsk</a>
 </p>
 
-<div align="center">
-  <a href="https://oneuptime.com">
-    <img alt="OneUptime-logo" width="55%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/OneUptimePNG/7.png"/>
-  </a>
+<p align="center">
+  <a href="https://oneuptime.com"><img alt="OneUptime" width="50%" src="/packages/Home/Static/img/OneUptimePNG/7.png"></a>
+</p>
 
-  <h3>Agentic observability — één open-source platform voor uptime, incidenten, oproepdienst, statuspagina's, logs, traces, metrics en APM.</h3>
+<p align="center">
+  <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
+  <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
+</p>
 
-  <p><b>Als er iets misgaat, wees de eerste die het weet — en de snelste die het oplost.</b></p>
+OneUptime is een opensource-observabilityplatform. Het controleert of uw websites, API's en servers werken, verzamelt de logs, metrics en traces die uw applicaties versturen, roept degene op die bereikbaarheidsdienst heeft wanneer er iets kapotgaat, en informeert uw klanten op een statuspagina. Alles gebeurt in één product: de tool die een probleem opmerkt, is dezelfde die uw team oproept.
 
-  <p>OneUptime vervangt een hele plank vol SaaS-tools door één platform dat je gratis zelf kunt hosten. Het vangt de storing op, waarschuwt de juiste persoon, werkt je statuspagina bij, vindt de oorzaak en opent zelfs de oplossings-PR.</p>
+U kunt [OneUptime Cloud](https://oneuptime.com) gebruiken of OneUptime op uw eigen servers draaien.
 
-  <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
-    <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
-    <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
-    <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
-    <a href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><img src="https://img.shields.io/badge/Slack-Community-4A154B" alt="Slack"></a>
-  </p>
+<p align="center">
+  <img alt="OneUptime tijdens een incident: de tijdlijn, wie bereikbaarheidsdienst heeft, de statuspagina en het onderzoek van OneUptime AI" width="100%" src="/packages/Home/Static/img/readme/hero-command-center.png">
+</p>
 
-  <p>
-    <a href="https://oneuptime.com"><b>Website</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/docs"><b>Documentatie</b></a> &nbsp;•&nbsp;
-    <a href="#quick-start"><b>Snel aan de slag</b></a> &nbsp;•&nbsp;
-    <a href="https://oneuptime.com/pricing"><b>Prijzen</b></a> &nbsp;•&nbsp;
-    <a href="#contributing"><b>Bijdragen</b></a>
-  </p>
+## Wat het doet
 
-  <a href="https://oneuptime.com"><b>🚀 Probeer OneUptime Cloud — gratis voor altijd, geen creditcard →</b></a>
-</div>
+- **[Monitoring](https://oneuptime.com/docs/nl/monitor/create-monitor)**: Websites, API's, poorten, DNS en certificaten controleren vanaf sondes over de hele wereld of vanuit uw eigen netwerk. OneUptime bewaakt ook servers, Kubernetes, Docker, VMware, databases en netwerkapparaten.
+- **[Incidenten en bereikbaarheid](https://oneuptime.com/docs/nl/incidents/index)**: Elk incident op één tijdlijn afhandelen. Degene met bereikbaarheidsdienst oproepen per telefoon, sms, e-mail, push, Slack of Microsoft Teams, en escaleren tot iemand reageert.
+- **[Statuspagina's](https://oneuptime.com/docs/nl/status-pages/index)**: Klanten op de hoogte houden op openbare of privé-statuspagina's, en daar gepland onderhoud aankondigen.
+- **[Logs, metrics en traces](https://oneuptime.com/docs/nl/telemetry/open-telemetry)**: Ze versturen met OpenTelemetry, erin zoeken en dashboards bouwen. Exceptions, profielen, Real User Monitoring en beveiligingsgebeurtenissen staan op dezelfde plek.
+- **[Workflows en runbooks](https://oneuptime.com/docs/nl/workflows/index)**: Routinewerk automatiseren, en Jira, ServiceNow en de andere tools koppelen die uw team al gebruikt.
+- **[OneUptime AI](https://oneuptime.com/docs/nl/ai/ai-sre)**: Onderzoekt nieuwe incidenten en waarschuwingen en plaatst een oorzaakanalyse met bronvermelding. Als u herstellen aanzet, kan het een pull request met een fix openen die uw team beoordeelt.
+- **[API, CLI en Terraform](https://oneuptime.com/docs/nl/api-reference/api-reference)**: OneUptime automatiseren vanuit uw scripts en uw CI, en monitoren, statuspagina's en bereikbaarheid als code beheren.
 
-<br/>
+Al het andere staat in de [documentatie](https://oneuptime.com/docs/nl/introduction/getting-started).
 
-<div align="center">
-  <img alt="OneUptime-commandocentrum tijdens een live incident" width="92%" src="https://raw.githubusercontent.com/OneUptime/oneuptime/master/packages/Home/Static/img/readme/hero-command-center.png"/>
-</div>
+## Aan de slag
 
----
+### OneUptime Cloud
 
-## Vervang je hele observability-stack
+[Meld u aan](https://oneuptime.com/accounts/register) en maak een project aan. Voor het gratis abonnement is geen creditcard nodig.
 
-OneUptime brengt monitoring, alerting, incidentafhandeling en observability samen in één open-source app — zodat je stopt met betalen voor (en aan elkaar knopen van) een dozijn losse tools.
+### Zelf hosten met Docker Compose
 
-| In plaats van… | Gebruik OneUptime voor… |
-|---|---|
-| Pingdom / UptimeRobot | **Uptime-monitoring** — website-, API-, ping-, poort-, SSL-, DNS- en synthetische checks vanuit de hele wereld |
-| StatusPage.io | **Statuspagina's** — publieke en private statuspagina's met huisstijl en abonnees |
-| PagerDuty / Opsgenie | **Oproepdienst en meldingen** — roosters, escalatiebeleid, sms / oproep / push / Slack |
-| Incident.io | **Incidentbeheer** — declareren, triëren, communiceren en post-mortem |
-| Datadog / New Relic | **APM en metrics** — traces, dashboards en serviceprestaties |
-| Loggly | **Logbeheer** — logs verzamelen, doorzoeken en erop alerten |
-| Sentry | **Foutopsporing** — uitzonderingen met volledige stacktraces en context |
-
-Alles is **open source (Apache 2.0)** en gratis om zelf te hosten met de Community Edition.
-
----
-
-<details>
-<summary><b>🌙 Eén incident, van begin tot eind afgehandeld</b></summary>
-
-<br/>
-
-Het is 02:47 uur. De checkout begint time-outs te geven. Dit is wat OneUptime doet nog voordat de meeste tools de eerste melding zouden versturen — en wat de screenshots hieronder daadwerkelijk laten zien.
-
-### 1 · Detecteren — *binnen seconden op de hoogte*
-
-Probes in meerdere regio's merken dat de checkout-latency je drempel van 5s ver overschrijdt en openen automatisch een incident — nog voordat je klanten op vernieuwen drukken.
-
-![Detecteren — wereldwijde monitoring merkt dat de checkout-API achteruitgaat](/packages/Home/Static/img/readme/detect.png?raw=true)
-
-### 2 · Reageren — *de juiste persoon, gewaarschuwd*
-
-De dienstdoende engineer voor het Payments-beleid wordt gebeld, ge-sms't en per push gewaarschuwd, en escaleert automatisch naar de reserve totdat iemand bevestigt.
-
-![Reageren — het incident wordt naar de oproepdienst geleid en bevestigd](/packages/Home/Static/img/readme/respond.png?raw=true)
-
-### 3 · Communiceren — *klanten op de hoogte*
-
-Je statuspagina werkt zichzelf bij en elke abonnee wordt per e-mail en sms geïnformeerd — niemand hoeft de update met de hand te schrijven.
-
-![Communiceren — de publieke statuspagina werkt bij en informeert abonnees](/packages/Home/Static/img/readme/communicate.png?raw=true)
-
-### 4 · Diagnosticeren — *oorzaak, gevonden*
-
-Traces, logs en metrics worden gecorreleerd tot op de exacte span: een trage `SELECT … FOR UPDATE` op `orders`, vastgelopen op een ontbrekende index.
-
-![Diagnosticeren — de trace-waterval wijst de trage databasespan aan](/packages/Home/Static/img/readme/diagnose.png?raw=true)
-
-### 5 · Automatisch oplossen — *de oplossing, voor je opgesteld*
-
-De AI-agent opent een pull request met de oplossing, gekoppeld aan het incident, met groene tests — jij beoordeelt en merget. Als een SRE die nooit slaapt.
-
-![Automatisch oplossen — de AI-agent opent een pull request met de oplossing](/packages/Home/Static/img/readme/autofix.png?raw=true)
-
-</details>
-
----
-
-<a name="quick-start"></a>
-
-## ⚡ Snel aan de slag
-
-### ☁️ OneUptime Cloud — de makkelijke weg
-
-Geen installatie, altijd up-to-date, en het financiert het open-source project.
-
-**→ [Meld je gratis aan op oneuptime.com](https://oneuptime.com)**
-
-### 🐳 Zelf hosten met Docker Compose
-
-Alles wat je nodig hebt op één server (Debian / Ubuntu / RHEL, Docker + Docker Compose). Ideaal voor homelabs en kleine teams — zelfs een Raspberry Pi werkt.
+U hebt een Linux-server nodig met minstens 8 GB geheugen, en Docker, Docker Compose, Git en Node.js.
 
 ```bash
 # 1. Clone the release branch
@@ -145,110 +73,41 @@ done
 npm start
 ```
 
-OneUptime draait nu op **http://localhost** — open het en maak je eerste account aan.
+Wanneer `npm start` **OneUptime is up!** toont, opent u `http://localhost` en registreert u zich. Het eerste account wordt de beheerder van de instantie. Op een server zet u vóór stap 3 `HOST` in `config.env` op de domeinnaam of het IP-adres van de server, en opent u dat adres.
 
-📖 Volledige handleiding: [Docker Compose-installatie](/packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md) · [Omvang en vereisten](/packages/App/FeatureSet/Docs/Content/en/installation/sizing.md)
+De [Docker Compose-handleiding](https://oneuptime.com/docs/nl/installation/docker-compose) behandelt servergroottes, HTTPS, back-ups en updates.
 
-### ☸️ Kubernetes met Helm — voor productie
+### Kubernetes met Helm
+
+Voor productie op grote schaal, of hoge beschikbaarheid, installeert u de Helm-chart:
 
 ```bash
-helm repo add oneuptime https://helm-chart.oneuptime.com
-helm install oneuptime oneuptime/oneuptime
+helm repo add oneuptime https://helm-chart.oneuptime.com/
+helm install my-oneuptime oneuptime/oneuptime --set host=oneuptime.example.com
 ```
 
-📖 Volledige installatie-instructies en waarden op [Artifact Hub →](https://artifacthub.io/packages/helm/oneuptime/oneuptime)
+Zet `host` op de domeinnaam of het IP-adres waarop mensen OneUptime bereiken. De [README van de chart](/HelmChart/Public/oneuptime/README.md) behandelt opslag, HTTPS, databases en upgrades.
 
-> **Een bestaande installatie bijwerken?** Zie de [upgradehandleiding](/packages/App/FeatureSet/Docs/Content/en/installation/upgrading.md).
+## Community en Enterprise
 
----
+- **Community Edition**: Gratis en open source, met alles hierboven, inclusief single sign-on met SAML en OIDC.
+- **Enterprise Edition**: Voegt SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie toe, met prioritaire ondersteuning. Productiegebruik vereist een licentie: [neem contact op met sales](mailto:sales@oneuptime.com).
 
-## ✨ Alles in één pakket
+De documentatie [vergelijkt de twee edities](https://oneuptime.com/docs/nl/self-hosted/enterprise).
 
-| | Functie | Wat het doet |
-|---|---|---|
-| 📊 | **Uptime-monitoring** | Website-, API-, IP-, poort-, SSL-, DNS- en synthetische monitors vanuit meerdere wereldwijde regio's. |
-| 📋 | **Statuspagina's** | Prachtige statuspagina's met huisstijl, incidentgeschiedenis, gepland onderhoud en meldingen aan abonnees. |
-| 🚨 | **Incidentbeheer** | Volledige incidentworkflow: declareren, toewijzen, communiceren, oplossen en post-mortems uitvoeren. |
-| 📞 | **Oproepdienst en meldingen** | Oproeproosters en escalatiebeleid met sms-, telefoon-, push-, e-mail- en Slack-meldingen. |
-| 📝 | **Logbeheer** | Logs opnemen, opslaan, doorzoeken en erop alerten via OpenTelemetry. |
-| 🔍 | **APM en traces** | Gedistribueerde traces, spans en prestatiedashboards om trage paden en knelpunten te vinden. |
-| 📈 | **Metrics en dashboards** | Aangepaste dashboards over je telemetrie — bouw de weergaven die je team nodig heeft. |
-| 🐛 | **Foutopsporing** | Vang uitzonderingen op met volledige stacktraces, context en release-tracking. |
-| ⚡ | **Workflows** | Automatiseer en integreer met Slack, Jira, GitHub, Microsoft Teams en meer dan 5.000 apps. |
-| 🤖 | **AI-copiloot** | Een altijd actieve agent die anomalieën vindt in logs, traces en metrics, oorzaken opspoort en PR's met oplossingen opent. |
+## Hulp krijgen
 
-<details>
-<summary><b>⚡ Automatiseer het monnikenwerk</b></summary>
+- Stel vragen in de [OneUptime-community op Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA).
+- Meld bugs en vraag functies aan in de [GitHub-issues](https://github.com/OneUptime/oneuptime/issues).
+- Meld een beveiligingslek vertrouwelijk, zoals [SECURITY.md](/.github/SECURITY.md) uitlegt.
+- Mail voor al het andere naar [support@oneuptime.com](mailto:support@oneuptime.com).
 
-<br/>
+## Bijdragen
 
-Koppel escalaties, ticketing en meldingen op een visueel, no-code canvas — of voeg eigen code toe. Het incident hierboven waarschuwde de oproepdienst, opende een Jira-ticket en plaatste een bericht in Slack zonder dat iemand een vinger hoefde uit te steken.
+Bugfixes, functies, documentatie en tests zijn allemaal welkom. De [handleiding voor lokale ontwikkeling](https://oneuptime.com/docs/nl/installation/local-development) laat zien hoe u OneUptime vanuit de broncode draait, en de [richtlijnen voor bijdragen](/.github/CONTRIBUTING.md) leggen uit hoe pull requests en licenties werken. Issues met het label [good first issue](https://github.com/OneUptime/oneuptime/labels/good%20first%20issue) zijn een goed begin.
 
-![Workflows — een no-code automatiseringscanvas voor incidentescalatie](/packages/Home/Static/img/readme/workflows.png?raw=true)
+Als OneUptime u helpt, geef deze repository dan een ster of [sponsor het project](https://github.com/sponsors/OneUptime).
 
-</details>
-
-### 🖥️ Infrastructuurmonitoring
-
-Plaats kant-en-klare **OpenTelemetry-gebaseerde** agents om alles in de gaten te houden waarop je services draaien — met kant-en-klare alertsjablonen inbegrepen:
-
-- **Servers en VMs** — CPU, geheugen, schijf, netwerk, processen en logs van Linux, macOS en Windows. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/host-otel-collector.md)
-- **Kubernetes** — één `helm install` levert node-/pod-/container-/clustermetrics, events, logs en eBPF-traces en servicemaps. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/kubernetes-agent.md)
-- **Docker** — één agent detecteert automatisch elke container en levert metrics en logs. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/docker-host.md)
-- **Podman** — dezelfde automatische detectie met één agent via Podmans Docker-compatibele socket. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/podman-host.md)
-- **Proxmox** — nodes, VMs, containers, opslag, HA-status, back-updekking en replicatiegezondheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
-- **VMware** — vCenter, ESXi-hosts, virtuele machines, datastores, clusters, resourcepools en vSAN. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
-- **Ceph** — clustergezondheid, capaciteitsvoorspellingen en OSD-/pool-/PG-/monitorzichtbaarheid. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
-- **Storage-arrays** — Pure Storage FlashArray en FlashBlade: capaciteit, latentie, volumes, hosts, replicatie, hardwaregezondheid, bestandssystemen en buckets. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/storage-arrays.md)
-- **Databases** — PostgreSQL, MySQL, Redis, MongoDB en meer, automatisch gedetecteerd uit applicatietraces, Kubernetes en Docker, met engine-metrics, querysamples en logs van een collector-agent die alleen uit configuratie bestaat. [Documentatie →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
-
----
-
-## 💼 Community versus Enterprise
-
-| | **Community** | **Enterprise** |
-|---|---|---|
-| **Ideaal voor** | Zelf-hosters en kleine teams | Gereguleerde teams die premium ondersteuning nodig hebben |
-| **Kosten** | Gratis en open source | [Neem contact op met sales](mailto:sales@oneuptime.com) |
-| **Licentie** | Apache 2.0 | Apache 2.0, plus de [OneUptime Enterprise License](/ee/LICENSE) voor de map `ee/` |
-| **Functies** | Alles uit het pakket hierboven — monitoring, statuspagina's, incidenten, oproepdiensten, logs, traces, metrics, foutopsporing, workflows en AI — plus SAML- en OIDC-single sign-on | Alles uit Community + SCIM-provisioning, auditlogs, teamcompliance en dashboards voor de gezondheid van de instantie, met prioritaire ondersteuning, maatwerkfuncties en dataresidentie |
-
-De Enterprise-functies staan in de map [`ee/`](/ee) en zitten alleen in de Enterprise-image. Zie [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) voor de volledige vergelijking.
-
----
-
-## 💡 Waarom OneUptime?
-
-Onze missie is eenvoudig: **downtime verminderen en meer producten helpen slagen.** In plaats van zeven leveranciers aan elkaar te plakken, krijg je één platform dat je helpt begrijpen *waarom* dingen kapotgaan, snel op incidenten te reageren en operationeel monnikenwerk terug te dringen — met een open-source kern (Apache 2.0), zodat je eigenaar bent van je data en je stack.
-
----
-
-<a name="contributing"></a>
-
-## 🤝 Bijdragen
-
-We verwelkomen bijdragen van elke omvang. Begin hier:
-
-- 🐛 **[Open issues](https://github.com/OneUptime/oneuptime/issues)** — pak er een op, of [maak een nieuwe aan](https://github.com/OneUptime/oneuptime/issues/new)
-- ✅ **[Help mee tests schrijven](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)** voor de codebase
-- 🧑‍💻 **[Handleiding voor lokale ontwikkeling](/packages/App/FeatureSet/Docs/Content/en/installation/local-development.md)** om aan de slag te gaan
-- 📖 Lees de **[bijdragerichtlijnen](/.github/CONTRIBUTING.md)**
-- 💬 Chat met ons in de **[Developer Slack](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)** of **[Community Slack](https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA)**
-
-## ❤️ Steun het project
-
-Als OneUptime nuttig voor je is:
-
-- ⭐ **Geef deze repo een ster** — het helpt anderen ons echt te vinden
-- 💵 **[Word sponsor](https://github.com/sponsors/OneUptime)** — elke euro levert nieuwe functies op
-- 🛍️ **[Scoor wat merch](https://shop.oneuptime.com)** — alle opbrengsten financieren open-source ontwikkeling
-
----
-
-## 📄 Licentie
+## Licentie
 
 OneUptime is open source onder de [Apache License 2.0](/LICENSE), met uitzondering van de map [`ee/`](/ee). Die map bevat de Enterprise Edition en valt onder de [OneUptime Enterprise License](/ee/LICENSE). De image van de Community Edition bevat geen code uit `ee/`. Het bestand [`LICENSE`](/LICENSE) in de hoofdmap van de repository legt deze verdeling vast.
-
-<div align="center">
-  <sub>Gemaakt met ❤️ door het <a href="https://oneuptime.com">OneUptime</a>-team en <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">bijdragers</a>.</sub>
-</div>
