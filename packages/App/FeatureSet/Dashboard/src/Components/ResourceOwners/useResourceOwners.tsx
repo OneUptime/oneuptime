@@ -35,7 +35,7 @@ import FilterChipDropdown, {
 } from "./FilterChipDropdown";
 import FilterChipDateRange from "./FilterChipDateRange";
 import FilterChipValueInput from "./FilterChipValueInput";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translateText } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { CUSTOM_FIELD_FACET_KEY_PREFIX } from "../CustomFields/CustomFieldFacets";
 import { ResourceFacet } from "./ResourceFacet";
@@ -57,8 +57,10 @@ import {
   sanitizeFacetSelectionState,
 } from "./FacetSelectionState";
 import {
+  OwnerChipCandidate,
   getOwnerChipOption,
   getPickedOwners,
+  getResolvedOwnerChipOptions,
   mergeOwnerFacetIntoQuery,
 } from "./OwnerFacetQuery";
 import { getPeoplePickerKindDefinition } from "Common/UI/Components/PeoplePicker/PeoplePickerKinds";
@@ -75,18 +77,16 @@ const OWNER_PICKER_KINDS: Array<PeoplePickerKind> = [
   PeoplePickerKind.Team,
 ];
 
-// A person or a team the owners picker found, as the Owner chip lists it.
-const toOwnerChipOption: (
+// A person or a team the owners picker found, as the Owner chip reads it.
+const toOwnerChipCandidate: (
   option: PeoplePickerOption,
-) => FilterChipDropdownOption = (
-  option: PeoplePickerOption,
-): FilterChipDropdownOption => {
-  return getOwnerChipOption({
+) => OwnerChipCandidate = (option: PeoplePickerOption): OwnerChipCandidate => {
+  return {
     kind: option.kind === PeoplePickerKind.Team ? "team" : "user",
     id: option.id,
     name: option.name,
     hasProfilePicture: option.hasProfilePicture,
-  });
+  };
 };
 
 /*
@@ -1114,7 +1114,11 @@ const useResourceOwners: <TResource extends BaseModel>(
         ),
       );
 
-      return found.flat().map(toOwnerChipOption);
+      return found
+        .flat()
+        .map((option: PeoplePickerOption): FilterChipDropdownOption => {
+          return getOwnerChipOption(toOwnerChipCandidate(option));
+        });
     },
     [],
   );
@@ -1154,7 +1158,21 @@ const useResourceOwners: <TResource extends BaseModel>(
         ),
       );
 
-      return found.flat().map(toOwnerChipOption);
+      // Picks no longer in the project are named as the owners picker names them.
+      return getResolvedOwnerChipOptions({
+        picked: picked,
+        found: found.flat().map(toOwnerChipCandidate),
+        unknownNames: {
+          user:
+            translateText(
+              getPeoplePickerKindDefinition(PeoplePickerKind.User).unknownName,
+            ) || "",
+          team:
+            translateText(
+              getPeoplePickerKindDefinition(PeoplePickerKind.Team).unknownName,
+            ) || "",
+        },
+      });
     },
     [],
   );

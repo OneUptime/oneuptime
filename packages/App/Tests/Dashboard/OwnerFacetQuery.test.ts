@@ -5,6 +5,7 @@ import {
   getOwnerChipOption,
   getOwnerKey,
   getPickedOwners,
+  getResolvedOwnerChipOptions,
   mergeOwnerFacetIntoQuery,
   parseOwnerKey,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerFacetQuery";
@@ -383,6 +384,110 @@ describe("OwnerFacetQuery - the Owner chip's filter", () => {
         userIds: [ADA],
         teamIds: [SRE_TEAM],
       });
+    });
+  });
+
+  /*
+   * The picks a link or a saved view brings back are named by looking them
+   * up. One no longer in the project - a person removed, a team deleted -
+   * used to be named by its key: the chip read "Owner · user:3a7f...". It is
+   * named as the owners picker names it.
+   */
+  describe("getResolvedOwnerChipOptions", () => {
+    const UNKNOWN: { user: string; team: string } = {
+      user: "Unknown user",
+      team: "Deleted team",
+    };
+
+    test("the people and teams found, each as the chip lists them", () => {
+      const options: Array<FilterChipDropdownOption> =
+        getResolvedOwnerChipOptions({
+          picked: { userIds: [ADA], teamIds: [SRE_TEAM] },
+          found: [
+            { kind: "user", id: ADA, name: "Ada Lovelace" },
+            { kind: "team", id: SRE_TEAM, name: "SRE" },
+          ],
+          unknownNames: UNKNOWN,
+        });
+
+      expect(options).toEqual([
+        getOwnerChipOption({ kind: "user", id: ADA, name: "Ada Lovelace" }),
+        getOwnerChipOption({ kind: "team", id: SRE_TEAM, name: "SRE" }),
+      ]);
+    });
+
+    test("a pick no longer in the project is named as the picker names it, by the key it was picked by", () => {
+      const options: Array<FilterChipDropdownOption> =
+        getResolvedOwnerChipOptions({
+          picked: { userIds: [ADA, GRACE], teamIds: [SRE_TEAM, PAYMENTS_TEAM] },
+          found: [
+            { kind: "user", id: ADA, name: "Ada Lovelace" },
+            { kind: "team", id: SRE_TEAM, name: "SRE" },
+          ],
+          unknownNames: UNKNOWN,
+        });
+
+      expect(
+        options.map((option: FilterChipDropdownOption): [string, string] => {
+          return [option.value, option.label];
+        }),
+      ).toEqual([
+        [user(ADA), "Ada Lovelace"],
+        [team(SRE_TEAM), "SRE"],
+        [user(GRACE), "Unknown user"],
+        [team(PAYMENTS_TEAM), "Deleted team"],
+      ]);
+
+      // Still drawn as a person and as a team.
+      expect(options[2]!.person).toEqual({
+        kind: "user",
+        userId: GRACE,
+        hasProfilePicture: false,
+      });
+      expect(options[3]!.person?.kind).toBe("team");
+      // Never the key as its name.
+      for (const option of options) {
+        expect(option.label).not.toContain(OWNER_KEY_PREFIX.user);
+        expect(option.label).not.toContain(OWNER_KEY_PREFIX.team);
+      }
+    });
+
+    test("a person found twice (two teams, one search) is listed once", () => {
+      expect(
+        getResolvedOwnerChipOptions({
+          picked: { userIds: [ADA], teamIds: [] },
+          found: [
+            { kind: "user", id: ADA, name: "Ada Lovelace" },
+            { kind: "user", id: ADA.toUpperCase(), name: "Ada Lovelace" },
+          ],
+          unknownNames: UNKNOWN,
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("an id's case does not make a found pick unknown", () => {
+      const options: Array<FilterChipDropdownOption> =
+        getResolvedOwnerChipOptions({
+          picked: { userIds: [ADA.toUpperCase()], teamIds: [] },
+          found: [{ kind: "user", id: ADA, name: "Ada Lovelace" }],
+          unknownNames: UNKNOWN,
+        });
+
+      expect(
+        options.map((option: FilterChipDropdownOption): string => {
+          return option.label;
+        }),
+      ).toEqual(["Ada Lovelace"]);
+    });
+
+    test("nothing picked, nothing to name", () => {
+      expect(
+        getResolvedOwnerChipOptions({
+          picked: { userIds: [], teamIds: [] },
+          found: [],
+          unknownNames: UNKNOWN,
+        }),
+      ).toEqual([]);
     });
   });
 });

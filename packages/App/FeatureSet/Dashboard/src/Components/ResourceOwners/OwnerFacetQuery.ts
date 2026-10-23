@@ -144,6 +144,67 @@ export const getPickedOwners: (ownerKeys: Array<string>) => {
 };
 
 /*
+ * The chip's options for the picks a link or a saved view brought back:
+ * the people and teams found, then one for each pick that is no longer in
+ * the project - a person removed, a team deleted - named as the owners
+ * picker names it ("Unknown user", "Deleted team"), never by its key: the
+ * chip read "Owner · user:3a7fce51-9d62-...".
+ */
+export const getResolvedOwnerChipOptions: (data: {
+  picked: { userIds: Array<string>; teamIds: Array<string> };
+  found: Array<OwnerChipCandidate>;
+  unknownNames: Record<OwnerSelectionKind, string>;
+}) => Array<FilterChipDropdownOption> = (data: {
+  picked: { userIds: Array<string>; teamIds: Array<string> };
+  found: Array<OwnerChipCandidate>;
+  unknownNames: Record<OwnerSelectionKind, string>;
+}): Array<FilterChipDropdownOption> => {
+  const options: Array<FilterChipDropdownOption> = [];
+  const foundKeys: Set<string> = new Set<string>();
+
+  for (const candidate of data.found) {
+    const key: string = getOwnerKey({
+      kind: candidate.kind,
+      id: candidate.id.toLowerCase(),
+    });
+
+    if (foundKeys.has(key)) {
+      continue;
+    }
+
+    foundKeys.add(key);
+    options.push(getOwnerChipOption(candidate));
+  }
+
+  const picks: Array<OwnerKey> = [
+    ...data.picked.userIds.map((id: string): OwnerKey => {
+      return { kind: "user", id };
+    }),
+    ...data.picked.teamIds.map((id: string): OwnerKey => {
+      return { kind: "team", id };
+    }),
+  ];
+
+  for (const pick of picks) {
+    if (
+      foundKeys.has(getOwnerKey({ kind: pick.kind, id: pick.id.toLowerCase() }))
+    ) {
+      continue;
+    }
+
+    options.push(
+      getOwnerChipOption({
+        kind: pick.kind,
+        id: pick.id,
+        name: data.unknownNames[pick.kind],
+      }),
+    );
+  }
+
+  return options;
+};
+
+/*
  * The chip's filter, or null when it filters nothing (no one picked under
  * "is" or "is not").
  */

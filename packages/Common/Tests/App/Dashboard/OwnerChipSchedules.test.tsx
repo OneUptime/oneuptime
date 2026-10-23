@@ -1010,4 +1010,53 @@ describe("On-Call Schedules: the Owner chip's people and teams", () => {
     expect(teamLookups).toHaveLength(1);
     expect(teamLookups[0]!.query["_id"]).toEqual(new Includes([SRE_TEAM_ID]));
   });
+
+  test("a link's person who has left the project is an Unknown user, never their key", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/${PROJECT_ID.toString()}/on-call-duty/schedules`,
+    );
+
+    renderPage();
+    await pick("Owner", "Ada Lovelace");
+
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(window.location.search).has(
+          TableFilterUrlState.getParamName("on-call-schedules-table", "facets"),
+        ),
+      ).toBe(true);
+    });
+
+    const address: string = window.location.pathname + window.location.search;
+    const answer: ((...args: Array<unknown>) => unknown) | undefined =
+      getListMock.getMockImplementation();
+
+    cleanup();
+
+    // Ada has since left the project: looking her up finds nobody.
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (
+        request.modelType.name === TeamMember.name &&
+        request.query["userId"] !== undefined
+      ) {
+        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 50 });
+      }
+
+      return answer!(...args);
+    });
+    window.history.replaceState(null, "", address);
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("button", { name: /^Owner · Unknown user/ }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(escapeRegExp(ADA_ID)) }),
+    ).toBeNull();
+  });
 });
