@@ -243,20 +243,17 @@ export default class Label extends AccessControlModel {
    * collation reads text by its language would put some keys another way.
    * Empty only for a label made before it, until the data migration
    * BackfillLabelNameSortKeys writes it.
+   *
+   * OneUptime's own: nobody writes it, and nobody reads it - no response
+   * carries it, the audit trail leaves it out (a rename is recorded as the
+   * rename it is), and neither the API reference, Terraform nor a workflow's
+   * fields name it. A list sorted by it still is: an order is not a read
+   * (DatabaseService.addSortColumnsToSelect), and the key says nothing the
+   * name does not.
    */
   @ColumnAccessControl({
     create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.ProjectUser,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.SettingsViewer,
-      Permission.ReadProjectLabel,
-    ],
+    read: [],
     update: [],
   })
   @TableColumn({
@@ -264,7 +261,6 @@ export default class Label extends AccessControlModel {
     type: TableColumnType.LongText,
     computed: true,
     hideColumnInDocumentation: true,
-    title: "Name Sort Key",
     description:
       "The name as OneUptime puts labels in order: numbers by their value, then letters, case and accents aside. Written by OneUptime from the name.",
   })

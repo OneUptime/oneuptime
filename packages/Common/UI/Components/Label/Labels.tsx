@@ -1,6 +1,6 @@
 import LabelElement from "./Label";
 import { useIsDetailValue } from "../Detail/DetailValueContext";
-import { useIsTableCell } from "../Table/TableCellContext";
+import { useIsTableCard, useIsTableCell } from "../Table/TableCellContext";
 import TableColumnListComponent from "../TableColumnList/TableColumnListComponent";
 import LabelModel from "../../../Models/DatabaseModels/Label";
 import { sortLabels } from "../../../Utils/LabelOrder";
@@ -53,8 +53,14 @@ export const DETAIL_LABELS_TEST_ID: string = "detail-labels";
  * One to a line, each label has the column's whole width: as wide as the
  * longest label up to the 20rem a value may take, and only a label longer
  * than that ends in "...", its whole name under the pointer.
+ *
+ * A block, the lines four pixels apart (space-y-1), not a flex column: an
+ * item of a column laid out to its start is as wide as its whole label,
+ * wider than the column, and a long label was clipped at the column's edge
+ * with no "..." at all. As blocks, each line is the column's width and a
+ * pill as wide as that at most (Pill's max-w-full), its words cut short.
  */
-export const TABLE_LABELS_CLASS_NAME: string = "flex flex-col items-start gap-1";
+export const TABLE_LABELS_CLASS_NAME: string = "space-y-1";
 
 /*
  * Each label on a 24px line of its own, the pill centred on it: the first
@@ -74,6 +80,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
   const { translateString } = useTranslateValue();
   const isDetailValue: boolean = useIsDetailValue();
   const isTableCell: boolean = useIsTableCell();
+  const isTableCard: boolean = useIsTableCard();
 
   /*
    * Every hook runs before the returns below: a table reuses a row's cell
@@ -115,9 +122,14 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
         className={TABLE_LABELS_CLASS_NAME}
         dataTestId={TABLE_LABELS_TEST_ID}
         getEachElement={(label: LabelModel): ReactElement => {
+          /*
+           * On a phone a row is a card, and nothing points to show a
+           * label's whole name: a long one runs onto a next line inside its
+           * pill (Pill's isWrapping) rather than end in "...".
+           */
           return (
             <div className={TABLE_LABEL_LINE_CLASS_NAME}>
-              <LabelElement label={label} />
+              <LabelElement label={label} isWrapping={isTableCard} />
             </div>
           );
         }}
