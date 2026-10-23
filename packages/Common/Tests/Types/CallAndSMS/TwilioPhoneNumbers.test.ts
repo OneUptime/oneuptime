@@ -76,10 +76,15 @@ function config(options: ConfigOptions = {}): TwilioConfig {
   return built;
 }
 
-function numbers(sender: TwilioSenderNumbers): {
+function numbers(sender: TwilioSenderNumbers | null): {
   primary: string;
   secondary: Array<string>;
 } {
+  // Every config here is used for calls and SMS, and sends both.
+  if (!sender) {
+    throw new Error("The config sends no message of this kind.");
+  }
+
   return {
     primary: sender.primaryPhoneNumber.toString(),
     secondary: sender.secondaryPhoneNumbers.map((phone: Phone): string => {

@@ -9,6 +9,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE,
   getRuleActionColumns,
   INHERITED_LABEL_COLUMNS,
   INHERITED_OWNER_COLUMNS,
@@ -64,6 +65,9 @@ const LABEL_RULE_MODEL: RegExp = /LabelRule$/;
 const INHERIT_SWITCH_COLUMN: RegExp =
   /public inherit(Labels|Owners)From\w+\?: boolean/;
 
+// A model with a Creator's Team list: an incident's or alert's owner rule.
+const CREATOR_TEAMS_COLUMN: RegExp = /public creatorTeams\?: Array<Team>/;
+
 const PROJECT_ID: ObjectID = new ObjectID(
   "4af3a31b-58b0-4746-8025-f9cd4db1945e",
 );
@@ -89,6 +93,8 @@ interface RuleCase {
   serviceFile: string;
   kind: "labels" | "owners";
   inherits: boolean;
+  // Lists teams for the creator's team (creatorTeams).
+  listsCreatorTeams: boolean;
 }
 
 const RULE_CASES: Array<RuleCase> = fs
@@ -109,6 +115,7 @@ const RULE_CASES: Array<RuleCase> = fs
       serviceFile: `${model}Service.ts`,
       kind: LABEL_RULE_MODEL.test(model) ? "labels" : "owners",
       inherits: INHERIT_SWITCH_COLUMN.test(source),
+      listsCreatorTeams: CREATOR_TEAMS_COLUMN.test(source),
     };
   });
 
@@ -168,9 +175,28 @@ const messageFor: MessageFunction = (ruleCase: RuleCase): string => {
       : LABEL_RULE_ADDS_NOTHING_MESSAGE;
   }
 
+  if (ruleCase.listsCreatorTeams) {
+    return CREATOR_TEAM_OWNER_RULE_ADDS_NOTHING_MESSAGE;
+  }
+
   return ruleCase.inherits
     ? INHERITING_OWNER_RULE_ADDS_NOTHING_MESSAGE
     : OWNER_RULE_ADDS_NOTHING_MESSAGE;
+};
+
+type ListColumnsFunction = (ruleCase: RuleCase) => Array<string>;
+
+// The lists a rule adds from, as its service knows them.
+const listColumnsOf: ListColumnsFunction = (
+  ruleCase: RuleCase,
+): Array<string> => {
+  if (ruleCase.kind === "labels") {
+    return ["labelsToAdd"];
+  }
+
+  return ruleCase.listsCreatorTeams
+    ? ["ownerUsers", "ownerTeams", "creatorTeams"]
+    : ["ownerUsers", "ownerTeams"];
 };
 
 type NewRuleFunction = (
@@ -266,6 +292,16 @@ describe("every label and owner rule service", () => {
       "ScheduledMaintenanceLabelRule",
       "ScheduledMaintenanceOwnerRule",
     ]);
+    // Only an incident or alert has a creator whose team a rule adds.
+    expect(
+      RULE_CASES.filter((ruleCase: RuleCase): boolean => {
+        return ruleCase.listsCreatorTeams;
+      })
+        .map((ruleCase: RuleCase): string => {
+          return ruleCase.model;
+        })
+        .sort(),
+    ).toEqual(["AlertOwnerRule", "IncidentOwnerRule"]);
   });
 
   test.each(SERVICE_ROWS)(
@@ -283,10 +319,7 @@ describe("every label and owner rule service", () => {
       );
 
       expect(action).toEqual({
-        listColumns:
-          ruleCase.kind === "labels"
-            ? ["labelsToAdd"]
-            : ["ownerUsers", "ownerTeams"],
+        listColumns: listColumnsOf(ruleCase),
         switchColumns: [...switchesOf(ruleCase)],
       });
     },
@@ -332,6 +365,14 @@ describe("every label and owner rule service", () => {
               { ownerUsers: [{}], ownerTeams: [{ _id: " " }] },
               { ownerUsers: [], ownerTeams: [], ...switchesOff },
             ];
+
+      if (ruleCase.listsCreatorTeams) {
+        payloads.push(
+          { ownerUsers: [], ownerTeams: [], creatorTeams: [] },
+          { creatorTeams: null },
+          { creatorTeams: [{}, { _id: " " }] },
+        );
+      }
 
       for (const payload of payloads) {
         await expect(
@@ -396,6 +437,14 @@ describe("every label and owner rule service", () => {
               { ownerUsers: [], ownerTeams: [{ _id: OWN_TEAM_ID }] },
               { ownerUsers: [OWN_USER_ID] },
             ];
+
+      // A team listed for the creator's team alone is enough too.
+      if (ruleCase.listsCreatorTeams) {
+        payloads.push(
+          { ownerUsers: [], ownerTeams: [], creatorTeams: [OWN_TEAM_ID] },
+          { creatorTeams: [{ _id: OWN_TEAM_ID }] },
+        );
+      }
 
       for (const payload of payloads) {
         const rule: DatabaseBaseModel = newRule(service, payload);
@@ -500,10 +549,11 @@ describe("an update", () => {
       // The rule holds nothing the update would keep.
       jest.spyOn(service, "findBy").mockResolvedValue([] as never);
 
-      const emptied: Record<string, unknown> =
-        ruleCase.kind === "labels"
-          ? { labelsToAdd: [] }
-          : { ownerUsers: [], ownerTeams: [] };
+      const emptied: Record<string, unknown> = Object.fromEntries(
+        listColumnsOf(ruleCase).map((column: string): [string, unknown] => {
+          return [column, []];
+        }),
+      );
 
       for (const column of switchesOf(ruleCase)) {
         emptied[column] = false;

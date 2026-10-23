@@ -65,6 +65,8 @@ oneuptime incident list -o json
 
 Una lista pide a OneUptime cada campo de cada registro que la clave puede leer. Una tabla muestra seis de ellos; JSON los muestra todos (consulte [Formatos de salida](/docs/cli/output-formats)). Para recorrer todos los registros, aumente `--skip` en `--limit` hasta que una página vuelva vacía; `count` dice cuántos hay.
 
+Las etiquetas se listan por nombre en lugar de las más recientes primero: primero las etiquetas cuyo nombre empieza por un número, en el orden de ese número (`2. Team` antes que `10. Owner`), y después las demás por orden alfabético. Para listarlas en otro orden, indique `--sort`.
+
 ### Filtrar una lista
 
 `--query` admite el mismo filtro que la API: un campo con un valor coincide con ese valor, y un objeto con un `_type` compara.

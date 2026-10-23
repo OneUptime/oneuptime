@@ -1499,10 +1499,18 @@ describe("the Notification Channels card on Project Settings", () => {
 
     /*
      * A Twilio config pays for SMS and calls only while it is the project
-     * default, so that is what the note names.
+     * default - and only for the ones it is used for: a default used for
+     * SMS only makes no calls, whose cost the balance then pays. So each
+     * channel's note names what the default must send.
      */
     expect(card).toHaveTextContent(
-      "Paid from the project's balance, unless the project has a default Twilio Config.",
+      "Paid from the project's balance, unless the project's default Twilio Config sends SMS.",
+    );
+    expect(card).toHaveTextContent(
+      "Paid from the project's balance, unless the project's default Twilio Config makes calls.",
+    );
+    expect(card).not.toHaveTextContent(
+      "unless the project has a default Twilio Config",
     );
 
     cleanup();

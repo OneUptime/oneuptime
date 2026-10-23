@@ -1904,6 +1904,28 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * The order a read comes back in: the order its caller asked for, or -
+   * when they asked for none - newest first. A service whose records are
+   * read in another order overrides it: LabelService reads labels in
+   * natural order by name, and reads "by name" as that order
+   * (Utils/LabelOrder). It runs on every read, hooks or none, before
+   * onBeforeFind; the primary key is added after it to break ties.
+   *
+   * A method of its own rather than an onBeforeFind override: BaseAPI
+   * reads a list and its count side by side only for a service on the
+   * stock onBeforeFind, and an order changes nothing the count reads.
+   */
+  protected getReadSort(sort: Sort<TBaseModel> | undefined): Sort<TBaseModel> {
+    if (!sort || Object.keys(sort).length === 0) {
+      return {
+        createdAt: SortOrder.Descending,
+      } as Sort<TBaseModel>;
+    }
+
+    return sort;
+  }
+
+  /*
    * Runs on a create once the caller has passed the permission checks, just
    * before the @UniqueColumnBy and @UniqueColumnsTogether checks, which
    * refuse a clash with an existing row as "<Model> with the same <column>
@@ -7421,7 +7443,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `query` without its filters on relations - a record named through a
    * relation, or the records a row is linked to - for a statement that
    * cannot join them (hardDeleteBy's DELETE). Its filters on the table's
-   * own columns stay.
+   * own columns stay. A key that is no column at all - a filter by owners
+   * (OwnedBy), a multi-field search - is left to the lookup too: the DELETE
+   * would name a column the table does not have.
    */
   private getColumnFiltersOf(query: Query<TBaseModel>): Query<TBaseModel> {
     const filters: Dictionary<unknown> = {};
@@ -7431,6 +7455,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this.getModel().getTableColumnMetadata(key)?.type;
 
       if (
+        !type ||
         type === TableColumnType.Entity ||
         type === TableColumnType.EntityArray
       ) {
@@ -8711,11 +8736,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       findBy.props,
     );
 
-    if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
-      findBy.sort = {
-        createdAt: SortOrder.Descending,
-      };
-    }
+    findBy.sort = this.getReadSort(findBy.sort);
 
     const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
       ? { findBy, carryForward: [] }

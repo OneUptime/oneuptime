@@ -1,5 +1,6 @@
 import HostCollectorConfig from "Common/Models/DatabaseModels/HostCollectorConfig";
 import Label from "Common/Models/DatabaseModels/Label";
+import { sortLabelNames } from "Common/Utils/LabelOrder";
 // Types only, so App tests (no React) can load this module.
 import type { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
@@ -110,8 +111,10 @@ export function describeHostCollectorConfigTarget(data: {
   osType: string | null | undefined;
   labelNames: Array<string>;
 }): { template: string; labels: string } {
-  const labels: string = data.labelNames.join(", ");
-  const hasLabels: boolean = data.labelNames.length > 0;
+  // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+  const labelNames: Array<string> = sortLabelNames(data.labelNames);
+  const labels: string = labelNames.join(", ");
+  const hasLabels: boolean = labelNames.length > 0;
 
   switch (data.osType) {
     case HostCollectorOsType.Windows:

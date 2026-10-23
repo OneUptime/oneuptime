@@ -19,7 +19,7 @@
  *
  *   ?type=     api (default) | website | ssl | incoming-request
  *              | incoming-email | server | kubernetes | network-device
- *              | manual | probe-status
+ *              | manual | probe-status | external-status-page
  *   ?state=    comma separated. The status: operational (default) |
  *              offline | degraded. Plus any of: disabled, maintenance,
  *              no-probes, probes-off, disconnected, one-disconnected,
@@ -141,6 +141,7 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepKubernetesMonitorUtil } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
+import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
@@ -194,6 +195,7 @@ const TYPE_KEYS = [
   "network-device",
   "manual",
   "probe-status",
+  "external-status-page",
 ];
 const subjectType = TYPE_KEYS.includes(params.get("type"))
   ? params.get("type")
@@ -795,6 +797,60 @@ for (const modelType of [OnCallDutyPolicy, IncidentRole, TeamMember, Service]) {
 const CREATED_MONITOR_ID = ID.monitor(100);
 
 /*
+ * What the probe says of a private OneUptime status page
+ * (EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE in the Probe).
+ */
+const EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE =
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.";
+
+/*
+ * One check of the platform team's status page, as the probe reports it
+ * (ExternalStatusPageMonitorResponse): the Core group's resources in the
+ * page's order, by the names the page gives them. The Orders database is
+ * under maintenance while the team's event runs, whatever its monitors'
+ * status; the Checkout API is operational. A page that went private
+ * reports no components, and why.
+ */
+function externalStatusPageResponse(data) {
+  const { isOnline, responseTimeInMs, failureCause, definition } = data;
+  if (!isOnline) {
+    return {
+      isOnline: false,
+      isTimeout: false,
+      overallStatus: "unknown",
+      componentStatuses: [],
+      activeIncidentCount: 0,
+      responseTimeInMs: responseTimeInMs || 0,
+      failureCause,
+      componentGroupName: definition.componentGroupName,
+    };
+  }
+  return {
+    isOnline: true,
+    overallStatus: "under_maintenance",
+    componentStatuses: [
+      {
+        name: "Checkout API",
+        status: "operational",
+        description: "Operational",
+        groupName: "Core / APIs",
+      },
+      {
+        name: "Orders database",
+        status: "under_maintenance",
+        description: "Under maintenance: Orders database upgrade",
+        groupName: "Core / Databases",
+      },
+    ],
+    activeIncidentCount: 0,
+    responseTimeInMs: responseTimeInMs || 0,
+    failureCause: "",
+    provider: ExternalStatusPageProviderType.OneUptime,
+    componentGroupName: definition.componentGroupName,
+  };
+}
+
+/*
  * ---------------------------------------------------------------------------
  * Monitors
  * ---------------------------------------------------------------------------
@@ -910,9 +966,31 @@ const MONITOR_DEFINITIONS = {
     openIncidentTitle: "Probe disconnected: Singapore (ap-southeast-1)",
     openAlertTitle: "Probe disconnected: Singapore (ap-southeast-1)",
   },
+  /*
+   * Watches the Core group of another team's status page, made with
+   * OneUptime (issue #5176). Operational: the page answers, and one of its
+   * resources is under maintenance while the team's event runs. Offline:
+   * the page has gone private, and every probe says so.
+   */
+  "external-status-page": {
+    number: 11,
+    name: "Platform team status",
+    description: "The platform team's status page: its Core group.",
+    monitorType: MonitorType.ExternalStatusPage,
+    interval: "*/5 * * * *",
+    labels: [labels.platform],
+    statusPageUrl: "https://status.platform.acme-commerce.example",
+    componentGroupName: "Core",
+    minimumProbeAgreement: 1,
+    failureCauses: [
+      EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE,
+      EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE,
+      EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE,
+    ],
+  },
 };
 
-const PROBE_CHECK_TYPES = ["api", "website", "ssl"];
+const PROBE_CHECK_TYPES = ["api", "website", "ssl", "external-status-page"];
 
 function scenarioFor(typeKey) {
   if (typeKey !== subjectType) {
@@ -1052,6 +1130,15 @@ function stepFor(typeKey, definition, stepNumber) {
   };
   if (definition.destination) {
     step.data.monitorDestination = CommonURL.fromString(definition.destination);
+  }
+  if (typeKey === "external-status-page") {
+    step.data.externalStatusPageMonitor = {
+      statusPageUrl: definition.statusPageUrl,
+      provider: ExternalStatusPageProviderType.OneUptime,
+      componentGroupName: definition.componentGroupName,
+      timeout: 10000,
+      retries: 3,
+    };
   }
   if (typeKey === "kubernetes") {
     step.data.kubernetesMonitor = {
@@ -1303,6 +1390,9 @@ function probeResult(data) {
   }
   if (data.sslResponse) {
     result.sslResponse = data.sslResponse;
+  }
+  if (data.externalStatusPageResponse) {
+    result.externalStatusPageResponse = data.externalStatusPageResponse;
   }
   return result;
 }
@@ -1712,7 +1802,18 @@ function defineProbes(data) {
 
     let lastMonitoringLog = undefined;
     if (!isAwaiting) {
-      const isTimeout = isDown && index === TIMEOUT_PROBE_INDEX;
+      // A status page that went private answers every probe, at once.
+      const isTimeout =
+        isDown &&
+        index === TIMEOUT_PROBE_INDEX &&
+        typeKey !== "external-status-page";
+      const responseTimeInMs = isTimeout
+        ? undefined
+        : isDown
+          ? errorResponseTimeInMs(index)
+          : isSlow
+            ? probeDefinition.slowResponseTimeInMs
+            : probeDefinition.responseTimeInMs;
       lastMonitoringLog = {
         [stepId]: probeResult({
           monitorId,
@@ -1722,15 +1823,22 @@ function defineProbes(data) {
           monitoredAt,
           isOnline: !isDown,
           failureCause: definition.failureCauses[index],
-          responseTimeInMs: isTimeout
-            ? undefined
-            : isDown
-              ? errorResponseTimeInMs(index)
-              : isSlow
-                ? probeDefinition.slowResponseTimeInMs
-                : probeDefinition.responseTimeInMs,
+          responseTimeInMs,
           responseCode:
-            typeKey === "ssl" || isTimeout ? undefined : isDown ? 503 : 200,
+            typeKey === "ssl" || typeKey === "external-status-page" || isTimeout
+              ? undefined
+              : isDown
+                ? 503
+                : 200,
+          externalStatusPageResponse:
+            typeKey === "external-status-page"
+              ? externalStatusPageResponse({
+                  isOnline: !isDown,
+                  responseTimeInMs,
+                  failureCause: definition.failureCauses[index],
+                  definition,
+                })
+              : undefined,
           sslResponse:
             typeKey === "ssl"
               ? {
@@ -1767,10 +1875,21 @@ function defineProbes(data) {
       // Two evaluations per probe, newest first.
       for (const offset of [0, 5 * MINUTE]) {
         const at = new Date(monitoredAt.getTime() - offset);
+        /*
+         * An external status page's log row carries the check it judged,
+         * as the server writes it, so View Summary shows what the page
+         * said (MonitorLogSummaryUtil reads a probe check by its
+         * monitorStepId).
+         */
+        const checked =
+          typeKey === "external-status-page"
+            ? lastMonitoringLog[stepId]
+            : undefined;
         insert(MonitorLog, {
           monitorId: new ObjectID(monitorId),
           time: at,
           logBody: {
+            ...(checked ? { ...checked, monitoredAt: at.toISOString() } : {}),
             monitorId,
             probeId,
             evaluationSummary: evaluationSummary({

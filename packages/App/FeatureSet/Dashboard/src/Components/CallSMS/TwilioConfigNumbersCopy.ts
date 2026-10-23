@@ -1,5 +1,8 @@
 import Phone from "Common/Types/Phone";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 import {
   PluralTemplate,
   translationKey,
@@ -17,6 +20,10 @@ import {
  * out from the primary and secondary numbers
  * (Common/Types/CallAndSMS/TwilioPhoneNumbers). Most configs need none, so
  * the list is under More fields, with the secondary numbers.
+ *
+ * A config used for SMS only, or calls only (TwilioConfigUse,
+ * TwilioConfigUseCopy), sends from the numbers of that kind alone: its row
+ * shows those, each marked with what it sends, and no other.
  *
  * The help names no country, and the field's example is no one country's
  * number (PHONE_NUMBER_LIST_EXAMPLE): OneUptime is used worldwide, and which
@@ -81,6 +88,8 @@ export interface TwilioConfigNumberLine {
 
 // The columns of a config the Phone Numbers cell and its export read.
 export interface TwilioConfigNumbers {
+  // What it is used for: calls and SMS when unset (TwilioConfigUse).
+  usedFor?: TwilioConfigUse | string | null | undefined;
   twilioPrimaryPhoneNumber?: Phone | string | null | undefined;
   twilioSecondaryPhoneNumbers?: string | null | undefined;
   twilioSmsPhoneNumbers?: string | null | undefined;
@@ -89,15 +98,20 @@ export interface TwilioConfigNumbers {
 /*
  * The numbers a config's row shows: its primary number, alone when calls
  * and SMS go out from it, or with its first SMS number when SMS have their
- * own - each then saying which it sends. Each line counts the rest of its
- * kind, whose numbers are in the config's Edit dialog. English labels; the
- * cell translates them.
+ * own - each then saying which it sends. A config used for SMS only shows
+ * its SMS numbers alone, and one used for calls only its call numbers
+ * alone, each marked with what it sends: a number it keeps but does not
+ * send from is not shown. Each line counts the rest of its kind, whose
+ * numbers are in the config's Edit dialog. English labels; the cell
+ * translates them.
  */
 export const getTwilioConfigNumberLines: (
   config: TwilioConfigNumbers,
 ) => Array<TwilioConfigNumberLine> = (
   config: TwilioConfigNumbers,
 ): Array<TwilioConfigNumberLine> => {
+  const use: TwilioConfigUse = TwilioConfigUses.getUse(config.usedFor);
+
   const primary: string = config.twilioPrimaryPhoneNumber
     ? config.twilioPrimaryPhoneNumber.toString()
     : "";
@@ -110,6 +124,30 @@ export const getTwilioConfigNumberLines: (
     config.twilioSmsPhoneNumbers,
   );
   const firstSms: string | undefined = sms[0];
+
+  if (use === TwilioConfigUse.SmsOnly) {
+    return firstSms
+      ? [
+          {
+            phoneNumber: firstSms,
+            label: TwilioConfigNumbersCopy.smsLabel,
+            otherPhoneNumbers: sms.slice(1),
+          },
+        ]
+      : [];
+  }
+
+  if (use === TwilioConfigUse.CallsOnly) {
+    return primary
+      ? [
+          {
+            phoneNumber: primary,
+            label: TwilioConfigNumbersCopy.callsLabel,
+            otherPhoneNumbers: secondary,
+          },
+        ]
+      : [];
+  }
 
   if (!firstSms) {
     return primary

@@ -18,6 +18,7 @@ import {
   TABLE_HEADER_BUTTONS_CLASS_NAME,
   TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME,
   TABLE_HEADER_FOLDED_BUTTONS_CLASS_NAME,
+  TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME,
   TABLE_HEADER_OPEN_SEARCH_BESIDE_BUTTONS_CLASS_NAME,
   TABLE_HEADER_OPEN_SEARCH_CLASS_NAME,
   TABLE_HEADER_SEARCH_CLASS_NAME,
@@ -29,6 +30,7 @@ import {
   TableHeaderToolbar,
   getTableHeaderButtonLabel,
   getTableHeaderButtons,
+  renderTableHeaderMainAndMore,
   renderTableHeaderMoreMenu,
   splitTableHeaderButtons,
   useTableHeaderSearchShortcut,
@@ -529,6 +531,126 @@ describe("TableHeaderToolbar", () => {
     expect(wrapper).toHaveClass(...TABLE_HEADER_BUTTONS_CLASS_NAME.split(" "));
     expect(wrapper).not.toHaveClass("invisible");
     expect(wrapper).toHaveAttribute("aria-hidden", "false");
+  });
+});
+
+/*
+ * On a phone the toolbar's row wraps, each button as wide as its words. The
+ * main button and the ⋯ were two items of it, and under a main button that
+ * filled its line - "Create Scheduled Maintenance Event" at 390px - the ⋯
+ * wrapped onto a line of its own. They are one item now: they move to the
+ * next line together, and the main button breaks its words beside the ⋯.
+ */
+describe("renderTableHeaderMainAndMore", () => {
+  const CREATE_EVENT: CardButtonSchema = button({
+    title: "Create Scheduled Maintenance Event",
+    icon: IconProp.Add,
+    buttonStyle: ButtonStyleType.NORMAL,
+  });
+
+  test("the main button and the ⋯ are one item of the row: Saved Views can wrap over them, nothing between them", () => {
+    render(
+      <TableHeaderToolbar>
+        <button type="button">Saved Views</button>
+        {renderTableHeaderMainAndMore(
+          CREATE_EVENT,
+          renderTableHeaderMoreMenu([REFRESH, FILTER]),
+        )}
+      </TableHeaderToolbar>,
+    );
+
+    const row: HTMLElement = screen.getByTestId("model-table-header-toolbar")
+      .lastElementChild as HTMLElement;
+    const pair: HTMLElement = screen.getByTestId("model-table-main-and-more");
+
+    expect(row).toHaveClass(...TABLE_HEADER_BUTTONS_CLASS_NAME.split(" "));
+    expect(Array.from(row.children)).toEqual([
+      screen.getByRole("button", { name: "Saved Views" }),
+      pair,
+    ]);
+    expect(pair).toHaveClass(
+      ...TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME.split(" "),
+    );
+
+    // The main button first, the ⋯ after it, and nothing else.
+    expect(within(pair).getAllByRole("button")).toEqual([
+      within(pair).getByTestId("card-button"),
+      within(pair).getByRole("button", { name: "More options" }),
+    ]);
+    expect(within(pair).getByTestId("card-button")).toHaveTextContent(
+      "Create Scheduled Maintenance Event",
+    );
+  });
+
+  test("the row wraps on a phone and the pair does not: the main button breaks its words beside the ⋯", () => {
+    const row: Array<string> = TABLE_HEADER_BUTTONS_CLASS_NAME.split(" ");
+    const pair: Array<string> =
+      TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME.split(" ");
+
+    expect(row).toContain("max-md:flex-wrap");
+    expect(pair).toEqual(expect.arrayContaining(["flex", "items-center"]));
+    expect(
+      pair.filter((name: string): boolean => {
+        return name.includes("wrap");
+      }),
+    ).toEqual([]);
+
+    // As far apart as the row's items, each as wide as its words.
+    expect(pair).toContain("gap-3");
+    expect(row).toContain("gap-3");
+    for (const widthRule of [
+      "max-md:[&>button]:w-auto",
+      "max-md:[&>*>button]:w-auto",
+    ]) {
+      expect(row).toContain(widthRule);
+      expect(pair).toContain(widthRule);
+    }
+  });
+
+  test("a main button with a tooltip - its own wrapper when locked - is as wide as its words in the pair too", () => {
+    render(
+      <TableHeaderToolbar>
+        {renderTableHeaderMainAndMore(
+          {
+            ...CREATE_EVENT,
+            disabled: true,
+            tooltip: "You do not have permission to create events.",
+          },
+          renderTableHeaderMoreMenu([REFRESH]),
+        )}
+      </TableHeaderToolbar>,
+    );
+
+    const pair: HTMLElement = screen.getByTestId("model-table-main-and-more");
+    const wrapper: HTMLElement = screen.getByTestId(
+      "card-button-disabled-wrapper",
+    );
+
+    // pair > wrapper > button: the pair's [&>*>button] rule reaches it.
+    expect(wrapper.parentElement).toBe(pair);
+    expect(wrapper.firstElementChild).toBe(screen.getByTestId("card-button"));
+  });
+
+  test("either one alone is drawn as it is, and neither is nothing", () => {
+    const more: ReactElement | null = renderTableHeaderMoreMenu([REFRESH]);
+
+    expect(renderTableHeaderMainAndMore(null, null)).toBeNull();
+    expect(renderTableHeaderMainAndMore(undefined, undefined)).toBeNull();
+    expect(renderTableHeaderMainAndMore(null, more)).toBe(more);
+
+    render(
+      <TableHeaderToolbar>
+        {renderTableHeaderMainAndMore(CREATE_EVENT, null)}
+      </TableHeaderToolbar>,
+    );
+
+    const row: HTMLElement = screen.getByTestId("model-table-header-toolbar")
+      .lastElementChild as HTMLElement;
+
+    expect(screen.queryByTestId("model-table-main-and-more")).toBeNull();
+    expect(Array.from(row.children)).toEqual([
+      screen.getByTestId("card-button"),
+    ]);
   });
 });
 

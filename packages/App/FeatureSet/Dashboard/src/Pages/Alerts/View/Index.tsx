@@ -18,7 +18,6 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { DetailStyle } from "Common/UI/Components/Detail/Detail";
-import ProbeElement from "Common/UI/Components/Probe/Probe";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import BaseAPI from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -39,7 +38,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import UserElement from "../../../Components/User/User";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangeZoomProvider } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import DashboardLogsViewer from "../../../Components/Logs/LogsViewer";
@@ -120,17 +118,30 @@ import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
-import LiveDuration from "../../../Components/EventView/LiveDuration";
 import {
   EventStateTimelineDate,
   getEventEndDateForCurrentState,
 } from "../../../Utils/EventDuration";
 import {
   EventResponseTimes,
+  EventStartedByInput,
   getAcknowledgedAfterPagingText,
   getEventResponseTimes,
+  getEventStartedByText,
+  getImpactBeforeStartText,
   getTimeToStateText,
 } from "../../../Utils/EventOverview";
+import EventStartTileValue from "../../../Components/EventView/EventStartTileValue";
+import EventWhatHappenedCard from "../../../Components/EventView/EventWhatHappenedCard";
+import { getOwnersFact } from "../../../Components/EventView/EventPeopleFacts";
+import useEventOwners, {
+  EventOwnersState,
+} from "../../../Components/EventView/useEventOwners";
+import AlertOwnerTeam from "Common/Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "Common/Models/DatabaseModels/AlertOwnerUser";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import EventMeasurementsCard from "../../../Components/Measurement/EventMeasurementsCard";
 import {
@@ -273,6 +284,30 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [alertFirstPagedAt, setAlertFirstPagedAt] = useState<Date | undefined>(
     undefined,
   );
+  /*
+   * What happened and why, for the What happened card that leads the page,
+   * when customer impact began (when somebody recorded it) and who or what
+   * raised it: read with the alert's own row, at no extra request.
+   */
+  const [alertDescription, setAlertDescription] = useState<string | undefined>(
+    undefined,
+  );
+  const [alertRootCause, setAlertRootCause] = useState<string | undefined>(
+    undefined,
+  );
+  const [alertImpactStartedAt, setAlertImpactStartedAt] = useState<
+    Date | undefined
+  >(undefined);
+  const [alertCreatedBy, setAlertCreatedBy] = useState<
+    EventStartedByInput | undefined
+  >(undefined);
+  // The alert's owners, teams first: nothing else on the page reads them.
+  const owners: EventOwnersState = useEventOwners({
+    ownerUserModelType: AlertOwnerUser,
+    ownerTeamModelType: AlertOwnerTeam,
+    resourceIdField: "alertId",
+    resourceId: modelId,
+  });
   /*
    * Header facts that come from the details card, which already reads the
    * monitor and the episode, so the header costs no extra request. Undefined
@@ -524,6 +559,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             createdAt: true,
             // "Acknowledged in" also says how long after paging.
             firstPagedAt: true,
+            // The Created tile: how long impact had gone on, and by whom.
+            impactStartedAt: true,
+            createdByProbe: {
+              name: true,
+            },
+            createdByUser: {
+              name: true,
+              email: true,
+            },
+            // The What happened card.
+            description: true,
+            rootCause: true,
             alertNumber: true,
             alertNumberWithPrefix: true,
             alertSeverity: {
@@ -614,6 +661,14 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setAlertTitle(alert?.title || undefined);
       setAlertStartedAt(alert?.createdAt || undefined);
       setAlertFirstPagedAt(alert?.firstPagedAt || undefined);
+      setAlertDescription(alert?.description || undefined);
+      setAlertRootCause(alert?.rootCause || undefined);
+      setAlertImpactStartedAt(alert?.impactStartedAt || undefined);
+      setAlertCreatedBy({
+        probe: alert?.createdByProbe,
+        user: alert?.createdByUser,
+        isCreatedAutomatically: alert?.isCreatedAutomatically,
+      });
 
       setEventNumber(
         alert?.alertNumberWithPrefix ||
@@ -783,14 +838,23 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       : undefined;
   };
 
+  /*
+   * Who owns the alert, teams first, beside its state and severity. Add
+   * owners is offered only while the alert is open.
+   */
   const headerFacts: Array<EventStatusFact> = [];
 
-  if (alertStartedAt) {
-    headerFacts.push({
-      label: "Created",
-      icon: IconProp.Calendar,
-      value: formatDate(alertStartedAt) || "",
-    });
+  const ownersFact: EventStatusFact | null = getOwnersFact({
+    owners: owners.owners,
+    ownersRoute: RouteUtil.populateRouteParams(
+      RouteMap[PageMap.ALERT_VIEW_OWNERS] as Route,
+      { modelId: modelId },
+    ),
+    canAddOwners: !durationEndDate,
+  });
+
+  if (ownersFact) {
+    headerFacts.push(ownersFact);
   }
 
   if (alertMonitor?.name) {
@@ -893,6 +957,31 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ariaLabel="Alert response times"
         className="mb-5"
       >
+        {/*
+         * The response as a line from left to right: when the alert was
+         * raised, then how long until it was acknowledged and resolved. How
+         * long it has lasted is the header's, beside its state.
+         */}
+        <EventStatTile
+          variant="segment"
+          label="Created"
+          icon={IconProp.Calendar}
+          value={
+            alertStartedAt ? (
+              <EventStartTileValue startedAt={alertStartedAt} />
+            ) : (
+              "-"
+            )
+          }
+          note={getImpactBeforeStartText(
+            {
+              impactStartedAt: alertImpactStartedAt,
+              startedAt: alertStartedAt,
+            },
+            translator,
+          )}
+          description={getEventStartedByText(alertCreatedBy || {}, translator)}
+        />
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
@@ -929,36 +1018,27 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           })}
           description={formatDate(responseTimes.resolvedAt)}
         />
-        <EventStatTile
-          variant="segment"
-          label="Duration"
-          icon={IconProp.Clock}
-          value={
-            durationStartDate ? (
-              <LiveDuration
-                startDate={durationStartDate}
-                endDate={durationEndDate}
-              />
-            ) : (
-              "-"
-            )
-          }
-          description={
-            durationEndDate
-              ? translator.translateTemplate("Ended {{date}}", {
-                  date: formatDate(durationEndDate) || "",
-                })
-              : undefined
-          }
-        />
       </EventStatBar>
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
           {/*
-           * Lead with the AI investigation, or explain why it did not start,
-           * before showing the alert's supporting telemetry.
+           * Lead with what happened - the alert's description and, once
+           * somebody knows it, its root cause - then the AI investigation,
+           * or why it did not start, before the supporting telemetry.
            */}
+          <EventWhatHappenedCard<Alert>
+            modelType={Alert}
+            modelId={modelId}
+            description={alertDescription}
+            rootCause={alertRootCause}
+            onSaved={() => {
+              refreshData();
+              // An edited root cause is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
           <InvestigationPanel
             subjectType="alert"
             subjectId={modelId}
@@ -1140,275 +1220,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         <div className="min-w-0 xl:col-span-1">
-          <EventVideoCallsCard
-            kind={VideoCallEventKind.Alert}
-            eventId={modelId}
-            calls={videoCalls.calls}
-            hasLoaded={videoCalls.hasLoaded}
-            error={videoCalls.error}
-            onRetry={videoCalls.refresh}
-            onChanged={() => {
-              videoCalls.refresh();
-              // A started call is a new feed entry.
-              refreshFeed();
-            }}
-          />
-
-          {/* Who is in the alert's own channel, beside its call. */}
-          <RecordChannelMembersCard
-            recordType={WorkspaceChannelRecordType.Alert}
-            recordId={modelId}
-            links={channelLinks}
-            // Somebody added is a new feed entry.
-            onChanged={refreshFeed}
-          />
-
-          {/* Alert View  */}
-          <CardModelDetail<Alert>
-            name="Alert Details"
-            cardProps={{
-              title: "Alert Details",
-              description: "Key facts about this alert.",
-              headerLayout: "stacked",
-            }}
-            refresher={detailsRefresher}
-            isEditable={true}
-            editButtonText="Edit"
-            onSaveSuccess={() => {
-              // refresh page-level state (title/severity/visibility pills) shown in the header above.
-              refreshData();
-              refreshFeed();
-            }}
-            formFields={[
-              {
-                field: {
-                  title: true,
-                },
-                title: "Alert Title",
-                fieldType: FormFieldSchemaType.Text,
-                required: true,
-                placeholder: "Alert Title",
-                validation: {
-                  minLength: 2,
-                },
-              },
-
-              {
-                field: {
-                  alertSeverity: true,
-                },
-                title: "Alert Severity",
-                description: "What type of alert is this?",
-                fieldType: FormFieldSchemaType.Dropdown,
-                dropdownModal: {
-                  type: AlertSeverity,
-                  labelField: "name",
-                  valueField: "_id",
-                  sort: {
-                    order: SortOrder.Ascending,
-                  },
-                },
-                required: true,
-                placeholder: "Alert Severity",
-              },
-              getLabelsFormField<Alert>({
-                collapsibleSection: advancedSection,
-              }),
-              {
-                field: {
-                  isPrivate: true,
-                },
-                title: "Private Alert",
-                description:
-                  "Only the alert's owners, project admins and project owners can see it.",
-                fieldType: FormFieldSchemaType.Toggle,
-                required: false,
-                collapsibleSection: advancedSection,
-              },
-            ]}
-            modelDetailProps={{
-              selectMoreFields: {
-                alertNumberWithPrefix: true,
-                isPrivate: true,
-                createdByUser: {
-                  _id: true,
-                  name: true,
-                  email: true,
-                  profilePictureId: true,
-                },
-              },
-              onItemLoaded: (item: Alert): void => {
-                // The header's "Monitor" and "Episode" facts, from the row this card already reads.
-                setAlertMonitorState({
-                  subjectId: modelIdString,
-                  value: item.monitor || undefined,
-                });
-                setAlertEpisodeState({
-                  subjectId: modelIdString,
-                  value: item.alertEpisode || undefined,
-                });
-              },
-              showDetailsInNumberOfColumns: 1,
-              style: DetailStyle.Compact,
-              modelType: Alert,
-              id: "model-detail-alerts",
-              fields: [
-                {
-                  field: {
-                    createdAt: true,
-                  },
-                  title: "Created At",
-                  fieldType: FieldType.DateTime,
-                },
-                {
-                  field: {
-                    createdByProbe: {
-                      name: true,
-                      iconFileId: true,
-                    },
-                  },
-                  title: "Created By",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    if (item.createdByProbe) {
-                      return <ProbeElement probe={item.createdByProbe} />;
-                    }
-
-                    if (item.createdByUser) {
-                      return <UserElement user={item.createdByUser} />;
-                    }
-
-                    return (
-                      <span className="text-gray-500">
-                        {translator.translateText("Unknown")}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  /*
-                   * Alert.monitor is a single relation, edited with its own
-                   * dropdown on the Affected Resources card, so it gets its
-                   * own row here too.
-                   */
-                  field: {
-                    monitor: {
-                      name: true,
-                      _id: true,
-                    },
-                  },
-                  title: "Monitor",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    if (!item.monitor) {
-                      return (
-                        <span className="text-gray-500">
-                          {translator.translateText("No monitor")}
-                        </span>
-                      );
-                    }
-
-                    return <MonitorElement monitor={item.monitor} />;
-                  },
-                },
-                {
-                  field: {
-                    alertEpisode: {
-                      title: true,
-                      _id: true,
-                    },
-                  },
-                  title: "Episode",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    if (item.alertEpisode) {
-                      return (
-                        <AlertEpisodeElement alertEpisode={item.alertEpisode} />
-                      );
-                    }
-                    return (
-                      <span className="text-gray-500">
-                        {translator.translateText("Not part of an episode")}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    onCallDutyPolicies: {
-                      name: true,
-                      _id: true,
-                    },
-                  },
-                  title: "On-Call Duty Policies",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    return (
-                      <OnCallDutyPoliciesView
-                        onCallPolicies={item.onCallDutyPolicies || []}
-                      />
-                    );
-                  },
-                },
-                {
-                  field: {
-                    labels: {
-                      name: true,
-                      color: true,
-                    },
-                  },
-                  title: "Labels",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    return <LabelsElement labels={item["labels"] || []} />;
-                  },
-                },
-                {
-                  field: {
-                    alertNumber: true,
-                    alertNumberWithPrefix: true,
-                  },
-                  title: "Alert Number",
-                  fieldType: FieldType.Element,
-                  getElement: (item: Alert): ReactElement => {
-                    if (!item.alertNumber) {
-                      return <>-</>;
-                    }
-
-                    return (
-                      <span className="font-semibold text-gray-900">
-                        {item.alertNumberWithPrefix || `#${item.alertNumber}`}
-                      </span>
-                    );
-                  },
-                },
-                {
-                  field: {
-                    _id: true,
-                  },
-                  title: "Alert ID",
-                  fieldType: FieldType.ObjectID,
-                },
-              ],
-              modelId: modelId,
-            }}
-          />
-
           {/*
-           * The project's own measurements worked out for this alert, under
-           * its other facts. Drawn only when the project shows some on alert
-           * pages.
+           * What the alert affects, first in the column beside what
+           * happened: its monitor, services and infrastructure.
            */}
-          <EventMeasurementsCard
-            source={ALERT_EVENT_MEASUREMENTS}
-            eventId={modelId}
-            isEventOver={Boolean(durationEndDate)}
-            refreshKey={getEventMeasurementRefreshKey({
-              timeline: alertStateTimeline,
-            })}
-            headerLayout="stacked"
-          />
-
           <CardModelDetail<Alert>
             name="Affected Resources"
             cardProps={{
@@ -1768,6 +1583,249 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ],
               modelId: modelId,
             }}
+          />
+
+          <EventVideoCallsCard
+            kind={VideoCallEventKind.Alert}
+            eventId={modelId}
+            calls={videoCalls.calls}
+            hasLoaded={videoCalls.hasLoaded}
+            error={videoCalls.error}
+            onRetry={videoCalls.refresh}
+            onChanged={() => {
+              videoCalls.refresh();
+              // A started call is a new feed entry.
+              refreshFeed();
+            }}
+          />
+
+          {/* Who is in the alert's own channel, beside its call. */}
+          <RecordChannelMembersCard
+            recordType={WorkspaceChannelRecordType.Alert}
+            recordId={modelId}
+            links={channelLinks}
+            // Somebody added is a new feed entry.
+            onChanged={refreshFeed}
+          />
+
+          {/* Alert View  */}
+          <CardModelDetail<Alert>
+            name="Alert Details"
+            cardProps={{
+              title: "Alert Details",
+              description: "Key facts about this alert.",
+              headerLayout: "stacked",
+            }}
+            refresher={detailsRefresher}
+            isEditable={true}
+            editButtonText="Edit"
+            onSaveSuccess={() => {
+              // refresh page-level state (title/severity/visibility pills) shown in the header above.
+              refreshData();
+              refreshFeed();
+            }}
+            formFields={[
+              {
+                field: {
+                  title: true,
+                },
+                title: "Alert Title",
+                fieldType: FormFieldSchemaType.Text,
+                required: true,
+                placeholder: "Alert Title",
+                validation: {
+                  minLength: 2,
+                },
+              },
+
+              {
+                field: {
+                  alertSeverity: true,
+                },
+                title: "Alert Severity",
+                description: "What type of alert is this?",
+                fieldType: FormFieldSchemaType.Dropdown,
+                dropdownModal: {
+                  type: AlertSeverity,
+                  labelField: "name",
+                  valueField: "_id",
+                  sort: {
+                    order: SortOrder.Ascending,
+                  },
+                },
+                required: true,
+                placeholder: "Alert Severity",
+              },
+              getLabelsFormField<Alert>({
+                collapsibleSection: advancedSection,
+              }),
+              {
+                field: {
+                  isPrivate: true,
+                },
+                title: "Private Alert",
+                description:
+                  "Only the alert's owners, project admins and project owners can see it.",
+                fieldType: FormFieldSchemaType.Toggle,
+                required: false,
+                collapsibleSection: advancedSection,
+              },
+            ]}
+            modelDetailProps={{
+              selectMoreFields: {
+                alertNumberWithPrefix: true,
+                isPrivate: true,
+              },
+              onItemLoaded: (item: Alert): void => {
+                // The header's "Monitor" and "Episode" facts, from the row this card already reads.
+                setAlertMonitorState({
+                  subjectId: modelIdString,
+                  value: item.monitor || undefined,
+                });
+                setAlertEpisodeState({
+                  subjectId: modelIdString,
+                  value: item.alertEpisode || undefined,
+                });
+              },
+              showDetailsInNumberOfColumns: 1,
+              style: DetailStyle.Compact,
+              modelType: Alert,
+              id: "model-detail-alerts",
+              /*
+               * Who or what raised it is the stat bar's Created tile, under
+               * when; the card's ID line keeps the record's Created, as
+               * every details card's does.
+               */
+              fields: [
+                {
+                  field: {
+                    createdAt: true,
+                  },
+                  title: "Created At",
+                  fieldType: FieldType.DateTime,
+                },
+                {
+                  /*
+                   * Alert.monitor is a single relation, edited with its own
+                   * dropdown on the Affected Resources card, so it gets its
+                   * own row here too.
+                   */
+                  field: {
+                    monitor: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "Monitor",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Alert): ReactElement => {
+                    if (!item.monitor) {
+                      return (
+                        <span className="text-gray-500">
+                          {translator.translateText("No monitor")}
+                        </span>
+                      );
+                    }
+
+                    return <MonitorElement monitor={item.monitor} />;
+                  },
+                },
+                {
+                  field: {
+                    alertEpisode: {
+                      title: true,
+                      _id: true,
+                    },
+                  },
+                  title: "Episode",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Alert): ReactElement => {
+                    if (item.alertEpisode) {
+                      return (
+                        <AlertEpisodeElement alertEpisode={item.alertEpisode} />
+                      );
+                    }
+                    return (
+                      <span className="text-gray-500">
+                        {translator.translateText("Not part of an episode")}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    onCallDutyPolicies: {
+                      name: true,
+                      _id: true,
+                    },
+                  },
+                  title: "On-Call Duty Policies",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Alert): ReactElement => {
+                    return (
+                      <OnCallDutyPoliciesView
+                        onCallPolicies={item.onCallDutyPolicies || []}
+                      />
+                    );
+                  },
+                },
+                {
+                  field: {
+                    labels: {
+                      name: true,
+                      color: true,
+                    },
+                  },
+                  title: "Labels",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Alert): ReactElement => {
+                    return <LabelsElement labels={item["labels"] || []} />;
+                  },
+                },
+                {
+                  field: {
+                    alertNumber: true,
+                    alertNumberWithPrefix: true,
+                  },
+                  title: "Alert Number",
+                  fieldType: FieldType.Element,
+                  getElement: (item: Alert): ReactElement => {
+                    if (!item.alertNumber) {
+                      return <>-</>;
+                    }
+
+                    return (
+                      <span className="font-semibold text-gray-900">
+                        {item.alertNumberWithPrefix || `#${item.alertNumber}`}
+                      </span>
+                    );
+                  },
+                },
+                {
+                  field: {
+                    _id: true,
+                  },
+                  title: "Alert ID",
+                  fieldType: FieldType.ObjectID,
+                },
+              ],
+              modelId: modelId,
+            }}
+          />
+
+          {/*
+           * The project's own measurements worked out for this alert, under
+           * its other facts. Drawn only when the project shows some on alert
+           * pages.
+           */}
+          <EventMeasurementsCard
+            source={ALERT_EVENT_MEASUREMENTS}
+            eventId={modelId}
+            isEventOver={Boolean(durationEndDate)}
+            refreshKey={getEventMeasurementRefreshKey({
+              timeline: alertStateTimeline,
+            })}
+            headerLayout="stacked"
           />
 
           <OverviewCustomFields

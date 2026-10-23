@@ -44,7 +44,7 @@ const ServicesPage: FunctionComponent<
     useBulkOwnerActions<Service>({
       ownerUserModelType: ServiceOwnerUser,
       ownerTeamModelType: ServiceOwnerTeam,
-      resourceIdField: "primaryEntityId",
+      resourceIdField: "serviceId",
     });
 
   const { archiveBulkActions } = useBulkArchiveActions<Service>({
@@ -64,7 +64,7 @@ const ServicesPage: FunctionComponent<
     persistKey: "service-table",
     ownerUserModelType: ServiceOwnerUser,
     ownerTeamModelType: ServiceOwnerTeam,
-    resourceIdField: "primaryEntityId",
+    resourceIdField: "serviceId",
     showLabelsFacet: true,
   });
 

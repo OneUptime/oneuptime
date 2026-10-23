@@ -288,7 +288,7 @@ Feeds respect incident privacy: for private incidents, feed reads are filtered t
 
 Owners are the people and teams responsible for an incident. They are the notification target for everything that happens to it — and they're the reason an incident doesn't go unnoticed while everyone assumes someone else is on it.
 
-Open **Team → Owners** in the incident side menu. The **Owners** card shows a count badge and describes owners as the people and teams responsible for this incident who are notified about changes, with a running count like "2 people · 1 team". Owners render as overlapping avatars; hovering one shows the person's email or marks the entry as a **Team**.
+Open **Team → Owners** in the incident side menu. The **Owners** card shows a count badge and describes owners as the people and teams responsible for this incident who are notified about changes, with a running count like "2 people · 1 team". Owners render as overlapping avatars; hovering one shows the person's email or marks the entry as a **Team**. The incident's **Overview** names its owners in its header too, teams first: up to three, then a link to the rest on this page. While nobody owns an open incident, **Add** stands in their place and opens this page; a resolved one says **None**.
 
 - Click **Add owner** to open a picker with a search box for people or teams.
 - Click the remove control on an avatar to open the **Remove owner** confirmation, then **Remove**.
@@ -300,8 +300,9 @@ Only your project's own teams and members can be owners. The picker offers only 
 
 ## How owners get assigned
 
-There are four routes onto the owners list:
+There are five routes onto the owners list:
 
+- **When declaring** — the person who declares an incident becomes an owner, and **Owners**, under **More fields** on **Declare Incident**, adds more: each team they are a member of is one click away under it. See [Who will own it](/docs/incidents/declaring-incidents#who-will-own-it).
 - **From an incident template** — templates carry an **Owners** field: the people and teams who own the incident and will be notified when it is created or updated, picked from the same list as **Add owner**. Creating an incident from the template prefills them, and they are added once the incident's Slack and Microsoft Teams channels exist, so a notification rule that invites incident owners to a new channel invites them too. The dashboard, and a workflow's **Create One Incident** step with an **Incident Template** picked, add them without the "you were added" notification; a [form](/docs/forms/on-submit) with a template notifies them, and holds the incident's **Incident created** notification until they are added. See [Declaring an Incident](/docs/incidents/declaring-incidents).
 - **From Incident Owner Rules** — matching rules add owners automatically at creation time.
 - **At creation through the API** — owner users and teams passed with the create call are added the same way, once the channels exist, and without the "you were added" notification.
@@ -316,9 +317,9 @@ Adding the same person twice is safe; owners already assigned are not duplicated
 The rule form has two steps — **Match**, the conditions an incident must meet, then **Owners**, what the rule adds:
 
 - **Owners** — **Add owner** opens one list of people and teams; click each one to add it, and remove a pick with the **×** on its chip. When the rule matches, every person and team picked is added as an owner, and already-assigned owners are not duplicated.
-- **Inherit Owners**, folded under **Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources.
+- **Inherit Owners**, folded under **Owners** — assign owners from related entities instead of naming them. **Inherit Owners From Monitors** makes every owner of the incident's monitors an owner of the incident, and **Inherit Owners From Hosts**, **… From Kubernetes Clusters**, **… From Docker Hosts**, **… From Podman Hosts** and **… From Services** do the same for those resources. Last in the fold, **Creator's Team** lists teams: when the person who declares a matching incident is in one of them, that team becomes an owner too. See [The creator's team](/docs/configuration/label-and-owner-rules#the-creators-team).
 
-A new rule has to add someone: pick at least one owner, or turn on an **Inherit Owners** switch. The API and Terraform refuse a new rule that adds no one too. Its **Name** is filled in from the owners you pick — or, on a rule that only inherits, from its switches (_Inherit owners from monitors_) — until you type a name of your own. Editing a rule never insists on owners, so an older rule that adds nothing can still be renamed or switched off; the list marks it **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+A new rule has to add someone: pick at least one owner, turn on an **Inherit Owners** switch, or list a team under **Creator's Team**. The API and Terraform refuse a new rule that adds no one too. Its **Name** is filled in from the owners you pick — or, on a rule that only inherits, from its switches (_Inherit owners from monitors_) — until you type a name of your own. Editing a rule never insists on owners, so an older rule that adds nothing can still be renamed or switched off; the list marks it **Adds nothing**. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
 
 **Notify Owners**, under **More fields**, controls whether people find out. Leave it on for real routing; turn it off to add owners silently — useful when a rule is a bookkeeping convenience rather than a page.
 

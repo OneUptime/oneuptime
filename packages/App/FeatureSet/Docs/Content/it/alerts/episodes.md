@@ -139,6 +139,8 @@ In **Dettagli episodio**, compilate il **Titolo** e, se volete, una **Gravità a
 
 In **Reperibilità e proprietari**, scegliete una **Policy di reperibilità** da eseguire quando l'episodio viene creato, e i suoi **Proprietari**. Poi fate clic su **Crea episodio**.
 
+Ogni team di cui siete membri è a un clic sotto **Proprietari**, e il riepilogo elenca le regole del proprietario che ne aggiungeranno altri.
+
 ### Aggiungere gli avvisi
 
 Aprite la pagina **Avvisi dei membri** dell'episodio, fate clic su **Aggiungi avvisi** e selezionate gli avvisi che ne fanno parte, quanti ve ne servono in una volta. Per partire invece dagli avvisi, selezionateli nell'elenco **Avvisi** e scegliete **Aggiungi a un nuovo episodio** in **Azioni di massa** (vedi [Episodi](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ Un episodio creato da voi non ha una regola di raggruppamento, quindi l'elenco m
 | **Sviluppatori** | **Terraform**, **API**, **Assistenti IA** |
 | **Avanzato** | **Registri di audit**, **Elimina episodio** |
 
-**Sviluppatori** e **Avanzato** partono compresse. La **Panoramica** si apre con **Alerts in this episode**, poi il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
+**Sviluppatori** e **Avanzato** partono compresse. Nella **Panoramica**, l'intestazione indica i **Proprietari** dell'episodio, prima i team, e il primo riquadro, **Creato**, dice quando è stato creato l'episodio — **Automaticamente**, quando l'ha aperto una regola di raggruppamento. La scheda **Cosa è successo** apre la pagina — la descrizione dell'episodio e la sua **Causa principale** — poi **Alerts in this episode** e il **Feed episodio**, accanto alla scheda **Dettagli episodio**: il suo numero, stato, gravità, numero di avvisi, regola di raggruppamento e policy di reperibilità. La sua intestazione ha **Riconosci** e **Risolvi**, e **Move episode to** nel menu **⋯**.
 
 **Avvisi → Episodi attivi** elenca gli episodi non ancora risolti, e il badge accanto li conta.
 

@@ -288,7 +288,7 @@ Flöden respekterar incidenters sekretess: för privata incidenter filtreras fl�
 
 Ägare är personerna och teamen som ansvarar för en incident. De är mottagarna av aviseringarna om allt som händer med den — och de är anledningen till att en incident inte går obemärkt förbi medan alla tror att någon annan tar hand om den.
 
-Öppna **Team → Ägare** i incidentens sidomeny. Kortet **Ägare** visar ett märke med ett antal och beskriver ägare som personerna och teamen som ansvarar för den här incidenten och som meddelas om ändringar, med en löpande räkning som "2 people · 1 team". Ägare visas som överlappande avatarer; håller du muspekaren över en visas personens e-postadress, eller så markeras posten som ett **Team**.
+Öppna **Team → Ägare** i incidentens sidomeny. Kortet **Ägare** visar ett märke med ett antal och beskriver ägare som personerna och teamen som ansvarar för den här incidenten och som meddelas om ändringar, med en löpande räkning som "2 people · 1 team". Ägare visas som överlappande avatarer; håller du muspekaren över en visas personens e-postadress, eller så markeras posten som ett **Team**. Incidentens **Översikt** nämner också ägarna i rubriken, team först: upp till tre, sedan en länk till resten på den här sidan. Så länge en öppen incident saknar ägare står **Lägg till** på deras plats och öppnar den här sidan; en löst incident visar **Inga**.
 
 - Klicka på **Lägg till ägare** för att öppna en väljare med en sökruta för personer eller team.
 - Klicka på borttagningskontrollen på en avatar för att öppna bekräftelsen **Ta bort ägare**, och sedan på **Ta bort**.
@@ -300,8 +300,9 @@ Bara projektets egna team och medlemmar kan vara ägare. Väljaren erbjuder bara
 
 ## Hur ägare tilldelas
 
-Det finns fyra vägar in på listan över ägare:
+Det finns fem vägar in på listan över ägare:
 
+- **Vid deklarering** — den som deklarerar en incident blir ägare, och **Ägare** under **Fler fält** i **Deklarera incident** lägger till fler: varje team som personen är medlem i finns ett klick bort under fältet. Se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 - **Från en incidentmall** — mallar har ett fält **Ägare**: personerna och teamen som äger incidenten och meddelas när den skapas eller uppdateras, valda från samma lista som **Lägg till ägare**. Att skapa en incident från mallen förifyller dem, och de läggs till när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem. Instrumentpanelen, och ett arbetsflödes steg **Create One Incident** med en vald **Incident Template**, lägger till dem utan aviseringen "du har lagts till"; ett [formulär](/docs/forms/on-submit) med en mall meddelar dem och håller tillbaka incidentens avisering **Incident skapad** tills de har lagts till. Se [Deklarera en incident](/docs/incidents/declaring-incidents).
 - **Från Ägarregler för incidenter** — matchande regler lägger till ägare automatiskt när incidenten skapas.
 - **Vid skapande via API:t** — användare och team som anges som ägare med skapandeanropet läggs till på samma sätt, när kanalerna finns, och utan aviseringen "du har lagts till".
@@ -316,9 +317,9 @@ Att lägga till samma person två gånger är ofarligt; ägare som redan är til
 Regelformuläret har två steg — **Matcha**, villkoren som en incident måste uppfylla, och sedan **Ägare**, det som regeln lägger till:
 
 - **Ägare** — **Lägg till ägare** öppnar en lista med personer och team; klicka på var och en för att lägga till den, och ta bort ett val med **×** på dess märke. När regeln matchar läggs varje vald person och varje valt team till som ägare, och ägare som redan är tilldelade dupliceras inte.
-- **Ärv ägare**, hopfällt under **Ägare** — tilldela ägare från relaterade enheter i stället för att nämna dem. **Ärv ägare från övervakare** gör varje ägare till incidentens monitorer till ägare av incidenten, och **Ärv ägare från värdar**, **Ärv ägare från Kubernetes-kluster**, **Ärv ägare från Docker-värdar**, **Inherit Owners From Podman Hosts** och **Ärv ägare från tjänster** gör samma sak för de resurserna.
+- **Ärv ägare**, hopfällt under **Ägare** — tilldela ägare från relaterade enheter i stället för att nämna dem. **Ärv ägare från övervakare** gör varje ägare till incidentens monitorer till ägare av incidenten, och **Ärv ägare från värdar**, **Ärv ägare från Kubernetes-kluster**, **Ärv ägare från Docker-värdar**, **Inherit Owners From Podman Hosts** och **Ärv ägare från tjänster** gör samma sak för de resurserna. Sist i avsnittet listar **Skaparens team** team: när den som deklarerar en matchande incident är med i ett av dem blir det teamet också ägare. Se [Skaparens team](/docs/configuration/label-and-owner-rules#skaparens-team).
 
-En ny regel måste lägga till någon: välj minst en ägare, eller slå på ett reglage under **Ärv ägare**. API:t och Terraform avvisar också en ny regel som inte lägger till någon. Dess **Namn** fylls i utifrån ägarna som du väljer — eller, på en regel som bara ärver, utifrån dess reglage (_Inherit owners from monitors_) — tills du skriver ett eget namn. Att redigera en regel kräver aldrig ägare, så en äldre regel som inte lägger till något kan fortfarande byta namn eller stängas av; listan markerar den med **Lägger inte till något**. Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
+En ny regel måste lägga till någon: välj minst en ägare, slå på ett reglage under **Ärv ägare**, eller lägg till ett team under **Skaparens team**. API:t och Terraform avvisar också en ny regel som inte lägger till någon. Dess **Namn** fylls i utifrån ägarna som du väljer — eller, på en regel som bara ärver, utifrån dess reglage (_Inherit owners from monitors_) — tills du skriver ett eget namn. Att redigera en regel kräver aldrig ägare, så en äldre regel som inte lägger till något kan fortfarande byta namn eller stängas av; listan markerar den med **Lägger inte till något**. Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
 
 **Avisera ägare**, under **Fler fält**, styr om folk får veta det. Låt det vara påslaget för riktig dirigering; stäng av det för att lägga till ägare tyst — användbart när en regel är en administrativ bekvämlighet och inte ett larm.
 

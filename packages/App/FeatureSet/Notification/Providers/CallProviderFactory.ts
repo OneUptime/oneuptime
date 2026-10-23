@@ -4,6 +4,7 @@ import TwilioCallProvider from "./TwilioCallProvider";
 import { getTwilioConfig, CallProvider } from "../Config";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
 
 export default class CallProviderFactory {
   private static instance: ICallProvider | null = null;
@@ -20,7 +21,10 @@ export default class CallProviderFactory {
 
     switch (providerType) {
       case CallProviderType.Twilio: {
-        const twilioConfig: TwilioConfig | null = await getTwilioConfig();
+        // The server's account, when it makes calls: this provider handles calls.
+        const twilioConfig: TwilioConfig | null = await getTwilioConfig(
+          TwilioMessageKind.Call,
+        );
 
         if (!twilioConfig) {
           throw new BadDataException(

@@ -29,6 +29,9 @@ import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscri
 import CacheGenerations from "Common/Server/Infrastructure/CacheGenerations";
 import StatusPageSubscriberConfirmationCode from "Common/Server/Utils/StatusPage/StatusPageSubscriberConfirmationCode";
 import StatusPageOverviewCache from "Common/Server/Utils/StatusPage/StatusPageOverviewCache";
+import StatusPageRssFeed, {
+  StatusPageRssItem,
+} from "Common/Server/Utils/StatusPage/StatusPageRssFeed";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import ColumnBillingAccessControl from "Common/Types/BaseDatabase/ColumnBillingAccessControl";
 import { getColumnBillingAccessControlForAllColumns } from "Common/Types/Database/AccessControl/ColumnBillingAccessControl";
@@ -89,7 +92,12 @@ const STATUS_PAGE_APP: string = "App/FeatureSet/StatusPage/src";
 const VISITOR_ROUTES: string = `${STATUS_PAGE_APP}/Utils/RouteMap.ts`;
 const VISITOR_NAV: string = `${STATUS_PAGE_APP}/Components/NavBar/NavBar.tsx`;
 const VISITOR_LOCALE: string = `${STATUS_PAGE_APP}/Locales/en.json`;
-const RSS_FEED: string = `${STATUS_PAGE_APP}/Server/API/RSS.ts`;
+// The feed itself, which both servers that serve a status page write with it.
+const RSS_FEED: string = "Common/Server/Utils/StatusPage/StatusPageRssFeed.ts";
+const RSS_FEED_SERVERS: ReadonlyArray<string> = [
+  `${STATUS_PAGE_APP}/Server/API/RSS.ts`,
+  "App/FeatureSet/Frontend/Utils/StatusPage.ts",
+];
 
 const STATUS_PAGE_API: string = "Common/Server/API/StatusPageAPI.ts";
 const SUBSCRIBER_SERVICE: string =
@@ -1023,7 +1031,16 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
   it("titles the feed after the page's title, or its name, and prefixes its items", () => {
     const feed: string = readSource(RSS_FEED);
 
-    expect(feed).toContain("<title>${XML.escape(title)} Updates</title>");
+    for (const server of RSS_FEED_SERVERS) {
+      expect({
+        server: server,
+        writesTheFeed: readSource(server).includes(
+          "await StatusPageRssFeed.build({",
+        ),
+      }).toEqual({ server: server, writesTheFeed: true });
+    }
+
+    expect(feed).toContain("<title>${XML.escape(data.title)} Updates</title>");
     expect(readSource(STATUS_PAGE_API)).toContain(
       "title: statusPage.pageTitle || statusPage.name,",
     );
@@ -1041,6 +1058,63 @@ describe("the Status Pages Overview: the password, the badge, the feed and archi
 
     expect(page).toContain(
       'Every status page serves `/rss` — a feed titled "{page title} Updates", with the page\'s **Page Title** from **Branding**, or its name when it has none, and whose items are prefixed `Incident: `, `Announcement: ` and `Scheduled Maintenance: `.',
+    );
+  });
+
+  it("dates each feed item as the page dates it, and opens a maintenance event's description with its window", () => {
+    const written: Date = new Date("2026-10-01T09:00:00.000Z");
+    const declared: Date = new Date("2026-10-20T08:00:00.000Z");
+    const shown: Date = new Date("2026-10-21T10:00:00.000Z");
+    const starts: Date = new Date("2026-10-25T02:00:00.000Z");
+    const ends: Date = new Date("2026-10-25T04:00:00.000Z");
+
+    const items: Array<StatusPageRssItem> = StatusPageRssFeed.buildItems({
+      lists: {
+        incidents: [
+          {
+            _id: "incident",
+            title: "API errors",
+            declaredAt: declared.toISOString(),
+            createdAt: written.toISOString(),
+          },
+        ],
+        announcements: [
+          {
+            _id: "announcement",
+            title: "New region",
+            showAnnouncementAt: shown.toISOString(),
+            createdAt: written.toISOString(),
+          },
+        ],
+        scheduledMaintenanceEvents: [
+          {
+            _id: "event",
+            title: "Database upgrade",
+            description: "Writes pause.",
+            startsAt: starts.toISOString(),
+            endsAt: ends.toISOString(),
+            createdAt: written.toISOString(),
+          },
+        ],
+      },
+      baseUrl: "https://status.example.com",
+    });
+
+    expect(
+      items.map((item: StatusPageRssItem): [string, string | undefined] => {
+        return [item.title, item.date?.toISOString()];
+      }),
+    ).toEqual([
+      ["Scheduled Maintenance: Database upgrade", starts.toISOString()],
+      ["Announcement: New region", shown.toISOString()],
+      ["Incident: API errors", declared.toISOString()],
+    ]);
+    expect(items[0]?.description).toBe(
+      `${StatusPageRssFeed.describeWindow(starts, ends)}\n\nWrites pause.`,
+    );
+
+    expect(page).toContain(
+      "Each item is dated as the page dates it: an incident by when it was declared, an announcement by when it went up, and a scheduled maintenance event by when it starts, its description opening with its window.",
     );
   });
 

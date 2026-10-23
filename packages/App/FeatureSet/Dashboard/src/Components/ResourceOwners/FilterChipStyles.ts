@@ -67,8 +67,14 @@ export const FILTER_CHIP_ACTIVE_CLASSES: string =
 export const FILTER_CHIP_INACTIVE_CLASSES: string =
   "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50";
 
+/*
+ * The popover hangs from the chip's left edge. It is never wider than the
+ * screen less the page's margins (a 24rem date range on a 390px phone), and
+ * one that would cross the screen's right edge moves left to keep inside it
+ * (useChipPopoverShift, FilterChipPopoverPlacement).
+ */
 export const FILTER_CHIP_POPOVER_CLASSES: string =
-  "absolute left-0 top-full z-20 mt-2 origin-top-left overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl ring-1 ring-black/5";
+  "absolute left-0 top-full z-20 mt-2 max-w-[calc(100vw-2rem)] origin-top-left overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl ring-1 ring-black/5";
 
 /*
  * The empty place the chip's button keeps at its end for the clear button,

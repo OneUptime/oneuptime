@@ -92,7 +92,12 @@ import {
   ComponentProps as CardProps,
 } from "../../../../UI/Components/Card/Card";
 import FieldType from "../../../../UI/Components/Types/FieldType";
-import { TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME } from "../../../../UI/Components/Table/TableHeaderControls";
+import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
+import {
+  TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME,
+  TABLE_HEADER_SEARCH_CLEAR_BUTTON_CLASS_NAME,
+} from "../../../../UI/Components/Table/TableHeaderControls";
+import IconProp from "../../../../Types/Icon/IconProp";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
@@ -306,6 +311,49 @@ describe("a table's header controls on a phone", () => {
 
     await screen.findByText("Checkout API");
   };
+
+  /*
+   * The row wraps on a phone. The main button and the ⋯ were two items of
+   * it, and Scheduled Maintenance's list drew its ⋯ on a line of its own,
+   * under a "Create Scheduled Maintenance Event" that filled the line. They
+   * are one item of the row now, so they wrap together.
+   */
+  test("the main button and the ⋯ are one item of the row, so they wrap together", async () => {
+    render(
+      <BaseModelTable<Monitor>
+        {...makeProps({
+          title: "Scheduled Maintenance Events",
+          buttons: [
+            {
+              title: "Create Scheduled Maintenance Event",
+              buttonStyle: ButtonStyleType.NORMAL,
+              icon: IconProp.Add,
+              onClick: (): void => {},
+            },
+          ],
+        })}
+        showRefreshButton={true}
+      />,
+    );
+
+    await screen.findByText("Checkout API");
+
+    const row: HTMLElement = screen.getByTestId("model-table-header-toolbar")
+      .lastElementChild as HTMLElement;
+    const pair: HTMLElement = screen.getByTestId("model-table-main-and-more");
+
+    expect(pair.parentElement).toBe(row);
+    expect(pair).toHaveClass(
+      ...TABLE_HEADER_MAIN_AND_MORE_CLASS_NAME.split(" "),
+    );
+    expect(within(pair).getAllByRole("button")).toEqual([
+      within(pair).getByTestId("card-button"),
+      within(pair).getByRole("button", { name: "More options" }),
+    ]);
+    expect(within(pair).getByTestId("card-button")).toHaveTextContent(
+      "Create Scheduled Maintenance Event",
+    );
+  });
 
   test("the controls' row says it fills the toolbar's line, and Card lets it on a phone", async () => {
     await renderWithSearch();

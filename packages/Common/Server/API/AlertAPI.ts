@@ -27,6 +27,8 @@ import AlertAIContextBuilder, {
 import JSONFunctions from "../../Types/JSONFunctions";
 import Permission from "../../Types/Permission";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
+import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
 
 export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
   public constructor() {
@@ -45,6 +47,16 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
         }
       },
     );
+
+    /*
+     * Which owner rules would run for an alert being created, and who they
+     * would add (Types/Rules/OwnerRulePreview).
+     */
+    OwnerRulePreviewRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      event: OwnerRulePreviewEvent.Alert,
+    });
   }
 
   private async generateNoteFromAI(

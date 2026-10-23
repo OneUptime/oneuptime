@@ -139,6 +139,8 @@ Vul bij **Episodedetails** de **Titel** in en, als je wilt, een **Ernst van waar
 
 Kies bij **Bereikbaarheid en eigenaren** een **Bereikbaarheidsbeleid** dat draait wanneer de episode wordt aangemaakt, en haar **Eigenaren**. Klik daarna op **Episode aanmaken**.
 
+Elk team waarvan je lid bent, is onder **Eigenaren** één klik verwijderd, en de samenvatting noemt de eigenaarsregels die er meer zullen toevoegen.
+
 ### De waarschuwingen toevoegen
 
 Open de pagina **Lidwaarschuwingen** van de episode, klik op **Waarschuwingen toevoegen** en vink de waarschuwingen aan die erbij horen, zoveel als u tegelijk nodig hebt. Wilt u liever bij de waarschuwingen beginnen, selecteer ze dan in de lijst **Waarschuwingen** en kies **Aan nieuwe episode toevoegen** onder **Bulkacties** (zie [Episodes](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ Een episode die je zelf aanmaakt, heeft geen groeperingsregel, dus toont de lijs
 | **Ontwikkelaars** | **Terraform**, **API**, **AI-assistenten** |
 | **Geavanceerd** | **Auditlogboeken**, **Episode verwijderen** |
 
-**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Het **Overzicht** opent met **Alerts in this episode**, dan de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
+**Ontwikkelaars** en **Geavanceerd** beginnen ingeklapt. Op het **Overzicht** noemt de kop de **Eigenaren** van de episode, teams eerst, en de eerste tegel, **Aangemaakt**, zegt wanneer de episode werd aangemaakt — **Automatisch**, als een groeperingsregel haar opende. De kaart **Wat er gebeurde** opent de pagina — de beschrijving van de episode en haar **Hoofdoorzaak** — dan **Alerts in this episode** en de **Episodefeed**, naast de kaart **Episodedetails**: haar nummer, status, ernst, aantal waarschuwingen, groeperingsregel en bereikbaarheidsbeleid. De kop heeft **Bevestigen** en **Oplossen**, en **Move episode to** in het menu **⋯**.
 
 **Waarschuwingen → Actieve episodes** toont de episodes die nog niet zijn opgelost, en de badge ernaast telt ze.
 

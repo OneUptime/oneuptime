@@ -75,7 +75,7 @@ Andate in **Avvisi → Tutti gli avvisi** e fate clic su **Crea avviso**. Il mod
 
 ### Descrivere l'avviso
 
-Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**.
+Compilate il **Titolo** e scegliete una **Gravità avviso**; entrambi sono obbligatori. Aggiungete una **Descrizione** se aiuta. In **Altri campi**, compresso, potete scegliere uno **Stato iniziale**, aggiungere **Etichette** o attivare **Avviso privato**. Lì trovate anche **Proprietari**: diventate comunque proprietari dell'avviso che create, e ogni team di cui siete membri è a un clic sotto il selettore.
 
 ### Scegliere che cosa riguarda e chi viene chiamato
 
@@ -83,7 +83,7 @@ Fate clic su **Avanti** per arrivare a **Risorse e reperibilità**. Scegliete il
 
 ### Crearlo
 
-Fate clic su **Avanti** per controllare il riepilogo, poi su **Crea avviso**. Si apre la pagina dell'avviso, e le regole iniziano a girare.
+Fate clic su **Avanti** per controllare il riepilogo, poi su **Crea avviso**. Si apre la pagina dell'avviso, e le regole iniziano a girare. Nel riepilogo, la riga **Proprietari** elenca ogni regola del proprietario che aggiungerà qualcuno, e chi: vedete [Chi ne sarà proprietario](/docs/incidents/declaring-incidents#chi-ne-sarà-proprietario).
 :::
 
 Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avviso: dal vostro stato di creazione, **Identified** in un nuovo progetto. Scegliere uno stato successivo registra un avviso di cui qualcuno si sta già occupando, o che è già concluso; vedere [Creato già riconosciuto o risolto](#creato-già-riconosciuto-o-risolto).
@@ -139,7 +139,7 @@ Mentre ci lavorate, annotate ciò che scoprite come **Note private**, compilate 
 
 **Panoramica**, **Indagine**, **Team** e **Note** sono aperte; le altre sezioni restano compresse finché non ci fate clic.
 
-- **Panoramica** — tre riquadri con il tempo impiegato per riconoscere e risolvere l'avviso, e la sua **Durata**. La scheda **AI Investigation** apre la pagina, con **Ask OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Dettagli dell'avviso**, le misurazioni dell'avviso e le sue **Risorse interessate**.
+- **Panoramica** — l'intestazione indica i **Proprietari** dell'avviso, prima i team, accanto al suo monitor e al suo episodio. Il riquadro **Creato** mostra quando e da che cosa è stato creato, altri due il tempo impiegato per riconoscerlo e risolverlo; la durata si trova accanto al suo stato. La scheda **Cosa è successo** apre la pagina — la descrizione dell'avviso e la sua **Causa principale** — poi la scheda **AI Investigation**, con **Ask OneUptime AI** in fondo, e **Avviso Feed** registra tutto ciò che è successo all'avviso. Accanto si trovano la scheda **Risorse interessate**, la scheda **Dettagli dell'avviso** e le misurazioni dell'avviso.
 - **Cronologia stato** — ogni stato in cui è stato l'avviso, quando e per quanto tempo. Vedere [La cronologia degli stati](/docs/alerts/states-and-severities#la-cronologia-degli-stati).
 - **Incidenti collegati** — gli incidenti di cui fa parte questo avviso, con **Collega incidente** e **Dichiara incidente**.
 - **Impostazioni** — **Chi può vedere questo avviso**, con l'interruttore **Avviso privato**, e **Promemoria**, con **Invia promemoria**. Ogni interruttore salva nel momento in cui lo azionate.

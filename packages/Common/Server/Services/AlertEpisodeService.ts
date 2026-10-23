@@ -344,6 +344,22 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     /*
+     * The owners picked on the Create Alert Episode form (misc data's
+     * ownerUsers and ownerTeams), on the episode as it will be saved, and
+     * before its number is taken: a pick the creator may not add refuses
+     * the create. They are added once it exists (onCreateSuccess).
+     */
+    await OwnerRuleAssignment.checkOwnersPickedOnCreate({
+      ownerUserService: AlertEpisodeOwnerUserService,
+      ownerTeamService: AlertEpisodeOwnerTeamService,
+      resourceIdColumn: "alertEpisodeId",
+      resourceModelType: Model,
+      resource: createBy.data,
+      miscDataProps: createBy.miscDataProps,
+      props: createBy.props,
+    });
+
+    /*
      * The state it starts in, under the ID column alone: stamp leaves no
      * other name of it to be stored instead, so the state checked above is
      * the state stored - and the state onCreateSuccess writes the episode's
@@ -630,6 +646,33 @@ export class Service extends ProjectReferencesService<Model> {
             alertIds: addedAlertIds,
             addedByUserId: this.getCreatingUserId(onCreate, createdItem),
           });
+        }
+      })
+      .then(async () => {
+        /*
+         * The owners picked on the form, once the episode's Slack and
+         * Microsoft Teams channels exist - so the owners' own hooks can
+         * invite them - and after "Episode Created". Asked about before the
+         * episode was saved (onBeforeCreate).
+         */
+        try {
+          await OwnerRuleAssignment.addOwnersPickedOnCreate({
+            ownerUserService: AlertEpisodeOwnerUserService,
+            ownerTeamService: AlertEpisodeOwnerTeamService,
+            resourceIdColumn: "alertEpisodeId",
+            resourceId: createdItem.id!,
+            projectId: createdItem.projectId!,
+            miscDataProps: onCreate.createBy.miscDataProps,
+            props: onCreate.createBy.props,
+          });
+        } catch (error) {
+          logger.error(
+            `Add owners failed in AlertEpisodeService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertEpisodeId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .then(async () => {

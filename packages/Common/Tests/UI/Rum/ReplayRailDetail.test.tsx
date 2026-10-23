@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 /*
  * See ReplayRail.test.tsx: react is pinned to Common's copy for every
  * importer so Dashboard components render with the same React instance.
@@ -247,6 +253,32 @@ function clickSignal(): ReplaySignal {
     },
     alignment: "exact",
   };
+}
+
+/*
+ * One report of a page load's CLS, as the rail builds it from the
+ * recording (issue #5181: CLS is reported again when it grew).
+ */
+function clsReport(
+  id: string,
+  offsetMs: number,
+  value: number,
+  rating: "good" | "needs-improvement" | "poor",
+): ReplaySignal {
+  return fromTimelineEvent(
+    {
+      id: id,
+      kind: "performance",
+      chunkIndex: 0,
+      offsetMs: offsetMs,
+      performanceKind: "web-vital",
+      metric: "CLS",
+      value: value,
+      rating: rating,
+      navigationType: "hard",
+    },
+    { startTimeUnixMs: START_UNIX_MS },
+  );
 }
 
 function navigationSignal(viewport: [number, number] | null): ReplaySignal {
@@ -801,6 +833,33 @@ describe("ReplayRailDetail navigation", () => {
     expect(screen.getByText(/LCP 4.8s/)).toBeInTheDocument();
     expect(screen.queryByText(/INP 320ms/)).not.toBeInTheDocument();
   });
+
+  /*
+   * UI review of #5181: a page whose CLS grew after the visitor came back
+   * lists two CLS reports; the earlier one says it was updated, so the
+   * page's list never leaves "CLS 0.02 good" looking like the final word.
+   */
+  it("marks a vital that was reported again as updated later", () => {
+    const navigation: ReplaySignal = navigationSignal(null);
+    const first: ReplaySignal = clsReport("rec:0:31", 3100, 0.02, "good");
+    const second: ReplaySignal = clsReport("rec:0:32", 64_200, 0.35, "poor");
+    const result: RenderResult = renderDetail(navigation, {
+      signals: [navigation, first, second],
+    });
+
+    const earlier: HTMLElement = screen.getByRole("button", {
+      name: "CLS 0.02 good · updated later",
+    });
+
+    expect(
+      screen.getByRole("button", { name: "CLS 0.35 poor" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/updated later/)).toHaveLength(1);
+
+    fireEvent.click(earlier);
+
+    expect(result.selections).toEqual(["rec:0:31"]);
+  });
 });
 
 /*
@@ -1100,6 +1159,135 @@ describe("ReplayRailDetail performance wording", () => {
     expect(screen.getByText("Processing")).toBeInTheDocument();
     expect(screen.getByText("Presentation")).toBeInTheDocument();
     expect(screen.getByText("305ms")).toBeInTheDocument();
+  });
+
+  /*
+   * Issue #5181: a vital names the kind of page view it describes. A
+   * prerendered page is measured from when the visitor opened it - which
+   * is what makes a 68 ms FCP on a page whose navigation began seconds
+   * earlier make sense - and a page back from the back/forward cache has
+   * vitals of its own. "Measured", not "timed": the row also shows on a
+   * prerendered page's CLS and INP, which are not times from its start.
+   */
+  it("says which kind of page view each vital describes", () => {
+    const views: Array<[string, string, string]> = [
+      [
+        "FCP",
+        "prerender",
+        "Prerendered page load (measured from when it was opened)",
+      ],
+      [
+        "CLS",
+        "prerender",
+        "Prerendered page load (measured from when it was opened)",
+      ],
+      ["TTFB", "back-forward-cache", "Restored from back/forward cache"],
+      ["INP", "hard", "Page load"],
+      ["INP", "soft", "Route change (single-page app)"],
+    ];
+
+    for (const [metric, navigationType, words] of views) {
+      renderDetail(
+        performanceSignal({
+          kind: "web-vital",
+          durationMs: null,
+          budgetMs: null,
+          isOverBudget: false,
+          metric: metric,
+          value: 68,
+          rating: "good",
+          url: null,
+          atUnixMs: null,
+          navigationType: navigationType,
+        }),
+      );
+
+      expect(screen.getByText("View")).toBeInTheDocument();
+      expect(screen.getByText(words)).toBeInTheDocument();
+      expect(screen.queryByText(navigationType)).toBeNull();
+
+      cleanup();
+    }
+  });
+
+  /*
+   * UI review of #5181: an ordinary page load's FCP, LCP, TTFB and CLS
+   * measure the page load by definition, so "View: Page load" would be a
+   * row that says nothing - and recordings from before #5181 never had
+   * it, so a new recording of an ordinary page reads as an old one did.
+   */
+  it("leaves the View row off an ordinary page load's FCP, LCP, TTFB and CLS", () => {
+    for (const metric of ["FCP", "LCP", "TTFB", "CLS"]) {
+      renderDetail(
+        performanceSignal({
+          kind: "web-vital",
+          durationMs: null,
+          budgetMs: null,
+          isOverBudget: false,
+          metric: metric,
+          value: 68,
+          rating: "good",
+          url: null,
+          atUnixMs: null,
+          navigationType: "hard",
+        }),
+      );
+
+      expect([metric, screen.queryByText("View")]).toEqual([metric, null]);
+      expect([metric, screen.queryByText("Page load")]).toEqual([metric, null]);
+      expect(screen.getByText(metric)).toBeInTheDocument();
+
+      cleanup();
+    }
+  });
+
+  /*
+   * UI review of #5181: CLS is reported again when it grew after the
+   * visitor came back to the tab, so one page can have two CLS rows. Each
+   * names the other: the first says it was updated (it is not the page's
+   * CLS), the second what it replaced - and either opens the other row.
+   */
+  it("names the other report of a CLS reported again, and opens it on click", () => {
+    const first: ReplaySignal = clsReport("rec:0:31", 3100, 0.02, "good");
+    const second: ReplaySignal = clsReport("rec:0:32", 64_200, 0.35, "poor");
+    const signals: Array<ReplaySignal> = [first, second];
+
+    const onFirst: RenderResult = renderDetail(first, { signals: signals });
+
+    expect(screen.getByText("Updated")).toBeInTheDocument();
+    expect(screen.queryByText("Earlier")).toBeNull();
+    expect(screen.getByTestId("rail-vital-updated")).toHaveTextContent(
+      "CLS 0.35 poor at 1:04.2",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "CLS 0.35 poor at 1:04.2" }),
+    );
+
+    expect(onFirst.selections).toEqual(["rec:0:32"]);
+
+    cleanup();
+
+    const onSecond: RenderResult = renderDetail(second, { signals: signals });
+
+    expect(screen.getByText("Earlier")).toBeInTheDocument();
+    expect(screen.queryByText("Updated")).toBeNull();
+    expect(screen.getByTestId("rail-vital-earlier")).toHaveTextContent(
+      "CLS 0.02 good at 0:03.1",
+    );
+
+    fireEvent.click(screen.getByTestId("rail-vital-earlier"));
+
+    expect(onSecond.selections).toEqual(["rec:0:31"]);
+  });
+
+  it("names no other report for a vital reported once", () => {
+    const only: ReplaySignal = clsReport("rec:0:31", 3100, 0.02, "good");
+
+    renderDetail(only, { signals: [only] });
+
+    expect(screen.queryByText("Earlier")).toBeNull();
+    expect(screen.queryByText("Updated")).toBeNull();
   });
 
   it("shows none of the INP rows for a recording that predates them", () => {

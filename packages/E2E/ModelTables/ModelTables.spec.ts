@@ -966,7 +966,7 @@ test.describe("the Alerts list of the screenshot", () => {
 });
 
 test.describe("rows are 48px whatever they hold", () => {
-  test("text, pills, labels, avatars, a dash and the row's buttons all sit on the 24px line", async ({
+  test("text, pills, a label, avatars, a dash and the row's buttons all sit on the 24px line; more labels add a line each", async ({
     page,
   }: {
     page: Page;
@@ -977,41 +977,62 @@ test.describe("rows are 48px whatever they hold", () => {
 
     await expect(rows).toHaveCount(4);
 
-    // 48px and the hairline under every row but the last.
-    expect(await rowHeights(rows)).toEqual([49, 49, 49, 48]);
+    /*
+     * 48px and the hairline under every row but the last; a row's labels
+     * are listed one under another (OneUptime issue #5187), so each label
+     * after the first adds its 24px line and the 4px between two: the
+     * second row's two labels make it 28px taller, the last row's four 84.
+     */
+    expect(await rowHeights(rows)).toEqual([49, 49 + 28, 49, 48 + 3 * 28]);
 
-    // The labels of a monitor with four: two pills and "+2", on the line.
+    // The labels of a monitor with four: all four, one under another, in natural order.
     const ping: Locator = rows.nth(3);
 
     await expect(
       ping.getByTestId("table-labels").getByTestId("pill"),
-    ).toHaveCount(2);
-    await expect(ping.getByTestId("table-labels-more")).toHaveText("+2");
+    ).toHaveText(["Customer facing", "Database", "EU West", "Production"]);
+    await expect(ping.getByTestId("table-labels-more")).toHaveCount(0);
 
     await screenshot(page, "monitors-rich-1280");
   });
 
-  test("'+N' shows every label in the cell, and 'Show less' folds them again", async ({
+  test("'N more labels' shows every label in the cell, in order, and 'Show less' folds them again", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${MONITORS}?data=rich`);
+    await open(page, `${MONITORS}?data=labels`);
 
-    const ping: Locator = bodyRows(page, "Monitors-table").nth(3);
+    // "Assign loyalty card": five labels, handed over in a scrambled order.
+    const assign: Locator = bodyRows(page, "Monitors-table").nth(3);
+    const pills: Locator = assign
+      .getByTestId("table-labels")
+      .getByTestId("pill");
 
-    await ping.getByTestId("table-labels-more").click();
-    await expect(
-      ping.getByTestId("table-labels").getByTestId("pill"),
-    ).toHaveCount(4);
+    await expect(pills).toHaveText([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "3.Item=Connectivity",
+    ]);
+    await expect(assign.getByTestId("table-labels-more")).toHaveText(
+      "2 more labels",
+    );
+
+    await assign.getByTestId("table-labels-more").click();
+    await expect(pills).toHaveText([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "3.Item=Connectivity",
+      "4.Business System=Customer Mobile App",
+      "10.Owner=Loyalty Platform Team",
+    ]);
 
     // Opening the labels is the labels' click, not the row's.
     expect((await fixture(page)).navigations).toEqual([]);
 
-    await ping.getByTestId("table-labels-less").click();
-    await expect(
-      ping.getByTestId("table-labels").getByTestId("pill"),
-    ).toHaveCount(2);
+    await assign.getByTestId("table-labels-less").click();
+    await expect(pills).toHaveCount(3);
+    await expect(assign.getByTestId("table-labels-more")).toBeVisible();
   });
 
   test("each part of a cell starts on the row's line, level with its neighbours", async ({
@@ -1101,6 +1122,520 @@ test.describe("rows are 48px whatever they hold", () => {
     const nameMiddle: number = await middleOf(cells.nth(2).locator("> div"));
 
     expect(Math.abs(keyMiddle - nameMiddle)).toBeLessThanOrEqual(1);
+  });
+});
+
+/*
+ * OneUptime issues #5187 and #5183: the Monitors list of a customer who
+ * numbers their labels ("1.Category=...", "2.SubCategory=...",
+ * "3.Item=...", "4.Business System=..."). Side by side on the row's one
+ * line, the labels ran past the column's edge, cut off mid-word, in
+ * whatever order the database joined them. Now each row's labels are
+ * listed one under another, as Affected Resources lists a row's resources,
+ * in natural order - numbered labels first, by their numbers - and none is
+ * cut off: a label is as wide as its name, up to the 20rem a value takes,
+ * and only a longer one ends in "...", its whole name under the pointer.
+ * On a phone, where nothing points, a long label runs onto a next line.
+ */
+test.describe("a row's labels, one under another, in natural order", () => {
+  type PillBox = {
+    text: string;
+    top: number;
+    bottom: number;
+    left: number;
+    right: number;
+    isCut: boolean;
+    textOverflow: string;
+  };
+
+  // The pills of a row's (or a card's) labels, as drawn.
+  async function pillBoxes(row: Locator): Promise<Array<PillBox>> {
+    return await row
+      .getByTestId("table-labels")
+      .getByTestId("pill")
+      .evaluateAll((pills: Array<Element>): Array<PillBox> => {
+        return pills.map((pill: Element): PillBox => {
+          const box: DOMRect = pill.getBoundingClientRect();
+          const words: Element = pill.querySelector(
+            "[data-testid='pill-text']",
+          ) as Element;
+
+          return {
+            text: (pill.textContent || "").trim(),
+            top: box.top,
+            bottom: box.bottom,
+            left: box.left,
+            right: box.right,
+            isCut: words.scrollWidth > words.clientWidth,
+            textOverflow: getComputedStyle(words).textOverflow,
+          };
+        });
+      });
+  }
+
+  for (const theme of ["light", "dark"]) {
+    test(`the Monitors list of the issues, at 1280 in the ${theme} theme: each row's labels one under another, in order`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `${MONITORS}?data=labels${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      const rows: Locator = bodyRows(page, "Monitors-table");
+
+      await expect(rows).toHaveCount(6);
+
+      const expected: Array<Array<string>> = [
+        ["Claude"],
+        [
+          "1.Category=Application",
+          "2.SubCategory=Website",
+          "3.Item=Connectivity",
+          "4.Business System=Customer Mobile App",
+        ],
+        [
+          "3.Item=Connectivity",
+          "4.Business System=Customer Mobile App",
+          "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+        ],
+        [
+          "1.Category=Application",
+          "2.SubCategory=Website",
+          "3.Item=Connectivity",
+        ],
+        [
+          "2.SubCategory=Website",
+          "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+        ],
+        [],
+      ];
+
+      for (let index: number = 0; index < expected.length; index++) {
+        const row: Locator = rows.nth(index);
+        const boxes: Array<PillBox> = await pillBoxes(row);
+
+        expect(
+          boxes.map((box: PillBox): string => {
+            return box.text;
+          }),
+        ).toEqual(expected[index]);
+
+        for (let place: number = 1; place < boxes.length; place++) {
+          // Under the one before - on a line of its own, never beside it.
+          expect(
+            boxes[place]!.top - boxes[place - 1]!.bottom,
+          ).toBeGreaterThanOrEqual(4);
+          expect(Math.abs(boxes[place]!.left - boxes[0]!.left)).toBeLessThan(1);
+        }
+      }
+
+      // A monitor without labels: the quiet dash.
+      const labelsColumn: number = (
+        await page.locator("thead th").allInnerTexts()
+      ).findIndex((title: string): boolean => {
+        return title.trim() === "Labels";
+      });
+
+      expect(labelsColumn).toBeGreaterThan(0);
+      await expect(
+        rows
+          .nth(5)
+          .locator("td")
+          .nth(labelsColumn)
+          .getByTestId("table-empty-value"),
+      ).toHaveCount(1);
+
+      await screenshot(page, `monitors-labels-1280-${theme}`);
+    });
+  }
+
+  test("nothing is cut off: a label is as wide as its name, and only one longer than the column ends in '...', whole under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=labels`);
+
+    const rows: Locator = bodyRows(page, "Monitors-table");
+    const column: { left: number; right: number } = await page
+      .locator("thead th")
+      .filter({ hasText: "Labels" })
+      .evaluate((header: Element): { left: number; right: number } => {
+        const box: DOMRect = header.getBoundingClientRect();
+        return { left: box.left, right: box.right };
+      });
+    const longName: string =
+      "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations";
+
+    for (let index: number = 0; index < 5; index++) {
+      for (const box of await pillBoxes(rows.nth(index))) {
+        // Inside its column, never past its edge.
+        expect(box.left).toBeGreaterThanOrEqual(column.left);
+        expect(box.right).toBeLessThanOrEqual(column.right + 0.5);
+
+        // The customer's longest: whole.
+        if (box.text !== longName) {
+          expect([box.text, box.isCut]).toEqual([box.text, false]);
+        } else {
+          // At the 20rem a value takes, ending in an ellipsis.
+          expect(box.isCut).toBe(true);
+          expect(box.textOverflow).toBe("ellipsis");
+          expect(Math.round(box.right - box.left)).toBe(320);
+        }
+      }
+    }
+
+    // The longest of the issue's labels, whole, not at the cap.
+    const business: PillBox = (await pillBoxes(rows.nth(1)))[3]!;
+    expect(business.text).toBe("4.Business System=Customer Mobile App");
+    expect(business.right - business.left).toBeLessThan(320);
+
+    const cut: Locator = rows
+      .nth(2)
+      .getByTestId("table-labels")
+      .getByTestId("pill-text")
+      .filter({ hasText: "5.Escalation" });
+
+    await cut.hover();
+    await expect(cut).toHaveAttribute("title", longName);
+  });
+
+  test("the Labels facet offers the labels in the same order, numbered ones first", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=labels`);
+
+    await page
+      .getByRole("button", { name: /^Labels/ })
+      .first()
+      .click();
+    // Read once the labels have come.
+    await expect(page.getByRole("option", { name: "Claude" })).toBeVisible();
+
+    const options: Array<string> = (
+      await page.getByRole("option").allInnerTexts()
+    ).map((text: string): string => {
+      return text.trim();
+    });
+    const labels: Array<string> = options.filter((text: string): boolean => {
+      return [
+        "1.Category=Application",
+        "2.SubCategory=Website",
+        "3.Item=Connectivity",
+        "4.Business System=Customer Mobile App",
+        "10.Owner=Loyalty Platform Team",
+        "Claude",
+        "Production",
+      ].includes(text);
+    });
+
+    expect(labels).toEqual([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "3.Item=Connectivity",
+      "4.Business System=Customer Mobile App",
+      "10.Owner=Loyalty Platform Team",
+      "Claude",
+      "Production",
+    ]);
+
+    // Asked for by name: the server reads labels by name in natural order.
+    const asked: Array<unknown> = (await fixture(page)).listRequests
+      .filter((request: { tableName: string }): boolean => {
+        return request.tableName === "Label";
+      })
+      .map((request: unknown): unknown => {
+        return (request as { sort: unknown }).sort;
+      });
+
+    expect(asked).toContainEqual({ name: "ASC" });
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`on a phone in the ${theme} theme, a card lists them one under another and a long one runs onto a next line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `${GALLERY}?data=labels${theme === "dark" ? "&theme=dark" : ""}`,
+        390,
+        900,
+      );
+
+      // The gallery's third row: "Loyalty web service", three labels.
+      const card: Locator = page.locator("#gallery-kinds-body > div").nth(2);
+      const boxes: Array<PillBox> = await pillBoxes(card);
+
+      expect(
+        boxes.map((box: PillBox): string => {
+          return box.text;
+        }),
+      ).toEqual([
+        "3.Item=Connectivity",
+        "4.Business System=Customer Mobile App",
+        "5.Escalation=Loyalty Platform Engineering, Customer Mobile App Integrations",
+      ]);
+
+      for (let place: number = 1; place < boxes.length; place++) {
+        expect(
+          boxes[place]!.top - boxes[place - 1]!.bottom,
+        ).toBeGreaterThanOrEqual(4);
+      }
+
+      // Nothing cut off, and nothing past the screen's edge.
+      for (const box of boxes) {
+        expect([box.text, box.isCut]).toEqual([box.text, false]);
+        expect(box.right).toBeLessThanOrEqual(390);
+      }
+
+      // The long one takes two lines; the short ones one.
+      const long: PillBox = boxes[2]!;
+      expect(long.bottom - long.top).toBeGreaterThan(30);
+      expect(boxes[0]!.bottom - boxes[0]!.top).toBeLessThan(26);
+
+      await screenshot(page, `gallery-labels-390-${theme}`);
+    });
+  }
+
+  /*
+   * "2 more labels" was a padded grey button: 36px tall, a gap above it and
+   * another under it, in a grey (gray-400) that read at 2.5:1. It is the
+   * product's show-more link now, on a 24px line of its own - the line a
+   * label takes - so a row of five labels folded is as tall as a row of
+   * four.
+   */
+  type ListLine = { top: number; bottom: number; left: number };
+
+  async function listLines(row: Locator): Promise<Array<ListLine>> {
+    return await row
+      .getByTestId("table-labels")
+      .evaluate((list: Element): Array<ListLine> => {
+        return Array.from(list.children).map((line: Element): ListLine => {
+          const lineBox: DOMRect = line.getBoundingClientRect();
+          return {
+            top: lineBox.top,
+            bottom: lineBox.bottom,
+            left: lineBox.left,
+          };
+        });
+      });
+  }
+
+  for (const theme of ["light", "dark"]) {
+    test(`'N more labels' is a link on a line of its own under the labels, at WCAG AA in the ${theme} theme`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        `${MONITORS}?data=labels${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+
+      const rows: Locator = bodyRows(page, "Monitors-table");
+      const assign: Locator = rows.nth(3);
+      const more: Locator = assign.getByTestId("table-labels-more");
+
+      await expect(more).toHaveText("2 more labels");
+      await expect(more).toHaveAttribute("aria-expanded", "false");
+
+      // Three labels and the link: four 24px lines, 4px apart.
+      const lines: Array<ListLine> = await listLines(assign);
+
+      expect(lines).toHaveLength(4);
+
+      for (let place: number = 0; place < lines.length; place++) {
+        expect(Math.round(lines[place]!.bottom - lines[place]!.top)).toBe(24);
+
+        if (place > 0) {
+          expect(Math.round(lines[place]!.top - lines[place - 1]!.bottom)).toBe(
+            4,
+          );
+        }
+      }
+
+      // Folded, five labels take the room of four (the row above has four).
+      const heights: Array<number> = await rowHeights(rows);
+      expect(heights[3]).toBe(heights[1]);
+
+      // Its box starts where the labels do, its words just inside it.
+      const firstPill: Box = await box(
+        assign.getByTestId("table-labels").getByTestId("pill").first(),
+      );
+      const link: Box = await box(more);
+
+      expect(Math.abs(link.x - firstPill.x)).toBeLessThan(1);
+      expect(Math.round(link.height)).toBe(20);
+
+      const look: {
+        color: string;
+        background: string;
+        fontSize: string;
+        fontWeight: string;
+      } = await more.evaluate((element: Element) => {
+        // The first box behind the words that paints a background.
+        let behind: Element | null = element;
+        let background: string = "rgba(0, 0, 0, 0)";
+        while (behind) {
+          background = getComputedStyle(behind).backgroundColor;
+          if (background !== "rgba(0, 0, 0, 0)") {
+            break;
+          }
+          behind = behind.parentElement;
+        }
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        return {
+          color: style.color,
+          background,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+        };
+      });
+
+      expect(contrast(look.color, look.background)).toBeGreaterThanOrEqual(4.5);
+      expect(look.fontSize).toBe("12px");
+      expect(Number(look.fontWeight)).toBeGreaterThanOrEqual(500);
+
+      await screenshot(page, `monitors-labels-more-1280-${theme}`);
+    });
+  }
+
+  test("the keyboard opens and folds a row's labels and stays on the link, its ring whole inside the column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=labels`);
+
+    const assign: Locator = bodyRows(page, "Monitors-table").nth(3);
+    const pills: Locator = assign
+      .getByTestId("table-labels")
+      .getByTestId("pill");
+    const more: Locator = assign.getByTestId("table-labels-more");
+
+    // Tab to it, as a keyboard does (a focus by script draws no ring).
+    for (let step: number = 0; step < 80; step++) {
+      await page.keyboard.press("Tab");
+
+      if (
+        await more.evaluate((element: Element): boolean => {
+          return element === document.activeElement;
+        })
+      ) {
+        break;
+      }
+    }
+
+    await expect(more).toBeFocused();
+
+    /*
+     * The ring is drawn inside the link's box, and the box inside the
+     * column's clip: a ring outside it lost its left side at the edge.
+     */
+    const ring: { shadow: string; left: number; clipLeft: number } =
+      await more.evaluate((element: Element) => {
+        let clip: Element | null = element.parentElement;
+        while (clip && getComputedStyle(clip).overflowX !== "clip") {
+          clip = clip.parentElement;
+        }
+        return {
+          shadow: getComputedStyle(element).boxShadow,
+          left: element.getBoundingClientRect().left,
+          clipLeft: clip ? clip.getBoundingClientRect().left : -1,
+        };
+      });
+
+    expect(ring.shadow).toContain("inset");
+    expect(ring.clipLeft).toBeGreaterThan(0);
+    expect(ring.left).toBeGreaterThanOrEqual(ring.clipLeft - 0.5);
+
+    await page.keyboard.press("Enter");
+
+    // Open: every label, and the same link - still focused - folds them.
+    await expect(pills).toHaveCount(5);
+    const less: Locator = assign.getByTestId("table-labels-less");
+    await expect(less).toBeFocused();
+    await expect(less).toHaveText("Show less");
+    await expect(less).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Enter");
+
+    await expect(pills).toHaveCount(3);
+    await expect(more).toBeFocused();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+
+    // The labels' own keys, never the row's: nothing opened.
+    expect((await fixture(page)).navigations).toEqual([]);
+  });
+
+  test("on a phone, a card with five labels shows three and '2 more labels', which shows them all", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${GALLERY}?data=labels`, 390, 900);
+
+    // The gallery's fourth row: "Assign loyalty card", five labels.
+    const card: Locator = page.locator("#gallery-kinds-body > div").nth(3);
+    const pills: Locator = card.getByTestId("table-labels").getByTestId("pill");
+    const more: Locator = card.getByTestId("table-labels-more");
+
+    await expect(pills).toHaveText([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "3.Item=Connectivity",
+    ]);
+    await expect(more).toHaveText("2 more labels");
+
+    const lines: Array<ListLine> = await listLines(card);
+    expect(lines).toHaveLength(4);
+    expect(Math.round(lines[3]!.bottom - lines[3]!.top)).toBe(24);
+    expect(Math.round(lines[3]!.top - lines[2]!.bottom)).toBe(4);
+
+    await more.click();
+
+    await expect(pills).toHaveText([
+      "1.Category=Application",
+      "2.SubCategory=Website",
+      "3.Item=Connectivity",
+      "4.Business System=Customer Mobile App",
+      "10.Owner=Loyalty Platform Team",
+    ]);
+    await expect(card.getByTestId("table-labels-less")).toHaveText("Show less");
+
+    // Nothing past the screen's edge, and the tap opened nothing else.
+    const sideways: number = await page.evaluate((): number => {
+      return (
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth
+      );
+    });
+    expect(sideways).toBeLessThanOrEqual(0);
+    expect((await fixture(page)).navigations).toEqual([]);
+
+    await screenshot(page, "gallery-labels-open-390");
+  });
+
+  test("in German the fold reads '2 weitere Beschriftungen', in the words of the column's title", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?data=labels&lang=de`);
+
+    await expect(
+      page.locator("thead th").filter({ hasText: "Beschriftungen" }),
+    ).toHaveCount(1);
+    await expect(
+      bodyRows(page, "Monitors-table").nth(3).getByTestId("table-labels-more"),
+    ).toHaveText("2 weitere Beschriftungen");
   });
 });
 

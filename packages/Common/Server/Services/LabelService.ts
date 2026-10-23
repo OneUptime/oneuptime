@@ -2,6 +2,11 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
+import Sort from "../../Types/BaseDatabase/Sort";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import { getLabelListSort } from "../../Utils/LabelOrder";
+import { getNaturalSortKey } from "../../Utils/NaturalOrder";
 import DatabaseService from "./DatabaseService";
 import ArchivableValueGuard from "../Utils/Database/ArchivableValueGuard";
 import {
@@ -25,9 +30,68 @@ import logger from "../Utils/Logger";
 const AUTO_LABEL_ID_CACHE_NAMESPACE: string = "auto-label-id";
 const AUTO_LABEL_ID_CACHE_TTL_SECONDS: number = 24 * 60 * 60;
 
+/*
+ * What a label's write may say about its order: the name it is written
+ * with, and the key OneUptime writes from it (Label.nameSortKey).
+ */
+interface LabelOrderFields {
+  name?: string | null | undefined;
+  nameSortKey?: string | undefined;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Labels are read in natural order by name - numbered labels first, by
+   * their numbers, then the others alphabetically - when the caller asks
+   * for no order, and whenever they ask for them by name
+   * (Utils/LabelOrder.getLabelListSort). So Project Settings > Labels, every
+   * label picker and the Slack and Teams pickers list them as the Dashboard
+   * sorts a record's labels (OneUptime issue #5183).
+   */
+  protected override getReadSort(sort: Sort<Model> | undefined): Sort<Model> {
+    return getLabelListSort(
+      sort as Record<string, SortOrder | undefined> | undefined,
+    ) as Sort<Model>;
+  }
+
+  /*
+   * The key labels are put in order by, written from the name once the
+   * create may be made. OneUptime's alone: nobody may write it (create: [],
+   * update: []), and whatever a caller sent in its place is overwritten.
+   */
+  @CaptureSpan()
+  protected override async onCreatePermitted(
+    onCreate: OnCreate<Model>,
+  ): Promise<void> {
+    await super.onCreatePermitted(onCreate);
+
+    const fields: LabelOrderFields = onCreate.createBy
+      .data as unknown as LabelOrderFields;
+
+    fields.nameSortKey = getNaturalSortKey(fields.name);
+  }
+
+  /*
+   * And again from a new name, once the rename may be made: written in
+   * onBeforeUpdate, it would be held to the caller's column permissions,
+   * and nobody may write the key, so every rename would be refused.
+   */
+  @CaptureSpan()
+  protected override async onUpdatePermitted(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    await super.onUpdatePermitted(updateBy);
+
+    const fields: LabelOrderFields =
+      updateBy.data as unknown as LabelOrderFields;
+
+    if (typeof fields.name === "string") {
+      fields.nameSortKey = getNaturalSortKey(fields.name);
+    }
   }
 
   @CaptureSpan()

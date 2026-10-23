@@ -20,7 +20,11 @@ import {
   FILTER_CHIP_TEXT_CLASSES,
 } from "./FilterChipStyles";
 import { showFullValueWhenCutShort } from "Common/UI/Components/Table/FullValueTitle";
+import { COULD_NOT_LOAD_THIS_LIST } from "Common/UI/Components/Table/EmptyTableMessage";
+import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
+import { PeoplePickerKind } from "Common/UI/Components/PeoplePicker/PeoplePickerTypes";
 import FilterChipButton from "./FilterChipButton";
+import useChipPopoverShift from "./useChipPopoverShift";
 import {
   translatableTerm,
   Translator,
@@ -30,6 +34,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -147,6 +152,30 @@ const Avatar: FunctionComponent<{
     size === "xs" ? "h-4 w-4 text-[9px]" : "h-6 w-6 text-[11px]";
 
   /*
+   * A person or a team (the Owner chip): drawn as every owners list draws
+   * them (PeopleAvatar) - the same colour for the same person as in the
+   * Owners column under the chip, their profile picture where they have
+   * one, and a team as a dark tile with a people badge, never a coloured
+   * circle that reads as somebody.
+   */
+  if (option.person) {
+    return (
+      <PeopleAvatar
+        item={{
+          kind:
+            option.person.kind === "team"
+              ? PeoplePickerKind.Team
+              : PeoplePickerKind.User,
+          name: option.label,
+          userId: option.person.userId,
+          hasProfilePicture: option.person.hasProfilePicture,
+        }}
+        size={size === "xs" ? "mini" : "chip"}
+      />
+    );
+  }
+
+  /*
    * Color-only swatch: a small solid dot. Used for labels / monitor status
    * / severity where the entity carries its own brand color.
    */
@@ -201,6 +230,8 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
+  // Moves the open popover left where it would cross the screen's edge.
+  useChipPopoverShift(ref, isComponentVisible);
   const [searchText, setSearchText] = useState<string>("");
   const searchInputRef: React.MutableRefObject<HTMLInputElement | null> =
     useRef<HTMLInputElement | null>(null);
@@ -222,6 +253,15 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
   >(props.options || []);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  /*
+   * The last read of the options failed (async mode). The popover says so,
+   * with Try again, rather than "Nothing to show - No options available",
+   * which read as though the project had no people, no teams or no labels.
+   */
+  const [hasLoadFailed, setHasLoadFailed] = useState<boolean>(false);
+  // Bumped by Try again, to read the options once more.
+  const [loadAttempt, setLoadAttempt] = useState<number>(0);
+
   /**
    * Cache of values → resolved option, populated lazily for selections
    * that aren't in `loadedOptions` (e.g. saved-view restoration before
@@ -238,8 +278,18 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     }
   }, [props.options, isAsync]);
 
-  // Async: load on open + whenever the search term changes (debounced).
-  useEffect(() => {
+  /*
+   * Async: load on open + whenever the search term changes (debounced).
+   *
+   * Loading from the moment the popover opens or the search changes, not
+   * from when the debounced read starts: in between, an Owner chip just
+   * opened said "Nothing to show - No options available", as though the
+   * project had no people and no teams. A layout effect, so the popover's
+   * first frame already says it is loading: a passive effect runs after
+   * the browser may have drawn the popover with nothing in it, and its
+   * update waits for a later task.
+   */
+  useLayoutEffect(() => {
     if (!isAsync || !props.loadOptions) {
       return;
     }
@@ -248,17 +298,21 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
     }
 
     let cancelled: boolean = false;
+
+    setIsLoading(true);
+
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      setIsLoading(true);
       props.loadOptions!(searchText)
         .then((opts: Array<FilterChipDropdownOption>) => {
           if (!cancelled) {
             setLoadedOptions(opts);
+            setHasLoadFailed(false);
           }
         })
         .catch(() => {
           if (!cancelled) {
             setLoadedOptions([]);
+            setHasLoadFailed(true);
           }
         })
         .finally(() => {
@@ -272,7 +326,7 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [isAsync, isComponentVisible, searchText, props.loadOptions]);
+  }, [isAsync, isComponentVisible, searchText, props.loadOptions, loadAttempt]);
 
   const selectedValues: Array<string> = useMemo((): Array<string> => {
     if (props.value === null) {
@@ -632,7 +686,35 @@ const FilterChipDropdown: FunctionComponent<ComponentProps> = (
                 {translator.translateText("Loading...")}
               </div>
             )}
-            {!isLoading && filteredOptions.length === 0 && (
+            {!isLoading && hasLoadFailed && (
+              <div
+                className="flex flex-col items-center gap-2 px-3 py-6 text-center"
+                data-testid="filter-chip-load-error"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="h-4 w-4 text-gray-400"
+                  />
+                </div>
+                <p className="text-sm font-medium text-gray-700">
+                  {translator.translateText(COULD_NOT_LOAD_THIS_LIST)}
+                </p>
+                <button
+                  type="button"
+                  data-testid="filter-chip-load-retry"
+                  onClick={() => {
+                    setLoadAttempt((attempt: number): number => {
+                      return attempt + 1;
+                    });
+                  }}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                >
+                  {translator.translateText("Try again")}
+                </button>
+              </div>
+            )}
+            {!isLoading && !hasLoadFailed && filteredOptions.length === 0 && (
               <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100">
                   <Icon

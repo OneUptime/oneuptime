@@ -65,6 +65,8 @@ oneuptime incident list -o json
 
 Eine Liste fragt OneUptime nach jedem Feld jedes Datensatzes, das der Schlüssel lesen darf. Eine Tabelle zeigt sechs davon; JSON zeigt sie alle (siehe [Ausgabeformate](/docs/cli/output-formats)). Um durch alle Datensätze zu blättern, erhöhen Sie `--skip` um `--limit`, bis eine Seite leer zurückkommt; `count` sagt, wie viele es gibt.
 
+Beschriftungen werden nach Namen statt mit den neuesten zuerst aufgelistet: Beschriftungen, deren Namen mit einer Zahl beginnen, kommen zuerst, in der Reihenfolge dieser Zahl (`2. Team` vor `10. Owner`), danach die übrigen alphabetisch. Für eine andere Reihenfolge geben Sie `--sort` an.
+
 ### Eine Liste filtern
 
 `--query` nimmt denselben Filter wie die API: Ein Feld mit einem Wert passt zu diesem Wert, und ein Objekt mit einem `_type` vergleicht.

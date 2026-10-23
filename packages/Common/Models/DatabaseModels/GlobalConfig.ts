@@ -19,6 +19,10 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import Port from "../../Types/Port";
+import {
+  DEFAULT_TWILIO_CONFIG_USE,
+  TwilioConfigUse,
+} from "../../Types/CallAndSMS/TwilioConfigUse";
 import { Column, Entity } from "typeorm";
 
 export enum EmailServerType {
@@ -489,6 +493,38 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: false,
   })
   public twilioSmsPhoneNumbers?: string = undefined; // phone numbers separated by comma
+
+  /*
+   * What the server's Twilio account is used for, as a project's Twilio
+   * config says it (ProjectCallSMSConfig.usedFor,
+   * Types/CallAndSMS/TwilioConfigUse): calls and SMS - what every
+   * installation's account was, and what the column starts with - SMS only,
+   * or calls only. An account used for SMS only needs no number to make
+   * calls from and makes no calls: then only projects with a Twilio config
+   * of their own that makes calls can make them, and likewise for SMS.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Twilio Used For",
+    description:
+      'What the server\'s Twilio account sends: "Calls and SMS", "SMS only" or "Calls only".',
+    defaultValue: DEFAULT_TWILIO_CONFIG_USE,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    unique: false,
+    default: DEFAULT_TWILIO_CONFIG_USE,
+  })
+  public twilioUsedFor?: TwilioConfigUse = undefined;
 
   @ColumnAccessControl({
     create: [],

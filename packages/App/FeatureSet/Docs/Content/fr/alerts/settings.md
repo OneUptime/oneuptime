@@ -94,8 +94,8 @@ Une règle alerte dès qu'une alerte lui correspond. Pour qu'elle attende plutô
 
 Les **Règles de propriétaire** ajoutent des utilisateurs et des équipes propriétaires aux nouvelles alertes qui correspondent, et les **Règles d'étiquettes** ajoutent des étiquettes. En créer une prend deux étapes : **Correspondance**, les conditions, puis **Propriétaires** ou **Étiquettes**, ce que la règle ajoute. Le **Nom** de la règle suit ce que vous choisissez jusqu'à ce que vous saisissiez le vôtre.
 
-- **Une règle peut hériter.** Repliés sous **Hériter des propriétaires** ou **Hériter des étiquettes**, six interrupteurs transmettent les propriétaires ou les étiquettes du moniteur, des hôtes, des clusters Kubernetes, des hôtes Docker, des hôtes Podman et des services de l'alerte. Les règles d'épisode n'ont pas ces interrupteurs.
-- **Une nouvelle règle doit ajouter quelque chose** : choisissez au moins un propriétaire ou une étiquette, ou activez un interrupteur.
+- **Une règle peut hériter.** Repliés sous **Hériter des propriétaires** ou **Hériter des étiquettes**, six interrupteurs transmettent les propriétaires ou les étiquettes du moniteur, des hôtes, des clusters Kubernetes, des hôtes Docker, des hôtes Podman et des services de l'alerte. Les règles d'épisode n'ont pas ces interrupteurs. La section **Hériter des propriétaires** d'une règle de propriétaires se termine par **Équipe du créateur** : parmi les équipes qui y figurent, chacune dont fait partie la personne qui crée l'alerte devient aussi propriétaire.
+- **Une nouvelle règle doit ajouter quelque chose** : choisissez au moins un propriétaire ou une étiquette, ou activez un interrupteur. Sur une règle de propriétaires d'incident ou d'alerte, une équipe sous **Équipe du créateur** suffit aussi.
 - **Notifier les propriétaires**, sous **Plus de champs** d'une règle de propriétaire, décide si les personnes ajoutées sont prévenues.
 
 [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules) décrit le formulaire étape par étape, pour chaque type de ressource.

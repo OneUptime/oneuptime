@@ -1,3 +1,4 @@
+import { fitDetectionRuleName } from "Common/Types/SecurityEvent/DetectionRuleName";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -253,7 +254,9 @@ function readTopLevelTitle(lines: Array<string>): string {
  * The rule's name once its Sigma rule changes: the new title while the
  * name is still the form's own - empty, or the title the rule had before.
  * Null when the name stays: somebody typed their own, or the title is the
- * same.
+ * same. A title longer than a name may be is cut to fit
+ * (fitDetectionRuleName), as the server cuts the name it defaults, so the
+ * form never refuses a name nobody typed.
  */
 export function getDetectionRuleNameAfterYamlChange(data: {
   name: unknown;
@@ -261,8 +264,10 @@ export function getDetectionRuleNameAfterYamlChange(data: {
   nextYaml: unknown;
 }): string | null {
   const name: string = typeof data.name === "string" ? data.name.trim() : "";
-  const previous: string = getSigmaRuleTitle(data.previousYaml);
-  const next: string = getSigmaRuleTitle(data.nextYaml);
+  const previous: string = fitDetectionRuleName(
+    getSigmaRuleTitle(data.previousYaml),
+  );
+  const next: string = fitDetectionRuleName(getSigmaRuleTitle(data.nextYaml));
 
   if (!next || name === next) {
     return null;

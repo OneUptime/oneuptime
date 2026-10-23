@@ -1,5 +1,4 @@
 import IconProp from "Common/Types/Icon/IconProp";
-import User from "Common/Models/DatabaseModels/User";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EventStatusFact } from "../EventView/EventStatusPanel";
@@ -14,17 +13,18 @@ export type EpisodeMemberNoun = "incident" | "alert";
 
 export interface EpisodeHeaderFactsInput {
   groupingRuleName?: string | undefined;
-  createdByName?: string | undefined;
   lastMemberAddedAt?: Date | undefined;
   memberNoun: EpisodeMemberNoun;
 }
 
 /**
- * The context line under an episode header: how the episode was formed, who
- * opened it and when it last grew. Facts with no value are left out here
- * rather than rendered as "-", so a brand new episode does not show an empty
- * "Last incident added". The panel looks the labels up; the values that are
- * our own words are given in the reader's language here.
+ * The context line under an episode header, after who runs it (the page's
+ * people facts): how the episode was formed and when it last grew. Who
+ * opened it is said under when, in the stat bar's first tile. Facts with no
+ * value are left out here rather than rendered as "-", so a brand new
+ * episode does not show an empty "Last incident added". The panel looks the
+ * labels up; the values that are our own words are given in the reader's
+ * language here.
  */
 export function getEpisodeHeaderFacts(
   input: EpisodeHeaderFactsInput,
@@ -37,12 +37,6 @@ export function getEpisodeHeaderFacts(
         input.groupingRuleName ||
         (translator.translateText("Manual episode") as string),
       icon: IconProp.Layers,
-    },
-    {
-      label: "Created by",
-      value:
-        input.createdByName || (translator.translateText("System") as string),
-      icon: IconProp.User,
     },
   ];
 
@@ -59,27 +53,6 @@ export function getEpisodeHeaderFacts(
 
   return facts;
 }
-
-type GetEpisodeCreatorNameFunction = (
-  user: User | null | undefined,
-  translator?: Translator,
-) => string | undefined;
-
-// The name the header shows for createdByUser; undefined means "System".
-export const getEpisodeCreatorName: GetEpisodeCreatorNameFunction = (
-  user: User | null | undefined,
-  translator: Translator = getGlobalTranslator(),
-): string | undefined => {
-  if (!user) {
-    return undefined;
-  }
-
-  return (
-    user.name?.toString().trim() ||
-    user.email?.toString().trim() ||
-    translator.translateText("Unknown user")
-  );
-};
 
 export interface EpisodeHeaderSkeletonProps {
   loadingText?: string | undefined;

@@ -13,6 +13,7 @@ import React, {
   useState,
 } from "react";
 import Color from "../../../Types/Color";
+import { sortByNaturalName } from "../../../Utils/NaturalOrder";
 import Label from "../../../Models/DatabaseModels/Label";
 import Select, {
   components as ReactSelectComponents,
@@ -386,17 +387,23 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       return [];
     }
 
-    return labels
-      .map((label: DropdownOptionLabel) => {
-        return normalizeDropdownLabel(label);
-      })
-      .filter(
-        (
-          label: NormalizedDropdownLabel | null,
-        ): label is NormalizedDropdownLabel => {
-          return label !== null;
-        },
-      );
+    // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+    return sortByNaturalName<NormalizedDropdownLabel>(
+      labels
+        .map((label: DropdownOptionLabel) => {
+          return normalizeDropdownLabel(label);
+        })
+        .filter(
+          (
+            label: NormalizedDropdownLabel | null,
+          ): label is NormalizedDropdownLabel => {
+            return label !== null;
+          },
+        ),
+      (label: NormalizedDropdownLabel): string => {
+        return label.name;
+      },
+    );
   };
 
   const renderOptionColorIndicator: (

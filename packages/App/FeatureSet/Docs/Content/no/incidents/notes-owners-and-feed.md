@@ -288,7 +288,7 @@ Feeder respekterer hendelsens personvern: for private hendelser filtreres feeden
 
 Eiere er personene og teamene som har ansvaret for en hendelse. De er mottakerne av varslene om alt som skjer med den — og de er grunnen til at en hendelse ikke går ubemerket hen mens alle tror at noen andre tar seg av den.
 
-Åpne **Team → Eiere** i hendelsens sidemeny. Kortet **Eiere** viser et merke med et antall og beskriver eiere som personene og teamene som har ansvaret for denne hendelsen og får beskjed om endringer, med en løpende opptelling som "2 people · 1 team". Eiere vises som overlappende avatarer; holder du musen over en, vises personens e-postadresse, eller oppføringen merkes som et **Team**.
+Åpne **Team → Eiere** i hendelsens sidemeny. Kortet **Eiere** viser et merke med et antall og beskriver eiere som personene og teamene som har ansvaret for denne hendelsen og får beskjed om endringer, med en løpende opptelling som "2 people · 1 team". Eiere vises som overlappende avatarer; holder du musen over en, vises personens e-postadresse, eller oppføringen merkes som et **Team**. Hendelsens **Oversikt** nevner også eierne i toppen, team først: opptil tre, deretter en lenke til resten på denne siden. Så lenge en åpen hendelse ikke har eiere, står **Legg til** på deres plass og åpner denne siden; en løst hendelse viser **Ingen**.
 
 - Klikk på **Legg til eier** for å åpne en velger med et søkefelt for personer eller team.
 - Klikk på fjerningselementet på en avatar for å åpne bekreftelsen **Fjern eier**, og deretter på **Fjern**.
@@ -300,8 +300,9 @@ Bare prosjektets egne team og medlemmer kan være eiere. Velgeren tilbyr bare de
 
 ## Hvordan eiere tildeles
 
-Det er fire veier inn på listen over eiere:
+Det er fem veier inn på listen over eiere:
 
+- **Ved erklæring** — den som erklærer en hendelse, blir eier, og **Eiere** under **Flere felt** i **Erklær hendelse** legger til flere: hvert team personen er medlem av, er ett klikk unna under feltet. Se [Hvem som eier den](/docs/incidents/declaring-incidents#hvem-som-eier-den).
 - **Fra en hendelsesmal** — maler har et felt **Eiere**: personene og teamene som eier hendelsen og får beskjed når den opprettes eller oppdateres, valgt fra den samme listen som **Legg til eier**. Å opprette en hendelse fra malen forhåndsutfyller dem, og de legges til når hendelsens Slack- og Microsoft Teams-kanaler finnes, slik at en varselregel som inviterer hendelsens eiere til en ny kanal, også inviterer dem. Dashbordet, og trinnet **Create One Incident** i en arbeidsflyt med en valgt **Incident Template**, legger dem til uten varselet «du er lagt til»; et [skjema](/docs/forms/on-submit) med en mal gir dem beskjed og holder hendelsens varsel **Hendelse opprettet** tilbake til de er lagt til. Se [Opprette en hendelse](/docs/incidents/declaring-incidents).
 - **Fra Eierregler for hendelse** — samsvarende regler legger til eiere automatisk ved opprettelsen.
 - **Ved opprettelse via API-et** — brukere og team som oppgis som eiere med opprettelseskallet, legges til på samme måte, når kanalene finnes, og uten varselet «du er lagt til».
@@ -316,9 +317,9 @@ Det er fire veier inn på listen over eiere:
 Regelskjemaet har to trinn — **Treff**, betingelsene en hendelse må oppfylle, og deretter **Eiere**, det regelen legger til:
 
 - **Eiere** — **Legg til eier** åpner én liste med personer og team; klikk på hver for å legge den til, og fjern et valg med **×** på merket. Når regelen samsvarer, legges hver valgt person og hvert valgt team til som eier, og eiere som allerede er tildelt, dupliseres ikke.
-- **Arv eiere**, brettet sammen under **Eiere** — tildel eiere fra relaterte enheter i stedet for å nevne dem. **Arv eiere fra overvåkere** gjør hver eier av hendelsens monitorer til eier av hendelsen, og **Arv eiere fra verter**, **Arv eiere fra Kubernetes-klynger**, **Arv eiere fra Docker-verter**, **Inherit Owners From Podman Hosts** og **Arv eiere fra tjenester** gjør det samme for de ressursene.
+- **Arv eiere**, brettet sammen under **Eiere** — tildel eiere fra relaterte enheter i stedet for å nevne dem. **Arv eiere fra overvåkere** gjør hver eier av hendelsens monitorer til eier av hendelsen, og **Arv eiere fra verter**, **Arv eiere fra Kubernetes-klynger**, **Arv eiere fra Docker-verter**, **Inherit Owners From Podman Hosts** og **Arv eiere fra tjenester** gjør det samme for de ressursene. Sist i seksjonen lister **Oppretterens team** opp team: når den som erklærer en samsvarende hendelse, er med i et av dem, blir det teamet også eier. Se [Oppretterens team](/docs/configuration/label-and-owner-rules#oppretterens-team).
 
-En ny regel må legge til noen: velg minst én eier, eller slå på en bryter under **Arv eiere**. API-et og Terraform avviser også en ny regel som ikke legger til noen. **Navn** fylles ut fra eierne du velger — eller, på en regel som bare arver, fra bryterne (_Inherit owners from monitors_) — til du skriver et eget navn. Å redigere en regel krever aldri eiere, så en eldre regel som ikke legger til noe, kan fortsatt få nytt navn eller slås av; listen merker den med **Legger ikke til noe**. Se [Etikett- og eierregler](/docs/configuration/label-and-owner-rules).
+En ny regel må legge til noen: velg minst én eier, slå på en bryter under **Arv eiere**, eller legg til et team under **Oppretterens team**. API-et og Terraform avviser også en ny regel som ikke legger til noen. **Navn** fylles ut fra eierne du velger — eller, på en regel som bare arver, fra bryterne (_Inherit owners from monitors_) — til du skriver et eget navn. Å redigere en regel krever aldri eiere, så en eldre regel som ikke legger til noe, kan fortsatt få nytt navn eller slås av; listen merker den med **Legger ikke til noe**. Se [Etikett- og eierregler](/docs/configuration/label-and-owner-rules).
 
 **Varsle eiere**, under **Flere felt**, styrer om folk får vite det. La den være slått på for ekte ruting; slå den av for å legge til eiere stille — nyttig når en regel er en administrativ bekvemmelighet og ikke en tilkalling.
 

@@ -408,18 +408,23 @@ describe("duration display wiring", () => {
     expect(maintenanceTable).toContain("endDate={item.endsAt}");
   });
 
-  it("uses the declared incident time on the detail page", () => {
+  /*
+   * How long an incident or alert has lasted is said once: by the header,
+   * beside its state ("Lasted 11 minutes"). The stat bar opens with when it
+   * began instead of a Duration tile that said it again.
+   */
+  it("uses the declared incident time on the detail page, in the header alone", () => {
     expect(incidentView).toContain("declaredAt: true");
     expect(incidentView).toContain("eventStartsAt={durationStartDate}");
     expect(incidentView).toContain("getEventEndDateForCurrentState");
-    expect(incidentView).toContain('label="Duration"');
+    expect(incidentView).not.toContain('label="Duration"');
   });
 
-  it("uses the alert creation time on the detail page", () => {
+  it("uses the alert creation time on the detail page, in the header alone", () => {
     expect(alertView).toContain("createdAt: true");
     expect(alertView).toContain("eventStartsAt={durationStartDate}");
     expect(alertView).toContain("getEventEndDateForCurrentState");
-    expect(alertView).toContain('label="Duration"');
+    expect(alertView).not.toContain('label="Duration"');
   });
 
   it("labels the scheduled maintenance view statistic as duration", () => {

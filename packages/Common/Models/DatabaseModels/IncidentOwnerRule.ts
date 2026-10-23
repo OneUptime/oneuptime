@@ -740,6 +740,63 @@ export default class IncidentOwnerRule extends RuleBaseModel {
   })
   public ownerTeams?: Array<Team> = undefined;
 
+  /*
+   * The creator's team: of these teams, each one the person who declares a
+   * matching incident is a member of becomes an owner too (Server/Utils/
+   * Rules/CreatorTeams). A list rather than "every team of the creator":
+   * people are in the project's Members team by default, which would make
+   * everyone an owner. An incident a monitor, a workflow or an API key
+   * declares has no creator, and gets none of these teams.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateIncidentOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditIncidentOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Team,
+    title: "Creator's Teams",
+    description:
+      "Teams added as owners when the person who declares a matching incident is a member of them. Incidents with no creator get none.",
+  })
+  @ManyToMany(
+    () => {
+      return Team;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentOwnerRuleCreatorTeam",
+    inverseJoinColumn: {
+      name: "teamId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentOwnerRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public creatorTeams?: Array<Team> = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

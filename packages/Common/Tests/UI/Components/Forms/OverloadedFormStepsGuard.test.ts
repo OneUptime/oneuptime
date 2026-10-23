@@ -93,6 +93,18 @@ export const LONG_STEPS_ALLOWED: Array<ListedStep> = [
       "Only the rule type and the one or two fields that type uses ever show: From and To to rename, Key and Value to add an attribute, a replacement to redact, a percentage to sample. The other fields are alternatives, never on screen together.",
   },
   /*
+   * A Twilio config asks what the account is used for on its Basic step
+   * (Dashboard Components/CallSMS/TwilioConfigUseCopy), and this step then
+   * shows the fields of that answer alone.
+   */
+  {
+    file: `${DASHBOARD}/Components/CallSMS/CallSMSConfigTable.tsx`,
+    form: "ModelTable: Settings > Custom CallSMS Config",
+    step: "twilio-info",
+    reason:
+      "Every field after the token is written once for each answer to Use This Account For (calls and SMS, SMS only, calls only) with a showIf for that answer alone: the one number the answer takes, the default switch whose help names what goes through the default, and the folded extra numbers. The step shows five rows at most - the account SID, the token, one number, the switch and the More fields line - and four for SMS only.",
+  },
+  /*
    * The mail server forms (Common/UI/Components/SmtpConfig): Server, then
    * Sender. The Admin Dashboard's instance server is the same step without
    * the Name, five rows; SmtpConfigFormsGuard pins both.

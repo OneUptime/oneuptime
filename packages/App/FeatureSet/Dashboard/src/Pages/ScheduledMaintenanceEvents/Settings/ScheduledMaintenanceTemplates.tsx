@@ -7,6 +7,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ScheduledMaintenanceTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import ScheduledMaintenanceTemplateOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerTeam";
+import ScheduledMaintenanceTemplateOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceTemplateOwnerUser";
+import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../Components/ResourceOwners/useResourceOwners";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -563,6 +567,29 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  /*
+   * The Owner chip above the table: a template can be found by the person
+   * or the team that owns it - who may change it, and who owns the events made
+   * from it - the server answering the chip in the list's own query, and the
+   * Owners column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<ScheduledMaintenanceTemplate>({
+    persistKey: "scheduled-maintenance-templates-table",
+    ownerUserModelType: ScheduledMaintenanceTemplateOwnerUser,
+    ownerTeamModelType: ScheduledMaintenanceTemplateOwnerTeam,
+    resourceIdField: "scheduledMaintenanceTemplateId",
+  });
+
   return (
     <Fragment>
       <ModelTable<ScheduledMaintenanceTemplate>
@@ -585,8 +612,15 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
             "Ready-made maintenance events for work you do often, with the title, monitors, status pages and notifications filled in. Use one with Create from Template, or make it recurring to schedule events automatically.",
         }}
         noItemsMessage={"No Scheduled Maintenance templates found."}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,
+        })}
+        onFetchSuccess={(data: Array<ScheduledMaintenanceTemplate>) => {
+          onResourcesFetched(data);
         }}
         selectMoreFields={{
           // The Recurring Event column reads the switch beside the next time.
@@ -660,6 +694,22 @@ const ScheduledMaintenanceTemplates: FunctionComponent<PageComponentProps> = (
                     },
                   )}
                 </span>
+              );
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ScheduledMaintenanceTemplate): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
               );
             },
           },

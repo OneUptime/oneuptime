@@ -249,8 +249,31 @@ describe("buildIncidentNoteTemplateVariables: the incident's own values", () => 
     const variables: NoteTemplateVariables =
       buildIncidentNoteTemplateVariables(source());
 
-    expect(variables["incident.labels"]).toBe("Region East, Payments");
+    // Labels in natural order, as they are listed everywhere (Utils/LabelOrder).
+    expect(variables["incident.labels"]).toBe("Payments, Region East");
     expect(variables["incident.affectedStatusPages"]).toBe("Site 03, Site 07");
+  });
+
+  /*
+   * OneUptime issue #5183: numbered labels first, by their numbers - 10
+   * after 2, not after 1 - then the others, whatever order the incident's
+   * labels were read in.
+   */
+  test("labels are listed in natural order, numbered ones first", () => {
+    const variables: NoteTemplateVariables = buildIncidentNoteTemplateVariables(
+      source({
+        labelNames: [
+          "Claude",
+          "10.Owner=Platform",
+          "2.SubCategory=Website",
+          "1.Category=Application",
+        ],
+      }),
+    );
+
+    expect(variables["incident.labels"]).toBe(
+      "1.Category=Application, 2.SubCategory=Website, 10.Owner=Platform, Claude",
+    );
   });
 
   test("an incident with no labels fills the placeholder with nothing", () => {

@@ -67,6 +67,7 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
+import { compareNaturally } from "../../../Utils/NaturalOrder";
 import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 import {
   composedValue,
@@ -644,6 +645,19 @@ const ModelForm: <TBaseModel extends BaseModel>(
             const iKeys: Array<string> = Object.keys(fieldObj);
             const iFieldKey: string =
               i.overrideFieldKey || (iKeys[0] as string);
+
+            /*
+             * Two fields for one column that are each shown only on a
+             * condition are both kept: the form shows one at a time, and
+             * both edit the same value - a Twilio config's SMS numbers are
+             * required and open when the config is used for SMS only, and
+             * optional and folded when it makes calls too
+             * (CallSMSConfigTable). Their conditions must never both hold.
+             */
+            if (i.showIf && field.showIf) {
+              return false;
+            }
+
             return iFieldKey === effectiveFieldKey;
           }).length === 0
         ) {
@@ -1119,14 +1133,17 @@ const ModelForm: <TBaseModel extends BaseModel>(
                 }
               }
 
-              // sort category by name.
-
+              /*
+               * The labels in natural order by name, as labels are listed
+               * everywhere (Utils/LabelOrder): numbered ones first, by their
+               * numbers, then the others alphabetically.
+               */
               localLabels = localLabels.sort(
                 (a: AccessControlModel, b: AccessControlModel) => {
-                  return a
-                    .getColumnValue("name")!
-                    .toString()
-                    .localeCompare(b.getColumnValue("name")?.toString() || "");
+                  return compareNaturally(
+                    a.getColumnValue("name")?.toString() || "",
+                    b.getColumnValue("name")?.toString() || "",
+                  );
                 },
               );
 

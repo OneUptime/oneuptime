@@ -74,6 +74,10 @@ Werkt uw team al in een SIEM, dan stuurt OneUptime wat het vindt ook daarheen. K
 Uw rol mag geen detectieregels, playbooks of de logbron toevoegen. Vraag het een Project Owner, een Project Admin of een Security Admin, of laat hen u de rol Security Admin geven.
 :::
 
+:::details Turn on recommended kon niet alles inschakelen
+De kaart noemt alles wat niet kon worden ingeschakeld, en waarom: uw rol, uw abonnement of een fout aan de kant van OneUptime. Al het andere staat aan. Los op wat de kaart noemt en klik daarna op **Opnieuw proberen**: alleen wat nog ontbreekt wordt ingeschakeld, en niets wordt twee keer toegevoegd.
+:::
+
 :::details De testaanval heeft geen zaak geopend
 Meestal is de zaak al open voordat de knop antwoordt; loopt de regel nog achter, dan meldt hij dat en opent de zaak binnen een minuut. Kijk opnieuw bij **Beveiligingszaken** en controleer onder **Detections** of de brute-forceregel aanstaat.
 :::

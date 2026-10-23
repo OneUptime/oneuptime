@@ -7,6 +7,7 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
+import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import {
   RunbookStep,
   isLegacyKubernetesStepConfig,
@@ -238,14 +239,12 @@ export const QueryRunbooksTool: ObservabilityTool = {
 
       const steps: Array<RunbookStep> = parseSteps(runbook.steps);
 
-      const labels: string = (runbook.labels || [])
-        .map((label: { name?: string }) => {
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      const labels: string = sortLabelNames(
+        (runbook.labels || []).map((label: { name?: string }) => {
           return label.name || "";
-        })
-        .filter((value: string) => {
-          return value.length > 0;
-        })
-        .join(", ");
+        }),
+      ).join(", ");
 
       /*
        * Recent executions are fetched best-effort: RunbookExecution has its

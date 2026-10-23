@@ -74,6 +74,10 @@ If your team already works in a SIEM, OneUptime sends what it finds there too. U
 Your role cannot add detection rules, playbooks or the logs source. Ask a Project Owner, a Project Admin or a Security Admin, or have them give you the Security Admin role.
 :::
 
+:::details Turn on recommended could not turn everything on
+The card names each thing it could not turn on, and why: your role, your plan, or something that went wrong on OneUptime's side. Everything else is on. Fix what it names, then click **Try again**: it turns on only what is still missing, and adds nothing twice.
+:::
+
 :::details The test attack did not open a case
 The case usually opens before the button answers; when the rule is still catching up, it says so and the case opens within a minute. Check **Security Cases** again, and that the brute force rule is on under **Detections**.
 :::

@@ -159,6 +159,8 @@ interface LabelledValue {
 interface StatCell {
   label: string;
   value: string;
+  // A second reading of the value, under it: "3 minutes after impact began".
+  note?: string;
   description?: string;
 }
 
@@ -193,10 +195,16 @@ interface EventPage {
   recordId: string;
   /*
    * When the record was created, on that same line after the ID, for the
-   * cards that show it. An incident's card says when it was declared, as a
-   * field, instead.
+   * cards that show it. An incident's card does not: when it was declared,
+   * and by whom, is the stat bar's Declared tile, and nowhere else.
    */
   recordCreated?: string | undefined;
+  /*
+   * The What happened card that opens the left column: the record's
+   * description, and its root cause or null for none yet. Left out on a page
+   * without the card (scheduled maintenance).
+   */
+  whatHappened?: { description: string; rootCause: string | null } | undefined;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -210,7 +218,7 @@ const INCIDENT_PAGE: EventPage = {
     REPORT_CAVEAT,
     "Rolling checkout-api back to 2026.09.14-1",
     "Communications Lead",
-    "eu-west-1 probe",
+    "By eu-west-1 probe",
     "4 resources",
     // The Measurements card, which reads its own rows.
     "Time to postmortem",
@@ -218,16 +226,30 @@ const INCIDENT_PAGE: EventPage = {
   state: "Resolved",
   severity: "SEV-2",
   duration: "Lasted 11 minutes",
+  /*
+   * Who is on it before what it touched: the Incident Commander (the roles
+   * card's primary role) and the owners, teams first.
+   */
   facts: [
-    { label: "Declared", value: "Sep 14 2026, 06:01 PM GMT" },
-    { label: "Declared by", value: "eu-west-1 probe" },
+    { label: "Incident Commander", value: "Maya Chen" },
+    { label: "Owners", value: "Checkout SRE, Sam Rivera" },
     {
       label: "Monitors",
       value: "Checkout API p95 latency, Orders DB connection pool",
     },
   ],
   statBar: "Incident response times",
+  /*
+   * When it was declared, how long after the impact began and by whom, then
+   * the response. How long it lasted is the header's, beside its state.
+   */
   stats: [
+    {
+      label: "Declared",
+      value: "Sep 14, 06:01 PM GMT",
+      note: "3 minutes after impact began",
+      description: "By eu-west-1 probe",
+    },
     {
       label: "Acknowledged in",
       value: "3 minutes",
@@ -238,22 +260,16 @@ const INCIDENT_PAGE: EventPage = {
       value: "11 minutes",
       description: "Sep 14 2026, 06:12 PM GMT",
     },
-    {
-      label: "Duration",
-      value: "11 minutes",
-      description: "Ended Sep 14 2026, 06:12 PM GMT",
-    },
   ],
+  // What it touched leads the column.
   rightColumn: [
+    "Affected Resources",
     "Incident Details",
     "Measurements",
     "Incident Roles",
-    "Affected Resources",
   ],
   detailsCard: "Incident Details",
   detailLabels: [
-    "Declared At",
-    "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, read only.
@@ -262,6 +278,12 @@ const INCIDENT_PAGE: EventPage = {
     "Incident Number",
   ],
   recordId: INCIDENT_ID,
+  whatHappened: {
+    description:
+      "The API monitor for POST /api/checkout reported p95 latency of 2.4s for 3 consecutive checks from the eu-west-1 probe.",
+    rootCause:
+      "checkout-api 2026.09.14-2 started with DB_POOL_MAX=10 (was 40). Rolled back at 18:10.",
+  },
 };
 
 const ALERT_PAGE: EventPage = {
@@ -283,13 +305,19 @@ const ALERT_PAGE: EventPage = {
   state: "Resolved",
   severity: "High",
   duration: "Lasted 9 minutes",
+  // An alert has no roles: its owners lead.
   facts: [
-    { label: "Created", value: "Sep 14 2026, 06:06 PM GMT" },
+    { label: "Owners", value: "Payments" },
     { label: "Monitor", value: "Payment webhook error rate" },
     { label: "Episode", value: "Payment webhook failures — Sep 14" },
   ],
   statBar: "Alert response times",
   stats: [
+    {
+      label: "Created",
+      value: "Sep 14, 06:06 PM GMT",
+      description: "By eu-west-1 probe",
+    },
     {
       label: "Acknowledged in",
       value: "2 minutes",
@@ -300,16 +328,10 @@ const ALERT_PAGE: EventPage = {
       value: "9 minutes",
       description: "Sep 14 2026, 06:15 PM GMT",
     },
-    {
-      label: "Duration",
-      value: "9 minutes",
-      description: "Ended Sep 14 2026, 06:15 PM GMT",
-    },
   ],
-  rightColumn: ["Alert Details", "Measurements", "Affected Resources"],
+  rightColumn: ["Affected Resources", "Alert Details", "Measurements"],
   detailsCard: "Alert Details",
   detailLabels: [
-    "Created By",
     "Monitor",
     "Episode",
     "On-Call Duty Policies",
@@ -318,6 +340,11 @@ const ALERT_PAGE: EventPage = {
   ],
   recordId: ALERT_ID,
   recordCreated: "Sep 14 2026, 06:06 PM GMT",
+  whatHappened: {
+    description:
+      "payments-webhooks returned 5xx for 7.8% of payment provider callbacks over the last 5 minutes.",
+    rootCause: null,
+  },
 };
 
 const SCHEDULED_MAINTENANCE_PAGE: EventPage = {
@@ -394,15 +421,21 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
   severity: "SEV-2",
   duration: "Lasted 18 minutes",
   facts: [
+    { label: "Incident Commander", value: "Maya Chen" },
+    { label: "Owners", value: "Checkout SRE, Sam Rivera" },
     { label: "Grouping", value: "Checkout incidents within 30 minutes" },
-    { label: "Created by", value: "System" },
     { label: "Last incident added", value: "19 minutes ago" },
   ],
   statBar: "Episode timing",
   stats: [
+    // A grouping rule opened it: nobody to name.
+    {
+      label: "Declared",
+      value: "Sep 14, 05:56 PM GMT",
+      description: "Automatically",
+    },
     { label: "Acknowledged in", value: "8 minutes" },
     { label: "Resolved in", value: "18 minutes" },
-    { label: "Duration", value: "18 minutes" },
     { label: "Incidents", value: "4" },
   ],
   rightColumn: ["Episode Details", "Episode Roles"],
@@ -413,12 +446,16 @@ const INCIDENT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Incident Count",
     "Grouping Rule",
-    "Created By",
     "On-Call Duty Policies",
     "Labels",
   ],
   recordId: INCIDENT_EPISODE_ID,
   recordCreated: "Sep 14 2026, 05:56 PM GMT",
+  whatHappened: {
+    description:
+      "Grouped automatically: four checkout incidents opened within 30 minutes of each other.",
+    rootCause: null,
+  },
 };
 
 const ALERT_EPISODE_PAGE: EventPage = {
@@ -438,15 +475,19 @@ const ALERT_EPISODE_PAGE: EventPage = {
   severity: "High",
   duration: "Lasted 36 minutes",
   facts: [
+    { label: "Owners", value: "Payments" },
     { label: "Grouping", value: "Payments webhook alerts" },
-    { label: "Created by", value: "System" },
     { label: "Last alert added", value: "14 minutes ago" },
   ],
   statBar: "Episode timing",
   stats: [
+    {
+      label: "Created",
+      value: "Sep 14, 05:40 PM GMT",
+      description: "Automatically",
+    },
     { label: "Acknowledged in", value: "15 minutes" },
     { label: "Resolved in", value: "36 minutes" },
-    { label: "Duration", value: "36 minutes" },
     { label: "Alerts", value: "5" },
   ],
   rightColumn: ["Episode Details"],
@@ -457,12 +498,16 @@ const ALERT_EPISODE_PAGE: EventPage = {
     "Episode Severity",
     "Alert Count",
     "Grouping Rule",
-    "Created By",
     "On-Call Duty Policies",
     "Labels",
   ],
   recordId: ALERT_EPISODE_ID,
   recordCreated: "Sep 14 2026, 05:40 PM GMT",
+  whatHappened: {
+    description:
+      "Grouped automatically: payment webhook alerts from the same monitor group.",
+    rootCause: null,
+  },
 };
 
 const EVENT_PAGES: ReadonlyArray<EventPage> = [
@@ -547,6 +592,30 @@ async function expectPageReady(
   for (const text of readyTexts) {
     await expect(page.getByText(text).first()).toBeVisible({ timeout: 30000 });
   }
+  /*
+   * A page that leads with What happened also names its owners in the
+   * header, read on their own: wait for both, so nothing moves after.
+   */
+  if (eventPage.whatHappened) {
+    await expect(hero(page).getByTestId("event-owners")).toBeVisible({
+      timeout: 30000,
+    });
+    await expectWhatHappenedSettled(page);
+  }
+}
+
+/*
+ * What happened leads the left column of an incident, alert or episode, and
+ * the markdown viewer that draws its text loads on its own: every card under
+ * it moves down when the viewer lands. Anything that measures the page waits
+ * for it.
+ */
+async function expectWhatHappenedSettled(page: Page): Promise<void> {
+  const whatHappened: Locator = page.getByTestId("what-happened");
+  await expect(whatHappened).toBeVisible({ timeout: 30000 });
+  await expect(whatHappened.getByRole("status")).toHaveCount(0, {
+    timeout: 30000,
+  });
 }
 
 async function openReady(
@@ -801,6 +870,11 @@ function investigationCard(page: Page): Locator {
   return card(page, "AI Investigation");
 }
 
+// The card that opens an incident's, alert's or episode's left column.
+function whatHappenedCard(page: Page): Locator {
+  return card(page, "What happened");
+}
+
 function hero(page: Page): Locator {
   return page
     .getByRole("group", { name: "Event actions" })
@@ -949,25 +1023,66 @@ async function definitionPairs(scope: Locator): Promise<Array<LabelledValue>> {
     });
 }
 
+/*
+ * Each tile of a stat bar: its label, value, note (the value's second
+ * reading, as large as body text) and description (the small print). A start
+ * time keeps its date and its time whole with no-break spaces; it is read
+ * here with plain ones, and the start tile's own tests check the spaces.
+ */
 async function statCells(page: Page, name: string): Promise<Array<StatCell>> {
   return page
     .getByRole("group", { name, exact: true })
     .locator(":scope > div")
     .evaluateAll((cells: Array<Element>): Array<StatCell> => {
+      const noBreakSpace: string = String.fromCharCode(0xa0);
+      const text: (element: Element | undefined) => string = (
+        element: Element | undefined,
+      ): string => {
+        return (element?.textContent || "")
+          .split(noBreakSpace)
+          .join(" ")
+          .trim();
+      };
       return cells.map((cell: Element): StatCell => {
-        const parts: Array<string> = Array.from(cell.children).map(
-          (child: Element): string => {
-            return (child.textContent || "").trim();
-          },
-        );
+        const lines: Array<Element> = Array.from(cell.children);
         const result: StatCell = {
-          label: parts[0] || "",
-          value: parts[1] || "",
+          label: text(lines[0]),
+          value: text(lines[1]),
         };
-        if (parts[2]) {
-          result.description = parts[2];
+        for (const line of lines.slice(2)) {
+          if (line.classList.contains("text-xs")) {
+            result.description = text(line);
+          } else {
+            result.note = text(line);
+          }
         }
         return result;
+      });
+    });
+}
+
+/*
+ * The header's facts as they read: a fact that names people - the Incident
+ * Commander, the owners - lists their names, without the avatars' initials.
+ */
+async function heroFacts(header: Locator): Promise<Array<LabelledValue>> {
+  return header
+    .locator("dl > div")
+    .evaluateAll((rows: Array<Element>): Array<LabelledValue> => {
+      return rows.map((row: Element): LabelledValue => {
+        const value: Element | null = row.querySelector("dd");
+        const names: Array<string> = Array.from(
+          value?.querySelectorAll("[data-testid='event-person-name']") || [],
+        ).map((name: Element): string => {
+          return (name.textContent || "").trim();
+        });
+        return {
+          label: (row.querySelector("dt")?.textContent || "").trim(),
+          value:
+            names.length > 0
+              ? names.join(", ")
+              : (value?.textContent || "").trim(),
+        };
       });
     });
 }
@@ -3570,6 +3685,8 @@ async function openCardState(page: Page, state: CardState): Promise<Locator> {
     state.badge,
     { timeout: 30000 },
   );
+  // What happened sits above the card: measure only once it stops moving.
+  await expectWhatHappenedSettled(page);
   return investigation;
 }
 
@@ -5638,7 +5755,7 @@ async function expectHero(page: Page, eventPage: EventPage): Promise<void> {
     await expectRenderedText(header, eventPage.severity);
   }
   await expectRenderedText(header, eventPage.duration);
-  expect(await definitionPairs(header)).toEqual(eventPage.facts);
+  expect(await heroFacts(header)).toEqual(eventPage.facts);
 }
 
 async function expectRightColumn(
@@ -5944,10 +6061,11 @@ test.describe("incident and alert overview", () => {
       hero(page),
       "Acknowledged SEV-2 Ongoing for 19 minutes",
     );
+    // How long it has run is the header's, beside its state.
     expect(await statCells(page, INCIDENT_PAGE.statBar)).toEqual([
       INCIDENT_PAGE.stats[0],
+      INCIDENT_PAGE.stats[1],
       { label: "Resolved in", value: "Not yet resolved" },
-      { label: "Duration", value: "19 minutes" },
     ]);
 
     const incidentReadsBefore: number = (await fixture(page)).getItemRequests
@@ -6015,9 +6133,9 @@ test.describe("incident and alert overview", () => {
       DECLARE_INCIDENT,
     ]);
     expect(await statCells(page, ALERT_PAGE.statBar)).toEqual([
+      ALERT_PAGE.stats[0],
       { label: "Acknowledged in", value: "Not yet acknowledged" },
       { label: "Resolved in", value: "Not yet resolved" },
-      { label: "Duration", value: "14 minutes" },
     ]);
 
     await watchForSkeleton(page);
@@ -9076,14 +9194,19 @@ test.describe("responsive", () => {
 
   /*
    * A card's title stands at the card's padding whatever its header holds:
-   * the episode's members card (a count pill and a link beside its title)
-   * and Episode Details (Edit, centred on its title) open the two columns
-   * side by side, and their titles line up.
+   * What happened (Edit at the right of its title's line, as the wide
+   * column's cards have it) opens the left column, and the first card of the
+   * right one - Affected Resources on an incident or an alert, Episode
+   * Details on an episode (Edit, centred on its title, as the narrow
+   * column's stacked headers have it) - opens the right, side by side, and
+   * their titles line up.
    */
-  for (const [eventPage, membersTitle] of [
-    [INCIDENT_EPISODE_PAGE, /^Incidents in this episode/],
-    [ALERT_EPISODE_PAGE, /^Alerts in this episode/],
-  ] as Array<[EventPage, RegExp]>) {
+  for (const [eventPage, rightTitle] of [
+    [INCIDENT_PAGE, "Affected Resources"],
+    [ALERT_PAGE, "Affected Resources"],
+    [INCIDENT_EPISODE_PAGE, "Episode Details"],
+    [ALERT_EPISODE_PAGE, "Episode Details"],
+  ] as Array<[EventPage, string]>) {
     test(`${eventPage.name} lines up the titles of the two cards that open its columns at 1280px`, async ({
       page,
     }: {
@@ -9092,35 +9215,41 @@ test.describe("responsive", () => {
       await page.setViewportSize({ width: 1280, height: 900 });
       await openReady(page, eventPage);
 
-      const members: Locator = card(page, membersTitle).first();
-      const details: Locator = card(page, "Episode Details").first();
-      const membersBox: Box = await documentBox(members);
-      const detailsBox: Box = await documentBox(details);
-      const membersTitleBox: Box = await documentBox(
-        members.getByTestId("card-details-heading").first(),
+      const left: Locator = whatHappenedCard(page);
+      const right: Locator = card(page, rightTitle).first();
+      const leftBox: Box = await documentBox(left);
+      const rightBox: Box = await documentBox(right);
+      const leftTitleBox: Box = await documentBox(
+        left.getByTestId("card-details-heading").first(),
       );
-      const detailsTitleBox: Box = await documentBox(
-        details.getByTestId("card-details-heading").first(),
+      const rightTitleBox: Box = await documentBox(
+        right.getByTestId("card-details-heading").first(),
       );
       const edit: Box = await documentBox(
-        details.getByTestId("card-header-actions").first(),
+        right.getByTestId("card-header-actions").first(),
       );
 
+      expect(rightBox.x, `${rightTitle} is beside it`).toBeGreaterThan(
+        leftBox.x + leftBox.width,
+      );
       expect(
-        Math.abs(membersBox.y - detailsBox.y),
+        Math.abs(leftBox.y - rightBox.y),
         "the two cards start the row together",
       ).toBeLessThanOrEqual(1);
       expect(
-        Math.abs(membersTitleBox.y - detailsTitleBox.y),
+        Math.abs(leftTitleBox.y - rightTitleBox.y),
         "their titles line up",
       ).toBeLessThanOrEqual(1);
+      await expectHeaderActionsOnTheRight(left, "What happened's Edit", {
+        onTitleLine: true,
+      });
       expect(
         Math.abs(
           edit.y +
             edit.height / 2 -
-            (detailsTitleBox.y + detailsTitleBox.height / 2),
+            (rightTitleBox.y + rightTitleBox.height / 2),
         ),
-        "Edit is centred on the title",
+        `${rightTitle}'s Edit is centred on its title`,
       ).toBeLessThanOrEqual(1);
     });
   }
@@ -9340,10 +9469,16 @@ test.describe("measurements", () => {
         reason: null,
       },
     ]);
+    // Under the details card; what the alert touched leads the column.
     await expectAbove(
-      measurementsCard(page),
       card(page, "Affected Resources"),
-      "measurements before resources",
+      card(page, ALERT_PAGE.detailsCard),
+      "resources lead the right column",
+    );
+    await expectAbove(
+      card(page, ALERT_PAGE.detailsCard),
+      measurementsCard(page),
+      "measurements under the details",
     );
   });
 
@@ -13304,15 +13439,22 @@ interface StatTileLine {
   lines: number;
 }
 
-// Each line of the first tile of a stat bar: label, value, note, date.
-async function firstStatTileLines(
+/*
+ * "Acknowledged in" is the second tile, after when the record began
+ * (Declared on an incident, Created on an alert).
+ */
+const ACKNOWLEDGED_TILE: number = 1;
+
+// Each line of one tile of a stat bar: label, value, note, date.
+async function statTileLines(
   page: Page,
   name: string,
+  index: number,
 ): Promise<Array<StatTileLine>> {
   return page
     .getByRole("group", { name, exact: true })
     .locator(":scope > div")
-    .first()
+    .nth(index)
     .evaluate((cell: Element): Array<StatTileLine> => {
       return Array.from(cell.children).map((child: Element): StatTileLine => {
         const style: CSSStyleDeclaration = getComputedStyle(child);
@@ -13346,9 +13488,10 @@ test.describe("time to acknowledge after paging", () => {
   }) => {
     await openReady(page, INCIDENT_PAGE, "paged=paged");
 
-    const lines: Array<StatTileLine> = await firstStatTileLines(
+    const lines: Array<StatTileLine> = await statTileLines(
       page,
       INCIDENT_PAGE.statBar,
+      ACKNOWLEDGED_TILE,
     );
     expect(
       lines.map((line: StatTileLine): string => {
@@ -13368,9 +13511,11 @@ test.describe("time to acknowledge after paging", () => {
     expect(note!.lines).toBe(1);
 
     // The other tiles are as they were.
-    expect((await statCells(page, INCIDENT_PAGE.statBar)).slice(1)).toEqual(
-      INCIDENT_PAGE.stats.slice(1),
-    );
+    const cells: Array<StatCell> = await statCells(page, INCIDENT_PAGE.statBar);
+    expect([cells[0], cells[2]]).toEqual([
+      INCIDENT_PAGE.stats[0],
+      INCIDENT_PAGE.stats[2],
+    ]);
 
     // The measurement sits next to Time to acknowledge.
     expect(await measurementRows(page)).toEqual(
@@ -13386,7 +13531,7 @@ test.describe("time to acknowledge after paging", () => {
     await openReady(page, ALERT_PAGE, "paged=paged");
 
     expect(
-      (await firstStatTileLines(page, ALERT_PAGE.statBar)).map(
+      (await statTileLines(page, ALERT_PAGE.statBar, ACKNOWLEDGED_TILE)).map(
         (line: StatTileLine): string => {
           return line.text;
         },
@@ -13445,7 +13590,7 @@ test.describe("time to acknowledge after paging", () => {
     await openReady(page, INCIDENT_PAGE, "paged=paged&state=created");
 
     expect(
-      (await firstStatTileLines(page, INCIDENT_PAGE.statBar)).map(
+      (await statTileLines(page, INCIDENT_PAGE.statBar, ACKNOWLEDGED_TILE)).map(
         (line: StatTileLine): string => {
           return line.text;
         },
@@ -13474,9 +13619,10 @@ test.describe("time to acknowledge after paging", () => {
           theme === "dark" ? "paged=paged&theme=dark" : "paged=paged",
         );
 
-        const [, value, note, date] = await firstStatTileLines(
+        const [, value, note, date] = await statTileLines(
           page,
           INCIDENT_PAGE.statBar,
+          ACKNOWLEDGED_TILE,
         );
         expect(note!.text).toBe("2 minutes after paging");
         // Its own colour in both themes: quieter than the value, not the date's.
@@ -13490,5 +13636,1005 @@ test.describe("time to acknowledge after paging", () => {
         await expectNoHorizontalOverflow(page);
       });
     }
+  }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * At a glance: what happened, its impact, and who is on it
+ * ---------------------------------------------------------------------------
+ * "Easy to see what happened, and impact. Easy to see Incident Commander and
+ * Team(s)." The header names who commands the response - the roles card's
+ * primary role - and who owns it, teams first; What happened (the record's
+ * description and root cause) opens the left column and Affected Resources
+ * the right one; and the stat bar opens with when it was declared, how long
+ * after the impact began, and by whom. Each is said once. ?owners=,
+ * ?commander= and ?what= pick what there is to show (Fixture.js).
+ */
+
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+// Where "+3 more" and Add lead: the record's Owners page.
+const INCIDENT_OWNERS_PATH: string = `${INCIDENT_PATH}/owners`;
+
+// Who the roles card can give a role to: Jordan Patel (Fixture.js people).
+const JORDAN_USER_ID: string = uuid("80000000", 3);
+// The project's primary role, Incident Commander (Fixture.js roles).
+const COMMANDER_ROLE_ID: string = uuid("76000000", 1);
+
+/*
+ * The empty place an open record shows where an avatar would be: a dashed
+ * circle as big as an avatar, read as nothing.
+ */
+async function expectEmptyPlace(action: Locator): Promise<void> {
+  const place: Locator = action.getByTestId("event-empty-place");
+  await expect(place).toHaveAttribute("aria-hidden", "true");
+  const look: { style: string; width: number; height: number } =
+    await place.evaluate(
+      (element: Element): { style: string; width: number; height: number } => {
+        const box: DOMRect = element.getBoundingClientRect();
+        return {
+          style: getComputedStyle(element).borderTopStyle,
+          width: Math.round(box.width),
+          height: Math.round(box.height),
+        };
+      },
+    );
+  expect(look).toEqual({ style: "dashed", width: 24, height: 24 });
+}
+
+/*
+ * Where a fact's label and its first name sit: the tops of their text, and
+ * the fact's own height.
+ */
+async function factTextTops(
+  fact: Locator,
+): Promise<{ label: number; value: number; height: number }> {
+  return fact.evaluate(
+    (
+      valueElement: Element,
+    ): { label: number; value: number; height: number } => {
+      const item: Element = valueElement.closest("dd")!.parentElement!;
+      const textTop: (root: Element) => number = (root: Element): number => {
+        const walker: TreeWalker = document.createTreeWalker(
+          root,
+          NodeFilter.SHOW_TEXT,
+        );
+        let node: Node | null = walker.nextNode();
+        while (node && !(node.textContent || "").trim()) {
+          node = walker.nextNode();
+        }
+        const range: Range = document.createRange();
+        range.selectNodeContents(node!);
+        return range.getBoundingClientRect().top;
+      };
+      const name: Element =
+        valueElement.querySelector("[data-testid='event-person-name']") ||
+        valueElement;
+      return {
+        label: textTop(item.querySelector("dt")!),
+        value: textTop(name),
+        height: item.getBoundingClientRect().height,
+      };
+    },
+  );
+}
+
+function commanderFact(page: Page): Locator {
+  return hero(page).getByTestId("event-commander");
+}
+
+function ownersFact(page: Page): Locator {
+  return hero(page).getByTestId("event-owners");
+}
+
+async function personKinds(fact: Locator): Promise<Array<string | null>> {
+  return fact
+    .getByTestId("event-owner")
+    .evaluateAll((people: Array<Element>): Array<string | null> => {
+      return people.map((person: Element): string | null => {
+        return person.getAttribute("data-kind");
+      });
+    });
+}
+
+/*
+ * The lines a stat tile's value is drawn on, read character by character
+ * from where each one lands, with no-break spaces read as plain ones.
+ */
+async function tileValueLines(
+  page: Page,
+  statBar: string,
+  index: number,
+): Promise<Array<string>> {
+  return page
+    .getByRole("group", { name: statBar, exact: true })
+    .locator(":scope > div")
+    .nth(index)
+    .locator(":scope > div")
+    .nth(1)
+    .evaluate((element: Element): Array<string> => {
+      /*
+       * In reading order, a character starts a new line when it lies wholly
+       * under the line before: the smaller zone sits lower on the same line
+       * as the time, so lines are not told apart by their tops alone.
+       */
+      const lines: Array<{ bottom: number; text: string }> = [];
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      let node: Node | null = walker.nextNode();
+      while (node) {
+        const content: string = node.textContent || "";
+        for (let offset: number = 0; offset < content.length; offset++) {
+          const range: Range = document.createRange();
+          range.setStart(node, offset);
+          range.setEnd(node, offset + 1);
+          const rect: DOMRect = range.getBoundingClientRect();
+          if (rect.width === 0 && rect.height === 0) {
+            continue;
+          }
+          const last: { bottom: number; text: string } | undefined =
+            lines[lines.length - 1];
+          if (!last || rect.top >= last.bottom - 1) {
+            lines.push({ bottom: rect.bottom, text: content[offset] || "" });
+          } else {
+            last.text += content[offset] || "";
+            last.bottom = Math.max(last.bottom, rect.bottom);
+          }
+        }
+        node = walker.nextNode();
+      }
+      return lines.map((line: { bottom: number; text: string }): string => {
+        return line.text.split(String.fromCharCode(0xa0)).join(" ").trim();
+      });
+    });
+}
+
+// The background a team's avatar is drawn on.
+async function teamAvatarBackground(fact: Locator): Promise<string> {
+  return fact
+    .locator("[data-kind='team'] [aria-hidden='true'] .bg-gradient-to-br")
+    .first()
+    .evaluate((avatar: Element): string => {
+      return getComputedStyle(avatar).backgroundImage;
+    });
+}
+
+test.describe("at a glance: who is on it", () => {
+  test("the incident's header names its Incident Commander and its owners, teams first, each with an avatar", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const commander: Locator = commanderFact(page);
+    await expect(commander.getByTestId("event-person-name")).toHaveText([
+      "Maya Chen",
+    ]);
+    // The avatar is decoration: a screen reader hears the name once.
+    await expect(
+      commander
+        .getByTestId("event-commander-person")
+        .locator(":scope > [aria-hidden='true']"),
+    ).toHaveCount(1);
+    await expect(commander.getByRole("button")).toHaveCount(0);
+
+    const owners: Locator = ownersFact(page);
+    await expect(owners.getByTestId("event-person-name")).toHaveText([
+      "Checkout SRE",
+      "Sam Rivera",
+    ]);
+    expect(await personKinds(owners)).toEqual(["team", "user"]);
+    // All of them are shown: nothing to follow to the rest.
+    await expect(owners.getByRole("link")).toHaveCount(0);
+
+    // The roles card names the same person.
+    await expect(
+      card(page, "Incident Roles").getByText("Maya Chen").first(),
+    ).toBeVisible();
+
+    const reads: Array<RecordedModelRequest> = (await fixture(page))
+      .listRequests;
+    // The header asks nobody who holds the role: the roles card tells it.
+    expect(
+      reads.filter((read: RecordedModelRequest): boolean => {
+        return read.modelName === "IncidentMember";
+      }),
+      "role holders, read by the roles card alone",
+    ).toHaveLength(1);
+    // Both owner lists, this incident's, oldest first.
+    for (const modelName of ["IncidentOwnerTeam", "IncidentOwnerUser"]) {
+      const ownerReads: Array<RecordedModelRequest> = reads.filter(
+        (read: RecordedModelRequest): boolean => {
+          return read.modelName === modelName;
+        },
+      );
+      expect(ownerReads, modelName).toHaveLength(1);
+      expect(Object.keys(ownerReads[0]?.query || {}).sort()).toEqual([
+        "incidentId",
+        "projectId",
+      ]);
+      expect(JSON.stringify(ownerReads[0]?.query)).toContain(INCIDENT_ID);
+      expect(ownerReads[0]?.sort).toEqual({ createdAt: "ASC" });
+    }
+    await expectNoErrorStates(page);
+  });
+
+  test("?commander=none&state=ongoing: the empty place and Assign, which opens the commander's picker in the roles card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "commander=none&state=ongoing");
+
+    const commander: Locator = commanderFact(page);
+    // Said once: the place and its action, not "Not assigned" beside them.
+    await expect(commander).toHaveText("Assign");
+    await expect(commander.getByTestId("event-person-name")).toHaveCount(0);
+
+    // Visibly "Assign"; heard as which role it gives.
+    const assign: Locator = commander.getByRole("button", {
+      name: "Assign Incident Commander",
+    });
+    await expect(assign).toHaveText("Assign");
+    await expectEmptyPlace(assign);
+    await screenshotElement(hero(page), "incident-commander-not-assigned");
+
+    await assign.click();
+
+    /*
+     * The roles card, where a role is given: in view, with the commander's
+     * picker open and the cursor in it - one step from the header.
+     */
+    const roles: Locator = page.locator("#event-roles-card");
+    await expect(roles).toBeInViewport();
+    const picker: Locator = roles.getByRole("combobox", {
+      name: "Incident Commander",
+    });
+    await expect(picker).toBeFocused();
+    await expect(picker).toBeInViewport();
+    await screenshotElement(roles, "incident-commander-assign-picker");
+
+    // Choosing somebody gives the role, and the header names them at once.
+    await page.keyboard.type("Jordan");
+    await page.keyboard.press("Enter");
+    await roles.getByRole("button", { name: "Save", exact: true }).click();
+
+    await expect(commander.getByTestId("event-person-name")).toHaveText([
+      "Jordan Patel",
+    ]);
+    const given: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "IncidentMember";
+      },
+    );
+    expect(given).toHaveLength(1);
+    expect(JSON.stringify(given[0]?.data)).toContain(JORDAN_USER_ID);
+    expect(JSON.stringify(given[0]?.data)).toContain(COMMANDER_ROLE_ID);
+    await expectNoErrorStates(page);
+  });
+
+  test("?commander=none&state=ongoing: Assign works from the keyboard, and a second Assign reopens a picker the reader closed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "commander=none&state=ongoing");
+
+    const assign: Locator = commanderFact(page).getByRole("button", {
+      name: "Assign Incident Commander",
+    });
+    await assign.focus();
+    await page.keyboard.press("Enter");
+
+    const roles: Locator = page.locator("#event-roles-card");
+    const picker: Locator = roles.getByRole("combobox", {
+      name: "Incident Commander",
+    });
+    await expect(picker).toBeFocused();
+
+    await roles.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(picker).toHaveCount(0);
+
+    await assign.click();
+    await expect(picker).toBeFocused();
+  });
+
+  test("names sit level with their labels, and a fact with people is as tall as one with words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_PAGE, "state=ongoing");
+
+    for (const fact of [commanderFact(page), ownersFact(page)]) {
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(fact);
+      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
+      // One 20px line: the 24px avatar does not grow the row.
+      expect(tops.height).toBeLessThanOrEqual(20.5);
+    }
+
+    await openReady(
+      page,
+      INCIDENT_PAGE,
+      "state=ongoing&commander=none&owners=none",
+    );
+
+    for (const fact of [commanderFact(page), ownersFact(page)]) {
+      const tops: { label: number; value: number; height: number } =
+        await factTextTops(fact);
+      expect(Math.abs(tops.label - tops.value)).toBeLessThanOrEqual(0.5);
+      expect(tops.height).toBeLessThanOrEqual(20.5);
+    }
+  });
+
+  test("?commander=none: a resolved incident says only that nobody held the role", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "commander=none");
+
+    await expect(commanderFact(page)).toHaveText("Not assigned");
+    await expect(commanderFact(page).getByRole("button")).toHaveCount(0);
+  });
+
+  test("?owners=none&state=ongoing: the empty place and Add, which opens the Owners page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "owners=none&state=ongoing");
+
+    const owners: Locator = ownersFact(page);
+    // Said once: the place and its action, not "None" beside them.
+    await expect(owners.getByText("None", { exact: true })).toHaveCount(0);
+
+    // Visibly "Add" after "Owners"; heard as what it adds.
+    const add: Locator = owners.getByRole("link", { name: "Add owners" });
+    await expect(add).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+    await expect(
+      add.locator("[data-testid='event-owners-add'] > [aria-hidden='true']"),
+    ).toHaveText("Add");
+    await expectEmptyPlace(add);
+    await screenshotElement(hero(page), "incident-owners-none");
+
+    await add.click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "INCIDENT_VIEW_OWNERS",
+    );
+  });
+
+  test("?owners=none: a resolved incident says only None", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "owners=none");
+
+    await expect(ownersFact(page)).toHaveText("None");
+    await expect(ownersFact(page).getByRole("link")).toHaveCount(0);
+  });
+
+  test("?owners=many: three in the header, teams first by name, and +3 more opens the Owners page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "owners=many");
+
+    const owners: Locator = ownersFact(page);
+    // Added people first; the header puts teams first, each by name.
+    await expect(owners.getByTestId("event-person-name")).toHaveText([
+      "Checkout SRE",
+      "Database Reliability",
+      "Platform",
+    ]);
+    expect(await personKinds(owners)).toEqual(["team", "team", "team"]);
+
+    const more: Locator = owners.getByRole("link", { name: "+3 more" });
+    await expect(more).toHaveAttribute("href", INCIDENT_OWNERS_PATH);
+    await screenshotElement(hero(page), "incident-owners-many");
+
+    await more.click();
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "INCIDENT_VIEW_OWNERS",
+    );
+  });
+
+  test("an alert names its owners and no commander: alerts have no roles", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, ALERT_PAGE);
+
+    await expect(ownersFact(page).getByTestId("event-person-name")).toHaveText([
+      "Payments",
+    ]);
+    expect(await personKinds(ownersFact(page))).toEqual(["team"]);
+    await expect(commanderFact(page)).toHaveCount(0);
+
+    const reads: Array<RecordedModelRequest> = (await fixture(page))
+      .listRequests;
+    for (const modelName of ["AlertOwnerTeam", "AlertOwnerUser"]) {
+      const ownerReads: Array<RecordedModelRequest> = reads.filter(
+        (read: RecordedModelRequest): boolean => {
+          return read.modelName === modelName;
+        },
+      );
+      expect(ownerReads, modelName).toHaveLength(1);
+      expect(JSON.stringify(ownerReads[0]?.query)).toContain(ALERT_ID);
+    }
+  });
+
+  for (const [eventPage, ownerModels, recordId] of [
+    [
+      INCIDENT_EPISODE_PAGE,
+      ["IncidentEpisodeOwnerTeam", "IncidentEpisodeOwnerUser"],
+      INCIDENT_EPISODE_ID,
+    ],
+    [
+      ALERT_EPISODE_PAGE,
+      ["AlertEpisodeOwnerTeam", "AlertEpisodeOwnerUser"],
+      ALERT_EPISODE_ID,
+    ],
+  ] as Array<[EventPage, Array<string>, string]>) {
+    test(`${eventPage.name} names its owners, read for the episode itself`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage);
+
+      const reads: Array<RecordedModelRequest> = (await fixture(page))
+        .listRequests;
+      for (const modelName of ownerModels) {
+        const ownerReads: Array<RecordedModelRequest> = reads.filter(
+          (read: RecordedModelRequest): boolean => {
+            return read.modelName === modelName;
+          },
+        );
+        expect(ownerReads, modelName).toHaveLength(1);
+        expect(JSON.stringify(ownerReads[0]?.query)).toContain(recordId);
+      }
+
+      if (eventPage === INCIDENT_EPISODE_PAGE) {
+        // An incident episode has roles too: its commander leads.
+        await expect(
+          commanderFact(page).getByTestId("event-person-name"),
+        ).toHaveText(["Maya Chen"]);
+      } else {
+        await expect(commanderFact(page)).toHaveCount(0);
+      }
+    });
+  }
+
+  test("an incident episode nobody commands: Assign opens the commander's picker in the episode's roles card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      INCIDENT_EPISODE_PAGE,
+      "commander=none&state=ongoing",
+    );
+
+    const assign: Locator = commanderFact(page).getByRole("button", {
+      name: "Assign Incident Commander",
+    });
+    await expectEmptyPlace(assign);
+    await assign.click();
+
+    const roles: Locator = page.locator("#event-roles-card");
+    await expect(
+      roles.getByRole("heading", { level: 2, name: "Episode Roles" }),
+    ).toBeVisible();
+    await expect(
+      roles.getByRole("combobox", { name: "Incident Commander" }),
+    ).toBeFocused();
+    await expectNoErrorStates(page);
+  });
+});
+
+test.describe("at a glance: what happened", () => {
+  test("What happened opens the incident's left column: its description, then its root cause, above the AI investigation", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const whatHappened: Locator = whatHappenedCard(page);
+    await expect(
+      whatHappened.getByTestId("what-happened-description"),
+    ).toHaveText(INCIDENT_PAGE.whatHappened!.description);
+    const rootCause: Locator = whatHappened.getByRole("region", {
+      name: "Root cause",
+    });
+    await expect(
+      rootCause.getByTestId("what-happened-root-cause-value"),
+    ).toHaveText(INCIDENT_PAGE.whatHappened!.rootCause!);
+    // Short texts: nothing to open.
+    await expect(
+      whatHappened.getByRole("button", { name: "Show more" }),
+    ).toHaveCount(0);
+
+    // Under the stat bar, leading the column the AI investigation follows.
+    await expectAbove(
+      page.getByRole("group", { name: INCIDENT_PAGE.statBar }),
+      whatHappened,
+      "stat bar before What happened",
+    );
+    await expectAbove(
+      whatHappened,
+      investigationCard(page),
+      "What happened before the AI investigation",
+    );
+    const left: Box = await documentBox(whatHappened);
+    const investigation: Box = await documentBox(investigationCard(page));
+    expect(Math.abs(left.x - investigation.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(left.width - investigation.width)).toBeLessThanOrEqual(1);
+
+    // The page's one read of the incident carried both.
+    const read: RecordedModelRequest | undefined = (
+      await fixture(page)
+    ).getItemRequests.find((request: RecordedModelRequest): boolean => {
+      return (
+        request.modelName === "Incident" &&
+        request.id === INCIDENT_ID &&
+        Boolean(request.select && "rootCause" in request.select)
+      );
+    });
+    expect(read?.select).toEqual(
+      expect.objectContaining({ description: true, rootCause: true }),
+    );
+    await screenshotElement(whatHappened, "incident-what-happened");
+  });
+
+  test("?what=empty: says there is nothing yet, and keeps Edit to write it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "what=empty");
+
+    const whatHappened: Locator = whatHappenedCard(page);
+    await expect(
+      whatHappened.getByTestId("what-happened-description-empty"),
+    ).toHaveText("No description yet.");
+    await expect(
+      whatHappened.getByTestId("what-happened-root-cause-empty"),
+    ).toHaveText("Not identified yet.");
+    await expect(
+      whatHappened
+        .getByTestId("card-header-actions")
+        .getByRole("button", { name: "Edit" }),
+    ).toBeEnabled();
+    await screenshotElement(whatHappened, "incident-what-happened-empty");
+  });
+
+  test("?what=long: each text shows its first lines and opens with Show more", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "what=long");
+
+    const whatHappened: Locator = whatHappenedCard(page);
+    const description: Locator = whatHappened.getByTestId(
+      "what-happened-description",
+    );
+    const frame: Locator = description.getByTestId(
+      "what-happened-description-text",
+    );
+    const more: Locator = description.getByRole("button", {
+      name: "Show more",
+    });
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    const collapsed: Box = await documentBox(frame);
+    // About six lines (max-h-36), the rest faded under the last one...
+    expect(collapsed.height).toBeLessThanOrEqual(145);
+    // ...and still in the page for a screen reader.
+    await expect(frame).toContainText("Support received 41 tickets");
+    await screenshotElement(whatHappened, "incident-what-happened-long");
+
+    await more.click();
+    const less: Locator = description.getByRole("button", {
+      name: "Show less",
+    });
+    await expect(less).toHaveAttribute("aria-expanded", "true");
+    expect((await documentBox(frame)).height).toBeGreaterThan(
+      collapsed.height + 40,
+    );
+    await screenshotElement(whatHappened, "incident-what-happened-long-open");
+
+    await less.click();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+    expect((await documentBox(frame)).height).toBeLessThanOrEqual(145);
+
+    // The root cause folds on its own.
+    await expect(
+      whatHappened
+        .getByTestId("what-happened-root-cause-value")
+        .getByRole("button", { name: "Show more" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("Edit writes the description and the root cause in one dialog, and the card shows what was saved", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE, "what=empty");
+
+    const whatHappened: Locator = whatHappenedCard(page);
+    await whatHappened
+      .getByTestId("card-header-actions")
+      .getByRole("button", { name: "Edit" })
+      .click();
+
+    const dialog: Locator = page.getByRole("dialog", {
+      name: "Edit what happened",
+    });
+    await expect(dialog).toBeVisible();
+    // Where the description is read: wherever the incident is public.
+    await expect(dialog).toContainText(
+      "Shown on the status pages this incident appears on.",
+    );
+    await expect(dialog).toContainText("Why it happened, once you know.");
+
+    const editors: Locator = dialog.locator('[contenteditable="true"]');
+    await expect(editors).toHaveCount(2);
+    await editors.nth(0).click();
+    await page.keyboard.type("Checkout timed out for shoppers in the EU");
+    await editors.nth(1).click();
+    await page.keyboard.type("The connection pool was cut to ten");
+
+    await dialog
+      .getByTestId("modal-footer")
+      .getByRole("button", { name: "Save Changes" })
+      .click();
+    await expect(dialog).toHaveCount(0);
+
+    const saves: Array<RecordedWrite> = (await fixture(page)).creates.filter(
+      (write: RecordedWrite): boolean => {
+        return write.modelName === "Incident";
+      },
+    );
+    expect(saves).toHaveLength(1);
+    expect(JSON.stringify(saves[0]?.data)).toContain(
+      "Checkout timed out for shoppers in the EU",
+    );
+    expect(JSON.stringify(saves[0]?.data)).toContain(
+      "The connection pool was cut to ten",
+    );
+
+    // The page read the incident again: the card says what was saved.
+    await expect(
+      whatHappened.getByTestId("what-happened-description"),
+    ).toHaveText("Checkout timed out for shoppers in the EU");
+    await expect(
+      whatHappened.getByTestId("what-happened-root-cause-value"),
+    ).toHaveText("The connection pool was cut to ten");
+    await expectNoErrorStates(page);
+  });
+
+  for (const eventPage of [
+    ALERT_PAGE,
+    INCIDENT_EPISODE_PAGE,
+    ALERT_EPISODE_PAGE,
+  ]) {
+    test(`${eventPage.name} leads with What happened too`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, eventPage);
+
+      const whatHappened: Locator = whatHappenedCard(page);
+      await expect(
+        whatHappened.getByTestId("what-happened-description"),
+      ).toHaveText(eventPage.whatHappened!.description);
+      await expect(
+        whatHappened.getByTestId("what-happened-root-cause-empty"),
+      ).toHaveText("Not identified yet.");
+      await expectAbove(
+        page.getByRole("group", { name: eventPage.statBar }),
+        whatHappened,
+        "stat bar before What happened",
+      );
+
+      /*
+       * Its edit dialog says the description is public where it is: an
+       * incident episode's shows on the status pages it appears on; an
+       * alert's and an alert episode's nowhere outside OneUptime.
+       */
+      await whatHappened
+        .getByTestId("card-header-actions")
+        .getByRole("button", { name: "Edit" })
+        .click();
+      const dialog: Locator = page.getByRole("dialog", {
+        name: "Edit what happened",
+      });
+      await expect(dialog).toContainText("Why it happened, once you know.");
+      if (eventPage === INCIDENT_EPISODE_PAGE) {
+        await expect(dialog).toContainText(
+          "Shown on the status pages this episode appears on.",
+        );
+      } else {
+        await expect(dialog).not.toContainText("status pages");
+      }
+      await dialog
+        .getByTestId("modal-footer")
+        .getByRole("button", { name: "Cancel" })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      // Nothing else in the left column comes first.
+      const left: Box = await documentBox(whatHappened);
+      const feed: Box = await documentBox(card(page, eventPage.feed));
+      expect(Math.abs(left.x - feed.x)).toBeLessThanOrEqual(1);
+      expect(left.y).toBeLessThan(feed.y);
+    });
+  }
+});
+
+test.describe("at a glance: when, and what it touched", () => {
+  test("the stat bar opens with when it was declared, how long after the impact began, and by whom - and nothing else says it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const statBar: Locator = page.getByRole("group", {
+      name: INCIDENT_PAGE.statBar,
+    });
+    expect((await statCells(page, INCIDENT_PAGE.statBar))[0]).toEqual(
+      INCIDENT_PAGE.stats[0],
+    );
+    /*
+     * The date and the time each hold together; the zone follows, smaller,
+     * after a space a narrow tile may break at.
+     */
+    expect(
+      await statBar
+        .getByTestId("event-start-tile-value")
+        .evaluate((value: Element): string => {
+          return value.textContent || "";
+        }),
+    ).toBe(`Sep${NO_BREAK_SPACE}14, 06:01${NO_BREAK_SPACE}PM GMT`);
+    const zone: Locator = statBar.getByTestId("event-start-tile-zone");
+    await expect(zone).toHaveText("GMT");
+    const valueSize: number = await statBar
+      .getByTestId("event-start-tile-value")
+      .evaluate((value: Element): number => {
+        return parseFloat(getComputedStyle(value).fontSize);
+      });
+    const zoneSize: number = await zone.evaluate((element: Element): number => {
+      return parseFloat(getComputedStyle(element).fontSize);
+    });
+    expect(zoneSize).toBeLessThan(valueSize);
+    // How long it lasted is the header's alone.
+    await expect(statBar.getByText("Duration", { exact: true })).toHaveCount(0);
+    await expectRenderedText(hero(page), "Lasted 11 minutes");
+    // And when and by whom it was declared is the tile's alone.
+    const detailsLabels: Array<string> = await detailLabels(
+      card(page, INCIDENT_PAGE.detailsCard),
+    );
+    expect(detailsLabels).not.toContain("Declared At");
+    expect(detailsLabels).not.toContain("Declared By");
+    expect(
+      (await heroFacts(hero(page))).map((fact: LabelledValue): string => {
+        return fact.label;
+      }),
+    ).not.toContain("Declared");
+  });
+
+  for (const width of [1024, 640, 390]) {
+    test(`the Declared tile keeps its date and its time whole at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(page, INCIDENT_PAGE);
+
+      const lines: Array<string> = await tileValueLines(
+        page,
+        INCIDENT_PAGE.statBar,
+        0,
+      );
+      /*
+       * However many lines it takes, each is whole parts: the date, the
+       * time, the zone - never "GM" over "T".
+       */
+      expect(lines.join(" ")).toBe("Sep 14, 06:01 PM GMT");
+      for (const line of lines) {
+        expect([
+          "Sep 14, 06:01 PM GMT",
+          "Sep 14, 06:01 PM",
+          "06:01 PM GMT",
+          "Sep 14,",
+          "06:01 PM",
+          "GMT",
+        ]).toContain(line);
+      }
+      // Where the tile is wide enough, one line.
+      if (width === 390) {
+        expect(lines).toEqual(["Sep 14, 06:01 PM GMT"]);
+      }
+      await expectNoHorizontalOverflow(page);
+    });
+  }
+
+  test("an episode's Declared tile, four to a row at 1280px, breaks after the date rather than leaving the zone on its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, INCIDENT_EPISODE_PAGE);
+
+    const lines: Array<string> = await tileValueLines(
+      page,
+      INCIDENT_EPISODE_PAGE.statBar,
+      0,
+    );
+    expect(lines.join(" ")).toBe("Sep 14, 05:56 PM GMT");
+    // Balanced lines: the date over the time and its zone, never a lone zone.
+    expect(lines).not.toContain("GMT");
+    await expectNoHorizontalOverflow(page);
+  });
+
+  test("Affected Resources leads the right column, with the monitor status the incident sets", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, INCIDENT_PAGE);
+
+    const resources: Locator = card(page, "Affected Resources");
+    expect(await detailLabels(resources)).toContain("Change Monitor Status to");
+    await expect(resources).toContainText("Degraded");
+    await expectAbove(
+      resources,
+      card(page, INCIDENT_PAGE.detailsCard),
+      "resources before the details",
+    );
+    await screenshotElement(resources, "incident-affected-resources");
+  });
+});
+
+test.describe("at a glance: layout", () => {
+  const CASES: Array<{ eventPage: EventPage; width: number; theme: string }> = [
+    { eventPage: INCIDENT_PAGE, width: 1280, theme: "light" },
+    { eventPage: INCIDENT_PAGE, width: 1280, theme: "dark" },
+    { eventPage: INCIDENT_PAGE, width: 1024, theme: "light" },
+    { eventPage: INCIDENT_PAGE, width: 1024, theme: "dark" },
+    { eventPage: INCIDENT_PAGE, width: 390, theme: "light" },
+    { eventPage: INCIDENT_PAGE, width: 390, theme: "dark" },
+    { eventPage: ALERT_PAGE, width: 1280, theme: "light" },
+    { eventPage: ALERT_PAGE, width: 390, theme: "dark" },
+    { eventPage: INCIDENT_EPISODE_PAGE, width: 1280, theme: "light" },
+    { eventPage: ALERT_EPISODE_PAGE, width: 390, theme: "light" },
+  ];
+
+  for (const { eventPage, width, theme } of CASES) {
+    test(`${eventPage.name} reads at a glance at ${width}px in the ${theme} theme`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openReady(page, eventPage, theme === "dark" ? "theme=dark" : "");
+
+      // Every name in the header is whole.
+      const names: Locator = hero(page).getByTestId("event-person-name");
+      const count: number = await names.count();
+      expect(count, "people in the header").toBeGreaterThan(0);
+      for (let index: number = 0; index < count; index++) {
+        await expect(names.nth(index)).toBeVisible();
+        expect(
+          await isOverflowing(names.nth(index)),
+          `${await names.nth(index).innerText()} is cut off`,
+        ).toBe(false);
+      }
+
+      // Header, stat bar, then What happened, with the rest after it.
+      const statBar: Locator = page.getByRole("group", {
+        name: eventPage.statBar,
+      });
+      const whatHappened: Locator = whatHappenedCard(page);
+      await expectAbove(hero(page), statBar, "header before stat bar");
+      await expectAbove(statBar, whatHappened, "stat bar before What happened");
+      const top: Box = await documentBox(whatHappened);
+      for (const heading of [eventPage.feed, ...eventPage.rightColumn]) {
+        const box: Box = await documentBox(card(page, heading));
+        expect(box.y, `${heading} is not above What happened`).toBeGreaterThan(
+          top.y - 1,
+        );
+      }
+
+      /*
+       * A team's avatar is a dark tile on the light card; on the dark card
+       * it is lifted to slate-500, so it does not sink into the card.
+       */
+      const background: string = await teamAvatarBackground(ownersFact(page));
+      if (theme === "dark") {
+        expect(background).toContain("rgb(100, 116, 139)");
+      } else {
+        expect(background).not.toContain("rgb(100, 116, 139)");
+      }
+
+      await expectNoHorizontalOverflow(page);
+      await screenshotBetween(
+        page,
+        hero(page),
+        whatHappened,
+        `${eventPage.name}-at-a-glance-${width}-${theme}`,
+      );
+    });
+  }
+
+  /*
+   * ?lang=de: the people row's labels, the start tile and What happened in
+   * the reader's language. The fixture loads the Dashboard's own German
+   * strings (src/Locales/de.json).
+   */
+  for (const width of [1280, 390]) {
+    test(`reads in German at ${width}px`, async ({ page }: { page: Page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, INCIDENT_PATH, "lang=de");
+
+      const germanHero: Locator = page
+        .getByRole("group", { name: "Ereignisaktionen" })
+        .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+      await expect(
+        germanHero
+          .getByTestId("event-commander")
+          .getByTestId("event-person-name"),
+      ).toHaveText(["Maya Chen"], { timeout: 30000 });
+      await expect(germanHero.getByTestId("event-owners")).toBeVisible();
+      await expectWhatHappenedSettled(page);
+
+      expect((await heroFacts(germanHero)).slice(0, 2)).toEqual([
+        { label: "Vorfall-Kommandant", value: "Maya Chen" },
+        { label: "Eigentümer", value: "Checkout SRE, Sam Rivera" },
+      ]);
+
+      const [declared] = await statCells(page, "Reaktionszeiten bei Vorfällen");
+      expect(declared?.label).toBe("Erklärt");
+      expect(declared?.note).toBe("3 Minuten nach Beginn der Auswirkung");
+      expect(declared?.description).toBe("Von eu-west-1 probe");
+
+      const whatHappened: Locator = card(page, "Hergang");
+      await expect(whatHappened).toBeVisible();
+      await expect(
+        whatHappened.getByRole("region", { name: "Grundursache" }),
+      ).toBeVisible();
+      await expect(
+        whatHappened
+          .getByTestId("card-header-actions")
+          .getByRole("button", { name: "Bearbeiten" }),
+      ).toBeVisible();
+
+      await expectNoHorizontalOverflow(page);
+      await screenshotBetween(
+        page,
+        germanHero,
+        whatHappened,
+        `incident-overview-at-a-glance-${width}-de`,
+      );
+    });
   }
 });

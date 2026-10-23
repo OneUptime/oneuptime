@@ -1017,5 +1017,15 @@
   "{{entry}} is not a phone number. Write each number with its country code and separate them with commas, like {{example}}.": "{{entry}} شماره تلفن نیست. هر شماره را با کد کشورش بنویسید و شماره‌ها را با ویرگول جدا کنید، مانند {{example}}.",
   "Twilio Primary Phone Number": "شماره تلفن اصلی Twilio",
   "Twilio Secondary Phone Numbers": "شماره‌های تلفن دوم Twilio",
-  "Numbers to use instead of the primary one when they match the recipient's country code.": "شماره‌هایی که وقتی با کد کشور گیرنده مطابقت داشته باشند به‌جای شماره اصلی استفاده می‌شوند."
+  "Numbers to use instead of the primary one when they match the recipient's country code.": "شماره‌هایی که وقتی با کد کشور گیرنده مطابقت داشته باشند به‌جای شماره اصلی استفاده می‌شوند.",
+  "Use This Account For": "کاربرد این حساب",
+  "Calls and SMS": "تماس و پیامک",
+  "Calls and SMS go out from this account.": "تماس‌ها و پیامک‌ها از این حساب فرستاده می‌شوند.",
+  "SMS only": "فقط پیامک",
+  "This account makes no calls. Projects can make them through a Twilio config of their own.": "این حساب تماسی برقرار نمی‌کند. پروژه‌ها می‌توانند با پیکربندی Twilio خودشان تماس برقرار کنند.",
+  "Calls only": "فقط تماس",
+  "This account sends no SMS. Projects can send them through a Twilio config of their own.": "این حساب پیامکی نمی‌فرستد. پروژه‌ها می‌توانند با پیکربندی Twilio خودشان پیامک بفرستند.",
+  "Calls go out from this number.": "تماس‌ها از این شماره برقرار می‌شوند.",
+  "Every SMS goes out from one of these: the one in the recipient's country, or else the first.": "هر پیامک از یکی از این شماره‌ها فرستاده می‌شود: شماره کشور گیرنده، و اگر نباشد، نخستین شماره.",
+  "Used For": "کاربرد"
 }

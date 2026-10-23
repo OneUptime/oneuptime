@@ -247,6 +247,13 @@ jest.mock(
       default: () => {
         return <div data-testid="stub-KubernetesEventsTab" />;
       },
+      // The page's Events tab, read as the page opens: a stub here.
+      useKubernetesEventsTab: () => {
+        return {
+          name: "Events",
+          children: <div data-testid="stub-KubernetesEventsTab" />,
+        };
+      },
     };
   },
 );

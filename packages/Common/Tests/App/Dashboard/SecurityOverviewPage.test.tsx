@@ -19,6 +19,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import SecurityCaseApi, {
+  SecurityApiError,
   SecurityOverview,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
 import { SECURITY_ALL_QUIET_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityAllQuiet";
@@ -29,8 +30,15 @@ import SecurityPipeline, {
 import {
   SecuritySetupStatus,
   SecuritySetupTestResult,
+  TurnOnRecommendedProblem,
   TurnOnRecommendedResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecuritySetupModel";
+import { MAX_PROBLEMS_SHOWN } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/SecurityTurnOnProblems";
+import {
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedReason,
+} from "../../../Types/SecurityEvent/TurnOnRecommended";
 import SecurityOverviewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -301,6 +309,7 @@ describe("a project that has not set Security up", () => {
         logsTurnedOn: true,
         playbookAdded: true,
         playbookTurnedOn: false,
+        problems: [],
       } as TurnOnRecommendedResult);
     answerStatus(status(), status(SET_UP));
     await renderPage();
@@ -396,9 +405,12 @@ describe("a project that has not set Security up", () => {
   });
 
   test("a failed click says why, in the card", async () => {
+    // A refusal the server words for people, as SecurityCaseApi throws it.
     jest
       .spyOn(SecurityCaseApi, "turnOnRecommended")
-      .mockRejectedValue(new Error("You may not add detection rules."));
+      .mockRejectedValue(
+        new SecurityApiError("You may not add detection rules.", 403),
+      );
     await renderPage();
 
     await act(async () => {
@@ -532,6 +544,520 @@ describe("a project that has not set Security up", () => {
         20 + padding.top + padding.bottom + margin.top + margin.bottom,
       ).toBe(24);
     }
+  });
+});
+
+describe("when Turn on recommended cannot do everything", () => {
+  function result(
+    overrides: Partial<TurnOnRecommendedResult> = {},
+  ): TurnOnRecommendedResult {
+    return {
+      rulesAdded: 0,
+      rulesTurnedOn: 0,
+      logsTurnedOn: false,
+      playbookAdded: false,
+      playbookTurnedOn: false,
+      problems: [],
+      ...overrides,
+    };
+  }
+
+  function problem(
+    overrides: Partial<TurnOnRecommendedProblem> = {},
+  ): TurnOnRecommendedProblem {
+    return {
+      part: TurnOnRecommendedPart.Rule,
+      action: TurnOnRecommendedAction.Add,
+      name: "Password spraying",
+      reason: TurnOnRecommendedReason.Failed,
+      detail: "",
+      ...overrides,
+    };
+  }
+
+  function problemsBox(): HTMLElement {
+    return within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).getByTestId(
+      "security-turn-on-problems",
+    );
+  }
+
+  function rows(box: HTMLElement): Array<string> {
+    return within(box)
+      .queryAllByTestId("security-turn-on-problem")
+      .map((row: HTMLElement): string => {
+        return (row.textContent || "").trim();
+      });
+  }
+
+  async function clickTurnOn(): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-turn-on-recommended"));
+    });
+  }
+
+  test("names what it could not do and why, says the rest is on, and Try again - the main button now - does the rest", async () => {
+    const turnOn: SpyInstance<typeof SecurityCaseApi.turnOnRecommended> = jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockResolvedValueOnce(
+        result({
+          rulesAdded: 18,
+          logsTurnedOn: true,
+          problems: [
+            problem(),
+            problem({
+              part: TurnOnRecommendedPart.Playbook,
+              name: "Enrich New Cases",
+              reason: TurnOnRecommendedReason.NotAllowed,
+            }),
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        result({ rulesAdded: 1, playbookAdded: true, problems: [] }),
+      );
+    answerStatus(
+      status(),
+      status({ logsSourceEnabled: true, enabledRules: 18 }),
+      status(SET_UP),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+
+    const box: HTMLElement = await within(
+      screen.getByTestId(SECURITY_GETTING_STARTED_ID),
+    ).findByTestId("security-turn-on-problems");
+
+    expect(box).toHaveAttribute("role", "alert");
+    expect(box).toHaveTextContent("Not everything could be turned on");
+    expect(rows(box)).toEqual([
+      "Password spraying - Something went wrong while adding it.",
+      "Enrich New Cases - Your role cannot add it.",
+    ]);
+    expect(box).toHaveTextContent(
+      "Everything else is on. Try again turns on only what is still missing.",
+    );
+    // Not done, so no Done line; and no grey sentence alone under the buttons.
+    expect(screen.queryByTestId("security-turned-on")).toBeNull();
+    await waitFor(() => {
+      expect(step("sources")).toHaveAttribute("data-done", "true");
+    });
+    expect(step("responses")).toHaveAttribute("data-done", "false");
+    expect(buttonTitles(actions())).toEqual([
+      "Try again",
+      "Send a test attack",
+    ]);
+    expect(screen.queryByTestId("security-turn-on-recommended")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-turn-on-try-again"));
+    });
+
+    // The same call, which does only what is still missing.
+    expect(turnOn).toHaveBeenCalledTimes(2);
+    expect(turnOn).toHaveBeenNthCalledWith(2);
+    expect(await screen.findByTestId("security-turned-on")).toHaveTextContent(
+      "Done. 19 detection rules are on, your logs are checked for security events and every new case is enriched.",
+    );
+    expect(
+      within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).queryByTestId(
+        "security-turn-on-problems",
+      ),
+    ).toBeNull();
+    expect(buttonTitles(actions())).toEqual(["Send a test attack"]);
+  });
+
+  test("a click that fails whole says so in the card, with the server's sentence, and offers Try again", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockRejectedValue(
+        new SecurityApiError(
+          "Turning on detection rules takes a role that can create them.",
+          403,
+        ),
+      );
+    await renderPage();
+
+    await clickTurnOn();
+
+    const box: HTMLElement = await within(
+      screen.getByTestId(SECURITY_GETTING_STARTED_ID),
+    ).findByTestId("security-turn-on-problems");
+
+    expect(
+      within(box).getByTestId("security-turn-on-problems-title"),
+    ).toHaveTextContent("Turn on recommended did not finish");
+    expect(
+      within(box).getByTestId("security-turn-on-problems-error"),
+    ).toHaveTextContent(
+      "Turning on detection rules takes a role that can create them.",
+    );
+    // Why it did not finish, and nothing more: no note a role would make untrue.
+    expect(
+      within(box).queryByTestId("security-turn-on-problems-note"),
+    ).toBeNull();
+    expect(box).not.toHaveTextContent("Everything else is on.");
+    expect(rows(box)).toEqual([]);
+    expect(buttonTitles(actions())).toEqual([
+      "Try again",
+      "Send a test attack",
+    ]);
+
+    // The old centred grey line is gone from the card.
+    expect(
+      screen
+        .getByTestId(SECURITY_GETTING_STARTED_ID)
+        .querySelector(".text-center.my-10"),
+    ).toBeNull();
+  });
+
+  test.each([
+    {
+      name: "a failure on OneUptime's side",
+      error: new SecurityApiError("Server Error", 500),
+      raw: "Server Error",
+    },
+    {
+      name: "a gateway that could not reach the server",
+      error: new SecurityApiError(
+        "Error connecting to server. Please try again in few minutes.",
+        502,
+      ),
+      raw: "Error connecting to server",
+    },
+    {
+      name: "a request that never got an answer",
+      error: new Error(
+        "Request failed to https://oneuptime.example/api/security-case/setup/turn-on-recommended. Network error",
+      ),
+      raw: "Request failed",
+    },
+  ])(
+    "a click that fails whole with $name says so in the product's words, never the raw message",
+    async ({ error, raw }: { error: Error; raw: string }) => {
+      jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockRejectedValue(error);
+      await renderPage();
+
+      await clickTurnOn();
+
+      const box: HTMLElement = await within(
+        screen.getByTestId(SECURITY_GETTING_STARTED_ID),
+      ).findByTestId("security-turn-on-problems");
+
+      expect(
+        within(box).getByTestId("security-turn-on-problems-error"),
+      ).toHaveTextContent("Something went wrong. Try again in a moment.");
+      expect(box).not.toHaveTextContent(raw);
+      expect(buttonTitles(actions())).toEqual([
+        "Try again",
+        "Send a test attack",
+      ]);
+    },
+  );
+
+  test("each click's answer is drawn afresh: a Try again that comes back with the same thing missing is announced again", async () => {
+    const turnOn: SpyInstance<typeof SecurityCaseApi.turnOnRecommended> = jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockResolvedValue(result({ rulesAdded: 18, problems: [problem()] }));
+    await renderPage();
+
+    await clickTurnOn();
+    const first: HTMLElement = await within(
+      screen.getByTestId(SECURITY_GETTING_STARTED_ID),
+    ).findByTestId("security-turn-on-problems");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-turn-on-try-again"));
+    });
+
+    expect(turnOn).toHaveBeenCalledTimes(2);
+    const second: HTMLElement = problemsBox();
+    // The same words, in a new alert - not the old one left standing.
+    expect(second).not.toBe(first);
+    expect(first.isConnected).toBe(false);
+    expect(second).toHaveAttribute("role", "alert");
+    expect(rows(second)).toEqual([
+      "Password spraying - Something went wrong while adding it.",
+    ]);
+  });
+
+  test("the box reads as a title, a list of what is missing and a note", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        rulesAdded: 18,
+        problems: [
+          problem(),
+          problem({
+            part: TurnOnRecommendedPart.Playbook,
+            name: "Enrich New Cases",
+          }),
+        ],
+      }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+    expect(
+      within(problemsBox()).getByTestId("security-turn-on-problems-title"),
+    ).toHaveTextContent(/^Not everything could be turned on$/);
+    // A list a screen reader counts, one item per thing that is missing.
+    expect(within(problemsBox()).getByRole("list")).toBeInTheDocument();
+    expect(within(problemsBox()).getAllByRole("listitem")).toHaveLength(2);
+    expect(
+      within(problemsBox()).getByTestId("security-turn-on-problems-note"),
+    ).toHaveTextContent(
+      /^Everything else is on\. Try again turns on only what is still missing\.$/,
+    );
+    // Nothing more to open when every row is shown.
+    expect(
+      within(problemsBox()).queryByTestId("security-turn-on-problems-more"),
+    ).toBeNull();
+  });
+
+  test("a click that turned nothing on does not say the rest is on", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        problems: [
+          problem({
+            action: TurnOnRecommendedAction.Check,
+            name: "",
+            reason: TurnOnRecommendedReason.NotAllowed,
+          }),
+        ],
+      }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+    expect(rows(problemsBox())).toEqual([
+      "The recommended detection rules - Your role cannot read what the project already has, so nothing was added.",
+    ]);
+    expect(problemsBox()).not.toHaveTextContent("Everything else is on.");
+    expect(problemsBox()).toHaveTextContent(
+      "Try again turns on only what is still missing.",
+    );
+  });
+
+  test("a record OneUptime would not save says why in its own words; a plan says its own sentence; your logs read by their switch", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        rulesAdded: 17,
+        problems: [
+          problem({
+            part: TurnOnRecommendedPart.Logs,
+            name: "",
+            action: TurnOnRecommendedAction.TurnOn,
+            reason: TurnOnRecommendedReason.NotAllowed,
+          }),
+          problem({
+            name: "Failed sign-ins, then a success from the same address",
+            reason: TurnOnRecommendedReason.Refused,
+            detail: "Sigma rule YAML is required.",
+          }),
+          problem({
+            name: "Port scan",
+            reason: TurnOnRecommendedReason.Plan,
+            detail: "Please upgrade your plan to Growth to access this feature",
+          }),
+        ],
+      }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+    expect(rows(problemsBox())).toEqual([
+      "Find security events in your logs - It is turned off, and your role cannot turn it back on.",
+      "Failed sign-ins, then a success from the same address - OneUptime could not save it: Sigma rule YAML is required.",
+      "Port scan - Please upgrade your plan to Growth to access this feature",
+    ]);
+  });
+
+  test(`more than ${MAX_PROBLEMS_SHOWN} things: the first ${MAX_PROBLEMS_SHOWN}, and Show N more opens the rest`, async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        problems: Array.from({ length: MAX_PROBLEMS_SHOWN + 2 }).map(
+          (_value: unknown, index: number): TurnOnRecommendedProblem => {
+            return problem({ name: `Rule ${index + 1}` });
+          },
+        ),
+      }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+    expect(rows(problemsBox())).toHaveLength(MAX_PROBLEMS_SHOWN);
+    expect(rows(problemsBox())[0]).toBe(
+      "Rule 1 - Something went wrong while adding it.",
+    );
+
+    const more: HTMLElement = within(problemsBox()).getByTestId(
+      "security-turn-on-problems-more",
+    );
+    expect(more.tagName).toBe("BUTTON");
+    expect(more).toHaveTextContent(/^Show 2 more$/);
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    // It names the list it opens.
+    expect(more.getAttribute("aria-controls")).toBe(
+      within(problemsBox()).getByRole("list").id,
+    );
+
+    fireEvent.click(more);
+
+    expect(rows(problemsBox())).toHaveLength(MAX_PROBLEMS_SHOWN + 2);
+    expect(rows(problemsBox())[MAX_PROBLEMS_SHOWN + 1]).toBe(
+      `Rule ${MAX_PROBLEMS_SHOWN + 2} - Something went wrong while adding it.`,
+    );
+    expect(more).toHaveTextContent(/^Show less$/);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(more);
+
+    expect(rows(problemsBox())).toHaveLength(MAX_PROBLEMS_SHOWN);
+    expect(more).toHaveTextContent(/^Show 2 more$/);
+  });
+
+  test("a test attack that completes the steps while something is still missing: Done leads, and Try again stays beside it", async () => {
+    jest.spyOn(SecurityCaseApi, "turnOnRecommended").mockResolvedValue(
+      result({
+        rulesAdded: 19,
+        logsTurnedOn: true,
+        playbookAdded: true,
+        problems: [problem()],
+      }),
+    );
+    jest.spyOn(SecurityCaseApi, "runSetupTest").mockResolvedValue({
+      eventsSent: 12,
+      caseId: CASE_ID,
+      caseNumber: "#7",
+      ruleAdded: false,
+    } as SecuritySetupTestResult);
+    answerStatus(
+      status(),
+      status({ ...SET_UP, enabledRules: 19 }),
+      status({ ...SET_UP, enabledRules: 19, openCases: 1 }),
+    );
+    await renderPage();
+
+    await clickTurnOn();
+    await waitFor(() => {
+      expect(problemsBox()).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-run-setup-test"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).toHaveTextContent(
+        "Security is set up",
+      );
+    });
+    // The rule still missing is still said, and can still be tried again.
+    expect(rows(problemsBox())).toEqual([
+      "Password spraying - Something went wrong while adding it.",
+    ]);
+    expect(buttonTitles(actions())).toEqual(["Done", "Try again"]);
+    expect(screen.getByTestId("security-turn-on-try-again")).toBeEnabled();
+  });
+
+  test("a test attack that fails says so in the card, in the same box", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "runSetupTest")
+      .mockRejectedValue(
+        new SecurityApiError(
+          "Running a test takes a role that can read cases.",
+          403,
+        ),
+      );
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).getByTestId(
+          "security-run-setup-test",
+        ),
+      );
+    });
+
+    const box: HTMLElement = await screen.findByTestId(
+      "security-setup-test-error",
+    );
+
+    expect(box).toHaveAttribute("role", "alert");
+    expect(box).toHaveTextContent("The test attack could not be sent");
+    expect(box).toHaveTextContent(
+      "Running a test takes a role that can read cases.",
+    );
+    // The one click is untouched: nothing to try again there.
+    expect(buttonTitles(actions())).toEqual([
+      "Turn on recommended",
+      "Send a test attack",
+    ]);
+  });
+
+  test("a test attack that fails on OneUptime's side says so in the product's words", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "runSetupTest")
+      .mockRejectedValue(new SecurityApiError("Server Error", 500));
+    await renderPage();
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId(SECURITY_GETTING_STARTED_ID)).getByTestId(
+          "security-run-setup-test",
+        ),
+      );
+    });
+
+    const box: HTMLElement = await screen.findByTestId(
+      "security-setup-test-error",
+    );
+
+    expect(
+      within(box).getByTestId("security-turn-on-problems-error"),
+    ).toHaveTextContent("Something went wrong. Try again in a moment.");
+    expect(box).not.toHaveTextContent("Server Error");
+  });
+
+  test("the box and the test's box can show together, and neither carries an id the other repeats", async () => {
+    jest
+      .spyOn(SecurityCaseApi, "turnOnRecommended")
+      .mockResolvedValue(result({ rulesAdded: 18, problems: [problem()] }));
+    jest
+      .spyOn(SecurityCaseApi, "runSetupTest")
+      .mockRejectedValue(new SecurityApiError("Server Error", 500));
+    await renderPage();
+
+    await clickTurnOn();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-run-setup-test"));
+    });
+
+    await screen.findByTestId("security-setup-test-error");
+    expect(problemsBox()).toBeInTheDocument();
+
+    const ids: Array<string> = Array.from(
+      screen.getByTestId(SECURITY_GETTING_STARTED_ID).querySelectorAll("[id]"),
+    ).map((element: Element): string => {
+      return element.id;
+    });
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

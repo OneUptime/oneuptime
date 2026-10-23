@@ -75,7 +75,7 @@ Allez dans **Alertes → Toutes les alertes** et cliquez sur **Créer une alerte
 
 ### Décrire l'alerte
 
-Remplissez le **Titre** et choisissez une **Gravité de l'alerte** ; les deux sont obligatoires. Ajoutez une **Description** si elle aide. Sous **Plus de champs**, replié, vous pouvez choisir un **État initial**, ajouter des **Étiquettes** ou activer **Alerte privée**.
+Remplissez le **Titre** et choisissez une **Gravité de l'alerte** ; les deux sont obligatoires. Ajoutez une **Description** si elle aide. Sous **Plus de champs**, replié, vous pouvez choisir un **État initial**, ajouter des **Étiquettes** ou activer **Alerte privée**. **Propriétaires** s'y trouve aussi : vous devenez de toute façon propriétaire de l'alerte que vous créez, et chaque équipe dont vous êtes membre est à un clic sous le sélecteur.
 
 ### Choisir ce qu'elle touche et qui est alerté
 
@@ -83,7 +83,7 @@ Cliquez sur **Suivant** pour atteindre **Ressources et astreinte**. Choisissez l
 
 ### La créer
 
-Cliquez sur **Suivant** pour vérifier le récapitulatif, puis sur **Créer une alerte**. La page de l'alerte s'ouvre, et les règles commencent à s'exécuter.
+Cliquez sur **Suivant** pour vérifier le récapitulatif, puis sur **Créer une alerte**. La page de l'alerte s'ouvre, et les règles commencent à s'exécuter. Dans le récapitulatif, la ligne **Propriétaires** liste chaque règle de propriétaire qui ajoutera quelqu'un, et qui : voir [Qui en sera propriétaire](/docs/incidents/declaring-incidents#qui-en-sera-propriétaire).
 :::
 
 Laissez **État initial** vide, et l'alerte commence là où commence toute nouvelle alerte : dans votre état de création, **Identifié** dans un nouveau projet. Choisir un état ultérieur enregistre une alerte dont quelqu'un s'occupe déjà, ou qui est déjà terminée ; voir [Créée déjà prise en compte ou résolue](#créée-déjà-prise-en-compte-ou-résolue).
@@ -139,7 +139,7 @@ Pendant que vous la traitez, consignez ce que vous apprenez dans les **Notes pri
 
 **Vue d'ensemble**, **Investigation**, **Équipe** et **Notes** sont ouvertes ; les autres sections restent repliées jusqu'à ce que vous cliquiez dessus.
 
-- **Vue d'ensemble** — trois tuiles indiquant le temps qu'il a fallu pour prendre en compte et résoudre l'alerte, et sa **Durée**. La carte **Investigation IA** ouvre la page, avec **Ask OneUptime AI** en bas, et le **Fil d'activité de l'alerte** consigne tout ce qui est arrivé à l'alerte. À côté se trouvent la carte **Détails de l'alerte**, les mesures de l'alerte et ses **Ressources affectées**.
+- **Vue d'ensemble** — l'en-tête nomme les **Propriétaires** de l'alerte, équipes d'abord, à côté de son moniteur et de son épisode. La tuile **Créé** indique quand et par quoi elle a été créée, deux autres le temps qu'il a fallu pour la prendre en compte et la résoudre ; sa durée figure à côté de son état. La carte **Ce qui s'est passé** ouvre la page — la description de l'alerte et sa **Cause racine** — puis la carte **Investigation IA**, avec **Ask OneUptime AI** en bas, et le **Fil d'activité de l'alerte** consigne tout ce qui est arrivé à l'alerte. À côté se trouvent la carte **Ressources affectées**, la carte **Détails de l'alerte** et les mesures de l'alerte.
 - **Chronologie d'état** — chaque état dans lequel l'alerte a été, quand et pendant combien de temps. Voir [La chronologie d'état](/docs/alerts/states-and-severities#la-chronologie-détat).
 - **Incidents liés** — les incidents dont cette alerte fait partie, avec **Lier l'incident** et **Déclarer un incident**.
 - **Paramètres** — **Qui peut voir cette alerte**, avec l'interrupteur **Alerte privée**, et **Rappels**, avec **Envoyer des rappels**. Chaque interrupteur enregistre dès que vous le basculez.

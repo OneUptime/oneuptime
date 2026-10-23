@@ -81,6 +81,13 @@ export const SubscriberChoicesCopy: {
   twilioTitle: string;
   twilioDescription: string;
   twilioPlaceholder: string;
+  /*
+   * Under the page's Twilio config when that config is used for calls only
+   * (Common/Types/CallAndSMS/TwilioConfigUse): it sends no SMS, so the
+   * page's subscribers get theirs as without a config. The picker no longer
+   * offers such a config; a page keeps one that was switched afterwards.
+   */
+  twilioCallsOnlyNote: string;
 } = {
   cardTitle: translationKey("Subscriber Choices"),
   cardDescription: translationKey(
@@ -121,6 +128,9 @@ export const SubscriberChoicesCopy: {
   ),
   twilioPlaceholder: translationKey(
     "None: OneUptime sends subscriber text messages.",
+  ),
+  twilioCallsOnlyNote: translationKey(
+    "Used for calls only: OneUptime sends subscriber text messages.",
   ),
 };
 

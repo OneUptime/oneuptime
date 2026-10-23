@@ -42,7 +42,20 @@ export type {
  * nothing rather than throwing in a render.
  */
 
-export class SecurityApiError extends Error {}
+/*
+ * A route's refusal or failure: the API's sentence, and the status it came
+ * with - which tells a sentence written for people (a role, a plan, a
+ * request refused) from a failure on OneUptime's side that the Dashboard
+ * words itself (describeSetupCallFailure).
+ */
+export class SecurityApiError extends Error {
+  public readonly statusCode: number;
+
+  public constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
 
 function routeUrl(route: string): URL {
   return URL.fromString(APP_API_URL.toString()).addRoute(route);
@@ -57,7 +70,10 @@ async function post(route: string, data: JSONObject): Promise<JSONObject> {
     });
 
   if (response instanceof HTTPErrorResponse) {
-    throw new SecurityApiError(API.getFriendlyMessage(response));
+    throw new SecurityApiError(
+      API.getFriendlyMessage(response),
+      response.statusCode,
+    );
   }
 
   const body: JSONValue = response.data as JSONValue;

@@ -75,7 +75,7 @@ Gehen Sie zu **Warnungen → Alle Warnungen** und klicken Sie auf **Warnung erst
 
 ### Die Warnung beschreiben
 
-Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten.
+Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt.
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 
@@ -83,7 +83,7 @@ Klicken Sie auf **Weiter**, um zu **Ressourcen & Bereitschaft** zu gelangen. Wä
 
 ### Sie erstellen
 
-Klicken Sie auf **Weiter**, um die Zusammenfassung zu prüfen, dann auf **Warnung erstellen**. Die Seite der Warnung öffnet sich, und die Regeln beginnen zu laufen.
+Klicken Sie auf **Weiter**, um die Zusammenfassung zu prüfen, dann auf **Warnung erstellen**. Die Seite der Warnung öffnet sich, und die Regeln beginnen zu laufen. In der Zusammenfassung nennt die Zeile **Eigentümer** jede Eigentümerregel, die jemanden hinzufügen wird, und wen: siehe [Wem der Vorfall gehören wird](/docs/incidents/declaring-incidents#wem-der-vorfall-gehören-wird).
 :::
 
 Lassen Sie **Anfangsstatus** leer, beginnt die Warnung dort, wo jede neue Warnung beginnt: in Ihrem Erstellungsstatus, in einem neuen Projekt **Identifiziert**. Ein späterer Status hält eine Warnung fest, um die sich schon jemand kümmert oder die schon vorbei ist; siehe [Bereits bestätigt oder behoben erstellt](#bereits-bestätigt-oder-behoben-erstellt).
@@ -139,7 +139,7 @@ Während Sie daran arbeiten, halten Sie Erkenntnisse als **Private Notizen** fes
 
 **Übersicht**, **Untersuchung**, **Team** und **Notizen** sind geöffnet; die anderen Bereiche sind eingeklappt, bis Sie sie anklicken.
 
-- **Übersicht** — drei Kacheln dazu, wie lange es bis zur Bestätigung und zur Behebung der Warnung dauerte, und ihre **Dauer**. Die Karte **KI-Untersuchung** steht oben auf der Seite, mit **Ask OneUptime AI** an ihrem Ende, und der **Warnungs-Feed** hält alles fest, was mit der Warnung geschah. Daneben stehen die Karte **Warnungsdetails**, die Messungen der Warnung und ihre **Betroffene Ressourcen**.
+- **Übersicht** — die Kopfzeile nennt die **Eigentümer** der Warnung, Teams zuerst, neben ihrem Monitor und ihrer Episode. Die Kachel **Erstellt** zeigt, wann und wodurch sie entstand, zwei weitere, wie lange es bis zur Bestätigung und zur Behebung dauerte; wie lange sie schon dauert, steht neben ihrem Status. Die Karte **Hergang** steht oben auf der Seite – die Beschreibung der Warnung und ihre **Grundursache** –, dann die Karte **KI-Untersuchung**, mit **Ask OneUptime AI** an ihrem Ende, und der **Warnungs-Feed** hält alles fest, was mit der Warnung geschah. Daneben stehen die Karte **Betroffene Ressourcen**, die Karte **Warnungsdetails** und die Messungen der Warnung.
 - **Zustands-Zeitachse** — jeder Status, in dem die Warnung war, wann und wie lange. Siehe [Die Statuszeitachse](/docs/alerts/states-and-severities#die-statuszeitachse).
 - **Verknüpfte Vorfälle** — die Vorfälle, zu denen diese Warnung gehört, mit **Vorfall verknüpfen** und **Vorfall melden**.
 - **Einstellungen** — **Wer diese Warnung sehen kann**, mit dem Schalter **Private Warnung**, und **Erinnerungen**, mit **Erinnerungen senden**. Jeder Schalter speichert, sobald Sie ihn umlegen.

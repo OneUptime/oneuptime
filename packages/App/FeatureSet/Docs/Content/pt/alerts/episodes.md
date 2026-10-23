@@ -139,6 +139,8 @@ Em **Detalhes do episódio**, preencha o **Título** e, se quiser, uma **Severid
 
 Em **Plantão e proprietários**, escolha uma **Política de plantão** a executar quando o episódio for criado, e seus **Proprietários**. Depois clique em **Criar episódio**.
 
+Cada equipe da qual você é membro está a um clique abaixo de **Proprietários**, e o resumo lista as regras de proprietário que vão adicionar mais.
+
 ### Adicionar os alertas
 
 Abra a página **Alertas de membros** do episódio, clique em **Adicionar alertas** e marque os alertas que pertencem a ele, quantos precisar de uma vez. Para começar pelos alertas, selecione-os na lista **Alertas** e escolha **Adicionar a um novo episódio** em **Ações em massa** (veja [Episódios](/docs/incidents/episodes)).
@@ -158,7 +160,7 @@ Um episódio que você cria não tem regra de agrupamento, então a lista mostra
 | **Desenvolvedores** | **Terraform**, **API**, **Assistentes de IA** |
 | **Avançado** | **Registros de auditoria**, **Excluir episódio** |
 
-**Desenvolvedores** e **Avançado** começam recolhidas. A **Visão geral** começa com **Alerts in this episode**, depois o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
+**Desenvolvedores** e **Avançado** começam recolhidas. Na **Visão geral**, o cabeçalho mostra os **Proprietários** do episódio, equipes primeiro, e o primeiro bloco, **Criado**, diz quando o episódio foi criado — **Automaticamente**, quando uma regra de agrupamento o abriu. O cartão **O que aconteceu** abre a página — a descrição do episódio e a sua **Causa raiz** — depois **Alerts in this episode** e o **Feed do episódio**, ao lado do cartão **Detalhes do episódio**: seu número, estado, gravidade, quantidade de alertas, regra de agrupamento e políticas de plantão. Seu cabeçalho tem **Confirmar** e **Resolver**, e **Move episode to** no menu **⋯**.
 
 **Alertas → Episódios ativos** lista os episódios que ainda não foram resolvidos, e o selo ao lado os conta.
 

@@ -74,6 +74,10 @@ Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o qu
 A sua função não pode adicionar regras de detecção, playbooks nem a origem de logs. Peça a um Project Owner, um Project Admin ou um Security Admin, ou peça que lhe deem a função Security Admin.
 :::
 
+:::details Turn on recommended não conseguiu ativar tudo
+O cartão indica cada item que não conseguiu ativar e o motivo: a sua função, o seu plano ou um erro do lado do OneUptime. Todo o resto está ativo. Corrija o que ele indica e clique em **Tentar novamente**: só é ativado o que ainda falta, e nada é adicionado duas vezes.
+:::
+
 :::details O ataque de teste não abriu nenhum caso
 Normalmente o caso abre antes de o botão responder; quando a regra ainda está se atualizando, ele avisa, e o caso abre em até um minuto. Confira de novo **Casos de segurança** e verifique em **Detections** se a regra de força bruta está ativada.
 :::

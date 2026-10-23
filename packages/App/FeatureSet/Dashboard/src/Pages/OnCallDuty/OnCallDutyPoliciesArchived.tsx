@@ -6,8 +6,11 @@ import {
   getArchivedColumns,
 } from "../../Components/Archive/ArchivedColumns";
 import { ON_CALL_POLICY_ARCHIVE_COPY } from "../../Components/Archive/ResourceArchiveCopy";
-import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -15,7 +18,6 @@ import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveAc
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
@@ -44,14 +46,44 @@ const OnCallDutyPoliciesArchived: FunctionComponent<
       ON_CALL_POLICY_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
   });
 
+  /*
+   * The Owner and Labels chips above the table, as on the live list: an
+   * archived one can be found by the person or the team that owns it - the
+   * server answers the Owner chip in the list's own query - and the Owners
+   * column shows who that is.
+   */
+  const {
+    getOwnersForResource,
+    isLoadingOwners,
+    onResourcesFetched,
+    filterBar,
+    emptyState: facetEmptyState,
+    mergeFiltersIntoQuery,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<OnCallDutyPolicy>({
+    persistKey: ON_CALL_POLICIES_ARCHIVED_TABLE_ID,
+    ownerUserModelType: OnCallDutyPolicyOwnerUser,
+    ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
+    resourceIdField: "onCallDutyPolicyId",
+    showLabelsFacet: true,
+  });
+
   return (
     <Fragment>
       <ModelTable<OnCallDutyPolicy>
         modelType={OnCallDutyPolicy}
         id={ON_CALL_POLICIES_ARCHIVED_TABLE_ID}
         userPreferencesKey={ON_CALL_POLICIES_ARCHIVED_TABLE_ID}
-        query={{
+        topContent={filterBar}
+        emptyState={facetEmptyState}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        query={mergeFiltersIntoQuery({
           isArchived: true,
+        })}
+        onFetchSuccess={(data: Array<OnCallDutyPolicy>) => {
+          onResourcesFetched(data);
         }}
         isDeleteable={true}
         isEditable={false}
@@ -78,24 +110,6 @@ const OnCallDutyPoliciesArchived: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Text,
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
           },
           getArchivedAtFilter<OnCallDutyPolicy>(),
         ]}
@@ -128,6 +142,22 @@ const OnCallDutyPoliciesArchived: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: OnCallDutyPolicy): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: OnCallDutyPolicy): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
             },
           },
           ...getArchivedColumns<OnCallDutyPolicy>(),

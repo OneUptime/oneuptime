@@ -114,6 +114,7 @@ import ScheduledMaintenancePublicNoteAPI from "Common/Server/API/ScheduledMainte
 import IncidentAPI from "Common/Server/API/IncidentAPI";
 import FormAPI from "Common/Server/API/FormAPI";
 import IncidentEpisodeAPI from "Common/Server/API/IncidentEpisodeAPI";
+import AlertEpisodeAPI from "Common/Server/API/AlertEpisodeAPI";
 import IncidentEpisodeMemberAPI from "Common/Server/API/IncidentEpisodeMemberAPI";
 import AlertEpisodeMemberAPI from "Common/Server/API/AlertEpisodeMemberAPI";
 import ScheduledMaintenanceAPI from "Common/Server/API/ScheduledMaintenanceAPI";
@@ -233,9 +234,6 @@ import InventoryItemRelationshipServiceInstance, {
 } from "Common/Server/Services/InventoryItemRelationshipService";
 
 // AlertEpisode Services
-import AlertEpisodeService, {
-  Service as AlertEpisodeServiceType,
-} from "Common/Server/Services/AlertEpisodeService";
 import AlertEpisodeFeedService, {
   Service as AlertEpisodeFeedServiceType,
 } from "Common/Server/Services/AlertEpisodeFeedService";
@@ -1309,7 +1307,6 @@ import AlertState from "Common/Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 
 // AlertEpisode Models
-import AlertEpisode from "Common/Models/DatabaseModels/AlertEpisode";
 import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import AlertEpisodeInternalNote from "Common/Models/DatabaseModels/AlertEpisodeInternalNote";
 import AlertEpisodeOwnerTeam from "Common/Models/DatabaseModels/AlertEpisodeOwnerTeam";
@@ -2582,10 +2579,7 @@ const BaseAPIFeatureSet: FeatureSet = {
     // AlertEpisode Routes
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<AlertEpisode, AlertEpisodeServiceType>(
-        AlertEpisode,
-        AlertEpisodeService,
-      ).getRouter(),
+      new AlertEpisodeAPI().getRouter(),
     );
 
     app.use(

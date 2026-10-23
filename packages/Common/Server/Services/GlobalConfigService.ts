@@ -20,6 +20,32 @@ import { clearGlobalSsoAuthorizationCaches } from "../Utils/GlobalSsoAuthorizati
 import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
 import Exception from "../../Types/Exception/Exception";
 import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
+import TwilioConfigUses from "../../Types/CallAndSMS/TwilioConfigUse";
+import TwilioConfigWrite, {
+  TwilioUseAndNumbers,
+} from "../../Types/CallAndSMS/TwilioConfigWrite";
+import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
+
+// The columns of the server's Twilio account - stored, or a write's - its numbers' check reads.
+interface TwilioAccountColumns {
+  twilioUsedFor?: unknown;
+  twilioAccountSID?: unknown;
+  twilioPrimaryPhoneNumber?: unknown;
+  twilioSmsPhoneNumbers?: unknown;
+}
+
+// The server account's use and numbers, as TwilioConfigWrite reads them.
+const twilioUseAndNumbersOf: (
+  config: TwilioAccountColumns,
+) => TwilioUseAndNumbers = (
+  config: TwilioAccountColumns,
+): TwilioUseAndNumbers => {
+  return {
+    use: config.twilioUsedFor,
+    primaryPhoneNumber: config.twilioPrimaryPhoneNumber,
+    smsPhoneNumbers: config.twilioSmsPhoneNumbers,
+  };
+};
 
 /*
  * The columns that hold this installation's license state and identity. They
@@ -429,6 +455,70 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
+  /*
+   * What the server's Twilio account is used for (calls and SMS, SMS only
+   * or calls only - Types/CallAndSMS/TwilioConfigUse) must be one of the
+   * uses.
+   */
+  private assertTwilioUseIsValid(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    const error: string | null = TwilioConfigUses.getUseError(
+      (data as { twilioUsedFor?: unknown }).twilioUsedFor,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+  }
+
+  /*
+   * An update that changes what the server's Twilio account is used for,
+   * or its number or SMS numbers, leaves an account that is set up - one
+   * with an account SID - with the numbers that use takes, as a project's
+   * config must have them (ProjectCallSMSConfigService, TwilioConfigWrite):
+   * a number to make calls from unless it is used for SMS only, and SMS
+   * numbers when it is. Without an account SID nothing goes through it, and
+   * the numbers are not asked for. An update that changes none of them is
+   * let through as it always was.
+   */
+  private async assertTwilioNumbersKeptForUse(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: TwilioAccountColumns = updateBy.data as TwilioAccountColumns;
+    const written: TwilioUseAndNumbers = twilioUseAndNumbersOf(data);
+
+    if (TwilioConfigWrite.getWrittenKeys(written).length === 0) {
+      return;
+    }
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      GLOBAL_TWILIO_CONFIG_USE_SELECT,
+    );
+
+    for (const row of rows) {
+      const accountSid: unknown =
+        data.twilioAccountSID !== undefined
+          ? data.twilioAccountSID
+          : row.twilioAccountSID;
+
+      // No account: nothing goes through it, whatever its numbers.
+      if (!accountSid || !String(accountSid).trim()) {
+        continue;
+      }
+
+      const error: string | null = TwilioConfigWrite.getUpdateError({
+        stored: twilioUseAndNumbersOf(row),
+        written: written,
+      });
+
+      if (error) {
+        throw new BadDataException(error);
+      }
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
@@ -446,6 +536,7 @@ export class Service extends DatabaseService<Model> {
     this.assertLicenseColumnsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
+    this.assertTwilioUseIsValid(createBy.data);
 
     return {
       createBy,
@@ -460,6 +551,8 @@ export class Service extends DatabaseService<Model> {
     this.assertLicenseColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertBrandingColumnsWrittenByRootOnly(updateBy.data, updateBy.props);
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
+    this.assertTwilioUseIsValid(updateBy.data);
+    await this.assertTwilioNumbersKeptForUse(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;

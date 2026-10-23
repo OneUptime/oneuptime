@@ -449,7 +449,8 @@ describe.each(LISTS)("Archived $name page", (list: ArchivableList) => {
     const props: CapturedTableProps = await renderPage(list.renderArchived());
 
     expect(props.modelType).toBe(list.modelType);
-    expect(props.query).toEqual({ isArchived: true });
+    // The archived ones, with what the Owner and Labels chips pick.
+    expect(props.query).toEqual({ isArchived: true, merged: true });
     // Never shares saved columns or URL filters with the live list.
     expect(props.id).toBe(list.archivedTableId);
     expect(props.userPreferencesKey).toBe(list.archivedTableId);

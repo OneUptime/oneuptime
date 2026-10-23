@@ -1,6 +1,7 @@
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import ObjectID from "../../../../Types/ObjectID";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { sortLabelNames } from "../../../../Utils/LabelOrder";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import IncidentService from "../../../Services/IncidentService";
 import { LLMMessage } from "../../LLM/LLMService";
@@ -293,10 +294,13 @@ export default class PostmortemTemplatePick {
       description: incident.description,
       rootCause: incident.rootCause,
       severityName: incident.incidentSeverity?.name,
-      labelNames: (incident.labels || []).map(
-        (label: { name?: string | undefined }): string => {
-          return label.name || "";
-        },
+      // In natural order, as labels are listed everywhere (Utils/LabelOrder).
+      labelNames: sortLabelNames(
+        (incident.labels || []).map(
+          (label: { name?: string | undefined }): string => {
+            return label.name || "";
+          },
+        ),
       ),
       monitorNames: (incident.monitors || []).map(
         (monitor: { name?: string | undefined }): string => {

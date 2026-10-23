@@ -57,7 +57,7 @@ Der **Name** wird aus Ihrer Auswahl gebildet (_Production hinzufügen_, _Platfor
 Klicken Sie im letzten Schritt erneut auf die nach der Regel benannte Schaltfläche, etwa **Beschriftungsregel für Monitore erstellen**. Die Regel ist von Anfang an aktiviert, und die Liste zeigt sie mit einer grünen Markierung **Aktiviert**.
 :::
 
-Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine rote Markierung **Deaktiviert**.
+Eine neue Regel muss etwas hinzufügen: mindestens eine Beschriftung (oder einen Eigentümer) oder, bei einer Regel für Vorfälle, Warnungen oder geplante Wartung, etwas, das sie erbt (siehe unten). Um eine Regel anzuhalten, ohne sie zu löschen, schalten Sie **Aktiviert** in ihrem Bearbeitungsformular aus; die Liste zeigt dann eine rote Markierung **Deaktiviert**. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team unter **Team des Erstellers**.
 
 ### Wie auch immer die Regel angelegt wird
 
@@ -68,9 +68,10 @@ Dasselbe gilt für eine Regel, die über die API, Terraform, einen Workflow oder
 | Beschriftungsregel | This label rule adds nothing. Choose at least one label in Labels to Add. |
 | Beschriftungsregel für Vorfälle, Warnungen oder geplante Wartung | This label rule adds nothing. Choose at least one label in Labels to Add, or turn on an Inherit Labels switch. |
 | Eigentümerregel | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams. |
-| Eigentümerregel für Vorfälle, Warnungen oder geplante Wartung | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
+| Eigentümerregel für Vorfälle oder Warnungen | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, a team in Creator's Teams, or turn on an Inherit Owners switch. |
+| Eigentümerregel für geplante Wartung | This owner rule adds nothing. Choose at least one user or team in Owner Users or Owner Teams, or turn on an Inherit Owners switch. |
 
-- **API**: Setzen Sie `labelsToAdd` (oder `ownerUsers` / `ownerTeams`) auf mindestens einen Datensatz des Projekts oder einen der Schalter `inheritLabelsFrom…` (`inheritOwnersFrom…`) der Regel auf `true` – einen JSON-Boolean.
+- **API**: Setzen Sie `labelsToAdd` (oder `ownerUsers` / `ownerTeams`) auf mindestens einen Datensatz des Projekts oder einen der Schalter `inheritLabelsFrom…` (`inheritOwnersFrom…`) der Regel auf `true` – einen JSON-Boolean. Bei einer Eigentümerregel für Vorfälle oder Warnungen genügt auch ein Team in `creatorTeams`.
 - **Terraform**: Eine Ressource für eine Beschriftungs- oder Eigentümerregel, die nichts hinzufügt, scheitert bei `terraform apply` mit der obigen Meldung. Geben Sie ihr `labels_to_add` (oder `owner_users` / `owner_teams`) oder schalten Sie einen ihrer Erben-Schalter ein.
 
 Regeln, die Sie bereits haben, bleiben unberührt – siehe [Eine Regel bearbeiten](#eine-regel-bearbeiten).
@@ -93,6 +94,12 @@ Eine Regel, die erbt, kann **Hinzuzufügende Beschriftungen** (bzw. **Eigentüme
 | **Beschriftungen von Überwachung erben**, bei einer Warnungsregel | _Beschriftungen erben von: Überwachung_ |
 
 Der Name folgt den Schaltern, bis Sie eine Beschriftung wählen – dann wird die Regel nach ihren Beschriftungen benannt – oder einen eigenen Namen eingeben.
+
+### Das Team des Erstellers
+
+Eine Eigentümerregel für Vorfälle oder Warnungen hat einen Eintrag mehr, zuletzt in ihrem Abschnitt **Eigentümer erben**: **Team des Erstellers**, eine Liste von Teams. Ist die Person, die einen zutreffenden Vorfall meldet oder eine zutreffende Warnung erstellt, Mitglied eines Teams auf der Liste, wird auch dieses Team Eigentümer. Es ist eine Liste und nicht jedes ihrer Teams, weil Personen standardmäßig dem Team **Mitglieder** des Projekts beitreten und es niemandem hilft, alle zu Eigentümern zu machen. Ein Vorfall oder eine Warnung, die ein Monitor, ein Workflow, ein Formular oder ein API-Schlüssel erstellt, hat keinen Ersteller und bekommt keines dieser Teams. Sie werden benachrichtigt, wie es **Eigentümer benachrichtigen** der Regel sagt, und eine Regel, die nur sie hinzufügt, heißt _Das Team des Erstellers als Eigentümer hinzufügen_. Über die API ist die Liste `creatorTeams`.
+
+Die Person, die einen Vorfall meldet oder eine Warnung erstellt, wird einer ihrer Eigentümer, was auch immer die Regeln sagen, und die Erstellformulare nennen in ihrer Zusammenfassung jede Eigentümerregel, die laufen wird, und wen sie hinzufügen wird: siehe [Wem der Vorfall gehören wird](/docs/incidents/declaring-incidents#wem-der-vorfall-gehören-wird).
 
 ## Eine Regel bearbeiten
 

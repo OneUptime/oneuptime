@@ -44,7 +44,7 @@ Para añadir una configuración de proyecto:
 :::steps
 1. Ve a **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
 2. En **Configuración de Twilio**, selecciona **Crear configuración de Twilio**.
-3. Introduce un nombre, **SID de cuenta de Twilio**, **Token de autenticación de Twilio** y **Número de teléfono principal de Twilio**. En **Más campos**, si quieres, introduce **Números de teléfono secundarios de Twilio** separados por comas para otros países, y **Números de teléfono SMS de Twilio** si tus números no pueden enviar SMS.
+3. Introduce un nombre y elige en **Usar esta cuenta para** lo que envía la cuenta: **Llamadas y SMS**, **Solo SMS** o **Solo llamadas**. Después introduce **SID de cuenta de Twilio**, **Token de autenticación de Twilio** y el número que pide esa elección: **Número de teléfono principal de Twilio** para las llamadas, o **Números de teléfono SMS de Twilio** para **Solo SMS**. En **Más campos**, si quieres, introduce **Números de teléfono secundarios de Twilio** separados por comas para otros países, y **Números de teléfono SMS de Twilio** si tus números no pueden enviar SMS.
 4. **Establecer como predeterminado del proyecto** empieza activado en la primera configuración del proyecto, así que los SMS y las llamadas a los miembros del proyecto, incluidas las notificaciones de guardia, pasan por ella en cuanto guardas. Desactívalo si esta cuenta es solo para páginas de estado o llamadas entrantes. Una configuración posterior empieza con el interruptor desactivado: actívalo, o elige **Establecer como predeterminado del proyecto** en el menú de la fila de la configuración, para trasladar esos mensajes a ella. Una solicitud a la API que omite `isProjectDefault` se trata de la misma forma.
 5. Guarda. Solo una configuración puede ser la predeterminada del proyecto. Las páginas de estado usan la configuración asignada explícitamente a cada una.
 
@@ -52,7 +52,7 @@ Para añadir una configuración de proyecto:
 > **SMS** y **Llamadas telefónicas** empiezan desactivados en todos los proyectos, y mientras no estén activados nadie en el proyecto puede añadir un número de teléfono para ellos. Un propietario del proyecto, un **Billing Admin** o alguien con **Manage Billing** los activa en la tarjeta **Canales de notificación** de la misma página.
 :::
 
-Para una configuración predeterminada de toda la instalación, un administrador puede abrir en su lugar **Admin Dashboard > Ajustes > Llamadas y SMS**, editar las credenciales y los números de teléfono de Twilio y guardar. Las notificaciones de los miembros usan esta configuración global cuando su proyecto no tiene una predeterminada. Mantén el Auth Token en secreto.
+Para una configuración predeterminada de toda la instalación, un administrador puede abrir en su lugar **Admin Dashboard > Ajustes > Llamadas y SMS**, elegir lo que envía la cuenta, editar las credenciales y los números de teléfono de Twilio y guardar. Las notificaciones de los miembros usan esta configuración global cuando su proyecto no tiene una predeterminada. Mantén el Auth Token en secreto.
 
 ### Números distintos para llamadas y SMS
 
@@ -70,6 +70,20 @@ Una configuración sin números para SMS envía los SMS desde los mismos número
 
 > [!NOTE]
 > Qué números pueden enviar SMS, y si un remitente debe registrarse antes, cambia de un país a otro: donde el registro es obligatorio, un SMS desde un número no registrado puede bloquearse o marcarse como spam. Antes de confiar en un número, consulta [las directrices de SMS de Twilio](https://www.twilio.com/en-us/guidelines/sms) de cada país al que envíes.
+
+### Una cuenta solo para SMS, o solo para llamadas
+
+Una cuenta que usas solo para SMS, o solo para llamadas, no necesita ningún número para lo otro. Elígelo en **Usar esta cuenta para** y el formulario pide solo los números que necesita esa elección:
+
+| Elección | Números que necesita | Lo que nunca envía |
+| --- | --- | --- |
+| **Llamadas y SMS** | **Número de teléfono principal de Twilio** | Nada |
+| **Solo SMS** | **Números de teléfono SMS de Twilio** | Llamadas |
+| **Solo llamadas** | **Número de teléfono principal de Twilio** | SMS |
+
+Lo que una configuración no envía sale como saldría sin ella: cuando la configuración predeterminada del proyecto está en **Solo SMS**, las llamadas a los miembros del proyecto pasan por la configuración de toda la instalación. Si ninguna configuración puede enviar un mensaje, el registro del mensaje dice que la configuración del proyecto no se usa para eso, y quién puede cambiarlo.
+
+Las páginas de estado ofrecen solo las configuraciones que envían SMS, y **Enviar SMS de prueba** y **Enviar llamada de prueba** aparecen solo para lo que envía cada configuración. Toda configuración existente queda en **Llamadas y SMS**, como antes. En la API y en Terraform, la elección es el campo `usedFor`, y se rechaza una configuración sin los números que su elección necesita.
 
 ## 3. Configura el acceso a la red
 
@@ -145,6 +159,7 @@ Para el desarrollo, la [guía de pruebas de webhooks](https://www.twilio.com/doc
 | --- | --- |
 | No se envía nada | Las credenciales, las capacidades del número, las restricciones de la cuenta y la conectividad saliente. |
 | Twilio rechaza los SMS con el error 21606 | El número no puede enviar SMS. Añade uno que sí pueda en **Números de teléfono SMS de Twilio**: consulta [Números distintos para llamadas y SMS](#números-distintos-para-llamadas-y-sms). |
+| Las llamadas o los SMS salen por una cuenta distinta de la del proyecto | La configuración predeterminada del proyecto está en **Solo SMS** o **Solo llamadas**: consulta [Una cuenta solo para SMS, o solo para llamadas](#una-cuenta-solo-para-sms-o-solo-para-llamadas). |
 | El SMS o la llamada llega, pero su estado o la confirmación no se actualizan | La URL del callback y los registros del ingress público. La [guía de Twilio sobre fallos de recuperación HTTP](https://www.twilio.com/docs/api/errors/11200) ayuda a diagnosticar callbacks inaccesibles, problemas de TLS y errores HTTP. |
 
 Una llamada de prueba correcta no demuestra por sí sola que los callbacks sean accesibles.

@@ -35,6 +35,13 @@ export interface ComponentProps {
    * dot.
    */
   isPulsing?: boolean | undefined;
+  /*
+   * Words too long for the room run onto a next line inside the pill,
+   * rather than end in "..." with the whole of them under the pointer -
+   * for where nothing points: a phone's card (a record's labels in a
+   * table's row on a phone). A pill of one line looks as any other.
+   */
+  isWrapping?: boolean | undefined;
 }
 
 /*
@@ -43,6 +50,26 @@ export interface ComponentProps {
  */
 const PILL_CLASS_NAME: string =
   "inline-flex max-w-full items-center gap-[0.4em] rounded-full px-[0.6em] py-[0.2em] font-medium leading-[1.35]";
+
+/*
+ * A pill whose words may run onto a next line: its dot on the first line,
+ * and corners as round as a one-line pill's (half its 1.75em height), so a
+ * pill of two lines is a rounded box, not a stadium, and one of one line is
+ * the pill above.
+ */
+export const WRAPPING_PILL_CLASS_NAME: string =
+  "inline-flex max-w-full items-start gap-[0.4em] rounded-[0.875em] px-[0.6em] py-[0.2em] font-medium leading-[1.35]";
+
+// Its dot, centred on the first line: (1.35em - 0.5em) / 2 above it.
+export const WRAPPING_PILL_DOT_CLASS_NAME: string = "mt-[0.425em]";
+
+// And an icon in the dot's place: (1.35em - 1em) / 2 above it.
+export const WRAPPING_PILL_ICON_CLASS_NAME: string = "mt-[0.175em]";
+
+export const PILL_TEXT_CLASS_NAME: string = "min-w-0 truncate";
+
+export const WRAPPING_PILL_TEXT_CLASS_NAME: string =
+  "min-w-0 whitespace-normal [overflow-wrap:anywhere]";
 
 const Pill: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -56,7 +83,9 @@ const Pill: FunctionComponent<ComponentProps> = (
       <span
         data-testid="pill"
         data-ou-pill={props.isMinimal ? undefined : ""}
-        className={`${PILL_CLASS_NAME} ${
+        className={`${
+          props.isWrapping ? WRAPPING_PILL_CLASS_NAME : PILL_CLASS_NAME
+        } ${
           props.isMinimal ? "text-gray-700 ring-1 ring-inset ring-gray-200" : ""
         }`}
         style={{
@@ -70,7 +99,9 @@ const Pill: FunctionComponent<ComponentProps> = (
           <Icon
             icon={props.icon}
             thick={ThickProp.Thick}
-            className="h-[1em] w-[1em] flex-shrink-0"
+            className={`h-[1em] w-[1em] flex-shrink-0${
+              props.isWrapping ? ` ${WRAPPING_PILL_ICON_CLASS_NAME}` : ""
+            }`}
           />
         ) : props.isPulsing ? (
           /*
@@ -80,7 +111,9 @@ const Pill: FunctionComponent<ComponentProps> = (
           <span
             data-testid="pill-dot"
             data-pulsing="true"
-            className="relative inline-flex h-[0.5em] w-[0.5em] flex-shrink-0"
+            className={`relative inline-flex h-[0.5em] w-[0.5em] flex-shrink-0${
+              props.isWrapping ? ` ${WRAPPING_PILL_DOT_CLASS_NAME}` : ""
+            }`}
             aria-hidden="true"
           >
             <span
@@ -99,13 +132,20 @@ const Pill: FunctionComponent<ComponentProps> = (
           <span
             data-testid="pill-dot"
             data-ou-pill-dot=""
-            className="h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full"
+            className={`h-[0.5em] w-[0.5em] flex-shrink-0 rounded-full${
+              props.isWrapping ? ` ${WRAPPING_PILL_DOT_CLASS_NAME}` : ""
+            }`}
             style={getPillDotStyle(colors)}
             aria-hidden="true"
           ></span>
         )}
         <span
-          className="min-w-0 truncate"
+          data-testid="pill-text"
+          className={
+            props.isWrapping
+              ? WRAPPING_PILL_TEXT_CLASS_NAME
+              : PILL_TEXT_CLASS_NAME
+          }
           onMouseEnter={(event: React.MouseEvent<HTMLSpanElement>) => {
             /*
              * A pill stays on one line and ellipsizes in a container too

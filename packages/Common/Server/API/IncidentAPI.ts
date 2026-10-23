@@ -36,6 +36,8 @@ import IncidentSubscriberAudience, {
 import IncidentSubscriberAudienceBuilder, {
   IncidentSubscriberAudienceRequest,
 } from "../Utils/StatusPage/IncidentSubscriberAudienceBuilder";
+import OwnerRulePreviewRoute from "./OwnerRulePreviewRoute";
+import { OwnerRulePreviewEvent } from "../../Types/Rules/OwnerRulePreview";
 
 export default class IncidentAPI extends BaseAPI<
   Incident,
@@ -110,6 +112,16 @@ export default class IncidentAPI extends BaseAPI<
         }
       },
     );
+
+    /*
+     * Which owner rules would run for an incident being declared, and who
+     * they would add (Types/Rules/OwnerRulePreview).
+     */
+    OwnerRulePreviewRoute.register({
+      router: this.router,
+      apiPath: new this.entityType().getCrudApiPath()?.toString() || "",
+      event: OwnerRulePreviewEvent.Incident,
+    });
   }
 
   private async getSubscriberAudience(

@@ -14,8 +14,6 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
-  getKvStringValue,
-  getKvValue,
   KubernetesPodObject,
   KubernetesNodeObject,
   KubernetesDeploymentObject,
@@ -30,6 +28,17 @@ import {
   KubernetesVPAObject,
 } from "Common/Types/Kubernetes/KubernetesObjectParser";
 import { kindFromResourceType } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
+import {
+  KubernetesEventsPage,
+  fetchKubernetesEvents,
+} from "../../../Components/Kubernetes/KubernetesEventsApi";
+import {
+  KubernetesEventsTypeFilter,
+  KubernetesWarningSummary,
+  summarizeKubernetesWarnings,
+} from "../../../Components/Kubernetes/KubernetesEventsModel";
+
+export type { KubernetesWarningSummary };
 
 /*
  * ------------------------------------------------------------------
@@ -43,9 +52,10 @@ import { kindFromResourceType } from "Common/Types/Kubernetes/KubernetesInventor
  *     the OTel logs ingest path. This replaces 24h scans of the
  *     ClickHouse Log table for object specs and is orders of
  *     magnitude faster.
- *   - fetchK8sEventsForResource / fetchClusterWarningEvents /
- *     fetchPodLogs continue to read from the Log table — they ARE
- *     genuinely log-shaped (k8s events, application logs).
+ *   - fetchClusterWarningEvents / fetchPodLogs continue to read from
+ *     the Log table — they ARE genuinely log-shaped (k8s events,
+ *     application logs). Events are read through
+ *     Components/Kubernetes/KubernetesEventsApi.
  *
  * The public signatures are unchanged; callers pass the cluster
  * identifier string as before. We resolve it to the cluster UUID
@@ -410,284 +420,37 @@ export async function fetchK8sObjectsBatch(options: {
 
 // --- events + logs (still on ClickHouse) ---------------------------
 
-/**
- * Fetch K8s events related to a specific resource. Events arrive
- * from the k8sobjects watch mode and remain log-shaped; we keep them
- * on ClickHouse.
+/*
+ * The cluster's newest warnings, for the Overview: one line per reason
+ * and object - three OOM kills on one node are one line that says 3 - read
+ * on the server from the cluster's warning Events alone
+ * (Components/Kubernetes/KubernetesEventsApi). It used to read the newest
+ * 500 Event logs of the whole project, of every type and every cluster,
+ * and pick this cluster's warnings out of them: on a busy cluster the
+ * Normal events of the last few minutes filled that window, and the
+ * warnings were never in it (issue #5179).
  */
-export interface KubernetesEvent {
-  timestamp: string;
-  type: string;
-  reason: string;
-  objectKind: string;
-  objectName: string;
-  namespace: string;
-  message: string;
-}
-
-export async function fetchK8sEventsForResource(options: {
-  clusterIdentifier: string;
-  resourceKind: string;
-  resourceName: string;
-  namespace?: string | undefined;
-}): Promise<Array<KubernetesEvent>> {
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
-  if (!projectId) {
-    return [];
-  }
-
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -24);
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const eventsQueryOptions: any = {
-      modelType: Log,
-      query: {
-        projectId: projectId,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          "event.domain": "k8s",
-          "k8s.resource.name": "events",
-        },
-      },
-      limit: 500,
-      skip: 0,
-      select: {
-        time: true,
-        body: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-    const listResult: ListResult<Log> =
-      await AnalyticsModelAPI.getList<Log>(eventsQueryOptions);
-
-    const events: Array<KubernetesEvent> = [];
-
-    for (const log of listResult.data) {
-      const attrs: JSONObject = log.attributes || {};
-
-      if (
-        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
-        attrs["k8s.cluster.name"] !== options.clusterIdentifier
-      ) {
-        continue;
-      }
-
-      if (typeof log.body !== "string") {
-        continue;
-      }
-
-      let bodyObj: JSONObject | null = null;
-      try {
-        bodyObj = JSON.parse(log.body) as JSONObject;
-      } catch {
-        continue;
-      }
-
-      const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
-        | JSONObject
-        | undefined;
-      if (!topKvList) {
-        continue;
-      }
-
-      const objectVal: string | JSONObject | null = getKvValue(
-        topKvList,
-        "object",
-      );
-      if (!objectVal || typeof objectVal === "string") {
-        continue;
-      }
-      const objectKvList: JSONObject = objectVal;
-
-      const eventType: string = getKvStringValue(objectKvList, "type") || "";
-      const reason: string = getKvStringValue(objectKvList, "reason") || "";
-      const note: string = getKvStringValue(objectKvList, "note") || "";
-
-      const regardingKind: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "kind",
-        ) || "";
-      const regardingName: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "name",
-        ) || "";
-      const regardingNamespace: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "namespace",
-        ) || "";
-
-      if (
-        regardingKind.toLowerCase() !== options.resourceKind.toLowerCase() ||
-        regardingName !== options.resourceName
-      ) {
-        continue;
-      }
-
-      if (
-        options.namespace &&
-        regardingNamespace &&
-        regardingNamespace !== options.namespace
-      ) {
-        continue;
-      }
-
-      events.push({
-        timestamp: log.time
-          ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
-          : "",
-        type: eventType || "Unknown",
-        reason: reason || "Unknown",
-        objectKind: regardingKind || "Unknown",
-        objectName: regardingName || "Unknown",
-        namespace: regardingNamespace || "default",
-        message: note || "",
-      });
-    }
-
-    return events;
-  } catch {
-    return [];
-  }
-}
+export const CLUSTER_WARNINGS_WINDOW_IN_HOURS: number = 24;
 
 export async function fetchClusterWarningEvents(options: {
   clusterIdentifier: string;
   limit?: number | undefined;
-}): Promise<Array<KubernetesEvent>> {
-  const projectId: string | undefined =
-    ProjectUtil.getCurrentProjectId()?.toString();
-  if (!projectId) {
-    return [];
-  }
-
-  /*
-   * 3h window keeps the scan small on the overview page. K8s events
-   * have a ~1h TTL in the API server anyway, so anything older won't
-   * be re-ingested — a wider window mostly scans empty partitions.
-   */
+}): Promise<Array<KubernetesWarningSummary>> {
   const endDate: Date = OneUptimeDate.getCurrentDate();
-  const startDate: Date = OneUptimeDate.addRemoveHours(endDate, -3);
+  const startDate: Date = OneUptimeDate.addRemoveHours(
+    endDate,
+    -CLUSTER_WARNINGS_WINDOW_IN_HOURS,
+  );
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const eventsQueryOptions: any = {
-      modelType: Log,
-      query: {
-        projectId: projectId,
-        time: new InBetween<Date>(startDate, endDate),
-        attributes: {
-          "event.domain": "k8s",
-          "k8s.resource.name": "events",
-        },
-      },
-      limit: 500,
-      skip: 0,
-      select: {
-        time: true,
-        body: true,
-        attributes: true,
-      },
-      sort: {
-        time: SortOrder.Descending,
-      },
-      requestOptions: {},
-    };
-    const listResult: ListResult<Log> =
-      await AnalyticsModelAPI.getList<Log>(eventsQueryOptions);
+    const page: KubernetesEventsPage = await fetchKubernetesEvents({
+      clusterIdentifier: options.clusterIdentifier,
+      scope: { kind: "cluster" },
+      filters: { type: KubernetesEventsTypeFilter.Warning },
+      window: new InBetween<Date>(startDate, endDate),
+    });
 
-    const events: Array<KubernetesEvent> = [];
-    const maxEvents: number = options.limit || 10;
-
-    for (const log of listResult.data) {
-      if (events.length >= maxEvents) {
-        break;
-      }
-
-      const attrs: JSONObject = log.attributes || {};
-
-      if (
-        attrs["resource.k8s.cluster.name"] !== options.clusterIdentifier &&
-        attrs["k8s.cluster.name"] !== options.clusterIdentifier
-      ) {
-        continue;
-      }
-
-      if (typeof log.body !== "string") {
-        continue;
-      }
-
-      let bodyObj: JSONObject | null = null;
-      try {
-        bodyObj = JSON.parse(log.body) as JSONObject;
-      } catch {
-        continue;
-      }
-
-      const topKvList: JSONObject | undefined = bodyObj["kvlistValue"] as
-        | JSONObject
-        | undefined;
-      if (!topKvList) {
-        continue;
-      }
-
-      const objectVal: string | JSONObject | null = getKvValue(
-        topKvList,
-        "object",
-      );
-      if (!objectVal || typeof objectVal === "string") {
-        continue;
-      }
-      const objectKvList: JSONObject = objectVal;
-
-      const eventType: string = getKvStringValue(objectKvList, "type") || "";
-
-      if (eventType !== "Warning") {
-        continue;
-      }
-
-      const reason: string = getKvStringValue(objectKvList, "reason") || "";
-      const note: string = getKvStringValue(objectKvList, "note") || "";
-
-      const regardingKind: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "kind",
-        ) || "";
-      const regardingName: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "name",
-        ) || "";
-      const regardingNamespace: string =
-        getKvStringValue(
-          getKvValue(objectKvList, "regarding") as JSONObject | undefined,
-          "namespace",
-        ) || "";
-
-      events.push({
-        timestamp: log.time
-          ? OneUptimeDate.getDateAsLocalFormattedString(log.time)
-          : "",
-        type: eventType,
-        reason: reason || "Unknown",
-        objectKind: regardingKind || "Unknown",
-        objectName: regardingName || "Unknown",
-        namespace: regardingNamespace || "default",
-        message: note || "",
-      });
-    }
-
-    return events;
+    return summarizeKubernetesWarnings(page.rows, options.limit || 10);
   } catch {
     return [];
   }

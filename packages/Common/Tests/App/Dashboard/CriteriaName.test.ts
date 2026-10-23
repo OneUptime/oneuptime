@@ -838,6 +838,129 @@ describe("a monitor type change repairs filters, and a generated name follows th
   });
 });
 
+/*
+ * A value picked from a fixed list - the Value dropdown of External Status
+ * Page Component Status, say - is stored as the list's value
+ * ("under_maintenance") but read by the words the dropdown shows ("Under
+ * Maintenance"), so a name says it the way the person picked it. Issue
+ * #5176's docs walk people to exactly that criteria.
+ */
+describe("a value picked from a fixed list, in a name", () => {
+  const maintenance: CriteriaFilter = filter({
+    checkOn: CheckOn.ExternalStatusPageComponentStatus,
+    filterType: FilterType.EqualTo,
+    value: "under_maintenance",
+  });
+
+  test("is named by the words its dropdown shows", () => {
+    expect(CriteriaNameUtil.describeFilter(maintenance)).toBe(
+      'External Status Page Component Status is "Under Maintenance"',
+    );
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.ExternalStatusPageComponentStatus,
+          filterType: FilterType.NotEqualTo,
+          value: "operational",
+        }),
+      ),
+    ).toBe('External Status Page Component Status is not "Operational"');
+  });
+
+  test("every Component Status value is named by its own label", () => {
+    for (const option of CriteriaFilterUtil.getDropdownOptionsByCheckOn({
+      checkOn: CheckOn.ExternalStatusPageComponentStatus,
+    })) {
+      expect(
+        CriteriaNameUtil.describeFilter(
+          filter({
+            checkOn: CheckOn.ExternalStatusPageComponentStatus,
+            filterType: FilterType.EqualTo,
+            value: option.value.toString(),
+          }),
+        ),
+      ).toBe(`External Status Page Component Status is "${option.label}"`);
+    }
+  });
+
+  test("a value no option has is named as it is stored", () => {
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.ExternalStatusPageComponentStatus,
+          filterType: FilterType.EqualTo,
+          value: "unknown",
+        }),
+      ),
+    ).toBe('External Status Page Component Status is "unknown"');
+  });
+
+  test("a list whose words are its values names them as before", () => {
+    expect(
+      CriteriaNameUtil.describeFilter(
+        filter({
+          checkOn: CheckOn.ScreenSizeType,
+          filterType: FilterType.EqualTo,
+          value: "Mobile",
+        }),
+      ),
+    ).toBe('Screen Size is "Mobile"');
+  });
+
+  test("by its stored value only when asked, the way names were made before", () => {
+    expect(
+      CriteriaNameUtil.getNameFromFilters(
+        { filters: [maintenance] },
+        { useStoredValues: true },
+      ),
+    ).toBe('External Status Page Component Status is "under_maintenance"');
+    expect(
+      CriteriaNameUtil.getNameFromFilters({ filters: [maintenance] }),
+    ).toBe('External Status Page Component Status is "Under Maintenance"');
+  });
+
+  /*
+   * A criteria named before the dropdown's words were used still has the
+   * name its filters gave it, so it keeps following them - and takes the
+   * dropdown's words at the next change.
+   */
+  test("a name made before from the stored value is still the filters' own, and follows them", () => {
+    const oldName: string =
+      'External Status Page Component Status is "under_maintenance"';
+
+    expect(
+      CriteriaNameUtil.isNameFromFilters({
+        name: oldName,
+        filters: [maintenance],
+      }),
+    ).toBe(true);
+    expect(
+      CriteriaNameUtil.getNameAfterFiltersChange({
+        name: oldName,
+        previous: { filters: [maintenance] },
+        next: {
+          filters: [
+            filter({
+              checkOn: CheckOn.ExternalStatusPageComponentStatus,
+              filterType: FilterType.EqualTo,
+              value: "major_outage",
+            }),
+          ],
+        },
+      }),
+    ).toBe('External Status Page Component Status is "Major Outage"');
+  });
+
+  test("a name the user typed stays theirs", () => {
+    expect(
+      CriteriaNameUtil.isNameFromFilters({
+        name: "Upstream maintenance",
+        filters: [maintenance],
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("what the monitor docs say about criteria names", () => {
   /*
    * The Website and API monitor pages tell readers what "Add Criteria" names

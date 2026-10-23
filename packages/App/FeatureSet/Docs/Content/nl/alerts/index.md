@@ -75,7 +75,7 @@ Ga naar **Waarschuwingen → Alle waarschuwingen** en klik op **Waarschuwing mak
 
 ### De waarschuwing beschrijven
 
-Vul de **Titel** in en kies een **Ernst van waarschuwing**; beide zijn verplicht. Voeg een **Beschrijving** toe als dat helpt. Onder **Meer velden**, ingeklapt, kun je een **Initiële status** kiezen, **Labels** toevoegen of **Privéwaarschuwing** aanzetten.
+Vul de **Titel** in en kies een **Ernst van waarschuwing**; beide zijn verplicht. Voeg een **Beschrijving** toe als dat helpt. Onder **Meer velden**, ingeklapt, kun je een **Initiële status** kiezen, **Labels** toevoegen of **Privéwaarschuwing** aanzetten. Daar wacht ook **Eigenaren**: je wordt hoe dan ook eigenaar van de waarschuwing die je maakt, en elk team waarvan je lid bent, is onder de kiezer één klik verwijderd.
 
 ### Kiezen wat ze treft en wie wordt opgeroepen
 
@@ -83,7 +83,7 @@ Klik op **Volgende** om naar **Middelen en bereikbaarheid** te gaan. Kies de **M
 
 ### Haar aanmaken
 
-Klik op **Volgende** om de samenvatting te controleren en daarna op **Waarschuwing maken**. De eigen pagina van de waarschuwing opent, en de regels beginnen te draaien.
+Klik op **Volgende** om de samenvatting te controleren en daarna op **Waarschuwing maken**. De eigen pagina van de waarschuwing opent, en de regels beginnen te draaien. In de samenvatting noemt de rij **Eigenaren** elke eigenaarsregel die iemand zal toevoegen, en wie: zie [Wie de eigenaar wordt](/docs/incidents/declaring-incidents#wie-de-eigenaar-wordt).
 :::
 
 Laat je **Initiële status** leeg, dan begint de waarschuwing waar elke nieuwe waarschuwing begint: in je aanmaakstatus, **Identified** in een nieuw project. Kies je een latere status, dan leg je een waarschuwing vast die al wordt afgehandeld, of die al voorbij is; zie [Al bevestigd of opgelost aangemaakt](#al-bevestigd-of-opgelost-aangemaakt).
@@ -139,7 +139,7 @@ Terwijl je eraan werkt, leg je wat je leert vast als **Privénotities**, vul je 
 
 **Overzicht**, **Onderzoek**, **Team** en **Notities** zijn open; de andere secties blijven ingeklapt tot je erop klikt.
 
-- **Overzicht** — drie tegels met hoe lang het duurde voordat de waarschuwing werd bevestigd en opgelost, en haar **Duur**. De kaart **AI Investigation** staat bovenaan de pagina, met **Ask OneUptime AI** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Waarschuwingsdetails**, de metingen van de waarschuwing en haar **Getroffen resources**.
+- **Overzicht** — de kop noemt de **Eigenaren** van de waarschuwing, teams eerst, naast haar monitor en episode. De tegel **Aangemaakt** toont wanneer en waardoor ze werd aangemaakt, twee andere hoe lang het duurde voordat ze werd bevestigd en opgelost; hoe lang ze duurt staat naast haar status. De kaart **Wat er gebeurde** staat bovenaan de pagina — de beschrijving van de waarschuwing en haar **Hoofdoorzaak** — dan de kaart **AI Investigation**, met **Ask OneUptime AI** onderaan, en **Waarschuwing Feed** legt alles vast wat met de waarschuwing gebeurde. Daarnaast staan de kaart **Getroffen resources**, de kaart **Waarschuwingsdetails** en de metingen van de waarschuwing.
 - **Statustijdlijn** — elke status waarin de waarschuwing heeft gestaan, wanneer en hoe lang. Zie [De statustijdlijn](/docs/alerts/states-and-severities#de-statustijdlijn).
 - **Gekoppelde incidenten** — de incidenten waar deze waarschuwing deel van uitmaakt, met **Incident koppelen** en **Incident melden**.
 - **Instellingen** — **Wie deze waarschuwing kan zien**, met de schakelaar **Privéwaarschuwing**, en **Herinneringen**, met **Herinneringen sturen**. Elke schakelaar slaat op zodra je hem omzet.

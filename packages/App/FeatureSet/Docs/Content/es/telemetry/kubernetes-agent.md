@@ -213,7 +213,7 @@ Si no estás seguro, empieza con `standard`. Si la instalación falla con un err
 | Métricas de pod | CPU, memoria, red y reinicios |
 | Métricas de contenedor | CPU y memoria por contenedor |
 | Métricas del clúster | Condiciones de los nodos, recursos asignables, recuentos de pods |
-| Eventos de Kubernetes | Advertencias, errores y eventos de planificación |
+| Eventos de Kubernetes | Cada evento, Warning y Normal, de cada espacio de nombres y tipo de objeto: consulta [Eventos de Kubernetes](#eventos-de-kubernetes) |
 | Logs de pods | stdout y stderr de cada contenedor (a través de `hostPath` en clústeres estándar, a través de la API de Kubernetes en Autopilot y Fargate) |
 | Trazas de aplicación (eBPF, activadas por defecto) | Spans HTTP, gRPC, SQL y Redis de cada pod, sin SDK ni cambios de código |
 | Métricas RED de HTTP (eBPF) | `http.server.request.duration` y los tamaños del cuerpo de solicitud y respuesta, por servicio |
@@ -221,6 +221,42 @@ Si no estás seguro, empieza con `standard`. Si la instalación falla con un err
 | Métricas de flujos de red (eBPF) | Contadores de bytes y paquetes TCP y UDP de pod a pod, con metadatos de Kubernetes |
 | Estadísticas de TCP (eBPF) | Contadores de tiempo de ida y vuelta, conexiones fallidas y retransmisiones por nodo |
 | Costos de cargas de trabajo (opcional, `cost.enabled=true`) | Gasto por namespace, carga de trabajo y pod, con capacidad ociosa y eficiencia, y el costo por hora de nodos y volúmenes: consulta [Observabilidad de costos de Kubernetes](/docs/telemetry/kubernetes-cost) |
+
+## Eventos de Kubernetes
+
+El agente envía a OneUptime cada evento de Kubernetes del clúster: de cada espacio de nombres, incluidos los del sistema como `kube-system` y `aks-istio-system`, sobre cada tipo de objeto, nodos y autoescaladores tanto como pods, Warning y Normal por igual. Ningún ajuste del agente los filtra. Kubernetes guarda un evento durante una hora aproximadamente; OneUptime lo guarda como un registro, tanto tiempo como tu [retención de datos](/docs/telemetry/data-retention) guarda los registros.
+
+### Encontrar las advertencias
+
+- La página **Eventos** del clúster, en **Telemetría**, lista cada evento del más reciente al más antiguo, y se abre en las advertencias cuando las hay: un `OOMKilling` en un nodo, un `BackOff` en un pod, un `FailedGetResourceMetric` en un HPA. Acótala por espacio de nombres, tipo o motivo, y elige un intervalo de tiempo para ver más atrás de lo que el clúster guarda los eventos.
+- Cada página de nodo, pod, carga de trabajo, autoescalador, volumen y espacio de nombres tiene una pestaña **Eventos**, cuyo nombre muestra el número de advertencias. La pestaña de una carga de trabajo incluye los eventos de sus pods, donde se informan los bucles de fallos y los montajes fallidos.
+- La **Vista general** del clúster lista las advertencias más recientes en **Advertencias recientes**, una línea por motivo y objeto.
+
+### Qué muestra un evento
+
+| Columna | Qué muestra |
+| --- | --- |
+| Evento | El motivo, Warning o Normal, el mensaje y quién lo informó: `kernel-monitor` en un nodo, `kubelet`, `horizontal-pod-autoscaler` |
+| Objeto | A qué se refiere, enlazado a su página en OneUptime, y junto a su nombre el espacio de nombres del evento; los eventos de un nodo están en `default`, como los lista `kubectl get events` |
+| Recuento | Cuántas veces ocurrió: una repetición sube el recuento en lugar de añadir una fila |
+| Visto por última vez | Cuándo ocurrió por última vez; pasa el puntero por encima para ver cuándo ocurrió por primera vez |
+
+### Buscar eventos y recibir alertas
+
+Cada evento también es un registro. Una advertencia se guarda con la gravedad **Advertencia**, y lo que dice el evento está en sus atributos:
+
+| Atributo | Ejemplo |
+| --- | --- |
+| `k8s.event.type` | `Warning` |
+| `k8s.event.reason` | `OOMKilling` |
+| `k8s.event.message` | `Memory cgroup out of memory: Killed process 318623 (MainThread)` |
+| `k8s.event.count` | `2` |
+| `k8s.event.reporting_controller` | `kernel-monitor` |
+| `k8s.object.kind` | `Node` |
+| `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
+| `k8s.namespace.name` | `default` |
+
+Búscalos en **Registros**, descarta los que no quieras con un filtro de descarte, o recibe un aviso cuando ocurra uno con un [monitor de registros](/docs/monitor/logs-monitor): filtra por la gravedad **Advertencia** y por `k8s.event.reason`, y agrupa por `k8s.object.name` para recibir una alerta por nodo o autoescalador.
 
 ## Opciones de configuración
 
@@ -287,7 +323,7 @@ Añade esos ámbitos a una regla para filtrar también las métricas o los spans
 > [!NOTE]
 > Las métricas a nivel de nodo y de clúster se conservan siempre. Un namespace pertenece a un pod, no a un nodo, así que series como la CPU del nodo, la memoria del nodo y el uso del sistema de archivos no tienen con qué coincidir y nunca se descartan: una regla limitada a `metrics` recorta las series por pod sin ocultar un nodo que falla.
 
-Los eventos de Kubernetes no se pueden filtrar por namespace en el agente: llegan del receiver `k8sobjects` sin un atributo `k8s.namespace.name` (el namespace está dentro del cuerpo del evento), así que no hay nada con lo que pueda coincidir un filtro. Descártalos en OneUptime, con **Registros → Ajustes → Filtros de descarte**.
+Los eventos de Kubernetes no se filtran por namespace en el agente: los envía todos, incluidos los de los namespaces del sistema. Para descartar algunos, usa **Registros → Ajustes → Filtros de descarte** en OneUptime, que pueden coincidir con el `k8s.namespace.name` de un evento.
 
 ### Filtrado por severidad de logs
 
@@ -1001,6 +1037,13 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 2. Comprueba su `/healthz`: el lector de logs responde en el puerto `13133` con su número de flujos activos y su último error de exportación.
 3. Lee sus logs: `kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs`
 4. En un clúster muy grande, una sola réplica puede ser un cuello de botella: reparte los namespaces entre varias releases con reglas include limitadas a `podLogs` en `namespaceFilters.rules`.
+:::
+
+:::details No aparecen las advertencias de Kubernetes
+1. Comprueba que Kubernetes las informó: `kubectl get events -A --field-selector type=Warning`. Kubernetes guarda un evento durante una hora aproximadamente, y el agente envía los eventos que ocurren o se repiten mientras se ejecuta, no los de antes de que arrancara.
+2. En la página **Eventos** del clúster, elige **Advertencias** o **Todos**, y un intervalo de tiempo que cubra cuándo ocurrió el evento.
+3. Revisa **Registros → Ajustes → Filtros de descarte**: un evento que coincide con un filtro de descarte se descarta antes de guardarse.
+4. Lee los logs del colector de métricas en busca de errores de exportación: `kubectl logs -n oneuptime-agent -l component=metrics-collector -c otel-collector`
 :::
 
 :::details Los pods de eBPF entran en un bucle de reinicios o no arrancan

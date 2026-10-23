@@ -779,6 +779,50 @@ through the `storage` event) instead of posting into a session that has
 already been sealed. The rotation write is a compare-and-set: a tab that finds
 storage already moved joins that session rather than minting a third one.
 
+**Web vitals are timed the way Google's `web-vitals` library times them**
+(issue #5181), because that library's number is the one a customer holds a
+replay against. Reading the performance timeline is not enough: its times
+count from the navigation's start.
+
+- **Prerendered pages.** Chrome prerenders a page it expects to be opened from
+  the address bar, or one a site's speculation rules name; the recorder's
+  script runs then, before anybody has opened the page. `PerformanceRecorder`
+  observes nothing while `document.prerendering` is true and starts on
+  `prerenderingchange`. FCP, LCP and TTFB count from the navigation entry's
+  `activationStart`, clamped at 0 - a 68 ms FCP had read 2.1 s, and TTFB had
+  read the prerender's first byte where the library says 0 - and so does the
+  LCP budget. A long task over before the activation kept nobody waiting and
+  does not fire the long-task budget.
+- **Hidden before it painted.** A page opened in a background tab is painted
+  only once it is shown, so its FCP and LCP would time the tab. A paint at or
+  after the first hide (Chromium's `visibility-state` entries, else a page
+  hidden when the recorder starts, else the first `visibilitychange`) is not
+  reported, and CLS is measured only from the first FCP reported, as the
+  library (and CrUX) measure it: a page that loaded hidden has none until a
+  restore from the back/forward cache paints it in front of the visitor.
+- **The back/forward cache.** A restored page is a new page view: the
+  Recorder's `pageshow` handler calls `noteBfcacheRestore` once the restored
+  page records as a new tab, and it reports TTFB 0, FCP and LCP two frames
+  after the restore, and CLS and INP from the restore on.
+- **CLS over the page's whole life.** It is reported at the first hide, and
+  again at a later one if the page shifted more after the visitor came back,
+  as INP already was and as the library reports both; a shift still queued
+  for the observer when the tab hides counts.
+- **The visitor's input, not a script's**, settles LCP (`isTrusted`), and
+  `first-input` is observed beside event timing, so a page whose interactions
+  were all under the 40 ms threshold still has an INP.
+
+Every vital names the kind of page view it describes (`navigationType`:
+`hard`, `prerender`, `back-forward-cache`, and `soft` for an SPA view's INP).
+The player's rail shows it wherever it explains the number - on every INP,
+and on any vital of a prerendered or restored page; an ordinary load's FCP,
+LCP, TTFB and CLS need no label - and links a CLS or INP reported again to
+its other reports (`ReplaySignals.showsVitalView` and `findVitalReports`
+in the Dashboard). `Tests/WebVitalsParity.test.ts` runs the
+recorder and the exact `web-vitals` version `package.json` pins on the same
+simulated pages and holds every answer of one to the other; the ratings
+round the way the recorder rounds (a whole millisecond, CLS to four places).
+
 **Per-session caps announce themselves.** Errors (100 distinct - repeats are
 fingerprinted and counted, and surface as a rate-limited repeat marker with
 the running count), console entries (100) and route changes (500) are capped
@@ -823,7 +867,7 @@ defend in an incident review.
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |
-| `src/PerformanceRecorder.ts` | LCP, long tasks and slow requests — the performance trigger               |
+| `src/PerformanceRecorder.ts` | web vitals, timed as `web-vitals` times them, and the performance trigger (LCP, long tasks, slow requests) |
 | `src/EarlyErrors.ts`         | the stub's pre-load error buffer, replayed through masking at start      |
 | `src/ExtendedConfig.ts`      | artifact-side normalisation of fields the stub passes through unvalidated |
 | `src/Debug.ts`               | the diagnostics switch, the record ring, and the redaction that keeps page content out of it |
@@ -841,7 +885,7 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 325.4 KB raw / 97.7 KB gzip**, **loader.js 13.3 KB raw /
+Measured: **recorder.js 329.7 KB raw / 98.7 KB gzip**, **loader.js 13.3 KB raw /
 4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (97 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
 regression — gzip being the number a customer's browser actually pays. The
@@ -849,8 +893,10 @@ recorder budget went from 90 KB to 92 KB for offline mode, to 93 KB on
 2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
 94178 bytes gzip), to 95 KB on 2026-09-26 for INP per single-page-app
 view (issue #3975: 94102 → 95550 bytes gzip), and to 97 KB on 2026-10-02 for
-the idle pause (issue #4208: 96723 → 97650 bytes gzip); `esbuild.config.js`
-carries each measurement and reason.
+the idle pause (issue #4208: 96723 → 97650 bytes gzip). Its raw budget went
+from 320 KB to 323 KB on 2026-10-22 for web vitals timed as the `web-vitals`
+library times them (issue #5181: 325428 → 329727 bytes raw, 97660 → 98655
+gzip); `esbuild.config.js` carries each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab
