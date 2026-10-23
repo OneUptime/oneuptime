@@ -66,7 +66,7 @@ describe("the homepage", () => {
     expect(hero).not.toBeNull();
     expect(hero.querySelectorAll("img, picture, video")).toHaveLength(0);
     expect(hero.querySelector("h1")!.textContent!.trim()).toBe(
-      "Agentic observability",
+      "Find it first. Fix it fast.",
     );
   });
 

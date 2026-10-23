@@ -1,0 +1,71 @@
+<%
+  /*
+   * The reviews, back in the order they were written: the route deals them
+   * round-robin into three lists for the old three-column marquee.
+   */
+  const lists = [reviewsList1, reviewsList2, reviewsList3];
+  const reviews = [];
+  for (let row = 0; row < Math.max(reviewsList1.length, reviewsList2.length, reviewsList3.length); row++) {
+    lists.forEach(function (list) {
+      if (list[row]) reviews.push(list[row]);
+    });
+  }
+
+  const avatarColors = [
+    'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    'bg-blue-50 text-blue-700 ring-blue-200',
+    'bg-violet-50 text-violet-700 ring-violet-200',
+    'bg-amber-50 text-amber-700 ring-amber-200',
+    'bg-rose-50 text-rose-700 ring-rose-200',
+    'bg-sky-50 text-sky-700 ring-sky-200',
+  ];
+-%>
+<section id="reviews" class="relative overflow-hidden border-y border-gray-200/70 bg-gray-50/70 py-24 scroll-mt-20 sm:py-32" aria-labelledby="reviews-title">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div data-reveal class="mx-auto max-w-3xl text-center">
+      <p class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200">
+        <span class="h-1.5 w-1.5 rounded-full bg-amber-400" aria-hidden="true"></span>
+        From the teams who use it
+      </p>
+      <h2 id="reviews-title" class="mt-6 text-4xl font-semibold tracking-tight text-balance text-gray-950 sm:text-5xl">
+        Teams sleep better on OneUptime.
+      </h2>
+      <p class="mt-6 text-lg leading-8 text-gray-600">
+        Startups and platform teams alike use OneUptime to see problems first, fix them faster, and cancel the tools they no longer need.
+      </p>
+    </div>
+
+    <div data-wall class="relative mt-16">
+      <div class="columns-1 gap-5 md:columns-2 lg:columns-3">
+        <% reviews.forEach(function (review, index) { -%>
+        <figure class="mb-5 break-inside-avoid rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <div class="flex items-center gap-0.5" role="img" aria-label="Rated 5 out of 5">
+            <% for (let star = 0; star < 5; star++) { -%>
+            <img src="/img/review-star.svg" alt="" width="16" height="16" class="h-4 w-4" loading="lazy" decoding="async">
+            <% } -%>
+          </div>
+          <blockquote class="mt-4">
+            <p class="text-base font-semibold leading-6 text-gray-950"><%= review.title %></p>
+            <p class="mt-2 text-sm leading-6 text-gray-600"><%= review.text %></p>
+          </blockquote>
+          <figcaption class="mt-5 flex items-center gap-3 border-t border-gray-100 pt-5">
+            <span class="flex h-9 w-9 flex-none items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset <%= avatarColors[index % avatarColors.length] %>"><%= review.name.split(' ').map(function (part) { return part[0]; }).slice(0, 2).join('') %></span>
+            <span class="min-w-0">
+              <span class="block text-sm font-semibold text-gray-900"><%= review.name %></span>
+              <span class="block truncate text-xs text-gray-500"><%= review.role %> at <%= review.company %></span>
+            </span>
+          </figcaption>
+        </figure>
+        <% }); -%>
+      </div>
+      <div data-wall-fade class="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent" aria-hidden="true"></div>
+    </div>
+
+    <div class="mt-10 flex justify-center">
+      <button type="button" data-wall-toggle hidden aria-expanded="false" class="inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:bg-gray-50">
+        <span data-wall-toggle-label data-more="Read all <%= reviews.length %> reviews" data-less="Show fewer reviews">Read all <%= reviews.length %> reviews</span>
+        <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      </button>
+    </div>
+  </div>
+</section>

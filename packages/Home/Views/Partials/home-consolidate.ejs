@@ -1,94 +1,77 @@
-<section id="consolidate" class="relative bg-white py-24 lg:py-32 overflow-hidden scroll-mt-24" aria-labelledby="consolidate-title">
-  <div class="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white" aria-hidden="true"></div>
-  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-200/70 to-transparent" aria-hidden="true"></div>
-  <div class="absolute -top-24 right-[12%] h-72 w-72 rounded-full bg-indigo-100/50 blur-3xl pointer-events-none" aria-hidden="true"></div>
-  <div class="pointer-events-none select-none absolute -top-6 left-8 max-lg:hidden lg:block font-mono text-[10rem] leading-none font-semibold tracking-tighter text-indigo-600/[0.05]" aria-hidden="true">9:00 AM</div>
+<%
+  // The tools a team usually pays for separately, and what replaces each.
+  const replacements = [
+    { tool: 'Pingdom', href: '/product/monitoring', icon: 'monitoring', product: 'Uptime Monitoring' },
+    { tool: 'Statuspage', href: '/product/status-page', icon: 'status-page', product: 'Status Pages' },
+    { tool: 'PagerDuty', href: '/product/on-call', icon: 'on-call', product: 'On-Call & Alerts' },
+    { tool: 'Incident.io', href: '/product/incident-management', icon: 'incidents', product: 'Incident Management' },
+    { tool: 'Loggly', href: '/product/logs-management', icon: 'logs', product: 'Logs Management' },
+    { tool: 'Datadog / New Relic', href: '/product/traces', icon: 'traces', product: 'APM & Traces' },
+    { tool: 'Sentry', href: '/product/exceptions', icon: 'exceptions', product: 'Error Tracking' },
+    { tool: 'Grafana', href: '/product/dashboards', icon: 'dashboards', product: 'Dashboards' },
+    { tool: 'Rundeck', href: '/product/runbooks', icon: 'runbooks', product: 'Runbooks' },
+  ];
+-%>
+<section id="consolidate" class="relative overflow-hidden bg-white py-24 scroll-mt-20 sm:py-32" aria-labelledby="consolidate-title">
+  <div class="absolute left-1/2 top-0 h-px w-[60rem] max-w-full -translate-x-1/2 bg-gradient-to-r from-transparent via-gray-200 to-transparent" aria-hidden="true"></div>
 
-  <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
-    <!-- Header -->
-    <div data-reveal class="mx-auto max-w-3xl text-center mb-16">
-      <div class="flex items-center justify-center gap-3 mb-4"><span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 font-mono text-xs text-indigo-600 ring-1 ring-inset ring-indigo-200 tabular-nums">9:00 AM</span><p class="text-sm font-medium text-indigo-600 tracking-wide uppercase">The morning after</p></div>
-      <h2 id="consolidate-title" class="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900">
-        One platform.<br /> Single source of truth.<br /> Nine tools you can cancel.
-      </h2>
-      <p class="mt-6 text-lg text-gray-600 leading-relaxed">
-        Uptime, status pages, on-call, incidents, logs, APM, error tracking, dashboards, and runbooks all live on one platform, so an alert links straight to the trace, the log line, and the runbook that fixes it. No nine separate tools, no integrations you wire by hand.
-      </p>
-    </div>
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-16">
+      <div data-reveal class="lg:col-span-4">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-gray-600 shadow-sm ring-1 ring-gray-200">
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+          Consolidate
+        </p>
+        <h2 id="consolidate-title" class="mt-6 text-4xl font-semibold tracking-tight text-balance text-gray-950 sm:text-5xl">
+          Nine tools. One platform. One bill.
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+          Every product shares the same data, the same timeline and the same login - so the alert, the evidence and the fix stop living in nine different tabs.
+        </p>
+        <ul class="mt-8 space-y-3 text-sm text-gray-700">
+          <li class="flex items-center gap-3"><svg class="h-5 w-5 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>No integrations to wire by hand</li>
+          <li class="flex items-center gap-3"><svg class="h-5 w-5 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>One login, one set of permissions</li>
+          <li class="flex items-center gap-3"><svg class="h-5 w-5 flex-none text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Plus workflows and the AI agent, on the same platform</li>
+        </ul>
+        <div class="mt-10 flex flex-wrap items-center gap-4">
+          <a href="/pricing" class="inline-flex h-11 items-center justify-center rounded-xl bg-gray-950 px-6 text-sm font-medium text-white shadow-sm transition hover:-translate-y-px hover:bg-gray-800">See pricing</a>
+          <a href="/compare" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-900 hover:text-gray-600">
+            Compare OneUptime
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+          </a>
+        </div>
+      </div>
 
-    <!-- The cancellation list -->
-    <div data-reveal data-reveal-delay="100" class="relative mx-auto max-w-3xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm p-6 sm:p-10">
-      <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-400/60 via-indigo-300/30 to-transparent" aria-hidden="true"></div>
-      <ul class="divide-y divide-gray-200/60">
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Pingdom</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/monitoring" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-blue-500" aria-hidden="true"></span>Uptime Monitoring</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">StatusPage.io</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/status-page" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Status Pages</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">PagerDuty</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/on-call" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-stone-500" aria-hidden="true"></span>On-Call &amp; Alerts</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Incident.io</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/incident-management" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true"></span>Incident Management</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Loggly</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/logs-management" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-amber-500" aria-hidden="true"></span>Logs Management</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">New Relic / Datadog</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/traces" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-yellow-500" aria-hidden="true"></span>APM &amp; Traces</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Sentry</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/exceptions" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-orange-500" aria-hidden="true"></span>Error Tracking</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Grafana</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/dashboards" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-indigo-500" aria-hidden="true"></span>Dashboards</a>
-        </li>
-        <li class="grid grid-cols-[1fr_auto_1fr] items-center gap-4 sm:gap-8 py-4">
-          <span class="text-base text-gray-500 line-through decoration-gray-400 truncate">Rundeck</span>
-          <span class="sr-only">replaced by</span>
-          <svg class="h-5 w-5 flex-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-          <a href="/product/runbooks" class="justify-self-start inline-flex items-center gap-2.5 text-base font-medium text-gray-900 hover:text-gray-700 transition-colors"><span class="h-2.5 w-2.5 rounded-full bg-lime-500" aria-hidden="true"></span>Runbooks</a>
-        </li>
-      </ul>
-      <p class="mt-6 border-t border-gray-200/60 pt-6 text-center text-sm text-gray-500 leading-relaxed">
-        Plus <a href="/product/workflows" class="font-medium text-gray-700 hover:text-gray-900">workflows</a> and the <a href="/product/ai-agent" class="font-medium text-gray-700 hover:text-gray-900">AI agent</a> - included, not add-ons.
-      </p>
-    </div>
+      <div class="lg:col-span-8">
+        <ul class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
+          <% replacements.forEach(function (item, index) { -%>
+          <li data-reveal data-reveal-delay="<%= (index % 3) * 70 %>">
+            <a href="<%= item.href %>" class="group flex h-full items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-200 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-gray-300 sm:gap-4 sm:p-4">
+              <span class="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-gray-50 ring-1 ring-inset ring-gray-200 transition-colors group-hover:bg-white sm:h-11 sm:w-11"><%- include('./icons/' + item.icon, { iconClass: 'h-5 w-5', useIconSprite: true }) -%></span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-xs text-gray-400"><span class="line-through decoration-gray-300"><%= item.tool %></span><span class="sr-only">, replaced by</span></span>
+                <span class="mt-0.5 block text-sm font-semibold leading-5 text-gray-900"><%= item.product %></span>
+              </span>
+              <svg class="h-4 w-4 flex-none text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-gray-500 max-sm:hidden sm:block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+            </a>
+          </li>
+          <% }); -%>
+        </ul>
 
-    <!-- CTA -->
-    <div data-reveal data-reveal-delay="200" class="mt-10 flex flex-wrap items-center justify-center gap-4">
-      <a href="/accounts/register" class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-gray-700">
-        Start free
-      </a>
-      <a href="/pricing" class="group inline-flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
-        See full pricing
-        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5" /></svg>
-      </a>
+        <div data-reveal class="mt-3 flex flex-col gap-4 rounded-2xl bg-gray-950 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div class="flex items-center gap-4">
+            <img src="/oneuptime-assets/brand/favicons/oneuptime-up-v1.svg" alt="" width="44" height="44" class="h-11 w-11 flex-none rounded-xl ring-1 ring-white/15" loading="lazy" decoding="async">
+            <div>
+              <p class="text-sm font-semibold">OneUptime</p>
+              <p class="text-xs text-gray-400">All nine, on one platform - Cloud or self-hosted.</p>
+            </div>
+          </div>
+          <a href="/accounts/register" class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-medium text-gray-950 transition hover:bg-gray-100">
+            Start for free
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </div>
 </section>

@@ -1,0 +1,43 @@
+<%
+  /*
+   * Customer logos, drawn as dark silhouettes on white. Each entry's box and
+   * nudge are the ones the dark logo roll (logo-roll.ejs) settled on, so every
+   * mark sits on the same optical baseline.
+   */
+  const customerLogos = [
+    { src: '/img/mistral-ai-full.png', alt: 'Mistral AI', height: 36 },
+    { src: '/img/securonix-blue.svg', alt: 'Securonix', height: 36 },
+    { src: '/img/aareon.svg', alt: 'Aareon', height: 36 },
+    { src: '/img/viewsonic.svg', alt: 'ViewSonic', height: 36 },
+    { src: '/img/syniti.png', alt: 'Syniti', height: 36, style: 'transform: translateY(4px);' },
+    { src: '/img/skillable-logo.svg', alt: 'Skillable', height: 46, style: 'max-height: 46px; transform: translateY(-8px);' },
+    { src: '/img/nt-ware.png', alt: 'NT-ware', height: 26, style: 'max-height: 26px;' },
+    { src: '/img/sodexo.svg', alt: 'Sodexo', height: 40, style: 'max-height: 40px; transform: translateY(-4px);' },
+    { src: '/img/avolve.webp', alt: 'Avolve Software', height: 36, style: 'transform: translateY(-4px);' },
+    { src: '/img/Dotdash_Meredith.svg', alt: 'Dotdash Meredith', height: 36 },
+    { src: '/img/trustify.svg', alt: 'Trustify', height: 46, style: 'max-height: 46px;' },
+    { src: '/img/bowie.svg', alt: 'Bowie', height: 66, style: 'max-height: 66px; transform: translateY(-8px);' },
+    { src: '/img/talkwalker.svg', alt: 'Talkwalker', height: 56, style: 'max-height: 56px;' },
+    { src: '/img/cscs.svg', alt: 'CSCS', height: 36 },
+  ];
+-%>
+<section class="relative bg-white pb-20 pt-16 sm:pt-20" aria-labelledby="customers-title">
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <h2 id="customers-title" data-reveal class="text-center text-sm font-medium text-gray-500">
+      Trusted by thousands of teams, from startups to the Fortune&nbsp;500
+    </h2>
+    <div data-reveal data-reveal-delay="100" class="logo-viewport mt-8 overflow-hidden">
+      <div class="logo-track">
+        <% [false, true].forEach(function (isCopy) { -%>
+        <div class="logo-set<%= isCopy ? ' logo-set-copy' : '' %>"<%- isCopy ? ' aria-hidden="true"' : '' %>>
+          <% customerLogos.forEach(function (logo) { -%>
+          <div class="flex h-16 w-32 flex-none items-center justify-center px-4 sm:w-40 sm:px-5">
+            <img class="logo-mark h-auto max-h-9 w-auto max-w-[6.5rem] object-contain sm:max-w-[8.75rem]" src="<%= logo.src %>" alt="<%= isCopy ? '' : logo.alt %>" width="140" height="<%= logo.height %>" loading="lazy" decoding="async"<% if (logo.style) { %> style="<%= logo.style %>"<% } %>>
+          </div>
+          <% }); -%>
+        </div>
+        <% }); -%>
+      </div>
+    </div>
+  </div>
+</section>

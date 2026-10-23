@@ -259,7 +259,8 @@ describe("where the sprite is used", () => {
    */
   const USING_THE_SPRITE: Array<string> = [
     "Blog/Partials/BlogCta.ejs",
-    "Partials/home-detect.ejs",
+    "Partials/home-consolidate.ejs",
+    "Partials/home-platform.ejs",
     "Partials/home-products.ejs",
     "nav.ejs",
   ];
@@ -286,7 +287,11 @@ describe("where the sprite is used", () => {
       const includes: Array<string> =
         source.match(/include\([^)]*icons\/[^)]*\)/g) || [];
 
-      expect(includes.length).toBeGreaterThan(5);
+      /*
+       * A template that draws its icons from a list includes the partial
+       * once, in the loop; the homepage test below counts what it draws.
+       */
+      expect(includes.length).toBeGreaterThan(0);
       expect(
         includes.filter((include: string): boolean => {
           return !include.includes("useIconSprite: true");
@@ -329,7 +334,7 @@ describe("where the sprite is used", () => {
               hero.compareDocumentPosition(use) &
                 document.defaultView!.Node.DOCUMENT_POSITION_FOLLOWING,
             ) &&
-            Boolean(use.closest("#products, #detect"));
+            Boolean(use.closest("#platform, #products, #consolidate"));
 
           return !hiddenMenu && !belowTheHero;
         })
@@ -339,6 +344,16 @@ describe("where the sprite is used", () => {
 
       expect(atFirstPaint).toEqual([]);
     });
+
+    test.each(["#platform", "#products", "#consolidate"])(
+      "%s draws its product icons from it",
+      (section: string) => {
+        const element: Element = document.querySelector(section)!;
+
+        expect(element).not.toBeNull();
+        expect(element.querySelectorAll("use").length).toBeGreaterThan(5);
+      },
+    );
 
     test("and points at an icon the sprite has", async () => {
       const sprite: ProductIconSprite = await buildProductIconSprite();

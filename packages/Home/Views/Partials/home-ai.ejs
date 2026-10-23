@@ -1,0 +1,138 @@
+<%
+  // The agent's session for incident #482, as the tour's screens tell it.
+  const agentSession = [
+    { time: '02:54:07', mark: '&#9656;', markColor: 'text-sky-400', text: 'Investigating <span class="text-white">"Checkout API degraded"</span> (incident #482)' },
+    { time: '', mark: '&#10003;', markColor: 'text-[#7ed957]', text: 'Read 1,204 spans across 6 services from the last 30 minutes' },
+    { time: '', mark: '&#10003;', markColor: 'text-[#7ed957]', text: 'Matched 2 error logs to span <span class="text-amber-300">postgres &middot; SELECT &hellip; FOR UPDATE</span>' },
+    { time: '', mark: '&#10003;', markColor: 'text-[#7ed957]', text: 'Lock waits are <span class="text-white">3.91s</span> of the 4.28s checkout request' },
+    { time: '03:12:44', mark: '&#9670;', markColor: 'text-violet-300', text: '<span class="text-white">Root cause:</span> orders.customer_id has no index, so every checkout scans 1.2M rows and waits on row locks' },
+    { time: '03:19:30', mark: '&#10003;', markColor: 'text-[#7ed957]', text: 'Wrote <span class="text-sky-300">migrations/20260706_add_orders_customer_id_index.sql</span>' },
+    { time: '03:24:51', mark: '&#10003;', markColor: 'text-[#7ed957]', text: 'CI passed: build, 412 tests, migration-lint' },
+    { time: '03:26:02', mark: '&#10140;', markColor: 'text-[#7ed957]', text: '<span class="text-white">Opened pull request #1284</span> &middot; review requested from @sarah-k' },
+  ];
+
+  const aiPoints = [
+    {
+      title: 'Root cause, in plain English',
+      body: 'Each investigation explains what broke, why it broke, and the evidence behind it.',
+      icon: 'M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18',
+    },
+    {
+      title: 'Read-only, with secrets redacted',
+      body: 'Investigations never change your systems, and secrets are redacted before anything reaches a model.',
+      icon: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
+    },
+    {
+      title: 'Your model, your keys',
+      body: 'Bring your own LLM - OpenAI, Anthropic and others - or use ours at $20 per 1M tokens.',
+      icon: 'M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z',
+    },
+    {
+      title: 'An MCP server, built in',
+      body: 'Bring OneUptime into the AI tools your team already works in.',
+      icon: 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244',
+    },
+  ];
+-%>
+<section id="ai" class="relative isolate overflow-hidden bg-gray-950 py-24 scroll-mt-20 sm:py-32" aria-labelledby="ai-title">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_70%_60%_at_60%_40%,#000_30%,transparent_100%)]" aria-hidden="true"></div>
+  <div class="glow-breathe absolute right-[8%] top-[18%] -z-10 h-[30rem] w-[30rem] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(closest-side, rgb(126 217 87 / 0.16), transparent);" aria-hidden="true"></div>
+  <div class="absolute -left-40 bottom-0 -z-10 h-[26rem] w-[26rem] rounded-full blur-3xl pointer-events-none" style="background: radial-gradient(closest-side, rgb(139 92 246 / 0.16), transparent);" aria-hidden="true"></div>
+
+  <div class="mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="grid grid-cols-1 items-center gap-14 lg:grid-cols-12 lg:gap-16">
+      <!-- Copy -->
+      <div data-reveal class="lg:col-span-5">
+        <p class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">
+          <svg class="h-3.5 w-3.5 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" /></svg>
+          OneUptime AI
+        </p>
+        <h2 id="ai-title" class="mt-6 text-4xl font-semibold tracking-tight text-balance text-white sm:text-5xl">
+          Wake up to pull requests, <span class="text-[#7ed957]">not pages.</span>
+        </h2>
+        <p class="mt-6 text-lg leading-8 text-gray-400">
+          OneUptime's AI agent investigates incidents the way your best engineer would: it reads the traces, the logs and your code, finds the root cause, and opens a pull request with the fix. Nothing merges without your review.
+        </p>
+
+        <dl class="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <% aiPoints.forEach(function (point) { -%>
+          <div>
+            <dt class="flex items-center gap-2.5 text-sm font-semibold text-white">
+              <span class="flex h-8 w-8 flex-none items-center justify-center rounded-lg bg-white/5 ring-1 ring-inset ring-white/10">
+                <svg class="h-4 w-4 text-[#7ed957]" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="<%= point.icon %>" /></svg>
+              </span>
+              <%= point.title %>
+            </dt>
+            <dd class="mt-2 text-sm leading-6 text-gray-400"><%= point.body %></dd>
+          </div>
+          <% }); -%>
+        </dl>
+
+        <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <a href="/enterprise/demo" class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-medium text-gray-950 shadow-sm transition hover:-translate-y-px hover:bg-gray-100">
+            See it in action
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+          </a>
+          <a href="/product/ai-agent" class="group inline-flex h-11 items-center justify-center gap-1 rounded-xl px-4 text-sm font-medium text-gray-300 transition hover:text-white">
+            Explore OneUptime AI
+            <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- The agent's session -->
+      <div class="relative lg:col-span-7">
+        <div data-reveal data-reveal-delay="120" class="agent-log relative rounded-2xl bg-gray-900/80 shadow-2xl shadow-black/40 ring-1 ring-white/10 backdrop-blur" role="img" aria-label="The OneUptime AI agent's session for incident 482: starting at 2:54 AM it reads 1,204 spans across six services, matches two error logs to a slow PostgreSQL SELECT FOR UPDATE span, finds that lock waits are 3.91 seconds of the 4.28 second checkout request, identifies a missing index on orders.customer_id as the root cause, writes a migration, passes CI, and at 3:26 AM opens pull request 1284 with a review requested from Sarah K.">
+          <div class="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="flex gap-1.5" aria-hidden="true">
+                <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+                <span class="h-2.5 w-2.5 rounded-full bg-white/15"></span>
+              </div>
+              <span class="font-mono text-xs text-gray-400">oneuptime-agent &middot; incident #482</span>
+            </div>
+            <span class="items-center gap-1.5 whitespace-nowrap rounded-full bg-[#7ed957]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#7ed957] ring-1 ring-inset ring-[#7ed957]/25 max-sm:hidden sm:inline-flex">
+              <span class="h-1.5 w-1.5 rounded-full bg-[#7ed957]"></span>
+              Fix ready for review
+            </span>
+          </div>
+          <ol class="space-y-2.5 px-4 pb-10 pt-5 font-mono text-[12px] leading-5 sm:px-6 sm:pb-24 sm:text-[13px]">
+            <% agentSession.forEach(function (line, index) { -%>
+            <li data-agent-line class="flex gap-3" style="--line-delay: <%= 250 + index * 380 %>ms;">
+              <span class="w-16 flex-none tabular-nums text-gray-500 max-sm:hidden sm:block"><%= line.time %></span>
+              <span class="w-4 flex-none <%= line.markColor %>"><%- line.mark %></span>
+              <span class="min-w-0 break-words text-gray-400"><%- line.text %></span>
+            </li>
+            <% }); -%>
+            <li data-agent-line class="flex gap-3" style="--line-delay: <%= 250 + agentSession.length * 380 %>ms;">
+              <span class="w-16 flex-none max-sm:hidden sm:block"></span>
+              <span class="caret h-4 w-2 bg-[#7ed957]/80" aria-hidden="true"></span>
+            </li>
+          </ol>
+        </div>
+
+        <!-- The pull request it opened -->
+        <div data-reveal data-reveal-delay="400" class="relative mx-4 -mt-6 rounded-2xl bg-white p-4 shadow-2xl shadow-black/40 ring-1 ring-gray-200 sm:absolute sm:-bottom-12 sm:right-6 sm:mx-0 sm:mt-0 sm:w-[22rem]">
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-emerald-50 ring-1 ring-inset ring-emerald-200">
+              <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" /></svg>
+            </span>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold text-gray-900">fix: add index on orders.customer_id</p>
+              <p class="mt-0.5 text-xs text-gray-500">#1284 &middot; opened by oneuptime-agent &middot; <span class="font-mono text-emerald-600">+3</span> <span class="font-mono text-rose-600">&minus;0</span></p>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
+            <span class="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+              All checks passed
+            </span>
+            <span class="text-gray-500">Waiting on your review</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
