@@ -213,7 +213,9 @@ describe("what the section says", () => {
     expect(englishSection()).toContain(
       "- An API key gets every permission of its custom roles, with the same labels, as if the key held them itself, and a block on the key still wins.",
     );
-    expect(englishSection()).not.toContain("API keys do not take custom roles.");
+    expect(englishSection()).not.toContain(
+      "API keys do not take custom roles.",
+    );
   });
 
   test("a permission limited to what someone owns gives a key nothing, and the section says so", () => {

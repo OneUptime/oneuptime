@@ -286,11 +286,7 @@ describe("ApiKeyCustomRoleService", () => {
       );
 
       await expect(
-        callHook(
-          ApiKeyCustomRoleService,
-          "onBeforeCreate",
-          giving(keyEditor),
-        ),
+        callHook(ApiKeyCustomRoleService, "onBeforeCreate", giving(keyEditor)),
       ).resolves.toBeTruthy();
 
       // Weighed as giving each to the key directly, with the role's labels.
@@ -358,7 +354,9 @@ describe("ApiKeyCustomRoleService", () => {
     );
 
     test("a block on a permission of the role refuses it, as it refuses giving the key that permission", async () => {
-      rolePermissions = [roleRow(Permission.IncidentMember, PermissionScope.All)];
+      rolePermissions = [
+        roleRow(Permission.IncidentMember, PermissionScope.All),
+      ];
 
       const blocked: DatabaseCommonInteractionProps = propsHolding([
         grant(Permission.EditProjectApiKeyPermissions),
@@ -647,6 +645,8 @@ describe("ApiKeyCustomRoleService", () => {
 
       const deleteBy: DeleteBy<ApiKeyCustomRole> = {
         query: { _id: GIVEN },
+        limit: 1,
+        skip: 0,
         props: keyEditor,
       };
 

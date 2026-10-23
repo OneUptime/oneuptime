@@ -223,7 +223,12 @@ describe("which permissions of a role an API key holds", () => {
   test("a copy has no labels for the whole project, the role's for Labels, and is not made for Owned", () => {
     expect(
       getApiKeyCopyLabels(
-        rolePermission(1, ROLE_1, Permission.IncidentMember, PermissionScope.All),
+        rolePermission(
+          1,
+          ROLE_1,
+          Permission.IncidentMember,
+          PermissionScope.All,
+        ),
       ),
     ).toEqual([]);
     expect(
@@ -321,7 +326,12 @@ describe("planApiKeyRoleCopies", () => {
           Permission.IncidentMember,
           PermissionScope.Owned,
         ),
-        rolePermission(2, ROLE_1, Permission.AlertMember, PermissionScope.Owned),
+        rolePermission(
+          2,
+          ROLE_1,
+          Permission.AlertMember,
+          PermissionScope.Owned,
+        ),
       ],
       copies: [],
     });
@@ -346,7 +356,10 @@ describe("planApiKeyRoleCopies", () => {
       planApiKeyRoleCopies({
         rolesGivenToApiKeys: [roleGiven],
         rolePermissions: rows,
-        copies: [copyOf(1, roleGiven, rows[0]!), copyOf(2, roleGiven, rows[1]!)],
+        copies: [
+          copyOf(1, roleGiven, rows[0]!),
+          copyOf(2, roleGiven, rows[1]!),
+        ],
       }),
     ).toEqual({ toDelete: [], toCreate: [], changedApiKeyIds: [] });
   });
@@ -525,9 +538,7 @@ describe("planApiKeyRoleCopies", () => {
     });
 
     expect(plan.toDelete).toEqual([copy.id]);
-    expect(plan.toCreate).toEqual([
-      expect.objectContaining({ labelIds: [] }),
-    ]);
+    expect(plan.toCreate).toEqual([expect.objectContaining({ labelIds: [] })]);
   });
 
   test("a second copy of the same one goes, and the first stays", () => {

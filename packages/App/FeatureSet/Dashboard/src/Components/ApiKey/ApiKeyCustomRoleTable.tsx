@@ -229,7 +229,7 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
                         RouteMap[PageMap.TEAM_ROLES] as Route,
                       )}
                     >
-                      {translator.translateText("Roles") || "Roles"}
+                      {translator.translateText("Roles") || ""}
                     </AppLink>
                   ),
                 }}
@@ -247,8 +247,7 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
               }),
               description: getRoleRemoveFromApiKeySentence(translator, {
                 roleName: item.customRole?.name || "",
-                apiKeyName:
-                  translator.translateText("This key") || "This key",
+                apiKeyName: translator.translateText("This key") || "This key",
               }),
               submitButtonText: "Remove",
             };

@@ -176,7 +176,9 @@ const isSameCopy: (
  */
 export const isRolePermissionGivenToApiKeys: (
   scope: PermissionScope | string | undefined | null,
-) => boolean = (scope: PermissionScope | string | undefined | null): boolean => {
+) => boolean = (
+  scope: PermissionScope | string | undefined | null,
+): boolean => {
   return (scope || PermissionScope.All) !== PermissionScope.Owned;
 };
 

@@ -249,9 +249,7 @@ export const getRoleAccessOptions: GetRoleAccessOptionsFunction = (data: {
     return String(option.value).startsWith(CUSTOM_ROLE_ACCESS_PREFIX);
   });
 
-  const mayStillOfferCustomRoles: boolean = Boolean(
-    data.areCustomRolesLoading,
-  );
+  const mayStillOfferCustomRoles: boolean = Boolean(data.areCustomRolesLoading);
 
   if (
     roles.length === 0 &&

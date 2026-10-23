@@ -278,7 +278,8 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
                   apiKey: true,
                 },
                 title: "API Key",
-                description: "API keys that have this role already are not listed.",
+                description:
+                  "API keys that have this role already are not listed.",
                 fieldType: FormFieldSchemaType.Dropdown,
                 dropdownModal: {
                   type: ApiKey,

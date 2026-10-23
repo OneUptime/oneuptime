@@ -9,7 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { MemoryRouter } from "react-router-dom";
+import { Location, MemoryRouter } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -436,7 +436,8 @@ describe("a custom role's API keys", () => {
     const option: HTMLElement = await screen.findByText("CI bot");
 
     // The keys offered leave out Deploy bot, which has the role.
-    const offered: any = listCallsFor(ApiKey).at(-1);
+    const keyReads: Array<any> = listCallsFor(ApiKey);
+    const offered: any = keyReads[keyReads.length - 1];
     expect(offered.query._id).toBeInstanceOf(IncludesNone);
     expect((offered.query._id as IncludesNone).values.map(String)).toEqual([
       DEPLOY_KEY_ID,

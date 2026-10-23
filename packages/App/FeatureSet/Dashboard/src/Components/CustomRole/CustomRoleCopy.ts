@@ -200,32 +200,34 @@ const getTeamsAndPeople: (
  * Everything a role reaches: "3 teams (12 people) and 2 API keys", "3
  * teams (12 people)" or "2 API keys".
  */
-const getReachText: (translator: Translator, reach: CustomRoleReach) => string =
-  (translator: Translator, reach: CustomRoleReach): string => {
-    const apiKeys: number = apiKeysOf(reach);
+const getReachText: (
+  translator: Translator,
+  reach: CustomRoleReach,
+) => string = (translator: Translator, reach: CustomRoleReach): string => {
+  const apiKeys: number = apiKeysOf(reach);
 
-    if (apiKeys <= 0) {
-      return getTeamsAndPeople(translator, reach);
-    }
+  if (apiKeys <= 0) {
+    return getTeamsAndPeople(translator, reach);
+  }
 
-    const keys: string = translator.translatePlural(
-      API_KEY_COUNT_TEMPLATE,
-      apiKeys,
-    );
+  const keys: string = translator.translatePlural(
+    API_KEY_COUNT_TEMPLATE,
+    apiKeys,
+  );
 
-    if (reach.teamCount <= 0) {
-      return keys;
-    }
+  if (reach.teamCount <= 0) {
+    return keys;
+  }
 
-    return translator.translateTemplate("{{teams}} and {{apiKeys}}", {
-      teams: composedValue((sentence: Translator): string => {
-        return getTeamsAndPeople(sentence, reach);
-      }),
-      apiKeys: composedValue((sentence: Translator): string => {
-        return sentence.translatePlural(API_KEY_COUNT_TEMPLATE, apiKeys);
-      }),
-    });
-  };
+  return translator.translateTemplate("{{teams}} and {{apiKeys}}", {
+    teams: composedValue((sentence: Translator): string => {
+      return getTeamsAndPeople(sentence, reach);
+    }),
+    apiKeys: composedValue((sentence: Translator): string => {
+      return sentence.translatePlural(API_KEY_COUNT_TEMPLATE, apiKeys);
+    }),
+  });
+};
 
 /*
  * What a change to a role reaches, said on the role's page above its

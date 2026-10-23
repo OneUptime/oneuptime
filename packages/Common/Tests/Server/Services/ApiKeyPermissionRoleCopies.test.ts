@@ -55,7 +55,10 @@ const ROLE: ObjectID = new ObjectID("8c000000-0000-4000-8000-000000000001");
 const GIVEN: ObjectID = new ObjectID("8d000000-0000-4000-8000-000000000001");
 const ROW: ObjectID = new ObjectID("8e000000-0000-4000-8000-000000000001");
 
-type HookCallable = Record<string, (...args: Array<unknown>) => Promise<unknown>>;
+type HookCallable = Record<
+  string,
+  (...args: Array<unknown>) => Promise<unknown>
+>;
 
 const hooks: () => HookCallable = (): HookCallable => {
   return ApiKeyPermissionService as unknown as HookCallable;
@@ -162,8 +165,7 @@ describe("a key's copy of a role's permission is the role's", () => {
         write["data"] = { labels: [] };
       }
 
-      const refusal: unknown = await hooks()
-        [hook]!(write)
+      const refusal: unknown = await hooks()[hook]!(write)
         .then(() => {
           return null;
         })
