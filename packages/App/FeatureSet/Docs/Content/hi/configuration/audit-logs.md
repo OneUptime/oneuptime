@@ -86,7 +86,7 @@ flowchart TB
 | सेवा स्तर उद्देश्य (SLO) | `Service Level Objective` |
 | किसी SLO के नियम और मालिक | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | टीमें | `Team` |
-| कस्टम भूमिकाएँ, और उन्हें पाने वाली टीमें | `Custom Role`, `Team Custom Role` |
+| कस्टम भूमिकाएँ, और उन्हें पाने वाली टीमें और API कुंजियाँ | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | लेबल | `Label` |
 | घटना स्थितियाँ और गंभीरताएं | `Incident State`, `Incident Severity` |
 | अलर्ट स्थितियाँ और गंभीरताएं | `Alert State`, `Alert Severity` |

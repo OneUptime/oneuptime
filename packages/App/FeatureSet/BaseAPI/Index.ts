@@ -1174,6 +1174,9 @@ import CustomRolePermissionService, {
 import TeamCustomRoleService, {
   Service as TeamCustomRoleServiceType,
 } from "Common/Server/Services/TeamCustomRoleService";
+import ApiKeyCustomRoleService, {
+  Service as ApiKeyCustomRoleServiceType,
+} from "Common/Server/Services/ApiKeyCustomRoleService";
 import TeamComplianceSettingService, {
   TeamComplianceSettingService as TeamComplianceSettingServiceType,
 } from "Common/Server/Services/TeamComplianceSettingService";
@@ -1568,6 +1571,7 @@ import TeamPermission from "Common/Models/DatabaseModels/TeamPermission";
 import CustomRole from "Common/Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "Common/Models/DatabaseModels/CustomRolePermission";
 import TeamCustomRole from "Common/Models/DatabaseModels/TeamCustomRole";
+import ApiKeyCustomRole from "Common/Models/DatabaseModels/ApiKeyCustomRole";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
 import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
@@ -3842,6 +3846,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<TeamCustomRole, TeamCustomRoleServiceType>(
         TeamCustomRole,
         TeamCustomRoleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<ApiKeyCustomRole, ApiKeyCustomRoleServiceType>(
+        ApiKeyCustomRole,
+        ApiKeyCustomRoleService,
       ).getRouter(),
     );
 

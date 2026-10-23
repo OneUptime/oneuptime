@@ -136,13 +136,9 @@
   <main id="main-content">
     <!-- Hero Section -->
     <div class="relative isolate overflow-hidden bg-white" id="enterprise-hero-section">
-      <!-- Subtle grid pattern background -->
-      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+      <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
 
-      <!-- Grid glow effect that follows cursor -->
-      <div id="enterprise-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
-
-      <div class="py-24 sm:py-32 lg:py-40">
+      <div class="pb-8 pt-24 sm:pt-32 lg:pt-40">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
           <div class="mx-auto max-w-3xl text-center">
             <!-- Enterprise Badge -->
@@ -732,187 +728,27 @@
     <!-- Reviews -->
     <%- include('./Partials/reviews') -%>
 
-    <!-- Enterprise CTA -->
-    <section class="relative py-32 sm:py-40 bg-white overflow-hidden" id="enterprise-cta-section">
-      <!-- Subtle grid pattern background -->
-      <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_100%_80%_at_50%_50%,#000_30%,transparent_70%)]"></div>
-
-      <!-- Grid glow effect that follows cursor -->
-      <div id="enterprise-cta-grid-glow-effect" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(16, 185, 129, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 185, 129, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
-
-      <!-- Ambient glow decoration -->
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-gradient-to-r from-emerald-500/5 via-teal-500/5 to-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div class="mx-auto max-w-4xl px-6 lg:px-8 relative text-center">
-        <!-- Heading -->
-        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
-          <span class="text-gray-700 block">Enterprise-ready.</span>
-          <span class="text-gray-900 block mt-2">Built for scale.</span>
-        </h2>
-
-        <!-- Subtext -->
-        <p class="mt-6 text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto">
-          Join thousands of enterprise teams who trust OneUptime for mission-critical observability. Get a personalized demo tailored to your needs.
-        </p>
-
-        <!-- Buttons -->
-        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-          <a href="/enterprise/demo"
-             class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-gray-900 text-white font-medium text-base shadow-lg shadow-gray-900/20 hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/25 transition-all duration-200">
-            <span>Schedule a Demo</span>
-            <svg class="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-            </svg>
-          </a>
-
-          <a href="/pricing"
-             class="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg bg-white text-gray-700 font-medium text-base ring-1 ring-gray-200 hover:ring-gray-300 hover:bg-gray-50 transition-all duration-200">
-            <span>View Pricing</span>
-          </a>
-        </div>
-
-        <!-- Features list -->
-        <div class="mt-12 flex flex-wrap items-center justify-center gap-3">
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
-            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-            <span>No credit card required</span>
+    <!-- Enterprise CTA: the site's closing card, with this page's words -->
+    <section class="bg-white py-24 sm:py-32" id="enterprise-cta-section" aria-labelledby="enterprise-cta-title">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div class="relative isolate overflow-hidden rounded-[1.75rem] bg-gray-950 px-6 py-16 text-center sm:px-16 sm:py-24">
+          <div class="absolute inset-0 -z-10 bg-[radial-gradient(60%_80%_at_50%_0%,rgba(16,185,129,0.18),transparent_70%)]" aria-hidden="true"></div>
+          <h2 id="enterprise-cta-title" class="mx-auto max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-5xl sm:leading-[1.1]">Enterprise-ready. <span class="text-gray-400 sm:block">Built for scale.</span></h2>
+          <p class="mx-auto mt-5 max-w-xl text-lg leading-8 text-gray-400">Join thousands of enterprise teams who trust OneUptime for mission-critical observability. Get a personalized demo tailored to your needs.</p>
+          <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a href="/enterprise/demo" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-950 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto">
+              Schedule a Demo
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+            </a>
+            <a href="/pricing" class="inline-flex h-12 w-full items-center justify-center rounded-lg px-6 text-[15px] font-semibold text-white ring-1 ring-inset ring-white/20 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-auto">View Pricing</a>
           </div>
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
-            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-            <span>14-day enterprise trial</span>
-          </div>
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-sm text-gray-600 ring-1 ring-gray-100">
-            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-            </svg>
-            <span>White-glove onboarding</span>
-          </div>
+          <p class="mt-6 text-sm text-gray-400">No credit card required &middot; 14-day enterprise trial &middot; White-glove onboarding</p>
         </div>
       </div>
     </section>
 
   </main>
   <%- include('footer') -%>
-
-<script>
-// Hero Grid glow effect that follows cursor
-(function() {
-    const heroSection = document.getElementById('enterprise-hero-section');
-    const gridGlowEffect = document.getElementById('enterprise-grid-glow-effect');
-
-    if (!heroSection || !gridGlowEffect) return;
-
-    let isHovering = false;
-    let animationFrame = null;
-    let currentX = 0;
-    let currentY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    function lerp(start, end, factor) {
-        return start + (end - start) * factor;
-    }
-
-    function animate() {
-        if (!isHovering) return;
-
-        currentX = lerp(currentX, targetX, 0.12);
-        currentY = lerp(currentY, targetY, 0.12);
-
-        gridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
-        gridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
-
-        animationFrame = requestAnimationFrame(animate);
-    }
-
-    heroSection.addEventListener('mouseenter', function() {
-        isHovering = true;
-        gridGlowEffect.style.opacity = '1';
-        animate();
-    });
-
-    heroSection.addEventListener('mousemove', function(e) {
-        const rect = heroSection.getBoundingClientRect();
-        targetX = e.clientX - rect.left;
-        targetY = e.clientY - rect.top;
-
-        if (!isHovering) {
-            currentX = targetX;
-            currentY = targetY;
-        }
-    });
-
-    heroSection.addEventListener('mouseleave', function() {
-        isHovering = false;
-        gridGlowEffect.style.opacity = '0';
-        if (animationFrame) {
-            cancelAnimationFrame(animationFrame);
-            animationFrame = null;
-        }
-    });
-})();
-
-// CTA Grid glow effect that follows cursor
-(function() {
-    const ctaSection = document.getElementById('enterprise-cta-section');
-    const ctaGridGlowEffect = document.getElementById('enterprise-cta-grid-glow-effect');
-
-    if (!ctaSection || !ctaGridGlowEffect) return;
-
-    let isHovering = false;
-    let animationFrame = null;
-    let currentX = 0;
-    let currentY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    function lerp(start, end, factor) {
-        return start + (end - start) * factor;
-    }
-
-    function animate() {
-        if (!isHovering) return;
-
-        currentX = lerp(currentX, targetX, 0.12);
-        currentY = lerp(currentY, targetY, 0.12);
-
-        ctaGridGlowEffect.style.setProperty('--mouse-x', currentX + 'px');
-        ctaGridGlowEffect.style.setProperty('--mouse-y', currentY + 'px');
-
-        animationFrame = requestAnimationFrame(animate);
-    }
-
-    ctaSection.addEventListener('mouseenter', function() {
-        isHovering = true;
-        ctaGridGlowEffect.style.opacity = '1';
-        animate();
-    });
-
-    ctaSection.addEventListener('mousemove', function(e) {
-        const rect = ctaSection.getBoundingClientRect();
-        targetX = e.clientX - rect.left;
-        targetY = e.clientY - rect.top;
-
-        if (!isHovering) {
-            currentX = targetX;
-            currentY = targetY;
-        }
-    });
-
-    ctaSection.addEventListener('mouseleave', function() {
-        isHovering = false;
-        ctaGridGlowEffect.style.opacity = '0';
-        if (animationFrame) {
-            cancelAnimationFrame(animationFrame);
-            animationFrame = null;
-        }
-    });
-})();
-</script>
 
 </body>
 

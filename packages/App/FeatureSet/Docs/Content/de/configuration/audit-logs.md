@@ -86,7 +86,7 @@ Monitore, Vorfälle, Alarme, Statusseiten, SLOs und viele andere Ressourcen habe
 | SLOs | `Service Level Objective` |
 | Die Regeln und Owners eines SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | Teams | `Team` |
-| Benutzerdefinierte Rollen, und die Teams, die eine erhalten | `Custom Role`, `Team Custom Role` |
+| Benutzerdefinierte Rollen, und die Teams und API-Schlüssel, die eine erhalten | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Beschriftungen | `Label` |
 | Vorfallsstatus und -schweregrade | `Incident State`, `Incident Severity` |
 | Warnungsstatus und -schweregrade | `Alert State`, `Alert Severity` |

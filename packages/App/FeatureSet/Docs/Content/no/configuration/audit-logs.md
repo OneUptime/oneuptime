@@ -86,7 +86,7 @@ Monitorer, hendelser, varsler, statussider, SLO-er og mange andre ressurser har 
 | SLO-er | `Service Level Objective` |
 | Reglene og eierne til et SLO | `SLO Burn Rate Rule`, `SLO Monitor Rule`, `Service Level Objective User Owner`, `Service Level Objective Team Owner` |
 | Team | `Team` |
-| Egendefinerte roller, og teamene som får en | `Custom Role`, `Team Custom Role` |
+| Egendefinerte roller, og teamene og API-nøklene som får en | `Custom Role`, `Team Custom Role`, `API Key Custom Role` |
 | Etiketter | `Label` |
 | Statuser og alvorlighetsgrader for hendelser | `Incident State`, `Incident Severity` |
 | Statuser og alvorlighetsgrader for varsler | `Alert State`, `Alert Severity` |

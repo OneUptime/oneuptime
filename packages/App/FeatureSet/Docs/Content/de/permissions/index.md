@@ -38,7 +38,7 @@ flowchart TB
 | Team | Eine benannte Gruppe innerhalb eines Projekts, die Berechtigungen trägt. |
 | Teammitglied | Ein Benutzer, der in ein Team eingeladen wurde und angenommen hat. |
 | Berechtigung | Eine einzelne Fähigkeit, z. B. `CreateProjectMonitor`, oder eine Rolle, die viele bündelt, z. B. `MonitorAdmin`. |
-| Benutzerdefinierte Rolle | Eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben. |
+| Benutzerdefinierte Rolle | Eine Reihe von Berechtigungen, die Sie einmal benennen und Teams und API-Schlüsseln geben. |
 | Geltungsbereich | Wie weit eine Erlaubt-Berechtigung reicht: alle Ressourcen, nur eigene oder nur gelabelte. |
 | Eigentümer | Ein Benutzer oder Team, der bzw. das für eine konkrete Ressource verantwortlich ist. |
 | Label | Eine Markierung an Ressourcen, mit der Berechtigungen eingeschränkt und Ressourcen organisiert werden. |
@@ -139,20 +139,20 @@ Die vollständige Liste steht in der [Berechtigungsreferenz](/docs/permissions/r
 
 ### Benutzerdefinierte Rollen
 
-Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle diese Teams an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
+Eine benutzerdefinierte Rolle ist eine Reihe von Berechtigungen, die Sie einmal benennen und Teams und API-Schlüsseln geben: etwa ein „Vorfallbearbeiter“ aus `IncidentMember`, `AlertMember` und `OnCallViewer` oder eine „Teamleitung“. Jedes Team und jeder Schlüssel, dem Sie sie geben, erhält dieselben Berechtigungen, und Sie ändern sie für alle an einer Stelle. In OneUptime Cloud brauchen benutzerdefinierte Rollen den Scale-Tarif, wie das Ändern der Berechtigungen eines Teams.
 
 :::steps
 1. Öffnen Sie **Teams** im Menü **Produkte** unter **Einstellungen**. Klappen Sie **Einstellungen** im Seitenmenü auf, wählen Sie **Rollen** und klicken Sie auf **Benutzerdefinierte Rolle erstellen**.
 2. Geben Sie ihren **Name** ein und wählen Sie unter **Berechtigungen** die vordefinierten Rollen, die sie bündelt, für jede Ressource im Projekt. Die Beschreibung liegt unter **Weitere Felder**.
 3. Legen Sie die Rolle an. Sie öffnet sich auf ihrer Seite, wo **Rolle hinzufügen** eine weitere vordefinierte Rolle hinzufügt und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) eine einzelne Berechtigung, jeweils mit Geltungsbereich und Beschriftungen, wie bei einem Team.
-4. Klicken Sie unter **Teams mit dieser Rolle** auf **Einem Team geben**. Auch die Seite **Berechtigungen** eines Teams hat **Benutzerdefinierte Rolle hinzufügen**, und **Team erstellen** bietet unter **Zugriff** die benutzerdefinierten Rollen an, die Sie vergeben könnten.
+4. Klicken Sie unter **Teams mit dieser Rolle** auf **Einem Team geben** oder unter **API-Schlüssel mit dieser Rolle** auf **Einem API-Schlüssel geben**. Auch die Seite **Berechtigungen** eines Teams und die Seite eines API-Schlüssels haben **Benutzerdefinierte Rolle hinzufügen**, und **Team erstellen** und **API-Schlüssel erstellen** bieten unter **Zugriff** die benutzerdefinierten Rollen an, die Sie vergeben könnten.
 :::
 
 - Die Mitglieder eines Teams erhalten jede Berechtigung seiner benutzerdefinierten Rollen, mit demselben Geltungsbereich und denselben Beschriftungen, genau so, als hätte das Team sie selbst. Eine Sperre auf dem Team gewinnt weiterhin.
-- Eine Rolle bleibt mit den Teams verbunden, die sie haben: Eine Änderung an ihr erreicht sie alle sofort, und die Seite der Rolle sagt, wie viele Teams und Personen das sind. **Entfernen** nimmt einem Team die Rolle. Das Löschen der Rolle nimmt ihre Berechtigungen jedem Team, das sie hat; die Teams behalten ihre Mitglieder und ihre anderen Rollen und Berechtigungen.
-- In eine Rolle aufnehmen und einem Team als Rolle geben können Sie nur, was Sie dem Team auch direkt geben könnten: Eine Rolle mit einer Berechtigung, die Sie nicht im selben oder einem weiteren Geltungsbereich haben, wird abgelehnt, und die Ablehnung nennt die Berechtigung. Eine Rolle enthält nie `ProjectOwner`, und **Owners** und **Admin** bekommen nie eine.
-- Die Seite **Berechtigungen** eines Teams zeigt seine benutzerdefinierten Rollen über seinen eigenen Berechtigungen. Was eine Rolle gibt, ändern Sie auf der Seite der Rolle, nicht auf der des Teams.
-- API-Schlüssel bekommen keine benutzerdefinierten Rollen. Ein Schlüssel dient einer einzigen Integration, also geben Sie ihm auf seiner eigenen Seite genau die Berechtigungen, die er braucht.
+- Eine Rolle bleibt mit den Teams und API-Schlüsseln verbunden, die sie haben: Eine Änderung an ihr erreicht sie alle sofort, und die Seite der Rolle sagt, wie viele Teams, Personen und Schlüssel das sind. **Entfernen** nimmt einem Team oder Schlüssel die Rolle. Das Löschen der Rolle nimmt ihre Berechtigungen jedem Team und Schlüssel, die sie haben; sie behalten alles andere, was sie haben.
+- In eine Rolle aufnehmen und einem Team oder API-Schlüssel als Rolle geben können Sie nur, was Sie ihm auch direkt geben könnten: Eine Rolle mit einer Berechtigung, die Sie nicht im selben oder einem weiteren Geltungsbereich haben, wird abgelehnt, und die Ablehnung nennt die Berechtigung. Eine Rolle enthält nie `ProjectOwner`, und **Owners** und **Admin** bekommen nie eine.
+- Die Seite **Berechtigungen** eines Teams und die Seite eines API-Schlüssels zeigen ihre benutzerdefinierten Rollen über ihren eigenen Berechtigungen. Was eine Rolle gibt, ändern Sie auf der Seite der Rolle, nicht auf der des Teams oder des Schlüssels.
+- Ein API-Schlüssel erhält jede Berechtigung seiner benutzerdefinierten Rollen, mit denselben Beschriftungen, so, als hätte der Schlüssel sie selbst, und eine Sperre auf dem Schlüssel gewinnt weiterhin. Eine Berechtigung, die die Rolle auf das beschränkt, was jemandem gehört, gibt einem Schlüssel nichts: Einem Schlüssel gehört nichts.
 - Die vordefinierten Rollen stehen unter **Vordefinierte Rollen** unten auf der Seite **Rollen**.
 
 ### Erlauben und sperren
@@ -247,11 +247,11 @@ Monitor-Logs, SLO-Verlauf, Netzwerkflüsse und Kubernetes-Kostenzuordnungen werd
 
 ## API-Schlüssel
 
-API-Schlüssel erhalten Berechtigungen direkt am Schlüssel — sie gehören keinem Team an und sind von Teamzugehörigkeiten unberührt.
+API-Schlüssel erhalten Berechtigungen direkt am Schlüssel oder über die benutzerdefinierten Rollen, die sie haben — sie gehören keinem Team an und sind von Teamzugehörigkeiten unberührt.
 
-- Weisen Sie dieselben granularen Berechtigungen und Rollen zu, die Sie einem Team geben würden.
+- Weisen Sie dieselben granularen Berechtigungen, Rollen und benutzerdefinierten Rollen zu, die Sie einem Team geben würden.
 - Schlüssel unterstützen **Sperr-Berechtigungen** und **Label-Einschränkungen** genauso wie Teams.
-- Schlüssel unterstützen **keinen** Geltungsbereich „Eigene". Eigentümerschaft wird gegen einen Benutzer aufgelöst, und ein Schlüssel ist kein Benutzer — geben Sie Schlüsseln den benötigten Zugriff daher ausdrücklich.
+- Schlüssel unterstützen **keinen** Geltungsbereich „Eigene". Eigentümerschaft wird gegen einen Benutzer aufgelöst, und ein Schlüssel ist kein Benutzer — geben Sie Schlüsseln den benötigten Zugriff daher ausdrücklich. Die Berechtigung einer benutzerdefinierten Rolle mit dem Geltungsbereich „Eigene" gibt einem Schlüssel nichts.
 
 **Einen Schlüssel anlegen** fragt nach einem Namen und seinem **Zugriff**:
 
@@ -260,6 +260,7 @@ API-Schlüssel erhalten Berechtigungen direkt am Schlüssel — sie gehören kei
 | Projektadministrator | Alles im Projekt anlegen, ändern und löschen, seine Einstellungen eingeschlossen. Nicht die Abrechnung und nicht das Löschen des Projekts. |
 | Projektmitglied | Monitore, Vorfälle, Statusseiten und die anderen Ressourcen des Projekts anlegen, ändern und löschen, wie es ein Projektmitglied kann. |
 | Betrachter | Alles im Projekt lesen und nichts ändern. |
+| Eine benutzerdefinierte Rolle | Alles, was die Rolle erlaubt, außer was sie auf Ressourcen beschränkt, die jemandem gehören. Aufgeführt, wenn Ihr Projekt eine hat, die Sie vergeben könnten. |
 | Berechtigungen später wählen | Noch nichts. Zu Beginn ausgewählt. |
 
 :::steps
@@ -270,7 +271,7 @@ API-Schlüssel erhalten Berechtigungen direkt am Schlüssel — sie gehören kei
 
 Die gewählte Rolle wird zur ersten Berechtigung des Schlüssels, sobald der Schlüssel existiert — genau so, als hätten Sie sie auf der Seite des Schlüssels hinzugefügt. Angeboten werden nur die Rollen, die Sie selbst haben — ein Schlüssel kann nie mehr bekommen, als die Person hat, die ihn vergibt —, und wer Schlüssel anlegen, aber nicht ändern darf, was sie tun dürfen, wird gar nicht gefragt.
 
-Auf der Seite eines Schlüssels fügt **Rolle hinzufügen** eine Rolle aus derselben Liste hinzu, die der Tab Berechtigungen eines Teams anbietet, und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) fügt eine einzelne granulare Berechtigung hinzu. **Berechtigungen blockieren** liegen unter **Weitere Einstellungen** unten auf der Seite, deren eingeklappte Überschrift zeigt, wie viele der Schlüssel hat.
+Auf der Seite eines Schlüssels zeigt **Benutzerdefinierte Rollen** die benutzerdefinierten Rollen des Schlüssels, sobald Ihr Projekt eine hat, und **Benutzerdefinierte Rolle hinzufügen** gibt ihm eine weitere. **Rolle hinzufügen** fügt eine Rolle aus derselben Liste hinzu, die der Tab Berechtigungen eines Teams anbietet, und **Berechtigung hinzufügen** (im Menü **⋯** der Karte) fügt eine einzelne granulare Berechtigung hinzu. **Berechtigungen blockieren** liegen unter **Weitere Einstellungen** unten auf der Seite, deren eingeklappte Überschrift zeigt, wie viele der Schlüssel hat.
 
 > [!TIP]
 > Geben Sie jeder Integration einen eigenen Schlüssel mit dem engstmöglichen Berechtigungssatz, damit Sie einen widerrufen können, ohne die anderen zu stören.

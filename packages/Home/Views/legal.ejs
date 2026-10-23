@@ -169,11 +169,7 @@
 
   <!-- Hero Section -->
   <header class="relative isolate overflow-hidden bg-white" id="legal-hero-section">
-    <!-- Subtle grid pattern background -->
-    <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
-
-    <!-- Grid glow effect that follows cursor -->
-    <div id="legal-grid-glow" class="absolute inset-0 -z-9 pointer-events-none" style="opacity: 0; transition: opacity 0.3s ease-out; background: linear-gradient(to right, rgba(100, 116, 139, 0.3) 1px, transparent 1px), linear-gradient(to bottom, rgba(100, 116, 139, 0.3) 1px, transparent 1px); background-size: 4rem 4rem; -webkit-mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%); mask-image: radial-gradient(circle 250px at var(--mouse-x, 50%) var(--mouse-y, 50%), black 0%, transparent 100%);"></div>
+    <div class="absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_50%_0%,rgba(16,185,129,0.09),transparent_70%)]" aria-hidden="true"></div>
 
     <!-- Hero ambient glow -->
     <div id="legal-ambient-glow" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/4 w-[800px] h-[600px] pointer-events-none" style="background: transparent; opacity: 0; transition: opacity 0.35s ease-out;"></div>
@@ -819,63 +815,6 @@
     });
 })();
 
-// Grid glow effect that follows cursor
-(function() {
-    const legalHeroSection = document.getElementById('legal-hero-section');
-    const legalGridGlow = document.getElementById('legal-grid-glow');
-
-    if (!legalHeroSection || !legalGridGlow) return;
-
-    let isHovering = false;
-    let animationFrame = null;
-    let currentX = 0;
-    let currentY = 0;
-    let targetX = 0;
-    let targetY = 0;
-
-    function lerp(start, end, factor) {
-        return start + (end - start) * factor;
-    }
-
-    function animate() {
-        if (!isHovering) return;
-
-        // Smooth interpolation for fluid movement
-        currentX = lerp(currentX, targetX, 0.12);
-        currentY = lerp(currentY, targetY, 0.12);
-
-        legalGridGlow.style.setProperty('--mouse-x', currentX + 'px');
-        legalGridGlow.style.setProperty('--mouse-y', currentY + 'px');
-
-        animationFrame = requestAnimationFrame(animate);
-    }
-
-    legalHeroSection.addEventListener('mouseenter', function() {
-        isHovering = true;
-        legalGridGlow.style.opacity = '1';
-        animate();
-    });
-
-    legalHeroSection.addEventListener('mousemove', function(e) {
-        const rect = legalHeroSection.getBoundingClientRect();
-        targetX = e.clientX - rect.left;
-        targetY = e.clientY - rect.top;
-
-        if (!isHovering) {
-            currentX = targetX;
-            currentY = targetY;
-        }
-    });
-
-    legalHeroSection.addEventListener('mouseleave', function() {
-        isHovering = false;
-        legalGridGlow.style.opacity = '0';
-        if (animationFrame) {
-            cancelAnimationFrame(animationFrame);
-            animationFrame = null;
-        }
-    });
-})();
 </script>
 </body>
 

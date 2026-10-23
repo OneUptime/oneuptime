@@ -4,14 +4,14 @@
 <header role="banner">
 <div class="relative bg-white">
   <div class="mx-auto max-w-7xl px-6">
-    <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 md:justify-start md:space-x-10">
+    <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 lg:justify-start lg:space-x-10">
       <div class="flex justify-start lg:w-0 lg:flex-1">
         <a href="/">
           <span class="sr-only">OneUptime</span>
           <img class="h-8 w-auto sm:h-10" src="/img/3-transparent.svg" alt="OneUptime logo" width="200" height="40" fetchpriority="high">
         </a>
       </div>
-      <div class="-my-2 -mr-2 md:hidden">
+      <div class="-my-2 -mr-2 lg:hidden">
         <button type="button" onclick="openMobileMenu()"
           class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-500"
           aria-expanded="false">
@@ -23,7 +23,7 @@
           </svg>
         </button>
       </div>
-      <nav class="max-md:hidden space-x-10 md:flex">
+      <nav class="max-lg:hidden space-x-10 lg:flex">
         <div class="relative">
           <!-- Opens the searchable products modal (command-palette style). -->
           <button onclick="openProductModal()" type="button"
@@ -493,7 +493,7 @@
           </div>
         </div>
       </nav>
-      <div class="max-md:hidden items-center justify-end md:flex md:flex-1 lg:w-0">
+      <div class="max-lg:hidden items-center justify-end lg:flex lg:flex-1 lg:w-0">
         <a href="/accounts" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign
           in</a>
         <a href="/accounts/register"
@@ -514,7 +514,7 @@
         To: "opacity-0 scale-95"
     -->
 
-  <div id="mobile-menu" hidden class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden z-20"
+  <div id="mobile-menu" hidden class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition lg:hidden z-20"
     style="visibility: collapse;">
     <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
       <div class="px-5 pt-5 pb-6">
