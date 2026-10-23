@@ -392,7 +392,10 @@ jobs:
           # pages, the dialogs while what uses a value is still read, and a
           # create form that never offers an archived one, at a laptop's and a
           # phone's width, light and dark) joined them on 2026-10-21: about 21
-          # on a slow runner.
+          # on a slow runner. Custom Roles grew by 12 specs on 2026-10-23
+          # (custom roles on API keys: a key's page, Create API Key and a
+          # role's API keys, at 1280 and 390 pixels, dark): 3.5 minutes with
+          # its bundle locally, about half a minute more.
           - group: 7
             browsers: chromium
             suites: >-
