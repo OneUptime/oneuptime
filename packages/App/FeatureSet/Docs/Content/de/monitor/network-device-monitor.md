@@ -382,6 +382,20 @@ Die erfassten Werte erscheinen als Diagramme auf der **Metriken**-Seite des Ger�
 
 Lange OID-Listen werden auf mehrere SNMP-GET-Anfragen verteilt, sodass jede in ein UDP-Datagramm passt. Wenn Sie Ihre OID-Listen kurz gehalten haben, weil eine ältere Version ein Gerät, das mit `tooBig` antwortete, als offline meldete, ist das nicht mehr nötig.
 
+### OIDs mit einem SNMP-Walk finden
+
+Die Seite **SNMP-Walk** eines Geräts, unter **Mehr** in seinem Menü, listet jede OID, auf die das Gerät antwortet, mit Typ, Wert und, wo OneUptime die MIB kennt, ihrem Namen. Es ist das `snmpwalk`, das Sie sonst im Netzwerk der Sonde ausführen würden, ausgeführt von der eigenen Sonde des Geräts mit den Anmeldedaten, die OneUptime für das Gerät hinterlegt hat und die nie Ihren Browser erreichen.
+
+Geben Sie unter **Start-OID** eine numerische OID ein, oder wählen Sie unter **Häufige Startpunkte** einen aus: **Alles**, **System**, **Schnittstellen**, **Host-Ressourcen** oder **Herstellerspezifisch**. Klicken Sie dann auf **Walk starten**. Die Sonde übernimmt den Walk innerhalb von zehn Sekunden und stellt eine Anfrage nach der anderen, höchstens 1.000 OIDs in höchstens 45 Sekunden, sodass ein Walk das Gerät nie überflutet. Gibt es mehr zu lesen, liest **Walk fortsetzen** die nächsten 1.000 ab der Stelle, an der er aufgehört hat. Auf einem Gerät läuft immer nur ein Walk zur Zeit, und seine Walks werden zwei Tage lang aufbewahrt.
+
+Jede Zeile sagt, wo ihre OID bekannt ist: als Wert, den eine Hersteller-Integritätsvorlage erfasst, als Spalte der SNMP-Tabelle einer Herstellervorlage, als Zähler, den der Schnittstellen-Walk bereits für jeden Port als Diagramm zeigt, oder als OID unter der MIB ihres Herstellers. Aus einer Zeile heraus:
+
+- **Erfassen** fügt die OID den **Gerätespezifische Integritäts-OIDs** des Geräts hinzu: Ab der nächsten Abfrage erfasst jede Abfrage sie, und die Seite **Metriken** des Geräts zeigt sie als Diagramm. Bei einem Gerät, das mit einer OID-Erfassungsvorlage verknüpft ist, kann das Menü der Zeile sie stattdessen der Vorlage hinzufügen, für jedes Gerät, das sie nutzt.
+- **Warnung einrichten** erscheint, sobald die OID erfasst wird, und öffnet einen neuen Netzwerkgerät-Monitor für das Gerät mit einem Kriterium **SNMP OID Value** für die OID, ausgehend vom gelesenen Wert: Ein Zähler oder Messwert warnt oberhalb davon, eine Betriebszeit unterhalb (das Gerät wurde neu gestartet), alles andere, wenn es sich ändert.
+- **OID kopieren**, im Menü der Zeile, kopiert die OID.
+
+Ein fehlgeschlagener Walk sagt, warum, und was zu prüfen ist: ein Gerät, das nicht antwortet (SNMP aus, UDP 161 blockiert oder, bei v1 und v2c, eine falsche Community-Zeichenfolge, die ein Agent kommentarlos ignoriert), ein SNMPv3-Benutzer, -Passwort oder -Protokoll, das das Gerät abgelehnt hat, oder ein Teil des Baums, den die SNMP-Ansicht der Anmeldedaten auslässt. Ein Walk, der unterwegs stoppt, behält, was er gelesen hat. Für einen Walk braucht es die Berechtigung **Create Network Device Diagnostic** und eine Sonde, die neu genug für SNMP-Walks ist: Bei einer älteren bittet die Seite Sie, sie zu aktualisieren.
+
 ### SNMP-Tabellen
 
 Manches, was ein Gerät weiß, ist eine Liste: eine Zeile pro IPsec-Tunnel, WLAN-Funkmodul, SSID, Fabric-Nachbar, Lüfter oder Netzteil. Eine SNMP-Tabelle ist durch ihre Spalten definiert, und jede Zeile wird bei jeder Abfrage abgefragt, ein Tunnel, der hinzukommt, umbenannt oder gelöscht wird, wird also verfolgt, ohne dass jemand etwas bearbeitet.
@@ -1064,6 +1078,8 @@ snmpget -v3 -u username -l authPriv -a SHA -A authpassword -x AES -X privpasswor
 :::
 
 Eine Antwort mit der Beschreibung des Geräts bedeutet, dass die Sonde es mit diesen Anmeldedaten abfragen kann.
+
+Sobald das Gerät hinzugefügt ist, führt seine Seite **SNMP-Walk** diesen Test für Sie von der Sonde aus durch, mit den Anmeldedaten, die OneUptime für das Gerät hinterlegt hat, und listet alles, worauf das Gerät antwortet: siehe [OIDs mit einem SNMP-Walk finden](#oids-mit-einem-snmp-walk-finden).
 :::
 
 ## Nächste Schritte
