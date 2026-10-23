@@ -30,8 +30,8 @@ const router: ExpressRouter = Express.getRouter();
 
 /*
  * The custom calls behind the AI section of the Incidents and Alerts menus.
- * Its Settings and Auto Remediation Rules pages are ordinary CRUD on the
- * Project and on AutoRemediationRule.
+ * Its Settings page - with its AI rules - is ordinary CRUD on the Project
+ * and on AutoRemediationRule.
  *
  *   POST /ai-activity/incident/logs   { before?, kinds? }
  *   POST /ai-activity/alert/logs      { before?, kinds? }

@@ -99,7 +99,10 @@ export const AI_RULE_DOES_NOTHING_MESSAGE: string =
   "An AI rule must investigate what it matches, fix it, or both. Turn investigating or fixing on.";
 
 export function getAiRuleShapeProblem(rule: AiRuleShapeFacts): string | null {
-  if (rule.investigates !== undefined && typeof rule.investigates !== "boolean") {
+  if (
+    rule.investigates !== undefined &&
+    typeof rule.investigates !== "boolean"
+  ) {
     return "Investigates must be true or false.";
   }
 

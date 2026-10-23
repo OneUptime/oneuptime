@@ -1020,13 +1020,13 @@ export default class AutoRemediationRule extends RuleBaseModel {
   /*
    * The external MCP servers OneUptime AI may use while it investigates
    * (their tools that read) and fixes what this rule matches. None named is
-   * all of the project's servers that are on (ExternalMcpServerAllowance). A change made through a server's tools
-   * follows the rule's Execution Mode: it waits for approval unless the
-   * rule fixes without asking AND names its servers here - with none named
-   * a change is always proposed first, as a runbook picked from all of the
-   * project's runbooks is. Only the project's own servers can be named
-   * (ProjectReferencesService). A rule that runs its runbooks every time
-   * uses none.
+   * all of the project's servers that are on (ExternalMcpServerAllowance).
+   * A change made through a server's tools follows the rule's Execution
+   * Mode: it waits for approval unless the rule fixes without asking AND
+   * names its servers here - with none named a change is always proposed
+   * first, as a runbook picked from all of the project's runbooks is. Only
+   * the project's own servers can be named (ProjectReferencesService). A
+   * rule that runs its runbooks every time uses none.
    */
   @ColumnAccessControl({
     create: [

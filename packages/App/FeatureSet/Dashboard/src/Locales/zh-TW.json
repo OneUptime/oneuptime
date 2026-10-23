@@ -8197,8 +8197,6 @@
   "Auto Import Rules": "Auto Import Rules",
   "Auto Recharge Amount": "Auto Recharge Amount",
   "Auto Recharge when current balance falls to": "Auto Recharge when current balance falls to",
-  "Auto Remediation Rule": "Auto Remediation Rule",
-  "Auto Remediation Rule ID": "Auto Remediation Rule ID",
   "Auto Remediation Suggestion": "Auto Remediation Suggestion",
   "Auto Remediation Suggestion ID": "Auto Remediation Suggestion ID",
   "Auto Remediation Suggestions": "Auto Remediation Suggestions",
@@ -33455,6 +33453,7 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "這些 API 金鑰獲得此角色 {{count}} 項權限中的 {{applied}} 項：範圍為「{{scope}}」的權限不適用於金鑰。",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "這些 API 金鑰獲得此角色 {{count}} 項權限中的 {{applied}} 項：範圍為「{{scope}}」的權限不適用於金鑰。",
   "This project has no API key yet": "此專案還沒有 API 金鑰",
+  "This project has no API key yet. Create one on the API Keys page.": "此專案還沒有 API 金鑰。請在「API 金鑰」頁面建立一個。",
   "A rule that doesn't investigate must fix. Turn investigating on in the Investigate step first.": "不進行調查的規則必須修正。請先在「調查」步驟中開啟調查。",
   "AI Rule": "AI 規則",
   "AI Rules": "AI 規則",
@@ -33492,8 +33491,9 @@
   "This rule only fixes: it was an auto remediation rule, and does not decide which alerts are investigated.": "此規則只進行修正：它原是自動補救規則，不決定調查哪些警示。",
   "This rule only fixes: it was an auto remediation rule, and does not decide which incidents are investigated.": "此規則只進行修正：它原是自動補救規則，不決定調查哪些事件。",
   "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too.": "OneUptime AI 調查並修正哪些新事件或警示，以及如何處理。規則會調查符合的內容（立即，或僅在等待後仍未解決時），並決定是否修正、是否先詢問。修正可以執行專案的運行手冊（如果規則指定了，則僅執行該規則的運行手冊）、在規則選擇的 Runner 上執行 Bash 命令、使用專案的外部 MCP 伺服器的工具（如果規則指定了，則僅使用該規則的伺服器），並在專案的程式碼儲存庫中開啟修正和遙測 Pull Request（如果規則指定了，則僅在該規則的儲存庫中）。沒有規則時，OneUptime AI 會調查每一個，並在自動修正開啟時修正每一個。它們原是自動補救規則，現在調查規則也成了 AI 規則。",
-  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "沒有規則時，OneUptime AI 會立即調查每個新警示，並在修正開啟時修正它。新增規則可以只處理符合的警示、先等待，或選擇每個警示的修正方式。",
-  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "沒有規則時，OneUptime AI 會立即調查每個新事件，並在修正開啟時修正它。新增規則可以只處理符合的事件、先等待，或選擇每個事件的修正方式。",
+  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "沒有規則時，OneUptime AI 會立即調查每個新警示，並在修正開啟時修正它，包括 Pull Request。新增規則可以只處理符合的警示、先等待，或選擇每個警示的修正方式。",
+  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "沒有規則時，OneUptime AI 會立即調查每個新事件，並在修正開啟時修正它，包括 Pull Request。新增規則可以只處理符合的事件、先等待，或選擇每個事件的修正方式。",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.": "{{count}} 條 AI 規則符合此{{signal}}，但它們只進行調查，因此沒有修正它。",
-  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI 規則「{{ruleName}}」符合此{{signal}}，但它只進行調查，因此沒有修正它。"
+  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI 規則「{{ruleName}}」符合此{{signal}}，但它只進行調查，因此沒有修正它。",
+  "AI Rule ID": "AI 規則 ID"
 }

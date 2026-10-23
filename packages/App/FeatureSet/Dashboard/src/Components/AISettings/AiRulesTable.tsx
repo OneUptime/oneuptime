@@ -22,7 +22,12 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
-import { AiRuleFix, getAiRuleFix, isAiRuleFix } from "Common/Types/AI/AiRule";
+import {
+  AiRuleFix,
+  doesAiRuleFix,
+  getAiRuleFixColumns,
+  isAiRuleFix,
+} from "Common/Types/AI/AiRule";
 import AutoRemediationAction from "Common/Types/AutoRemediation/AutoRemediationAction";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import {
@@ -66,11 +71,10 @@ import {
   AI_RULE_TEST_IDS,
   doesEditedRuleFix,
   doesEditedRuleInvestigate,
-  doesSavedRuleFix,
   getAiRuleFixText,
   getAiRuleMoreFieldsSummary,
   getEditedRuleFix,
-  getExecutionModeOfFix,
+  getShownAiRuleFix,
   isFixingWithOneUptimeAi,
   prepareAiRuleCreate,
   validateAiRuleFix,
@@ -164,10 +168,10 @@ export const AI_LANE_AI_RULE_TRIGGER: Record<
  *     #5074);
  *   - Fix: don't fix, ask before fixing, or fix without asking - and its
  *     name. What most rules never change is folded under More fields
- *     (getAdvancedFormSection): the runbooks OneUptime AI may run and
- *     whether the rule runs them every time, the LLM provider, the Runner,
- *     the MCP servers and code repositories (the investigation's too), the
- *     two pull requests, and the description.
+ *     (getAdvancedFormSection): the code repositories and MCP servers
+ *     OneUptime AI may use (investigating too), the LLM provider, the
+ *     runbooks it may run and whether the rule runs them every time, the
+ *     Runner, the two pull requests, and the description.
  *
  * A rule set up as an auto remediation rule before the merge may only fix:
  * its Investigate step says so, with "Investigate too". A rule saved before
@@ -189,20 +193,12 @@ export const AiRuleFixCell: FunctionComponent<AiRuleFixCellProps> = (
   props: AiRuleFixCellProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const fix: AiRuleFix = getAiRuleFix(props.rule);
+  // An older rule that picks a runbook always asks first, whatever it says.
+  const shownFix: AiRuleFix = getShownAiRuleFix(props.rule);
   const fixWith: string | null =
-    fix === AiRuleFix.DoNotFix
+    shownFix === AiRuleFix.DoNotFix
       ? null
       : getAutoRemediationFixWithText(props.rule);
-
-  // An older rule that picks a runbook always asks first, whatever it says.
-  const isAlwaysAsking: boolean =
-    fix !== AiRuleFix.DoNotFix &&
-    getEditedRuleFixKind(
-      props.rule as unknown as FormValues<AutoRemediationRule>,
-    ) === AutoRemediationFixKind.AiPicksRunbook;
-
-  const shownFix: AiRuleFix = isAlwaysAsking ? AiRuleFix.AskFirst : fix;
 
   return (
     <div
@@ -392,11 +388,13 @@ export function prepareAiRuleSave(
  * picks no Runner, so no Runner is let run OneUptime AI's commands for a
  * rule that never sends one (RunnerAiCommandsPick).
  */
-export function prepareNewAiRule(item: AutoRemediationRule): AutoRemediationRule {
+export function prepareNewAiRule(
+  item: AutoRemediationRule,
+): AutoRemediationRule {
   prepareAiRuleCreate(item);
   prepareAiRuleSave(item);
 
-  if (!doesSavedRuleFix(item)) {
+  if (!doesAiRuleFix(item)) {
     (item as unknown as { runnerId: null }).runnerId = null;
   }
 
@@ -961,8 +959,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             setNewFormValues({
               ...currentValues,
               [AI_RULE_FIX_FIELD_KEY]: value,
-              fixes: value !== AiRuleFix.DoNotFix,
-              executionMode: getExecutionModeOfFix(
+              ...getAiRuleFixColumns(
                 value,
                 (currentValues as { executionMode?: unknown }).executionMode,
               ),
@@ -983,7 +980,9 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           // "Name of this AI rule." says nothing the title does not.
           hideColumnDescription: true,
-          placeholder: isIncident ? "Production incidents" : "Production alerts",
+          placeholder: isIncident
+            ? "Production incidents"
+            : "Production alerts",
           validation: {
             minLength: 2,
             maxLength: RULE_NAME_MAX_LENGTH,
@@ -999,6 +998,109 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           doNotShowWhenCreating: true,
           required: false,
         },
+        {
+          /*
+           * The code repositories OneUptime AI may read while it
+           * investigates and fixes, and open the rule's pull requests in:
+           * none picked is every connected repository. First under More
+           * fields, as the one field every rule shows: the form keys the
+           * fold by its first field on screen, so a first field that comes
+           * and goes with the Fix answer (the runbooks) or with the switch
+           * that turns AI off (the LLM provider) would close the fold
+           * whenever either changed.
+           */
+          field: { codeRepositories: true },
+          title: RULE_CODE_REPOSITORIES_FIELD_COPY.title,
+          description: RULE_CODE_REPOSITORIES_FIELD_COPY.remediationDescription,
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          fieldType: FormFieldSchemaType.CustomComponent,
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          dataTestId: "auto-remediation-code-repositories-field",
+          getFoldedValue: (
+            values: FormValues<AutoRemediationRule>,
+          ): string | null => {
+            return getRuleCodeRepositoriesFoldedValue(values);
+          },
+          getCustomElement: (
+            values: FormValues<AutoRemediationRule>,
+            elementProps: CustomElementProps,
+          ): ReactElement => {
+            return (
+              <RuleCodeRepositoriesPicker
+                value={
+                  (values as { codeRepositories?: unknown }).codeRepositories
+                }
+                ariaLabelledby={elementProps.ariaLabelledby}
+                onChange={(repositoryIds: Array<string>): void => {
+                  elementProps.onChange?.(repositoryIds);
+                }}
+              />
+            );
+          },
+          getFooterElement: (): ReactElement => {
+            return <RuleCodeRepositoriesFieldHint />;
+          },
+        },
+        {
+          /*
+           * The MCP servers OneUptime AI may use - only their tools that
+           * read while it investigates; to fix too: none picked is all of
+           * them, and their changes always wait for approval - picking some
+           * is what lets "Fix without asking" use them.
+           */
+          field: { externalMcpServers: true },
+          title: RULE_MCP_SERVERS_FIELD_COPY.title,
+          description: RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: ExternalMcpServer,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          // Empty is an answer of its own - all of them - not "(Optional)".
+          hideOptionalLabel: true,
+          hideColumnDescription: true,
+          placeholder: RULE_MCP_SERVERS_FIELD_COPY.placeholder,
+          dataTestId: "auto-remediation-mcp-servers-field",
+          /*
+           * For a rule that investigates, or one OneUptime AI fixes for: a
+           * rule that only runs its runbooks every time, or an older rule
+           * that only fixes, uses no MCP server.
+           */
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return (
+              doesEditedRuleInvestigate(values) ||
+              isFixingWithOneUptimeAi(values)
+            );
+          },
+          getFooterElement: (): ReactElement => {
+            return <RuleMcpServersFieldHint />;
+          },
+        },
+        /*
+         * The LLM provider OneUptime AI uses for everything the rule starts
+         * - the investigation, and the fixes it works out: none is the
+         * default. Not for a rule that only runs its runbooks every time:
+         * no AI works for it.
+         */
+        getRuleLlmProviderFormField<AutoRemediationRule>({
+          stepId: "remediation",
+          collapsibleSection: moreFields,
+          dataTestId: "auto-remediation-llm-provider-field",
+          getChoices: (): RuleLlmProviderChoices | null => {
+            return llmProviderChoicesRef.current;
+          },
+          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
+            return doesRuleUseAi(values);
+          },
+        }),
         {
           // The runbooks OneUptime AI may run: none picked is any runbook.
           field: { runbooks: true },
@@ -1089,25 +1191,6 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             );
           },
         },
-        /*
-         * The LLM provider OneUptime AI uses for everything the rule starts
-         * - the investigation, and the fixes it works out: none is the
-         * default. Not for a rule that only runs its runbooks every time:
-         * no AI works for it. After the switch that turns AI off, never
-         * first in More fields: the fold keeps its place (open or not) by
-         * its first field, and this one comes and goes with the switch.
-         */
-        getRuleLlmProviderFormField<AutoRemediationRule>({
-          stepId: "remediation",
-          collapsibleSection: moreFields,
-          dataTestId: "auto-remediation-llm-provider-field",
-          getChoices: (): RuleLlmProviderChoices | null => {
-            return llmProviderChoicesRef.current;
-          },
-          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return doesRuleUseAi(values);
-          },
-        }),
         {
           /*
            * Where OneUptime AI runs the rule's Bash commands: the project's
@@ -1165,87 +1248,6 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
                 }}
               />
             );
-          },
-        },
-        {
-          /*
-           * The MCP servers OneUptime AI may use - only their tools that
-           * read while it investigates; to fix too: none picked is all of
-           * them, and their changes always wait for approval - picking some
-           * is what lets "Fix without asking" use them.
-           */
-          field: { externalMcpServers: true },
-          title: RULE_MCP_SERVERS_FIELD_COPY.title,
-          description: RULE_MCP_SERVERS_FIELD_COPY.aiRuleDescription,
-          stepId: "remediation",
-          collapsibleSection: moreFields,
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: ExternalMcpServer,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          // Empty is an answer of its own - all of them - not "(Optional)".
-          hideOptionalLabel: true,
-          hideColumnDescription: true,
-          placeholder: RULE_MCP_SERVERS_FIELD_COPY.placeholder,
-          dataTestId: "auto-remediation-mcp-servers-field",
-          /*
-           * For a rule that investigates, or one OneUptime AI fixes for: a
-           * rule that only runs its runbooks every time, or an older rule
-           * that only fixes, uses no MCP server.
-           */
-          showIf: (values: FormValues<AutoRemediationRule>): boolean => {
-            return (
-              doesEditedRuleInvestigate(values) ||
-              isFixingWithOneUptimeAi(values)
-            );
-          },
-          getFooterElement: (): ReactElement => {
-            return <RuleMcpServersFieldHint />;
-          },
-        },
-        {
-          /*
-           * The code repositories OneUptime AI may read while it
-           * investigates and fixes, and open the rule's pull requests in:
-           * none picked is every connected repository.
-           */
-          field: { codeRepositories: true },
-          title: RULE_CODE_REPOSITORIES_FIELD_COPY.title,
-          description: RULE_CODE_REPOSITORIES_FIELD_COPY.remediationDescription,
-          stepId: "remediation",
-          collapsibleSection: moreFields,
-          fieldType: FormFieldSchemaType.CustomComponent,
-          required: false,
-          // Empty is an answer of its own - all of them - not "(Optional)".
-          hideOptionalLabel: true,
-          hideColumnDescription: true,
-          dataTestId: "auto-remediation-code-repositories-field",
-          getFoldedValue: (
-            values: FormValues<AutoRemediationRule>,
-          ): string | null => {
-            return getRuleCodeRepositoriesFoldedValue(values);
-          },
-          getCustomElement: (
-            values: FormValues<AutoRemediationRule>,
-            elementProps: CustomElementProps,
-          ): ReactElement => {
-            return (
-              <RuleCodeRepositoriesPicker
-                value={
-                  (values as { codeRepositories?: unknown }).codeRepositories
-                }
-                ariaLabelledby={elementProps.ariaLabelledby}
-                onChange={(repositoryIds: Array<string>): void => {
-                  elementProps.onChange?.(repositoryIds);
-                }}
-              />
-            );
-          },
-          getFooterElement: (): ReactElement => {
-            return <RuleCodeRepositoriesFieldHint />;
           },
         },
         /*

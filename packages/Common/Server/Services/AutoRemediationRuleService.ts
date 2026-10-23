@@ -49,23 +49,6 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     this.assertMcpServersFit(createBy.data.externalMcpServers);
     this.assertCodeRepositoriesFit(createBy.data.codeRepositories);
-
-    /*
-     * What a new rule does: what the write says, else the columns'
-     * defaults - it fixes, and does not investigate, as an auto remediation
-     * rule an older API or Terraform client creates always did.
-     */
-    Service.assertShapeFits({
-      investigates: createBy.data.investigates,
-      fixes: createBy.data.fixes,
-    });
-
-    Service.assertWaitFits(createBy.data.onlyIfOpenAfterMinutes);
-
-    Service.assertCriteriaFitTrigger({
-      triggerEntityType: createBy.data.triggerEntityType,
-      data: createBy.data as unknown as Record<string, unknown>,
-    });
   }
 
   protected override async checkUpdateBeforeReferences(
@@ -84,11 +67,28 @@ export class Service extends ProjectReferencesService<Model> {
     if (data["codeRepositories"] !== undefined) {
       this.assertCodeRepositoriesFit(data["codeRepositories"]);
     }
+  }
 
-    // An edit that leaves the wait alone is not judged on it.
-    if (data["onlyIfOpenAfterMinutes"] !== undefined) {
-      Service.assertWaitFits(data["onlyIfOpenAfterMinutes"]);
-    }
+  /*
+   * What a new rule does and matches, judged after the project check and
+   * before anything here reads a Runner: these read nothing.
+   *
+   * What it does is what the write says, else the columns' defaults - it
+   * fixes, and does not investigate, as an auto remediation rule an older
+   * API or Terraform client creates always did.
+   */
+  public static assertNewRuleFits(data: Model): void {
+    Service.assertShapeFits({
+      investigates: data.investigates,
+      fixes: data.fixes,
+    });
+
+    Service.assertWaitFits(data.onlyIfOpenAfterMinutes);
+
+    Service.assertCriteriaFitTrigger({
+      triggerEntityType: data.triggerEntityType,
+      data: data as unknown as Record<string, unknown>,
+    });
   }
 
   /*
@@ -198,6 +198,8 @@ export class Service extends ProjectReferencesService<Model> {
     // The project's own records only, before anything here reads one.
     await super.onBeforeCreate(createBy);
 
+    Service.assertNewRuleFits(createBy.data);
+
     createBy.data.remediationAction = Service.getRemediationActionOnCreate(
       createBy.data,
     );
@@ -260,6 +262,11 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeUpdate(updateBy);
 
     const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    // An edit that leaves the wait alone is not judged on it.
+    if (data["onlyIfOpenAfterMinutes"] !== undefined) {
+      Service.assertWaitFits(data["onlyIfOpenAfterMinutes"]);
+    }
 
     if (
       data["remediationAction"] === null ||

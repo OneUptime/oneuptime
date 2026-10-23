@@ -12,10 +12,11 @@ import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
 
 /*
  * Whether an incident or an alert matches a rule that decides what OneUptime
- * AI does with it: an Auto Remediation Rule (which ones are fixed, and how)
- * or an Investigation Rule (which ones are investigated). Both carry the same
- * match columns and versioned criteria, and both must read a condition the
- * same way, so the matching lives here once.
+ * AI does with it: an AI rule (which ones are investigated, and which are
+ * fixed and how - read by InvestigationRules and by the rule engine) or a
+ * Postmortem Rule (which resolved incidents get a postmortem draft). They
+ * carry the same match columns and versioned criteria, and must read a
+ * condition the same way, so the matching lives here once.
  *
  * Every legacy criterion is skip-if-empty with AND semantics across
  * criteria - the same shape as IncidentOnCallRuleEngineService - and the

@@ -8197,8 +8197,6 @@
   "Auto Import Rules": "Auto Import Rules",
   "Auto Recharge Amount": "Auto Recharge Amount",
   "Auto Recharge when current balance falls to": "Auto Recharge when current balance falls to",
-  "Auto Remediation Rule": "Auto Remediation Rule",
-  "Auto Remediation Rule ID": "Auto Remediation Rule ID",
   "Auto Remediation Suggestion": "Auto Remediation Suggestion",
   "Auto Remediation Suggestion ID": "Auto Remediation Suggestion ID",
   "Auto Remediation Suggestions": "Auto Remediation Suggestions",
@@ -33455,6 +33453,7 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "이 API 키들에는 이 역할의 권한 {{count}}개 중 {{applied}}개가 적용됩니다. 범위가 ‘{{scope}}’인 권한은 키에 적용되지 않습니다.",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "이 API 키들에는 이 역할의 권한 {{count}}개 중 {{applied}}개가 적용됩니다. 범위가 ‘{{scope}}’인 권한은 키에 적용되지 않습니다.",
   "This project has no API key yet": "이 프로젝트에는 아직 API 키가 없습니다",
+  "This project has no API key yet. Create one on the API Keys page.": "이 프로젝트에는 아직 API 키가 없습니다. API 키 페이지에서 만드세요.",
   "A rule that doesn't investigate must fix. Turn investigating on in the Investigate step first.": "조사하지 않는 규칙은 수정해야 합니다. 먼저 \"조사\" 단계에서 조사를 켜세요.",
   "AI Rule": "AI 규칙",
   "AI Rules": "AI 규칙",
@@ -33492,8 +33491,9 @@
   "This rule only fixes: it was an auto remediation rule, and does not decide which alerts are investigated.": "이 규칙은 수정만 합니다. 자동 해결 규칙이었으며, 어떤 경고를 조사할지는 정하지 않습니다.",
   "This rule only fixes: it was an auto remediation rule, and does not decide which incidents are investigated.": "이 규칙은 수정만 합니다. 자동 해결 규칙이었으며, 어떤 인시던트를 조사할지는 정하지 않습니다.",
   "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too.": "OneUptime AI가 어떤 새 인시던트나 경고를 조사하고 수정할지, 그리고 그 방법을 정합니다. 규칙은 일치하는 것을 조사하고(즉시, 또는 대기 후에도 아직 열려 있는 경우에만), 수정할지 여부와 먼저 승인을 요청할지 여부를 정합니다. 수정에는 프로젝트의 런북(규칙이 지정한 경우 그 규칙의 런북만), 규칙이 선택한 Runner의 Bash 명령, 프로젝트의 외부 MCP 서버 도구(규칙이 지정한 경우 그 규칙의 서버만)를 사용할 수 있고, 프로젝트의 코드 저장소(규칙이 지정한 경우 그 규칙의 저장소만)에 수정 및 텔레메트리 풀 리퀘스트를 열 수 있습니다. 규칙이 없으면 OneUptime AI가 모두 조사하고, 자동 수정이 켜져 있는 동안 모두 수정합니다. 이전의 자동 해결 규칙이며, 이제 조사 규칙도 AI 규칙이 되었습니다.",
-  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "규칙이 없으면 OneUptime AI가 모든 새 경고를 즉시 조사하고, 자동 수정이 켜져 있는 동안 수정합니다. 규칙을 추가하면 일치하는 경고만 다루거나, 기다리거나, 각각을 어떻게 수정할지 정할 수 있습니다.",
-  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "규칙이 없으면 OneUptime AI가 모든 새 인시던트를 즉시 조사하고, 자동 수정이 켜져 있는 동안 수정합니다. 규칙을 추가하면 일치하는 인시던트만 다루거나, 기다리거나, 각각을 어떻게 수정할지 정할 수 있습니다.",
+  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "규칙이 없으면 OneUptime AI가 모든 새 경고를 즉시 조사하고, 자동 수정이 켜져 있는 동안 풀 리퀘스트를 포함해 수정합니다. 규칙을 추가하면 일치하는 경고만 다루거나, 기다리거나, 각각을 어떻게 수정할지 정할 수 있습니다.",
+  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "규칙이 없으면 OneUptime AI가 모든 새 인시던트를 즉시 조사하고, 자동 수정이 켜져 있는 동안 풀 리퀘스트를 포함해 수정합니다. 규칙을 추가하면 일치하는 인시던트만 다루거나, 기다리거나, 각각을 어떻게 수정할지 정할 수 있습니다.",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.": "AI 규칙 {{count}}개가 이 {{signal}}과(와) 일치했지만 모두 조사만 하므로 수정되지 않았습니다.",
-  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI 규칙 \"{{ruleName}}\"이(가) 이 {{signal}}과(와) 일치했지만 조사만 하므로 수정되지 않았습니다."
+  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI 규칙 \"{{ruleName}}\"이(가) 이 {{signal}}과(와) 일치했지만 조사만 하므로 수정되지 않았습니다.",
+  "AI Rule ID": "AI 규칙 ID"
 }

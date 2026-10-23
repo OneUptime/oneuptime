@@ -3487,7 +3487,7 @@ export default class RemediationExecutionRunner {
   /*
    * "AI remediation for cluster X" reads as itself; rules keep their prefix.
    * A cluster round whose cluster was deleted (the link is nulled) is still
-   * a cluster round, never "Auto Remediation Rule ...".
+   * a cluster round, never "AI rule ...".
    *
    * Plain text: the round's name - a rule's name, or one naming a cluster or
    * a resource as its agent reported it - goes into a feed item's Markdown

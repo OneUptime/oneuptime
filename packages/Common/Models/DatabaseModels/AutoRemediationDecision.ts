@@ -23,7 +23,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 /*
  * Why auto-remediation did, or did not, act on one incident or alert: one
  * entry per fix path (the linked Kubernetes clusters' and resources' AI
- * fixes, the Auto Remediation Rules), written by the rule engine each time
+ * fixes, the AI rules), written by the rule engine each time
  * it evaluates the signal. See Types/AutoRemediation/AutoRemediationDecision.
  *
  * Written exclusively by the server - the empty create/update/delete ACLs
@@ -254,7 +254,7 @@ export default class AutoRemediationDecision extends BaseModel {
     type: TableColumnType.JSON,
     title: "Entries",
     description:
-      "One entry per fix path - a Kubernetes cluster, an infrastructure resource, an Auto Remediation Rule, or the project - with a reason code saying what it did or why it did nothing.",
+      "One entry per fix path - a Kubernetes cluster, an infrastructure resource, an AI rule, or the project - with a reason code saying what it did or why it did nothing.",
   })
   @Column({
     type: ColumnType.JSON,

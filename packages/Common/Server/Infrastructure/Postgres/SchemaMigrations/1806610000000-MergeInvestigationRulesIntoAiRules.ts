@@ -356,17 +356,18 @@ export function getInvestigatesLikeNoRuleSql(alias: string): string {
 }
 
 // What the two added rules are called, and why they are there.
-export const ADDED_RULE_NAMES: Readonly<Record<AddedRule, Record<Lane, string>>> =
-  {
-    InvestigateEveryOne: {
-      Incident: "Investigate every incident",
-      Alert: "Investigate every alert",
-    },
-    FixEveryOne: {
-      Incident: "Fix every incident",
-      Alert: "Fix every alert",
-    },
-  };
+export const ADDED_RULE_NAMES: Readonly<
+  Record<AddedRule, Record<Lane, string>>
+> = {
+  InvestigateEveryOne: {
+    Incident: "Investigate every incident",
+    Alert: "Investigate every alert",
+  },
+  FixEveryOne: {
+    Incident: "Fix every incident",
+    Alert: "Fix every alert",
+  },
+};
 
 export const ADDED_RULE_DESCRIPTIONS: Readonly<
   Record<AddedRule, Record<Lane, string>>

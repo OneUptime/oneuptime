@@ -1,20 +1,23 @@
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import {
   AiRuleFix,
-  doesAiRuleFix,
   doesAiRuleInvestigate,
   getAiRuleFix,
   isAiRuleFix,
 } from "Common/Types/AI/AiRule";
-import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
+import { AutoRemediationFixKind } from "Common/Types/AutoRemediation/AutoRemediationFix";
 import IconProp from "Common/Types/Icon/IconProp";
 import type { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import type FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { translateText, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateText,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import { AiLane } from "./ProjectAiSettingsCopy";
 import {
   AUTO_REMEDIATION_APPROVAL_TEXT,
   getAutoRemediationMoreFieldsSummary,
+  getEditedRuleFixKind,
   isOlderAutoRemediationRule,
   isRunbooksEveryTime,
 } from "../AutoRemediation/AutoRemediationRuleCopy";
@@ -35,8 +38,8 @@ import { getInvestigationRuleMoreFieldsSummary } from "../ExternalMcpServer/Exte
  *   - Investigate: right away, or only if still open after a wait;
  *   - Fix: don't fix, ask before fixing, or fix without asking - and its
  *     name. What most rules never change is folded under More fields: the
- *     runbooks, the Runner, the LLM provider, the MCP servers and code
- *     repositories OneUptime AI may use (for the investigation too), and
+ *     code repositories and MCP servers OneUptime AI may use (for the
+ *     investigation too), the LLM provider, the runbooks, the Runner, and
  *     the two pull requests (Types/AI/AiRule).
  *
  * A rule made on the dashboard always investigates: there is no fixing
@@ -94,9 +97,6 @@ export const AI_RULE_FIX_OPTIONS: Array<CardSelectOption> = [
 
 // The form-only value the Fix question keeps; it writes fixes and executionMode.
 export const AI_RULE_FIX_FIELD_KEY: string = "aiRuleFix";
-
-// A new rule asks first: fixing without asking is a choice someone makes.
-export const AI_RULE_DEFAULT_FIX: AiRuleFix = AiRuleFix.AskFirst;
 
 /*
  * The table's Fix column: what each answer reads as. "Asks first" and
@@ -206,20 +206,48 @@ export function validateAiRuleFix(values: unknown): string | null {
     !doesEditedRuleInvestigate(values) &&
     getEditedRuleFix(values) === AiRuleFix.DoNotFix
   ) {
-    return translateText(AI_RULE_DOES_NOTHING_TEXT) || AI_RULE_DOES_NOTHING_TEXT;
+    return (
+      translateText(AI_RULE_DOES_NOTHING_TEXT) || AI_RULE_DOES_NOTHING_TEXT
+    );
   }
 
   return null;
 }
 
 /*
- * The table's Fix column for a rule: its answer, as a pill's text.
+ * The answer the table shows for a saved rule: its own - but an older rule
+ * that has OneUptime AI pick one of its runbooks asks first whatever it
+ * says, as such a pick is always proposed, never started
+ * (AutoRemediationFix.mayAiPickedRunbookStartWithoutAsking).
  */
-export function getAiRuleFixText(rule: {
+export function getShownAiRuleFix(rule: {
   fixes?: unknown;
   executionMode?: unknown;
-}): string {
-  return AI_RULE_FIX_TEXT[getAiRuleFix(rule)];
+  remediationAction?: unknown;
+  aiComposesCommands?: unknown;
+  aiSelectsRunbook?: unknown;
+}): AiRuleFix {
+  const fix: AiRuleFix = getAiRuleFix(rule);
+
+  if (
+    fix === AiRuleFix.WithoutAsking &&
+    getEditedRuleFixKind(rule as FormValues<AutoRemediationRule>) ===
+      AutoRemediationFixKind.AiPicksRunbook
+  ) {
+    return AiRuleFix.AskFirst;
+  }
+
+  return fix;
+}
+
+/*
+ * The table's Fix column for a rule - its pill, and what an export of the
+ * table says: the answer it shows.
+ */
+export function getAiRuleFixText(
+  rule: Parameters<typeof getShownAiRuleFix>[0],
+): string {
+  return AI_RULE_FIX_TEXT[getShownAiRuleFix(rule)];
 }
 
 /*
@@ -264,27 +292,4 @@ export function isFixingWithOneUptimeAi(
     !isRunbooksEveryTime(values) &&
     !isOlderAutoRemediationRule(values)
   );
-}
-
-// The rule's execution mode, as the Fix answer writes it.
-export function getExecutionModeOfFix(
-  fix: AiRuleFix,
-  current: unknown,
-): AutoRemediationExecutionMode {
-  if (fix === AiRuleFix.WithoutAsking) {
-    return AutoRemediationExecutionMode.FullAuto;
-  }
-
-  if (fix === AiRuleFix.AskFirst) {
-    return AutoRemediationExecutionMode.Suggest;
-  }
-
-  return current === AutoRemediationExecutionMode.FullAuto
-    ? AutoRemediationExecutionMode.FullAuto
-    : AutoRemediationExecutionMode.Suggest;
-}
-
-// Whether a rule saved on the server fixes: the table reads it so.
-export function doesSavedRuleFix(rule: { fixes?: unknown }): boolean {
-  return doesAiRuleFix(rule);
 }

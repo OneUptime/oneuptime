@@ -286,9 +286,9 @@ function resourceLink(
 }
 
 /*
- * The Auto Remediation Rules are under the AI settings page's More
- * settings (they had a page of their own), with the switch that turns
- * fixing on.
+ * The AI rules are under the AI settings page's More settings (as auto
+ * remediation rules they had a page of their own), with the switch that
+ * turns fixing on.
  */
 function getAiSettingsPage(signal: RemediationDecisionSignal): PageMap {
   return signal === "incident"

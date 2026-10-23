@@ -674,7 +674,7 @@ export interface AiLaneRulesCopy {
 export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
   [AiLane.Incident]: {
     aiRulesDescription: translationKey(
-      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.",
+      "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.",
     ),
     noAiRulesMessage: translationKey(
       "No rules. Every new incident is investigated, and fixed while fixing is on.",
@@ -682,7 +682,7 @@ export const AI_LANE_RULES_COPY: Record<AiLane, AiLaneRulesCopy> = {
   },
   [AiLane.Alert]: {
     aiRulesDescription: translationKey(
-      "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.",
+      "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.",
     ),
     noAiRulesMessage: translationKey(
       "No rules. Every new alert is investigated, and fixed while fixing is on.",

@@ -162,14 +162,14 @@ export default class InvestigationEligibility {
        */
       no_investigation_rule_matched: {
         title: recorded
-          ? `This ${kind} matched no AI rule that investigates ${atDecision}`
-          : `This ${kind} currently matches no AI rule that investigates`,
+          ? `This ${kind} was outside the AI rules that investigate ${atDecision}`
+          : `This ${kind} is currently outside the AI rules that investigate`,
         /*
          * After a wait the record matched a rule when it was created - the
          * rule that made it wait - so what changed is said instead.
          */
         description: isAfterWait
-          ? `An AI rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} AI ${details.rulesChecked === 1 ? "rule" : "rules"} that investigate` : "the AI rules that investigate"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
+          ? `An AI rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} AI ${details.rulesChecked === 1 ? "rule that investigates" : "rules that investigate"}` : "the AI rules that investigate"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
           : `${recorded ? `When this ${kind} was created, AI rules that investigate were set up for ${kind}s, and it` : `AI rules that investigate are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
         nextStep: recorded
           ? `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`

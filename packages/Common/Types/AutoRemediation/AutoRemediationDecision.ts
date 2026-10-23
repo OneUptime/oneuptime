@@ -6,10 +6,10 @@ import { JSONObject } from "../JSON";
  * Four things can fix a signal: the AI fix of a Kubernetes cluster it is
  * linked to (the cluster's AI page), the AI fix of an infrastructure
  * resource it is linked to (the resource's AI page), and the project's AI
- * rules (which were auto remediation rules). When none of them acted, the incident used to say
- * nothing at all - the remediation card hid itself - and people could not
- * tell "fixes are off on that cluster" from "this incident is not linked to
- * any cluster" from "no rule matched".
+ * rules (which were auto remediation rules). When none of them acted, the
+ * incident used to say nothing at all - the remediation card hid itself -
+ * and people could not tell "fixes are off on that cluster" from "this
+ * incident is not linked to any cluster" from "no rule matched".
  *
  * The rule engine now writes down, every time it evaluates a signal, one
  * entry per fix path: what it did, or why it did nothing. The dashboard

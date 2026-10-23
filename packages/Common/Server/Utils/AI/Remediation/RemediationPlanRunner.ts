@@ -539,8 +539,7 @@ export default class RemediationPlanRunner {
     runbook: Runbook;
     proposalNote?: string | null | undefined;
   }): string {
-    const ruleName: string =
-      data.suggestion.ruleNameSnapshot || "AI rule";
+    const ruleName: string = data.suggestion.ruleNameSnapshot || "AI rule";
     const runbookName: string = data.runbook.name || "Runbook";
 
     if (data.suggestion.autoRemediationRuleId) {
@@ -574,8 +573,7 @@ export default class RemediationPlanRunner {
       return mdText`⚡ **OneUptime AI evaluated the project's runbooks and none applies.** No remediation was proposed.`.toString();
     }
 
-    const ruleName: string =
-      suggestion.ruleNameSnapshot || "AI rule";
+    const ruleName: string = suggestion.ruleNameSnapshot || "AI rule";
 
     return mdText`⚡ **AI rule "${ruleName}": AI evaluated the candidate runbooks and none applies.** No remediation was proposed.`.toString();
   }
@@ -1241,7 +1239,7 @@ export default class RemediationPlanRunner {
    * How the sweeper's feed note names a stranded round. A resource round
    * (a Docker host's, a database server's, ...) names its resource —
    * 'AI remediation for Docker host "web-1"' — as the execution runner's
-   * notes do, never "Auto Remediation Rule ...": only a resource round
+   * notes do, never "AI rule ...": only a resource round
    * carries resourceType and resourceId (a rule round never sets them).
    * Every other round keeps its label unchanged.
    */

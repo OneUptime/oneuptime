@@ -8197,8 +8197,6 @@
   "Auto Import Rules": "自動インポートルール",
   "Auto Recharge Amount": "自動チャージ額",
   "Auto Recharge when current balance falls to": "現在の残高がこの額まで下がったら自動チャージ",
-  "Auto Remediation Rule": "自動修復ルール",
-  "Auto Remediation Rule ID": "自動修復ルール ID",
   "Auto Remediation Suggestion": "自動修復の提案",
   "Auto Remediation Suggestion ID": "自動修復の提案 ID",
   "Auto Remediation Suggestions": "自動修復の提案",
@@ -33455,6 +33453,7 @@
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key.": "これらの API キーには、このロールの {{count}} 個の権限のうち {{applied}} 個が適用されます。スコープが「{{scope}}」の権限はキーには適用されません。",
   "These API keys get {{applied}} of this role's {{count}} permissions: those scoped to “{{scope}}” don't apply to a key._one": "これらの API キーには、このロールの {{count}} 個の権限のうち {{applied}} 個が適用されます。スコープが「{{scope}}」の権限はキーには適用されません。",
   "This project has no API key yet": "このプロジェクトにはまだ API キーがありません",
+  "This project has no API key yet. Create one on the API Keys page.": "このプロジェクトにはまだ API キーがありません。「API キー」ページで作成してください。",
   "A rule that doesn't investigate must fix. Turn investigating on in the Investigate step first.": "調査しないルールは修正する必要があります。先に「調査」ステップで調査をオンにしてください。",
   "AI Rule": "AI ルール",
   "AI Rules": "AI ルール",
@@ -33492,8 +33491,9 @@
   "This rule only fixes: it was an auto remediation rule, and does not decide which alerts are investigated.": "このルールは修正だけを行います。以前は自動修復ルールで、どのアラートを調査するかは決めません。",
   "This rule only fixes: it was an auto remediation rule, and does not decide which incidents are investigated.": "このルールは修正だけを行います。以前は自動修復ルールで、どのインシデントを調査するかは決めません。",
   "Which new incidents or alerts OneUptime AI investigates and fixes, and how. A rule investigates what it matches (right away, or only if still open after a wait), and fixes it or not, asking first or not. A fix may run the project's runbooks (only the rule's, when it names some), Bash commands on a Runner the rule picks, the tools of the project's external MCP servers (only the rule's, when it names some), and open fix and telemetry pull requests in the project's code repositories (only the rule's, when it names some). With no rule, OneUptime AI investigates every one, and fixes every one while automatic fixing is on. These were auto remediation rules, and investigation rules are AI rules now too.": "OneUptime AI がどの新しいインシデントやアラートを調査・修正するか、またその方法を指定します。ルールは一致したものを調査し（すぐに、または待機後もまだ未解決の場合のみ）、修正するかどうかと、事前に確認するかどうかを決めます。修正では、プロジェクトの Runbook（ルールが指定している場合はそのルールの Runbook のみ）、ルールが選んだ Runner での Bash コマンド、プロジェクトの外部 MCP サーバーのツール（ルールが指定している場合はそのルールのサーバーのみ）を使え、プロジェクトのコードリポジトリ（ルールが指定している場合はそのルールのリポジトリのみ）に修正とテレメトリのプルリクエストを作成できます。ルールがない場合、OneUptime AI はすべてを調査し、自動修正がオンの間はすべてを修正します。これらは自動修復ルールでしたが、調査ルールも AI ルールになりました。",
-  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "ルールがない場合、OneUptime AI は新しいアラートをすべてすぐに調査し、自動修正がオンの間は修正します。ルールを追加すると、一致するアラートだけを扱ったり、待機したり、それぞれの修正方法を選んだりできます。",
-  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "ルールがない場合、OneUptime AI は新しいインシデントをすべてすぐに調査し、自動修正がオンの間は修正します。ルールを追加すると、一致するインシデントだけを扱ったり、待機したり、それぞれの修正方法を選んだりできます。",
+  "With no rule, OneUptime AI investigates every new alert right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the alerts that match one, to wait, or to choose how each is fixed.": "ルールがない場合、OneUptime AI は新しいアラートをすべてすぐに調査し、自動修正がオンの間はプルリクエストも含めて修正します。ルールを追加すると、一致するアラートだけを扱ったり、待機したり、それぞれの修正方法を選んだりできます。",
+  "With no rule, OneUptime AI investigates every new incident right away, and fixes it while fixing is on, pull requests included. Add rules to work only on the incidents that match one, to wait, or to choose how each is fixed.": "ルールがない場合、OneUptime AI は新しいインシデントをすべてすぐに調査し、自動修正がオンの間はプルリクエストも含めて修正します。ルールを追加すると、一致するインシデントだけを扱ったり、待機したり、それぞれの修正方法を選んだりできます。",
   "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed.": "{{count}} 件の AI ルールがこの{{signal}}に一致しましたが、どれも調査だけを行うため、修正されませんでした。",
-  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI ルール「{{ruleName}}」がこの{{signal}}に一致しましたが、調査だけを行うため、修正されませんでした。"
+  "{{count}} AI rules matched this {{signal}}, and they only investigate, so it was not fixed._one": "AI ルール「{{ruleName}}」がこの{{signal}}に一致しましたが、調査だけを行うため、修正されませんでした。",
+  "AI Rule ID": "AI ルール ID"
 }
