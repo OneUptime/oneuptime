@@ -1,19 +1,25 @@
-import BillingService, {
+import StripeBillingProvider, {
   METERED_BILLING_START_METADATA_KEY,
-} from "../../../Server/Services/BillingService";
-import PayAsYouGoBillingService from "../../../Server/Services/PayAsYouGoBillingService";
-import MonitorService from "../../../Server/Services/MonitorService";
-import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
-import ProjectService from "../../../Server/Services/ProjectService";
-import TelemetryUsageBillingService from "../../../Server/Services/TelemetryUsageBillingService";
-import LogService from "../../../Server/Services/LogService";
-import MetricService from "../../../Server/Services/MetricService";
-import SpanService from "../../../Server/Services/SpanService";
-import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
-import ProfileService from "../../../Server/Services/ProfileService";
-import ProfileSampleService from "../../../Server/Services/ProfileSampleService";
-import RumSessionService from "../../../Server/Services/RumSessionService";
-import SecurityEventService from "../../../Server/Services/SecurityEventService";
+} from "../../../Server/Billing/StripeBillingProvider";
+import BillingService from "Common/Server/Services/BillingService";
+import type BillingProvider from "Common/Server/Types/Billing/BillingProvider";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import PayAsYouGoBillingService from "Common/Server/Services/PayAsYouGoBillingService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
+import ProjectService from "Common/Server/Services/ProjectService";
+import TelemetryUsageBillingService from "Common/Server/Services/TelemetryUsageBillingService";
+import LogService from "Common/Server/Services/LogService";
+import MetricService from "Common/Server/Services/MetricService";
+import SpanService from "Common/Server/Services/SpanService";
+import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
+import ProfileService from "Common/Server/Services/ProfileService";
+import ProfileSampleService from "Common/Server/Services/ProfileSampleService";
+import RumSessionService from "Common/Server/Services/RumSessionService";
+import SecurityEventService from "Common/Server/Services/SecurityEventService";
 import AllMeteredPlans, {
   ActiveMonitoringMeteredPlan,
   LogDataIngestMeteredPlan,
@@ -22,32 +28,32 @@ import AllMeteredPlans, {
   SecurityEventsDataIngestMeteredPlan,
   SessionReplayDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
-} from "../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
-import ServerMeteredPlan from "../../../Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
-import CreateBy from "../../../Server/Types/Database/CreateBy";
-import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
-import ActiveMonitorLimit from "../../../Server/Utils/Billing/ActiveMonitorLimit";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
-import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
-import Project from "../../../Models/DatabaseModels/Project";
-import TelemetryUsageBilling from "../../../Models/DatabaseModels/TelemetryUsageBilling";
+} from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import ServerMeteredPlan from "Common/Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
+import CreateBy from "Common/Server/Types/Database/CreateBy";
+import MonitorStepsProjectValidator from "Common/Server/Utils/Monitor/MonitorStepsProjectValidator";
+import ActiveMonitorLimit from "Common/Server/Utils/Billing/ActiveMonitorLimit";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import Project from "Common/Models/DatabaseModels/Project";
+import TelemetryUsageBilling from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import SubscriptionPlan, {
   PlanType,
-} from "../../../Types/Billing/SubscriptionPlan";
-import Decimal from "../../../Types/Decimal";
-import ProductType from "../../../Types/MeteredPlan/ProductType";
-import MonitorType from "../../../Types/Monitor/MonitorType";
-import ObjectID from "../../../Types/ObjectID";
-import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
-import { getJestSpyOn } from "../../Spy";
+} from "Common/Types/Billing/SubscriptionPlan";
+import Decimal from "Common/Types/Decimal";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import ObjectID from "Common/Types/ObjectID";
+import * as EnvironmentConfig from "Common/Server/EnvironmentConfig";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Stripe from "stripe";
 
-jest.mock("../../../Server/EnvironmentConfig", () => {
+jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
     __esModule: true,
     ...(jest.requireActual(
-      "../../../Server/EnvironmentConfig",
+      "Common/Server/EnvironmentConfig",
     ) as typeof EnvironmentConfig),
     IsBillingEnabled: true,
   };
@@ -92,10 +98,13 @@ interface RecordingStripe {
 }
 
 /*
- * Installed on the BillingService singleton the billing services share, so
- * every Stripe request any of them makes is recorded here in order.
+ * Installed on the Stripe billing provider core's BillingService hands every
+ * call to (the enterprise module's, as on OneUptime Cloud), so every Stripe
+ * request any billing service makes is recorded here in order.
  */
-function installRecordingStripe(): RecordingStripe {
+function installRecordingStripe(
+  provider: StripeBillingProvider,
+): RecordingStripe {
   const calls: Array<string> = [];
 
   const recorded: (
@@ -144,7 +153,7 @@ function installRecordingStripe(): RecordingStripe {
     },
   );
 
-  (BillingService as unknown as { stripe: unknown }).stripe = {
+  (provider as unknown as { stripe: unknown }).stripe = {
     paymentMethods: {
       list: recorded(
         "paymentMethods.list",
@@ -203,7 +212,6 @@ function callsTo(stripe: RecordingStripe, name: string): number {
 describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
   let projectId: ObjectID;
   let stripe: RecordingStripe;
-  let originalStripe: unknown;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -242,12 +250,15 @@ describe("Stripe rate-limit budget for pay-as-you-go billing", () => {
      */
     getJestSpyOn(ActiveMonitorLimit, "refreshCount").mockResolvedValue(1);
 
-    originalStripe = (BillingService as unknown as { stripe: unknown }).stripe;
-    stripe = installRecordingStripe();
+    const provider: StripeBillingProvider = new StripeBillingProvider();
+    installFakeEnterpriseModule({
+      billingProvider: provider as BillingProvider,
+    });
+    stripe = installRecordingStripe(provider);
   });
 
   afterEach(() => {
-    (BillingService as unknown as { stripe: unknown }).stripe = originalStripe;
+    uninstallEnterpriseModule();
     jest.restoreAllMocks();
   });
 

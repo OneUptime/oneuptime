@@ -1,30 +1,29 @@
-import {
-  BillingService,
+import StripeBillingProvider, {
   METERED_BILLING_START_METADATA_KEY,
-} from "../../../Server/Services/BillingService";
+} from "../../../Server/Billing/StripeBillingProvider";
 import PayAsYouGoBillingService, {
   LiveUsageAuthorization,
-} from "../../../Server/Services/PayAsYouGoBillingService";
-import ServerMeteredPlan from "../../../Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
-import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
-import OneUptimeDate from "../../../Types/Date";
-import ObjectID from "../../../Types/ObjectID";
-import { getJestSpyOn } from "../../Spy";
+} from "Common/Server/Services/PayAsYouGoBillingService";
+import ServerMeteredPlan from "Common/Server/Types/Billing/MeteredPlan/ServerMeteredPlan";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
-jest.mock("../../../Server/Services/ProjectService", () => {
+jest.mock("Common/Server/Services/ProjectService", () => {
   return {
     __esModule: true,
     default: {},
   };
 });
-jest.mock("../../../Server/Services/MailService", () => {
+jest.mock("Common/Server/Services/MailService", () => {
   return {
     __esModule: true,
     default: {},
   };
 });
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   return {
     __esModule: true,
     default: { requireMeteredSubscriptionPayment: jest.fn() },
@@ -32,8 +31,8 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
 });
 const ActiveMonitoringMeteredPlan: ServerMeteredPlan = new ServerMeteredPlan();
 
-describe("BillingService metered payment authorization", () => {
-  let service: BillingService;
+describe("StripeBillingProvider metered payment authorization", () => {
+  let service: StripeBillingProvider;
   let retrieveCustomer: jest.Mock;
   let updateCustomer: jest.Mock;
   let createItem: jest.Mock;
@@ -43,7 +42,7 @@ describe("BillingService metered payment authorization", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new BillingService();
+    service = new StripeBillingProvider();
     retrieveCustomer = jest.fn().mockResolvedValue({ metadata: {} });
     updateCustomer = jest.fn().mockResolvedValue({});
     createItem = jest.fn().mockResolvedValue({ id: "item_new" });

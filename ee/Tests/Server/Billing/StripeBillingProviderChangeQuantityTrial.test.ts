@@ -1,11 +1,11 @@
-import getJestMockFunction from "../../MockType";
-import { BillingService } from "../../../Server/Services/BillingService";
-import Errors from "../../../Server/Utils/Errors";
+import getJestMockFunction from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import Errors from "Common/Server/Utils/Errors";
 import {
   getStripeSubscription,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/BillingServiceHelper";
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+} from "./Helpers/StripeBillingProviderHelper";
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
 import {
   describe,
   expect,
@@ -14,7 +14,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import OneUptimeDate from "../../../Types/Date";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * Inviting or removing a team member changes the seats on the project's
@@ -37,8 +37,8 @@ import OneUptimeDate from "../../../Types/Date";
  * Everything below asserts on what is handed to Stripe, because that is
  * the only thing that decides whether an invoice is raised.
  */
-describe("BillingService.changeQuantity - seats during and after a trial", () => {
-  let billingService: BillingService;
+describe("StripeBillingProvider.changeQuantity - seats during and after a trial", () => {
+  let billingService: StripeBillingProvider;
 
   const SUBSCRIPTION_ID: string = "sub_seats_123";
   const ITEM_ID: string = "si_seats_123";

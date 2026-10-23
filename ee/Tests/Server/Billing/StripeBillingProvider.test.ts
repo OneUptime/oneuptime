@@ -1,17 +1,15 @@
-import getJestMockFunction from "../../MockType";
+import getJestMockFunction from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
 import {
-  BillingService,
   Invoice,
   PaymentMethod,
   SubscriptionItem,
-} from "../../../Server/Services/BillingService";
+} from "Common/Server/Types/Billing/BillingProvider";
 import {
   ActiveMonitoringMeteredPlan,
-  LogDataIngestMeteredPlan,
   SessionReplayDataIngestMeteredPlan,
-} from "../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
-import ProductType from "../../../Types/MeteredPlan/ProductType";
-import Errors from "../../../Server/Utils/Errors";
+} from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import Errors from "Common/Server/Utils/Errors";
 import {
   getChangePlanData,
   getCouponData,
@@ -23,7 +21,7 @@ import {
   getSubscriptionData,
   getSubscriptionPlanData,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/BillingServiceHelper";
+} from "./Helpers/StripeBillingProviderHelper";
 import {
   ChangePlan,
   CouponData,
@@ -31,15 +29,15 @@ import {
   MeteredSubscription,
   PaymentMethodsResponse,
   Subscription,
-} from "../TestingUtils/Services/Types";
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+} from "./Helpers/Types";
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
-import MeteredPlan from "../../../Types/Billing/MeteredPlan";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
-import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
-import OneUptimeDate from "../../../Types/Date";
+import MeteredPlan from "Common/Types/Billing/MeteredPlan";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import OneUptimeDate from "Common/Types/Date";
 
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   return {
     __esModule: true,
     default: {
@@ -50,8 +48,8 @@ jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
   };
 });
 
-describe("BillingService", () => {
-  let billingService: BillingService;
+describe("StripeBillingProvider", () => {
+  let billingService: StripeBillingProvider;
   const customer: CustomerData = getCustomerData();
   const mockCustomer: Stripe.Customer = getStripeCustomer(
     customer.id.toString(),
@@ -549,7 +547,7 @@ describe("BillingService", () => {
 
         /*
          * One update carries the new quantity and how it is invoiced - see
-         * BillingServiceChangeQuantityTrial.test.ts for the trial cases.
+         * StripeBillingProviderChangeQuantityTrial.test.ts for the trial cases.
          */
         expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
           mockSubscription.id,
@@ -763,32 +761,6 @@ describe("BillingService", () => {
       });
     });
 
-    describe("isSubscriptionActive", () => {
-      it("should return true for an active subscription status", () => {
-        const activeStatuses: Array<SubscriptionStatus> = [
-          SubscriptionStatus.Active,
-          SubscriptionStatus.Trialing,
-        ];
-
-        activeStatuses.forEach((status: SubscriptionStatus) => {
-          expect(billingService.isSubscriptionActive(status)).toBeTruthy();
-        });
-      });
-
-      it("should return false for an inactive subscription status", () => {
-        const inactiveStatuses: Array<SubscriptionStatus> = [
-          SubscriptionStatus.Incomplete,
-          SubscriptionStatus.IncompleteExpired,
-          SubscriptionStatus.Canceled,
-          SubscriptionStatus.Unpaid,
-        ];
-
-        inactiveStatuses.forEach((status: SubscriptionStatus) => {
-          expect(billingService.isSubscriptionActive(status)).toBeFalsy();
-        });
-      });
-    });
-
     describe("addOrUpdateMeteredPricingOnSubscription", () => {
       const quantity: number = 10;
 
@@ -905,66 +877,6 @@ describe("BillingService", () => {
         } finally {
           jest.restoreAllMocks();
         }
-      });
-    });
-
-    describe("hasMeteredPlanPriceId", () => {
-      /*
-       * Use a top-level BillingService instance (the same one the helpers use
-       * for getMeteredPlanPriceId) rather than the module-reset instance from
-       * mockIsBillingEnabled, whose fresh EnvironmentConfig has no billing key.
-       */
-      const service: BillingService = new BillingService();
-
-      it("should return true for product types with a Stripe price", () => {
-        expect(
-          service.hasMeteredPlanPriceId(ProductType.ActiveMonitoring),
-        ).toBe(true);
-        expect(service.hasMeteredPlanPriceId(ProductType.Logs)).toBe(true);
-        expect(service.hasMeteredPlanPriceId(ProductType.Metrics)).toBe(true);
-        expect(service.hasMeteredPlanPriceId(ProductType.Traces)).toBe(true);
-        expect(service.hasMeteredPlanPriceId(ProductType.Profiles)).toBe(true);
-        expect(service.hasMeteredPlanPriceId(ProductType.SessionReplay)).toBe(
-          true,
-        );
-        expect(service.hasMeteredPlanPriceId(ProductType.SecurityEvents)).toBe(
-          true,
-        );
-      });
-
-      it("should return false for a product type with no Stripe price", () => {
-        /*
-         * Every ProductType is priced today, so the false branch is only
-         * reachable through a type that getMeteredPlanPriceId does not know.
-         * It still has to answer false rather than propagate the throw - that
-         * is the whole reason callers can use it as a guard.
-         */
-        expect(
-          service.hasMeteredPlanPriceId("Unpriced Product" as ProductType),
-        ).toBe(false);
-      });
-
-      it("should mirror getPriceId for the metered plan instances", () => {
-        expect(ActiveMonitoringMeteredPlan.hasPriceId()).toBe(true);
-        expect(LogDataIngestMeteredPlan.hasPriceId()).toBe(true);
-        expect(SessionReplayDataIngestMeteredPlan.hasPriceId()).toBe(true);
-      });
-
-      /*
-       * Security Events shipped its ingest, metering and staging without a
-       * Stripe price, so usage accrued in TelemetryUsageBilling and was never
-       * invoiced - silently, because the callers treat a missing price as
-       * "skip this plan". Enumerate the enum rather than listing types by
-       * hand so the next pillar added cannot repeat that.
-       */
-      it("should have a Stripe price for every ProductType", () => {
-        const unpriced: Array<ProductType> = Object.values(ProductType).filter(
-          (productType: ProductType) => {
-            return !service.hasMeteredPlanPriceId(productType);
-          },
-        );
-
-        expect(unpriced).toEqual([]);
       });
     });
 

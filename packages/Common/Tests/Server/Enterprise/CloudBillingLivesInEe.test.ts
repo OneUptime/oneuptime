@@ -6,18 +6,22 @@ import ts from "typescript";
 /*
  * OneUptime Cloud's billing is the enterprise module's: selling OneUptime
  * Cloud on AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace
- * and Vercel Marketplace now lives in ee/Server/CloudMarketplace. The
- * Community image is built with ee/ removed and must not carry it, and core
- * must not serve its routes or run its jobs. So this suite pins:
+ * and Vercel Marketplace lives in ee/Server/CloudMarketplace, and the Stripe
+ * client in ee/Server/Billing. The Community image is built with ee/ removed
+ * and must not carry them, and core must not serve their routes, run their
+ * jobs or talk to Stripe. So this suite pins:
  *
  *   - the moved modules are gone from core, and no core file loads them;
  *   - no core router serves a marketplace route or sign-in from Vercel;
+ *   - no core server code loads the stripe package at run time or builds a
+ *     Stripe client: core names Stripe's types only;
  *   - core kept what every edition uses: the HTTP client and the JWT
  *     verifier Sign in with Microsoft is built on, and the signature check
  *     of the Vercel log drain.
  *
  * It runs in the Common test job, where ee/ is deleted, so it reads only
- * packages/. ee/Tests/Server/CloudMarketplace tests the moved code itself.
+ * packages/. ee/Tests/Server/CloudMarketplace and ee/Tests/Server/Billing
+ * test the moved code itself.
  */
 
 const COMMON_DIR: string = path.resolve(__dirname, "..", "..", "..");
@@ -368,6 +372,159 @@ describe("OneUptime Cloud's marketplace billing is not in core", () => {
     ]) {
       expect(loader).toContain(`"${jobName}",`);
     }
+  });
+});
+
+/*
+ * Every way a file loads the stripe package at run time: an import or export
+ * that is not type-only, import() and require(). `import type Stripe from
+ * "stripe"` (and `import { type X }`) is erased and loads nothing.
+ */
+const findRuntimeStripeLoads: (
+  fileName: string,
+  source: string,
+) => Array<string> = (fileName: string, source: string): Array<string> => {
+  const loads: Array<string> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isImportDeclaration(node) &&
+      ts.isStringLiteralLike(node.moduleSpecifier) &&
+      node.moduleSpecifier.text === "stripe"
+    ) {
+      const clause: ts.ImportClause | undefined = node.importClause;
+      const bindings: ts.NamedImportBindings | undefined =
+        clause?.namedBindings;
+      const isTypeOnly: boolean = Boolean(
+        clause &&
+          (clause.isTypeOnly ||
+            (!clause.name &&
+              bindings &&
+              ts.isNamedImports(bindings) &&
+              bindings.elements.every(
+                (element: ts.ImportSpecifier): boolean => {
+                  return element.isTypeOnly;
+                },
+              ))),
+      );
+
+      if (!isTypeOnly) {
+        loads.push(node.getText());
+      }
+    } else if (
+      ts.isExportDeclaration(node) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier) &&
+      node.moduleSpecifier.text === "stripe" &&
+      !node.isTypeOnly
+    ) {
+      loads.push(node.getText());
+    } else if (ts.isCallExpression(node)) {
+      const callee: ts.Expression = node.expression;
+      const firstArgument: ts.Expression | undefined = node.arguments[0];
+
+      if (
+        (callee.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(callee) && callee.text === "require")) &&
+        firstArgument &&
+        ts.isStringLiteralLike(firstArgument) &&
+        firstArgument.text === "stripe"
+      ) {
+        loads.push(node.getText());
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(
+    ts.createSourceFile(
+      fileName,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    ),
+  );
+
+  return loads;
+};
+
+// A Stripe client being built: `new Stripe(`.
+const BUILDS_STRIPE_CLIENT: RegExp = /\bnew\s+Stripe\s*\(/;
+
+/*
+ * Core's code: Common's server and every App feature set (the frontends load
+ * Stripe.js from @stripe/..., never the stripe package).
+ */
+const STRIPE_SCAN_DIRECTORIES: ReadonlyArray<string> = [
+  "packages/Common/Server",
+  "packages/App/FeatureSet",
+  "packages/App/Utils",
+];
+
+describe("OneUptime Cloud's Stripe client is not in core", () => {
+  test("the guard sees a run-time load of stripe, and lets a type-only one through", () => {
+    const source: string = [
+      'import Stripe from "stripe";',
+      'import { Stripe as Client } from "stripe";',
+      'export { default } from "stripe";',
+      'const lazy = import("stripe");',
+      'const required = require("stripe");',
+      // None of these loads it.
+      'import type Stripe from "stripe";',
+      'import type { Stripe as TypeOnly } from "stripe";',
+      'import { type Stripe as InlineTypeOnly } from "stripe";',
+      'export type { Stripe } from "stripe";',
+      'const text: string = "import Stripe from \\"stripe\\"";',
+    ].join("\n");
+
+    expect(findRuntimeStripeLoads("Example.ts", source)).toEqual([
+      'import Stripe from "stripe";',
+      'import { Stripe as Client } from "stripe";',
+      'export { default } from "stripe";',
+      'import("stripe")',
+      'require("stripe")',
+    ]);
+  });
+
+  test("no core server file loads the stripe package at run time or builds a Stripe client", () => {
+    const loads: Array<string> = [];
+    const builders: Array<string> = [];
+
+    for (const directory of STRIPE_SCAN_DIRECTORIES) {
+      for (const filePath of listSourceFiles(
+        path.join(REPOSITORY_ROOT, directory),
+      )) {
+        const source: string = fs.readFileSync(filePath, "utf8");
+
+        if (!source.includes("stripe") && !source.includes("Stripe")) {
+          continue;
+        }
+
+        for (const load of findRuntimeStripeLoads(filePath, source)) {
+          loads.push(`${toRepositoryPath(filePath)}: ${load}`);
+        }
+
+        if (BUILDS_STRIPE_CLIENT.test(source)) {
+          builders.push(toRepositoryPath(filePath));
+        }
+      }
+    }
+
+    expect(loads).toEqual([]);
+    expect(builders).toEqual([]);
+  });
+
+  test("BillingService hands its payment-provider calls to the enterprise module", () => {
+    const facade: string = fs.readFileSync(
+      path.join(COMMON_DIR, "Server", "Services", "BillingService.ts"),
+      "utf8",
+    );
+
+    expect(facade).toContain("EnterpriseEdition.getBillingProvider()");
+    expect(facade).toContain('import type Stripe from "stripe";');
+    expect(findRuntimeStripeLoads("BillingService.ts", facade)).toEqual([]);
   });
 });
 

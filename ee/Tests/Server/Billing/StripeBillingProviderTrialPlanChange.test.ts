@@ -1,18 +1,16 @@
-import getJestMockFunction from "../../MockType";
-import {
-  BillingService,
-  PaymentMethod,
-} from "../../../Server/Services/BillingService";
+import getJestMockFunction from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import { PaymentMethod } from "Common/Server/Types/Billing/BillingProvider";
 import {
   getStripeSubscription,
   getSubscriptionPlanWithTrialPeriod,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/BillingServiceHelper";
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+} from "./Helpers/StripeBillingProviderHelper";
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
 import { describe, expect, beforeAll, beforeEach, jest } from "@jest/globals";
-import OneUptimeDate from "../../../Types/Date";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
-import ObjectID from "../../../Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * Changing plan while a trial is still running must never charge the customer.
@@ -26,8 +24,8 @@ import ObjectID from "../../../Types/ObjectID";
  * Everything below asserts on what is handed to Stripe, because that is the
  * only thing that decides whether an invoice is raised.
  */
-describe("BillingService - plan changes during trial", () => {
-  let billingService: BillingService;
+describe("StripeBillingProvider - plan changes during trial", () => {
+  let billingService: StripeBillingProvider;
 
   const PROJECT_ID: ObjectID = new ObjectID(
     "11111111-1111-4111-8111-111111111111",

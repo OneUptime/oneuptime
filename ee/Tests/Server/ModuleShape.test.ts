@@ -201,7 +201,7 @@ describe("ee/Server/Index.ts default export", () => {
 });
 
 describe("ee/Server/Index.ts assembly", () => {
-  test("is assembled from the ten areas, license first", () => {
+  test("is assembled from the eleven areas, license first", () => {
     expect(
       ENTERPRISE_AREAS.map((area: EnterpriseArea) => {
         return area.name;
@@ -216,6 +216,7 @@ describe("ee/Server/Index.ts assembly", () => {
       "Workers",
       "WhiteLabel",
       "Marketplace",
+      "Billing",
       "CloudMarketplace",
     ]);
   });
@@ -225,6 +226,22 @@ describe("ee/Server/Index.ts assembly", () => {
     expect(() => {
       return EnterpriseModule.getProductBranding?.();
     }).not.toThrow();
+  });
+
+  test("hands core OneUptime Cloud's payment provider only with billing on, never throwing", () => {
+    expect(typeof EnterpriseModule.getBillingProvider).toBe("function");
+
+    setTestBillingEnabled(false);
+    expect(EnterpriseModule.getBillingProvider?.()).toBeNull();
+
+    setTestBillingEnabled(true);
+    const provider: ReturnType<
+      NonNullable<typeof EnterpriseModule.getBillingProvider>
+    > = EnterpriseModule.getBillingProvider?.() || null;
+
+    expect(provider).not.toBeNull();
+    expect(typeof provider?.createCustomer).toBe("function");
+    expect(EnterpriseModule.getBillingProvider?.()).toBe(provider);
   });
 
   test("hands core OneUptime Cloud's project billing hooks only with billing on, never throwing", () => {

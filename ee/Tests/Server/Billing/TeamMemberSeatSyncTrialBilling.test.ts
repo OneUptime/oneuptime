@@ -1,21 +1,31 @@
-// First, so the BillingService singleton is built on the mocked Stripe.
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
-import getJestMockFunction from "../../MockType";
-import Project from "../../../Models/DatabaseModels/Project";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+// First, so the Stripe client the enterprise module builds is the mocked one.
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
+import getJestMockFunction from "Common/Tests/MockType";
+import Project from "Common/Models/DatabaseModels/Project";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import Semaphore, {
   SemaphoreMutex,
-} from "../../../Server/Infrastructure/Semaphore";
-import ProjectService from "../../../Server/Services/ProjectService";
-import TeamMemberService from "../../../Server/Services/TeamMemberService";
-import { OnCreate } from "../../../Server/Types/Database/Hooks";
-import logger from "../../../Server/Utils/Logger";
-import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
-import OneUptimeDate from "../../../Types/Date";
-import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
+} from "Common/Server/Infrastructure/Semaphore";
+import ProjectService from "Common/Server/Services/ProjectService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import { OnCreate } from "Common/Server/Types/Database/Hooks";
+import logger from "Common/Server/Utils/Logger";
+import ProductAnalytics from "Common/Server/Utils/ProductAnalytics";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import OneUptimeDate from "Common/Types/Date";
+import ObjectID from "Common/Types/ObjectID";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
+import { stubProjectDirectory } from "Common/Tests/Server/TestingUtils/ProjectDirectory";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
+import EnterpriseModule from "../../../Server/Index";
 
 /*
  * "I started a trial but I was charged when I added users to the team."
@@ -28,9 +38,23 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
  * really sends - and that alone decides whether the customer is charged.
  */
 
-jest.mock("../../../Server/EnvironmentConfig", () => {
+/*
+ * OneUptime Cloud: the real enterprise module is registered, so core's
+ * BillingService hands changeQuantity to the module's StripeBillingProvider,
+ * as on oneuptime.com.
+ */
+beforeAll(() => {
+  EnterpriseEdition.resetForTests();
+  EnterpriseEdition.register(EnterpriseModule);
+});
+
+afterAll(() => {
+  EnterpriseEdition.resetForTests();
+});
+
+jest.mock("Common/Server/EnvironmentConfig", () => {
   const config: Record<string, unknown> = {
-    ...jest.requireActual("../../../Server/EnvironmentConfig"),
+    ...jest.requireActual("Common/Server/EnvironmentConfig"),
   };
 
   // Preserve the configurable getter when TypeScript imports this namespace.

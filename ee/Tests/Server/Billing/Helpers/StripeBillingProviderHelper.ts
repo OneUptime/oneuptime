@@ -1,4 +1,5 @@
-import { BillingService } from "../../../../Server/Services/BillingService";
+import StripeBillingProvider from "../../../../Server/Billing/StripeBillingProvider";
+import BillingService from "Common/Server/Services/BillingService";
 import {
   ChangePlan,
   CouponData,
@@ -6,30 +7,32 @@ import {
   MeteredSubscription,
   Subscription,
 } from "./Types";
-import Email from "../../../../Types/Email";
-import ProductType from "../../../../Types/MeteredPlan/ProductType";
-import ObjectID from "../../../../Types/ObjectID";
+import Email from "Common/Types/Email";
+import ProductType from "Common/Types/MeteredPlan/ProductType";
+import ObjectID from "Common/Types/ObjectID";
 import { Stripe } from "stripe";
-import { resetStripeMock } from "../__mocks__/Stripe.mock";
-import Faker from "../../../../Utils/Faker";
-import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
+import { resetStripeMock } from "./Stripe.mock";
+import Faker from "Common/Utils/Faker";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
 
 /// @dev consider modifyfing the EnvirontmentConfig to use functions instead of constants so that we can mock them
 
-type MockIsBillingEnabledFunction = (value: boolean) => Promise<BillingService>;
+type MockIsBillingEnabledFunction = (
+  value: boolean,
+) => Promise<StripeBillingProvider>;
 
-type BillingServiceConstructor = new () => BillingService;
+type StripeBillingProviderConstructor = new () => StripeBillingProvider;
 
 /*
  * One load of the module graph per IsBillingEnabled value, for the lifetime of
  * the test file.
  *
  * IsBillingEnabled is a const read at import time, so the only way to flip it
- * is to load BillingService against a mocked BillingConfig - but the reload
- * that gets us there drags in Project, ProjectService, MailService and the
- * model layer behind them, which is seconds of synchronous work each time.
- * BillingService.test.ts calls this in a beforeEach and again inside every
- * "billing is not enabled" test: ~120 reloads for 91 tests.
+ * is to load StripeBillingProvider against a mocked BillingConfig - but the
+ * reload that gets us there drags in Project, ProjectService, MailService and
+ * the model layer behind them, which is seconds of synchronous work each time.
+ * StripeBillingProvider.test.ts calls this in a beforeEach and again inside
+ * every "billing is not enabled" test: ~120 reloads for 91 tests.
  *
  * Those reloads also do not start from nothing. TypeORM keeps its metadata on
  * globalThis (typeorm/globals.js), where jest.resetModules cannot reach it, so
@@ -41,36 +44,36 @@ type BillingServiceConstructor = new () => BillingService;
  *
  * Caching the constructor keeps what the tests actually asked for, a service
  * built against a chosen IsBillingEnabled, and pays for the graph twice instead
- * of 120 times. Each call still returns a new BillingService, and still gets an
+ * of 120 times. Each call still returns a new provider, and still gets an
  * untouched Stripe - the reload used to supply that as a side effect, so it is
  * now asked for directly.
  */
-const billingServiceByEnabledFlag: Map<boolean, BillingServiceConstructor> =
+const providerByEnabledFlag: Map<boolean, StripeBillingProviderConstructor> =
   new Map();
 
 const mockIsBillingEnabled: MockIsBillingEnabledFunction = async (
   value: boolean,
-): Promise<BillingService> => {
-  let billingServiceConstructor: BillingServiceConstructor | undefined =
-    billingServiceByEnabledFlag.get(value);
+): Promise<StripeBillingProvider> => {
+  let providerConstructor: StripeBillingProviderConstructor | undefined =
+    providerByEnabledFlag.get(value);
 
-  if (!billingServiceConstructor) {
+  if (!providerConstructor) {
     jest.resetModules();
-    jest.doMock("../../../../Server/BillingConfig", () => {
+    jest.doMock("Common/Server/BillingConfig", () => {
       return {
         IsBillingEnabled: value,
       };
     });
-    const { BillingService: LoadedBillingService } = await import(
-      "../../../../Server/Services/BillingService"
+    const { StripeBillingProvider: LoadedProvider } = await import(
+      "../../../../Server/Billing/StripeBillingProvider"
     );
-    billingServiceConstructor = LoadedBillingService;
-    billingServiceByEnabledFlag.set(value, billingServiceConstructor);
+    providerConstructor = LoadedProvider;
+    providerByEnabledFlag.set(value, providerConstructor);
   }
 
   resetStripeMock();
 
-  return new billingServiceConstructor();
+  return new providerConstructor();
 };
 
 type GetStripeCustomerFunction = (id?: string) => Stripe.Customer;
@@ -147,7 +150,7 @@ const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
         return {
           id: item.id,
           price: {
-            id: new BillingService().getMeteredPlanPriceId(
+            id: BillingService.getMeteredPlanPriceId(
               ProductType.ActiveMonitoring,
             ),
           },

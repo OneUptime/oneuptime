@@ -1,13 +1,13 @@
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
 import {
-  BillingService,
   Invoice,
   PaymentIntentState,
-} from "../../../Server/Services/BillingService";
-import Errors from "../../../Server/Utils/Errors";
-import logger from "../../../Server/Utils/Logger";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import Sleep from "../../../Types/Sleep";
-import { getJestSpyOn } from "../../Spy";
+} from "Common/Server/Types/Billing/BillingProvider";
+import Errors from "Common/Server/Utils/Errors";
+import logger from "Common/Server/Utils/Logger";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import Sleep from "Common/Types/Sleep";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Stripe from "stripe";
 
@@ -16,13 +16,13 @@ jest.mock("stripe", () => {
     return {};
   });
 });
-jest.mock("../../../Server/Services/ProjectService", () => {
+jest.mock("Common/Server/Services/ProjectService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/MailService", () => {
+jest.mock("Common/Server/Services/MailService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   return { __esModule: true, default: {} };
 });
 
@@ -96,8 +96,8 @@ const stripeInvoice: StripeInvoiceFunction = (
   } as unknown as Stripe.Invoice;
 };
 
-describe("BillingService PaymentIntent state and invoice payment failover", () => {
-  let service: BillingService;
+describe("StripeBillingProvider PaymentIntent state and invoice payment failover", () => {
+  let service: StripeBillingProvider;
   let retrievePaymentIntent: jest.Mock;
   let listPaymentMethods: jest.Mock;
   let retrieveCustomer: jest.Mock;
@@ -109,7 +109,7 @@ describe("BillingService PaymentIntent state and invoice payment failover", () =
   let sleep: jest.SpyInstance;
 
   beforeEach(() => {
-    service = new BillingService();
+    service = new StripeBillingProvider();
 
     retrievePaymentIntent = jest.fn();
     listPaymentMethods = jest

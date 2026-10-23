@@ -1,14 +1,12 @@
-import getJestMockFunction from "../../MockType";
-import {
-  BillingService,
-  PaymentMethod,
-} from "../../../Server/Services/BillingService";
+import getJestMockFunction from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import { PaymentMethod } from "Common/Server/Types/Billing/BillingProvider";
 import {
   getStripeSubscription,
   getSubscriptionPlanWithTrialPeriod,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/BillingServiceHelper";
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+} from "./Helpers/StripeBillingProviderHelper";
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
 import {
   describe,
   expect,
@@ -17,8 +15,8 @@ import {
   it,
   jest,
 } from "@jest/globals";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
-import ObjectID from "../../../Types/ObjectID";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * Changing plan must never leave the customer paying for a subscription that
@@ -44,8 +42,8 @@ import ObjectID from "../../../Types/ObjectID";
  * retried, and whatever is still there afterwards is reported to the caller so
  * it can be raised rather than logged and forgotten.
  */
-describe("BillingService.changePlan - replacing and cancelling subscriptions", () => {
-  let billingService: BillingService;
+describe("StripeBillingProvider.changePlan - replacing and cancelling subscriptions", () => {
+  let billingService: StripeBillingProvider;
 
   const PROJECT_ID: ObjectID = new ObjectID(
     "11111111-1111-4111-8111-111111111111",

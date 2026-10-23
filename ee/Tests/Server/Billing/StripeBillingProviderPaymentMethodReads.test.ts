@@ -1,8 +1,8 @@
-import { BillingService } from "../../../Server/Services/BillingService";
-import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
-import Errors from "../../../Server/Utils/Errors";
-import Sleep from "../../../Types/Sleep";
-import { getJestSpyOn } from "../../Spy";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
+import Errors from "Common/Server/Utils/Errors";
+import Sleep from "Common/Types/Sleep";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Stripe from "stripe";
 
@@ -11,13 +11,13 @@ jest.mock("stripe", () => {
     return {};
   });
 });
-jest.mock("../../../Server/Services/ProjectService", () => {
+jest.mock("Common/Server/Services/ProjectService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/MailService", () => {
+jest.mock("Common/Server/Services/MailService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   return { __esModule: true, default: {} };
 });
 
@@ -44,8 +44,8 @@ function providerError(statusCode: number): Error {
   return Object.assign(new Error(`Stripe HTTP ${statusCode}`), { statusCode });
 }
 
-describe("BillingService payment-method reads", () => {
-  let service: BillingService;
+describe("StripeBillingProvider payment-method reads", () => {
+  let service: StripeBillingProvider;
   let list: jest.Mock;
   let retrieveCustomer: jest.Mock;
   let retrieveSubscription: jest.Mock;
@@ -53,7 +53,7 @@ describe("BillingService payment-method reads", () => {
   let sleep: jest.SpyInstance;
 
   beforeEach(() => {
-    service = new BillingService();
+    service = new StripeBillingProvider();
     list = jest
       .fn()
       .mockImplementation((params: Stripe.PaymentMethodListParams) => {
@@ -358,8 +358,9 @@ describe("BillingService payment-method reads", () => {
       });
     });
 
-    const beforeConfirmation: ReturnType<BillingService["getPaymentMethods"]> =
-      service.getPaymentMethods(CUSTOMER_ID);
+    const beforeConfirmation: ReturnType<
+      StripeBillingProvider["getPaymentMethods"]
+    > = service.getPaymentMethods(CUSTOMER_ID);
     await sepaStarted;
     cardAttached = true;
     await expect(service.getPaymentMethods(CUSTOMER_ID)).resolves.toHaveLength(

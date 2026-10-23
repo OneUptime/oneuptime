@@ -1,16 +1,14 @@
-import getJestMockFunction, { MockFunction } from "../../MockType";
-import {
-  BillingService,
-  PaymentMethod,
-} from "../../../Server/Services/BillingService";
-import Errors from "../../../Server/Utils/Errors";
-import logger from "../../../Server/Utils/Logger";
-import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
-import BadDataException from "../../../Types/Exception/BadDataException";
-import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
-import ObjectID from "../../../Types/ObjectID";
-import Sleep from "../../../Types/Sleep";
-import { getJestSpyOn } from "../../Spy";
+import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import { PaymentMethod } from "Common/Server/Types/Billing/BillingProvider";
+import Errors from "Common/Server/Utils/Errors";
+import logger from "Common/Server/Utils/Logger";
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import ServiceUnavailableException from "Common/Types/Exception/ServiceUnavailableException";
+import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
+import { getJestSpyOn } from "Common/Tests/Spy";
 import {
   afterEach,
   beforeEach,
@@ -26,13 +24,13 @@ jest.mock("stripe", () => {
     return {};
   });
 });
-jest.mock("../../../Server/Services/ProjectService", () => {
+jest.mock("Common/Server/Services/ProjectService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/MailService", () => {
+jest.mock("Common/Server/Services/MailService", () => {
   return { __esModule: true, default: {} };
 });
-jest.mock("../../../Server/Services/PayAsYouGoBillingService", () => {
+jest.mock("Common/Server/Services/PayAsYouGoBillingService", () => {
   return { __esModule: true, default: {} };
 });
 
@@ -182,13 +180,13 @@ const resourceMissing: () => Error = (): Error => {
 
 type UpdateCall = [string, Stripe.SubscriptionUpdateParams];
 
-describe("BillingService - autopay follows the customer's default payment method", () => {
-  let service: BillingService;
+describe("StripeBillingProvider - autopay follows the customer's default payment method", () => {
+  let service: StripeBillingProvider;
   let stripe: FakeStripe;
   let loggerError: jest.SpyInstance;
 
   beforeEach(() => {
-    service = new BillingService();
+    service = new StripeBillingProvider();
 
     stripe = {
       customers: {
@@ -1103,10 +1101,12 @@ describe("BillingService - autopay follows the customer's default payment method
       0,
     );
 
-    type ChangePlanFunction = () => ReturnType<BillingService["changePlan"]>;
+    type ChangePlanFunction = () => ReturnType<
+      StripeBillingProvider["changePlan"]
+    >;
 
     const changePlan: ChangePlanFunction = (): ReturnType<
-      BillingService["changePlan"]
+      StripeBillingProvider["changePlan"]
     > => {
       return service.changePlan({
         projectId: PROJECT_ID,
@@ -1184,7 +1184,7 @@ describe("BillingService - autopay follows the customer's default payment method
     it("recreates both halves of a reactivated project without default_payment_method", async () => {
       givenSubscriptions({ flatFee: "canceled", metered: "canceled" });
 
-      const result: Awaited<ReturnType<BillingService["changePlan"]>> =
+      const result: Awaited<ReturnType<StripeBillingProvider["changePlan"]>> =
         await changePlan();
 
       expect(result.subscriptionId).toBe("sub_replacement_1");

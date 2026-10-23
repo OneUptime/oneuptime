@@ -23,12 +23,6 @@ const reactiveSubscriptionMock: jest.Mock = jest.fn();
 const getSubscriptionStatusMock: jest.Mock = jest.fn();
 const getInvoicesMock: jest.Mock = jest.fn();
 
-jest.mock("stripe", () => {
-  return jest.fn(() => {
-    return {};
-  });
-});
-
 jest.mock("../../../Server/Infrastructure/Semaphore", () => {
   return {
     __esModule: true,

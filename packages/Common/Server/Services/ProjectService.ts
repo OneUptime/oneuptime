@@ -4361,11 +4361,15 @@ export class ProjectService extends ProjectReferencesService<Model> {
 
     const result: CurrentPlan = {
       plan: plan,
+      /*
+       * Read from the stored statuses alone (SubscriptionStatusUtil), so plan
+       * gating never needs the payment provider - or the enterprise module.
+       */
       isSubscriptionUnpaid:
-        !BillingService.isSubscriptionActive(
+        !SubscriptionStatusUtil.isSubscriptionActive(
           project.paymentProviderSubscriptionStatus!,
         ) ||
-        !BillingService.isSubscriptionActive(
+        !SubscriptionStatusUtil.isSubscriptionActive(
           project.paymentProviderMeteredSubscriptionStatus!,
         ),
     };

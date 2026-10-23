@@ -1,13 +1,13 @@
-import getJestMockFunction from "../../MockType";
-import { BillingService } from "../../../Server/Services/BillingService";
-import Errors from "../../../Server/Utils/Errors";
+import getJestMockFunction from "Common/Tests/MockType";
+import StripeBillingProvider from "../../../Server/Billing/StripeBillingProvider";
+import Errors from "Common/Server/Utils/Errors";
 import {
   getStripeSubscription,
   mockIsBillingEnabled,
-} from "../TestingUtils/Services/BillingServiceHelper";
-import { Stripe, mockStripe } from "../TestingUtils/__mocks__/Stripe.mock";
+} from "./Helpers/StripeBillingProviderHelper";
+import { Stripe, mockStripe } from "./Helpers/Stripe.mock";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
-import OneUptimeDate from "../../../Types/Date";
+import OneUptimeDate from "Common/Types/Date";
 
 /*
  * Extending a trial is the one operation that hands out free service and moves
@@ -15,8 +15,8 @@ import OneUptimeDate from "../../../Types/Date";
  * happen: no proration, no partial application across the two subscriptions,
  * and no write at all when the input or the subscription state is wrong.
  */
-describe("BillingService.extendTrial", () => {
-  let billingService: BillingService;
+describe("StripeBillingProvider.extendTrial", () => {
+  let billingService: StripeBillingProvider;
 
   const SUBSCRIPTION_ID: string = "sub_main_123";
   const METERED_SUBSCRIPTION_ID: string = "sub_metered_456";

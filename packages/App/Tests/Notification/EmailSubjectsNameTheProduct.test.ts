@@ -33,9 +33,12 @@ const SKIPPED_DIRECTORIES: ReadonlySet<string> = new Set<string>([
   "Home",
 ]);
 
-// About a OneUptime subscription: from OneUptime, whatever the installation is called.
+/*
+ * About a OneUptime subscription: from OneUptime, whatever the installation is
+ * called. (The invoice email is sent by OneUptime Cloud's Stripe billing,
+ * which lives in the enterprise module, ee/Server/Billing.)
+ */
 const BILLING_SUBJECTS: ReadonlyArray<string> = [
-  "Common/Server/Services/BillingService.ts",
   "App/FeatureSet/Workers/Jobs/PaymentProvider/SendDailyEmailsToOwnersIfSubscriptionIsOverdue.ts",
 ];
 
