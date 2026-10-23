@@ -74,6 +74,10 @@ Se il tuo team lavora già in un SIEM, OneUptime invia lì anche ciò che trova.
 Il tuo ruolo non può aggiungere regole di rilevamento, playbook o l'origine dei log. Chiedi a un Project Owner, a un Project Admin o a un Security Admin, oppure fatti assegnare da loro il ruolo Security Admin.
 :::
 
+:::details Turn on recommended non è riuscito ad attivare tutto
+La scheda indica ogni elemento che non è riuscita ad attivare, e il motivo: il tuo ruolo, il tuo piano o un errore da parte di OneUptime. Tutto il resto è attivo. Correggi ciò che indica, poi fai clic su **Riprova**: attiva solo ciò che manca ancora e non aggiunge nulla due volte.
+:::
+
 :::details L'attacco di prova non ha aperto alcun caso
 Di solito il caso si apre prima che il pulsante risponda; quando la regola è ancora in ritardo, lo dice e il caso si apre entro un minuto. Controlla di nuovo **Casi di sicurezza** e verifica in **Detections** che la regola di forza bruta sia attiva.
 :::

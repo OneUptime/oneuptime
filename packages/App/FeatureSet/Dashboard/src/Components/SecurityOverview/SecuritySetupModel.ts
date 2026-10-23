@@ -1,6 +1,17 @@
 import PageMap from "../../Utils/PageMap";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import {
+  TURN_ON_RECOMMENDED_ACTIONS,
+  TURN_ON_RECOMMENDED_PARTS,
+  TURN_ON_RECOMMENDED_REASONS,
+  TurnOnRecommendedAction,
+  TurnOnRecommendedPart,
+  TurnOnRecommendedProblem,
+  TurnOnRecommendedReason,
+  TurnOnRecommendedResult,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -27,13 +38,7 @@ export interface SecuritySetupStatus {
   destinations: number;
 }
 
-export interface TurnOnRecommendedResult {
-  rulesAdded: number;
-  rulesTurnedOn: number;
-  logsTurnedOn: boolean;
-  playbookAdded: boolean;
-  playbookTurnedOn: boolean;
-}
+export type { TurnOnRecommendedProblem, TurnOnRecommendedResult };
 
 export interface SecuritySetupTestResult {
   eventsSent: number;
@@ -80,16 +85,301 @@ export function parseSecuritySetupStatus(
   };
 }
 
+function readEnum<T extends string>(
+  value: JSONValue | undefined,
+  values: ReadonlyArray<T>,
+): T | null {
+  return typeof value === "string" && values.includes(value as T)
+    ? (value as T)
+    : null;
+}
+
+/*
+ * One thing Turn on recommended could not do, read defensively: a reason
+ * the Dashboard does not know reads as a failure on OneUptime's side, an
+ * action it does not know as adding, and an entry with no part it knows is
+ * left out.
+ */
+function readProblem(value: JSONValue): TurnOnRecommendedProblem | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const body: JSONObject = value as JSONObject;
+  const part: TurnOnRecommendedPart | null = readEnum(
+    body["part"],
+    TURN_ON_RECOMMENDED_PARTS,
+  );
+
+  if (!part) {
+    return null;
+  }
+
+  return {
+    part,
+    action:
+      readEnum(body["action"], TURN_ON_RECOMMENDED_ACTIONS) ||
+      TurnOnRecommendedAction.Add,
+    name: readText(body["name"]) || "",
+    reason:
+      readEnum(body["reason"], TURN_ON_RECOMMENDED_REASONS) ||
+      TurnOnRecommendedReason.Failed,
+    detail: readText(body["detail"]) || "",
+  };
+}
+
 export function parseTurnOnRecommendedResult(
   body: JSONObject,
 ): TurnOnRecommendedResult {
+  const problems: JSONValue | undefined = body["problems"];
+
   return {
     rulesAdded: readNumber(body["rulesAdded"]),
     rulesTurnedOn: readNumber(body["rulesTurnedOn"]),
     logsTurnedOn: body["logsTurnedOn"] === true,
     playbookAdded: body["playbookAdded"] === true,
     playbookTurnedOn: body["playbookTurnedOn"] === true,
+    problems: Array.isArray(problems)
+      ? problems
+          .map((item: JSONValue): TurnOnRecommendedProblem | null => {
+            return readProblem(item);
+          })
+          .filter(
+            (
+              item: TurnOnRecommendedProblem | null,
+            ): item is TurnOnRecommendedProblem => {
+              return item !== null;
+            },
+          )
+      : [],
   };
+}
+
+// Whether the click turned on anything at all (beside what was already on).
+export function didTurnOnAnything(result: TurnOnRecommendedResult): boolean {
+  return (
+    result.rulesAdded + result.rulesTurnedOn > 0 ||
+    result.logsTurnedOn ||
+    result.playbookAdded ||
+    result.playbookTurnedOn
+  );
+}
+
+/*
+ * WHAT TURN ON RECOMMENDED COULD NOT DO, IN THE PRODUCT'S WORDS.
+ *
+ * Each problem reads as what it is about - the rule or playbook by the name
+ * lists show, or the switch by its name - and why, in a sentence about the
+ * role, the plan, the record OneUptime would not save, or a failure on its
+ * side. A plan's or a refused record's own sentence comes from the server.
+ * The words are translation keys; the card and the Rule Library translate
+ * them (SecurityTurnOnProblems).
+ */
+export const TURN_ON_RECOMMENDED_LOGS_SUBJECT: string = translationKey(
+  "Find security events in your logs",
+);
+
+export const TURN_ON_RECOMMENDED_RULES_SUBJECT: string = translationKey(
+  "The recommended detection rules",
+);
+
+export const TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT: string =
+  translationKey("Enrich New Cases");
+
+export interface TurnOnRecommendedProblemWords {
+  // What it is about: a name as written (data), or a translation key.
+  subject: string;
+  isSubjectTranslated: boolean;
+  // Why, as a translation template and its values.
+  reason: string;
+  values: { [key: string]: string };
+}
+
+const REASON_WORDS: Record<
+  TurnOnRecommendedReason,
+  Record<TurnOnRecommendedAction, string>
+> = {
+  [TurnOnRecommendedReason.NotAllowed]: {
+    [TurnOnRecommendedAction.Add]: translationKey("Your role cannot add it."),
+    [TurnOnRecommendedAction.TurnOn]: translationKey(
+      "It is turned off, and your role cannot turn it back on.",
+    ),
+    [TurnOnRecommendedAction.Check]: translationKey(
+      "Your role cannot read what the project already has, so nothing was added.",
+    ),
+  },
+  [TurnOnRecommendedReason.Plan]: {
+    [TurnOnRecommendedAction.Add]: translationKey(
+      "Your plan does not include it.",
+    ),
+    [TurnOnRecommendedAction.TurnOn]: translationKey(
+      "Your plan does not include it.",
+    ),
+    [TurnOnRecommendedAction.Check]: translationKey(
+      "Your plan does not include it.",
+    ),
+  },
+  [TurnOnRecommendedReason.Refused]: {
+    [TurnOnRecommendedAction.Add]: translationKey(
+      "OneUptime could not save it.",
+    ),
+    [TurnOnRecommendedAction.TurnOn]: translationKey(
+      "OneUptime could not save it.",
+    ),
+    [TurnOnRecommendedAction.Check]: translationKey(
+      "OneUptime could not save it.",
+    ),
+  },
+  [TurnOnRecommendedReason.Failed]: {
+    [TurnOnRecommendedAction.Add]: translationKey(
+      "Something went wrong while adding it.",
+    ),
+    [TurnOnRecommendedAction.TurnOn]: translationKey(
+      "Something went wrong while turning it back on.",
+    ),
+    [TurnOnRecommendedAction.Check]: translationKey(
+      "Something went wrong while reading what the project already has, so nothing was added.",
+    ),
+  },
+};
+
+const REFUSED_WITH_DETAIL: string = translationKey(
+  "OneUptime could not save it: {{detail}}",
+);
+
+function getProblemSubject(problem: TurnOnRecommendedProblem): {
+  subject: string;
+  isSubjectTranslated: boolean;
+} {
+  if (problem.part === TurnOnRecommendedPart.Logs) {
+    return {
+      subject: TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+      isSubjectTranslated: true,
+    };
+  }
+
+  if (problem.name) {
+    return { subject: problem.name, isSubjectTranslated: false };
+  }
+
+  return {
+    subject:
+      problem.part === TurnOnRecommendedPart.Playbook
+        ? TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT
+        : TURN_ON_RECOMMENDED_RULES_SUBJECT,
+    isSubjectTranslated: true,
+  };
+}
+
+export function getTurnOnRecommendedProblemWords(
+  problem: TurnOnRecommendedProblem,
+): TurnOnRecommendedProblemWords {
+  const subject: { subject: string; isSubjectTranslated: boolean } =
+    getProblemSubject(problem);
+
+  // A plan's own sentence says which plan, and how to get it.
+  if (problem.reason === TurnOnRecommendedReason.Plan && problem.detail) {
+    return { ...subject, reason: problem.detail, values: {} };
+  }
+
+  if (problem.reason === TurnOnRecommendedReason.Refused && problem.detail) {
+    return {
+      ...subject,
+      reason: REFUSED_WITH_DETAIL,
+      values: { detail: problem.detail },
+    };
+  }
+
+  return {
+    ...subject,
+    reason: REASON_WORDS[problem.reason][problem.action],
+    values: {},
+  };
+}
+
+/*
+ * Why the Dashboard could not add a rule itself (the Rule Library's Add
+ * buttons), read from the API's answer the way the server reads its own
+ * exceptions (SecuritySetup.describeTurnOnRecommendedFailure): the role
+ * (401, 403, or 422 - a permission refused), the plan (402), a record
+ * refused (400, with its sentence), or anything else - a server or network
+ * failure, whose message is not the reader's to read.
+ */
+export function describeAddFailure(error: unknown): {
+  reason: TurnOnRecommendedReason;
+  detail: string;
+} {
+  const status: number | null =
+    error instanceof HTTPErrorResponse ? error.statusCode : null;
+  const message: string =
+    error instanceof HTTPErrorResponse || error instanceof Error
+      ? error.message || ""
+      : "";
+
+  if (status === 401 || status === 403 || status === 422) {
+    return { reason: TurnOnRecommendedReason.NotAllowed, detail: "" };
+  }
+
+  if (status === 402) {
+    return { reason: TurnOnRecommendedReason.Plan, detail: message };
+  }
+
+  if (status === 400) {
+    return { reason: TurnOnRecommendedReason.Refused, detail: message };
+  }
+
+  return { reason: TurnOnRecommendedReason.Failed, detail: "" };
+}
+
+/*
+ * The product's own sentence for a call that failed on OneUptime's side, or
+ * never got an answer: the server's message there - a database's, a
+ * proxy's, a URL with "Network error" - is not the reader's to read, and is
+ * not in the reader's language either.
+ */
+export const SETUP_CALL_FAILED: string = translationKey(
+  "Something went wrong. Try again in a moment.",
+);
+
+// The answers whose sentence the server writes for people: the role, the plan, a request refused.
+const STATUSES_WORDED_FOR_PEOPLE: ReadonlyArray<number> = [
+  400, 401, 402, 403, 422,
+];
+
+function readStatusCode(error: unknown): number | null {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const statusCode: unknown = (error as { statusCode?: unknown }).statusCode;
+
+  return typeof statusCode === "number" ? statusCode : null;
+}
+
+/*
+ * Why a setup call failed as a whole - Turn on recommended, the test attack,
+ * the Rule Library's Add Recommended Rules - for the box that says so. A
+ * refusal the server words for people (the role, the plan, a request it
+ * would not take) is said as the server says it, as describeAddFailure
+ * reads a rule's. Anything else - a failure on OneUptime's side, a gateway,
+ * a request that never got an answer - is SETUP_CALL_FAILED.
+ */
+export function describeSetupCallFailure(error: unknown): string {
+  const status: number | null = readStatusCode(error);
+  const message: string =
+    error instanceof HTTPErrorResponse || error instanceof Error
+      ? error.message || ""
+      : "";
+
+  if (
+    status !== null &&
+    STATUSES_WORDED_FOR_PEOPLE.includes(status) &&
+    message.trim()
+  ) {
+    return message;
+  }
+
+  return SETUP_CALL_FAILED;
 }
 
 export function parseSetupTestResult(

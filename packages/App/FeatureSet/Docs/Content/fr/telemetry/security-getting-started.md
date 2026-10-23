@@ -74,6 +74,10 @@ Si votre équipe travaille déjà dans un SIEM, OneUptime y envoie aussi ce qu'i
 Votre rôle ne peut pas ajouter de règles de détection, de playbooks ni la source de journaux. Adressez-vous à un Project Owner, un Project Admin ou un Security Admin, ou demandez-lui de vous donner le rôle Security Admin.
 :::
 
+:::details Turn on recommended n'a pas pu tout activer
+La carte indique chaque élément qu'elle n'a pas pu activer, et pourquoi : votre rôle, votre forfait, ou une erreur du côté de OneUptime. Tout le reste est activé. Corrigez ce qu'elle indique, puis cliquez sur **Réessayer** : seul ce qui manque encore est activé, et rien n'est ajouté deux fois.
+:::
+
 :::details L'attaque de test n'a ouvert aucun dossier
 Le dossier s'ouvre en général avant que le bouton ne réponde ; quand la règle rattrape encore son retard, il le dit et le dossier s'ouvre dans la minute. Regardez de nouveau **Dossiers de sécurité**, et vérifiez sous **Détections** que la règle de force brute est active.
 :::

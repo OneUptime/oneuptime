@@ -175,7 +175,8 @@ import { AddRuleLlmProviderIndexesAndKeys1806040000000 } from "./1806040000000-A
 import { AddTwilioConfigUsedFor1806100000000 } from "./1806100000000-AddTwilioConfigUsedFor";
 import { AddLabelNameSortKey1806200000000 } from "./1806200000000-AddLabelNameSortKey";
 import { AddOwnerRuleCreatorTeams1806300000000 } from "./1806300000000-AddOwnerRuleCreatorTeams";
-import { AddNetworkDeviceDiagnosticSnmpWalk1806400000000 } from "./1806400000000-AddNetworkDeviceDiagnosticSnmpWalk";
+import { WidenDetectionRuleName1806400000000 } from "./1806400000000-WidenDetectionRuleName";
+import { AddNetworkDeviceDiagnosticSnmpWalk1806500000000 } from "./1806500000000-AddNetworkDeviceDiagnosticSnmpWalk";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1553,5 +1554,6 @@ export default [
   AddTwilioConfigUsedFor1806100000000,
   AddLabelNameSortKey1806200000000,
   AddOwnerRuleCreatorTeams1806300000000,
-  AddNetworkDeviceDiagnosticSnmpWalk1806400000000,
+  WidenDetectionRuleName1806400000000,
+  AddNetworkDeviceDiagnosticSnmpWalk1806500000000,
 ];
