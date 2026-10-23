@@ -463,7 +463,11 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
             required: false,
             stepId: "basic-info",
             hideColumnDescription: true,
-            placeholder: "Twilio account for SMS and calls",
+            /*
+             * An example that holds for every answer above it: "for SMS
+             * and calls" read as a contradiction under SMS only.
+             */
+            placeholder: "Twilio account for on-call alerts",
           },
           {
             field: {

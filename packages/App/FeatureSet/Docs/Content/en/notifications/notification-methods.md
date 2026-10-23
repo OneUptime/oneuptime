@@ -167,7 +167,7 @@ A webhook needs no verification, so adding one adds its rules at once. Private a
 
 ## Turn a channel on for your project
 
-**SMS**, **Phone Calls**, **WhatsApp** and **Telegram** start off in every new project, because each message costs money: on OneUptime Cloud it is paid from the project's balance, and SMS and calls go through the project's own Twilio account instead when it has a default one. Email, push, Slack, Microsoft Teams and webhooks are always on.
+**SMS**, **Phone Calls**, **WhatsApp** and **Telegram** start off in every new project, because each message costs money: on OneUptime Cloud it is paid from the project's balance, and SMS and calls go through the project's own Twilio account instead when its default Twilio config sends them. Email, push, Slack, Microsoft Teams and webhooks are always on.
 
 While a channel is off, nobody in the project can add a method on it: its card has no add button, and says who can turn it on. A project owner, a **Billing Admin** or someone with **Manage Billing** turns it on, in the **Notification Channels** card on **Project Settings → Notifications → Notification Settings**. A project admin cannot. On a self-hosted OneUptime, SMS and calls also need a Twilio account, and Telegram a bot the server's admin connects; see [Twilio Integration](/docs/self-hosted/twilio-integration).
 

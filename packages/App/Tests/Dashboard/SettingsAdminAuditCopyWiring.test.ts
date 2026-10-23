@@ -144,9 +144,15 @@ describe("Project Settings > Call and SMS", () => {
     expect(table).toContain('title: "Twilio Secondary Phone Numbers"');
   });
 
+  /*
+   * The description's example holds for every answer to Use This Account
+   * For: "Twilio account for SMS and calls" read as a contradiction under
+   * SMS only.
+   */
   test("its examples are a Twilio account, not a CallSMS server hosted on AWS", () => {
     expect(table).toContain('placeholder: "Company Twilio Account"');
-    expect(table).toContain('placeholder: "Twilio account for SMS and calls"');
+    expect(table).toContain('placeholder: "Twilio account for on-call alerts"');
+    expect(table).not.toContain("Twilio account for SMS and calls");
     expect(table).not.toContain("CallSMS Server");
     expect(table).not.toContain("hosted on AWS");
   });

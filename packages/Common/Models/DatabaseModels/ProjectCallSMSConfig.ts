@@ -403,6 +403,10 @@ export default class ProjectCallSMSConfig extends BaseModel {
    *
    * ProjectCallSMSConfigService refuses a value that is not a use, and a
    * config that would not have the numbers its use needs.
+   *
+   * Read on a relation too: a status page that names a config used for
+   * calls only says so on its Twilio Config card - its subscribers' SMS go
+   * through OneUptime's own account instead. The use is a label, no secret.
    */
   @ColumnAccessControl({
     create: [
@@ -430,6 +434,7 @@ export default class ProjectCallSMSConfig extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
     title: USED_FOR_TITLE,
     description:
       'What this Twilio config is used for: "Calls and SMS" (the default), "SMS only" or "Calls only". Calls and SMS and Calls only need a Twilio Primary Phone Number; SMS only needs Twilio SMS Phone Numbers. A config used for SMS only makes no calls, and one used for calls only sends no SMS: those go through OneUptime\'s own Twilio account, as for a project without a config.',

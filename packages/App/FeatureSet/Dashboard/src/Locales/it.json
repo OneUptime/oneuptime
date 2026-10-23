@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "Account Twilio aziendale",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sicurezza: i client possono eseguire gli strumenti di sola lettura senza chiedere, e chiedono prima di qualsiasi cosa che elimini. Un client connesso tramite accesso può essere limitato alla sola lettura.",
   "See the {{docsLink}} for every tool.": "Consulta la {{docsLink}} per tutti gli strumenti.",
-  "Twilio account for SMS and calls": "Account Twilio per SMS e chiamate",
   "Up to {{limit}} open at once": "Fino a {{limit}} aperte contemporaneamente",
   "Gets nothing until they open the link we texted them.": "Non riceve nulla finché non apre il link che gli abbiamo inviato via SMS.",
   "Call transcripts": "Trascrizioni delle chiamate",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "L'account Twilio da cui questa pagina invia gli SMS agli iscritti. Aggiungine uno in Impostazioni del progetto > Notifiche. Le configurazioni usate solo per le chiamate non sono elencate.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "Pagato con il credito del progetto, a meno che la configurazione Twilio predefinita del progetto non invii SMS.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Pagato con il credito del progetto, a meno che la configurazione Twilio predefinita del progetto non effettui chiamate.",
-  "Twilio Used For": "Uso di Twilio"
+  "Twilio Used For": "Uso di Twilio",
+  "Twilio account for on-call alerts": "Account Twilio per gli avvisi di reperibilità",
+  "Used for calls only: OneUptime sends subscriber text messages.": "Usata solo per le chiamate: OneUptime invia gli SMS agli iscritti."
 }

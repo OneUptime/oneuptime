@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "Bedriftens Twilio-konto",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Sikkerhet: klienter kan kjøre skrivebeskyttede verktøy uten å spørre, og spør før alt som sletter. En klient koblet til via pålogging kan begrenses til skrivebeskyttet tilgang.",
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} for alle verktøy.",
-  "Twilio account for SMS and calls": "Twilio-konto for SMS og anrop",
   "Up to {{limit}} open at once": "Opptil {{limit}} åpne samtidig",
   "Gets nothing until they open the link we texted them.": "Får ingenting før lenken vi sendte på SMS åpnes.",
   "Call transcripts": "Samtaletranskripsjoner",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "Twilio-kontoen denne siden sender SMS til abonnenter fra. Legg til en under Prosjektinnstillinger > Varsler. Konfigurasjoner som bare brukes til anrop, vises ikke.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "Betales fra prosjektets saldo, med mindre prosjektets standard Twilio-konfigurasjon sender SMS-er.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betales fra prosjektets saldo, med mindre prosjektets standard Twilio-konfigurasjon ringer.",
-  "Twilio Used For": "Twilio-bruk"
+  "Twilio Used For": "Twilio-bruk",
+  "Twilio account for on-call alerts": "Twilio-konto for vaktvarsler",
+  "Used for calls only: OneUptime sends subscriber text messages.": "Brukes bare til anrop: OneUptime sender SMS til abonnenter."
 }

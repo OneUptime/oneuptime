@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "Company Twilio Account",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.",
   "See the {{docsLink}} for every tool.": "See the {{docsLink}} for every tool.",
-  "Twilio account for SMS and calls": "Twilio account for SMS and calls",
   "Up to {{limit}} open at once": "Up to {{limit}} open at once",
   "Gets nothing until they open the link we texted them.": "Gets nothing until they open the link we texted them.",
   "Call transcripts": "Call transcripts",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "Paid from the project's balance, unless the project's default Twilio Config sends SMS.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Paid from the project's balance, unless the project's default Twilio Config makes calls.",
-  "Twilio Used For": "Twilio Used For"
+  "Twilio Used For": "Twilio Used For",
+  "Twilio account for on-call alerts": "Twilio account for on-call alerts",
+  "Used for calls only: OneUptime sends subscriber text messages.": "Used for calls only: OneUptime sends subscriber text messages."
 }

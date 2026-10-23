@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "公司 Twilio 账户",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全：客户端可以无需询问运行只读工具，并在执行任何删除操作前先询问。通过登录连接的客户端可以限制为只读。",
   "See the {{docsLink}} for every tool.": "所有工具请参阅 {{docsLink}}。",
-  "Twilio account for SMS and calls": "用于短信和电话的 Twilio 账户",
   "Up to {{limit}} open at once": "同时最多 {{limit}} 个",
   "Gets nothing until they open the link we texted them.": "在打开我们通过短信发送的链接之前，不会收到任何内容。",
   "Call transcripts": "通话转录",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "此页面向订阅者发送短信所用的 Twilio 账号。在“项目设置 > 通知”中添加。仅用于通话的配置不会列出。",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "从项目余额中支付，除非项目的默认 Twilio 配置发送短信。",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "从项目余额中支付，除非项目的默认 Twilio 配置拨打电话。",
-  "Twilio Used For": "Twilio 用途"
+  "Twilio Used For": "Twilio 用途",
+  "Twilio account for on-call alerts": "用于值班警报的 Twilio 账户",
+  "Used for calls only: OneUptime sends subscriber text messages.": "仅用于通话：由 OneUptime 发送订阅者短信。"
 }

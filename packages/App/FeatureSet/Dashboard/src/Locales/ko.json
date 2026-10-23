@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "회사 Twilio 계정",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "안전: 클라이언트는 읽기 전용 도구를 묻지 않고 실행할 수 있으며, 삭제하는 작업 전에는 확인을 요청합니다. 로그인으로 연결된 클라이언트는 읽기 전용으로 제한할 수 있습니다.",
   "See the {{docsLink}} for every tool.": "모든 도구는 {{docsLink}}에서 확인하세요.",
-  "Twilio account for SMS and calls": "SMS 및 전화용 Twilio 계정",
   "Up to {{limit}} open at once": "동시에 최대 {{limit}}개",
   "Gets nothing until they open the link we texted them.": "문자 메시지로 보낸 링크를 열기 전까지는 아무것도 받지 않습니다.",
   "Call transcripts": "통화 녹취록",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "이 페이지가 구독자에게 SMS를 보내는 Twilio 계정입니다. 프로젝트 설정 > 알림에서 추가하세요. 통화 전용 구성은 목록에 없습니다.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "프로젝트의 기본 Twilio 구성이 SMS를 보내지 않으면 프로젝트 잔액에서 지불됩니다.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "프로젝트의 기본 Twilio 구성이 통화를 걸지 않으면 프로젝트 잔액에서 지불됩니다.",
-  "Twilio Used For": "Twilio 용도"
+  "Twilio Used For": "Twilio 용도",
+  "Twilio account for on-call alerts": "온콜 알림용 Twilio 계정",
+  "Used for calls only: OneUptime sends subscriber text messages.": "통화에만 사용: 구독자 문자 메시지는 OneUptime이 보냅니다."
 }

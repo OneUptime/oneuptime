@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "公司 Twilio 帳戶",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "安全：用戶端可不經詢問執行唯讀工具，並在任何刪除操作前先詢問。透過登入連線的用戶端可限制為唯讀。",
   "See the {{docsLink}} for every tool.": "所有工具請參閱 {{docsLink}}。",
-  "Twilio account for SMS and calls": "用於簡訊和電話的 Twilio 帳戶",
   "Up to {{limit}} open at once": "同時最多 {{limit}} 個",
   "Gets nothing until they open the link we texted them.": "在開啟我們透過簡訊傳送的連結之前，不會收到任何內容。",
   "Call transcripts": "通話逐字稿",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "此頁面向訂閱者傳送簡訊所用的 Twilio 帳戶。在「專案設定 > 通知」中新增。僅用於通話的設定不會列出。",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "從專案餘額中支付，除非專案的預設 Twilio 設定會傳送簡訊。",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "從專案餘額中支付，除非專案的預設 Twilio 設定會撥打電話。",
-  "Twilio Used For": "Twilio 用途"
+  "Twilio Used For": "Twilio 用途",
+  "Twilio account for on-call alerts": "用於待命警示的 Twilio 帳戶",
+  "Used for calls only: OneUptime sends subscriber text messages.": "僅用於通話：由 OneUptime 傳送訂閱者簡訊。"
 }

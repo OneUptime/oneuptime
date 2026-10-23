@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "Företagets Twilio-konto",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Säkerhet: klienter får köra skrivskyddade verktyg utan att fråga, och frågar före allt som tar bort något. En klient som anslutits via inloggning kan begränsas till skrivskyddad åtkomst.",
   "See the {{docsLink}} for every tool.": "Se {{docsLink}} för alla verktyg.",
-  "Twilio account for SMS and calls": "Twilio-konto för sms och samtal",
   "Up to {{limit}} open at once": "Upp till {{limit}} öppna samtidigt",
   "Gets nothing until they open the link we texted them.": "Får ingenting förrän någon öppnar länken vi skickade via sms.",
   "Call transcripts": "Samtalstranskriptioner",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "Twilio-kontot som den här sidan skickar sms till prenumeranter från. Lägg till ett under Projektinställningar > Aviseringar. Konfigurationer som bara används för samtal visas inte.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "Betalas från projektets saldo, om inte projektets standard-Twilio-konfiguration skickar SMS.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Betalas från projektets saldo, om inte projektets standard-Twilio-konfiguration ringer samtal.",
-  "Twilio Used For": "Twilio-användning"
+  "Twilio Used For": "Twilio-användning",
+  "Twilio account for on-call alerts": "Twilio-konto för jourlarm",
+  "Used for calls only: OneUptime sends subscriber text messages.": "Används bara för samtal: OneUptime skickar sms till prenumeranter."
 }

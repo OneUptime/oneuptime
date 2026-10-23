@@ -30847,7 +30847,6 @@
   "Company Twilio Account": "Аккаунт Twilio компании",
   "Safety: clients may run read-only tools without asking, and ask before anything that deletes. A client connected by sign-in can be limited to read only.": "Безопасность: клиенты могут запускать инструменты только для чтения без запроса и спрашивают перед всем, что удаляет. Клиент, подключённый через вход, можно ограничить только чтением.",
   "See the {{docsLink}} for every tool.": "Список всех инструментов — {{docsLink}}.",
-  "Twilio account for SMS and calls": "Аккаунт Twilio для SMS и звонков",
   "Up to {{limit}} open at once": "До {{limit}} открытых одновременно",
   "Gets nothing until they open the link we texted them.": "Ничего не получает, пока не откроет ссылку из нашего SMS.",
   "Call transcripts": "Расшифровки звонков",
@@ -33365,5 +33364,7 @@
   "The Twilio account this page sends subscriber SMS from. Add one in Project Settings > Notifications. Configs used for calls only are not listed.": "Аккаунт Twilio, через который эта страница отправляет SMS подписчикам. Добавьте его в Настройки проекта > Уведомления. Конфигурации только для звонков в списке не показаны.",
   "Paid from the project's balance, unless the project's default Twilio Config sends SMS.": "Оплачивается из баланса проекта, если конфигурация Twilio проекта по умолчанию не отправляет SMS.",
   "Paid from the project's balance, unless the project's default Twilio Config makes calls.": "Оплачивается из баланса проекта, если конфигурация Twilio проекта по умолчанию не совершает звонки.",
-  "Twilio Used For": "Назначение Twilio"
+  "Twilio Used For": "Назначение Twilio",
+  "Twilio account for on-call alerts": "Аккаунт Twilio для оповещений дежурных",
+  "Used for calls only: OneUptime sends subscriber text messages.": "Используется только для звонков: SMS подписчикам отправляет OneUptime."
 }

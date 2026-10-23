@@ -10,7 +10,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSConfig";
 import Includes from "Common/Types/BaseDatabase/Includes";
-import { TwilioConfigUse } from "Common/Types/CallAndSMS/TwilioConfigUse";
+import TwilioConfigUses, {
+  TwilioConfigUse,
+} from "Common/Types/CallAndSMS/TwilioConfigUse";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import React, {
@@ -422,12 +424,41 @@ const StatusPageSubscriberSettings: FunctionComponent<
                 field: {
                   callSmsConfig: {
                     name: true,
+                    // What it is used for: one used for calls only sends no SMS.
+                    usedFor: true,
                   },
                 },
                 title: "Twilio Config",
                 fieldType: FieldType.Element,
                 getElement: (item: StatusPage): ReactElement => {
                   if (item["callSmsConfig"]) {
+                    /*
+                     * The picker offers only the configs that send SMS, but
+                     * a page keeps the config it named when that config is
+                     * later used for calls only. Its subscribers' SMS then
+                     * go as without a config, which the card says, in the
+                     * words of the placeholder for no config at all.
+                     */
+                    if (
+                      !TwilioConfigUses.sendsSms(item["callSmsConfig"].usedFor)
+                    ) {
+                      return (
+                        <div
+                          className="min-w-0"
+                          data-testid="status-page-twilio-config-calls-only"
+                        >
+                          <div>
+                            <ProjectCallSMSConfigElement
+                              callSmsConfig={item["callSmsConfig"]}
+                            />
+                          </div>
+                          <PlaceholderText
+                            text={SubscriberChoicesCopy.twilioCallsOnlyNote}
+                          />
+                        </div>
+                      );
+                    }
+
                     return (
                       <ProjectCallSMSConfigElement
                         callSmsConfig={item["callSmsConfig"]}
