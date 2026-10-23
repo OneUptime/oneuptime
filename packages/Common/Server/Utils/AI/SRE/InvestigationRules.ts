@@ -22,6 +22,12 @@ import {
   NO_CODE_REPOSITORY,
   getCodeRepositoryAllowance,
 } from "../../../../Types/CodeRepository/CodeRepositoryAllowance";
+import {
+  getLlmProviderPickingRules,
+  getRuleLlmProviderId,
+} from "../../../../Types/AI/LlmProviderChoice";
+import AlertService from "../../../Services/AlertService";
+import IncidentService from "../../../Services/IncidentService";
 
 /*
  * Investigation rules: which new incidents (or alerts) OneUptime AI
@@ -53,6 +59,13 @@ import {
  * rule, or a matching rule that names none, every connected repository; with
  * matching rules that name some, those - and none when the rules cannot be
  * read, for the same reason.
+ *
+ * A rule may pick the LLM provider OneUptime AI investigates with
+ * (Types/AI/LlmProviderChoice): the first matching rule by name that picks
+ * one decides (InvestigationRuleScope.llmProviderId, getLlmProviderId),
+ * for the investigation the rules start and for one someone starts by
+ * hand. With no rule, no matching rule that picks one, or rules that
+ * cannot be read: the project's default provider, else the global one.
  */
 export interface InvestigationRuleScope {
   isInScope: boolean;
@@ -63,7 +76,47 @@ export interface InvestigationRuleScope {
    * minutes. Absent when it starts right away (and when out of scope).
    */
   waitMinutes?: number | undefined;
+  /*
+   * In scope, and a rule it matches picks an LLM provider: the pick of the
+   * first such rule by name. Absent: the project's default provider, else
+   * the global one.
+   */
+  llmProviderId?: ObjectID | undefined;
 }
+
+// What an incident is matched on (shouldInvestigateIncident reads the same).
+const INCIDENT_MATCH_SELECT: {
+  _id: true;
+  title: true;
+  description: true;
+  incidentSeverityId: true;
+  labels: { _id: true };
+  monitors: { _id: true };
+} = {
+  _id: true,
+  title: true,
+  description: true,
+  incidentSeverityId: true,
+  labels: { _id: true },
+  monitors: { _id: true },
+};
+
+// What an alert is matched on (shouldInvestigateAlert reads the same).
+const ALERT_MATCH_SELECT: {
+  _id: true;
+  title: true;
+  description: true;
+  alertSeverityId: true;
+  monitorId: true;
+  labels: { _id: true };
+} = {
+  _id: true,
+  title: true,
+  description: true,
+  alertSeverityId: true,
+  monitorId: true,
+  labels: { _id: true },
+};
 
 const IN_SCOPE_WITHOUT_RULES: InvestigationRuleScope = {
   isInScope: true,
@@ -94,6 +147,127 @@ export default class InvestigationRules {
     });
   }
 
+  /*
+   * The LLM provider the investigation rules pick for this incident: the
+   * pick of the first matching rule by name that picks one, or undefined -
+   * the project's default provider, else the global one. For an
+   * investigation the rules did not decide on (someone started it, or it
+   * is checked again): what the rules pick for the incident decides its
+   * provider all the same.
+   */
+  @RuleEvaluation()
+  public static async getIncidentLlmProviderId(data: {
+    projectId: ObjectID;
+    incident: Incident;
+  }): Promise<ObjectID | undefined> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Incident,
+    });
+
+    return await this.getPickedLlmProviderId(
+      rules || [],
+      (rule: AIInvestigationRule) => {
+        return IncidentAlertRuleMatcher.doesIncidentMatch(
+          data.incident,
+          rule,
+          "investigation rule",
+        );
+      },
+    );
+  }
+
+  // The same, for an alert.
+  @RuleEvaluation()
+  public static async getAlertLlmProviderId(data: {
+    projectId: ObjectID;
+    alert: Alert;
+  }): Promise<ObjectID | undefined> {
+    const rules: Array<AIInvestigationRule> | null = await this.readRules({
+      projectId: data.projectId,
+      triggerEntityType: AIInvestigationRuleTriggerEntity.Alert,
+    });
+
+    return await this.getPickedLlmProviderId(
+      rules || [],
+      (rule: AIInvestigationRule) => {
+        return IncidentAlertRuleMatcher.doesAlertMatch(
+          data.alert,
+          rule,
+          "investigation rule",
+        );
+      },
+    );
+  }
+
+  /*
+   * The same, for an incident or an alert by id - read here with what a
+   * rule matches on. Undefined when it cannot be read: the project's
+   * provider then, as with no rule.
+   */
+  public static async getSubjectLlmProviderId(data: {
+    projectId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): Promise<ObjectID | undefined> {
+    try {
+      if (data.incidentId) {
+        const incident: Incident | null = await IncidentService.findOneBy({
+          query: { _id: data.incidentId.toString(), projectId: data.projectId },
+          select: INCIDENT_MATCH_SELECT,
+          props: { isRoot: true },
+        });
+
+        return incident
+          ? await this.getIncidentLlmProviderId({
+              projectId: data.projectId,
+              incident,
+            })
+          : undefined;
+      }
+
+      if (data.alertId) {
+        const alert: Alert | null = await AlertService.findOneBy({
+          query: { _id: data.alertId.toString(), projectId: data.projectId },
+          select: ALERT_MATCH_SELECT,
+          props: { isRoot: true },
+        });
+
+        return alert
+          ? await this.getAlertLlmProviderId({
+              projectId: data.projectId,
+              alert,
+            })
+          : undefined;
+      }
+    } catch (error) {
+      logger.error(
+        `AI: could not read which LLM provider the investigation rules pick; using the project's provider: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    return undefined;
+  }
+
+  /*
+   * The pick of the first rule, in the order that decides
+   * (getLlmProviderPickingRules), that the subject matches - only the rules
+   * that pick one are matched at all.
+   */
+  private static async getPickedLlmProviderId(
+    rules: Array<AIInvestigationRule>,
+    matches: (rule: AIInvestigationRule) => Promise<boolean>,
+  ): Promise<ObjectID | undefined> {
+    for (const rule of getLlmProviderPickingRules(rules)) {
+      if (await matches(rule)) {
+        return new ObjectID(getRuleLlmProviderId(rule));
+      }
+    }
+
+    return undefined;
+  }
+
   @RuleEvaluation()
   public static async getAlertScope(data: {
     projectId: ObjectID;
@@ -118,10 +292,12 @@ export default class InvestigationRules {
   }
 
   /*
-   * Whether the signal matches one of the rules, and the shortest wait of
-   * those it matches. A rule that waits no less than the shortest wait
-   * found so far cannot change the answer, so it is not matched at all, and
-   * the first rule that matches with no wait ends the reading.
+   * Whether the signal matches one of the rules, the shortest wait of those
+   * it matches, and the LLM provider they pick. A rule that waits no less
+   * than the shortest wait found so far cannot change the wait, so it is not
+   * matched for it, and the first rule that matches with no wait ends that
+   * reading; the provider is then the pick of the first matching rule by
+   * name that picks one (getPickedLlmProviderId), matched apart.
    */
   private static async getScope(
     rules: Array<AIInvestigationRule>,
@@ -142,21 +318,25 @@ export default class InvestigationRules {
         continue;
       }
 
-      if (wait === 0) {
-        return { isInScope: true, rulesChecked: rules.length };
-      }
-
       shortestWait = wait;
+
+      if (wait === 0) {
+        break;
+      }
     }
 
     if (shortestWait === null) {
       return { isInScope: false, rulesChecked: rules.length };
     }
 
+    const llmProviderId: ObjectID | undefined =
+      await this.getPickedLlmProviderId(rules, matches);
+
     return {
       isInScope: true,
       rulesChecked: rules.length,
-      waitMinutes: shortestWait,
+      ...(shortestWait > 0 ? { waitMinutes: shortestWait } : {}),
+      ...(llmProviderId ? { llmProviderId } : {}),
     };
   }
 
@@ -350,6 +530,8 @@ export default class InvestigationRules {
             onlyIfOpenAfterMinutes: true,
             externalMcpServers: { _id: true },
             codeRepositories: { _id: true },
+            // The LLM provider it picks: none when empty.
+            llmProviderId: true,
           },
           limit: MAX_RULES_EVALUATED_PER_PROJECT,
           skip: 0,

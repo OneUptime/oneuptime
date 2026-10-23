@@ -1,4 +1,11 @@
 import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/IncidentPostmortemRunner";
+import LlmProviderChoice, {
+  RuleLlmProviderChoice,
+} from "../../../../Server/Utils/AI/LlmProviderChoice";
+import {
+  LlmProviderFallbackReason,
+  LlmProviderSource,
+} from "../../../../Types/AI/LlmProviderChoice";
 import IncidentPostmortemCallWait from "../../../../Server/Utils/AI/SRE/IncidentPostmortemCallWait";
 import { PostmortemRuleTemplate } from "../../../../Server/Utils/AI/SRE/PostmortemRules";
 import PostmortemTemplatePick from "../../../../Server/Utils/AI/SRE/PostmortemTemplatePick";
@@ -9,6 +16,7 @@ import IncidentPostmortemTemplate from "../../../../Models/DatabaseModels/Incide
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import AIInvestigationEngine from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import IncidentVideoCallService from "../../../../Server/Services/IncidentVideoCallService";
+import IncidentAIContextBuilder from "../../../../Server/Utils/AI/IncidentAIContextBuilder";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import AIService, {
@@ -40,7 +48,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   exactly as they gate an investigation (the shared
  *   AIInvestigationEngine.getProviderOrBalanceReason);
  * - it never overwrites an existing postmortem and never throws into the
- *   resolve flow.
+ *   resolve flow;
+ * - the postmortem rule that matches decides the LLM provider the draft is
+ *   written with, as it decides the templates: its pick, else the project's
+ *   default provider, else the global one - and the provider gates ask
+ *   about that provider, so the incident and its rules are read before
+ *   them (the two switches still come first).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -336,6 +349,15 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
 
   function expectNothingDone(): void {
     expect(incidentRead).not.toHaveBeenCalled();
+    expectNothingWritten();
+  }
+
+  /*
+   * The provider gates ask about the provider the incident's postmortem
+   * rule picks, so the incident is read before them: nothing is drafted,
+   * saved or announced.
+   */
+  function expectNothingWritten(): void {
     expect(generate).not.toHaveBeenCalled();
     expect(incidentUpdate).not.toHaveBeenCalled();
     expect(feed).not.toHaveBeenCalled();
@@ -396,7 +418,7 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
 
     await resolve();
 
-    expectNothingDone();
+    expectNothingWritten();
   });
 
   it("does nothing when the project is out of AI credits — no failed model call, no error log", async () => {
@@ -404,7 +426,7 @@ describe("AIIncidentPostmortemRunner.draftPostmortemOnResolve", () => {
 
     await resolve();
 
-    expectNothingDone();
+    expectNothingWritten();
     expect(errorLog).not.toHaveBeenCalled();
   });
 
@@ -1173,6 +1195,589 @@ describe("AIIncidentPostmortemRunner and the project's postmortem rules", () => 
 
     expect(rulesRead).not.toHaveBeenCalled();
     expect(generate).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The postmortem rule that matches decides the LLM provider the draft is
+ * written with, as it decides the templates (PostmortemRules,
+ * Server/Utils/AI/LlmProviderChoice): its pick, else the project's default
+ * provider, else the global one. The template pick and the draft both use
+ * it; the provider gates ask about it, so a rule's own provider drafts in a
+ * project whose default cannot; the feed item names it, or says why another
+ * was used.
+ */
+describe("AIIncidentPostmortemRunner and the LLM provider a postmortem rule picks", () => {
+  const OPUS: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+  const AZURE: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
+  const CRITICAL_ID: string = "44444444-4444-4444-8444-444444444441";
+  const OUTAGE_ID: string = "66666666-6666-4666-8666-666666666661";
+  const SECURITY_ID: string = "66666666-6666-4666-8666-666666666662";
+
+  const OPUS_ROW: LlmProvider = Object.assign(new LlmProvider(), {
+    _id: OPUS,
+    name: "Claude Opus",
+    isGlobalLlm: false,
+  });
+
+  let incidentRead: jest.SpyInstance;
+  let generate: jest.SpyInstance;
+  let feed: jest.SpyInstance;
+  let decide: jest.SpyInstance;
+  let decideIfPicked: jest.SpyInstance;
+  let projectProvider: jest.SpyInstance;
+
+  function rule(
+    name: string,
+    values: Partial<AIPostmortemRule> = {},
+  ): AIPostmortemRule {
+    return Object.assign(new AIPostmortemRule(), {
+      _id: ObjectID.generate().toString(),
+      name,
+      isEnabled: true,
+      ...values,
+    });
+  }
+
+  function criticalRule(
+    values: Partial<AIPostmortemRule> = {},
+  ): AIPostmortemRule {
+    const critical: IncidentSeverity = new IncidentSeverity();
+    critical._id = CRITICAL_ID;
+
+    return rule("Critical incidents", {
+      incidentSeverities: [critical],
+      llmProviderId: new ObjectID(OPUS),
+      ...values,
+    });
+  }
+
+  function templateRef(id: string): IncidentPostmortemTemplate {
+    const model: IncidentPostmortemTemplate = new IncidentPostmortemTemplate();
+    model._id = id;
+    return model;
+  }
+
+  // The rule's pick, used as it is.
+  function picked(): RuleLlmProviderChoice {
+    return {
+      provider: { id: OPUS, name: "Claude Opus", isGlobal: false },
+      source: LlmProviderSource.RulePick,
+      fallbackReason: null,
+      pickedProviderId: OPUS,
+      llmProviderId: new ObjectID(OPUS),
+      providerRow: OPUS_ROW,
+      activity: {
+        source: LlmProviderSource.RulePick,
+        providerName: "Claude Opus",
+      },
+    };
+  }
+
+  // The rule's pick could not be used: the project's default instead.
+  function fellBack(
+    reason: LlmProviderFallbackReason,
+    source: LlmProviderSource = LlmProviderSource.ProjectDefault,
+  ): RuleLlmProviderChoice {
+    return {
+      provider: {
+        id: AZURE,
+        name: "Azure GPT-4o",
+        isGlobal: source === LlmProviderSource.Global,
+      },
+      source,
+      fallbackReason: reason,
+      pickedProviderId: OPUS,
+      providerRow: Object.assign(new LlmProvider(), {
+        _id: AZURE,
+        name: "Azure GPT-4o",
+      }),
+      activity: {
+        source,
+        providerName: "Azure GPT-4o",
+        fallbackReason: reason,
+      },
+    };
+  }
+
+  function nothingLeft(): RuleLlmProviderChoice {
+    return {
+      provider: null,
+      source: null,
+      fallbackReason: LlmProviderFallbackReason.Unavailable,
+      pickedProviderId: OPUS,
+      providerRow: null,
+      activity: { fallbackReason: LlmProviderFallbackReason.Unavailable },
+    };
+  }
+
+  function choose(choice: RuleLlmProviderChoice): void {
+    decide.mockResolvedValue(choice);
+    decideIfPicked.mockResolvedValue(choice);
+  }
+
+  beforeEach(() => {
+    mockProject(draftOn());
+    projectProvider = mockProvider(
+      Object.assign(new LlmProvider(), { _id: AZURE, name: "Azure GPT-4o" }),
+    );
+    mockBalanceBlocker(null);
+    storedRules = [criticalRule()];
+    incidentRead = jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue({
+        id: INCIDENT_ID,
+        incidentNumber: 42,
+        postmortemNote: undefined,
+        title: "Postgres primary is down",
+        incidentSeverityId: new ObjectID(CRITICAL_ID),
+        labels: [],
+        monitors: [],
+      } as unknown as Incident);
+    generate = jest
+      .spyOn(IncidentService, "generatePostmortemFromAI")
+      .mockResolvedValue("## Summary\nThe primary ran out of disk.");
+    jest
+      .spyOn(IncidentService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+    feed = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentPostmortemCallWait, "isWaiting")
+      .mockResolvedValue(false);
+    jest
+      .spyOn(IncidentVideoCallService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(IncidentPostmortemTemplateService, "findBy").mockResolvedValue([
+      Object.assign(new IncidentPostmortemTemplate(), {
+        _id: OUTAGE_ID,
+        templateName: "Database outage",
+        templateDescription: "",
+        postmortemNote: "## Replication and failover",
+      }),
+      Object.assign(new IncidentPostmortemTemplate(), {
+        _id: SECURITY_ID,
+        templateName: "Security incident",
+        templateDescription: "",
+        postmortemNote: "## Exposure",
+      }),
+    ]);
+    jest.spyOn(logger, "debug").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    decide = jest.spyOn(LlmProviderChoice, "decide");
+    decideIfPicked = jest.spyOn(LlmProviderChoice, "decideIfPicked");
+    choose(picked());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function resolve(): Promise<void> {
+    await AIIncidentPostmortemRunner.draftPostmortemOnResolve({
+      incidentId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+    });
+  }
+
+  function feedLine(): string {
+    return (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+      .feedInfoInMarkdown;
+  }
+
+  it("the draft is written with the matching rule's provider, and the feed names it and the rule", async () => {
+    await resolve();
+
+    expect(decideIfPicked).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      pickedProviderId: new ObjectID(OPUS),
+    });
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      llmProviderId: new ObjectID(OPUS),
+    });
+    expect(feedLine()).toContain(
+      "OneUptime AI drafted a postmortem for incident #42 from the incident timeline and telemetry. It was written with **Claude Opus**, the LLM provider of postmortem rule **Critical incidents**. It has been saved on the incident for you to review and edit.",
+    );
+  });
+
+  it("OneUptime AI picks the template with it too", async () => {
+    storedRules = [
+      criticalRule({
+        postmortemTemplates: [templateRef(OUTAGE_ID), templateRef(SECURITY_ID)],
+      }),
+    ];
+    const pick: jest.SpyInstance = jest
+      .spyOn(PostmortemTemplatePick, "pick")
+      .mockImplementation(
+        async (data: {
+          templates: Array<PostmortemRuleTemplate>;
+        }): Promise<PostmortemRuleTemplate | null> => {
+          return data.templates[1] || null;
+        },
+      );
+
+    await resolve();
+
+    expect(
+      (pick.mock.calls[0]![0] as { llmProviderId?: ObjectID }).llmProviderId,
+    ).toEqual(new ObjectID(OPUS));
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      template: "## Exposure",
+      llmProviderId: new ObjectID(OPUS),
+    });
+  });
+
+  it("the first matching rule decides the provider, as it decides the templates", async () => {
+    storedRules = [
+      criticalRule(),
+      rule("Everything else", { llmProviderId: new ObjectID(AZURE) }),
+    ];
+
+    await resolve();
+
+    expect(decideIfPicked).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      pickedProviderId: new ObjectID(OPUS),
+    });
+    expect(
+      decideIfPicked.mock.calls.every((call: Array<unknown>): boolean => {
+        return (
+          String(
+            (call[0] as { pickedProviderId?: ObjectID }).pickedProviderId,
+          ) === OPUS
+        );
+      }),
+    ).toBe(true);
+  });
+
+  it("a rule that picks none: the project's provider, and the feed says nothing of providers", async () => {
+    decideIfPicked.mockRestore();
+    decide.mockRestore();
+    storedRules = [
+      criticalRule({
+        llmProviderId: undefined,
+      } as unknown as Partial<AIPostmortemRule>),
+    ];
+
+    await resolve();
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(
+      (generate.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+        .llmProviderId,
+    ).toBeUndefined();
+    expect(feedLine()).not.toContain("LLM provider");
+    expect(feedLine()).not.toContain("written with");
+  });
+
+  it("with no rule at all, as before rules existed: no pick, and nothing said of providers", async () => {
+    decideIfPicked.mockRestore();
+    decide.mockRestore();
+    storedRules = [];
+
+    await resolve();
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(
+      (generate.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+        .llmProviderId,
+    ).toBeUndefined();
+    expect(feedLine()).not.toContain("LLM provider");
+  });
+
+  it("a rule's own provider drafts in a project whose default cannot", async () => {
+    mockProvider(null);
+
+    await resolve();
+
+    expect(decide).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      pickedProviderId: new ObjectID(OPUS),
+    });
+    expect(generate).toHaveBeenCalledWith({
+      incidentId: INCIDENT_ID,
+      llmProviderId: new ObjectID(OPUS),
+    });
+  });
+
+  it("a pick that leaves nothing to write with: no draft, no model call", async () => {
+    choose(nothingLeft());
+
+    await resolve();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  it("a pick that cannot be used falls back to the project's default, and the feed says why", async () => {
+    choose(fellBack(LlmProviderFallbackReason.Unavailable));
+
+    await resolve();
+
+    expect(
+      (generate.mock.calls[0]![0] as { llmProviderId?: ObjectID })
+        .llmProviderId,
+    ).toBeUndefined();
+    expect(feedLine()).toContain(
+      "It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+    );
+  });
+
+  it("the switches are asked first; then the incident and its rules; then the provider - none of whose checks run for an incident no rule matches", async () => {
+    storedRules = [
+      criticalRule({
+        incidentSeverities: [
+          Object.assign(new IncidentSeverity(), {
+            _id: "44444444-4444-4444-8444-444444444449",
+          }),
+        ],
+      }),
+    ];
+
+    await resolve();
+
+    expect(incidentRead).toHaveBeenCalledTimes(1);
+    expect(decide).not.toHaveBeenCalled();
+    expect(projectProvider).not.toHaveBeenCalled();
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a project whose default can write it", true],
+    ["a project whose default cannot", false],
+  ])(
+    "a draft that waited for its calls is written with the provider of the rule that matches it then, in %s",
+    async (_label: string, hasProjectProvider: boolean) => {
+      if (!hasProjectProvider) {
+        mockProvider(null);
+      }
+
+      incidentRead.mockResolvedValue({
+        id: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        incidentNumber: 42,
+        postmortemNote: undefined,
+        title: "Postgres primary is down",
+        incidentSeverityId: new ObjectID(CRITICAL_ID),
+        labels: [],
+        monitors: [],
+        currentIncidentStateId: ObjectID.generate(),
+        postmortemDraftWaitingSince: new Date("2026-10-19T12:00:00.000Z"),
+      } as unknown as Incident);
+      jest
+        .spyOn(IncidentPostmortemCallWait, "isResolved")
+        .mockResolvedValue(true);
+      jest
+        .spyOn(IncidentService, "endPostmortemDraftWait")
+        .mockResolvedValue(1);
+
+      await AIIncidentPostmortemRunner.draftWaitingPostmortem({
+        incidentId: INCIDENT_ID,
+        now: new Date("2026-10-19T12:40:00.000Z"),
+      });
+
+      expect(generate).toHaveBeenCalledWith({
+        incidentId: INCIDENT_ID,
+        llmProviderId: new ObjectID(OPUS),
+      });
+    },
+  );
+
+  describe("IncidentService.generatePostmortemFromAI", () => {
+    beforeEach(() => {
+      generate.mockRestore();
+      incidentRead.mockResolvedValue({
+        id: INCIDENT_ID,
+        projectId: PROJECT_ID,
+      } as unknown as Incident);
+      jest.spyOn(AIService, "assertProjectAIEnabled").mockResolvedValue();
+      jest
+        .spyOn(IncidentAIContextBuilder, "buildIncidentContext")
+        .mockResolvedValue({} as never);
+      jest
+        .spyOn(IncidentAIContextBuilder, "formatIncidentContextForPostmortem")
+        .mockReturnValue({ messages: [] } as never);
+    });
+
+    function modelCall(execute: jest.SpyInstance): Record<string, unknown> {
+      return execute.mock.calls[0]![0] as Record<string, unknown>;
+    }
+
+    it("hands the provider it is given to the model call", async () => {
+      const execute: jest.SpyInstance = jest
+        .spyOn(AIService, "executeWithLogging")
+        .mockResolvedValue({ content: "## Summary", llmLog: {} } as never);
+
+      await IncidentService.generatePostmortemFromAI({
+        incidentId: INCIDENT_ID,
+        llmProviderId: new ObjectID(OPUS),
+      });
+
+      expect(modelCall(execute)["llmProviderId"]).toEqual(new ObjectID(OPUS));
+      expect(modelCall(execute)["feature"]).toBe("Incident Postmortem");
+    });
+
+    it("Generate with AI names none: the project's provider", async () => {
+      const execute: jest.SpyInstance = jest
+        .spyOn(AIService, "executeWithLogging")
+        .mockResolvedValue({ content: "## Summary", llmLog: {} } as never);
+
+      await IncidentService.generatePostmortemFromAI({
+        incidentId: INCIDENT_ID,
+      });
+
+      expect(modelCall(execute)["llmProviderId"]).toBeUndefined();
+    });
+  });
+
+  describe("isEnabledForProject with a rule's pick", () => {
+    it("asks about the pick's provider, its AI credits and the spend limit for it", async () => {
+      const limit: jest.SpyInstance = jest
+        .spyOn(AIService, "getReachedProjectDailyLimit")
+        .mockResolvedValue(null);
+      const blocker: jest.SpyInstance = mockBalanceBlocker(null);
+
+      expect(
+        await AIIncidentPostmortemRunner.isEnabledForProject(
+          PROJECT_ID,
+          new ObjectID(OPUS),
+        ),
+      ).toBe(true);
+
+      expect(decide).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        pickedProviderId: new ObjectID(OPUS),
+      });
+      expect(blocker).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        llmProvider: OPUS_ROW,
+      });
+      expect(limit.mock.calls[0]![0]).toMatchObject({
+        projectId: PROJECT_ID,
+        llmProvider: OPUS_ROW,
+      });
+      // The project's own provider is not what is asked about.
+      expect(projectProvider).not.toHaveBeenCalled();
+    });
+
+    it("without a pick, the project's provider, and the spend limit as it always was", async () => {
+      const limit: jest.SpyInstance = jest
+        .spyOn(AIService, "getReachedProjectDailyLimit")
+        .mockResolvedValue(null);
+
+      expect(
+        await AIIncidentPostmortemRunner.isEnabledForProject(PROJECT_ID),
+      ).toBe(true);
+
+      expect(decide).not.toHaveBeenCalled();
+      expect(projectProvider).toHaveBeenCalledWith(PROJECT_ID);
+      expect(limit.mock.calls[0]![0]).not.toHaveProperty("llmProvider");
+    });
+
+    it("is off when the pick leaves no provider", async () => {
+      choose(nothingLeft());
+
+      expect(
+        await AIIncidentPostmortemRunner.isEnabledForProject(
+          PROJECT_ID,
+          new ObjectID(OPUS),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("what the draft's feed item says of its provider", () => {
+    function say(
+      choice: RuleLlmProviderChoice,
+      ruleName: string = "Critical incidents",
+    ): string {
+      return AIIncidentPostmortemRunner.describeDraftProvider({
+        choice,
+        ruleName,
+      }).toString();
+    }
+
+    it("nothing when no rule picked one", () => {
+      expect(
+        say({
+          provider: null,
+          source: null,
+          fallbackReason: null,
+          pickedProviderId: "",
+          activity: null,
+        }),
+      ).toBe("");
+    });
+
+    it("the provider the rule picked", () => {
+      expect(say(picked())).toBe(
+        " It was written with **Claude Opus**, the LLM provider of postmortem rule **Critical incidents**.",
+      );
+      expect(say(picked(), "")).toBe(
+        " It was written with **Claude Opus**, the LLM provider of the postmortem rule.",
+      );
+    });
+
+    it.each([
+      [
+        LlmProviderFallbackReason.Unavailable,
+        LlmProviderSource.ProjectDefault,
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+      ],
+      [
+        LlmProviderFallbackReason.Unavailable,
+        LlmProviderSource.Global,
+        " It was written with **Azure GPT-4o**, the global LLM provider, because the LLM provider of postmortem rule **Critical incidents** is no longer available.",
+      ],
+      [
+        LlmProviderFallbackReason.CreditsUsedUp,
+        LlmProviderSource.ProjectDefault,
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** runs on AI credits, which are used up.",
+      ],
+      [
+        LlmProviderFallbackReason.SpendLimitReached,
+        LlmProviderSource.ProjectDefault,
+        " It was written with **Azure GPT-4o**, the project's default LLM provider, because the LLM provider of postmortem rule **Critical incidents** is stopped by the project's daily AI spend limit.",
+      ],
+    ])(
+      "%s, then %s: the one used instead, and why",
+      (
+        reason: LlmProviderFallbackReason,
+        source: LlmProviderSource,
+        expected: string,
+      ) => {
+        expect(say(fellBack(reason, source))).toBe(expected);
+      },
+    );
+
+    it("no provider left: why the rule's was not used", () => {
+      expect(say(nothingLeft())).toBe(
+        " The LLM provider of postmortem rule **Critical incidents** is no longer available.",
+      );
+    });
+
+    it("a provider's and a rule's names reach the feed as text: no link, no bold of their own", () => {
+      const choice: RuleLlmProviderChoice = picked();
+      choice.provider = {
+        id: OPUS,
+        name: "**Pwn** [click](https://evil.example)",
+        isGlobal: false,
+      };
+
+      const text: string = say(choice, "[rule](https://evil.example)");
+
+      expect(text).not.toContain("[click](https://evil.example)");
+      expect(text).not.toContain("[rule](https://evil.example)");
+      expect(text).not.toContain("**Pwn**");
+      expect(text).toContain("Pwn");
+    });
   });
 });
 

@@ -18,6 +18,7 @@ import CodeFixTaskContext, {
 } from "../../../../Types/AI/CodeFixTaskContext";
 import GitHubCommandType, {
   isConversationalCommand,
+  isServerReviewCommand,
 } from "../../../../Types/CodeRepository/GitHubCommand";
 import ObjectID from "../../../../Types/ObjectID";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -465,14 +466,36 @@ describe("GitHubAgentTaskTrigger.getTaskTypeForCommand", () => {
    * the enum must be EITHER conversational OR mapped to a recipe.
    */
   test.each(Object.values(GitHubCommandType))(
-    "%s either replies conversationally or maps to a recipe — never neither",
+    "%s either replies conversationally, is the server's own review, or maps to a recipe — never neither",
     (command: GitHubCommandType): void => {
       const taskType: CodeFixTaskType | null =
         GitHubAgentTaskTrigger.getTaskTypeForCommand(command);
 
-      expect(taskType === null).toBe(isConversationalCommand(command));
+      expect(taskType === null).toBe(
+        isConversationalCommand(command) || isServerReviewCommand(command),
+      );
     },
   );
+
+  test("a production review is the server's own: no Runner recipe, no conversational reply", () => {
+    expect(
+      GitHubAgentTaskTrigger.getTaskTypeForCommand(
+        GitHubCommandType.ProductionReview,
+      ),
+    ).toBeNull();
+    expect(isServerReviewCommand(GitHubCommandType.ProductionReview)).toBe(
+      true,
+    );
+    expect(isConversationalCommand(GitHubCommandType.ProductionReview)).toBe(
+      false,
+    );
+
+    for (const command of Object.values(GitHubCommandType)) {
+      if (command !== GitHubCommandType.ProductionReview) {
+        expect(isServerReviewCommand(command)).toBe(false);
+      }
+    }
+  });
 
   test.each(Object.values(GitHubCommandType))(
     "the recipe %s maps to, if any, is a GitHub recipe",
@@ -811,6 +834,7 @@ describe("CodeFixTaskTypeHelper — the GitHub recipes", () => {
     expect(exempt).toEqual([
       CodeFixTaskType.GitHubPullRequestRevision,
       CodeFixTaskType.GitHubPullRequestReview,
+      CodeFixTaskType.GitHubPullRequestProductionReview,
     ]);
   });
 });

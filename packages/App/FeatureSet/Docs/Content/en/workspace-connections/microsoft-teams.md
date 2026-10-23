@@ -4,6 +4,7 @@ Connect OneUptime to Microsoft Teams to post incidents, alerts, episodes, schedu
 
 :::cards
 - [Connect Microsoft Teams](#connect-microsoft-teams): Admin consent, your sign-in, and the app in each team.
+- [Asking everyone to connect](#asking-everyone-to-connect): Message every member who has not connected their account, in one go.
 - [Notification rules](#notification-rules): Decide which events post where, and which get a channel of their own.
 - [Talking to the OneUptime bot](#talking-to-the-oneuptime-bot): Commands, questions and forms in a chat with the bot.
 - [On-call tags](#on-call-tags): Keep a team's tag equal to whoever is on call, and page it.
@@ -27,6 +28,8 @@ Three things make this work:
 - **The project's connection**, made once: a Microsoft 365 administrator consents to the OneUptime app for your organization.
 - **The OneUptime app in each team** you want notifications in. Microsoft only lets the bot post into a team it has been added to.
 - **Each person's own connection**: their Microsoft Teams account linked to their OneUptime account. Buttons, commands and reactions act as that person, with their permissions in the project.
+
+One Microsoft 365 organization can be connected to more than one project, such as production and staging. A card's button acts in the project of the record it is about. A message to the bot acts in the project of the channel it is sent in, such as an incident's channel, or else in the one project the sender's Microsoft Teams account is connected in. When nothing tells which, the bot names the projects they're in and asks them to try again from a channel of the one they mean.
 
 ## Before you begin
 
@@ -57,7 +60,7 @@ On OneUptime Cloud, **Open Teams Store** opens the app in the Microsoft Teams st
 
 ### Connect everyone else
 
-Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams.
+Each person links their own Microsoft Teams account under **User Settings** > **Workspace** > **Microsoft Teams** with **Connect my account with Microsoft Teams**, to act on incidents and get direct messages as themselves. That section appears once the project is connected to Microsoft Teams. To bring in a whole team at once, see [Asking everyone to connect](#asking-everyone-to-connect).
 
 ### Add a notification rule
 
@@ -66,6 +69,14 @@ Go to **Incidents** > **Workspace** > **Microsoft Teams**. The **Workspace** sec
 
 > [!NOTE]
 > Installing OneUptime for yourself, or adding it to a chat, is a different installation and does not let it post to a team's channels. **Private channels** need the app added to the channel itself: open the channel > "..." > **Manage channel** > **Apps** > **Add an app**. **Shared channels** cannot receive notifications: Microsoft Teams does not support bots in shared channels.
+
+## Asking everyone to connect
+
+Nobody can connect somebody else's Microsoft Teams account, an admin included: each person signs in to their own. To bring in a whole team, a **Project Owner** or **Project Admin** asks everyone at once on **Project Settings** > **Workspace** > **Microsoft Teams**. The **Members' Microsoft Teams accounts** card says how many members have connected. **Ask everyone to connect** has the OneUptime bot send each member who has not a message, with a **Connect Microsoft Teams account** button that connects their account in one click.
+
+- **Who gets a message.** Every member of the project who has not connected their Microsoft Teams account and is in a team the OneUptime app is added to, found there by their email address or user principal name. Somebody asked in the last 24 hours is not asked again, so asking again the next day reminds only the people who still have not connected.
+- **What the card says.** How far the messages have got while they go out, then who asked and how many members got a message. Members OneUptime could not find are named on the card: add the app to their team, or have them connect under **User Settings** > **Workspace** > **Microsoft Teams** themselves.
+- **What the button connects.** The Microsoft Teams account of whoever presses it and signs in, to their own OneUptime account. A message passed on to somebody else connects nothing to the member it was sent to.
 
 ## Notification rules
 
@@ -91,6 +102,8 @@ Creating a rule walks four steps:
 A channel the rule creates is named after its record: incident INC-42 gets `inc-42`, alert ALT-7 gets `alt-7`, and in a project without number prefixes, incident 42 gets `incident-42`. Text in **Channel Name Prefix** goes in front, so `prod-` makes `prod-inc-42`, and the form shows the name as you type. For a scheduled maintenance event, the prefix takes the place of its number prefix: SM-5 gets `sm-5`, and `maint-` makes `maint-5`. OneUptime keeps letters, numbers, spaces, `-` and `_`, up to the 50 characters Microsoft Teams takes. If the team already has a channel by that name, such as another project's or one deleted in the last 30 days, OneUptime adds `-2`, `-3` and so on.
 
 A rule creates its channel the first time an event matches it: when the event is created, or later, when an update makes it match while it is still open. A rule for acknowledged incidents creates the channel when the incident is acknowledged. Microsoft Teams shows a team's channels to everyone in the team, so OneUptime adds nobody to a channel one by one: everyone in the team you pick can open it, as the rule form says under **Who joins the channel**. A private incident, alert or episode gets a private channel, which only its members see; add people to it in Microsoft Teams.
+
+To bring in whoever is on call, pick their on-call schedules under **Mention who is on call**. When the channel is created, OneUptime posts a message in it, just after the record's first one, that @mentions whoever is on call in those schedules, so Microsoft Teams notifies them. Nobody is paged. OneUptime finds each person in the team by the Microsoft Teams account they connected to OneUptime, or else by their email address. Someone who is not in the team can't open its channels, so they are named in the message instead, with why. In a private channel, only its members can open it, so add the people on call to it in Microsoft Teams.
 
 Every later update of the record — a state change, a note, a new owner — is posted to its channels, and to the existing channels and chats its rules name while their conditions match. OneUptime cannot archive a Microsoft Teams channel, so a rule's channel stays when its record is over; archive or delete it in Microsoft Teams.
 
@@ -195,7 +208,7 @@ In a channel or a group chat, `@OneUptime page @Nawaz Dhandala The checkout API 
 - **Who is paged at once.** The people you @mention, and whoever is on call in the schedules a tag you @mention follows (see [On-call tags](#on-call-tags)), when a message follows them. OneUptime knows a person by the OneUptime account their Microsoft Teams account is connected to, or else by their email address in Microsoft Teams. Nobody outside the project is paged.
 - **Anything else gets a card.** With nobody @mentioned, as in a personal chat with the bot, no message, a tag that follows no on-call schedule you can see, or a person OneUptime cannot tell, the bot answers with the **Page someone** card, what you typed filled in, and says whom it could not pick. Pick people, a team, an on-call schedule, which pages whoever is on call in it now, or an on-call policy, which pages through its escalation rules, and submit it. Anyone in the conversation may submit the card, as themselves. Once it has paged, the card is removed, so nobody pages with it twice.
 - **Where it shows.** The conversation shows the page as one card, kept up to date: who was paged and how, and who acknowledged. Where the bot cannot post it, its reply says who was paged, with a link to the alert.
-- **Who may page.** Anyone who may both execute an on-call policy and create an alert: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Create On-Call Duty Policy Execution Log** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged.
+- **Who may page.** Anyone who may both execute an on-call policy and create an alert: **Project Owner**, **Project Admin** and **Project Member**, or **On-Call Member** with **Alert Member** (**Create On-Call Duty Policy Execution Log** and **Create Alert** in a custom role). Paging people, a team or a schedule directly, with no on-call policy behind the page, also takes access to every on-call policy of the project. Anyone else is told so in a reply, and nobody is paged. On OneUptime Cloud, paging needs the Growth plan: below it, OneUptime says which plan it needs, and nobody is paged.
 
 ## On-call tags
 
@@ -242,7 +255,7 @@ An incident's card has four buttons, **Acknowledge Incident**, **Resolve Inciden
 The buttons on OneUptime's cards act as the person who presses them, in a personal chat, a channel or a group chat alike: as the OneUptime account their Microsoft Teams account is connected to, with that account's permissions in the project. **Acknowledge**, **Resolve**, **Change State**, **Add Note** and **Execute On-Call Policy** on an incident, an alert or an episode, and **Mark as Ongoing**, **Mark as Complete**, **Change State** and **Add Note** on a scheduled maintenance event, each make the change the same action makes in OneUptime, and it is credited to that person there: the record's state timeline and feed show who changed its state, and the note is theirs. A note saved from a message with a reaction is posted the same way.
 
 - **Who may use them.** The people who may make the same change in OneUptime. Acknowledging, resolving or changing the state of an incident needs permission to change its state: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** and **Incident Member**, or **Create Incident State Timeline** in a custom role. An alert, an episode or a scheduled maintenance event needs the same permission for its own kind (**Create Alert State Timeline**, for example), and a note needs permission to post that kind of note. Like the state panel in OneUptime, they do not ask for permission to edit the incident or alert itself. Anyone else is told so, and nothing changes.
-- **Which records.** Those the person may read, as in OneUptime: with a role limited to some labels, the incidents, alerts, episodes and events carrying them. A button on any other record, or on one of another project, is answered that the record "was not found in this project, or you do not have access to it.", and nothing changes. On OneUptime Cloud, a change the project's plan doesn't include is refused with the plan it needs.
+- **Which records.** Those the person may read, as in OneUptime: with a role limited to some labels, the incidents, alerts, episodes and events carrying them. A button on any other record says why, and nothing changes: on an incident their role doesn't reach, "your access in this project does not include this incident. Ask a project admin for access to it."; on a private incident they don't own, "this incident is private, so only its owners and the project's owners and admins can see it. Ask one of them to add you as an owner."; and on one deleted since, "the incident was not found. It may have been deleted." On OneUptime Cloud, a change the project's plan doesn't include is refused with the plan it needs.
 - **What Change State offers.** The states the person may read that the record may move into next, in the project's order: none before the state it is in, for an episode as for an incident, an alert or a scheduled maintenance event, since a state change never moves a record back up its list (see [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference)). When they may read none, the bot says "No incident states are available to you in this project. Ask a project admin for access to them."; when the record is in the last state it can reach, it says "There is no later state to move this incident to." Neither shows an empty card.
 - **Add Note on a private incident.** A private incident takes no public notes, so its card asks for no note type and adds a private note. A card sent before it was made private adds a private note too, and says so. See [Private incidents take private notes only](/docs/incidents/notes-owners-and-feed#private-incidents-take-private-notes-only).
 - **Escalate.** A card's **Escalate** executes its on-call policy for the incident, alert or episode the card is about, as the person who pressed it, with the same permissions as **Execute On-Call Policy**. A card about none of them is answered "This on-call policy can only be executed for an incident, an alert or an episode. Open the record you are paging about and use Execute On-Call Policy there.", and nobody is paged.

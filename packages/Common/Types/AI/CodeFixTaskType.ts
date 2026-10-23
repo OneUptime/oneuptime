@@ -96,6 +96,22 @@ enum CodeFixTaskType {
    */
   GitHubPullRequestReview = "GitHubPullRequestReview",
   /*
+   * Review a pull request AGAINST PRODUCTION: what OneUptime's telemetry says
+   * about the code it changes - the exceptions thrown in it, how busy and
+   * how slow the operations it runs are, the CPU time it takes, and the
+   * incidents and deploys around it - posted as ONE comment on the pull
+   * request that is edited in place on every push, and shown on the pull
+   * request's page in Code (Common/Server/Utils/CodeRepository/
+   * ProductionReview).
+   *
+   * Started by OneUptime itself when a pull request opens or changes in a
+   * repository with Production Review on, by "@oneuptime production review",
+   * or by Review again in Code. Run by the OneUptime SERVER, never by a
+   * Runner (isRunByServer): it clones nothing, runs nothing and changes
+   * nothing, and its one task per pull request is reviewed again in place.
+   */
+  GitHubPullRequestProductionReview = "GitHubPullRequestProductionReview",
+  /*
    * Do what a person asked, in their own words, in one repository: started
    * from that repository's page in Code, or as a reply in any task's
    * conversation there (Common/Server/Utils/AI/CodeTask). The request, the
@@ -176,6 +192,7 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.GitHubIssueFix:
       case CodeFixTaskType.GitHubPullRequestRevision:
       case CodeFixTaskType.GitHubPullRequestReview:
+      case CodeFixTaskType.GitHubPullRequestProductionReview:
       case CodeFixTaskType.CodeRequest:
         return CodeFixContextKind.TaskContext;
       default:
@@ -226,8 +243,46 @@ export class CodeFixTaskTypeHelper {
   public static opensNewPullRequest(taskType: CodeFixTaskType): boolean {
     return (
       taskType !== CodeFixTaskType.GitHubPullRequestRevision &&
-      taskType !== CodeFixTaskType.GitHubPullRequestReview
+      taskType !== CodeFixTaskType.GitHubPullRequestReview &&
+      taskType !== CodeFixTaskType.GitHubPullRequestProductionReview
     );
+  }
+
+  /*
+   * The recipes the OneUptime server carries out itself, never a Runner.
+   * They are queued as code-fix runs so that they live in Code beside the
+   * rest - a repository's tasks, their pages, their AI usage - but no
+   * Runner is ever handed one: getTaskTypesForRunnersThatDoNotSay and
+   * readSupportedTaskTypes leave them out, whatever a Runner says it can do,
+   * and the queue sweepers that fail a run no Runner took pass them by.
+   */
+  public static getServerRunTaskTypes(): Array<CodeFixTaskType> {
+    return [CodeFixTaskType.GitHubPullRequestProductionReview];
+  }
+
+  public static isRunByServer(
+    taskType: CodeFixTaskType | string | null | undefined,
+  ): boolean {
+    return (
+      typeof taskType === "string" &&
+      (this.getServerRunTaskTypes() as Array<string>).includes(taskType)
+    );
+  }
+
+  // Every recipe a Runner may be handed: all but those the server runs.
+  public static getRunnerTaskTypes(): Array<CodeFixTaskType> {
+    return Object.values(CodeFixTaskType).filter(
+      (taskType: CodeFixTaskType): boolean => {
+        return !CodeFixTaskTypeHelper.isRunByServer(taskType);
+      },
+    );
+  }
+
+  // A production review of a pull request (one task per pull request).
+  public static isProductionReview(
+    taskType: CodeFixTaskType | string | null | undefined,
+  ): boolean {
+    return taskType === CodeFixTaskType.GitHubPullRequestProductionReview;
   }
 
   /*
@@ -248,10 +303,11 @@ export class CodeFixTaskTypeHelper {
    * still be online, and handed a recipe it has no handler for it fails the
    * run at once ("No handler registered"). So such a Runner is only given
    * the recipes every Runner has had - every recipe but the ones added since.
-   * A request from Code waits for a Runner that can do it instead.
+   * A request from Code waits for a Runner that can do it instead. The
+   * recipes the server runs itself are never a Runner's (isRunByServer).
    */
   public static getTaskTypesForRunnersThatDoNotSay(): Array<CodeFixTaskType> {
-    return Object.values(CodeFixTaskType).filter(
+    return CodeFixTaskTypeHelper.getRunnerTaskTypes().filter(
       (taskType: CodeFixTaskType): boolean => {
         return taskType !== CodeFixTaskType.CodeRequest;
       },
@@ -261,7 +317,8 @@ export class CodeFixTaskTypeHelper {
   /*
    * The recipes a Runner said it can do, read from its request: unknown
    * names are dropped, and an absent or malformed list means it did not say
-   * (null).
+   * (null). A recipe the server runs itself is dropped too, whatever the
+   * Runner says: no Runner may take one.
    */
   public static readSupportedTaskTypes(
     value: unknown,
@@ -276,6 +333,7 @@ export class CodeFixTaskTypeHelper {
       if (
         typeof entry === "string" &&
         CodeFixTaskTypeHelper.isValidTaskType(entry) &&
+        !CodeFixTaskTypeHelper.isRunByServer(entry) &&
         !supported.includes(entry)
       ) {
         supported.push(entry);

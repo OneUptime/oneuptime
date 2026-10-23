@@ -76,6 +76,7 @@ import IncidentFollowUpCheck, {
 } from "./IncidentFollowUpCheck";
 import InvestigationRuleWait from "./InvestigationRuleWait";
 import { getInvestigationWaitUntil } from "../../../../Types/AI/InvestigationRuleWait";
+import SecurityCaseIncidentContext from "../Security/SecurityCaseIncidentContext";
 
 /*
  * AI SRE — incident investigation.
@@ -108,6 +109,11 @@ export interface IncidentGateDecision {
   waitMinutes?: number | undefined;
   // When the incident was created: a wait counts from it.
   createdAt?: Date | undefined;
+  /*
+   * To investigate, and an investigation rule it matches picks an LLM
+   * provider: the pick the run is recorded with (Types/AI/LlmProviderChoice).
+   */
+  llmProviderId?: ObjectID | undefined;
 }
 
 export default class AIIncidentInvestigationRunner {
@@ -186,8 +192,23 @@ export default class AIIncidentInvestigationRunner {
     };
 
     try {
+      /*
+       * What stops OneUptime AI for the whole project - but a provider or AI
+       * credits it lacks for the project's own provider stop it only when
+       * the provider the incident's investigation rules pick cannot run it
+       * either.
+       */
       const disabled: InvestigationNotStartedCode | null =
-        await AIInvestigationEngine.getDisabledReason(projectId, "Incident");
+        await AIInvestigationEngine.getDisabledReasonForSubject({
+          projectId,
+          subjectType: "Incident",
+          getRuleLlmProviderId: async (): Promise<ObjectID | undefined> => {
+            return await InvestigationRules.getSubjectLlmProviderId({
+              projectId,
+              incidentId,
+            });
+          },
+        });
       if (disabled) {
         await recordSkipped(disabled);
         return false;
@@ -264,6 +285,8 @@ export default class AIIncidentInvestigationRunner {
           projectId,
           subjectIncidentId: incidentId,
           subjectMonitorId: gate.monitorId,
+          // The LLM provider the incident's investigation rules pick.
+          ...(gate.llmProviderId ? { llmProviderId: gate.llmProviderId } : {}),
           onNotEnqueued: async (
             code: InvestigationNotStartedCode,
             budget?: AutonomousBudgetStatus,
@@ -458,6 +481,7 @@ export default class AIIncidentInvestigationRunner {
       ...(scope.waitMinutes && scope.waitMinutes > 0
         ? { waitMinutes: scope.waitMinutes, createdAt: incident.createdAt }
         : {}),
+      ...(scope.llmProviderId ? { llmProviderId: scope.llmProviderId } : {}),
     };
   }
 
@@ -618,6 +642,23 @@ export default class AIIncidentInvestigationRunner {
       } catch (error) {
         logger.error(
           `AI: could not read the recent changes of incident ${incidentId.toString()}; investigating it without them: ${error}`,
+        );
+      }
+
+      /*
+       * The security case that declared the incident, when one did: the
+       * attack the outage may be the impact of, and OneUptime AI's triage
+       * of it (SecurityCaseIncidentContext). Enrichment only.
+       */
+      try {
+        contextSummary +=
+          await SecurityCaseIncidentContext.buildContextSectionFor({
+            projectId,
+            incidentId,
+          });
+      } catch (error) {
+        logger.error(
+          `AI: could not read the security case behind incident ${incidentId.toString()}; investigating it without it: ${error}`,
         );
       }
 

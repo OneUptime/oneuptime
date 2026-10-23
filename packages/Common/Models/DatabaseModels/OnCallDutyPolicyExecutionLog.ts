@@ -87,6 +87,16 @@ import EnableWorkflow from "../../Types/Database/EnableWorkflow";
 @Entity({
   name: "OnCallDutyPolicyExecutionLog",
 })
+/*
+ * The runs whose acknowledgement timeout's clock is running
+ * (acknowledgementTimeoutStartedAt): at most one for each record and policy
+ * that pages again, so the index holds a handful, and the worker that pages
+ * again reads them every minute (OnCallAcknowledgementTimeout).
+ */
+@Index(["acknowledgementTimeoutStartedAt"], {
+  where:
+    '"acknowledgementTimeoutStartedAt" IS NOT NULL AND "deletedAt" IS NULL',
+})
 @TableMetadata({
   tableName: "OnCallDutyPolicyExecutionLog",
   singularName: "On-Call Duty Execution Log",
@@ -1351,6 +1361,83 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     nullable: true,
   })
   public pagingStartedEarlyReason?: string = undefined;
+
+  /*
+   * The acknowledgement timeout's clock (OnCallAcknowledgementTimeout): set
+   * on a policy's latest run for a record while the record is acknowledged
+   * and the policy pages again after an acknowledgement - the moment the
+   * record (or a page of this run) was last acknowledged. The worker that
+   * pages again reads every run that has one, through the partial index
+   * above, and clears it when it pages again or the clock stops. Empty for
+   * every other run.
+   *
+   * No caller may write it: OneUptime starts and stops the clock.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Acknowledgement Timeout Started At",
+    description:
+      "When the acknowledgement timeout started counting for this run's record: its last acknowledgement. Empty when it is not counting.",
+    canReadOnRelationQuery: false,
+    example: "2024-01-15T09:00:00.000Z",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public acknowledgementTimeoutStartedAt?: Date = undefined;
+
+  /*
+   * A page again: this run pages again because its record stayed
+   * acknowledged without being resolved (OnCallAcknowledgementTimeout).
+   * Which time, from 1 - at most a few times for one record and policy.
+   * Empty for every other run.
+   *
+   * No caller may write it: OneUptime starts a page again.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicyExecutionLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    required: false,
+    title: "Page Again Number",
+    description:
+      "For a run that pages again because its record stayed acknowledged without being resolved: which time, from 1. Empty for every other run.",
+    canReadOnRelationQuery: false,
+    example: 1,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public pageAgainNumber?: number = undefined;
 
   @ColumnAccessControl({
     create: [

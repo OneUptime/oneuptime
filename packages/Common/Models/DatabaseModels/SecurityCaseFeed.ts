@@ -41,6 +41,8 @@ export enum SecurityCaseFeedEventType {
   Notification = "Notification",
   IncidentDeclared = "IncidentDeclared",
   ResponseAction = "ResponseAction",
+  // OneUptime AI's triage report (SecurityCaseTriageRunner).
+  AiTriage = "AiTriage",
 }
 
 /*

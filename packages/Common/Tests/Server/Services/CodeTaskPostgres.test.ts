@@ -64,6 +64,7 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
   async function insertRun(data: {
     projectId: string;
     runType?: string;
+    codeFixTaskType?: string;
     status?: string;
     repositoryId?: string | null;
     codeTaskId?: string | null;
@@ -76,7 +77,7 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
     const id: string = ObjectID.generate().toString();
 
     await database.query(
-      `INSERT INTO "${schema}"."AIRun" ("_id", "version", "projectId", "runType", "status", "codeRepositoryId", "codeTaskId", "needsUserInput", "taskContext", "createdAt", "completedAt", "deletedAt") VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      `INSERT INTO "${schema}"."AIRun" ("_id", "version", "projectId", "runType", "status", "codeRepositoryId", "codeTaskId", "needsUserInput", "taskContext", "createdAt", "completedAt", "deletedAt", "codeFixTaskType") VALUES ($1, 1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         id,
         data.projectId,
@@ -91,6 +92,7 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
         data.createdAt || "2026-10-19T08:00:00.000Z",
         data.completedAt || null,
         data.deleted ? new Date() : null,
+        data.codeFixTaskType || null,
       ],
     );
 
@@ -352,6 +354,27 @@ describePostgres("Code's SQL on a migrated Postgres", () => {
         status: "Queued",
         deleted: true,
         createdAt: "2026-10-20T08:00:00.000Z",
+      });
+
+      /*
+       * Never counted either: a pull request's production reviews are
+       * OneUptime's, with a page of their own - one being reviewed is not
+       * AI working for someone, and none is a task or its latest moment.
+       */
+      await insertRun({
+        projectId: PROJECT_A,
+        repositoryId: repository,
+        codeFixTaskType: "GitHubPullRequestProductionReview",
+        status: "Running",
+        createdAt: "2026-10-20T09:00:00.000Z",
+      });
+      await insertRun({
+        projectId: PROJECT_A,
+        repositoryId: repository,
+        codeFixTaskType: "GitHubPullRequestProductionReview",
+        needsUserInput: true,
+        createdAt: "2026-10-20T10:00:00.000Z",
+        completedAt: "2026-10-20T10:05:00.000Z",
       });
       await insertRun({
         projectId: PROJECT_B,

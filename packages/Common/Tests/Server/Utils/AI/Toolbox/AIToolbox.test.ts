@@ -237,6 +237,8 @@ describe("AIToolbox contract", () => {
       [
         "acknowledge_alert",
         "acknowledge_incident",
+        // A security case: a note on it, a playbook started on it.
+        "add_security_case_note",
         "change_incident_severity",
         "commit_code_to_branch",
         "create_alert_note",
@@ -248,6 +250,7 @@ describe("AIToolbox contract", () => {
         "resolve_alert",
         "resolve_incident",
         "run_runbook",
+        "run_security_playbook",
         "start_investigation",
       ].sort(),
     );

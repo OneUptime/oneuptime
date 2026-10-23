@@ -97,7 +97,7 @@ OneUptime 使用兩組事件，它們負責不同的工作。
 | --- | --- |
 | **Issue comment** | 在 issue **和** pull request 上的 `@mention` 指令 |
 | **Issues** | 把 issue 指派給應用程式，以及儲存庫的觸發標籤 |
-| **Pull request** | 請應用程式進行審查 |
+| **Pull request** | 請應用程式進行審查，以及拉取請求開啟和變更時的正式環境審查 |
 | **Pull request review** | 已送出審查本文中的提及 |
 | **Pull request review comment** | diff 中行內留言裡的提及 |
 

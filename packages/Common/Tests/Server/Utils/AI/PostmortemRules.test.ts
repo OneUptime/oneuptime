@@ -45,6 +45,9 @@ import {
  *   - The templates are the project's own that still exist and have an
  *     outline, by name; below the plan templates need, none.
  *   - Rules or templates that cannot be read: no plan, so no draft.
+ *   - The rule that decides the templates decides the LLM provider the
+ *     draft is written with too: its pick (plan.llmProviderId), else none -
+ *     the project's default provider, else the global one.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -282,6 +285,7 @@ describe("PostmortemRules.getIncidentDraftPlan - no rule", () => {
         labels: { _id: true },
         monitorLabels: { _id: true },
         postmortemTemplates: { _id: true },
+        llmProviderId: true,
       },
       sort: { order: SortOrder.Ascending, createdAt: SortOrder.Ascending },
       limit: MAX_RULES_EVALUATED_PER_PROJECT,
@@ -595,6 +599,74 @@ describe("PostmortemRules.getIncidentDraftPlan - the templates", () => {
     await planFor();
 
     expect(planRead).not.toHaveBeenCalled();
+  });
+});
+
+describe("PostmortemRules.getIncidentDraftPlan - the LLM provider", () => {
+  const OPUS: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+  const AZURE: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
+
+  it("the rule that matches decides the provider, with its templates", async () => {
+    storeRules([
+      rule("SEV1", {
+        incidentSeverities: [severity(CRITICAL_ID)],
+        postmortemTemplates: [templateRef(DATABASE_OUTAGE_ID)],
+        llmProviderId: new ObjectID(OPUS),
+      }),
+    ]);
+
+    const plan: PostmortemDraftPlan | null = await planFor();
+
+    expect(plan?.llmProviderId).toEqual(new ObjectID(OPUS));
+    expect(templateNames(plan)).toEqual(["Database outage"]);
+  });
+
+  it("the first rule that matches decides it, whatever a later one picks - even none", async () => {
+    storeRules([
+      rule("Database incidents", { labels: [label(DATABASE_LABEL_ID)] }),
+      rule("Everything", { llmProviderId: new ObjectID(AZURE) }),
+    ]);
+
+    const plan: PostmortemDraftPlan | null = await planFor();
+
+    expect(plan?.rule?.name).toBe("Database incidents");
+    expect(plan).not.toHaveProperty("llmProviderId");
+  });
+
+  it("a rule passed over picks nothing for the one that matches", async () => {
+    storeRules([
+      rule("Minor incidents", {
+        incidentSeverities: [severity(MINOR_ID)],
+        llmProviderId: new ObjectID(AZURE),
+      }),
+      rule("Everything", { llmProviderId: new ObjectID(OPUS) }),
+    ]);
+
+    expect((await planFor())?.llmProviderId).toEqual(new ObjectID(OPUS));
+  });
+
+  it("a pick read as text, or as the relation, is the same pick", async () => {
+    storeRules([
+      rule("Everything", {
+        llmProvider: Object.assign(new AIPostmortemRule(), {
+          _id: OPUS.toUpperCase(),
+        }) as never,
+      }),
+    ]);
+
+    expect((await planFor())?.llmProviderId?.toString()).toBe(OPUS);
+  });
+
+  it("a stored value that is no provider id picks nothing", async () => {
+    storeRules([
+      rule("Everything", { llmProviderId: "not-an-id" as unknown as ObjectID }),
+    ]);
+
+    expect(await planFor()).not.toHaveProperty("llmProviderId");
+  });
+
+  it("with no rule, no pick: the project's default provider, else the global one", async () => {
+    expect(await planFor()).not.toHaveProperty("llmProviderId");
   });
 });
 

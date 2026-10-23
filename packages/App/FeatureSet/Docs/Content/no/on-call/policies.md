@@ -66,6 +66,19 @@ Når ventetiden til det siste nivået er ute uten at noen har bekreftet, stopper
 
 En retningslinje som starter på nytt tre ganger til, går gjennom nivåene sine fire ganger til sammen. Kortets rad **Etter det siste nivået** sier hva retningslinjen gjør, og **Policy at a glance** på **Oversikt** sier det samme med ord.
 
+## Varsle igjen hvis den ikke blir løst
+
+En bekreftelse stopper en retningslinjes varsling for godt, også om ingen løser hendelsen eller varselet etterpå. En retningslinje kan i stedet varsle igjen: åpne siden **Eskaleringsregler** for den, åpne **Flere innstillinger** nederst, og klikk på **Rediger** på kortet **Tidsavbrudd etter bekreftelse**. **Rediger tidsavbrudd etter bekreftelse** spør **Hvis den er bekreftet, men ikke løst**:
+
+| Svar | Hva det gjør |
+| --- | --- |
+| **Ikke varsle igjen** | En bekreftelse stopper varslingen for godt. En ny retningslinje starter med dette svaret. |
+| **Varsle igjen** | Varsler den som bekreftet, og den som har vakt nå. **Etter hvor mange minutter?** sier når: fra 5 til 1440, først 30. |
+
+Minuttene telles fra hver bekreftelse, og en retningslinje varsler høyst 5 ganger igjen om den samme hendelsen, det samme varselet eller den samme episoden. En ny varsling starter på nivået som varslet da det ble bekreftet, varsler den som har vakt der nå, og går videre gjennom nivåene som den første kjøringen. Hendelsen eller varselet forblir bekreftet: den nye varslingen er en egen kjøring, i feeden og i utførelsesloggene til retningslinjen, der **Status** sier "Varslet igjen (1 av 5)".
+
+Den som varsles igjen, bekrefter fra meldingen eller med **Bekreft igjen** på siden til hendelsen eller varselet, og minuttene starter på nytt; **Eskaler** sender varslingen videre til neste nivå. Å løse eller slette hendelsen eller varselet, arkivere eller slette retningslinjen, eller velge **Ikke varsle igjen** stopper den. Kortets rad **Etter en bekreftelse** sier hva retningslinjen gjør, og **Flere innstillinger** viser minuttene mens den er lukket. **Policy at a glance** på **Oversikt** og **Escalation summary** sier det samme med ord.
+
 ## Utførelseslogger
 
 Hver gang en retningslinje kjører, skriver den en utførelseslogg, og loggen går gjennom statusene sine etter hvert som kjøringen skrider frem:
@@ -122,9 +135,12 @@ Vaktretningslinjer er ressursen `/api/on-call-duty-policy`, og ressursen `oneupt
 | **Beskrivelse** | `description` |
 | **Hvis ingen bekrefter etter det siste nivået** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hvor mange ganger til?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
+| **Etter hvor mange minutter?** | `acknowledgementTimeoutInMinutes` |
 | Arkivert | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` er `false` for **Stopp varslingen** og `true` for **Start på nytt fra Level 1**. Med `true` og `repeatPolicyIfNoOneAcknowledgesNoOfTimes` på `0` gjentas en retningslinje aldri, og dashbordet viser den som **Stopp varslingen**.
+
+`acknowledgementTimeoutInMinutes` er `null` for **Ikke varsle igjen** og et helt antall minutter fra 5 til 1440 for **Varsle igjen**. OneUptime avviser alt annet.
 
 Se [Opprett regler med API-et eller Terraform](/docs/on-call/escalation-rules#opprett-regler-med-api-et-eller-terraform) for å opprette en retningslinje med det første nivået i én forespørsel.
 

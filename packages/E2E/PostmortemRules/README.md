@@ -21,7 +21,12 @@ rules are tried, creating a rule through its **Match** and **Draft** steps (the
 name following the templates picked, a typed name kept, conditions saved),
 reordering by keyboard drag and a refused drop, a viewer who can read but not
 add, edit or drag, a project below the Growth plan (no templates offered or
-listed), a phone-width screen, dark mode and German.
+listed), a phone-width screen, dark mode and German. A rule's **LLM
+Provider**, first under the Draft step's **More fields**
+(`?providers=project`, `?rulePick=opus`): the empty box names the provider
+an empty field uses, the folded line names it only while there is more than
+one to pick from, a pick is sent with the rule, and an edited rule's pick is
+shown and can be cleared.
 
 Screenshots are saved under `output/playwright/postmortem-rules-ui/` at the
 repository root: `folded-no-rules.png`, `rules-listed.png`,

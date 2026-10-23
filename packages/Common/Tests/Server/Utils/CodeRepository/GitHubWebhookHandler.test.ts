@@ -10,8 +10,14 @@ import GitHubCommandParser from "../../../../Server/Utils/CodeRepository/GitHub/
 import GitHubConversation, {
   GitHubPullRequestDetails,
   GitHubReaction,
+  GitHubRepositoryPermission,
 } from "../../../../Server/Utils/CodeRepository/GitHub/GitHubConversation";
 import GitHubRunReply from "../../../../Server/Utils/CodeRepository/GitHub/GitHubRunReply";
+import ProductionReviewGitHubTrigger from "../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewGitHubTrigger";
+import ProductionReviewQueue, {
+  ProductionReviewRequest,
+} from "../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewQueue";
+import { ProductionReviewTrigger } from "../../../../Types/CodeRepository/ProductionReview";
 import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../Server/Utils/Logger";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -1826,22 +1832,259 @@ describe("GitHubWebhookHandler", () => {
       expectNoRunAndNoWrites();
     });
 
+    /*
+     * Every other pull_request action is the production review's to weigh
+     * (ProductionReviewGitHubTrigger): it never starts an agent run, asks
+     * for no review from the app and writes nothing into the thread.
+     */
     test.each(["opened", "synchronize", "closed", "labeled"])(
-      "a pull_request %s event starts nothing",
+      "a pull_request %s event starts no agent run: the production review weighs it",
       async (action: string) => {
-        const result: GitHubWebhookHandlingResult = await handle({
-          event: "pull_request",
-          payload: reviewRequestedPayload({
-            requestedReviewerLogin: BOT_LOGIN,
-            action: action,
-          }),
+        const trigger: jest.SpyInstance = jest
+          .spyOn(ProductionReviewGitHubTrigger, "onPullRequestChanged")
+          .mockResolvedValue({
+            handled: false,
+            outcome: "production-review-off",
+          });
+
+        const payload: JSONObject = reviewRequestedPayload({
+          requestedReviewerLogin: BOT_LOGIN,
+          action: action,
         });
 
+        const result: GitHubWebhookHandlingResult = await handle({
+          event: "pull_request",
+          payload,
+        });
+
+        expect(trigger).toHaveBeenCalledWith(payload);
         expect(result.handled).toBe(false);
-        expect(result.outcome).toBe("action-not-actionable");
+        expect(result.outcome).toBe("production-review-off");
+        expect(authorizeSpy).not.toHaveBeenCalled();
         expectNoRunAndNoWrites();
       },
     );
+
+    test("a review_requested event is never weighed as a production review", async () => {
+      const trigger: jest.SpyInstance = jest.spyOn(
+        ProductionReviewGitHubTrigger,
+        "onPullRequestChanged",
+      );
+
+      await handle({
+        event: "pull_request",
+        payload: reviewRequestedPayload({ requestedReviewerLogin: BOT_LOGIN }),
+      });
+
+      expect(trigger).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * "@oneuptime production review": someone who can write to the repository
+   * asks for a production review of this pull request - whoever wrote it.
+   * The server does it: no agent run, no acknowledgement comment (the
+   * review's own comment is the answer), an eyes reaction on the ask.
+   */
+  describe("a production review asked for on a pull request", () => {
+    let requestSpy: jest.SpyInstance;
+    let permissionSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      requestSpy = jest
+        .spyOn(ProductionReviewQueue, "request")
+        .mockResolvedValue(queuedRun());
+      permissionSpy = jest
+        .spyOn(GitHubConversation, "getUserRepositoryPermission")
+        .mockResolvedValue(GitHubRepositoryPermission.None);
+    });
+
+    function asked(): ProductionReviewRequest {
+      return nthCallArgument(requestSpy, 1) as ProductionReviewRequest;
+    }
+
+    test.each([
+      "production review",
+      "review production",
+      "review against production",
+      "check production",
+    ])(
+      "'@app %s' queues a production review now, reacts and writes no comment",
+      async (words: string) => {
+        const result: GitHubWebhookHandlingResult = await handle({
+          event: "issue_comment",
+          payload: pullRequestCommentPayload({
+            body: `@${APP_SLUG} ${words}`,
+          }),
+        });
+
+        expect(result.handled).toBe(true);
+        expect(result.outcome).toBe("production-review-queued");
+        expect(result.aiRunId?.toString()).toBe(aiRunId.toString());
+        expect(enqueueRunSpy).not.toHaveBeenCalled();
+        expect(acknowledgeSpy).not.toHaveBeenCalled();
+        expect(createIssueCommentSpy).not.toHaveBeenCalled();
+        expect(reactionArguments(1)).toMatchObject({
+          commentId: TRIGGER_COMMENT_ID,
+          reaction: GitHubReaction.Eyes,
+        });
+      },
+    );
+
+    test("what it asks for: the pull request at its head, asked by the commenter, due at once", async () => {
+      await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(asked()).toEqual({
+        projectId: projectId,
+        codeRepositoryId: codeRepositoryId,
+        installationId: INSTALLATION_ID,
+        organizationName: ORGANIZATION_NAME,
+        repositoryName: REPOSITORY_NAME,
+        pullRequestNumber: PULL_REQUEST_NUMBER,
+        pullRequestTitle: "fix: back off the retry loop",
+        headSha: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+        isFromFork: false,
+        trigger: ProductionReviewTrigger.GitHubCommand,
+        isAuthorTrusted: true,
+        requestedByLogin: SENDER_LOGIN,
+        isImmediate: true,
+      });
+
+      // The author asked: they can write, so nothing more is asked of GitHub.
+      expect(permissionSpy).not.toHaveBeenCalled();
+    });
+
+    test("an outside contributor's pull request from a fork is reviewed when someone who can write asks - and is not followed on its own", async () => {
+      getPullRequestDetailsSpy.mockResolvedValue({
+        ...pullRequestDetails({ headRepositoryFullName: "stranger/checkout" }),
+        authorLogin: "stranger",
+      });
+
+      await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(permissionSpy).toHaveBeenCalledWith({
+        installationId: INSTALLATION_ID,
+        organizationName: ORGANIZATION_NAME,
+        repositoryName: REPOSITORY_NAME,
+        username: "stranger",
+      });
+      expect(asked().isAuthorTrusted).toBe(false);
+      expect(asked().isFromFork).toBe(true);
+    });
+
+    test("a pull request whose author can write is followed on its own after the ask", async () => {
+      getPullRequestDetailsSpy.mockResolvedValue({
+        ...pullRequestDetails({}),
+        authorLogin: "teammate",
+      });
+      permissionSpy.mockResolvedValue(GitHubRepositoryPermission.Maintain);
+
+      await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(asked().isAuthorTrusted).toBe(true);
+    });
+
+    test("a closed pull request is refused in the thread, and nothing is queued", async () => {
+      getPullRequestDetailsSpy.mockResolvedValue(
+        pullRequestDetails({ state: "closed" }),
+      );
+
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(result.outcome).toBe("pull-request-not-open");
+      expect(requestSpy).not.toHaveBeenCalled();
+      expect(commentArguments(1).body).toContain(
+        "This pull request is already closed, so there is nothing for me to review.",
+      );
+    });
+
+    test("on an issue it says it only reviews pull requests", async () => {
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: issueCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(result.outcome).toBe("unsupported-on-surface");
+      expect(requestSpy).not.toHaveBeenCalled();
+      expect(commentArguments(1).body).toContain(
+        "I can only review pull requests against production, and this is an issue.",
+      );
+    });
+
+    test("someone without write access gets a confused reaction, and nothing is queued", async () => {
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.InsufficientPermission,
+        codeRepository: connectedRepository(),
+      });
+
+      await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(requestSpy).not.toHaveBeenCalled();
+      expect(createIssueCommentSpy).not.toHaveBeenCalled();
+      expect(reactionArguments(1).reaction).toBe(GitHubReaction.Confused);
+    });
+
+    test("with GitHub commands switched off it says where the switch is", async () => {
+      authorizeSpy.mockResolvedValue({
+        outcome: GitHubAuthorizationOutcome.CommandsDisabled,
+        codeRepository: connectedRepository(),
+        reason: "GitHub commands are switched off for this repository.",
+      });
+
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(result.outcome).toBe("commands-disabled");
+      expect(requestSpy).not.toHaveBeenCalled();
+    });
+
+    test("a queue that cannot take it gives GitHub's delivery back, and never throws", async () => {
+      requestSpy.mockRejectedValue(new Error("Postgres is down"));
+      const releaseSpy: jest.SpyInstance = jest
+        .spyOn(GlobalCache, "deleteKey")
+        .mockResolvedValue(undefined);
+
+      const result: GitHubWebhookHandlingResult = await handle({
+        event: "issue_comment",
+        payload: pullRequestCommentPayload({
+          body: `@${APP_SLUG} production review`,
+        }),
+      });
+
+      expect(result.outcome).toBe("error");
+      expect(releaseSpy).toHaveBeenCalled();
+    });
   });
 
   /*

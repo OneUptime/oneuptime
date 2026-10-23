@@ -170,7 +170,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in nine groups
+  # own fixture server on its own port - so they run here in ten groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -182,8 +182,10 @@ jobs:
   # each group near 20 minutes on a slow runner, well under the job's 30. When
   # one passes about 22, move a suite or add a group. When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
-  # groups with Playwright's --shard. Playwright shards whole spec files
-  # unless fullyParallel is on, and Event Overview is one spec file.
+  # groups. Event Overview is split since 2026-10-22: it is one spec file, so
+  # its config reads EVENT_OVERVIEW_SHARD (set below from the group's
+  # event_overview_shard) and shards by test; the same can be done for any
+  # suite, with a variable of its own.
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -193,6 +195,10 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+    # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
+    # the groups that do not run it (playwright.event-overview-ui.config.ts).
+    env:
+      EVENT_OVERVIEW_SHARD: ${{ matrix.event_overview_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
@@ -201,9 +207,12 @@ jobs:
           # Event Overview on its own. With the thirteen shorter suites that
           # once shared its group and the setup, the group passed the job's 30
           # minutes. Status Page Theme moved to group 6 when this group took
-          # 24.3 minutes.
+          # 24.3 minutes. On 2026-10-22 Event Overview alone took 25.9 and
+          # 26.9 minutes on two runs, so it runs in halves: the first here,
+          # the second in group 10.
           - group: 1
             browsers: chromium
+            event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
@@ -214,7 +223,10 @@ jobs:
           # Runbook Steps (about 35 seconds locally with its bundle, Chromium
           # only: a runbook's Steps page and a run's execution page) joined it
           # on 2026-10-20, when it took 17.6 to 19.2 minutes: group 3, beside
-          # Runbook Variables, had reached 25 and group 7 about 18.
+          # Runbook Variables, had reached 25 and group 7 about 18. Navigation
+          # Search (2.9 to 3.5 minutes) moved to group 10 on 2026-10-22, when
+          # this group took 26.2 minutes on a slow runner and 20.9 on a fast
+          # one.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -225,7 +237,6 @@ jobs:
               test-pencil-button-ui
               test-color-picker-ui
               test-diagrams-ui
-              test-navigation-search-ui
               test-runbook-steps-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
@@ -285,6 +296,11 @@ jobs:
           # group took 14.7 minutes, the lightest: about 19.5. The next run
           # took 24.9 (the same suites ran about 40% slower on its runner),
           # so Model Tables and Home Overview moved on to group 9: about 19.
+          # Dashboard Value Widget (about a minute with its bundle locally,
+          # Chromium only: the Value widgets' lines, arrows and tooltips
+          # inside OneUptime and on the public page, at a laptop's and a
+          # phone's width, dark, German and Persian) joined it on 2026-10-22,
+          # when it took 14.4 minutes, the lightest of the nine: about 16.
           - group: 5
             browsers: chromium
             suites: >-
@@ -301,6 +317,7 @@ jobs:
               test-runbook-triggers-ui
               test-network-first-run-ui
               test-runbook-variables-ui
+              test-dashboard-value-widget-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -425,7 +442,12 @@ jobs:
           # and a half with its bundle, Chromium only: Incidents > Postmortems,
           # an incident's Postmortem page and Postmortem Statuses, at a
           # laptop's and a phone's width, dark and German) joined them on
-          # 2026-10-22: about 18.5 for the six.
+          # 2026-10-22: about 18.5 for the six. Acknowledgement Timeout (about
+          # 20 seconds locally with its bundle, Chromium only: an on-call
+          # policy's Escalation Rules page with the setting folded under More
+          # settings, its dialog and what a save sends, at 1280 and 390
+          # pixels, dark and German) joined them the same day: about 19.5 for
+          # the seven.
           - group: 9
             browsers: chromium
             suites: >-
@@ -435,6 +457,16 @@ jobs:
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-postmortems-ui
+              test-acknowledgement-timeout-ui
+          # Added on 2026-10-22 with the second half of Event Overview (about
+          # 13 minutes on a slow runner) and Navigation Search from group 2
+          # (2.9 to 3.5): about 18.5 with the setup. Chromium only.
+          - group: 10
+            browsers: chromium
+            event_overview_shard: 2/2
+            suites: >-
+              test-event-overview-ui
+              test-navigation-search-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -621,10 +653,14 @@ jobs:
             output/playwright/dashboard-time-range-ui/test-results
             output/playwright/dashboard-widget-sort-ui/*.png
             output/playwright/dashboard-widget-sort-ui/test-results
+            output/playwright/dashboard-value-widget-ui/*.png
+            output/playwright/dashboard-value-widget-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png
             output/playwright/host-collectors-ui/test-results
             output/playwright/vmware-host-page-ui/*.png
             output/playwright/vmware-host-page-ui/test-results
+            output/playwright/acknowledgement-timeout-ui/*.png
+            output/playwright/acknowledgement-timeout-ui/test-results
           retention-days: 7

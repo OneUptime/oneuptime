@@ -84,6 +84,7 @@ Un caso attraversa quattro stati. Può saltarne uno, come un falso positivo chiu
 La pagina del caso ha tutto ciò che serve per gestirlo:
 
 - In alto: **Assign to Me**, **Run Playbook**, **Dichiara incidente** e **Close Case**, i passaggi di stato e, nel menu accanto, la priorità.
+- **OneUptime AI**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 - **Detections**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
 - **MITRE ATT&CK**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
@@ -166,6 +167,7 @@ Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in
 | --- | --- |
 | Case Opened | Una volta, quando si apre un caso |
 | Detection Added | Ogni volta che un nuovo rilevamento si aggiunge a un caso aperto |
+| Classificato come probabilmente dannoso | Una volta, quando la classificazione di OneUptime AI legge il caso come Probabilmente dannoso |
 | Manual | Solo quando qualcuno lo esegue da un caso |
 
 Qualsiasi playbook abilitato si può anche eseguire a mano, con **Run Playbook** su un caso. Un playbook che si esegue da solo si può restringere:
@@ -321,5 +323,6 @@ Il caso non riguarda nessun utente né host, per esempio solo un indirizzo, oppu
 :::cards
 - [Eventi di sicurezza](/docs/telemetry/security-events): Invia eventi, scrivi regole di rilevamento e collega prodotti di sicurezza.
 - [Intelligence sulle minacce](/docs/telemetry/threat-intelligence): Confronta i tuoi eventi con feed STIX/TAXII.
+- [OneUptime AI nella sicurezza](/docs/telemetry/security-ai): Classificare i casi, scrivere bozze di regole di rilevamento e fare domande sulla sicurezza, con l'IA.
 - [Riferimento dei permessi](/docs/permissions/reference): I ruoli di sicurezza, e cosa può fare ciascuno.
 :::

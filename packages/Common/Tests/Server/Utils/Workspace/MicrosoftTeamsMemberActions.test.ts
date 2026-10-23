@@ -248,6 +248,11 @@ function stubRecord(data: {
   makeRecord: () => unknown;
   stateColumn: string;
   currentStateId: ObjectID | null;
+  /*
+   * There, but outside the member's read (their labels, their owners):
+   * only OneUptime's own read finds it.
+   */
+  isOutsideMemberRead?: boolean | undefined;
 }): AnySpy {
   const spy: AnySpy = jest.spyOn(
     data.service as { findOneBy: () => Promise<unknown> },
@@ -266,6 +271,17 @@ function stubRecord(data: {
   record["projectId"] = projectId;
   record["title"] = "Checkout is down";
   record[data.stateColumn] = data.currentStateId;
+
+  if (data.isOutsideMemberRead) {
+    return spy.mockImplementation(
+      async (findOneBy: unknown): Promise<unknown> => {
+        return (findOneBy as { props: { isRoot?: boolean } }).props.isRoot
+          ? record
+          : null;
+      },
+    );
+  }
+
   return spy.mockResolvedValue(record);
 }
 
@@ -347,7 +363,7 @@ interface TeamsKind {
     triggerColumn: string;
     userNotificationEventType: UserNotificationEventType;
   };
-  view: { actionType: string; notFound: string };
+  view: { actionType: string };
 }
 
 function bot(
@@ -452,7 +468,6 @@ const TEAMS_KINDS: Array<TeamsKind> = [
     },
     view: {
       actionType: MicrosoftTeamsIncidentActionType.ViewIncident,
-      notFound: "Incident not found.",
     },
   },
   {
@@ -515,7 +530,6 @@ const TEAMS_KINDS: Array<TeamsKind> = [
     },
     view: {
       actionType: MicrosoftTeamsAlertActionType.ViewAlert,
-      notFound: "Alert not found.",
     },
   },
   {
@@ -583,7 +597,6 @@ const TEAMS_KINDS: Array<TeamsKind> = [
     },
     view: {
       actionType: MicrosoftTeamsAlertEpisodeActionType.ViewAlertEpisode,
-      notFound: "Alert episode not found.",
     },
   },
   {
@@ -653,7 +666,6 @@ const TEAMS_KINDS: Array<TeamsKind> = [
     },
     view: {
       actionType: MicrosoftTeamsIncidentEpisodeActionType.ViewIncidentEpisode,
-      notFound: "Incident episode not found.",
     },
   },
 ];
@@ -861,7 +873,36 @@ describe.each(TEAMS_KINDS)(
           expect(turn.replies).toEqual([]);
         });
 
-        test(`a ${kind.noun} outside the member's read is refused like one that is not there`, async (): Promise<void> => {
+        test(`a ${kind.noun} outside the member's read is refused with that, never as one that is not there`, async (): Promise<void> => {
+          const props: DatabaseCommonInteractionProps = memberProps([
+            kind.role,
+          ]);
+          kind.stubStates();
+          stubRecord({
+            service: kind.recordService,
+            makeRecord: kind.makeRecord,
+            stateColumn: kind.recordStateColumn,
+            currentStateId: ObjectID.generate(),
+            isOutsideMemberRead: true,
+          });
+          const createSpy: AnySpy = stubCreate(kind.timelineService);
+
+          await expect(
+            kind.handle({
+              actionType: move.actionType,
+              actionValue: ObjectID.generate().toString(),
+              value: {},
+              props: props,
+              turnContext: createTurn().turnContext,
+            }),
+          ).rejects.toThrow(
+            `your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+          );
+
+          expect(createSpy).not.toHaveBeenCalled();
+        });
+
+        test(`a ${kind.noun} that is gone is not found, and nothing is written`, async (): Promise<void> => {
           const props: DatabaseCommonInteractionProps = memberProps([
             kind.role,
           ]);
@@ -883,7 +924,7 @@ describe.each(TEAMS_KINDS)(
               turnContext: createTurn().turnContext,
             }),
           ).rejects.toThrow(
-            `the ${kind.noun} was not found in this project, or you do not have access to it.`,
+            `the ${kind.noun} was not found. It may have been deleted.`,
           );
 
           expect(createSpy).not.toHaveBeenCalled();
@@ -1205,10 +1246,22 @@ describe.each(TEAMS_KINDS)(
     });
 
     describe("Execute On-Call Policy", (): void => {
-      function stubPolicy(readable: boolean): AnySpy {
+      // The policy: readable, there but outside the member's read, or gone.
+      function stubPolicy(readable: boolean | "outside"): AnySpy {
         const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
         policy.id = ObjectID.generate();
         policy.projectId = projectId;
+
+        if (readable === "outside") {
+          return jest
+            .spyOn(OnCallDutyPolicyService, "findOneBy")
+            .mockImplementation((async (findOneBy: {
+              props: { isRoot?: boolean };
+            }) => {
+              return findOneBy.props.isRoot ? policy : null;
+            }) as never) as AnySpy;
+        }
+
         return jest
           .spyOn(OnCallDutyPolicyService, "findOneBy")
           .mockResolvedValue(readable ? policy : null) as AnySpy;
@@ -1277,7 +1330,34 @@ describe.each(TEAMS_KINDS)(
         expect(createSpy).not.toHaveBeenCalled();
       });
 
-      test("a policy outside the member's read is refused like one that is not there", async (): Promise<void> => {
+      test("a policy outside the member's read is refused with that", async (): Promise<void> => {
+        stubRecord({
+          service: kind.recordService,
+          makeRecord: kind.makeRecord,
+          stateColumn: kind.recordStateColumn,
+          currentStateId: ObjectID.generate(),
+        });
+        stubPolicy("outside");
+        const createSpy: AnySpy = stubCreate(
+          OnCallDutyPolicyExecutionLogService,
+        );
+
+        await expect(
+          kind.handle({
+            actionType: kind.execute.actionType,
+            actionValue: ObjectID.generate().toString(),
+            value: { onCallPolicy: ObjectID.generate().toString() },
+            props: memberProps([kind.role, Permission.OnCallMember]),
+            turnContext: createTurn().turnContext,
+          }),
+        ).rejects.toThrow(
+          "your access in this project does not include this on-call policy. Ask a project admin for access to it.",
+        );
+
+        expect(createSpy).not.toHaveBeenCalled();
+      });
+
+      test("a policy that is gone is not found, and no one is paged", async (): Promise<void> => {
         stubRecord({
           service: kind.recordService,
           makeRecord: kind.makeRecord,
@@ -1297,38 +1377,65 @@ describe.each(TEAMS_KINDS)(
             props: memberProps([kind.role, Permission.OnCallMember]),
             turnContext: createTurn().turnContext,
           }),
-        ).rejects.toThrow("the on-call policy was not found in this project");
+        ).rejects.toThrow(
+          "the on-call policy was not found. It may have been deleted.",
+        );
 
         expect(createSpy).not.toHaveBeenCalled();
       });
     });
 
-    test(`viewing a ${kind.noun} reads it as the member, in their project`, async (): Promise<void> => {
+    test(`viewing a ${kind.noun} reads it as the member, in their project, and one outside their read is refused with why`, async (): Promise<void> => {
       const props: DatabaseCommonInteractionProps = memberProps([kind.role]);
       const readSpy: AnySpy = stubRecord({
         service: kind.recordService,
         makeRecord: kind.makeRecord,
         stateColumn: kind.recordStateColumn,
-        currentStateId: null,
+        currentStateId: ObjectID.generate(),
+        isOutsideMemberRead: true,
       });
       const turn: FakeTurn = createTurn();
       const recordId: ObjectID = ObjectID.generate();
 
-      await kind.handle({
-        actionType: kind.view.actionType,
-        actionValue: recordId.toString(),
-        value: {},
-        props: props,
-        turnContext: turn.turnContext,
-      });
+      // Thrown for handleBotInvokeActivity to tell them, as every refusal is.
+      await expect(
+        kind.handle({
+          actionType: kind.view.actionType,
+          actionValue: recordId.toString(),
+          value: {},
+          props: props,
+          turnContext: turn.turnContext,
+        }),
+      ).rejects.toThrow(
+        `You do not have permission to see this ${kind.noun}: your access in this project does not include this ${kind.noun}. Ask a project admin for access to it.`,
+      );
 
-      expect(readSpy).toHaveBeenCalledTimes(1);
       expect(readSpy.mock.calls[0]![0].props).toBe(props);
       expect(readSpy.mock.calls[0]![0].query).toMatchObject({
         projectId: projectId,
       });
-      // One outside their read is answered like one the project does not have.
-      expect(turn.replies).toEqual([kind.view.notFound]);
+      expect(turn.replies).toEqual([]);
+    });
+
+    test(`viewing a ${kind.noun} that is gone says it was not found`, async (): Promise<void> => {
+      stubRecord({
+        service: kind.recordService,
+        makeRecord: kind.makeRecord,
+        stateColumn: kind.recordStateColumn,
+        currentStateId: null,
+      });
+
+      await expect(
+        kind.handle({
+          actionType: kind.view.actionType,
+          actionValue: ObjectID.generate().toString(),
+          value: {},
+          props: memberProps([kind.role]),
+          turnContext: createTurn().turnContext,
+        }),
+      ).rejects.toThrow(
+        `Could not see this ${kind.noun}: the ${kind.noun} was not found. It may have been deleted.`,
+      );
     });
   },
 );
@@ -1381,6 +1488,8 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
   function stubMaintenance(
     readable: boolean,
     current: keyof MaintenanceStates = "scheduled",
+    // There, but only OneUptime's own read finds it (labels, owners).
+    isOutsideMemberRead: boolean = false,
   ): {
     readSpy: AnySpy;
     states: MaintenanceStates;
@@ -1435,7 +1544,9 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
           return new ScheduledMaintenance();
         },
         stateColumn: "currentScheduledMaintenanceStateId",
-        currentStateId: readable ? states[current] : null,
+        currentStateId:
+          readable || isOutsideMemberRead ? states[current] : null,
+        isOutsideMemberRead: isOutsideMemberRead,
       }),
       states: states,
     };
@@ -1548,8 +1659,8 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     },
   );
 
-  test("an event outside the member's read is answered like one that is not there", async (): Promise<void> => {
-    stubMaintenance(false);
+  test("an event outside the member's read is refused with that, never as one that is not there", async (): Promise<void> => {
+    stubMaintenance(false, "scheduled", true);
     const createSpy: AnySpy = stubCreate(
       ScheduledMaintenanceStateTimelineService,
     );
@@ -1561,8 +1672,61 @@ describe("Microsoft Teams scheduled maintenance card actions", (): void => {
     });
 
     expect(createSpy).not.toHaveBeenCalled();
-    expect(repliesText(turn)).toEqual(["ScheduledMaintenance not found"]);
+    expect(repliesText(turn)).toEqual([
+      "You do not have permission to mark this scheduled maintenance event as complete: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.",
+    ]);
   });
+
+  test("an event that is gone is not found - it may have been deleted", async (): Promise<void> => {
+    stubMaintenance(false);
+    const createSpy: AnySpy = stubCreate(
+      ScheduledMaintenanceStateTimelineService,
+    );
+
+    const turn: FakeTurn = await press({
+      actionType: MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing,
+      payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+      props: memberProps([Permission.ScheduledMaintenanceMember]),
+    });
+
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(repliesText(turn)).toEqual([
+      "Could not mark this scheduled maintenance event as ongoing: the scheduled maintenance event was not found. It may have been deleted.",
+    ]);
+  });
+
+  test.each([
+    [
+      MicrosoftTeamsScheduledMaintenanceActionType.ViewScheduledMaintenance,
+      "see this scheduled maintenance event",
+    ],
+    [
+      MicrosoftTeamsScheduledMaintenanceActionType.ViewAddScheduledMaintenanceNote,
+      "add a note to this scheduled maintenance event",
+    ],
+    [
+      MicrosoftTeamsScheduledMaintenanceActionType.ViewChangeScheduledMaintenanceState,
+      "change the state of this scheduled maintenance event",
+    ],
+  ])(
+    "%s on an event outside the member's read is refused as what it does: %s",
+    async (
+      actionType: MicrosoftTeamsScheduledMaintenanceActionType,
+      does: string,
+    ): Promise<void> => {
+      stubMaintenance(false, "scheduled", true);
+
+      const turn: FakeTurn = await press({
+        actionType: actionType,
+        payload: { scheduledMaintenanceId: ObjectID.generate().toString() },
+        props: memberProps([Permission.ScheduledMaintenanceMember]),
+      });
+
+      expect(repliesText(turn)).toEqual([
+        `You do not have permission to ${does}: your access in this project does not include this scheduled maintenance event. Ask a project admin for access to it.`,
+      ]);
+    },
+  );
 
   test("Mark as Complete on an event that is complete: who completed it, and when, and nothing is written", async (): Promise<void> => {
     const { states } = stubMaintenance(true, "completed");

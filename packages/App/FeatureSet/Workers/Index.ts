@@ -99,6 +99,7 @@ import "./Jobs/NetworkAlertPolicy/ReconcilePolicies";
 // On-Call Duty Policy Executions.
 import "./Jobs/OnCallDutyPolicyExecutionLog/ExecutePendingExecutions";
 import "./Jobs/OnCallDutyPolicyExecutionLog/TimeoutStuckExecutions";
+import "./Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout";
 
 /*
  * On-Call Duty Policy notification rules.
@@ -200,6 +201,13 @@ import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
  * page that first went to it says it was sent.
  */
 import "./Jobs/PushNotification/CheckExpoPushReceipts";
+
+/*
+ * Telegram messages, fetched by a server Telegram cannot reach. Without it,
+ * "Poll Telegram for Messages" fetches nothing, and nobody on such a server
+ * can link a Telegram account.
+ */
+import "./Jobs/Telegram/PollUpdates";
 import "./Jobs/Workflow/TimeoutJobs";
 
 /*
@@ -254,6 +262,7 @@ import "./Jobs/AIAgent/FailOrphanedQueuedCodeFixRuns";
 import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIAgent/VerifyFixesInProduction";
 import "./Jobs/AIAgent/ReportGitHubRunOutcomes";
+import "./Jobs/AIAgent/ReviewPullRequestsInProduction";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 import "./Jobs/AIChat/InvestigateAfterDailyLimitReset";

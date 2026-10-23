@@ -5,9 +5,18 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import {
   aggregateValues,
   collectDataPoints,
+  getMetricValueWidgetReduce,
+  getMetricValueWidgetSeries,
   getNumericValues,
   getResultsErrorMessage,
+  isAdditiveAggregation,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/ValueWidgetData";
+import {
+  getValueWidgetTrend,
+  ValueWidgetPoint,
+  ValueWidgetTrend,
+  ValueWidgetTrendDirection,
+} from "Common/Utils/Dashboard/ValueWidgetSeries";
 
 /*
  * Covers the reduction behind a Value tile's single big number. The case that
@@ -128,6 +137,165 @@ describe("ValueWidgetData.collectDataPoints", () => {
   test("results present but empty yield no points", () => {
     expect(collectDataPoints([result([])])).toEqual([]);
     expect(collectDataPoints([])).toEqual([]);
+  });
+});
+
+/*
+ * The metric widget's series and the reduction its trend compares the two
+ * halves of the time range with. The metrics API answers newest first
+ * (AnalyticsDatabaseService sorts an aggregate by time, descending), and the
+ * widget used to draw - and halve - the points in that order.
+ */
+const HOUR_MS: number = 60 * 60 * 1000;
+const WEEK_START_MS: number = Date.UTC(2026, 9, 15, 10, 0, 0);
+
+type MakeTimedPoint = (hour: number, value: unknown) => AggregatedModel;
+
+const timedPoint: MakeTimedPoint = (
+  hour: number,
+  value: unknown,
+): AggregatedModel => {
+  return {
+    timestamp: new Date(WEEK_START_MS + hour * HOUR_MS),
+    value: value as number,
+  };
+};
+
+// A week of hourly counts, newest first: 100 an hour, then 250 an hour.
+const RISING_WEEK_NEWEST_FIRST: AggregatedResult = {
+  data: Array.from({ length: 168 }, (_unused: unknown, index: number) => {
+    return 167 - index;
+  }).map((hour: number): AggregatedModel => {
+    return timedPoint(hour, hour < 84 ? 100 : 250);
+  }),
+};
+
+describe("ValueWidgetData.getMetricValueWidgetReduce", () => {
+  test("reduces each half the way the big number is reduced", () => {
+    const values: Array<number> = [4, 1, 7];
+
+    for (const type of Object.values(AggregationType)) {
+      expect(getMetricValueWidgetReduce(type)(values)).toBe(
+        aggregateValues(values, type),
+      );
+      expect(getMetricValueWidgetReduce(type)([])).toBeNull();
+    }
+  });
+
+  test("a sum or a count adds up; a min, a max and the rest do not", () => {
+    expect(getMetricValueWidgetReduce(AggregationType.Sum)([1, 2])).toBe(3);
+    expect(getMetricValueWidgetReduce(AggregationType.Count)([1, 2])).toBe(3);
+    expect(getMetricValueWidgetReduce(AggregationType.Max)([1, 2])).toBe(2);
+    expect(getMetricValueWidgetReduce(AggregationType.Min)([1, 2])).toBe(1);
+    expect(getMetricValueWidgetReduce(AggregationType.Avg)([1, 2])).toBe(1.5);
+    expect(getMetricValueWidgetReduce(AggregationType.P95)([1, 2])).toBe(1.5);
+  });
+});
+
+describe("ValueWidgetData.isAdditiveAggregation", () => {
+  test("only a sum and a count are compared as totals", () => {
+    for (const type of Object.values(AggregationType)) {
+      expect([type, isAdditiveAggregation(type)]).toEqual([
+        type,
+        type === AggregationType.Sum || type === AggregationType.Count,
+      ]);
+    }
+  });
+});
+
+describe("ValueWidgetData.getMetricValueWidgetSeries", () => {
+  test("draws the metrics API's newest-first buckets oldest first", () => {
+    const series: Array<ValueWidgetPoint> = getMetricValueWidgetSeries(
+      [RISING_WEEK_NEWEST_FIRST],
+      AggregationType.Sum,
+    );
+
+    expect(series).toHaveLength(168);
+    expect(series[0]!.timestamp.getTime()).toBe(WEEK_START_MS);
+    expect(series[167]!.timestamp.getTime()).toBe(
+      WEEK_START_MS + 167 * HOUR_MS,
+    );
+    expect(series[0]!.value).toBe(100);
+    expect(series[167]!.value).toBe(250);
+  });
+
+  test("one point per bucket for a grouped query, combined as the number is", () => {
+    const grouped: AggregatedResult = {
+      data: [
+        timedPoint(1, 10),
+        timedPoint(0, 1),
+        timedPoint(1, 20),
+        timedPoint(0, 3),
+      ],
+    };
+
+    expect(
+      getMetricValueWidgetSeries([grouped], AggregationType.Sum).map(
+        (entry: ValueWidgetPoint): number => {
+          return entry.value;
+        },
+      ),
+    ).toEqual([4, 30]);
+    expect(
+      getMetricValueWidgetSeries([grouped], AggregationType.Avg).map(
+        (entry: ValueWidgetPoint): number => {
+          return entry.value;
+        },
+      ),
+    ).toEqual([2, 15]);
+    expect(
+      getMetricValueWidgetSeries([grouped], AggregationType.Max).map(
+        (entry: ValueWidgetPoint): number => {
+          return entry.value;
+        },
+      ),
+    ).toEqual([3, 20]);
+  });
+
+  test("leaves out a bucket with no number, and reads ISO timestamps", () => {
+    const series: Array<ValueWidgetPoint> = getMetricValueWidgetSeries(
+      [
+        {
+          data: [
+            {
+              timestamp: "2026-10-15T12:00:00.000Z" as unknown as Date,
+              value: 3,
+            },
+            timedPoint(1, null),
+            timedPoint(0, 1),
+          ],
+        },
+      ],
+      AggregationType.Avg,
+    );
+
+    expect(
+      series.map((entry: ValueWidgetPoint): [number, number] => {
+        return [entry.timestamp.getTime(), entry.value];
+      }),
+    ).toEqual([
+      [WEEK_START_MS, 1],
+      [WEEK_START_MS + 2 * HOUR_MS, 3],
+    ]);
+  });
+
+  test("the reported week's trend points up, by the percentage of the older half it rose", () => {
+    const trend: ValueWidgetTrend | null = getValueWidgetTrend({
+      points: getMetricValueWidgetSeries(
+        [RISING_WEEK_NEWEST_FIRST],
+        AggregationType.Sum,
+      ),
+      reduce: getMetricValueWidgetReduce(AggregationType.Sum),
+      isAdditive: isAdditiveAggregation(AggregationType.Sum),
+      windowStart: new Date(WEEK_START_MS),
+      windowEnd: new Date(WEEK_START_MS + 168 * HOUR_MS),
+      bucketWidthMs: HOUR_MS,
+    });
+
+    expect(trend?.direction).toBe(ValueWidgetTrendDirection.Up);
+    expect(trend?.percent).toBe(150);
+    expect(trend?.firstHalfValue).toBe(8400);
+    expect(trend?.secondHalfValue).toBe(21000);
   });
 });
 

@@ -87,6 +87,7 @@ export const CodeRoutePath: Dictionary<string> = {
   [PageMap.CODE_REPOSITORY_VIEW]: `repositories/${RouteParams.ModelID}`,
   [PageMap.CODE_REPOSITORY_VIEW_DELETE]: `repositories/${RouteParams.ModelID}/delete`,
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: `repositories/${RouteParams.ModelID}/settings`,
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: `repositories/${RouteParams.ModelID}/production-reviews`,
   [PageMap.CODE_TASK_VIEW]: `tasks/${RouteParams.ModelID}`,
   [PageMap.CODE_TASK_VIEW_LOG]: `tasks/${RouteParams.ModelID}/log`,
 };
@@ -795,6 +796,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS]:
     "workspace-connection-microsoft-teams",
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: "workspace-connections",
+  // AI, at the address Incidents' and Alerts' AI settings pages have.
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: "ai/settings",
 };
 
 // Metrics product routes
@@ -2892,6 +2895,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CODE_REPOSITORY_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/code/${
       CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/code/${
+      CodeRoutePath[PageMap.CODE_REPOSITORY_VIEW_PRODUCTION_REVIEWS]
     }`,
   ),
 
@@ -6859,6 +6868,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_WORKSPACE_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_AI]
     }`,
   ),
 

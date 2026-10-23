@@ -99,11 +99,27 @@ import WorkspaceRecordPeople from "../Utils/Workspace/WorkspaceRecordPeople";
 import WorkspaceRecordChannels, {
   WorkspaceRecordChannelState,
 } from "../Utils/Workspace/WorkspaceRecordChannels";
+import WorkspaceScheduleOnCall, {
+  ScheduleOnCallPerson,
+} from "../Utils/Workspace/WorkspaceScheduleOnCall";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import SlackAccountByEmail, {
+  SlackEmailAccount,
+} from "../Utils/Workspace/Slack/SlackAccountByEmail";
+import QueryHelper from "../Types/Database/QueryHelper";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
   messageBlocks: Array<WorkspaceMessageBlock>;
+}
+
+/*
+ * Whom a rule's channels invite, as the workspace knows them
+ * (findWorkspaceUserIdsToInvite): each person found there, and who was not.
+ */
+export interface WorkspaceInvitees {
+  invitees: Array<{ userId: ObjectID; workspaceUserId: string }>;
+  notFoundUserIds: Array<ObjectID>;
 }
 
 /*
@@ -2830,6 +2846,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * could not be added (no account connected to this workspace), per rule's
    * channels. It does not tell the channels: the record's service does,
    * after the record's own first message (ChannelMembersNotAddedNotice.noteAll).
+   *
+   * Whoever is on call in the schedules a rule names joins its channels too,
+   * without being paged (WorkspaceScheduleOnCall): Slack adds them with the
+   * rule's other people; Microsoft Teams adds nobody to a channel, so they
+   * are handed back to be @mentioned in it, at the same moment as the note.
    */
   @CaptureSpan()
   public async inviteUsersAndTeamsToChannelsBasedOnRules(data: {
@@ -2853,6 +2874,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
 
+    // Who is on call in each rule's schedules: none, if they cannot be read.
+    const peopleOnCallByRule: Map<
+      string,
+      Array<ScheduleOnCallPerson>
+    > = await WorkspaceScheduleOnCall.getPeopleOnCallByRule({
+      projectId: data.projectId,
+      notificationRules: data.notificationRules,
+    }).catch((err: unknown): Map<string, Array<ScheduleOnCallPerson>> => {
+      logger.error(
+        "Could not read who is on call in the rules' schedules to add to their new channels",
+        { projectId: data.projectId?.toString() } as LogAttributes,
+      );
+      logger.error(err, {
+        projectId: data.projectId?.toString(),
+      } as LogAttributes);
+      return new Map<string, Array<ScheduleOnCallPerson>>();
+    });
+
     const inviteUserPayloads: Array<{
       notificationRuleId: string;
       userIds: Array<ObjectID>;
@@ -2860,6 +2899,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       projectId: data.projectId,
       notificationRules: data.notificationRules,
       notificationFor: data.notificationFor,
+      ...(data.workspaceType === WorkspaceType.Slack
+        ? { peopleOnCallByRule: peopleOnCallByRule }
+        : {}),
     });
 
     logger.debug("User IDs to invite by Workspace Notification Rule ID:", {
@@ -2873,9 +2915,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     for (const inviteUserPayload of inviteUserPayloads) {
       const userIds: Array<ObjectID> = inviteUserPayload.userIds;
-      const workspaceUserIds: Array<string> = [];
-      const invitedUserIds: Array<ObjectID> = [];
-      const userIdsNotConnected: Array<ObjectID> = [];
 
       // A channel several rules asked for is each of those rules' channel.
       const channelsOfRule: Array<NotificationRuleWorkspaceChannel> =
@@ -2893,21 +2932,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         continue;
       }
 
-      for (const userId of userIds) {
-        const workspaceUserId: string | null =
-          await this.getWorkspaceUserIdFromOneUptimeUserId({
-            projectId: data.projectId,
-            workspaceType: data.workspaceType,
-            oneuptimeUserId: userId,
-          });
+      const found: WorkspaceInvitees = await this.findWorkspaceUserIdsToInvite({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        authToken: data.projectAuth.authToken || "",
+        userIds: userIds,
+      });
 
-        if (workspaceUserId) {
-          workspaceUserIds.push(workspaceUserId);
-          invitedUserIds.push(userId);
-        } else {
-          userIdsNotConnected.push(userId);
-        }
-      }
+      const workspaceUserIds: Array<string> = found.invitees.map(
+        (invitee: { workspaceUserId: string }): string => {
+          return invitee.workspaceUserId;
+        },
+      );
+      const invitedUserIds: Array<ObjectID> = found.invitees.map(
+        (invitee: { userId: ObjectID }): ObjectID => {
+          return invitee.userId;
+        },
+      );
+      const userIdsNotConnected: Array<ObjectID> = found.notFoundUserIds;
 
       logger.debug("Workspace User IDs to invite:", {
         projectId: data.projectId?.toString(),
@@ -2982,11 +3024,146 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
     }
 
+    /*
+     * Microsoft Teams adds nobody to a channel: whoever is on call in the
+     * rules' schedules is @mentioned in it instead, once the record's own
+     * first message is posted (ChannelMembersNotAddedNotice.noteAll).
+     */
+    if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      try {
+        membersNotAdded.push(
+          ...(await this.getOnCallToMentionInChannels({
+            projectId: data.projectId,
+            notificationRules: data.notificationRules,
+            notificationChannels: data.notificationChannels,
+            peopleOnCallByRule: peopleOnCallByRule,
+            notificationFor: data.notificationFor,
+          })),
+        );
+      } catch (err) {
+        logger.error(
+          "Could not work out who is on call to mention in the new Microsoft Teams channels",
+          { projectId: data.projectId?.toString() } as LogAttributes,
+        );
+        logger.error(err, {
+          projectId: data.projectId?.toString(),
+        } as LogAttributes);
+      }
+    }
+
     logger.debug("Users invited to channels successfully", {
       projectId: data.projectId?.toString(),
     } as LogAttributes);
 
     return membersNotAdded;
+  }
+
+  /*
+   * Who to @mention in each new Microsoft Teams channel: whoever is on call
+   * in the schedules of the rules that asked for it, each person once with
+   * every schedule they are on call in - one message per channel, however
+   * many of its rules name schedules. Only members of the project, as for
+   * an invite.
+   */
+  private async getOnCallToMentionInChannels(data: {
+    projectId: ObjectID;
+    notificationRules: Array<WorkspaceNotificationRule>;
+    notificationChannels: Array<NotificationRuleWorkspaceChannel>;
+    peopleOnCallByRule: Map<string, Array<ScheduleOnCallPerson>>;
+    notificationFor?: NotificationFor | undefined;
+  }): Promise<Array<ChannelMembersNotAdded>> {
+    const userIds: Array<ObjectID> = [];
+
+    for (const people of data.peopleOnCallByRule.values()) {
+      for (const person of people) {
+        userIds.push(person.userId);
+      }
+    }
+
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    const memberUserIds: Set<string> = new Set<string>(
+      (
+        await TeamMemberService.getProjectMemberUserIds({
+          projectId: data.projectId,
+          userIds: userIds,
+        })
+      ).map((userId: ObjectID): string => {
+        return userId.toString().toLowerCase();
+      }),
+    );
+
+    const onCallToMention: Array<ChannelMembersNotAdded> = [];
+
+    for (const channel of data.notificationChannels) {
+      const people: Array<ScheduleOnCallPerson> = [];
+
+      for (const rule of data.notificationRules) {
+        const ruleId: string | undefined = rule.id?.toString();
+
+        if (
+          !ruleId ||
+          !NotificationRuleWorkspaceChannelUtil.isChannelOfRule({
+            channel: channel,
+            notificationRuleId: ruleId,
+          })
+        ) {
+          continue;
+        }
+
+        for (const person of data.peopleOnCallByRule.get(ruleId) || []) {
+          const key: string = person.userId.toString().toLowerCase();
+
+          if (!memberUserIds.has(key)) {
+            continue;
+          }
+
+          const known: ScheduleOnCallPerson | undefined = people.find(
+            (candidate: ScheduleOnCallPerson): boolean => {
+              return candidate.userId.toString().toLowerCase() === key;
+            },
+          );
+
+          if (!known) {
+            people.push({
+              userId: person.userId,
+              scheduleNames: [...person.scheduleNames],
+            });
+            continue;
+          }
+
+          for (const scheduleName of person.scheduleNames) {
+            if (!known.scheduleNames.includes(scheduleName)) {
+              known.scheduleNames.push(scheduleName);
+            }
+          }
+        }
+      }
+
+      if (people.length === 0) {
+        continue;
+      }
+
+      onCallToMention.push({
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        channels: [
+          {
+            id: channel.id,
+            name: channel.name,
+            ...(channel.teamId ? { teamId: channel.teamId } : {}),
+          },
+        ],
+        userIds: [],
+        onCallToMention: people,
+        ...(data.notificationFor
+          ? { notificationFor: data.notificationFor }
+          : {}),
+      });
+    }
+
+    return onCallToMention;
   }
 
   @CaptureSpan()
@@ -3126,25 +3303,24 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       // inivte users to channels.
 
-      const workspaceUserIds: Array<string> = [];
-      const invitedUserIds: Array<ObjectID> = [];
-      const userIdsNotConnected: Array<ObjectID> = [];
+      const found: WorkspaceInvitees = await this.findWorkspaceUserIdsToInvite({
+        projectId: data.projectId,
+        workspaceType: workspaceType,
+        authToken: projectAuth.authToken || "",
+        userIds: userIds,
+      });
 
-      for (const userId of userIds) {
-        const workspaceUserId: string | null =
-          await this.getWorkspaceUserIdFromOneUptimeUserId({
-            projectId: data.projectId,
-            workspaceType: workspaceType,
-            oneuptimeUserId: userId,
-          });
-
-        if (workspaceUserId) {
-          workspaceUserIds.push(workspaceUserId);
-          invitedUserIds.push(userId);
-        } else {
-          userIdsNotConnected.push(userId);
-        }
-      }
+      const workspaceUserIds: Array<string> = found.invitees.map(
+        (invitee: { workspaceUserId: string }): string => {
+          return invitee.workspaceUserId;
+        },
+      );
+      const invitedUserIds: Array<ObjectID> = found.invitees.map(
+        (invitee: { userId: ObjectID }): ObjectID => {
+          return invitee.userId;
+        },
+      );
+      const userIdsNotConnected: Array<ObjectID> = found.notFoundUserIds;
 
       logger.debug("Workspace User IDs to invite:", {
         projectId: data.projectId?.toString(),
@@ -3198,11 +3374,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
 
       /*
-       * Who could not be added - not connected to this workspace - is said
-       * once per channel, in one note naming them all, however often they
-       * are owners again or paged again (ChannelMembersNotAddedNotice). It
-       * used to be a message per person every time: each page of the same
-       * person repeated it.
+       * Who could not be added - found in this workspace neither by a
+       * connected account nor by their email address - is said once per
+       * channel, in one note naming them all, however often they are owners
+       * again or paged again (ChannelMembersNotAddedNotice). It used to be a
+       * message per person every time: each page of the same person
+       * repeated it.
        */
       await ChannelMembersNotAddedNotice.noteMembersNotAdded({
         projectId: data.projectId,
@@ -3345,6 +3522,145 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       } as LogAttributes);
       // Don't throw the error, just log it so the main flow continues
     }
+  }
+
+  /*
+   * Whom a rule's channels invite, in the workspace: each person's connected
+   * account, or else - in Slack - the account with their OneUptime email
+   * address, as Add people on the record's page finds them
+   * (SlackAccountByEmail). Nobody has to connect their account before a
+   * rule's channel can have them. A guest's account found by email is left
+   * out: Slack keeps guests out of the channels the app invites to, and its
+   * refusal would stop everybody else's invitation with it. Whoever is found
+   * neither way is handed back, for the channel's note
+   * (ChannelMembersNotAddedNotice); so is whoever Slack could not be asked
+   * about. Microsoft Teams adds nobody to a channel, so it finds nobody by
+   * email here.
+   */
+  @CaptureSpan()
+  public async findWorkspaceUserIdsToInvite(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    authToken: string;
+    userIds: Array<ObjectID>;
+  }): Promise<WorkspaceInvitees> {
+    const found: WorkspaceInvitees = { invitees: [], notFoundUserIds: [] };
+    const notConnected: Array<ObjectID> = [];
+
+    for (const userId of data.userIds) {
+      const workspaceUserId: string | null =
+        await this.getWorkspaceUserIdFromOneUptimeUserId({
+          projectId: data.projectId,
+          workspaceType: data.workspaceType,
+          oneuptimeUserId: userId,
+        });
+
+      if (workspaceUserId) {
+        found.invitees.push({
+          userId: userId,
+          workspaceUserId: workspaceUserId,
+        });
+      } else {
+        notConnected.push(userId);
+      }
+    }
+
+    if (
+      data.workspaceType !== WorkspaceType.Slack ||
+      !data.authToken ||
+      notConnected.length === 0
+    ) {
+      found.notFoundUserIds = notConnected;
+      return found;
+    }
+
+    const emails: Map<string, string> =
+      await this.getEmailsOfUsers(notConnected);
+
+    for (const userId of notConnected) {
+      let account: SlackEmailAccount | null = null;
+
+      try {
+        account = await SlackAccountByEmail.find({
+          projectId: data.projectId,
+          authToken: data.authToken,
+          userId: userId,
+          email: emails.get(userId.toString().toLowerCase()) || "",
+          useCache: true,
+        });
+      } catch (err) {
+        logger.debug(
+          "Could not look somebody up in Slack by their email address to invite them to a channel.",
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        logger.debug(err, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      }
+
+      const alreadyInvited: boolean = found.invitees.some(
+        (invitee: { workspaceUserId: string }): boolean => {
+          return invitee.workspaceUserId === account?.slackUserId;
+        },
+      );
+
+      if (account && !account.isGuest && !alreadyInvited) {
+        found.invitees.push({
+          userId: userId,
+          workspaceUserId: account.slackUserId,
+        });
+      } else {
+        found.notFoundUserIds.push(userId);
+      }
+    }
+
+    return found;
+  }
+
+  /*
+   * The email addresses of these people, by lower-cased id. None when they
+   * cannot be read: then nobody is found by email.
+   */
+  private async getEmailsOfUsers(
+    userIds: Array<ObjectID>,
+  ): Promise<Map<string, string>> {
+    const emails: Map<string, string> = new Map<string, string>();
+
+    try {
+      const users: Array<User> = await UserService.findBy({
+        query: {
+          _id: QueryHelper.any(
+            userIds.map((userId: ObjectID): string => {
+              return userId.toString();
+            }),
+          ),
+        },
+        select: {
+          _id: true,
+          email: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const user of users) {
+        const email: string = user.email?.toString() || "";
+
+        if (user.id && email) {
+          emails.set(user.id.toString().toLowerCase(), email);
+        }
+      }
+    } catch (err) {
+      logger.error(
+        "Could not read people's email addresses to find them in Slack.",
+      );
+      logger.error(err);
+    }
+
+    return emails;
   }
 
   @CaptureSpan()
@@ -3833,12 +4149,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   /*
    * Who each rule adds to the channel it just created for a record: the
-   * users and teams it names, and the people the record has already that
-   * the rule adds (NotificationRuleInvites) - its owners, the people given
-   * an incident role, the people an on-call policy has paged so far. Those
-   * who join the record later are added by their own services. Each kind of
-   * person is read once for all the rules; a kind that cannot be read is
-   * left out, and the rest are still invited.
+   * users and teams it names, whoever is on call in the schedules it names,
+   * and the people the record has already that the rule adds
+   * (NotificationRuleInvites) - its owners, the people given an incident
+   * role, the people an on-call policy has paged so far. Those who join the
+   * record later are added by their own services. Each kind of person is
+   * read once for all the rules; a kind that cannot be read is left out,
+   * and the rest are still invited.
    */
   @CaptureSpan()
   public async getUsersIdsToInviteToChannel(data: {
@@ -3846,6 +4163,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     notificationRules: Array<WorkspaceNotificationRule>;
     // The record the channels were created for, whose people join them.
     notificationFor?: NotificationFor | undefined;
+    /*
+     * Whoever is on call in each rule's schedules, by the rule's id
+     * (WorkspaceScheduleOnCall), for a workspace that adds them to the
+     * channel - Slack. Left out, nobody joins for the rules' schedules.
+     */
+    peopleOnCallByRule?: Map<string, Array<ScheduleOnCallPerson>> | undefined;
   }): Promise<
     Array<{
       notificationRuleId: string;
@@ -3962,6 +4285,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               addUserId(userId);
             }
           }
+        }
+
+        // Whoever is on call in the rule's schedules, as the channel is created.
+        for (const person of data.peopleOnCallByRule?.get(
+          workspaceNotificationRule.id?.toString() || "",
+        ) || []) {
+          addUserId(person.userId);
         }
 
         /*

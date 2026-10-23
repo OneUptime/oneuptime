@@ -10,6 +10,16 @@ enum GitHubCommandType {
   // "@oneuptime review" on a pull request: post a code review, change nothing.
   Review = "Review",
   /*
+   * "@oneuptime production review" on a pull request: review it against
+   * production - what OneUptime's telemetry says about the code it changes
+   * - in the pull request's one production review comment. The server does
+   * it (no Runner, no clone), and it is how someone with write access asks
+   * for a review of a pull request OneUptime does not review on its own:
+   * one from an outside contributor or a fork, or in a repository with
+   * Production Review off.
+   */
+  ProductionReview = "ProductionReview",
+  /*
    * "@oneuptime revise this because ..." on a pull request: push new commits
    * to the SAME head branch. Never opens a second pull request.
    */
@@ -69,6 +79,15 @@ export interface GitHubCommand {
    * never as instructions that can widen what the run is allowed to do.
    */
   instruction: string;
+}
+
+/*
+ * Commands the OneUptime server carries out itself, with no agent run: a
+ * production review of the pull request (Common/Server/Utils/
+ * CodeRepository/ProductionReview). Answered by the review's own comment.
+ */
+export function isServerReviewCommand(commandType: GitHubCommandType): boolean {
+  return commandType === GitHubCommandType.ProductionReview;
 }
 
 /*

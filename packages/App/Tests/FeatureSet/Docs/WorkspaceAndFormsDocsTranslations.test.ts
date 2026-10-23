@@ -373,6 +373,19 @@ interface TemplateLabel {
 
 // Labels the Dashboard fills from a template, with what it fills in.
 const TEMPLATE_LABELS: Record<string, Record<string, TemplateLabel>> = {
+  // The card that asks every member to connect (AskToConnectCard).
+  [SLACK]: {
+    "Members' Slack accounts": {
+      template: "Members' {{workspace}} accounts",
+      values: { workspace: "Slack" },
+    },
+  },
+  [TEAMS]: {
+    "Members' Microsoft Teams accounts": {
+      template: "Members' {{workspace}} accounts",
+      values: { workspace: "Microsoft Teams" },
+    },
+  },
   [VIDEO]: {
     "Start a video call for the incident": {
       template: "Start a video call for the {{eventNoun}}",
@@ -458,6 +471,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A Slack workspace",
     "The Growth plan on OneUptime Cloud",
     "On a self-hosted server,",
+    // Asking everyone to connect.
+    "Who gets a message.",
+    "What the card says.",
+    "What the button connects.",
     "Who may use them.",
     "What a form offers.",
     "What a form may name.",
@@ -513,6 +530,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "team name",
     "Private channels",
     "Shared channels",
+    // Asking everyone to connect.
+    "Who gets a message.",
+    "What the card says.",
+    "What the button connects.",
     "Who may use them.",
     "What a form offers.",
     "What a form may name.",
@@ -587,17 +608,28 @@ const LATE_PRESS_EXAMPLE: string =
  * What a server or a chat bot answers in English, whatever the reader's
  * language, which the pages quote as it is sent.
  */
+/*
+ * How a chat's button on a record the person may not act on says why
+ * (WorkspaceActionAuthorization.getUnreadableRefusal), as the pages quote it
+ * for an incident.
+ */
+const UNREADABLE_RECORD_REASONS: Array<string> = [
+  WorkspaceActionAuthorization.getNotIncludedReason("incident"),
+  WorkspaceActionAuthorization.getPrivateReason("incident"),
+  WorkspaceActionAuthorization.getNotFoundReason("incident"),
+];
+
 const SERVER_MESSAGES: Record<string, Array<string>> = {
   [SLACK]: [
     TEST_NOTIFICATION_PERMISSION_MESSAGE,
-    WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
+    ...UNREADABLE_RECORD_REASONS,
     SlackIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
     LATE_PRESS_EXAMPLE,
   ],
   [TEAMS]: [
     TEST_NOTIFICATION_PERMISSION_MESSAGE,
-    WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE,
+    ...UNREADABLE_RECORD_REASONS,
     MicrosoftTeamsIncidentActions.NO_STATES_MESSAGE,
     "There is no later state to move this incident to.",
     LATE_PRESS_EXAMPLE,

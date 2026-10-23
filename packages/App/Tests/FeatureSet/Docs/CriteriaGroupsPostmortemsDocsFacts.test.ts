@@ -2865,12 +2865,23 @@ describe("starting a postmortem from a template or an AI draft", () => {
     expect(draft).toContain(
       "incidentFeedEventType: IncidentFeedEventType.PostmortemNote,",
     );
-    expect(enabled).toContain("project.enableAi === false ||");
-    expect(enabled).toContain(
-      "project.enableAutomaticPostmortemDraft !== true",
+    // The two switches, asked first: AI on, and drafting on.
+    const drafting: string = between(
+      POSTMORTEM_RUNNER,
+      "private static isDraftingOn(",
+      "\n  }\n",
     );
+
     expect(enabled).toContain(
-      "await AIService.getReachedProjectDailyLimit({ projectId, project })",
+      "if (!AIIncidentPostmortemRunner.isDraftingOn(project)) {",
+    );
+    expect(drafting).toContain("project.enableAi !== false &&");
+    expect(drafting).toContain(
+      "project.enableAutomaticPostmortemDraft === true",
+    );
+    // The daily limits, for the provider the draft would use.
+    expect(enabled).toMatch(
+      /await AIService\.getReachedProjectDailyLimit\(\{\s*projectId,\s*project,/,
     );
     expect(starting).toContain(
       "- It never replaces a note that is already written.",

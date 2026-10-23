@@ -991,7 +991,40 @@ describe("WorkspaceIncidentCustomFields: the reads and the write, as the member"
       }),
     ).rejects.toThrow(
       new NotAuthorizedException(
-        "The incident was not found in this project, or you do not have access to it.",
+        "Could not edit the custom fields of this incident: the incident was not found. It may have been deleted.",
+      ),
+    );
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  test("save: an incident their access no longer includes is refused with that - never 'not found' - and nothing is written", async () => {
+    // Their read finds nothing now; OneUptime's still finds the incident.
+    jest
+      .spyOn(IncidentService, "findOneBy")
+      .mockImplementation((async (findOneBy: {
+        props: DatabaseCommonInteractionProps;
+      }) => {
+        if (!findOneBy.props.isRoot) {
+          return null;
+        }
+
+        const incident: Incident = new Incident();
+        incident.id = INCIDENT_ID;
+        return incident;
+      }) as never);
+    const update: SpyInstance<typeof IncidentService.updateOneById> =
+      jest.spyOn(IncidentService, "updateOneById");
+
+    await expect(
+      WorkspaceIncidentCustomFields.save({
+        incidentId: INCIDENT_ID,
+        projectId: PROJECT_ID,
+        changes: [{ name: "Ticket", value: "OPS-2" }],
+        props: PROPS,
+      }),
+    ).rejects.toThrow(
+      new NotAuthorizedException(
+        "You do not have permission to edit the custom fields of this incident: your access in this project does not include this incident. Ask a project admin for access to it.",
       ),
     );
     expect(update).not.toHaveBeenCalled();

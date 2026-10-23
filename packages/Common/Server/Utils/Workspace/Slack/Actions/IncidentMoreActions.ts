@@ -1503,7 +1503,7 @@ export default class SlackIncidentMoreActions {
   private static toIncidentId(value: string | undefined): ObjectID {
     if (!value || !ObjectID.isValidUUID(value)) {
       throw new NotAuthorizedException(
-        `The incident ${WorkspaceActionAuthorization.NOT_FOUND_OR_NOT_READABLE}`,
+        `Could not do that: ${WorkspaceActionAuthorization.getNotFoundReason("incident")}`,
       );
     }
 

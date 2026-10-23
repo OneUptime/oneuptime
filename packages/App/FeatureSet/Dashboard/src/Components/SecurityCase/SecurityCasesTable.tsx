@@ -3,11 +3,13 @@ import UserElement from "../User/User";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
+  SecurityCaseAiVerdictPill,
   SecurityCasePriorityPill,
   SecurityCaseStatusPill,
   SecurityCaseVerdictPill,
   getSecurityDetectionSourceIcon,
 } from "./SecurityCasePills";
+import useAiOffered from "../../Utils/UseAiOffered";
 import SecurityEntityChips, {
   readSecurityEntities,
 } from "./SecurityEntityChips";
@@ -20,6 +22,7 @@ import {
   SecurityCaseQueueFilter,
   SecurityCaseQueueView,
   SecurityCaseQueueViewKey,
+  getSecurityCaseQueueFilters,
   getSecurityCaseQueueQuery,
   getSecurityCaseQueueStatusOptions,
   getSecurityCaseQueueView,
@@ -32,6 +35,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import SecurityCaseAiVerdict from "Common/Types/SecurityCase/SecurityCaseAiVerdict";
 import SecurityCasePriority from "Common/Types/SecurityCase/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Types/SecurityCase/SecurityCaseStatus";
 import SecurityCaseVerdict from "Common/Types/SecurityCase/SecurityCaseVerdict";
@@ -49,6 +53,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
+import { PillSize } from "Common/UI/Components/Pill/Pill";
 import Column from "Common/UI/Components/ModelTable/Column";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -77,6 +82,11 @@ type BulkCaseChange = "status" | "priority";
  */
 export const CLOSE_CASE_INSTEAD_OF_DELETE: string = translationKey(
   "To keep the record, close the case with a verdict instead.",
+);
+
+// What the AI read in a row is, on hover.
+export const SECURITY_CASE_AI_READ_TOOLTIP: string = translationKey(
+  "OneUptime AI's read of this case",
 );
 
 /*
@@ -140,6 +150,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isAiOffered: boolean = useAiOffered();
   const view: SecurityCaseQueueView = getSecurityCaseQueueView(props.view);
   const [refreshToggle, setRefreshToggle] = useState<string>("");
   const [bulkChange, setBulkChange] = useState<BulkCaseChange | null>(null);
@@ -274,6 +285,15 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
       filterDropdownOptions:
         DropdownUtil.getDropdownOptionsFromEnum(SecurityCaseVerdict),
     },
+    // What OneUptime AI's triage read the case as.
+    aiVerdict: {
+      field: { aiVerdict: true },
+      title: "AI Verdict",
+      type: FieldType.Dropdown,
+      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+        SecurityCaseAiVerdict,
+      ),
+    },
     labels: {
       field: { labels: { name: true, color: true } },
       title: "Labels",
@@ -339,7 +359,12 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                 {item.title || ""}
               </span>
             </AppLink>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-gray-500">
+            {/*
+              Where the case came from, how many detections it holds and
+              OneUptime AI's read of it, on one line while they fit; the
+              read wraps under them, on the cell's edge, when they do not.
+            */}
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
               <Icon
                 icon={getSecurityDetectionSourceIcon(item.source)}
                 className="h-3 w-3 text-gray-400"
@@ -357,6 +382,28 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
                   detections,
                 )}
               </span>
+              {/*
+                What OneUptime AI's triage read the case as, where the
+                queue is scanned: the likely malicious stand out. Not
+                drawn with the project's AI off.
+              */}
+              {isAiOffered && item.aiVerdict ? (
+                <span
+                  className="inline-flex"
+                  data-testid="security-case-row-ai-verdict"
+                >
+                  <SecurityCaseAiVerdictPill
+                    value={item.aiVerdict}
+                    size={PillSize.Small}
+                    tooltip={
+                      translator.translateText(SECURITY_CASE_AI_READ_TOOLTIP) ||
+                      undefined
+                    }
+                  />
+                </span>
+              ) : (
+                <></>
+              )}
             </div>
             {entities.length > 0 ? (
               <div className="mt-1.5">
@@ -484,11 +531,12 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const filters: Array<Filter<SecurityCase>> = view.filters.map(
-    (key: SecurityCaseQueueFilter): Filter<SecurityCase> => {
-      return filtersByKey[key];
-    },
-  );
+  const filters: Array<Filter<SecurityCase>> = getSecurityCaseQueueFilters(
+    view,
+    isAiOffered,
+  ).map((key: SecurityCaseQueueFilter): Filter<SecurityCase> => {
+    return filtersByKey[key];
+  });
 
   /*
    * What an empty page says. Open Cases and Unassigned empty is good news,
@@ -637,6 +685,7 @@ const SecurityCasesTable: FunctionComponent<ComponentProps> = (
           caseNumberWithPrefix: true,
           source: true,
           detectionCount: true,
+          aiVerdict: true,
           assignedToTeam: { name: true, _id: true },
         }}
         filters={filters}

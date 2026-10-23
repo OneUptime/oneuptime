@@ -3,6 +3,7 @@ import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
 import SecurityCaseService from "../../Services/SecurityCaseService";
@@ -22,7 +23,17 @@ import { doStepsStayInsideOneUptime } from "../../../Types/SecurityPlaybook/Secu
  * One playbook failing to start - a run that cannot be created, a queue that
  * is down - is logged and the next is started: the case is real, and the
  * other playbooks still owe it their response.
+ *
+ * Triaged as Likely Malicious is about the whole case, not one detection:
+ * a playbook limited to a source or to rules runs when ANY of the case's
+ * detections meets that (detections), and it runs once per case - a case
+ * triaged again never runs it a second time.
  */
+export interface PlaybookLaunchDetection {
+  source: SecurityDetectionSource;
+  detectionRuleId?: ObjectID | undefined;
+}
+
 export default class SecurityPlaybookLauncher {
   @CaptureSpan()
   public static async launchForCase(data: {
@@ -30,13 +41,15 @@ export default class SecurityPlaybookLauncher {
     securityCaseId: ObjectID;
     trigger:
       | SecurityPlaybookTrigger.CaseOpened
-      | SecurityPlaybookTrigger.DetectionAdded;
-    detection?:
-      | {
-          source: SecurityDetectionSource;
-          detectionRuleId?: ObjectID | undefined;
-        }
-      | undefined;
+      | SecurityPlaybookTrigger.DetectionAdded
+      | SecurityPlaybookTrigger.TriagedAsLikelyMalicious;
+    detection?: PlaybookLaunchDetection | undefined;
+    /*
+     * For an event about the whole case (Triaged as Likely Malicious): the
+     * case's detections, any one of which may meet a playbook's detection
+     * conditions. Takes the place of detection.
+     */
+    detections?: Array<PlaybookLaunchDetection> | undefined;
     /*
      * Only playbooks whose every step stays inside OneUptime (the case and
      * investigate steps): for the setup test's case, so a test never
@@ -93,24 +106,40 @@ export default class SecurityPlaybookLauncher {
 
     let started: number = 0;
 
+    /*
+     * The detections each playbook's conditions are read against: the one
+     * behind the event, or - for an event about the whole case - each of
+     * the case's (none: a case opened by hand).
+     */
+    const candidates: Array<PlaybookLaunchDetection | undefined> =
+      data.detections !== undefined
+        ? data.detections.length > 0
+          ? data.detections
+          : [undefined]
+        : [data.detection];
+
     for (const playbook of playbooks) {
-      const matches: boolean = doesPlaybookMatch(
-        {
-          isEnabled: playbook.isEnabled === true,
-          trigger: playbook.trigger,
-          minimumPriority: playbook.minimumPriority,
-          detectionSource: playbook.detectionSource,
-          detectionRuleIds: playbook.detectionRuleIds,
-        },
-        {
-          trigger: data.trigger,
-          casePriority: securityCase.priority,
-          detection: data.detection
-            ? {
-                source: data.detection.source,
-                detectionRuleId: data.detection.detectionRuleId?.toString(),
-              }
-            : undefined,
+      const matches: boolean = candidates.some(
+        (detection: PlaybookLaunchDetection | undefined): boolean => {
+          return doesPlaybookMatch(
+            {
+              isEnabled: playbook.isEnabled === true,
+              trigger: playbook.trigger,
+              minimumPriority: playbook.minimumPriority,
+              detectionSource: playbook.detectionSource,
+              detectionRuleIds: playbook.detectionRuleIds,
+            },
+            {
+              trigger: data.trigger,
+              casePriority: securityCase.priority,
+              detection: detection
+                ? {
+                    source: detection.source,
+                    detectionRuleId: detection.detectionRuleId?.toString(),
+                  }
+                : undefined,
+            },
+          );
         },
       );
 
@@ -121,6 +150,19 @@ export default class SecurityPlaybookLauncher {
       if (
         data.onlyPlaybooksThatStayInside &&
         !doStepsStayInsideOneUptime(playbook.steps)
+      ) {
+        continue;
+      }
+
+      // Once per case: a case triaged again never runs it a second time.
+      if (
+        data.trigger === SecurityPlaybookTrigger.TriagedAsLikelyMalicious &&
+        (await this.hasRunOnCase({
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+          securityPlaybookId: playbook.id,
+          trigger: data.trigger,
+        }))
       ) {
         continue;
       }
@@ -149,5 +191,27 @@ export default class SecurityPlaybookLauncher {
     }
 
     return started;
+  }
+
+  // Whether the playbook already ran on the case for this trigger.
+  private static async hasRunOnCase(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    securityPlaybookId: ObjectID;
+    trigger: SecurityPlaybookTrigger;
+  }): Promise<boolean> {
+    const count: PositiveNumber = await SecurityPlaybookRunService.countBy({
+      query: {
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        securityPlaybookId: data.securityPlaybookId,
+        trigger: data.trigger,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return count.toNumber() > 0;
   }
 }

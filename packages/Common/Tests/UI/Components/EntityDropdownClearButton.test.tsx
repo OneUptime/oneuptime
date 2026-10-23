@@ -468,6 +468,18 @@ describe("a closed single-select's value and its Clear button", () => {
     expect(classesOf(screen.getByTestId("entity-dropdown-value"))).toContain(
       "bg-gray-100",
     );
+    /*
+     * One fill: beside bg-white, bg-gray-100 lost in light mode (the
+     * stylesheet orders the two, not the class list), so a locked field
+     * looked like one to click. Nor does its border light up under the
+     * pointer.
+     */
+    expect(
+      classesOf(screen.getByTestId("entity-dropdown-value")),
+    ).not.toContain("bg-white");
+    expect(
+      classesOf(screen.getByTestId("entity-dropdown-value")),
+    ).not.toContain("hover:border-indigo-300");
 
     fireEvent.keyDown(getValueButton(), { key: "Backspace" });
     fireEvent.keyDown(getValueButton(), { key: "Delete" });

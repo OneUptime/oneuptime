@@ -1,5 +1,10 @@
 import FixProductionVerdict from "../AI/FixProductionVerdict";
 import CodeApi, { CodeTaskListResponse, CodeTaskListScope } from "./CodeApi";
+import {
+  PRODUCTION_REVIEW_COPY,
+  getProductionReviewGlance,
+  getReviewedPullRequestNumber,
+} from "./CodeProductionReviewCopy";
 import CodeDiffStat from "./CodeDiffStat";
 import { GitPullRequestMark } from "./CodeMarks";
 import CodeMetaList from "./CodeMetaList";
@@ -16,6 +21,7 @@ import CodeTimeAgo from "./CodeTimeAgo";
 import { GitHubMark } from "./GitHubConnect";
 import CodeFixTaskType from "Common/Types/AI/CodeFixTaskType";
 import {
+  CodeTaskListKind,
   CodeTaskOriginType,
   CodeTaskState,
   CodeTaskSummaryJSON,
@@ -47,6 +53,11 @@ export interface ComponentProps {
    * task the reader may read (Code's first page).
    */
   scope: CodeTaskListScope;
+  /*
+   * The tasks (the default), or a repository's pull requests' production
+   * reviews, which the tasks leave out.
+   */
+  kind?: CodeTaskListKind | undefined;
   // Change it to read the list again (a task was just started).
   refreshToken?: number | undefined;
   // What the list says with no task at all.
@@ -86,6 +97,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
 
   // The scope as one value, so a new object for the same scope reads nothing again.
   const scopeKey: string = JSON.stringify(props.scope);
+  const kind: CodeTaskListKind = props.kind || CodeTaskListKind.Tasks;
 
   const load: (limit: number) => Promise<void> = useCallback(
     async (limit: number): Promise<void> => {
@@ -94,6 +106,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
           scope: JSON.parse(scopeKey) as CodeTaskListScope,
           skip: 0,
           limit: limit,
+          ...(kind === CodeTaskListKind.ProductionReviews ? { kind } : {}),
         });
 
         setTasks(response.tasks);
@@ -107,7 +120,7 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
       setIsLoadingMore(false);
     },
-    [scopeKey],
+    [scopeKey, kind],
   );
 
   useEffect(() => {
@@ -222,13 +235,21 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
           >
             {isLoadingMore
               ? translator.translateText("Loading…")
-              : translator.translatePlural(
-                  {
-                    one: "Show {{count}} more task",
-                    other: "Show {{count}} more tasks",
-                  },
-                  Math.min(CODE_TASK_PAGE_SIZE, count - tasks.length),
-                )}
+              : kind === CodeTaskListKind.ProductionReviews
+                ? translator.translatePlural(
+                    {
+                      one: "Show {{count}} more review",
+                      other: "Show {{count}} more reviews",
+                    },
+                    Math.min(CODE_TASK_PAGE_SIZE, count - tasks.length),
+                  )
+                : translator.translatePlural(
+                    {
+                      one: "Show {{count}} more task",
+                      other: "Show {{count}} more tasks",
+                    },
+                    Math.min(CODE_TASK_PAGE_SIZE, count - tasks.length),
+                  )}
           </button>
         </div>
       ) : (
@@ -258,22 +279,40 @@ export const CodeTaskRow: FunctionComponent<{
   const translator: Translator = useTranslator();
   const task: CodeTaskSummaryJSON = props.task;
   const isRequest: boolean = task.recipe === CodeFixTaskType.CodeRequest;
+  /*
+   * A pull request's production review: its row is the pull request -
+   * its title, its number and what production showed of it.
+   */
+  const isProductionReview: boolean =
+    task.recipe === CodeFixTaskType.GitHubPullRequestProductionReview;
+  const reviewedNumber: number | null = isProductionReview
+    ? getReviewedPullRequestNumber(task.origin)
+    : null;
   const title: string =
-    task.title || translator.translateTemplate(getRecipeLabel(task.recipe));
+    task.title ||
+    (isProductionReview && task.origin.label
+      ? translator.translateTemplate(
+          PRODUCTION_REVIEW_COPY.pullRequestFallbackTitle,
+          { label: task.origin.label },
+        )
+      : translator.translateTemplate(getRecipeLabel(task.recipe)));
   const isQueued: boolean =
     task.state === CodeTaskState.Working && task.isQueued;
 
   /*
    * Who asked, for a request; for a task OneUptime started, its kind ("Fix
    * Exception") says what started it - its title already names the record.
+   * A production review's page lists nothing else: its kind goes unsaid.
    */
-  const startedBy: string = isRequest
-    ? task.origin.type === CodeTaskOriginType.Request && task.origin.label
-      ? translator.translateTemplate(CODE_TASK_ASKED_BY, {
-          name: task.origin.label,
-        })
-      : ""
-    : translator.translateText(getRecipeLabel(task.recipe)) || "";
+  const startedBy: string = isProductionReview
+    ? ""
+    : isRequest
+      ? task.origin.type === CodeTaskOriginType.Request && task.origin.label
+        ? translator.translateTemplate(CODE_TASK_ASKED_BY, {
+            name: task.origin.label,
+          })
+        : ""
+      : translator.translateText(getRecipeLabel(task.recipe)) || "";
 
   const meta: Array<ReactElement> = [];
 
@@ -286,10 +325,53 @@ export const CodeTaskRow: FunctionComponent<{
         className={`font-medium ${CODE_TASK_STATE_TEXT_CLASS_NAMES[task.state]}`}
       >
         {translator.translateText(
-          isQueued ? QUEUED_LABEL : CODE_TASK_STATE_COPY[task.state].label,
+          isQueued
+            ? QUEUED_LABEL
+            : isProductionReview && task.state === CodeTaskState.Working
+              ? PRODUCTION_REVIEW_COPY.rowReviewing
+              : CODE_TASK_STATE_COPY[task.state].label,
         )}
       </span>,
     );
+  }
+
+  if (reviewedNumber) {
+    meta.push(
+      <span
+        key="reviewed-pull-request"
+        data-testid="code-task-row-reviewed-pull-request"
+        className="inline-flex items-center gap-1"
+      >
+        <GitPullRequestMark className="h-3 w-3 flex-shrink-0" />
+        {translator.translateTemplate("PR #{{number}}", {
+          number: reviewedNumber.toString(),
+        })}
+      </span>,
+    );
+  }
+
+  // What the latest review found, at a glance: "2 exceptions", "Nothing found".
+  if (isProductionReview && task.productionReview) {
+    const glance: Array<string> = getProductionReviewGlance(
+      task.productionReview,
+      translator,
+    );
+
+    glance.forEach((part: string, index: number) => {
+      meta.push(
+        <span
+          key={`glance-${index}`}
+          data-testid="code-task-row-glance"
+          className={
+            task.productionReview!.hasSignal
+              ? "font-medium text-gray-700"
+              : undefined
+          }
+        >
+          {part}
+        </span>,
+      );
+    });
   }
 
   if (props.repositoryName) {

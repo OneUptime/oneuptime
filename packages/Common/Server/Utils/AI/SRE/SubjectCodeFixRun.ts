@@ -33,6 +33,12 @@ interface SubjectCodeFixRunInput {
   alertId?: ObjectID | undefined;
   userId?: ObjectID | undefined;
   taskContext?: CodeFixTaskContext | undefined;
+  /*
+   * The LLM provider the rule behind the run picks (AIRun.llmProviderId):
+   * the run's completions use it (CodeFixAgentCompletion). None: the
+   * project's provider.
+   */
+  llmProviderId?: ObjectID | undefined;
 }
 
 /*
@@ -46,6 +52,15 @@ interface SubjectCodeFixRunInput {
  * enqueue idiom must not.
  */
 export default class SubjectCodeFixRun {
+  // A rule's pick as a run records it: undefined for none.
+  public static toRunLlmProviderId(
+    pickedProviderId: string | undefined,
+  ): ObjectID | undefined {
+    return pickedProviderId && ObjectID.isValidUUID(pickedProviderId)
+      ? new ObjectID(pickedProviderId)
+      : undefined;
+  }
+
   /*
    * Only GitHub-App-connected repositories can be cloned and pushed by the
    * agent (mirrors CodeRepositoryService.resolveRepositoryForException) -
@@ -291,6 +306,10 @@ export default class SubjectCodeFixRun {
 
     if (codeRepositoryId) {
       run.codeRepositoryId = codeRepositoryId;
+    }
+
+    if (data.llmProviderId) {
+      run.llmProviderId = data.llmProviderId;
     }
 
     if (revalidateInvestigationSource) {

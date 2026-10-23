@@ -1914,7 +1914,11 @@ describe("Data Source widget fetching", () => {
       return (element.textContent || "").trim();
     };
 
-    /** The trend chip: which way it points, and which way it was coloured. */
+    /*
+     * The trend chip: which way it points, and which way it was coloured.
+     * The chip says its tone itself (data-tone), and its colour class must
+     * be the one that tone is drawn in.
+     */
     interface TrendIndicator {
       tone: "good" | "bad";
       text: string;
@@ -1925,21 +1929,29 @@ describe("Data Source widget fetching", () => {
     const getTrendIndicator: GetTrendIndicatorFunction = (
       container: HTMLElement,
     ): TrendIndicator => {
-      const good: Element | null = container.querySelector(
-        "span.text-emerald-500",
+      const chips: NodeListOf<Element> = container.querySelectorAll(
+        '[data-testid="value-widget-trend"]',
       );
-      const bad: Element | null = container.querySelector("span.text-red-500");
 
-      if (good && !bad) {
-        return { tone: "good", text: (good.textContent || "").trim() };
+      if (chips.length !== 1) {
+        throw new Error(
+          "Value widget did not render exactly one trend indicator.",
+        );
       }
 
-      if (bad && !good) {
-        return { tone: "bad", text: (bad.textContent || "").trim() };
+      const chip: Element = chips[0]!;
+      const tone: string | null = chip.getAttribute("data-tone");
+
+      if (tone === "good" && chip.classList.contains("text-emerald-700")) {
+        return { tone: "good", text: (chip.textContent || "").trim() };
+      }
+
+      if (tone === "bad" && chip.classList.contains("text-red-600")) {
+        return { tone: "bad", text: (chip.textContent || "").trim() };
       }
 
       throw new Error(
-        "Value widget did not render exactly one trend indicator.",
+        `Value widget's trend indicator is neither good nor bad: ${tone}.`,
       );
     };
 
@@ -1957,9 +1969,9 @@ describe("Data Source widget fetching", () => {
     const HIGHER_WORSE_LOOKING_TITLE: string = "api.error.rate";
 
     /*
-     * Four points is the minimum the trend calculation looks at, and the
-     * second half averages double the first — an unambiguous rise, so the
-     * only thing left in question is its colour.
+     * Two points in each half of the dashboard's hour, the second half's
+     * double the first's — an unambiguous rise, so the only thing left in
+     * question is its colour.
      */
     const RISING_SERIES: Array<AggregatedModel> = [
       buildPoint(10, "2026-08-10T09:10:00.000Z"),
