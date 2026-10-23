@@ -163,11 +163,10 @@ export default class StatusPageSummaryUtil {
       return null;
     }
 
-    const withScheme: string =
-      trimmed.toLowerCase().startsWith("http://") ||
-      trimmed.toLowerCase().startsWith("https://")
-        ? trimmed
-        : `https://${trimmed}`;
+    // An address that names its scheme keeps it, and only http(s) is read.
+    const withScheme: string = trimmed.includes("://")
+      ? trimmed
+      : `https://${trimmed}`;
 
     let url: URL;
 
