@@ -1653,3 +1653,112 @@ describe("POST /network-device/topology — a stamp decides only for a monitor-b
     expect(statusByName().get("degraded-ap")).toBe("up");
   });
 });
+
+/*
+ * Issue #5185: a device OneUptime only pings has none of the SNMP columns the
+ * role classifier reads, so the map drew a switch a discovery scan had read
+ * over SNMP as an unknown box - while Inventory, from the same reading, said
+ * Switch. The classifier now reads the device's effective system description
+ * and object ID: its own poll's, or what discovery read when its poll has not
+ * (NetworkDeviceAssetFacts).
+ */
+describe("POST /network-device/topology - roles from what discovery read", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+    deviceRoleService.findBy.mockResolvedValue([] as never);
+  });
+
+  const C2960X_SYS_DESCR: string =
+    "Cisco IOS Software, C2960X Software (C2960X-UNIVERSALK9-M), Version 15.2(7)E8, RELEASE SOFTWARE (fc3)";
+
+  function scanReading(value: string, readAt: string): JSONObject {
+    return {
+      value: value,
+      method: "snmp",
+      readBy: { type: "discoveryScan", id: ObjectID.generate().toString() },
+      readAt: readAt,
+    };
+  }
+
+  // A ping-only device, named by its address, that a scan read over SNMP.
+  function pingOnlyDevice(discoveredDetails?: JSONObject): NetworkDevice {
+    const device: NetworkDevice = makeDevice("10.20.12.7");
+    device.hostname = "10.20.12.7";
+    if (discoveredDetails) {
+      device.discoveredDetails = discoveredDetails;
+    }
+    return device;
+  }
+
+  function roleOf(name: string): string | undefined {
+    const node: JSONObject | undefined = (
+      lastResponseBody()["nodes"] as Array<JSONObject>
+    ).find((candidate: JSONObject) => {
+      return candidate["name"] === name;
+    });
+    return node?.["role"] as string | undefined;
+  }
+
+  test("asks the device query for what discovery read, and when the poll last read it", async () => {
+    await callTopology({});
+
+    const select: JSONObject = (
+      deviceService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+    expect(select["discoveredDetails"]).toBe(true);
+    expect(select["lastSnmpSeenAt"]).toBe(true);
+    // The device's own columns are still read beside them.
+    expect(select["sysDescr"]).toBe(true);
+    expect(select["sysObjectId"]).toBe(true);
+  });
+
+  test("a ping-only device a scan read as a Catalyst switch is drawn as a switch", async () => {
+    deviceService.findBy.mockResolvedValue([
+      pingOnlyDevice({
+        sysDescr: scanReading(C2960X_SYS_DESCR, "2026-10-23T07:00:00.000Z"),
+        sysObjectId: scanReading(
+          "1.3.6.1.4.1.9.1.1208",
+          "2026-10-23T07:00:00.000Z",
+        ),
+      }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(roleOf("10.20.12.7")).toBe("switch");
+  });
+
+  test("the same device without what discovery read is still drawn as unknown", async () => {
+    deviceService.findBy.mockResolvedValue([pingOnlyDevice()] as never);
+
+    await callTopology({});
+
+    expect(roleOf("10.20.12.7")).toBe("unknown");
+  });
+
+  test("a device its own poll read since the scan is drawn as its poll says", async () => {
+    const device: NetworkDevice = pingOnlyDevice({
+      sysDescr: scanReading(C2960X_SYS_DESCR, "2026-10-23T07:00:00.000Z"),
+    });
+    device.sysDescr =
+      "Cisco Adaptive Security Appliance Version 9.16(4), firewall";
+    device.lastSnmpSeenAt = new Date("2026-10-23T08:00:00.000Z");
+    deviceService.findBy.mockResolvedValue([device] as never);
+
+    await callTopology({});
+
+    expect(roleOf("10.20.12.7")).toBe("firewall");
+  });
+
+  test("an operator's role still beats anything discovery read", async () => {
+    const device: NetworkDevice = pingOnlyDevice({
+      sysDescr: scanReading(C2960X_SYS_DESCR, "2026-10-23T07:00:00.000Z"),
+    });
+    device.deviceRole = "router";
+    deviceService.findBy.mockResolvedValue([device] as never);
+
+    await callTopology({});
+
+    expect(roleOf("10.20.12.7")).toBe("router");
+  });
+});

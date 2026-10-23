@@ -1383,3 +1383,71 @@ describe("NetworkDeviceWalkUtil.processWalkResult — transceivers", () => {
     expect(synthesized().snmpResponse!.transceivers).toBeUndefined();
   });
 });
+
+/*
+ * A device polled at a DNS name has no IP address of its own anywhere; its
+ * ping reports the address the name resolved to (issue #5185). The walk
+ * hands that, with the probe that polled, to the inventory, which records it.
+ */
+describe("NetworkDeviceWalkUtil.processWalkResult - the address the ping resolved", () => {
+  test("the ping's name and address, and the probe, reach the inventory", async () => {
+    mockPipeline();
+
+    await runPoll({
+      isOnline: true,
+      pollMode: "ping",
+      pingResponse: {
+        ...OK_PING,
+        resolvedHost: "core-fw-01.acme.example",
+        resolvedAddress: "10.0.0.1",
+      },
+    });
+
+    const inventoryArgs: JSONObject = inventorySpy.mock.calls[0][0];
+    expect(inventoryArgs["dnsResolution"]).toEqual({
+      hostname: "core-fw-01.acme.example",
+      address: "10.0.0.1",
+    });
+    expect((inventoryArgs["probeId"] as ObjectID).toString()).toBe(
+      PROBE_ID.toString(),
+    );
+  });
+
+  test("a ping of an address resolves nothing: no name, no address", async () => {
+    mockPipeline();
+
+    await runPoll({ isOnline: true, pollMode: "ping", pingResponse: OK_PING });
+
+    expect(inventorySpy.mock.calls[0][0]["dnsResolution"]).toEqual({
+      hostname: undefined,
+      address: undefined,
+    });
+  });
+
+  test("an older probe sends no ping: no resolution at all", async () => {
+    mockPipeline();
+
+    await runWalk(buildSnmpResponse());
+
+    expect(inventorySpy.mock.calls[0][0]["dnsResolution"]).toBeUndefined();
+  });
+
+  test("values out of a probe's JSON that are not text are dropped", async () => {
+    mockPipeline();
+
+    await runPoll({
+      isOnline: true,
+      pollMode: "ping",
+      pingResponse: {
+        ...OK_PING,
+        resolvedHost: 42 as unknown as string,
+        resolvedAddress: { ip: "10.0.0.1" } as unknown as string,
+      },
+    });
+
+    expect(inventorySpy.mock.calls[0][0]["dnsResolution"]).toEqual({
+      hostname: undefined,
+      address: undefined,
+    });
+  });
+});
