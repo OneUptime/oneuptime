@@ -47,6 +47,18 @@ function countOccurrences(source: string, fragment: string): number {
   return source.split(fragment).length - 1;
 }
 
+/*
+ * Squashed source with the spaces prettier puts inside a call's parentheses,
+ * and a call's trailing comma, taken out: "f( a, b, )" reads "f(a, b)"
+ * however wide the line was that prettier wrapped.
+ */
+function tight(text: string): string {
+  return text
+    .replace(/,\s*\)/g, ")")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")");
+}
+
 interface EpisodePage {
   name: string;
   pagePath: string;
@@ -70,6 +82,14 @@ interface EpisodePage {
   memberSelect: string;
   memberRow: string;
   startedAt: string;
+  // The episode's own model, which the What happened card edits.
+  episodeModel: string;
+  // The first tile of the stat bar.
+  startLabel: string;
+  // The owners the header names, and where its Add owners goes.
+  ownerUserModel: string;
+  ownerTeamModel: string;
+  ownersPage: string;
 }
 
 const EPISODE_PAGES: Array<EpisodePage> = [
@@ -96,6 +116,11 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     memberRow: "getIncidentEpisodeMemberRow",
     startedAt:
       "startedAt: episode?.declaredAt || episode?.createdAt || undefined",
+    episodeModel: "IncidentEpisode",
+    startLabel: "Declared",
+    ownerUserModel: "IncidentEpisodeOwnerUser",
+    ownerTeamModel: "IncidentEpisodeOwnerTeam",
+    ownersPage: "PageMap.INCIDENT_EPISODE_VIEW_OWNERS",
   },
   {
     name: "Alert episode",
@@ -117,6 +142,11 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     memberSelect: "ALERT_EPISODE_MEMBER_SELECT",
     memberRow: "getAlertEpisodeMemberRow",
     startedAt: "startedAt: episode?.createdAt || undefined",
+    episodeModel: "AlertEpisode",
+    startLabel: "Created",
+    ownerUserModel: "AlertEpisodeOwnerUser",
+    ownerTeamModel: "AlertEpisodeOwnerTeam",
+    ownersPage: "PageMap.ALERT_EPISODE_VIEW_OWNERS",
   },
 ];
 
@@ -215,11 +245,32 @@ describe("episode overview layout", () => {
       expect(source).toContain(
         'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.resolvedStateName, })}',
       );
-      expect(source).toContain('label="Duration"');
       expect(source).toContain(`label="${page.countLabel}"`);
-      expect(source).toContain(
-        "<LiveDuration startDate={timing.durationStartsAt} endDate={timing.durationEndsAt} />",
+
+      /*
+       * The bar opens on when the episode started and who opened it; how
+       * long it has lasted is the header's alone, beside its state.
+       */
+      const startTile: string = tight(
+        source.slice(
+          indexOfOrFail(source, "<EventStatTile"),
+          indexOfOrFail(
+            source,
+            'label={translator.translateTemplate("{{stateName}} in", { stateName: timing.acknowledgedStateName',
+          ),
+        ),
       );
+
+      expect(startTile).toContain(`label="${page.startLabel}"`);
+      expect(startTile).toContain("icon={IconProp.Calendar}");
+      expect(startTile).toContain(
+        'timing.durationStartsAt ? getEventStartTileText(timing.durationStartsAt) : "-"',
+      );
+      expect(startTile).toContain(
+        "description={getEventStartedByText({ user: episode?.createdByUser, isCreatedAutomatically: !episode?.createdByUser, }, translator)}",
+      );
+      expect(source).not.toContain('label="Duration"');
+      expect(source).not.toContain("<LiveDuration");
 
       // The legacy fixed-width row is gone.
       expect(source).not.toContain("InfoCard");
@@ -237,6 +288,10 @@ describe("episode overview layout", () => {
         source,
         '<div className="min-w-0 xl:col-span-2">',
       );
+      const whatHappened: number = indexOfOrFail(
+        source,
+        `<EventWhatHappenedCard<${page.episodeModel}>`,
+      );
       const members: number = indexOfOrFail(
         source,
         `<EpisodeMembersCard<${page.memberModel}, ${page.membershipModel}>`,
@@ -252,7 +307,9 @@ describe("episode overview layout", () => {
       );
       const details: number = indexOfOrFail(source, "<CardModelDetail<");
 
-      expect(leftColumn).toBeLessThan(members);
+      // What happened leads, before the members it groups.
+      expect(leftColumn).toBeLessThan(whatHappened);
+      expect(whatHappened).toBeLessThan(members);
       expect(members).toBeLessThan(telemetry);
       expect(telemetry).toBeLessThan(feed);
       expect(feed).toBeLessThan(rightColumn);
@@ -344,7 +401,6 @@ describe("episode overview layout", () => {
         "Episode Severity",
         page.countLabel === "Incidents" ? "Incident Count" : "Alert Count",
         "Grouping Rule",
-        "Created By",
         "On-Call Duty Policies",
         "Created At",
         "Labels",
@@ -389,6 +445,82 @@ describe("episode overview layout", () => {
       ).toBeGreaterThan(3);
     },
   );
+
+  test.each(EPISODE_PAGES)(
+    "$name leads with what happened, read with the episode's own row",
+    (page: EpisodePage) => {
+      const source: string = readSquashed(page.pagePath);
+
+      // The page's one read of the episode carries what the card shows.
+      const read: string = source.slice(
+        indexOfOrFail(source, `modelType: ${page.episodeModel}, id: modelId,`),
+      );
+
+      for (const column of [
+        "description: true,",
+        "rootCause: true,",
+        "createdByUser: { name: true, email: true, },",
+      ]) {
+        expect(read.slice(0, 700)).toContain(column);
+      }
+
+      const card: string = source.slice(
+        indexOfOrFail(source, `<EventWhatHappenedCard<${page.episodeModel}>`),
+      );
+      const cardProps: string = card.slice(0, card.indexOf("/>"));
+
+      expect(cardProps).toContain(`modelType={${page.episodeModel}}`);
+      expect(cardProps).toContain("description={episode?.description}");
+      expect(cardProps).toContain("rootCause={episode?.rootCause}");
+      // A save reloads in place and refreshes the feed: no skeleton.
+      expect(cardProps).toContain("refreshInPlace();");
+      expect(cardProps).toContain("setContentRefreshToken(");
+    },
+  );
+
+  test.each(EPISODE_PAGES)(
+    "$name names its owners first in the header, offering Add owners while open",
+    (page: EpisodePage) => {
+      const source: string = readSquashed(page.pagePath);
+
+      expect(source).toContain(
+        `const owners: EventOwnersState = useEventOwners({ ownerUserModelType: ${page.ownerUserModel}, ownerTeamModelType: ${page.ownerTeamModel}, resourceIdField: "${page.episodeIdField}", resourceId: modelId, });`,
+      );
+
+      const ownersFact: string = source.slice(
+        indexOfOrFail(source, "getOwnersFact({ owners: owners.owners,"),
+      );
+
+      expect(ownersFact.slice(0, 300)).toContain(
+        `RouteMap[${page.ownersPage}] as Route`,
+      );
+      expect(ownersFact.slice(0, 300)).toContain(
+        "canAddOwners: !timing.isResolved,",
+      );
+      expect(source).toContain(
+        "<ChangeEpisodeState episodeId={modelId} peopleFacts={peopleFacts}",
+      );
+    },
+  );
+
+  test("only the incident episode names a commander, from its roles card", () => {
+    const incident: string = readSquashed(EPISODE_PAGES[0]!.pagePath);
+    const alert: string = readSquashed(EPISODE_PAGES[1]!.pagePath);
+
+    expect(incident).toContain(
+      "getCommanderFact({ holding: getPrimaryRoleHolding( rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined, ), onAssign: timing.isResolved ? undefined : scrollToEventRolesCard, });",
+    );
+    expect(incident).toContain(
+      'headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded}',
+    );
+    // The commander first, then the owners.
+    expect(
+      indexOfOrFail(incident, "peopleFacts.push(commanderFact);"),
+    ).toBeLessThan(indexOfOrFail(incident, "peopleFacts.push(ownersFact);"));
+
+    expect(alert).not.toContain("getCommanderFact");
+    expect(alert).not.toContain("onRolesLoaded");
+  });
 
   test("only the incident episode page has episode roles", () => {
     const incident: string = readSquashed(EPISODE_PAGES[0]!.pagePath);
@@ -452,7 +584,16 @@ describe("episode header", () => {
       );
       expect(source).not.toContain("${timing.resolvedStateName} in");
       expect(source).toContain(page.startedAt);
-      expect(source).toContain("facts={getEpisodeHeaderFacts( {");
+      // Who runs it first, then how the episode was formed.
+      expect(source).toContain(
+        "facts={[ ...(props.peopleFacts || []), ...getEpisodeHeaderFacts( {",
+      );
+      expect(source).toContain(
+        "peopleFacts?: Array<EventStatusFact> | undefined;",
+      );
+      // Who opened it is the stat bar's Declared / Created tile now.
+      expect(source).not.toContain("createdByName");
+      expect(source).not.toContain("getEpisodeCreatorName");
       expect(source).toContain(
         `memberNoun: "${page.memberModel.toLowerCase()}"`,
       );

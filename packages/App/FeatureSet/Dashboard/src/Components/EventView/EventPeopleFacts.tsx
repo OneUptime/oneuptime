@@ -80,7 +80,9 @@ const Person: FunctionComponent<PersonProps> = (
       <span aria-hidden="true" className="-my-0.5 inline-flex flex-shrink-0">
         <PeopleAvatar item={props.item} size="chip" />
       </span>
-      <span className="min-w-0 truncate">{props.item.name}</span>
+      <span data-testid="event-person-name" className="min-w-0 truncate">
+        {props.item.name}
+      </span>
     </span>
   );
 };

@@ -1,0 +1,404 @@
+import "@testing-library/jest-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  renderHook,
+  RenderHookResult,
+  waitFor,
+} from "@testing-library/react";
+import getJestMockFunction, { MockFunction } from "../../MockType";
+
+/*
+ * The owners an incident's, alert's or episode's header names: its owner
+ * teams and owner people, read for the record on screen, teams first. The
+ * page stays mounted when the reader moves to another record, so what was
+ * read for one never stands in for the next.
+ */
+
+const getListMock: MockFunction = getJestMockFunction();
+
+jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (...args: Array<unknown>) => {
+        return getListMock(...args);
+      },
+    },
+  };
+});
+
+import useEventOwners, {
+  EventOwnersState,
+  OWNER_TEAM_SELECT,
+  OWNER_USER_SELECT,
+  UseEventOwnersOptions,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/useEventOwners";
+import { getEventOwnerName } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
+import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
+import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
+import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import User from "../../../Models/DatabaseModels/User";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import Name from "../../../Types/Name";
+import ObjectID from "../../../Types/ObjectID";
+import ProjectUtil from "../../../UI/Utils/Project";
+
+const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
+const INCIDENT_ID: string = "20000000-0000-4000-8000-000000001042";
+const OTHER_INCIDENT_ID: string = "20000000-0000-4000-8000-000000001029";
+
+interface ListRequest {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+  sort: Record<string, unknown>;
+  limit: number;
+  skip: number;
+}
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
+}
+
+function createDeferred<T>(): Deferred<T> {
+  let resolve: (value: T) => void = (): void => {};
+  let reject: (reason: unknown) => void = (): void => {};
+  const promise: Promise<T> = new Promise<T>(
+    (
+      promiseResolve: (value: T) => void,
+      promiseReject: (reason: unknown) => void,
+    ) => {
+      resolve = promiseResolve;
+      reject = promiseReject;
+    },
+  );
+  return { promise, resolve, reject };
+}
+
+function userRow(name: string, id: string): IncidentOwnerUser {
+  const user: User = new User();
+  user._id = id;
+  user.name = new Name(name);
+  const row: IncidentOwnerUser = new IncidentOwnerUser();
+  row.user = user;
+  return row;
+}
+
+function teamRow(name: string, id: string): IncidentOwnerTeam {
+  const team: Team = new Team();
+  team._id = id;
+  team.name = name;
+  const row: IncidentOwnerTeam = new IncidentOwnerTeam();
+  row.team = team;
+  return row;
+}
+
+function listOf(data: Array<unknown>): {
+  data: Array<unknown>;
+  count: number;
+  skip: number;
+  limit: number;
+} {
+  return { data, count: data.length, skip: 0, limit: LIMIT_PER_PROJECT };
+}
+
+function names(state: EventOwnersState): Array<string> | undefined {
+  return state.owners?.map((owner: ResourceOwnerEntry): string => {
+    return `${owner.kind}:${getEventOwnerName(owner)}`;
+  });
+}
+
+function incidentOptions(id: string): UseEventOwnersOptions {
+  return {
+    ownerUserModelType: IncidentOwnerUser,
+    ownerTeamModelType: IncidentOwnerTeam,
+    resourceIdField: "incidentId",
+    resourceId: new ObjectID(id),
+  };
+}
+
+let projectId: ObjectID | null = new ObjectID(PROJECT_ID);
+
+beforeEach(() => {
+  projectId = new ObjectID(PROJECT_ID);
+  jest.spyOn(ProjectUtil, "getCurrentProjectId").mockImplementation(() => {
+    return projectId;
+  });
+});
+
+afterEach(() => {
+  cleanup();
+  getListMock.mockReset();
+  jest.restoreAllMocks();
+});
+
+describe("useEventOwners", () => {
+  test("reads the record's owner people and owner teams, as the Owners page does", async () => {
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+      return Promise.resolve(
+        listOf(
+          request.modelType === IncidentOwnerUser
+            ? [userRow("Sam Rivera", "80000000-0000-4000-8000-000000000002")]
+            : [teamRow("Checkout SRE", "81000000-0000-4000-8000-000000000001")],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.owners).toBeDefined();
+    });
+
+    const requests: Array<ListRequest> = getListMock.mock.calls.map(
+      (call: Array<unknown>): ListRequest => {
+        return call[0] as ListRequest;
+      },
+    );
+
+    expect(
+      requests.map((request: ListRequest) => {
+        return request.modelType;
+      }),
+    ).toEqual([IncidentOwnerUser, IncidentOwnerTeam]);
+
+    for (const request of requests) {
+      expect(String(request.query["incidentId"])).toBe(INCIDENT_ID);
+      expect(String(request.query["projectId"])).toBe(PROJECT_ID);
+      expect(request.limit).toBe(LIMIT_PER_PROJECT);
+      expect(request.skip).toBe(0);
+      expect(request.sort).toEqual({ createdAt: SortOrder.Ascending });
+    }
+
+    expect(requests[0]!.select).toEqual(OWNER_USER_SELECT);
+    expect(requests[1]!.select).toEqual(OWNER_TEAM_SELECT);
+    // A person's picture is asked for, so the avatar shows it.
+    expect(OWNER_USER_SELECT["user"]).toEqual({
+      _id: true,
+      name: true,
+      email: true,
+      profilePictureId: true,
+    });
+    expect(OWNER_TEAM_SELECT["team"]).toEqual({ _id: true, name: true });
+
+    // Teams first, though people were read first.
+    expect(names(hook.result.current)).toEqual([
+      "team:Checkout SRE",
+      "user:Sam Rivera",
+    ]);
+    expect(hook.result.current.error).toBe("");
+  });
+
+  test("an alert's owners come from the alert's own owner tables", async () => {
+    getListMock.mockImplementation(() => {
+      return Promise.resolve(listOf([]));
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: {
+          ownerUserModelType: AlertOwnerUser,
+          ownerTeamModelType: AlertOwnerTeam,
+          resourceIdField: "alertId",
+          resourceId: new ObjectID("30000000-0000-4000-8000-000000000311"),
+        },
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.owners).toEqual([]);
+    });
+
+    const requests: Array<ListRequest> = getListMock.mock.calls.map(
+      (call: Array<unknown>): ListRequest => {
+        return call[0] as ListRequest;
+      },
+    );
+
+    expect(
+      requests.map((request: ListRequest) => {
+        return [request.modelType, String(request.query["alertId"])];
+      }),
+    ).toEqual([
+      [AlertOwnerUser, "30000000-0000-4000-8000-000000000311"],
+      [AlertOwnerTeam, "30000000-0000-4000-8000-000000000311"],
+    ]);
+  });
+
+  test("says nothing until both reads are in", async () => {
+    const users: Deferred<unknown> = createDeferred<unknown>();
+    const teams: Deferred<unknown> = createDeferred<unknown>();
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      return (args[0] as ListRequest).modelType === IncidentOwnerUser
+        ? users.promise
+        : teams.promise;
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    expect(hook.result.current.owners).toBeUndefined();
+
+    await act(async () => {
+      users.resolve(listOf([userRow("Sam Rivera", "u1")]));
+    });
+
+    expect(hook.result.current.owners).toBeUndefined();
+
+    await act(async () => {
+      teams.resolve(listOf([]));
+    });
+
+    expect(names(hook.result.current)).toEqual(["user:Sam Rivera"]);
+  });
+
+  test("a read it may not make leaves the header without Owners, and says why", async () => {
+    getListMock.mockImplementation(() => {
+      return Promise.reject(
+        new Error("You do not have permission to read owners."),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(hook.result.current.error).toBe(
+        "You do not have permission to read owners.",
+      );
+    });
+
+    // Not an empty list: that would say the record has no owners.
+    expect(hook.result.current.owners).toBeUndefined();
+  });
+
+  test("a row whose person or team could not be read is left out", async () => {
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      return Promise.resolve(
+        listOf(
+          (args[0] as ListRequest).modelType === IncidentOwnerUser
+            ? [new IncidentOwnerUser(), userRow("Sam Rivera", "u1")]
+            : [new IncidentOwnerTeam()],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["user:Sam Rivera"]);
+    });
+  });
+
+  test("moving to another record forgets the previous one's owners at once, and a late answer for it is dropped", async () => {
+    const firstUsers: Deferred<unknown> = createDeferred<unknown>();
+    const firstTeams: Deferred<unknown> = createDeferred<unknown>();
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (String(request.query["incidentId"]) === INCIDENT_ID) {
+        return request.modelType === IncidentOwnerUser
+          ? firstUsers.promise
+          : firstTeams.promise;
+      }
+
+      return Promise.resolve(
+        listOf(
+          request.modelType === IncidentOwnerUser
+            ? []
+            : [teamRow("Payments", "81000000-0000-4000-8000-000000000002")],
+        ),
+      );
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    hook.rerender(incidentOptions(OTHER_INCIDENT_ID));
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["team:Payments"]);
+    });
+
+    // The first incident's reads land late: they never replace these.
+    await act(async () => {
+      firstUsers.resolve(listOf([userRow("Sam Rivera", "u1")]));
+      firstTeams.resolve(listOf([teamRow("Checkout SRE", "t1")]));
+    });
+
+    expect(names(hook.result.current)).toEqual(["team:Payments"]);
+  });
+
+  test("the previous record's owners are not shown for the next while it is read", async () => {
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (String(request.query["incidentId"]) === INCIDENT_ID) {
+        return Promise.resolve(
+          listOf(
+            request.modelType === IncidentOwnerUser
+              ? []
+              : [teamRow("Checkout SRE", "t1")],
+          ),
+        );
+      }
+
+      // The next record's reads never answer in this test.
+      return new Promise<unknown>(() => {});
+    });
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    await waitFor(() => {
+      expect(names(hook.result.current)).toEqual(["team:Checkout SRE"]);
+    });
+
+    hook.rerender(incidentOptions(OTHER_INCIDENT_ID));
+
+    expect(hook.result.current.owners).toBeUndefined();
+  });
+
+  test("reads nothing outside a project", () => {
+    projectId = null;
+
+    const hook: RenderHookResult<EventOwnersState, UseEventOwnersOptions> =
+      renderHook(useEventOwners, {
+        initialProps: incidentOptions(INCIDENT_ID),
+      });
+
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(hook.result.current.owners).toBeUndefined();
+  });
+});

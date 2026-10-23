@@ -1,14 +1,25 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import OneUptimeDate from "Common/Types/Date";
+import Timezone from "Common/Types/Timezone";
 import { EventStateTimelineDate } from "../../FeatureSet/Dashboard/src/Utils/EventDuration";
 import {
   ACKNOWLEDGED_AFTER_PAGING_TEMPLATE,
   EventResponseTimes,
   VisibleItems,
+  EVENT_STARTED_AUTOMATICALLY,
+  EVENT_STARTED_BY_TEMPLATE,
+  IMPACT_BEFORE_START_TEMPLATE,
+  NON_BREAKING_SPACE,
   getAcknowledgedAfterPagingParts,
   getAcknowledgedAfterPagingText,
   getEarliestTimelineDate,
   getEventCreatorName,
   getEventResponseTimes,
+  getEventStartTileText,
+  getEventStartedByText,
+  getImpactBeforeStartParts,
+  getImpactBeforeStartText,
+  getKnownEventCreatorName,
   getFirstTimelineDateForState,
   getFirstTimelineDateForStates,
   getTimeToStateText,
@@ -678,5 +689,267 @@ describe("the time to acknowledge after paging", () => {
         untranslated,
       ),
     ).toBe("4 minutes after paging");
+  });
+});
+
+/*
+ * The first tile of an incident's (or alert's, or episode's) stat bar: when
+ * it was declared, who or what declared it, and - when somebody recorded
+ * when customer impact began - how long impact had already gone on (the
+ * time to detect). The header says how long it has lasted; the strip reads
+ * the response left to right from here.
+ */
+describe("who or what started a record", () => {
+  test("names the probe that raised it first, then the person", () => {
+    expect(
+      getKnownEventCreatorName({
+        probe: { name: "eu-west-1 probe" },
+        user: { name: "Maya Chen" },
+      }),
+    ).toBe("eu-west-1 probe");
+    expect(getKnownEventCreatorName({ user: { name: " Maya Chen " } })).toBe(
+      "Maya Chen",
+    );
+    expect(
+      getKnownEventCreatorName({
+        user: { name: "", email: "sam@acme-commerce.example" },
+      }),
+    ).toBe("sam@acme-commerce.example");
+  });
+
+  test("knows nobody when nobody is recorded, where the old name says Unknown", () => {
+    expect(getKnownEventCreatorName({})).toBeUndefined();
+    expect(getKnownEventCreatorName({ probe: { name: "  " } })).toBeUndefined();
+    expect(getEventCreatorName({})).toBe("Unknown");
+  });
+
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  test("says by whom under the start, in the reader's words", () => {
+    expect(
+      getEventStartedByText({ probe: { name: "eu-west-1 probe" } }, ENGLISH),
+    ).toBe("by eu-west-1 probe");
+    expect(
+      getEventStartedByText({ user: { name: "Maya Chen" } }, ENGLISH),
+    ).toBe("by Maya Chen");
+
+    const german: Translator = createTranslator((text: string) => {
+      return (
+        {
+          [EVENT_STARTED_BY_TEMPLATE]: "von {{name}}",
+          [EVENT_STARTED_AUTOMATICALLY]: "Automatisch",
+        } as Record<string, string>
+      )[text];
+    }, "de");
+
+    expect(getEventStartedByText({ user: { name: "Maya Chen" } }, german)).toBe(
+      "von Maya Chen",
+    );
+    expect(
+      getEventStartedByText({ isCreatedAutomatically: true }, german),
+    ).toBe("Automatisch");
+  });
+
+  test("says Automatically for one OneUptime opened with nobody on record", () => {
+    expect(
+      getEventStartedByText({ isCreatedAutomatically: true }, ENGLISH),
+    ).toBe("Automatically");
+    // A probe on record wins: it says where it came from.
+    expect(
+      getEventStartedByText(
+        { isCreatedAutomatically: true, probe: { name: "eu-west-1 probe" } },
+        ENGLISH,
+      ),
+    ).toBe("by eu-west-1 probe");
+  });
+
+  test("says nothing, rather than by Unknown, when nothing is on record", () => {
+    expect(getEventStartedByText({}, ENGLISH)).toBeUndefined();
+    expect(
+      getEventStartedByText({ isCreatedAutomatically: false }, ENGLISH),
+    ).toBeUndefined();
+  });
+});
+
+describe("how long impact had gone on when the record started", () => {
+  const ENGLISH: Translator = createTranslator(undefined, "en");
+
+  test("counts from the recorded impact start to the declaration", () => {
+    expect(
+      getImpactBeforeStartText(
+        {
+          impactStartedAt: minutesAfterStart(0),
+          startedAt: minutesAfterStart(3),
+        },
+        ENGLISH,
+      ),
+    ).toBe("3 minutes after impact began");
+    expect(
+      getImpactBeforeStartParts({
+        impactStartedAt: minutesAfterStart(0),
+        startedAt: minutesAfterStart(3),
+      }),
+    ).toEqual([{ count: 3, unit: "minute" }]);
+  });
+
+  test("stays one short line: the two largest units, never rounded up", () => {
+    expect(
+      getImpactBeforeStartText(
+        {
+          impactStartedAt: minutesAfterStart(0),
+          startedAt: minutesAfterStart(24 * 60 + 2 * 60 + 59),
+        },
+        ENGLISH,
+      ),
+    ).toBe("1 day, 2 hours after impact began");
+  });
+
+  test("says less than a minute for a declaration within the minute", () => {
+    expect(
+      getImpactBeforeStartText(
+        {
+          impactStartedAt: minutesAfterStart(0),
+          startedAt: new Date(minutesAfterStart(0).getTime() + 25_000),
+        },
+        ENGLISH,
+      ),
+    ).toBe("less than a minute after impact began");
+  });
+
+  test("says nothing without an impact start on record, or one that began only after", () => {
+    expect(
+      getImpactBeforeStartText({ startedAt: minutesAfterStart(3) }, ENGLISH),
+    ).toBeUndefined();
+    expect(
+      getImpactBeforeStartText(
+        { impactStartedAt: minutesAfterStart(3) },
+        ENGLISH,
+      ),
+    ).toBeUndefined();
+    // Recorded as the declaration itself (the fixture's default) or later.
+    expect(
+      getImpactBeforeStartParts({
+        impactStartedAt: minutesAfterStart(3),
+        startedAt: minutesAfterStart(3),
+      }),
+    ).toBeNull();
+    expect(
+      getImpactBeforeStartParts({
+        impactStartedAt: minutesAfterStart(10),
+        startedAt: minutesAfterStart(3),
+      }),
+    ).toBeNull();
+  });
+
+  test("reads in the reader's language when the Dashboard words the sentence", () => {
+    const german: Translator = createTranslator((text: string) => {
+      return (
+        {
+          [IMPACT_BEFORE_START_TEMPLATE]:
+            "{{duration}} nach Beginn der Auswirkungen",
+        } as Record<string, string>
+      )[text];
+    }, "de");
+
+    expect(
+      getImpactBeforeStartText(
+        {
+          impactStartedAt: minutesAfterStart(0),
+          startedAt: minutesAfterStart(3),
+        },
+        german,
+      ),
+    ).toBe("3 Minuten nach Beginn der Auswirkungen");
+  });
+});
+
+describe("the start tile's time", () => {
+  const NBSP: string = NON_BREAKING_SPACE;
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+    jest.restoreAllMocks();
+  });
+
+  test("says the day and the time in the reader's zone and clock, without this year's year", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+
+    expect(
+      getEventStartTileText(
+        new Date("2026-09-14T18:01:00.000Z"),
+        new Date("2026-09-14T18:20:00.000Z"),
+      ),
+    ).toBe(`Sep${NBSP}14, 06:01${NBSP}PM${NBSP}UTC`);
+  });
+
+  test("adds the year for a record from another year", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+
+    expect(
+      getEventStartTileText(
+        new Date("2025-12-31T23:30:00.000Z"),
+        new Date("2026-01-01T00:10:00.000Z"),
+      ),
+    ).toBe(`Dec${NBSP}31${NBSP}2025, 11:30${NBSP}PM${NBSP}UTC`);
+  });
+
+  test("follows a 24-hour clock and the reader's own time zone, daylight saving included", () => {
+    OneUptimeDate.setUserTimezone("Europe/Berlin" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    expect(
+      getEventStartTileText(
+        new Date("2026-09-14T18:01:00.000Z"),
+        new Date("2026-09-14T18:20:00.000Z"),
+      ),
+    ).toBe(`Sep${NBSP}14, 20:01${NBSP}CEST`);
+    // In January the same zone is an hour ahead of UTC, not two.
+    expect(
+      getEventStartTileText(
+        new Date("2026-01-14T18:01:00.000Z"),
+        new Date("2026-01-14T18:20:00.000Z"),
+      ),
+    ).toBe(`Jan${NBSP}14, 19:01${NBSP}CET`);
+  });
+
+  test("decides this year in the reader's zone, where the year may already have turned", () => {
+    OneUptimeDate.setUserTimezone("Pacific/Auckland" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(false);
+
+    // 31 Dec 2025 in UTC, already 1 Jan 2026 in Auckland: this year there.
+    expect(
+      getEventStartTileText(
+        new Date("2025-12-31T12:00:00.000Z"),
+        new Date("2025-12-31T13:00:00.000Z"),
+      ),
+    ).toBe(`Jan${NBSP}01, 01:00${NBSP}NZDT`);
+  });
+
+  test("breaks only after the date's comma, never inside the date or the time", () => {
+    OneUptimeDate.setUserTimezone("UTC" as Timezone);
+    jest
+      .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+      .mockReturnValue(true);
+
+    const text: string = getEventStartTileText(
+      new Date("2026-09-14T18:01:00.000Z"),
+      new Date("2026-09-14T18:20:00.000Z"),
+    );
+
+    expect(text.split(" ")).toEqual([
+      `Sep${NBSP}14,`,
+      `06:01${NBSP}PM${NBSP}UTC`,
+    ]);
+    expect(NBSP).toBe(String.fromCharCode(0xa0));
   });
 });

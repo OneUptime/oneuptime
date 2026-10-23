@@ -157,6 +157,12 @@ import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
+import ProjectUtil from "../../../UI/Utils/Project";
+import AlertEpisodeOwnerTeam from "../../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "../../../Models/DatabaseModels/AlertEpisodeOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
+import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/alerts"),
@@ -343,6 +349,15 @@ const statValue: StatValueFunction = (label: string): string => {
   return (cell?.children[1]?.textContent || "").trim();
 };
 
+// Everything a stat tile says: its label, value, note and description.
+const statCellText: StatValueFunction = (label: string): string => {
+  const cell: HTMLElement | null | undefined = within(
+    screen.getByRole("group", { name: "Episode timing" }),
+  ).getByText(label).parentElement?.parentElement;
+
+  return (cell?.textContent || "").trim();
+};
+
 type ExpectNoCrashFunction = () => void;
 
 /*
@@ -498,8 +513,12 @@ describe("Alert Episode detail page: severity (issue #3374)", () => {
 
     expect(fieldValue("Episode Number")).toContain("#7");
     expect(fieldValue("Alert Count")).toEqual("0");
-    // No createdByUser on an API-created episode.
-    expect(fieldValue("Created By")).toEqual("System");
+    /*
+     * No createdByUser on an API-created episode: who opened it is said once,
+     * under when, in the stat bar's Created tile - not as a details row.
+     */
+    expect(screen.queryByText("Created By")).toBeNull();
+    expect(statCellText("Created")).toContain("Automatically");
     // An episode with no grouping rule is a manual one, not a crash.
     expect(fieldValue("Grouping Rule")).toEqual("Manual Episode");
     // The ID is no longer a field of the card: it is the card's ID line.
@@ -628,7 +647,6 @@ describe("Alert Episode overview: details column", () => {
       "Episode Severity",
       "Alert Count",
       "Grouping Rule",
-      "Created By",
       "On-Call Duty Policies",
       "Labels",
     ]);
@@ -848,10 +866,17 @@ describe("Alert Episode overview: loading and layout", () => {
       name: "Episode timing",
     });
 
+    expect(within(statBar).getByText("Created")).toBeInTheDocument();
     expect(within(statBar).getByText("Acknowledged in")).toBeInTheDocument();
     expect(within(statBar).getByText("Resolved in")).toBeInTheDocument();
-    expect(within(statBar).getByText("Duration")).toBeInTheDocument();
     expect(within(statBar).getByText("Alerts")).toBeInTheDocument();
+    // How long it has lasted is the header's: no tile says it again.
+    expect(within(statBar).queryByText("Duration")).toBeNull();
+    expect(
+      Array.from(statBar.children).map((cell: Element): string => {
+        return cell.firstElementChild?.textContent || "";
+      }),
+    ).toEqual(["Created", "Acknowledged in", "Resolved in", "Alerts"]);
     expect(statValue("Alerts")).toBe("0");
 
     await waitFor((): void => {
@@ -956,8 +981,7 @@ describe("Alert Episode overview: loading and layout", () => {
 
     expect(statValue("Triaged in")).toBe("42 minutes");
     expect(statValue("Fixed in")).toBe("2 hours, 5 minutes");
-    // Resolved now, so the duration is closed: created -> resolved.
-    expect(statValue("Duration")).toBe("2 hours, 5 minutes");
+    expect(statValue("Created")).toBe(getEventStartTileText(startedAt));
     expect(statValue("Alerts")).toBe("3");
   });
 
@@ -1052,6 +1076,101 @@ describe("Alert Episode overview: loading and layout", () => {
       screen.getByRole("group", { name: "Episode timing" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Episode Severity")).toBeInTheDocument();
+  });
+});
+
+describe("Alert Episode overview: who owns it, and what happened", () => {
+  beforeEach((): void => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+  });
+
+  test("names its owners first in the header, and no commander: alert episodes have no roles", async () => {
+    const ownerTeam: AlertEpisodeOwnerTeam = new AlertEpisodeOwnerTeam();
+    const team: Team = new Team();
+    team._id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+    team.name = "Payments";
+    ownerTeam.team = team;
+
+    getListMock.mockImplementation((...args: Array<any>) => {
+      if (args[0]?.modelType === AlertEpisodeOwnerTeam) {
+        return Promise.resolve({
+          data: [ownerTeam],
+          count: 1,
+          skip: 0,
+          limit: 1,
+        });
+      }
+
+      return Promise.resolve(emptyList());
+    });
+
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    await waitFor((): void => {
+      expect(
+        (
+          (changeStateProps.current?.["peopleFacts"] as
+            | Array<EventStatusFact>
+            | undefined) || []
+        ).map((fact: EventStatusFact): string => {
+          return fact.label;
+        }),
+      ).toEqual(["Owners"]);
+    });
+
+    const ownerReads: Array<Array<any>> = getListMock.mock.calls.filter(
+      (call: Array<any>): boolean => {
+        return (
+          call[0]?.modelType === AlertEpisodeOwnerUser ||
+          call[0]?.modelType === AlertEpisodeOwnerTeam
+        );
+      },
+    );
+
+    expect(ownerReads).toHaveLength(2);
+
+    for (const call of ownerReads) {
+      expect(call[0].query.alertEpisodeId.toString()).toBe(EPISODE_ID);
+    }
+
+    const owners: EventStatusFact = (
+      changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+    )[0]!;
+    const rendered: ReturnType<typeof render> = render(<>{owners.value}</>);
+
+    expect(rendered.container).toHaveTextContent("Payments");
+    expectNoCrash();
+  });
+
+  test("what happened leads the page, with the episode's own description and root cause", async () => {
+    const episode: AlertEpisode = buildEpisode({
+      state: buildState("Created", new Color("#4b5563")),
+    });
+    episode.description = "Five payment webhook alerts in ten minutes.";
+    episode.rootCause = "The ledger timeout was lowered to 1s.";
+    getItemMock.mockResolvedValue(episode as never);
+
+    render(<AlertEpisodeView {...pageProps} />);
+
+    const card: HTMLElement = await screen.findByTestId("what-happened");
+
+    await waitFor((): void => {
+      expect(card).toHaveTextContent(
+        "Five payment webhook alerts in ten minutes.",
+      );
+      expect(card).toHaveTextContent("The ledger timeout was lowered to 1s.");
+    });
+
+    const members: HTMLElement = await screen.findByText(
+      "Alerts in this episode",
+    );
+
+    expect(
+      card.compareDocumentPosition(members) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expectNoCrash();
   });
 });
 

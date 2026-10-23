@@ -97,13 +97,17 @@ describe("before i18next is set up, the helpers answer in English, word for word
   });
 
   test("an episode header's facts", () => {
+    /*
+     * Who opened it is said under when it started, in the stat bar's first
+     * tile; the header's own facts are how it was formed and when it grew.
+     */
     expect(
       getEpisodeHeaderFacts({ memberNoun: "alert" }).map(
         (fact: { label: string; value: unknown }): string => {
           return `${fact.label}: ${String(fact.value)}`;
         },
       ),
-    ).toEqual(["Grouping: Manual episode", "Created by: System"]);
+    ).toEqual(["Grouping: Manual episode"]);
   });
 
   test("an inventory item's empty state starts with the signal, capitalised", () => {
@@ -154,13 +158,12 @@ describe("handed the reader's translator, the helpers answer in German", () => {
       );
 
     expect(facts[0]?.value).toBe("Manuelle Episode");
-    expect(facts[1]?.value).toBe("System");
     // English keys: EventStatusPanel looks each label up where it draws it.
     expect(
       facts.map((fact: { label: string }): string => {
         return fact.label;
       }),
-    ).toEqual(["Grouping", "Created by", "Last alert added"]);
+    ).toEqual(["Grouping", "Last alert added"]);
   });
 
   test("the empty state is one German sentence with the signal and the type in it", () => {

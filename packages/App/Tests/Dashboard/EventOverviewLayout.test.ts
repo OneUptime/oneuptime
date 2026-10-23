@@ -8,9 +8,14 @@ import path from "path";
  *   - the first load shows EventOverviewSkeleton, and nothing after that ever
  *     unmounts the page again (an acknowledge, an edit or a role change
  *     refreshes it in the background);
- *   - the header carries facts and the AI summary, directly under it sits one
- *     EventStatBar, and the AI investigation leads the left column;
- *   - the right column's details card uses the compact detail style.
+ *   - the header carries facts - who runs it first: the commander and the
+ *     owners - and the AI summary; directly under it sits one EventStatBar,
+ *     read left to right as the response (started, acknowledged in, resolved
+ *     in), and the duration is the header's alone;
+ *   - What happened (the description and the root cause) leads the left
+ *     column, then the AI investigation;
+ *   - the right column opens on what the event affects, and its details
+ *     card uses the compact detail style.
  *
  * Behaviour is exercised by the RTL suites in Common/Tests/App/Dashboard
  * (EventOverviewPages.test.tsx, ChangeAlertStateAIHeader.test.tsx,
@@ -50,6 +55,18 @@ function readSource(...relativeParts: Array<string>): string {
 
 function countOccurrences(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
+}
+
+/*
+ * Squashed source with the spaces prettier puts inside a call's parentheses,
+ * and a call's trailing comma, taken out: "f( a, b, )" reads "f(a, b)"
+ * however wide the line was that prettier wrapped.
+ */
+function tight(text: string): string {
+  return text
+    .replace(/,\s*\)/g, ")")
+    .replace(/\(\s+/g, "(")
+    .replace(/\s+\)/g, ")");
 }
 
 /*
@@ -142,6 +159,20 @@ interface EventPage {
   detailsId: string;
   expectedDetailTitles: Array<string>;
   expectedFactLabels: Array<string>;
+  // The first tile of the stat bar: when it started, and by whom.
+  startLabel: string;
+  startedAt: string;
+  impactStartedAt: string;
+  startedBy: string;
+  // The model the What happened card edits.
+  model: string;
+  description: string;
+  rootCause: string;
+  // The owners the header names, and where its Add owners goes.
+  ownerUserModel: string;
+  ownerTeamModel: string;
+  ownerResourceIdField: string;
+  ownersPage: string;
 }
 
 const INCIDENT_PAGE: EventPage = {
@@ -161,9 +192,11 @@ const INCIDENT_PAGE: EventPage = {
   feedElement: "<IncidentFeedElement",
   detailsCardName: 'name="Incident Details"',
   detailsId: 'id: "model-detail-incidents"',
+  /*
+   * When it was declared, and by whom, are the stat bar's Declared tile:
+   * the card no longer says them a second time.
+   */
   expectedDetailTitles: [
-    "Declared At",
-    "Declared By",
     "On-Call Duty Policies",
     "Subscriber Notification Status",
     // The status pages the incident is limited to, beside who was notified.
@@ -172,7 +205,19 @@ const INCIDENT_PAGE: EventPage = {
     "Incident Number",
     "Incident ID",
   ],
-  expectedFactLabels: ["Declared", "Declared by"],
+  // The commander and the owners are built by the shared fact builders.
+  expectedFactLabels: [],
+  startLabel: "Declared",
+  startedAt: "incidentStartedAt",
+  impactStartedAt: "incidentImpactStartedAt",
+  startedBy: "incidentDeclaredBy",
+  model: "Incident",
+  description: "incidentDescription",
+  rootCause: "incidentRootCause",
+  ownerUserModel: "IncidentOwnerUser",
+  ownerTeamModel: "IncidentOwnerTeam",
+  ownerResourceIdField: "incidentId",
+  ownersPage: "PageMap.INCIDENT_VIEW_OWNERS",
 };
 
 const ALERT_PAGE: EventPage = {
@@ -192,9 +237,12 @@ const ALERT_PAGE: EventPage = {
   feedElement: "<AlertFeedElement",
   detailsCardName: 'name="Alert Details"',
   detailsId: 'id: "model-detail-alerts"',
+  /*
+   * Who raised it is the stat bar's Created tile. Created At stays: it is
+   * drawn on the card's ID line, as every details card's record time is.
+   */
   expectedDetailTitles: [
     "Created At",
-    "Created By",
     "Monitor",
     "Episode",
     "On-Call Duty Policies",
@@ -202,7 +250,18 @@ const ALERT_PAGE: EventPage = {
     "Alert Number",
     "Alert ID",
   ],
-  expectedFactLabels: ["Created", "Monitor", "Episode"],
+  expectedFactLabels: ["Monitor", "Episode"],
+  startLabel: "Created",
+  startedAt: "alertStartedAt",
+  impactStartedAt: "alertImpactStartedAt",
+  startedBy: "alertCreatedBy",
+  model: "Alert",
+  description: "alertDescription",
+  rootCause: "alertRootCause",
+  ownerUserModel: "AlertOwnerUser",
+  ownerTeamModel: "AlertOwnerTeam",
+  ownerResourceIdField: "alertId",
+  ownersPage: "PageMap.ALERT_VIEW_OWNERS",
 };
 
 const PAGES: Array<[string, EventPage]> = [
@@ -363,13 +422,45 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     expect(statBar).toBeLessThan(grid);
   });
 
-  test("the stat bar has three segment cells", () => {
+  test("the stat bar has three segment cells, opening on when it started", () => {
     expect(countOccurrences(page.view, 'variant="segment"')).toBe(3);
     expect(countOccurrences(page.view, "<EventStatTile")).toBe(3);
-    expect(page.view).toContain('label="Duration"');
     expect(page.view).toContain(
       `ariaLabel="${page.noun === "incident" ? "Incident" : "Alert"} response times"`,
     );
+
+    // The first tile: when it started, how long impact had gone on, by whom.
+    const startTile: string = tight(
+      page.view.slice(
+        indexOfOrFail(page.view, "<EventStatTile"),
+        indexOfOrFail(
+          page.view,
+          'label={translator.translateTemplate("{{stateName}} in"',
+        ),
+      ),
+    );
+
+    expect(startTile).toContain(`label="${page.startLabel}"`);
+    expect(startTile).toContain("icon={IconProp.Calendar}");
+    expect(startTile).toContain(
+      `${page.startedAt} ? getEventStartTileText(${page.startedAt}) : "-"`,
+    );
+    expect(startTile).toContain(
+      `note={getImpactBeforeStartText({ impactStartedAt: ${page.impactStartedAt}, startedAt: ${page.startedAt}, }, translator)}`,
+    );
+    expect(startTile).toContain(
+      `description={getEventStartedByText(${page.startedBy} || {}, translator)}`,
+    );
+  });
+
+  test("the duration is said once: the header's, beside the state", () => {
+    // No Duration tile, live or ended, a second time under the header.
+    expect(page.view).not.toContain('label="Duration"');
+    expect(page.view).not.toContain("<LiveDuration");
+    expect(page.view).not.toContain("Ended {{date}}");
+    // The header still draws it, from when the event started.
+    expect(page.view).toContain("eventStartsAt={durationStartDate}");
+    expect(page.changeState).toContain("durationStartsAt={durationStartsAt}");
   });
 
   test("response times come from the shared first-entry reading", () => {
@@ -381,8 +472,10 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     expect(page.view).not.toContain("getLastTimelineDateForState");
   });
 
-  test("the left column leads with the AI investigation", () => {
+  test("the left column leads with what happened, then the AI investigation", () => {
     const order: Array<number> = [
+      '<div className="min-w-0 xl:col-span-2">',
+      `<EventWhatHappenedCard<${page.model}>`,
       "<InvestigationPanel",
       "<TelemetryCompanionSignalTabs",
       "<MonitorSummarySnapshotCard",
@@ -401,20 +494,33 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     ).toEqual(order);
   });
 
-  test("the right column: details, then resources, then custom fields last", () => {
-    const details: number = indexOfOrFail(page.view, page.detailsCardName);
+  test("the right column opens on what it affects, then details, then custom fields last", () => {
+    const rightColumn: number = indexOfOrFail(
+      page.view,
+      '<div className="min-w-0 xl:col-span-1">',
+    );
     const resources: number = indexOfOrFail(
       page.view,
       'name="Affected Resources"',
     );
+    const videoCall: number = indexOfOrFail(page.view, "<EventVideoCallsCard");
+    const details: number = indexOfOrFail(page.view, page.detailsCardName);
     const customFields: number = indexOfOrFail(
       page.view,
       "<OverviewCustomFields",
     );
 
-    expect(details).toBeLessThan(resources);
-    expect(resources).toBeLessThan(customFields);
-    expect(indexOfOrFail(page.view, page.feedElement)).toBeLessThan(details);
+    expect(indexOfOrFail(page.view, page.feedElement)).toBeLessThan(
+      rightColumn,
+    );
+    // The first card of the column: beside what happened, what it hit.
+    expect(page.view).toContain(
+      `<div className="min-w-0 xl:col-span-1"> <CardModelDetail<${page.model}> name="Affected Resources"`,
+    );
+    expect(rightColumn).toBeLessThan(resources);
+    expect(resources).toBeLessThan(videoCall);
+    expect(videoCall).toBeLessThan(details);
+    expect(details).toBeLessThan(customFields);
   });
 
   test("both detail cards use the compact style", () => {
@@ -424,7 +530,7 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     );
   });
 
-  test("details fields: when and who first, number and id last", () => {
+  test("details fields: the facts the header and the stat bar do not say, number and id last", () => {
     /*
      * The card's field list ends where its own modelId follows it; a field
      * may pass `{ modelId: modelId }` to a route of its own before that.
@@ -453,6 +559,73 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
     }
 
     expect(page.view).toContain("onItemLoaded: (item:");
+    // When it started is the stat bar's: no Declared / Created fact.
+    expect(page.view).not.toContain('label: "Declared"');
+    expect(page.view).not.toContain('label: "Created"');
+    expect(page.view).not.toContain('label: "Declared by"');
+  });
+
+  test("who owns it sits in the header, read once for the event on screen", () => {
+    expect(page.view).toContain(
+      `const owners: EventOwnersState = useEventOwners({ ownerUserModelType: ${page.ownerUserModel}, ownerTeamModelType: ${page.ownerTeamModel}, resourceIdField: "${page.ownerResourceIdField}", resourceId: modelId, });`,
+    );
+    const ownersFact: number = indexOfOrFail(
+      page.view,
+      "const ownersFact: EventStatusFact | null = getOwnersFact({ owners: owners.owners,",
+    );
+
+    expect(page.view.slice(ownersFact, ownersFact + 400)).toContain(
+      `RouteMap[${page.ownersPage}] as Route`,
+    );
+    // Add owners is offered only while the event is open.
+    expect(page.view.slice(ownersFact, ownersFact + 400)).toMatch(
+      /canAddOwners: !(isResolved|durationEndDate),/,
+    );
+    // Owners come before the event's own facts (its monitor, its episode).
+    expect(
+      indexOfOrFail(page.view, "headerFacts.push(ownersFact);"),
+    ).toBeLessThan(indexOfOrFail(page.view, "headerFacts.push({"));
+  });
+
+  test("the What happened card shows the event's own description and root cause, and saves through the page", () => {
+    const card: string = page.view.slice(
+      indexOfOrFail(page.view, `<EventWhatHappenedCard<${page.model}>`),
+    );
+    const cardProps: string = card.slice(0, card.indexOf("/>"));
+
+    expect(cardProps).toContain(`modelType={${page.model}}`);
+    expect(cardProps).toContain("modelId={modelId}");
+    expect(cardProps).toContain(`description={${page.description}}`);
+    expect(cardProps).toContain(`rootCause={${page.rootCause}}`);
+    // A save refreshes in place - the card's text and the feed - never reloads.
+    expect(cardProps).toContain(
+      "onSaved={() => { refreshData(); refreshFeed(); }}",
+    );
+  });
+
+  test("the page reads what the card and the start tile show with its own row", () => {
+    const fetchBody: string = arrowBodyAfter(
+      page.view,
+      "const fetchData: (options: FetchDataOptions) => Promise<void> =",
+    );
+
+    for (const column of [
+      "description: true,",
+      "rootCause: true,",
+      "impactStartedAt: true,",
+      "isCreatedAutomatically: true,",
+      "createdByProbe: { name: true, },",
+      "createdByUser: { name: true, email: true, },",
+    ]) {
+      expect(fetchBody).toContain(column);
+    }
+
+    expect(fetchBody).toContain(
+      `set${page.description.charAt(0).toUpperCase()}${page.description.slice(1)}(`,
+    );
+    expect(fetchBody).toContain(
+      `set${page.rootCause.charAt(0).toUpperCase()}${page.rootCause.slice(1)}(`,
+    );
   });
 
   test("the header never flashes a full-page loader of its own", () => {
@@ -469,14 +642,54 @@ describe.each(PAGES)("%s overview layout", (_name: string, page: EventPage) => {
 });
 
 describe("incident-only layout", () => {
-  test("incident roles sit between the details card and affected resources", () => {
+  test("incident roles follow the details card, under the column's affected resources", () => {
     const view: string = INCIDENT_PAGE.view;
     const details: number = indexOfOrFail(view, 'name="Incident Details"');
     const roles: number = indexOfOrFail(view, "<IncidentMemberRoleAssignment");
     const resources: number = indexOfOrFail(view, 'name="Affected Resources"');
 
+    expect(resources).toBeLessThan(details);
     expect(details).toBeLessThan(roles);
-    expect(roles).toBeLessThan(resources);
+  });
+
+  test("the header names the commander from what the roles card reads", () => {
+    const view: string = INCIDENT_PAGE.view;
+
+    // No read of its own: the roles card reports, stamped with its incident.
+    expect(view).toContain(
+      "const onRolesLoaded: ( recordId: string, snapshot: EventRolesSnapshot, ) => void = useCallback( (recordId: string, snapshot: EventRolesSnapshot): void => { setRolesSnapshot({ subjectId: recordId, value: snapshot }); }, [], );",
+    );
+    expect(view).toContain(
+      "rolesSnapshot?.subjectId === modelIdString ? rolesSnapshot.value : undefined;",
+    );
+    expect(view).toContain(
+      '<IncidentMemberRoleAssignment incidentId={modelId} headerLayout="stacked" id={EVENT_ROLES_CARD_ID} onRolesLoaded={onRolesLoaded}',
+    );
+    expect(view).toContain(
+      "getCommanderFact({ holding: getPrimaryRoleHolding(currentRolesSnapshot), onAssign: isResolved ? undefined : scrollToEventRolesCard, });",
+    );
+    // The commander first, then the owners.
+    expect(
+      indexOfOrFail(view, "headerFacts.push(commanderFact);"),
+    ).toBeLessThan(indexOfOrFail(view, "headerFacts.push(ownersFact);"));
+    // Assign is offered while the incident is open: it is not yet resolved.
+    expect(view).toContain(
+      "const isResolved: boolean = Boolean(durationEndDate);",
+    );
+  });
+
+  test("the Affected Resources card shows the status the incident holds its monitors in", () => {
+    const resources: string = INCIDENT_PAGE.view.slice(
+      indexOfOrFail(INCIDENT_PAGE.view, 'name="Affected Resources"'),
+      indexOfOrFail(INCIDENT_PAGE.view, "<EventVideoCallsCard"),
+    );
+
+    expect(resources).toContain(
+      'field: { changeMonitorStatusTo: { name: true, color: true, }, }, title: "Change Monitor Status to", fieldType: FieldType.Entity, showIf: (item: Incident): boolean => { return (item.monitors || []).length > 0; },',
+    );
+    expect(resources).toContain(
+      "<ChangeMonitorStatusToElement monitorStatus={item.changeMonitorStatusTo} />",
+    );
   });
 
   test("a role change only refreshes the feed", () => {
@@ -535,12 +748,8 @@ describe("incident-only layout", () => {
     expect(INCIDENT_PAGE.view).toContain(
       "affectedMonitorsState?.subjectId === modelIdString",
     );
-    expect(INCIDENT_PAGE.view).toContain(
-      "setDeclaredBy({ subjectId: modelIdString, value: getEventCreatorName({",
-    );
-    expect(INCIDENT_PAGE.view).toContain(
-      "declaredBy?.subjectId === modelIdString",
-    );
+    // Who declared it is read with the incident's own row, not a card's.
+    expect(INCIDENT_PAGE.view).not.toContain("setDeclaredBy(");
     expect(INCIDENT_PAGE.view).toContain(
       'label: affectedMonitors.length === 1 ? "Monitor" : "Monitors",',
     );

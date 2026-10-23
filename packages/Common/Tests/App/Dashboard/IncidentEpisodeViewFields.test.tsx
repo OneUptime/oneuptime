@@ -174,6 +174,17 @@ import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionUtil from "../../../UI/Utils/Permission";
 import UserUtil from "../../../UI/Utils/User";
+import ProjectUtil from "../../../UI/Utils/Project";
+import IncidentEpisodeOwnerTeam from "../../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "../../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import Team from "../../../Models/DatabaseModels/Team";
+import User from "../../../Models/DatabaseModels/User";
+import Name from "../../../Types/Name";
+import IconProp from "../../../Types/Icon/IconProp";
+import { EventStatusFact } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventStatusPanel";
+import { EventRolesSnapshot } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventPeople";
+import { getEventStartTileText } from "../../../../App/FeatureSet/Dashboard/src/Utils/EventOverview";
+import { EVENT_ROLES_CARD_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventPeopleFacts";
 
 const pageProps: PageComponentProps = {
   pageRoute: new Route("/incidents"),
@@ -360,6 +371,15 @@ const statValue: StatValueFunction = (label: string): string => {
   return (cell?.children[1]?.textContent || "").trim();
 };
 
+// Everything a stat tile says: its label, value, note and description.
+const statCellText: StatValueFunction = (label: string): string => {
+  const cell: HTMLElement | null | undefined = within(
+    screen.getByRole("group", { name: "Episode timing" }),
+  ).getByText(label).parentElement?.parentElement;
+
+  return (cell?.textContent || "").trim();
+};
+
 type ExpectNoCrashFunction = () => void;
 
 /*
@@ -516,8 +536,12 @@ describe("Incident Episode detail page: severity (issue #3374)", () => {
 
     expect(fieldValue("Episode Number")).toContain("#7");
     expect(fieldValue("Incident Count")).toEqual("0");
-    // No createdByUser on an API-created episode.
-    expect(fieldValue("Created By")).toEqual("System");
+    /*
+     * No createdByUser on an API-created episode: who opened it is said once,
+     * under when, in the stat bar's Declared tile - not as a details row.
+     */
+    expect(screen.queryByText("Created By")).toBeNull();
+    expect(statCellText("Declared")).toContain("Automatically");
     // An episode with no grouping rule is a manual one, not a crash.
     expect(fieldValue("Grouping Rule")).toEqual("Manual Episode");
     // The ID is no longer a field of the card: it is the card's ID line.
@@ -646,7 +670,6 @@ describe("Incident Episode overview: details column", () => {
       "Episode Severity",
       "Incident Count",
       "Grouping Rule",
-      "Created By",
       "On-Call Duty Policies",
       "Labels",
     ]);
@@ -869,10 +892,17 @@ describe("Incident Episode overview: loading and layout", () => {
       name: "Episode timing",
     });
 
+    expect(within(statBar).getByText("Declared")).toBeInTheDocument();
     expect(within(statBar).getByText("Acknowledged in")).toBeInTheDocument();
     expect(within(statBar).getByText("Resolved in")).toBeInTheDocument();
-    expect(within(statBar).getByText("Duration")).toBeInTheDocument();
     expect(within(statBar).getByText("Incidents")).toBeInTheDocument();
+    // How long it has lasted is the header's: no tile says it again.
+    expect(within(statBar).queryByText("Duration")).toBeNull();
+    expect(
+      Array.from(statBar.children).map((cell: Element): string => {
+        return cell.firstElementChild?.textContent || "";
+      }),
+    ).toEqual(["Declared", "Acknowledged in", "Resolved in", "Incidents"]);
     expect(statValue("Incidents")).toBe("0");
 
     await waitFor((): void => {
@@ -980,8 +1010,8 @@ describe("Incident Episode overview: loading and layout", () => {
 
     expect(statValue("Triaged in")).toBe("42 minutes");
     expect(statValue("Fixed in")).toBe("2 hours, 5 minutes");
-    // Resolved now, so the duration is closed: declared -> resolved.
-    expect(statValue("Duration")).toBe("2 hours, 5 minutes");
+    // Started when it was declared, not when the row was created.
+    expect(statValue("Declared")).toBe(getEventStartTileText(declaredAt));
     expect(statValue("Incidents")).toBe("3");
   });
 
@@ -1076,6 +1106,207 @@ describe("Incident Episode overview: loading and layout", () => {
       screen.getByRole("group", { name: "Episode timing" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Episode Severity")).toBeInTheDocument();
+  });
+});
+
+describe("Incident Episode overview: who runs it, and what happened", () => {
+  const commanderReport: (holder: string | null) => EventRolesSnapshot = (
+    holder: string | null,
+  ): EventRolesSnapshot => {
+    return {
+      roles: [
+        {
+          id: "88888888-8888-4888-8888-888888888881",
+          name: "Incident Commander",
+          isPrimaryRole: true,
+          icon: IconProp.ShieldCheck,
+        },
+      ],
+      members: holder
+        ? [
+            {
+              roleId: "88888888-8888-4888-8888-888888888881",
+              userId: "99999999-9999-4999-8999-999999999991",
+              name: holder,
+              hasProfilePicture: false,
+            },
+          ]
+        : [],
+    };
+  };
+
+  const peopleFactLabels: () => Array<string> = (): Array<string> => {
+    return (
+      (changeStateProps.current?.["peopleFacts"] as
+        | Array<EventStatusFact>
+        | undefined) || []
+    ).map((fact: EventStatusFact): string => {
+      return fact.label;
+    });
+  };
+
+  beforeEach((): void => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+  });
+
+  test("names the commander from its roles card, then its owners, teams first", async () => {
+    const ownerTeam: IncidentEpisodeOwnerTeam = new IncidentEpisodeOwnerTeam();
+    const team: Team = new Team();
+    team._id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+    team.name = "Checkout SRE";
+    ownerTeam.team = team;
+
+    const ownerUser: IncidentEpisodeOwnerUser = new IncidentEpisodeOwnerUser();
+    const user: User = new User();
+    user._id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
+    user.name = new Name("Sam Rivera");
+    ownerUser.user = user;
+
+    getListMock.mockImplementation((...args: Array<any>) => {
+      const modelType: unknown = args[0]?.modelType;
+
+      if (modelType === IncidentEpisodeOwnerUser) {
+        return Promise.resolve({
+          data: [ownerUser],
+          count: 1,
+          skip: 0,
+          limit: 1,
+        });
+      }
+
+      if (modelType === IncidentEpisodeOwnerTeam) {
+        return Promise.resolve({
+          data: [ownerTeam],
+          count: 1,
+          skip: 0,
+          limit: 1,
+        });
+      }
+
+      return Promise.resolve(emptyList());
+    });
+
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    // The episode's own owner tables, for this episode.
+    await waitFor((): void => {
+      expect(peopleFactLabels()).toEqual(["Owners"]);
+    });
+
+    const ownerReads: Array<Array<any>> = getListMock.mock.calls.filter(
+      (call: Array<any>): boolean => {
+        return (
+          call[0]?.modelType === IncidentEpisodeOwnerUser ||
+          call[0]?.modelType === IncidentEpisodeOwnerTeam
+        );
+      },
+    );
+
+    expect(ownerReads).toHaveLength(2);
+
+    for (const call of ownerReads) {
+      expect(call[0].query.incidentEpisodeId.toString()).toBe(EPISODE_ID);
+    }
+
+    // The roles card is where Assign goes, and reports who holds what.
+    expect(rolesProps.current?.["id"]).toBe(EVENT_ROLES_CARD_ID);
+
+    act((): void => {
+      rolesProps.current!["onRolesLoaded"](
+        EPISODE_ID,
+        commanderReport("Maya Chen"),
+      );
+    });
+
+    expect(peopleFactLabels()).toEqual(["Incident Commander", "Owners"]);
+
+    const owners: EventStatusFact = (
+      changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+    )[1]!;
+    const rendered: ReturnType<typeof render> = render(<>{owners.value}</>);
+
+    expect(
+      within(rendered.container)
+        .getAllByTestId("event-person-name")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["Checkout SRE", "Sam Rivera"]);
+    expectNoCrash();
+  });
+
+  test("an open episode with nobody in command offers Assign", async () => {
+    await renderPage({ state: buildState("Created", new Color("#4b5563")) });
+
+    act((): void => {
+      rolesProps.current!["onRolesLoaded"](EPISODE_ID, commanderReport(null));
+    });
+
+    const commander: EventStatusFact = (
+      changeStateProps.current!["peopleFacts"] as Array<EventStatusFact>
+    )[0]!;
+
+    expect(commander.label).toBe("Incident Commander");
+
+    const rendered: ReturnType<typeof render> = render(<>{commander.value}</>);
+
+    expect(
+      within(rendered.container).getByText("Not assigned"),
+    ).toBeInTheDocument();
+    expect(
+      within(rendered.container).getByRole("button", {
+        name: "Assign Incident Commander",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  test("what happened leads the page, with the episode's own description and root cause", async () => {
+    const episode: IncidentEpisode = buildEpisode({
+      state: buildState("Created", new Color("#4b5563")),
+    });
+    episode.description = "Four checkout incidents within 30 minutes.";
+    episode.rootCause = "The orders-db pool was exhausted.";
+    getItemMock.mockResolvedValue(episode as never);
+
+    render(<IncidentEpisodeView {...pageProps} />);
+
+    const card: HTMLElement = await screen.findByTestId("what-happened");
+
+    await waitFor((): void => {
+      expect(card).toHaveTextContent(
+        "Four checkout incidents within 30 minutes.",
+      );
+      expect(card).toHaveTextContent("The orders-db pool was exhausted.");
+    });
+
+    // Before the incidents it holds.
+    const members: HTMLElement = await screen.findByText(
+      "Incidents in this episode",
+    );
+
+    expect(
+      card.compareDocumentPosition(members) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // The page's one read of the episode asked for them.
+    const select: Record<string, unknown> = getItemMock.mock.calls
+      .map((call: Array<any>) => {
+        return call[0]?.select as Record<string, unknown>;
+      })
+      .find((value: Record<string, unknown> | undefined) => {
+        return Boolean(value && "incidentCount" in value);
+      })!;
+
+    expect(select).toEqual(
+      expect.objectContaining({
+        description: true,
+        rootCause: true,
+        createdByUser: { name: true, email: true },
+      }),
+    );
+    expectNoCrash();
   });
 });
 
