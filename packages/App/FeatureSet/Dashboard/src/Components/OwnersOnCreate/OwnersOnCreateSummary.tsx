@@ -95,7 +95,7 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
       )}
 
       {isLoading ? (
-        <p
+        <div
           role="status"
           aria-busy="true"
           className="flex items-center gap-2 text-sm text-gray-500"
@@ -106,7 +106,7 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
             className="h-4 w-4 shrink-0 animate-spin"
           />
           <span>{translator.translateText(OWNER_RULES_CHECKING)}</span>
-        </p>
+        </div>
       ) : (
         <></>
       )}
@@ -138,8 +138,7 @@ const OwnersOnCreateSummary: FunctionComponent<OwnersOnCreateSummaryProps> = (
                   data-rule-id={rule.ruleId}
                 >
                   <span
-                    className="min-w-0 truncate text-sm text-gray-600 sm:w-48 sm:shrink-0"
-                    title={rule.ruleName}
+                    className="min-w-0 break-words text-sm text-gray-600 sm:w-56 sm:shrink-0"
                     data-testid="owner-rule-preview-rule-name"
                   >
                     {rule.ruleName ||
