@@ -8,6 +8,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import useBulkSwitchActions from "Common/UI/Components/BulkUpdate/BulkSwitchActions";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
@@ -134,6 +136,16 @@ const getPipelineRoute: GetPipelineRouteFunction = (
 const LogPipelines: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * Enable and Disable in Bulk Actions: a disabled pipeline no longer
+   * transforms new logs. The list selects isEnabled for its Enabled column.
+   */
+  const switchBulkActions: Array<BulkActionButtonSchema<LogPipeline>> =
+    useBulkSwitchActions<LogPipeline>({
+      modelType: LogPipeline,
+      column: "isEnabled",
+    });
+
   return (
     <ModelTable<LogPipeline>
       modelType={LogPipeline}
@@ -147,6 +159,12 @@ const LogPipelines: FunctionComponent<
         tableId: "log-pipelines-table",
       }}
       isDeleteable={true}
+      bulkActions={{
+        buttons: [...switchBulkActions],
+      }}
+      selectMoreFields={{
+        isEnabled: true,
+      }}
       isEditable={false}
       isCreateable={true}
       isViewable={true}

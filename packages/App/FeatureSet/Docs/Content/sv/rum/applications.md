@@ -64,7 +64,7 @@ Etiketter grupperar applikationer i listor och filter. De avgör också vad en m
 
 | Hur | Var |
 | --- | --- |
-| Manuellt | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. |
+| Manuellt | I formuläret för att skapa, under **Fler fält**, eller senare med **Redigera detaljer** på kortet **Applikationsdetaljer** på applikationens sida **Inställningar**. För flera på en gång markerar du dem i listan och väljer **Add Labels** under **Massåtgärder**. |
 | Från telemetri | Ett resursattribut med namnet `oneuptime.label.<name>` lägger till etiketten `<name>:<value>`, som visas nedan. |
 | Från en etikettregel | En regel lägger till etiketter på varje ny applikation som matchar den. Se [Etikettregler och ägarregler](#etikettregler-och-ägarregler). |
 
@@ -93,7 +93,7 @@ Regler körs när en applikation skapas, även när den har upptäckts. För att
 
 ### Ägare
 
-Ägare är de personer och team som ansvarar för en applikation. Ägarna till en RUM-applikation kommer från ägarregler: instrumentpanelen har ingen sida för att lägga till dem manuellt, och API:t lägger till dem via `/rum-application-owner-user` och `/rum-application-owner-team`. Med **Avisera ägare** påslaget, vilket är standard, aviseras varje ägare som en regel lägger till. Stäng av det innan du kör en regel på många applikationer om ingen ska aviseras.
+Ägare är de personer och team som ansvarar för en applikation. Ägarregler lägger till dem på nya applikationer. För att lägga till eller ta bort dem manuellt markerar du applikationer i listan och väljer **Add Owner** eller **Remove Owner** under **Massåtgärder**; API:t lägger till dem via `/rum-application-owner-user` och `/rum-application-owner-team`. Med **Avisera ägare** påslaget, vilket är standard, aviseras varje ägare som en regel lägger till. Stäng av det innan du kör en regel på många applikationer om ingen ska aviseras.
 
 ## Lagring
 

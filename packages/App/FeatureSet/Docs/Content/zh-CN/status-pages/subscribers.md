@@ -176,7 +176,7 @@ Slack、Microsoft Teams 和 Webhook 订阅者会跳过这一步，你的团队�
 
 支撑这一切的端点是 `POST .../subscribe/:statusPageId`、`POST .../manage-subscription/:statusPageId`、`POST .../get-subscription/:statusPageId/:subscriberId/:token`、`PUT .../update-subscription/:statusPageId/:subscriberId/:token`，以及 `GET` 和 `POST .../unsubscribe/:statusPageId/:subscriberId/:token`。取消订阅的 `GET` 只描述链接。`POST` 无论请求体是什么都会取消订阅，包括一键取消订阅请求的 `List-Unsubscribe=One-Click` 请求体。每个接受令牌的端点，对于缺失或错误的令牌、已删除的订阅者和另一个状态页的订阅者，给出的回答都相同，所以任何一个都无法用来查出谁订阅了。
 
-取消订阅是翻转一个标志，而不是删除一行，所以记录会以设置了 **已取消订阅** 的状态留在渠道列表中，这在你之后需要解释某个地址为什么不再收到邮件时很有用。无论是谁取消了订阅（订阅者通过链接或 **更新订阅** 页面，或者队友在仪表板上或通过 API），它还会记录 **取消订阅于**（`unsubscribedAt`）。每个订阅者列表都有一个 **取消订阅于** 列和筛选器。把订阅者的 **状态** 改回 **已订阅** 会清除它。在 OneUptime 开始记录这一点之前取消的订阅没有日期。
+取消订阅是翻转一个标志，而不是删除一行，所以记录会以设置了 **已取消订阅** 的状态留在渠道列表中，这在你之后需要解释某个地址为什么不再收到邮件时很有用。无论是谁取消了订阅（订阅者通过链接或 **更新订阅** 页面，或者队友在仪表板上或通过 API），它还会记录 **取消订阅于**（`unsubscribedAt`）。要一次取消多个订阅者的订阅，请在订阅者列表中选中它们，然后在 **批量操作** 中选择 **取消订阅**。每个订阅者列表都有一个 **取消订阅于** 列和筛选器。把订阅者的 **状态** 改回 **已订阅** 会清除它。在 OneUptime 开始记录这一点之前取消的订阅没有日期。
 
 只带订阅者 ID 的链接已经打不开任何东西。旧消息中的 **更新订阅** 链接 `{statusPageUrl}/update-subscription/{statusPageSubscriberId}` 会打开一个说明链接已过期的页面，页面上的 **获取新链接** 会进入 **订阅** 页面。很旧的消息中带有 `/api/status-page-subscriber/unsubscribe/{statusPageSubscriberId}`，它过去一打开就会取消订阅。现在它不再改变任何东西：它会进入取消订阅页面，页面会说明该链接已过时，请使用最近一条消息中的链接。
 

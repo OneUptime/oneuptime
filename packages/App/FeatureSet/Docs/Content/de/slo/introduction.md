@@ -141,7 +141,7 @@ Ein abgeschaltetes oder archiviertes SLO wird nicht ausgewertet, sein Status ble
 Die Seite **SLOs** listet jedes nicht archivierte SLO mit Status, SLI, verbleibendem Budget, Burn-Rate, Ziel, Zeitfenster, Monitoren, Beschriftungen und Eigentümern.
 
 - Die Kacheln über der Liste zählen SLOs nach Status: **Fehlerfrei**, **Gefährdet**, **Budget ausgeschöpft**, **Falsch konfiguriert**, **Pausiert** und **Deaktiviert**. Sie erscheinen, sobald es ein SLO gibt, das nicht archiviert ist. Klicken Sie auf eine Kachel, um nur diese SLOs anzuzeigen, und erneut, um wieder alle zu sehen.
-- Wählen Sie SLOs aus, um auf einmal Beschriftungen und Eigentümer hinzuzufügen oder zu entfernen, sie zu archivieren oder zu löschen.
+- Wählen Sie SLOs aus, um auf einmal Beschriftungen und Eigentümer hinzuzufügen oder zu entfernen, sie zu aktivieren oder zu deaktivieren, sie zu archivieren oder zu löschen.
 - Der Bereich **Einstellungen** des Seitenmenüs enthält **Beschriftungsregeln** und **Eigentümerregeln**, die neue SLOs beschriften und ihnen Eigentümer geben: siehe [Beschriftungs- und Eigentümerregeln](/docs/slo/label-and-owner-rules).
 - Der Bereich **Erweitert** des Seitenmenüs enthält **Archiviert**, die Liste der archivierten SLOs.
 
