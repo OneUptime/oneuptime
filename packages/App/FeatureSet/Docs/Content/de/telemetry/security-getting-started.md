@@ -74,6 +74,10 @@ Arbeitet Ihr Team bereits in einem SIEM, sendet OneUptime seine Funde auch dorth
 Ihre Rolle darf keine Erkennungsregeln, Playbooks oder die Log-Quelle hinzufügen. Wenden Sie sich an einen Project Owner, einen Project Admin oder einen Security Admin, oder lassen Sie sich von ihnen die Rolle Security Admin geben.
 :::
 
+:::details Turn on recommended konnte nicht alles einschalten
+Die Karte nennt alles, was sie nicht einschalten konnte, und warum: Ihre Rolle, Ihr Tarif oder ein Fehler bei OneUptime. Alles andere ist eingeschaltet. Beheben Sie, was sie nennt, und klicken Sie dann auf **Erneut versuchen**: Es wird nur eingeschaltet, was noch fehlt, und nichts wird doppelt hinzugefügt.
+:::
+
 :::details Der Testangriff hat keinen Fall eröffnet
 Meist ist der Fall schon offen, bevor die Schaltfläche antwortet; holt die Regel noch auf, sagt sie das, und der Fall öffnet sich innerhalb einer Minute. Sehen Sie noch einmal unter **Sicherheitsfälle** nach, und prüfen Sie unter **Erkennungen**, ob die Brute-Force-Regel eingeschaltet ist.
 :::

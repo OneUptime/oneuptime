@@ -14,6 +14,10 @@ import {
   SETUP_TEST_SOURCE_IP,
 } from "Common/Types/SecurityEvent/SecuritySetupTest";
 import {
+  TURN_ON_RECOMMENDED_REASONS,
+  TurnOnRecommendedReason,
+} from "Common/Types/SecurityEvent/TurnOnRecommended";
+import {
   GOOGLE_SECOPS_DESTINATION_DOCS_PATH,
   SecurityEventDestinationCatalog,
   SecurityEventDestinationDefinition,
@@ -104,6 +108,44 @@ describe("Get Started with Security", () => {
     expect(page).toContain(
       "It turns on three things at once: **Find security events in your logs**, the recommended detection rules, and **Enrich New Cases**",
     );
+  });
+
+  it("says what the one click does when it cannot turn everything on: names it with why, and Try again does only what is missing", () => {
+    const gettingStarted: string = flat(
+      source(`${DASHBOARD}/Components/SecurityOverview/SecurityGettingStarted.tsx`),
+    );
+    const setup: string = flat(
+      source("packages/Common/Server/Utils/SecurityEvent/SecuritySetup.ts"),
+    );
+    const troubleshooting: string = flat(section(page, "Troubleshooting"));
+
+    // The card's own button and words.
+    expect(gettingStarted).toContain('title="Try again"');
+    expect(gettingStarted).toContain(
+      '"Everything else is on. Try again turns on only what is still missing."',
+    );
+    expect(page).toContain("**Try again**");
+    expect(troubleshooting).toContain(
+      ":::details Turn on recommended could not turn everything on",
+    );
+    expect(troubleshooting).toContain("Everything else is on.");
+    expect(troubleshooting).toContain(
+      "click **Try again**: it turns on only what is still missing, and adds nothing twice.",
+    );
+
+    // The reasons it names are the ones the server answers with.
+    expect(TURN_ON_RECOMMENDED_REASONS).toEqual([
+      TurnOnRecommendedReason.NotAllowed,
+      TurnOnRecommendedReason.Plan,
+      TurnOnRecommendedReason.Refused,
+      TurnOnRecommendedReason.Failed,
+    ]);
+    expect(troubleshooting).toContain(
+      "and why: your role, your plan, or something that went wrong on OneUptime's side.",
+    );
+    // Each part on its own, the rest still done: what lets "everything else is on" be said.
+    expect(setup).toContain("this.recordProblem(");
+    expect(setup).toContain("problems: [],");
   });
 
   it("sends a dozen failed sign-ins from one documentation address, and pages nobody", () => {

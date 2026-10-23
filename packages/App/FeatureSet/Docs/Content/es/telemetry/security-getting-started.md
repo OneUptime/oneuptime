@@ -74,6 +74,10 @@ Si su equipo ya trabaja en un SIEM, OneUptime también envía allí lo que encue
 Su rol no puede añadir reglas de detección, playbooks ni el origen de registros. Pida ayuda a un Project Owner, un Project Admin o un Security Admin, o pídale que le asigne el rol Security Admin.
 :::
 
+:::details Turn on recommended no pudo activarlo todo
+La tarjeta indica cada cosa que no pudo activar y por qué: su rol, su plan o un error del lado de OneUptime. Todo lo demás está activo. Corrija lo que indica y haga clic en **Volver a intentar**: solo se activa lo que aún falta y nada se añade dos veces.
+:::
+
 :::details El ataque de prueba no abrió ningún caso
 Normalmente el caso se abre antes de que el botón responda; si la regla aún se está poniendo al día, lo indica y el caso se abre en menos de un minuto. Vuelva a mirar **Casos de seguridad** y compruebe en **Detecciones** que la regla de fuerza bruta está activada.
 :::
